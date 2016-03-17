@@ -1,4 +1,2 @@
-Kylin
+Kyligence Analytics Platform
 =====
-
-Core Repo for Kylin OLAP Engine
