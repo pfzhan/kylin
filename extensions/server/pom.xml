@@ -39,7 +39,7 @@
         <!-- Add dependencies of KAP extensions -->
         <dependency>
             <groupId>io.kyligence.kap</groupId>
-            <artifactId>sample-extension</artifactId>
+            <artifactId>kap-sample</artifactId>
             <version>0.1-SNAPSHOT</version>
         </dependency>
 
