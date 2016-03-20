@@ -19,7 +19,7 @@
 		  http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
            version="2.5">
 
-    <display-name>Kylin REST Service</display-name>
+    <display-name>KAP REST Service</display-name>
 
     <welcome-file-list>
         <welcome-file>/index.html</welcome-file>

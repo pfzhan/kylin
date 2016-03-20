@@ -2,67 +2,47 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
-    <artifactId>server-extension</artifactId>
+    <artifactId>kap-server</artifactId>
     <packaging>war</packaging>
-
-    <name>Kyligence Analytics Platform Server</name>
+    <name>KAP:Server</name>
     <url>http://kyligence.io</url>
     <description>Kyligence Analytics Platform REST Service and RPC Server.</description>
 
     <parent>
-        <groupId>io.kyligence</groupId>
+        <groupId>io.kyligence.kap</groupId>
         <artifactId>kap</artifactId>
         <version>0.1-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <properties>
-        <start-class>org.apache.kylin.odbc.Application</start-class>
-    </properties>
     <dependencies>
+        <!-- Apache Kylin -->
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-server</artifactId>
-            <version>1.5.1-SNAPSHOT</version>
+            <version>${kylin.version}</version>
             <type>war</type>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-server</artifactId>
-            <version>1.5.1-SNAPSHOT</version>
+            <version>${kylin.version}</version>
             <type>warpath</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-server</artifactId>
+            <version>${kylin.version}</version>
+            <classifier>classes</classifier>
         </dependency>
 
         <!-- Add dependencies of KAP extensions -->
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>sample-extension</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>0.1-SNAPSHOT</version>
         </dependency>
 
-        <!-- Test & Env -->
-        <dependency>
-            <groupId>org.apache.kylin</groupId>
-            <artifactId>kylin-core-common</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-            <version>1.5.1-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kylin</groupId>
-            <artifactId>kylin-storage-hbase</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-            <version>1.5.1-SNAPSHOT</version>
-        </dependency>
-
-        <!-- depends on kylin-jdbc just for running jdbc test cases in server module -->
-        <dependency>
-            <groupId>org.apache.kylin</groupId>
-            <artifactId>kylin-jdbc</artifactId>
-            <version>1.5.1-SNAPSHOT</version>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>xerces</groupId>
             <artifactId>xercesImpl</artifactId>
@@ -478,28 +458,4 @@
             </plugin>
         </plugins>
     </build>
-
-    <repositories>
-        <repository>
-            <id>spring-snapshots</id>
-            <url>http://repo.spring.io/libs-snapshot</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>mvn-adamgent</id>
-            <url>http://mvn-adamgent.googlecode.com/svn/maven/release</url>
-            <name>Adam Gent Maven Repository</name>
-        </repository>
-    </repositories>
-    <pluginRepositories>
-        <pluginRepository>
-            <id>spring-snapshots</id>
-            <url>http://repo.spring.io/libs-snapshot</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </pluginRepository>
-    </pluginRepositories>
 </project>
