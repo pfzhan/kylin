@@ -21,6 +21,9 @@ kylin_commit_sha1=`git submodule status kylin`
 kylin_commit_sha1=${kylin_commit_sha1:1:40}
 echo "${kap_commit_sha1}@KAP" > build/commit_SHA1
 echo "${kylin_commit_sha1}@ApacheKylin" >> build/commit_SHA1
+if [ -n "$BUILD_SYSTEM" ]; then
+    echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"`
+fi
 
 # Start to package
 sh build/script/download-tomcat.sh || { exit 1; }
