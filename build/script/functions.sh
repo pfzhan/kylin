@@ -21,3 +21,24 @@ function exportProjectVersions() {
         echo "Apache Kylin Version: ${kylin_version}"
     fi
 }
+
+function detectOSType() {
+    OS_TYPE="linux"
+    if [[ `uname -a` =~ "Darwin" ]];then
+        OS_TYPE="mac"
+    elif [[ `uname -a` =~ "Cygwin" ]];then
+        OS_TYPE="windows"
+    fi
+    echo $OS_TYPE
+}
+
+function calMd5() {
+    OS_TYPE=`detectOSType`
+    if [[ "$OS_TYPE" == "mac" ]]; then
+        md5 -q $1
+    elif [[ "$OS_TYPE" == "windows" ]]; then
+        md5sum $1
+    else
+        md5sum $1
+    fi
+}

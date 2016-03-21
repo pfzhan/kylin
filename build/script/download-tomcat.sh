@@ -3,6 +3,8 @@
 dir=$(dirname ${0})
 cd ${dir}/../..
 
+source build/script/functions.sh
+
 rm -rf build/tomcat
 
 tomcat_pkg_version="7.0.59"
@@ -13,7 +15,7 @@ then
     echo "no binary file found"
     wget --directory-prefix=build/ http://archive.apache.org/dist/tomcat/tomcat-7/v${tomcat_pkg_version}/bin/apache-tomcat-${tomcat_pkg_version}.tar.gz || echo "Download tomcat failed"
 else
-    if [ `md5sum apache-tomcat-${tomcat_pkg_version}.tar.gz | awk '{print $1}'` != "${tomcat_pkg_md5}" ]
+    if [ `calMd5 apache-tomcat-${tomcat_pkg_version}.tar.gz | awk '{print $1}'` != "${tomcat_pkg_md5}" ]
     then
         echo "md5 check failed"
         rm apache-tomcat-${tomcat_pkg_version}.tar.gz
