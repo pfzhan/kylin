@@ -1,11 +1,11 @@
-package io.kyligence.kap;
+package io.kyligence.kap.sample;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
 /**
- * Unit test for simple App.
+ * Unit test for simple Sample.
  */
 public class AppTest 
     extends TestCase

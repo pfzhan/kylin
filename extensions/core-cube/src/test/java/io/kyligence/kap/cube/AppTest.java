@@ -1,4 +1,4 @@
-package io.kyligence.kap;
+package io.kyligence.kap.cube;
 
 import junit.framework.Test;
 import junit.framework.TestCase;

@@ -1,4 +1,4 @@
-package io.kyligence.kap.controller;
+package io.kyligence.kap.rest.controller;
 
 import org.apache.kylin.rest.controller.BasicController;
 

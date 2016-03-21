@@ -1,4 +1,4 @@
-package io.kyligence.kap;
+package io.kyligence.kap.rest;
 
 import java.io.File;
 import java.lang.reflect.Field;

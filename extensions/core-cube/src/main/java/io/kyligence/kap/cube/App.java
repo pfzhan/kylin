@@ -1,4 +1,4 @@
-package io.kyligence.kap;
+package io.kyligence.kap.cube;
 
 /**
  * Hello world!
