@@ -92,7 +92,7 @@ public class DebugTomcat {
 
         String webBase = new File("../../webapp/app").getAbsolutePath();
         if (new File(webBase, "WEB-INF").exists() == false) {
-            throw new RuntimeException("In order to launch Kylin web app from IDE, please copy server/src/main/webapp/WEB-INF to  webapp/app/");
+            throw new RuntimeException("In order to launch Kylin web app from IDE, please run:\ncp -rf extensions/server/src/main/webapp/WEB-INF webapp/app/");
         }
 
         Tomcat tomcat = new Tomcat();
