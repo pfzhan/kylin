@@ -29,20 +29,6 @@
             <artifactId>kylin-server</artifactId>
             <version>${kylin.version}</version>
             <classifier>classes</classifier>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.kylin</groupId>
-                    <artifactId>kylin-core-cube</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.kylin</groupId>
-                    <artifactId>kylin-query</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.kylin</groupId>
-                    <artifactId>kylin-storage-hbase</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <!--Add dependencies of KAP extensions-->
@@ -370,6 +356,10 @@
                 <exclusion>
                     <groupId>javax.servlet.jsp</groupId>
                     <artifactId>jsp-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.google.protobuf</groupId>
+                    <artifactId>protobuf-java</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
