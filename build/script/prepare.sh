@@ -11,10 +11,10 @@ sh build/script/prepare_libs.sh || { exit 1; }
 cp extensions/server/target/kap-server-${kap_version}.war build/tomcat/webapps/kylin.war
 chmod 644 build/tomcat/webapps/kylin.war
 
-echo "add js css to war"
+echo "Start to add js & css to war..."
 if [ ! -d "webapp/dist" ]
 then
-    echo "error generate js files"
+    echo "Failed to generate js files!"
     exit 1
 fi
 

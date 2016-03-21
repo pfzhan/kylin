@@ -24,9 +24,9 @@ function exportProjectVersions() {
 
 function detectOSType() {
     OS_TYPE="linux"
-    if [[ `uname -a` =~ "Darwin" ]];then
+    if [[ `uname -a` =~ "Darwin" ]]; then
         OS_TYPE="mac"
-    elif [[ `uname -a` =~ "Cygwin" ]];then
+    elif [[ `uname -a` =~ "Cygwin" ]]; then
         OS_TYPE="windows"
     fi
     echo $OS_TYPE
