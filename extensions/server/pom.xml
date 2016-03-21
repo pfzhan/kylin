@@ -23,23 +23,42 @@
             <version>${kylin.version}</version>
             <type>war</type>
         </dependency>
-        <dependency>
-            <groupId>org.apache.kylin</groupId>
-            <artifactId>kylin-server</artifactId>
-            <version>${kylin.version}</version>
-            <type>warpath</type>
-        </dependency>
+
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-server</artifactId>
             <version>${kylin.version}</version>
             <classifier>classes</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.kylin</groupId>
+                    <artifactId>kylin-core-cube</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.kylin</groupId>
+                    <artifactId>kylin-query</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.kylin</groupId>
+                    <artifactId>kylin-storage-hbase</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
-        <!-- Add dependencies of KAP extensions -->
+        <!--Add dependencies of KAP extensions-->
         <dependency>
             <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-sample</artifactId>
+            <artifactId>kap-core-cube</artifactId>
+            <version>0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-query</artifactId>
+            <version>0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-storage-hbase</artifactId>
             <version>0.1-SNAPSHOT</version>
         </dependency>
 
@@ -425,25 +444,17 @@
                 <artifactId>maven-war-plugin</artifactId>
                 <version>2.1.1</version>
                 <configuration>
+                    <overlays>
+                        <overlay>
+                            <groupId>org.apache.kylin</groupId>
+                            <artifactId>kylin-server</artifactId>
+                            <excludes>
+                                <exclude>WEB-INF/lib/*.jar</exclude>
+                            </excludes>
+                        </overlay>
+                    </overlays>
                     <attachClasses>true</attachClasses>
                     <classesClassifier>classes</classesClassifier>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.appfuse.plugins</groupId>
-                <artifactId>maven-warpath-plugin</artifactId>
-                <version>2.1.0-M1</version>
-                <extensions>true</extensions>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>add-classes</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration><!-- below WEB-INF/classes -->
-                    <warpathExcludes>**/logback-test.xml</warpathExcludes>
                 </configuration>
             </plugin>
 

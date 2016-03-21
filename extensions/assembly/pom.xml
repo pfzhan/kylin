@@ -1,12 +1,12 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>kap-storage-hbase</artifactId>
+
+    <artifactId>kap-assembly</artifactId>
     <packaging>jar</packaging>
-    <name>KAP:StorageHbase</name>
+    <name>KAP:Cube</name>
     <url>http://kyligence.io</url>
-    <description>Kyligence Storage Engine on HBase</description>
+    <description>Kyligence Cube Engine</description>
 
     <parent>
         <groupId>io.kyligence.kap</groupId>
@@ -22,9 +22,10 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.kylin</groupId>
-            <artifactId>kylin-storage-hbase</artifactId>
+            <artifactId>kylin-assembly</artifactId>
             <version>${kylin.version}</version>
         </dependency>
+
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -33,13 +34,13 @@
         </dependency>
     </dependencies>
 
-
     <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>2.2</version>
+                <version>2.3</version>
+
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -47,24 +48,15 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <minimizeJar>false</minimizeJar>
                             <shadedArtifactAttached>true</shadedArtifactAttached>
-                            <shadedClassifierName>coprocessor</shadedClassifierName>
-                            <transformers>
-                                <transformer
-                                        implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-                            </transformers>
+                            <shadedClassifierName>job</shadedClassifierName>
                             <artifactSet>
-                                <includes>
-                                    <include>org.apache.kylin:kylin-core-common</include>
-                                    <include>org.apache.kylin:kylin-core-metadata</include>
-                                    <include>org.apache.kylin:kylin-core-dictionary</include>
-                                    <include>org.apache.kylin:kylin-core-cube</include>
-                                    <include>org.apache.kylin:kylin-invertedindex</include>
-                                    <include>org.apache.kylin:kylin-storage-hbase</include>
-                                    <include>com.ning:compress-lzf</include>
-                                    <include>com.n3twork.druid:extendedset</include>
-                                    <include>org.roaringbitmap:RoaringBitmap</include>
-                                </includes>
+                                <excludes>
+                                    <exclude>io.netty:*</exclude>
+                                    <exclude>org.apache.zookeeper:*</exclude>
+                                    <exclude>net.sf.ehcache:*</exclude>
+                                </excludes>
                             </artifactSet>
                             <filters>
                                 <filter>
@@ -82,5 +74,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>
