@@ -26,11 +26,6 @@
             <version>${kylin.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-storage-hbase</artifactId>
-            <version>${project.parent.version}</version>
-        </dependency>
-        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>3.8.1</version>
