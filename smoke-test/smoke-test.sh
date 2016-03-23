@@ -31,7 +31,7 @@ rm -rf ${TARGET_PATH}/*kylin*
 tar -zxvf $PKG_PATH -C ${TARGET_PATH}
 
 cd ${TARGET_PATH}/*kylin*/
-KYLIN_HOME=`pwd`
+export KYLIN_HOME=`pwd`
 cd -
 
 ${KYLIN_HOME}/bin/metastore.sh reset
