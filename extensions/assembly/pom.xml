@@ -28,6 +28,11 @@
 
         <!--KAP-->
         <dependency>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-storage-hbase</artifactId>
+            <version>${kylin.version}</version>
+        </dependency>
+        <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-storage-hbase</artifactId>
             <version>${project.parent.version}</version>
