@@ -37,8 +37,17 @@ ${KYLIN_HOME}/bin/metastore.sh reset
 ${KYLIN_HOME}/bin/sample.sh
 
 ${KYLIN_HOME}/bin/kylin.sh start
-python smoke-test/testBuildCube.py
-python smoke-test/testQuery.py
+
+cd smoke-test
+python testBuildCube.py
+if [ $? == 1 ]; then
+    exit 1
+fi
+python testQuery.py
+if [ $? == 1 ]; then
+    exit 1
+fi
+cd ..
 
 # Tear down stage
 ${KYLIN_HOME}/bin/metastore.sh clean --delete true

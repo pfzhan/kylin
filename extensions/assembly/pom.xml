@@ -1,12 +1,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <artifactId>kap-assembly</artifactId>
     <packaging>jar</packaging>
-    <name>KAP:Cube</name>
+    <name>KAP:Assembly</name>
     <url>http://kyligence.io</url>
-    <description>Kyligence Cube Engine</description>
+    <description>Kyligence Assembly</description>
 
     <parent>
         <groupId>io.kyligence.kap</groupId>
@@ -20,16 +19,32 @@
     </properties>
 
     <dependencies>
+        <!--Apache Kylin-->
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-assembly</artifactId>
             <version>${kylin.version}</version>
         </dependency>
 
+        <!--KAP-->
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-storage-hbase</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <!-- Env & Test -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>3.8.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-storage-hbase</artifactId>
+            <version>${project.parent.version}</version>
+            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
     </dependencies>
