@@ -39,14 +39,8 @@ ${KYLIN_HOME}/bin/sample.sh
 ${KYLIN_HOME}/bin/kylin.sh start
 
 cd smoke-test
-python testBuildCube.py
-if [ $? == 1 ]; then
-    exit 1
-fi
-python testQuery.py
-if [ $? == 1 ]; then
-    exit 1
-fi
+python testBuildCube.py     || { exit 1; }
+python testQuery.py         || { exit 1; }
 cd ..
 
 # Tear down stage
