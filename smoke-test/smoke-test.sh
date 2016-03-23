@@ -17,25 +17,27 @@ TARGET_PATH=$2
 cd $(dirname ${0})/..
 dir=`pwd`
 mkdir -p ${TARGET_PATH}
-rm -rf ${TARGET_PATH}/*kylin*
 
 # Setup stage
-tar -zxvf $PKG_PATH -C $TARGET_PATH
+KYLIN_PID=`cat "${TARGET_PATH}/*kylin*/pid"`
+if [ -n "${KYLIN_PID}" ]; then
+    if ps -p ${KYLIN_PID} > /dev/null; then
+        echo "Kylin is running, will be killed. (pid=${KYILN_PID})"
+        kill -9 ${KYLIN_PID}
+    fi
+fi
+
+rm -rf ${TARGET_PATH}/*kylin*
+tar -zxvf $PKG_PATH -C ${TARGET_PATH}
+
 cd ${TARGET_PATH}/*kylin*/
 KYLIN_HOME=`pwd`
 cd -
-if [ -f "${KYLIN_HOME}/pid" ]; then
-    PID=`cat ${KYLIN_HOME}/pid`
-    if ps -p $PID > /dev/null; then
-        echo "Kylin is running, will be killed. (pid=${PID})"
-        kill -9 $PID
-    fi
-fi
+
 ${KYLIN_HOME}/bin/metastore.sh reset
 
 # Test stage
 ${KYLIN_HOME}/bin/sample.sh
-
 ${KYLIN_HOME}/bin/kylin.sh start
 
 cd smoke-test
