@@ -25,8 +25,12 @@ class testBuildCube(unittest.TestCase):
         try_time = 1
         while status_code != 200 and try_time <= 3:
             print 'Submit build job, try_time = ' + str(try_time)
-            response = requests.request("PUT", url, data=payload, headers=headers)
-            status_code = response.status_code
+            try:
+                response = requests.request("PUT", url, data=payload, headers=headers)
+                status_code = response.status_code
+            except:
+                status_code = 0
+                pass
             if status_code != 200:
                 time.sleep(60)
                 try_time += 1
@@ -47,10 +51,14 @@ class testBuildCube(unittest.TestCase):
             try_time = 1
             while job_status in ('RUNNING', 'PENDING') and try_time <= 20:
                 print 'Wait for job complete, try_time = ' + str(try_time)
-                job_response = requests.request("GET", job_url, headers=headers)
-                job_info = json.loads(job_response.text)
-                job_status = job_info['job_status']
-                if job_status in ('RUNNING', 'PENDING'):
+                try:
+                    job_response = requests.request("GET", job_url, headers=headers)
+                    job_info = json.loads(job_response.text)
+                    job_status = job_info['job_status']
+                except:
+                    job_status = 'UNKNOWN'
+                    pass
+                if job_status in ('RUNNING', 'PENDING', 'UNKNOWN'):
                     time.sleep(60)
                     try_time += 1
 
