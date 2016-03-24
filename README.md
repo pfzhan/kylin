@@ -13,3 +13,6 @@ To setup development environment:
 
 3. Sync kylin module
 > git submodule update --init kylin
+
+Or you can just clone from code repository with one go:
+> git clone --recursive https://github.com/Kyligence/KAP.git
