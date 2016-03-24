@@ -92,3 +92,4 @@ webapp/app/web.xml
 
 #kylin
 kylin/
+smoke-test-*
