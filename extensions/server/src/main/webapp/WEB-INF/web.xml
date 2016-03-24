@@ -68,7 +68,7 @@
       <param-value>GET, POST, PUT, DELETE, OPTIONS</param-value>
    </init-param>     
   <init-param>
-      <param-name>cors.supportsCredentials </param-name>
+      <param-name>cors.supportsCredentials</param-name>
       <param-value>true</param-value>
    </init-param>    
 </filter>

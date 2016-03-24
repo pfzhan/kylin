@@ -12,6 +12,7 @@ import org.apache.catalina.startup.Tomcat;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.rest.util.ClasspathUtil;
 
 public class DebugTomcat {
@@ -61,11 +62,11 @@ public class DebugTomcat {
 
     private static void overrideDevJobJarLocations() {
         KylinConfig conf = KylinConfig.getInstanceFromEnv();
-        File devJobJar = findFile("../assembly/target", "kylin-assembly-.*-SNAPSHOT-job.jar");
+        File devJobJar = findFile("../assembly/target", "kap-assembly-.*-SNAPSHOT-job.jar");
         if (devJobJar != null) {
             conf.overrideMRJobJarPath(devJobJar.getAbsolutePath());
         }
-        File devCoprocessorJar = findFile("../storage-hbase/target", "kylin-storage-hbase-.*-SNAPSHOT-coprocessor.jar");
+        File devCoprocessorJar = findFile("../storage-hbase/target", "kap-storage-hbase-.*-SNAPSHOT-coprocessor.jar");
         if (devCoprocessorJar != null) {
             conf.overrideCoprocessorLocalJar(devCoprocessorJar.getAbsolutePath());
         }
