@@ -223,8 +223,8 @@
           <tr>
             <th>ID</th>
             <th style="width:200px;">Column</th>
-            <th>Dictionary</th>
-            <th>Fixed Length</th>
+            <th>Encoding</th>
+            <th>Length</th>
             <th ng-if="state.mode=='edit'"></th>
           </tr>
           </thead>
@@ -248,24 +248,24 @@
               <span ng-if="state.mode=='view'">{{rowkey_column.column}}</span>
             </td>
             <td>
-              <select ng-if="state.mode=='edit'" style="width:80px;"
-                      chosen ng-model="rowkey_column.isDictionary"
+              <select ng-if="state.mode=='edit'" style="width:180px;"
+                      chosen ng-model="rowkey_column.encoding"
                       ng-change="refreshRowKey(convertedRowkeys,$index,rowkey_column);"
-                      ng-options="dt as dt for dt in cubeConfig.dictionaries">
+                      ng-options="dt as dt for dt in store.supportedEncoding">
                 <option value=""></option>
               </select>
-              <span ng-if="state.mode=='view'">{{rowkey_column.isDictionary}}</span>
+              <span ng-if="state.mode=='view'">{{rowkey_column.encoding}}</span>
 
             </td>
             <td>
               <!--Column Length -->
               <input type="text" class="form-control" placeholder="Column Length.." ng-if="state.mode=='edit'"
                      tooltip="rowkey column length.." tooltip-trigger="focus"
-                     ng-disabled="rowkey_column.isDictionary=='true'"
+                     ng-disabled="rowkey_column.encoding=='dict'"
                      ng-change="refreshRowKey(convertedRowkeys,$index,rowkey_column);"
-                     ng-model="rowkey_column.fixedLength" class="form-control">
+                     ng-model="rowkey_column.valueLength" class="form-control">
 
-              <span ng-if="state.mode=='view'">{{rowkey_column.fixedLength}}</span>
+              <span ng-if="state.mode=='view'">{{rowkey_column.valueLength}}</span>
             </td>
 
             <td ng-if="state.mode=='edit'">

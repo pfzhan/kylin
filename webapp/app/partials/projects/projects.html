@@ -53,9 +53,9 @@
                     <i ng-show="project.showDetail" class="fa fa-chevron-circle-down blue"></i>
                     {{ project.name}}
                 </td>
-                <td>{{ project.owner}}</td>
-                <td>{{ project.description}}</td>
-                <td>{{ project.create_time_utc | utcToConfigTimeZone}}</td>
+                <td ng-click="project.showDetail=!project.showDetail;">{{ project.owner}}</td>
+                <td ng-click="project.showDetail=!project.showDetail;">{{ project.description}}</td>
+                <td ng-click="project.showDetail=!project.showDetail;">{{ project.create_time_utc | utcToConfigTimeZone}}</td>
                 <td>
                     <button class="btn btn-xs btn-info" ng-click="toEdit(project)" tooltip="Edit"
                             ng-disabled="!(userService.hasRole('ROLE_ADMIN') || hasPermission(project, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask))">
@@ -82,3 +82,4 @@
 </div>
 
 <div ng-include="'partials/projects/project_create.html'"></div>
+<div ng-include="'partials/projects/project_filter_create.html'"></div>

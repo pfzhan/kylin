@@ -160,6 +160,8 @@ KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $lo
   };
 
 
+
+
   $scope.$watch('projectModel.selectedProject', function (newValue, oldValue) {
     if (newValue != oldValue) {
       if(!$rootScope.userAction.islogout) {
@@ -265,3 +267,5 @@ var projCtrl = function ($scope, $location, $modalInstance, ProjectService, Mess
   };
 
 };
+
+

@@ -65,7 +65,7 @@ KylinApp.constant('cubeConfig', {
     topN:{name: 'Top 100', value: "topn(100)"}
   },
     dictionaries: ["true", "false"],
-
+    encodings:["dict","fixed_length","int"],
 //    cubes config
   theaditems: [
     {attr: 'name', name: 'Name'},
@@ -89,5 +89,9 @@ KylinApp.constant('cubeConfig', {
   partitionDateFormatOpt:[
     'yyyy-MM-dd',
     'yyyyMMdd'
+  ],
+  externalFilterType:[
+    'HDFS',
+    'HBASE_TABLE'
   ]
 });

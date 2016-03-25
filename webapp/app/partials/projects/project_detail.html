@@ -24,6 +24,9 @@
         <li class="{{project.visiblePage=='access'? 'active':''}}">
             <a href="" ng-click="project.visiblePage='access';listAccess(project, 'ProjectInstance');">Access</a>
         </li>
+        <li class="{{project.visiblePage=='extFilter'? 'active':''}}">
+          <a href="" ng-click="project.visiblePage='extFilter';listAccess(project, 'ProjectInstance');">External Filters</a>
+        </li>
     </ul>
 
     <div class="cube-detail" ng-if="project.visiblePage=='cubes'">
@@ -60,5 +63,49 @@
             </div>
             <div class="col-xs-1"></div>
         </div>
+    </div>
+
+    <div class="cube-detail" ng-if="project.visiblePage=='extFilter'">
+      <div class="row">
+        <div class="col-xs-1"></div>
+        <div class="col-xs-10" ng-controller="ExtFilterCtrl">
+          <div class="space-4"></div>
+          <div class="pull-right">
+            <button class="btn btn-primary btn-xs" ng-click="toCreateFilter(extFilters);" ng-if="userService.hasRole('ROLE_ADMIN') || hasPermission(project, 16)"><i
+              class="fa fa-plus"></i> Filter
+            </button>
+          </div>
+            <table  class="table table-striped table-hover" >
+              <thead>
+              <tr>
+                <th>Filter Name</th>
+                <th>Table Type</th>
+                <th>Resource Path</th>
+                <th>Description</th>
+                <th>Actions</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr ng-repeat="item in extFilters">
+                <td>{{item.name}}</td>
+                <td>{{item.filter_table_type}}</td>
+                <td>{{item.filter_resource_identifier}}</td>
+                <td>{{item.description}}</td>
+                <td>
+                  <button class="btn btn-xs btn-info" ng-click="toEditFilter(extFilters,item)" tooltip="Edit"
+                          ng-disabled="!(userService.hasRole('ROLE_ADMIN') || hasPermission(project, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask))">
+                    <i class="fa fa-pencil"></i></button>
+                  <button class="btn btn-xs btn-danger" ng-click="deleteFilter(extFilters,item,project)" tooltip="Delete"
+                          ng-disabled="!(userService.hasRole('ROLE_ADMIN') || hasPermission(project, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask))"
+                  ><i class="fa fa-trash-o"></i></button>
+
+                </td>
+              </tr>
+              </tbody>
+            </table>
+          <div class="clearfix"></div>
+          <div class="space-4"></div>        </div>
+        <div class="col-xs-1"></div>
+      </div>
     </div>
 </div>

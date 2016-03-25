@@ -19,7 +19,7 @@
 'use strict';
 
 KylinApp
-    .controller('ProjectCtrl', function ($scope, $modal, $q, ProjectService, MessageService,SweetAlert,$log,kylinConfig,projectConfig,ProjectModel) {
+    .controller('ProjectCtrl', function ($scope,ExtFilterService, $modal, $q, ProjectService, MessageService,SweetAlert,$log,kylinConfig,projectConfig,ProjectModel) {
 
         $scope.projects = [];
         $scope.loading = false;
@@ -91,6 +91,12 @@ KylinApp
                 }
             });
         }
+
+
+
+
+
+
     }
 );
 
