@@ -20,7 +20,8 @@ KylinApp.constant('modelConfig', {
 //  models config
     theaditems : [
     {attr: 'name', name: 'Name'},
-    {attr: 'factTable', name: 'Fact Table'},
-    {attr: 'date_modified', name: 'Date Modified'}
+    {attr: 'project', name: 'Project'},
+    {attr: 'fact_table', name: 'Fact Table'},
+    {attr: 'last_modified', name: 'Last Modified Time'}
      ]
     });

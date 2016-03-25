@@ -27,6 +27,11 @@ KylinApp
     $scope.modelsManager = modelsManager;
     //$scope.cubesManager = cubesManager;
 
+    $scope.queryFilter=
+    {
+      "model":null
+    };
+
     $scope.listParams = {
       cubeName: $routeParams.cubeName,
       projectName: $routeParams.projectName
@@ -58,19 +63,33 @@ KylinApp
         queryParam.cubeName = $scope.listParams.cubeName;
       }
       queryParam.projectName = $scope.projectModel.selectedProject;
+      queryParam.modelName = $scope.queryFilter.model;
 
       $scope.loading = true;
 
       return CubeList.list(queryParam).then(function (resp) {
 
         StreamingList.list().then(function(_resp){
-          angular.forEach($scope.cubeList.cubes,function(item,index){
-            var result = StreamingList.checkCubeExist(item.name);
-            if(result.exist == true){
-              item.streaming = result.streaming;
-              var kfkConfig = StreamingList.getKafkaConfig(result.streaming.name);
-              item.kfkConfig = kfkConfig;
-            }
+          angular.forEach($scope.cubeList.cubes,function(cube,index){
+            CubeDescService.query({cube_name: cube.name}, {}, function (detail) {
+              if (detail.length > 0 && detail[0].hasOwnProperty("name")) {
+                cube.detail = detail[0];
+                cube.model = modelsManager.getModel(cube.detail.model_name);
+                defer.resolve(cube.detail);
+
+              } else {
+                SweetAlert.swal('Oops...', "No cube detail info loaded.", 'error');
+              }
+            }, function (e) {
+              if (e.data && e.data.exception) {
+                var message = e.data.exception;
+                var msg = !!(message) ? message : 'Failed to take action.';
+                SweetAlert.swal('Oops...', msg, 'error');
+              } else {
+                SweetAlert.swal('Oops...', "Failed to take action.", 'error');
+              }
+            });
+
           })
         })
 
@@ -91,7 +110,6 @@ KylinApp
         CubeList.removeAll();
         $scope.reload();
       }
-
     });
     $scope.reload = function () {
       // trigger reload action in pagination directive

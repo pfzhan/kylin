@@ -27,11 +27,37 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
 
   $scope.showModels = true;
 
+  $scope.state = {
+    filterAttr: 'create_time', filterReverse: true, reverseColumn: 'create_time',
+    dimensionFilter: '', measureFilter: ''
+  };
+
+  //cubes,models,data source
+  $scope.curTab = "cubes";
+  $scope.tabs=[
+    {
+      "title":"Data Source",
+      "active":false
+    },
+    {
+      "title":"Models",
+      "active":false
+    },
+    {
+      "title":"Cubes",
+      "active":true
+    }
+  ]
+
   //tracking data loading status in /models page
   $scope.tableModel = TableModel;
 
   $scope.toggleTab = function (showModel) {
     $scope.showModels = showModel;
+  }
+
+  $scope.modelTabSelected = function(tabName){
+    $scope.curTab = tabName;
   }
 
   $scope.modelsManager = modelsManager;
@@ -140,6 +166,9 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
     });
   }
 
+  $scope.modelEdit = function (model) {
+    $location.path("models/edit/" + model.name);
+  }
 
 
   $scope.openModal = function (model) {

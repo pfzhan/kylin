@@ -792,3 +792,43 @@ input:-moz-placeholder {
 .panel-group .panel{
   overflow: auto !important;
 }
+
+.abn-tree .badge{
+  font-size:8px !important;
+}
+
+//tree-grid-directive
+table.tree-grid td{
+  word-break: break-word !important;
+}
+.tree-grid .level-3 .indented.cube-dimension:after{
+    content:'D';
+}
+.tree-grid .level-3 .indented.cube-measure:after{
+  content:'M';
+}
+.tree-grid .level-3 .indented.cube-dimension-measure:after{
+  content:'D&M';
+}
+.tree-grid .level-3 .indented.cube-pk:after{
+  content:'PK';
+}
+.tree-grid .level-3 .indented.cube-fk:after{
+  content:'FK';
+}
+.tree-grid .level-2 .indented.cube-fact:after{
+  content:'FACT';
+}
+.tree-grid .level-2 .indented.cube-lookup:after{
+  content:'LOOKUP';
+}
+//.tree-grid .level-2 .indented.cube-lookup:after{
+//  content:'inner join';
+//}
+.tree-grid .level-2 .indented.cube-lookup-inner:after{
+  content:'inner join';
+}
+
+.tree-grid .level-2 .indented.cube-lookup-left:after{
+  content:'left join';
+}

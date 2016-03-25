@@ -39,7 +39,7 @@
                         <small class="help-block" ng-show="!forms.model_info_form.model_name.$error.required&&forms.model_info_form.model_name.$invalid && (forms.model_info_form.model_name.$dirty||forms.model_info_form.$submitted)">Model name is invalid.</small>
 
 
-                        <span ng-if="state.mode=='view'">{{modelsManager.selectedModel.name}}</span>
+                        <span ng-if="state.mode=='view'">{{model.name}}</span>
                     </div>
                 </div>
             </div>
@@ -53,7 +53,7 @@
                     <div class="col-xs-12 col-sm-6">
                         <textarea ng-if="state.mode=='edit'" class="form-control box-default"
                                   name="comment" id="comment" ng-model="modelsManager.selectedModel.description"></textarea>
-                        <span ng-if="state.mode=='view'">{{modelsManager.selectedModel.description}}</span>
+                        <span ng-if="state.mode=='view'">{{model.description}}</span>
                     </div>
                 </div>
             </div>

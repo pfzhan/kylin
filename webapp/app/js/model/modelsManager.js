@@ -37,7 +37,6 @@ KylinApp.service('modelsManager',function(ModelService,CubeService,$q,AccessServ
         var modelPermission = [];
         ModelService.list(queryParam, function (_models) {
             //_this.removeAll();
-
             angular.forEach(_models, function (model, index) {
                 $log.info("Add model permission info");
                 if(model.uuid){
@@ -118,6 +117,72 @@ KylinApp.service('modelsManager',function(ModelService,CubeService,$q,AccessServ
 
         return defer.promise;
     };
+
+    this.getTableDesc = function(tableName){
+      var tags = [];
+      if(!tableName){
+        return tags;
+      }
+      for(var i =0;i<_this.models.length;i++){
+        var _model = _this.models[i];
+        if(_model.fact_table.toUpperCase()==tableName.toUpperCase()){
+          tags.push("FACT");
+          break;
+        }
+        for(var j=0;j<_model.lookups.length;j++){
+          var _lookup = _model.lookups[j];
+          if(tableName.toUpperCase() == _lookup.table.toUpperCase()){
+            tags.push("LOOKUP");
+            tags.push(_lookup.join.type.toUpperCase());
+            return tags;
+          }
+
+        }
+
+
+      }
+      return tags;
+    }
+
+    this.getColumnDesc = function(tableName, columnName){
+      if(!tableName || !columnName){
+        return tags;
+      }
+      var tags = [];
+      var upperTableName = tableName.toUpperCase();
+      var upperColumnName = columnName.toUpperCase();
+
+
+      for(var i=0;i<_this.models.length;i++){
+        var _model = _this.models[i];
+        for(var j=0;j<_model.dimensions.length;j++){
+          var _dim = _model.dimensions[j];
+          if(_dim.table.toUpperCase() == upperTableName && _dim.columns.indexOf(upperColumnName)!=-1 ){
+            tags.push("D");
+          }
+        }
+
+        if(tableName.toUpperCase() == _model.fact_table && _model.metrics.indexOf(upperColumnName)!=-1 ){
+          tags.push("M");
+        }
+
+        for(var k=0;k<_model.lookups.length;k++){
+          var _lookup = _model.lookups[k];
+          if(upperTableName == _model.fact_table.toUpperCase()){
+            if(_lookup.join.foreign_key.indexOf(upperColumnName)!=-1){
+              tags.push("FK");
+            }
+          }
+          else if(upperTableName == _lookup.table && _lookup.join.primary_key.indexOf(upperColumnName)!=-1 ){
+            tags.push("PK");
+          }
+
+        }
+
+      }
+
+      return tags;
+    }
 
 
 });

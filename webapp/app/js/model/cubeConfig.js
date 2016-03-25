@@ -69,6 +69,7 @@ KylinApp.constant('cubeConfig', {
 //    cubes config
   theaditems: [
     {attr: 'name', name: 'Name'},
+    {attr: 'detail.model_name', name: 'Model'},
     {attr: 'status', name: 'Status'},
     {attr: 'size_kb', name: 'Cube Size'},
     {attr: 'input_records_count', name: 'Source Records'},

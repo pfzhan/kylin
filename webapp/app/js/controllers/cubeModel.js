@@ -40,6 +40,7 @@ KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConf
         delete  newModel.accessEntities;
         delete  newModel.visiblePage;
         delete  newModel.cubes;
+        delete  newModel.showDetail;
 
         return angular.toJson(newModel,true);
     };

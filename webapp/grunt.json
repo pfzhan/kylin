@@ -42,6 +42,7 @@
                 "app/components/angular-toggle-switch/angular-toggle-switch.js",
                 "app/components/angular-ui-select/dist/select.js",
                 "app/components/angular-sanitize/angular-sanitize.js",
+                "app/components/angular-bootstrap-grid-tree/src/tree-grid-directive.js",
                 "tmp/js/scripts.js"
             ],
             "dest": "tmp/js/scripts.min.js"
@@ -65,6 +66,7 @@
                 "app/components/angular-bootstrap-nav-tree/dist/abn_tree.css",
                 "app/components/angular-toggle-switch/angular-toggle-switch.css",
                 "app/components/angular-ui-select/dist/select.css",
+                "app/components/angular-bootstrap-grid-tree/src/treeGrid.css",
                 "tmp/css/styles.css"
             ],
             "dest": "tmp/css/styles.min.css"

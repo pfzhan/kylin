@@ -16,48 +16,76 @@
 * limitations under the License.
 -->
 
-<div class="tree-border">
+
+<div class="row" style="margin-top:15px;">
+
+  <div class="col-xs-12 dataTables_wrapper no-footer">
     <div class="row">
-      <div class="col-xs-12" style="margin-top:10px;">
-        <!--<i class="fa fa-plus fa-2x" style="color:green;"> New</i>-->
-        <a ng-if="userService.hasRole('ROLE_MODELER')" class="dropdown-toggle" data-toggle="dropdown" href="#" aria-expanded="true">
-          <i class="fa fa-plus fa-2x" style="color:#2e8965;"> New<span class="caret"></span></i>
-          <!--<i> New </i> <span class="caret"></span>-->
-        </a>
-        <ul class="dropdown-menu">
-          <li ng-if="userService.hasRole('ROLE_MODELER')">
-            <a href="models/add"><i class="fa fa-star"></i>New Model</a>
-          </li>
-          <li ng-if="userService.hasRole('ROLE_MODELER')">
-            <a href="cubes/add"><i class="fa fa-cube"></i>New Cube</a>
-          </li>
-
-        </ul>
+      <div class="col-xs-12">
+        <div class="text-right">
+          <a class="btn btn-primary btn-sm" href="models/add"  ng-if="userService.hasRole('ROLE_MODELER')"><i class="fa fa-plus"></i> Model</a>
+        </div>
       </div>
-
     </div>
-    <div class="space-4 box-header with-border"></div>
-    <!--tree-->
-  <div>
-    <h3 class="text-info">Models</h3>
+    <table  ng-if="modelsManager.models.length>0" class="table table-striped table-bordered table-hover dataTable no-footer" style="margin-top:10px;">
+      <!--Header-->
+      <thead>
+      <tr style="cursor: pointer">
+        <th ng-repeat="theaditem in modelConfig.theaditems"
+            ng-click="state.filterAttr= theaditem.attr;state.reverseColumn=theaditem.attr;state.filterReverse=!state.filterReverse;">
+          {{theaditem.name}}
+          <i ng-if="state.reverseColumn!= theaditem.attr"
+             class="fa fa-unsorted"></i>
+          <i ng-if="state.reverseColumn== theaditem.attr && !state.filterReverse"
+             class="fa fa-sort-asc"></i>
+          <i ng-if="state.reverseColumn== theaditem.attr && state.filterReverse"
+             class="fa fa-sort-desc"></i>
+        </th>
+        <th>Actions</th>
+      </tr>
+      </thead>
+      <!--Body-->
+      <tbody ng-repeat="model in modelsManager.models| orderObjectBy:state.filterAttr:state.filterReverse">
+      <tr ng-class="{accordion:true}" style="cursor: pointer;" ng-click="model.showDetail=!model.showDetail;">
+        <td>{{model.name}}</td>
+        <td>{{model.project}}</td>
+        <td>{{model.fact_table}}</td>
+        <td>{{model.last_modified | utcToConfigTimeZone}}</td>
+        <td>
+          <div ng-click="$event.stopPropagation();" class="btn-group" ng-if="(userService.hasRole('ROLE_ADMIN') || hasPermission(model, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask))">
+            <button type="button" class="btn btn-default btn-xs dropdown-toggle"
+                    data-toggle="dropdown">
+              Action <span class="ace-icon fa fa-caret-down icon-on-right"></span>
+            </button>
+            <ul class="dropdown-menu" role="menu">
+              <li><a ng-click="modelEdit(model)">Edit</a></li>
+              <li><a ng-click="cloneModel(model)">Clone</a></li>
+              <li><a ng-click="dropModel(model)">Drop</a></li>
+
+            </ul>
+          </div>
+                  <span ng-if="!(userService.hasRole('ROLE_ADMIN') || hasPermission(cube, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask))">
+                      N/A
+                  </span>
+        </td>
+      </tr>
+      <tr ng-show="model.showDetail">
+        <td colspan="9" style="padding: 10px 30px 10px 30px;">
+          <div ng-include src="'partials/models/models_detail.html'"></div>
+        </td>
+      </tr>
+      </tbody>
+    </table>
   </div>
-    <div style="width:100%; height:{{window}}px; overflow:auto;margin-top: 20px;" class="cube_model_trees">
 
-        <ul class="list-group models-tree">
-          <li class="list-group-item" ng-repeat="model in modelsManager.models">
+  <loading  ng-if="modelsManager.loading==true" text="Loading Models..."></loading>
 
-            <div class="pull-right" showonhoverparent style="display:none;">
-              <a href="models/edit/{{model.name}}" data-placement="bottom" title="Edit Model" ng-if="(userService.hasRole('ROLE_ADMIN') || hasPermission(model, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask))"><span class="fa fa-pencil fa-lg fa-fw"></span></a>
-              <a ng-click="cloneModel(model)" title="Clone Model"  style="cursor:pointer;margin-right: 8px;" ng-if="(userService.hasRole('ROLE_ADMIN') || hasPermission(model, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask))"><span class="fa fa-copy fa-lg fa-fw"></span></a>
-              <a ng-click="dropModel(model)" title="Drop Model"  style="cursor:pointer;margin-right: 8px;" ng-if="(userService.hasRole('ROLE_ADMIN') || hasPermission(model, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask))"><span class="fa fa-trash-o fa-lg fa-fw"></span></a>
-            </div>
-            <span class="strong"><a style="cursor: pointer;word-break:break-all;" ng-click="openModal(model)">{{model.name}}</a></span>
+  <div ng-if="modelsManager.loading!=true&&modelsManager.models.length==0">
+    <div no-result text="No Model."></div>
+  </div>
 
-          </li>
-        </ul>
-      <div ng-if="modelsManager.loading==true"><i class="fa fa-2x fa-spinner fa-spin"></i> Loading..</div>
-      <div no-result ng-if="modelsManager.loading!=true&&modelsManager.models.length==0"></div>
-    </div>
 </div>
+
+
 
 <div ng-include="'partials/models/model_detail.html'"></div>

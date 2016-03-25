@@ -28,7 +28,9 @@ var Config = {
     base: '/kylin/',
     url: '/kylin/api/'
   },
-  documents: [],
+  documents: [
+    {link:'http://kyligence.io',displayName:'About us'}
+  ],
   reference_links: {
     hadoop: {name: "hadoop", link: null},
     diagnostic: {name: "diagnostic", "link": null}

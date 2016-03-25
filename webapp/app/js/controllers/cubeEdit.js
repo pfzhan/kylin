@@ -338,7 +338,6 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
               SweetAlert.swal('', 'Created the cube successfully.', 'success');
               $location.path("/models");
               //location.reload();
-
             } else {
               $scope.saveCubeRollBack();
               $scope.cubeMetaFrame.project = $scope.state.project;

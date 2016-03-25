@@ -490,4 +490,5 @@ KylinApp
         $scope.$on('elementClick.directive', function (angularEvent, event) {
             console.log('clicked.');
         });
+
     });

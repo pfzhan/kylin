@@ -20,7 +20,7 @@
     <div class="navbar navbar-default" role="navigation">
         <div class="container-fluid">
             <div class="navbar-header">
-                <a class="navbar-brand" href="query" style="padding: 2px 10px 0px 0px"><img src="image/logo.png" height="40px" width="40px"/><small> Kylin </small></a>
+                <a class="navbar-brand" ng-if="userService.isAuthorized()" href="query" style="padding: 2px 10px 0px 0px"><img src="image/logo.png" height="40px" width="40px"/></a>
             </div>
 
             <div class="navbar-collapse collapse" collapse="isCollapsed">
@@ -45,6 +45,9 @@
                     </li>
                     <li class="{{activeTab=='admin'?'purple':'green'}}" ng-if="userService.isAuthorized()">
                         <a href="admin">System</a>
+                    </li>
+                    <li style="border:0px !important;">
+                      <span class="navbar-brand" href="models"><i><b>Kyligence</b> Analytics Platform</i></span>
                     </li>
                 </ul>
                 <ul class="nav navbar-nav navbar-right">
