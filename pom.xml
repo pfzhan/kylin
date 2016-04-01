@@ -533,6 +533,7 @@
         <module>extensions/sample</module>
         <module>extensions/core-cube</module>
         <module>extensions/query</module>
+        <module>extensions/engine-mr</module>
         <module>extensions/storage-hbase</module>
         <module>extensions/server</module>
         <module>extensions/assembly</module>
