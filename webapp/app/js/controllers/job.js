@@ -40,6 +40,17 @@ KylinApp
         };
 
 
+      //cubes,models,data source
+      $scope.tabs=[
+        {
+          "title":"Jobs",
+          "active":true
+        },
+        {
+          "title": "Bad Query",
+          "active": false
+        }
+      ]
 
         // projectName from page ctrl
         $scope.state = {loading: false, refreshing: false, filterAttr: 'last_modified', filterReverse: true, reverseColumn: 'last_modified', projectName:$scope.projectModel.selectedProject};

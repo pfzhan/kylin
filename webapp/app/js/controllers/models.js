@@ -33,7 +33,6 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
   };
 
   //cubes,models,data source
-  $scope.curTab = "cubes";
   $scope.tabs=[
     {
       "title":"Data Source",
@@ -54,10 +53,6 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
 
   $scope.toggleTab = function (showModel) {
     $scope.showModels = showModel;
-  }
-
-  $scope.modelTabSelected = function(tabName){
-    $scope.curTab = tabName;
   }
 
   $scope.modelsManager = modelsManager;
