@@ -59,7 +59,7 @@
 
         <!-- Utility -->
         <log4j.version>1.2.17</log4j.version>
-        <slf4j.version>1.6.4</slf4j.version>
+        <slf4j.version>1.7.7</slf4j.version>
         <jackson.version>2.2.3</jackson.version>
         <guava.version>12.0</guava.version>
         <reflections.version>0.9.9-RC1</reflections.version>
@@ -74,6 +74,7 @@
         <apache-httpclient.version>4.5</apache-httpclient.version>
         <apache-httpcore.version>4.4.1</apache-httpcore.version>
         <roaring.version>(0.5.4,]</roaring.version>
+        <fastPFOR.version>0.0.13</fastPFOR.version>
 
         <!-- REST Service -->
         <spring.framework.version>3.1.2.RELEASE</spring.framework.version>
@@ -397,7 +398,11 @@
                 <version>${apache-httpcore.version}</version>
             </dependency>
 
-
+            <dependency>
+                <groupId>me.lemire.integercompression</groupId>
+                <artifactId>JavaFastPFOR</artifactId>
+                <version>${fastPFOR.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.roaringbitmap</groupId>
                 <artifactId>RoaringBitmap</artifactId>
