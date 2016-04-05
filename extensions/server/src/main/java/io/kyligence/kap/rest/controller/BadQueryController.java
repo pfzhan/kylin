@@ -18,11 +18,11 @@
 
 package io.kyligence.kap.rest.controller;
 
-import com.google.common.collect.Lists;
-import org.apache.kylin.common.KylinConfig;
+import java.io.IOException;
+import java.util.List;
+
 import org.apache.kylin.metadata.badquery.BadQueryEntry;
 import org.apache.kylin.metadata.badquery.BadQueryHistory;
-import org.apache.kylin.metadata.badquery.BadQueryHistoryManager;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.service.DiagnosisService;
@@ -35,10 +35,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.UUID;
-
+import com.google.common.collect.Lists;
 
 @Controller
 @RequestMapping(value = "bquery")
@@ -48,36 +45,32 @@ public class BadQueryController extends BasicController {
     @Autowired
     private DiagnosisService dgService;
 
-
     /**
-     * Get bad query file path
+     * Get bad query history
      *
      */
     @RequestMapping(value = "/{project}/sql", method = { RequestMethod.GET })
     @ResponseBody
     public List<BadQueryEntry> getBadQuerySql(@PathVariable String project) {
 
-        List<BadQueryEntry> badEntry= Lists.newArrayList();
-        BadQueryHistoryManager badQueryHistoryManager = BadQueryHistoryManager.getInstance(KylinConfig.getInstanceFromEnv());
+        List<BadQueryEntry> badEntry = Lists.newArrayList();
         try {
-            BadQueryHistory badQueryHistory = badQueryHistoryManager.getBadQueriesForProject(project);
+            BadQueryHistory badQueryHistory = dgService.getProjectBadQueryHistory(project);
             badEntry.addAll(badQueryHistory.getEntries());
         } catch (IOException e) {
             throw new InternalErrorException(e + " Caused by: " + e.getMessage(), e);
         }
 
         return badEntry;
-
     }
 
-
     /**
-     * Get bad query file path
+     * Get diagnosis information
      *
      */
     @RequestMapping(value = "/{project}/download", method = { RequestMethod.GET })
     @ResponseBody
-    public String getBadQueryFile(@PathVariable String project) {
+    public String getDiagnosisInfoFile(@PathVariable String project) {
         String filePath;
         try {
             filePath = dgService.dumpDiagnosisInfo(project);
