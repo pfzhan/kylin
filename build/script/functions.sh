@@ -13,11 +13,11 @@ function checkCommandExits() {
 
 function exportProjectVersions() {
     if [ -z "${kap_version}" ]; then
-        export kap_version=`mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -v '\['`
+        export kap_version=`mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -Ev '(^\[|Download\w+:)'`
         echo "KAP Version: ${kap_version}"
     fi
     if [ -z "${kylin_versoin}" ]; then
-        export kylin_version=`mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version -f kylin| grep -v '\['`
+        export kylin_version=`mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version -f kylin | grep -Ev '(^\[|Download\w+:)'`
         echo "Apache Kylin Version: ${kylin_version}"
     fi
 }
