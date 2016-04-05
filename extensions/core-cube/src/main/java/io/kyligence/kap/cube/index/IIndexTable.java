@@ -16,9 +16,11 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.cube.gridtable;
+package io.kyligence.kap.cube.index;
 
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
+
+import io.kyligence.kap.cube.gridtable.GTScanRanges;
 
 public interface IIndexTable {
 
