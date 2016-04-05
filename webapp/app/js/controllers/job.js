@@ -47,7 +47,7 @@ KylinApp
           "active":true
         },
         {
-          "title": "Bad Query",
+          "title": "Slow Queries",
           "active": false
         }
       ]
