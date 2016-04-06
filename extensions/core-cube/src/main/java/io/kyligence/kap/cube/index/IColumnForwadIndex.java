@@ -18,6 +18,8 @@
 
 package io.kyligence.kap.cube.index;
 
+import java.io.IOException;
+
 public interface IColumnForwadIndex {
     
     Builder rebuild();
@@ -35,6 +37,6 @@ public interface IColumnForwadIndex {
         
         int get(int row);
         
-        void close();
+        void close() throws IOException;
     }
 }

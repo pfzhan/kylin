@@ -251,7 +251,7 @@ public class FixedBitSingleValueReader implements SingleColumnSingleValueReader 
           index = startIndex + i * 4;
           result.compressed[i] = byteBuffer.getInt(index);
         } catch (Exception e) {
-          LOGGER.error("Exception while retreiving value for row:{} at index:{} numBits:{}", row,
+          LOGGER.error("Exception while retrieving value for row:{} at index:{} numBits:{}", row,
               index, numBits, e);
           throw e;
         }
