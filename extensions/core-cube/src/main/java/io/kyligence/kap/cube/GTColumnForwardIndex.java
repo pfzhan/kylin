@@ -9,11 +9,11 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.cube.index.IColumnForwadIndex;
+import io.kyligence.kap.cube.index.IColumnForwardIndex;
 import io.kyligence.kap.cube.index.pinot.FixedBitSingleValueReader;
 import io.kyligence.kap.cube.index.pinot.FixedBitSingleValueWriter;
 
-public class GTColumnForwardIndex implements IColumnForwadIndex {
+public class GTColumnForwardIndex implements IColumnForwardIndex {
     protected static final Logger logger = LoggerFactory.getLogger(GTColumnForwardIndex.class);
 
     private final String indexFile;
@@ -47,7 +47,7 @@ public class GTColumnForwardIndex implements IColumnForwadIndex {
         }
     }
 
-    private class GTColumnForwardIndexBuilder implements IColumnForwadIndex.Builder {
+    private class GTColumnForwardIndexBuilder implements IColumnForwardIndex.Builder {
         final FixedBitSingleValueWriter writer;
         int rowCounter = 0;
 
@@ -66,7 +66,7 @@ public class GTColumnForwardIndex implements IColumnForwadIndex {
         }
     }
 
-    private class GTColumnForwardIndexReader implements IColumnForwadIndex.Reader {
+    private class GTColumnForwardIndexReader implements IColumnForwardIndex.Reader {
         FixedBitSingleValueReader reader;
 
         public GTColumnForwardIndexReader() throws IOException {

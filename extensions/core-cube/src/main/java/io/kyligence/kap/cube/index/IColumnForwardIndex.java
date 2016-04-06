@@ -20,23 +20,23 @@ package io.kyligence.kap.cube.index;
 
 import java.io.IOException;
 
-public interface IColumnForwadIndex {
-    
+public interface IColumnForwardIndex {
+
     Builder rebuild();
-    
+
     Reader getReader();
 
     public interface Builder {
-        
+
         void putNextRow(int v);
-        
+
         void close();
     }
-    
+
     public interface Reader {
-        
+
         int get(int row);
-        
+
         void close() throws IOException;
     }
 }
