@@ -15,7 +15,6 @@ import io.kyligence.kap.cube.index.pinot.BitmapInvertedIndexReader;
 import io.kyligence.kap.cube.index.pinot.DimensionFieldSpec;
 import io.kyligence.kap.cube.index.pinot.FieldSpec;
 import io.kyligence.kap.cube.index.pinot.HeapBitmapInvertedIndexCreator;
-import io.kyligence.kap.cube.index.pinot.V1Constants;
 
 public class GTColumnInvertedIndex implements IColumnInvertedIndex {
     protected static final Logger logger = LoggerFactory.getLogger(GTColumnInvertedIndex.class);
@@ -23,14 +22,13 @@ public class GTColumnInvertedIndex implements IColumnInvertedIndex {
     private final CubeSegment segment;
     private final Dictionary dictionary;
     private final TblColRef tblColRef;
-    private final String indexDir;
+    private final String idxFilename;
 
-    public GTColumnInvertedIndex(CubeSegment segment, TblColRef tblColRef) {
+    public GTColumnInvertedIndex(CubeSegment segment, TblColRef tblColRef, String idxFilename) {
         this.segment = segment;
         this.tblColRef = tblColRef;
         this.dictionary = this.segment.getDictionary(tblColRef);
-        // TODO: Get index dir path from cube segment
-        this.indexDir = "";
+        this.idxFilename = idxFilename;
     }
 
     @Override
@@ -50,7 +48,7 @@ public class GTColumnInvertedIndex implements IColumnInvertedIndex {
 
         public GTColumnInvertedIndexBuilder() {
             FieldSpec spec = new DimensionFieldSpec(tblColRef.getName(), FieldSpec.DataType.INT, true);
-            bitmapIICreator = new HeapBitmapInvertedIndexCreator(new File(indexDir), dictionary.getSizeOfId(), UNNECESSARY_INT, UNNECESSARY_INT, spec);
+            bitmapIICreator = new HeapBitmapInvertedIndexCreator(new File(idxFilename), dictionary.getSize(), UNNECESSARY_INT, UNNECESSARY_INT, spec);
         }
 
         @Override
@@ -69,9 +67,9 @@ public class GTColumnInvertedIndex implements IColumnInvertedIndex {
         private BitmapInvertedIndexReader bitmapIIReader;
 
         public GTColumnInvertedIndexReader() {
-            File idxFile = new File(indexDir, tblColRef.getName() + V1Constants.Indexes.BITMAP_INVERTED_INDEX_FILE_EXTENSION);
+            File idxFile = new File(idxFilename);
             try {
-                bitmapIIReader = new BitmapInvertedIndexReader(idxFile, dictionary.getSizeOfId(), false);
+                bitmapIIReader = new BitmapInvertedIndexReader(idxFile, dictionary.getSize(), false);
             } catch (IOException e) {
                 bitmapIIReader = null;
                 e.printStackTrace();

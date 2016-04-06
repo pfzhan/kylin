@@ -16,16 +16,15 @@ import io.kyligence.kap.cube.index.pinot.FixedBitSingleValueWriter;
 public class GTColumnForwardIndex implements IColumnForwardIndex {
     protected static final Logger logger = LoggerFactory.getLogger(GTColumnForwardIndex.class);
 
-    private final String indexFile;
+    private final String idxFilename;
     private final Dictionary<String> dictionary;
     private final int fixedBitsNum;
     private final TblColRef tblColRef;
 
-    public GTColumnForwardIndex(CubeSegment segment, TblColRef tblColRef) {
+    public GTColumnForwardIndex(CubeSegment segment, TblColRef tblColRef, String idxFilename) {
         this.dictionary = segment.getDictionary(tblColRef);
         this.tblColRef = tblColRef;
-        // TODO: Get index file path from cube segment
-        this.indexFile = "";
+        this.idxFilename = idxFilename;
         this.fixedBitsNum = Integer.SIZE - Integer.numberOfLeadingZeros(dictionary.getMaxId());
     }
 
@@ -52,7 +51,7 @@ public class GTColumnForwardIndex implements IColumnForwardIndex {
         int rowCounter = 0;
 
         public GTColumnForwardIndexBuilder() throws Exception {
-            this.writer = new FixedBitSingleValueWriter(new File(indexFile), dictionary.getSizeOfId(), fixedBitsNum);
+            this.writer = new FixedBitSingleValueWriter(new File(idxFilename), fixedBitsNum);
         }
 
         @Override
@@ -70,7 +69,7 @@ public class GTColumnForwardIndex implements IColumnForwardIndex {
         FixedBitSingleValueReader reader;
 
         public GTColumnForwardIndexReader() throws IOException {
-            this.reader = FixedBitSingleValueReader.forHeap(new File(indexFile), dictionary.getSizeOfId(), fixedBitsNum);
+            this.reader = FixedBitSingleValueReader.forHeap(new File(idxFilename), /*Not used*/0, fixedBitsNum);
         }
 
         @Override

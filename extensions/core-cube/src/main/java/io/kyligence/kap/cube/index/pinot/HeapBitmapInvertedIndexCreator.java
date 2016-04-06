@@ -40,9 +40,9 @@ public class HeapBitmapInvertedIndexCreator implements InvertedIndexCreator {
   private final MutableRoaringBitmap[] invertedIndex;
   long start = 0;
 
-  public HeapBitmapInvertedIndexCreator(File indexDir, int cardinality, int numDocs, int totalNumberOfEntries, FieldSpec spec) {
+  public HeapBitmapInvertedIndexCreator(File invertedIndexFile, int cardinality, int numDocs, int totalNumberOfEntries, FieldSpec spec) {
     this.spec = spec;
-    invertedIndexFile = new File(indexDir, spec.getName() + V1Constants.Indexes.BITMAP_INVERTED_INDEX_FILE_EXTENSION);
+    this.invertedIndexFile = invertedIndexFile;
     invertedIndex = new MutableRoaringBitmap[cardinality];
     for (int i = 0; i < invertedIndex.length; ++i) {
       invertedIndex[i] = new MutableRoaringBitmap();

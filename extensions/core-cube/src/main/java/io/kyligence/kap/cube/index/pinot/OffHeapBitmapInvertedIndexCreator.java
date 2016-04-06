@@ -97,7 +97,7 @@ public class OffHeapBitmapInvertedIndexCreator implements InvertedIndexCreator {
    */
   private static int INT_SIZE = Integer.SIZE / Byte.SIZE;
 
-  public OffHeapBitmapInvertedIndexCreator(File indexDir, int cardinality, int numDocs,
+  public OffHeapBitmapInvertedIndexCreator(File invertedIndexFile, int cardinality, int numDocs,
       int totalNumberOfEntries, FieldSpec spec) {
     Preconditions.checkArgument(cardinality > 0, "Cardinality:%s must > 0", cardinality);
     Preconditions.checkArgument(numDocs > 0, "numDocs:%s must > 0", numDocs);
@@ -108,8 +108,7 @@ public class OffHeapBitmapInvertedIndexCreator implements InvertedIndexCreator {
     this.numDocs = numDocs;
     this.capacity = spec.isSingleValueField() ? numDocs : totalNumberOfEntries;
     this.spec = spec;
-    invertedIndexFile = new File(indexDir,
-        spec.getName() + V1Constants.Indexes.BITMAP_INVERTED_INDEX_FILE_EXTENSION);
+    this.invertedIndexFile = invertedIndexFile;
 
     start = System.currentTimeMillis();
 

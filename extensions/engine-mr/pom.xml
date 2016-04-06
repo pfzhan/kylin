@@ -24,7 +24,11 @@
             <artifactId>kylin-engine-mr</artifactId>
             <version>${kylin.version}</version>
         </dependency>
-
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-core-cube</artifactId>
+            <version>${parent.version}</version>
+        </dependency>
         <!-- Env & Test -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>
