@@ -38,13 +38,16 @@ KylinApp.controller('ExtFilterCtrl', function ($scope,$rootScope,$modal, ExtFilt
 
   $scope.list();
 
-  $scope.toCreateFilter = function (filters) {
+  $scope.toCreateFilter = function (targetProject,filters) {
     $modal.open({
       templateUrl: 'projectFilter.html',
       controller: filterCreateCtrl,
       resolve: {
         projects: function () {
           return null;
+        },
+        project:function(){
+          return targetProject;
         },
         extfilter: function () {
           return null;
@@ -53,13 +56,16 @@ KylinApp.controller('ExtFilterCtrl', function ($scope,$rootScope,$modal, ExtFilt
     });
   };
 
-  $scope.toEditFilter = function (filters,_filter) {
+  $scope.toEditFilter = function (targetProject,filters,_filter) {
     $modal.open({
       templateUrl: 'projectFilter.html',
       controller: filterCreateCtrl,
       resolve: {
         projects: function () {
           return null;
+        },
+        project:function(){
+          return targetProject;
         },
         extfilter: function () {
           return _filter;
@@ -107,7 +113,7 @@ KylinApp.controller('ExtFilterCtrl', function ($scope,$rootScope,$modal, ExtFilt
 
 
 
-var filterCreateCtrl = function ($scope,$rootScope,ExtFilterService,cubeConfig, $location, $modalInstance, ProjectService, MessageService, projects, extfilter, SweetAlert, ProjectModel) {
+var filterCreateCtrl = function ($scope,$rootScope,ExtFilterService,cubeConfig, $location, $modalInstance, ProjectService, MessageService, projects,project, extfilter, SweetAlert, ProjectModel) {
 
   $scope.cubeConfig = cubeConfig;
   $scope.state={
@@ -116,7 +122,7 @@ var filterCreateCtrl = function ($scope,$rootScope,ExtFilterService,cubeConfig, 
   $scope.projectFilter = {
     name:"",
     filter_resource_identifier:"",
-    filter_table_type:"",
+    filter_table_type:"HDFS",
     description:""
   }
 
@@ -126,7 +132,7 @@ var filterCreateCtrl = function ($scope,$rootScope,ExtFilterService,cubeConfig, 
   }
 
 
-  var _project = ProjectModel.selectedProject;
+  var _project = project;
 
   $scope.createOrUpdate = function () {
     var filterData = angular.toJson($scope.projectFilter,true);

@@ -71,7 +71,7 @@
         <div class="col-xs-10" ng-controller="ExtFilterCtrl">
           <div class="space-4"></div>
           <div class="pull-right">
-            <button class="btn btn-primary btn-xs" ng-click="toCreateFilter(extFilters);" ng-if="userService.hasRole('ROLE_ADMIN') || hasPermission(project, 16)"><i
+            <button class="btn btn-primary btn-xs" ng-click="toCreateFilter(project.name,extFilters);" ng-if="userService.hasRole('ROLE_ADMIN') || hasPermission(project, 16)"><i
               class="fa fa-plus"></i> Filter
             </button>
           </div>
@@ -92,7 +92,7 @@
                 <td>{{item.filter_resource_identifier}}</td>
                 <td>{{item.description}}</td>
                 <td>
-                  <button class="btn btn-xs btn-info" ng-click="toEditFilter(extFilters,item)" tooltip="Edit"
+                  <button class="btn btn-xs btn-info" ng-click="toEditFilter(project.name,extFilters,item)" tooltip="Edit"
                           ng-disabled="!(userService.hasRole('ROLE_ADMIN') || hasPermission(project, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask))">
                     <i class="fa fa-pencil"></i></button>
                   <button class="btn btn-xs btn-danger" ng-click="deleteFilter(extFilters,item,project)" tooltip="Delete"

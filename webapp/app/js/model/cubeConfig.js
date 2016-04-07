@@ -91,7 +91,6 @@ KylinApp.constant('cubeConfig', {
     'yyyyMMdd'
   ],
   externalFilterType:[
-    'HDFS',
-    'HBASE_TABLE'
+    'HDFS'
   ]
 });
