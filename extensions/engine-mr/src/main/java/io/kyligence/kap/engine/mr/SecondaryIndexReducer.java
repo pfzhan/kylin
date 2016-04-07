@@ -18,7 +18,13 @@
 
 package io.kyligence.kap.engine.mr;
 
+import io.kyligence.kap.cube.GTColumnForwardIndex;
+import io.kyligence.kap.cube.GTColumnInvertedIndex;
+import io.kyligence.kap.cube.index.IColumnForwardIndex;
+import io.kyligence.kap.cube.index.IColumnInvertedIndex;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.KylinConfig;
@@ -47,14 +53,16 @@ public class SecondaryIndexReducer extends KylinReducer<Text, Text, NullWritable
     private TblColRef col = null;
     private int colOffset;
     private int colLength;
+    private IColumnForwardIndex.Builder forwardIndexBuilder;
+    private IColumnInvertedIndex.Builder invertedIndexBuilder;
 
     @Override
     protected void setup(Context context) throws IOException {
         super.bindCurrentConfiguration(context.getConfiguration());
 
         Configuration conf = context.getConfiguration();
-        String cubeName = conf.get(BatchConstants.CFG_CUBE_NAME);
-        String segmentName = conf.get(BatchConstants.CFG_CUBE_SEGMENT_NAME);
+        final String cubeName = conf.get(BatchConstants.CFG_CUBE_NAME);
+        final String segmentName = conf.get(BatchConstants.CFG_CUBE_SEGMENT_NAME);
 
         KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
 
@@ -74,18 +82,37 @@ public class SecondaryIndexReducer extends KylinReducer<Text, Text, NullWritable
             colOffset += colIO.getColumnLength(baseCuboid.getColumns().get(i));
         }
 
+        forwardIndexBuilder = new GTColumnForwardIndex(cubeSegment, col).rebuild();
+        invertedIndexBuilder = new GTColumnInvertedIndex(cubeSegment, col).rebuild();
     }
 
     @Override
     public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
         int value = BytesUtil.readUnsigned(key.getBytes(), colOffset, colLength);
-        //write the value to the index file
-
+        //write the value to the index files
+        forwardIndexBuilder.putNextRow(value);
+        invertedIndexBuilder.putNextRow(value);
     }
 
 
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
+        // upload to hdfs
+        forwardIndexBuilder.close();
+        invertedIndexBuilder.close();
+
+        FileSystem fs = FileSystem.get(context.getConfiguration());
+
+        try {
+            Path path = new Path(cubeSegment.getIndexPath());
+            fs.delete(path, true);
+            fs.mkdirs(path);
+
+            fs.copyFromLocalFile(true, new Path(""), path);
+
+        } finally {
+            fs.close();
+        }
 
     }
 

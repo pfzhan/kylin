@@ -43,14 +43,14 @@ public class SecondaryIndexMapper<KEYIN> extends BaseCuboidMapperBase<KEYIN, Obj
     private int headerLength;
     private int indexColTotalLen;
 
-    public static int COLUMN_ID_LENGTH = 1;
+    public static final int COLUMN_ID_LENGTH = 1;
 
     @Override
     protected void setup(Context context) throws IOException {
         super.setup(context);
         flatTableInputFormat = MRUtil.getBatchCubingInputSide(cubeSegment).getFlatTableInputFormat();
         colIO = new RowKeyColumnIO(new CubeDimEncMap(cubeSegment));
-        keyBuffer = ByteBuffer.allocate(4096);
+        keyBuffer = ByteBuffer.allocate(1024);
         colNeedIndex = cubeSegment.getCubeDesc().getRowkey().getRowKeyColumns().length; //FIXME: read from metadata
         headerLength = ((RowKeyEncoder)rowKeyEncoder).getHeaderLength();
 
@@ -74,7 +74,6 @@ public class SecondaryIndexMapper<KEYIN> extends BaseCuboidMapperBase<KEYIN, Obj
 
         keyBuffer.clear();
         try {
-            //put a record into the shared bytesSplitter
             String[] row = flatTableInputFormat.parseMapperInput(value);
             bytesSplitter.setBuffers(convertUTF8Bytes(row));
 

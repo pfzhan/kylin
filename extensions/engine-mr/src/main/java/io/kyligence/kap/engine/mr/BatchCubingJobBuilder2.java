@@ -46,15 +46,12 @@ public class BatchCubingJobBuilder2 extends org.apache.kylin.engine.mr.BatchCubi
         appendMapReduceParameters(cmd, ((CubeSegment) seg).getCubeDesc().getModel());
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBE_NAME, seg.getRealization().getName());
         appendExecCmdParameters(cmd, BatchConstants.ARG_SEGMENT_NAME, seg.getName());
-        appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, getSecondIndexPath(jobId));
+        appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, getSecondaryIndexPath(jobId));
         appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_Build_Second_Index_" + seg.getRealization().getName() + "_Step");
 
         result.setMapReduceParams(cmd.toString());
         return result;
     }
 
-    public String getSecondIndexPath(String jobId) {
-        return getRealizationRootPath(jobId) + "/secondary_index";
-    }
 
 }
