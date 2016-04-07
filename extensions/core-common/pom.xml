@@ -1,11 +1,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>kap-core-cube</artifactId>
+    <artifactId>kap-core-common</artifactId>
     <packaging>jar</packaging>
-    <name>KAP:Core-Cube</name>
+    <name>KAP:Core-Common</name>
     <url>http://kyligence.io</url>
-    <description>Kyligence Core Cube</description>
+    <description>Kyligence Core Common</description>
 
     <parent>
         <groupId>io.kyligence.kap</groupId>
@@ -21,17 +21,8 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.kylin</groupId>
-            <artifactId>kylin-core-cube</artifactId>
+            <artifactId>kylin-core-common</artifactId>
             <version>${kylin.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-core-common</artifactId>
-            <version>${project.parent.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>me.lemire.integercompression</groupId>
-            <artifactId>JavaFastPFOR</artifactId>
         </dependency>
 
         <!--Env & Test-->
@@ -41,13 +32,6 @@
             <type>test-jar</type>
             <scope>test</scope>
             <version>${kylin.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-core-common</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>

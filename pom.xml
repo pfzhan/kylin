@@ -536,6 +536,7 @@
     <modules>
         <module>kylin</module>
         <module>extensions/sample</module>
+        <module>extensions/core-common</module>
         <module>extensions/core-cube</module>
         <module>extensions/query</module>
         <module>extensions/engine-mr</module>

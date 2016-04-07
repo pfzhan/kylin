@@ -27,7 +27,7 @@
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-cube</artifactId>
-            <version>${parent.version}</version>
+            <version>${project.parent.version}</version>
         </dependency>
         <!-- Env & Test -->
         <dependency>
