@@ -34,6 +34,7 @@ KylinApp
         var _project = ProjectModel.selectedProject;
         if (_project == null){
           $scope.badQueryList = [];
+          $scope.bqstate.loading = false;
           return;
         }
         BadQueryService.list({
