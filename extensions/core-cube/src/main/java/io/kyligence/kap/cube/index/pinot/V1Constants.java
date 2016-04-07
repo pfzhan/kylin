@@ -47,6 +47,7 @@ public class V1Constants {
 
   public static class Idx {
     public static final int[] SORTED_INDEX_COLUMN_SIZE = new int[] { 4, 4 };
+    public static final int SV_COLUMN_IDX_FILE_HEADER_BYTES = Integer.SIZE / Byte.SIZE;
   }
 
   public static class Dict {

@@ -42,7 +42,8 @@ public class FixedBitSingleValueTest {
                 }
                 writer.close();
 
-                FixedBitSingleValueReader reader = FixedBitSingleValueReader.forHeap(file, ROWS, numBits);
+                FixedBitSingleValueReader reader = FixedBitSingleValueReader.forHeap(file, numBits);
+                Assert.assertEquals(ROWS, reader.getNumberOfRows());
                 int[] read = new int[ROWS];
                 for (int i = 0; i < ROWS; i++) {
                     read[i] = reader.getInt(i);

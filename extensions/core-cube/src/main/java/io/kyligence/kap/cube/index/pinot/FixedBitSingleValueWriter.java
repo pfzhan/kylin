@@ -41,6 +41,8 @@ public class FixedBitSingleValueWriter implements SingleColumnSingleValueWriter 
     private static final Logger logger = LoggerFactory.getLogger(FixedBitSingleValueWriter.class);
 
     private static final int BUFFED_ROW_NUM = 4000000;
+    private static final int HEADER_BYTES = V1Constants.Idx.SV_COLUMN_IDX_FILE_HEADER_BYTES;
+
     private int bufferBytes = -1;
     private int reallocateCounter = 0;
     private ByteBuffer byteBuffer;
@@ -48,6 +50,7 @@ public class FixedBitSingleValueWriter implements SingleColumnSingleValueWriter 
     private int maxValue;
     private int minValue;
     private int currentRow = -1;
+    private int maxRow = -1;
     private int numBits;
     private int compressedSize;
     private int uncompressedSize;
@@ -106,7 +109,7 @@ public class FixedBitSingleValueWriter implements SingleColumnSingleValueWriter 
 
     private void createBuffer() throws IOException {
         logger.info("Creating byteBuffer of size:{}Bytes to store values of bits:{}", bufferBytes, numBits);
-        byteBuffer = MmapUtils.mmapFile(raf, FileChannel.MapMode.READ_WRITE, bufferBytes * reallocateCounter, bufferBytes, idxFile, this.getClass().getSimpleName() + " byteBuffer");
+        byteBuffer = MmapUtils.mmapFile(raf, FileChannel.MapMode.READ_WRITE, HEADER_BYTES + bufferBytes * reallocateCounter, bufferBytes, idxFile, this.getClass().getSimpleName() + " byteBuffer");
         isMmap = true;
         ownsByteBuffer = true;
         byteBuffer.position(0);
@@ -131,6 +134,9 @@ public class FixedBitSingleValueWriter implements SingleColumnSingleValueWriter 
                 compressAndFlush();
             }
             currentRow = row;
+            if (currentRow > maxRow) {
+                maxRow = currentRow;
+            }
         } catch (Exception e) {
             logger.error("Failed to set row:{} val:{} ", row, val, e);
             throw new RuntimeException(e);
@@ -161,10 +167,11 @@ public class FixedBitSingleValueWriter implements SingleColumnSingleValueWriter 
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
         if (ownUncompressedData) {
             compressAndFlush();
         }
+        writeHeader();
         if (ownsByteBuffer) {
             MmapUtils.unloadByteBuffer(byteBuffer);
             byteBuffer = null;
@@ -173,6 +180,15 @@ public class FixedBitSingleValueWriter implements SingleColumnSingleValueWriter 
                 IOUtils.closeQuietly(raf);
                 raf = null;
             }
+        }
+    }
+
+    private void writeHeader() throws IOException {
+        if (HEADER_BYTES > 0) {
+            ByteBuffer headerBuffer = MmapUtils.mmapFile(raf, FileChannel.MapMode.READ_WRITE, 0, HEADER_BYTES, idxFile, this.getClass().getSimpleName() + " byteBuffer");
+            headerBuffer.putInt(maxRow + 1);
+
+            MmapUtils.unloadByteBuffer(headerBuffer);
         }
     }
 

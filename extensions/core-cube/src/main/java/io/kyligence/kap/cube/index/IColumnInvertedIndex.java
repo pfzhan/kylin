@@ -38,5 +38,7 @@ public interface IColumnInvertedIndex {
     public interface Reader {
 
         ImmutableRoaringBitmap getRows(int v);
+
+        int getNumberOfRows();
     }
 }

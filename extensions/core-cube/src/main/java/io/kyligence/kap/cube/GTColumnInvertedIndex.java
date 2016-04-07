@@ -42,13 +42,12 @@ public class GTColumnInvertedIndex implements IColumnInvertedIndex {
     }
 
     private class GTColumnInvertedIndexBuilder implements IColumnInvertedIndex.Builder {
-        private final static int UNNECESSARY_INT = 0;
         private final HeapBitmapInvertedIndexCreator bitmapIICreator;
         int rowCounter = 0;
 
         public GTColumnInvertedIndexBuilder() {
             FieldSpec spec = new DimensionFieldSpec(tblColRef.getName(), FieldSpec.DataType.INT, true);
-            bitmapIICreator = new HeapBitmapInvertedIndexCreator(new File(idxFilename), dictionary.getSize(), UNNECESSARY_INT, UNNECESSARY_INT, spec);
+            bitmapIICreator = new HeapBitmapInvertedIndexCreator(new File(idxFilename), dictionary.getSize(), spec);
         }
 
         @Override
@@ -64,21 +63,26 @@ public class GTColumnInvertedIndex implements IColumnInvertedIndex {
 
     private class GTColumnInvertedIndexReader implements IColumnInvertedIndex.Reader {
 
-        private BitmapInvertedIndexReader bitmapIIReader;
+        private BitmapInvertedIndexReader reader;
 
         public GTColumnInvertedIndexReader() {
             File idxFile = new File(idxFilename);
             try {
-                bitmapIIReader = new BitmapInvertedIndexReader(idxFile, dictionary.getSize(), false);
+                reader = new BitmapInvertedIndexReader(idxFile, false);
             } catch (IOException e) {
-                bitmapIIReader = null;
-                e.printStackTrace();
+                reader = null;
+                throw new RuntimeException(e);
             }
         }
 
         @Override
         public ImmutableRoaringBitmap getRows(int v) {
-            return bitmapIIReader.getImmutable(v);
+            return reader.getImmutable(v);
+        }
+
+        @Override
+        public int getNumberOfRows() {
+            return reader.getNumberOfRows();
         }
     }
 }

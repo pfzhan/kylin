@@ -81,7 +81,7 @@ public class BitmapInvertedIndexCreatorTest {
         validate(colName, bitmapIndexFileOffHeap, cardinality, postingListMap);
 
         // GENERATE BITMAP USING HeapCreator and validate
-        HeapBitmapInvertedIndexCreator heapCreator = new HeapBitmapInvertedIndexCreator(bitmapIndexFileHeap, cardinality, numDocs, 0, spec);
+        HeapBitmapInvertedIndexCreator heapCreator = new HeapBitmapInvertedIndexCreator(bitmapIndexFileHeap, cardinality, spec);
         for (int i = 0; i < numDocs; i++) {
             heapCreator.add(i, data[i]);
         }
@@ -98,7 +98,8 @@ public class BitmapInvertedIndexCreatorTest {
 
     private void validate(String colName, File bitmapIndexFile, int cardinality, Map<Integer, Set<Integer>> postingListMap) throws IOException {
         Assert.assertTrue(bitmapIndexFile.exists());
-        BitmapInvertedIndexReader reader = new BitmapInvertedIndexReader(bitmapIndexFile, cardinality, false);
+        BitmapInvertedIndexReader reader = new BitmapInvertedIndexReader(bitmapIndexFile, false);
+        Assert.assertEquals(cardinality, reader.getNumberOfRows());
         for (int i = 0; i < cardinality; i++) {
             ImmutableRoaringBitmap bitmap = reader.getImmutable(i);
             Set<Integer> expected = postingListMap.get(i);
@@ -157,7 +158,7 @@ public class BitmapInvertedIndexCreatorTest {
         validate(colName, bitmapIndexFileOffHeap, cardinality, postingListMap);
 
         // GENERATE BITMAP USING HeapCreator and validate
-        HeapBitmapInvertedIndexCreator heapCreator = new HeapBitmapInvertedIndexCreator(bitmapIndexFileHeap, cardinality, numDocs, totalNumberOfEntries, spec);
+        HeapBitmapInvertedIndexCreator heapCreator = new HeapBitmapInvertedIndexCreator(bitmapIndexFileHeap, cardinality, spec);
         for (int i = 0; i < numDocs; i++) {
             heapCreator.add(i, data[i]);
         }

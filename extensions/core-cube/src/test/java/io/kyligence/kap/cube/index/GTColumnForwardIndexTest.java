@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Random;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;

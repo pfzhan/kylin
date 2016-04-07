@@ -39,6 +39,7 @@ import me.lemire.integercompression.BitPacking;
  */
 public class FixedBitSingleValueReader implements SingleColumnSingleValueReader {
   private static final Logger LOGGER = LoggerFactory.getLogger(FixedBitSingleValueReader.class);
+  private static final int HEADER_BYTES = V1Constants.Idx.SV_COLUMN_IDX_FILE_HEADER_BYTES;
   private int compressedSize;
   private int uncompressedSize;
   private RandomAccessFile file;
@@ -51,41 +52,38 @@ public class FixedBitSingleValueReader implements SingleColumnSingleValueReader 
 
   /**
    * @param file
-   * @param rows
-   * @param columnSizesInBits
+   * @param numBits
    * @return
    * @throws IOException
    */
-  public static FixedBitSingleValueReader forHeap(File file, int rows, int numBits)
+  public static FixedBitSingleValueReader forHeap(File file, int numBits)
       throws IOException {
     boolean signed = false;
-    return new FixedBitSingleValueReader(file, rows, numBits, signed, false);
+    return new FixedBitSingleValueReader(file, numBits, signed, false);
   }
 
   /**
    * @param file
-   * @param rows
    * @param numBits
    * @param signed
    * @return
    * @throws IOException
    */
-  public static FixedBitSingleValueReader forHeap(File file, int rows, int numBits, boolean signed)
+  public static FixedBitSingleValueReader forHeap(File file, int numBits, boolean signed)
       throws IOException {
-    return new FixedBitSingleValueReader(file, rows, numBits, signed, false);
+    return new FixedBitSingleValueReader(file, numBits, signed, false);
   }
 
   /**
    * @param file
-   * @param rows
    * @param numBits
    * @return
    * @throws IOException
    */
-  public static FixedBitSingleValueReader forMmap(File file, int rows, int numBits)
+  public static FixedBitSingleValueReader forMmap(File file, int numBits)
       throws IOException {
     boolean signed = false;
-    return new FixedBitSingleValueReader(file, rows, numBits, signed, true);
+    return new FixedBitSingleValueReader(file, numBits, signed, true);
   }
 
   /**
@@ -98,7 +96,7 @@ public class FixedBitSingleValueReader implements SingleColumnSingleValueReader 
    */
   public static FixedBitSingleValueReader forMmap(File file, int rows, int numBits, boolean signed)
       throws IOException {
-    return new FixedBitSingleValueReader(file, rows, numBits, signed, true);
+    return new FixedBitSingleValueReader(file, numBits, signed, true);
   }
 
   /**
@@ -111,7 +109,7 @@ public class FixedBitSingleValueReader implements SingleColumnSingleValueReader 
    */
   public static FixedBitSingleValueReader forByteBuffer(ByteBuffer dataBuffer, int rows,
       int numBits, boolean signed) throws IOException {
-    return new FixedBitSingleValueReader(dataBuffer, rows, numBits, signed);
+    return new FixedBitSingleValueReader(dataBuffer, numBits, signed);
   }
 
   /**
@@ -122,9 +120,9 @@ public class FixedBitSingleValueReader implements SingleColumnSingleValueReader 
    * @param isMmap
    * @throws IOException
    */
-  public FixedBitSingleValueReader(File dataFile, int rows, int numBits, boolean signed,
+  public FixedBitSingleValueReader(File dataFile, int numBits, boolean signed,
       boolean isMmap) throws IOException {
-    init(rows, numBits, signed);
+    init(numBits, signed);
     file = new RandomAccessFile(dataFile, "rw");
     this.isMmap = isMmap;
     if (isMmap) {
@@ -136,11 +134,11 @@ public class FixedBitSingleValueReader implements SingleColumnSingleValueReader 
       file.getChannel().read(byteBuffer);
       file.close();
     }
+    rows = byteBuffer.getInt(0);
     LOGGER.info("Loaded file:{} of size:{}", dataFile.getName(), dataFile.length());
     // unpack 32 values at a time.
     ownsByteBuffer = true;
   }
-
   /**
    * @param buffer
    * @param rows
@@ -148,12 +146,12 @@ public class FixedBitSingleValueReader implements SingleColumnSingleValueReader 
    * @param signed
    * @throws IOException
    */
-  private FixedBitSingleValueReader(ByteBuffer buffer, int rows, int numBits, boolean signed)
+  private FixedBitSingleValueReader(ByteBuffer buffer, int numBits, boolean signed)
       throws IOException {
     this.byteBuffer = buffer;
     ownsByteBuffer = false;
     this.isMmap = false;
-    init(rows, numBits, signed);
+    init(numBits, signed);
   }
 
   /**
@@ -162,14 +160,12 @@ public class FixedBitSingleValueReader implements SingleColumnSingleValueReader 
    * @param columnSizes
    * @throws IOException
    */
-  private FixedBitSingleValueReader(String fileName, int rows, int numBits, boolean signed)
+  private FixedBitSingleValueReader(String fileName, int numBits, boolean signed)
       throws IOException {
-    this(new File(fileName), rows, numBits, signed, true);
+    this(new File(fileName), numBits, signed, true);
   }
 
-  private void init(int rows, int numBits, boolean signed) {
-
-    this.rows = rows;
+  private void init(int numBits, boolean signed) {
     this.numBits = numBits;
     // we always read 32 values at a time
     this.uncompressedSize = SizeUtil.BIT_UNPACK_BATCH_SIZE;
@@ -248,7 +244,7 @@ public class FixedBitSingleValueReader implements SingleColumnSingleValueReader 
       int startIndex = batchPosition * numBits * 4;
       for (int i = 0; i < numBits; i++) {
         try {
-          index = startIndex + i * 4;
+          index = startIndex + i * 4 + HEADER_BYTES;
           result.compressed[i] = byteBuffer.getInt(index);
         } catch (Exception e) {
           LOGGER.error("Exception while retrieving value for row:{} at index:{} numBits:{}", row,

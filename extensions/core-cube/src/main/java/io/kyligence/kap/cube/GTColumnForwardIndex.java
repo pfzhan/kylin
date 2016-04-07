@@ -60,7 +60,7 @@ public class GTColumnForwardIndex implements IColumnForwardIndex {
         }
 
         @Override
-        public void close() {
+        public void close() throws IOException {
             writer.close();
         }
     }
@@ -69,12 +69,17 @@ public class GTColumnForwardIndex implements IColumnForwardIndex {
         FixedBitSingleValueReader reader;
 
         public GTColumnForwardIndexReader() throws IOException {
-            this.reader = FixedBitSingleValueReader.forHeap(new File(idxFilename), /*Not used*/0, fixedBitsNum);
+            this.reader = FixedBitSingleValueReader.forHeap(new File(idxFilename), fixedBitsNum);
         }
 
         @Override
         public int get(int row) {
             return reader.getInt(row);
+        }
+
+        @Override
+        public int getNumberOfRows() {
+            return reader.getNumberOfRows();
         }
 
         @Override

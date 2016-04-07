@@ -30,12 +30,14 @@ public interface IColumnForwardIndex {
 
         void putNextRow(int v);
 
-        void close();
+        void close() throws IOException;
     }
 
     public interface Reader {
 
         int get(int row);
+
+        int getNumberOfRows();
 
         void close() throws IOException;
     }

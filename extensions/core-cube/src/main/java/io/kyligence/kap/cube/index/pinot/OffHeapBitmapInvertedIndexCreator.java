@@ -27,11 +27,14 @@ import java.nio.channels.FileChannel;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.kylin.common.util.ByteArray;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.primitives.Bytes;
+import com.google.common.primitives.Ints;
 
 import io.kyligence.kap.cube.index.pinot.util.MmapUtils;
 
@@ -217,6 +220,9 @@ public class OffHeapBitmapInvertedIndexCreator implements InvertedIndexCreator {
       fos = new FileOutputStream(invertedIndexFile);
       fisOffsets = new FileInputStream(tempOffsetsFile);
       fisBitmaps = new FileInputStream(tempBitmapsFile);
+
+      fos.write(Ints.toByteArray(cardinality));
+
       FileChannel channelOffsets = fisOffsets.getChannel();
       channelOffsets.transferTo(0, channelOffsets.size(), fos.getChannel());
 
