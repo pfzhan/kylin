@@ -43,7 +43,11 @@
 
           </tree-grid>
 
-          <div no-result ng-if="selectedSrcDb.length == 0"></div>
+          <div ng-if="!loading && selectedSrcDb.length == 0">
+            <div no-result text="No Table."></div>
+          </div>
+          <loading ng-if="loading" text="Loading Tables..."></loading>
+
         </div>
       </div>
     </div>

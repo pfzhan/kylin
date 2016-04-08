@@ -95,6 +95,7 @@ KylinApp
         return defer.promise;
       }).then(function () {
 
+        $scope.readyCubes = [];
         cubesPromise.push(CubeService.list(queryParam, function (_cubes) {
           for (var i = 0; i < _cubes.length; i++) {
             if (_cubes[i].status == 'READY') {
@@ -103,6 +104,7 @@ KylinApp
           }
         }).$promise)
 
+        $scope.readyCubeDescs = [];
         $q.all(cubesPromise).then(function () {
           for (var i = 0; i < $scope.readyCubes.length; i++) {
             cubeDescPromise.push(CubeDescService.query({cube_name: $scope.readyCubes[i].name}, {}, function (detail) {
