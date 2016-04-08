@@ -46,9 +46,6 @@
                     <li class="{{activeTab=='admin'?'purple':'green'}}" ng-if="userService.isAuthorized()">
                         <a href="admin">System</a>
                     </li>
-                    <li style="border:0px !important;">
-                      <span class="navbar-brand" href="models"><i><b>Kyligence</b> Analytics Platform</i></span>
-                    </li>
                 </ul>
                 <ul class="nav navbar-nav navbar-right">
                     <li class="dropdown light-blue" ng-if="config.documents.length > 0">
@@ -70,6 +67,11 @@
                         </ul>
                     </li>
                 </ul>
+              <ul  ng-if="userService.isAuthorized()" class="nav navbar-nav pull-right">
+                <li style="border:0px !important;">
+                  <span class="navbar-brand"><i style="font-size: 20px !important;">Kyligence Analytics Platform</i></span>
+                </li>
+              </ul>
             </div>
         </div>
     </div>
