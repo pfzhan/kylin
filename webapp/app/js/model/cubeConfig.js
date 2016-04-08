@@ -92,5 +92,8 @@ KylinApp.constant('cubeConfig', {
   ],
   externalFilterType:[
     'HDFS'
+  ],
+  rowKeyShardOptions:[
+    true,false
   ]
 });

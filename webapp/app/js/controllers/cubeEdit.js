@@ -445,7 +445,8 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
           if (i == tmpRowKeyColumns.length) {
             tmpRowKeyColumns.push({
               "column": fk,
-              "encoding": "dict"
+              "encoding": "dict",
+              "isShardBy": "false"
             });
 
             tmpAggregationItems.push(fk);
@@ -472,7 +473,8 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
         if (i == tmpRowKeyColumns.length) {
           tmpRowKeyColumns.push({
             "column": rowkeyColumn,
-            "encoding": "dict"
+            "encoding": "dict",
+            "isShardBy": "false"
           });
           tmpAggregationItems.push(rowkeyColumn);
         }

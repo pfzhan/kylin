@@ -274,6 +274,18 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
             }
         })
 
+      var shardRowkeyList = [];
+      angular.forEach($scope.cubeMetaFrame.rowkey.rowkey_columns,function(rowkey){
+        if(rowkey.isShardBy == true){
+          shardRowkeyList.push(rowkey.column);
+        }
+      })
+      if(shardRowkeyList.length >1){
+          errors.push("At most one 'shard by' column is allowed.");
+      }
+
+
+
         var errorInfo = "";
         angular.forEach(errors,function(item){
             errorInfo+="\n"+item;

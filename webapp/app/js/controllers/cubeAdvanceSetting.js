@@ -41,16 +41,22 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     var rowkeyObj = {
       column:item.column,
       encoding:_encoding,
-      valueLength:_valueLength
+      valueLength:_valueLength,
+      isShardBy:item.isShardBy
     }
 
     $scope.convertedRowkeys.push(rowkeyObj);
 
   })
 
-  $scope.refreshRowKey = function(list,index,item){
+  $scope.rule={
+    shardColumnAvailable:true
+  }
+
+  $scope.refreshRowKey = function(list,index,item,checkShard){
     var encoding = "dict";
     var column = item.column;
+    var isShardBy = item.isShardBy;
     if(item.encoding!=="dict"){
       if(item.encoding=="fixed_length" && item.valueLength){
         encoding = "fixed_length:"+item.valueLength;
@@ -63,7 +69,25 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     }
     $scope.cubeMetaFrame.rowkey.rowkey_columns[index].column = column;
     $scope.cubeMetaFrame.rowkey.rowkey_columns[index].encoding = encoding;
+    $scope.cubeMetaFrame.rowkey.rowkey_columns[index].isShardBy = isShardBy;
+    if(checkShard == true){
+      $scope.checkShardByColumn();
+    }
 
+  }
+
+  $scope.checkShardByColumn = function(){
+    var shardRowkeyList = [];
+    angular.forEach($scope.cubeMetaFrame.rowkey.rowkey_columns,function(rowkey){
+      if(rowkey.isShardBy == true){
+        shardRowkeyList.push(rowkey.column);
+      }
+    })
+    if(shardRowkeyList.length >1){
+      $scope.rule.shardColumnAvailable = false;
+    }else{
+      $scope.rule.shardColumnAvailable = true;
+    }
   }
 
   $scope.resortRowkey = function(){
@@ -84,13 +108,15 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     var rowkeyObj = {
       column:"",
       encoding:"dict",
-      valueLength:0
+      valueLength:0,
+      isShardBy:"false"
     }
 
     $scope.convertedRowkeys.push(rowkeyObj);
     $scope.cubeMetaFrame.rowkey.rowkey_columns.push({
       column:'',
-      encoding:'dict'
+      encoding:'dict',
+      isShardBy:'false'
     });
 
   };
