@@ -51,7 +51,7 @@ public class BatchMergeJobBuilder2 extends org.apache.kylin.engine.mr.BatchMerge
 
         CubingExecutableUtil.setCubeName(seg.getRealization().getName(), result.getParams());
         CubingExecutableUtil.setSegmentId(seg.getUuid(), result.getParams());
-
+        CubingExecutableUtil.setIndexPath(this.getSecondaryIndexPath(cubingJob.getId()), result.getParams());
         cubingJob.addTask(result);
     }
 

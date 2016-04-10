@@ -18,17 +18,12 @@
 
 package io.kyligence.kap.engine.mr;
 
-import io.kyligence.kap.cube.GTColumnForwardIndex;
-import io.kyligence.kap.cube.GTColumnInvertedIndex;
-import io.kyligence.kap.cube.index.IColumnForwardIndex;
-import io.kyligence.kap.cube.index.IColumnInvertedIndex;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
@@ -42,6 +37,7 @@ import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TblColRef;
 
+import java.io.File;
 import java.io.IOException;
 
 /**
@@ -53,8 +49,11 @@ public class SecondaryIndexReducer extends KylinReducer<Text, Text, NullWritable
     private TblColRef col = null;
     private int colOffset;
     private int colLength;
-    private IColumnForwardIndex.Builder forwardIndexBuilder;
-    private IColumnInvertedIndex.Builder invertedIndexBuilder;
+    private File forwardIndexFile;
+    private File invertedIndexFile;
+    private String outputPath;
+
+    private ColumnIndexWriter columnIndexWriter;
 
     @Override
     protected void setup(Context context) throws IOException {
@@ -63,6 +62,8 @@ public class SecondaryIndexReducer extends KylinReducer<Text, Text, NullWritable
         Configuration conf = context.getConfiguration();
         final String cubeName = conf.get(BatchConstants.CFG_CUBE_NAME);
         final String segmentName = conf.get(BatchConstants.CFG_CUBE_SEGMENT_NAME);
+
+        outputPath = conf.get(BatchConstants.CFG_OUTPUT_PATH);
 
         KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
 
@@ -82,36 +83,31 @@ public class SecondaryIndexReducer extends KylinReducer<Text, Text, NullWritable
             colOffset += colIO.getColumnLength(baseCuboid.getColumns().get(i));
         }
 
-        forwardIndexBuilder = new GTColumnForwardIndex(cubeSegment, col).rebuild();
-        invertedIndexBuilder = new GTColumnInvertedIndex(cubeSegment, col).rebuild();
+        forwardIndexFile = File.createTempFile(col.getName(), ".fwd");
+        invertedIndexFile = File.createTempFile(col.getName(), ".inv");
+        columnIndexWriter = new ColumnIndexWriter(cubeSegment, col, colOffset, colLength, forwardIndexFile, invertedIndexFile);
+
     }
 
     @Override
     public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        int value = BytesUtil.readUnsigned(key.getBytes(), colOffset, colLength);
-        //write the value to the index files
-        forwardIndexBuilder.putNextRow(value);
-        invertedIndexBuilder.putNextRow(value);
+        columnIndexWriter.write(key.getBytes());
     }
 
 
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
+        columnIndexWriter.close();
+
         // upload to hdfs
-        forwardIndexBuilder.close();
-        invertedIndexBuilder.close();
-
-        FileSystem fs = FileSystem.get(context.getConfiguration());
-
-        try {
-            Path path = new Path(cubeSegment.getIndexPath());
+        try (FileSystem fs = FileSystem.get(context.getConfiguration())) {
+            Path path = new Path(outputPath);
             fs.delete(path, true);
             fs.mkdirs(path);
-
-            fs.copyFromLocalFile(true, new Path(""), path);
-
-        } finally {
-            fs.close();
+            fs.copyFromLocalFile(true, new Path(forwardIndexFile.toURI()), new Path(path, col.getName() + ".fwd"));
+            fs.copyFromLocalFile(true, new Path(invertedIndexFile.toURI()), new Path(path, col.getName() + ".inv"));
+            forwardIndexFile.delete();
+            invertedIndexFile.delete();
         }
 
     }
