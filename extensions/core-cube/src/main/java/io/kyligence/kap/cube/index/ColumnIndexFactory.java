@@ -1,10 +1,4 @@
-package io.kyligence.kap.cube;
-
-import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.metadata.model.TblColRef;
-
-import io.kyligence.kap.cube.index.IColumnForwardIndex;
-import io.kyligence.kap.cube.index.IColumnInvertedIndex;
+package io.kyligence.kap.cube.index;
 
 /**
  * Created by dongli on 4/6/16.

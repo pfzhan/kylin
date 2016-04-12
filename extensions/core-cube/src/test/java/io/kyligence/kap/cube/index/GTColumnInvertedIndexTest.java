@@ -24,8 +24,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 
-import io.kyligence.kap.cube.GTColumnInvertedIndex;
-
 public class GTColumnInvertedIndexTest extends LocalFileMetadataTestCase {
     private static final Logger logger = LoggerFactory.getLogger(GTColumnInvertedIndexTest.class);
 

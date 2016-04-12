@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
-import io.kyligence.kap.cube.GTColumnForwardIndex;
 
 /**
  * Created by dongli on 4/7/16.

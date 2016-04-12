@@ -1,4 +1,4 @@
-package io.kyligence.kap.cube;
+package io.kyligence.kap.cube.index;
 
 import java.io.File;
 import java.io.IOException;
@@ -6,7 +6,6 @@ import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.cube.index.IColumnForwardIndex;
 import io.kyligence.kap.cube.index.pinot.FixedBitSingleValueReader;
 import io.kyligence.kap.cube.index.pinot.FixedBitSingleValueWriter;
 

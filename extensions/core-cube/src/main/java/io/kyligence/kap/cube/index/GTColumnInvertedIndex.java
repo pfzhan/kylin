@@ -1,4 +1,4 @@
-package io.kyligence.kap.cube;
+package io.kyligence.kap.cube.index;
 
 import java.io.File;
 import java.io.IOException;
@@ -7,7 +7,6 @@ import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.cube.index.IColumnInvertedIndex;
 import io.kyligence.kap.cube.index.pinot.BitmapInvertedIndexReader;
 import io.kyligence.kap.cube.index.pinot.DimensionFieldSpec;
 import io.kyligence.kap.cube.index.pinot.FieldSpec;

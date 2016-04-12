@@ -18,7 +18,6 @@
 
 package io.kyligence.kap.cube.index;
 
-import io.kyligence.kap.cube.ColumnIndexFactory;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.cube.CubeSegment;

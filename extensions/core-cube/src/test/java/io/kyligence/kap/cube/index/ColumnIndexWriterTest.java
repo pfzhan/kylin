@@ -1,30 +1,13 @@
 package io.kyligence.kap.cube.index;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
-import io.kyligence.kap.cube.ColumnIndexFactory;
-import io.kyligence.kap.cube.GTColumnForwardIndex;
-import junit.framework.Assert;
-import org.apache.commons.io.IOUtils;
-import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.common.util.BytesUtil;
-import org.apache.kylin.cube.CubeInstance;
-import org.apache.kylin.cube.CubeManager;
-import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.dimension.Dictionary;
-import org.apache.kylin.metadata.model.TblColRef;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -55,13 +38,13 @@ public class ColumnIndexWriterTest {
 //        COL2_FWD_IDX.deleteOnExit();
 //        COL2_INV_IDX.deleteOnExit();
 
-        int LENTH_OF_TABLE = 10000;
-        int[] col1Values = new int[LENTH_OF_TABLE];
-        int[] col2Values = new int[LENTH_OF_TABLE];
+        int LENGTH_OF_TABLE = 10000;
+        int[] col1Values = new int[LENGTH_OF_TABLE];
+        int[] col2Values = new int[LENGTH_OF_TABLE];
 
         // generate the data;
         Random r = new Random();
-        for (int i = 0; i < LENTH_OF_TABLE; i++) {
+        for (int i = 0; i < LENGTH_OF_TABLE; i++) {
             col1Values[i] = r.nextInt(COL1_MAX_VALUE);
             col2Values[i] = r.nextInt(COL2_MAX_VALUE);
         }
@@ -72,7 +55,7 @@ public class ColumnIndexWriterTest {
                 ColumnIndexWriter writer1 = new ColumnIndexWriter("COL1", COL1_MAX_VALUE, COL1_MAX_VALUE, 0, COL1_LENGTH, COL1_FWD_IDX, COL1_INV_IDX);
                 ColumnIndexWriter writer2 = new ColumnIndexWriter("COL2", COL2_MAX_VALUE, COL2_MAX_VALUE, COL1_LENGTH, COL2_LENGTH, COL2_FWD_IDX, COL2_INV_IDX);
         ) {
-            for (int i = 0; i < LENTH_OF_TABLE; i++) {
+            for (int i = 0; i < LENGTH_OF_TABLE; i++) {
                 byte[] row = new byte[COL1_LENGTH + COL2_LENGTH];
                 BytesUtil.writeUnsigned(col1Values[i], row, 0, COL1_LENGTH);
                 BytesUtil.writeUnsigned(col2Values[i], row, COL1_LENGTH, COL2_LENGTH);
@@ -86,8 +69,8 @@ public class ColumnIndexWriterTest {
                 IColumnForwardIndex.Reader reader1 = ColumnIndexFactory.createLocalForwardIndex("COL1", COL1_MAX_VALUE, COL1_FWD_IDX.getAbsolutePath()).getReader();
                 IColumnForwardIndex.Reader reader2 = ColumnIndexFactory.createLocalForwardIndex("COL2", COL2_MAX_VALUE, COL2_FWD_IDX.getAbsolutePath()).getReader();
         ) {
-            org.junit.Assert.assertEquals(reader1.getNumberOfRows(), LENTH_OF_TABLE);
-            for (int i = 0; i < LENTH_OF_TABLE; i++) {
+            org.junit.Assert.assertEquals(reader1.getNumberOfRows(), LENGTH_OF_TABLE);
+            for (int i = 0; i < LENGTH_OF_TABLE; i++) {
                 org.junit.Assert.assertTrue(reader1.get(i) == col1Values[i]);
                 org.junit.Assert.assertTrue(reader2.get(i) == col2Values[i]);
             }
@@ -100,7 +83,7 @@ public class ColumnIndexWriterTest {
         ) {
             org.junit.Assert.assertEquals(reader1.getNumberOfRows(), COL1_MAX_VALUE);
             org.junit.Assert.assertEquals(reader2.getNumberOfRows(), COL2_MAX_VALUE);
-            for (int i = 0; i < LENTH_OF_TABLE; i++) {
+            for (int i = 0; i < LENGTH_OF_TABLE; i++) {
                 org.junit.Assert.assertTrue(reader1.getRows(col1Values[i]).contains(i));
                 org.junit.Assert.assertTrue(reader2.getRows(col2Values[i]).contains(i));
             }

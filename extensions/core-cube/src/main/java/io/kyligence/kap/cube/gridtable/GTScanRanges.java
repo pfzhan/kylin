@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.TreeSet;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTRecord;
 
@@ -33,11 +34,17 @@ public class GTScanRanges {
     private TreeSet<ScanRange> rangeTreeSet = Sets.newTreeSet();
     private OptimizeStrategy optimizationClazz = new DefaultOptimization();
     private GTInfo info = null;
+    private ImmutableBitSet maskForEqualHashComp = null;
+
+    public GTScanRanges() {
+        this(Sets.<ScanRange>newTreeSet());
+    }
 
     public GTScanRanges(TreeSet<ScanRange> rangeTreeSet) {
         this.rangeTreeSet = rangeTreeSet;
         if (!rangeTreeSet.isEmpty() && rangeTreeSet.first() != null) {
             this.info = rangeTreeSet.first().startKey.getInfo();
+            this.maskForEqualHashComp = rangeTreeSet.first().startKey.maskForEqualHashComp();
         }
     }
 
@@ -55,6 +62,7 @@ public class GTScanRanges {
 
             if (starts.length > 0 && starts[0] != null) {
                 this.info = starts[0].getInfo();
+                this.maskForEqualHashComp = starts[0].maskForEqualHashComp();
             }
         }
     }
@@ -244,13 +252,13 @@ public class GTScanRanges {
         TreeSet<ScanRange> resultSet = Sets.newTreeSet();
 
         ScanRange prevRange = null;
-        ScanRange currRange = new ScanRange(new GTRecord(info), new GTRecord(info), 0);
+        ScanRange currRange = new ScanRange(new GTRecord(info, maskForEqualHashComp), new GTRecord(info, maskForEqualHashComp), 0);
         for (ScanRange aRange : rangeTreeSet) {
             prevRange = currRange;
             currRange = aRange;
             resultSet.add(new ScanRange(prevRange.endKey, currRange.startKey, 0));
         }
-        resultSet.add(new ScanRange(currRange.endKey, new GTRecord(info), 0));
+        resultSet.add(new ScanRange(currRange.endKey, new GTRecord(info, maskForEqualHashComp), 0));
 
         return new GTScanRanges(resultSet);
     }
