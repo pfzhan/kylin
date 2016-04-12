@@ -64,7 +64,7 @@ public class GTColumnForwardIndexTest extends LocalFileMetadataTestCase {
         File idxFile = File.createTempFile("tmp", ".idx");
         long initIdxFileLength = idxFile.length();
 
-        GTColumnForwardIndex index = new GTColumnForwardIndex(cubeSegment, tblColRef, idxFile.getAbsolutePath());
+        GTColumnForwardIndex index = new GTColumnForwardIndex(tblColRef.getName(), dict.getMaxId(), idxFile.getAbsolutePath());
         GTColumnForwardIndex.Builder builder = index.rebuild();
         for (int r = 0; r < ROW_NUM; r++) {
             builder.putNextRow(dataMap.get(r));

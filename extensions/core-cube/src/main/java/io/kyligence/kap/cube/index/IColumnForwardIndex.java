@@ -18,6 +18,7 @@
 
 package io.kyligence.kap.cube.index;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 public interface IColumnForwardIndex {
@@ -26,19 +27,14 @@ public interface IColumnForwardIndex {
 
     Reader getReader();
 
-    public interface Builder {
-
+    public interface Builder extends Closeable {
         void putNextRow(int v);
-
-        void close() throws IOException;
     }
 
-    public interface Reader {
+    public interface Reader extends Closeable {
 
         int get(int row);
 
         int getNumberOfRows();
-
-        void close() throws IOException;
     }
 }

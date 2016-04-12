@@ -16,8 +16,9 @@
  * limitations under the License.
 */
 
-package io.kyligence.kap.engine.mr;
+package io.kyligence.kap.engine.mr.index;
 
+import io.kyligence.kap.cube.index.ColumnIndexWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -31,11 +32,16 @@ import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.cube.kv.CubeDimEncMap;
 import org.apache.kylin.cube.kv.RowKeyColumnIO;
 import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.dict.DateStrDictionary;
+import org.apache.kylin.dict.TimeStrDictionary;
+import org.apache.kylin.dict.TrieDictionary;
 import org.apache.kylin.engine.mr.KylinReducer;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,7 +49,7 @@ import java.io.IOException;
 /**
  */
 public class SecondaryIndexReducer extends KylinReducer<Text, Text, NullWritable, Text> {
-
+    private static final Logger logger = LoggerFactory.getLogger(SecondaryIndexReducer.class);
     protected CubeDesc cubeDesc;
     protected CubeSegment cubeSegment;
     private TblColRef col = null;
@@ -85,7 +91,7 @@ public class SecondaryIndexReducer extends KylinReducer<Text, Text, NullWritable
 
         forwardIndexFile = File.createTempFile(col.getName(), ".fwd");
         invertedIndexFile = File.createTempFile(col.getName(), ".inv");
-        columnIndexWriter = new ColumnIndexWriter(cubeSegment, col, colOffset, colLength, forwardIndexFile, invertedIndexFile);
+        columnIndexWriter = new ColumnIndexWriter(col, cubeSegment.getDictionary(col), colOffset, colLength, forwardIndexFile, invertedIndexFile);
 
     }
 
@@ -102,14 +108,13 @@ public class SecondaryIndexReducer extends KylinReducer<Text, Text, NullWritable
         // upload to hdfs
         try (FileSystem fs = FileSystem.get(context.getConfiguration())) {
             Path path = new Path(outputPath);
-            fs.delete(path, true);
             fs.mkdirs(path);
             fs.copyFromLocalFile(true, new Path(forwardIndexFile.toURI()), new Path(path, col.getName() + ".fwd"));
             fs.copyFromLocalFile(true, new Path(invertedIndexFile.toURI()), new Path(path, col.getName() + ".inv"));
-            forwardIndexFile.delete();
-            invertedIndexFile.delete();
         }
 
+        forwardIndexFile.delete();
+        invertedIndexFile.delete();
     }
 
 }

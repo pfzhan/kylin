@@ -3,9 +3,6 @@ package io.kyligence.kap.cube;
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.dimension.Dictionary;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,15 +14,13 @@ public class GTColumnForwardIndex implements IColumnForwardIndex {
     protected static final Logger logger = LoggerFactory.getLogger(GTColumnForwardIndex.class);
 
     private final String idxFilename;
-    private final Dictionary<String> dictionary;
     private final int fixedBitsNum;
-    private final TblColRef tblColRef;
+    private final String colName;
 
-    public GTColumnForwardIndex(CubeSegment segment, TblColRef tblColRef, String idxFilename) {
-        this.dictionary = segment.getDictionary(tblColRef);
-        this.tblColRef = tblColRef;
+    public GTColumnForwardIndex(String colName, int maxValue, String idxFilename) {
+        this.colName = colName;
         this.idxFilename = idxFilename;
-        this.fixedBitsNum = Integer.SIZE - Integer.numberOfLeadingZeros(dictionary.getMaxId());
+        this.fixedBitsNum = Integer.SIZE - Integer.numberOfLeadingZeros(maxValue);
     }
 
     @Override

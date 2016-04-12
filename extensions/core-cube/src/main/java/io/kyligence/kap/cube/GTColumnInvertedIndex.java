@@ -3,9 +3,6 @@ package io.kyligence.kap.cube;
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.dimension.Dictionary;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,15 +16,13 @@ import io.kyligence.kap.cube.index.pinot.HeapBitmapInvertedIndexCreator;
 public class GTColumnInvertedIndex implements IColumnInvertedIndex {
     protected static final Logger logger = LoggerFactory.getLogger(GTColumnInvertedIndex.class);
 
-    private final CubeSegment segment;
-    private final Dictionary dictionary;
-    private final TblColRef tblColRef;
     private final String idxFilename;
+    private final String colName;
+    private final int cardinality;
 
-    public GTColumnInvertedIndex(CubeSegment segment, TblColRef tblColRef, String idxFilename) {
-        this.segment = segment;
-        this.tblColRef = tblColRef;
-        this.dictionary = this.segment.getDictionary(tblColRef);
+    public GTColumnInvertedIndex(String colName, int cardinality, String idxFilename) {
+        this.colName = colName;
+        this.cardinality = cardinality;
         this.idxFilename = idxFilename;
     }
 
@@ -46,8 +41,8 @@ public class GTColumnInvertedIndex implements IColumnInvertedIndex {
         int rowCounter = 0;
 
         public GTColumnInvertedIndexBuilder() {
-            FieldSpec spec = new DimensionFieldSpec(tblColRef.getName(), FieldSpec.DataType.INT, true);
-            bitmapIICreator = new HeapBitmapInvertedIndexCreator(new File(idxFilename), dictionary.getSize(), spec);
+            FieldSpec spec = new DimensionFieldSpec(colName, FieldSpec.DataType.INT, true);
+            bitmapIICreator = new HeapBitmapInvertedIndexCreator(new File(idxFilename), cardinality, spec);
         }
 
         @Override
@@ -83,6 +78,11 @@ public class GTColumnInvertedIndex implements IColumnInvertedIndex {
         @Override
         public int getNumberOfRows() {
             return reader.getNumberOfRows();
+        }
+
+        @Override
+        public void close() throws IOException {
+            reader.close();
         }
     }
 }

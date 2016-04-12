@@ -18,6 +18,10 @@
 
 package io.kyligence.kap.engine.mr;
 
+import io.kyligence.kap.engine.mr.index.SecondaryIndexCombiner;
+import io.kyligence.kap.engine.mr.index.SecondaryIndexMapper;
+import io.kyligence.kap.engine.mr.index.SecondaryIndexPartitioner;
+import io.kyligence.kap.engine.mr.index.SecondaryIndexReducer;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;

@@ -66,7 +66,7 @@ public class GTColumnInvertedIndexTest extends LocalFileMetadataTestCase {
         File idxFile = File.createTempFile("tmp", ".idx");
         long initIdxFileLength = idxFile.length();
 
-        GTColumnInvertedIndex index = new GTColumnInvertedIndex(cubeSegment, tblColRef, idxFile.getAbsolutePath());
+        GTColumnInvertedIndex index = new GTColumnInvertedIndex(tblColRef.getName(), dict.getSize(), idxFile.getAbsolutePath());
         GTColumnInvertedIndex.Builder builder = index.rebuild();
         for (int v = 0; v < dict.getSize(); v++) {
             for (int r : dataMap.get(v)) {

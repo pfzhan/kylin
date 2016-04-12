@@ -16,7 +16,7 @@
  * limitations under the License.
 */
 
-package io.kyligence.kap.engine.mr;
+package io.kyligence.kap.engine.mr.index;
 
 import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.common.util.BytesUtil;

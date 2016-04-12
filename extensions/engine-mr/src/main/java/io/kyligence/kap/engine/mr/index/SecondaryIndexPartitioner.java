@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.engine.mr;
+package io.kyligence.kap.engine.mr.index;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;

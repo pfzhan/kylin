@@ -10,11 +10,11 @@ import io.kyligence.kap.cube.index.IColumnInvertedIndex;
  * Created by dongli on 4/6/16.
  */
 public class ColumnIndexFactory {
-    public static IColumnForwardIndex createLocalForwardIndex(CubeSegment cubeSegment, TblColRef tblColRef, String localIdxFilename) {
-        return new GTColumnForwardIndex(cubeSegment, tblColRef, localIdxFilename);
+    public static IColumnForwardIndex createLocalForwardIndex(String colName, int maxValue, String localIdxFilename) {
+        return new GTColumnForwardIndex(colName, maxValue, localIdxFilename);
     }
 
-    public static IColumnInvertedIndex createLocalInvertedIndex(CubeSegment cubeSegment, TblColRef tblColRef, String localIdxFilename) {
-        return new GTColumnInvertedIndex(cubeSegment, tblColRef, localIdxFilename);
+    public static IColumnInvertedIndex createLocalInvertedIndex(String colName, int cardinality, String localIdxFilename) {
+        return new GTColumnInvertedIndex(colName, cardinality, localIdxFilename);
     }
 }

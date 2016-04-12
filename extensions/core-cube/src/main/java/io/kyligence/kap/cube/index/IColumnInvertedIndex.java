@@ -18,6 +18,7 @@
 
 package io.kyligence.kap.cube.index;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
@@ -28,14 +29,12 @@ public interface IColumnInvertedIndex {
 
     Reader getReader();
 
-    public interface Builder {
+    public interface Builder extends Closeable {
 
         void putNextRow(int v);
-
-        void close() throws IOException;
     }
 
-    public interface Reader {
+    public interface Reader extends Closeable {
 
         ImmutableRoaringBitmap getRows(int v);
 
