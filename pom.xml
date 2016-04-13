@@ -5,7 +5,7 @@
     <groupId>io.kyligence.kap</groupId>
     <artifactId>kap</artifactId>
     <packaging>pom</packaging>
-    <version>1.5.1-SNAPSHOT</version>
+    <version>1.5.2-SNAPSHOT</version>
 
     <name>KAP:KyligenceAnalyticsPlatform</name>
     <url>http://kyligence.io</url>
@@ -25,7 +25,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <!-- Kylin versions -->
-        <kylin.version>1.5.1-SNAPSHOT</kylin.version>
+        <kylin.version>1.5.2-SNAPSHOT</kylin.version>
 
         <!-- Hadoop versions -->
         <hadoop2.version>2.6.0</hadoop2.version>
@@ -543,6 +543,7 @@
         <module>extensions/storage-hbase</module>
         <module>extensions/server</module>
         <module>extensions/assembly</module>
+        <module>extensions/it</module>
     </modules>
 
     <profiles>

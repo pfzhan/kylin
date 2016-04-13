@@ -72,6 +72,7 @@ public class GTScanRanges {
             if (prevRange != null && prevRange.isConnected(scanRange)) {
                 currRange = prevRange;
                 currRange.endKey = Ordering.natural().max(prevRange.endKey, scanRange.endKey);
+                currRange.rowCount = Ordering.natural().max(prevRange.rowCount, scanRange.rowCount);
             } else {
                 currRange = scanRange;
                 rangeTreeSet.add(currRange);
@@ -83,6 +84,7 @@ public class GTScanRanges {
                 if (tmpRange.isConnected(scanRange)) {
                     tailIter.remove();
                     currRange.endKey = Ordering.natural().max(tmpRange.endKey, currRange.endKey);
+                    currRange.rowCount = Ordering.natural().max(tmpRange.rowCount, currRange.rowCount);
                 }
             }
         }
