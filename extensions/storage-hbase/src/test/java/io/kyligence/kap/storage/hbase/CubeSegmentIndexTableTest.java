@@ -15,6 +15,7 @@ import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.cube.gridtable.CubeGridTable;
+import org.apache.kylin.dict.DateStrDictionary;
 import org.apache.kylin.dimension.Dictionary;
 import org.apache.kylin.metadata.filter.ColumnTupleFilter;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
@@ -68,18 +69,19 @@ public class CubeSegmentIndexTableTest extends LocalFileMetadataTestCase {
         File invIdxFile = new File(localIdxFolder, tblColRef.getName() + ".inv");
 
         Dictionary<String> dict = cubeSegment.getDictionary(tblColRef);
-
-        final int LENGTH_OF_TABLE = 1000;
         int maxValue = dict.getMaxId();
+        if (dict instanceof DateStrDictionary) {
+            maxValue = maxValue / 4;
+        }
         int colLength = Integer.SIZE - Integer.numberOfLeadingZeros(maxValue);
+        final int LENGTH_OF_TABLE = 1000;
         int[] colValues = new int[LENGTH_OF_TABLE];
         List<Integer> resultRows = Lists.newArrayList();
 
         // generate the data;
-        Random r = new Random();
         resultRows.add(dict.getMinId());
         for (int i = 1; i < LENGTH_OF_TABLE; i++) {
-            colValues[i] = r.nextInt(maxValue);
+            colValues[i] = i % maxValue;
             if (colValues[i] == colValues[0]) {
                 resultRows.add(i);
             }
