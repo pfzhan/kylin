@@ -55,6 +55,17 @@ public class MergeSecondaryIndexStep extends AbstractExecutable {
 
         Collections.sort(mergingSegments);
 
+        final int rowKeyNum = newSegment.getCubeDesc().getRowkey().getRowKeyColumns().length;
+        final int[] columnsNeedIndex = newSegment.getCubeDesc().getRowkey().getColumnsNeedIndex();
+
+        if (columnsNeedIndex.length == 0) {
+            return new ExecuteResult(ExecuteResult.State.SUCCEED, "Skipped, no index to merge");
+        }
+
+        if (columnsNeedIndex.length != (columnsNeedIndex[columnsNeedIndex.length - 1] + 1)) {
+            return new ExecuteResult(ExecuteResult.State.ERROR, "Index columns are not continuous from head, couldn't merge index files.");
+        }
+
         try {
 
             //1. download index files to local

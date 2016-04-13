@@ -78,14 +78,15 @@ public class SecondaryIndexReducer extends KylinReducer<Text, Text, NullWritable
         cubeSegment = cube.getSegment(segmentName, SegmentStatusEnum.NEW);
         RowKeyColumnIO colIO = new RowKeyColumnIO(new CubeDimEncMap(cubeSegment));
         int taskId = context.getTaskAttemptID().getTaskID().getId();
+        int colIndexInRowKey = cube.getDescriptor().getRowkey().getColumnsNeedIndex()[taskId];
 
         long baseCuboidId = Cuboid.getBaseCuboidId(cubeDesc);
         Cuboid baseCuboid = Cuboid.findById(cubeDesc, baseCuboidId);
-        col = baseCuboid.getColumns().get(taskId);
+        col = baseCuboid.getColumns().get(colIndexInRowKey);
         colLength = colIO.getColumnLength(col);
 
         colOffset = SecondaryIndexMapper.COLUMN_ID_LENGTH;
-        for (int i = 0; i < taskId; i++) {
+        for (int i = 0; i < colIndexInRowKey; i++) {
             colOffset += colIO.getColumnLength(baseCuboid.getColumns().get(i));
         }
 

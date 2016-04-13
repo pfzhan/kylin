@@ -34,8 +34,11 @@ public class BatchCubingJobBuilder2 extends org.apache.kylin.engine.mr.BatchCubi
 
     @Override
     protected void addOtherStepBeforeCubing(CubingJob result) {
-        MapReduceExecutable task = createBuildSecondaryIndexStep(result.getId());
-        result.addTask(task);
+
+        if (((CubeSegment) seg).getCubeDesc().getRowkey().getColumnsNeedIndex().length > 0) {
+            MapReduceExecutable task = createBuildSecondaryIndexStep(result.getId());
+            result.addTask(task);
+        }
     }
 
     private MapReduceExecutable createBuildSecondaryIndexStep(String jobId) {

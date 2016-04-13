@@ -32,6 +32,7 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
+import org.apache.kylin.cube.model.RowKeyColDesc;
 import org.apache.kylin.engine.mr.IMRInput.IMRTableInputFormat;
 import org.apache.kylin.engine.mr.MRUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
@@ -87,7 +88,7 @@ public class SecondaryIndexJob extends AbstractHadoopJob {
             job.setMapOutputValueClass(Text.class);
             job.setCombinerClass(SecondaryIndexCombiner.class); // for base cuboid shuffle skew, some rowkey aggregates far more records than others
 
-            int columnsNeedIndex = cube.getDescriptor().getRowkey().getRowKeyColumns().length; //FIXME: get from metadata
+            int columnsNeedIndex = cube.getDescriptor().getRowkey().getColumnsNeedIndex().length;
             setupReducer(output, columnsNeedIndex);
 
             // set job configuration

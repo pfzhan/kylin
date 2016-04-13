@@ -18,6 +18,8 @@
 
 package io.kyligence.kap.engine.mr.index;
 
+import com.google.common.collect.Lists;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.cube.kv.CubeDimEncMap;
@@ -31,6 +33,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.List;
 
 /**
  */
@@ -39,9 +42,11 @@ public class SecondaryIndexMapper<KEYIN> extends BaseCuboidMapperBase<KEYIN, Obj
     private IMRTableInputFormat flatTableInputFormat;
     private RowKeyColumnIO colIO;
     private ByteBuffer keyBuffer;
-    private int colNeedIndex;
+    private int[] colNeedIndex;
     private int headerLength;
     private int indexColTotalLen;
+
+    private int lastIndexCol = 0;
 
     public static final int COLUMN_ID_LENGTH = 1;
 
@@ -51,17 +56,20 @@ public class SecondaryIndexMapper<KEYIN> extends BaseCuboidMapperBase<KEYIN, Obj
         flatTableInputFormat = MRUtil.getBatchCubingInputSide(cubeSegment).getFlatTableInputFormat();
         colIO = new RowKeyColumnIO(new CubeDimEncMap(cubeSegment));
         keyBuffer = ByteBuffer.allocate(1024);
-        colNeedIndex = cubeSegment.getCubeDesc().getRowkey().getRowKeyColumns().length; //FIXME: read from metadata
-        headerLength = ((RowKeyEncoder)rowKeyEncoder).getHeaderLength();
 
-        for (int i = 0; i < colNeedIndex; i++) {
+        colNeedIndex = cubeSegment.getCubeDesc().getRowkey().getColumnsNeedIndex();
+        lastIndexCol = colNeedIndex[colNeedIndex.length - 1]; // last index col
+        headerLength = ((RowKeyEncoder) rowKeyEncoder).getHeaderLength();
+
+        for (int i = 0; i <= lastIndexCol; i++) {
             TblColRef column = baseCuboid.getColumns().get(i);
             int colLength = colIO.getColumnLength(column);
-
-            if (colLength > Bytes.SIZEOF_INT) {
-                throw new IllegalStateException("Column " + i + " encoding length > 4, is not suitable for secondary index.");
-            }
             indexColTotalLen += colLength;
+
+            if (ArrayUtils.contains(colNeedIndex, i) && colLength > Bytes.SIZEOF_INT) {
+                throw new IllegalStateException("Column " + column + " encoding length > 4, is not suitable for secondary index.");
+            }
+
         }
     }
 
@@ -79,7 +87,7 @@ public class SecondaryIndexMapper<KEYIN> extends BaseCuboidMapperBase<KEYIN, Obj
 
             byte[] rowkey = buildKey(bytesSplitter.getSplitBuffers());
 
-            for (int i = 0; i < colNeedIndex; i++) {
+            for (int i = 0; i < colNeedIndex.length; i++) {
                 int position = keyBuffer.position();
                 BytesUtil.writeUnsigned(i, COLUMN_ID_LENGTH, keyBuffer);
                 keyBuffer.put(rowkey, headerLength, indexColTotalLen);

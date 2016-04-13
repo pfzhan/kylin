@@ -73,8 +73,10 @@ public class ColumnIndexWriter implements Closeable {
     public ColumnIndexWriter(TblColRef col, Dictionary<String> dictionary, int offset, int length, File fwdIdx, File ivdIdx) {
         this.colOffset = offset;
         this.colLength = length;
+        int maxvalue = dictionary.getMaxId();
         int cardinality = dictionary.getSize();
         if (dictionary instanceof DateStrDictionary) {
+            maxvalue = maxvalue / 4;
             cardinality = cardinality / 4; // 0000 to 2500 year
         } else if (!(dictionary instanceof TrieDictionary)) {
             throw new IllegalArgumentException("Not support to build secondary dictionary for col " + col);
@@ -84,7 +86,7 @@ public class ColumnIndexWriter implements Closeable {
         if (cardinality > 1000000) {
             logger.warn("Ultra high cardinality column, may eat much memory.");
         }
-        initBuilders(col.getName(), dictionary.getMaxId(), cardinality, fwdIdx, ivdIdx);
+        initBuilders(col.getName(), maxvalue, cardinality, fwdIdx, ivdIdx);
     }
 
     private void initBuilders(String colName, int maxValue, int cardinality, File fwdIdx, File ivdIdx) {

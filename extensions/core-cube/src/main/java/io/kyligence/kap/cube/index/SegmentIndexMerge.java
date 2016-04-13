@@ -18,6 +18,7 @@
 
 package io.kyligence.kap.cube.index;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.IOUtils;
@@ -49,8 +50,8 @@ public class SegmentIndexMerge {
     }
 
     public List<File> mergeIndex() throws IOException {
-        final int colNeedIndex = newSeg.getCubeDesc().getRowkey().getRowKeyColumns().length; //FIXME: read from metadata
-
+        final int[] columnsNeedIndex = newSeg.getCubeDesc().getRowkey().getColumnsNeedIndex();
+        final int colNeedIndex = columnsNeedIndex.length;
         final long baseCuboidId = Cuboid.getBaseCuboidId(newSeg.getCubeDesc());
         final Cuboid baseCuboid = Cuboid.findById(newSeg.getCubeDesc(), baseCuboidId);
         File newSegFolder = new File(localTempFolder, newSeg.getName());
@@ -95,12 +96,13 @@ public class SegmentIndexMerge {
             ByteArray byteArray = merged.next();
             if (lastInserted == null || !lastInserted.equals(byteArray)) {
 
-                assert lastInserted.compareTo(byteArray) < 0;
+                Preconditions.checkState(lastInserted == null || lastInserted.compareTo(byteArray) < 0); // in ascending
                 //write
                 for (int i = 0; i < colNeedIndex; i++) {
                     columnIndexWriters[i].write(byteArray.array(), byteArray.offset(), byteArray.length());
                 }
 
+                // update lastInserted
                 if (lastInserted == null) {
                     lastInserted = byteArray.copy();
                 } else {

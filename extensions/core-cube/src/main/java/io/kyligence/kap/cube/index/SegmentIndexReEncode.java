@@ -23,6 +23,7 @@ import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
+import org.apache.kylin.dict.DateStrDictionary;
 import org.apache.kylin.dimension.Dictionary;
 import org.apache.kylin.metadata.model.TblColRef;
 
@@ -55,7 +56,11 @@ public class SegmentIndexReEncode implements Iterator<ByteArray> {
             oldDictionaries[j] = oldSegment.getDictionary(column);
             newDictionaries[j] = newSegment.getDictionary(column);
             totalLength += newDictionaries[j].getSizeOfId();
-            columnReaders[j] = ColumnIndexFactory.createLocalForwardIndex(column.getName(), oldDictionaries[j].getMaxId(), new File(new File(localTempFolder, oldSegment.getName()), column.getName() + ".fwd").getAbsolutePath()).getReader();
+            int maxValue = oldDictionaries[j].getMaxId();
+            if (oldDictionaries[j] instanceof DateStrDictionary) {
+                maxValue = maxValue / 4;
+            }
+            columnReaders[j] = ColumnIndexFactory.createLocalForwardIndex(column.getName(), maxValue, new File(new File(localTempFolder, oldSegment.getName()), column.getName() + ".fwd").getAbsolutePath()).getReader();
         }
 
         totalRows = columnReaders[0].getNumberOfRows();

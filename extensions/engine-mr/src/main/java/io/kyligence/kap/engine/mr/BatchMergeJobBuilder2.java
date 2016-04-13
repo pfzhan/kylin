@@ -46,13 +46,15 @@ public class BatchMergeJobBuilder2 extends org.apache.kylin.engine.mr.BatchMerge
 
     @Override
     protected void addOtherStepBeforeMerge(CubingJob cubingJob) {
-        MergeSecondaryIndexStep result = new MergeSecondaryIndexStep();
-        result.setName("Merge Secondary Index");
+        if (((CubeSegment) seg).getCubeDesc().getRowkey().getColumnsNeedIndex().length > 0) {
+            MergeSecondaryIndexStep result = new MergeSecondaryIndexStep();
+            result.setName("Merge Secondary Index");
 
-        CubingExecutableUtil.setCubeName(seg.getRealization().getName(), result.getParams());
-        CubingExecutableUtil.setSegmentId(seg.getUuid(), result.getParams());
-        CubingExecutableUtil.setIndexPath(this.getSecondaryIndexPath(cubingJob.getId()), result.getParams());
-        cubingJob.addTask(result);
+            CubingExecutableUtil.setCubeName(seg.getRealization().getName(), result.getParams());
+            CubingExecutableUtil.setSegmentId(seg.getUuid(), result.getParams());
+            CubingExecutableUtil.setIndexPath(this.getSecondaryIndexPath(cubingJob.getId()), result.getParams());
+            cubingJob.addTask(result);
+        }
     }
 
 }
