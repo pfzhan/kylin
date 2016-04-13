@@ -1,5 +1,7 @@
 package io.kyligence.kap.cube.gridtable;
 
+import io.kyligence.kap.cube.index.IIndexTable;
+
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 
 /**

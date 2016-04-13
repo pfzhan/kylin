@@ -88,10 +88,5 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-core-cube</artifactId>
-            <version>1.5.1-SNAPSHOT</version>
-        </dependency>
     </dependencies>
 </project>
