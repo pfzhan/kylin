@@ -27,7 +27,6 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.cube.CubeSegment;
@@ -138,7 +137,7 @@ public class AdvGTScanRangePlanner extends GTScanRangePlanner {
             }
         }));
 
-        if (ret.size() > KylinConfig.getInstanceFromEnv().getQueryStorageVisitScanRangeMax()) {
+        if (ret.size() > maxScanRanges) {
             return super.planScanRanges();
         } else {
             return ret;
