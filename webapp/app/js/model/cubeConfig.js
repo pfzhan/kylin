@@ -90,6 +90,11 @@ KylinApp.constant('cubeConfig', {
     'yyyy-MM-dd',
     'yyyyMMdd'
   ],
+  partitionTimeFormatOpt:[
+    'HH:mm:ss',
+    'HH:mm',
+    'HH'
+  ],
   externalFilterType:[
     'HDFS'
   ],
