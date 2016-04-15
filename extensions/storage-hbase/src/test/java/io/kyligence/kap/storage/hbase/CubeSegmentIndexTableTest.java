@@ -46,7 +46,7 @@ public class CubeSegmentIndexTableTest extends LocalFileMetadataTestCase {
     @Before
     public void setup() throws Exception {
         createTestMetadata();
-        cubeInstance = mgr().getCube("test_kylin_cube_with_slr_ready");
+        cubeInstance = mgr().getCube("test_kylin_cube_without_slr_left_join_ready");
         localIdxFolder = new File("/tmp/kylin/index");
         FileUtils.forceMkdir(localIdxFolder);
         cubeSegment = cubeInstance.getSegments().get(0);
@@ -69,10 +69,10 @@ public class CubeSegmentIndexTableTest extends LocalFileMetadataTestCase {
         File invIdxFile = new File(localIdxFolder, tblColRef.getName() + ".inv");
 
         Dictionary<String> dict = cubeSegment.getDictionary(tblColRef);
+        if (dict == null)
+            return;
+
         int maxValue = dict.getMaxId();
-        if (dict instanceof DateStrDictionary) {
-            maxValue = maxValue / 4;
-        }
         int colLength = Integer.SIZE - Integer.numberOfLeadingZeros(maxValue);
         final int LENGTH_OF_TABLE = 1000;
         int[] colValues = new int[LENGTH_OF_TABLE];
@@ -97,13 +97,13 @@ public class CubeSegmentIndexTableTest extends LocalFileMetadataTestCase {
     }
 
     private GTScanRanges lookupColumn(TblColRef tblColRef) throws IOException {
-        CompareTupleFilter filter = new CompareTupleFilter(CompareTupleFilter.FilterOperatorEnum.EQ);
+        CompareTupleFilter filter = new CompareTupleFilter(CompareTupleFilter.FilterOperatorEnum.GT);
         filter.addChild(new ColumnTupleFilter(tblColRef));
 
         Dictionary<String> dict = cubeSegment.getDictionary(tblColRef);
 
         byte[] row = new byte[dict.getSize()];
-        BytesUtil.writeUnsigned(dict.getMinId(), row, 0, dict.getSize());
+        BytesUtil.writeUnsigned(dict.getMinId() + 2, row, 0, dict.getSize());
         filter.addChild(new ConstantTupleFilter(new ByteArray(row)));
 
         CubeSegmentIndexTable indexTable = new CubeSegmentIndexTable(cubeSegment, CubeGridTable.newGTInfo(cubeSegment, Cuboid.getBaseCuboidId(cubeSegment.getCubeDesc())));
@@ -119,7 +119,7 @@ public class CubeSegmentIndexTableTest extends LocalFileMetadataTestCase {
             buildColumnIndex(dictCol);
         }
 
-        TblColRef tblColRef = cubeInstance.getAllDimensions().get(11);
+        TblColRef tblColRef = cubeInstance.getAllDimensions().get(18);
         GTScanRanges ranges = lookupColumn(tblColRef);
         Assert.assertTrue(ranges.getRangeSet().size() > 0);
     }
