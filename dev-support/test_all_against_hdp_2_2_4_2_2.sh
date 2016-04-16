@@ -21,4 +21,6 @@ dir=$(dirname ${0})
 cd ${dir}/..
 
 mvn clean install -DskipTests 2>&1 | tee mci.log
-mvn verify -Dhdp.version=2.2.4.2-2 -fae 2>&1 | tee mvnverify.log
+mvn test -Dhdp.version=2.2.4.2-2 -fae 2>&1 | tee mvntest.log
+mvn -pl :kap-it pre-integration-test -Dhdp.version=2.2.4.2-2 -P sandbox | tee mvncubing.log
+mvn failsafe:integration-test -Dhdp.version=2.2.4.2-2 | tee mvnintegration.log

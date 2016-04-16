@@ -573,6 +573,7 @@
                             <reportsDirectory>${project.basedir}/../../target/surefire-reports</reportsDirectory>
                             <excludes>
                                 <exclude>**/IT*.java</exclude>
+                                <exclude>**/KAPIT*.java</exclude>
                             </excludes>
                             <systemProperties>
                                 <property>
@@ -584,7 +585,7 @@
                                     <value>false</value>
                                 </property>
                             </systemProperties>
-                            <argLine>-Xmx4G -XX:MaxPermSize=512M</argLine>
+                            <argLine>-Xms1G -Xmx2G -XX:MaxPermSize=512M</argLine>
                         </configuration>
                     </plugin>
 
