@@ -9,7 +9,7 @@ import org.apache.kylin.common.util.ClassUtil;
 
 public class KAPHBaseMetadataTestCase extends AbstractKylinTestCase {
 
-    public static String SANDBOX_TEST_DATA = "../../kylin/examples/test_case_data/sandbox";
+    public static String SANDBOX_TEST_DATA = "../examples/test_case_data/sandbox";
 
     static {
         try {

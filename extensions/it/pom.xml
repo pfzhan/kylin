@@ -325,7 +325,7 @@
                                         <argument>-DfastBuildMode=${fastBuildMode}</argument>
                                         <argument>-classpath</argument>
                                         <classpath/>
-                                        <argument>org.apache.kylin.provision.BuildCubeWithEngine</argument>
+                                        <argument>io.kyligence.kap.provision.BuildCubeWithEngine</argument>
                                     </arguments>
                                     <workingDirectory>${project.basedir}</workingDirectory>
                                 </configuration>
@@ -346,7 +346,7 @@
                                         <argument>-DfastBuildMode=${fastBuildMode}</argument>
                                         <argument>-classpath</argument>
                                         <classpath/>
-                                        <argument>org.apache.kylin.provision.BuildCubeWithStream</argument>
+                                        <argument>io.kyligence.kap.provision.BuildCubeWithStream</argument>
                                     </arguments>
                                     <workingDirectory>${project.basedir}</workingDirectory>
                                 </configuration>
@@ -367,7 +367,7 @@
                                         <argument>-DfastBuildMode=${fastBuildMode}</argument>
                                         <argument>-classpath</argument>
                                         <classpath/>
-                                        <argument>org.apache.kylin.provision.BuildIIWithStream</argument>
+                                        <argument>io.kyligence.kap.provision.BuildIIWithStream</argument>
                                     </arguments>
                                     <workingDirectory>${project.basedir}</workingDirectory>
                                 </configuration>
