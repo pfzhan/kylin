@@ -33,9 +33,6 @@ import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 import io.kyligence.kap.cube.gridtable.GTScanRanges;
 import io.kyligence.kap.cube.index.ColumnIndexWriter;
 
-/**
- * Created by dongli on 4/13/16.
- */
 public class CubeSegmentIndexTableTest extends LocalFileMetadataTestCase {
     private static final Logger logger = LoggerFactory.getLogger(CubeSegmentIndexTableTest.class);
 
@@ -87,7 +84,7 @@ public class CubeSegmentIndexTableTest extends LocalFileMetadataTestCase {
             }
         }
 
-        try (ColumnIndexWriter writer = new ColumnIndexWriter(tblColRef.getName(), maxValue, maxValue, 0, colLength, fwdIdxFile, invIdxFile)) {
+        try (ColumnIndexWriter writer = new ColumnIndexWriter(tblColRef, dict, 0, colLength, fwdIdxFile, invIdxFile)) {
             for (int i = 0; i < LENGTH_OF_TABLE; i++) {
                 byte[] row = new byte[colLength];
                 BytesUtil.writeUnsigned(colValues[i], row, 0, colLength);

@@ -14,6 +14,7 @@ import org.apache.kylin.dimension.Dictionary;
 import org.apache.kylin.dimension.DimensionEncoding;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTRecord;
+import org.apache.kylin.gridtable.GTUtil;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.model.TblColRef;
 
@@ -90,7 +91,11 @@ public class CubeSegmentIndexTable implements IIndexTable {
     public GTScanRanges lookup(CompareTupleFilter filter) {
         GTScanRanges scanRanges = new GTScanRanges();
         try {
-            TblColRef column = GTUtilExd.getRealColFromMockUp(filter.getColumn(), cuboid);
+            TblColRef column = filter.getColumn();
+            // convert to real column if it's mockup column
+            if (column.getTable().equals("NULL.GT_MOCKUP_TABLE")) {
+                column = GTUtilExd.getRealColFromMockUp(column, cuboid);
+            }
 
             // TODO: Currently only dict dimensions are supported.
             Dictionary dict = cubeSegment.getDictionary(column);
