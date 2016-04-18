@@ -90,8 +90,9 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
     return avaColObject;
   };
 
-  //SUM,COUNT,MAX,MIN
-  $scope.getCommonMetricColumns = function () {
+  $scope.getCommonMetricColumns = function (measure) {
+    var nonCustomMeasures = ['SUM','MIN','MAX','COUNT'];
+    var expression = measure.function.expression;
 
     //metric from model
     var me_columns = [];
@@ -100,24 +101,18 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
         me_columns.push(metric);
       })
     }
-    return me_columns;
-  };
 
-  //COUNT_DISTINCT,TopN
-  $scope.getMetricColumns = function () {
-
-    //metric from model
-    var me_columns = [];
-    if($scope.metaModel.model.metrics){
-      angular.forEach($scope.metaModel.model.metrics,function(metric,index){
-        me_columns.push(metric);
-      })
+    if(nonCustomMeasures.indexOf(expression)!==-1){
+      return me_columns;
     }
 
     //add cube dimension column for specific measure
     angular.forEach($scope.cubeMetaFrame.dimensions,function(dimension,index){
       if(dimension.column && dimension.derived == null){
         me_columns.push(dimension.column);
+      }
+      if(dimension.derived&&dimension.derived.length>=1){
+        me_columns = me_columns.concat(dimension.derived);
       }
     });
 
