@@ -34,7 +34,9 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
     if (UserService.hasRole("ROLE_ADMIN")) {
             $scope.wizardSteps.push({title: 'Advanced Setting', src: 'partials/cubeDesigner/advanced_settings.html', isComplete: false,form:'cube_setting_form'});
     }
-    //$scope.wizardSteps.push({title: 'Streaming', src: 'partials/cubeDesigner/streamingConfig.html', isComplete: false,form:'cube_streaming_form'});
+
+    $scope.wizardSteps.push({title: 'Configuration Overwrites ', src: 'partials/cubeDesigner/cubeOverwriteProp.html', isComplete: false,form:'cube_overwrite_prop_form'});
+
     $scope.wizardSteps.push({title: 'Overview', src: 'partials/cubeDesigner/overview.html', isComplete: false,form:null});
 
     $scope.curStep = $scope.wizardSteps[0];
@@ -200,8 +202,8 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
                         break;
                     case 'cube_setting_form':
                         return $scope.check_cube_setting();
-                    case 'cube_streaming_form':
-                        return $scope.kafka_ad_config_form();
+                  case 'cube_overwrite_prop_form':
+                    return $scope.cube_overwrite_prop_check();
                     default:
                         return true;
                         break;
@@ -302,19 +304,18 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
         }
     }
 
-  $scope.kafka_ad_config_form = function(){
-    if(!$scope.cubeState.isStreaming){
-      return true;
-    }
+  $scope.cube_overwrite_prop_check = function(){
     var errors = [];
-    if(!$scope.kafkaMeta.clusters.length){
-      errors.push("Cluster can't be null");
-    }
-    angular.forEach($scope.kafkaMeta.clusters,function(cluster,index){
-      if(!cluster.brokers.length){
-        errors.push("No broker under Cluster-"+(index+1));
+
+    for(var key in $scope.cubeMetaFrame.override_kylin_properties){
+      if(key==''){
+        errors.push("Property name is required.");
       }
-    })
+      if($scope.cubeMetaFrame.override_kylin_properties[key] == ''){
+        errors.push("Property value is required.");
+      }
+    }
+
     var errorInfo = "";
     angular.forEach(errors,function(item){
       errorInfo+="\n"+item;
