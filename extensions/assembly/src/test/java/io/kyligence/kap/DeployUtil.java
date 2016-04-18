@@ -27,7 +27,8 @@ public class DeployUtil {
     public static void deployMetadata() throws IOException {
         // install metadata to hbase
         ResourceTool.reset(config());
-        ResourceTool.copy(KylinConfig.createInstanceFromUri(LocalFileMetadataTestCase.LOCALMETA_TEST_DATA), config());
+        ResourceTool.copy(KylinConfig.createInstanceFromUri(LocalFileMetadataTestCase.KYLIN_META_TEST_DATA), config());
+        ResourceTool.copy(KylinConfig.createInstanceFromUri(LocalFileMetadataTestCase.KAP_META_TEST_DATA), config());
 
         // update cube desc signature.
         for (CubeInstance cube : CubeManager.getInstance(config()).listAllCubes()) {
