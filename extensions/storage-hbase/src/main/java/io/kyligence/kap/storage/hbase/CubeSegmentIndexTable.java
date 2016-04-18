@@ -23,37 +23,31 @@ import com.google.common.collect.Ranges;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.gridtable.GTScanRanges;
+import io.kyligence.kap.cube.gridtable.GTUtilExd;
 import io.kyligence.kap.cube.index.IColumnForwardIndex;
 import io.kyligence.kap.cube.index.IColumnInvertedIndex;
 import io.kyligence.kap.cube.index.IIndexTable;
 
 public class CubeSegmentIndexTable implements IIndexTable {
 
-    private CubeSegmentIndexManager indexManager;
+    private CubeSegmentIndexReaderManager indexManager;
     private GTInfo info;
     private CubeSegment cubeSegment;
+    private Cuboid cuboid;
 
-    public CubeSegmentIndexTable(CubeSegment cubeSegment, GTInfo info) {
+    public CubeSegmentIndexTable(CubeSegment cubeSegment, GTInfo info, Cuboid cuboid) {
         this.info = info;
         this.cubeSegment = cubeSegment;
-        this.indexManager = CubeSegmentIndexManager.getInstance(this.cubeSegment);
+        this.cuboid = cuboid;
+        this.indexManager = CubeSegmentIndexReaderManager.getInstance(this.cubeSegment);
     }
 
-    private GTScanRanges buildPositiveGTScanRanges(IColumnInvertedIndex invertedIndex, TblColRef column, Set<Integer> conditionValues) {
+    private GTScanRanges buildPositiveGTScanRanges(IColumnInvertedIndex.Reader invertedIndex, TblColRef column, Set<Integer> conditionValues) {
         TreeSet<Integer> rowSet = Sets.newTreeSet();
-        if (conditionValues == null) {
-            Dictionary dict = cubeSegment.getDictionary(column);
-
-            int[] rows = invertedIndex.getReader().getRows(dict.nullId()).toArray();
+        for (int conditionValue : conditionValues) {
+            int[] rows = invertedIndex.getRows(conditionValue).toArray();
             for (int r : rows) {
                 rowSet.add(r);
-            }
-        } else {
-            for (int conditionValue : conditionValues) {
-                int[] rows = invertedIndex.getReader().getRows(conditionValue).toArray();
-                for (int r : rows) {
-                    rowSet.add(r);
-                }
             }
         }
 
@@ -67,18 +61,17 @@ public class CubeSegmentIndexTable implements IIndexTable {
             rowNums[i] = 0;
         }
 
-        Cuboid baseCuboid = Cuboid.getBaseCuboid(cubeSegment.getCubeDesc());
-        List<TblColRef> dimensionColumns = baseCuboid.getColumns();
+        List<TblColRef> dimensionColumns = cuboid.getColumns();
         ImmutableBitSet primaryKey = info.getPrimaryKey();
         for (int i = 0; i < dimensionColumns.size(); i++) {
             int col = primaryKey.trueBitAt(i);
-            DimensionEncoding dimEn = info.getCodeSystem().getDimEnc(col);
-            IColumnForwardIndex forwardIndex = indexManager.getColumnForwardIndex(dimensionColumns.get(i));
-            if (forwardIndex != null) {
-                IColumnForwardIndex.Reader forwardIndexReader = forwardIndex.getReader();
 
+            DimensionEncoding dimEn = info.getCodeSystem().getDimEnc(col);
+            int dimLength = dimEn.getLengthOfEncoding();
+
+            IColumnForwardIndex.Reader forwardIndexReader = indexManager.getColumnForwardIndex(dimensionColumns.get(i));
+            if (forwardIndexReader != null) {
                 for (int r = 0; r < rowRanges.size(); r++) {
-                    int dimLength = dimEn.getLengthOfEncoding();
                     byte[] buffer = new byte[dimLength];
                     BytesUtil.writeUnsigned(forwardIndexReader.get(rowRanges.get(r).lowerEndpoint()), buffer, 0, dimLength);
                     startKeys[r].set(col, new ByteArray(buffer));
@@ -97,19 +90,21 @@ public class CubeSegmentIndexTable implements IIndexTable {
     public GTScanRanges lookup(CompareTupleFilter filter) {
         GTScanRanges scanRanges = new GTScanRanges();
         try {
-            TblColRef column = filter.getColumn();
+            TblColRef column = GTUtilExd.getRealColFromMockUp(filter.getColumn(), cuboid);
+
+            // TODO: Currently only dict dimensions are supported.
             Dictionary dict = cubeSegment.getDictionary(column);
             if (dict == null) {
                 throw new RuntimeException("Only dictionary dimensions are supported.");
             }
 
-            IColumnInvertedIndex invertedIndex = indexManager.getColumnInvertedIndex(column);
+            IColumnInvertedIndex.Reader invertedIndex = indexManager.getColumnInvertedIndex(column);
 
             switch (filter.getOperator()) {
             case IN:
             case EQ:
                 Set<Integer> intVals = Sets.newHashSet();
-                for (ByteArray byteVal : (Set<ByteArray>)filter.getValues()) {
+                for (ByteArray byteVal : (Set<ByteArray>) filter.getValues()) {
                     intVals.add(BytesUtil.readUnsigned(byteVal.array(), 0, byteVal.length()));
                 }
                 scanRanges = buildPositiveGTScanRanges(invertedIndex, column, intVals);
@@ -120,14 +115,14 @@ public class CubeSegmentIndexTable implements IIndexTable {
 
             case GT:
             case GTE:
-                int gtValue = BytesUtil.readUnsigned(((ByteArray) filter.getFirstValue()).asBuffer(), dict.getSize());
-                Set<Integer> gtValues = Ranges.closed(gtValue, dict.getMaxId() - 1).asSet(DiscreteDomains.integers());
+                int gtValue = BytesUtil.readUnsigned(((ByteArray) filter.getFirstValue()).asBuffer(), dict.getSizeOfId());
+                Set<Integer> gtValues = Ranges.closed(gtValue, dict.getMaxId()).asSet(DiscreteDomains.integers());
                 scanRanges = buildPositiveGTScanRanges(invertedIndex, column, gtValues);
                 break;
 
             case LT:
             case LTE:
-                int ltValue = BytesUtil.readUnsigned(((ByteArray) filter.getFirstValue()).asBuffer(), dict.getSize());
+                int ltValue = BytesUtil.readUnsigned(((ByteArray) filter.getFirstValue()).asBuffer(), dict.getSizeOfId());
                 Set<Integer> ltValues = Ranges.closed(dict.getMinId(), ltValue).asSet(DiscreteDomains.integers());
                 scanRanges = buildPositiveGTScanRanges(invertedIndex, column, ltValues);
                 break;

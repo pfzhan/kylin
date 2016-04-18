@@ -1,6 +1,8 @@
 package io.kyligence.kap.cube.index;
 
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
@@ -54,5 +56,6 @@ public class SegmentIndexMergeTest extends LocalFileMetadataTestCase {
         List<File> files = segmentIndexMerge.mergeIndex();
         Assert.assertTrue(files != null && files.size() > 0);
 
+        FileUtils.forceDelete(new File(folder, newSegment.getName()));
     }
 }

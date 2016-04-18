@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.dict.DateStrDictionary;
 import org.apache.kylin.dimension.Dictionary;
 import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -21,41 +22,41 @@ import io.kyligence.kap.cube.index.ColumnIndexFactory;
 import io.kyligence.kap.cube.index.IColumnForwardIndex;
 import io.kyligence.kap.cube.index.IColumnInvertedIndex;
 
-public class CubeSegmentIndexManager {
-    private static final Logger logger = LoggerFactory.getLogger(CubeSegmentIndexManager.class);
+public class CubeSegmentIndexReaderManager {
+    private static final Logger logger = LoggerFactory.getLogger(CubeSegmentIndexReaderManager.class);
 
     // static cached instances
-    private static final ConcurrentHashMap<CubeSegment, CubeSegmentIndexManager> CACHE = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<CubeSegment, CubeSegmentIndexReaderManager> CACHE = new ConcurrentHashMap<>();
 
     private CubeSegment cubeSegment;
-    private Map<TblColRef, IColumnInvertedIndex> invertedIndexes = Maps.newHashMap();
-    private Map<TblColRef, IColumnForwardIndex> forwardIndexes = Maps.newHashMap();
+    private Map<TblColRef, IColumnInvertedIndex.Reader> invertedIndexes = Maps.newHashMap();
+    private Map<TblColRef, IColumnForwardIndex.Reader> forwardIndexes = Maps.newHashMap();
     private Map<TblColRef, Integer> dictionaryCardinalities = Maps.newHashMap();
 
-    private CubeSegmentIndexManager(CubeSegment cubeSegment) throws IOException {
+    private CubeSegmentIndexReaderManager(CubeSegment cubeSegment) throws IOException {
         this.cubeSegment = cubeSegment;
         reload();
     }
 
-    public static CubeSegmentIndexManager getInstance(CubeSegment cubeSegment) {
-        CubeSegmentIndexManager indexTable = CACHE.get(cubeSegment);
+    public static CubeSegmentIndexReaderManager getInstance(CubeSegment cubeSegment) {
+        CubeSegmentIndexReaderManager indexTable = CACHE.get(cubeSegment);
         if (indexTable != null) {
             return indexTable;
         }
-        synchronized (CubeSegmentIndexManager.class) {
+        synchronized (CubeSegmentIndexReaderManager.class) {
             indexTable = CACHE.get(cubeSegment);
             if (indexTable != null) {
                 return indexTable;
             }
             try {
-                indexTable = new CubeSegmentIndexManager(cubeSegment);
+                indexTable = new CubeSegmentIndexReaderManager(cubeSegment);
                 CACHE.put(cubeSegment, indexTable);
                 if (CACHE.size() > 1) {
-                    logger.warn("More than one CubeSegmentIndexManager singleton exist");
+                    logger.warn("More than one CubeSegmentIndexReaderManager singleton exist");
                 }
                 return indexTable;
             } catch (IOException e) {
-                throw new IllegalStateException("Failed to init CubeSegmentIndexManager from " + cubeSegment, e);
+                throw new IllegalStateException("Failed to init CubeSegmentIndexReaderManager from " + cubeSegment, e);
             }
         }
     }
@@ -71,16 +72,20 @@ public class CubeSegmentIndexManager {
             Dictionary dict = cubeSegment.getDictionary(tblCol);
             if (dict == null)
                 continue;
-            dictionaryCardinalities.put(tblCol, cubeSegment.getDictionary(tblCol).getSize());
+            int cardinality = cubeSegment.getDictionary(tblCol).getSize();
+            if (dict instanceof DateStrDictionary) {
+                cardinality = cardinality / 4;
+            }
+            dictionaryCardinalities.put(tblCol, cardinality);
             IColumnForwardIndex fwIdx = createLocalColumnForwardIndex(tblCol);
             IColumnInvertedIndex ivIdx = createLocalColumnInvertedIndex(tblCol);
 
             if (fwIdx == null || ivIdx == null)
                 continue;
-            invertedIndexes.put(tblCol, ivIdx);
-            forwardIndexes.put(tblCol, fwIdx);
+            invertedIndexes.put(tblCol, ivIdx.getReader());
+            forwardIndexes.put(tblCol, fwIdx.getReader());
         }
-        logger.info("CubeSegmentIndexManager was initialized in {} millis for segment {}.", System.currentTimeMillis() - startTime, cubeSegment);
+        logger.info("CubeSegmentIndexReaderManager was initialized in {} millis for segment {}.", System.currentTimeMillis() - startTime, cubeSegment);
     }
 
     private IColumnInvertedIndex createLocalColumnInvertedIndex(TblColRef tblColRef) throws IOException {
@@ -99,11 +104,11 @@ public class CubeSegmentIndexManager {
         return ColumnIndexFactory.createLocalForwardIndex(tblColRef.getName(), dictionaryCardinalities.get(tblColRef), indexLocalPath);
     }
 
-    public IColumnForwardIndex getColumnForwardIndex(TblColRef tblColRef) {
+    public IColumnForwardIndex.Reader getColumnForwardIndex(TblColRef tblColRef) {
         return forwardIndexes.get(tblColRef);
     }
 
-    public IColumnInvertedIndex getColumnInvertedIndex(TblColRef tblColRef) {
+    public IColumnInvertedIndex.Reader getColumnInvertedIndex(TblColRef tblColRef) {
         return invertedIndexes.get(tblColRef);
     }
 

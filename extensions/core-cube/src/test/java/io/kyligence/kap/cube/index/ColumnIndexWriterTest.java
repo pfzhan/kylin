@@ -1,16 +1,13 @@
 package io.kyligence.kap.cube.index;
 
-import org.apache.kylin.common.util.BytesUtil;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Random;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.apache.kylin.common.util.BytesUtil;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  */
@@ -33,10 +30,11 @@ public class ColumnIndexWriterTest {
 
         System.out.println("COL1_FWD_IDX: " + COL1_FWD_IDX.getAbsolutePath());
         System.out.println("COL1_INV_IDX: " + COL1_INV_IDX.getAbsolutePath());
-//        COL1_FWD_IDX.deleteOnExit();
-//        COL1_INV_IDX.deleteOnExit();
-//        COL2_FWD_IDX.deleteOnExit();
-//        COL2_INV_IDX.deleteOnExit();
+
+        COL1_FWD_IDX.deleteOnExit();
+        COL1_INV_IDX.deleteOnExit();
+        COL2_FWD_IDX.deleteOnExit();
+        COL2_INV_IDX.deleteOnExit();
 
         int LENGTH_OF_TABLE = 10000;
         int[] col1Values = new int[LENGTH_OF_TABLE];

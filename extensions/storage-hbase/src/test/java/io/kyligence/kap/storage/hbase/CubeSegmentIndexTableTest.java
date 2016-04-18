@@ -106,7 +106,7 @@ public class CubeSegmentIndexTableTest extends LocalFileMetadataTestCase {
         BytesUtil.writeUnsigned(dict.getMinId() + 2, row, 0, dict.getSize());
         filter.addChild(new ConstantTupleFilter(new ByteArray(row)));
 
-        CubeSegmentIndexTable indexTable = new CubeSegmentIndexTable(cubeSegment, CubeGridTable.newGTInfo(cubeSegment, Cuboid.getBaseCuboidId(cubeSegment.getCubeDesc())));
+        CubeSegmentIndexTable indexTable = new CubeSegmentIndexTable(cubeSegment, CubeGridTable.newGTInfo(cubeSegment, Cuboid.getBaseCuboidId(cubeSegment.getCubeDesc())), Cuboid.getBaseCuboid(cubeSegment.getCubeDesc()));
         GTScanRanges ranges = indexTable.lookup(filter);
 
         return ranges;

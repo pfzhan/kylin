@@ -22,9 +22,6 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 
-/**
- * Created by dongli on 4/7/16.
- */
 public class GTColumnForwardIndexTest extends LocalFileMetadataTestCase {
     private static final Logger logger = LoggerFactory.getLogger(GTColumnForwardIndexTest.class);
     private static final int ROW_NUM = 10000000;

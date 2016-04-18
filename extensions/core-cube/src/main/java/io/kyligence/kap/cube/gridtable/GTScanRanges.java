@@ -19,14 +19,17 @@
 package io.kyligence.kap.cube.gridtable;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.TreeSet;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTRecord;
+import org.apache.kylin.gridtable.GTScanRange;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
@@ -371,5 +374,13 @@ public class GTScanRanges {
         public void optimize(GTScanRanges scanRanges) {
 
         }
+    }
+
+    public List<GTScanRange> getGTRangeList() {
+        List<GTScanRange> result = Lists.newArrayListWithCapacity(rangeTreeSet.size());
+        for (ScanRange range : rangeTreeSet) {
+            result.add(new GTScanRange(range.startKey, range.endKey));
+        }
+        return result;
     }
 }
