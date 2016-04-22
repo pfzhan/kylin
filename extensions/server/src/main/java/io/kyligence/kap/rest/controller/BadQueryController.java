@@ -18,9 +18,9 @@
 
 package io.kyligence.kap.rest.controller;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.List;
-
+import org.apache.commons.io.IOUtils;
 import org.apache.kylin.metadata.badquery.BadQueryEntry;
 import org.apache.kylin.metadata.badquery.BadQueryHistory;
 import org.apache.kylin.rest.controller.BasicController;
@@ -37,6 +37,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Lists;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 @Controller
 @RequestMapping(value = "bquery")
 public class BadQueryController extends BasicController {
@@ -47,9 +50,8 @@ public class BadQueryController extends BasicController {
 
     /**
      * Get bad query history
-     *
      */
-    @RequestMapping(value = "/{project}/sql", method = { RequestMethod.GET })
+    @RequestMapping(value = "/{project}/sql", method = {RequestMethod.GET})
     @ResponseBody
     public List<BadQueryEntry> getBadQuerySql(@PathVariable String project) {
 
@@ -66,18 +68,28 @@ public class BadQueryController extends BasicController {
 
     /**
      * Get diagnosis information
-     *
      */
-    @RequestMapping(value = "/{project}/download", method = { RequestMethod.GET })
+    @RequestMapping(value = "/{project}/download", method = {RequestMethod.GET})
     @ResponseBody
-    public String getDiagnosisInfoFile(@PathVariable String project) {
+    public void getDiagnosisInfoFile(@PathVariable String project, final HttpServletRequest request, final HttpServletResponse response) {
         String filePath;
         try {
             filePath = dgService.dumpDiagnosisInfo(project);
         } catch (IOException e) {
             throw new InternalErrorException(e + " Caused by: " + e.getMessage(), e);
         }
-        return filePath;
-    }
 
+        File file = new File(filePath);
+        try (InputStream fileInputStream = new FileInputStream(file); OutputStream output = response.getOutputStream();) {
+            response.reset();
+            response.setContentType("application/octet-stream");
+            response.setContentLength((int) (file.length()));
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + file.getName() + "\"");
+            IOUtils.copyLarge(fileInputStream, output);
+            output.flush();
+        } catch (IOException e) {
+            throw new InternalErrorException(e + " Caused by: " + e.getMessage(), e);
+        }
+
+    }
 }

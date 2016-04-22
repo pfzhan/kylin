@@ -19,7 +19,7 @@
 'use strict';
 
 KylinApp
-    .controller('BadQueryCtrl', function ($scope,BadQueryService, $q, $routeParams, $interval, $modal, ProjectService, MessageService, JobService,SweetAlert,ProjectModel,jobConfig) {
+    .controller('BadQueryCtrl', function ($scope,BadQueryService, $q, $routeParams, $interval, $modal, ProjectService, MessageService, JobService,SweetAlert,ProjectModel,$window) {
 
       $scope.badQueryList = [];
 
@@ -32,8 +32,8 @@ KylinApp
 
       $scope.list = function(){
         var _project = ProjectModel.selectedProject;
-        if (_project == null){
           $scope.badQueryList = [];
+        if (_project == null){
           $scope.bqstate.loading = false;
           return;
         }
@@ -64,5 +64,15 @@ KylinApp
         }
 
       });
+
+      $scope.downloadBadQueryFiles = function(){
+        var _project = ProjectModel.selectedProject;
+        if (_project == null){
+          SweetAlert.swal('', "No project selected.", 'info');
+          return;
+        }
+        var downloadUrl = Config.service.url + 'bquery/'+_project+'/download'
+        $window.location = downloadUrl;
+      }
 
     });
