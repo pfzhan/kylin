@@ -34,7 +34,8 @@
     "angular-ui-select": "0.13.2",
     "angular-sanitize": "1.2.18",
     "angular-bootstrap-grid-tree": "*",
-    "angular-bootstrap-datetimepicker": "0.3.15"
+    "angular-bootstrap-datetimepicker": "0.3.15",
+    "angular-dragdrop": "^1.0.13"
   },
   "devDependencies": {
     "less.js": "~1.4.0",
