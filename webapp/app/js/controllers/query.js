@@ -19,8 +19,8 @@
 'use strict';
 
 KylinApp
-    .controller('QueryCtrl', function ($scope, storage, $base64, $q, $location, $anchorScroll, $routeParams, QueryService, $modal, MessageService, $domUtilityService, $timeout, TableService,SweetAlert) {
-        $scope.mainPanel = 'query';
+    .controller('QueryCtrl', function ($scope, storage, $base64, $q, $location, $anchorScroll, $routeParams, QueryService, $modal, MessageService, $domUtilityService, $timeout, TableService,SweetAlert,SqlModel) {
+        $scope.mainPanel = 'querydrag';
         $scope.rowsPerPage = 50000;
         $scope.base64 = $base64;
         $scope.queryString = "";
@@ -56,21 +56,10 @@ KylinApp
 
         $scope.curProject = null;
         $scope.state = {
-            selectedProject: null
+            selectedProject: null,
+            autoRefreshSql:true
         };
-
-        //drag drop design
-        $scope.sqlData ={
-          visualTables:[]
-        };
-
-        $scope.visualTables = [];
-
-        $scope.optionsList1 = {
-          accept: function(dragEl) {
-            return true;
-          }
-        };
+        $scope.sqlModel =SqlModel;
 
         var Query = {
             createNew: function (sql, project) {
@@ -156,6 +145,7 @@ KylinApp
             $scope.queryString = queryString;
         }
 
+        $scope.aceEditor;
         $scope.aceLoaded = function (_editor) {
             var langTools = ace.require("ace/ext/language_tools");
 
@@ -185,10 +175,17 @@ KylinApp
                 langTools.columnAdded = true;
             }
 
-            _editor.commands.bindKey("Command-Option-Space", "startAutocomplete")
+            _editor.commands.bindKey("Command-Option-Space", "startAutocomplete");
             _editor.setOptions({
                 enableBasicAutocompletion: true
             });
+            _editor.$blockScrolling = Infinity;
+          $scope.aceEditor = _editor;
+
+        }
+
+        $scope.aceChanged = function(){
+          $scope.queryString = $scope.aceEditor.getValue();
         }
 
         $scope.parseQueryResult = function (oneQuery, result, status) {
@@ -428,6 +425,38 @@ KylinApp
             }
         });
 
+      $scope.updateEditorSql = function(){
+
+        // refresh editor content from drag&drop
+        if ($scope.aceEditor){
+          if($scope.state.autoRefreshSql){
+            $scope.aceEditor.setValue($scope.sqlModel.SQL);
+          }else{
+            $scope.aceEditor.setValue($scope.queryString);
+          }
+          $scope.aceEditor.clearSelection();
+          $scope.aceEditor.focus();
+        };
+      }
+
+
+      $scope.$watch('state.autoRefreshSql', function (newValue, oldValue) {
+        // refresh query String content from drag&drop
+        if(newValue){
+          $scope.aceEditor.setValue($scope.sqlModel.SQL);
+          $scope.queryString = $scope.sqlModel.SQL;
+        }
+        $scope.aceEditor.clearSelection();
+        $scope.aceEditor.focus();
+
+      });
+
+      $scope.$watch('sqlModel.SQL', function (newValue, oldValue) {
+        // refresh querString content from drag&drop
+        if($scope.state.autoRefreshSql){
+          $scope.queryString = $scope.sqlModel.SQL;
+        }
+      });
 
     })
     .controller('QueryResultCtrl', function ($scope, storage, $base64, $q, $location, $anchorScroll, $routeParams, QueryService, GraphService) {

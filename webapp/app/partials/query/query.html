@@ -1,38 +1,43 @@
 
-<div style="height:100%;" ng-controller="ProjectMetaCtrl"">
-  <div class="query-header row" style="position: fixed;top:45px;bottom:45px;width:100%;height:60px;line-height:60px;">
+<div style="height:100%;word-break: normal !important;" ng-controller="ProjectMetaCtrl">
+
+<div class="page-header" style="height: 40px;">
+  <!--Project-->
+  <form class="navbar-left" style="margin-top: 0px !important;">
     <div>
       <label>Model:</label>
-        <select ng-change="modelChanged()" ng-model="selectedModel" ng-options="_model.name as _model.name for _model in modelsManager.models" style="width:200px;">
-          <option value="">--select a model --</option>
-        </select>
+      <select ng-change="modelChanged()" ng-model="selectedModel" ng-options="_model.name as _model.name for _model in modelsManager.models" style="width:200px;">
+        <option value="">-- select a model --</option>
+      </select>
     </div>
-  </div>
+  </form>
+</div>
 
-  <div class="query-content row" style="position: fixed;top:105px;bottom:45px;width:100%;background-color: #ecf0f5;">
+  <div class="query-container row" style="padding-top: 10px;">
 
     <!--left bar dimensions measures-->
-    <div class="sidebar-dm" style="width: 200px;margin:10px 0px 10px 10px;position: absolute;top: 0px;bottom: 0px;overflow: scroll;">
+    <div class="sidebar-dm col-sm-3">
 
-      <div class="box" style="position:absolute;bottom:50%;top:0px;margin-bottom:0 !important;overflow: scroll;border-top:0px !important;">
+      <div class="box" style="border-top:0px !important;">
 
-        <div class="box" style="position:absolute;bottom:40px;top:0;margin-bottom:0 !important;overflow: scroll;">
+        <div class="box">
           <div class="box-header with-border">
             <h3 class="box-title">Dimensions</h3>
           </div>
         </div>
 
-        <div class="box" style="position:absolute;bottom:0;top:40px;margin-bottom:0 !important;overflow: scroll;border-top:0px !important;">
+        <div class="box" style="border-top:0px !important;">
           <div class="box-body">
-            <div class="table-responsive">
+            <div class="table-responsive" style="height:220px;overflow-y:auto;">
               <table class="table">
-                <tr ng-repeat="dimension in sqlModel.dimensions"
-                    ng-model="dimension"
-                    data-drag="true"
-                    data-jqyoui-options="{revert: 'invalid',helper:'clone'}"
-                    jqyoui-draggable="{animate:true,containment:position,deepCopy:true,placeholder:'keep'}">
+                <tr ng-repeat="dimension in sqlModel.dimensions">
                   <td>
-                    {{dimension.name}}
+                    <span ng-model="dimension"
+                          class="drag-dimension"
+                          style="min-width:150px;"
+                          data-drag="true"
+                          data-jqyoui-options="{revert: 'invalid',helper:'clone'}"
+                          jqyoui-draggable="{animate:true,deepCopy:true,placeholder:'keep'}">{{dimension.name}}</span>
                   </td>
                 </tr>
               </table>
@@ -43,25 +48,26 @@
       </div>
 
 
-      <div class="box" style="position:absolute;bottom:0;top:50%;margin-bottom:0 !important;overflow: scroll;border-top:0px !important;">
+      <div class="box" style="border-top:0px !important;">
 
-        <div class="box" style="position:absolute;bottom:40px;top:0;margin-bottom:0 !important;overflow: scroll;">
+        <div class="box">
           <div class="box-header with-border">
             <h3 class="box-title">Measures</h3>
           </div>
         </div>
 
-        <div class="box" style="position:absolute;bottom:0;top:40px;margin-bottom:0 !important;overflow: scroll;border-top:0px !important;">
+        <div class="box" style="border-top:0px !important;">
           <div class="box-body">
-            <div class="table-responsive">
+            <div class="table-responsive" style="height:220px;overflow-y:auto;">
               <table class="table">
-                <tr ng-repeat="measure in sqlModel.measures"
-                    ng-model="measure"
-                    data-drag="true"
-                    data-jqyoui-options="{revert: 'invalid',helper:'clone'}"
-                    jqyoui-draggable="{animate:true,deepCopy:true,placeholder:'keep'}">
-                  <td>
-                    {{measure.mea_display}}
+                <tr ng-repeat="measure in sqlModel.measures">
+                  <td style="word-break: normal !important;">
+                   <span  ng-model="measure"
+                          class="drag-measure"
+                          style="min-width:150px;"
+                         data-drag="true"
+                         data-jqyoui-options="{revert: 'invalid',helper:'clone'}"
+                         jqyoui-draggable="{animate:true,deepCopy:true,placeholder:'keep'}"> {{measure.mea_display}}</span>
                   </td>
                 </tr>
               </table>
@@ -73,16 +79,292 @@
 
     </div>
 
-    <div class="insight-right-container" style="position:absolute;left: 220px;right: 10px;top: 10px;height: 100px;">
-      <div class="box" style="position:absolute;bottom:0;top:0;border-top:0px !important;">
-        <div class="box-body">
-          <div class="table-responsive" ng-model="sqlModel.selectedModels" jqyoui-droppable="{multiple:true}" style="overflow:auto;word-break:break-all;"  data-jqyoui-options="optionsList1">
-            <span ng-repeat="dimension in sqlModel.selectedDimensions">{{dimension.name}}</span>
+    <div class="col-sm-9">
+      <div>
+        <div class="nav-tabs-custom">
+          <ul class="nav nav-tabs">
+            <!--<li class="{{mainPanel=='queryp'?'active':''}}">-->
+            <!--<a ng-click="mainPanel='queryp'" style="cursor: pointer">Query Panel</a>-->
+            <!--</li>-->
+            <li class="{{mainPanel=='querydrag'?'active':''}}">
+              <a ng-click="mainPanel='querydrag'" style="cursor: pointer">New Query</a>
+            </li>
+            <li class="{{mainPanel=='query'?'active':''}}">
+              <a ng-click="mainPanel='query';updateEditorSql();" style="cursor: pointer">SQL</a>
+            </li>
+            <li class="{{mainPanel=='saved'?'active':''}}">
+              <a ng-click="mainPanel='saved';listSavedQueries()" style="cursor: pointer">Saved Queries</a>
+            </li>
+            <li class="{{mainPanel=='cached'?'active':''}}">
+              <a ng-click="mainPanel='cached'" style="cursor: pointer">Query History</a>
+            </li>
+          </ul>
+          <div ng-show="mainPanel=='query'">
+              <form name="query_panel">
+                <section>
+                  <div id="aceCntnr" style="height: 220px;" ui-ace="{
+                                      useWrapMode : true,
+                                      showGutter: true,
+                                      theme:'chrome',
+                                      mode: 'sql',
+                                      onLoad: aceLoaded,
+                                      onChange: aceChanged
+                                    }" ng-model="queryString" required></div>
+                </section>
+
+                <p class="blue">
+                  Tips: Ctrl+Shift+Space or Alt+Space(Windows), Command+Option+Space(Mac) to list tables/columns in query box.
+                </p>
+              </form>
+            <div class="pull-right">
+              <label>LIMIT</label>
+              <input type="text" style="width:100px;" class="inline form-control" ng-model="rowsPerPage" ng-pattern="/^\d+$/" ng-blur="checkLimit()" />
+              <button class="btn btn-sm btn-primary" ng-click="submitQuery()" ng-disabled="query_panel.$invalid">
+                Submit
+              </button>
+            </div>
+          </div>
+
+          <div ng-show="mainPanel=='saved'">
+            <div ng-if="savedQueries.length==0">
+              <div no-result text="No Saved Query."></div>
+            </div>
+            <table class="table table-hover table-striped list">
+              <tr ng-repeat="query in savedQueries | reverse track by $index"
+                  ng-if="$index >= (savedQueries.curPage-1)*savedQueries.perPage && $index < savedQueries.curPage*savedQueries.perPage"
+                  class="query-content">
+                <td>
+                  <div>
+                    <label>SQL Name:</label>&nbsp;&nbsp;&nbsp;<b style="font-size: 14px">{{query.name}}</b>
+                    <!--<span style="color: #808080;line-height: 25px" class="pull-right">Saved At: {{query.createdDate}}</span>-->
+                  </div>
+                  <div ng-if="query.project">
+                    <label>Project: </label>
+                    <span style="color: gray">{{query.project}}</span>
+                  </div>
+                  <div ng-if="query.description">
+                    <label>Description</label>
+                    <blockquote style="font-size: 12px;margin-bottom: 0px;padding: 6px 10px;">
+                      {{query.description}}
+                    </blockquote>
+                  </div>
+
+                  <div class="pull-right">
+                    <button class="btn btn-default btn-xs" ng-click="submitQuery(query.sql, query.project)"><i class="fa fa-refresh"></i>
+                      Resubmit
+                    </button>
+                    <button class="btn btn-default btn-xs" ng-click="removeSavedQuery(query.id)"><i
+                      class="fa fa-times">
+                      Remove</i>
+                    </button>
+                  </div>
+                  <div class="form-group" style="margin: 0px">
+                    SQL:
+                    <label ng-click="query.show=!query.show" style="padding:5px">
+                      <i ng-if="!query.show" class="fa fa-angle-double-down"></i>
+                      <i ng-if="query.show" class="fa fa-angle-double-right"></i>
+                    </label>
+
+                    <section style="padding-bottom: 20px;" ng-if="query.show">
+                      <div ui-ace="{
+                              useWrapMode : true,
+                              showGutter: true,
+                              theme:'chrome',
+                              mode: 'sql',
+                              onLoad: aceLoaded,
+                              onChange: aceChanged
+                            }"
+                           ng-model="query.sql" ng-change="setQueryString(query.sql)"></div>
+                    </section>
+                  </div>
+                </td>
+              </tr>
+            </table>
+            <pagination total-items="savedQueries.length" page="savedQueries.curPage"
+                        items-per-page="savedQueries.perPage"
+                        max-size="5" class="pull-right"></pagination>
+          </div>
+
+          <div ng-show="mainPanel=='cached'">
+            <div ng-if="cachedQueries.length==0">
+              <div no-result text="No Query History."></div>
+            </div>
+            <table class="table table-hover table-striped list">
+              <tr ng-repeat="query in cachedQueries | reverse track by $index"
+                  ng-if="$index >= (cachedQueries.curPage-1)*cachedQueries.perPage && $index < cachedQueries.curPage*cachedQueries.perPage">
+                <td>
+                  <span style="color: #808080;line-height: 25px">Queried At: {{query.savedAt}} </span><span ng-if="query.project">in Project: {{query.project}}</span>
+
+                  <div class="pull-right">
+                    <button class="btn btn-default btn-xs" ng-click="submitQuery(query.sql, query.project)"><i class="fa fa-refresh"></i>
+                      Resubmit
+                    </button>
+                    <button class="btn btn-default btn-xs" ng-click="removeQuery()"><i class="fa fa-times">
+                      Remove</i>
+                    </button>
+                  </div>
+                  <div class="form-group" style="margin: 0px">
+                    SQL:
+                    <label ng-click="query.show=!query.show" style="padding:5px">
+                      <i ng-if="!query.show" class="fa fa-angle-double-down"></i>
+                      <i ng-if="query.show" class="fa fa-angle-double-right"></i>
+                    </label>
+
+                    <section style="padding-bottom: 20px" ng-if="query.show">
+                      <div ui-ace="{
+                              useWrapMode : true,
+                              showGutter: true,
+                              theme:'chrome',
+                              mode: 'sql',
+                              onLoad: aceLoaded,
+                              onChange: aceChanged
+                            }"
+                           ng-model="query.sql" ng-change="setQueryString(query.sql)"></div>
+                    </section>
+                  </div>
+                </td>
+              </tr>
+            </table>
+            <pagination total-items="cachedQueries.length" items-per-page="cachedQueries.perPage" max-size="5"
+                        page="cachedQueries.curPage" class="pull-right"></pagination>
+          </div>
+
+          <div ng-show="mainPanel=='querydrag'">
+
+            <div class="insight-right-container">
+                <div class="box-header with-border">
+                  <h3 class="box-title">Drop dimensions and measures here</h3>
+                </div>
+
+                <div class="box-body">
+                      <div class="col-sm-12">
+                        <div class="row" style="margin-bottom:10px;">
+                          <div class="col-sm-1" style="padding:0px 1px;">
+                            <b>Dimensions:</b>
+                          </div>
+                          <!--<div class="thumbnail col-sm-10" ng-model="sqlModel.selectedDimensions" data-drop="true" jqyoui-droppable="{multiple:true}" style="min-height: 30px;;"  data-jqyoui-options="{accept:'.drag-dimension'}">-->
+                          <div class="thumbnail col-sm-11" ng-model="sqlModel.selectedDimensions" data-drop="true" jqyoui-droppable="{multiple:true,onDrop:'sqlModel.dimensionOnDrop'}" style="min-height: 30px;;"  data-jqyoui-options="dimensionAccept">
+                            <span class="label label-info" style="float:left;margin:1px;" ng-repeat="dimension in sqlModel.selectedDimensions track by $index">{{dimension.name}}<i class="fa fa-times" ng-click="sqlModel.removeDimensionByIndex(sqlModel.selectedDimensions,$index)" style="cursor:pointer;"></i></span>
+                          </div>
+                        </div>
+
+                        <div class="row">
+                          <div class="col-sm-1" style="padding:0px 1px;">
+                            <b> Measures:</b>
+                          </div>
+                          <!--<div class="thumbnail col-sm-10" ng-model="sqlModel.selectedMeasures" data-drop="true" jqyoui-droppable="{multiple:true}" style="min-height:30px;"  data-jqyoui-options="{accept:'.drag-measure'}">-->
+                          <div class="thumbnail col-sm-11" ng-model="sqlModel.selectedMeasures" data-drop="true" jqyoui-droppable="{multiple:true,onDrop:'sqlModel.measureOnDrop'}" style="min-height:30px;"  data-jqyoui-options="measureAccept">
+                            <span class="label label-warning" style="float:left;margin:1px;" ng-repeat="measure in sqlModel.selectedMeasures">{{measure.mea_display}} <i class="fa fa-times"  ng-click="sqlModel.removeMeasureByIndex(sqlModel.selectedMeasures,$index)" style="cursor:pointer;"></i></span>
+                          </div>
+                        </div>
+                      </div>
+                  </div>
+            </div>
+
+            <div class="pull-left" style="margin:10px;">
+              <div class="form-group">
+                <label>
+                  <input type="checkbox" ng-click="refreshStatusUpdate()" ng-model="state.autoRefreshSql">
+                </label>
+                <label>
+                  Refresh SQL
+                </label>
+              </div>
+            </div>
+
+            <div class="pull-right" style="margin:10px;">
+              <label>LIMIT</label>
+              <input type="text" style="width:100px;" class="inline form-control" ng-model="rowsPerPage" ng-pattern="/^\d+$/" ng-blur="checkLimit()" />
+              <button class="btn btn-sm btn-primary" ng-click="submitQuery(sqlModel.SQL)" ng-disabled="query_panel.$invalid">
+                Submit
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="clearfix"></div>
+        <div class="hr hr24 hr-dotted"></div>
+
+        <h3 class="kylin_title" style="padding: 10px 15px;">
+          Results
+          <div class="nav-tabs-custom">
+            <ul class="nav nav-tabs" style="font-size: 13px;padding: 5px 0px 5px 0px"
+                ng-if="queries.length > 0">
+              <li ng-repeat="query in queries | filter: {status: statusFilter} | orderBy:'startTime'"
+                  class="{{(query==curQuery)? 'active':''}}">
+                        <span>
+                            <button class="btn {{(query==curQuery)?'active':''}} btn-default btn-xs" style="width: 50px"
+                                    ng-click="refreshCurQuery()">
+                              {{$index+1}}
+                                <span ng-if="query.status=='failed'">
+                                    <i style="color: #f0ad4e" class="fa fa-exclamation-triangle"></i>
+                                </span>
+                                <span ng-if="query.status=='success'">
+                                    <i style="color: #5cb85c" class="fa fa-check"></i>
+                                </span>
+                                <span ng-if="query.status=='executing'">
+                                    <i style="color: #5bc0de" class="fa fa-cog fa-spin"></i>
+                                </span>
+                            </button>
+                            <button class="btn btn-default btn-xs" ng-click="removeResult(query)"><i class="fa fa-times"></i></button>
+                        </span>
+                <span style="padding: 0px 5px 0px 5px"> | </span>
+              </li>
+
+              <div class="pull-right" style="font-size: 13px">
+                Status:
+                <select ng-init="statusFilter=statusList[0].value" ng-model="statusFilter"
+                        ng-options="status.value as status.name for status in statusList"></select>
+              </div>
+            </ul>
+          </div>
+        </h3>
+
+        <div ng-if="!curQuery">
+          <div no-result text="No Query Result."></div>
+        </div>
+
+        <div ng-include="'partials/query/query_detail.html'"></div>
+      </div>
+
+
+
+
+      <div class="box" style="margin-top:10px;" ng-show="false">
+        <div class="container">
+          <div class="row">
+            <div class="col-sm-12 thumbnail">
+              {{sqlModel.SEG1}}
+            </div>
+            <div class="col-sm-12 thumbnail">
+              {{sqlModel.SEG2}}
+            </div>
+            <div class="col-sm-12 thumbnail">
+              {{sqlModel.SEG3}}
+            </div>
+            <div class="col-sm-12 thumbnail">
+              {{sqlModel.SEG4}}
+            </div>
+            <div class="col-sm-12 thumbnail">
+              {{sqlModel.SEG5}}
+            </div>
+            <div class="col-sm-12 thumbnail">
+              {{sqlModel.SEG6}}
+            </div>
+          </div>
+        </div>
+       </div>
+
+      <div class="box" style="margin-top:10px;" ng-show="false">
+        <div class="container">
+          <div class="row">
+            <pre>{{sqlModel.SQL}}</pre>
           </div>
         </div>
       </div>
-    </div>
 
+    </div>
 
 
   </div>

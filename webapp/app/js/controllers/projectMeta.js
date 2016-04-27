@@ -36,12 +36,6 @@ KylinApp
     };
 
     $scope.sqlModel = SqlModel;
-    //table dimensions
-    $scope.tableDimensions = {};
-    //table measures
-    $scope.tableMeasures = {};
-    //table&column map measure
-    $scope.tableColumnMeasuresMap = {};
 
     $scope.columnIcon="badge";
     $scope.dimensionIcon = "badge label-info cube-dimension";
@@ -93,16 +87,17 @@ KylinApp
 
     $scope.modelChanged = function(){
       $scope.sqlModel.tableMeasures = {};
-      $scope.tableColumnMeasuresMap = {};
       $scope.sqlModel.dimensions = [];
       $scope.sqlModel.measures = [];
       $scope.sqlModel.selectedDimensions = [];
       $scope.sqlModel.selectedMeasures = [];
+      $scope.sqlModel.columnDimensions = {};
 
       if($scope.selectedModel===""||!$scope.selectedModel){
         return;
       }
 
+      $scope.sqlModel.model = $scope.modelsManager.getModel($scope.selectedModel);
 
       for(var i=0;i<$scope.readyCubeDescs.length;i++){
         var cubeDesc = $scope.readyCubeDescs[i];
@@ -112,47 +107,52 @@ KylinApp
         }
         var factTableName = model.fact_table;
 
-        //gen sql
-        if(!$scope.sqlModel.tableModelJoin[factTableName]){
-          $scope.sqlModel.tableModelJoin[factTableName] ={};
-        }
-        for(var i=0;i<model.lookups.length;i++){
-          var lookup = model.lookups[i];
-          $scope.sqlModel.tableModelJoin[factTableName][lookup.table] = {};
-          $scope.sqlModel.tableModelJoin[factTableName][lookup.table]=lookup.join;
-        }
-
-
         for(var k=0;k<cubeDesc.dimensions.length;k++){
           var dimension = cubeDesc.dimensions[k];
-          if(!$scope.sqlModel.tableDimensions[dimension.table]){
-            $scope.sqlModel.tableDimensions[dimension.table] = [];
-          }
+
 
           if(dimension.column && dimension.derived == null){
-            $scope.sqlModel.tableDimensions[dimension.table].push(dimension.column);
-            $scope.sqlModel.dimensions.push({
+
+            //do not add duplicate
+            if(!$scope.sqlModel.columnDimensions[dimension.column]){
+              $scope.sqlModel.dimensions.push({
+                name:dimension.column,
+                table:dimension.table,
+                isDimension:true
+              });
+            }
+            $scope.sqlModel.columnDimensions[dimension.column]={
               name:dimension.column,
-              table:dimension.table
-            });
+              table:dimension.table,
+              isDimension:true
+            }
           }
           if(dimension.derived&&dimension.derived.length>=1){
             for(var m=0;m<dimension.derived.length;m++){
-              $scope.sqlModel.tableDimensions[dimension.table].push(dimension.derived[m]);
-              $scope.sqlModel.dimensions.push({
+
+              if(!$scope.sqlModel.columnDimensions[dimension.derived[m]]) {
+                $scope.sqlModel.dimensions.push({
+                  name: dimension.derived[m],
+                  table: dimension.table,
+                  isDimension: true
+                });
+              }
+
+              $scope.sqlModel.columnDimensions[dimension.derived[m]]={
                 name:dimension.derived[m],
                 table:dimension.table
-              });
+              }
+
+
             }
           }
         }
 
         //$scope.tableMeasures
         if(!$scope.sqlModel.tableMeasures[factTableName]){
-          $scope.sqlModel.tableMeasures[factTableName] = [];
+          $scope.sqlModel.tableMeasures[factTableName] = {};
         }
 
-        //recursive parameter not included
         for(var j=0;j<cubeDesc.measures.length;j++){
           var measure = cubeDesc.measures[j];
           var expression = measure.function.expression;
@@ -163,31 +163,59 @@ KylinApp
             mea_expression:expression,
             mea_type:type,
             mea_value:column,
-            mea_display:expression+'('+column+')'
+            mea_display:expression+'('+column+')',
+            mea_next_parameter:measure.function.parameter.next_parameter,
+            isMeasure:true
           }
 
-          $scope.sqlModel.measures.push(tableMeasureItem);
-
-          //TO-DO duplicate check, topn
+          if(!$scope.sqlModel.tableMeasures[factTableName][column] || !$scope.sqlModel.tableMeasures[factTableName][column][expression]){
+            $scope.sqlModel.measures.push(tableMeasureItem);
+          }
+          //duplicate check with map
           if($scope.sqlModel.tableMeasures[factTableName]){
-            $scope.sqlModel.tableMeasures[factTableName].push(tableMeasureItem);
+            $scope.sqlModel.tableMeasures[factTableName][column] = {};
+            $scope.sqlModel.tableMeasures[factTableName][column][expression]=tableMeasureItem;
           }
 
-
-          if(!$scope.tableColumnMeasuresMap[factTableName]){
-            $scope.tableColumnMeasuresMap[factTableName] ={};
-            $scope.tableColumnMeasuresMap[factTableName][column] = [];
-            $scope.tableColumnMeasuresMap[factTableName][column].push(expression);
-          }else{
-            if($scope.tableColumnMeasuresMap[factTableName][column]){
-              $scope.tableColumnMeasuresMap[factTableName][column].push(expression);
-            }else{
-              $scope.tableColumnMeasuresMap[factTableName][column] = [];
-              $scope.tableColumnMeasuresMap[factTableName][column].push(expression);
-            }
-          }
         }
       }
+
+    }
+
+    $scope.dimensionAccept = {
+      accept: function(dragEl) {
+        console.log("dimension in");
+        if(dragEl.hasClass("drag-dimension")){
+          console.log("is dimension");
+          return true;
+        }
+        else{
+          console.log("not dimension");
+          return false;
+        }
+      }
+
+    }
+
+    $scope.measureAccept = {
+    accept: function(dragEl) {
+      console.log("measure in");
+        if(dragEl.hasClass("drag-measure")){
+          console.log("is measure");
+          return true;
+        }else{
+          console.log("not measure");
+          return false;
+        }
+      }
+    }
+
+
+    $scope.genSql = function(){
+
+      //valid rule like topn validate
+      $scope.sqlModel.init();
+      $scope.sqlModel.getSql();
 
     }
 
@@ -237,179 +265,6 @@ KylinApp
           $q.all(cubeDescPromise).then(function(){
               $scope.loading = false;
               defer.resolve();
-
-            for(var i=0;i<$scope.readyCubeDescs.length;i++){
-              var cubeDesc = $scope.readyCubeDescs[i];
-              var model = $scope.modelsManager.getModel(cubeDesc.model_name);
-              if($scope.selectedModel !== model){
-                continue;
-              }
-              var factTableName = model.fact_table;
-
-              //gen sql
-              if(!$scope.sqlModel.tableModelJoin[factTableName]){
-                $scope.sqlModel.tableModelJoin[factTableName] ={};
-              }
-              for(var i=0;i<model.lookups.length;i++){
-                var lookup = model.lookups[i];
-                $scope.sqlModel.tableModelJoin[factTableName][lookup.table] = {};
-                $scope.sqlModel.tableModelJoin[factTableName][lookup.table]=lookup.join;
-              }
-
-
-              //$scope.tableMeasures
-              if(!$scope.sqlModel.tableMeasures[factTableName]){
-                $scope.sqlModel.tableMeasures[factTableName] = [];
-              }
-
-
-              //recursive parameter not included
-              for(var j=0;j<cubeDesc.measures.length;j++){
-                var measure = cubeDesc.measures[j];
-                var expression = measure.function.expression;
-                var column = measure.function.parameter.value;
-                var type = measure.function.parameter.type;
-
-                var tableMeasureItem = {
-                  mea_expression:expression,
-                  mea_type:type,
-                  mea_value:column
-                }
-
-                //TO-DO duplicate check, topn
-                if($scope.sqlModel.tableMeasures[factTableName]){
-                  $scope.sqlModel.tableMeasures[factTableName].push(tableMeasureItem);
-                }
-
-
-                if(!$scope.tableColumnMeasuresMap[factTableName]){
-                  $scope.tableColumnMeasuresMap[factTableName] ={};
-                  $scope.tableColumnMeasuresMap[factTableName][column] = [];
-                  $scope.tableColumnMeasuresMap[factTableName][column].push(expression);
-                }else{
-                  if($scope.tableColumnMeasuresMap[factTableName][column]){
-                    $scope.tableColumnMeasuresMap[factTableName][column].push(expression);
-                  }else{
-                    $scope.tableColumnMeasuresMap[factTableName][column] = [];
-                    $scope.tableColumnMeasuresMap[factTableName][column].push(expression);
-                  }
-                }
-              }
-            }
-
-            QueryService.getTables({project: $scope.projectModel.getSelectedProject()}, {}, function (tables) {
-              var tableMap = [];
-              angular.forEach(tables, function (table) {
-                if (!tableMap[table.table_SCHEM]) {
-                  tableMap[table.table_SCHEM] = [];
-                }
-                table.name = table.table_NAME;
-                angular.forEach(table.columns, function (column, index) {
-                  column.name = column.column_NAME;
-                });
-                tableMap[table.table_SCHEM].push(table);
-              });
-
-              for (var key in  tableMap) {
-
-                var tables = tableMap[key];
-                var _db_node = {
-                  Name: key,
-                  drag: false,
-                  data: tables,
-                  onSelect: function (branch) {
-                    $log.info("db " + key + "selected");
-                  }
-                }
-
-                var _table_node_list = [];
-                angular.forEach(tables, function (_table) {
-                    var tableIcon = "fa fa-table";
-
-                    var tableName = _table.table_SCHEM + "." + _table.name;
-                    //get fact lookup info
-                    var tableTags = $scope.modelsManager.getTableDesc(tableName);
-                    if(tableTags.indexOf("FACT")!=-1){
-                      tableIcon = $scope.factIcon;
-                      _table.isFactTable = true;
-                    }
-                    if(tableTags.indexOf("LOOKUP")!=-1){
-                      tableIcon = $scope.lookupIcon;
-                    }
-
-                    var _table_node = {
-                      Name: _table.name,
-                      drag: true,
-                      data: _table,
-                      icon: tableIcon,
-                      onSelect: function (branch) {
-                        // set selected model
-                        $scope.selectedSrcTable = branch.data;
-                      }
-                    }
-
-                    if(!$scope.sqlModel.tableDimensions[tableName]){
-                      $scope.sqlModel.tableDimensions[tableName] = [];
-                    }
-
-
-                    var _column_node_list = [];
-                    angular.forEach(_table.columns, function (_column) {
-                      var columnIcon = "";
-
-                      var columnTags = $scope.modelsManager.getColumnDesc(tableName, _column.name);
-                      if(columnTags.indexOf("D")!=-1){
-                        columnIcon = $scope.dimensionIcon;
-                      }
-                      if(columnTags.indexOf("M")!=-1){
-                        columnIcon = $scope.measureIcon;
-                      }
-                      if(columnTags.indexOf("M")!=-1 && columnTags.indexOf("D")!=-1){
-                        columnIcon = $scope.dimensionMeasureIcon;
-                      }
-                      if(columnTags.indexOf("PK")!=-1){
-                        columnIcon = $scope.pkIcon;
-                      }
-
-                      if(columnTags.indexOf("FK")!=-1){
-                        columnIcon = $scope.fkIcon;
-                      }
-
-                      if($scope.tableColumnMeasuresMap[tableName]){
-                        if($scope.tableColumnMeasuresMap[tableName][_column.name]){
-                          columnTags = columnTags.concat($scope.tableColumnMeasuresMap[tableName][_column.name]);
-                        }
-
-                      }
-                      if(columnTags.indexOf("D")!=-1){
-                        $scope.sqlModel.tableDimensions[tableName].push(name);
-
-                      }
-
-                      _column_node_list.push({
-                        Name: _column.name + $scope.columnTypeFormat(_column.type_NAME),
-                        drag:false,
-                        data: _column,
-                        icon: columnIcon,
-                        onSelect: function (branch) {
-                          // set selected model
-                          $log.info("selected column info:" + _column.name);
-                        }
-                      });
-                    });
-                    _table_node.children = _column_node_list;
-                    _table_node_list.push(_table_node);
-
-                    _db_node.children = _table_node_list;
-                  }
-                );
-
-                $scope.selectedSrcDb.push(_db_node);
-              }
-
-              $scope.loading = false;
-              defer.resolve();
-            })
           })
 
         })
@@ -418,17 +273,10 @@ KylinApp
       return defer.promise;
     };
 
-
-    $scope.optionsList1 = {
-      accept: function(dragEl) {
-        return true;
-      }
-    };
-
-
     $scope.$watch('projectModel.selectedProject', function (newValue, oldValue) {
       $scope.projectMetaLoad();
     });
+
 
     $scope.columnTypeFormat = function (typeName) {
       if (typeName) {
