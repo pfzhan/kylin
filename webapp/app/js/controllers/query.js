@@ -434,7 +434,7 @@ KylinApp
 
       $scope.$watch('sqlModel.SQL', function (newValue, oldValue) {
         // refresh querString content from drag&drop
-        if($scope.state.autoRefreshSql && $scope.sqlModel.isSqlAvailable()){
+        if($scope.state.autoRefreshSql){
           $scope.queryString = $scope.sqlModel.SQL;
         }
       });
