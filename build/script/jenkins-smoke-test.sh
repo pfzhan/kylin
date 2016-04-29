@@ -1,7 +1,7 @@
 #!/bin/bash
 pkg_name=`ls dist/*.tar.gz`
 
-test_home=smoke-test-${BUILD_TAG}
+test_home=smoke-test
 mkdir ${test_home}
 
 # copy test scripts to test home

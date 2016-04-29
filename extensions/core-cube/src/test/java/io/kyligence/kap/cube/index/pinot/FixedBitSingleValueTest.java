@@ -28,7 +28,7 @@ public class FixedBitSingleValueTest {
     public void testV2() throws Exception {
         Log4jConfigurer.initLogger();
 
-        int[] ROWS_LIST = {1, 100, 1000, 10000, 100000};
+        int[] ROWS_LIST = { 1, 100, 1000, 10000, 100000 };
         for (int ROWS : ROWS_LIST) {
             for (int numBits = 0; numBits < 32; numBits++) {
                 File file = new File("/tmp/" + this.getClass().getName() + "_" + numBits + ".test");
