@@ -74,7 +74,7 @@ public class BadQueryController extends BasicController {
     public void getDiagnosisInfoFile(@PathVariable String project, final HttpServletRequest request, final HttpServletResponse response) {
         String filePath;
         try {
-            filePath = dgService.dumpDiagnosisInfo(project);
+            filePath = dgService.dumpProjectDiagnosisInfo(project);
         } catch (IOException e) {
             throw new InternalErrorException(e + " Caused by: " + e.getMessage(), e);
         }
