@@ -16,8 +16,8 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 
-public class DeployUtil {
-    private static final Logger logger = LoggerFactory.getLogger(DeployUtil.class);
+public class KAPDeployUtil {
+    private static final Logger logger = LoggerFactory.getLogger(KAPDeployUtil.class);
 
     public static void initCliWorkDir() throws IOException {
         execCliCommand("rm -rf " + getHadoopCliWorkingDir());
