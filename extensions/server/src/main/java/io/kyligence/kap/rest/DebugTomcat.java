@@ -12,7 +12,6 @@ import org.apache.catalina.startup.Tomcat;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.rest.util.ClasspathUtil;
 
 public class DebugTomcat {
 
@@ -21,8 +20,7 @@ public class DebugTomcat {
             System.setProperty("log4j.configuration", "kylin-log4j.properties");
 
             // test_case_data/sandbox/ contains HDP 2.2 site xmls which is dev sandbox
-            ClasspathUtil.addClasspath(new File("../../kylin/examples/test_case_data/sandbox").getAbsolutePath());
-            System.setProperty(KylinConfig.KYLIN_CONF, "../../kylin/examples/test_case_data/sandbox");
+            KylinConfig.setSandboxEnvIfPossible();
             overrideDevJobJarLocations();
 
             System.setProperty("spring.profiles.active", "testing");
