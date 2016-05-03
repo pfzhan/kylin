@@ -17,7 +17,7 @@
  */
 
 KylinApp.factory('BadQueryService', ['$resource', function ($resource, config) {
-  return $resource(Config.service.url + 'bquery/:project/:action', {}, {
+  return $resource(Config.service.url + 'diag/:entity/:id/:action', {}, {
     list: {method: 'GET', params: {action:'sql'}, cache: false, isArray: true}
   });
 }]);

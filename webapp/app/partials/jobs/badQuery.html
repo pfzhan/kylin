@@ -4,7 +4,7 @@
   <!--No Job-->
   <div ng-if="!bqstate.loading && badQueryList.length==0">
     <div ng-if="projectModel.selectedProject==null" no-result text="No project selected"></div>
-    <div ng-if="projectModel.selectedProject!==null" no-result text="No Bad Query."></div>
+    <div ng-if="projectModel.selectedProject!==null" no-result text="No Slow Query."></div>
   </div>
   <!--Loading Jobs-->
   <div ng-if="bqstate.loading">

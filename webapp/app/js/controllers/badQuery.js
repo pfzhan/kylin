@@ -38,7 +38,7 @@ KylinApp
           return;
         }
         BadQueryService.list({
-          project:_project
+          entity:_project
         }, function (queryList) {
           angular.forEach(queryList, function (query) {
             $scope.badQueryList.push(query);
@@ -64,15 +64,5 @@ KylinApp
         }
 
       });
-
-      $scope.downloadBadQueryFiles = function(){
-        var _project = ProjectModel.selectedProject;
-        if (_project == null){
-          SweetAlert.swal('', "No project selected.", 'info');
-          return;
-        }
-        var downloadUrl = Config.service.url + 'bquery/'+_project+'/download'
-        $window.location = downloadUrl;
-      }
 
     });
