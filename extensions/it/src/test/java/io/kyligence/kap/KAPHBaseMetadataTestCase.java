@@ -35,7 +35,7 @@ public class KAPHBaseMetadataTestCase extends AbstractKylinTestCase {
 
     public static void staticCreateTestMetadata(String kylinConfigFolder) {
 
-        KylinConfig.destoryInstance();
+        KylinConfig.destroyInstance();
 
         if (System.getProperty(KylinConfig.KYLIN_CONF) == null && System.getenv(KylinConfig.KYLIN_CONF) == null)
             System.setProperty(KylinConfig.KYLIN_CONF, kylinConfigFolder);
