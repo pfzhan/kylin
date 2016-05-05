@@ -19,7 +19,7 @@ public class LocalFileMetadataTestCase extends org.apache.kylin.common.util.Loca
     }
 
     public static void staticCreateTestMetadata() {
-        KylinConfig.destoryInstance();
+        KylinConfig.destroyInstance();
 
         String tempTestMetadataUrl = "../examples/test_metadata";
         try {
