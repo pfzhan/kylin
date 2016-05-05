@@ -101,5 +101,5 @@ KylinApp.constant('cubeConfig', {
   rowKeyShardOptions:[
     true,false
   ],
-  statusNeedNofity:['READY', 'RUNNING','STOPPED', 'DISCARDED', 'SUCCEED']
+  statusNeedNofity:['ERROR', 'DISCARDED', 'SUCCEED']
 });
