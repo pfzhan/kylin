@@ -19,7 +19,7 @@
 'use strict';
 
 KylinApp
-  .controller('CubesCtrl', function ($scope, $q, $routeParams, $location, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, cubeConfig, ProjectModel, ModelService, MetaModel, CubeList,modelsManager,cubesManager,StreamingList,kylinConfig) {
+  .controller('CubesCtrl', function ($scope, $q, $routeParams, $location, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, cubeConfig, ProjectModel, ModelService, MetaModel, CubeList,modelsManager,cubesManager) {
 
     $scope.cubeConfig = cubeConfig;
     $scope.cubeList = CubeList;
@@ -49,6 +49,27 @@ KylinApp
       dimensionFilter: '', measureFilter: ''
     };
 
+    $scope.refreshCube = function(cube){
+      var queryParam = {
+        cubeName: cube.name,
+        projectName: $scope.projectModel.selectedProject
+      };
+      var defer = $q.defer();
+      CubeService.list(queryParam, function(cubes){
+        for(var index in cubes){
+          if(cube.name === cubes[index].name){
+            defer.resolve(cubes[index]);
+            break;
+          }
+        }
+        defer.resolve([]);
+      },function(e){
+        defer.resolve([]);
+      })
+      return defer.promise;
+    }
+
+
     $scope.list = function (offset, limit) {
       var defer = $q.defer();
       if (!$scope.projectModel.projects.length) {
@@ -68,8 +89,6 @@ KylinApp
       $scope.loading = true;
 
       return CubeList.list(queryParam).then(function (resp) {
-
-        StreamingList.list().then(function(_resp){
           angular.forEach($scope.cubeList.cubes,function(cube,index){
             CubeDescService.query({cube_name: cube.name}, {}, function (detail) {
               if (detail.length > 0 && detail[0].hasOwnProperty("name")) {
@@ -91,8 +110,6 @@ KylinApp
             });
 
           })
-        })
-
         $scope.loading = false;
         defer.resolve(resp);
         return defer.promise;
@@ -158,7 +175,7 @@ KylinApp
     };
 
 //    Cube Action
-    $scope.enable = function (cube) {
+    $scope.enable = function (cube, cubeIndex) {
       SweetAlert.swal({
         title: '',
         text: 'Are you sure to enable the cube? Please note: if cube schema is changed in the disabled period, all segments of the cube will be discarded due to data and schema mismatch.',
@@ -172,9 +189,12 @@ KylinApp
 
           loadingRequest.show();
           CubeService.enable({cubeId: cube.name}, {}, function (result) {
-
             loadingRequest.hide();
-            cube.status = 'READY';
+            $scope.refreshCube(cube).then(function(_cube){
+              if(_cube && _cube.name){
+                $scope.cubeList.cubes[cubeIndex] = _cube;
+              }
+            });
             SweetAlert.swal('Success!', 'Enable job was submitted successfully', 'success');
           },function(e){
 
@@ -191,7 +211,7 @@ KylinApp
       });
     };
 
-    $scope.purge = function (cube) {
+    $scope.purge = function (cube, cubeIndex) {
       SweetAlert.swal({
         title: '',
         text: 'Are you sure to purge the cube? ',
@@ -205,14 +225,16 @@ KylinApp
 
           loadingRequest.show();
           CubeService.purge({cubeId: cube.name}, {}, function (result) {
-
             loadingRequest.hide();
-//                    CubeList.removeAll();
-//                    $scope.reload();
             SweetAlert.swal('Success!', 'Purge job was submitted successfully', 'success');
+            $scope.refreshCube(cube).then(function(_cube){
+              if(_cube && _cube.name){
+                $scope.cubeList.cubes[cubeIndex] = _cube;
+              }
+            });
           },function(e){
             loadingRequest.hide();
-            if(e.data&& e.data.exception){
+            if(e.data && e.data.exception){
               var message =e.data.exception;
               var msg = !!(message) ? message : 'Failed to take action.';
               SweetAlert.swal('Oops...', msg, 'error');
@@ -224,7 +246,7 @@ KylinApp
       });
     }
 
-    $scope.disable = function (cube) {
+    $scope.disable = function (cube, cubeIndex) {
 
       SweetAlert.swal({
         title: '',
@@ -239,12 +261,14 @@ KylinApp
 
           loadingRequest.show();
           CubeService.disable({cubeId: cube.name}, {}, function (result) {
-
             loadingRequest.hide();
-            cube.status = 'DISABLED';
+            $scope.refreshCube(cube).then(function(_cube){
+              if(_cube && _cube.name){
+                $scope.cubeList.cubes[cubeIndex] = _cube;
+              }
+            });
             SweetAlert.swal('Success!', 'Disable job was submitted successfully', 'success');
           },function(e){
-
             loadingRequest.hide();
             if(e.data&& e.data.exception){
               var message =e.data.exception;
@@ -261,7 +285,7 @@ KylinApp
 
 
 
-    $scope.dropCube = function (cube) {
+    $scope.dropCube = function (cube,cubeIndex) {
 
       SweetAlert.swal({
         title: '',
@@ -278,7 +302,8 @@ KylinApp
           CubeService.drop({cubeId: cube.name}, {}, function (result) {
             loadingRequest.hide();
             SweetAlert.swal('Success!', 'Cube drop is done successfully', 'success');
-            location.reload();
+            //location.reload();
+            $scope.cubeList.cubes.splice(cubeIndex,1);
           },function(e){
 
             loadingRequest.hide();
@@ -295,7 +320,7 @@ KylinApp
       });
     };
 
-    $scope.startJobSubmit = function (cube) {
+    $scope.startJobSubmit = function (cube, cubeIndex) {
       $scope.loadDetail(cube);
       // for streaming cube build tip
       if(cube.streaming){
@@ -319,6 +344,12 @@ KylinApp
             resolve: {
               cube: function () {
                 return cube;
+              },
+              scope:function(){
+                return $scope;
+              },
+              cubeIndex:function(){
+                return cubeIndex;
               },
               metaModel:function(){
                 return $scope.metaModel;
@@ -373,7 +404,7 @@ KylinApp
       }
     };
 
-    $scope.startRefresh = function (cube) {
+    $scope.startRefresh = function (cube, cubeIndex) {
       $scope.metaModel={
         model:modelsManager.getModelByCube(cube.name)
       };
@@ -386,6 +417,12 @@ KylinApp
           },
           metaModel:function(){
             return $scope.metaModel;
+          },
+          cubeIndex:function(){
+            return cubeIndex;
+          },
+          scope:function(){
+            return $scope;
           },
           buildType: function () {
             return 'REFRESH';
@@ -414,7 +451,7 @@ KylinApp
     $scope.cubeEdit = function (cube) {
       $location.path("cubes/edit/" + cube.name);
     }
-    $scope.startMerge = function (cube) {
+    $scope.startMerge = function (cube, cubeIndex) {
       $scope.metaModel={
         model:modelsManager.getModelByCube(cube.name)
       };
@@ -430,6 +467,12 @@ KylinApp
           },
           buildType: function () {
             return 'MERGE';
+          },
+          scope:function(){
+            return $scope;
+          },
+          cubeIndex:function(){
+            return cubeIndex;
           }
         }
       });
@@ -489,7 +532,8 @@ var cubeCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServic
 }
 
 
-var jobSubmitCtrl = function ($scope, $modalInstance, CubeService, MessageService, $location, cube, metaModel, buildType, SweetAlert, loadingRequest) {
+var jobSubmitCtrl = function ($scope,scope, $modalInstance, CubeService, MessageService, $location, cube, metaModel, buildType, SweetAlert, loadingRequest, cubeIndex,CubeList) {
+  $scope.cubeList = CubeList;
   $scope.cube = cube;
   $scope.metaModel = metaModel;
   $scope.jobBuildRequest = {
@@ -505,16 +549,17 @@ var jobSubmitCtrl = function ($scope, $modalInstance, CubeService, MessageServic
 
     if ($scope.jobBuildRequest.startTime >= $scope.jobBuildRequest.endTime) {
       $scope.message = "WARNING: End time should be later than the start time.";
-
       return;
     }
 
     loadingRequest.show();
     CubeService.rebuildCube({cubeId: cube.name}, $scope.jobBuildRequest, function (job) {
-
       loadingRequest.hide();
       $modalInstance.dismiss('cancel');
       SweetAlert.swal('Success!', 'Rebuild job was submitted successfully', 'success');
+      scope.refreshCube(cube).then(function(_cube){
+        $scope.cubeList.cubes[cubeIndex] = _cube;
+      });
     }, function (e) {
 
 
