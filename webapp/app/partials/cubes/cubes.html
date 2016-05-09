@@ -56,6 +56,7 @@
             </th>
             <th>Actions</th>
             <th ng-if="userService.hasRole('ROLE_ADMIN')">Admins</th>
+            <th>Streaming</th>
         </tr>
         </thead>
         <!--Body-->
@@ -122,8 +123,8 @@
                     </ul>
                 </div>
             </td>
-            <td ng-if="cube.streaming">
-              <label class="badge label-info" style="cursor:pointer;">STREAMING</label>
+            <td>
+              <label class="badge" ng-class="{'label-info':cube.streaming==true}" style="cursor:pointer;">{{cube.streaming}}</label>
             </td>
         </tr>
         <tr ng-show="cube.showDetail">

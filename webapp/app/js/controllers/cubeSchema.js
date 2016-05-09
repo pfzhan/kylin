@@ -148,16 +148,6 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
       }
       $scope.metaModel.model=modelsManager.getModel($scope.cubeMetaFrame.model_name);
 
-      StreamingService.getConfig({cubeName:$scope.cubeMetaFrame.name}, function (kfkConfigs) {
-        if(!!kfkConfigs[0]&&kfkConfigs[0].cubeName == $scope.cubeMetaFrame.name){
-          $scope.cubeState.isStreaming = true;
-          $scope.streamingMeta = kfkConfigs[0];
-          StreamingService.getKfkConfig({kafkaConfigName:$scope.streamingMeta.name}, function (streamings) {
-            $scope.kafkaMeta = streamings[0];
-          })
-        }
-      })
-
     }
   });
 

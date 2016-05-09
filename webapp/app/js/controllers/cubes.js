@@ -19,7 +19,7 @@
 'use strict';
 
 KylinApp
-  .controller('CubesCtrl', function ($scope, $q, $routeParams, $location, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, cubeConfig, ProjectModel, ModelService, MetaModel, CubeList,modelsManager,cubesManager) {
+  .controller('CubesCtrl', function ($scope, $q, $routeParams, $location, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, cubeConfig, ProjectModel, ModelService, MetaModel, CubeList,modelsManager,cubesManager,TableService) {
 
     $scope.cubeConfig = cubeConfig;
     $scope.cubeList = CubeList;
@@ -90,10 +90,27 @@ KylinApp
 
       return CubeList.list(queryParam).then(function (resp) {
           angular.forEach($scope.cubeList.cubes,function(cube,index){
+            cube.streaming = false;
             CubeDescService.query({cube_name: cube.name}, {}, function (detail) {
               if (detail.length > 0 && detail[0].hasOwnProperty("name")) {
                 cube.detail = detail[0];
-                cube.model = modelsManager.getModel(cube.detail.model_name);
+                ModelService.list({projectName:$scope.projectModel.selectedProject,modelName:cube.detail.model_name}, function (_models) {
+                  if(_models && _models.length){
+                    for(var i=0;i<=_models.length;i++){
+                      if(_models[i].name == cube.detail.model_name){
+                        cube.model = _models[i];
+                        var factTable = cube.model.fact_table;
+                        TableService.get({tableName:factTable},function(table){
+                          if(table && table.source_type == 1){
+                            cube.streaming = true;
+                          }
+                        })
+                        break;
+                      }
+                    }
+                  }
+                })
+
                 defer.resolve(cube.detail);
 
               } else {
