@@ -8,7 +8,7 @@ mkdir ${test_home}
 cp -rf kylin/build/smoke-test/* ${test_home}/
 
 # run test scripts
-bash ${test_home}/smoke-test.sh ${pkg_name} ${test_home}
+bash ${test_home}/smoke-test.sh ${pkg_name} ${test_home}    || { exit 1; }
 
 # clear test home
 rm -rf ${test_home}
