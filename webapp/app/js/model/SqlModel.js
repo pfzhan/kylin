@@ -31,359 +31,177 @@ KylinApp.service('SqlModel',function(ModelService,CubeService,$q,AccessService,P
    *                        .....
    *              [SEG5]GROUP BY
    *              [SEG6]FACT_TABLE.DIM1,LOOKUP_TABLE.DIM2
-   *              [SEG7]ORDER BY ...
    *
    */
-
-    this.model = {};
     //mea_expression,mea_type,mea_value
     this.tableMeasures={};
-    //array column->dimension
-    this.columnDimensions = {};
+    //array
+    this.tableDimensions = {};
 
     //[{name,table}]
     this.dimensions = [];
     this.selectedDimensions = [];
-    this.tableNameMap = {};
-    this.tableAliasMap = {};
 
-    /*
-     *
-     * {
-     *  mea_expression:expression,
-     *  mea_type:type,
-     *  mea_value:column,
-     *  mea_display:expression+'('+column+')',
-     *  mea_next_parameter:{..}
-     *  }
-     *
-     *
-     * @measures, all available measures
-     * @selectedMeasures, all available measures
-     *
-     */
-
+    //[{expresson,column}]
     this.measures = [];
     this.selectedMeasures = [];
 
     //tableModel[fact][lookup].join
     this.tableModelJoin = {}
 
-    /*
-     * will not include all tables, only tables available
-     */
+    this.rightSql = false;
     this.factTable = "";
     this.lookupTables = [];
 
-    this.SEG1,this.SEG2,this.SEG3,this.SEG4,this.SEG5,this.SEG6,this.SEG7,this.SQL;
-
-    /*
-     *
-     * @Generate Order
-     *     sql seg init
-     *     used tables init - set used fact table and lookups
-     *     table join map init - set fact-lookup join map entity
-     *     table name map init - special character convert & alias
-     *
-     *
-     */
-
-    this.init = function(){
-
-      _this.initSql();
-      _this.initTables();
-      _this.initTableJoin();
-      _this.initTableNameMap();
-
-      _this.getSeg4();
-      _this.getSeg6();
-      _this.getSeg3();
-      _this.getSeg2();
-
-    }
-
-    this.initSql = function(){
-      _this.SEG1 = "SELECT \n";
-      _this.SEG2 = " ";
-      _this.SEG3 = " ";
-      _this.SEG4 = " ";
-      _this.SEG5 = " GROUP BY \n";
-      _this.SEG6 = " ";
-      _this.SEG7 = " ORDER BY";
-      _this.SQL="";
-    }
+    this.SEG1 = "SELECT \n";
+    this.SEG2 = " ";
+    this.SEG3 = " ";
+    this.SEG4 = " ";
+    this.SEG5 = " GROUP BY \n";
+    this.SEG6 = " ";
 
     //input tables here and gen sql
-    this.getSql = function(){
-      _this.SQL = _this.SEG1+_this.SEG2+_this.SEG3+_this.SEG4+_this.SEG5+_this.SEG6;
-      //add order by for topn
-      if(_this.selectedMeasures.length==1&&_this.selectedMeasures[0].mea_expression == "TOP_N") {
-        _this.SQL+=_this.SEG7;
+    this.getSql = function(tables){
+      var object = {
+        success:false,
+        message:""
       }
-
-      if(!_this.selectedMeasures.length && !_this.selectedDimensions.length){
-        _this.SQL = "";
-      }
-
-      return _this.SQL;
-    }
-
-    /*
-     * set all used lookup tables and fact_table
-     * topN will set table by next parameter
-     */
-    this.initTables = function(){
-      _this.factTable = _this.model.fact_table;
-      _this.lookupTables = [];
-      for(var i=0;i<_this.selectedDimensions.length;i++){
-        var _dimension = _this.selectedDimensions[i];
-        if(_dimension.table!==_this.factTable && _this.lookupTables.indexOf(_dimension.table)==-1){
-          _this.lookupTables.push(_dimension.table);
-        }
-      }
-
-      //for topN
-      if(_this.selectedMeasures.length==1&&_this.selectedMeasures[0].mea_expression == "TOP_N"){
-        var measure = _this.selectedMeasures[0];
-        var groupByColumn = measure.mea_next_parameter.value;
-        var dimension =_this.columnDimensions[groupByColumn];
-
-        //add lookup table info from topN
-        if(dimension.table!==_this.factTable && _this.lookupTables.indexOf(dimension.table)==-1){
-          _this.lookupTables.push(dimension.table);
-        }
-
-        //add dimension in topN
-        var dimensionExist = false;
-        for(var i=0;i<_this.selectedDimensions.length;i++){
-          var _dimension = _this.selectedDimensions[i];
-          if(_dimension.name == dimension.name){
-            dimensionExist = true;
-            break;
+      var factTableCount = 0;
+      if(angular.isArray(tables)){
+        for(var i=0;i<tables.length;i++){
+          var table = tables[i];
+          if(table.isFactTable){
+            _this.factTable = table;
+            factTableCount++;
+          }else{
+            _this.lookupTables.push(table);
           }
         }
 
-        if(!dimensionExist){
-          _this.selectedDimensions.push(dimension);
+        if(factTableCount==0){
+          object.message = "No fact table";
+          return object;
         }
-      }
-
-    }
-
-    //DEFAULT.TABLE_NAME->"DEFAULT".TABLE_NAME and alias init
-    _this.initTableNameMap = function(){
-      var tables = [_this.model.fact_table];
-
-      for(var i=0;i<_this.model.lookups.length;i++) {
-        var lookup = _this.model.lookups[i].table;
-        tables.push(lookup);
-      }
-
-      for(var i =0;i<tables.length;i++ ){
-        var table = tables[i];
-        var index = table.indexOf('.');
-
-        var newTableName = table;
-        if(index != -1){
-          var TABLE_DB = table.substr(0, index);
-          var TABLE_NAME = table.substr(index + 1, table.length);
-          newTableName = "\"" + TABLE_DB + "\"" + "." + TABLE_NAME;
+        else if(factTableCount>1){
+          object.message = "More than one fact table defined.";
+          return object;
         }
-        _this.tableNameMap[table] = newTableName;
-      }
 
-      var ALIAS_PREFIX="t";
-      for(var i =0;i<tables.length;i++ ){
-        var table = tables[i];
-        _this.tableAliasMap[table] = ALIAS_PREFIX+i;
+        _this.SEG3 = _this.getSeg3(_this.fact);
+        _this.SEG4 = _this.getSeg4(_this.factTable,_this.lookupTables);
+        _this.SEG6 = _this.getSeg6(_this.factTable,_this.lookupTables);
+
+
       }
 
     }
-
-    //preCondition - model ready
-    this.initTableJoin = function(){
-      if(!_this.tableModelJoin[_this.factTable]){
-        _this.tableModelJoin[_this.factTable] ={};
-      }
-
-      for(var i=0;i<_this.model.lookups.length;i++){
-        var lookup = _this.model.lookups[i];
-        _this.tableModelJoin[_this.factTable][lookup.table] = {};
-        _this.tableModelJoin[_this.factTable][lookup.table]=lookup.join;
-      }
-    }
-
 
     this.getSeg1 = function(){
       return _this.SEG1;
+
     }
 
-    //pre condition SEG6
-    this.getSeg2 = function(){
-      var sqlSeg = " ";
-
-      for(var i=0;i<_this.selectedMeasures.length;i++){
-        var split = ", ";
-
-        if(i==_this.selectedMeasures.length-1){
-          //if no group by
-          if(!_this.selectedDimensions.length){
-            split = " \n";
-          }else{
-            split = ", ";
-          }
-        } else{
-          split = ", ";
-        }
-
-
-        var measure = _this.selectedMeasures[i];
-        if(measure.mea_type.toUpperCase()=="COLUMN"){
-          if(measure.mea_expression == "COUNT_DISTINCT"){
-            sqlSeg += "COUNT " +"("+"DISTINCT "+_this.tableAliasMap[_this.factTable]+"."+measure.mea_value+")"+split;
-          }else if(measure.mea_expression == "TOP_N"){
-            sqlSeg += "SUM " +"("+_this.tableAliasMap[_this.factTable]+"."+measure.mea_value+")"+split;
-            _this.SEG7 = " ORDER BY "+"SUM " +"("+_this.tableAliasMap[_this.factTable]+"."+measure.mea_value+")";
-          }
-          else{
-            sqlSeg += measure.mea_expression +"("+_this.tableAliasMap[_this.factTable]+"."+measure.mea_value+")"+split;
-          }
-        }else if(measure.mea_type.toUpperCase()=="CONSTANT"){
-          sqlSeg += measure.mea_expression +"("+measure.mea_value+")"+split;
-        }
+    //TO-DO get seg2
+    this.getSeg2 = function(fact){
+      var factFullName = fact.name;
+      if(fact.table_SCHEM){
+        factFullName = fact.table_SCHEM+"."+factFullName;
       }
-      _this.SEG2 = sqlSeg +_this.SEG6;
-    }
+      var measureSeg = " ";
+      var measures = _this.tableMeasures[factFullName];
+        for(var i=0;i<measures.length;i++){
+          var meaSeg = " ";
+          var measure = measures[i];
+          if(measure.mea_type=="column"){
+            if(measure.expression!="COUNT_DISTINCT"){
 
-    this.getSeg3 = function(){
+            }
+
+          }
+        }
+
+    }
+    this.getSeg3 = function(fact){
       var sqlSeg = " FROM ";
-      var factTable = _this.factTable;
-      sqlSeg += " "+_this.tableNameMap[factTable] +" AS "+_this.tableAliasMap[factTable]+" \n";
-      _this.SEG3 = sqlSeg;
+      var factFullName = fact.name;
+      if(fact.table_SCHEM){
+        factFullName = fact.table_SCHEM+"."+factFullName;
+      }
+      sqlSeg += " "+factFullName+" \n";
     }
 
-    this.getSeg4 = function(){
-      var factFullName = _this.factTable;
-      var lookups = _this.lookupTables;
+    this.getSeg4 = function(fact, lookups){
       var sqlSeg = " ";
-      var lookupFullName ="";
+      var factFullName = "",lookupFullName ="";
 
       for(var i=0;i<lookups.length;i++){
-          lookupFullName = lookups[i];
+        var lookup = lookups[i];
+
+        if(lookup.table_SCHEM && lookup.table_SCHEM == fact.table_SCHEM){
+           factFullName = fact.table_SCHEM+"."+fact.name;
+           lookupFullName = lookup.table_SCHEM+"."+lookup.name;
+        }else{
+           factFullName = fact.name;
+           lookupFullName = lookup.name;
+        }
+
          var joinEntity = _this.tableModelJoin[factFullName][lookupFullName];
          var joinType = joinEntity.type;
-         var joinSeg = " "+joinType.toUpperCase()+" JOIN "+_this.tableNameMap[lookupFullName] +" AS "+_this.tableAliasMap[lookupFullName]+" \n";
+         var joinSeg = " "+joinType.toUpperCase()+" JOIN "+lookupFullName+" \n";
 
         sqlSeg+=joinSeg;
 
         var onSeg = " ON ";
-        for(var j=0;j<joinEntity.foreign_key.length;j++){
-          var fk = joinEntity.foreign_key[j];
-          var pk = joinEntity.primary_key[j];
-          if(j==0){
-            onSeg += " "+_this.tableAliasMap[factFullName]+"."+fk +" = " + _this.tableAliasMap[lookupFullName]+"."+pk+" \n";
+        for(var i=0;i<joinEntity.foreign_key.length;i++){
+          var fk = joinEntity.foreign_key[i];
+          var pk = joinEntity.primary_key[i];
+          if(i==0){
+            onSeg = onSeg+" "+factFullName.fk +" = " + lookupFullName.pk+" \n";
           }else{
-            onSeg += " AND "+_this.tableAliasMap[factFullName]+"."+ fk +" = " + _this.tableAliasMap[lookupFullName]+"."+pk+" \n";
+            onSeg = onSeg + " AND "+factFullName.fk +" = " + lookupFullName.pk+" \n";
           }
 
         }
         sqlSeg += onSeg;
       }
 
-      _this.SEG4 = sqlSeg;
+      return sqlSeg;
 
     }
 
-    this.getSeg6 = function(){
+    this.getSeg6 = function(fact,lookups){
       var sqlSeg = " ";
+      var factFullName = "",lookupFullName ="";
 
-      for(var i=0;i<_this.selectedDimensions.length;i++){
-        var split = i==_this.selectedDimensions.length-1?" \n":", ";
-        var dimension = _this.selectedDimensions[i];
-        sqlSeg += _this.tableAliasMap[dimension.table]+"."+dimension.name+split;
-      }
-      if(!_this.selectedDimensions.length){
-        _this.SEG5 = "";
-      }
-      _this.SEG6 = sqlSeg;
-    }
+      var lookupDimSeg = " ";
+      for(var i=0;i<lookups.length;i++) {
+        var lookup = lookups[i];
 
-    this.removeDimensionByIndex = function(arr,index){
-      _this.removeItemsByIndex(arr,index);
-
-      //remove topN measure when remove topN last dimension
-      if(!_this.selectedDimensions.length && _this.selectedMeasures.length == 1 && _this.selectedMeasures[0].mea_expression == "TOP_N"){
-        _this.selectedMeasures = [];
-      }
-      _this.init();
-      _this.getSql();
-    }
-
-    /*
-     * mandatory group by column can't be removed
-     */
-    this.removeMeasureByIndex = function(arr,index){
-      _this.removeItemsByIndex(arr,index);
-      _this.init();
-      _this.getSql();
-    }
-
-    //remove dimension || measure
-    this.removeItemsByIndex = function(arr,index){
-      arr.splice(index,1);
-    }
-
-    this.measureOnDrop = function(){
-
-      //last index duplicate ?
-      var measures = _this.selectedMeasures;
-      var newAppendMeasure = measures[measures.length-1];
-
-      //do not add TOP_N when other measure exist
-      if(newAppendMeasure.mea_expression == "TOP_N" && measures.length>1){
-        _this.selectedMeasures.splice(measures.length-1,1);
-      }
-
-      //do not add measure when there's a TOP_N measure
-      if(measures[0].mea_expression == "TOP_N" && measures.length>1){
-        _this.selectedMeasures.splice(measures.length-1,1);
-      }
-
-      var eleCount=0;
-      for(var i=0;i<measures.length;i++){
-        var _measure = measures[i];
-        if(_measure.mea_value == newAppendMeasure.mea_value && _measure.mea_expression == newAppendMeasure.mea_expression){
-          eleCount ++;
+        if (lookup.table_SCHEM && lookup.table_SCHEM == fact.table_SCHEM) {
+          factFullName = fact.table_SCHEM + "." + fact.name;
+          lookupFullName = lookup.table_SCHEM + "." + lookup.name;
+        } else {
+          factFullName = fact.name;
+          lookupFullName = lookup.name;
         }
+
+        //when join exist,gen dimension
+        if(_this.tableModelJoin[factFullName][lookupFullName] && _this.tableModelJoin[factFullName][lookupFullName].type){
+          var dimensions = _this.tableDimensions[lookupFullName];
+          for(var i=0;i<dimensions.length;i++){
+            lookupDimseg = lookupDimSeg +", "+lookupFullName+"."+dimension[i];
+          }
+        }
+
       }
 
-      if(eleCount>1){
-        _this.selectedMeasures.splice(measures.length-1,1);
+      var factDimensions = _this.tableDimensions[factFullName];
+      var factDimseg = " ";
+      for(var i=0;i<factDimensions.length;i++){
+        factDimseg = factDimseg + ", "+ factFullName+"."+factDimensions[i];
       }
-
-      _this.init();
-      _this.getSql();
+      sqlSeg = factDimseg + lookupDimSeg;
+      return sqlSeg;
     }
-
-  this.dimensionOnDrop = function(){
-
-    //last index duplicate ?
-    var dimensions = _this.selectedDimensions;
-    var newAppendDimension = dimensions[dimensions.length-1];
-    var eleCount=0;
-    for(var i=0;i<dimensions.length;i++){
-      var _dimension = dimensions[i];
-      if(_dimension.name == newAppendDimension.name){
-        eleCount ++;
-      }
-    }
-
-    if(eleCount>1){
-      _this.selectedDimensions.splice(dimensions.length-1,1);
-    }
-
-    _this.init();
-    _this.getSql();
-  }
 
 });
