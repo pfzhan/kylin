@@ -28,12 +28,17 @@ import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.apache.kylin.common.restclient.RestClient;
 import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.common.util.JsonUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.rest.request.SequenceSQLRequest;
 import io.kyligence.kap.rest.request.ShardedSequenceSQLRequest;
 import io.kyligence.kap.rest.response.SequenceSQLResponse;
 
 public class KAPRESTClient extends RestClient {
+
+    private static final Logger logger = LoggerFactory.getLogger(KAPRESTClient.class);
+
     /**
      * @param uri "user:pwd@host:port"
      */
@@ -68,7 +73,9 @@ public class KAPRESTClient extends RestClient {
             if (code != 200)
                 throw new IOException("Invalid response " + code + " with shardable query  " + url + "\n" + msg);
 
-            return JsonUtil.readValue(msg, SequenceSQLResponse.class);
+            SequenceSQLResponse sequenceSQLResponse = JsonUtil.readValue(msg, SequenceSQLResponse.class);
+            logger.info("KAPRESTClient {} dispatchSequenceSQLExecutionToWorker finished", url);
+            return sequenceSQLResponse;
 
         } catch (HttpException ex) {
             throw new IOException(ex);
@@ -91,7 +98,9 @@ public class KAPRESTClient extends RestClient {
             if (code != 200)
                 throw new IOException("Invalid response " + code + " when collecting results from  " + url + "\n" + msg);
 
-            return JsonUtil.readValue(msg, SequenceSQLResponse.class);
+            SequenceSQLResponse sequenceSQLResponse = JsonUtil.readValue(msg, SequenceSQLResponse.class);
+            logger.info("KAPRESTClient {} collectSequenceSQLResultFromWorker finished", url);
+            return sequenceSQLResponse;
 
         } catch (HttpException ex) {
             throw new IOException(ex);
