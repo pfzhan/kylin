@@ -308,15 +308,6 @@ KylinApp.service('SqlModel',function(ModelService,CubeService,$q,AccessService,P
       _this.SEG6 = sqlSeg;
     }
 
-
-    this.isSqlAvailable = function(){
-      if(_this.selectedDimensions.length || _this.selectedMeasures.length){
-        return true;
-      }
-      return false;
-    }
-
-
     this.removeDimensionByIndex = function(arr,index){
       _this.removeItemsByIndex(arr,index);
 

@@ -426,15 +426,34 @@ KylinApp
         });
 
       $scope.updateEditorSql = function(){
-        $scope.aceEditor.setValue($scope.queryString);
+
+        // refresh editor content from drag&drop
+        if ($scope.aceEditor){
+          if($scope.state.autoRefreshSql){
+            $scope.aceEditor.setValue($scope.sqlModel.SQL);
+          }else{
+            $scope.aceEditor.setValue($scope.queryString);
+          }
+          $scope.aceEditor.clearSelection();
+          $scope.aceEditor.focus();
+        };
+      }
+
+
+      $scope.$watch('state.autoRefreshSql', function (newValue, oldValue) {
+        // refresh query String content from drag&drop
+        if(newValue){
+          $scope.aceEditor.setValue($scope.sqlModel.SQL);
+          $scope.queryString = $scope.sqlModel.SQL;
+        }
         $scope.aceEditor.clearSelection();
         $scope.aceEditor.focus();
 
-      }
+      });
 
       $scope.$watch('sqlModel.SQL', function (newValue, oldValue) {
         // refresh querString content from drag&drop
-        if($scope.state.autoRefreshSql && $scope.sqlModel.isSqlAvailable()){
+        if($scope.state.autoRefreshSql){
           $scope.queryString = $scope.sqlModel.SQL;
         }
       });
