@@ -202,10 +202,15 @@ var modelCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServi
 
   $scope.cloneModel = function(){
 
+    if(!$scope.targetObj.targetProject){
+      SweetAlert.swal('Oops...', "Please select target project.", 'info');
+      return;
+    }
     $scope.modelRequest = {
       modelName:$scope.targetObj.modelName,
       project:$scope.targetObj.targetProject
     }
+
 
     SweetAlert.swal({
       title: '',
