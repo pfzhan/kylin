@@ -57,15 +57,6 @@
         }
     },
     {
-      "url": "/queryppp",
-      "params": {
-        "templateUrl": "partials/query/queryppp.html",
-        "tab": "query",
-        "controller": "QueryCtrl",
-        "reloadOnSearch": false
-      }
-    },
-    {
         "url": "/admin",
         "params": {
             "templateUrl": "partials/admin/admin.html",

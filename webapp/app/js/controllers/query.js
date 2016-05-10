@@ -59,19 +59,6 @@ KylinApp
             selectedProject: null
         };
 
-        //drag drop design
-        $scope.sqlData ={
-          visualTables:[]
-        };
-
-        $scope.visualTables = [];
-
-        $scope.optionsList1 = {
-          accept: function(dragEl) {
-            return true;
-          }
-        };
-
         var Query = {
             createNew: function (sql, project) {
                 var query = {
