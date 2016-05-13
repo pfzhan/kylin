@@ -30,7 +30,7 @@
   limitations under the License. See accompanying LICENSE file.
 -->
 
-<ehcache maxBytesLocalHeap="1024M" maxBytesLocalDisk="10G">
+<ehcache maxBytesLocalHeap="1G">
     <cache name="StorageCache"
            eternal="false"
            timeToIdleSeconds="86400"
@@ -52,14 +52,4 @@
     >
         <persistence strategy="none"/>
     </cache>
-    <cache name="SequenceSQLResults"
-           eternal="false"
-           timeToLiveSeconds="3600"
-           memoryStoreEvictionPolicy="LRU"
-           maxBytesLocalDisk="100%"
-    >
-        <!--<persistence strategy="localTempSwap"/>-->
-    </cache>
-
-    <!--<diskStore path="/Users/honma/ehdata"/>-->
 </ehcache>

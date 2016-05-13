@@ -16,39 +16,28 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.rest.sequencesql.topology;
 
-import org.apache.kylin.rest.request.SQLRequest;
+public class SequenceSQLNode extends SequenceNode {
+    
+    protected  String sql;
+    protected  int sqlID;
 
-import io.kyligence.kap.rest.sequencesql.SequenceOpt;
-
-public class SequenceSQLRequest extends SQLRequest {
-
-    protected long sequenceID = -1;
-    protected int sqlID = -1;//default value indicates appending this sql at the end of the sequence
-    protected SequenceOpt opt = SequenceOpt.INIT;
-
-    public long getSequenceID() {
-        return sequenceID;
+    public SequenceSQLNode(String sql, int sqlID) {
+        this.sql = sql;
+        this.sqlID = sqlID;
     }
 
-    public void setSequenceID(long sequenceID) {
-        this.sequenceID = sequenceID;
+    @Override
+    public String getIdentifier() {
+        return "sql_" + sqlID;
     }
 
-    public SequenceOpt getOpt() {
-        return opt;
-    }
-
-    public void setOpt(SequenceOpt opt) {
-        this.opt = opt;
+    public String getSql() {
+        return sql;
     }
 
     public int getSqlID() {
         return sqlID;
-    }
-
-    public void setSqlID(int sqlID) {
-        this.sqlID = sqlID;
     }
 }

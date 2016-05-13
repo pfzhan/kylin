@@ -1,0 +1,211 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *  
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *  
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.kyligence.kap.rest.sequencesql.topology;
+
+import org.apache.kylin.rest.response.SQLResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.rest.sequencesql.DiskResultCache;
+import io.kyligence.kap.rest.sequencesql.SequenceNodeOutput;
+import io.kyligence.kap.rest.sequencesql.SequenceOpt;
+
+public class SequenceTopology {
+
+    private static final Logger logger = LoggerFactory.getLogger(SequenceTopology.class);
+
+    private SequenceSQLNode first = null;//must be a SequenceSQLNode
+    private int sqlNodeCount = 0;
+    private int optNodeCount = 0;
+    private DiskResultCache diskResultCache;
+    private long sequenceID;
+    private int workerID;
+
+    public SequenceTopology(int workerID, DiskResultCache diskResultCache, long sequenceID) {
+        this.workerID = workerID;
+        this.diskResultCache = diskResultCache;
+        this.sequenceID = sequenceID;
+    }
+
+    //node opt with the remaining output of current sequence
+    public SequenceSQLNode appendSQLNode(String sql, SequenceOpt optWithCurrentSequenceResult) {
+        SequenceNode lowest = findLowestChild();
+        if (lowest == null) {
+            if (optWithCurrentSequenceResult != SequenceOpt.INIT) {
+                throw new IllegalStateException("Current topology has no nodes, meeting invalid opt:" + optWithCurrentSequenceResult);
+            }
+            SequenceSQLNode sequenceSQLNode = new SequenceSQLNode(sql, sqlNodeCount++);
+            first = sequenceSQLNode;
+            return sequenceSQLNode;
+        } else {
+            if (optWithCurrentSequenceResult == SequenceOpt.INIT) {
+                throw new IllegalStateException("SequenceOpt.INIT is only allowed for the first sql in the sequence");
+            }
+            SequenceSQLNode newSQLNode = new SequenceSQLNode(sql, sqlNodeCount++);
+            SequenceOptNode newOptNode = new SequenceOptNode(Lists.newArrayList(lowest, newSQLNode), optWithCurrentSequenceResult, optNodeCount++);
+            lowest.child = newOptNode;
+            newSQLNode.child = newOptNode;
+            return newSQLNode;
+        }
+    }
+
+    public int updateSQLNodeResult(int sqlID, String sql, SQLResponse sqlResponse) {
+        SequenceSQLNode updating = findSQLNode(sqlID);
+
+        updating.sql = sql;
+        SequenceNodeOutput currentResult = new SequenceNodeOutput(sqlResponse);
+        diskResultCache.cacheEntry(getStoreKey(updating), currentResult.getCachedBytes());
+
+        if (updating.child != null) {
+            if (updating == first) {
+                return updateOptNodeResult((SequenceOptNode) updating.child, currentResult, null);
+            } else {
+                return updateOptNodeResult((SequenceOptNode) updating.child, null, currentResult);
+            }
+        } else {
+            return currentResult.size();
+        }
+    }
+
+    private int updateOptNodeResult(SequenceOptNode updating, SequenceNodeOutput optinalLeftParentInput, SequenceNodeOutput optinalRightParentInput) {
+        long startTime = System.currentTimeMillis();
+        if (optinalLeftParentInput == null) {
+            optinalLeftParentInput = loadSequenceNodeOutput(getStoreKey(updating.parents.get(0)));
+        }
+
+        if (optinalRightParentInput == null) {
+            optinalRightParentInput = loadSequenceNodeOutput(getStoreKey(updating.parents.get(1)));
+        }
+
+        SequenceOpt opt = updating.opt;
+        SequenceNodeOutput currentResult;
+
+        if (opt == SequenceOpt.INIT || opt == SequenceOpt.UPDATE) {
+            throw new IllegalStateException("invalid opt for OPTNode: " + opt);
+        } else if (opt == SequenceOpt.INTERSECT) {
+            currentResult = SequenceNodeOutput.intersect(optinalLeftParentInput, optinalRightParentInput);
+        } else if (opt == SequenceOpt.UNION) {
+            currentResult = SequenceNodeOutput.union(optinalLeftParentInput, optinalRightParentInput);
+        } else if (opt == SequenceOpt.BACKWARD_EXCEPT) {
+            currentResult = SequenceNodeOutput.except(optinalLeftParentInput, optinalRightParentInput);
+        } else if (opt == SequenceOpt.FORWARD_EXCEPT) {
+            currentResult = SequenceNodeOutput.except(optinalRightParentInput, optinalLeftParentInput);
+        } else {
+            throw new RuntimeException("Unknown OPT:" + opt);
+        }
+
+        String cacheKey = getStoreKey(updating);
+        diskResultCache.cacheEntry(cacheKey, currentResult.getCachedBytes());
+
+        logger.info("Time to process and persist:" + (System.currentTimeMillis() - startTime) + " with OPT being " + opt);
+
+        if (updating.child == null) {
+            return currentResult.size();
+        } else {
+            return updateOptNodeResult((SequenceOptNode) updating.child, currentResult, null);
+        }
+
+    }
+
+    private SequenceSQLNode findSQLNode(int sqlID) {
+        if (sqlID < 0 || sqlID >= sqlNodeCount) {
+            throw new IllegalArgumentException("sqlID " + sqlID + " is invalid");
+        }
+
+        if (sqlID == 0) {
+            return first;
+        }
+        SequenceNode temp = first;
+        for (int i = 0; i < sqlID; i++) {
+            temp = temp.child;
+        }
+        return (SequenceSQLNode) (((SequenceOptNode) temp).parents.get(1));
+    }
+
+    private SequenceOptNode findOptNode(int optID) {
+        SequenceNode current = first;
+        for (int i = 0; i <= optID; i++) {
+            current = current.child;
+        }
+        return (SequenceOptNode) current;
+    }
+
+    public SequenceNodeOutput getSequeneFinalResult() {
+        SequenceNode resultNode = findLowestChild();
+        if (resultNode == null) {
+            return null;
+        } else {
+            return loadSequenceNodeOutput(getStoreKey(resultNode));
+        }
+    }
+
+    private SequenceNodeOutput loadSequenceNodeOutput(String key) {
+        return SequenceNodeOutput.getInstanceFromCachedBytes(diskResultCache.getEntry(key, false));
+    }
+
+    private String getStoreKey(SequenceNode node) {
+        return sequenceID + "_" + workerID + "_" + node.getIdentifier();
+    }
+
+    //must be a SequenceOptNode unless the topology only contains ONE SequenceSQLNode 
+    private SequenceNode findLowestChild() {
+        SequenceNode lowest = first;
+        while (lowest != null && lowest.child != null) {
+            lowest = lowest.child;
+        }
+        return lowest;//may return null
+    }
+
+    @Override
+    public String toString() {
+        String head = "worker " + workerID;
+        SequenceNode lowest = findLowestChild();
+        if (lowest == null) {
+            return head;
+        } else {
+            String newLine = System.getProperty("line.separator");
+            StringBuilder sb = new StringBuilder(head + " sequence expression: " + toString(lowest));
+            sb.append(newLine);
+            sb.append(newLine);
+            for (int i = 0; i < sqlNodeCount; i++) {
+                SequenceSQLNode sqlNode = findSQLNode(i);
+                SequenceNodeOutput sqlOutput = loadSequenceNodeOutput(getStoreKey(sqlNode));
+                sb.append("sql ").append(sqlNode.getSqlID()).append(": ").append(sqlNode.sql).append(" (result size:").append(sqlOutput.size()).append(")").append(newLine);
+            }
+            sb.append(newLine);
+            for (int i = 0; i < optNodeCount; i++) {
+                SequenceOptNode optNode = findOptNode(i);
+                SequenceNodeOutput optOutput = loadSequenceNodeOutput(getStoreKey(optNode));
+                sb.append("opt ").append(optNode.getOptID()).append(": ").append(optNode.opt).append(" (result size:").append(optOutput.size()).append(")").append(newLine);
+            }
+            return sb.toString();
+        }
+    }
+
+    private String toString(SequenceNode node) {
+        if (node instanceof SequenceSQLNode) {
+            return " ( " + node.getIdentifier() + " ) ";
+        } else {
+            SequenceOptNode optNode = (SequenceOptNode) node;
+            return " ( " + toString(optNode.parents.get(1)) + " " + optNode.opt + " " + toString(optNode.parents.get(0)) + " ) ";
+        }
+    }
+}

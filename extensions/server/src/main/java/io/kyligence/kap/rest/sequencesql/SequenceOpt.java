@@ -16,39 +16,15 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.rest.sequencesql;
 
-import org.apache.kylin.rest.request.SQLRequest;
-
-import io.kyligence.kap.rest.sequencesql.SequenceOpt;
-
-public class SequenceSQLRequest extends SQLRequest {
-
-    protected long sequenceID = -1;
-    protected int sqlID = -1;//default value indicates appending this sql at the end of the sequence
-    protected SequenceOpt opt = SequenceOpt.INIT;
-
-    public long getSequenceID() {
-        return sequenceID;
-    }
-
-    public void setSequenceID(long sequenceID) {
-        this.sequenceID = sequenceID;
-    }
-
-    public SequenceOpt getOpt() {
-        return opt;
-    }
-
-    public void setOpt(SequenceOpt opt) {
-        this.opt = opt;
-    }
-
-    public int getSqlID() {
-        return sqlID;
-    }
-
-    public void setSqlID(int sqlID) {
-        this.sqlID = sqlID;
-    }
+public enum SequenceOpt {
+    INIT, //for the first query in the sequence
+    UPDATE,
+    
+    // the followings are opt with current sequence output
+    INTERSECT, //
+    UNION, //
+    FORWARD_EXCEPT, // current result - sequence result
+    BACKWARD_EXCEPT// sequence result - current result
 }

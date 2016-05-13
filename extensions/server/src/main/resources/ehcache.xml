@@ -12,36 +12,27 @@
   limitations under the License. See accompanying LICENSE file.
 -->
 
-<ehcache maxBytesLocalHeap="2048M" maxBytesLocalDisk="20G">
+<ehcache maxBytesLocalHeap="2048M">
     <cache name="StorageCache"
            eternal="false"
            timeToIdleSeconds="86400"
            memoryStoreEvictionPolicy="LRU"
-            >
+    >
         <persistence strategy="none"/>
     </cache>
     <cache name="ExceptionQueryCache"
            eternal="false"
            timeToIdleSeconds="86400"
            memoryStoreEvictionPolicy="LRU"
-            >
+    >
         <persistence strategy="none"/>
     </cache>
     <cache name="UserCache"
            eternal="false"
            timeToLiveSeconds="10800"
            memoryStoreEvictionPolicy="LRU"
-            >
+    >
         <persistence strategy="none"/>
     </cache>
 
-    <cache name="SequenceSQLResults"
-           eternal="false"
-           timeToLiveSeconds="3600"
-           memoryStoreEvictionPolicy="LRU"
-    >
-        <!--<persistence strategy="localTempSwap"/>-->
-    </cache>
-
-    <!--<diskStore path="user.home"/>-->
 </ehcache>

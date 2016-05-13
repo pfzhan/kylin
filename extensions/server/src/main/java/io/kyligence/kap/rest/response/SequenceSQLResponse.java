@@ -22,7 +22,8 @@ import org.apache.kylin.rest.response.SQLResponse;
 
 public class SequenceSQLResponse extends SQLResponse {
     protected int resultCount;
-    protected long sessionID;
+    protected long sequenceID;
+    protected int sqlID;
 
     public int getResultCount() {
         return resultCount;
@@ -32,11 +33,19 @@ public class SequenceSQLResponse extends SQLResponse {
         this.resultCount = resultCount;
     }
 
-    public long getSessionID() {
-        return sessionID;
+    public long getSequenceID() {
+        return sequenceID;
     }
 
-    public void setSessionID(long sessionID) {
-        this.sessionID = sessionID;
+    public void setSequenceID(long sequenceID) {
+        this.sequenceID = sequenceID;
+    }
+
+    public int getSqlID() {
+        return sqlID;
+    }
+
+    public void setSqlID(int sqlID) {
+        this.sqlID = sqlID;
     }
 }

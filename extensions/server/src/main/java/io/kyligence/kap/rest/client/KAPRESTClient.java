@@ -47,6 +47,7 @@ public class KAPRESTClient extends RestClient {
     }
 
     public SequenceSQLResponse dispatchSequenceSQLExecutionToWorker(int totalWorkers, int workerID, SequenceSQLRequest originalRequest) throws IOException {
+        long startTime = System.currentTimeMillis();
         ShardedSequenceSQLRequest request = new ShardedSequenceSQLRequest();
         request.setWorkerCount(totalWorkers);
         request.setWorkerID(workerID);
@@ -56,8 +57,9 @@ public class KAPRESTClient extends RestClient {
         request.setOffset(originalRequest.getOffset());
         request.setProject(originalRequest.getProject());
         request.setSql(originalRequest.getSql());
-        request.setSessionID(originalRequest.getSessionID());
+        request.setSequenceID(originalRequest.getSequenceID());
         request.setOpt(originalRequest.getOpt());
+        request.setSqlID(originalRequest.getSqlID());
         String requestString = JsonUtil.writeValueAsString(request);
 
         String url = baseUrl + "/shardable_query_worker/execution";
@@ -74,7 +76,7 @@ public class KAPRESTClient extends RestClient {
                 throw new IOException("Invalid response " + code + " with shardable query  " + url + "\n" + msg);
 
             SequenceSQLResponse sequenceSQLResponse = JsonUtil.readValue(msg, SequenceSQLResponse.class);
-            logger.info("KAPRESTClient {} dispatchSequenceSQLExecutionToWorker finished", url);
+            logger.info("KAPRESTClient {} dispatchSequenceSQLExecutionToWorker finished in {} millis", url, System.currentTimeMillis() - startTime);
             return sequenceSQLResponse;
 
         } catch (HttpException ex) {
@@ -84,9 +86,10 @@ public class KAPRESTClient extends RestClient {
         }
     }
 
-    public SequenceSQLResponse collectSequenceSQLResultFromWorker(int workerID, String sessionID) throws IOException {
+    public SequenceSQLResponse collectSequenceSQLResultFromWorker(int workerID, long sequenceID) throws IOException {
 
-        String url = baseUrl + "/shardable_query_worker/result/" + sessionID + "/" + workerID;
+        long startTime = System.currentTimeMillis();
+        String url = baseUrl + "/shardable_query_worker/result/" + sequenceID + "/" + workerID;
         HttpMethod get = new GetMethod(url);
         //TODO: athen?
         //post.addRequestHeader("Authorization", "Basic QURNSU46S1lMSU4=");
@@ -99,8 +102,34 @@ public class KAPRESTClient extends RestClient {
                 throw new IOException("Invalid response " + code + " when collecting results from  " + url + "\n" + msg);
 
             SequenceSQLResponse sequenceSQLResponse = JsonUtil.readValue(msg, SequenceSQLResponse.class);
-            logger.info("KAPRESTClient {} collectSequenceSQLResultFromWorker finished", url);
+            logger.info("KAPRESTClient {} collectSequenceSQLResultFromWorker finished in {} millis", url, System.currentTimeMillis() - startTime);
             return sequenceSQLResponse;
+
+        } catch (HttpException ex) {
+            throw new IOException(ex);
+        } finally {
+            get.releaseConnection();
+        }
+    }
+
+    public String collectStatsFromWorker(int workerID, long sequenceID) throws IOException {
+
+        long startTime = System.currentTimeMillis();
+        String url = baseUrl + "/shardable_query_worker/topology/" + sequenceID + "/" + workerID;
+        HttpMethod get = new GetMethod(url);
+        //TODO: athen?
+        //post.addRequestHeader("Authorization", "Basic QURNSU46S1lMSU4=");
+
+        try {
+            int code = client.executeMethod(get);
+            String msg = get.getResponseBodyAsString();
+
+            if (code != 200)
+                throw new IOException("Invalid response " + code + " when collecting stats from  " + url + "\n" + msg);
+
+            String ret = msg;
+            logger.info("KAPRESTClient {} collectStatsFromWorker finished in {} millis", url, System.currentTimeMillis() - startTime);
+            return ret;
 
         } catch (HttpException ex) {
             throw new IOException(ex);

@@ -32,8 +32,10 @@ import net.sf.ehcache.config.ConfigurationFactory;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.util.Log4jConfigurer;
+import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore
 public class KAPEhcacheTest {
 
     @Test
@@ -70,8 +72,11 @@ public class KAPEhcacheTest {
         testCache.put(new Element("1", blob));
         System.out.println(testCache.get("1") == null);
         System.out.println(testCache.getSize());
-        //System.out.println(testCache.getStatistics().getLocalHeapSizeInBytes());
-        //System.out.println(testCache.getStatistics().getLocalDiskSizeInBytes());
+        System.out.println(testCache.getStatistics().getLocalHeapSizeInBytes());
+        System.out.println(testCache.getStatistics().getLocalDiskSizeInBytes());
+        System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
+        System.gc();
+        Thread.sleep(5000);
         System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
 
         blob = new byte[(1024 * msize * 1024)];//400M
@@ -82,9 +87,13 @@ public class KAPEhcacheTest {
         System.out.println(testCache.get("2") == null);
         System.out.println(testCache.get("1") == null);
         System.out.println(testCache.getSize());
-        //System.out.println(testCache.getStatistics().getLocalHeapSizeInBytes());
-        //System.out.println(testCache.getStatistics().getLocalDiskSizeInBytes());
+        System.out.println(testCache.getStatistics().getLocalHeapSizeInBytes());
+        System.out.println(testCache.getStatistics().getLocalDiskSizeInBytes());
         System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
+        System.gc();
+        Thread.sleep(5000);
+        System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
+
 
         blob = new byte[(1024 * msize * 1024)];//400M
         for (int i = 0; i < blob.length; i++) {
@@ -95,8 +104,28 @@ public class KAPEhcacheTest {
         System.out.println(testCache.get("2") == null);
         System.out.println(testCache.get("3") == null);
         System.out.println(testCache.getSize());
-        //System.out.println(testCache.getStatistics().getLocalHeapSizeInBytes());
-        //System.out.println(testCache.getStatistics().getLocalDiskSizeInBytes());
+        System.out.println(testCache.getStatistics().getLocalHeapSizeInBytes());
+        System.out.println(testCache.getStatistics().getLocalDiskSizeInBytes());
+        System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
+        System.gc();
+        Thread.sleep(5000);
+        System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
+
+        blob = new byte[(1024 * msize * 1024)];//400M
+        for (int i = 0; i < blob.length; i++) {
+            blob[i] = (byte) random.nextInt();
+        }
+        testCache.put(new Element("4", blob));
+        System.out.println(testCache.get("1") == null);
+        System.out.println(testCache.get("2") == null);
+        System.out.println(testCache.get("3") == null);
+        System.out.println(testCache.get("4") == null);
+        System.out.println(testCache.getSize());
+        System.out.println(testCache.getStatistics().getLocalHeapSizeInBytes());
+        System.out.println(testCache.getStatistics().getLocalDiskSizeInBytes());
+        System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
+        System.gc();
+        Thread.sleep(5000);
         System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
 
         cacheManager.shutdown();

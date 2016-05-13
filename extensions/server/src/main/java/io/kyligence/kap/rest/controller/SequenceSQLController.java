@@ -20,7 +20,6 @@ package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -28,10 +27,6 @@ import java.util.concurrent.Future;
 
 import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
-
-import net.sf.ehcache.Cache;
-import net.sf.ehcache.CacheManager;
-import net.sf.ehcache.Element;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
@@ -56,7 +51,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -65,135 +60,124 @@ import io.kyligence.kap.rest.client.KAPRESTClient;
 import io.kyligence.kap.rest.request.SequenceSQLRequest;
 import io.kyligence.kap.rest.request.ShardedSequenceSQLRequest;
 import io.kyligence.kap.rest.response.SequenceSQLResponse;
+import io.kyligence.kap.rest.sequencesql.DiskResultCache;
+import io.kyligence.kap.rest.sequencesql.SequenceNodeOutput;
+import io.kyligence.kap.rest.sequencesql.SequenceOpt;
+import io.kyligence.kap.rest.sequencesql.topology.SequenceSQLNode;
+import io.kyligence.kap.rest.sequencesql.topology.SequenceTopology;
+import io.kyligence.kap.rest.sequencesql.topology.SequenceTopologyManager;
 
 @Controller
 public class SequenceSQLController extends BasicController {
 
     private static final Logger logger = LoggerFactory.getLogger(SequenceSQLController.class);
 
-    public static final String SEQUENCE_QUERY_CACHE = "SequenceSQLResults";
-
     @Autowired
     private QueryService queryService;
 
-    @Autowired
-    private CacheManager cacheManager;
-
     private static ExecutorService executorService = new LoggableCachedThreadPool();
-    private static Random random = new Random();
+    private static SequenceTopologyManager topologyManager = new SequenceTopologyManager(new DiskResultCache());
 
     @PostConstruct
     public void init() throws IOException {
-        Preconditions.checkNotNull(cacheManager, "cacheManager is not injected yet");
+    }
+
+    private List<KAPRESTClient> getWorkerClients() {
+        final String[] servers = KylinConfig.getInstanceFromEnv().getRestServers();
+        final List<KAPRESTClient> restClient = Lists.newArrayList();
+        final int workerCount = servers.length * KylinConfig.getInstanceFromEnv().getWorkersPerServer();
+        for (int i = 0; i < workerCount; i++) {
+            logger.info("worker {} : {}", i, servers[i % servers.length]);
+            restClient.add(new KAPRESTClient(servers[i % servers.length]));
+        }
+        return restClient;
     }
 
     @RequestMapping(value = "/sequence_sql/execution", method = RequestMethod.POST)
     @ResponseBody
     public SequenceSQLResponse doSequenceSql(@RequestBody final SequenceSQLRequest sqlRequest) {
-        if (sqlRequest.getSessionID() == 0) {
-            sqlRequest.setSessionID(random.nextLong());
-        }
+        try {
+            long startTime = System.currentTimeMillis();
+            if (sqlRequest.getSequenceID() == -1) {
+                throw new RuntimeException("Must provided a unique sequenceID for a SQL sequence");
+            }
 
-        final String[] servers = KylinConfig.getInstanceFromEnv().getRestServers();
-        final List<KAPRESTClient> restClient = Lists.newArrayList();
-        final int workerCount = servers.length * KylinConfig.getInstanceFromEnv().getWorkersPerServer();
-        for (int i = 0; i < workerCount; i++) {
-            logger.info("worker {} : {}", i, servers[i % servers.length]);
-            restClient.add(new KAPRESTClient(servers[i % servers.length]));
-        }
+            if (sqlRequest.getSqlID() != -1 && sqlRequest.getOpt() != SequenceOpt.UPDATE) {
+                throw new RuntimeException("If you're not updating a certain sql, you should leave sqlID as default (-1)");
+            }
 
-        List<SequenceSQLResponse> shardResults = Lists.newArrayList();
-        List<Future<?>> futures = Lists.newArrayList();
-        for (int i = 0; i < workerCount; i++) {
-            final int workerID = i;
-            futures.add((executorService.submit(new Callable<SequenceSQLResponse>() {
-                @Override
-                public SequenceSQLResponse call() throws Exception {
-                    try {
-                        return restClient.get(workerID).dispatchSequenceSQLExecutionToWorker(workerCount, workerID, sqlRequest);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
+            if (sqlRequest.getSqlID() == -1 && sqlRequest.getOpt() == SequenceOpt.UPDATE) {
+                throw new RuntimeException("If you're updating a certain sql, you should provide a existing sqlID");
+            }
+
+            final List<KAPRESTClient> workerClients = getWorkerClients();
+            List<SequenceSQLResponse> shardResults = Lists.newArrayList();
+            List<Future<?>> futures = Lists.newArrayList();
+            for (int i = 0; i < workerClients.size(); i++) {
+                final int workerID = i;
+                futures.add((executorService.submit(new Callable<SequenceSQLResponse>() {
+                    @Override
+                    public SequenceSQLResponse call() throws Exception {
+                        try {
+                            return workerClients.get(workerID).dispatchSequenceSQLExecutionToWorker(workerClients.size(), workerID, sqlRequest);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
                     }
-                }
-            })));
-        }
-
-        for (Future<?> future : futures) {
-            try {
-                shardResults.add((SequenceSQLResponse) future.get());
-            } catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        SequenceSQLResponse finalResponse = new SequenceSQLResponse();
-        long sum = NumberIterators.sum(Iterators.transform(shardResults.iterator(), new Function<SequenceSQLResponse, Integer>() {
-
-            @Nullable
-            @Override
-            public Integer apply(@Nullable SequenceSQLResponse input) {
-                return input.getResultCount();
+                })));
             }
 
-        }));
+            for (Future<?> future : futures) {
+                try {
+                    SequenceSQLResponse shardResult = (SequenceSQLResponse) future.get();
 
-        if (sum > Integer.MAX_VALUE) {
-            throw new RuntimeException("result sum exceeds Integer Max: " + sum);
-        }
-        finalResponse.setResultCount((int) sum);
-        finalResponse.setSessionID(sqlRequest.getSessionID());
-        return finalResponse;
-
-    }
-
-    @RequestMapping(value = "/sequence_sql/result/{sessionID}", method = { RequestMethod.GET })
-    @ResponseBody
-    public SequenceSQLResponse getSequenceSQLResult(@PathVariable final String sessionID) {
-
-        final String[] servers = KylinConfig.getInstanceFromEnv().getRestServers();
-        final List<KAPRESTClient> restClient = Lists.newArrayList();
-        final int workerCount = servers.length * KylinConfig.getInstanceFromEnv().getWorkersPerServer();
-        for (int i = 0; i < workerCount; i++) {
-            logger.info("worker {} : {}", i, servers[i % servers.length]);
-            restClient.add(new KAPRESTClient(servers[i % servers.length]));
-        }
-
-
-        List<SequenceSQLResponse> shardResults = Lists.newArrayList();
-        List<Future<?>> futures = Lists.newArrayList();
-        for (int i = 0; i < workerCount; i++) {
-            final int workerID = i;
-            futures.add((executorService.submit(new Callable<SequenceSQLResponse>() {
-                @Override
-                public SequenceSQLResponse call() throws Exception {
-                    try {
-                        return restClient.get(workerID).collectSequenceSQLResultFromWorker(workerID, sessionID);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
+                    if (shardResult == null) {
+                        throw new IllegalStateException("One of the shard result is null");
                     }
+                    if (shardResult.getIsException()) {
+                        throw new IllegalStateException("One of the shard met exception: " + shardResult.getExceptionMessage());
+                    }
+
+                    shardResults.add(shardResult);
+                } catch (InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e);
                 }
-            })));
+            }
+
+            SequenceSQLResponse finalResponse = new SequenceSQLResponse();
+            int sum = (int) NumberIterators.sum(Iterators.transform(shardResults.iterator(), new Function<SequenceSQLResponse, Integer>() {
+
+                @Nullable
+                @Override
+                public Integer apply(@Nullable SequenceSQLResponse input) {
+                    return input.getResultCount();
+                }
+
+            }));
+
+            int sqlID = (int) NumberIterators.checkSame(Iterators.transform(shardResults.iterator(), new Function<SequenceSQLResponse, Integer>() {
+
+                @Nullable
+                @Override
+                public Integer apply(@Nullable SequenceSQLResponse input) {
+                    return input.getSqlID();
+                }
+
+            }));
+
+            if (sum > Integer.MAX_VALUE) {
+                throw new RuntimeException("result sum exceeds Integer Max: " + sum);
+            }
+            finalResponse.setResultCount(sum);
+            finalResponse.setSequenceID(sqlRequest.getSequenceID());
+            finalResponse.setSqlID(sqlID);
+            finalResponse.setDuration(System.currentTimeMillis() - startTime);
+            return finalResponse;
+        } catch (Exception e) {
+            logger.error("error", e);
+            return createExceptionResponse(e);
         }
 
-        for (Future<?> future : futures) {
-            try {
-                shardResults.add((SequenceSQLResponse) future.get());
-            } catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        
-        SequenceSQLResponse finalResponse = new SequenceSQLResponse();
-        List<List<String>> results = Lists.newArrayList();
-        for (SequenceSQLResponse shardResult : shardResults) {
-            if (shardResult != null) {
-                results.addAll(shardResult.getResults());
-            }
-        }
-
-        finalResponse.setResults(results);
-        finalResponse.setSessionID(Long.valueOf(sessionID));
-        return finalResponse;
     }
 
     @RequestMapping(value = "/shardable_query_worker/execution", method = RequestMethod.POST)
@@ -246,63 +230,169 @@ public class SequenceSQLController extends BasicController {
             if (sqlResponse.getIsException())
                 throw new InternalErrorException(sqlResponse.getExceptionMessage());
 
-            SequenceSQLResult sequenceSQLResult = persistIntermediateResult(shardedSequenceSQLRequest, sqlResponse, shardedSequenceSQLRequest.getSessionID(), shardedSequenceSQLRequest.getOpt());
+            SequenceTopology topology = topologyManager.getTopology(shardedSequenceSQLRequest.getSequenceID(), shardedSequenceSQLRequest.getWorkerID());
+
+            if (topology == null) {
+                topologyManager.addTopology(shardedSequenceSQLRequest.getSequenceID(), shardedSequenceSQLRequest.getWorkerID());
+                topology = topologyManager.getTopology(shardedSequenceSQLRequest.getSequenceID(), shardedSequenceSQLRequest.getWorkerID());
+            }
+
+            int sqlID = shardedSequenceSQLRequest.getSqlID();
+            if (sqlID == -1) {
+                SequenceSQLNode sequenceSQLNode = topology.appendSQLNode(shardedSequenceSQLRequest.getSql(), shardedSequenceSQLRequest.getOpt());
+                sqlID = sequenceSQLNode.getSqlID();
+            }
+            int resultSize = topology.updateSQLNodeResult(sqlID, shardedSequenceSQLRequest.getSql(), sqlResponse);
 
             SequenceSQLResponse ret = new SequenceSQLResponse();
-            ret.setResultCount(sequenceSQLResult.size());
-            ret.setSessionID(shardedSequenceSQLRequest.getSessionID());
+            ret.setResultCount(resultSize);
+            ret.setSequenceID(shardedSequenceSQLRequest.getSequenceID());
+            ret.setSqlID(sqlID);
             return ret;
 
+        } catch (Exception e) {
+            logger.error("error", e);
+            return createExceptionResponse(e);
         } finally {
             BackdoorToggles.cleanToggles();
         }
     }
 
-    @RequestMapping(value = "/shardable_query_worker/result/{sessionID}/{workerID}", method = { RequestMethod.GET })
+    @RequestMapping(value = "/sequence_sql/result/{sequenceID}", method = { RequestMethod.GET })
     @ResponseBody
-    public SequenceSQLResponse getShardableQueryResult(@PathVariable String sessionID, @PathVariable String workerID) {
-        Cache cache = cacheManager.getCache(SEQUENCE_QUERY_CACHE);
+    public SequenceSQLResponse getSequenceSQLResult(@PathVariable final long sequenceID) {
+        try {
+
+            long startTime = System.currentTimeMillis();
+
+            final List<KAPRESTClient> workerClients = getWorkerClients();
+            List<SequenceSQLResponse> shardResults = Lists.newArrayList();
+            List<Future<?>> futures = Lists.newArrayList();
+            for (int i = 0; i < workerClients.size(); i++) {
+                final int workerID = i;
+                futures.add((executorService.submit(new Callable<SequenceSQLResponse>() {
+                    @Override
+                    public SequenceSQLResponse call() throws Exception {
+                        try {
+                            return workerClients.get(workerID).collectSequenceSQLResultFromWorker(workerID, sequenceID);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                })));
+            }
+
+            for (Future<?> future : futures) {
+                try {
+                    SequenceSQLResponse shardResult = (SequenceSQLResponse) future.get();
+
+                    if (shardResult == null) {
+                        throw new IllegalStateException("One of the shard result is null");
+                    }
+                    if (shardResult.getIsException()) {
+                        throw new IllegalStateException("One of the shard met exception: " + shardResult.getExceptionMessage());
+                    }
+
+                    shardResults.add(shardResult);
+                } catch (InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            SequenceSQLResponse finalResponse = new SequenceSQLResponse();
+            List<List<String>> results = Lists.newArrayList();
+            for (SequenceSQLResponse shardResult : shardResults) {
+                results.addAll(shardResult.getResults());
+            }
+
+            finalResponse.setDuration(System.currentTimeMillis() - startTime);
+            finalResponse.setResults(results);
+            finalResponse.setResultCount(results.size());
+            finalResponse.setSequenceID(Long.valueOf(sequenceID));
+            return finalResponse;
+        } catch (Exception e) {
+            logger.error("error", e);
+            return createExceptionResponse(e);
+        }
+    }
+
+    @RequestMapping(value = "/shardable_query_worker/result/{sequenceID}/{workerID}", method = { RequestMethod.GET })
+    @ResponseBody
+    public SequenceSQLResponse getShardableQueryResult(@PathVariable long sequenceID, @PathVariable int workerID) {
+        try {
+            SequenceSQLResponse sequenceSQLResponse = new SequenceSQLResponse();
+            logger.info("Trying to get shard result for {} on worker {} ", sequenceID, workerID);
+
+            SequenceTopology topology = topologyManager.getTopology(sequenceID, workerID);
+
+            if (topology == null) {
+                throw new IllegalStateException("The sequence topology is not found, maybe expired?");
+            }
+
+            SequenceNodeOutput finalResult = topology.getSequeneFinalResult();
+
+            if (finalResult != null) {
+                sequenceSQLResponse.setResults(finalResult.getResults());
+            } else {
+                throw new IllegalStateException("The final result for current topology is not found!");
+            }
+
+            return sequenceSQLResponse;
+        } catch (Exception e) {
+            return createExceptionResponse(e);
+        }
+    }
+
+    @RequestMapping(value = "/sequence_sql/topology/{sequenceID}", method = { RequestMethod.GET })
+    @ResponseBody
+    public List<String> getTopology(@PathVariable final long sequenceID) {
+
+        final List<KAPRESTClient> workerClients = getWorkerClients();
+        List<String> shardResults = Lists.newArrayList();
+        List<Future<?>> futures = Lists.newArrayList();
+        for (int i = 0; i < workerClients.size(); i++) {
+            final int workerID = i;
+            futures.add((executorService.submit(new Callable<String>() {
+                @Override
+                public String call() throws Exception {
+                    try {
+                        return workerClients.get(workerID).collectStatsFromWorker(workerID, sequenceID);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            })));
+        }
+
+        for (Future<?> future : futures) {
+            try {
+                String shardResult = (String) future.get();
+                shardResults.add(shardResult);
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        return shardResults;
+
+    }
+
+    @RequestMapping(value = "/shardable_query_worker/topology/{sequenceID}/{workerID}", method = { RequestMethod.GET })
+    @ResponseBody
+    public String getShardTopology(@PathVariable final long sequenceID, @PathVariable int workerID) {
+        SequenceTopology topology = topologyManager.getTopology(sequenceID, workerID);
+        if (topology == null) {
+            return "";
+        }
+
+        return topology.toString();
+    }
+
+    private SequenceSQLResponse createExceptionResponse(Throwable e) {
         SequenceSQLResponse sequenceSQLResponse = new SequenceSQLResponse();
-        String s = generateShardResultKey(sessionID, workerID);
-        logger.info("Trying to get shard result for key: " + s);
-        Element element = cache.get(s);
-
-        if (element != null) {
-            SequenceSQLResult sequenceSQLResult = (SequenceSQLResult) element.getObjectValue();
-            sequenceSQLResponse.setResults(sequenceSQLResult.results);
-        } else {
-            logger.info("shard result missing! Existing keys:" + cache.getKeys());
-            //TODO: rerun to get the shard result
-        }
-
+        sequenceSQLResponse.setIsException(true);
+        sequenceSQLResponse.setExceptionMessage(Throwables.getStackTraceAsString(e));
         return sequenceSQLResponse;
-    }
-
-    private SequenceSQLResult persistIntermediateResult(ShardedSequenceSQLRequest shardedSequenceSQLRequest, SQLResponse sqlResponse, long sessionID, SequenceSQLRequest.OptWithLastResult opt) {
-
-        SequenceSQLResult current = new SequenceSQLResult(sqlResponse);
-
-        long startTime = System.currentTimeMillis();
-        Cache cache = cacheManager.getCache(SEQUENCE_QUERY_CACHE);
-        if (opt == SequenceSQLRequest.OptWithLastResult.NONE) {
-        } else if (opt == SequenceSQLRequest.OptWithLastResult.INTERSECT) {
-            current.intersect((SequenceSQLResult) cache.get(sessionID).getObjectValue());
-        } else if (opt == SequenceSQLRequest.OptWithLastResult.UNION) {
-            current.union((SequenceSQLResult) cache.get(sessionID).getObjectValue());
-        } else if (opt == SequenceSQLRequest.OptWithLastResult.FORWARD_EXCEPT) {
-            current.forwardExcept((SequenceSQLResult) cache.get(sessionID).getObjectValue());
-        } else if (opt == SequenceSQLRequest.OptWithLastResult.BACKWARD_EXCEPT) {
-            current.backwardExcept((SequenceSQLResult) cache.get(sessionID).getObjectValue());
-        } else {
-            throw new RuntimeException("Unknown OPT:" + opt);
-        }
-        cache.put(new Element(generateShardResultKey(String.valueOf(sessionID), String.valueOf(shardedSequenceSQLRequest.getWorkerID())), current));
-        logger.info("Time to persist:" + (System.currentTimeMillis() - startTime) + " with OPT being " + opt);
-        return current;
-    }
-
-    private String generateShardResultKey(String sessionID, String workerID) {
-        return sessionID + "#" + workerID;
     }
 
     private void checkQueryAuth(SQLResponse sqlResponse) throws AccessDeniedException {
@@ -314,10 +404,6 @@ public class SequenceSQLController extends BasicController {
 
     public void setQueryService(QueryService queryService) {
         this.queryService = queryService;
-    }
-
-    public void setCacheManager(CacheManager cacheManager) {
-        this.cacheManager = cacheManager;
     }
 
 }

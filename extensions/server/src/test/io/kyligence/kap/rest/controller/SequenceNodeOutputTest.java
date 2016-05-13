@@ -26,49 +26,51 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
+import io.kyligence.kap.rest.sequencesql.SequenceNodeOutput;
 
-public class SequenceSQLResultTest {
+public class SequenceNodeOutputTest {
 
-    SequenceSQLResult a;
-    SequenceSQLResult b;
+    SequenceNodeOutput a;
+    SequenceNodeOutput b;
 
     @Before
     public void prepare() {
         List<List<String>> aResults = Lists.newArrayList();
-        aResults.add(Lists.newArrayList("123", "456"));
-        aResults.add(Lists.newArrayList("123", "567"));
+        aResults.add(Lists.newArrayList("123"));
+        aResults.add(Lists.newArrayList("123"));
+        aResults.add(Lists.newArrayList("456"));
+        aResults.add(Lists.newArrayList("567"));
 
         List<List<String>> bResults = Lists.newArrayList();
-        bResults.add(Lists.newArrayList("123", "456"));
-        bResults.add(Lists.newArrayList("123", "678"));
+        bResults.add(Lists.newArrayList("123"));
+        bResults.add(Lists.newArrayList("789"));
 
-        a = new SequenceSQLResult(new SQLResponse(null, aResults, 0, true, null));
-        b = new SequenceSQLResult(new SQLResponse(null, bResults, 0, true, null));
+        a = new SequenceNodeOutput(new SQLResponse(null, aResults, 0, true, null));
+        b = new SequenceNodeOutput(new SQLResponse(null, bResults, 0, true, null));
     }
 
     @Test
     public void testUnion() {
-        a.union(b);
-        Assert.assertEquals(3, a.results.size());
+        SequenceNodeOutput union = SequenceNodeOutput.union(a, b);
+        Assert.assertEquals(4, union.getResults().size());
     }
 
     @Test
     public void testIntersect() {
-        a.intersect(b);
-        Assert.assertEquals(1, a.results.size());
+        SequenceNodeOutput intersect = SequenceNodeOutput.intersect(a, b);
+        Assert.assertEquals(1, intersect.getResults().size());
     }
 
     @Test
     public void testForwardExcept() {
-        a.forwardExcept(b);
-        Assert.assertEquals(1, a.results.size());
-        Assert.assertEquals("567", a.results.get(0).get(1));
+        SequenceNodeOutput result = SequenceNodeOutput.except(a, b);
+        Assert.assertEquals(2, result.getResults().size());
     }
 
     @Test
     public void testBackwardExcept() {
-        a.backwardExcept(b);
-        Assert.assertEquals(1, a.results.size());
-        Assert.assertEquals("678", a.results.get(0).get(1));
+        SequenceNodeOutput result = SequenceNodeOutput.except(b, a);
+        Assert.assertEquals(1, result.getResults().size());
+        Assert.assertEquals("789", result.getResults().get(0).get(0));
     }
 }

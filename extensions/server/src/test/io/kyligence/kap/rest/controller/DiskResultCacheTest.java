@@ -16,39 +16,23 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.rest.controller;
 
-import org.apache.kylin.rest.request.SQLRequest;
+import io.kyligence.kap.rest.sequencesql.DiskResultCache;
+import org.junit.Assert;
+import org.junit.Test;
 
-import io.kyligence.kap.rest.sequencesql.SequenceOpt;
+public class DiskResultCacheTest {
+    @Test
+    public void basicTest() throws InterruptedException {
+        DiskResultCache cache = new DiskResultCache();
+        cache.cacheEntry("a", new byte[] { 1, 2, 3 });
+        cache.cacheEntry("b", new byte[] { 1, 2, 3 });
+        Assert.assertEquals(2, cache.getSize());
 
-public class SequenceSQLRequest extends SQLRequest {
 
-    protected long sequenceID = -1;
-    protected int sqlID = -1;//default value indicates appending this sql at the end of the sequence
-    protected SequenceOpt opt = SequenceOpt.INIT;
-
-    public long getSequenceID() {
-        return sequenceID;
-    }
-
-    public void setSequenceID(long sequenceID) {
-        this.sequenceID = sequenceID;
-    }
-
-    public SequenceOpt getOpt() {
-        return opt;
-    }
-
-    public void setOpt(SequenceOpt opt) {
-        this.opt = opt;
-    }
-
-    public int getSqlID() {
-        return sqlID;
-    }
-
-    public void setSqlID(int sqlID) {
-        this.sqlID = sqlID;
+        cache.getEntry("b");
+        cache.cacheEntry("c", new byte[] { 23 });
+        Assert.assertEquals(3, cache.getSize());
     }
 }
