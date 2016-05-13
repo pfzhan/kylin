@@ -28,12 +28,16 @@ import java.util.Set;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.common.util.CompressionUtils;
 import org.apache.kylin.rest.response.SQLResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Longs;
 
 public class SequenceNodeOutput implements Serializable {
+    private static final Logger logger = LoggerFactory.getLogger(SequenceNodeOutput.class);
+
     byte[] compressedLongs;
     Set<Long> longSet;
 
@@ -41,8 +45,12 @@ public class SequenceNodeOutput implements Serializable {
         List<List<String>> results = sqlResponse.getResults();
         longSet = Sets.newHashSet();
         long temp;
-        for (int i = 0; i < results.size(); i++) {
 
+        logger.info("total rows: {}", results.size());
+        for (int i = 0; i < results.size(); i++) {
+            if (i % 10000 == 100) {
+                logger.info("Dealing with row {}", i);
+            }
             List<String> row = results.get(i);
             if (row.size() != 1) {
                 throw new RuntimeException("Only support one integer column per row for sequence SQL");
