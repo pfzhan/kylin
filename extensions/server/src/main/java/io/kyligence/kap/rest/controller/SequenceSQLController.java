@@ -46,6 +46,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -81,20 +82,20 @@ public class SequenceSQLController extends BasicController {
     public void init() throws IOException {
     }
 
-    private List<KAPRESTClient> getWorkerClients() {
+    private List<KAPRESTClient> getWorkerClients(String basicAuthen) {
         final String[] servers = KylinConfig.getInstanceFromEnv().getRestServers();
         final List<KAPRESTClient> restClient = Lists.newArrayList();
         final int workerCount = servers.length * KylinConfig.getInstanceFromEnv().getWorkersPerServer();
         for (int i = 0; i < workerCount; i++) {
             logger.info("worker {} : {}", i, servers[i % servers.length]);
-            restClient.add(new KAPRESTClient(servers[i % servers.length]));
+            restClient.add(new KAPRESTClient(servers[i % servers.length], basicAuthen));
         }
         return restClient;
     }
 
     @RequestMapping(value = "/sequence_sql/execution", method = RequestMethod.POST)
     @ResponseBody
-    public SequenceSQLResponse doSequenceSql(@RequestBody final SequenceSQLRequest sqlRequest) {
+    public SequenceSQLResponse doSequenceSql(@RequestBody final SequenceSQLRequest sqlRequest, @RequestHeader("Authorization") String basicAuthen) {
         try {
             long startTime = System.currentTimeMillis();
             if (sqlRequest.getSequenceID() == -1) {
@@ -130,7 +131,7 @@ public class SequenceSQLController extends BasicController {
                 }
             }
 
-            final List<KAPRESTClient> workerClients = getWorkerClients();
+            final List<KAPRESTClient> workerClients = getWorkerClients(basicAuthen);
             List<SequenceSQLResponse> shardResults = Lists.newArrayList();
             List<Future<?>> futures = Lists.newArrayList();
             for (int i = 0; i < workerClients.size(); i++) {
@@ -280,12 +281,12 @@ public class SequenceSQLController extends BasicController {
 
     @RequestMapping(value = "/sequence_sql/result/{sequenceID}", method = { RequestMethod.GET })
     @ResponseBody
-    public SequenceSQLResponse getSequenceSQLResult(@PathVariable final long sequenceID) {
+    public SequenceSQLResponse getSequenceSQLResult(@PathVariable final long sequenceID, @RequestHeader("Authorization") String basicAuthen) {
         try {
 
             long startTime = System.currentTimeMillis();
 
-            final List<KAPRESTClient> workerClients = getWorkerClients();
+            final List<KAPRESTClient> workerClients = getWorkerClients(basicAuthen);
             List<SequenceSQLResponse> shardResults = Lists.newArrayList();
             List<Future<?>> futures = Lists.newArrayList();
             for (int i = 0; i < workerClients.size(); i++) {
@@ -365,9 +366,9 @@ public class SequenceSQLController extends BasicController {
 
     @RequestMapping(value = "/sequence_sql/topology/{sequenceID}", method = { RequestMethod.GET })
     @ResponseBody
-    public List<String> getTopology(@PathVariable final long sequenceID) {
+    public List<String> getTopology(@PathVariable final long sequenceID, @RequestHeader("Authorization") String basicAuthen) {
 
-        final List<KAPRESTClient> workerClients = getWorkerClients();
+        final List<KAPRESTClient> workerClients = getWorkerClients(basicAuthen);
         List<String> shardResults = Lists.newArrayList();
         List<Future<?>> futures = Lists.newArrayList();
         for (int i = 0; i < workerClients.size(); i++) {

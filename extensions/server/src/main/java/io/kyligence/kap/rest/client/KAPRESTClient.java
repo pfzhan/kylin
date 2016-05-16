@@ -39,11 +39,13 @@ public class KAPRESTClient extends RestClient {
 
     private static final Logger logger = LoggerFactory.getLogger(KAPRESTClient.class);
 
+    private String basicAuthentication;
     /**
      * @param uri "user:pwd@host:port"
      */
-    public KAPRESTClient(String uri) {
+    public KAPRESTClient(String uri,String basicAuthentication) {
         super(uri);
+        this.basicAuthentication = basicAuthentication;
     }
 
     public SequenceSQLResponse dispatchSequenceSQLExecutionToWorker(int totalWorkers, int workerID, SequenceSQLRequest originalRequest) throws IOException {
@@ -65,8 +67,7 @@ public class KAPRESTClient extends RestClient {
 
         String url = baseUrl + "/shardable_query_worker/execution";
         PostMethod post = new PostMethod(url);
-        //TODO: athen?
-        //post.addRequestHeader("Authorization", "Basic QURNSU46S1lMSU4=");
+        post.addRequestHeader("Authorization", basicAuthentication);
         post.setRequestEntity(new StringRequestEntity(requestString, "application/json", "UTF-8"));
 
         try {
@@ -92,8 +93,7 @@ public class KAPRESTClient extends RestClient {
         long startTime = System.currentTimeMillis();
         String url = baseUrl + "/shardable_query_worker/result/" + sequenceID + "/" + workerID;
         HttpMethod get = new GetMethod(url);
-        //TODO: athen?
-        //post.addRequestHeader("Authorization", "Basic QURNSU46S1lMSU4=");
+        get.addRequestHeader("Authorization", basicAuthentication);
 
         try {
             int code = client.executeMethod(get);
@@ -118,8 +118,7 @@ public class KAPRESTClient extends RestClient {
         long startTime = System.currentTimeMillis();
         String url = baseUrl + "/shardable_query_worker/topology/" + sequenceID + "/" + workerID;
         HttpMethod get = new GetMethod(url);
-        //TODO: athen?
-        //post.addRequestHeader("Authorization", "Basic QURNSU46S1lMSU4=");
+        get.addRequestHeader("Authorization", basicAuthentication);
 
         try {
             int code = client.executeMethod(get);

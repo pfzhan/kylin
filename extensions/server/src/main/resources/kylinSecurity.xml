@@ -175,7 +175,6 @@
 
 			<scr:intercept-url pattern="/api/user/authentication*/**" access="permitAll" />
 			<scr:intercept-url pattern="/api/query*/**" access="isAuthenticated()" />
-			<scr:intercept-url pattern="/api/shardable_query*/**" access="permitAll" />
 			<scr:intercept-url pattern="/api/metadata*/**" access="isAuthenticated()" />
 			<scr:intercept-url pattern="/api/**/metrics" access="permitAll" />
 			<scr:intercept-url pattern="/api/cache*/**" access="permitAll" />
@@ -216,7 +215,6 @@
 
 			<scr:intercept-url pattern="/api/user/authentication*/**" access="permitAll" />
 			<scr:intercept-url pattern="/api/query*/**" access="isAuthenticated()" />
-			<scr:intercept-url pattern="/api/shardable_query*/**" access="permitAll" />
 			<scr:intercept-url pattern="/api/metadata*/**" access="isAuthenticated()" />
 			<scr:intercept-url pattern="/api/**/metrics" access="permitAll" />
 			<scr:intercept-url pattern="/api/cache*/**" access="permitAll" />
