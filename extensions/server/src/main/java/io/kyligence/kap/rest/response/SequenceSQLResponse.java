@@ -23,7 +23,7 @@ import org.apache.kylin.rest.response.SQLResponse;
 public class SequenceSQLResponse extends SQLResponse {
     protected int resultCount;
     protected long sequenceID;
-    protected int sqlID;
+    protected int stepID;
 
     public int getResultCount() {
         return resultCount;
@@ -41,11 +41,11 @@ public class SequenceSQLResponse extends SQLResponse {
         this.sequenceID = sequenceID;
     }
 
-    public int getSqlID() {
-        return sqlID;
+    public int getStepID() {
+        return stepID;
     }
 
-    public void setSqlID(int sqlID) {
-        this.sqlID = sqlID;
+    public void setStepID(int stepID) {
+        this.stepID = stepID;
     }
 }

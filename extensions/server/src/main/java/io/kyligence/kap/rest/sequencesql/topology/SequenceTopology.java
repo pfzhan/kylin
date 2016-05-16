@@ -124,7 +124,7 @@ public class SequenceTopology {
             optinalRightParentInput = loadSequenceNodeOutput(getStoreKey(updating.parents.get(1)));
         }
 
-        ResultOpt opt = updating.opt;
+        ResultOpt opt = updating.getOpt();
         SequenceNodeOutput currentResult;
 
         if (opt == ResultOpt.INTERSECT) {
@@ -215,13 +215,13 @@ public class SequenceTopology {
             for (int i = 0; i < sqlNodeCount; i++) {
                 SequenceSQLNode sqlNode = findSQLNode(i);
                 SequenceNodeOutput sqlOutput = loadSequenceNodeOutput(getStoreKey(sqlNode));
-                sb.append("sql ").append(sqlNode.getSqlID()).append(": ").append(sqlNode.sql).append(" (result size:").append(sqlOutput.size()).append(")").append(newLine);
+                sb.append("     sql ").append(sqlNode.getSqlID()).append(": ").append(sqlNode.sql).append(" (result size:").append(sqlOutput.size()).append(")").append(newLine);
             }
             sb.append(newLine);
             for (int i = 0; i < optNodeCount; i++) {
                 SequenceOptNode optNode = findOptNode(i);
                 SequenceNodeOutput optOutput = loadSequenceNodeOutput(getStoreKey(optNode));
-                sb.append("opt ").append(optNode.getOptID()).append(": ").append(optNode.opt).append(" (result size:").append(optOutput.size()).append(")").append(newLine);
+                sb.append("     opt ").append(optNode.getOptID()).append(": ").append(optNode.opt).append(" (result size:").append(optOutput.size()).append(")").append(newLine);
             }
             return sb.toString();
         }

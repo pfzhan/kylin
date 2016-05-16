@@ -180,14 +180,14 @@ public class SequenceSQLController extends BasicController {
                 @Nullable
                 @Override
                 public Integer apply(@Nullable SequenceSQLResponse input) {
-                    return input.getSqlID();
+                    return input.getStepID();
                 }
 
             }));
 
             finalResponse.setResultCount(sum);
             finalResponse.setSequenceID(sqlRequest.getSequenceID());
-            finalResponse.setSqlID(sqlID);
+            finalResponse.setStepID(sqlID);
             finalResponse.setDuration(System.currentTimeMillis() - startTime);
             return finalResponse;
         } catch (Exception e) {
@@ -267,7 +267,7 @@ public class SequenceSQLController extends BasicController {
             SequenceSQLResponse ret = new SequenceSQLResponse();
             ret.setResultCount(resultSize);
             ret.setSequenceID(shardedSequenceSQLRequest.getSequenceID());
-            ret.setSqlID(stepID);
+            ret.setStepID(stepID);
             return ret;
 
         } catch (Exception e) {
