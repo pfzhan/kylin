@@ -55,8 +55,8 @@ public class DiskResultCache {
         }
     }
 
-    public void cleanEntried(String prefix) {
-        logger.info("Cleaning all entries related to " + prefix);
+    public void cleanEntries(String prefix) {
+        logger.info("Cleaning all entries starting with " + prefix);
         FileFilter fileFilter = new WildcardFileFilter(prefix + "*");
         File[] files = this.cacheFolder.listFiles(fileFilter);
         String fileList = StringUtils.join(Collections2.transform(Arrays.asList(files), new Function<File, String>() {

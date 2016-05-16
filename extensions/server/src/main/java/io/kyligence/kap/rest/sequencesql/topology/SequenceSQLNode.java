@@ -36,6 +36,11 @@ public class SequenceSQLNode extends SequenceNode {
     public String getSql() {
         return sql;
     }
+    
+    public void setSql(String sql)
+    {
+        this.sql = sql;
+    }
 
     public int getSqlID() {
         return sqlID;

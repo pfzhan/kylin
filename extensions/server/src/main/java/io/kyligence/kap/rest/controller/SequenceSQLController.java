@@ -63,7 +63,6 @@ import io.kyligence.kap.rest.response.SequenceSQLResponse;
 import io.kyligence.kap.rest.sequencesql.DiskResultCache;
 import io.kyligence.kap.rest.sequencesql.SequenceNodeOutput;
 import io.kyligence.kap.rest.sequencesql.SequenceOpt;
-import io.kyligence.kap.rest.sequencesql.topology.SequenceSQLNode;
 import io.kyligence.kap.rest.sequencesql.topology.SequenceTopology;
 import io.kyligence.kap.rest.sequencesql.topology.SequenceTopologyManager;
 
@@ -76,7 +75,7 @@ public class SequenceSQLController extends BasicController {
     private QueryService queryService;
 
     private static ExecutorService executorService = new LoggableCachedThreadPool();
-    private static SequenceTopologyManager topologyManager = new SequenceTopologyManager(new DiskResultCache());
+    private static SequenceTopologyManager topologyManager = new SequenceTopologyManager(new DiskResultCache(), KylinConfig.getInstanceFromEnv().getSequenceExpireTime());
 
     @PostConstruct
     public void init() throws IOException {
@@ -102,12 +101,33 @@ public class SequenceSQLController extends BasicController {
                 throw new RuntimeException("Must provided a unique sequenceID for a SQL sequence");
             }
 
-            if (sqlRequest.getSqlID() != -1 && sqlRequest.getOpt() != SequenceOpt.UPDATE) {
-                throw new RuntimeException("If you're not updating a certain sql, you should leave sqlID as default (-1)");
+            if (sqlRequest.getSequenceOpt() != SequenceOpt.UPDATE) {
+                if (sqlRequest.getStepID() != -1) {
+                    throw new RuntimeException("If you're not updating a certain sql, you should leave stepID as default (-1)");
+                }
+
+                if (sqlRequest.getSequenceOpt() == SequenceOpt.APPEND) {
+                    if (sqlRequest.getSql() == null || sqlRequest.getResultOpt() == null) {
+                        throw new RuntimeException("sql and result opt are required");
+                    }
+                }
+
+                if (sqlRequest.getSequenceOpt() == SequenceOpt.INIT) {
+                    if (sqlRequest.getSql() == null)
+                        throw new RuntimeException("sql is required");
+                }
             }
 
-            if (sqlRequest.getSqlID() == -1 && sqlRequest.getOpt() == SequenceOpt.UPDATE) {
-                throw new RuntimeException("If you're updating a certain sql, you should provide a existing sqlID");
+            if (sqlRequest.getSequenceOpt() == SequenceOpt.UPDATE) {
+                if (sqlRequest.getStepID() == -1) {
+                    throw new RuntimeException("If you're updating a certain sql, you should provide a existing stepID");
+                }
+                if (sqlRequest.getStepID() == 0 && sqlRequest.getResultOpt() != null) {
+                    throw new RuntimeException("Result opt cannot be updated for step 0");
+                }
+                if (sqlRequest.getSql() == null && sqlRequest.getResultOpt() == null) {
+                    throw new RuntimeException("at least provide sql or result opt");
+                }
             }
 
             final List<KAPRESTClient> workerClients = getWorkerClients();
@@ -165,9 +185,6 @@ public class SequenceSQLController extends BasicController {
 
             }));
 
-            if (sum > Integer.MAX_VALUE) {
-                throw new RuntimeException("result sum exceeds Integer Max: " + sum);
-            }
             finalResponse.setResultCount(sum);
             finalResponse.setSequenceID(sqlRequest.getSequenceID());
             finalResponse.setSqlID(sqlID);
@@ -175,7 +192,9 @@ public class SequenceSQLController extends BasicController {
             return finalResponse;
         } catch (Exception e) {
             logger.error("error", e);
-            return createExceptionResponse(e);
+            return
+
+            createExceptionResponse(e);
         }
 
     }
@@ -237,17 +256,18 @@ public class SequenceSQLController extends BasicController {
                 topology = topologyManager.getTopology(shardedSequenceSQLRequest.getSequenceID(), shardedSequenceSQLRequest.getWorkerID());
             }
 
-            int sqlID = shardedSequenceSQLRequest.getSqlID();
-            if (sqlID == -1) {
-                SequenceSQLNode sequenceSQLNode = topology.appendSQLNode(shardedSequenceSQLRequest.getSql(), shardedSequenceSQLRequest.getOpt());
-                sqlID = sequenceSQLNode.getSqlID();
+            int stepID = shardedSequenceSQLRequest.getStepID();
+            if (stepID == -1) {
+                stepID = topology.addStep(shardedSequenceSQLRequest.getSql(), shardedSequenceSQLRequest.getSequenceOpt(), shardedSequenceSQLRequest.getResultOpt());
+            } else {
+                stepID = topology.updateStep(stepID, shardedSequenceSQLRequest.getSql(), shardedSequenceSQLRequest.getSequenceOpt(), shardedSequenceSQLRequest.getResultOpt());
             }
-            int resultSize = topology.updateSQLNodeResult(sqlID, shardedSequenceSQLRequest.getSql(), sqlResponse);
+            int resultSize = topology.updateSQLNodeResult(stepID, sqlResponse);
 
             SequenceSQLResponse ret = new SequenceSQLResponse();
             ret.setResultCount(resultSize);
             ret.setSequenceID(shardedSequenceSQLRequest.getSequenceID());
-            ret.setSqlID(sqlID);
+            ret.setSqlID(stepID);
             return ret;
 
         } catch (Exception e) {

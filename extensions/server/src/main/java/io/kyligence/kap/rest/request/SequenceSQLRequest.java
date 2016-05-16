@@ -20,13 +20,16 @@ package io.kyligence.kap.rest.request;
 
 import org.apache.kylin.rest.request.SQLRequest;
 
+import io.kyligence.kap.rest.sequencesql.ResultOpt;
 import io.kyligence.kap.rest.sequencesql.SequenceOpt;
 
 public class SequenceSQLRequest extends SQLRequest {
 
     protected long sequenceID = -1;
-    protected int sqlID = -1;//default value indicates appending this sql at the end of the sequence
-    protected SequenceOpt opt = SequenceOpt.INIT;
+    protected int stepID = -1;//default value indicates appending this sql at the end of the sequence
+    
+    protected SequenceOpt sequenceOpt = null;
+    protected ResultOpt resultOpt = null;
 
     public long getSequenceID() {
         return sequenceID;
@@ -36,19 +39,27 @@ public class SequenceSQLRequest extends SQLRequest {
         this.sequenceID = sequenceID;
     }
 
-    public SequenceOpt getOpt() {
-        return opt;
+    public SequenceOpt getSequenceOpt() {
+        return sequenceOpt;
     }
 
-    public void setOpt(SequenceOpt opt) {
-        this.opt = opt;
+    public void setSequenceOpt(SequenceOpt sequenceOpt) {
+        this.sequenceOpt = sequenceOpt;
     }
 
-    public int getSqlID() {
-        return sqlID;
+    public int getStepID() {
+        return stepID;
     }
 
-    public void setSqlID(int sqlID) {
-        this.sqlID = sqlID;
+    public void setStepID(int stepID) {
+        this.stepID = stepID;
+    }
+
+    public ResultOpt getResultOpt() {
+        return resultOpt;
+    }
+
+    public void setResultOpt(ResultOpt resultOpt) {
+        this.resultOpt = resultOpt;
     }
 }

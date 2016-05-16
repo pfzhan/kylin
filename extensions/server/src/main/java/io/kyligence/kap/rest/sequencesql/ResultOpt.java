@@ -18,8 +18,10 @@
 
 package io.kyligence.kap.rest.sequencesql;
 
-public enum SequenceOpt {
-    INIT, //for the first query in the sequence
-    APPEND,//for adding a new step in the sequence
-    UPDATE,
+public enum ResultOpt {
+    // the followings are opt with current sequence output
+    INTERSECT, //
+    UNION, //
+    FORWARD_EXCEPT, // current result - sequence result
+    BACKWARD_EXCEPT// sequence result - current result
 }

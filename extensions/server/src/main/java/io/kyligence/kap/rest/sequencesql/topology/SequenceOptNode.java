@@ -21,14 +21,14 @@ package io.kyligence.kap.rest.sequencesql.topology;
 import java.util.List;
 
 import com.google.common.collect.Lists;
-import io.kyligence.kap.rest.sequencesql.SequenceOpt;
+import io.kyligence.kap.rest.sequencesql.ResultOpt;
 
 public class SequenceOptNode extends SequenceNode {
     protected List<SequenceNode> parents = Lists.newArrayList();
-    protected SequenceOpt opt;
+    protected ResultOpt opt;
     protected int optID;
 
-    public SequenceOptNode(List<SequenceNode> parents, SequenceOpt opt, int optID) {
+    public SequenceOptNode(List<SequenceNode> parents, ResultOpt opt, int optID) {
         this.parents = parents;
         this.opt = opt;
         this.optID = optID;
@@ -43,8 +43,13 @@ public class SequenceOptNode extends SequenceNode {
         return parents;
     }
 
-    public SequenceOpt getOpt() {
+    public ResultOpt getOpt() {
         return opt;
+    }
+    
+    public void setOpt(ResultOpt opt)
+    { 
+        this.opt = opt;
     }
 
     public int getOptID() {

@@ -58,8 +58,9 @@ public class KAPRESTClient extends RestClient {
         request.setProject(originalRequest.getProject());
         request.setSql(originalRequest.getSql());
         request.setSequenceID(originalRequest.getSequenceID());
-        request.setOpt(originalRequest.getOpt());
-        request.setSqlID(originalRequest.getSqlID());
+        request.setSequenceOpt(originalRequest.getSequenceOpt());
+        request.setStepID(originalRequest.getStepID());
+        request.setResultOpt(originalRequest.getResultOpt());
         String requestString = JsonUtil.writeValueAsString(request);
 
         String url = baseUrl + "/shardable_query_worker/execution";

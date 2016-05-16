@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.rest.sequencesql.DiskResultCache;
+import io.kyligence.kap.rest.sequencesql.ResultOpt;
 import io.kyligence.kap.rest.sequencesql.SequenceNodeOutput;
 import io.kyligence.kap.rest.sequencesql.SequenceOpt;
 
@@ -45,32 +46,60 @@ public class SequenceTopology {
         this.sequenceID = sequenceID;
     }
 
-    //node opt with the remaining output of current sequence
-    public SequenceSQLNode appendSQLNode(String sql, SequenceOpt optWithCurrentSequenceResult) {
+    // return stepID
+    public int addStep(String sql, SequenceOpt sequenceOpt, ResultOpt resultOpt) {
         SequenceNode lowest = findLowestChild();
         if (lowest == null) {
-            if (optWithCurrentSequenceResult != SequenceOpt.INIT) {
-                throw new IllegalStateException("Current topology has no nodes, meeting invalid opt:" + optWithCurrentSequenceResult);
+            if (sequenceOpt != SequenceOpt.INIT) {
+                throw new IllegalStateException("Current topology has no nodes, meeting invalid opt:" + sequenceOpt);
             }
             SequenceSQLNode sequenceSQLNode = new SequenceSQLNode(sql, sqlNodeCount++);
             first = sequenceSQLNode;
-            return sequenceSQLNode;
+            return getStepIDFromSqlID(sequenceSQLNode.sqlID);
         } else {
-            if (optWithCurrentSequenceResult == SequenceOpt.INIT) {
+            if (sequenceOpt == SequenceOpt.INIT) {
                 throw new IllegalStateException("SequenceOpt.INIT is only allowed for the first sql in the sequence");
             }
             SequenceSQLNode newSQLNode = new SequenceSQLNode(sql, sqlNodeCount++);
-            SequenceOptNode newOptNode = new SequenceOptNode(Lists.newArrayList(lowest, newSQLNode), optWithCurrentSequenceResult, optNodeCount++);
+            SequenceOptNode newOptNode = new SequenceOptNode(Lists.newArrayList(lowest, newSQLNode), resultOpt, optNodeCount++);
             lowest.child = newOptNode;
             newSQLNode.child = newOptNode;
-            return newSQLNode;
+            return getStepIDFromSqlID(newSQLNode.sqlID);
         }
     }
 
-    public int updateSQLNodeResult(int sqlID, String sql, SQLResponse sqlResponse) {
-        SequenceSQLNode updating = findSQLNode(sqlID);
+    public int updateStep(int stepID, String sql, SequenceOpt sequenceOpt, ResultOpt resultOpt) {
+        if (sequenceOpt != SequenceOpt.UPDATE) {
+            throw new IllegalStateException();
+        }
 
-        updating.sql = sql;
+        SequenceSQLNode sqlNode = findSQLNode(getSqlIDFromStepID(stepID));
+        if (sql != null) {
+            sqlNode.setSql(sql);
+        }
+
+        SequenceOptNode optNode = (SequenceOptNode) sqlNode.child;
+        if (resultOpt != null) {
+            optNode.setOpt(resultOpt);
+        }
+        return getStepIDFromSqlID(sqlNode.getSqlID());
+    }
+
+    public int getSqlIDFromStepID(int stepID) {
+        return stepID;
+    }
+
+    public int getStepIDFromSqlID(int sqlID) {
+        return sqlID;
+    }
+
+    public int getOptIDFromStepID(int stepID) {
+        return stepID - 1;
+    }
+
+    public int updateSQLNodeResult(int stepID, SQLResponse sqlResponse) {
+        SequenceSQLNode updating = findSQLNode(getSqlIDFromStepID(stepID));
+
         SequenceNodeOutput currentResult = new SequenceNodeOutput(sqlResponse);
         diskResultCache.cacheEntry(getStoreKey(updating), currentResult.getCachedBytes());
 
@@ -95,18 +124,16 @@ public class SequenceTopology {
             optinalRightParentInput = loadSequenceNodeOutput(getStoreKey(updating.parents.get(1)));
         }
 
-        SequenceOpt opt = updating.opt;
+        ResultOpt opt = updating.opt;
         SequenceNodeOutput currentResult;
 
-        if (opt == SequenceOpt.INIT || opt == SequenceOpt.UPDATE) {
-            throw new IllegalStateException("invalid opt for OPTNode: " + opt);
-        } else if (opt == SequenceOpt.INTERSECT) {
+        if (opt == ResultOpt.INTERSECT) {
             currentResult = SequenceNodeOutput.intersect(optinalLeftParentInput, optinalRightParentInput);
-        } else if (opt == SequenceOpt.UNION) {
+        } else if (opt == ResultOpt.UNION) {
             currentResult = SequenceNodeOutput.union(optinalLeftParentInput, optinalRightParentInput);
-        } else if (opt == SequenceOpt.BACKWARD_EXCEPT) {
+        } else if (opt == ResultOpt.BACKWARD_EXCEPT) {
             currentResult = SequenceNodeOutput.except(optinalLeftParentInput, optinalRightParentInput);
-        } else if (opt == SequenceOpt.FORWARD_EXCEPT) {
+        } else if (opt == ResultOpt.FORWARD_EXCEPT) {
             currentResult = SequenceNodeOutput.except(optinalRightParentInput, optinalLeftParentInput);
         } else {
             throw new RuntimeException("Unknown OPT:" + opt);
@@ -125,7 +152,7 @@ public class SequenceTopology {
 
     }
 
-    private SequenceSQLNode findSQLNode(int sqlID) {
+    public SequenceSQLNode findSQLNode(int sqlID) {
         if (sqlID < 0 || sqlID >= sqlNodeCount) {
             throw new IllegalArgumentException("sqlID " + sqlID + " is invalid");
         }
@@ -140,7 +167,7 @@ public class SequenceTopology {
         return (SequenceSQLNode) (((SequenceOptNode) temp).parents.get(1));
     }
 
-    private SequenceOptNode findOptNode(int optID) {
+    public SequenceOptNode findOptNode(int optID) {
         SequenceNode current = first;
         for (int i = 0; i <= optID; i++) {
             current = current.child;

@@ -20,25 +20,28 @@ package io.kyligence.kap.rest.sequencesql.topology;
 
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.rest.sequencesql.DiskResultCache;
 import org.apache.kylin.common.util.Pair;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
+import io.kyligence.kap.rest.sequencesql.DiskResultCache;
 
 public class SequenceTopologyManager {
 
     private Cache<Pair<Long, Integer>, SequenceTopology> cache;
     private final DiskResultCache diskResultCache;
+    private final long expire;
 
-    public SequenceTopologyManager(DiskResultCache diskResultCache) {
+    public SequenceTopologyManager(DiskResultCache diskResultCache, long expire) {
+
+        this.expire = expire;
         this.diskResultCache = diskResultCache;
-        cache = CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.DAYS).removalListener(new RemovalListener<Pair<Long, Integer>, Object>() {
+        cache = CacheBuilder.newBuilder().expireAfterAccess(this.expire, TimeUnit.MILLISECONDS).removalListener(new RemovalListener<Pair<Long, Integer>, Object>() {
             @Override
             public void onRemoval(RemovalNotification<Pair<Long, Integer>, Object> notification) {
-                SequenceTopologyManager.this.diskResultCache.cleanEntried(notification.getKey().getFirst() + "_" + notification.getKey().getSecond());
+                SequenceTopologyManager.this.diskResultCache.cleanEntries(notification.getKey().getFirst() + "_" + notification.getKey().getSecond());
             }
         }).build();
     }
@@ -50,4 +53,10 @@ public class SequenceTopologyManager {
     public void addTopology(long sequenceID, int workerID) {
         cache.put(Pair.newPair(sequenceID, workerID), new SequenceTopology(workerID, diskResultCache, sequenceID));
     }
+
+    //test use
+    public void cleanup() {
+        this.cache.cleanUp();
+    }
+
 }

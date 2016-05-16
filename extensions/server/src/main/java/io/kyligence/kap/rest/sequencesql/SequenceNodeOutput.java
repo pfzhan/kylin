@@ -46,11 +46,7 @@ public class SequenceNodeOutput implements Serializable {
         longSet = Sets.newHashSet();
         long temp;
 
-        logger.info("total rows: {}", results.size());
         for (int i = 0; i < results.size(); i++) {
-            if (i % 10000 == 100) {
-                logger.info("Dealing with row {}", i);
-            }
             List<String> row = results.get(i);
             if (row.size() != 1) {
                 throw new RuntimeException("Only support one integer column per row for sequence SQL");
