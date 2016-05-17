@@ -28,10 +28,11 @@ import java.util.concurrent.Future;
 import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.util.LoggableCachedThreadPool;
-import org.apache.kylin.common.util.NumberIterators;
+import org.apache.kylin.common.util.ValueIterators;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.controller.BasicController;
@@ -166,8 +167,7 @@ public class SequenceSQLController extends BasicController {
             }
 
             SequenceSQLResponse finalResponse = new SequenceSQLResponse();
-            int sum = (int) NumberIterators.sum(Iterators.transform(shardResults.iterator(), new Function<SequenceSQLResponse, Integer>() {
-
+            int sum = (int) ValueIterators.sum(Iterators.transform(shardResults.iterator(), new Function<SequenceSQLResponse, Integer>() {
                 @Nullable
                 @Override
                 public Integer apply(@Nullable SequenceSQLResponse input) {
@@ -176,8 +176,7 @@ public class SequenceSQLController extends BasicController {
 
             }));
 
-            int sqlID = (int) NumberIterators.checkSame(Iterators.transform(shardResults.iterator(), new Function<SequenceSQLResponse, Integer>() {
-
+            int sqlID = ValueIterators.checkSame(Iterators.transform(shardResults.iterator(), new Function<SequenceSQLResponse, Integer>() {
                 @Nullable
                 @Override
                 public Integer apply(@Nullable SequenceSQLResponse input) {
@@ -186,9 +185,19 @@ public class SequenceSQLController extends BasicController {
 
             }));
 
+            String cube = ValueIterators.checkSame(Iterators.transform(shardResults.iterator(), new Function<SequenceSQLResponse, String>() {
+                @Nullable
+                @Override
+                public String apply(@Nullable SequenceSQLResponse input) {
+                    return input.getCube();
+                }
+
+            }));
+
             finalResponse.setResultCount(sum);
             finalResponse.setSequenceID(sqlRequest.getSequenceID());
             finalResponse.setStepID(sqlID);
+            finalResponse.setCube(cube);
             finalResponse.setDuration(System.currentTimeMillis() - startTime);
             return finalResponse;
         } catch (Exception e) {
@@ -210,45 +219,50 @@ public class SequenceSQLController extends BasicController {
             shardedSequenceSQLRequest.getBackdoorToggles().put(BackdoorToggles.DEBUG_TOGGLE_SHARD_ASSIGNMENT, shardedSequenceSQLRequest.getWorkerCount() + "#" + shardedSequenceSQLRequest.getWorkerID());
             BackdoorToggles.setToggles(shardedSequenceSQLRequest.getBackdoorToggles());
 
-            String sql = shardedSequenceSQLRequest.getSql();
-            String project = shardedSequenceSQLRequest.getProject();
-            logger.info("Using project: " + project);
-            logger.info("The original query:  " + sql);
-
-            String serverMode = KylinConfig.getInstanceFromEnv().getServerMode();
-            if (!(Constant.SERVER_MODE_QUERY.equals(serverMode.toLowerCase()) || Constant.SERVER_MODE_ALL.equals(serverMode.toLowerCase()))) {
-                throw new InternalErrorException("Query is not allowed in " + serverMode + " mode.");
-            }
-
-            if (!sql.toLowerCase().contains("select")) {
-                logger.debug("Directly return exception as not supported");
-                throw new InternalErrorException("Not Supported SQL.");
-            }
-
-            long startTime = System.currentTimeMillis();
-
             SQLResponse sqlResponse = null;
-            try {
-                sqlResponse = queryService.query(shardedSequenceSQLRequest);
+            String sql = shardedSequenceSQLRequest.getSql();
 
-                sqlResponse.setDuration(System.currentTimeMillis() - startTime);
-                logger.info("Stats of SQL response: isException: {}, duration: {}, total scan count {}", //
-                        new String[] { String.valueOf(sqlResponse.getIsException()), String.valueOf(sqlResponse.getDuration()), String.valueOf(sqlResponse.getTotalScanCount()) });
+            if (!StringUtils.isEmpty(sql)) {
+                String project = shardedSequenceSQLRequest.getProject();
+                logger.info("Using project: " + project);
+                logger.info("The original query:  " + sql);
 
-                //TODO: auth
-                //checkQueryAuth(sqlResponse);
+                String serverMode = KylinConfig.getInstanceFromEnv().getServerMode();
+                if (!(Constant.SERVER_MODE_QUERY.equals(serverMode.toLowerCase()) || Constant.SERVER_MODE_ALL.equals(serverMode.toLowerCase()))) {
+                    throw new InternalErrorException("Query is not allowed in " + serverMode + " mode.");
+                }
 
-            } catch (Throwable e) { // calcite may throw AssertError
-                logger.error("Exception when execute sql", e);
-                String errMsg = QueryUtil.makeErrorMsgUserFriendly(e);
+                if (!sql.toLowerCase().contains("select")) {
+                    logger.debug("Directly return exception as not supported");
+                    throw new InternalErrorException("Not Supported SQL.");
+                }
 
-                sqlResponse = new SQLResponse(null, null, 0, true, errMsg);
+                long startTime = System.currentTimeMillis();
+
+                try {
+                    sqlResponse = queryService.query(shardedSequenceSQLRequest);
+
+                    sqlResponse.setDuration(System.currentTimeMillis() - startTime);
+                    logger.info("Stats of SQL response: isException: {}, duration: {}, total scan count {}", //
+                            new String[] { String.valueOf(sqlResponse.getIsException()), String.valueOf(sqlResponse.getDuration()), String.valueOf(sqlResponse.getTotalScanCount()) });
+
+                    //TODO: auth
+                    //checkQueryAuth(sqlResponse);
+
+                } catch (Throwable e) { // calcite may throw AssertError
+                    logger.error("Exception when execute sql", e);
+                    String errMsg = QueryUtil.makeErrorMsgUserFriendly(e);
+
+                    sqlResponse = new SQLResponse(null, null, 0, true, errMsg);
+                }
+
+                queryService.logQuery(shardedSequenceSQLRequest, sqlResponse);
+
+                if (sqlResponse.getIsException())
+                    throw new InternalErrorException(sqlResponse.getExceptionMessage());
+            } else {
+                logger.info("Updating the resultOpt only");
             }
-
-            queryService.logQuery(shardedSequenceSQLRequest, sqlResponse);
-
-            if (sqlResponse.getIsException())
-                throw new InternalErrorException(sqlResponse.getExceptionMessage());
 
             SequenceTopology topology = topologyManager.getTopology(shardedSequenceSQLRequest.getSequenceID(), shardedSequenceSQLRequest.getWorkerID());
 
@@ -266,6 +280,9 @@ public class SequenceSQLController extends BasicController {
             int resultSize = topology.updateSQLNodeResult(stepID, sqlResponse);
 
             SequenceSQLResponse ret = new SequenceSQLResponse();
+            if (sqlResponse != null) {
+                ret.setCube(sqlResponse.getCube());
+            }
             ret.setResultCount(resultSize);
             ret.setSequenceID(shardedSequenceSQLRequest.getSequenceID());
             ret.setStepID(stepID);

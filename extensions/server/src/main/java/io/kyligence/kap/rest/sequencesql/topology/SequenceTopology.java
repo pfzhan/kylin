@@ -93,15 +93,15 @@ public class SequenceTopology {
         return sqlID;
     }
 
-    public int getOptIDFromStepID(int stepID) {
-        return stepID - 1;
-    }
-
-    public int updateSQLNodeResult(int stepID, SQLResponse sqlResponse) {
+   public int updateSQLNodeResult(int stepID, SQLResponse sqlResponse) {
         SequenceSQLNode updating = findSQLNode(getSqlIDFromStepID(stepID));
-
-        SequenceNodeOutput currentResult = new SequenceNodeOutput(sqlResponse);
-        diskResultCache.cacheEntry(getStoreKey(updating), currentResult.getCachedBytes());
+        SequenceNodeOutput currentResult = null;
+        if (sqlResponse != null) {
+            currentResult = new SequenceNodeOutput(sqlResponse);
+            diskResultCache.cacheEntry(getStoreKey(updating), currentResult.getCachedBytes());
+        } else {
+            currentResult = SequenceNodeOutput.getInstanceFromCachedBytes(diskResultCache.getEntry(getStoreKey(updating)));
+        }
 
         if (updating.child != null) {
             if (updating == first) {
