@@ -20,7 +20,14 @@
   <ng-form name="forms.cube_setting_form">
     <div>
       <div class="form-group">
-        <h4 style="margin-left:42px">Aggregation Groups</h4>
+        <h3 style="margin-left:42px;">Aggregation Groups </h3>
+        <div style="margin-left:22px;">
+          <div class="box-body">
+            <div class="col-xs-12">
+              Visit <a href="http://kylin.apache.org/blog/2016/02/18/new-aggregation-group" target="_blank">aggregation group</a> for more about aggregation group.
+            </div>
+          </div>
+        </div>
         <table style="margin-left:42px; width:92%"
                ng-if="cubeMetaFrame.aggregation_groups.length > 0"
                class="table table-hover list">
@@ -197,8 +204,8 @@
       </div>
 
 
-      <div class="form-group">
-        <h4 style="margin-left:42px">Rowkeys</h4>
+      <div class="form-group large-popover">
+        <h3 style="margin-left:42px">Rowkeys  <i kylinpopover placement="right" title="Rowkey" template="rowkeyTip.html" class="fa fa-info-circle"></i></h3>
         <table style="margin-left:42px; width:92%"
                ng-if="cubeMetaFrame.rowkey.rowkey_columns.length > 0"
                class="table table-hover table-bordered list"
@@ -284,12 +291,26 @@
 
     </div>
 
-    <div class="box box-solid" style="margin-left:22px;">
-      <div class="box-body">
-        <div class="col-xs-12">
-          Visit <a href="http://kylin.apache.org/blog/2016/02/18/new-aggregation-group" target="_blank">aggregation group</a> for more about aggregation group.
-        </div>
-      </div>
-    </div>
   </ng-form>
 </div>
+<script type="text/ng-template" id="rowkeyTip.html">
+<div>
+  <h4>Shard By this column?</h4>
+  <p>
+    If specified as "true", cube data will be sharded according to its value.
+  </p>
+
+  <h4>RowKey Encoding</h4>
+  <ol>
+    <li>
+      "dict" encoding will try to build a dictionary for the dimension
+    </li>
+    <li>
+      "fixed_length" encoding will encode the dimension vlaues by fixed length bytes with padding
+    </li>
+    <li>
+      "int" encoding uses variable integer to encode integers
+    </li>
+  </ol>
+</div>
+</script>

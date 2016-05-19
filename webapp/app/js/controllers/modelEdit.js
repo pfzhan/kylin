@@ -79,6 +79,9 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
         project:$scope.projectModel.selectedProject
     };
 
+    $scope.partitionColumn ={
+      "hasSeparateTimeColumn" : false
+    }
     // ~ init
     if ($scope.isEdit = !!$routeParams.modelName) {
 
@@ -86,6 +89,9 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
         ModelDescService.query({model_name: modelName}, function (model) {
                     if (model) {
                         modelsManager.selectedModel = model;
+                        if($scope.modelsManager.selectedModel.partition_desc.partition_time_column){
+                          $scope.partitionColumn.hasSeparateTimeColumn = true;
+                        }
                         modelsManager.selectedModel.project = ProjectModel.getProjectByCubeModel(modelName);
 
                         if(!ProjectModel.getSelectedProject()){
@@ -102,6 +108,11 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
         modelsManager.selectedModel.project = ProjectModel.getSelectedProject();
     }
 
+  $scope.toggleHasSeparateColumn = function(hasSeparateTimeColumn){
+    if(!hasSeparateTimeColumn){
+      $scope.modelsManager.selectedModel.partition_desc.partition_time_column = null;
+    }
+  }
 
     $scope.prepareModel = function () {
         // generate column family
