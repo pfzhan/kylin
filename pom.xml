@@ -34,6 +34,7 @@
         <hive.version>0.14.0</hive.version>
         <hive-hcatalog.version>0.14.0</hive-hcatalog.version>
         <hbase-hadoop2.version>0.98.4-hadoop2</hbase-hadoop2.version>
+        <parquet.version>1.8.1</parquet.version>
         <kafka.version>0.8.1</kafka.version>
 
         <!-- Dependency versions -->
@@ -541,6 +542,7 @@
         <module>extensions/query</module>
         <module>extensions/engine-mr</module>
         <module>extensions/storage-hbase</module>
+        <module>extensions/storage-parquet</module>
         <module>extensions/server</module>
         <module>extensions/assembly</module>
         <module>extensions/it</module>

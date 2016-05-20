@@ -19,18 +19,19 @@
 package io.kyligence.kap.engine.mr;
 
 import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.engine.mr.MRBatchCubingEngine2;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 
-public class MRBatchCubingEngine2 extends org.apache.kylin.engine.mr.MRBatchCubingEngine2 {
+public class KapMRBatchCubingEngine extends MRBatchCubingEngine2 {
 
     @Override
     public DefaultChainedExecutable createBatchCubingJob(CubeSegment newSegment, String submitter) {
-        return new BatchCubingJobBuilder2(newSegment, submitter).build();
+        return new KapBatchCubingJobBuilder(newSegment, submitter).build();
     }
 
     @Override
     public DefaultChainedExecutable createBatchMergeJob(CubeSegment mergeSegment, String submitter) {
-        return new BatchMergeJobBuilder2(mergeSegment, submitter).build();
+        return new KapBatchMergeJobBuilder(mergeSegment, submitter).build();
     }
 
 }

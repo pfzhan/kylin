@@ -29,6 +29,11 @@
             <artifactId>kap-core-cube</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.parquet</groupId>
+            <artifactId>parquet-hadoop-bundle</artifactId>
+            <version>${parquet.version}</version>
+        </dependency>
         <!-- Env & Test -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>

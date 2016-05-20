@@ -19,28 +19,17 @@
 package io.kyligence.kap.engine.mr;
 
 import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.engine.mr.CubingJob;
+import org.apache.kylin.engine.mr.BatchCubingJobBuilder2;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.common.MapReduceExecutable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class BatchCubingJobBuilder2 extends org.apache.kylin.engine.mr.BatchCubingJobBuilder2 {
-    private static final Logger logger = LoggerFactory.getLogger(BatchCubingJobBuilder2.class);
+public class KapBatchCubingJobBuilder extends BatchCubingJobBuilder2 {
 
-    public BatchCubingJobBuilder2(CubeSegment newSegment, String submitter) {
+    public KapBatchCubingJobBuilder(CubeSegment newSegment, String submitter) {
         super(newSegment, submitter);
     }
 
-    @Override
-    protected void addOtherStepBeforeCubing(CubingJob result) {
-
-        if (((CubeSegment) seg).getCubeDesc().getRowkey().getColumnsNeedIndex().length > 0) {
-            MapReduceExecutable task = createBuildSecondaryIndexStep(result.getId());
-            result.addTask(task);
-        }
-    }
-
+    @SuppressWarnings("unused")
     private MapReduceExecutable createBuildSecondaryIndexStep(String jobId) {
         MapReduceExecutable result = new MapReduceExecutable();
         result.setName("Build Secondary Index");
