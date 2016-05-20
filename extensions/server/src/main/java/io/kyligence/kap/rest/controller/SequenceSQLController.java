@@ -28,11 +28,11 @@ import java.util.concurrent.Future;
 import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
 
+import io.kyligence.kap.common.util.ValueIterators;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.util.LoggableCachedThreadPool;
-import org.apache.kylin.common.util.ValueIterators;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.controller.BasicController;
@@ -70,6 +70,8 @@ import io.kyligence.kap.rest.sequencesql.topology.SequenceTopologyManager;
 
 @Controller
 public class SequenceSQLController extends BasicController {
+    
+    
 
     private static final Logger logger = LoggerFactory.getLogger(SequenceSQLController.class);
 
@@ -185,6 +187,7 @@ public class SequenceSQLController extends BasicController {
 
             }));
 
+            //TODO: use this
             String cube = ValueIterators.checkSame(Iterators.transform(shardResults.iterator(), new Function<SequenceSQLResponse, String>() {
                 @Nullable
                 @Override
@@ -197,7 +200,7 @@ public class SequenceSQLController extends BasicController {
             finalResponse.setResultCount(sum);
             finalResponse.setSequenceID(sqlRequest.getSequenceID());
             finalResponse.setStepID(sqlID);
-            finalResponse.setCube(cube);
+            //finalResponse.setCube(cube);
             finalResponse.setDuration(System.currentTimeMillis() - startTime);
             return finalResponse;
         } catch (Exception e) {
@@ -281,7 +284,7 @@ public class SequenceSQLController extends BasicController {
 
             SequenceSQLResponse ret = new SequenceSQLResponse();
             if (sqlResponse != null) {
-                ret.setCube(sqlResponse.getCube());
+                //ret.setCube(sqlResponse.getCube());
             }
             ret.setResultCount(resultSize);
             ret.setSequenceID(shardedSequenceSQLRequest.getSequenceID());
