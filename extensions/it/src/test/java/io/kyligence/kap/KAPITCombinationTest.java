@@ -91,8 +91,5 @@ public class KAPITCombinationTest extends KAPITKylinQueryTest {
         if ("v1".equalsIgnoreCase(queryEngine)) {
             HBaseStorage.overwriteStorageQuery = HBaseStorage.v1CubeStorageQuery;
         }
-
-        ITDirHeader = "../../kylin/kylin-it/";
-        config.setQueryStorageVisitPlanner("io.kyligence.kap.cube.gridtable.AdvGTScanRangePlanner");
     }
 }

@@ -6,16 +6,31 @@ import java.util.BitSet;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.ImmutableBitSet;
+import org.apache.kylin.common.util.LocalFileMetadataTestCase;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTRecord;
 import org.apache.kylin.gridtable.GTSampleCodeSystem;
+import org.apache.kylin.measure.topn.TopNCounterSerializer;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.datatype.LongMutable;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-public class GTScanRangesTest {
-    final static GTInfo INFO = info();
+public class GTScanRangesTest extends LocalFileMetadataTestCase {
+    static GTInfo INFO;
+
+    @BeforeClass
+    public static void setUp() throws Exception {
+        staticCreateTestMetadata();
+        INFO = info();
+    }
+
+    @AfterClass
+    public static void after() throws Exception {
+        staticCleanupTestMetadata();
+    }
 
     private static final GTInfo info() {
         GTInfo.Builder builder = GTInfo.builder();

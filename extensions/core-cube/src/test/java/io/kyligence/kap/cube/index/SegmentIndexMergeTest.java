@@ -33,7 +33,7 @@ public class SegmentIndexMergeTest extends LocalFileMetadataTestCase {
 
     @After
     public void after() throws Exception {
-        cleanupTestMetadata();
+        cleanAfterClass();
     }
 
     private CubeManager mgr() {

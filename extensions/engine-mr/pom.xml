@@ -34,6 +34,12 @@
             <artifactId>parquet-hadoop-bundle</artifactId>
             <version>${parquet.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-core-metadata</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
         <!-- Env & Test -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>

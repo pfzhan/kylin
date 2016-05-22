@@ -36,7 +36,7 @@ public class GTColumnForwardIndexTest extends LocalFileMetadataTestCase {
 
     @After
     public void after() throws Exception {
-        cleanupTestMetadata();
+        cleanAfterClass();
     }
 
     private CubeManager mgr() {

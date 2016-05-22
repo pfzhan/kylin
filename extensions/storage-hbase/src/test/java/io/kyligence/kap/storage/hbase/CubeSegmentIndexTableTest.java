@@ -45,7 +45,7 @@ public class CubeSegmentIndexTableTest extends LocalFileMetadataTestCase {
 
     @After
     public void after() throws Exception {
-        cleanupTestMetadata();
+        cleanAfterClass();
 
         FileUtils.forceDelete(localIdxFolder);
     }

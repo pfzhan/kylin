@@ -58,7 +58,7 @@ public class IndexGTScanRangePlannerTest extends LocalFileMetadataTestCase {
 
     @After
     public void after() throws Exception {
-        cleanupTestMetadata();
+        cleanAfterClass();
     }
 
     @Test

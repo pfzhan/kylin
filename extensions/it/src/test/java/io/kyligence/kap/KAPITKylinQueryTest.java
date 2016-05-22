@@ -20,7 +20,9 @@
 
 package io.kyligence.kap;
 
-import static org.junit.Assert.assertTrue;
+import io.kyligence.kap.measure.percentile.PercentileMeasureType;
+
+import static org.junit.Assert.*;
 
 import java.io.File;
 import java.sql.DriverManager;
@@ -49,9 +51,8 @@ import org.junit.Test;
 
 import com.google.common.collect.Maps;
 
-@Ignore("KylinQueryTest is contained by ITCombinationTest")
+@Ignore("KAPITKylinQueryTest is contained by KAPITCombinationTest")
 public class KAPITKylinQueryTest extends KylinTestBase {
-
 
     @BeforeClass
     public static void setUp() throws Exception {
@@ -65,8 +66,6 @@ public class KAPITKylinQueryTest extends KylinTestBase {
         joinType = "inner";
 
         setupAll();
-        config.setQueryStorageVisitPlanner("io.kyligence.kap.cube.gridtable.AdvGTScanRangePlanner");
-        ITDirHeader = "../../kylin/kylin-it/";
     }
 
     @AfterClass
@@ -103,7 +102,6 @@ public class KAPITKylinQueryTest extends KylinTestBase {
 
         ObserverEnabler.forceCoprocessorUnset();
         HBaseMetadataTestCase.staticCleanupTestMetadata();
-
     }
 
     @Ignore("this is only for debug")
@@ -112,6 +110,7 @@ public class KAPITKylinQueryTest extends KylinTestBase {
         execAndCompQuery(ITDirHeader + "src/test/resources/query/temp", null, true);
     }
 
+    @Ignore("this is only for debug")
     @Test
     public void testSingleRunQuery() throws Exception {
 
@@ -124,6 +123,7 @@ public class KAPITKylinQueryTest extends KylinTestBase {
         }
     }
 
+    @Ignore("this is only for debug")
     @Test
     public void testSingleExecuteQuery() throws Exception {
 
@@ -136,144 +136,14 @@ public class KAPITKylinQueryTest extends KylinTestBase {
         executeQuery(kylinConn, queryFileName, sql, true);
     }
 
-    @Ignore
     @Test
-    public void testTableauProbing() throws Exception {
-        batchExecuteQuery(ITDirHeader + "src/test/resources/query/tableau_probing");
+    public void testPercentileQuery() throws Exception {
+        batchExecuteQuery(ITDirHeader + "src/test/resources/query/percentile");
     }
 
-    @Test
-    public void testCommonQuery() throws Exception {
-        execAndCompQuery(ITDirHeader + "src/test/resources/query/sql", null, true);
-    }
-
-    @Test
-    public void testVerifyQuery() throws Exception {
-        verifyResultRowCount(ITDirHeader + "src/test/resources/query/sql_verifyCount");
-    }
-
-    @Test
-    public void testOrderByQuery() throws Exception {
-        execAndCompQuery(ITDirHeader + "src/test/resources/query/sql_orderby", null, true);
-        // FIXME
-        // as of optiq 0.8, we lost metadata type with "order by" clause, e.g. sql_orderby/query01.sql
-        // thus, temporarily the "order by" clause was cross out, and the needSort is set to true
-        // execAndCompQuery("src/test/resources/query/sql_orderby", null, false);
-    }
-
-    @Test
-    public void testLookupQuery() throws Exception {
-        execAndCompQuery(ITDirHeader + "src/test/resources/query/sql_lookup", null, true);
-    }
-
-    @Test
-    public void testCachedQuery() throws Exception {
-        execAndCompQuery(ITDirHeader + "src/test/resources/query/sql_cache", null, true);
-    }
-
-    @Test
-    public void testDerivedColumnQuery() throws Exception {
-        execAndCompQuery(ITDirHeader + "src/test/resources/query/sql_derived", null, true);
-    }
-
-    @Test
-    public void testDistinctCountQuery() throws Exception {
-        if ("left".equalsIgnoreCase(joinType)) {
-            batchExecuteQuery(ITDirHeader + "src/test/resources/query/sql_distinct");
-        }
-    }
-
-    @Test
-    public void testPreciselyDistinctCountQuery() throws Exception {
-        if ("left".equalsIgnoreCase(joinType)) {
-            execAndCompQuery(ITDirHeader + "src/test/resources/query/sql_distinct_precisely", null, true);
-        }
-    }
-
-    @Test
-    public void testStreamingTableQuery() throws Exception {
-        execAndCompQuery(ITDirHeader + "src/test/resources/query/sql_streaming", null, true);
-    }
-
-    @Test
-    public void testTableauQuery() throws Exception {
-        execAndCompResultSize(ITDirHeader + "src/test/resources/query/sql_tableau", null, true);
-    }
-
-    @Test
-    public void testSubQuery() throws Exception {
-        execAndCompQuery(ITDirHeader + "src/test/resources/query/sql_subquery", null, true);
-    }
-
-    @Test
-    public void testCaseWhen() throws Exception {
-        execAndCompQuery(ITDirHeader + "src/test/resources/query/sql_casewhen", null, true);
-    }
-
-    @Ignore
-    @Test
-    public void testHiveQuery() throws Exception {
-        execAndCompQuery(ITDirHeader + "src/test/resources/query/sql_hive", null, true);
-    }
-
+    @Ignore("this is only for test")
     @Test
     public void testH2Query() throws Exception {
-        this.execQueryUsingH2(ITDirHeader + "src/test/resources/query/sql_orderby", false);
+        execQueryUsingH2(ITDirHeader + "src/test/resources/query/percentile", false);
     }
-
-    @Test
-    public void testInvalidQuery() throws Exception {
-
-        printInfo("-------------------- Test Invalid Query --------------------");
-        String queryFolder = ITDirHeader + "src/test/resources/query/sql_invalid";
-        List<File> sqlFiles = getFilesFromFolder(new File(queryFolder), ".sql");
-        for (File sqlFile : sqlFiles) {
-            String queryName = StringUtils.split(sqlFile.getName(), '.')[0];
-            printInfo("Testing Query " + queryName);
-            String sql = getTextFromFile(sqlFile);
-            IDatabaseConnection cubeConn = new DatabaseConnection(cubeConnection);
-            try {
-                cubeConn.createQueryTable(queryName, sql);
-            } catch (Throwable t) {
-                continue;
-            } finally {
-                cubeConn.close();
-            }
-            throw new IllegalStateException(queryName + " should be error!");
-        }
-    }
-
-    @Test
-    public void testDynamicQuery() throws Exception {
-        execAndCompDynamicQuery(ITDirHeader + "src/test/resources/query/sql_dynamic", null, true);
-    }
-
-    @Ignore("simple query will be supported by ii")
-    @Test
-    public void testLimitEnabled() throws Exception {
-        runSqlFile(ITDirHeader + "src/test/resources/query/sql_optimize/enable-limit01.sql");
-        assertLimitWasEnabled();
-    }
-
-    @Test
-    public void testTopNQuery() throws Exception {
-        if ("left".equalsIgnoreCase(joinType)) {
-            this.execAndCompQuery(ITDirHeader + "src/test/resources/query/sql_topn", null, true);
-        }
-    }
-
-    @Test
-    public void testRawQuery() throws Exception {
-        this.execAndCompQuery(ITDirHeader + "src/test/resources/query/sql_raw", null, true);
-    }
-
-    private void assertLimitWasEnabled() {
-        OLAPContext context = getFirstOLAPContext();
-        assertTrue(context.storageContext.isLimitEnabled());
-    }
-
-    private OLAPContext getFirstOLAPContext() {
-        return OLAPContext.getThreadLocalContexts().iterator().next();
-    }
-
 }
