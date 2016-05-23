@@ -19,10 +19,12 @@
 package io.kyligence.kap.engine.mr;
 
 import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.engine.mr.MRBatchCubingEngine2;
+import org.apache.kylin.engine.IBatchCubingEngine;
+import org.apache.kylin.engine.mr.IMRInput;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 
-public class KapMRBatchCubingEngine extends MRBatchCubingEngine2 {
+
+public class KapMRBatchCubingEngine implements IBatchCubingEngine {
 
     @Override
     public DefaultChainedExecutable createBatchCubingJob(CubeSegment newSegment, String submitter) {
@@ -32,6 +34,16 @@ public class KapMRBatchCubingEngine extends MRBatchCubingEngine2 {
     @Override
     public DefaultChainedExecutable createBatchMergeJob(CubeSegment mergeSegment, String submitter) {
         return new KapBatchMergeJobBuilder(mergeSegment, submitter).build();
+    }
+
+    @Override
+    public Class<?> getSourceInterface() {
+        return IMRInput.class;
+    }
+
+    @Override
+    public Class<?> getStorageInterface() {
+        return IMROutput3.class;
     }
 
 }
