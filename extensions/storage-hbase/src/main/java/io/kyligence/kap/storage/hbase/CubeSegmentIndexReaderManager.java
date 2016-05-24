@@ -10,7 +10,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.dict.DateStrDictionary;
-import org.apache.kylin.dimension.Dictionary;
+import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
@@ -68,7 +68,7 @@ public class CubeSegmentIndexReaderManager {
     public void reload() throws IOException {
         long startTime = System.currentTimeMillis();
 
-        for (TblColRef tblCol : cubeSegment.getCubeDesc().getAllColumnsNeedDictionary()) {
+        for (TblColRef tblCol : cubeSegment.getCubeDesc().getAllColumnsHaveDictionary()) {
             Dictionary dict = cubeSegment.getDictionary(tblCol);
             if (dict == null)
                 continue;

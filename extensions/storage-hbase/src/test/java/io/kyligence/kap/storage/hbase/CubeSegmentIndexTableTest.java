@@ -3,20 +3,16 @@ package io.kyligence.kap.storage.hbase;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Random;
-
-import junit.framework.Assert;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
+import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.cube.gridtable.CubeGridTable;
-import org.apache.kylin.dict.DateStrDictionary;
-import org.apache.kylin.dimension.Dictionary;
 import org.apache.kylin.metadata.filter.ColumnTupleFilter;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.ConstantTupleFilter;
@@ -24,8 +20,6 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
@@ -34,7 +28,6 @@ import io.kyligence.kap.cube.gridtable.GTScanRanges;
 import io.kyligence.kap.cube.index.ColumnIndexWriter;
 
 public class CubeSegmentIndexTableTest extends LocalFileMetadataTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(CubeSegmentIndexTableTest.class);
 
     CubeInstance cubeInstance;
     CubeSegment cubeSegment;
@@ -111,13 +104,12 @@ public class CubeSegmentIndexTableTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testLookup() throws IOException {
-        List l = cubeInstance.getAllDimensions();
-        for (TblColRef dictCol : cubeSegment.getCubeDesc().getAllColumnsNeedDictionary()) {
+        for (TblColRef dictCol : cubeSegment.getCubeDesc().getAllColumnsHaveDictionary()) {
             buildColumnIndex(dictCol);
         }
 
         TblColRef tblColRef = cubeInstance.getAllDimensions().get(18);
         GTScanRanges ranges = lookupColumn(tblColRef);
-        Assert.assertTrue(ranges.getRangeSet().size() > 0);
+        assert ranges.getRangeSet().size() > 0;
     }
 }
