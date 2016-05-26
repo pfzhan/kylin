@@ -47,9 +47,9 @@ public class HelixClusterAdminTest extends TestBaseWithZookeeper {
     public void setup() throws Exception {
         kylinConfig = this.getTestConfig();
         kylinConfig.setRestAddress("localhost:7070");
-
+        kylinConfig.setClusterName(CLUSTER_NAME);
         zkHelixAdmin = new ZKHelixAdmin(zkAddress);
-        zkHelixAdmin.dropCluster(kylinConfig.getMetadataUrlPrefix());
+        zkHelixAdmin.dropCluster(CLUSTER_NAME);
 
     }
 

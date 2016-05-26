@@ -70,7 +70,7 @@ public class HelixClusterAdmin {
             throw new IllegalArgumentException("no 'kylin.zookeeper.address' set in kylin.properties");
         }
 
-        this.clusterName = kylinConfig.getMetadataUrlPrefix();
+        this.clusterName = kylinConfig.getClusterName();
         this.admin = new ZKHelixAdmin(zkAddress);
     }
 
@@ -80,19 +80,14 @@ public class HelixClusterAdmin {
 
         // use the tag to mark node's role.
         final List<String> instanceTags = Lists.newArrayList();
-        if ("all".equalsIgnoreCase(kylinConfig.getServerMode()) || "job".equalsIgnoreCase(kylinConfig.getServerMode())) {
-            instanceTags.add(HelixClusterAdmin.TAG_JOB_ENGINE);
-        }
+        instanceTags.add(HelixClusterAdmin.TAG_JOB_ENGINE);
 
         addInstance(instanceName, instanceTags);
         startInstance(instanceName);
 
         rebalanceWithTag(RESOURCE_NAME_JOB_ENGINE, TAG_JOB_ENGINE);
 
-        boolean startController = true;
-        if (startController) {
-            startController();
-        }
+        startController();
     }
 
     /**

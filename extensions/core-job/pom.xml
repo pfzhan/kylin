@@ -29,6 +29,11 @@
             <artifactId>kylin-core-job</artifactId>
             <version>${kylin.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-core-metadata</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.helix</groupId>
