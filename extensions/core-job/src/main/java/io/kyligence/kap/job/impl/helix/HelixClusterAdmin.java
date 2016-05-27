@@ -251,6 +251,7 @@ public class HelixClusterAdmin {
                     logger.error(e.getMessage(), e);
                 }
                 Broadcaster.clearCache();
+                KylinConfig.destroyInstance();
             }
         }
     }
