@@ -1,12 +1,11 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>kap-storage-parquet</artifactId>
+    <artifactId>kap-core-job</artifactId>
     <packaging>jar</packaging>
-    <name>KAP:StorageParquet</name>
+    <name>KAP:Core-Job</name>
     <url>http://kyligence.io</url>
-    <description>Kyligence Storage Engine on Parquet</description>
+    <description>Kyligence Core Job</description>
 
     <parent>
         <groupId>io.kyligence.kap</groupId>
@@ -22,21 +21,54 @@
     <dependencies>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-engine-mr</artifactId>
+            <artifactId>kap-core-common</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
-            <artifactId>kylin-core-storage</artifactId>
+            <artifactId>kylin-core-job</artifactId>
             <version>${kylin.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.parquet</groupId>
-            <artifactId>parquet-hadoop-bundle</artifactId>
-            <version>${parquet.version}</version>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-core-metadata</artifactId>
+            <version>${project.parent.version}</version>
         </dependency>
 
-        <!--Test & Env-->
+        <dependency>
+            <groupId>org.apache.helix</groupId>
+            <artifactId>helix-core</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.101tec</groupId>
+                    <artifactId>zkclient</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.github.sgroschupf</groupId>
+                    <artifactId>zkclient</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.101tec</groupId>
+            <artifactId>zkclient</artifactId>
+            <version>0.5</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.zookeeper</groupId>
+            <artifactId>zookeeper</artifactId>
+            <version>${zookeeper.version}</version>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>junit</groupId>
+                    <artifactId>junit</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!--Env & Test-->
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-core-common</artifactId>
@@ -52,27 +84,9 @@
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-common</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-mapreduce-client-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-mapreduce-client-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-mapreduce-client-app</artifactId>
-        </dependency>
     </dependencies>
-
 </project>

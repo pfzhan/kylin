@@ -5,7 +5,7 @@
     <groupId>io.kyligence.kap</groupId>
     <artifactId>kap</artifactId>
     <packaging>pom</packaging>
-    <version>1.5.2-SNAPSHOT</version>
+    <version>1.5.3-SNAPSHOT</version>
 
     <name>KAP:KyligenceAnalyticsPlatform</name>
     <url>http://kyligence.io</url>
@@ -25,7 +25,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <!-- Kylin versions -->
-        <kylin.version>1.5.2-SNAPSHOT</kylin.version>
+        <kylin.version>1.5.3-SNAPSHOT</kylin.version>
 
         <!-- Hadoop versions -->
         <hadoop2.version>2.6.0</hadoop2.version>
@@ -98,6 +98,7 @@
             org/apache/kylin/**/tools/**:**/*CLI.java
         </sonar.jacoco.excludes>
 
+        <helix.version>0.7.1</helix.version>
     </properties>
 
     <dependencyManagement>
@@ -409,7 +410,16 @@
                 <artifactId>RoaringBitmap</artifactId>
                 <version>${roaring.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>org.apache.helix</groupId>
+                <artifactId>helix-core</artifactId>
+                <version>${helix.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.helix</groupId>
+                <artifactId>helix-examples</artifactId>
+                <version>${helix.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -540,6 +550,7 @@
         <module>extensions/core-common</module>
         <module>extensions/core-metadata</module>
         <module>extensions/core-cube</module>
+        <module>extensions/core-job</module>
         <module>extensions/query</module>
         <module>extensions/engine-mr</module>
         <module>extensions/storage-hbase</module>
