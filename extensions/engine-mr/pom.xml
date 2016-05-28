@@ -39,6 +39,12 @@
             <artifactId>kap-core-metadata</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-storage-parquet</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
 
         <!-- Env & Test -->
         <dependency>
