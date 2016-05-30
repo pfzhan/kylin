@@ -1,4 +1,4 @@
-package io.kyligence.kap.storage.parquet.steps;
+package io.kyligence.kap.engine.mr.steps;
 
 import io.kyligence.kap.cube.KapCubeManager;
 import org.apache.commons.cli.Options;
@@ -10,7 +10,6 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
-import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.*;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
@@ -95,7 +94,7 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
             flatTableInputFormat.configureJob(job);
 
             // set mapper
-            job.setMapperClass(InMemCuboidMapper.class);
+            job.setMapperClass(KapInMemCuboidMapper.class);
             job.setMapOutputKeyClass(ByteArrayWritable.class);
             job.setMapOutputValueClass(ByteArrayWritable.class);
 

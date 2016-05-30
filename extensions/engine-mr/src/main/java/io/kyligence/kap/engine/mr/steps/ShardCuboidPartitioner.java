@@ -1,4 +1,4 @@
-package io.kyligence.kap.storage.parquet.steps;
+package io.kyligence.kap.engine.mr.steps;
 
 import java.util.Arrays;
 import org.apache.hadoop.mapreduce.Partitioner;

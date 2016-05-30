@@ -16,7 +16,7 @@
  * limitations under the License.
 */
 
-package io.kyligence.kap.engine.mr;
+package io.kyligence.kap.engine.mr.steps;
 
 import io.kyligence.kap.cube.index.SegmentIndexMerge;
 import org.apache.hadoop.fs.FileStatus;

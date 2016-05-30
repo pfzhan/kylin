@@ -19,7 +19,8 @@
 package io.kyligence.kap.engine.mr;
 
 import io.kyligence.kap.engine.mr.IMROutput3.IMRBatchCubingOutputSide3 ;
-import io.kyligence.kap.storage.parquet.steps.KapInMemCuboidJob;
+import io.kyligence.kap.engine.mr.steps.KapInMemCuboidJob;
+import io.kyligence.kap.engine.mr.steps.SecondaryIndexJob;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.RowKeyDesc;
 import org.apache.kylin.engine.mr.BatchCubingJobBuilder2;
