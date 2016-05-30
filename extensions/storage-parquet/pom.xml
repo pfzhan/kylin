@@ -22,8 +22,13 @@
     <dependencies>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-engine-mr</artifactId>
+            <artifactId>kap-core-cube</artifactId>
             <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-engine-mr</artifactId>
+            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
@@ -60,10 +65,6 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-mapreduce-client-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
