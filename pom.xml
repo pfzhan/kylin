@@ -551,6 +551,7 @@
         <module>extensions/core-metadata</module>
         <module>extensions/core-cube</module>
         <module>extensions/core-job</module>
+        <module>extensions/core-storage</module>
         <module>extensions/query</module>
         <module>extensions/engine-mr</module>
         <module>extensions/storage-hbase</module>
