@@ -1,6 +1,5 @@
 package io.kyligence.kap.engine.mr.steps;
 
-import io.kyligence.kap.cube.KapCubeManager;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -10,6 +9,7 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
+import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.*;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
@@ -66,7 +66,7 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
             String output = getOptionValue(OPTION_OUTPUT_PATH);
 
             KylinConfig config = KylinConfig.getInstanceFromEnv();
-            KapCubeManager cubeMgr = KapCubeManager.getInstance(config);
+            CubeManager cubeMgr = CubeManager.getInstance(config);
             CubeInstance cube = cubeMgr.getCube(cubeName);
             //config = cube.getConfig();
             CubeSegment cubeSeg = cube.getSegment(segmentName, SegmentStatusEnum.NEW);
@@ -94,7 +94,7 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
             flatTableInputFormat.configureJob(job);
 
             // set mapper
-            job.setMapperClass(KapInMemCuboidMapper.class);
+            job.setMapperClass(InMemCuboidMapper.class);
             job.setMapOutputKeyClass(ByteArrayWritable.class);
             job.setMapOutputValueClass(ByteArrayWritable.class);
 

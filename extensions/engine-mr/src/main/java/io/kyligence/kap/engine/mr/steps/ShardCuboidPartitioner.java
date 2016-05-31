@@ -2,8 +2,8 @@ package io.kyligence.kap.engine.mr.steps;
 
 import java.util.Arrays;
 
-import io.kyligence.kap.cube.kv.KapRowConstants;
 import org.apache.hadoop.mapreduce.Partitioner;
+import org.apache.kylin.cube.kv.RowConstants;
 import org.apache.kylin.engine.mr.ByteArrayWritable;
 
 /**
@@ -22,7 +22,7 @@ public class ShardCuboidPartitioner extends Partitioner<ByteArrayWritable, ByteA
     @Override
     public int getPartition(ByteArrayWritable key, ByteArrayWritable value, int numReduceTasks) {
 
-        byte[] partId = Arrays.copyOf(key.array(), KapRowConstants.ROWKEY_FOUR_IDS_LEN);
+        byte[] partId = Arrays.copyOf(key.array(), RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN);
         return hash(partId, numReduceTasks);
     }
 }
