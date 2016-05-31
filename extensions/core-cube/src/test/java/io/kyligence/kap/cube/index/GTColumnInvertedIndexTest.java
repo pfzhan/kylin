@@ -8,11 +8,11 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.common.util.LocalFileMetadataTestCase;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.After;
 import org.junit.Before;
@@ -79,6 +79,50 @@ public class GTColumnInvertedIndexTest extends LocalFileMetadataTestCase {
         GTColumnInvertedIndex.Reader reader = index.getReader();
         for (int v = dict.getMinId(); v < dict.getMaxId(); v++) {
             assertTrue(dataMap.get(v).containsAll(Ints.asList(reader.getRows(v).toArray())));
+        }
+
+        idxFile.delete();
+    }
+
+    @Test
+    public void testBuildAndReadMultiValuePerRow() throws IOException {
+        int indexTotalNum = 10000;
+
+        CubeSegment cubeSegment = cubeInstance.getSegments().get(0);
+        TblColRef tblColRef = cubeInstance.getAllDimensions().get(0);
+        Dictionary<String> dict = cubeSegment.getDictionary(tblColRef);
+        Map<Integer, Set<Integer>> resultMap = Maps.newHashMap();
+
+        logger.info("start to build index");
+
+        File idxFile = File.createTempFile("tmp", ".idx");
+        long initIdxFileLength = idxFile.length();
+
+        GTColumnInvertedIndex index = new GTColumnInvertedIndex(tblColRef.getName(), dict.getSize(), idxFile.getAbsolutePath());
+        GTColumnInvertedIndex.Builder builder = index.rebuild();
+
+        Random random = new Random();
+        for (int i = 0; i < indexTotalNum; i++) {
+            int arrNum = random.nextInt(3);
+            int[] randArr = new int[arrNum];
+            for (int j = 0; j < arrNum; j++) {
+                randArr[j] = random.nextInt(dict.getSize());
+                if (!resultMap.containsKey(j)) {
+                    resultMap.put(j, Sets.<Integer> newLinkedHashSet());
+                }
+                resultMap.get(j).add(i);
+            }
+            builder.putNextRow(randArr);
+        }
+
+        builder.close();
+
+        assertTrue(initIdxFileLength < idxFile.length());
+
+        logger.info("start to read index");
+        GTColumnInvertedIndex.Reader reader = index.getReader();
+        for (int v : resultMap.keySet()) {
+            assertTrue(resultMap.get(v).containsAll(Ints.asList(reader.getRows(v).toArray())));
         }
 
         idxFile.delete();
