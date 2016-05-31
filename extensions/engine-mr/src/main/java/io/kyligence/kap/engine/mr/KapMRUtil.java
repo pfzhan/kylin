@@ -1,6 +1,5 @@
 package io.kyligence.kap.engine.mr;
 
-import io.kyligence.kap.storage.KapStorageFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
@@ -54,7 +53,7 @@ public class KapMRUtil {
     }
 
     public static IMROutput3.IMRBatchCubingOutputSide3 getBatchCubingOutputSide3(CubeSegment seg) {
-        return KapStorageFactory.createEngineAdapter(seg, IMROutput3.class).getBatchCubingOutputSide(seg);
+        return StorageFactory.createEngineAdapter(seg, IMROutput3.class).getBatchCubingOutputSide(seg);
     }
 
     public static IMROutput.IMRBatchInvertedIndexingOutputSide getBatchInvertedIndexingOutputSide(IISegment seg) {
