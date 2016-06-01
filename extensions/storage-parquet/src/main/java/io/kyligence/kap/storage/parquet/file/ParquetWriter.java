@@ -82,6 +82,8 @@ public class ParquetWriter extends AbstractParquetReaderWriter {
         writer.end(new HashMap<String, String>());
     }
 
+    public void writeRow(byte[] key, int[] keyOffsets, byte[] value, int[] valueLengths) {
+    }
 
     public void writeRow (List<Object> row) throws Exception{
         // Insert row into buffer
