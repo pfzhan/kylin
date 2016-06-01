@@ -1,6 +1,6 @@
-package io.kyligence.kap.storage.parquet.writer;
+package io.kyligence.kap.storage.parquet.file;
 
-import io.kyligence.kap.storage.parquet.writer.typedwriter.*;
+import io.kyligence.kap.storage.parquet.file.typedwriter.*;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -116,19 +116,19 @@ public class ParquetWriter extends AbstractParquetReaderWriter {
         ValuesWriter valuesWriter = null;
         switch (encoding) {
             case DELTA_BINARY_PACKED:
-                valuesWriter = io.kyligence.kap.storage.parquet.writer.Encoding.DELTA_BINARY_PACKED.getValuesWriter(descriptor, type, count);
+                valuesWriter = io.kyligence.kap.storage.parquet.file.Encoding.DELTA_BINARY_PACKED.getValuesWriter(descriptor, type, count);
                 break;
             case DELTA_BYTE_ARRAY:
-                valuesWriter = io.kyligence.kap.storage.parquet.writer.Encoding.DELTA_BYTE_ARRAY.getValuesWriter(descriptor, type, count);
+                valuesWriter = io.kyligence.kap.storage.parquet.file.Encoding.DELTA_BYTE_ARRAY.getValuesWriter(descriptor, type, count);
                 break;
             case DELTA_LENGTH_BYTE_ARRAY:
-                valuesWriter = io.kyligence.kap.storage.parquet.writer.Encoding.DELTA_LENGTH_BYTE_ARRAY.getValuesWriter(descriptor, type, count);
+                valuesWriter = io.kyligence.kap.storage.parquet.file.Encoding.DELTA_LENGTH_BYTE_ARRAY.getValuesWriter(descriptor, type, count);
                 break;
             case PLAIN:
-                valuesWriter = io.kyligence.kap.storage.parquet.writer.Encoding.PLAIN.getValuesWriter(descriptor, type, count);
+                valuesWriter = io.kyligence.kap.storage.parquet.file.Encoding.PLAIN.getValuesWriter(descriptor, type, count);
                 break;
             case RLE:
-                valuesWriter = io.kyligence.kap.storage.parquet.writer.Encoding.RLE.getValuesWriter(descriptor, type, count);
+                valuesWriter = io.kyligence.kap.storage.parquet.file.Encoding.RLE.getValuesWriter(descriptor, type, count);
                 break;
             default:
                 valuesWriter = null;

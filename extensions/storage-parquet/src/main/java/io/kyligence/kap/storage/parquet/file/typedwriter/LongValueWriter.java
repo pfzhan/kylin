@@ -1,19 +1,19 @@
-package io.kyligence.kap.storage.parquet.writer.typedwriter;
+package io.kyligence.kap.storage.parquet.file.typedwriter;
 
 import org.apache.parquet.bytes.BytesInput;
 import org.apache.parquet.column.values.ValuesWriter;
 
 /**
- * Created by roger on 5/21/16.
+ * Created by roger on 5/20/16.
  */
-public class DoubleValueWriter implements TypeValuesWriter{
+public class LongValueWriter implements TypeValuesWriter {
     private ValuesWriter writer;
-    public DoubleValueWriter(ValuesWriter writer) {
+    public LongValueWriter(ValuesWriter writer) {
         this.writer = writer;
     }
 
     public void writeData(Object obj) {
-        writer.writeDouble((Double) obj);
+        writer.writeLong((Long) obj);
     }
 
     public BytesInput getBytes() {

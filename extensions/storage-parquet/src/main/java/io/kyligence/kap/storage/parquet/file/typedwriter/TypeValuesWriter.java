@@ -1,4 +1,4 @@
-package io.kyligence.kap.storage.parquet.writer.typedwriter;
+package io.kyligence.kap.storage.parquet.file.typedwriter;
 
 import org.apache.parquet.bytes.BytesInput;
 

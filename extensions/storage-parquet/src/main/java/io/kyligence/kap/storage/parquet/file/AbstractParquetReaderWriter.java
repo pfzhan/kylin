@@ -1,4 +1,4 @@
-package io.kyligence.kap.storage.parquet.writer;
+package io.kyligence.kap.storage.parquet.file;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.CompressionCodec;

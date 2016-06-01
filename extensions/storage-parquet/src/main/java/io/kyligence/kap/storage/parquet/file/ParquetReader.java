@@ -1,4 +1,4 @@
-package io.kyligence.kap.storage.parquet.writer;
+package io.kyligence.kap.storage.parquet.file;
 
 import static org.apache.parquet.format.converter.ParquetMetadataConverter.NO_FILTER;
 
@@ -45,7 +45,24 @@ public class ParquetReader extends AbstractParquetReaderWriter {
         inputStream.close();
     }
 
-    public ValuesReader getValuesReader(int rowGroup, int column, int pageIndex) throws IOException {
+    /**
+     * Get next page values reader
+     * @return values reader, if returns null, there's no page left
+     */
+    public ProfiledValuesReader getNextValuesReader() {
+        return null;
+    }
+
+    /**
+     * Get page values reader according to global page index
+     * @param globalPageIndex global page index starting from the first page
+     * @return values reader, if returns null, there's no such page
+     */
+    public ProfiledValuesReader getValuesReader(int globalPageIndex) {
+        return null;
+    }
+
+    public ProfiledValuesReader getValuesReader(int rowGroup, int column, int pageIndex) throws IOException {
         BlockMetaData blockMetaData = parquetMetadata.getBlocks().get(rowGroup);
         ColumnChunkMetaData columnChunkMetaData = blockMetaData.getColumns().get(column);
 
@@ -78,7 +95,7 @@ public class ParquetReader extends AbstractParquetReaderWriter {
 
             ValuesReader dataReader = getValuesReader(dataPageHeader.getEncoding(), columnDescriptor, ValuesType.VALUES);
             dataReader.initFromPage(numValues, decompressedDataBytes, offset);
-            return dataReader;
+            return new ProfiledValuesReader(dataReader, numValues);
         } else if (pageHeader.getType() == PageType.DATA_PAGE_V2) {
             DataPageHeaderV2 dataPageHeader = pageHeader.getData_page_header_v2();
             int numValues = dataPageHeader.getNum_values();
@@ -101,7 +118,7 @@ public class ParquetReader extends AbstractParquetReaderWriter {
             byte[] decompressedDataBytes = decompressedData.toByteArray();
             ValuesReader dataReader = getValuesReader(dataPageHeader.getEncoding(), columnDescriptor, ValuesType.VALUES);
             dataReader.initFromPage(numValues, decompressedDataBytes, 0);
-            return dataReader;
+            return new ProfiledValuesReader(dataReader, numValues);
         }
         return null;
     }

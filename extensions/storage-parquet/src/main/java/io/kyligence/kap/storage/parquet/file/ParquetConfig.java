@@ -1,4 +1,4 @@
-package io.kyligence.kap.storage.parquet.writer;
+package io.kyligence.kap.storage.parquet.file;
 
 /**
  * Created by roger on 5/23/16.

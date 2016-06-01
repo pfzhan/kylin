@@ -1,5 +1,6 @@
 package io.kyligence.kap.engine.mr.steps;
 
+import io.kyligence.kap.engine.mr.common.KapBatchConstants;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -88,6 +89,10 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
             // set job configuration
             job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, cubeName);
             job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_NAME, segmentName);
+
+            // put some cube info in configuration
+            job.getConfiguration().set(KapBatchConstants.KYLIN_CUBE_ID, cube.getUuid());
+            job.getConfiguration().set(KapBatchConstants.KYLIN_SEGMENT_ID, cubeSeg.getUuid());
 
             // set input
             IMRInput.IMRTableInputFormat flatTableInputFormat = MRUtil.getBatchCubingInputSide(cubeSeg).getFlatTableInputFormat();

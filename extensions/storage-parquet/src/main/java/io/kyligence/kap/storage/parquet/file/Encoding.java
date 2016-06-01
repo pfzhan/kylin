@@ -1,4 +1,4 @@
-package io.kyligence.kap.storage.parquet.writer;
+package io.kyligence.kap.storage.parquet.file;
 
 import org.apache.parquet.bytes.BytesUtils;
 import org.apache.parquet.column.ColumnDescriptor;
@@ -18,7 +18,7 @@ import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.*;
  * Created by roger on 5/19/16.
  */
 
-// TODO: Tuning slab size, abstract it to writer its own class
+// TODO: Tuning slab size, abstract it to file its own class
 // TODO: Enable Dictionary Page Writer
 public enum Encoding {
     PLAIN {

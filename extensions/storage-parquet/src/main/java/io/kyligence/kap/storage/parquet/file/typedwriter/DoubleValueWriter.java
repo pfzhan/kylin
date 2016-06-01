@@ -1,4 +1,4 @@
-package io.kyligence.kap.storage.parquet.writer.typedwriter;
+package io.kyligence.kap.storage.parquet.file.typedwriter;
 
 import org.apache.parquet.bytes.BytesInput;
 import org.apache.parquet.column.values.ValuesWriter;
@@ -6,14 +6,14 @@ import org.apache.parquet.column.values.ValuesWriter;
 /**
  * Created by roger on 5/21/16.
  */
-public class BooleanValueWriter implements TypeValuesWriter{
+public class DoubleValueWriter implements TypeValuesWriter{
     private ValuesWriter writer;
-    public BooleanValueWriter(ValuesWriter writer) {
+    public DoubleValueWriter(ValuesWriter writer) {
         this.writer = writer;
     }
 
     public void writeData(Object obj) {
-        writer.writeBoolean((Boolean) obj);
+        writer.writeDouble((Double) obj);
     }
 
     public BytesInput getBytes() {
