@@ -31,7 +31,11 @@ public interface IColumnInvertedIndex {
 
     public interface Builder extends Closeable {
 
+        // one integer per row
         void putNextRow(int v);
+
+        // several integers per row
+        void putNextRow(int[] v);
     }
 
     public interface Reader extends Closeable {

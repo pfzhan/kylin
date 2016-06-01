@@ -40,12 +40,17 @@ public class GTColumnInvertedIndex implements IColumnInvertedIndex {
         int rowCounter = 0;
 
         public GTColumnInvertedIndexBuilder() {
-            FieldSpec spec = new DimensionFieldSpec(colName, FieldSpec.DataType.INT, true);
+            FieldSpec spec = new DimensionFieldSpec(colName, FieldSpec.DataType.INT, false);
             bitmapIICreator = new HeapBitmapInvertedIndexCreator(new File(idxFilename), cardinality, spec);
         }
 
         @Override
         public void putNextRow(int v) {
+            bitmapIICreator.add(rowCounter++, v);
+        }
+
+        @Override
+        public void putNextRow(int[] v) {
             bitmapIICreator.add(rowCounter++, v);
         }
 
