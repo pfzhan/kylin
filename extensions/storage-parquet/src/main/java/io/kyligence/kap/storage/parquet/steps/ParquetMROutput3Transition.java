@@ -6,7 +6,7 @@ import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ParquetMROutput3Transition implements IMROutput3{
+public class ParquetMROutput3Transition implements IMROutput3 {
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(ParquetMROutput3Transition.class);
 

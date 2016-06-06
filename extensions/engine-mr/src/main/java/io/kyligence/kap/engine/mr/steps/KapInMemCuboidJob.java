@@ -1,12 +1,13 @@
 package io.kyligence.kap.engine.mr.steps;
 
 import io.kyligence.kap.engine.mr.common.KapBatchConstants;
+import io.kyligence.kap.storage.parquet.format.ParquetFileOutputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
@@ -91,8 +92,8 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
             job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_NAME, segmentName);
 
             // put some cube info in configuration
-            job.getConfiguration().set(KapBatchConstants.KYLIN_CUBE_ID, cube.getUuid());
-            job.getConfiguration().set(KapBatchConstants.KYLIN_SEGMENT_ID, cubeSeg.getUuid());
+            job.getConfiguration().set(ParquetFormatConstants.KYLIN_CUBE_ID, cube.getUuid());
+            job.getConfiguration().set(ParquetFormatConstants.KYLIN_SEGMENT_ID, cubeSeg.getUuid());
 
             // set input
             IMRInput.IMRTableInputFormat flatTableInputFormat = MRUtil.getBatchCubingInputSide(cubeSeg).getFlatTableInputFormat();
@@ -112,7 +113,7 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
             job.setNumReduceTasks(reduceNum);
 
             // the cuboid file and KV class must be compatible with 0.7 version for smooth upgrade
-            job.setOutputFormatClass(SequenceFileOutputFormat.class);
+            job.setOutputFormatClass(ParquetFileOutputFormat.class);
             job.setOutputKeyClass(Text.class);
             job.setOutputValueClass(Text.class);
 
