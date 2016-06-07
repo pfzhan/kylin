@@ -57,7 +57,7 @@ KylinApp.service('CubeDescModel', function () {
       "auto_merge_time_ranges": [604800000, 2419200000],
       "engine_type": 2,
       "storage_type":2,
-      override_kylin_properties:{}
+      "override_kylin_properties":{}
     };
 
     return cubeMeta;
