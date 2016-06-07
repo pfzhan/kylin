@@ -10,6 +10,7 @@ public class ParquetReaderBuilder {
     private Configuration conf = null;
     private Path path = null;
     private Path indexPath = null;
+    private int column = 0;
 
     public ParquetReaderBuilder setIndexPathSuffix(String indexPathSuffix) {
         this.indexPathSuffix = indexPathSuffix;
@@ -31,6 +32,11 @@ public class ParquetReaderBuilder {
         return this;
     }
 
+    public ParquetReaderBuilder setColumn(int column) {
+        this.column = column;
+        return this;
+    }
+
     public ParquetReader build() throws IOException {
         if (conf == null) {
             throw new IllegalStateException("Configuration should be set");
@@ -44,6 +50,6 @@ public class ParquetReaderBuilder {
             indexPath = new Path(path.toString() + indexPathSuffix);
         }
 
-        return new ParquetReader(conf, path, indexPath);
+        return new ParquetReader(conf, path, indexPath, column);
     }
 }

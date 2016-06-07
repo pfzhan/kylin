@@ -20,6 +20,7 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.parquet.schema.MessageType;
 
 import java.io.*;
+import java.util.List;
 
 public class ParquetReader extends AbstractParquetReaderWriter {
     private ParquetMetadata parquetMetadata;
@@ -27,13 +28,18 @@ public class ParquetReader extends AbstractParquetReaderWriter {
     private ParquetIndexReader indexReader;
     private Configuration config;
 
-    public ParquetReader(Configuration configuration, Path path, Path indexPath) throws IOException{
+    private int column;
+    private int curPage;
+
+    public ParquetReader(Configuration configuration, Path path, Path indexPath, int column) throws IOException{
         config = configuration;
         parquetMetadata = ParquetFileReader.readFooter(config, path, ParquetMetadataConverter.NO_FILTER);
         FileSystem fileSystem = FileSystem.get(config);
         inputStream = fileSystem.open(path);
 
         indexReader = new ParquetIndexReader(configuration, indexPath);
+        this.column = column;
+        this.curPage = 0;
     }
 
     public MessageType getSchema() {
@@ -42,14 +48,15 @@ public class ParquetReader extends AbstractParquetReaderWriter {
 
     public void close() throws IOException {
         inputStream.close();
+        indexReader.close();
     }
 
     /**
      * Get next page values reader
      * @return values reader, if returns null, there's no page left
      */
-    public ProfiledValuesReader getNextValuesReader() {
-        return null;
+    public ProfiledValuesReader getNextValuesReader() throws IOException {
+        return getValuesReader(curPage++, column);
     }
 
     /**
@@ -57,11 +64,21 @@ public class ParquetReader extends AbstractParquetReaderWriter {
      * @param globalPageIndex global page index starting from the first page
      * @return values reader, if returns null, there's no such page
      */
-    public ProfiledValuesReader getValuesReader(int globalPageIndex) {
-        return null;
+    public ProfiledValuesReader getValuesReader(int globalPageIndex, int column) throws IOException {
+        List<ParquetIndexReader.IndexBundle> indexBundleList = indexReader.getOffsets(column);
+        if (globalPageIndex >= indexBundleList.size()) {
+            return null;
+        }
+        ParquetIndexReader.IndexBundle indexBundle = indexBundleList.get(globalPageIndex);
+        return getValuesReaderFromOffset(indexBundle.getGroup(), column, indexBundle.getIndex());
     }
 
     public ProfiledValuesReader getValuesReader(int rowGroup, int column, int pageIndex) throws IOException {
+        long pageOffset = indexReader.getOffset(rowGroup, column, pageIndex);
+        return getValuesReaderFromOffset(rowGroup, column, pageOffset);
+    }
+
+    private ProfiledValuesReader getValuesReaderFromOffset(int rowGroup, int column, long offset) throws IOException {
         BlockMetaData blockMetaData = parquetMetadata.getBlocks().get(rowGroup);
         ColumnChunkMetaData columnChunkMetaData = blockMetaData.getColumns().get(column);
 
@@ -73,8 +90,7 @@ public class ParquetReader extends AbstractParquetReaderWriter {
             decompressor = getCodec(codecName,config).createDecompressor();
         }
 
-        long pageOffset = indexReader.getOffset(rowGroup, column, pageIndex);
-        inputStream.seek(pageOffset);
+        inputStream.seek(offset);
         PageHeader pageHeader= Util.readPageHeader(inputStream);
         if (pageHeader.getType() == PageType.DATA_PAGE) {
             DataPageHeader dataPageHeader = pageHeader.getData_page_header();
@@ -85,7 +101,7 @@ public class ParquetReader extends AbstractParquetReaderWriter {
                     pageHeader.getUncompressed_page_size());
             byte[] decompressedDataBytes = decompressedData.toByteArray();
 
-            int offset = skipLevels(numValues,
+            offset = skipLevels(numValues,
                     columnDescriptor,
                     dataPageHeader.getRepetition_level_encoding(),
                     dataPageHeader.getDefinition_level_encoding(),
@@ -93,7 +109,7 @@ public class ParquetReader extends AbstractParquetReaderWriter {
                     0);
 
             ValuesReader dataReader = getValuesReader(dataPageHeader.getEncoding(), columnDescriptor, ValuesType.VALUES);
-            dataReader.initFromPage(numValues, decompressedDataBytes, offset);
+            dataReader.initFromPage(numValues, decompressedDataBytes, (int)offset);
             return new ProfiledValuesReader(dataReader, numValues);
         } else if (pageHeader.getType() == PageType.DATA_PAGE_V2) {
             DataPageHeaderV2 dataPageHeader = pageHeader.getData_page_header_v2();
