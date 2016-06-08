@@ -6,6 +6,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -28,66 +29,55 @@ public class ParquetCorrectnessTest {
                 new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "m2"));
     }
 
+    @After
+    public void cleanup() throws IOException {
+        cleanTestFile(path);
+    }
+
     @Test
     public void ReadPageByPageIndex() throws Exception{
-        try {
-            ParquetWriter writer = new ParquetWriterBuilder().setConf(new Configuration())
-                    .setPath(path)
-                    .setType(type)
-                    .build();
-            for (int i = 0; i < (groupSize - 1); ++i) {
-                writer.writeRow(new byte[]{1, 2, 3}, new int[]{1, 2}, new byte[]{4, 5}, new int[]{1, 1});
-            }
-            writer.close();
-
-            ParquetReader reader = new ParquetReaderBuilder().setPath(path)
-                    .setConf(new Configuration())
-                    .build();
-            ProfiledValuesReader valuesReader = reader.getValuesReader(ParquetConfig.PagesPerGroup - 1, 0);
-            Assert.assertArrayEquals(valuesReader.readBytes().getBytes(), new byte[] {2});
-            for (int i = 0; i < (ParquetConfig.RowsPerPage - 2); ++i) {
-                Assert.assertNotNull(valuesReader.readBytes());
-            }
-            Assert.assertNull(valuesReader.readBytes());
-            reader.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            cleanTestFile(path);
+        ParquetWriter writer = new ParquetWriterBuilder().setConf(new Configuration())
+                .setPath(path)
+                .setType(type)
+                .build();
+        for (int i = 0; i < (groupSize - 1); ++i) {
+            writer.writeRow(new byte[]{1, 2, 3}, new int[]{1, 2}, new byte[]{4, 5}, new int[]{1, 1});
         }
+        writer.close();
+
+        ParquetReader reader = new ParquetReaderBuilder().setPath(path)
+                .setConf(new Configuration())
+                .build();
+        ProfiledValuesReader valuesReader = reader.getValuesReader(ParquetConfig.PagesPerGroup - 1, 0);
+        Assert.assertArrayEquals(valuesReader.readBytes().getBytes(), new byte[] {2});
+        for (int i = 0; i < (ParquetConfig.RowsPerPage - 2); ++i) {
+            Assert.assertNotNull(valuesReader.readBytes());
+        }
+        Assert.assertNull(valuesReader.readBytes());
+        reader.close();
     }
 
     @Test
     public void ReadNextPage() throws Exception{
-        try {
-            ParquetWriter writer = new ParquetWriterBuilder().setConf(new Configuration())
-                    .setPath(path)
-                    .setType(type)
-                    .build();
-            for (int i = 0; i < (groupSize - 1); ++i) {
-                writer.writeRow(new byte[]{1, 2, 3}, new int[]{1, 2}, new byte[]{4, 5}, new int[]{1, 1});
-            }
-            writer.close();
-
-            ParquetReader reader = new ParquetReaderBuilder().setPath(path)
-                    .setConf(new Configuration())
-                    .build();
-            for (int i = 0; i < ParquetConfig.PagesPerGroup; ++i) {
-                ProfiledValuesReader valuesReader = reader.getNextValuesReader();
-                Assert.assertNotNull(valuesReader);
-            }
-            ProfiledValuesReader valuesReader = reader.getNextValuesReader();
-            Assert.assertNull(valuesReader);
-            reader.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            cleanTestFile(path);
+        ParquetWriter writer = new ParquetWriterBuilder().setConf(new Configuration())
+                .setPath(path)
+                .setType(type)
+                .build();
+        for (int i = 0; i < (groupSize - 1); ++i) {
+            writer.writeRow(new byte[]{1, 2, 3}, new int[]{1, 2}, new byte[]{4, 5}, new int[]{1, 1});
         }
+        writer.close();
+
+        ParquetReader reader = new ParquetReaderBuilder().setPath(path)
+                .setConf(new Configuration())
+                .build();
+        for (int i = 0; i < ParquetConfig.PagesPerGroup; ++i) {
+            ProfiledValuesReader valuesReader = reader.getNextValuesReader();
+            Assert.assertNotNull(valuesReader);
+        }
+        ProfiledValuesReader valuesReader = reader.getNextValuesReader();
+        Assert.assertNull(valuesReader);
+        reader.close();
     }
 
     private void cleanTestFile(Path path) throws IOException {

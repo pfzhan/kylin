@@ -131,7 +131,7 @@ public class ParquetRecordWriter <K,V> extends RecordWriter<K, V>{
                 .append(curCuboidId).append("/")
                 .append(curShardId).append(".parquet")
                 .toString());
-        System.out.println("Create parquet file " + path.getName());
+//        System.out.println("Create parquet file " + path.getName());
         return path;
     }
 }

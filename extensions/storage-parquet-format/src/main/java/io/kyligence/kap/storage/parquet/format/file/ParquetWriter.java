@@ -162,6 +162,10 @@ public class ParquetWriter extends AbstractParquetReaderWriter {
                 break;
         }
 
+        if (valuesWriter == null) {
+            return null;
+        }
+
         switch (descriptor.getType()) {
             case BOOLEAN:
                 return new BooleanValueWriter(valuesWriter);
@@ -188,7 +192,10 @@ public class ParquetWriter extends AbstractParquetReaderWriter {
         for (int i = 0; i < columnCnt; ++i) {
             TypeValuesWriter writer = getValuesWriter(dataEncodings.get(i), type.getColumns().get(i), ValuesType.VALUES, currentRowCntInPage);
 
-            for (int j = 0; j < rowsPerPage; ++j) {
+            for (int j = 0; j < currentRowCntInGroup; ++j) {
+//                System.out.println("Write:");
+//                System.out.println("column " + i + ", row " + j + ", data is null: " + (rowBuffer[i][j] == null));
+//                System.out.println("data size " + ((Binary)rowBuffer[i][j]).length());
                 writer.writeData(rowBuffer[i][j]);
             }
             pageBuffer[i][currentPageCntInGroup] = new PageBuffer(writer.getBytes(), currentRowCntInPage);
