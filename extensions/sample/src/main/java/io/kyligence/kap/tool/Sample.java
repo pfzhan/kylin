@@ -1,4 +1,4 @@
-package io.kyligence.kap.sample;
+package io.kyligence.kap.tool;
 
 public class Sample {
     public static void main(String[] args) {

@@ -1,4 +1,4 @@
-package io.kyligence.kap.sample;
+package io.kyligence.kap.tool;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
