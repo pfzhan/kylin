@@ -82,7 +82,7 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
             job = Job.getInstance(getConf(), getOptionValue(OPTION_JOB_NAME));
             logger.info("Starting: " + job.getJobName());
 
-            setJobClasspath(job);
+            setJobClasspath(job, cube.getConfig());
 
             // add metadata to distributed cache
             attachKylinPropsAndMetadata(cube, job.getConfiguration());

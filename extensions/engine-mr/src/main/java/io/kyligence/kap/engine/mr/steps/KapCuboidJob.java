@@ -94,7 +94,7 @@ public class KapCuboidJob extends AbstractHadoopJob {
             job = Job.getInstance(getConf(), getOptionValue(OPTION_JOB_NAME));
             logger.info("Starting: " + job.getJobName());
 
-            setJobClasspath(job);
+            setJobClasspath(job, cube.getConfig());
 
             // Mapper
             configureMapperInputFormat(cube.getSegment(segmentName, SegmentStatusEnum.NEW));
