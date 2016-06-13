@@ -91,9 +91,9 @@ public class ParquetWriter extends AbstractParquetReaderWriter {
 
     public void writeRow(byte[] key, int[] keyOffsets, byte[] value, int[] valueLengths) throws Exception {
         List<Object> row = new ArrayList<Object>();
-        int keyLength = keyOffsets.length;
-        for (int i = 0; i < keyOffsets.length; ++i) {
-            if (i == (keyLength - 1)) {
+        int keyOffsetLength = keyOffsets.length;
+        for (int i = 0; i < keyOffsetLength; ++i) {
+            if (i == (keyOffsetLength - 1)) {
                 row.add(Binary.fromReusedByteArray(key, keyOffsets[i], key.length - keyOffsets[i]));
             }
             else {
@@ -192,7 +192,7 @@ public class ParquetWriter extends AbstractParquetReaderWriter {
         for (int i = 0; i < columnCnt; ++i) {
             TypeValuesWriter writer = getValuesWriter(dataEncodings.get(i), type.getColumns().get(i), ValuesType.VALUES, currentRowCntInPage);
 
-            for (int j = 0; j < currentRowCntInGroup; ++j) {
+            for (int j = 0; j < currentRowCntInPage; ++j) {
 //                System.out.println("Write:");
 //                System.out.println("column " + i + ", row " + j + ", data is null: " + (rowBuffer[i][j] == null));
 //                System.out.println("data size " + ((Binary)rowBuffer[i][j]).length());

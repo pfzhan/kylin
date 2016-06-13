@@ -19,6 +19,7 @@
 package io.kyligence.kap.engine.mr;
 
 import io.kyligence.kap.engine.mr.IMROutput3.IMRBatchCubingOutputSide3 ;
+import io.kyligence.kap.engine.mr.steps.KapBaseCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapInMemCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapNDCuboidJob;
 import io.kyligence.kap.engine.mr.steps.SecondaryIndexJob;
@@ -171,7 +172,7 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBING_JOB_ID, jobId);
 
         baseCuboidStep.setMapReduceParams(cmd.toString());
-        baseCuboidStep.setMapReduceJobClass(BaseCuboidJob.class);
+        baseCuboidStep.setMapReduceJobClass(KapBaseCuboidJob.class);
         baseCuboidStep.setCounterSaveAs(CubingJob.SOURCE_RECORD_COUNT + "," + CubingJob.SOURCE_SIZE_BYTES);
         return baseCuboidStep;
     }

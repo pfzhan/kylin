@@ -6,9 +6,6 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 import java.io.IOException;
 
-/**
- * Created by roger on 5/30/16.
- */
 public class ParquetFileOutputFormat <K,V> extends FileOutputFormat<K, V> {
     @Override
     public RecordWriter<K, V> getRecordWriter(TaskAttemptContext job) throws IOException, InterruptedException {

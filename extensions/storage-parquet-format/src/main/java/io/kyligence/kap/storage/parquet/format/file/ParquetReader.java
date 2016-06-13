@@ -55,7 +55,7 @@ public class ParquetReader extends AbstractParquetReaderWriter {
      * Get next page values reader
      * @return values reader, if returns null, there's no page left
      */
-    public ProfiledValuesReader getNextValuesReader() throws IOException {
+    public GeneralValuesReader getNextValuesReader() throws IOException {
         return getValuesReader(curPage++, column);
     }
 
@@ -64,7 +64,7 @@ public class ParquetReader extends AbstractParquetReaderWriter {
      * @param globalPageIndex global page index starting from the first page
      * @return values reader, if returns null, there's no such page
      */
-    public ProfiledValuesReader getValuesReader(int globalPageIndex, int column) throws IOException {
+    public GeneralValuesReader getValuesReader(int globalPageIndex, int column) throws IOException {
         List<ParquetIndexReader.IndexBundle> indexBundleList = indexReader.getOffsets(column);
         if (globalPageIndex >= indexBundleList.size()) {
             return null;
@@ -73,12 +73,16 @@ public class ParquetReader extends AbstractParquetReaderWriter {
         return getValuesReaderFromOffset(indexBundle.getGroup(), column, indexBundle.getIndex());
     }
 
-    public ProfiledValuesReader getValuesReader(int rowGroup, int column, int pageIndex) throws IOException {
+    public GeneralValuesReader getValuesReader(int rowGroup, int column, int pageIndex) throws IOException {
         long pageOffset = indexReader.getOffset(rowGroup, column, pageIndex);
         return getValuesReaderFromOffset(rowGroup, column, pageOffset);
     }
 
-    private ProfiledValuesReader getValuesReaderFromOffset(int rowGroup, int column, long offset) throws IOException {
+    public int getColumnCount() {
+        return parquetMetadata.getFileMetaData().getSchema().getColumns().size();
+    }
+
+    private GeneralValuesReader getValuesReaderFromOffset(int rowGroup, int column, long offset) throws IOException {
         BlockMetaData blockMetaData = parquetMetadata.getBlocks().get(rowGroup);
         ColumnChunkMetaData columnChunkMetaData = blockMetaData.getColumns().get(column);
 
@@ -110,7 +114,7 @@ public class ParquetReader extends AbstractParquetReaderWriter {
 
             ValuesReader dataReader = getValuesReader(dataPageHeader.getEncoding(), columnDescriptor, ValuesType.VALUES);
             dataReader.initFromPage(numValues, decompressedDataBytes, (int)offset);
-            return new ProfiledValuesReader(dataReader, numValues);
+            return new GeneralValuesReaderBuilder().setLength(numValues).setReader(dataReader).setType(columnChunkMetaData.getType()).build();
         } else if (pageHeader.getType() == PageType.DATA_PAGE_V2) {
             DataPageHeaderV2 dataPageHeader = pageHeader.getData_page_header_v2();
             int numValues = dataPageHeader.getNum_values();
@@ -133,7 +137,7 @@ public class ParquetReader extends AbstractParquetReaderWriter {
             byte[] decompressedDataBytes = decompressedData.toByteArray();
             ValuesReader dataReader = getValuesReader(dataPageHeader.getEncoding(), columnDescriptor, ValuesType.VALUES);
             dataReader.initFromPage(numValues, decompressedDataBytes, 0);
-            return new ProfiledValuesReader(dataReader, numValues);
+            return new GeneralValuesReaderBuilder().setLength(numValues).setReader(dataReader).setType(columnChunkMetaData.getType()).build();
         }
         return null;
     }

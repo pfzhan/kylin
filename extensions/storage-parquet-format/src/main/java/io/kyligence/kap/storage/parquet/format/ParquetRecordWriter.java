@@ -47,6 +47,7 @@ public class ParquetRecordWriter <K,V> extends RecordWriter<K, V>{
     private CubeInstance cubeInstance;
     private CubeSegment cubeSegment;
     private ParquetWriter writer = null;
+    private String outputDir=null;
 
     public ParquetRecordWriter(TaskAttemptContext context, Class<?> keyClass, Class<?> valueClass) throws IOException {
         this.keyClass = keyClass;
@@ -55,6 +56,7 @@ public class ParquetRecordWriter <K,V> extends RecordWriter<K, V>{
 
         curCubeId = config.get(ParquetFormatConstants.KYLIN_CUBE_ID);
         curSegmentId = config.get(ParquetFormatConstants.KYLIN_SEGMENT_ID);
+        outputDir = config.get(ParquetFormatConstants.KYLIN_OUTPUT_DIR);
 
         kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
         cubeInstance = CubeManager.getInstance(kylinConfig).getCubeByUuid(curCubeId);
@@ -89,9 +91,10 @@ public class ParquetRecordWriter <K,V> extends RecordWriter<K, V>{
             List<Type> types = new ArrayList<Type>();
 
             // dimension
-            for (TblColRef column : rowKeyDecoder.getColumns()) {
-                types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, column.getName()));
-            }
+//            for (TblColRef column : rowKeyDecoder.getColumns()) {
+//                types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, column.getName()));
+//            }
+            types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, "Row Key"));
 
             // measures
             for (MeasureDesc measure : cubeSegment.getCubeDesc().getMeasures()) {
@@ -108,7 +111,8 @@ public class ParquetRecordWriter <K,V> extends RecordWriter<K, V>{
 
         // write data
         try {
-            int[] keyOffSets = Arrays.copyOf(rowKeyDecoder.getRowKeySplitter().getSplitOffsets(), rowKeyDecoder.getColumns().size());
+//            int[] keyOffSets = Arrays.copyOf(rowKeyDecoder.getRowKeySplitter().getSplitOffsets(), rowKeyDecoder.getColumns().size());
+            int[] keyOffSets = Arrays.copyOf(rowKeyDecoder.getRowKeySplitter().getSplitOffsets(), 1);
             int[] valueLength = measureDecoder.getPeekLength(ByteBuffer.wrap(valueBytes));
             writer.writeRow(keyBytes, keyOffSets, valueBytes, valueLength);
         } catch (Exception e) {
@@ -124,10 +128,8 @@ public class ParquetRecordWriter <K,V> extends RecordWriter<K, V>{
     }
 
     private Path getPath() {
-        Path path = new Path(new StringBuffer(kylinConfig.getHdfsWorkingDirectory())
-                .append("parquet/")
-                .append(curCubeId).append("/")
-                .append(curSegmentId).append("/")
+        Path path = new Path(new StringBuffer()
+                .append(outputDir)
                 .append(curCuboidId).append("/")
                 .append(curShardId).append(".parquet")
                 .toString());

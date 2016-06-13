@@ -1,5 +1,6 @@
 package io.kyligence.kap.engine.mr.steps;
 
+import io.kyligence.kap.storage.parquet.format.ParquetFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetFileOutputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import org.apache.commons.cli.Options;
@@ -9,14 +10,15 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.cube.cuboid.CuboidCLI;
+import org.apache.kylin.cube.cuboid.CuboidScheduler;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.IMRInput;
@@ -31,6 +33,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 public class KapCuboidJob extends AbstractHadoopJob {
 
@@ -97,7 +101,7 @@ public class KapCuboidJob extends AbstractHadoopJob {
             setJobClasspath(job, cube.getConfig());
 
             // Mapper
-            configureMapperInputFormat(cube.getSegment(segmentName, SegmentStatusEnum.NEW));
+            configureMapperInputFormat(config, nCuboidLevel, cube, cube.getSegment(segmentName, SegmentStatusEnum.NEW), cube.getDescriptor());
             job.setMapperClass(this.mapperClass);
             job.setMapOutputKeyClass(Text.class);
             job.setMapOutputValueClass(Text.class);
@@ -123,6 +127,9 @@ public class KapCuboidJob extends AbstractHadoopJob {
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_CUBE_ID, cube.getUuid());
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_SEGMENT_ID, cubeSeg.getUuid());
 
+            // set path for output
+            job.getConfiguration().set(ParquetFormatConstants.KYLIN_OUTPUT_DIR, getWorkingDir(config, cube, cubeSeg));
+
             // add metadata to distributed cache
             attachKylinPropsAndMetadata(cube, job.getConfiguration());
 
@@ -141,7 +148,36 @@ public class KapCuboidJob extends AbstractHadoopJob {
         }
     }
 
-    private void configureMapperInputFormat(CubeSegment cubeSeg) throws IOException {
+    private String getWorkingDir(KylinConfig config, CubeInstance cube, CubeSegment cubeSegment) {
+        return new StringBuffer(config.getHdfsWorkingDirectory())
+                .append("parquet/")
+                .append(cube.getUuid()).append("/")
+                .append(cubeSegment.getUuid()).append("/")
+                .toString();
+    }
+
+    private void setInputFiles(KylinConfig config, int level, CubeInstance cube, CubeSegment cubeSegment, CubeDesc desc) throws IOException {
+        // base cuboid should not enter this method
+        if (level > 0) {
+            Set<Long> parentSet = new HashSet<Long>();
+            Set<Long> childSet = null;
+            parentSet.add(Cuboid.getBaseCuboidId(desc));
+            CuboidScheduler scheduler = new CuboidScheduler(desc);
+            for (int i = 0; i < (level - 1); ++i) {
+                childSet = new HashSet<Long>();
+                for (long parent: parentSet) {
+                    childSet.addAll(scheduler.getSpanningCuboid(parent));
+                }
+                parentSet = childSet;
+            }
+
+            for (long parent: parentSet) {
+                FileInputFormat.addInputPath(job, new Path(getWorkingDir(config, cube, cubeSegment) + parent));
+            }
+        }
+    }
+
+    private void configureMapperInputFormat(KylinConfig config, int level, CubeInstance cube, CubeSegment cubeSeg, CubeDesc desc) throws IOException {
         String input = getOptionValue(OPTION_INPUT_PATH);
 
         if ("FLAT_TABLE".equals(input)) {
@@ -150,11 +186,13 @@ public class KapCuboidJob extends AbstractHadoopJob {
             flatTableInputFormat.configureJob(job);
         } else {
             // n-dimension cuboid case
-            FileInputFormat.setInputPaths(job, new Path(input));
             if (hasOption(OPTION_INPUT_FORMAT) && ("textinputformat".equalsIgnoreCase(getOptionValue(OPTION_INPUT_FORMAT)))) {
+                FileInputFormat.setInputPaths(job, new Path(input));
                 job.setInputFormatClass(TextInputFormat.class);
             } else {
-                job.setInputFormatClass(SequenceFileInputFormat.class);
+                // default intput is parquet file
+                setInputFiles(config, level, cube, cubeSeg, desc);
+                job.setInputFormatClass(ParquetFileInputFormat.class);
             }
         }
     }

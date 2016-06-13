@@ -3,12 +3,12 @@ package io.kyligence.kap.storage.parquet.format.file;
 import org.apache.parquet.column.values.ValuesReader;
 import org.apache.parquet.io.api.Binary;
 
-public class ProfiledValuesReader {
+public abstract class GeneralValuesReader {
     private ValuesReader valuesReader;
     private int length;
     private int curPos;
 
-    public ProfiledValuesReader(ValuesReader reader, int length) {
+    public GeneralValuesReader(ValuesReader reader, int length) {
         valuesReader = reader;
         this.length = length;
         curPos = 0;
@@ -90,4 +90,6 @@ public class ProfiledValuesReader {
         curPos++;
         return valuesReader.readLong();
     }
+
+    public abstract Object readData();
 }
