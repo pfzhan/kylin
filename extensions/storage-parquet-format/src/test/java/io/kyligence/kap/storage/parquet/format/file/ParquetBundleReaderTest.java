@@ -43,7 +43,7 @@ public class ParquetBundleReaderTest {
                 .setType(type)
                 .build();
         for (int i = 0; i < (groupSize - 1); ++i) {
-            writer.writeRow(new byte[]{1, 2, 3}, new int[]{1, 2}, new byte[]{4, 5}, new int[]{1, 1});
+            writer.writeRow(new byte[]{1, 2, 3}, 1, 2, new byte[]{4, 5}, new int[]{1, 1});
         }
         writer.close();
 

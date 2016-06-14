@@ -8,6 +8,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.SplittedBytes;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
@@ -112,9 +113,38 @@ public class ParquetRecordWriter <K,V> extends RecordWriter<K, V>{
         // write data
         try {
 //            int[] keyOffSets = Arrays.copyOf(rowKeyDecoder.getRowKeySplitter().getSplitOffsets(), rowKeyDecoder.getColumns().size());
-            int[] keyOffSets = Arrays.copyOf(rowKeyDecoder.getRowKeySplitter().getSplitOffsets(), 1);
+            if (curCuboidId == 125) {
+                int[] offsets = rowKeyDecoder.getRowKeySplitter().getSplitOffsets();
+                System.out.print("Write cuboid 125, raw key length: ");
+                for (int i = 0; i < offsets.length; ++i) {
+                    if (i < (offsets.length - 1)) {
+                        System.out.print((offsets[i + 1] - offsets[i]) + "\t");
+                    }
+                    else {
+                        System.out.print((keyBytes.length - offsets[i]));
+                    }
+                }
+                System.out.println();
+            }
+
+            SplittedBytes[] keyBuffers = rowKeyDecoder.getRowKeySplitter().getSplitBuffers();
+            int keyLength = 0;
+            if (curCuboidId == 125) {
+                System.out.print("Write cuboid 125, raw key length: ");
+            }
+            for (int i = 2; i < rowKeyDecoder.getRowKeySplitter().getBufferSize(); ++i) {
+                keyLength += keyBuffers[i].length;
+                if (curCuboidId == 125) {
+                    System.out.print(keyBuffers[i].length + "\t");
+                }
+            }
+            if (curCuboidId == 125) {
+                System.out.println();
+            }
+
+            int keyOffSet = rowKeyDecoder.getRowKeySplitter().getSplitOffsets()[0];
             int[] valueLength = measureDecoder.getPeekLength(ByteBuffer.wrap(valueBytes));
-            writer.writeRow(keyBytes, keyOffSets, valueBytes, valueLength);
+            writer.writeRow(keyBytes, keyOffSet, keyLength, valueBytes, valueLength);
         } catch (Exception e) {
             e.printStackTrace();
         }

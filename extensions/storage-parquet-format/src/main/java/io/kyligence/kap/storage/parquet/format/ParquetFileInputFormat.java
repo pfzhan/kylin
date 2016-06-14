@@ -8,8 +8,6 @@ import java.io.IOException;
 public class ParquetFileInputFormat <K, V> extends FileInputFormat<K, V> {
     @Override
     public org.apache.hadoop.mapreduce.RecordReader<K, V> createRecordReader(org.apache.hadoop.mapreduce.InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
-        ParquetRecordReader<K, V> reader = new ParquetRecordReader<>();
-        reader.initialize(split, context);
-        return reader;
+        return new ParquetRecordReader<>();
     }
 }

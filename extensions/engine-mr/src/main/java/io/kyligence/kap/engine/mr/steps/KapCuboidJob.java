@@ -5,6 +5,8 @@ import io.kyligence.kap.storage.parquet.format.ParquetFileOutputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -172,9 +174,29 @@ public class KapCuboidJob extends AbstractHadoopJob {
             }
 
             for (long parent: parentSet) {
-                FileInputFormat.addInputPath(job, new Path(getWorkingDir(config, cube, cubeSegment) + parent));
+                Path path = new Path(getWorkingDir(config, cube, cubeSegment) + parent);
+                //FileInputFormat.addInputPath(job, path);
+                addParquetInputFile(job.getConfiguration(), path);
+                //FileInputFormat.setInputPathFilter(job, ParquetFilter.class);
+                System.out.println("Parent input path: " + path.getName());
             }
         }
+    }
+
+    private void addParquetInputFile(Configuration config, Path path) throws IOException {
+        FileSystem fs = FileSystem.get(config);
+        if (fs.isDirectory(path)) {
+            for (FileStatus fileStatus : fs.listStatus(path)) {
+                Path p = fileStatus.getPath();
+                if (isParquetFile(p)) {
+                    FileInputFormat.addInputPath(job, p);
+                }
+            }
+        }
+    }
+
+    private boolean isParquetFile(Path path) {
+        return path.getName().endsWith("parquet");
     }
 
     private void configureMapperInputFormat(KylinConfig config, int level, CubeInstance cube, CubeSegment cubeSeg, CubeDesc desc) throws IOException {

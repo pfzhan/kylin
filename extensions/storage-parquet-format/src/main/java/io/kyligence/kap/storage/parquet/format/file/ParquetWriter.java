@@ -89,17 +89,9 @@ public class ParquetWriter extends AbstractParquetReaderWriter {
         writer.end(new HashMap<String, String>());
     }
 
-    public void writeRow(byte[] key, int[] keyOffsets, byte[] value, int[] valueLengths) throws Exception {
+    public void writeRow(byte[] key, int keyOffset, int keyLength, byte[] value, int[] valueLengths) throws Exception {
         List<Object> row = new ArrayList<Object>();
-        int keyOffsetLength = keyOffsets.length;
-        for (int i = 0; i < keyOffsetLength; ++i) {
-            if (i == (keyOffsetLength - 1)) {
-                row.add(Binary.fromReusedByteArray(key, keyOffsets[i], key.length - keyOffsets[i]));
-            }
-            else {
-                row.add(Binary.fromReusedByteArray(key, keyOffsets[i], keyOffsets[i + 1] - keyOffsets[i]));
-            }
-        }
+        row.add(Binary.fromReusedByteArray(key, keyOffset, keyLength));
 
         int valueOffset = 0;
         for (int i = 0; i < valueLengths.length; ++i) {

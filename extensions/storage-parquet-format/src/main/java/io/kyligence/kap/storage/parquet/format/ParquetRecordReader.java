@@ -5,7 +5,6 @@ import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -52,16 +51,10 @@ public class ParquetRecordReader  <K,V> extends RecordReader<K, V> {
         FileSplit fileSplit = (FileSplit) split;
         conf = context.getConfiguration();
         Path path = fileSplit.getPath();
+        System.out.println("Get Path: " + path.toString());
         FileSystem fs = path.getFileSystem(conf);
         shardPath = new ArrayList<>();
-        if (fs.isDirectory(path)) {
-            for (FileStatus fileStatus : fs.listStatus(path)) {
-                shardPath.add(fileStatus.getPath());
-            }
-        }
-        else {
-            shardPath.add(path);
-        }
+        shardPath.add(path);
 
         curCubeId = conf.get(ParquetFormatConstants.KYLIN_CUBE_ID);
         curSegmentId = conf.get(ParquetFormatConstants.KYLIN_SEGMENT_ID);
@@ -71,10 +64,7 @@ public class ParquetRecordReader  <K,V> extends RecordReader<K, V> {
         cubeSegment = cubeInstance.getSegmentById(curSegmentId);
 
         // init with first shard file
-        reader = new ParquetBundleReaderBuilder().setConf(conf).setPath(shardPath.get(0)).build();
-        setCurrentCuboidShard(shardPath.get(0));
-
-        rowKeyEncoder = new RowKeyEncoder(cubeSegment, Cuboid.findById(cubeInstance.getDescriptor(), curCuboidId));
+        reader = getNextValuesReader();
     }
 
     @Override
@@ -112,7 +102,7 @@ public class ParquetRecordReader  <K,V> extends RecordReader<K, V> {
     }
 
     private void setCurrentCuboidShard(Path path) {
-        String[] dirs = path.getName().split("/");
+        String[] dirs = path.toString().split("/");
         curCuboidId = Long.parseLong(dirs[dirs.length - 2]);
     }
 
@@ -122,6 +112,10 @@ public class ParquetRecordReader  <K,V> extends RecordReader<K, V> {
                 reader.close();
             }
             reader = new ParquetBundleReaderBuilder().setConf(conf).setPath(shardPath.get(shardIndex)).build();
+
+            setCurrentCuboidShard(shardPath.get(shardIndex));
+            rowKeyEncoder = new RowKeyEncoder(cubeSegment, Cuboid.findById(cubeInstance.getDescriptor(), curCuboidId));
+            shardIndex++;
             return reader;
         }
         return null;
