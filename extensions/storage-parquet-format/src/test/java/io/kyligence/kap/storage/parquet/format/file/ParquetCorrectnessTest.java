@@ -24,7 +24,6 @@ public class ParquetCorrectnessTest {
         cleanTestFile(path);
         type = new MessageType("test",
                 new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "key1"),
-                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "key2"),
                 new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "m1"),
                 new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "m2"));
     }
@@ -49,7 +48,7 @@ public class ParquetCorrectnessTest {
                 .setConf(new Configuration())
                 .build();
         GeneralValuesReader valuesReader = reader.getValuesReader(ParquetConfig.PagesPerGroup - 1, 0);
-        Assert.assertArrayEquals(valuesReader.readBytes().getBytes(), new byte[] {2});
+        Assert.assertArrayEquals(valuesReader.readBytes().getBytes(), new byte[] {2, 3});
         for (int i = 0; i < (ParquetConfig.RowsPerPage - 2); ++i) {
             Assert.assertNotNull(valuesReader.readBytes());
         }

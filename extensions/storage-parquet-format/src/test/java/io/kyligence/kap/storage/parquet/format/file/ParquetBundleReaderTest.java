@@ -26,7 +26,6 @@ public class ParquetBundleReaderTest {
         cleanTestFile(path);
         type = new MessageType("test",
                 new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "key1"),
-                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "key2"),
                 new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "m1"),
                 new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "m2"));
     }
@@ -50,7 +49,7 @@ public class ParquetBundleReaderTest {
         ParquetBundleReader bundleReader = new ParquetBundleReaderBuilder().setPath(path).setConf(new Configuration()).build();
         List<Object> data = bundleReader.read();
         Assert.assertNotNull(data);
-        Assert.assertArrayEquals(((Binary)data.get(0)).getBytes(), new byte[] {2});
+        Assert.assertArrayEquals(((Binary)data.get(0)).getBytes(), new byte[] {2, 3});
 
         for (int i = 0; i < (groupSize - 2); ++i) {
             bundleReader.read();
