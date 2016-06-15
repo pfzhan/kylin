@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ParquetWriterBuilder {
+public class ParquetRawWriterBuilder {
     private String indexPathSuffix = "index";
     private Configuration conf = null;
     private MessageType type = null;
@@ -20,56 +20,68 @@ public class ParquetWriterBuilder {
     private List<Encoding> dataEncodings = null;
     private CompressionCodecName codecName = CompressionCodecName.UNCOMPRESSED;
     private Path indexPath = null;
+    private int rowsPerPage = 10000;
+    private int pagesPerGroup = 100;
 
-    public ParquetWriterBuilder setIndexPathSuffix(String indexPathSuffix) {
+    public ParquetRawWriterBuilder setIndexPathSuffix(String indexPathSuffix) {
         this.indexPathSuffix = indexPathSuffix;
         return this;
     }
 
-    public ParquetWriterBuilder setConf(Configuration conf) {
+    public ParquetRawWriterBuilder setConf(Configuration conf) {
         this.conf = conf;
         return this;
     }
 
 
-    public ParquetWriterBuilder setType(MessageType type) {
+    public ParquetRawWriterBuilder setType(MessageType type) {
         this.type = type;
         return this;
     }
 
-    public ParquetWriterBuilder setPath(Path path) {
+    public ParquetRawWriterBuilder setPath(Path path) {
         this.path = path;
         return this;
     }
 
-    public ParquetWriterBuilder setRlEncodings(Encoding rlEncodings) {
+    public ParquetRawWriterBuilder setRlEncodings(Encoding rlEncodings) {
         this.rlEncodings = rlEncodings;
         return this;
     }
 
-    public ParquetWriterBuilder setDlEncodings(Encoding dlEncodings) {
+    public ParquetRawWriterBuilder setDlEncodings(Encoding dlEncodings) {
         this.dlEncodings = dlEncodings;
         return this;
     }
 
-    public ParquetWriterBuilder setDataEncodings(List<Encoding> dataEncodings) {
+    public ParquetRawWriterBuilder setDataEncodings(List<Encoding> dataEncodings) {
         this.dataEncodings = dataEncodings;
         return this;
     }
 
-    public ParquetWriterBuilder setCodecName(CompressionCodecName codecName) {
+    public ParquetRawWriterBuilder setCodecName(CompressionCodecName codecName) {
         this.codecName = codecName;
         return this;
     }
 
-    public ParquetWriterBuilder setIndexPath(Path indexPath) {
+    public ParquetRawWriterBuilder setIndexPath(Path indexPath) {
         this.indexPath = indexPath;
         return this;
     }
 
-    public ParquetWriterBuilder(){}
+    public ParquetRawWriterBuilder setRowsPerPage(int rowsPerPage) {
+        this.rowsPerPage = rowsPerPage;
+        return this;
+    }
 
-    public ParquetWriter build() throws IOException {
+    public ParquetRawWriterBuilder setPagesPerGroup(int pagesPerGroup) {
+        this.pagesPerGroup = pagesPerGroup;
+        return this;
+    }
+
+    public ParquetRawWriterBuilder(){}
+
+    public ParquetRawWriter build() throws IOException {
         if (conf == null) {
             throw new IllegalStateException("Configuration should be set");
         }
@@ -100,6 +112,6 @@ public class ParquetWriterBuilder {
             indexPath = new Path(path.toString() + indexPathSuffix);
         }
 
-        return new ParquetWriter(conf, type, path, rlEncodings, dlEncodings, dataEncodings, codecName, indexPath);
+        return new ParquetRawWriter(conf, type, path, rlEncodings, dlEncodings, dataEncodings, codecName, indexPath, rowsPerPage, pagesPerGroup);
     }
 }

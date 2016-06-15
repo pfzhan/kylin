@@ -1,7 +1,7 @@
 package io.kyligence.kap.storage.parquet.format;
 
-import io.kyligence.kap.storage.parquet.format.file.ParquetWriter;
-import io.kyligence.kap.storage.parquet.format.file.ParquetWriterBuilder;
+import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
+import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriterBuilder;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -16,7 +16,6 @@ import org.apache.kylin.cube.kv.RowKeyDecoder;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.measure.MeasureDecoder;
 import org.apache.kylin.metadata.model.MeasureDesc;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
@@ -27,7 +26,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class ParquetRecordWriter <K,V> extends RecordWriter<K, V>{
@@ -47,7 +45,7 @@ public class ParquetRecordWriter <K,V> extends RecordWriter<K, V>{
     private MeasureDecoder measureDecoder;
     private CubeInstance cubeInstance;
     private CubeSegment cubeSegment;
-    private ParquetWriter writer = null;
+    private ParquetRawWriter writer = null;
     private String outputDir=null;
 
     public ParquetRecordWriter(TaskAttemptContext context, Class<?> keyClass, Class<?> valueClass) throws IOException {
@@ -103,7 +101,7 @@ public class ParquetRecordWriter <K,V> extends RecordWriter<K, V>{
             }
 
             MessageType schema = new MessageType(cubeSegment.getName(), types);
-            writer = new ParquetWriterBuilder()
+            writer = new ParquetRawWriterBuilder()
                     .setConf(config)
                     .setType(schema)
                     .setPath(getPath())

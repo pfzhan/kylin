@@ -22,24 +22,19 @@ import org.apache.parquet.schema.MessageType;
 import java.io.*;
 import java.util.List;
 
-public class ParquetReader extends AbstractParquetReaderWriter {
+public class ParquetRawReader {
     private ParquetMetadata parquetMetadata;
     private FSDataInputStream inputStream;
     private ParquetIndexReader indexReader;
     private Configuration config;
 
-    private int column;
-    private int curPage;
-
-    public ParquetReader(Configuration configuration, Path path, Path indexPath, int column) throws IOException{
+    public ParquetRawReader(Configuration configuration, Path path, Path indexPath) throws IOException{
         config = configuration;
         parquetMetadata = ParquetFileReader.readFooter(config, path, ParquetMetadataConverter.NO_FILTER);
         FileSystem fileSystem = FileSystem.get(config);
         inputStream = fileSystem.open(path);
 
         indexReader = new ParquetIndexReader(configuration, indexPath);
-        this.column = column;
-        this.curPage = 0;
     }
 
     public MessageType getSchema() {
@@ -52,25 +47,18 @@ public class ParquetReader extends AbstractParquetReaderWriter {
     }
 
     /**
-     * Get next page values reader
-     * @return values reader, if returns null, there's no page left
-     */
-    public GeneralValuesReader getNextValuesReader() throws IOException {
-        return getValuesReader(curPage++, column);
-    }
-
-    /**
      * Get page values reader according to global page index
      * @param globalPageIndex global page index starting from the first page
+     * @param column the column to be read
      * @return values reader, if returns null, there's no such page
      */
     public GeneralValuesReader getValuesReader(int globalPageIndex, int column) throws IOException {
-        List<ParquetIndexReader.IndexBundle> indexBundleList = indexReader.getOffsets(column);
+        List<ParquetIndexReader.GroupOffsetPair> indexBundleList = indexReader.getOffsets(column);
         if (globalPageIndex >= indexBundleList.size()) {
             return null;
         }
-        ParquetIndexReader.IndexBundle indexBundle = indexBundleList.get(globalPageIndex);
-        return getValuesReaderFromOffset(indexBundle.getGroup(), column, indexBundle.getIndex());
+        ParquetIndexReader.GroupOffsetPair indexBundle = indexBundleList.get(globalPageIndex);
+        return getValuesReaderFromOffset(indexBundle.getGroup(), column, indexBundle.getOffset());
     }
 
     public GeneralValuesReader getValuesReader(int rowGroup, int column, int pageIndex) throws IOException {
@@ -88,10 +76,10 @@ public class ParquetReader extends AbstractParquetReaderWriter {
 
         ColumnDescriptor columnDescriptor = getSchema().getColumns().get(column);
         CompressionCodecName codecName = columnChunkMetaData.getCodec();
-        CompressionCodec codec = getCodec(codecName, config);
+        CompressionCodec codec = CodecFactory.getCodec(codecName, config);
         Decompressor decompressor = null;
         if (codec != null) {
-            decompressor = getCodec(codecName,config).createDecompressor();
+            decompressor = CodecFactory.getCodec(codecName,config).createDecompressor();
         }
 
         inputStream.seek(offset);
@@ -206,7 +194,7 @@ public class ParquetReader extends AbstractParquetReaderWriter {
                                          Decompressor decompressor,
                                          int compressedSize,
                                          int uncompressedSize) throws IOException{
-        CompressionCodec compressionCodec = getCodec(codec, config);
+        CompressionCodec compressionCodec = CodecFactory.getCodec(codec, config);
         BytesInput compressedData = readAsBytesInput(compressedSize);
         if (decompressor == null) {
             return compressedData;

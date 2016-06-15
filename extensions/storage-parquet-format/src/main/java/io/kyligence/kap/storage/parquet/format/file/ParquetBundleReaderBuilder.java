@@ -51,7 +51,7 @@ public class ParquetBundleReaderBuilder {
         }
 
         if (columns == null) {
-            int columnCnt = new ParquetReaderBuilder().setConf(conf)
+            int columnCnt = new ParquetRawReaderBuilder().setConf(conf)
                     .setPath(path)
                     .setIndexPath(indexPath)
                     .build().getColumnCount();

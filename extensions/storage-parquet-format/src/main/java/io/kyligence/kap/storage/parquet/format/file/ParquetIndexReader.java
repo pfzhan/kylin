@@ -15,12 +15,12 @@ import java.util.Map;
 public class ParquetIndexReader {
     private FSDataInputStream is;
     private Map<String, Long> indexMap;
-    private Map<Integer, List<IndexBundle>> indexListMap;
+    private Map<Integer, List<GroupOffsetPair>> indexListMap;
 
     public ParquetIndexReader(Configuration config, Path path) throws IOException {
         FileSystem fileSystem = FileSystem.get(config);
         is = fileSystem.open(path);
-        indexListMap = new HashMap<Integer, List<IndexBundle>>();
+        indexListMap = new HashMap<Integer, List<GroupOffsetPair>>();
         indexMap = getIndex(indexListMap);
     }
 
@@ -28,7 +28,7 @@ public class ParquetIndexReader {
         return indexMap.get(getIndexKey(group, column, page));
     }
 
-    public List<IndexBundle> getOffsets(int column) {
+    public List<GroupOffsetPair> getOffsets(int column) {
         return indexListMap.get(column);
     }
 
@@ -36,9 +36,9 @@ public class ParquetIndexReader {
         is.close();
     }
 
-    private Map<String, Long> getIndex(Map<Integer, List<IndexBundle>> indexListMap) throws IOException {
+    private Map<String, Long> getIndex(Map<Integer, List<GroupOffsetPair>> indexListMap) throws IOException {
         int group, column, page;
-        long index;
+        long offset;
 
         Map<String, Long> indexMap = new HashMap<String, Long>();
 
@@ -47,13 +47,13 @@ public class ParquetIndexReader {
                 group = is.readInt();
                 column = is.readInt();
                 page = is.readInt();
-                index = is.readLong();
-                indexMap.put(getIndexKey(group, column, page), index);
+                offset = is.readLong();
+                indexMap.put(getIndexKey(group, column, page), offset);
 
                 if (!indexListMap.containsKey(column)) {
-                    indexListMap.put(column, new ArrayList<IndexBundle>());
+                    indexListMap.put(column, new ArrayList<GroupOffsetPair>());
                 }
-                indexListMap.get(column).add(new IndexBundle(group, index));
+                indexListMap.get(column).add(new GroupOffsetPair(group, offset));
             }
         }
         catch (EOFException ex) {
@@ -66,24 +66,24 @@ public class ParquetIndexReader {
     }
 
     public static Path getIndexPath(Path path) {
-        return new Path(path.toString() + "index");
+        return new Path(path.toString() + "offset");
     }
 
-    public class IndexBundle {
+    public class GroupOffsetPair {
         private int group;
-        private long index;
+        private long offset;
 
-        public IndexBundle(int group, long index) {
+        public GroupOffsetPair(int group, long offset) {
             this.group = group;
-            this.index = index;
+            this.offset = offset;
         }
 
         public int getGroup() {
             return group;
         }
 
-        public long getIndex() {
-            return index;
+        public long getOffset() {
+            return offset;
         }
     }
 }

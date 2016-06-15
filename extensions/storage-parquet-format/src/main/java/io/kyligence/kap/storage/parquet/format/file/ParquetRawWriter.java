@@ -23,17 +23,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class ParquetWriter extends AbstractParquetReaderWriter {
-    private static final Logger logger = LoggerFactory.getLogger(ParquetWriter.class);
+public class ParquetRawWriter {
+    private static final Logger logger = LoggerFactory.getLogger(ParquetRawWriter.class);
 
-    // TODO: rowsPerPage and pagesPerGroup should be configurable
     private int rowsPerPage = ParquetConfig.RowsPerPage;
     private int pagesPerGroup = ParquetConfig.PagesPerGroup;
 
     private Configuration conf;
     private ParquetFileWriter writer;
     private ParquetIndexWriter indexWriter;
-    private MessageType type;
+    private MessageType schema;
     private int columnCnt;
 
     private int currentRowCntInPage = 0;    // Current row number in buffered page
@@ -49,18 +48,30 @@ public class ParquetWriter extends AbstractParquetReaderWriter {
     private List<Encoding> dataEncodings;
     private CompressionCodecName codecName;
 
-    public ParquetWriter(Configuration conf, MessageType type, Path path, Encoding rlEncodings, Encoding dlEncodings, List<Encoding> dataEncodings, CompressionCodecName codecName, Path indexPath) throws IOException {
-        writer = new ParquetFileWriter(conf, type, path);
-        writer.start();
+    public ParquetRawWriter(Configuration conf,             // hadoop configuration
+                            MessageType schema,             // parquet file row schema
+                            Path path,                      // parquet file path
+                            Encoding rlEncodings,           // repeat level encoding
+                            Encoding dlEncodings,           // depth level encoding
+                            List<Encoding> dataEncodings,   // data encoding
+                            CompressionCodecName codecName, // compression algorithm
+                            Path indexPath,                 // parquet index file path
+                            int rowsPerPage,                // the number of rows in one page
+                            int pagesPerGroup               // the number of pages in one row group
+    ) throws IOException {
+        writer = new ParquetFileWriter(conf, schema, path);
         indexWriter = new ParquetIndexWriter(conf, indexPath);
         this.conf = conf;
-        this.type = type;
+        this.schema = schema;
         this.codecName = codecName;
         this.rlEncodings = rlEncodings;
         this.dlEncodings = dlEncodings;
         this.dataEncodings = dataEncodings;
-        columnCnt = type.getColumns().size();
+        this.rowsPerPage = rowsPerPage;
+        this.pagesPerGroup = pagesPerGroup;
+        columnCnt = schema.getColumns().size();
 
+        writer.start();
         initRowBuffer();
         initPageBuffer();
     }
@@ -79,23 +90,23 @@ public class ParquetWriter extends AbstractParquetReaderWriter {
         }
     }
 
-    public void open() throws IOException {
-        writer.start();
-    }
-
     public void close() throws IOException {
+        // close parquet file
         flush();
-        indexWriter.close();
         writer.end(new HashMap<String, String>());
+
+        // close index file
+        indexWriter.close();
     }
 
+    // TODO: this writeRow is not pure, should be refactored
     public void writeRow(byte[] key, int keyOffset, int keyLength, byte[] value, int[] valueLengths) throws Exception {
         List<Object> row = new ArrayList<Object>();
-        row.add(Binary.fromReusedByteArray(key, keyOffset, keyLength));
+        row.add(Binary.fromConstantByteArray(key, keyOffset, keyLength));
 
         int valueOffset = 0;
         for (int i = 0; i < valueLengths.length; ++i) {
-            row.add(Binary.fromReusedByteArray(value, valueOffset, valueLengths[i]));
+            row.add(Binary.fromConstantByteArray(value, valueOffset, valueLengths[i]));
             valueOffset += valueLengths[i];
         }
 
@@ -121,12 +132,17 @@ public class ParquetWriter extends AbstractParquetReaderWriter {
         }
     }
 
+    /**
+     * Flush in-mem rows into page buffers.
+     * Write in-mem pages into groups.
+     * @throws IOException
+     */
     private void flush() throws IOException {
         if (currentRowCntInPage != 0) {
             encodingPage();
         }
 
-        if (currentRowCntInGroup != 0) {
+        if (currentPageCntInGroup != 0) {
             writeGroup();
         }
     }
@@ -180,14 +196,14 @@ public class ParquetWriter extends AbstractParquetReaderWriter {
         }
     }
 
+    /**
+     * Only store encoding pages in buffer, write file only happens in writeGroup.
+     */
     private void encodingPage() {
         for (int i = 0; i < columnCnt; ++i) {
-            TypeValuesWriter writer = getValuesWriter(dataEncodings.get(i), type.getColumns().get(i), ValuesType.VALUES, currentRowCntInPage);
+            TypeValuesWriter writer = getValuesWriter(dataEncodings.get(i), schema.getColumns().get(i), ValuesType.VALUES, currentRowCntInPage);
 
             for (int j = 0; j < currentRowCntInPage; ++j) {
-//                System.out.println("Write:");
-//                System.out.println("column " + i + ", row " + j + ", data is null: " + (rowBuffer[i][j] == null));
-//                System.out.println("data size " + ((Binary)rowBuffer[i][j]).length());
                 writer.writeData(rowBuffer[i][j]);
             }
             pageBuffer[i][currentPageCntInGroup] = new PageBuffer(writer.getBytes(), currentRowCntInPage);
@@ -196,14 +212,18 @@ public class ParquetWriter extends AbstractParquetReaderWriter {
         currentRowCntInPage = 0;
     }
 
+    /**
+     * Write both parquet file and index file
+     * @throws IOException
+     */
     private void  writeGroup() throws IOException {
         writer.startBlock(currentRowCntInGroup);
         for (int i = 0; i < columnCnt; ++i) {
-            writer.startColumn(type.getColumns().get(i), currentRowCntInGroup, codecName);
+            writer.startColumn(schema.getColumns().get(i), currentRowCntInGroup, codecName);
             for (int j = 0; j < currentPageCntInGroup; ++j) {
                 indexWriter.addIndex(currentRowGroup, i, j, writer.getPos());
                 BytesInput bi = pageBuffer[i][j].getBi();
-                CompressionCodec compressionCodec = getCodec(codecName, conf);
+                CompressionCodec compressionCodec = CodecFactory.getCodec(codecName, conf);
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 if (compressionCodec == null) {
                     bi.writeAllTo(baos);
@@ -218,7 +238,7 @@ public class ParquetWriter extends AbstractParquetReaderWriter {
 
                 writer.writeDataPage(pageBuffer[i][j].getCount(), (int)bi.size(),
                         BytesInput.from(baos.toByteArray()),
-                        Statistics.getStatsBasedOnType(type.getColumns().get(i).getType()),
+                        Statistics.getStatsBasedOnType(schema.getColumns().get(i).getType()),
                         rlEncodings, dlEncodings, dataEncodings.get(i));
             }
             writer.endColumn();

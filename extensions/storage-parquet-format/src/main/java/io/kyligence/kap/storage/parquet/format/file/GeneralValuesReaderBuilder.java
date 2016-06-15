@@ -32,7 +32,7 @@ public class GeneralValuesReaderBuilder {
         }
 
         if (reader == null) {
-            throw new IllegalStateException("Values Reader shoule not be null");
+            throw new IllegalStateException("Values Reader should not be null");
         }
 
         switch (type) {

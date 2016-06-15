@@ -6,13 +6,13 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.parquet.hadoop.BadConfigurationException;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
-public abstract class AbstractParquetReaderWriter {
-    private final Map<String, CompressionCodec> codecByName = new HashMap<String, CompressionCodec>();
+public class CodecFactory {
+    private static ConcurrentMap<String, CompressionCodec> codecByName = new ConcurrentHashMap<>();
 
-    protected CompressionCodec getCodec(CompressionCodecName codecName, Configuration config) {
+    public static CompressionCodec getCodec(CompressionCodecName codecName, Configuration config) {
         String codecClassName = codecName.getHadoopCompressionCodecClassName();
         if (codecClassName == null) {
             return null;

@@ -37,7 +37,7 @@ public class ParquetBundleReaderTest {
 
     @Test
     public void ReadInBundle() throws Exception{
-        ParquetWriter writer = new ParquetWriterBuilder().setConf(new Configuration())
+        ParquetRawWriter writer = new ParquetRawWriterBuilder().setConf(new Configuration())
                 .setPath(path)
                 .setType(type)
                 .build();

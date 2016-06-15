@@ -13,7 +13,7 @@ public class ParquetBundleReader {
         readerStates = new ArrayList<ParquetReaderState>(columns.size());
 
         for (int column: columns) {
-            readerStates.add(new ParquetReaderState(new ParquetReaderBuilder().setConf(configuration)
+            readerStates.add(new ParquetReaderState(new ParquetColumnReaderBuilder().setConf(configuration)
                                                   .setPath(path)
                                                   .setIndexPath(indexPath)
                                                   .setColumn(column)
@@ -55,10 +55,10 @@ public class ParquetBundleReader {
     }
 
     private class ParquetReaderState {
-        private ParquetReader reader;
+        private ParquetColumnReader reader;
         private GeneralValuesReader valuesReader;
 
-        public ParquetReaderState(ParquetReader reader) throws IOException {
+        public ParquetReaderState(ParquetColumnReader reader) throws IOException {
             this.reader = reader;
             this.valuesReader = reader.getNextValuesReader();
         }
@@ -71,7 +71,7 @@ public class ParquetBundleReader {
             return valuesReader;
         }
 
-        public void setReader(ParquetReader reader) {
+        public void setReader(ParquetColumnReader reader) {
             this.reader = reader;
         }
 

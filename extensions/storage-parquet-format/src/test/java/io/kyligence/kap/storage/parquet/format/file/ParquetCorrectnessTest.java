@@ -35,7 +35,7 @@ public class ParquetCorrectnessTest {
 
     @Test
     public void ReadPageByPageIndex() throws Exception{
-        ParquetWriter writer = new ParquetWriterBuilder().setConf(new Configuration())
+        ParquetRawWriter writer = new ParquetRawWriterBuilder().setConf(new Configuration())
                 .setPath(path)
                 .setType(type)
                 .build();
@@ -44,7 +44,7 @@ public class ParquetCorrectnessTest {
         }
         writer.close();
 
-        ParquetReader reader = new ParquetReaderBuilder().setPath(path)
+        ParquetRawReader reader = new ParquetRawReaderBuilder().setPath(path)
                 .setConf(new Configuration())
                 .build();
         GeneralValuesReader valuesReader = reader.getValuesReader(ParquetConfig.PagesPerGroup - 1, 0);
@@ -58,7 +58,7 @@ public class ParquetCorrectnessTest {
 
     @Test
     public void ReadNextPage() throws Exception{
-        ParquetWriter writer = new ParquetWriterBuilder().setConf(new Configuration())
+        ParquetRawWriter writer = new ParquetRawWriterBuilder().setConf(new Configuration())
                 .setPath(path)
                 .setType(type)
                 .build();
@@ -67,7 +67,7 @@ public class ParquetCorrectnessTest {
         }
         writer.close();
 
-        ParquetReader reader = new ParquetReaderBuilder().setPath(path)
+        ParquetColumnReader reader = new ParquetColumnReaderBuilder().setPath(path)
                 .setConf(new Configuration())
                 .build();
         for (int i = 0; i < ParquetConfig.PagesPerGroup; ++i) {
