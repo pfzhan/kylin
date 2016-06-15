@@ -95,6 +95,10 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_CUBE_ID, cube.getUuid());
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_SEGMENT_ID, cubeSeg.getUuid());
 
+            // set path for output
+            job.getConfiguration().set(ParquetFormatConstants.KYLIN_OUTPUT_DIR, getWorkingDir(config, cube, cubeSeg));
+            logger.info("Kylin Working directory: " + getWorkingDir(config, cube, cubeSeg));
+
             // set input
             IMRInput.IMRTableInputFormat flatTableInputFormat = MRUtil.getBatchCubingInputSide(cubeSeg).getFlatTableInputFormat();
             flatTableInputFormat.configureJob(job);
@@ -131,6 +135,15 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
             if (job != null)
                 cleanupTempConfFile(job.getConfiguration());
         }
+    }
+
+    private String getWorkingDir(KylinConfig config, CubeInstance cube, CubeSegment cubeSegment) {
+        logger.info("get Hdfs Working Directory: " + config.getHdfsWorkingDirectory());
+        return new StringBuffer(config.getHdfsWorkingDirectory())
+                .append("parquet/")
+                .append(cube.getUuid()).append("/")
+                .append(cubeSegment.getUuid()).append("/")
+                .toString();
     }
 
     private int calculateReducerNum(CubeSegment cubeSeg) throws IOException {

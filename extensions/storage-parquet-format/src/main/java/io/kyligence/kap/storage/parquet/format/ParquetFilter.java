@@ -16,16 +16,13 @@ public class ParquetFilter extends Configured implements PathFilter {
     @Override
     public boolean accept(Path path) {
         Matcher m = pattern.matcher(path.toString());
-        System.out.println("Is path : " + path.toString() + " matching "
-                + conf.get("file.pattern") + " ? , " + m.matches());
-        return !m.matches();
+        return m.matches();
     }
 
     @Override
     public void setConf(Configuration conf) {
         this.conf = conf;
-        pattern = Pattern.compile("parquetindex$");
-        //pattern = Pattern.compile(conf.get("file.pattern"));
+        pattern = Pattern.compile("parquet$");
     }
 }
 

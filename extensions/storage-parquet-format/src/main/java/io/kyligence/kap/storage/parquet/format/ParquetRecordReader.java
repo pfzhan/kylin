@@ -51,7 +51,6 @@ public class ParquetRecordReader  <K,V> extends RecordReader<K, V> {
         FileSplit fileSplit = (FileSplit) split;
         conf = context.getConfiguration();
         Path path = fileSplit.getPath();
-        System.out.println("Get Path: " + path.toString());
         FileSystem fs = path.getFileSystem(conf);
         shardPath = new ArrayList<>();
         shardPath.add(path);

@@ -2,6 +2,7 @@ package io.kyligence.kap.engine.mr.steps;
 
 import io.kyligence.kap.storage.parquet.format.ParquetFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetFileOutputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetFilter;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
@@ -175,22 +176,18 @@ public class KapCuboidJob extends AbstractHadoopJob {
 
             for (long parent: parentSet) {
                 Path path = new Path(getWorkingDir(config, cube, cubeSegment) + parent);
-                //FileInputFormat.addInputPath(job, path);
                 addParquetInputFile(job.getConfiguration(), path);
-                //FileInputFormat.setInputPathFilter(job, ParquetFilter.class);
-                System.out.println("Parent input path: " + path.getName());
             }
         }
     }
 
     private void addParquetInputFile(Configuration config, Path path) throws IOException {
         FileSystem fs = FileSystem.get(config);
+        FileInputFormat.setInputPathFilter(job, ParquetFilter.class);
         if (fs.isDirectory(path)) {
             for (FileStatus fileStatus : fs.listStatus(path)) {
                 Path p = fileStatus.getPath();
-                if (isParquetFile(p)) {
-                    FileInputFormat.addInputPath(job, p);
-                }
+                FileInputFormat.addInputPath(job, p);
             }
         }
     }
