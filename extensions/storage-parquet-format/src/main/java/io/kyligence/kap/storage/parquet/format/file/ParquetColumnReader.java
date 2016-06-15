@@ -15,6 +15,10 @@ public class ParquetColumnReader {
         this.column = column;
     }
 
+    public int getPageIndex() {
+        return curPage;
+    }
+
     /**
      * Get next page values reader
      * @return values reader, if returns null, there's no page left
