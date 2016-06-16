@@ -82,8 +82,6 @@ public class ParquetRecordReader  <K,V> extends RecordReader<K, V> {
             }
         }
 
-        // if we hit here, data should not be null
-
         // key
         byte[] keyBytes = ((Binary)data.get(0)).getBytes();
         ByteArray keyByteArray= new ByteArray(keyBytes.length + 10);
@@ -91,13 +89,26 @@ public class ParquetRecordReader  <K,V> extends RecordReader<K, V> {
         key = (K)new Text(keyByteArray.array());
 
         // value
-        byte[] valueBytes = null;
-        for (int i = 1; i < data.size(); ++i) {
-            valueBytes = ArrayUtils.addAll(valueBytes, ((Binary)data.get(i)).getBytes());
-        }
-        val = (V)new Text(valueBytes);
+        setVal(data);
 
         return true;
+    }
+
+    private void setVal(List<Object> data) {
+        int valueBytesLength = 0;
+        for (int i = 1; i < data.size(); ++i) {
+            valueBytesLength += ((Binary)data.get(i)).getBytes().length;
+        }
+        byte[] valueBytes = new byte[valueBytesLength];
+
+        int offset = 0;
+        for (int i = 1; i < data.size(); ++i) {
+            byte[] src = ((Binary)data.get(i)).getBytes();
+            System.arraycopy(src, 0, valueBytes, offset, src.length);
+            offset += src.length;
+        }
+
+        val = (V)new Text(valueBytes);
     }
 
     private void setCurrentCuboidShard(Path path) {

@@ -14,37 +14,14 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.List;
 
-public class ParquetBundleReaderTest {
-    private Path path, indexPath;
-    private static String tempFilePath;
-    private int groupSize = ParquetConfig.PagesPerGroup * ParquetConfig.RowsPerPage;
-    private MessageType type;
-
+public class ParquetBundleReaderTest extends AbstractParquetFormatTest{
     public ParquetBundleReaderTest() throws IOException {
-        path = new Path("./a.parquet");
-        indexPath = new Path("./a.parquetindex");
-        cleanTestFile(path);
-        type = new MessageType("test",
-                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "key1"),
-                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "m1"),
-                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "m2"));
-    }
-
-    @After
-    public void cleanup() throws IOException {
-        cleanTestFile(path);
+        super();
     }
 
     @Test
     public void ReadInBundle() throws Exception{
-        ParquetRawWriter writer = new ParquetRawWriterBuilder().setConf(new Configuration())
-                .setPath(path)
-                .setType(type)
-                .build();
-        for (int i = 0; i < (groupSize - 1); ++i) {
-            writer.writeRow(new byte[]{1, 2, 3}, 1, 2, new byte[]{4, 5}, new int[]{1, 1});
-        }
-        writer.close();
+        writeRows(groupSize - 1);
 
         ParquetBundleReader bundleReader = new ParquetBundleReaderBuilder().setPath(path).setConf(new Configuration()).build();
         List<Object> data = bundleReader.read();
@@ -57,16 +34,5 @@ public class ParquetBundleReaderTest {
 
         Assert.assertNull(bundleReader.read());
         bundleReader.close();
-    }
-
-    private void cleanTestFile(Path path) throws IOException {
-        FileSystem fs = FileSystem.get(new Configuration());
-        if (fs.exists(path)) {
-            fs.deleteOnExit(path);
-        }
-
-        if (fs.exists(indexPath)) {
-            fs.deleteOnExit(indexPath);
-        }
     }
 }

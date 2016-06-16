@@ -89,10 +89,6 @@ public class ParquetRecordWriter <K,V> extends RecordWriter<K, V>{
         if (writer == null) {
             List<Type> types = new ArrayList<Type>();
 
-            // dimension
-//            for (TblColRef column : rowKeyDecoder.getColumns()) {
-//                types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, column.getName()));
-//            }
             types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, "Row Key"));
 
             // measures

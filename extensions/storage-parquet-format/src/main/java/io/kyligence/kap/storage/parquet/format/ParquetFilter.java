@@ -10,19 +10,16 @@ import java.util.regex.Pattern;
 
 public class ParquetFilter extends Configured implements PathFilter {
 
-    Pattern pattern;
     Configuration conf;
 
     @Override
     public boolean accept(Path path) {
-        Matcher m = pattern.matcher(path.toString());
-        return m.matches();
+        return path.getName().endsWith("parquet");
     }
 
     @Override
     public void setConf(Configuration conf) {
         this.conf = conf;
-        pattern = Pattern.compile("parquet$");
     }
 }
 

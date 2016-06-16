@@ -172,6 +172,7 @@ public class KapCuboidJob extends AbstractHadoopJob {
 
             for (long parent : parentSet) {
                 Path path = new Path(getWorkingDir(config, cube, cubeSegment) + parent);
+                //FileInputFormat.setInputPathFilter(job, ParquetFilter.class);
                 addParquetInputFile(job.getConfiguration(), path);
             }
         }
@@ -179,7 +180,6 @@ public class KapCuboidJob extends AbstractHadoopJob {
 
     private void addParquetInputFile(Configuration config, Path path) throws IOException {
         FileSystem fs = FileSystem.get(config);
-        //FileInputFormat.setInputPathFilter(job, ParquetFilter.class);
         if (fs.isDirectory(path)) {
             for (FileStatus fileStatus : fs.listStatus(path)) {
                 Path p = fileStatus.getPath();
