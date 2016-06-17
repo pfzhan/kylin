@@ -25,8 +25,9 @@ import java.util.List;
 public class ParquetRawReader {
     private ParquetMetadata parquetMetadata;
     private FSDataInputStream inputStream;
-    private ParquetIndexReader indexReader;
     private Configuration config;
+
+    protected ParquetIndexReader indexReader;
 
     public ParquetRawReader(Configuration configuration, Path path, Path indexPath) throws IOException{
         config = configuration;
@@ -70,7 +71,7 @@ public class ParquetRawReader {
         return parquetMetadata.getFileMetaData().getSchema().getColumns().size();
     }
 
-    private GeneralValuesReader getValuesReaderFromOffset(int rowGroup, int column, long offset) throws IOException {
+    protected GeneralValuesReader getValuesReaderFromOffset(int rowGroup, int column, long offset) throws IOException {
         BlockMetaData blockMetaData = parquetMetadata.getBlocks().get(rowGroup);
         ColumnChunkMetaData columnChunkMetaData = blockMetaData.getColumns().get(column);
 

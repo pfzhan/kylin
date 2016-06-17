@@ -14,14 +14,14 @@ public abstract  class AbstractParquetFormatTest {
     protected Path path, indexPath;
     protected static String tempFilePath;
     protected int groupSize = ParquetConfig.PagesPerGroup * ParquetConfig.RowsPerPage;
-    private MessageType type;
+    protected MessageType type;
 
     public AbstractParquetFormatTest() throws IOException {
         path = new Path("./a.parquet");
         indexPath = new Path("./a.parquetindex");
         cleanTestFile(path);
         type = new MessageType("test",
-                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "key1"),
+                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 2, "key1"),
                 new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "m1"),
                 new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "m2"));
     }
