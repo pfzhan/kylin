@@ -1,5 +1,6 @@
 package io.kyligence.kap.storage.parquet.format.file;
 
+import io.kyligence.kap.common.KAPKylinConfig;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
@@ -11,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ParquetRawWriterBuilder {
+    private KAPKylinConfig kylinConfig;
     private String indexPathSuffix = "index";
     private Configuration conf = null;
     private MessageType type = null;
@@ -79,7 +81,10 @@ public class ParquetRawWriterBuilder {
         return this;
     }
 
-    public ParquetRawWriterBuilder(){}
+    public ParquetRawWriterBuilder(){
+        kylinConfig = KAPKylinConfig.getInstanceFromEnv();
+        this.rowsPerPage = kylinConfig.getParquetRowsPerPage();
+    }
 
     public ParquetRawWriter build() throws IOException {
         if (conf == null) {

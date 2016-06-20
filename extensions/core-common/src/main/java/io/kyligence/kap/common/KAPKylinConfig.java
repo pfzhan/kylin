@@ -31,7 +31,7 @@ public class KAPKylinConfig extends KylinConfig {
         this.config = config;
     }
 
-    public int getParquetPageCut() {
-        return Integer.parseInt(getOptional("kap.parquet.page.cut", String.valueOf(10)));
+    public int getParquetRowsPerPage() {
+        return Integer.parseInt(getOptional("kap.parquet.rows.per.page", String.valueOf(10000)));
     }
 }
