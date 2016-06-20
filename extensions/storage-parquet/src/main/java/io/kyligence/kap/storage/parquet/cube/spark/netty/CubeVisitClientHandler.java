@@ -21,34 +21,21 @@ package io.kyligence.kap.storage.parquet.cube.spark.netty;
 import java.nio.ByteBuffer;
 
 import org.apache.kylin.common.util.Bytes;
-import org.apache.kylin.common.util.BytesUtil;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
-public class CubeVisitServerHandler extends ChannelInboundHandlerAdapter {
+public class CubeVisitClientHandler extends ChannelInboundHandlerAdapter {
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) { // (2)
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
         ByteBuffer in = (ByteBuffer) msg;
-        int[] requestData = BytesUtil.readIntArray(in);
-        System.out.println(requestData);
-
-        long sum = 0;
-        for (int i = 0; i < requestData.length; i++) {
-            sum += requestData[i];
-        }
-
-        byte[] responseBody = Bytes.toBytes(sum);
-        final ByteBuf buf = ctx.alloc().buffer(4 + responseBody.length);
-        buf.writeInt(responseBody.length);
-        buf.writeBytes(responseBody);
-        ctx.writeAndFlush(buf);
+        byte[] data = new byte[in.remaining()];
+        in.get(data);
+        System.out.println("The sum is " + Bytes.toLong(data));
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) { // (4)
-        // Close the connection when an exception is raised.
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         cause.printStackTrace();
         ctx.close();
     }
