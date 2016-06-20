@@ -17,13 +17,12 @@ public class ParquetMROutput3Transition implements IMROutput3 {
 
             @Override
             public void addStepPhase2_BuildDictionary(DefaultChainedExecutable jobFlow) {
-//                jobFlow.addTask(steps.createCreateHTableStepWithStats(jobFlow.getId()));
+                // nothing to do
             }
 
             @Override
             public void addStepPhase3_BuildCube(DefaultChainedExecutable jobFlow, String cuboidRootPath) {
-//                jobFlow.addTask(steps.createConvertCuboidToHfileStep(cuboidRootPath, jobFlow.getId()));
-//                jobFlow.addTask(steps.createBulkLoadStep(jobFlow.getId()));
+                jobFlow.addTask(steps.createParquetPageIndex(jobFlow.getId()));
             }
 
             @Override

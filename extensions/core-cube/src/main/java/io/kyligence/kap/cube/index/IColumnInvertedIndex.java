@@ -23,24 +23,28 @@ import java.io.IOException;
 
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
-public interface IColumnInvertedIndex {
+public interface IColumnInvertedIndex<T> {
 
     Builder rebuild();
 
     Reader getReader();
 
-    public interface Builder extends Closeable {
+    public interface Builder<T> extends Closeable {
 
         // one integer per row
-        void putNextRow(int v);
+        void putNextRow(T value);
 
         // several integers per row
-        void putNextRow(int[] v);
+        void putNextRow(T[] value);
+
+        void appendToRow(T value, int row);
+
+        void appendToRow(T[] value, int row);
     }
 
-    public interface Reader extends Closeable {
+    public interface Reader<T> extends Closeable {
 
-        ImmutableRoaringBitmap getRows(int v);
+        ImmutableRoaringBitmap getRows(T v);
 
         int getNumberOfRows();
     }

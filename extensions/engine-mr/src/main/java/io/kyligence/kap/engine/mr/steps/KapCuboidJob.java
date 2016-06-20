@@ -1,9 +1,9 @@
 package io.kyligence.kap.engine.mr.steps;
 
-import io.kyligence.kap.storage.parquet.format.ParquetFileInputFormat;
-import io.kyligence.kap.storage.parquet.format.ParquetFileOutputFormat;
-import io.kyligence.kap.storage.parquet.format.ParquetFilter;
-import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -35,9 +35,9 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
+import io.kyligence.kap.storage.parquet.format.ParquetFileInputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetFileOutputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 
 public class KapCuboidJob extends AbstractHadoopJob {
 
@@ -152,11 +152,7 @@ public class KapCuboidJob extends AbstractHadoopJob {
     }
 
     private String getWorkingDir(KylinConfig config, CubeInstance cube, CubeSegment cubeSegment) {
-        return new StringBuffer(config.getHdfsWorkingDirectory())
-                .append("parquet/")
-                .append(cube.getUuid()).append("/")
-                .append(cubeSegment.getUuid()).append("/")
-                .toString();
+        return new StringBuffer(config.getHdfsWorkingDirectory()).append("parquet/").append(cube.getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
     }
 
     private void setInputFiles(KylinConfig config, int level, CubeInstance cube, CubeSegment cubeSegment, CubeDesc desc) throws IOException {
@@ -168,13 +164,13 @@ public class KapCuboidJob extends AbstractHadoopJob {
             CuboidScheduler scheduler = new CuboidScheduler(desc);
             for (int i = 0; i < (level - 1); ++i) {
                 childSet = new HashSet<Long>();
-                for (long parent: parentSet) {
+                for (long parent : parentSet) {
                     childSet.addAll(scheduler.getSpanningCuboid(parent));
                 }
                 parentSet = childSet;
             }
 
-            for (long parent: parentSet) {
+            for (long parent : parentSet) {
                 Path path = new Path(getWorkingDir(config, cube, cubeSegment) + parent);
                 addParquetInputFile(job.getConfiguration(), path);
             }
@@ -183,11 +179,13 @@ public class KapCuboidJob extends AbstractHadoopJob {
 
     private void addParquetInputFile(Configuration config, Path path) throws IOException {
         FileSystem fs = FileSystem.get(config);
-        FileInputFormat.setInputPathFilter(job, ParquetFilter.class);
+        //FileInputFormat.setInputPathFilter(job, ParquetFilter.class);
         if (fs.isDirectory(path)) {
             for (FileStatus fileStatus : fs.listStatus(path)) {
                 Path p = fileStatus.getPath();
-                FileInputFormat.addInputPath(job, p);
+                if (isParquetFile(p)) {
+                    FileInputFormat.addInputPath(job, p);
+                }
             }
         }
     }

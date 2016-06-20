@@ -9,6 +9,11 @@ public class ColumnIndexFactory {
     }
 
     public static IColumnInvertedIndex createLocalInvertedIndex(String colName, int cardinality, String localIdxFilename) {
-        return new GTColumnInvertedIndex(colName, cardinality, localIdxFilename);
+        return new GTColumnInvertedIndex(localIdxFilename, colName, cardinality);
     }
+
+    public static IColumnInvertedIndex createLocalInvertedIndexForReader(String localIdxFilename) {
+        return new GTColumnInvertedIndex(localIdxFilename);
+    }
+
 }

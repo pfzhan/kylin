@@ -48,6 +48,12 @@
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-storage-parquet-format</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-engine-mr</artifactId>
             <version>${kylin.version}</version>
@@ -57,6 +63,7 @@
             <artifactId>kylin-core-storage</artifactId>
             <version>${kylin.version}</version>
         </dependency>
+
         <dependency>
             <groupId>org.apache.parquet</groupId>
             <artifactId>parquet-hadoop-bundle</artifactId>
