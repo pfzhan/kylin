@@ -19,9 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public class ParquetRawWriter {
     private static final Logger logger = LoggerFactory.getLogger(ParquetRawWriter.class);
@@ -31,7 +29,6 @@ public class ParquetRawWriter {
 
     private Configuration conf;
     private ParquetFileWriter writer;
-    private ParquetIndexWriter indexWriter;
     private MessageType schema;
     private int columnCnt;
 
@@ -48,6 +45,8 @@ public class ParquetRawWriter {
     private List<Encoding> dataEncodings;
     private CompressionCodecName codecName;
 
+    private Map<String, String> indexMap;
+
     public ParquetRawWriter(Configuration conf,             // hadoop configuration
                             MessageType schema,             // parquet file row schema
                             Path path,                      // parquet file path
@@ -60,7 +59,6 @@ public class ParquetRawWriter {
                             int pagesPerGroup               // the number of pages in one row group
     ) throws IOException {
         writer = new ParquetFileWriter(conf, schema, path);
-        indexWriter = new ParquetIndexWriter(conf, indexPath);
         this.conf = conf;
         this.schema = schema;
         this.codecName = codecName;
@@ -70,6 +68,8 @@ public class ParquetRawWriter {
         this.rowsPerPage = rowsPerPage;
         this.pagesPerGroup = pagesPerGroup;
         columnCnt = schema.getColumns().size();
+        indexMap = new HashMap<>();
+        indexMap.put("pagesPerGroup", String.valueOf(pagesPerGroup));
 
         writer.start();
         initRowBuffer();
@@ -93,10 +93,7 @@ public class ParquetRawWriter {
     public void close() throws IOException {
         // close parquet file
         flush();
-        writer.end(new HashMap<String, String>());
-
-        // close index file
-        indexWriter.close();
+        writer.end(indexMap);
     }
 
     // TODO: this writeRow is not pure, should be refactored
@@ -221,7 +218,7 @@ public class ParquetRawWriter {
         for (int i = 0; i < columnCnt; ++i) {
             writer.startColumn(schema.getColumns().get(i), currentRowCntInGroup, codecName);
             for (int j = 0; j < currentPageCntInGroup; ++j) {
-                indexWriter.addIndex(currentRowGroup, i, j, writer.getPos());
+                addIndex(currentRowGroup, i, j, writer.getPos());
                 BytesInput bi = pageBuffer[i][j].getBi();
                 CompressionCodec compressionCodec = CodecFactory.getCodec(codecName, conf);
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -248,6 +245,10 @@ public class ParquetRawWriter {
         currentRowGroup++;
         currentPageCntInGroup = 0;
         currentRowCntInGroup = 0;
+    }
+
+    private void addIndex(int group, int column, int page, long pos) {
+        indexMap.put(group + "," + column + "," + page, String.valueOf(pos));
     }
 
     private class PageBuffer{

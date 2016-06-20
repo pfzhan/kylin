@@ -20,14 +20,17 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.parquet.schema.MessageType;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class ParquetRawReader {
     private ParquetMetadata parquetMetadata;
     private FSDataInputStream inputStream;
     private Configuration config;
 
-    protected ParquetIndexReader indexReader;
+    protected int pagesPerGroup = 0;
+    protected Map<String, String> indexMap;
 
     public ParquetRawReader(Configuration configuration, Path path, Path indexPath) throws IOException{
         config = configuration;
@@ -35,7 +38,8 @@ public class ParquetRawReader {
         FileSystem fileSystem = FileSystem.get(config);
         inputStream = fileSystem.open(path);
 
-        indexReader = new ParquetIndexReader(configuration, indexPath);
+        indexMap = parquetMetadata.getFileMetaData().getKeyValueMetaData();
+        pagesPerGroup = Integer.parseInt(indexMap.get("pagesPerGroup"));
     }
 
     public MessageType getSchema() {
@@ -44,7 +48,7 @@ public class ParquetRawReader {
 
     public void close() throws IOException {
         inputStream.close();
-        indexReader.close();
+        //indexReader.close();
     }
 
     /**
@@ -54,16 +58,17 @@ public class ParquetRawReader {
      * @return values reader, if returns null, there's no such page
      */
     public GeneralValuesReader getValuesReader(int globalPageIndex, int column) throws IOException {
-        List<ParquetIndexReader.GroupOffsetPair> indexBundleList = indexReader.getOffsets(column);
-        if (globalPageIndex >= indexBundleList.size()) {
+        int group = globalPageIndex / pagesPerGroup;
+        int page = globalPageIndex % pagesPerGroup;
+        if (!indexMap.containsKey(group + "," + column + "," + page)) {
             return null;
         }
-        ParquetIndexReader.GroupOffsetPair indexBundle = indexBundleList.get(globalPageIndex);
-        return getValuesReaderFromOffset(indexBundle.getGroup(), column, indexBundle.getOffset());
+        long offset = Long.parseLong(indexMap.get(group + "," + column + "," + page));
+        return getValuesReaderFromOffset(group, column, offset);
     }
 
     public GeneralValuesReader getValuesReader(int rowGroup, int column, int pageIndex) throws IOException {
-        long pageOffset = indexReader.getOffset(rowGroup, column, pageIndex);
+        long pageOffset = Long.parseLong(indexMap.get(rowGroup + "," + column + "," + pageIndex));
         return getValuesReaderFromOffset(rowGroup, column, pageOffset);
     }
 
