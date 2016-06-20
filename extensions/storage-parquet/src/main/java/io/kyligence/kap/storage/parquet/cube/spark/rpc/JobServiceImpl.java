@@ -16,34 +16,22 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.storage.parquet.cube.spark.netty;
+package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
-import java.nio.ByteBuffer;
-import java.util.List;
+import com.google.protobuf.ByteString;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.ByteToMessageDecoder;
+import io.grpc.stub.StreamObserver;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.JobServiceGrpc;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobRequest;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobResponse;
 
-public class IntegerHeaderFrameDecoder extends ByteToMessageDecoder {
+public class JobServiceImpl implements JobServiceGrpc.JobService {
 
     @Override
-    protected void decode(ChannelHandlerContext ctx, ByteBuf buf, List<Object> out) throws Exception {
-
-        if (buf.readableBytes() < 4) {
-            return;
-        }
-
-        buf.markReaderIndex();
-        int length = buf.readInt();
-
-        if (buf.readableBytes() < length) {
-            buf.resetReaderIndex();
-            return;
-        }
-
-        byte[] buffer = new byte[length];
-        buf.readBytes(buffer);
-        out.add(ByteBuffer.wrap(buffer));
+    public void submitJob(SparkJobRequest request, StreamObserver<SparkJobResponse> responseObserver) {
+        System.out.println("Hello");
+        SparkJobResponse response = SparkJobResponse.newBuilder().setResponse(ByteString.copyFromUtf8("Hi Client")).build();
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
     }
 }
