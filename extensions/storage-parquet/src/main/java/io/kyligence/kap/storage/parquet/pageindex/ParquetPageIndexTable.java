@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.NavigableSet;
 import java.util.Set;
 
-import io.kyligence.kap.storage.parquet.pageindex.AbstractParquetPageIndexTable;
+import io.kyligence.kap.storage.parquet.pageIndex.AbstractParquetPageIndexTable;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;

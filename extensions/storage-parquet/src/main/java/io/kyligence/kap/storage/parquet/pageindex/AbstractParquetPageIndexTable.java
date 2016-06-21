@@ -1,4 +1,4 @@
-package io.kyligence.kap.storage.parquet.pageindex;
+package io.kyligence.kap.storage.parquet.pageIndex;
 
 import org.apache.kylin.metadata.filter.ColumnTupleFilter;
 import org.apache.kylin.metadata.filter.LogicalTupleFilter;
