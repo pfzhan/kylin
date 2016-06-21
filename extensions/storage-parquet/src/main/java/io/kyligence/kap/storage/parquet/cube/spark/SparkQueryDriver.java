@@ -21,13 +21,10 @@ package io.kyligence.kap.storage.parquet.cube.spark;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.util.AbstractApplication;
 import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.JobServer;
 
 public class SparkQueryDriver extends AbstractApplication {
 
@@ -46,11 +43,8 @@ public class SparkQueryDriver extends AbstractApplication {
 
     @Override
     protected void execute(OptionsHelper optionsHelper) throws Exception {
-//        SparkConf conf = new SparkConf().setAppName("Kylin Parquet Storage Query Driver");
-//        JavaSparkContext sc = new JavaSparkContext(conf);
-//        JavaRDD<Integer> data = sc.parallelize(Lists.newArrayList(1, 2, 3, 4, 5));
-//
-//        long result = data.count();
-//        System.out.println("The result is " + result);
+        JobServer server = new JobServer();
+        server.start();
+        server.blockUntilShutdown();
     }
 }

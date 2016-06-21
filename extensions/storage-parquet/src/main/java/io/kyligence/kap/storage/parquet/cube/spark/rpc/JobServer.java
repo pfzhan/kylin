@@ -34,7 +34,7 @@ public class JobServer {
     private int port = 50051;
     private Server server;
 
-    private void start() throws IOException {
+    public void start() throws IOException {
         server = ServerBuilder.forPort(port).addService(JobServiceGrpc.bindService(new JobServiceImpl())).build().start();
         logger.info("Server started, listening on " + port);
         Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -57,7 +57,7 @@ public class JobServer {
     /**
      * Await termination on the main thread since the grpc library uses daemon threads.
      */
-    private void blockUntilShutdown() throws InterruptedException {
+    public void blockUntilShutdown() throws InterruptedException {
         if (server != null) {
             server.awaitTermination();
         }
