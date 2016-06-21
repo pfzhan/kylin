@@ -1,4 +1,4 @@
-package io.kyligence.kap.storage.parquet.pageindex;
+package io.kyligence.kap.storage.parquet.pageIndex;
 
 import java.io.IOException;
 import java.util.Comparator;
@@ -6,16 +6,16 @@ import java.util.HashMap;
 import java.util.NavigableSet;
 import java.util.Set;
 
-import com.google.api.client.util.Maps;
+import io.kyligence.kap.storage.parquet.pageindex.AbstractParquetPageIndexTable;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.kylin.common.util.ByteArray;
-import org.apache.kylin.metadata.filter.ColumnTupleFilter;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
+import com.google.api.client.util.Maps;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 

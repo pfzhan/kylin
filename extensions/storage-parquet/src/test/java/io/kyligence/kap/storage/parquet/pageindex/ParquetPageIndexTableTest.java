@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Random;
 
+import io.kyligence.kap.storage.parquet.pageIndex.ParquetPageIndexTable;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -86,7 +87,7 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         ParquetPageIndexTable indexTable = new ParquetPageIndexTable(inputStream);
         TupleFilter filter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.EQ);
         filter.addChild(new ColumnTupleFilter(ColumnDesc.mockup(null, 1, "1", "int").getRef()));
-        filter.addChild(new ConstantTupleFilter(new ByteArray(new byte[] { 0, 0, 0,0,0,0 })));
+        filter.addChild(new ConstantTupleFilter(new ByteArray(new byte[] { 0, 0, 0, 0, 0, 0 })));
         Iterable<Integer> result = indexTable.lookup(filter);
         for (int r : result) {
             System.out.println(r);

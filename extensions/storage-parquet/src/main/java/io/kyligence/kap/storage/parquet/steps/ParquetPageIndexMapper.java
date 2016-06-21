@@ -120,7 +120,6 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
         if (counter % BatchConstants.NORMAL_RECORD_LOG_THRESHOLD == 0) {
             logger.info("Handled " + counter + " records!");
         }
-        logger.info("Key Length: {}, Value: {}", key.getBytes().length, value.get());
         indexBundleWriter.write(key.getBytes(), value.get());
     }
 
