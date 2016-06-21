@@ -104,7 +104,7 @@ public class GTColumnInvertedIndexTest extends LocalFileMetadataTestCase {
         Random random = new Random();
         for (int i = 0; i < indexTotalNum; i++) {
             int arrNum = random.nextInt(3);
-            int[] randArr = new int[arrNum];
+            Integer[] randArr = new Integer[arrNum];
             for (int j = 0; j < arrNum; j++) {
                 randArr[j] = random.nextInt(dict.getSize());
                 if (!resultMap.containsKey(j)) {
