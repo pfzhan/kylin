@@ -1,5 +1,6 @@
 package io.kyligence.kap.storage.parquet.format.file;
 
+import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -7,10 +8,11 @@ import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
 import org.junit.After;
+import org.junit.Before;
 
 import java.io.IOException;
 
-public abstract  class AbstractParquetFormatTest {
+public abstract  class AbstractParquetFormatTest extends LocalFileMetadataTestCase{
     protected Path path, indexPath;
     protected static String tempFilePath;
     protected int groupSize = ParquetConfig.PagesPerGroup * ParquetConfig.RowsPerPage;
@@ -29,6 +31,12 @@ public abstract  class AbstractParquetFormatTest {
     @After
     public void cleanup() throws IOException {
         cleanTestFile(path);
+        cleanAfterClass();
+    }
+
+    @Before
+    public void setup() {
+        createTestMetadata();
     }
 
     protected void writeRows(int rowCnt) throws Exception {
