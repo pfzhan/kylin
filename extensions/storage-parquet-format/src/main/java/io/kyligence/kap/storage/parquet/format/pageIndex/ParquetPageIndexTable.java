@@ -1,25 +1,23 @@
-package io.kyligence.kap.storage.parquet.pageIndex;
+package io.kyligence.kap.storage.parquet.format.pageIndex;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.NavigableSet;
 import java.util.Set;
 
-import io.kyligence.kap.storage.parquet.pageIndex.AbstractParquetPageIndexTable;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.kylin.common.util.ByteArray;
+import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
-import com.google.api.client.util.Maps;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
-import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexReader;
 
 /**
  * Created by dongli on 5/31/16.
@@ -27,7 +25,7 @@ import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexReader;
 public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
     ParquetPageIndexReader indexReader;
     NavigableSet<CompareTupleFilter> columnFilterSet = Sets.newTreeSet(getCompareTupleFilterComparator());
-    HashMap<CompareTupleFilter, MutableRoaringBitmap> filterIndexMap = Maps.newHashMap();
+    HashMap<CompareTupleFilter, MutableRoaringBitmap> filterIndexMap = new HashMap<>();
 
     public ParquetPageIndexTable(FSDataInputStream inputStream) throws IOException {
         indexReader = new ParquetPageIndexReader(inputStream);
@@ -35,6 +33,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
 
     public MutableRoaringBitmap lookColumnIndex(int column, TupleFilter.FilterOperatorEnum compareOp, Set<ByteArray> vals) {
         MutableRoaringBitmap result = null;
+        ByteArray val = null;
         switch (compareOp) {
         // more Operator
         case ISNULL:
@@ -44,22 +43,29 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
         case NOTIN:
         case IN:
             result = MutableRoaringBitmap.bitmapOf();
-            for (ByteArray val : vals) {
+            for (ByteArray v : vals) {
                 result.or(indexReader.readColumnIndex(column).lookupEqIndex(val));
             }
             break;
         case EQ:
         case NEQ:
-            result = indexReader.readColumnIndex(column).lookupEqIndex(Iterables.getOnlyElement(vals)).toMutableRoaringBitmap();
+            val = Iterables.getOnlyElement(vals);
+            result = indexReader.readColumnIndex(column).lookupEqIndex(val).toMutableRoaringBitmap();
             break;
         case GT:
         case GTE:
-            // should differ GT and GTE
+            val = Iterables.getOnlyElement(vals);
+            if (compareOp == TupleFilter.FilterOperatorEnum.GT) {
+                incrementByteArray(val, 1);
+            }
             result = indexReader.readColumnIndex(column).lookupGtIndex(Iterables.getOnlyElement(vals)).toMutableRoaringBitmap();
             break;
         case LT:
         case LTE:
-            // should differ LT and LTE
+            val = Iterables.getOnlyElement(vals);
+            if (compareOp == TupleFilter.FilterOperatorEnum.LT) {
+                incrementByteArray(val, -1);
+            }
             result = indexReader.readColumnIndex(column).lookupLtIndex(Iterables.getOnlyElement(vals)).toMutableRoaringBitmap();
             break;
         default:
@@ -86,6 +92,12 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             }
         }
         return lookColumnIndex(column.getColumnDesc().getZeroBasedIndex(), filter.getOperator(), conditionVals);
+    }
+
+    private void incrementByteArray(ByteArray val, int c) {
+        int v = BytesUtil.readUnsigned(val.array(), val.offset(), val.length()) + c;
+        Arrays.fill(val.array(), val.offset(), val.length(), (byte)0);
+        BytesUtil.writeUnsigned(v, val.array(), val.offset(), val.length());
     }
 
     private void collectCompareTupleFilter(TupleFilter rootFilter) {
@@ -136,5 +148,10 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
                 return thisCol - otherCol;
             }
         };
+    }
+
+    @Override
+    public void close() throws IOException {
+        indexReader.close();
     }
 }

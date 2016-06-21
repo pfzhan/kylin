@@ -109,8 +109,11 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
 
         NavigableMap<ByteArray, MutableRoaringBitmap> auxiliaryIndexMap = Maps.newTreeMap();
         MutableRoaringBitmap lastValue = MutableRoaringBitmap.bitmapOf();
+        MutableRoaringBitmap currValue = null;
         for (Map.Entry<ByteArray, MutableRoaringBitmap> indexEntry : indexMap.entrySet()) {
-            auxiliaryIndexMap.put(indexEntry.getKey(), MutableRoaringBitmap.or(lastValue, indexEntry.getValue()));
+            currValue = MutableRoaringBitmap.or(lastValue, indexEntry.getValue());
+            auxiliaryIndexMap.put(indexEntry.getKey(), currValue);
+            lastValue = currValue;
         }
         writeIndex(auxiliaryIndexMap);
 
@@ -119,7 +122,9 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
         auxiliaryIndexMap = Maps.newTreeMap();
         lastValue = MutableRoaringBitmap.bitmapOf();
         for (Map.Entry<ByteArray, MutableRoaringBitmap> indexEntry : indexMap.descendingMap().entrySet()) {
-            auxiliaryIndexMap.put(indexEntry.getKey(), MutableRoaringBitmap.or(lastValue, indexEntry.getValue()));
+            currValue = MutableRoaringBitmap.or(lastValue, indexEntry.getValue());
+            auxiliaryIndexMap.put(indexEntry.getKey(), currValue);
+            lastValue = currValue;
         }
         writeIndex(auxiliaryIndexMap);
     }

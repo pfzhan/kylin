@@ -1,4 +1,4 @@
-package io.kyligence.kap.storage.parquet.pageIndex;
+package io.kyligence.kap.storage.parquet.format.pageIndex;
 
 import org.apache.kylin.metadata.filter.ColumnTupleFilter;
 import org.apache.kylin.metadata.filter.LogicalTupleFilter;
@@ -6,12 +6,14 @@ import org.apache.kylin.metadata.filter.TupleFilter;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
+import java.io.Closeable;
+
 /**
  * Created by dong on 16/6/17.
  */
-public abstract class AbstractParquetPageIndexTable {
+public abstract class AbstractParquetPageIndexTable implements Closeable {
 
-    public Iterable<Integer> lookup(TupleFilter filter) {
+    public ImmutableRoaringBitmap lookup(TupleFilter filter) {
         return lookupFlattenFilter(flattenToOrAndFilter(filter));
     }
 

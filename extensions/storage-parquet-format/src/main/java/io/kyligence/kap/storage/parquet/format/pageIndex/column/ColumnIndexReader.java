@@ -1,6 +1,7 @@
 package io.kyligence.kap.storage.parquet.format.pageIndex.column;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.NavigableMap;
 
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -9,6 +10,7 @@ import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
 import com.google.common.collect.Maps;
+
 import io.kyligence.kap.cube.index.IColumnInvertedIndex;
 
 /**
@@ -39,14 +41,14 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
         docNum = inputStream.readInt();
 
         eqIndex = new IndexBlock();
-        eqIndex.readFromStream(inputStream);
+        eqIndex.readFromStream(inputStream, IndexBlockType.EQ);
 
         if (!onlyEQ) {
             ltIndex = new IndexBlock();
-            ltIndex.readFromStream(inputStream, eqIndex.bodyStartOffset + eqIndex.bodyLength);
+            ltIndex.readFromStream(inputStream, eqIndex.bodyStartOffset + eqIndex.bodyLength, IndexBlockType.LTE);
 
             gtIndex = new IndexBlock();
-            gtIndex.readFromStream(inputStream, ltIndex.bodyStartOffset + ltIndex.bodyLength);
+            gtIndex.readFromStream(inputStream, ltIndex.bodyStartOffset + ltIndex.bodyLength, IndexBlockType.GTE);
         }
     }
 
@@ -95,12 +97,18 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
         return cardinality;
     }
 
+    private enum IndexBlockType {
+        EQ, LTE, GTE
+    }
+
     private class IndexBlock {
         NavigableMap<ByteArray, Long> offsetMap = Maps.newTreeMap();
         long bodyStartOffset;
         long bodyLength;
+        IndexBlockType type;
 
-        private void readFromStream(FSDataInputStream stream) throws IOException {
+        private void readFromStream(FSDataInputStream stream, IndexBlockType type) throws IOException {
+            this.type = type;
             int offsetMapSize = cardinality / step;
             if (cardinality % step > 0) {
                 offsetMapSize += 1;
@@ -115,16 +123,19 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
             bodyStartOffset = stream.getPos();
         }
 
-        private void readFromStream(FSDataInputStream stream, long startOffset) throws IOException {
+        private void readFromStream(FSDataInputStream stream, long startOffset, IndexBlockType type) throws IOException {
             stream.seek(startOffset);
-            readFromStream(stream);
+            readFromStream(stream, type);
         }
 
         private ImmutableRoaringBitmap getRows(ByteArray v) {
+            MutableRoaringBitmap lastPageId = MutableRoaringBitmap.bitmapOf();
+
             try {
-                long bodyOffset = offsetMap.floorEntry(v).getValue();
+                Map.Entry<ByteArray, Long> startEntry = offsetMap.floorEntry(v);
+                long bodyOffset = startEntry.getValue();
                 inputStream.seek(bodyOffset + bodyStartOffset);
-                for (int i = 0; i < step; i++) {
+                for (int i = 0; i < step * 2; i++) {
                     if (inputStream.getPos() >= bodyStartOffset + bodyLength) {
                         break;
                     }
@@ -138,8 +149,15 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
                     if (compare == 0) {
                         return pageId;
                     } else if (compare > 0) {
-                        break;
+                        if (type == IndexBlockType.EQ) {
+                            break;
+                        } else if (type == IndexBlockType.LTE) {
+                            return lastPageId;
+                        } else if (type == IndexBlockType.GTE) {
+                            return pageId;
+                        }
                     }
+                    lastPageId = pageId;
                 }
             } catch (IOException e) {
                 throw new RuntimeException("Failed to read index. ", e);
@@ -149,7 +167,7 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
         }
     }
 
-    public int getDocNum() {
-        return docNum;
-    }
+        public int getDocNum() {
+            return docNum;
+        }
 }

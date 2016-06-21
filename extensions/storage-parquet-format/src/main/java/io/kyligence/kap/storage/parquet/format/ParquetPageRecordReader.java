@@ -16,7 +16,7 @@ import java.io.IOException;
 /**
  * Created by roger on 6/15/16.
  */
-public class ParquetPageIndexRecordReader <K, V> extends RecordReader<K, V> {
+public class ParquetPageRecordReader<K, V> extends RecordReader<K, V> {
     protected Configuration conf;
 
     private Path shardPath;

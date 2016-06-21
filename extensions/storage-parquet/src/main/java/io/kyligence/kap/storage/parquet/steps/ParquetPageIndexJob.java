@@ -17,7 +17,7 @@ import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.storage.parquet.format.ParquetPageIndexInputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetPageInputFormat;
 
 /**
  * Created by dongli on 5/31/16.
@@ -52,7 +52,7 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
             addParquetInputFile(job, new Path(getOptionValue(OPTION_INPUT_PATH)));
             FileOutputFormat.setOutputPath(job, output);
 
-            job.setInputFormatClass(ParquetPageIndexInputFormat.class);
+            job.setInputFormatClass(ParquetPageInputFormat.class);
             job.setMapperClass(ParquetPageIndexMapper.class);
             job.setNumReduceTasks(0);
 

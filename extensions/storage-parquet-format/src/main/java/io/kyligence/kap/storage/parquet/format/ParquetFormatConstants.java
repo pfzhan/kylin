@@ -6,4 +6,5 @@ public interface ParquetFormatConstants{
     String KYLIN_OUTPUT_DIR = "io.kylin.job.output.path";
 
     String KYLIN_FILTER_BITSET = "io.kylin.job.filter.bitset";
+    String KYLIN_SCAN_REQUEST = "io.kylin.job.scan.request";
 }
