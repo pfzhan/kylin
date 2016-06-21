@@ -23,12 +23,12 @@ public class KAPKylinConfig extends KylinConfig {
         return ENV_INSTANCE;
     }
 
-    public static KAPKylinConfig wrapKylinConfig(KylinConfig kylinConfig) {
+    private static KAPKylinConfig wrapKylinConfig(KylinConfig kylinConfig) {
         return new KAPKylinConfig(kylinConfig);
     }
 
     private KAPKylinConfig(KylinConfig config) {
-        this.config = config;
+        super(config.getAllProperties());
     }
 
     public int getParquetRowsPerPage() {

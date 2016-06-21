@@ -6,8 +6,6 @@ import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.common.MapReduceExecutable;
 import org.apache.kylin.metadata.realization.IRealizationSegment;
 
-import io.kyligence.kap.storage.parquet.pageIndex.ParquetPageIndexJob;
-
 public class ParquetMRSteps extends JobBuilderSupport {
     public ParquetMRSteps(IRealizationSegment seg) {
         super(seg, null);

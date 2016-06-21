@@ -6,12 +6,16 @@ import org.apache.hadoop.fs.Path;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.column.Encoding;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ParquetRawWriterBuilder {
+    protected static final Logger logger = LoggerFactory.getLogger(ParquetRawWriterBuilder.class);
+
     private KAPKylinConfig kylinConfig;
     private String indexPathSuffix = "index";
     private Configuration conf = null;
@@ -117,6 +121,7 @@ public class ParquetRawWriterBuilder {
             indexPath = new Path(path.toString() + indexPathSuffix);
         }
 
+        logger.info("ParquetRawWriterBuilder: rowsPerPage={}", rowsPerPage);
         return new ParquetRawWriter(conf, type, path, rlEncodings, dlEncodings, dataEncodings, codecName, indexPath, rowsPerPage, pagesPerGroup);
     }
 }

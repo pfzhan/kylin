@@ -1,10 +1,9 @@
-package io.kyligence.kap.storage.parquet.pageIndex.column;
+package io.kyligence.kap.storage.parquet.format.pageIndex.column;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import io.kyligence.kap.cube.index.IColumnInvertedIndex;
 import org.apache.commons.lang.NotImplementedException;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.kylin.common.util.ByteArray;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 import org.slf4j.Logger;
@@ -23,6 +22,7 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
 
     private DataOutputStream outputStream;
     private NavigableMap<ByteArray, MutableRoaringBitmap> indexMap = Maps.newTreeMap();
+    private MutableRoaringBitmap docIds = MutableRoaringBitmap.bitmapOf();
     private ColumnSpec columnSpec;
     private int step;
     private long totalSize = -1;
@@ -87,14 +87,15 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
     private void seal() throws IOException {
         // write metadata
         // TODO: Write ID of this index, such as magic number
-        totalSize = 4 * 4;
+        totalSize = 4 * 5;
 
         outputStream.writeInt(columnSpec.isOnlyEQIndex() ? 1 : 0);
         outputStream.writeInt(indexMap.size());
         outputStream.writeInt(step);
         outputStream.writeInt(columnSpec.getColumnLength());
+        outputStream.writeInt(docIds.getCardinality());
 
-        logger.info("onlyEQ={}, cardinality={}, columnLength={}, step={}", columnSpec.isOnlyEQIndex(), indexMap.size(), columnSpec.getColumnLength(), step);
+        logger.info("onlyEQ={}, cardinality={}, columnLength={}, step={}, docNum={}", columnSpec.isOnlyEQIndex(), indexMap.size(), columnSpec.getColumnLength(), step, docIds.getCardinality());
         logger.info("Start to write eq index for column {}", columnSpec.getColumnName());
         writeIndex(indexMap);
         if (!columnSpec.isOnlyEQIndex()) {
@@ -139,21 +140,23 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
     }
 
     @Override
-    public void appendToRow(ByteArray value, int row) {
+    public void appendToRow(ByteArray value, int docId) {
         Preconditions.checkState(columnSpec.getColumnLength() == value.length());
 
         if (!indexMap.containsKey(value)) {
-            indexMap.put(value, MutableRoaringBitmap.bitmapOf(row));
+            indexMap.put(value, MutableRoaringBitmap.bitmapOf(docId));
         } else {
-            indexMap.get(value).add(row);
+            indexMap.get(value).add(docId);
         }
+
+        docIds.add(docId);
     }
 
     @Override
-    public void appendToRow(ByteArray[] values, int row) {
+    public void appendToRow(ByteArray[] values, int docId) {
         if (values != null && values.length > 0) {
             for (ByteArray value : values) {
-                appendToRow(value, row);
+                appendToRow(value, docId);
             }
         }
     }

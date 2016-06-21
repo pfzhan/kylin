@@ -1,4 +1,4 @@
-package io.kyligence.kap.storage.parquet.pageIndex;
+package io.kyligence.kap.storage.parquet.pageindex;
 
 import org.apache.kylin.metadata.filter.ColumnTupleFilter;
 import org.apache.kylin.metadata.filter.LogicalTupleFilter;
@@ -34,29 +34,5 @@ public abstract class AbstractParquetPageIndexTable {
         return flatFilter;
     }
 
-    protected Iterable<Integer> lookupFlattenFilter(TupleFilter filter) {
-        MutableRoaringBitmap resultBitmap = null;
-        for (TupleFilter childFilter : filter.getChildren()) {
-            if (resultBitmap == null) {
-                resultBitmap = lookupAndFilter(childFilter).toMutableRoaringBitmap();
-            } else {
-                resultBitmap.or(lookupAndFilter(childFilter));
-            }
-        }
-        return resultBitmap;
-    }
-
-    protected MutableRoaringBitmap lookupAndFilter(TupleFilter filter) {
-        MutableRoaringBitmap resultBitmap = null;
-        for (TupleFilter childFilter : filter.getChildren()) {
-            if (resultBitmap == null) {
-                resultBitmap = lookupCompareFilter((ColumnTupleFilter) childFilter).toMutableRoaringBitmap();
-            } else {
-                resultBitmap.and(lookupCompareFilter((ColumnTupleFilter) childFilter));
-            }
-        }
-        return resultBitmap;
-    }
-
-    protected abstract ImmutableRoaringBitmap lookupCompareFilter(ColumnTupleFilter filter);
+    protected abstract ImmutableRoaringBitmap lookupFlattenFilter(TupleFilter filter);
 }

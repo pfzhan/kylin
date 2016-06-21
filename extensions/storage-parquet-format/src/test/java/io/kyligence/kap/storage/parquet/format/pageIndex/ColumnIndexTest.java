@@ -1,9 +1,9 @@
-package io.kyligence.kap.storage.parquet.pageindex.column;
+package io.kyligence.kap.storage.parquet.format.pageIndex;
 
 import com.google.common.collect.Maps;
-import io.kyligence.kap.storage.parquet.pageIndex.column.ColumnIndexReader;
-import io.kyligence.kap.storage.parquet.pageIndex.column.ColumnIndexWriter;
-import io.kyligence.kap.storage.parquet.pageIndex.column.ColumnSpec;
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexReader;
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexWriter;
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnSpec;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;

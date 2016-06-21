@@ -1,4 +1,4 @@
-package io.kyligence.kap.storage.parquet.pageIndex.column;
+package io.kyligence.kap.storage.parquet.format.pageIndex.column;
 
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.kylin.common.util.ByteArray;
@@ -26,14 +26,14 @@ public class ColumnIndexBundleWriter implements Closeable {
         }
     }
 
-    public void write(byte[] rowKey, int pageId) {
-        write(rowKey, 0, pageId);
+    public void write(byte[] rowKey, int docId) {
+        write(rowKey, 0, docId);
     }
 
-    public void write(byte[] rowKey, int startOffset, int pageId) {
+    public void write(byte[] rowKey, int startOffset, int docId) {
         int columnOffset = startOffset;
         for (int i = 0; i < columnNum; i++) {
-            indexWriters[i].appendToRow(new ByteArray(rowKey, columnOffset, columnSpecs[i].getColumnLength()), pageId);
+            indexWriters[i].appendToRow(new ByteArray(rowKey, columnOffset, columnSpecs[i].getColumnLength()), docId);
             columnOffset += columnSpecs[i].getColumnLength();
         }
     }

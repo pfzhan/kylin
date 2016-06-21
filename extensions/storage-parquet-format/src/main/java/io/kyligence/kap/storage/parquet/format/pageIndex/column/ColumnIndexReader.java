@@ -1,4 +1,4 @@
-package io.kyligence.kap.storage.parquet.pageIndex.column;
+package io.kyligence.kap.storage.parquet.format.pageIndex.column;
 
 import java.io.IOException;
 import java.util.NavigableMap;
@@ -22,6 +22,7 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
     private int cardinality;
     private int step;
     private boolean onlyEQ;
+    private int docNum;
 
     private IndexBlock eqIndex;
     private IndexBlock ltIndex;
@@ -35,16 +36,17 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
         cardinality = inputStream.readInt();
         step = inputStream.readInt();
         columnLength = inputStream.readInt();
+        docNum = inputStream.readInt();
 
         eqIndex = new IndexBlock();
         eqIndex.readFromStream(inputStream);
 
         if (!onlyEQ) {
             ltIndex = new IndexBlock();
-            ltIndex.readFromStream(inputStream, inputOffset + eqIndex.bodyStartOffset + eqIndex.bodyLength);
+            ltIndex.readFromStream(inputStream, eqIndex.bodyStartOffset + eqIndex.bodyLength);
 
             gtIndex = new IndexBlock();
-            gtIndex.readFromStream(inputStream, inputOffset + ltIndex.bodyStartOffset + ltIndex.bodyLength);
+            gtIndex.readFromStream(inputStream, ltIndex.bodyStartOffset + ltIndex.bodyLength);
         }
     }
 
@@ -145,5 +147,9 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
 
             return MutableRoaringBitmap.bitmapOf();
         }
+    }
+
+    public int getDocNum() {
+        return docNum;
     }
 }

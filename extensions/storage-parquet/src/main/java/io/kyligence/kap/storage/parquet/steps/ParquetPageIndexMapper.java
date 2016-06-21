@@ -1,9 +1,8 @@
-package io.kyligence.kap.storage.parquet.pageIndex;
+package io.kyligence.kap.storage.parquet.steps;
 
-import java.io.File;
 import java.io.IOException;
 
-import org.apache.commons.io.FileUtils;
+import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -29,8 +28,6 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.io.Files;
 
 /**
  * Created by dongli on 5/31/16.
@@ -123,6 +120,7 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
         if (counter % BatchConstants.NORMAL_RECORD_LOG_THRESHOLD == 0) {
             logger.info("Handled " + counter + " records!");
         }
+        logger.info("Key Length: {}, Value: {}", key.getBytes().length, value.get());
         indexBundleWriter.write(key.getBytes(), value.get());
     }
 

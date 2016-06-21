@@ -1,4 +1,4 @@
-package io.kyligence.kap.storage.parquet.pageindex;
+package io.kyligence.kap.storage.parquet.format.pageIndex;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import io.kyligence.kap.storage.parquet.pageIndex.ParquetPageIndexReader;
+import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexReader;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -22,11 +22,8 @@ import org.junit.Test;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.io.Files;
 
-import io.kyligence.kap.cube.index.ColumnIndexFactory;
-import io.kyligence.kap.cube.index.IColumnInvertedIndex;
-import io.kyligence.kap.storage.parquet.pageIndex.ParquetPageIndexWriter;
+import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexWriter;
 
 /**
  * Created by dong on 16/6/17.
@@ -73,7 +70,7 @@ public class ParquetPageIndexWriteReadTest {
         System.out.println("Temp index file: " + indexFile);
 
         // write
-        boolean[] onlyEq = {true, true};
+        boolean[] onlyEq = {false, false};
         ParquetPageIndexWriter writer = new ParquetPageIndexWriter(columnName, columnLength, cardinality, onlyEq, new FSDataOutputStream(new FileOutputStream(indexFile)));
         for (int i = 0; i < dataSize; i++) {
             byte[] buffer = new byte[columnLength[0] + columnLength[1]];
@@ -114,6 +111,8 @@ public class ParquetPageIndexWriteReadTest {
             Set<Integer> actual = Sets.newHashSet(reader.readColumnIndex(1).getRows(new ByteArray(buffer)));
             assertEquals(expected, actual);
         }
+        System.out.println(reader.getPageTotalNum(0));
+        System.out.println(reader.getPageTotalNum(1));
         reader.close();
         inputStream.close();
     }

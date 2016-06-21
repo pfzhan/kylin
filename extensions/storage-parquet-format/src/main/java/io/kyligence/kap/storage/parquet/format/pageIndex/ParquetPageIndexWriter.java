@@ -1,4 +1,4 @@
-package io.kyligence.kap.storage.parquet.pageIndex;
+package io.kyligence.kap.storage.parquet.format.pageIndex;
 
 import java.io.*;
 
@@ -7,8 +7,8 @@ import org.apache.commons.io.FileUtils;
 
 import com.google.common.io.Files;
 
-import io.kyligence.kap.storage.parquet.pageIndex.column.ColumnIndexBundleWriter;
-import io.kyligence.kap.storage.parquet.pageIndex.column.ColumnSpec;
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexBundleWriter;
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnSpec;
 
 /**
  * Created by dong on 16/6/17.

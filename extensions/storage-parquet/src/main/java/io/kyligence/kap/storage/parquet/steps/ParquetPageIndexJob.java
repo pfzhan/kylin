@@ -1,4 +1,4 @@
-package io.kyligence.kap.storage.parquet.pageIndex;
+package io.kyligence.kap.storage.parquet.steps;
 
 import java.io.IOException;
 
@@ -68,7 +68,6 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
 
             return waitForCompletion(job);
         } catch (Exception e) {
-            logger.error("error in ParquetPageIndexJob", e);
             printUsage(options);
             throw e;
         } finally {
@@ -89,7 +88,7 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
         } else if (fs.isFile(path)) {
             if (isParquetFile(path)) {
                 FileInputFormat.addInputPath(job, path);
-                logger.info("Input: " + path);
+                logger.debug("Input Path: " + path);
             }
         }
     }
