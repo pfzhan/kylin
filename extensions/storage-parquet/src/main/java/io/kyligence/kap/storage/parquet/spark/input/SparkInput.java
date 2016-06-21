@@ -1,0 +1,76 @@
+package io.kyligence.kap.storage.parquet.spark.input;
+
+import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
+import io.kyligence.kap.storage.parquet.format.ParquetRawInputFormat;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Text;
+import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.Function;
+import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
+import org.roaringbitmap.buffer.MutableRoaringBitmap;
+import scala.Tuple2;
+
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+
+public class SparkInput {
+
+    public static void main(String[] args) throws IOException, InterruptedException {
+        assert(args.length >= 1);
+        String path = args[0];
+        System.out.println(path);
+        JavaSparkContext context = new JavaSparkContext(new SparkConf());
+        Configuration config = new Configuration();
+
+        // Create bitset
+        ImmutableRoaringBitmap bitmap = createBitset(3);
+        String serializedString = serialize(bitmap);
+        System.out.println("serialized String size: " + serializedString.length());
+        config.set(ParquetFormatConstants.KYLIN_FILTER_BITSET, serializedString);
+
+        // Create and
+        JavaPairRDD<Text, Text> rdd = context.newAPIHadoopFile(path, ParquetRawInputFormat.class, Text.class, Text.class, config);
+        JavaRDD<Integer> rdd2 = rdd.map(new Function<Tuple2<Text,Text>, Integer>() {
+            @Override
+            public Integer call(Tuple2<Text, Text> tuple) throws Exception {
+//                System.out.println("Key: " + tuple._1().getBytes());
+//                System.out.println("Value: " + tuple._2().getBytes());
+                return 0;
+            }
+        });
+        rdd2.collect();
+    }
+
+    private static ImmutableRoaringBitmap createBitset(int total) throws IOException {
+        MutableRoaringBitmap mBitmap = new MutableRoaringBitmap();
+        for (int i = 0; i < total;  ++i) {
+            mBitmap.add(i);
+        }
+
+        ImmutableRoaringBitmap iBitmap = null;
+        try (
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            DataOutputStream dos = new DataOutputStream(baos);
+        ) {
+            mBitmap.serialize(dos);
+            dos.flush();
+            iBitmap = new ImmutableRoaringBitmap(ByteBuffer.wrap(baos.toByteArray()));
+        }
+
+        return iBitmap;
+    }
+
+    private static String serialize(ImmutableRoaringBitmap bitmap) throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(bos);
+        bitmap.serialize(dos);
+        dos.close();
+        return new String(bos.toByteArray(), "ISO-8859-1");
+    }
+}

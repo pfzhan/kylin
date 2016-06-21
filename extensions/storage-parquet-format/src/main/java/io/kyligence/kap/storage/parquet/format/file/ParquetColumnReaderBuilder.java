@@ -2,6 +2,7 @@ package io.kyligence.kap.storage.parquet.format.file;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
 import java.io.IOException;
 
@@ -14,6 +15,7 @@ public class ParquetColumnReaderBuilder {
     private Path path = null;
     private Path indexPath = null;
     private int column = 0;
+    private ImmutableRoaringBitmap pageBitset = null;
 
     public ParquetColumnReaderBuilder setIndexPathSuffix(String indexPathSuffix) {
         this.indexPathSuffix = indexPathSuffix;
@@ -40,6 +42,11 @@ public class ParquetColumnReaderBuilder {
         return this;
     }
 
+    public ParquetColumnReaderBuilder setPageBitset(ImmutableRoaringBitmap bitset) {
+        this.pageBitset = bitset;
+        return this;
+    }
+
     public ParquetColumnReader build() throws IOException {
         if (conf == null) {
             throw new IllegalStateException("Configuration should be set");
@@ -53,6 +60,6 @@ public class ParquetColumnReaderBuilder {
             indexPath = new Path(path.toString() + indexPathSuffix);
         }
 
-        return new ParquetColumnReader(new ParquetRawReader(conf, path, indexPath), column);
+        return new ParquetColumnReader(new ParquetRawReader(conf, path, indexPath), column, pageBitset);
     }
 }
