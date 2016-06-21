@@ -30,11 +30,11 @@ public class ColumnIndexTest {
         // prepare data
         Map<ByteArray, Integer> data = Maps.newLinkedHashMap();
         for (int i = 0; i < 100; i++) {
-//            for (int j = 0; j < 10; j++) {
-//                for (int k = 0; k < 1; k++) {
+            for (int j = 0; j < 10; j++) {
+                for (int k = 0; k < 1; k++) {
                     data.put(new ByteArray(new byte[]{(byte) i}), i );
-//                }
-//            }
+                }
+            }
         }
 
         // write
@@ -50,18 +50,15 @@ public class ColumnIndexTest {
         FSDataInputStream inputStream = FileSystem.getLocal(HadoopUtil.getCurrentConfiguration()).open(indexPath);
         ColumnIndexReader indexReader = new ColumnIndexReader(inputStream);
         System.out.println(indexReader.getNumberOfRows());
-//        for (Map.Entry<ByteArray, Integer> dataEntry : data.entrySet()) {
-//            long t0 = System.currentTimeMillis();
-//            int row = indexReader.getRows(dataEntry.getKey()).toArray()[0];
-//
-//            int row1 = indexReader.lookupGtIndex(dataEntry.getKey()).toArray()[0];
-//            int row2 = indexReader.lookupLtIndex(dataEntry.getKey()).toArray()[0];
-////            System.out.print(row);
-////            System.out.print(" - ");
-////            System.out.println((System.currentTimeMillis() - t0));
-//
-//            assertEquals(dataEntry.getValue().intValue(), row);
-//        }
+        for (Map.Entry<ByteArray, Integer> dataEntry : data.entrySet()) {
+            long t0 = System.currentTimeMillis();
+            int row = indexReader.getRows(dataEntry.getKey()).toArray()[0];
+
+            int row1 = indexReader.lookupGtIndex(dataEntry.getKey()).toArray()[0];
+            int row2 = indexReader.lookupLtIndex(dataEntry.getKey()).toArray()[0];
+
+            assertEquals(dataEntry.getValue().intValue(), row);
+        }
 
         System.out.println(indexReader.getRows(new ByteArray(new byte[]{(byte) 100})));
     }

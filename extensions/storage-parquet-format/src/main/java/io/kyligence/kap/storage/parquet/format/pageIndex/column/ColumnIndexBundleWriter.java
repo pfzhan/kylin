@@ -1,9 +1,12 @@
 package io.kyligence.kap.storage.parquet.format.pageIndex.column;
 
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.kylin.common.util.ByteArray;
+import java.io.Closeable;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
-import java.io.*;
+import org.apache.kylin.common.util.ByteArray;
 
 /**
  * Created by dongli on 6/14/16.
@@ -22,7 +25,7 @@ public class ColumnIndexBundleWriter implements Closeable {
         this.indexWriters = new ColumnIndexWriter[columnNum];
         for (int col = 0; col < columnNum; col++) {
             File indexFile = getColumnIndexFile(col);
-            indexWriters[col] = new ColumnIndexWriter(columnSpecs[col], new FSDataOutputStream(new FileOutputStream(indexFile)));
+            indexWriters[col] = new ColumnIndexWriter(columnSpecs[col], new DataOutputStream(new FileOutputStream(indexFile)));
         }
     }
 
