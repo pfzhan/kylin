@@ -197,6 +197,10 @@
                                     <pattern>com.google.protobuf</pattern>
                                     <shadedPattern>kap.protobuf</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>org.roaringbitmap</pattern>
+                                    <shadedPattern>kap.roaringbitmap</shadedPattern>
+                                </relocation>
                             </relocations>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer" />
