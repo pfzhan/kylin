@@ -93,7 +93,7 @@ public class AdvGTScanRangePlanner extends GTScanRangePlanner {
 
         //TODO: don't need the metrics
         GTScanRangePlanner scanRangePlanner = new GTScanRangePlanner(cubeSegment, prefixCuboid, filter, newDimensions, newDimensions, metrics);
-        GTScanRequest scanRequest = scanRangePlanner.planScanRequest(true);
+        GTScanRequest scanRequest = scanRangePlanner.planScanRequest();
         ScannerWorker scanner = new ScannerWorker(cubeSegment, prefixCuboid, scanRequest);
 
         final ByteArray empty = new ByteArray();
