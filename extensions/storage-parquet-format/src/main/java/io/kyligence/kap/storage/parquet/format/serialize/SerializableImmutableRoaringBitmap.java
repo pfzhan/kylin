@@ -19,6 +19,11 @@ public class SerializableImmutableRoaringBitmap implements Serializable {
     private transient ImmutableRoaringBitmap bitmap;
     private transient byte[] buffer;
 
+    @Override
+    public String toString() {
+        return "bitmap=" + bitmap.toString();
+    }
+
     public SerializableImmutableRoaringBitmap(ImmutableRoaringBitmap bitmap) {
         this.bitmap = bitmap;
     }

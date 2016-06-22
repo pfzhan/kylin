@@ -135,7 +135,8 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
                 Map.Entry<ByteArray, Long> startEntry = offsetMap.floorEntry(v);
                 long bodyOffset = startEntry.getValue();
                 inputStream.seek(bodyOffset + bodyStartOffset);
-                for (int i = 0; i < step * 2; i++) {
+                // scan from this step node to next step node
+                for (int i = 0; i < step + 1; i++) {
                     if (inputStream.getPos() >= bodyStartOffset + bodyLength) {
                         break;
                     }
