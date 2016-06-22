@@ -9,7 +9,7 @@ import org.apache.kylin.engine.mr.steps.NDCuboidMapper;
 public class KapNDCuboidJob extends KapCuboidJob {
 
     public KapNDCuboidJob() {
-        this.setMapperClass(KapNDCuboidMapper.class);
+        this.setMapperClass(NDCuboidMapper.class);
     }
 
     public static void main(String[] args) throws Exception {

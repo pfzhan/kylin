@@ -117,7 +117,7 @@ public class KapCuboidJob extends AbstractHadoopJob {
             job.setOutputValueClass(Text.class);
 
             // Partitioner
-            job.setPartitionerClass(ShardCuboidPartitioner.class);
+            job.setPartitionerClass(ByteArrayShardCuboidPartitioner.class);
 
             FileOutputFormat.setOutputPath(job, output);
 
