@@ -20,8 +20,9 @@ import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.ConstantTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.ColumnDesc;
-import org.junit.After;
-import org.junit.Before;
+import org.apache.kylin.metadata.model.TblColRef;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
@@ -33,36 +34,43 @@ import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
  * Created by dong on 6/21/16.
  */
 public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
-    File indexFile;
-    FSDataInputStream inputStream;
+    static ParquetPageIndexTable indexTable;
+    static FSDataInputStream inputStream;
+    final static int dataSize = 50;
+    final static int last = dataSize - 1;
+    final static int maxVal = 100;
+    final static int cardinality = 50;
 
-    final int dataSize = 50;
-    final int maxVal = 100;
-    final int cardinality = 50;
+    static int[] data1;
+    static int[] data2;
+    static int[] columnLength = { Integer.SIZE - Integer.numberOfLeadingZeros(maxVal), Integer.SIZE - Integer.numberOfLeadingZeros(maxVal) };
+    static int[] cardinalities = { cardinality, cardinality };
+    static String[] columnName = { "odd", "even" };
+    static boolean[] onlyEq = { false, false };
+    static TblColRef colRef1;
+    static TblColRef colRef2;
 
-    int[] data1;
-    int[] data2;
-    int[] columnLength = { Integer.SIZE - Integer.numberOfLeadingZeros(maxVal), Integer.SIZE - Integer.numberOfLeadingZeros(maxVal) };
-    int[] cardinalities = { cardinality, cardinality };
-    String[] columnName = { "odd", "even" };
-    boolean[] onlyEq = { false, false };
-
-    @After
-    public void after() throws Exception {
+    @AfterClass
+    public static void after() throws Exception {
         cleanAfterClass();
+        indexTable.close();
+//        inputStream.close();
     }
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeClass
+    public static void setUp() throws Exception {
         Log4jConfigurer.initLogger();
-        createTestMetadata();
+        staticCreateTestMetadata();
+        File indexFile = File.createTempFile("local", "inv");
+        writeIndexFile(indexFile);
+        FSDataInputStream inputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).open(new Path(indexFile.getAbsolutePath()));
+        indexTable = new ParquetPageIndexTable(inputStream);
 
-        indexFile = File.createTempFile("local", "inv");
-        writeIndexFile();
-        inputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).open(new Path(indexFile.getAbsolutePath()));
+        colRef1 = ColumnDesc.mockup(null, 1, columnName[0], null).getRef();
+        colRef2 = ColumnDesc.mockup(null, 2, columnName[1], null).getRef();
     }
 
-    private void writeIndexFile() throws IOException {
+    private static void writeIndexFile(File indexFile) throws IOException {
         data1 = new int[dataSize];
         data2 = new int[dataSize];
         for (int i = 0; i < dataSize; i++) {
@@ -82,10 +90,8 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testEQ() throws IOException {
-        ParquetPageIndexTable indexTable = new ParquetPageIndexTable(inputStream);
-
         TupleFilter filter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.EQ);
-        filter.addChild(new ColumnTupleFilter(ColumnDesc.mockup(null, 1, "1", "int").getRef()));
+        filter.addChild(new ColumnTupleFilter(colRef1));
         byte[] buffer = new byte[columnLength[0]];
         BytesUtil.writeUnsigned(data1[0], buffer, 0, buffer.length);
         filter.addChild(new ConstantTupleFilter(new ByteArray(buffer)));
@@ -95,10 +101,8 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testLTE() throws IOException {
-        ParquetPageIndexTable indexTable = new ParquetPageIndexTable(inputStream);
-
         TupleFilter filter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.LTE);
-        filter.addChild(new ColumnTupleFilter(ColumnDesc.mockup(null, 1, "1", "int").getRef()));
+        filter.addChild(new ColumnTupleFilter(colRef1));
         byte[] buffer = new byte[columnLength[0]];
         BytesUtil.writeUnsigned(data1[0], buffer, 0, buffer.length);
         filter.addChild(new ConstantTupleFilter(new ByteArray(buffer)));
@@ -108,16 +112,14 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testGTE() throws IOException {
-        ParquetPageIndexTable indexTable = new ParquetPageIndexTable(inputStream);
-
         TupleFilter filter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.GTE);
-        filter.addChild(new ColumnTupleFilter(ColumnDesc.mockup(null, 1, "1", "int").getRef()));
+        filter.addChild(new ColumnTupleFilter(colRef1));
         byte[] buffer = new byte[columnLength[0]];
         BytesUtil.writeUnsigned(data1[0], buffer, 0, buffer.length);
         filter.addChild(new ConstantTupleFilter(new ByteArray(buffer)));
         ImmutableRoaringBitmap result = indexTable.lookup(filter);
-        int[] expected = new int[50];
-        for (int i = 0; i < 50; i++) {
+        int[] expected = new int[dataSize];
+        for (int i = 0; i < dataSize; i++) {
             expected[i] = i;
         }
         assertArrayEquals(expected, result.toArray());
@@ -125,33 +127,117 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testGT() throws IOException {
-        ParquetPageIndexTable indexTable = new ParquetPageIndexTable(inputStream);
-
         TupleFilter filter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.GT);
-        filter.addChild(new ColumnTupleFilter(ColumnDesc.mockup(null, 1, "1", "int").getRef()));
+        filter.addChild(new ColumnTupleFilter(colRef1));
         byte[] buffer = new byte[columnLength[0]];
         BytesUtil.writeUnsigned(data1[0], buffer, 0, buffer.length);
         filter.addChild(new ConstantTupleFilter(new ByteArray(buffer)));
         ImmutableRoaringBitmap result = indexTable.lookup(filter);
-        int[] expected = new int[49];
-        for (int i = 0; i < 49; i++) {
+        int[] expected = new int[last];
+        for (int i = 0; i < last; i++) {
             expected[i] = i + 1;
         }
         assertArrayEquals(expected, result.toArray());
     }
 
     @Test
-    public void testLT() throws IOException {
-        ParquetPageIndexTable indexTable = new ParquetPageIndexTable(inputStream);
-
-        TupleFilter filter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.LT);
-        filter.addChild(new ColumnTupleFilter(ColumnDesc.mockup(null, 1, "1", "int").getRef()));
+    public void testGTEMax() throws IOException {
+        TupleFilter filter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.GTE);
+        filter.addChild(new ColumnTupleFilter(colRef1));
         byte[] buffer = new byte[columnLength[0]];
-        BytesUtil.writeUnsigned(data1[1], buffer, 0, buffer.length);
+        BytesUtil.writeUnsigned(data1[last], buffer, 0, buffer.length);
+        filter.addChild(new ConstantTupleFilter(new ByteArray(buffer)));
+        ImmutableRoaringBitmap result = indexTable.lookup(filter);
+        int[] expected = new int[1];
+        expected[0] = last;
+        assertArrayEquals(expected, result.toArray());
+    }
+
+    @Test
+    public void testGTMax() throws IOException {
+        TupleFilter filter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.GT);
+        filter.addChild(new ColumnTupleFilter(colRef1));
+        byte[] buffer = new byte[columnLength[0]];
+        BytesUtil.writeUnsigned(data1[last], buffer, 0, buffer.length);
+        filter.addChild(new ConstantTupleFilter(new ByteArray(buffer)));
+        ImmutableRoaringBitmap result = indexTable.lookup(filter);
+        int[] expected = new int[0];
+        assertArrayEquals(expected, result.toArray());
+    }
+
+    @Test
+    public void testGTMax2() throws IOException {
+        TupleFilter filter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.GT);
+        filter.addChild(new ColumnTupleFilter(colRef2));
+        byte[] buffer = new byte[columnLength[0]];
+        BytesUtil.writeUnsigned(data2[last], buffer, 0, buffer.length);
+        filter.addChild(new ConstantTupleFilter(new ByteArray(buffer)));
+        ImmutableRoaringBitmap result = indexTable.lookup(filter);
+        int[] expected = new int[0];
+        assertArrayEquals(expected, result.toArray());
+    }
+
+    @Test
+    public void testLT() throws IOException {
+        TupleFilter filter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.LT);
+        filter.addChild(new ColumnTupleFilter(colRef1));
+        byte[] buffer = new byte[columnLength[0]];
+        BytesUtil.writeUnsigned(data1[10], buffer, 0, buffer.length);
+        filter.addChild(new ConstantTupleFilter(new ByteArray(buffer)));
+        ImmutableRoaringBitmap result = indexTable.lookup(filter);
+        int[] expected = new int[10];
+        for (int i = 0; i < 10; i++) {
+            expected[i] = i;
+        }
+        assertArrayEquals(expected, result.toArray());
+    }
+
+    @Test
+    public void testLTMin1_1() throws IOException {
+        TupleFilter filter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.LT);
+        filter.addChild(new ColumnTupleFilter(colRef1));
+        byte[] buffer = new byte[columnLength[0]];
+        BytesUtil.writeUnsigned(data1[0], buffer, 0, buffer.length);
+        filter.addChild(new ConstantTupleFilter(new ByteArray(buffer)));
+        ImmutableRoaringBitmap result = indexTable.lookup(filter);
+        int[] expected = new int[0];
+        assertArrayEquals(expected, result.toArray());
+    }
+
+    @Test
+    public void testLTMin1_2() throws IOException {
+        TupleFilter filter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.LT);
+        filter.addChild(new ColumnTupleFilter(colRef1));
+        byte[] buffer = new byte[columnLength[0]];
+        BytesUtil.writeUnsigned(1, buffer, 0, buffer.length);
         filter.addChild(new ConstantTupleFilter(new ByteArray(buffer)));
         ImmutableRoaringBitmap result = indexTable.lookup(filter);
         int[] expected = new int[1];
         expected[0] = 0;
+        assertArrayEquals(expected, result.toArray());
+    }
+
+    @Test
+    public void testLTMin2_1() throws IOException {
+        TupleFilter filter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.LT);
+        filter.addChild(new ColumnTupleFilter(colRef2));
+        byte[] buffer = new byte[columnLength[0]];
+        BytesUtil.writeUnsigned(data2[0], buffer, 0, buffer.length);
+        filter.addChild(new ConstantTupleFilter(new ByteArray(buffer)));
+        ImmutableRoaringBitmap result = indexTable.lookup(filter);
+        int[] expected = new int[0];
+        assertArrayEquals(expected, result.toArray());
+    }
+
+    @Test
+    public void testLTMin2_2() throws IOException {
+        TupleFilter filter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.LT);
+        filter.addChild(new ColumnTupleFilter(colRef2));
+        byte[] buffer = new byte[columnLength[0]];
+        BytesUtil.writeUnsigned(0, buffer, 0, buffer.length);
+        filter.addChild(new ConstantTupleFilter(new ByteArray(buffer)));
+        ImmutableRoaringBitmap result = indexTable.lookup(filter);
+        int[] expected = new int[0];
         assertArrayEquals(expected, result.toArray());
     }
 }

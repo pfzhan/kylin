@@ -129,36 +129,38 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
         }
 
         private ImmutableRoaringBitmap getRows(ByteArray v) {
-            MutableRoaringBitmap lastPageId = MutableRoaringBitmap.bitmapOf();
-
             try {
                 Map.Entry<ByteArray, Long> startEntry = offsetMap.floorEntry(v);
-                long bodyOffset = startEntry.getValue();
-                inputStream.seek(bodyOffset + bodyStartOffset);
-                // scan from this step node to next step node
-                for (int i = 0; i < step + 1; i++) {
-                    if (inputStream.getPos() >= bodyStartOffset + bodyLength) {
-                        break;
-                    }
+                if (startEntry != null) {
+                    MutableRoaringBitmap lastPageId = MutableRoaringBitmap.bitmapOf();
 
-                    ByteArray buffer = ByteArray.allocate(columnLength);
-                    inputStream.read(buffer.array());
-                    MutableRoaringBitmap pageId = MutableRoaringBitmap.bitmapOf();
-                    pageId.deserialize(inputStream);
-
-                    int compare = buffer.compareTo(v);
-                    if (compare == 0) {
-                        return pageId;
-                    } else if (compare > 0) {
-                        if (type == IndexBlockType.EQ) {
+                    long bodyOffset = startEntry.getValue();
+                    inputStream.seek(bodyOffset + bodyStartOffset);
+                    // scan from this step node to next step node
+                    for (int i = 0; i < step + 1; i++) {
+                        if (inputStream.getPos() >= bodyStartOffset + bodyLength) {
                             break;
-                        } else if (type == IndexBlockType.LTE) {
-                            return lastPageId;
-                        } else if (type == IndexBlockType.GTE) {
-                            return pageId;
                         }
+
+                        ByteArray buffer = ByteArray.allocate(columnLength);
+                        inputStream.read(buffer.array());
+                        MutableRoaringBitmap pageId = MutableRoaringBitmap.bitmapOf();
+                        pageId.deserialize(inputStream);
+
+                        int compare = buffer.compareTo(v);
+                        if (compare == 0) {
+                            return pageId;
+                        } else if (compare > 0) {
+                            if (type == IndexBlockType.EQ) {
+                                break;
+                            } else if (type == IndexBlockType.LTE) {
+                                return lastPageId;
+                            } else if (type == IndexBlockType.GTE) {
+                                return pageId;
+                            }
+                        }
+                        lastPageId = pageId;
                     }
-                    lastPageId = pageId;
                 }
             } catch (IOException e) {
                 throw new RuntimeException("Failed to read index. ", e);
@@ -168,7 +170,7 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
         }
     }
 
-        public int getDocNum() {
-            return docNum;
-        }
+    public int getDocNum() {
+        return docNum;
+    }
 }
