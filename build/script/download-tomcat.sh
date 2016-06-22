@@ -28,5 +28,6 @@ mv build/apache-tomcat-${tomcat_pkg_version} build/tomcat
 rm -rf build/tomcat/webapps/*
 
 mv build/tomcat/conf/server.xml build/tomcat/conf/server.xml.bak
-cp kylin/build/deploy/server.xml build/tomcat/conf/server.xml
+cp build/deploy/server.xml build/tomcat/conf/server.xml
+cp build/deploy/.keystore build/tomcat/conf/.keystore
 echo "server.xml overwritten..."
