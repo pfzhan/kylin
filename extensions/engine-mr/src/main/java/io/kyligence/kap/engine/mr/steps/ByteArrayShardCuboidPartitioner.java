@@ -1,11 +1,10 @@
 package io.kyligence.kap.engine.mr.steps;
 
-import org.apache.hadoop.io.Text;
+import java.util.Arrays;
+
 import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.kylin.cube.kv.RowConstants;
 import org.apache.kylin.engine.mr.ByteArrayWritable;
-
-import java.util.Arrays;
 
 /**
  * Created by roger on 5/27/16.
@@ -14,10 +13,10 @@ public class ByteArrayShardCuboidPartitioner extends Partitioner<ByteArrayWritab
 
     private int hash(byte[] src, int max) {
         int sum = 0;
-        for (byte s: src) {
+        for (byte s : src) {
             sum += (int) s;
         }
-        return sum % max;
+        return Math.abs(sum) % max;
     }
 
     @Override

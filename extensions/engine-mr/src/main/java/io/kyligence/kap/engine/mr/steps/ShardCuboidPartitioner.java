@@ -5,7 +5,6 @@ import java.util.Arrays;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.kylin.cube.kv.RowConstants;
-import org.apache.kylin.engine.mr.ByteArrayWritable;
 
 /**
  * Created by roger on 5/27/16.
@@ -14,10 +13,10 @@ public class ShardCuboidPartitioner extends Partitioner<Text, Text> {
 
     private int hash(byte[] src, int max) {
         int sum = 0;
-        for (byte s: src) {
+        for (byte s : src) {
             sum += (int) s;
         }
-        return sum % max;
+        return Math.abs(sum) % max;
     }
 
     @Override
