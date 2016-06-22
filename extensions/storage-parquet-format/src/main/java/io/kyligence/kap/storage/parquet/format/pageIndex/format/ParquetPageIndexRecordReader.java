@@ -98,7 +98,7 @@ public class ParquetPageIndexRecordReader<K, V> extends RecordReader<K, V> {
         TupleFilter filter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.EQ);
         filter.addChild(new ColumnTupleFilter(ColumnDesc.mockup(null, 1, "1", null).getRef()));
         byte[] buffer = new byte[columnLength];
-        BytesUtil.writeUnsigned(0, buffer, 0, buffer.length);
+        BytesUtil.writeUnsigned(10, buffer, 0, buffer.length);
         filter.addChild(new ConstantTupleFilter(new ByteArray(buffer)));
         return filter;
     }

@@ -1,8 +1,8 @@
 package io.kyligence.kap.storage.parquet.spark.input;
 
 import java.io.IOException;
+import java.util.List;
 
-import io.kyligence.kap.storage.parquet.format.serialize.SerializableImmutableRoaringBitmap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexWriter;
 import io.kyligence.kap.storage.parquet.format.pageIndex.format.ParquetPageIndexInputFormat;
+import io.kyligence.kap.storage.parquet.format.serialize.SerializableImmutableRoaringBitmap;
 import scala.Tuple2;
 
 /**
@@ -43,14 +44,16 @@ public class ParquetPageIndexSparkCLI {
         for (int i = 0; i < dataSize; i++) {
             data[i] = i;
         }
-        FSDataOutputStream outputStream = FileSystem.get(conf).create(new Path("/tmp/parquet-spark.inv"));
-        ParquetPageIndexWriter writer = new ParquetPageIndexWriter(columnName, columnLength, cardinalities, onlyEq, outputStream);
-        for (int i = 0; i < dataSize; i++) {
-            byte[] buffer = new byte[columnLength[0]];
-            BytesUtil.writeUnsigned(data[i], buffer, 0, columnLength[0]);
-            writer.write(buffer, 0, i);
+        for (int j = 0; j < 10; j++) {
+            FSDataOutputStream outputStream = FileSystem.get(conf).create(new Path("/tmp/index/" + j + ".inv"));
+            ParquetPageIndexWriter writer = new ParquetPageIndexWriter(columnName, columnLength, cardinalities, onlyEq, outputStream);
+            for (int i = 0; i < dataSize; i++) {
+                byte[] buffer = new byte[columnLength[0]];
+                BytesUtil.writeUnsigned(data[i], buffer, 0, columnLength[0]);
+                writer.write(buffer, 0, i);
+            }
+            writer.close();
         }
-        writer.close();
     }
 
     //    public GTScanRequest prepareRequest() throws IOException {
@@ -65,8 +68,14 @@ public class ParquetPageIndexSparkCLI {
     //        return scanRequest;
     //    }
 
-    public static void main(String args[]) throws IOException {
-        JavaSparkContext context = new JavaSparkContext(new SparkConf());
+    public static void main(String args[]) throws IOException, ClassNotFoundException {
+        SparkConf sparkConf = new SparkConf();
+        sparkConf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
+        sparkConf.registerKryoClasses(new Class<?>[]{
+                Class.forName("io.kyligence.kap.storage.parquet.format.serialize.SerializableImmutableRoaringBitmap"),
+                Class.forName("org.apache.hadoop.io.Text")
+        });
+        JavaSparkContext context = new JavaSparkContext(sparkConf);
         Configuration config = new Configuration();
         ParquetPageIndexSparkCLI app = new ParquetPageIndexSparkCLI();
         app.writeIndexFile(config);
@@ -76,20 +85,19 @@ public class ParquetPageIndexSparkCLI {
         //        String requestStr = new String(buffer.array());
         //        config.set(ParquetFormatConstants.KYLIN_SCAN_REQUEST, requestStr);
 
-        JavaPairRDD<Text, SerializableImmutableRoaringBitmap> rdd = context.newAPIHadoopFile("/tmp/parquet-spark.inv", ParquetPageIndexInputFormat.class, Text.class, SerializableImmutableRoaringBitmap.class, config);
-        JavaRDD<Integer> rdd2 = rdd.map(new Function<Tuple2<Text,SerializableImmutableRoaringBitmap>, Integer>() {
+        JavaPairRDD<Text, SerializableImmutableRoaringBitmap> rdd = context.newAPIHadoopFile("/tmp/index/*.inv", ParquetPageIndexInputFormat.class, Text.class, SerializableImmutableRoaringBitmap.class, config);
+        JavaRDD<Tuple2<String, SerializableImmutableRoaringBitmap>> rdd2 = rdd.map(new Function<Tuple2<Text, SerializableImmutableRoaringBitmap>, Tuple2<String, SerializableImmutableRoaringBitmap>>() {
             @Override
-            public Integer call(Tuple2<Text, SerializableImmutableRoaringBitmap> tuple) throws Exception {
+            public Tuple2<String, SerializableImmutableRoaringBitmap> call(Tuple2<Text, SerializableImmutableRoaringBitmap> tuple) throws Exception {
                 logger.info("Key: " + tuple._1().toString());
                 logger.info("Value: " + tuple._2().getBitmap().toString());
-                return 0;
+                return new Tuple2<>(tuple._1.toString(), tuple._2);
             }
         });
-        rdd2.collect();
-
-//        for (Tuple2<Text, SerializableImmutableRoaringBitmap> a : rdd.collect()) {
-//            logger.info("result: key: " + a._1.toString());
-//            logger.info("result: value: " + a._2.getBitmap());
-//        }
+        List<Tuple2<String, SerializableImmutableRoaringBitmap>> result = rdd2.collect();
+        for (Tuple2<String, SerializableImmutableRoaringBitmap> tuple : result) {
+            logger.info("result: key: " + tuple._1);
+            logger.info("result: value: " + tuple._2.getBitmap());
+        }
     }
 }
