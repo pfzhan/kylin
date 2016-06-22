@@ -114,7 +114,7 @@ public class AdvGTScanRangePlanner extends GTScanRangePlanner {
                         byteArrays[index] = empty;
                     }
                 }
-                return new GTRecord(gtInfo, input.getInfo().getPrimaryKey(), byteArrays);
+                return new GTRecord(gtInfo,  byteArrays);
             }
         });
 

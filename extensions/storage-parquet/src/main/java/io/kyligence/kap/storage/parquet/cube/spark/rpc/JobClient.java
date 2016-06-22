@@ -47,16 +47,13 @@ public class JobClient {
 
     }
 
-    public void submit(byte[] requestBlob) {
-        SparkJobRequest request = SparkJobRequest.newBuilder().setRequest(ByteString.copyFrom(requestBlob)).build();
-        SparkJobResponse response;
+    public SparkJobResponse submit(byte[] requestBlob,String kylinProperties) {
+        SparkJobRequest request = SparkJobRequest.newBuilder().setRequest(ByteString.copyFrom(requestBlob)).setKylinProperties(kylinProperties).build();
         try {
-            response = blockingStub.submitJob(request);
+            return blockingStub.submitJob(request);
         } catch (StatusRuntimeException e) {
-            logger.warn("rpc failed: {}", e.getStatus());
-            return;
+            throw new RuntimeException("rpc failed", e);
         }
-        logger.info("result from the server " + Bytes.toLong(response.getResponse().toByteArray()));
     }
 
     public void shutdown() throws InterruptedException {
@@ -73,7 +70,7 @@ public class JobClient {
                     break;
                 }
                 int inputValue = Integer.valueOf(line);
-                client.submit(Bytes.toBytes(inputValue));
+                client.submit(Bytes.toBytes(inputValue),null);
             }
         } finally {
             client.shutdown();

@@ -31,6 +31,7 @@ option optimize_for = SPEED;
 
 message SparkJobRequest {
     required bytes request = 1;
+    required string kylinProperties = 2;
 }
 
 message SparkJobResponse {

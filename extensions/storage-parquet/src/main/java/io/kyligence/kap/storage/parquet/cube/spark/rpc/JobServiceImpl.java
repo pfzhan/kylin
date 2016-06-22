@@ -20,19 +20,20 @@ package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
 import java.util.List;
 
-import com.google.protobuf.ByteString;
-import org.apache.kylin.common.util.Bytes;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.broadcast.Broadcast;
 
 import com.google.common.collect.Lists;
+import com.google.protobuf.ByteString;
 
 import io.grpc.stub.StreamObserver;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.JobServiceGrpc;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobRequest;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobResponse;
 
+//TODO: not thread safe now
 public class JobServiceImpl implements JobServiceGrpc.JobService {
 
     SparkConf conf;
@@ -46,20 +47,37 @@ public class JobServiceImpl implements JobServiceGrpc.JobService {
     @Override
     public void submitJob(SparkJobRequest request, StreamObserver<SparkJobResponse> responseObserver) {
 
-        int reqValue = Bytes.toInt(request.getRequest().toByteArray());
         List<Integer> values = Lists.newArrayList();
-        for (int i = 0; i < reqValue; i++) {
-            values.add(i + 1);
+        for (int i = 0; i < 10; i++) {
+            values.add(i);
         }
+        JavaRDD<Integer> seed = sc.parallelize(values, 2);
 
-        JavaRDD<Integer> data = sc.parallelize(values);
-        long result = data.count();
-        System.out.println("The result is " + result);
+        final Broadcast<byte[]> bcGtReq = sc.broadcast(request.getRequest().toByteArray());
+        final Broadcast<String> kylinProperties = sc.broadcast(request.getKylinProperties());
 
-//        int reqValue = Bytes.toInt(request.getRequest().toByteArray());
-//        System.out.println("reqValue is " + reqValue);
-        SparkJobResponse response = SparkJobResponse.newBuilder().setResponse(ByteString.copyFrom(Bytes.toBytes(result))).build();
+        JobSubmit submit = new JobSubmit(seed, bcGtReq, kylinProperties);
+        List<byte[]> collected = submit.doWork();
+
+        //        int reqValue = Bytes.toInt(request.getRequest().toByteArray());
+        //        System.out.println("reqValue is " + reqValue);
+        SparkJobResponse response = SparkJobResponse.newBuilder().setResponse(ByteString.copyFrom(concat(collected))).build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();
+    }
+
+    private byte[] concat(List<byte[]> rows) {
+        int length = 0;
+        for (byte[] row : rows) {
+            length += row.length;
+        }
+
+        byte[] ret = new byte[length];
+        int offset = 0;
+        for (byte[] row : rows) {
+            System.arraycopy(row, 0, ret, offset, row.length);
+            offset += row.length;
+        }
+        return ret;
     }
 }
