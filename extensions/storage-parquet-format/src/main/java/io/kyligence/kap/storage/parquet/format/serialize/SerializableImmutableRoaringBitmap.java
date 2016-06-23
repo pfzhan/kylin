@@ -63,7 +63,7 @@ public class SerializableImmutableRoaringBitmap implements Serializable, KryoSer
             IOUtils.closeQuietly(baos);
         }
 
-        oos.write(buffer.length);
+        oos.writeInt(buffer.length);
         oos.write(buffer);
     }
 
