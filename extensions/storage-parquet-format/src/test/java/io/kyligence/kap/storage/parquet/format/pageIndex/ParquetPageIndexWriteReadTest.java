@@ -25,9 +25,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexWriter;
 
-/**
- * Created by dong on 16/6/17.
- */
 public class ParquetPageIndexWriteReadTest {
 
     @BeforeClass

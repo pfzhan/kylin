@@ -13,9 +13,6 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.index.IColumnInvertedIndex;
 
-/**
- * Created by dong on 16/6/18.
- */
 public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray> {
     private boolean isLazyLoad;
     private FSDataInputStream inputStream;

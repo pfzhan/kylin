@@ -10,9 +10,6 @@ import com.google.common.io.Files;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexBundleWriter;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnSpec;
 
-/**
- * Created by dong on 16/6/17.
- */
 public class ParquetPageIndexWriter implements Closeable {
     private ColumnIndexBundleWriter indexWriter;
     private File tempLocalDir;

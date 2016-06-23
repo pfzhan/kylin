@@ -21,9 +21,6 @@ import io.kyligence.kap.cube.index.ColumnIndexFactory;
 import io.kyligence.kap.cube.index.IColumnInvertedIndex;
 import io.kyligence.kap.cube.index.ColumnIIBundleWriter;
 
-/**
- * Created by dong on 16/6/15.
- */
 public class ColumnIIBundleWriterTest {
 
     @BeforeClass

@@ -23,9 +23,6 @@ import io.kyligence.kap.storage.parquet.format.pageIndex.format.ParquetPageIndex
 import io.kyligence.kap.storage.parquet.format.serialize.SerializableImmutableRoaringBitmap;
 import scala.Tuple2;
 
-/**
- * Created by dong on 6/21/16.
- */
 public class ParquetPageIndexSparkCLI {
     static GTInfo INFO;
     protected static final Logger logger = LoggerFactory.getLogger(ParquetPageIndexSparkCLI.class);

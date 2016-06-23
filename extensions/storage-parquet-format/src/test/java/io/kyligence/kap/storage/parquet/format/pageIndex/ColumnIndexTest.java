@@ -18,9 +18,6 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
-/**
- * Created by dong on 6/19/16.
- */
 public class ColumnIndexTest {
     Path indexPath = new Path("/tmp/testkylin/a.inv");
 

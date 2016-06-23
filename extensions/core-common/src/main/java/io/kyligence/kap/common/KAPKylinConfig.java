@@ -2,9 +2,6 @@ package io.kyligence.kap.common;
 
 import org.apache.kylin.common.KylinConfig;
 
-/**
- * Created by dong on 6/20/16.
- */
 public class KAPKylinConfig extends KylinConfig {
     private KylinConfig config;
 

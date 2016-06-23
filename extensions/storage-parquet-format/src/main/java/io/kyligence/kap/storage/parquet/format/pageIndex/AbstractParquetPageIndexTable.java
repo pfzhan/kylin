@@ -8,9 +8,6 @@ import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
 import java.io.Closeable;
 
-/**
- * Created by dong on 16/6/17.
- */
 public abstract class AbstractParquetPageIndexTable implements Closeable {
 
     public ImmutableRoaringBitmap lookup(TupleFilter filter) {

@@ -6,9 +6,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import java.io.Closeable;
 import java.io.IOException;
 
-/**
- * Created by dong on 6/19/16.
- */
 public class ParquetPageIndexReader implements Closeable {
     private ColumnIndexReader[] columnIndexReaders;
     private int columnNum;

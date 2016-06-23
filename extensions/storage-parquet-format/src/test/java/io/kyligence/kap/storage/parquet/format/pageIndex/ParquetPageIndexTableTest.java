@@ -30,9 +30,6 @@ import com.google.common.collect.Iterables;
 
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 
-/**
- * Created by dong on 6/21/16.
- */
 public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
     static ParquetPageIndexTable indexTable;
     final static int dataSize = 50;

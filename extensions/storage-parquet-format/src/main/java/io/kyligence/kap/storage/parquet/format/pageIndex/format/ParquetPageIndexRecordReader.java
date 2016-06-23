@@ -26,9 +26,6 @@ import org.apache.kylin.metadata.filter.ConstantTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.ColumnDesc;
 
-/**
- * Created by dong on 6/21/16.
- */
 public class ParquetPageIndexRecordReader<K, V> extends RecordReader<K, V> {
     protected Configuration conf;
 

@@ -1,8 +1,5 @@
 package io.kyligence.kap.storage.parquet.format.pageIndex.column;
 
-/**
- * Created by dong on 6/19/16.
- */
 public class ColumnSpec {
     private int columnLength;
     private int cardinality;
