@@ -24,7 +24,7 @@ import org.apache.kylin.common.util.OptionsHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.JobServer;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverServer;
 
 public class SparkQueryDriver extends AbstractApplication {
 
@@ -43,7 +43,7 @@ public class SparkQueryDriver extends AbstractApplication {
 
     @Override
     protected void execute(OptionsHelper optionsHelper) throws Exception {
-        JobServer server = new JobServer();
+        SparkDriverServer server = new SparkDriverServer();
         server.start();
         server.blockUntilShutdown();
     }

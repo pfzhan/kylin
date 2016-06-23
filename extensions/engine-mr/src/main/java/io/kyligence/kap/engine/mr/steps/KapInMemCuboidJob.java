@@ -109,7 +109,7 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
             job.setMapOutputValueClass(ByteArrayWritable.class);
 
             // set partitioner
-            job.setPartitionerClass(ShardCuboidPartitioner.class);
+            job.setPartitionerClass(ByteArrayShardCuboidPartitioner.class);
 
             // set output
             job.setReducerClass(InMemCuboidReducer.class);

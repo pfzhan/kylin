@@ -30,12 +30,16 @@ option java_generate_equals_and_hash = true;
 option optimize_for = SPEED;
 
 message SparkJobRequest {
-    required bytes request = 1;
+    required bytes gtScanRequest = 1;
     required string kylinProperties = 2;
+    required string cubeName = 3;
+    required string segmentName = 4;
+    required string cuboidID = 5;
+
 }
 
 message SparkJobResponse {
-    required bytes response = 1;
+    required bytes gtRecordsBlob = 1;
 }
 
 service JobService {

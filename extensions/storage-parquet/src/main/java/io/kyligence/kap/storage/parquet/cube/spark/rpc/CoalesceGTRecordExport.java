@@ -23,7 +23,7 @@ import javax.annotation.Nullable;
 import org.apache.kylin.gridtable.GTRecord;
 import org.apache.kylin.gridtable.GTScanRequest;
 
-public class CoalesceGTRecordExport implements com.google.common.base.Function<GTRecord,byte[]> {
+public class CoalesceGTRecordExport implements com.google.common.base.Function<GTRecord, byte[]> {
     private GTScanRequest gtScanRequest;
 
     public CoalesceGTRecordExport(GTScanRequest gtScanRequest) {

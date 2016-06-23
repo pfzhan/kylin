@@ -27,8 +27,8 @@ import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.JobServiceGrpc;
 
-public class JobServer {
-    private static final Logger logger = LoggerFactory.getLogger(JobServer.class);
+public class SparkDriverServer {
+    private static final Logger logger = LoggerFactory.getLogger(SparkDriverServer.class);
 
     /* The port on which the server should run */
     private int port = 50051;
@@ -42,7 +42,7 @@ public class JobServer {
             public void run() {
                 // Use stderr here since the logger may have been reset by its JVM shutdown hook.
                 System.err.println("*** shutting down gRPC server since JVM is shutting down");
-                JobServer.this.stop();
+                SparkDriverServer.this.stop();
                 System.err.println("*** server shut down");
             }
         });
@@ -67,7 +67,7 @@ public class JobServer {
      * Main launches the server from the command line.
      */
     public static void main(String[] args) throws IOException, InterruptedException {
-        final JobServer server = new JobServer();
+        final SparkDriverServer server = new SparkDriverServer();
         server.start();
         server.blockUntilShutdown();
     }

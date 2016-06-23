@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
 
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.OriginalBytesGTScanner;
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.gridtable.GTScanRequest;
@@ -34,18 +35,18 @@ import org.apache.spark.broadcast.Broadcast;
 
 import com.google.common.collect.Iterables;
 
-public class JobSubmit implements Serializable {
+public class SparkCubeVisitTask implements Serializable {
     private JavaRDD<Integer> seed;
     private Broadcast<byte[]> bcGtReq;
     private Broadcast<String> kylinProperties;
 
-    public JobSubmit(JavaRDD<Integer> seed, Broadcast<byte[]> bcGtReq, Broadcast<String> kylinProperties) {
+    public SparkCubeVisitTask(JavaRDD<Integer> seed, Broadcast<byte[]> bcGtReq, Broadcast<String> kylinProperties) {
         this.seed = seed;
         this.bcGtReq = bcGtReq;
         this.kylinProperties = kylinProperties;
     }
 
-    public List<byte[]> doWork() {
+    public List<byte[]> executeTask() {
         List<byte[]> collected = seed.map(new Function<Integer, byte[]>() {
             @Override
             public byte[] call(Integer integer) throws Exception {
@@ -62,7 +63,7 @@ public class JobSubmit implements Serializable {
 
                 GTScanRequest gtScanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(bcGtReq.getValue()));//TODO avoid ByteString's array copy
 
-                IGTScanner scanner = new OriginalBytesGTScanner(gtScanRequest, iterator);//in
+                IGTScanner scanner = new OriginalBytesGTScanner(gtScanRequest.getInfo(), iterator);//in
                 IGTScanner preAggred = gtScanRequest.decorateScanner(scanner);//process
                 return Iterables.transform(preAggred, new CoalesceGTRecordExport(gtScanRequest));//out
             }
