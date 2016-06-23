@@ -34,12 +34,20 @@ public class ParquetRawRecordReader<K, V> extends RecordReader<K, V> {
         Path path = fileSplit.getPath();
         shardPath = path;
 
-        String bitsetString = conf.get(ParquetFormatConstants.KYLIN_FILTER_BITSET_MAP);
-        System.out.println("bitsetString size: " + bitsetString.length());
+
+        ImmutableRoaringBitmap pageBitmap = readBitmapSet(path, ParquetFormatConstants.KYLIN_FILTER_PAGE_BITSET_MAP);
+        ImmutableRoaringBitmap measureBitmap = readBitmapSet(path, ParquetFormatConstants.KYLIN_FILTER_MEASURES_BITSET_MAP);
+
+        // init with first shard file
+        reader = new ParquetBundleReaderBuilder().setConf(conf).setPath(shardPath).setPageBitset(pageBitmap).setColumnsBitmap(measureBitmap).build();
+    }
+
+    private ImmutableRoaringBitmap readBitmapSet(Path hashKey, String property) throws IOException {
+        String pageBitsetMapString = conf.get(property);
         ImmutableRoaringBitmap bitmap = null;
 
-        if (bitsetString != null) {
-            ByteArrayInputStream bais = new ByteArrayInputStream(bitsetString.getBytes("ISO-8859-1"));
+        if (pageBitsetMapString != null) {
+            ByteArrayInputStream bais = new ByteArrayInputStream(pageBitsetMapString.getBytes("ISO-8859-1"));
             HashMap<String, SerializableImmutableRoaringBitmap> bitsetMap = null;
             try {
                 bitsetMap = (HashMap<String, SerializableImmutableRoaringBitmap>)(new ObjectInputStream(bais).readObject());
@@ -48,13 +56,10 @@ public class ParquetRawRecordReader<K, V> extends RecordReader<K, V> {
             }
 
             if (bitsetMap != null) {
-                System.out.println("path.toString: " + path.toString());
-                bitmap = bitsetMap.get(path.toString()).getBitmap();
+                bitmap = bitsetMap.get(hashKey.toString()).getBitmap();
             }
         }
-
-        // init with first shard file
-        reader = new ParquetBundleReaderBuilder().setConf(conf).setPath(shardPath).setPageBitset(bitmap).build();
+        return bitmap;
     }
 
     @Override

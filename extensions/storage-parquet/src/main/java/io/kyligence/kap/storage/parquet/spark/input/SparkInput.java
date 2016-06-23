@@ -34,12 +34,20 @@ public class SparkInput {
         // Create bitset
         ImmutableRoaringBitmap bitmap = createBitset(3);
         SerializableImmutableRoaringBitmap sBitmap = new SerializableImmutableRoaringBitmap(bitmap);
-        HashMap<String, SerializableImmutableRoaringBitmap> map = new HashMap<>();
-        map.put(path, sBitmap);
-        System.out.println("path put: " + path);
-        config.set(ParquetFormatConstants.KYLIN_FILTER_BITSET_MAP, serialize(map));
 
-        // Create and
+        // Set page bitmap
+        HashMap<String, SerializableImmutableRoaringBitmap> pageMap = new HashMap<>();
+        pageMap.put(path, sBitmap);
+        System.out.println("path put: " + path);
+        config.set(ParquetFormatConstants.KYLIN_FILTER_PAGE_BITSET_MAP, serialize(pageMap));
+
+
+        // Set measures column bitmap
+        HashMap<String, SerializableImmutableRoaringBitmap> measureMap = new HashMap<>();
+        measureMap.put(path, sBitmap);
+        config.set(ParquetFormatConstants.KYLIN_FILTER_MEASURES_BITSET_MAP, serialize(measureMap));
+
+        // Read parquet file and
         JavaPairRDD<Text, Text> rdd = context.newAPIHadoopFile(path, ParquetRawInputFormat.class, Text.class, Text.class, config);
         JavaRDD<Integer> rdd2 = rdd.map(new Function<Tuple2<Text, Text>, Integer>() {
             @Override

@@ -3,10 +3,12 @@ package io.kyligence.kap.storage.parquet.format.file;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
+import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.ByteBuffer;
 
 /**
  * Created by roger on 6/13/16.
@@ -16,7 +18,7 @@ public class ParquetBundleReaderBuilder {
     private Configuration conf;
     private Path path;
     private Path indexPath;
-    private List<Integer> columns;
+    private ImmutableRoaringBitmap columnBitset = null;
     private ImmutableRoaringBitmap pageBitset = null;
 
     public ParquetBundleReaderBuilder setConf(Configuration conf) {
@@ -34,8 +36,8 @@ public class ParquetBundleReaderBuilder {
         return this;
     }
 
-    public ParquetBundleReaderBuilder setColumns(List<Integer> columns) {
-        this.columns = columns;
+    public ParquetBundleReaderBuilder setColumnsBitmap(ImmutableRoaringBitmap columns) {
+        this.columnBitset = columns;
         return this;
     }
 
@@ -58,17 +60,30 @@ public class ParquetBundleReaderBuilder {
             indexPath = new Path(path.toString() + indexPathSuffix);
         }
 
-        if (columns == null) {
+        if (columnBitset == null) {
             int columnCnt = new ParquetRawReaderBuilder().setConf(conf)
                     .setPath(path)
                     .setIndexPath(indexPath)
                     .build().getColumnCount();
-            columns = new ArrayList<>(columnCnt);
-            for (int i = 0; i < columnCnt; ++i) {
-                columns.add(i);
-            }
+            columnBitset = createBitset(columnCnt);
         }
 
-        return new ParquetBundleReader(conf, path, indexPath, columns, pageBitset);
+        return new ParquetBundleReader(conf, path, indexPath, columnBitset, pageBitset);
+    }
+
+    private static ImmutableRoaringBitmap createBitset(int total) throws IOException {
+        MutableRoaringBitmap mBitmap = new MutableRoaringBitmap();
+        for (int i = 0; i < total; ++i) {
+            mBitmap.add(i);
+        }
+
+        ImmutableRoaringBitmap iBitmap = null;
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); DataOutputStream dos = new DataOutputStream(baos);) {
+            mBitmap.serialize(dos);
+            dos.flush();
+            iBitmap = new ImmutableRoaringBitmap(ByteBuffer.wrap(baos.toByteArray()));
+        }
+
+        return iBitmap;
     }
 }
