@@ -15,6 +15,12 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
 import org.apache.kylin.common.KylinConfig;
 
+/**
+ * RecordReader used in ParquetPageIndexInputFormat.
+ *
+ * @param <K> Path of parquet data file (*.parquet)
+ * @param <V> Instance of ParquetPageIndexTable
+ */
 public class ParquetPageIndexRecordReader<K, V> extends RecordReader<K, V> {
     protected Configuration conf;
 
