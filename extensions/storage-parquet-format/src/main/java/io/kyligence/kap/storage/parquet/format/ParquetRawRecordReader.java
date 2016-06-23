@@ -1,6 +1,7 @@
 package io.kyligence.kap.storage.parquet.format;
 
 import io.kyligence.kap.storage.parquet.format.file.*;
+import io.kyligence.kap.storage.parquet.format.serialize.SerializableImmutableRoaringBitmap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -11,13 +12,12 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.parquet.io.api.Binary;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.io.ObjectInputStream;
+import java.util.HashMap;
 import java.util.List;
 
-/**
- * Created by roger on 6/15/16.
- */
 public class ParquetRawRecordReader<K, V> extends RecordReader<K, V> {
     protected Configuration conf;
 
@@ -34,15 +34,27 @@ public class ParquetRawRecordReader<K, V> extends RecordReader<K, V> {
         Path path = fileSplit.getPath();
         shardPath = path;
 
-        String bitsetString = conf.get(ParquetFormatConstants.KYLIN_FILTER_BITSET);
+        String bitsetString = conf.get(ParquetFormatConstants.KYLIN_FILTER_BITSET_MAP);
         System.out.println("bitsetString size: " + bitsetString.length());
-        ImmutableRoaringBitmap bitset = null;
+        ImmutableRoaringBitmap bitmap = null;
+
         if (bitsetString != null) {
-            bitset = new ImmutableRoaringBitmap(ByteBuffer.wrap(bitsetString.getBytes("ISO-8859-1")));
+            ByteArrayInputStream bais = new ByteArrayInputStream(bitsetString.getBytes("ISO-8859-1"));
+            HashMap<String, SerializableImmutableRoaringBitmap> bitsetMap = null;
+            try {
+                bitsetMap = (HashMap<String, SerializableImmutableRoaringBitmap>)(new ObjectInputStream(bais).readObject());
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+
+            if (bitsetMap != null) {
+                System.out.println("path.toString: " + path.toString());
+                bitmap = bitsetMap.get(path.toString()).getBitmap();
+            }
         }
 
         // init with first shard file
-        reader = new ParquetBundleReaderBuilder().setConf(conf).setPath(shardPath).setPageBitset(bitset).build();
+        reader = new ParquetBundleReaderBuilder().setConf(conf).setPath(shardPath).setPageBitset(bitmap).build();
     }
 
     @Override

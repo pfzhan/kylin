@@ -2,6 +2,7 @@ package io.kyligence.kap.storage.parquet.spark.input;
 
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetRawInputFormat;
+import io.kyligence.kap.storage.parquet.format.serialize.SerializableImmutableRoaringBitmap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.spark.SparkConf;
@@ -16,8 +17,9 @@ import scala.Tuple2;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 
 public class SparkInput {
 
@@ -30,9 +32,11 @@ public class SparkInput {
 
         // Create bitset
         ImmutableRoaringBitmap bitmap = createBitset(3);
-        String serializedString = serialize(bitmap);
-        System.out.println("serialized String size: " + serializedString.length());
-        config.set(ParquetFormatConstants.KYLIN_FILTER_BITSET, serializedString);
+        SerializableImmutableRoaringBitmap sBitmap = new SerializableImmutableRoaringBitmap(bitmap);
+        HashMap<String, SerializableImmutableRoaringBitmap> map = new HashMap<>();
+        map.put(path, sBitmap);
+        System.out.println("path put: " + path);
+        config.set(ParquetFormatConstants.KYLIN_FILTER_BITSET_MAP, serialize(map));
 
         // Create and
         JavaPairRDD<Text, Text> rdd = context.newAPIHadoopFile(path, ParquetRawInputFormat.class, Text.class, Text.class, config);
@@ -66,11 +70,11 @@ public class SparkInput {
         return iBitmap;
     }
 
-    private static String serialize(ImmutableRoaringBitmap bitmap) throws IOException {
+    private static String serialize(HashMap<String, SerializableImmutableRoaringBitmap> map) throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(bos);
-        bitmap.serialize(dos);
-        dos.close();
+        ObjectOutputStream oos = new ObjectOutputStream(bos);
+        oos.writeObject(map);
+        oos.close();
         return new String(bos.toByteArray(), "ISO-8859-1");
     }
 }
