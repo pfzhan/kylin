@@ -1,9 +1,15 @@
 package io.kyligence.kap.storage.parquet.format.pageIndex.column;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Set;
+import java.util.TreeSet;
 
+import com.google.common.collect.Sets;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.kylin.common.util.ByteArray;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
@@ -91,7 +97,7 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
         try {
             return getEqIndex().getRows(v);
         } catch (Exception e) {
-           throw new RuntimeException(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -104,6 +110,30 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
     }
 
     public ImmutableRoaringBitmap lookupGtIndex(ByteArray v) {
+        try {
+            return getGtIndex().getRows(v);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public HashMap<ByteArray, ImmutableRoaringBitmap> lookupEqIndex(Set<ByteArray> v) {
+        try {
+            return getEqIndex().getRows(v);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public HashMap<ByteArray, ImmutableRoaringBitmap> lookupLtIndex(Set<ByteArray> v) {
+        try {
+            return getLtIndex().getRows(v);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public HashMap<ByteArray, ImmutableRoaringBitmap> lookupGtIndex(Set<ByteArray> v) {
         try {
             return getGtIndex().getRows(v);
         } catch (Exception e) {
@@ -159,9 +189,28 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
             readFromStream(stream, type);
         }
 
-        private ImmutableRoaringBitmap getRows(ByteArray v) {
+        private HashMap<ByteArray, ImmutableRoaringBitmap> getRows(Set<ByteArray> values) {
+            HashMap<ByteArray, ImmutableRoaringBitmap> result = Maps.newLinkedHashMap();
+            if (values == null || values.isEmpty()) {
+                return result;
+            }
+
+            TreeSet<ByteArray> sortedValues = null;
+            if (values instanceof TreeSet) {
+                sortedValues = (TreeSet<ByteArray>) values;
+            } else {
+                sortedValues = Sets.newTreeSet(values);
+            }
+
+            for (ByteArray value  : sortedValues) {
+                result.put(value, getRows(value));
+            }
+            return result;
+        }
+
+        private ImmutableRoaringBitmap getRows(ByteArray value) {
             try {
-                Map.Entry<ByteArray, Long> startEntry = offsetMap.floorEntry(v);
+                Map.Entry<ByteArray, Long> startEntry = offsetMap.floorEntry(value);
                 if (startEntry == null && type == IndexBlockType.GTE) {
                     startEntry = offsetMap.firstEntry();
                 }
@@ -182,7 +231,7 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
                         MutableRoaringBitmap pageId = MutableRoaringBitmap.bitmapOf();
                         pageId.deserialize(inputStream);
 
-                        int compare = buffer.compareTo(v);
+                        int compare = buffer.compareTo(value);
                         if (compare == 0) {
                             return pageId;
                         } else if (compare > 0) {

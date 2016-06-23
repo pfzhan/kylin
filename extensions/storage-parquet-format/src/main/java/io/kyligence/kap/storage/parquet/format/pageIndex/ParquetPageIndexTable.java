@@ -18,9 +18,6 @@ import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Created by dongli on 5/31/16.
- */
 public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetPageIndexTable.class);
 
@@ -44,10 +41,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             break;
         case NOTIN:
         case IN:
-            result = MutableRoaringBitmap.bitmapOf();
-            for (ByteArray v : vals) {
-                result.or(indexReader.readColumnIndex(column).lookupEqIndex(val));
-            }
+            result = ImmutableRoaringBitmap.or(indexReader.readColumnIndex(column).lookupEqIndex(vals).values().iterator());
             break;
         case EQ:
         case NEQ:
