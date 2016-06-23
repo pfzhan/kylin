@@ -9,6 +9,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
@@ -38,8 +39,6 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
             options.addOption(OPTION_CUBING_JOB_ID);
             parseOptions(options, args);
 
-            Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
-
             String cubeName = getOptionValue(OPTION_CUBE_NAME).toUpperCase();
             String segmentName = getOptionValue(OPTION_SEGMENT_NAME);
 
@@ -50,22 +49,18 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
             setJobClasspath(job, cube.getConfig());
 
             addParquetInputFile(job, new Path(getOptionValue(OPTION_INPUT_PATH)));
-            FileOutputFormat.setOutputPath(job, output);
 
             job.setInputFormatClass(ParquetPageInputFormat.class);
+            job.setOutputFormatClass(NullOutputFormat.class);
             job.setMapperClass(ParquetPageIndexMapper.class);
             job.setNumReduceTasks(0);
 
             // set job configuration
             job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, cubeName);
             job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_NAME, segmentName);
-            job.getConfiguration().set(BatchConstants.CFG_OUTPUT_PATH, output.toString());
 
             // add metadata to distributed cache
             attachKylinPropsAndMetadata(cube, job.getConfiguration());
-
-            deletePath(job.getConfiguration(), output);
-
             return waitForCompletion(job);
         } catch (Exception e) {
             printUsage(options);
