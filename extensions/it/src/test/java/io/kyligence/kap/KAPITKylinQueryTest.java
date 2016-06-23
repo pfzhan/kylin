@@ -63,7 +63,7 @@ public class KAPITKylinQueryTest extends KylinTestBase {
         Candidate.setPriorities(priorities);
 
         printInfo("setUp in KylinQueryTest");
-        joinType = "inner";
+        joinType = "left";
 
         setupAll();
     }
@@ -114,7 +114,7 @@ public class KAPITKylinQueryTest extends KylinTestBase {
     @Test
     public void testSingleRunQuery() throws Exception {
 
-        String queryFileName = ITDirHeader + "src/test/resources/query/sql/query99.sql";
+        String queryFileName = ITDirHeader + "src/test/resources/query/temp/query01.sql";
 
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {

@@ -47,7 +47,7 @@ import com.clearspring.analytics.util.Lists;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 
-public class SimulateSparkQueryTest extends io.kyligence.kap.common.util.LocalFileMetadataTestCase {
+public class SparkQueryLocalTest extends io.kyligence.kap.common.util.LocalFileMetadataTestCase {
 
     private GridTable table;
     private GTInfo info;

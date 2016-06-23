@@ -43,9 +43,9 @@ public class SparkDriverClient {
         blockingStub = JobServiceGrpc.newBlockingStub(channel);
     }
 
-    public SparkJobResponse submit(byte[] requestBlob, String kylinProperties, String cubeName, String segmentName, String cuboidID) {
-        SparkJobRequest request = SparkJobRequest.newBuilder().setGtScanRequest(ByteString.copyFrom(requestBlob)). //
-                setKylinProperties(kylinProperties).setCubeName(cubeName).setSegmentName(segmentName).setCuboidID(cuboidID).build();
+    public SparkJobResponse submit(byte[] gtScanReq, String kylinProperties, String cubeId, String segmentId, String cuboidId) {
+        SparkJobRequest request = SparkJobRequest.newBuilder().setGtScanRequest(ByteString.copyFrom(gtScanReq)). //
+                setKylinProperties(kylinProperties).setCubeId(cubeId).setSegmentId(segmentId).setCubeId(cuboidId).build();
 
         try {
             return blockingStub.submitJob(request);

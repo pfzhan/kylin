@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.storage.parquet.cube.spark;
+package io.kyligence.kap.storage.parquet.cube;
 
 import java.io.IOException;
 
@@ -52,8 +52,8 @@ public class CubeSparkRPC implements IGTStorage {
         SparkJobProtos.SparkJobResponse jobResponse = client.submit( //
                 scanRequests.toByteArray(), //
                 KylinConfig.getInstanceFromEnv().getConfigAsString(), //
-                cubeSegment.getCubeInstance().getName(), //
-                cubeSegment.getName(), //
+                cubeSegment.getCubeInstance().getUuid(), //
+                cubeSegment.getUuid(), //
                 String.valueOf(cuboid.getId()) //
         );
         return new JobResponseBlobGTScanner(scanRequests, jobResponse.getGtRecordsBlob().toByteArray());

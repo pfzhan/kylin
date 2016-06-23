@@ -27,6 +27,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.cube.CubeSegment;
@@ -94,7 +95,7 @@ public class AdvGTScanRangePlanner extends GTScanRangePlanner {
         //TODO: don't need the metrics
         GTScanRangePlanner scanRangePlanner = new GTScanRangePlanner(cubeSegment, prefixCuboid, filter, newDimensions, newDimensions, metrics);
         GTScanRequest scanRequest = scanRangePlanner.planScanRequest();
-        ScannerWorker scanner = new ScannerWorker(cubeSegment, prefixCuboid, scanRequest);
+        ScannerWorker scanner = new ScannerWorker(cubeSegment, prefixCuboid, scanRequest, KylinConfig.getInstanceFromEnv().getDefaultIGTStorage());
 
         final ByteArray empty = new ByteArray();
         Iterator<GTRecord> itr = Iterators.transform(scanner.iterator(), new Function<GTRecord, GTRecord>() {
@@ -114,7 +115,7 @@ public class AdvGTScanRangePlanner extends GTScanRangePlanner {
                         byteArrays[index] = empty;
                     }
                 }
-                return new GTRecord(gtInfo,  byteArrays);
+                return new GTRecord(gtInfo, byteArrays);
             }
         });
 

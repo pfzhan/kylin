@@ -16,9 +16,6 @@
 // limitations under the License.
 //
 
-// usage:
-// protoc  --java_out=./storage-parquet/src/main/java  ./storage-parquet/src/main/java/io/kyligence/kap/storage/parquet/cube/spark/rpc/protobuf/SparkJob.proto
-
 option java_package = "io.kyligence.kap.storage.parquet.cube.spark.rpc.generated";
 
 option java_outer_classname = "SparkJobProtos";
@@ -32,9 +29,9 @@ option optimize_for = SPEED;
 message SparkJobRequest {
     required bytes gtScanRequest = 1;
     required string kylinProperties = 2;
-    required string cubeName = 3;
-    required string segmentName = 4;
-    required string cuboidID = 5;
+    required string cubeId = 3;
+    required string segmentId = 4;
+    required string cuboidId = 5;
 
 }
 
