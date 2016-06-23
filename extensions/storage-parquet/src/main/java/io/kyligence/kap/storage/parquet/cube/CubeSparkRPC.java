@@ -44,7 +44,7 @@ public class CubeSparkRPC implements IGTStorage {
         this.cuboid = cuboid;
         this.info = info;
 
-        client = new SparkDriverClient("localhost", 50055);
+        client = new SparkDriverClient("localhost", 50051);
     }
 
     @Override

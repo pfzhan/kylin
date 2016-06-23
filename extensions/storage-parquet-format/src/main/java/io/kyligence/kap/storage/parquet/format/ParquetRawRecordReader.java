@@ -1,7 +1,11 @@
 package io.kyligence.kap.storage.parquet.format;
 
-import io.kyligence.kap.storage.parquet.format.file.*;
-import io.kyligence.kap.storage.parquet.format.serialize.SerializableImmutableRoaringBitmap;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.util.HashMap;
+import java.util.List;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -12,11 +16,9 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.parquet.io.api.Binary;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.util.HashMap;
-import java.util.List;
+import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
+import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
+import io.kyligence.kap.storage.parquet.format.serialize.SerializableImmutableRoaringBitmap;
 
 public class ParquetRawRecordReader<K, V> extends RecordReader<K, V> {
     protected Configuration conf;
@@ -50,7 +52,7 @@ public class ParquetRawRecordReader<K, V> extends RecordReader<K, V> {
             ByteArrayInputStream bais = new ByteArrayInputStream(pageBitsetMapString.getBytes("ISO-8859-1"));
             HashMap<String, SerializableImmutableRoaringBitmap> bitsetMap = null;
             try {
-                bitsetMap = (HashMap<String, SerializableImmutableRoaringBitmap>)(new ObjectInputStream(bais).readObject());
+                bitsetMap = (HashMap<String, SerializableImmutableRoaringBitmap>) (new ObjectInputStream(bais).readObject());
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
@@ -78,17 +80,17 @@ public class ParquetRawRecordReader<K, V> extends RecordReader<K, V> {
     private void setVal(List<Object> data) {
         int valueBytesLength = 0;
         for (int i = 0; i < data.size(); ++i) {
-            valueBytesLength += ((Binary)data.get(i)).getBytes().length;
+            valueBytesLength += ((Binary) data.get(i)).getBytes().length;
         }
         byte[] valueBytes = new byte[valueBytesLength];
 
         int offset = 0;
         for (int i = 0; i < data.size(); ++i) {
-            byte[] src = ((Binary)data.get(i)).getBytes();
+            byte[] src = ((Binary) data.get(i)).getBytes();
             System.arraycopy(src, 0, valueBytes, offset, src.length);
             offset += src.length;
         }
-        val = (V)new Text(valueBytes);
+        val = (V) new Text(valueBytes);
     }
 
     @Override

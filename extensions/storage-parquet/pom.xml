@@ -197,23 +197,28 @@
                                     <shadedPattern>kap.netty</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>com.google.guava</pattern>
-                                    <shadedPattern>kap.guava</shadedPattern>
+                                    <pattern>com.google</pattern>
+                                    <shadedPattern>kap</shadedPattern>
                                 </relocation>
-                                <relocation>
-                                    <pattern>com.google.protobuf</pattern>
-                                    <shadedPattern>kap.protobuf</shadedPattern>
-                                </relocation>
+                                <!--<relocation>-->
+                                <!--<pattern>com.google.guava</pattern>-->
+                                <!--<shadedPattern>kap.guava</shadedPattern>-->
+                                <!--</relocation>-->
+                                <!--<relocation>-->
+                                <!--<pattern>com.google.protobuf</pattern>-->
+                                <!--<shadedPattern>kap.protobuf</shadedPattern>-->
+                                <!--</relocation>-->
                                 <relocation>
                                     <pattern>org.roaringbitmap</pattern>
                                     <shadedPattern>kap.roaringbitmap</shadedPattern>
                                 </relocation>
                             </relocations>
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer" />
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"/>
                             </transformers>
                             <minimizeJar>false</minimizeJar>
-                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
                             <shadedClassifierName>spark</shadedClassifierName>
                             <filters>
                                 <filter>

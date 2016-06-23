@@ -1,1 +1,1 @@
-select sum(LO_REVENUE) from SSB.V_LINEORDER group by LO_PARTKEY
+select sum(LO_REVENUE) as x,LO_PARTKEY from SSB.V_LINEORDER group by LO_PARTKEY order by LO_PARTKEY desc

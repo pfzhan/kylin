@@ -26,7 +26,6 @@ import javax.annotation.Nullable;
 
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTRecord;
-import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
 
 import com.google.common.collect.Iterators;

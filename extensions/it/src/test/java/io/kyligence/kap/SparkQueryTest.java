@@ -35,8 +35,6 @@ import org.apache.kylin.query.enumerator.OLAPQuery;
 import org.apache.kylin.query.routing.Candidate;
 import org.apache.kylin.query.schema.OLAPSchemaFactory;
 import org.apache.kylin.storage.hbase.cube.v1.coprocessor.observer.ObserverEnabler;
-import org.dbunit.database.DatabaseConnection;
-import org.dbunit.database.IDatabaseConnection;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -44,8 +42,8 @@ import org.junit.Test;
 
 import com.google.common.collect.Maps;
 
-@Ignore("KAPITKylinQueryTest is contained by KAPITCombinationTest")
-public class KAPITKylinQueryTest extends KylinTestBase {
+@Ignore
+public class SparkQueryTest extends KylinTestBase {
 
     @BeforeClass
     public static void setUp() throws Exception {
@@ -56,7 +54,7 @@ public class KAPITKylinQueryTest extends KylinTestBase {
         Candidate.setPriorities(priorities);
 
         printInfo("setUp in KylinQueryTest");
-        joinType = "inner";
+        joinType = "left";
 
         setupAll();
     }
@@ -97,17 +95,10 @@ public class KAPITKylinQueryTest extends KylinTestBase {
         HBaseMetadataTestCase.staticCleanupTestMetadata();
     }
 
-    @Ignore("this is only for debug")
-    @Test
-    public void testTempQuery() throws Exception {
-        execAndCompQuery(ITDirHeader + "src/test/resources/query/temp", null, true);
-    }
-
-    @Ignore("this is only for debug")
     @Test
     public void testSingleRunQuery() throws Exception {
 
-        String queryFileName = ITDirHeader + "src/test/resources/query/sql/query99.sql";
+        String queryFileName = ITDirHeader + "src/test/resources/query/temp/query01.sql";
 
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
@@ -116,27 +107,4 @@ public class KAPITKylinQueryTest extends KylinTestBase {
         }
     }
 
-    @Ignore("this is only for debug")
-    @Test
-    public void testSingleExecuteQuery() throws Exception {
-
-        String queryFileName = ITDirHeader + "src/test/resources/query/sql_tableau/query20.sql";
-
-        File sqlFile = new File(queryFileName);
-        String sql = getTextFromFile(sqlFile);
-        IDatabaseConnection kylinConn = new DatabaseConnection(cubeConnection);
-
-        executeQuery(kylinConn, queryFileName, sql, true);
-    }
-
-    @Test
-    public void testPercentileQuery() throws Exception {
-        batchExecuteQuery(ITDirHeader + "src/test/resources/query/percentile");
-    }
-
-    @Ignore("this is only for test")
-    @Test
-    public void testH2Query() throws Exception {
-        execQueryUsingH2(ITDirHeader + "src/test/resources/query/percentile", false);
-    }
 }
