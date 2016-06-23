@@ -17,6 +17,7 @@ import io.kyligence.kap.cube.index.IColumnInvertedIndex;
  * Created by dong on 16/6/18.
  */
 public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray> {
+    private boolean isLazyLoad;
     private FSDataInputStream inputStream;
     private long inputOffset;
 
@@ -52,32 +53,65 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
         }
     }
 
+    private IndexBlock getEqIndex() throws IOException {
+        if (eqIndex == null) {
+            initFromInput();
+        }
+        return eqIndex;
+    }
+
+    private IndexBlock getGtIndex() throws IOException {
+        if (eqIndex == null) {
+            initFromInput();
+        }
+        return gtIndex;
+    }
+
+    private IndexBlock getLtIndex() throws IOException {
+        if (eqIndex == null) {
+            initFromInput();
+        }
+        return ltIndex;
+    }
+
     public ColumnIndexReader(FSDataInputStream inputStream) throws IOException {
         this(inputStream, 0);
     }
 
     public ColumnIndexReader(FSDataInputStream inputStream, long inputOffset) throws IOException {
+        this(inputStream, inputOffset, true);
+    }
+
+    public ColumnIndexReader(FSDataInputStream inputStream, long inputOffset, boolean isLazyLoad) throws IOException {
         this.inputStream = inputStream;
         this.inputOffset = inputOffset;
-        initFromInput();
+        if (!isLazyLoad) {
+            initFromInput();
+        }
     }
 
     public ImmutableRoaringBitmap lookupEqIndex(ByteArray v) {
-        return eqIndex.getRows(v);
+        try {
+            return getEqIndex().getRows(v);
+        } catch (Exception e) {
+           throw new RuntimeException(e);
+        }
     }
 
     public ImmutableRoaringBitmap lookupLtIndex(ByteArray v) {
-        if (ltIndex == null) {
-            throw new RuntimeException("lt index not exists.");
+        try {
+            return getLtIndex().getRows(v);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        return ltIndex.getRows(v);
     }
 
     public ImmutableRoaringBitmap lookupGtIndex(ByteArray v) {
-        if (ltIndex == null) {
-            throw new RuntimeException("gt index not exists.");
+        try {
+            return getGtIndex().getRows(v);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        return gtIndex.getRows(v);
     }
 
     @Override

@@ -15,11 +15,15 @@ import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by dongli on 5/31/16.
  */
 public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
+    protected static final Logger logger = LoggerFactory.getLogger(ParquetPageIndexTable.class);
+
     ParquetPageIndexReader indexReader;
     //    NavigableSet<CompareTupleFilter> columnFilterSet = Sets.newTreeSet(getCompareTupleFilterComparator());
     //    HashMap<CompareTupleFilter, MutableRoaringBitmap> filterIndexMap = new HashMap<>();
@@ -124,6 +128,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             }
         }
 
+        logger.info("Parquet II Metrics: TotalPageNum={}, ResultPageNum={}", indexReader.getPageTotalNum(0), resultBitmap.getCardinality());
         return resultBitmap;
     }
 

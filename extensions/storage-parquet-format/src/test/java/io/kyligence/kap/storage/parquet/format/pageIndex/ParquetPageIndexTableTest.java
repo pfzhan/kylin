@@ -35,7 +35,6 @@ import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
  */
 public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
     static ParquetPageIndexTable indexTable;
-    static FSDataInputStream inputStream;
     final static int dataSize = 50;
     final static int last = dataSize - 1;
     final static int maxVal = 100;
@@ -54,7 +53,7 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
     public static void after() throws Exception {
         cleanAfterClass();
         indexTable.close();
-//        inputStream.close();
+        //        inputStream.close();
     }
 
     @BeforeClass
