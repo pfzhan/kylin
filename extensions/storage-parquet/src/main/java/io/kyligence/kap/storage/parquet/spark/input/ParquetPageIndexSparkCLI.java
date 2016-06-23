@@ -67,11 +67,11 @@ public class ParquetPageIndexSparkCLI {
 
     public static void main(String args[]) throws IOException, ClassNotFoundException {
         SparkConf sparkConf = new SparkConf();
-        sparkConf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
-        sparkConf.registerKryoClasses(new Class<?>[]{
-                Class.forName("io.kyligence.kap.storage.parquet.format.serialize.SerializableImmutableRoaringBitmap"),
-                Class.forName("org.apache.hadoop.io.Text")
-        });
+//        sparkConf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
+//        sparkConf.registerKryoClasses(new Class<?>[]{
+//                Class.forName("io.kyligence.kap.storage.parquet.format.serialize.SerializableImmutableRoaringBitmap"),
+//                Class.forName("org.apache.hadoop.io.Text")
+//        });
         JavaSparkContext context = new JavaSparkContext(sparkConf);
         Configuration config = new Configuration();
         ParquetPageIndexSparkCLI app = new ParquetPageIndexSparkCLI();
