@@ -64,25 +64,25 @@ public class ParquetRawRecordReader<K, V> extends RecordReader<K, V> {
             return false;
         }
 
-        key = (K) new Text(((Binary)data.get(0)).getBytes());
+        key = (K) new Text();
         setVal(data);
         return true;
     }
 
+    // We put all columns in values and keep key empty
     private void setVal(List<Object> data) {
         int valueBytesLength = 0;
-        for (int i = 1; i < data.size(); ++i) {
+        for (int i = 0; i < data.size(); ++i) {
             valueBytesLength += ((Binary)data.get(i)).getBytes().length;
         }
         byte[] valueBytes = new byte[valueBytesLength];
 
         int offset = 0;
-        for (int i = 1; i < data.size(); ++i) {
+        for (int i = 0; i < data.size(); ++i) {
             byte[] src = ((Binary)data.get(i)).getBytes();
             System.arraycopy(src, 0, valueBytes, offset, src.length);
             offset += src.length;
         }
-
         val = (V)new Text(valueBytes);
     }
 
