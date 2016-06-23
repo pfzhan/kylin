@@ -150,6 +150,21 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGTEMin() throws IOException {
+        TupleFilter filter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.GTE);
+        filter.addChild(new ColumnTupleFilter(colRef2));
+        byte[] buffer = new byte[columnLength[1]];
+        BytesUtil.writeUnsigned(0, buffer, 0, buffer.length);
+        filter.addChild(new ConstantTupleFilter(new ByteArray(buffer)));
+        ImmutableRoaringBitmap result = indexTable.lookup(filter);
+        int[] expected = new int[50];
+        for (int i = 0; i < 50; i++) {
+            expected[i] = i;
+        }
+        assertArrayEquals(expected, result.toArray());
+    }
+
+    @Test
     public void testGTMax() throws IOException {
         TupleFilter filter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.GT);
         filter.addChild(new ColumnTupleFilter(colRef1));

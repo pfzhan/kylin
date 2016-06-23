@@ -162,6 +162,10 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
         private ImmutableRoaringBitmap getRows(ByteArray v) {
             try {
                 Map.Entry<ByteArray, Long> startEntry = offsetMap.floorEntry(v);
+                if (startEntry == null && type == IndexBlockType.GTE) {
+                    startEntry = offsetMap.firstEntry();
+                }
+
                 if (startEntry != null) {
                     MutableRoaringBitmap lastPageId = MutableRoaringBitmap.bitmapOf();
 

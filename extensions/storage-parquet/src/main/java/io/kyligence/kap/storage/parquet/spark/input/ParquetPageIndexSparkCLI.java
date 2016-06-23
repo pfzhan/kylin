@@ -3,15 +3,12 @@ package io.kyligence.kap.storage.parquet.spark.input;
 import java.io.IOException;
 import java.util.List;
 
-import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
-import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.metadata.filter.ColumnTupleFilter;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.ConstantTupleFilter;
@@ -25,6 +22,7 @@ import org.apache.spark.api.java.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexWriter;
 import io.kyligence.kap.storage.parquet.format.pageIndex.format.ParquetPageIndexInputFormat;
 import io.kyligence.kap.storage.parquet.format.serialize.SerializableImmutableRoaringBitmap;
@@ -58,13 +56,14 @@ public class ParquetPageIndexSparkCLI {
             writer.close();
         }
     }
+
     public static void main(String args[]) throws IOException, ClassNotFoundException {
         SparkConf sparkConf = new SparkConf();
-//        sparkConf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
-//        sparkConf.registerKryoClasses(new Class<?>[]{
-//                Class.forName("io.kyligence.kap.storage.parquet.format.serialize.SerializableImmutableRoaringBitmap"),
-//                Class.forName("org.apache.hadoop.io.Text")
-//        });
+        //        sparkConf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
+        //        sparkConf.registerKryoClasses(new Class<?>[]{
+        //                Class.forName("io.kyligence.kap.storage.parquet.format.serialize.SerializableImmutableRoaringBitmap"),
+        //                Class.forName("org.apache.hadoop.io.Text")
+        //        });
         JavaSparkContext context = new JavaSparkContext(sparkConf);
 
         // build index for test
