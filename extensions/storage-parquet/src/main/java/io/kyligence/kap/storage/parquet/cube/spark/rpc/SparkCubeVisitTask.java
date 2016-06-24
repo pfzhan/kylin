@@ -19,15 +19,21 @@
 package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
 import java.io.Serializable;
+import java.nio.ByteBuffer;
+import java.util.Iterator;
 import java.util.List;
 
+import com.google.common.collect.Iterables;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.OriginalBytesGTScanner;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.BytesUtil;
+import org.apache.kylin.gridtable.GTScanRequest;
+import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.broadcast.Broadcast;
 
@@ -80,24 +86,20 @@ public class SparkCubeVisitTask implements Serializable {
 
                 return tuple._2().getBytes();
             }
+        }).mapPartitions(new FlatMapFunction<Iterator<byte[]>, byte[]>() {
+
+            @Override
+            public Iterable<byte[]> call(final Iterator<byte[]> iterator) throws Exception {
+
+                // if user change kylin.properties on kylin server, need to manually redeploy coprocessor jar to update KylinConfig of Env.
+                KylinConfig.setKylinConfigFromInputStream(IOUtils.toInputStream(bcKylinProperties.getValue()));
+                GTScanRequest gtScanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(bcGtReq.getValue()));//TODO avoid ByteString's array copy
+
+                IGTScanner scanner = new OriginalBytesGTScanner(gtScanRequest.getInfo(), iterator);//in
+                IGTScanner preAggred = gtScanRequest.decorateScanner(scanner);//process
+                return Iterables.transform(preAggred, new CoalesceGTRecordExport(gtScanRequest));//out
+            }
         }).collect();
-        System.out.println(BytesUtil.toReadableText(collected.get(0)));
-        System.out.println(BytesUtil.toReadableText(collected.get(1)));
-        System.out.println(BytesUtil.toReadableText(collected.get(collected.size() - 1)));
-        //                .mapPartitions(new FlatMapFunction<Iterator<byte[]>, byte[]>() {
-        //
-        //            @Override
-        //            public Iterable<byte[]> call(final Iterator<byte[]> iterator) throws Exception {
-        //
-        //                // if user change kylin.properties on kylin server, need to manually redeploy coprocessor jar to update KylinConfig of Env.
-        //                KylinConfig.setKylinConfigFromInputStream(IOUtils.toInputStream(bcKylinProperties.getValue()));
-        //                GTScanRequest gtScanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(bcGtReq.getValue()));//TODO avoid ByteString's array copy
-        //
-        //                IGTScanner scanner = new OriginalBytesGTScanner(gtScanRequest.getInfo(), iterator);//in
-        //                IGTScanner preAggred = gtScanRequest.decorateScanner(scanner);//process
-        //                return Iterables.transform(preAggred, new CoalesceGTRecordExport(gtScanRequest));//out
-        //            }
-        //        }).collect();
 
         System.out.println("The result size is " + collected.size());
         return collected;
