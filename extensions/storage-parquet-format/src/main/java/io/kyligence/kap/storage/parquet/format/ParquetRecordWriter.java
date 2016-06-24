@@ -89,6 +89,7 @@ public class ParquetRecordWriter <K,V> extends RecordWriter<K, V>{
         if (writer == null) {
             List<Type> types = new ArrayList<Type>();
 
+            //TODO: row key is fixed length, will it help?
             types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, "Row Key"));
 
             // measures
@@ -106,13 +107,14 @@ public class ParquetRecordWriter <K,V> extends RecordWriter<K, V>{
 
         // write data
         try {
+            //TODO: why encode again?
             SplittedBytes[] keyBuffers = rowKeyDecoder.getRowKeySplitter().getSplitBuffers();
             int keyLength = 0;
             for (int i = 2; i < rowKeyDecoder.getRowKeySplitter().getBufferSize(); ++i) {
                 keyLength += keyBuffers[i].length;
             }
-
             int keyOffSet = rowKeyDecoder.getRowKeySplitter().getSplitOffsets()[0];
+            
             int[] valueLength = measureDecoder.getPeekLength(ByteBuffer.wrap(valueBytes));
             writer.writeRow(keyBytes, keyOffSet, keyLength, valueBytes, valueLength);
         } catch (Exception e) {
