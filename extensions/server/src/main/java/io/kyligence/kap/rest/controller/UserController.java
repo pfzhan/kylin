@@ -48,19 +48,18 @@ import com.google.common.collect.Lists;
 
 @Controller
 @Component("kapUserController")
-public class KapUserController extends BasicController implements UserDetailsService {
+public class UserController extends BasicController implements UserDetailsService {
 
-    private static final Logger logger = LoggerFactory.getLogger(KapUserController.class);
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+    private static final Pattern BCRYPT_PATTERN = Pattern.compile("\\A\\$2a?\\$\\d\\d\\$[./0-9A-Za-z]{53}");
+    private static final BCryptPasswordEncoder PWD_ENCODER = new BCryptPasswordEncoder();
 
     @Autowired
     private UserService userService;
 
-    private Pattern BCRYPT_PATTERN = Pattern.compile("\\A\\$2a?\\$\\d\\d\\$[./0-9A-Za-z]{53}");
-    private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-    
     @PostConstruct
     public void init() throws IOException {
-        List<UserObj> all = getAll();
+        List<UserObj> all = listAllUsers();
         logger.info("All " + all.size() + " users");
         if (all.isEmpty()) {
             save("ADMIN", new UserObj("ADMIN", "KYLIN", "ROLE_MODELER", "ROLE_ANALYST", "ROLE_ADMIN"));
@@ -94,7 +93,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
             // that is OK, we create new
         }
         
-        user.setPassword(encPwd(user.getPassword()));
+        user.setPassword(pwdEncode(user.getPassword()));
         
         logger.info("Saving " + user);
 
@@ -104,11 +103,15 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return get(userName);
     }
 
-    private String encPwd(String pwd) {
+    public static String pwdEncode(String pwd) {
         if (BCRYPT_PATTERN.matcher(pwd).matches())
             return pwd;
         
-        return passwordEncoder.encode(pwd);
+        return PWD_ENCODER.encode(pwd);
+    }
+    
+    public static boolean pwdMatches(String pwd, String encoded) {
+        return PWD_ENCODER.matches(pwd, encoded);
     }
     
     private void checkUserName(String userName) {
@@ -128,7 +131,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
 
     @RequestMapping(value = "/users", method = { RequestMethod.GET })
     @ResponseBody
-    public List<UserObj> getAll() {
+    public List<UserObj> listAllUsers() {
         List<UserObj> result = Lists.newArrayList();
         for (UserDetails details : userService.listUsers()) {
             result.add(userDetailsToObj(details));
@@ -146,7 +149,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
 
     @RequestMapping(value = "/userAuhtorities", method = { RequestMethod.GET })
     @ResponseBody
-    public List<String> getAuthorities() {
+    public List<String> listAllAuthorities() {
         List<String> result = userService.listUserAuthorities();
         result.remove(DISABLED_ROLE);
         return result;
