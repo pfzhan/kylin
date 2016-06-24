@@ -18,11 +18,8 @@
 
 package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.kylin.common.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,20 +32,21 @@ import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.JobServiceGrpc;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobRequest;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobResponse;
 
-public class JobClient {
-    private static final Logger logger = LoggerFactory.getLogger(JobClient.class);
+public class SparkDriverClient {
+    private static final Logger logger = LoggerFactory.getLogger(SparkDriverClient.class);
 
     private final ManagedChannel channel;
     private final JobServiceGrpc.JobServiceBlockingStub blockingStub;
 
-    public JobClient(String host, int port) {
+    public SparkDriverClient(String host, int port) {
         channel = ManagedChannelBuilder.forAddress(host, port).usePlaintext(true).build();
         blockingStub = JobServiceGrpc.newBlockingStub(channel);
-
     }
 
-    public SparkJobResponse submit(byte[] requestBlob,String kylinProperties) {
-        SparkJobRequest request = SparkJobRequest.newBuilder().setRequest(ByteString.copyFrom(requestBlob)).setKylinProperties(kylinProperties).build();
+    public SparkJobResponse submit(byte[] gtScanReq, String kylinProperties, String cubeId, String segmentId, String cuboidId) {
+        SparkJobRequest request = SparkJobRequest.newBuilder().setGtScanRequest(ByteString.copyFrom(gtScanReq)). //
+                setKylinProperties(kylinProperties).setCubeId(cubeId).setSegmentId(segmentId).setCuboidId(cuboidId).build();
+
         try {
             return blockingStub.submitJob(request);
         } catch (StatusRuntimeException e) {
@@ -60,20 +58,4 @@ public class JobClient {
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
     }
 
-    public static void main(String[] args) throws Exception {
-        JobClient client = new JobClient("localhost", 50051);
-        try {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-            for (;;) {
-                String line = reader.readLine();
-                if (line == null) {
-                    break;
-                }
-                int inputValue = Integer.valueOf(line);
-                client.submit(Bytes.toBytes(inputValue),null);
-            }
-        } finally {
-            client.shutdown();
-        }
-    }
 }

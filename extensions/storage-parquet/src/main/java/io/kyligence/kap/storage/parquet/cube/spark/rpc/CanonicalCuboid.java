@@ -18,21 +18,40 @@
 
 package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
-import javax.annotation.Nullable;
+import java.io.Serializable;
 
-import org.apache.kylin.gridtable.GTRecord;
-import org.apache.kylin.gridtable.GTScanRequest;
+public class CanonicalCuboid implements Serializable {
+    private String cubeId;
+    private String segmentId;
+    private String cuboidId;
 
-public class CoalesceGTRecordExport implements com.google.common.base.Function<GTRecord, byte[]> {
-    private GTScanRequest gtScanRequest;
-
-    public CoalesceGTRecordExport(GTScanRequest gtScanRequest) {
-        this.gtScanRequest = gtScanRequest;
+    public CanonicalCuboid(String cubeId, String segmentId, String cuboidId) {
+        this.cubeId = cubeId;
+        this.segmentId = segmentId;
+        this.cuboidId = cuboidId;
     }
 
-    @Nullable
-    @Override
-    public byte[] apply(@Nullable GTRecord input) {
-        return input.exportColumns(gtScanRequest.getColumns()).array();
+    public String getCubeId() {
+        return cubeId;
+    }
+
+    public void setCubeId(String cubeId) {
+        this.cubeId = cubeId;
+    }
+
+    public String getSegmentId() {
+        return segmentId;
+    }
+
+    public void setSegmentId(String segmentId) {
+        this.segmentId = segmentId;
+    }
+
+    public String getCuboidId() {
+        return cuboidId;
+    }
+
+    public void setCuboidId(String cuboidId) {
+        this.cuboidId = cuboidId;
     }
 }

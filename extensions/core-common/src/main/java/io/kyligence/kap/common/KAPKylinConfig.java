@@ -2,9 +2,6 @@ package io.kyligence.kap.common;
 
 import org.apache.kylin.common.KylinConfig;
 
-/**
- * Created by dong on 6/20/16.
- */
 public class KAPKylinConfig extends KylinConfig {
     private KylinConfig config;
 
@@ -29,9 +26,15 @@ public class KAPKylinConfig extends KylinConfig {
 
     private KAPKylinConfig(KylinConfig config) {
         super(config.getAllProperties());
+        this.config = config;
     }
 
     public int getParquetRowsPerPage() {
         return Integer.parseInt(getOptional("kap.parquet.rows.per.page", String.valueOf(10000)));
+    }
+
+    @Override
+    public KylinConfig base() {
+        return config.base();
     }
 }

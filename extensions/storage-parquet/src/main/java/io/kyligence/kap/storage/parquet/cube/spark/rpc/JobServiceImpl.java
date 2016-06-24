@@ -21,11 +21,8 @@ package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 import java.util.List;
 
 import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.broadcast.Broadcast;
 
-import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 
 import io.grpc.stub.StreamObserver;
@@ -47,21 +44,12 @@ public class JobServiceImpl implements JobServiceGrpc.JobService {
     @Override
     public void submitJob(SparkJobRequest request, StreamObserver<SparkJobResponse> responseObserver) {
 
-        List<Integer> values = Lists.newArrayList();
-        for (int i = 0; i < 10; i++) {
-            values.add(i);
-        }
-        JavaRDD<Integer> seed = sc.parallelize(values, 2);
-
-        final Broadcast<byte[]> bcGtReq = sc.broadcast(request.getRequest().toByteArray());
-        final Broadcast<String> kylinProperties = sc.broadcast(request.getKylinProperties());
-
-        JobSubmit submit = new JobSubmit(seed, bcGtReq, kylinProperties);
-        List<byte[]> collected = submit.doWork();
+        SparkCubeVisitTask submit = new SparkCubeVisitTask(sc, request);
+        List<byte[]> collected = submit.executeTask();
 
         //        int reqValue = Bytes.toInt(request.getRequest().toByteArray());
         //        System.out.println("reqValue is " + reqValue);
-        SparkJobResponse response = SparkJobResponse.newBuilder().setResponse(ByteString.copyFrom(concat(collected))).build();
+        SparkJobResponse response = SparkJobResponse.newBuilder().setGtRecordsBlob(ByteString.copyFrom(concat(collected))).build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }

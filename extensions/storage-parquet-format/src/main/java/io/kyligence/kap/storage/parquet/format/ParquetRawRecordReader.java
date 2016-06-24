@@ -1,6 +1,11 @@
 package io.kyligence.kap.storage.parquet.format;
 
-import io.kyligence.kap.storage.parquet.format.file.*;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.util.HashMap;
+import java.util.List;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -11,13 +16,10 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.parquet.io.api.Binary;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.List;
+import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
+import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
+import io.kyligence.kap.storage.parquet.format.serialize.SerializableImmutableRoaringBitmap;
 
-/**
- * Created by roger on 6/15/16.
- */
 public class ParquetRawRecordReader<K, V> extends RecordReader<K, V> {
     protected Configuration conf;
 
@@ -34,15 +36,32 @@ public class ParquetRawRecordReader<K, V> extends RecordReader<K, V> {
         Path path = fileSplit.getPath();
         shardPath = path;
 
-        String bitsetString = conf.get(ParquetFormatConstants.KYLIN_FILTER_BITSET);
-        System.out.println("bitsetString size: " + bitsetString.length());
-        ImmutableRoaringBitmap bitset = null;
-        if (bitsetString != null) {
-            bitset = new ImmutableRoaringBitmap(ByteBuffer.wrap(bitsetString.getBytes("ISO-8859-1")));
-        }
+
+        ImmutableRoaringBitmap pageBitmap = readBitmapSet(path, ParquetFormatConstants.KYLIN_FILTER_PAGE_BITSET_MAP);
+        ImmutableRoaringBitmap measureBitmap = readBitmapSet(path, ParquetFormatConstants.KYLIN_FILTER_MEASURES_BITSET_MAP);
 
         // init with first shard file
-        reader = new ParquetBundleReaderBuilder().setConf(conf).setPath(shardPath).setPageBitset(bitset).build();
+        reader = new ParquetBundleReaderBuilder().setConf(conf).setPath(shardPath).setPageBitset(pageBitmap).setColumnsBitmap(measureBitmap).build();
+    }
+
+    private ImmutableRoaringBitmap readBitmapSet(Path hashKey, String property) throws IOException {
+        String pageBitsetMapString = conf.get(property);
+        ImmutableRoaringBitmap bitmap = null;
+
+        if (pageBitsetMapString != null) {
+            ByteArrayInputStream bais = new ByteArrayInputStream(pageBitsetMapString.getBytes("ISO-8859-1"));
+            HashMap<String, SerializableImmutableRoaringBitmap> bitsetMap = null;
+            try {
+                bitsetMap = (HashMap<String, SerializableImmutableRoaringBitmap>) (new ObjectInputStream(bais).readObject());
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+
+            if (bitsetMap != null) {
+                bitmap = bitsetMap.get(hashKey.toString()).getBitmap();
+            }
+        }
+        return bitmap;
     }
 
     @Override
@@ -52,26 +71,26 @@ public class ParquetRawRecordReader<K, V> extends RecordReader<K, V> {
             return false;
         }
 
-        key = (K) new Text(((Binary)data.get(0)).getBytes());
+        key = (K) new Text();
         setVal(data);
         return true;
     }
 
+    // We put all columns in values and keep key empty
     private void setVal(List<Object> data) {
         int valueBytesLength = 0;
-        for (int i = 1; i < data.size(); ++i) {
-            valueBytesLength += ((Binary)data.get(i)).getBytes().length;
+        for (int i = 0; i < data.size(); ++i) {
+            valueBytesLength += ((Binary) data.get(i)).getBytes().length;
         }
         byte[] valueBytes = new byte[valueBytesLength];
 
         int offset = 0;
-        for (int i = 1; i < data.size(); ++i) {
-            byte[] src = ((Binary)data.get(i)).getBytes();
+        for (int i = 0; i < data.size(); ++i) {
+            byte[] src = ((Binary) data.get(i)).getBytes();
             System.arraycopy(src, 0, valueBytes, offset, src.length);
             offset += src.length;
         }
-
-        val = (V)new Text(valueBytes);
+        val = (V) new Text(valueBytes);
     }
 
     @Override

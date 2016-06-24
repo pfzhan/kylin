@@ -21,13 +21,11 @@ package io.kyligence.kap.storage.parquet.cube.spark;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
-import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.BytesSerializer;
 import org.apache.kylin.gridtable.DictGridTableTest;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTRecord;
@@ -46,10 +44,10 @@ import org.junit.Test;
 
 import com.clearspring.analytics.util.Lists;
 
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.JobClient;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 
-public class SimulateSparkQueryTest extends io.kyligence.kap.common.util.LocalFileMetadataTestCase {
+public class SparkQueryLocalTest extends io.kyligence.kap.common.util.LocalFileMetadataTestCase {
 
     private GridTable table;
     private GTInfo info;
@@ -71,26 +69,13 @@ public class SimulateSparkQueryTest extends io.kyligence.kap.common.util.LocalFi
     public void remoteSimulate() throws InterruptedException {
         GTInfo info = table.getInfo();
 
-        GTScanRequest req = new GTScanRequest(info, null, null, DictGridTableTest.setOf(0), DictGridTableTest.setOf(3), new String[] { "sum" }, null, true, 0);
+        final GTScanRequest req = new GTScanRequest(info, null, null, DictGridTableTest.setOf(0), DictGridTableTest.setOf(3), new String[] { "sum" }, null, true, 0);
+        byte[] reqBytes = req.toByteArray();
 
-        int bufferSize = BytesSerializer.SERIALIZE_BUFFER_SIZE;
-        byte[] reqBytes;
-        while (true) {
-            try {
-                ByteBuffer byteBuffer = ByteBuffer.allocate(bufferSize);
-                GTScanRequest.serializer.serialize(req, byteBuffer);
-                reqBytes = Arrays.copyOf(byteBuffer.array(), byteBuffer.position());
-                break;
-            } catch (BufferOverflowException boe) {
-                System.out.println("Buffer size cannot hold the raw scans, resizing to 4 times : " + bufferSize);
-                bufferSize *= 4;
-            }
-        }
-
-        JobClient client = new JobClient("localhost", 50051);
+        SparkDriverClient client = new SparkDriverClient("localhost", 50051);
         try {
-            SparkJobProtos.SparkJobResponse response = client.submit(reqBytes, KylinConfig.getInstanceFromEnv().getConfigAsString());
-            ByteBuffer responseBuffer = ByteBuffer.wrap(response.getResponse().toByteArray());
+            SparkJobProtos.SparkJobResponse response = client.submit(reqBytes, KylinConfig.getInstanceFromEnv().getConfigAsString(), null, null, null);
+            ByteBuffer responseBuffer = ByteBuffer.wrap(response.getGtRecordsBlob().toByteArray());
             GTRecord temp = new GTRecord(info);
             while (responseBuffer.remaining() > 0) {
                 temp.loadColumns(req.getColumns(), responseBuffer);

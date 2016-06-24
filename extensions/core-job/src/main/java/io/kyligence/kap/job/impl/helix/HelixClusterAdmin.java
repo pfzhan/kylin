@@ -127,7 +127,6 @@ public class HelixClusterAdmin {
     /**
      * Rebalance the resource with the tags
      *
-     * @param tags
      */
     protected void rebalanceWithTag(String resourceName, String tag) {
         admin.rebalance(clusterName, resourceName, 2, null, tag);
@@ -240,6 +239,7 @@ public class HelixClusterAdmin {
             if (instanceRestAddresses.size() > 0) {
                 String restServersInCluster = StringUtil.join(instanceRestAddresses, ",");
                 kylinConfig.setProperty("kylin.rest.servers", restServersInCluster);
+                kylinConfig.setProperty("kylin.server.mode", isLeaderRole(HelixClusterAdmin.RESOURCE_NAME_JOB_ENGINE) ? "job":"query");
                 System.setProperty("kylin.rest.servers", restServersInCluster);
                 logger.info("kylin.rest.servers update to " + restServersInCluster);
                 Properties properties = new Properties();
@@ -251,7 +251,6 @@ public class HelixClusterAdmin {
                     logger.error(e.getMessage(), e);
                 }
                 Broadcaster.clearCache();
-                KylinConfig.destroyInstance();
             }
         }
     }

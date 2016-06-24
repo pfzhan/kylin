@@ -3,8 +3,6 @@ package io.kyligence.kap.storage.parquet.format.pageIndex;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.NavigableSet;
 import java.util.Set;
 
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -12,25 +10,26 @@ import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-/**
- * Created by dongli on 5/31/16.
- */
 public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
+    protected static final Logger logger = LoggerFactory.getLogger(ParquetPageIndexTable.class);
+
     ParquetPageIndexReader indexReader;
-    NavigableSet<CompareTupleFilter> columnFilterSet = Sets.newTreeSet(getCompareTupleFilterComparator());
-    HashMap<CompareTupleFilter, MutableRoaringBitmap> filterIndexMap = new HashMap<>();
+    //    NavigableSet<CompareTupleFilter> columnFilterSet = Sets.newTreeSet(getCompareTupleFilterComparator());
+    //    HashMap<CompareTupleFilter, MutableRoaringBitmap> filterIndexMap = new HashMap<>();
 
     public ParquetPageIndexTable(FSDataInputStream inputStream) throws IOException {
         indexReader = new ParquetPageIndexReader(inputStream);
     }
 
+    // TODO: should use batch lookup
     public MutableRoaringBitmap lookColumnIndex(int column, TupleFilter.FilterOperatorEnum compareOp, Set<ByteArray> vals) {
         MutableRoaringBitmap result = null;
         ByteArray val = null;
@@ -42,10 +41,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             break;
         case NOTIN:
         case IN:
-            result = MutableRoaringBitmap.bitmapOf();
-            for (ByteArray v : vals) {
-                result.or(indexReader.readColumnIndex(column).lookupEqIndex(val));
-            }
+            result = ImmutableRoaringBitmap.or(indexReader.readColumnIndex(column).lookupEqIndex(vals).values().iterator());
             break;
         case EQ:
         case NEQ:
@@ -77,12 +73,13 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
         case NEQ:
         case ISNOTNULL:
             result.flip(0L, indexReader.getPageTotalNum(column));
+            break;
         }
         return result;
     }
 
     private MutableRoaringBitmap lookupCompareFilter(CompareTupleFilter filter) {
-        TblColRef column = filter.getColumn();
+        int col = filter.getColumn().getColumnDesc().getZeroBasedIndex();
         Set<ByteArray> conditionVals = Sets.newHashSet();
         for (Object conditionVal : filter.getValues()) {
             if (conditionVal instanceof ByteArray) {
@@ -91,30 +88,30 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
                 throw new IllegalArgumentException("Unknown type for condition values.");
             }
         }
-        return lookColumnIndex(column.getColumnDesc().getZeroBasedIndex(), filter.getOperator(), conditionVals);
+        return lookColumnIndex(col, filter.getOperator(), conditionVals);
     }
 
     private void incrementByteArray(ByteArray val, int c) {
         int v = BytesUtil.readUnsigned(val.array(), val.offset(), val.length()) + c;
-        Arrays.fill(val.array(), val.offset(), val.length(), (byte)0);
+        Arrays.fill(val.array(), val.offset(), val.length(), (byte) 0);
         BytesUtil.writeUnsigned(v, val.array(), val.offset(), val.length());
     }
 
-    private void collectCompareTupleFilter(TupleFilter rootFilter) {
-        for (TupleFilter childFilter : rootFilter.getChildren()) {
-            for (TupleFilter columnFilter : childFilter.getChildren()) {
-                columnFilterSet.add((CompareTupleFilter) columnFilter);
-            }
-        }
-
-        for (CompareTupleFilter filter : columnFilterSet) {
-            filterIndexMap.put(filter, lookupCompareFilter(filter));
-        }
-    }
+    //    private void collectCompareTupleFilter(TupleFilter rootFilter) {
+    //        for (TupleFilter childFilter : rootFilter.getChildren()) {
+    //            for (TupleFilter columnFilter : childFilter.getChildren()) {
+    //                columnFilterSet.add((CompareTupleFilter) columnFilter);
+    //            }
+    //        }
+    //
+    //        for (CompareTupleFilter filter : columnFilterSet) {
+    //            filterIndexMap.put(filter, lookupCompareFilter(filter));
+    //        }
+    //    }
 
     @Override
     protected ImmutableRoaringBitmap lookupFlattenFilter(TupleFilter filter) {
-        collectCompareTupleFilter(filter);
+        //        collectCompareTupleFilter(filter);
 
         MutableRoaringBitmap resultBitmap = null;
         for (TupleFilter childFilter : filter.getChildren()) {
@@ -124,6 +121,8 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
                 resultBitmap.or(lookupAndFilter(childFilter));
             }
         }
+
+        logger.info("Parquet II Metrics: TotalPageNum={}, ResultPageNum={}", indexReader.getPageTotalNum(0), resultBitmap.getCardinality());
         return resultBitmap;
     }
 
@@ -131,9 +130,9 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
         MutableRoaringBitmap resultBitmap = null;
         for (TupleFilter childFilter : filter.getChildren()) {
             if (resultBitmap == null) {
-                resultBitmap = filterIndexMap.get(childFilter);
+                resultBitmap = lookupCompareFilter((CompareTupleFilter) childFilter);
             } else {
-                resultBitmap.and(filterIndexMap.get(childFilter));
+                resultBitmap.and(lookupCompareFilter((CompareTupleFilter) childFilter));
             }
         }
         return resultBitmap;

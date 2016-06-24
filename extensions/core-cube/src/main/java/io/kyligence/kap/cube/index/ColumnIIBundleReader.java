@@ -10,9 +10,6 @@ import io.kyligence.kap.cube.index.ColumnIndexFactory;
 import io.kyligence.kap.cube.index.IColumnInvertedIndex;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
-/**
- * Created by dong on 16/6/15.
- */
 public class ColumnIIBundleReader implements Closeable {
     private File localIdxDir;
     private int columnNum = 0;

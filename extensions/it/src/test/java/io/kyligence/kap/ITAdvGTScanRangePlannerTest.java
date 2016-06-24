@@ -66,7 +66,7 @@ public class ITAdvGTScanRangePlannerTest extends KAPHBaseMetadataTestCase {
 
         Cuboid cuboid = Cuboid.identifyCuboid(cube.getDescriptor(), groups, metrics);
         AdvGTScanRangePlanner planner = new AdvGTScanRangePlanner(segment, cuboid, filter, groups, groups, metrics);
-        GTScanRequest scanRequest = planner.planScanRequest(true);
+        GTScanRequest scanRequest = planner.planScanRequest();
         System.out.println(scanRequest);
 
     }

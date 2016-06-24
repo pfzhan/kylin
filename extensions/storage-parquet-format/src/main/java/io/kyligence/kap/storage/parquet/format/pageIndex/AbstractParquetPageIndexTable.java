@@ -1,5 +1,6 @@
 package io.kyligence.kap.storage.parquet.format.pageIndex;
 
+import com.google.common.base.Preconditions;
 import org.apache.kylin.metadata.filter.ColumnTupleFilter;
 import org.apache.kylin.metadata.filter.LogicalTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
@@ -8,12 +9,10 @@ import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
 import java.io.Closeable;
 
-/**
- * Created by dong on 16/6/17.
- */
 public abstract class AbstractParquetPageIndexTable implements Closeable {
 
     public ImmutableRoaringBitmap lookup(TupleFilter filter) {
+        Preconditions.checkNotNull(filter);
         return lookupFlattenFilter(flattenToOrAndFilter(filter));
     }
 

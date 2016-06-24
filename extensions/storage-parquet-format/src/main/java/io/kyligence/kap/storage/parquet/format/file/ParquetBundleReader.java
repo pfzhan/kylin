@@ -2,6 +2,7 @@ package io.kyligence.kap.storage.parquet.format.file;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.roaringbitmap.IntConsumer;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
 import java.io.IOException;
@@ -10,8 +11,8 @@ import java.util.List;
 
 public class ParquetBundleReader {
     List<ParquetReaderState> readerStates;
-    public ParquetBundleReader(Configuration configuration, Path path, Path indexPath, List<Integer> columns, ImmutableRoaringBitmap pageBitset) throws IOException {
-        readerStates = new ArrayList<ParquetReaderState>(columns.size());
+    public ParquetBundleReader(Configuration configuration, Path path, Path indexPath, ImmutableRoaringBitmap  columns, ImmutableRoaringBitmap pageBitset) throws IOException {
+        readerStates = new ArrayList<ParquetReaderState>(columns.getCardinality());
 
         for (int column: columns) {
             readerStates.add(new ParquetReaderState(new ParquetColumnReaderBuilder().setConf(configuration)
@@ -20,6 +21,7 @@ public class ParquetBundleReader {
                                                   .setColumn(column)
                                                   .setPageBitset(pageBitset)
                                                   .build()));
+            System.out.println("Read Column: " + column);
         }
     }
 

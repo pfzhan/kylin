@@ -8,16 +8,21 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 
+import org.apache.commons.io.IOUtils;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
+
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.KryoSerializable;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 
 /**
  * Created by roger on 6/21/16.
  */
-public class SerializableImmutableRoaringBitmap implements Serializable {
+public class SerializableImmutableRoaringBitmap implements Serializable, KryoSerializable {
     private static final long serialVersionUID = 4392777396404406037L;
 
     private transient ImmutableRoaringBitmap bitmap;
-    private transient byte[] buffer;
 
     @Override
     public String toString() {
@@ -36,7 +41,7 @@ public class SerializableImmutableRoaringBitmap implements Serializable {
         ois.defaultReadObject();
 
         int bufferLength = ois.readInt();
-        buffer = new byte[bufferLength];
+        byte[] buffer = new byte[bufferLength];
         ois.read(buffer);
 
         bitmap = new ImmutableRoaringBitmap(ByteBuffer.wrap(buffer));
@@ -45,12 +50,41 @@ public class SerializableImmutableRoaringBitmap implements Serializable {
     private void writeObject(ObjectOutputStream oos) throws IOException {
         oos.defaultWriteObject();
 
+        byte[] buffer = null;
+        ByteArrayOutputStream baos = null;
+        DataOutputStream dos = null;
+        try {
+            baos = new ByteArrayOutputStream();
+            dos = new DataOutputStream(baos);
+            bitmap.serialize(dos);
+            buffer = baos.toByteArray();
+        } finally {
+            IOUtils.closeQuietly(dos);
+            IOUtils.closeQuietly(baos);
+        }
+
+        oos.writeInt(buffer.length);
+        oos.write(buffer);
+    }
+
+    @Override
+    public void write(Kryo kryo, Output output) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos);
-        bitmap.serialize(dos);
-        buffer = baos.toByteArray();
+        try {
+            bitmap.serialize(dos);
+            kryo.writeObject(output, baos.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            IOUtils.closeQuietly(baos);
+            IOUtils.closeQuietly(dos);
+        }
+    }
 
-        oos.write(buffer.length);
-        oos.write(buffer);
+    @Override
+    public void read(Kryo kryo, Input input) {
+        byte[] buffer = kryo.readObject(input, byte[].class);
+        bitmap = new ImmutableRoaringBitmap(ByteBuffer.wrap(buffer));
     }
 }

@@ -14,9 +14,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.NavigableMap;
 
-/**
- * Created by dong on 16/6/18.
- */
 public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray> {
     protected static final Logger logger = LoggerFactory.getLogger(ColumnIndexWriter.class);
 

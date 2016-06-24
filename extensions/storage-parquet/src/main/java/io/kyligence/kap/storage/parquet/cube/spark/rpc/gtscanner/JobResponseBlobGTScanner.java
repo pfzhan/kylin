@@ -16,30 +16,28 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.storage.parquet.cube.spark.rpc;
+package io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
-
-import javax.annotation.Nullable;
 
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTRecord;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
 
-import com.google.common.collect.Iterators;
+public class JobResponseBlobGTScanner implements IGTScanner {
 
-public class OriginalBytesGTScanner implements IGTScanner {
-
-    private Iterator<byte[]> iterator;
+    private byte[] blob;
     private GTInfo info;
+    private GTScanRequest scanRequest;
     private GTRecord temp;
 
-    public OriginalBytesGTScanner(GTScanRequest gtScanRequest, Iterator<byte[]> iterator) {
-        this.iterator = iterator;
-        this.info = gtScanRequest.getInfo();
+    public JobResponseBlobGTScanner(GTScanRequest scanRequest, byte[] blob) {
+        this.scanRequest = scanRequest;
+        this.info = scanRequest.getInfo();
+        this.blob = blob;
         this.temp = new GTRecord(info);
     }
 
@@ -50,22 +48,34 @@ public class OriginalBytesGTScanner implements IGTScanner {
 
     @Override
     public int getScannedRowCount() {
-        return 0;//TODO: stats
+        return 0;
     }
 
     @Override
     public void close() throws IOException {
+
     }
 
     @Override
     public Iterator<GTRecord> iterator() {
-        return Iterators.transform(iterator, new com.google.common.base.Function<byte[], GTRecord>() {
-            @Nullable
+        return new Iterator<GTRecord>() {
+            ByteBuffer byteBuffer = ByteBuffer.wrap(blob);
+
             @Override
-            public GTRecord apply(@Nullable byte[] input) {
-                temp.loadColumns(info.getAllColumns(), ByteBuffer.wrap(input));
+            public boolean hasNext() {
+                return byteBuffer.remaining() > 0;
+            }
+
+            @Override
+            public GTRecord next() {
+                temp.loadColumns(scanRequest.getColumns(), byteBuffer);
                 return temp;
             }
-        });
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+        };
     }
 }

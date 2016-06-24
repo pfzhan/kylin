@@ -16,23 +16,19 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.storage.parquet.cube.spark.rpc;
+package io.kyligence.kap.storage.parquet.cube;
 
-import javax.annotation.Nullable;
+import org.apache.kylin.cube.CubeInstance;
+import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryBase;
 
-import org.apache.kylin.gridtable.GTRecord;
-import org.apache.kylin.gridtable.GTScanRequest;
+public class CubeStorageQuery extends GTCubeStorageQueryBase {
 
-public class CoalesceGTRecordExport implements com.google.common.base.Function<GTRecord, byte[]> {
-    private GTScanRequest gtScanRequest;
-
-    public CoalesceGTRecordExport(GTScanRequest gtScanRequest) {
-        this.gtScanRequest = gtScanRequest;
+    public CubeStorageQuery(CubeInstance cube) {
+        super(cube);
     }
 
-    @Nullable
     @Override
-    public byte[] apply(@Nullable GTRecord input) {
-        return input.exportColumns(gtScanRequest.getColumns()).array();
+    protected String getGTStorage() {
+        return "io.kyligence.kap.storage.parquet.cube.CubeSparkRPC";
     }
 }
