@@ -20,6 +20,7 @@ package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import javax.annotation.PostConstruct;
 
@@ -34,6 +35,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,19 +47,30 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.google.common.collect.Lists;
 
 @Controller
-@Component("userController")
-public class UserController extends BasicController implements UserDetailsService {
-    
-    @SuppressWarnings("unused")
-    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+@Component("kapUserController")
+public class KapUserController extends BasicController implements UserDetailsService {
+
+    private static final Logger logger = LoggerFactory.getLogger(KapUserController.class);
 
     @Autowired
     private UserService userService;
 
+    private Pattern BCRYPT_PATTERN = Pattern.compile("\\A\\$2a?\\$\\d\\d\\$[./0-9A-Za-z]{53}");
+    private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    
     @PostConstruct
     public void init() throws IOException {
+        List<UserObj> all = getAll();
+        logger.info("All " + all.size() + " users");
+        if (all.isEmpty()) {
+            save("ADMIN", new UserObj("ADMIN", "KYLIN", "ROLE_MODELER", "ROLE_ANALYST", "ROLE_ADMIN"));
+            save("ANALYST", new UserObj("ANALYST", "ANALYST", "ROLE_ANALYST"));
+            save("MODELER", new UserObj("MODELER", "MODELER", "ROLE_MODELER"));
+        }
+        for (UserObj u : all)
+            logger.info(u.toString());
     }
-    
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         return get(username);
@@ -67,7 +80,7 @@ public class UserController extends BasicController implements UserDetailsServic
     @ResponseBody
     public UserObj save(@PathVariable String userName, @RequestBody UserObj user) {
         checkUserName(userName);
-        
+
         user.setUsername(userName);
 
         // merge with existing user
@@ -81,22 +94,33 @@ public class UserController extends BasicController implements UserDetailsServic
             // that is OK, we create new
         }
         
+        user.setPassword(encPwd(user.getPassword()));
+        
+        logger.info("Saving " + user);
+
         UserDetails details = userObjToDetails(user);
         userService.updateUser(details);
-        
+
         return get(userName);
     }
 
+    private String encPwd(String pwd) {
+        if (BCRYPT_PATTERN.matcher(pwd).matches())
+            return pwd;
+        
+        return passwordEncoder.encode(pwd);
+    }
+    
     private void checkUserName(String userName) {
         if (userName == null || userName.isEmpty())
             throw new IllegalArgumentException();
     }
-    
+
     @RequestMapping(value = "/users/{userName}", method = { RequestMethod.GET })
     @ResponseBody
     public UserObj get(@PathVariable String userName) throws UsernameNotFoundException {
         checkUserName(userName);
-        
+
         UserDetails details = userService.loadUserByUsername(userName);
         UserObj user = userDetailsToObj(details);
         return user;
@@ -116,8 +140,16 @@ public class UserController extends BasicController implements UserDetailsServic
     @ResponseBody
     public void delete(@PathVariable String userName) {
         checkUserName(userName);
-        
+
         userService.deleteUser(userName);
+    }
+
+    @RequestMapping(value = "/userAuhtorities", method = { RequestMethod.GET })
+    @ResponseBody
+    public List<String> getAuthorities() {
+        List<String> result = userService.listUserAuthorities();
+        result.remove(DISABLED_ROLE);
+        return result;
     }
     
     private static final String DISABLED_ROLE = "--disabled--";
@@ -129,13 +161,13 @@ public class UserController extends BasicController implements UserDetailsServic
         }
         return new User(obj.getUsername(), obj.getPassword(), detailRoles);
     }
-    
+
     private UserObj userDetailsToObj(UserDetails details) {
         UserObj obj = new UserObj();
-        
+
         obj.setUsername(details.getUsername());
         obj.setPassword(details.getPassword());
-        
+
         List<UserGrantedAuthority> roles = Lists.newArrayList();
         if (details.getAuthorities() != null) {
             for (GrantedAuthority a : details.getAuthorities()) {
@@ -146,21 +178,30 @@ public class UserController extends BasicController implements UserDetailsServic
                 roles.add(new UserGrantedAuthority(a.getAuthority()));
             }
         }
-        
+
         obj.setAuthorities(roles);
-        
+
         return obj;
     }
-    
+
     public static class UserObj implements UserDetails {
         private static final long serialVersionUID = 1L;
-        
+
         private String username;
         private String password;
         private List<UserGrantedAuthority> authorities;
         private boolean disabled;
-        
+
         public UserObj() {
+        }
+        
+        public UserObj(String username, String password, String... authorities) {
+            this.username = username;
+            this.password = password;
+            this.authorities = Lists.newArrayList();
+            for (String a : authorities) {
+                this.authorities.add(new UserGrantedAuthority(a));
+            }
         }
 
         public String getUsername() {
@@ -213,6 +254,36 @@ public class UserController extends BasicController implements UserDetailsServic
         @Override
         public boolean isEnabled() {
             return !disabled;
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + ((username == null) ? 0 : username.hashCode());
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            UserObj other = (UserObj) obj;
+            if (username == null) {
+                if (other.username != null)
+                    return false;
+            } else if (!username.equals(other.username))
+                return false;
+            return true;
+        }
+
+        @Override
+        public String toString() {
+            return "UserObj [username=" + username + ", authorities=" + authorities + "]";
         }
     }
 
