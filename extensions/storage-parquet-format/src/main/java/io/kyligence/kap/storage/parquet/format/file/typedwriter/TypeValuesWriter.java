@@ -7,5 +7,6 @@ import org.apache.parquet.bytes.BytesInput;
  */
 public interface TypeValuesWriter {
     void writeData(Object obj);
+
     BytesInput getBytes();
 }

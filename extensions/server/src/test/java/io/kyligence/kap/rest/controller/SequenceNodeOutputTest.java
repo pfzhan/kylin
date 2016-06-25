@@ -26,6 +26,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
+
 import io.kyligence.kap.rest.sequencesql.SequenceNodeOutput;
 
 public class SequenceNodeOutputTest {

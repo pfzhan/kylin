@@ -1,13 +1,12 @@
 package io.kyligence.kap.storage.parquet.format.pageIndex;
 
-import com.google.common.base.Preconditions;
-import org.apache.kylin.metadata.filter.ColumnTupleFilter;
+import java.io.Closeable;
+
 import org.apache.kylin.metadata.filter.LogicalTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
-import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
-import java.io.Closeable;
+import com.google.common.base.Preconditions;
 
 public abstract class AbstractParquetPageIndexTable implements Closeable {
 

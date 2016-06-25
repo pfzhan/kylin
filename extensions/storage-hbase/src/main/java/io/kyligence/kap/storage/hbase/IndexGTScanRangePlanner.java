@@ -1,8 +1,5 @@
 package io.kyligence.kap.storage.hbase;
 
-import io.kyligence.kap.cube.gridtable.GTScanRanges;
-import io.kyligence.kap.cube.index.IIndexTable;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -19,13 +16,15 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.cube.gridtable.GTScanRanges;
+import io.kyligence.kap.cube.index.IIndexTable;
+
 public class IndexGTScanRangePlanner extends GTScanRangePlanner {
     private static final Logger logger = LoggerFactory.getLogger(IndexGTScanRangePlanner.class);
     private final IIndexTable indexTable;
 
     public IndexGTScanRangePlanner(CubeSegment cubeSegment, Cuboid cuboid, TupleFilter filter, Set<TblColRef> dimensions, Set<TblColRef> groupbyDims, Collection<FunctionDesc> metrics) {
         super(cubeSegment, cuboid, filter, dimensions, groupbyDims, metrics);
-
 
         indexTable = new CubeSegmentIndexTable(cubeSegment, gtInfo, cuboid);
     }

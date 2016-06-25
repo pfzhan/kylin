@@ -27,13 +27,11 @@ import java.nio.channels.FileChannel;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.kylin.common.util.ByteArray;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Ints;
 
 import io.kyligence.kap.cube.index.pinot.util.MmapUtils;
@@ -73,242 +71,235 @@ import io.kyligence.kap.cube.index.pinot.util.MmapUtils;
  * @see HeapBitmapInvertedIndexCreator for heap based implementation
  */
 public class OffHeapBitmapInvertedIndexCreator implements InvertedIndexCreator {
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(OffHeapBitmapInvertedIndexCreator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(OffHeapBitmapInvertedIndexCreator.class);
 
-  private final File invertedIndexFile;
-  private final FieldSpec spec;
-  long start = 0;
-  private ByteBuffer origValueBuffer;
-  private ByteBuffer origLengths;
-  IntBuffer valueBuffer;
-  IntBuffer lengths;// used in multi value
-  int currentVacantPos = 0;
-  private int cardinality;
-  private int capacity;
-  private ByteBuffer origPostingListBuffer;
-  private ByteBuffer origPostingListLengths;
-  private ByteBuffer origPostingListStartOffsets;
-  private ByteBuffer origPostingListCurrentOffsets;
-  IntBuffer postingListBuffer; // entire posting list
-  IntBuffer postingListLengths; // length of each posting list
-  IntBuffer postingListStartOffsets; // start offset in posting List Buffer
-  IntBuffer postingListCurrentOffsets; // start offset in posting List Buffer
-  private int numDocs;
-  /**
-   * Num of bytes required to store an INT
-   */
-  private static int INT_SIZE = Integer.SIZE / Byte.SIZE;
+    private final File invertedIndexFile;
+    private final FieldSpec spec;
+    long start = 0;
+    private ByteBuffer origValueBuffer;
+    private ByteBuffer origLengths;
+    IntBuffer valueBuffer;
+    IntBuffer lengths;// used in multi value
+    int currentVacantPos = 0;
+    private int cardinality;
+    private int capacity;
+    private ByteBuffer origPostingListBuffer;
+    private ByteBuffer origPostingListLengths;
+    private ByteBuffer origPostingListStartOffsets;
+    private ByteBuffer origPostingListCurrentOffsets;
+    IntBuffer postingListBuffer; // entire posting list
+    IntBuffer postingListLengths; // length of each posting list
+    IntBuffer postingListStartOffsets; // start offset in posting List Buffer
+    IntBuffer postingListCurrentOffsets; // start offset in posting List Buffer
+    private int numDocs;
+    /**
+     * Num of bytes required to store an INT
+     */
+    private static int INT_SIZE = Integer.SIZE / Byte.SIZE;
 
-  public OffHeapBitmapInvertedIndexCreator(File invertedIndexFile, int cardinality, int numDocs,
-      int totalNumberOfEntries, FieldSpec spec) {
-    Preconditions.checkArgument(cardinality > 0, "Cardinality:%s must > 0", cardinality);
-    Preconditions.checkArgument(numDocs > 0, "numDocs:%s must > 0", numDocs);
-    Preconditions.checkArgument(spec.isSingleValueField() || totalNumberOfEntries > 0,
-        "totalNumberOfEntries:%s must > 0 for multi value", totalNumberOfEntries);
-    assert cardinality > 0 && numDocs > 0;
-    this.cardinality = cardinality;
-    this.numDocs = numDocs;
-    this.capacity = spec.isSingleValueField() ? numDocs : totalNumberOfEntries;
-    this.spec = spec;
-    this.invertedIndexFile = invertedIndexFile;
+    public OffHeapBitmapInvertedIndexCreator(File invertedIndexFile, int cardinality, int numDocs, int totalNumberOfEntries, FieldSpec spec) {
+        Preconditions.checkArgument(cardinality > 0, "Cardinality:%s must > 0", cardinality);
+        Preconditions.checkArgument(numDocs > 0, "numDocs:%s must > 0", numDocs);
+        Preconditions.checkArgument(spec.isSingleValueField() || totalNumberOfEntries > 0, "totalNumberOfEntries:%s must > 0 for multi value", totalNumberOfEntries);
+        assert cardinality > 0 && numDocs > 0;
+        this.cardinality = cardinality;
+        this.numDocs = numDocs;
+        this.capacity = spec.isSingleValueField() ? numDocs : totalNumberOfEntries;
+        this.spec = spec;
+        this.invertedIndexFile = invertedIndexFile;
 
-    start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
 
-    // create buffers to store raw values
-    origValueBuffer = MmapUtils.allocateDirectByteBuffer(this.capacity * INT_SIZE, null,
-        "value buffer create bitmap index for " + spec.getName());
-    valueBuffer = origValueBuffer.asIntBuffer();
-    if (!spec.isSingleValueField()) {
-      origLengths = MmapUtils.allocateDirectByteBuffer(numDocs * INT_SIZE, null,
-          "lengths buffer to create bitmap index for " + spec.getName());
-      lengths = origLengths.asIntBuffer();
-    } else {
-      origLengths = null;
-    }
-
-    // create buffer to store posting lists
-    origPostingListBuffer = MmapUtils.allocateDirectByteBuffer(this.capacity * INT_SIZE,
-        null, "posting list buffer to bitmap index for " + spec.getName());
-    postingListBuffer = origPostingListBuffer.asIntBuffer();
-    origPostingListLengths = MmapUtils.allocateDirectByteBuffer(cardinality * INT_SIZE, null,
-        "posting list lengths buffer to bitmap index for " + spec.getName());
-    postingListLengths = origPostingListLengths.asIntBuffer();
-    origPostingListStartOffsets = MmapUtils.allocateDirectByteBuffer(cardinality * INT_SIZE, null,
-        "posting list start offsets buffer to bitmap index for " + spec.getName());
-    postingListStartOffsets = origPostingListStartOffsets.asIntBuffer();
-    origPostingListCurrentOffsets = MmapUtils.allocateDirectByteBuffer(cardinality * INT_SIZE, null,
-        "posting list current offsets buffer to bitmap index for " + spec.getName());
-    postingListCurrentOffsets = origPostingListCurrentOffsets.asIntBuffer();
-  }
-
-  @Override
-  public void add(int docId, int dictionaryId) {
-    Preconditions.checkArgument(dictionaryId >= 0, "dictionary Id %s must >=0", dictionaryId);
-    Preconditions.checkArgument(docId >= 0 && docId < numDocs, "docId Id %s must >=0 and < %s",
-        docId, numDocs);
-    indexSingleValue(docId, dictionaryId);
-
-  }
-
-  @Override
-  public void add(int docId, int[] dictionaryIds) {
-    add(docId, dictionaryIds, dictionaryIds.length);
-  }
-
-  @Override
-  public void add(int docId, int[] dictionaryIds, int length) {
-    if (spec.isSingleValueField()) {
-      throw new RuntimeException("Method not applicable to single value fields");
-    }
-    indexMultiValue(docId, dictionaryIds, length);
-  }
-
-  @Override
-  public long totalTimeTakeSoFar() {
-    return (System.currentTimeMillis() - start);
-  }
-
-  @Override
-  public void seal() throws IOException {
-    FileOutputStream fos = null;
-    FileInputStream fisOffsets = null;
-    FileInputStream fisBitmaps = null;
-    final DataOutputStream bitmapsOut;
-    final DataOutputStream offsetsOut;
-    String tempOffsetsFile = invertedIndexFile + ".offsets";
-    String tempBitmapsFile = invertedIndexFile + ".binary";
-
-    try {
-      // build the posting list
-      constructPostingLists();
-
-      // we need two separate streams, one to write the offsets and another to write the serialized
-      // bitmap data. We need two because we dont the serialized length of each bitmap without
-      // constructing.
-      offsetsOut =
-          new DataOutputStream(new BufferedOutputStream(new FileOutputStream(tempOffsetsFile)));
-      bitmapsOut =
-          new DataOutputStream(new BufferedOutputStream(new FileOutputStream(tempBitmapsFile)));
-
-      // write out offsets of bitmaps. The information can be used to access a certain bitmap
-      // directly.
-      // Totally (invertedIndex.length+1) offsets will be written out; the last offset is used to
-      // calculate the length of
-      // the last bitmap, which might be needed when accessing bitmaps randomly.
-      // If a bitmap's offset is k, then k bytes need to be skipped to reach the bitmap.
-      int startOffset = 4 * (cardinality + 1);
-      offsetsOut.writeInt(startOffset);// The first bitmap's offset
-      MutableRoaringBitmap bitmap = new MutableRoaringBitmap();
-      for (int i = 0; i < cardinality; i++) {
-        bitmap.clear();
-        int length = postingListLengths.get(i);
-        for (int j = 0; j < length; j++) {
-          int bufferOffset = postingListStartOffsets.get(i) + j;
-          int value = postingListBuffer.get(bufferOffset);
-          bitmap.add(value);
+        // create buffers to store raw values
+        origValueBuffer = MmapUtils.allocateDirectByteBuffer(this.capacity * INT_SIZE, null, "value buffer create bitmap index for " + spec.getName());
+        valueBuffer = origValueBuffer.asIntBuffer();
+        if (!spec.isSingleValueField()) {
+            origLengths = MmapUtils.allocateDirectByteBuffer(numDocs * INT_SIZE, null, "lengths buffer to create bitmap index for " + spec.getName());
+            lengths = origLengths.asIntBuffer();
+        } else {
+            origLengths = null;
         }
-        // serialize bitmap to bitmapsOut stream
-        bitmap.serialize(bitmapsOut);
-        startOffset += bitmap.serializedSizeInBytes();
-        // write offset
-        offsetsOut.writeInt(startOffset);
-      }
-      offsetsOut.close();
-      bitmapsOut.close();
-      // merge the two files by simply writing offsets data first and then bitmap serialized data
-      fos = new FileOutputStream(invertedIndexFile);
-      fisOffsets = new FileInputStream(tempOffsetsFile);
-      fisBitmaps = new FileInputStream(tempBitmapsFile);
 
-      fos.write(Ints.toByteArray(cardinality));
-
-      FileChannel channelOffsets = fisOffsets.getChannel();
-      channelOffsets.transferTo(0, channelOffsets.size(), fos.getChannel());
-
-      FileChannel channelBitmaps = fisBitmaps.getChannel();
-      channelBitmaps.transferTo(0, channelBitmaps.size(), fos.getChannel());
-
-      LOGGER.debug("persisted bitmap inverted index for column : " + spec.getName() + " in "
-          + invertedIndexFile.getAbsolutePath());
-    } catch (Exception e) {
-      LOGGER.error("Exception while creating bitmap index for column:" + spec.getName(), e);
-    } finally {
-      IOUtils.closeQuietly(fos);
-      IOUtils.closeQuietly(fisOffsets);
-      IOUtils.closeQuietly(fisOffsets);
-      IOUtils.closeQuietly(fos);
-      IOUtils.closeQuietly(fos);
-      // MMaputils handles the null checks for buffer
-      MmapUtils.unloadByteBuffer(origValueBuffer);
-      origValueBuffer = null; valueBuffer = null;
-      if (origLengths != null) {
-        MmapUtils.unloadByteBuffer(origLengths);
-        origLengths = null; lengths = null;
-      }
-      MmapUtils.unloadByteBuffer(origPostingListBuffer);
-      origPostingListBuffer = null; postingListBuffer = null;
-      MmapUtils.unloadByteBuffer(origPostingListCurrentOffsets);
-      origPostingListCurrentOffsets = null; postingListCurrentOffsets = null;
-      MmapUtils.unloadByteBuffer(origPostingListLengths);
-      origPostingListLengths = null; postingListLengths = null;
-      MmapUtils.unloadByteBuffer(origPostingListStartOffsets);
-      origPostingListStartOffsets = null; postingListStartOffsets = null;
-      FileUtils.deleteQuietly(new File(tempOffsetsFile));
-      FileUtils.deleteQuietly(new File(tempBitmapsFile));
+        // create buffer to store posting lists
+        origPostingListBuffer = MmapUtils.allocateDirectByteBuffer(this.capacity * INT_SIZE, null, "posting list buffer to bitmap index for " + spec.getName());
+        postingListBuffer = origPostingListBuffer.asIntBuffer();
+        origPostingListLengths = MmapUtils.allocateDirectByteBuffer(cardinality * INT_SIZE, null, "posting list lengths buffer to bitmap index for " + spec.getName());
+        postingListLengths = origPostingListLengths.asIntBuffer();
+        origPostingListStartOffsets = MmapUtils.allocateDirectByteBuffer(cardinality * INT_SIZE, null, "posting list start offsets buffer to bitmap index for " + spec.getName());
+        postingListStartOffsets = origPostingListStartOffsets.asIntBuffer();
+        origPostingListCurrentOffsets = MmapUtils.allocateDirectByteBuffer(cardinality * INT_SIZE, null, "posting list current offsets buffer to bitmap index for " + spec.getName());
+        postingListCurrentOffsets = origPostingListCurrentOffsets.asIntBuffer();
     }
-  }
 
-  /**
-   * Construct the posting list for each dictId in the original data
-   */
-  private void constructPostingLists() {
-    int offset = 0;
-    for (int i = 0; i < cardinality; i++) {
-      postingListStartOffsets.put(i, offset);
-      postingListCurrentOffsets.put(i, offset);
-      offset = offset + postingListLengths.get(i);
+    @Override
+    public void add(int docId, int dictionaryId) {
+        Preconditions.checkArgument(dictionaryId >= 0, "dictionary Id %s must >=0", dictionaryId);
+        Preconditions.checkArgument(docId >= 0 && docId < numDocs, "docId Id %s must >=0 and < %s", docId, numDocs);
+        indexSingleValue(docId, dictionaryId);
+
     }
-    if (spec.isSingleValueField()) {
-      for (int i = 0; i < capacity; i++) {
-        // read the value
-        int dictId = valueBuffer.get(i);
-        int dictIdOffset = postingListCurrentOffsets.get(dictId);
-        postingListBuffer.put(dictIdOffset, i);
-        postingListCurrentOffsets.put(dictId, dictIdOffset + 1);
-      }
-    } else {
-      int startOffset = 0;
-      for (int i = 0; i < numDocs; i++) {
-        int length = lengths.get(i);
-        for (int j = 0; j < length; j++) {
-          int dictId = valueBuffer.get((startOffset + j));
-          int dictIdOffset = postingListCurrentOffsets.get(dictId);
-          postingListBuffer.put(dictIdOffset, i);
-          postingListCurrentOffsets.put(dictId, dictIdOffset + 1);
 
+    @Override
+    public void add(int docId, int[] dictionaryIds) {
+        add(docId, dictionaryIds, dictionaryIds.length);
+    }
+
+    @Override
+    public void add(int docId, int[] dictionaryIds, int length) {
+        if (spec.isSingleValueField()) {
+            throw new RuntimeException("Method not applicable to single value fields");
         }
-        startOffset = startOffset + length;
-      }
+        indexMultiValue(docId, dictionaryIds, length);
     }
-  }
 
-  private void indexSingleValue(int docId, int dictId) {
-    valueBuffer.put(docId, dictId);
-    int length = postingListLengths.get(dictId);
-    postingListLengths.put(dictId, length + 1);
-  }
-
-  private void indexMultiValue(int docId, int[] entries, int length) {
-    for (int i = 0; i < length; i++) {
-      final int entry = entries[i];
-      Preconditions.checkArgument(entry >= 0, "dictionary Id %s must >=0", entry);
-      valueBuffer.put(currentVacantPos + i, entry);
-      int postingListLength = postingListLengths.get(entry);
-      postingListLengths.put(entry, postingListLength + 1);
+    @Override
+    public long totalTimeTakeSoFar() {
+        return (System.currentTimeMillis() - start);
     }
-    currentVacantPos += length;
-    lengths.put(docId, length);
-  }
+
+    @Override
+    public void seal() throws IOException {
+        FileOutputStream fos = null;
+        FileInputStream fisOffsets = null;
+        FileInputStream fisBitmaps = null;
+        final DataOutputStream bitmapsOut;
+        final DataOutputStream offsetsOut;
+        String tempOffsetsFile = invertedIndexFile + ".offsets";
+        String tempBitmapsFile = invertedIndexFile + ".binary";
+
+        try {
+            // build the posting list
+            constructPostingLists();
+
+            // we need two separate streams, one to write the offsets and another to write the serialized
+            // bitmap data. We need two because we dont the serialized length of each bitmap without
+            // constructing.
+            offsetsOut = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(tempOffsetsFile)));
+            bitmapsOut = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(tempBitmapsFile)));
+
+            // write out offsets of bitmaps. The information can be used to access a certain bitmap
+            // directly.
+            // Totally (invertedIndex.length+1) offsets will be written out; the last offset is used to
+            // calculate the length of
+            // the last bitmap, which might be needed when accessing bitmaps randomly.
+            // If a bitmap's offset is k, then k bytes need to be skipped to reach the bitmap.
+            int startOffset = 4 * (cardinality + 1);
+            offsetsOut.writeInt(startOffset);// The first bitmap's offset
+            MutableRoaringBitmap bitmap = new MutableRoaringBitmap();
+            for (int i = 0; i < cardinality; i++) {
+                bitmap.clear();
+                int length = postingListLengths.get(i);
+                for (int j = 0; j < length; j++) {
+                    int bufferOffset = postingListStartOffsets.get(i) + j;
+                    int value = postingListBuffer.get(bufferOffset);
+                    bitmap.add(value);
+                }
+                // serialize bitmap to bitmapsOut stream
+                bitmap.serialize(bitmapsOut);
+                startOffset += bitmap.serializedSizeInBytes();
+                // write offset
+                offsetsOut.writeInt(startOffset);
+            }
+            offsetsOut.close();
+            bitmapsOut.close();
+            // merge the two files by simply writing offsets data first and then bitmap serialized data
+            fos = new FileOutputStream(invertedIndexFile);
+            fisOffsets = new FileInputStream(tempOffsetsFile);
+            fisBitmaps = new FileInputStream(tempBitmapsFile);
+
+            fos.write(Ints.toByteArray(cardinality));
+
+            FileChannel channelOffsets = fisOffsets.getChannel();
+            channelOffsets.transferTo(0, channelOffsets.size(), fos.getChannel());
+
+            FileChannel channelBitmaps = fisBitmaps.getChannel();
+            channelBitmaps.transferTo(0, channelBitmaps.size(), fos.getChannel());
+
+            LOGGER.debug("persisted bitmap inverted index for column : " + spec.getName() + " in " + invertedIndexFile.getAbsolutePath());
+        } catch (Exception e) {
+            LOGGER.error("Exception while creating bitmap index for column:" + spec.getName(), e);
+        } finally {
+            IOUtils.closeQuietly(fos);
+            IOUtils.closeQuietly(fisOffsets);
+            IOUtils.closeQuietly(fisOffsets);
+            IOUtils.closeQuietly(fos);
+            IOUtils.closeQuietly(fos);
+            // MMaputils handles the null checks for buffer
+            MmapUtils.unloadByteBuffer(origValueBuffer);
+            origValueBuffer = null;
+            valueBuffer = null;
+            if (origLengths != null) {
+                MmapUtils.unloadByteBuffer(origLengths);
+                origLengths = null;
+                lengths = null;
+            }
+            MmapUtils.unloadByteBuffer(origPostingListBuffer);
+            origPostingListBuffer = null;
+            postingListBuffer = null;
+            MmapUtils.unloadByteBuffer(origPostingListCurrentOffsets);
+            origPostingListCurrentOffsets = null;
+            postingListCurrentOffsets = null;
+            MmapUtils.unloadByteBuffer(origPostingListLengths);
+            origPostingListLengths = null;
+            postingListLengths = null;
+            MmapUtils.unloadByteBuffer(origPostingListStartOffsets);
+            origPostingListStartOffsets = null;
+            postingListStartOffsets = null;
+            FileUtils.deleteQuietly(new File(tempOffsetsFile));
+            FileUtils.deleteQuietly(new File(tempBitmapsFile));
+        }
+    }
+
+    /**
+     * Construct the posting list for each dictId in the original data
+     */
+    private void constructPostingLists() {
+        int offset = 0;
+        for (int i = 0; i < cardinality; i++) {
+            postingListStartOffsets.put(i, offset);
+            postingListCurrentOffsets.put(i, offset);
+            offset = offset + postingListLengths.get(i);
+        }
+        if (spec.isSingleValueField()) {
+            for (int i = 0; i < capacity; i++) {
+                // read the value
+                int dictId = valueBuffer.get(i);
+                int dictIdOffset = postingListCurrentOffsets.get(dictId);
+                postingListBuffer.put(dictIdOffset, i);
+                postingListCurrentOffsets.put(dictId, dictIdOffset + 1);
+            }
+        } else {
+            int startOffset = 0;
+            for (int i = 0; i < numDocs; i++) {
+                int length = lengths.get(i);
+                for (int j = 0; j < length; j++) {
+                    int dictId = valueBuffer.get((startOffset + j));
+                    int dictIdOffset = postingListCurrentOffsets.get(dictId);
+                    postingListBuffer.put(dictIdOffset, i);
+                    postingListCurrentOffsets.put(dictId, dictIdOffset + 1);
+
+                }
+                startOffset = startOffset + length;
+            }
+        }
+    }
+
+    private void indexSingleValue(int docId, int dictId) {
+        valueBuffer.put(docId, dictId);
+        int length = postingListLengths.get(dictId);
+        postingListLengths.put(dictId, length + 1);
+    }
+
+    private void indexMultiValue(int docId, int[] entries, int length) {
+        for (int i = 0; i < length; i++) {
+            final int entry = entries[i];
+            Preconditions.checkArgument(entry >= 0, "dictionary Id %s must >=0", entry);
+            valueBuffer.put(currentVacantPos + i, entry);
+            int postingListLength = postingListLengths.get(entry);
+            postingListLengths.put(entry, postingListLength + 1);
+        }
+        currentVacantPos += length;
+        lengths.put(docId, length);
+    }
 
 }

@@ -18,10 +18,10 @@
 
 package io.kyligence.kap.common.util;
 
-import com.google.common.collect.Sets;
-
 import java.util.Iterator;
 import java.util.Set;
+
+import com.google.common.collect.Sets;
 
 public class ValueIterators {
 

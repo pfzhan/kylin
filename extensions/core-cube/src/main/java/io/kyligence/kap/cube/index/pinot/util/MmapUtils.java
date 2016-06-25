@@ -125,6 +125,8 @@ public class MmapUtils {
                             LOGGER.debug("Unmapping byte buffer of size {} with context {}, allocation after operation {}", bufferSize, bufferContext, getTrackedAllocationStatus());
                         }
                         break;
+                    default:
+                        break;
                     }
                     BUFFER_TO_CONTEXT_MAP.remove(buffer);
                 } else {

@@ -18,10 +18,8 @@
 
 package io.kyligence.kap.engine.mr.steps;
 
-import io.kyligence.kap.engine.mr.index.SecondaryIndexCombiner;
-import io.kyligence.kap.engine.mr.index.SecondaryIndexMapper;
-import io.kyligence.kap.engine.mr.index.SecondaryIndexPartitioner;
-import io.kyligence.kap.engine.mr.index.SecondaryIndexReducer;
+import java.io.IOException;
+
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
@@ -40,7 +38,10 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
+import io.kyligence.kap.engine.mr.index.SecondaryIndexCombiner;
+import io.kyligence.kap.engine.mr.index.SecondaryIndexMapper;
+import io.kyligence.kap.engine.mr.index.SecondaryIndexPartitioner;
+import io.kyligence.kap.engine.mr.index.SecondaryIndexReducer;
 
 /**
  */
@@ -72,7 +73,7 @@ public class SecondaryIndexJob extends AbstractHadoopJob {
             KylinConfig config = KylinConfig.getInstanceFromEnv();
             CubeManager cubeMgr = CubeManager.getInstance(config);
             CubeInstance cube = cubeMgr.getCube(cubeName);
-            
+
             job = Job.getInstance(getConf(), getOptionValue(OPTION_JOB_NAME));
             logger.info("Starting: " + job.getJobName());
 

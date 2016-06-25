@@ -20,20 +20,20 @@ package io.kyligence.kap.cube.index.pinot;
  */
 public class BitUnpackResultWrapper extends ThreadLocal<BitUnpackResult> {
 
-  private BitUnpackResult readResultInitialValue;
-  private int compressedSize;
-  private int uncompressedSize;
+    private BitUnpackResult readResultInitialValue;
+    private int compressedSize;
+    private int uncompressedSize;
 
-  BitUnpackResultWrapper(int compressedSize, int uncompressedSize) {
-    this.compressedSize = compressedSize;
-    this.uncompressedSize = uncompressedSize;
-    
-  }
+    BitUnpackResultWrapper(int compressedSize, int uncompressedSize) {
+        this.compressedSize = compressedSize;
+        this.uncompressedSize = uncompressedSize;
 
-  @Override
-  protected BitUnpackResult initialValue() {
-    readResultInitialValue = new BitUnpackResult(-1, new int[compressedSize], new int[uncompressedSize]);
-    return readResultInitialValue;
-  }
+    }
+
+    @Override
+    protected BitUnpackResult initialValue() {
+        readResultInitialValue = new BitUnpackResult(-1, new int[compressedSize], new int[uncompressedSize]);
+        return readResultInitialValue;
+    }
 
 }

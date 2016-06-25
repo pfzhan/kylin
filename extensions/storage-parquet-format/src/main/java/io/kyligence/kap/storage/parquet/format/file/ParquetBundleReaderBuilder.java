@@ -1,14 +1,14 @@
 package io.kyligence.kap.storage.parquet.format.file;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
-import org.roaringbitmap.buffer.MutableRoaringBitmap;
-
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
+import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
 /**
  * Created by roger on 6/13/16.
@@ -41,7 +41,6 @@ public class ParquetBundleReaderBuilder {
         return this;
     }
 
-
     public ParquetBundleReaderBuilder setPageBitset(ImmutableRoaringBitmap bitset) {
         this.pageBitset = bitset;
         return this;
@@ -61,10 +60,7 @@ public class ParquetBundleReaderBuilder {
         }
 
         if (columnBitset == null) {
-            int columnCnt = new ParquetRawReaderBuilder().setConf(conf)
-                    .setPath(path)
-                    .setIndexPath(indexPath)
-                    .build().getColumnCount();
+            int columnCnt = new ParquetRawReaderBuilder().setConf(conf).setPath(path).setIndexPath(indexPath).build().getColumnCount();
             columnBitset = createBitset(columnCnt);
         }
 

@@ -17,15 +17,28 @@
 */
 package io.kyligence.kap.job.impl.helix;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+
 import org.apache.commons.lang3.StringUtils;
-import org.apache.helix.*;
+import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixManager;
+import org.apache.helix.HelixManagerFactory;
+import org.apache.helix.InstanceType;
+import org.apache.helix.LiveInstanceChangeListener;
+import org.apache.helix.NotificationContext;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
-import org.apache.helix.model.*;
+import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.restclient.Broadcaster;
@@ -33,12 +46,9 @@ import org.apache.kylin.common.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * Administrator of Kylin cluster
@@ -239,12 +249,12 @@ public class HelixClusterAdmin {
             if (instanceRestAddresses.size() > 0) {
                 String restServersInCluster = StringUtil.join(instanceRestAddresses, ",");
                 kylinConfig.setProperty("kylin.rest.servers", restServersInCluster);
-                kylinConfig.setProperty("kylin.server.mode", isLeaderRole(HelixClusterAdmin.RESOURCE_NAME_JOB_ENGINE) ? "job":"query");
+                kylinConfig.setProperty("kylin.server.mode", isLeaderRole(HelixClusterAdmin.RESOURCE_NAME_JOB_ENGINE) ? "job" : "query");
                 System.setProperty("kylin.rest.servers", restServersInCluster);
                 logger.info("kylin.rest.servers update to " + restServersInCluster);
                 Properties properties = new Properties();
                 properties.setProperty("kylin.rest.servers", restServersInCluster);
-                properties.setProperty("kylin.server.mode", isLeaderRole(HelixClusterAdmin.RESOURCE_NAME_JOB_ENGINE) ? "job":"query");
+                properties.setProperty("kylin.server.mode", isLeaderRole(HelixClusterAdmin.RESOURCE_NAME_JOB_ENGINE) ? "job" : "query");
                 try {
                     KylinConfig.writeOverrideProperties(properties);
                 } catch (IOException e) {

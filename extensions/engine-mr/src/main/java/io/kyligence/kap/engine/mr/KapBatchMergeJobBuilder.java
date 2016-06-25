@@ -18,11 +18,12 @@
 
 package io.kyligence.kap.engine.mr;
 
-import io.kyligence.kap.engine.mr.steps.MergeSecondaryIndexStep;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.BatchMergeJobBuilder2;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.steps.CubingExecutableUtil;
+
+import io.kyligence.kap.engine.mr.steps.MergeSecondaryIndexStep;
 
 public class KapBatchMergeJobBuilder extends BatchMergeJobBuilder2 {
 

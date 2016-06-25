@@ -1,5 +1,10 @@
 package io.kyligence.kap.storage.parquet.format.file;
 
+import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BINARY;
+import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BOOLEAN;
+import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY;
+import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT32;
+
 import org.apache.parquet.bytes.BytesUtils;
 import org.apache.parquet.column.ColumnDescriptor;
 import org.apache.parquet.column.ValuesType;
@@ -12,8 +17,6 @@ import org.apache.parquet.column.values.plain.PlainValuesWriter;
 import org.apache.parquet.column.values.rle.RunLengthBitPackingHybridValuesWriter;
 import org.apache.parquet.io.ParquetEncodingException;
 
-import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.*;
-
 /**
  * Created by roger on 5/19/16.
  */
@@ -24,11 +27,11 @@ public enum Encoding {
     PLAIN {
         @Override
         public ValuesWriter getValuesWriter(ColumnDescriptor descriptor, ValuesType valuesType, int count) {
-            switch(descriptor.getType()) {
-                case BOOLEAN:
-                    return new BooleanPlainValuesWriter();
-                default:
-                    return new PlainValuesWriter(count * 4, count * 8);
+            switch (descriptor.getType()) {
+            case BOOLEAN:
+                return new BooleanPlainValuesWriter();
+            default:
+                return new PlainValuesWriter(count * 4, count * 8);
             }
         }
     },
@@ -44,7 +47,7 @@ public enum Encoding {
     DELTA_BINARY_PACKED {
         @Override
         public ValuesWriter getValuesWriter(ColumnDescriptor descriptor, ValuesType valuesType, int count) {
-            if(descriptor.getType() != INT32) {
+            if (descriptor.getType() != INT32) {
                 throw new ParquetEncodingException("Encoding DELTA_BINARY_PACKED is only supported for type INT32");
             }
             return new DeltaBinaryPackingValuesWriter(count * 2, count * 2);
@@ -53,8 +56,7 @@ public enum Encoding {
 
     DELTA_LENGTH_BYTE_ARRAY {
         @Override
-        public ValuesWriter getValuesWriter(ColumnDescriptor descriptor,
-                                            ValuesType valuesType, int count) {
+        public ValuesWriter getValuesWriter(ColumnDescriptor descriptor, ValuesType valuesType, int count) {
             if (descriptor.getType() != BINARY) {
                 throw new ParquetEncodingException("Encoding DELTA_LENGTH_BYTE_ARRAY is only supported for type BINARY");
             }
@@ -72,23 +74,22 @@ public enum Encoding {
         }
     };
 
-
     int getMaxLevel(ColumnDescriptor descriptor, ValuesType valuesType) {
         int maxLevel;
         switch (valuesType) {
-            case REPETITION_LEVEL:
-                maxLevel = descriptor.getMaxRepetitionLevel();
+        case REPETITION_LEVEL:
+            maxLevel = descriptor.getMaxRepetitionLevel();
+            break;
+        case DEFINITION_LEVEL:
+            maxLevel = descriptor.getMaxDefinitionLevel();
+            break;
+        case VALUES:
+            if (descriptor.getType() == BOOLEAN) {
+                maxLevel = 1;
                 break;
-            case DEFINITION_LEVEL:
-                maxLevel = descriptor.getMaxDefinitionLevel();
-                break;
-            case VALUES:
-                if(descriptor.getType() == BOOLEAN) {
-                    maxLevel = 1;
-                    break;
-                }
-            default:
-                throw new ParquetEncodingException("Unsupported encoding for values: " + this);
+            }
+        default:
+            throw new ParquetEncodingException("Unsupported encoding for values: " + this);
         }
         return maxLevel;
     }

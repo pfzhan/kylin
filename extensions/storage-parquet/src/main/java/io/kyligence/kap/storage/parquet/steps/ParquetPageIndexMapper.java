@@ -2,7 +2,6 @@ package io.kyligence.kap.storage.parquet.steps;
 
 import java.io.IOException;
 
-import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -28,6 +27,8 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexWriter;
 
 /**
  * Created by dongli on 5/31/16.

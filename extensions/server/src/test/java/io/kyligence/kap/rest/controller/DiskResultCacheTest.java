@@ -18,9 +18,10 @@
 
 package io.kyligence.kap.rest.controller;
 
-import io.kyligence.kap.rest.sequencesql.DiskResultCache;
 import org.junit.Assert;
 import org.junit.Test;
+
+import io.kyligence.kap.rest.sequencesql.DiskResultCache;
 
 public class DiskResultCacheTest {
     @Test
@@ -29,7 +30,6 @@ public class DiskResultCacheTest {
         cache.cacheEntry("a", new byte[] { 1, 2, 3 });
         cache.cacheEntry("b", new byte[] { 1, 2, 3 });
         Assert.assertEquals(2, cache.getSize());
-
 
         cache.getEntry("b");
         cache.cacheEntry("c", new byte[] { 23 });

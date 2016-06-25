@@ -336,7 +336,6 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         assertArrayEquals(rangeInts(5, 30), result.toArray());
     }
 
-
     @Test
     public void testAndOR2() {
         TupleFilter filter1_1 = makeFilter(TupleFilter.FilterOperatorEnum.GTE, colRef1, data1[25]);

@@ -21,13 +21,12 @@ package io.kyligence.kap.cube.index.pinot.util;
  * Util class to encapsulate all math required to compute storage space.
  */
 public class SizeUtil {
-  public static int BIT_UNPACK_BATCH_SIZE = 32;
+    public static int BIT_UNPACK_BATCH_SIZE = 32;
 
-  public static int computeBytesRequired(int numValues, int numBits, int entriesPerBatch) {
-    int bitsRequiredPerBatch = entriesPerBatch * numBits;
-    //Align to batch boundary to avoid if checks while reading
-    int totalBitsRounded = (int) (Math.ceil((numValues * numBits * 1.0) / bitsRequiredPerBatch)
-        * bitsRequiredPerBatch);
-    return totalBitsRounded / 8;
-  }
+    public static int computeBytesRequired(int numValues, int numBits, int entriesPerBatch) {
+        int bitsRequiredPerBatch = entriesPerBatch * numBits;
+        //Align to batch boundary to avoid if checks while reading
+        int totalBitsRounded = (int) (Math.ceil((numValues * numBits * 1.0) / bitsRequiredPerBatch) * bitsRequiredPerBatch);
+        return totalBitsRounded / 8;
+    }
 }

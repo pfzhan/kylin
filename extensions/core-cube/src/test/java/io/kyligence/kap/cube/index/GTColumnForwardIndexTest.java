@@ -1,16 +1,17 @@
 package io.kyligence.kap.cube.index;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Random;
 
+import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.After;
 import org.junit.Before;

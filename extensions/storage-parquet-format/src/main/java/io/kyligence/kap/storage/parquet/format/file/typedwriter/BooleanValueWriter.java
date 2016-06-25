@@ -6,8 +6,9 @@ import org.apache.parquet.column.values.ValuesWriter;
 /**
  * Created by roger on 5/21/16.
  */
-public class BooleanValueWriter implements TypeValuesWriter{
+public class BooleanValueWriter implements TypeValuesWriter {
     private ValuesWriter writer;
+
     public BooleanValueWriter(ValuesWriter writer) {
         this.writer = writer;
     }

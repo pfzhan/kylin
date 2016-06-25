@@ -19,108 +19,106 @@ import java.util.Comparator;
 
 public class Pairs {
 
-  public static IntPair intPair(int a, int b) {
-    return new IntPair(a, b);
-  }
-
-  public static Comparator<IntPair> intPairComparator() {
-    return new AscendingIntPairComparator();
-  }
-
-  public static class IntPair {
-    int a;
-
-    int b;
-
-    public IntPair(int a, int b) {
-      this.a = a;
-      this.b = b;
-    }
-    
-    public int getLeft() {
-      return a;
+    public static IntPair intPair(int a, int b) {
+        return new IntPair(a, b);
     }
 
-    public int getRight() {
-      return b;
+    public static Comparator<IntPair> intPairComparator() {
+        return new AscendingIntPairComparator();
     }
 
-    public void setLeft(int a) {
-      this.a = a;
+    public static class IntPair {
+        int a;
+
+        int b;
+
+        public IntPair(int a, int b) {
+            this.a = a;
+            this.b = b;
+        }
+
+        public int getLeft() {
+            return a;
+        }
+
+        public int getRight() {
+            return b;
+        }
+
+        public void setLeft(int a) {
+            this.a = a;
+        }
+
+        public void setRight(int b) {
+            this.b = b;
+        }
+
+        @Override
+        public String toString() {
+            return "[" + a + "," + b + "]";
+        }
+
+        @Override
+        public int hashCode() {
+            return toString().hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof IntPair) {
+                IntPair that = (IntPair) obj;
+                return obj != null && a == (that.a) && b == that.b;
+            }
+            return false;
+        }
     }
 
-    public void setRight(int b) {
-      this.b = b;
+    public static class AscendingIntPairComparator implements Comparator<IntPair> {
+
+        @Override
+        public int compare(IntPair o1, IntPair o2) {
+            return Integer.compare(o1.a, o2.a);
+        }
     }
 
-    @Override
-    public String toString() {
-      return "[" + a + "," + b + "]";
+    public static Comparator<Number2ObjectPair> getAscendingnumber2ObjectPairComparator() {
+        return new AscendingNumber2ObjectPairComparator();
     }
 
-    @Override
-    public int hashCode() {
-      return toString().hashCode();
+    public static Comparator<Number2ObjectPair> getDescendingnumber2ObjectPairComparator() {
+        return new DescendingNumber2ObjectPairComparator();
     }
 
-    @Override
-    public boolean equals(Object obj) {
-      if (obj instanceof IntPair) {
-        IntPair that = (IntPair) obj;
-        return obj != null && a == (that.a) && b == that.b;
-      }
-      return false;
-    }
-  }
+    public static class Number2ObjectPair<T> {
+        Number a;
 
-  public static class AscendingIntPairComparator implements Comparator<IntPair> {
+        T b;
 
-    @Override
-    public int compare(IntPair o1, IntPair o2) {
-      return Integer.compare(o1.a, o2.a);
-    }
-  }
+        public Number2ObjectPair(Number a, T b) {
+            this.a = a;
+            this.b = b;
+        }
 
-  public static Comparator<Number2ObjectPair> getAscendingnumber2ObjectPairComparator() {
-    return new AscendingNumber2ObjectPairComparator();
-  }
+        public Number getA() {
+            return a;
+        }
 
-  public static Comparator<Number2ObjectPair> getDescendingnumber2ObjectPairComparator() {
-    return new DescendingNumber2ObjectPairComparator();
-  }
-
-  public static class Number2ObjectPair<T> {
-    Number a;
-
-    T b;
-
-    public Number2ObjectPair(Number a, T b) {
-      this.a = a;
-      this.b = b;
+        public T getB() {
+            return b;
+        }
     }
 
-    public Number getA() {
-      return a;
+    public static class AscendingNumber2ObjectPairComparator implements Comparator<Number2ObjectPair> {
+        @Override
+        public int compare(Number2ObjectPair o1, Number2ObjectPair o2) {
+            return new Double(o1.a.doubleValue()).compareTo(new Double(o2.a.doubleValue()));
+        }
     }
 
-    public T getB() {
-      return b;
+    public static class DescendingNumber2ObjectPairComparator implements Comparator<Number2ObjectPair> {
+        @Override
+        public int compare(Number2ObjectPair o1, Number2ObjectPair o2) {
+            return new Double(o2.a.doubleValue()).compareTo(new Double(o1.a.doubleValue()));
+        }
     }
-  }
-
-  public static class AscendingNumber2ObjectPairComparator
-      implements Comparator<Number2ObjectPair> {
-    @Override
-    public int compare(Number2ObjectPair o1, Number2ObjectPair o2) {
-      return new Double(o1.a.doubleValue()).compareTo(new Double(o2.a.doubleValue()));
-    }
-  }
-
-  public static class DescendingNumber2ObjectPairComparator
-      implements Comparator<Number2ObjectPair> {
-    @Override
-    public int compare(Number2ObjectPair o1, Number2ObjectPair o2) {
-      return new Double(o2.a.doubleValue()).compareTo(new Double(o1.a.doubleValue()));
-    }
-  }
 }

@@ -18,10 +18,10 @@
 
 package io.kyligence.kap.engine.mr.index;
 
+import java.io.IOException;
+
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.engine.mr.KylinReducer;
-
-import java.io.IOException;
 
 /**
  */

@@ -28,7 +28,6 @@ import java.util.concurrent.Future;
 import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
 
-import io.kyligence.kap.common.util.ValueIterators;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
@@ -58,6 +57,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.util.ValueIterators;
 import io.kyligence.kap.rest.client.KAPRESTClient;
 import io.kyligence.kap.rest.request.SequenceSQLRequest;
 import io.kyligence.kap.rest.request.ShardedSequenceSQLRequest;
@@ -70,8 +70,6 @@ import io.kyligence.kap.rest.sequencesql.topology.SequenceTopologyManager;
 
 @Controller
 public class SequenceSQLController extends BasicController {
-    
-    
 
     private static final Logger logger = LoggerFactory.getLogger(SequenceSQLController.class);
 

@@ -1,14 +1,15 @@
 package io.kyligence.kap.storage.parquet.format.file;
 
+import java.io.IOException;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-import java.io.IOException;
-
 public class ParquetIndexWriter {
     private FSDataOutputStream os;
+
     public ParquetIndexWriter(Configuration config, Path path) throws IOException {
         FileSystem fileSystem = FileSystem.get(config);
         os = fileSystem.create(path);

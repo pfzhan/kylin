@@ -15,7 +15,7 @@ public abstract class GeneralValuesReader {
     }
 
     public void skip() {
-        if (curPos == length){
+        if (curPos == length) {
             return;
         }
 
@@ -28,7 +28,7 @@ public abstract class GeneralValuesReader {
     }
 
     public Integer getNextOffset() {
-        if (curPos == length){
+        if (curPos == length) {
             return null;
         }
         curPos++;
@@ -36,7 +36,7 @@ public abstract class GeneralValuesReader {
     }
 
     public Integer readValueDictionaryId() {
-        if (curPos == length){
+        if (curPos == length) {
             return null;
         }
         curPos++;
@@ -44,7 +44,7 @@ public abstract class GeneralValuesReader {
     }
 
     public Boolean readBoolean() {
-        if (curPos == length){
+        if (curPos == length) {
             return null;
         }
         curPos++;
@@ -52,7 +52,7 @@ public abstract class GeneralValuesReader {
     }
 
     public Binary readBytes() {
-        if (curPos == length){
+        if (curPos == length) {
             return null;
         }
         curPos++;
@@ -60,7 +60,7 @@ public abstract class GeneralValuesReader {
     }
 
     public Float readFloat() {
-        if (curPos == length){
+        if (curPos == length) {
             return null;
         }
         curPos++;
@@ -68,7 +68,7 @@ public abstract class GeneralValuesReader {
     }
 
     public Double readDouble() {
-        if (curPos == length){
+        if (curPos == length) {
             return null;
         }
         curPos++;
@@ -76,7 +76,7 @@ public abstract class GeneralValuesReader {
     }
 
     public Integer readInteger() {
-        if (curPos == length){
+        if (curPos == length) {
             return null;
         }
         curPos++;
@@ -84,7 +84,7 @@ public abstract class GeneralValuesReader {
     }
 
     public Long readLong() {
-        if (curPos == length){
+        if (curPos == length) {
             return null;
         }
         curPos++;

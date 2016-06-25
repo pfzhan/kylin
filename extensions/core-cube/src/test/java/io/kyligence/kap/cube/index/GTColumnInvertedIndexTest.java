@@ -1,6 +1,6 @@
 package io.kyligence.kap.cube.index;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;

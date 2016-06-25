@@ -17,7 +17,6 @@ package io.kyligence.kap.cube.index.pinot;
 
 import java.io.IOException;
 
-
 /**
  * Copied from pinot 0.016 (ea6534be65b01eb878cf884d3feb1c6cdb912d2f)
  * 
@@ -31,15 +30,15 @@ import java.io.IOException;
 
 public interface InvertedIndexCreator {
 
-  //public void add(int docId, Object dictionaryId);
+    //public void add(int docId, Object dictionaryId);
 
-  void add(int docId, int dictionaryId);
+    void add(int docId, int dictionaryId);
 
-  void add(int docIds, int[] dictionaryIds);
+    void add(int docIds, int[] dictionaryIds);
 
-  void add(int docIds, int[] dictionaryIds, int length);
+    void add(int docIds, int[] dictionaryIds, int length);
 
-  long totalTimeTakeSoFar();
+    long totalTimeTakeSoFar();
 
-  void seal() throws IOException;
+    void seal() throws IOException;
 }

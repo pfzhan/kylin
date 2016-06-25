@@ -1,16 +1,16 @@
 package io.kyligence.kap.storage.parquet.format.file;
 
+import java.io.IOException;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-import java.io.IOException;
-import java.util.List;
-
-public class ParquetTarballReader extends ParquetRawReader{
+public class ParquetTarballReader extends ParquetRawReader {
     private long skipLength = 0;
-    public ParquetTarballReader (Configuration config, Path path, Path indexPath) throws IOException {
+
+    public ParquetTarballReader(Configuration config, Path path, Path indexPath) throws IOException {
         super(config, path, indexPath);
         skipLength = getSkipOffset(config, path);
     }

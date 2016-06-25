@@ -1,28 +1,33 @@
 package io.kyligence.kap.storage.parquet.format.file;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.parquet.bytes.BytesInput;
-import org.apache.parquet.column.*;
+import org.apache.parquet.column.ColumnDescriptor;
+import org.apache.parquet.column.ValuesType;
 import org.apache.parquet.column.values.ValuesReader;
-import org.apache.parquet.format.*;
+import org.apache.parquet.format.DataPageHeader;
+import org.apache.parquet.format.DataPageHeaderV2;
 import org.apache.parquet.format.Encoding;
+import org.apache.parquet.format.PageHeader;
+import org.apache.parquet.format.PageType;
+import org.apache.parquet.format.Util;
 import org.apache.parquet.format.converter.ParquetMetadataConverter;
 import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.hadoop.metadata.BlockMetaData;
 import org.apache.parquet.hadoop.metadata.ColumnChunkMetaData;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
-import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.parquet.schema.MessageType;
-
-import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 public class ParquetRawReader {
     private ParquetMetadata parquetMetadata;
@@ -32,7 +37,7 @@ public class ParquetRawReader {
     protected int pagesPerGroup = 0;
     protected Map<String, String> indexMap;
 
-    public ParquetRawReader(Configuration configuration, Path path, Path indexPath) throws IOException{
+    public ParquetRawReader(Configuration configuration, Path path, Path indexPath) throws IOException {
         config = configuration;
         parquetMetadata = ParquetFileReader.readFooter(config, path, ParquetMetadataConverter.NO_FILTER);
         FileSystem fileSystem = FileSystem.get(config);
@@ -85,47 +90,34 @@ public class ParquetRawReader {
         CompressionCodec codec = CodecFactory.getCodec(codecName, config);
         Decompressor decompressor = null;
         if (codec != null) {
-            decompressor = CodecFactory.getCodec(codecName,config).createDecompressor();
+            decompressor = CodecFactory.getCodec(codecName, config).createDecompressor();
         }
 
         inputStream.seek(offset);
-        PageHeader pageHeader= Util.readPageHeader(inputStream);
+        PageHeader pageHeader = Util.readPageHeader(inputStream);
         if (pageHeader.getType() == PageType.DATA_PAGE) {
             DataPageHeader dataPageHeader = pageHeader.getData_page_header();
             int numValues = dataPageHeader.getNum_values();
-            BytesInput decompressedData = readAndDecompress(codecName,
-                    decompressor,
-                    pageHeader.getCompressed_page_size(),
-                    pageHeader.getUncompressed_page_size());
+            BytesInput decompressedData = readAndDecompress(codecName, decompressor, pageHeader.getCompressed_page_size(), pageHeader.getUncompressed_page_size());
             byte[] decompressedDataBytes = decompressedData.toByteArray();
 
-            offset = skipLevels(numValues,
-                    columnDescriptor,
-                    dataPageHeader.getRepetition_level_encoding(),
-                    dataPageHeader.getDefinition_level_encoding(),
-                    decompressedDataBytes,
-                    0);
+            offset = skipLevels(numValues, columnDescriptor, dataPageHeader.getRepetition_level_encoding(), dataPageHeader.getDefinition_level_encoding(), decompressedDataBytes, 0);
 
             ValuesReader dataReader = getValuesReader(dataPageHeader.getEncoding(), columnDescriptor, ValuesType.VALUES);
-            dataReader.initFromPage(numValues, decompressedDataBytes, (int)offset);
+            dataReader.initFromPage(numValues, decompressedDataBytes, (int) offset);
             return new GeneralValuesReaderBuilder().setLength(numValues).setReader(dataReader).setType(columnChunkMetaData.getType()).build();
         } else if (pageHeader.getType() == PageType.DATA_PAGE_V2) {
             DataPageHeaderV2 dataPageHeader = pageHeader.getData_page_header_v2();
             int numValues = dataPageHeader.getNum_values();
 
             // Skip levels
-            inputStream.seek(inputStream.getPos() +
-                    dataPageHeader.repetition_levels_byte_length +
-                    dataPageHeader.definition_levels_byte_length);
+            inputStream.seek(inputStream.getPos() + dataPageHeader.repetition_levels_byte_length + dataPageHeader.definition_levels_byte_length);
 
             BytesInput decompressedData;
             if (dataPageHeader.is_compressed) {
-                decompressedData = readAndDecompress(codecName,
-                        decompressor,
-                        pageHeader.getCompressed_page_size(),
-                        pageHeader.getUncompressed_page_size());
+                decompressedData = readAndDecompress(codecName, decompressor, pageHeader.getCompressed_page_size(), pageHeader.getUncompressed_page_size());
             } else {
-                assert(pageHeader.getCompressed_page_size() == pageHeader.getUncompressed_page_size());
+                assert (pageHeader.getCompressed_page_size() == pageHeader.getUncompressed_page_size());
                 decompressedData = readAsBytesInput(pageHeader.getCompressed_page_size());
             }
             byte[] decompressedDataBytes = decompressedData.toByteArray();
@@ -136,37 +128,21 @@ public class ParquetRawReader {
         return null;
     }
 
-    private int skipLevels(int numValues,
-                           ColumnDescriptor descriptor,
-                           Encoding rEncoding,
-                           Encoding dEncoding,
-                           byte[] in,
-                           int offset) throws IOException {
+    private int skipLevels(int numValues, ColumnDescriptor descriptor, Encoding rEncoding, Encoding dEncoding, byte[] in, int offset) throws IOException {
         offset = skipRepetitionLevel(numValues, descriptor, rEncoding, in, offset).getNextOffset();
         offset = skipDefinitionLevel(numValues, descriptor, dEncoding, in, offset).getNextOffset();
         return offset;
     }
 
-    private ValuesReader skipRepetitionLevel(int numValues,
-                                             ColumnDescriptor descriptor,
-                                             Encoding encoding,
-                                             byte[] in, int offset) throws IOException {
+    private ValuesReader skipRepetitionLevel(int numValues, ColumnDescriptor descriptor, Encoding encoding, byte[] in, int offset) throws IOException {
         return skipLevel(numValues, descriptor, encoding, ValuesType.REPETITION_LEVEL, in, offset);
     }
-    private ValuesReader skipDefinitionLevel(int numValues,
-                                     ColumnDescriptor descriptor,
-                                     Encoding encoding,
-                                     byte[] in,
-                                     int offset) throws IOException {
+
+    private ValuesReader skipDefinitionLevel(int numValues, ColumnDescriptor descriptor, Encoding encoding, byte[] in, int offset) throws IOException {
         return skipLevel(numValues, descriptor, encoding, ValuesType.DEFINITION_LEVEL, in, offset);
     }
 
-    private ValuesReader skipLevel(int numValues,
-                           ColumnDescriptor descriptor,
-                           Encoding encoding,
-                           ValuesType type,
-                           byte[] in,
-                           int offset) throws IOException {
+    private ValuesReader skipLevel(int numValues, ColumnDescriptor descriptor, Encoding encoding, ValuesType type, byte[] in, int offset) throws IOException {
         ValuesReader reader = getValuesReader(encoding, descriptor, type);
         reader.initFromPage(numValues, in, offset);
         return reader;
@@ -174,40 +150,35 @@ public class ParquetRawReader {
 
     private ValuesReader getValuesReader(Encoding encoding, ColumnDescriptor descriptor, ValuesType type) {
         switch (encoding) {
-            case BIT_PACKED:
-                return org.apache.parquet.column.Encoding.BIT_PACKED.getValuesReader(descriptor, type);
-            case DELTA_BINARY_PACKED:
-                return org.apache.parquet.column.Encoding.DELTA_BINARY_PACKED.getValuesReader(descriptor, type);
-            case DELTA_BYTE_ARRAY:
-                return org.apache.parquet.column.Encoding.DELTA_BYTE_ARRAY.getValuesReader(descriptor, type);
-            case DELTA_LENGTH_BYTE_ARRAY:
-                return org.apache.parquet.column.Encoding.DELTA_LENGTH_BYTE_ARRAY.getValuesReader(descriptor, type);
-            case PLAIN:
-                return org.apache.parquet.column.Encoding.PLAIN.getValuesReader(descriptor, type);
-            case PLAIN_DICTIONARY:
-                return org.apache.parquet.column.Encoding.PLAIN_DICTIONARY.getValuesReader(descriptor, type);
-            case RLE:
-                return org.apache.parquet.column.Encoding.RLE.getValuesReader(descriptor, type);
-            case RLE_DICTIONARY:
-                return org.apache.parquet.column.Encoding.RLE_DICTIONARY.getValuesReader(descriptor, type);
-            default:
-                return null;
+        case BIT_PACKED:
+            return org.apache.parquet.column.Encoding.BIT_PACKED.getValuesReader(descriptor, type);
+        case DELTA_BINARY_PACKED:
+            return org.apache.parquet.column.Encoding.DELTA_BINARY_PACKED.getValuesReader(descriptor, type);
+        case DELTA_BYTE_ARRAY:
+            return org.apache.parquet.column.Encoding.DELTA_BYTE_ARRAY.getValuesReader(descriptor, type);
+        case DELTA_LENGTH_BYTE_ARRAY:
+            return org.apache.parquet.column.Encoding.DELTA_LENGTH_BYTE_ARRAY.getValuesReader(descriptor, type);
+        case PLAIN:
+            return org.apache.parquet.column.Encoding.PLAIN.getValuesReader(descriptor, type);
+        case PLAIN_DICTIONARY:
+            return org.apache.parquet.column.Encoding.PLAIN_DICTIONARY.getValuesReader(descriptor, type);
+        case RLE:
+            return org.apache.parquet.column.Encoding.RLE.getValuesReader(descriptor, type);
+        case RLE_DICTIONARY:
+            return org.apache.parquet.column.Encoding.RLE_DICTIONARY.getValuesReader(descriptor, type);
+        default:
+            return null;
         }
     }
 
     // TODO: refactor these wrapper to improve performance
-    private BytesInput readAndDecompress(CompressionCodecName codec,
-                                         Decompressor decompressor,
-                                         int compressedSize,
-                                         int uncompressedSize) throws IOException{
+    private BytesInput readAndDecompress(CompressionCodecName codec, Decompressor decompressor, int compressedSize, int uncompressedSize) throws IOException {
         CompressionCodec compressionCodec = CodecFactory.getCodec(codec, config);
         BytesInput compressedData = readAsBytesInput(compressedSize);
         if (decompressor == null) {
             return compressedData;
-        }
-        else {
-            InputStream is = compressionCodec.createInputStream(new ByteArrayInputStream(compressedData.toByteArray()),
-                    decompressor);
+        } else {
+            InputStream is = compressionCodec.createInputStream(new ByteArrayInputStream(compressedData.toByteArray()), decompressor);
             return BytesInput.from(is, uncompressedSize);
         }
     }
@@ -216,7 +187,6 @@ public class ParquetRawReader {
         final BytesInput r = BytesInput.from(inputStream, size);
         return r;
     }
-
 
     private long jumpToPage(int index, long pageOffset) throws IOException {
         inputStream.seek(pageOffset);

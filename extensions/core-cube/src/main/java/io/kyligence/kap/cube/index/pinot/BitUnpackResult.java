@@ -19,16 +19,16 @@ package io.kyligence.kap.cube.index.pinot;
  * Copied from pinot 0.016 (ea6534be65b01eb878cf884d3feb1c6cdb912d2f)
  */
 public class BitUnpackResult {
-  volatile int position;
-  volatile int[] compressed;
-  volatile int[] uncompressed;
+    volatile int position;
+    volatile int[] compressed;
+    volatile int[] uncompressed;
 
-  public BitUnpackResult(int position, int[] compressed, int[] uncompressed) {
-    super();
-    this.position = position;
-    this.compressed = compressed;
-    this.uncompressed = uncompressed;
+    public BitUnpackResult(int position, int[] compressed, int[] uncompressed) {
+        super();
+        this.position = position;
+        this.compressed = compressed;
+        this.uncompressed = uncompressed;
 
-  }
+    }
 
 }

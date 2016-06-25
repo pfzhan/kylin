@@ -78,7 +78,7 @@ public class MemMappedFileScanBenchmark {
             System.out.println(N + " records read with mmap, " + calcSpeed(t) + "K rec/sec");
         }
     }
-    
+
     private int calcSpeed(long t) {
         double sec = (double) t / 1000;
         return (int) (N / sec / 1000);

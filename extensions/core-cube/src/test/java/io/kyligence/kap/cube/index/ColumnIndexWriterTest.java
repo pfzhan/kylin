@@ -19,7 +19,6 @@ public class ColumnIndexWriterTest {
     private static int COL2_MAX_VALUE = 500;
     private static int COL2_LENGTH = Integer.SIZE - Integer.numberOfLeadingZeros(COL2_MAX_VALUE);
 
-
     @Test
     public void test() throws IOException {
         File COL1_FWD_IDX = File.createTempFile("COL1", ".fwd");
@@ -47,12 +46,8 @@ public class ColumnIndexWriterTest {
             col2Values[i] = r.nextInt(COL2_MAX_VALUE);
         }
 
-
         // concat col1 + col2, write to the index
-        try (
-                ColumnIndexWriter writer1 = new ColumnIndexWriter("COL1", COL1_MAX_VALUE, COL1_MAX_VALUE, 0, COL1_LENGTH, COL1_FWD_IDX, COL1_INV_IDX);
-                ColumnIndexWriter writer2 = new ColumnIndexWriter("COL2", COL2_MAX_VALUE, COL2_MAX_VALUE, COL1_LENGTH, COL2_LENGTH, COL2_FWD_IDX, COL2_INV_IDX);
-        ) {
+        try (ColumnIndexWriter writer1 = new ColumnIndexWriter("COL1", COL1_MAX_VALUE, COL1_MAX_VALUE, 0, COL1_LENGTH, COL1_FWD_IDX, COL1_INV_IDX); ColumnIndexWriter writer2 = new ColumnIndexWriter("COL2", COL2_MAX_VALUE, COL2_MAX_VALUE, COL1_LENGTH, COL2_LENGTH, COL2_FWD_IDX, COL2_INV_IDX);) {
             for (int i = 0; i < LENGTH_OF_TABLE; i++) {
                 byte[] row = new byte[COL1_LENGTH + COL2_LENGTH];
                 BytesUtil.writeUnsigned(col1Values[i], row, 0, COL1_LENGTH);
@@ -63,10 +58,7 @@ public class ColumnIndexWriterTest {
         }
 
         // read and verify forward index
-        try (
-                IColumnForwardIndex.Reader reader1 = ColumnIndexFactory.createLocalForwardIndex("COL1", COL1_MAX_VALUE, COL1_FWD_IDX.getAbsolutePath()).getReader();
-                IColumnForwardIndex.Reader reader2 = ColumnIndexFactory.createLocalForwardIndex("COL2", COL2_MAX_VALUE, COL2_FWD_IDX.getAbsolutePath()).getReader();
-        ) {
+        try (IColumnForwardIndex.Reader reader1 = ColumnIndexFactory.createLocalForwardIndex("COL1", COL1_MAX_VALUE, COL1_FWD_IDX.getAbsolutePath()).getReader(); IColumnForwardIndex.Reader reader2 = ColumnIndexFactory.createLocalForwardIndex("COL2", COL2_MAX_VALUE, COL2_FWD_IDX.getAbsolutePath()).getReader();) {
             org.junit.Assert.assertEquals(reader1.getNumberOfRows(), LENGTH_OF_TABLE);
             for (int i = 0; i < LENGTH_OF_TABLE; i++) {
                 org.junit.Assert.assertTrue(reader1.get(i) == col1Values[i]);
@@ -75,10 +67,7 @@ public class ColumnIndexWriterTest {
         }
 
         // read and verify inverted index
-        try (
-                IColumnInvertedIndex.Reader reader1 = ColumnIndexFactory.createLocalInvertedIndex("COL1", COL1_MAX_VALUE, COL1_INV_IDX.getAbsolutePath()).getReader();
-                IColumnInvertedIndex.Reader reader2 = ColumnIndexFactory.createLocalInvertedIndex("COL2", COL2_MAX_VALUE, COL2_INV_IDX.getAbsolutePath()).getReader();
-        ) {
+        try (IColumnInvertedIndex.Reader reader1 = ColumnIndexFactory.createLocalInvertedIndex("COL1", COL1_MAX_VALUE, COL1_INV_IDX.getAbsolutePath()).getReader(); IColumnInvertedIndex.Reader reader2 = ColumnIndexFactory.createLocalInvertedIndex("COL2", COL2_MAX_VALUE, COL2_INV_IDX.getAbsolutePath()).getReader();) {
             org.junit.Assert.assertEquals(reader1.getNumberOfRows(), COL1_MAX_VALUE);
             org.junit.Assert.assertEquals(reader2.getNumberOfRows(), COL2_MAX_VALUE);
             for (int i = 0; i < LENGTH_OF_TABLE; i++) {

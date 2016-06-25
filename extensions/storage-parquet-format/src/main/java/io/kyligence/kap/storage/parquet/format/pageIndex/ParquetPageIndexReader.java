@@ -1,10 +1,11 @@
 package io.kyligence.kap.storage.parquet.format.pageIndex;
 
-import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexReader;
-import org.apache.hadoop.fs.FSDataInputStream;
-
 import java.io.Closeable;
 import java.io.IOException;
+
+import org.apache.hadoop.fs.FSDataInputStream;
+
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexReader;
 
 public class ParquetPageIndexReader implements Closeable {
     private ColumnIndexReader[] columnIndexReaders;

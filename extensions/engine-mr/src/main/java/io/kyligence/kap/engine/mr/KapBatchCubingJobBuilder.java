@@ -18,11 +18,6 @@
 
 package io.kyligence.kap.engine.mr;
 
-import io.kyligence.kap.engine.mr.IMROutput3.IMRBatchCubingOutputSide3 ;
-import io.kyligence.kap.engine.mr.steps.KapBaseCuboidJob;
-import io.kyligence.kap.engine.mr.steps.KapInMemCuboidJob;
-import io.kyligence.kap.engine.mr.steps.KapNDCuboidJob;
-import io.kyligence.kap.engine.mr.steps.SecondaryIndexJob;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.RowKeyDesc;
 import org.apache.kylin.engine.mr.BatchCubingJobBuilder2;
@@ -32,7 +27,6 @@ import org.apache.kylin.engine.mr.JobBuilderSupport;
 import org.apache.kylin.engine.mr.MRUtil;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.common.MapReduceExecutable;
-import org.apache.kylin.engine.mr.steps.BaseCuboidJob;
 import org.apache.kylin.engine.mr.steps.CubingExecutableUtil;
 import org.apache.kylin.engine.mr.steps.SaveStatisticsStep;
 import org.apache.kylin.job.constant.ExecutableConstants;
@@ -40,6 +34,11 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.engine.mr.IMROutput3.IMRBatchCubingOutputSide3;
+import io.kyligence.kap.engine.mr.steps.KapBaseCuboidJob;
+import io.kyligence.kap.engine.mr.steps.KapInMemCuboidJob;
+import io.kyligence.kap.engine.mr.steps.KapNDCuboidJob;
+import io.kyligence.kap.engine.mr.steps.SecondaryIndexJob;
 
 public class KapBatchCubingJobBuilder extends JobBuilderSupport {
     private static final Logger logger = LoggerFactory.getLogger(BatchCubingJobBuilder2.class);

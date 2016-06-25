@@ -7,9 +7,10 @@ import org.apache.parquet.io.api.Binary;
 /**
  * Created by roger on 5/21/16.
  */
-public class BytesValueWriter implements TypeValuesWriter{
+public class BytesValueWriter implements TypeValuesWriter {
 
     private ValuesWriter writer;
+
     public BytesValueWriter(ValuesWriter writer) {
         this.writer = writer;
     }

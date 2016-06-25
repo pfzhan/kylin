@@ -1,7 +1,6 @@
 package io.kyligence.kap.measure.percentile;
 
 import org.apache.kylin.measure.MeasureAggregator;
-import org.apache.kylin.measure.hllc.HyperLogLogPlusCounter;
 
 /**
  * Created by dongli on 5/18/16.

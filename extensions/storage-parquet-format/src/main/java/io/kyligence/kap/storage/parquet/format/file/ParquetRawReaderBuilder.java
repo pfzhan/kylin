@@ -1,9 +1,9 @@
 package io.kyligence.kap.storage.parquet.format.file;
 
+import java.io.IOException;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-
-import java.io.IOException;
 
 public class ParquetRawReaderBuilder {
     private String indexPathSuffix = "index";

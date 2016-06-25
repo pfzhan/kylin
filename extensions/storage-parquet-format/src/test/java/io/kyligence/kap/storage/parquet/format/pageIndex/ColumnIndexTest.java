@@ -1,9 +1,10 @@
 package io.kyligence.kap.storage.parquet.format.pageIndex;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexReader;
-import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexWriter;
-import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnSpec;
+import static org.junit.Assert.assertEquals;
+
+import java.io.IOException;
+import java.util.Map;
+
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -13,10 +14,11 @@ import org.apache.kylin.common.util.Log4jConfigurer;
 import org.apache.kylin.engine.mr.HadoopUtil;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.Map;
+import com.google.common.collect.Maps;
 
-import static org.junit.Assert.assertEquals;
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexReader;
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexWriter;
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnSpec;
 
 public class ColumnIndexTest {
     Path indexPath = new Path("/tmp/testkylin/a.inv");
@@ -29,7 +31,7 @@ public class ColumnIndexTest {
         for (int i = 0; i < 100; i++) {
             for (int j = 0; j < 10; j++) {
                 for (int k = 0; k < 1; k++) {
-                    data.put(new ByteArray(new byte[]{(byte) i}), i );
+                    data.put(new ByteArray(new byte[] { (byte) i }), i);
                 }
             }
         }
@@ -57,6 +59,6 @@ public class ColumnIndexTest {
             assertEquals(dataEntry.getValue().intValue(), row);
         }
 
-        System.out.println(indexReader.getRows(new ByteArray(new byte[]{(byte) 100})));
+        System.out.println(indexReader.getRows(new ByteArray(new byte[] { (byte) 100 })));
     }
 }

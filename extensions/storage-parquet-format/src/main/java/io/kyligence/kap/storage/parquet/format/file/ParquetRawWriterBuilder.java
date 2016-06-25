@@ -1,17 +1,18 @@
 package io.kyligence.kap.storage.parquet.format.file;
 
-import io.kyligence.kap.common.KAPKylinConfig;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.apache.parquet.hadoop.metadata.CompressionCodecName;
-import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.column.Encoding;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.parquet.column.Encoding;
+import org.apache.parquet.hadoop.metadata.CompressionCodecName;
+import org.apache.parquet.schema.MessageType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.common.KAPKylinConfig;
 
 public class ParquetRawWriterBuilder {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetRawWriterBuilder.class);
@@ -38,7 +39,6 @@ public class ParquetRawWriterBuilder {
         this.conf = conf;
         return this;
     }
-
 
     public ParquetRawWriterBuilder setType(MessageType type) {
         this.type = type;
@@ -85,7 +85,7 @@ public class ParquetRawWriterBuilder {
         return this;
     }
 
-    public ParquetRawWriterBuilder(){
+    public ParquetRawWriterBuilder() {
         kylinConfig = KAPKylinConfig.getInstanceFromEnv();
         this.rowsPerPage = kylinConfig.getParquetRowsPerPage();
     }
@@ -104,15 +104,15 @@ public class ParquetRawWriterBuilder {
         if (dataEncodings == null) {
             dataEncodings = new ArrayList<Encoding>();
             for (int i = 0; i < type.getColumns().size(); ++i) {
-                switch(type.getColumns().get(i).getType()) {
-                    case BOOLEAN:
-                    case INT32:
-                        dataEncodings.add(Encoding.RLE);
-                        break;
-                    case FIXED_LEN_BYTE_ARRAY:
-                        dataEncodings.add(Encoding.DELTA_BYTE_ARRAY);
-                    default:
-                        dataEncodings.add(Encoding.PLAIN);
+                switch (type.getColumns().get(i).getType()) {
+                case BOOLEAN:
+                case INT32:
+                    dataEncodings.add(Encoding.RLE);
+                    break;
+                case FIXED_LEN_BYTE_ARRAY:
+                    dataEncodings.add(Encoding.DELTA_BYTE_ARRAY);
+                default:
+                    dataEncodings.add(Encoding.PLAIN);
                 }
             }
         }

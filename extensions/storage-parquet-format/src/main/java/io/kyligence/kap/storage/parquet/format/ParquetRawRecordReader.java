@@ -36,7 +36,6 @@ public class ParquetRawRecordReader<K, V> extends RecordReader<K, V> {
         Path path = fileSplit.getPath();
         shardPath = path;
 
-
         ImmutableRoaringBitmap pageBitmap = readBitmapSet(path, ParquetFormatConstants.KYLIN_FILTER_PAGE_BITSET_MAP);
         ImmutableRoaringBitmap measureBitmap = readBitmapSet(path, ParquetFormatConstants.KYLIN_FILTER_MEASURES_BITSET_MAP);
 

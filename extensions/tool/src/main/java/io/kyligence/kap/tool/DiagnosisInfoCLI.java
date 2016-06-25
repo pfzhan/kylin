@@ -42,8 +42,8 @@ public class DiagnosisInfoCLI extends AbstractInfoExtractor {
         options.addOption(OPTION_INCLUDE_CLIENT);
     }
 
-    public static void main(String args[]) {
-        args = new String[] {"-destDir", "aa"};
+    public static void main(String[] args) {
+        args = new String[] { "-destDir", "aa" };
         DiagnosisInfoCLI diagnosisInfoCLI = new DiagnosisInfoCLI();
         diagnosisInfoCLI.execute(args);
     }

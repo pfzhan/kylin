@@ -1,18 +1,20 @@
 package io.kyligence.kap.storage.parquet.format.pageIndex.column;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.cube.index.IColumnInvertedIndex;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.Map;
+import java.util.NavigableMap;
+
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.kylin.common.util.ByteArray;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.Map;
-import java.util.NavigableMap;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.cube.index.IColumnInvertedIndex;
 
 public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray> {
     protected static final Logger logger = LoggerFactory.getLogger(ColumnIndexWriter.class);

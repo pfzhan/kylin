@@ -20,17 +20,17 @@ package io.kyligence.kap.cube.index.pinot;
  */
 public class DimensionFieldSpec extends FieldSpec {
 
-  public DimensionFieldSpec() {
-    super();
-    setFieldType(FieldType.DIMENSION);
-  }
+    public DimensionFieldSpec() {
+        super();
+        setFieldType(FieldType.DIMENSION);
+    }
 
-  public DimensionFieldSpec(String name, DataType dType, boolean singleValue, String delimeter) {
-    super(name, FieldType.DIMENSION, dType, singleValue, delimeter);
-  }
+    public DimensionFieldSpec(String name, DataType dType, boolean singleValue, String delimeter) {
+        super(name, FieldType.DIMENSION, dType, singleValue, delimeter);
+    }
 
-  public DimensionFieldSpec(String name, DataType dType, boolean singleValue) {
-    super(name, FieldType.DIMENSION, dType, singleValue);
-  }
+    public DimensionFieldSpec(String name, DataType dType, boolean singleValue) {
+        super(name, FieldType.DIMENSION, dType, singleValue);
+    }
 
 }

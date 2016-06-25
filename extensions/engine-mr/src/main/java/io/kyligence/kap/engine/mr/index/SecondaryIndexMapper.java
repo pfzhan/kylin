@@ -18,7 +18,9 @@
 
 package io.kyligence.kap.engine.mr.index;
 
-import com.google.common.collect.Lists;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.common.util.BytesUtil;
@@ -30,10 +32,6 @@ import org.apache.kylin.engine.mr.MRUtil;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.steps.BaseCuboidMapperBase;
 import org.apache.kylin.metadata.model.TblColRef;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.List;
 
 /**
  */

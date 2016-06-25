@@ -1,14 +1,9 @@
 package io.kyligence.kap.measure.percentile;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import org.apache.kylin.common.util.BytesUtil;
-import org.apache.kylin.measure.hllc.HyperLogLogPlusCounter;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.datatype.DataTypeSerializer;
-
-import com.tdunning.math.stats.AVLTreeDigest;
 
 /**
  * Created by dongli on 5/18/16.
@@ -18,6 +13,7 @@ public class PercentileSerializer extends DataTypeSerializer<PercentileCounter> 
     private ThreadLocal<PercentileCounter> current = new ThreadLocal<>();
 
     private double compression;
+
     public PercentileSerializer(DataType type) {
         this.compression = type.getPrecision();
     }

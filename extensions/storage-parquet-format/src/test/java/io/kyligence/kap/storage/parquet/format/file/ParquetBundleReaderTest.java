@@ -1,42 +1,34 @@
 package io.kyligence.kap.storage.parquet.format.file;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.parquet.io.api.Binary;
-import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.PrimitiveType;
-import org.apache.parquet.schema.Type;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Test;
-import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
-import org.roaringbitmap.buffer.MutableRoaringBitmap;
-
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-public class ParquetBundleReaderTest extends AbstractParquetFormatTest{
+import org.apache.hadoop.conf.Configuration;
+import org.apache.parquet.io.api.Binary;
+import org.junit.Assert;
+import org.junit.Test;
+import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
+import org.roaringbitmap.buffer.MutableRoaringBitmap;
+
+public class ParquetBundleReaderTest extends AbstractParquetFormatTest {
     public ParquetBundleReaderTest() throws IOException {
         super();
     }
 
     @Test
-    public void ReadInBundle() throws Exception{
+    public void ReadInBundle() throws Exception {
         writeRows(groupSize - 1);
 
         ImmutableRoaringBitmap bitset = createBitset(10);
         bitset = deserialize(serialize(bitset));
 
-        ParquetBundleReader bundleReader = new ParquetBundleReaderBuilder().setPath(path).setConf(new Configuration())
-                .setPageBitset(bitset)
-                .build();
+        ParquetBundleReader bundleReader = new ParquetBundleReaderBuilder().setPath(path).setConf(new Configuration()).setPageBitset(bitset).build();
         List<Object> data = bundleReader.read();
         Assert.assertNotNull(data);
-        Assert.assertArrayEquals(((Binary)data.get(0)).getBytes(), new byte[] {2, 3});
+        Assert.assertArrayEquals(((Binary) data.get(0)).getBytes(), new byte[] { 2, 3 });
 
         for (int i = 0; i < (10 * ParquetConfig.RowsPerPage - 1); ++i) {
             bundleReader.read();
@@ -48,15 +40,12 @@ public class ParquetBundleReaderTest extends AbstractParquetFormatTest{
 
     private static ImmutableRoaringBitmap createBitset(int total) throws IOException {
         MutableRoaringBitmap mBitmap = new MutableRoaringBitmap();
-        for (int i = 0; i < total;  ++i) {
+        for (int i = 0; i < total; ++i) {
             mBitmap.add(i);
         }
 
         ImmutableRoaringBitmap iBitmap = null;
-        try (
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                DataOutputStream dos = new DataOutputStream(baos);
-        ) {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); DataOutputStream dos = new DataOutputStream(baos);) {
             mBitmap.serialize(dos);
             dos.flush();
             iBitmap = new ImmutableRoaringBitmap(ByteBuffer.wrap(baos.toByteArray()));

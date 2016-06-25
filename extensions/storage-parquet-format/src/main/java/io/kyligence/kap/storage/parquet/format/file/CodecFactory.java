@@ -1,13 +1,13 @@
 package io.kyligence.kap.storage.parquet.format.file;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.parquet.hadoop.BadConfigurationException;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
-
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 public class CodecFactory {
     private static ConcurrentMap<String, CompressionCodec> codecByName = new ConcurrentHashMap<>();

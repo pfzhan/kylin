@@ -19,7 +19,6 @@
 package io.kyligence.kap.cube.index;
 
 import java.io.Closeable;
-import java.io.IOException;
 
 public interface IColumnForwardIndex {
 

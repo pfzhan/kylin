@@ -8,9 +8,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.dict.DateStrDictionary;
-import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;

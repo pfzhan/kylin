@@ -73,7 +73,10 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
         case ISNOTNULL:
             result.flip(0L, indexReader.getPageTotalNum(column));
             break;
+        default:
+            break;
         }
+
         return result;
     }
 

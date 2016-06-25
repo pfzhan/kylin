@@ -47,7 +47,6 @@ public class KapMRUtil {
         return StorageFactory.createEngineAdapter(seg, IMROutput2.class).getBatchCubingOutputSide(seg);
     }
 
-
     public static IMROutput2.IMRBatchMergeOutputSide2 getBatchMergeOutputSide2(CubeSegment seg) {
         return StorageFactory.createEngineAdapter(seg, IMROutput2.class).getBatchMergeOutputSide(seg);
     }

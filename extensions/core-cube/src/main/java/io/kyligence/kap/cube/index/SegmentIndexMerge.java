@@ -18,9 +18,12 @@
 
 package io.kyligence.kap.cube.index;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
+import java.io.File;
+import java.io.IOException;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.cube.CubeSegment;
@@ -29,11 +32,9 @@ import org.apache.kylin.cube.kv.CubeDimEncMap;
 import org.apache.kylin.cube.kv.RowKeyColumnIO;
 import org.apache.kylin.metadata.model.TblColRef;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 
 /**
  */
@@ -68,6 +69,11 @@ public class SegmentIndexMerge {
             @Override
             public int compare(ByteArray o1, ByteArray o2) {
                 return o1.compareTo(o2);
+            }
+
+            @Override
+            public int hashCode() {
+                return 0;
             }
 
             @Override

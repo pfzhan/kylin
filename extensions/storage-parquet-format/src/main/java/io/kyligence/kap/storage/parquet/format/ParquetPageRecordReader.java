@@ -1,6 +1,7 @@
 package io.kyligence.kap.storage.parquet.format;
 
-import io.kyligence.kap.storage.parquet.format.file.*;
+import java.io.IOException;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -11,7 +12,9 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.parquet.io.api.Binary;
 
-import java.io.IOException;
+import io.kyligence.kap.storage.parquet.format.file.GeneralValuesReader;
+import io.kyligence.kap.storage.parquet.format.file.ParquetColumnReader;
+import io.kyligence.kap.storage.parquet.format.file.ParquetColumnReaderBuilder;
 
 /**
  * Created by roger on 6/15/16.
@@ -53,7 +56,7 @@ public class ParquetPageRecordReader<K, V> extends RecordReader<K, V> {
         }
 
         key = (K) new Text(keyBytes.getBytes());
-        val =  (V) new IntWritable(reader.getPageIndex());
+        val = (V) new IntWritable(reader.getPageIndex());
         return true;
     }
 

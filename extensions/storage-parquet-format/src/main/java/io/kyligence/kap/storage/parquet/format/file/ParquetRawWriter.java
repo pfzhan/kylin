@@ -1,16 +1,22 @@
 package io.kyligence.kap.storage.parquet.format.file;
 
-import io.kyligence.kap.storage.parquet.format.file.typedwriter.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionOutputStream;
 import org.apache.parquet.bytes.BytesInput;
 import org.apache.parquet.column.ColumnDescriptor;
+import org.apache.parquet.column.Encoding;
 import org.apache.parquet.column.ValuesType;
 import org.apache.parquet.column.statistics.Statistics;
 import org.apache.parquet.column.values.ValuesWriter;
-import org.apache.parquet.column.Encoding;
 import org.apache.parquet.hadoop.ParquetFileWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.parquet.io.api.Binary;
@@ -18,8 +24,13 @@ import org.apache.parquet.schema.MessageType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
-import java.util.*;
+import io.kyligence.kap.storage.parquet.format.file.typedwriter.BooleanValueWriter;
+import io.kyligence.kap.storage.parquet.format.file.typedwriter.BytesValueWriter;
+import io.kyligence.kap.storage.parquet.format.file.typedwriter.DoubleValueWriter;
+import io.kyligence.kap.storage.parquet.format.file.typedwriter.FloatValueWriter;
+import io.kyligence.kap.storage.parquet.format.file.typedwriter.IntegerValueWriter;
+import io.kyligence.kap.storage.parquet.format.file.typedwriter.LongValueWriter;
+import io.kyligence.kap.storage.parquet.format.file.typedwriter.TypeValuesWriter;
 
 public class ParquetRawWriter {
     private static final Logger logger = LoggerFactory.getLogger(ParquetRawWriter.class);
@@ -32,13 +43,13 @@ public class ParquetRawWriter {
     private MessageType schema;
     private int columnCnt;
 
-    private int currentRowCntInPage = 0;    // Current row number in buffered page
-    private int currentPageCntInGroup= 0;   // Current page number in buffered group
-    private int currentRowCntInGroup = 0;   // Current row number in buffered rows
-    private int currentRowGroup = 0;        // Current total group number
+    private int currentRowCntInPage = 0; // Current row number in buffered page
+    private int currentPageCntInGroup = 0; // Current page number in buffered group
+    private int currentRowCntInGroup = 0; // Current row number in buffered rows
+    private int currentRowGroup = 0; // Current total group number
 
-    private Object[][] rowBuffer;           // Buffered rows in current page
-    private PageBuffer[][] pageBuffer;      // Buffered pages in current group
+    private Object[][] rowBuffer; // Buffered rows in current page
+    private PageBuffer[][] pageBuffer; // Buffered pages in current group
 
     private Encoding rlEncodings;
     private Encoding dlEncodings;
@@ -47,16 +58,16 @@ public class ParquetRawWriter {
 
     private Map<String, String> indexMap;
 
-    public ParquetRawWriter(Configuration conf,             // hadoop configuration
-                            MessageType schema,             // parquet file row schema
-                            Path path,                      // parquet file path
-                            Encoding rlEncodings,           // repeat level encoding
-                            Encoding dlEncodings,           // depth level encoding
-                            List<Encoding> dataEncodings,   // data encoding
-                            CompressionCodecName codecName, // compression algorithm
-                            Path indexPath,                 // parquet index file path
-                            int rowsPerPage,                // the number of rows in one page
-                            int pagesPerGroup               // the number of pages in one row group
+    public ParquetRawWriter(Configuration conf, // hadoop configuration
+            MessageType schema, // parquet file row schema
+            Path path, // parquet file path
+            Encoding rlEncodings, // repeat level encoding
+            Encoding dlEncodings, // depth level encoding
+            List<Encoding> dataEncodings, // data encoding
+            CompressionCodecName codecName, // compression algorithm
+            Path indexPath, // parquet index file path
+            int rowsPerPage, // the number of rows in one page
+            int pagesPerGroup // the number of pages in one row group
     ) throws IOException {
         writer = new ParquetFileWriter(conf, schema, path);
         this.conf = conf;
@@ -110,7 +121,7 @@ public class ParquetRawWriter {
         writeRow(row);
     }
 
-    public void writeRow (List<Object> row) throws Exception{
+    public void writeRow(List<Object> row) throws Exception {
         // Insert row into buffer
         for (int i = 0; i < row.size(); ++i) {
             rowBuffer[i][currentRowCntInPage] = row.get(i);
@@ -118,7 +129,6 @@ public class ParquetRawWriter {
 
         currentRowCntInPage++;
         currentRowCntInGroup++;
-
 
         if (currentRowCntInPage == rowsPerPage) {
             encodingPage();
@@ -147,24 +157,24 @@ public class ParquetRawWriter {
     private TypeValuesWriter getValuesWriter(Encoding encoding, ColumnDescriptor descriptor, ValuesType type, int count) {
         ValuesWriter valuesWriter = null;
         switch (encoding) {
-            case DELTA_BINARY_PACKED:
-                valuesWriter = io.kyligence.kap.storage.parquet.format.file.Encoding.DELTA_BINARY_PACKED.getValuesWriter(descriptor, type, count);
-                break;
-            case DELTA_BYTE_ARRAY:
-                valuesWriter = io.kyligence.kap.storage.parquet.format.file.Encoding.DELTA_BYTE_ARRAY.getValuesWriter(descriptor, type, count);
-                break;
-            case DELTA_LENGTH_BYTE_ARRAY:
-                valuesWriter = io.kyligence.kap.storage.parquet.format.file.Encoding.DELTA_LENGTH_BYTE_ARRAY.getValuesWriter(descriptor, type, count);
-                break;
-            case PLAIN:
-                valuesWriter = io.kyligence.kap.storage.parquet.format.file.Encoding.PLAIN.getValuesWriter(descriptor, type, count);
-                break;
-            case RLE:
-                valuesWriter = io.kyligence.kap.storage.parquet.format.file.Encoding.RLE.getValuesWriter(descriptor, type, count);
-                break;
-            default:
-                valuesWriter = null;
-                break;
+        case DELTA_BINARY_PACKED:
+            valuesWriter = io.kyligence.kap.storage.parquet.format.file.Encoding.DELTA_BINARY_PACKED.getValuesWriter(descriptor, type, count);
+            break;
+        case DELTA_BYTE_ARRAY:
+            valuesWriter = io.kyligence.kap.storage.parquet.format.file.Encoding.DELTA_BYTE_ARRAY.getValuesWriter(descriptor, type, count);
+            break;
+        case DELTA_LENGTH_BYTE_ARRAY:
+            valuesWriter = io.kyligence.kap.storage.parquet.format.file.Encoding.DELTA_LENGTH_BYTE_ARRAY.getValuesWriter(descriptor, type, count);
+            break;
+        case PLAIN:
+            valuesWriter = io.kyligence.kap.storage.parquet.format.file.Encoding.PLAIN.getValuesWriter(descriptor, type, count);
+            break;
+        case RLE:
+            valuesWriter = io.kyligence.kap.storage.parquet.format.file.Encoding.RLE.getValuesWriter(descriptor, type, count);
+            break;
+        default:
+            valuesWriter = null;
+            break;
         }
 
         if (valuesWriter == null) {
@@ -172,24 +182,24 @@ public class ParquetRawWriter {
         }
 
         switch (descriptor.getType()) {
-            case BOOLEAN:
-                return new BooleanValueWriter(valuesWriter);
-            case INT32:
-                return new IntegerValueWriter(valuesWriter);
-            case INT64:
-                return new LongValueWriter(valuesWriter);
-            case INT96:
-                return new BytesValueWriter(valuesWriter);
-            case FLOAT:
-                return new FloatValueWriter(valuesWriter);
-            case DOUBLE:
-                return new DoubleValueWriter(valuesWriter);
-            case FIXED_LEN_BYTE_ARRAY:
-                return new BytesValueWriter(valuesWriter);
-            case BINARY:
-                return new BytesValueWriter(valuesWriter);
-            default:
-                return null;
+        case BOOLEAN:
+            return new BooleanValueWriter(valuesWriter);
+        case INT32:
+            return new IntegerValueWriter(valuesWriter);
+        case INT64:
+            return new LongValueWriter(valuesWriter);
+        case INT96:
+            return new BytesValueWriter(valuesWriter);
+        case FLOAT:
+            return new FloatValueWriter(valuesWriter);
+        case DOUBLE:
+            return new DoubleValueWriter(valuesWriter);
+        case FIXED_LEN_BYTE_ARRAY:
+            return new BytesValueWriter(valuesWriter);
+        case BINARY:
+            return new BytesValueWriter(valuesWriter);
+        default:
+            return null;
         }
     }
 
@@ -213,7 +223,7 @@ public class ParquetRawWriter {
      * Write both parquet file and index file
      * @throws IOException
      */
-    private void  writeGroup() throws IOException {
+    private void writeGroup() throws IOException {
         writer.startBlock(currentRowCntInGroup);
         for (int i = 0; i < columnCnt; ++i) {
             writer.startColumn(schema.getColumns().get(i), currentRowCntInGroup, codecName);
@@ -224,19 +234,14 @@ public class ParquetRawWriter {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 if (compressionCodec == null) {
                     bi.writeAllTo(baos);
-                }
-                else {
-                    CompressionOutputStream os = compressionCodec.createOutputStream(baos,
-                            compressionCodec.createCompressor());
+                } else {
+                    CompressionOutputStream os = compressionCodec.createOutputStream(baos, compressionCodec.createCompressor());
                     bi.writeAllTo(os);
                     os.finish();
                     os.close();
                 }
 
-                writer.writeDataPage(pageBuffer[i][j].getCount(), (int)bi.size(),
-                        BytesInput.from(baos.toByteArray()),
-                        Statistics.getStatsBasedOnType(schema.getColumns().get(i).getType()),
-                        rlEncodings, dlEncodings, dataEncodings.get(i));
+                writer.writeDataPage(pageBuffer[i][j].getCount(), (int) bi.size(), BytesInput.from(baos.toByteArray()), Statistics.getStatsBasedOnType(schema.getColumns().get(i).getType()), rlEncodings, dlEncodings, dataEncodings.get(i));
             }
             writer.endColumn();
         }
@@ -251,7 +256,7 @@ public class ParquetRawWriter {
         indexMap.put(group + "," + column + "," + page, String.valueOf(pos));
     }
 
-    private class PageBuffer{
+    private class PageBuffer {
         private BytesInput bi;
         private int count;
 

@@ -1,15 +1,20 @@
 package io.kyligence.kap.storage.parquet.format.file;
 
+import java.io.IOException;
+
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.*;
+import org.apache.hadoop.fs.ContentSummary;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.IOException;
-
-public class ParquetTarballReaderTest extends AbstractParquetFormatTest{
+public class ParquetTarballReaderTest extends AbstractParquetFormatTest {
     private Path tarballPath = null;
+
     public ParquetTarballReaderTest() throws IOException {
         super();
         tarballPath = new Path("./a.parquettar");
@@ -33,7 +38,7 @@ public class ParquetTarballReaderTest extends AbstractParquetFormatTest{
         for (int j = 0; j < ParquetConfig.PagesPerGroup; ++j) {
             GeneralValuesReader valuesReader = reader.getValuesReader(j, 0);
             for (int i = 0; i < ParquetConfig.RowsPerPage; ++i) {
-                Assert.assertArrayEquals(valuesReader.readBytes().getBytes(), new byte[]{2, 3});
+                Assert.assertArrayEquals(valuesReader.readBytes().getBytes(), new byte[] { 2, 3 });
             }
             Assert.assertNull(valuesReader.readBytes());
         }
@@ -42,7 +47,7 @@ public class ParquetTarballReaderTest extends AbstractParquetFormatTest{
     }
 
     private void appendFile(long length) throws IOException {
-        byte[] content = new byte[(int)length - 8];
+        byte[] content = new byte[(int) length - 8];
         FileSystem fs = FileSystem.get(new Configuration());
         FSDataOutputStream outs = fs.create(tarballPath);
         outs.writeLong(length);

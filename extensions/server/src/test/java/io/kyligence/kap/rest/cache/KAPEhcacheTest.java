@@ -24,16 +24,16 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Random;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.kylin.common.util.Log4jConfigurer;
+import org.junit.Ignore;
+import org.junit.Test;
+
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Element;
 import net.sf.ehcache.config.Configuration;
 import net.sf.ehcache.config.ConfigurationFactory;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.kylin.common.util.Log4jConfigurer;
-import org.junit.Ignore;
-import org.junit.Test;
 
 @Ignore
 public class KAPEhcacheTest {
@@ -41,7 +41,7 @@ public class KAPEhcacheTest {
     @Test
     public void basicTest() throws InterruptedException, URISyntaxException, IOException {
         Log4jConfigurer.initLogger();
-        
+
         System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
 
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
@@ -93,7 +93,6 @@ public class KAPEhcacheTest {
         System.gc();
         Thread.sleep(5000);
         System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
-
 
         blob = new byte[(1024 * msize * 1024)];//400M
         for (int i = 0; i < blob.length; i++) {

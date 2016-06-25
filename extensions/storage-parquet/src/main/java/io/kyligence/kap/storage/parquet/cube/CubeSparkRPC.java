@@ -49,7 +49,7 @@ public class CubeSparkRPC implements IGTStorage {
 
     @Override
     public IGTScanner getGTScanner(GTScanRequest scanRequests) throws IOException {
-        SparkJobProtos.SparkJobResponse jobResponse = client.submit( //
+        SparkJobProtos.SparkJobResponse jobResponse = client.submit(//
                 scanRequests.toByteArray(), //
                 KylinConfig.getInstanceFromEnv().getConfigAsString(), //
                 cubeSegment.getCubeInstance().getUuid(), //

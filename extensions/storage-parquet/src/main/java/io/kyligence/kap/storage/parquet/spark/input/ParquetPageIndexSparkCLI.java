@@ -57,7 +57,7 @@ public class ParquetPageIndexSparkCLI {
         }
     }
 
-    public static void main(String args[]) throws IOException, ClassNotFoundException {
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
         SparkConf sparkConf = new SparkConf();
         //        sparkConf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
         //        sparkConf.registerKryoClasses(new Class<?>[]{

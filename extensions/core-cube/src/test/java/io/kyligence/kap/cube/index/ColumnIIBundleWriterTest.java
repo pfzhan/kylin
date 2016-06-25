@@ -17,10 +17,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 
-import io.kyligence.kap.cube.index.ColumnIndexFactory;
-import io.kyligence.kap.cube.index.IColumnInvertedIndex;
-import io.kyligence.kap.cube.index.ColumnIIBundleWriter;
-
 public class ColumnIIBundleWriterTest {
 
     @BeforeClass

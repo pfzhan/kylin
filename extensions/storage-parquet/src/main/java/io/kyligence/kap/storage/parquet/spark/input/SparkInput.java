@@ -41,7 +41,6 @@ public class SparkInput {
         System.out.println("path put: " + path);
         config.set(ParquetFormatConstants.KYLIN_FILTER_PAGE_BITSET_MAP, serialize(pageMap));
 
-
         // Set measures column bitmap
         HashMap<String, SerializableImmutableRoaringBitmap> measureMap = new HashMap<>();
         measureMap.put(path, sBitmap);

@@ -18,15 +18,13 @@
 
 package io.kyligence.kap.cube.index;
 
-import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 
 import io.kyligence.kap.cube.gridtable.GTScanRanges;
 
 public interface IIndexTable {
 
-    
     // constructor(GTInfo, CuboidToGridTableMapping)
-    
+
     GTScanRanges lookup(CompareTupleFilter filter);
 }

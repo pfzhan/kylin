@@ -18,7 +18,11 @@
 
 package io.kyligence.kap.engine.mr.steps;
 
-import io.kyligence.kap.cube.index.SegmentIndexMerge;
+import java.io.File;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -34,9 +38,7 @@ import org.apache.kylin.job.execution.ExecuteResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
+import io.kyligence.kap.cube.index.SegmentIndexMerge;
 
 public class MergeSecondaryIndexStep extends AbstractExecutable {
     private static final Logger logger = LoggerFactory.getLogger(MergeSecondaryIndexStep.class);
@@ -123,6 +125,5 @@ public class MergeSecondaryIndexStep extends AbstractExecutable {
 
         logger.info("uploading finished.");
     }
-
 
 }

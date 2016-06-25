@@ -5,9 +5,6 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.kylin.common.util.BytesUtil;
-
-import io.kyligence.kap.cube.index.ColumnIndexFactory;
-import io.kyligence.kap.cube.index.IColumnInvertedIndex;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
 public class ColumnIIBundleReader implements Closeable {

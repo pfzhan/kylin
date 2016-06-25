@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.TreeSet;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTRecord;
 import org.apache.kylin.gridtable.GTScanRange;
@@ -39,7 +38,7 @@ public class GTScanRanges {
     private GTInfo info = null;
 
     public GTScanRanges() {
-        this(Sets.<ScanRange>newTreeSet());
+        this(Sets.<ScanRange> newTreeSet());
     }
 
     public GTScanRanges(TreeSet<ScanRange> rangeTreeSet) {

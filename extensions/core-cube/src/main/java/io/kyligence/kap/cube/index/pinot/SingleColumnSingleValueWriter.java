@@ -19,60 +19,60 @@ package io.kyligence.kap.cube.index.pinot;
  * Copied from pinot 0.016 (ea6534be65b01eb878cf884d3feb1c6cdb912d2f)
  */
 public interface SingleColumnSingleValueWriter extends DataFileWriter {
-  /**
-   *
-   * @param row
-   * @param ch
-   */
-  public void setChar(int row, char ch);
+    /**
+     *
+     * @param row
+     * @param ch
+     */
+    public void setChar(int row, char ch);
 
-  /**
-   *
-   * @param row
-   * @param i
-   */
-  public void setInt(int row, int i);
+    /**
+     *
+     * @param row
+     * @param i
+     */
+    public void setInt(int row, int i);
 
-  /**
-   *
-   * @param row
-   * @param s
-   */
-  public void setShort(int row, short s);
+    /**
+     *
+     * @param row
+     * @param s
+     */
+    public void setShort(int row, short s);
 
-  /**
-   *
-   * @param row
-   * @param l
-   */
-  public void setLong(int row, long l);
+    /**
+     *
+     * @param row
+     * @param l
+     */
+    public void setLong(int row, long l);
 
-  /**
-   *
-   * @param row
-   * @param f
-   */
-  public void setFloat(int row, float f);
+    /**
+     *
+     * @param row
+     * @param f
+     */
+    public void setFloat(int row, float f);
 
-  /**
-   *
-   * @param row
-   * @param d
-   */
-  public void setDouble(int row, double d);
+    /**
+     *
+     * @param row
+     * @param d
+     */
+    public void setDouble(int row, double d);
 
-  /**
-   *
-   * @param row
-   * @param string
-   */
-  public void setString(int row, String string) throws Exception;
+    /**
+     *
+     * @param row
+     * @param string
+     */
+    public void setString(int row, String string) throws Exception;
 
-  /**
-   *
-   * @param row
-   * @param bytes
-   */
-  public void setBytes(int row, byte[] bytes);
+    /**
+     *
+     * @param row
+     * @param bytes
+     */
+    public void setBytes(int row, byte[] bytes);
 
 }

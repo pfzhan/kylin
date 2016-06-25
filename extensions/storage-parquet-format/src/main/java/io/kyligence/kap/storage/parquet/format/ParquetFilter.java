@@ -5,9 +5,6 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 public class ParquetFilter extends Configured implements PathFilter {
 
     Configuration conf;
@@ -22,4 +19,3 @@ public class ParquetFilter extends Configured implements PathFilter {
         this.conf = conf;
     }
 }
-

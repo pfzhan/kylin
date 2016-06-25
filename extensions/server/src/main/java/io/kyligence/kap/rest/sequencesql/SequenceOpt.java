@@ -20,6 +20,6 @@ package io.kyligence.kap.rest.sequencesql;
 
 public enum SequenceOpt {
     INIT, //for the first query in the sequence
-    APPEND,//for adding a new step in the sequence
+    APPEND, //for adding a new step in the sequence
     UPDATE,
 }

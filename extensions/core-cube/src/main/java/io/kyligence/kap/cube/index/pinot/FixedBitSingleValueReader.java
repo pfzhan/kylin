@@ -38,289 +38,279 @@ import me.lemire.integercompression.BitPacking;
  * But in reality the cost get amortized when we read a range of values.
  */
 public class FixedBitSingleValueReader implements SingleColumnSingleValueReader {
-  private static final Logger LOGGER = LoggerFactory.getLogger(FixedBitSingleValueReader.class);
-  private static final int HEADER_BYTES = V1Constants.Idx.SV_COLUMN_IDX_FILE_HEADER_BYTES;
-  private int compressedSize;
-  private int uncompressedSize;
-  private RandomAccessFile file;
-  private int rows;
-  private ByteBuffer byteBuffer;
-  private boolean ownsByteBuffer;
-  private boolean isMmap;
-  private BitUnpackResultWrapper bitUnpackWrapper;
-  private int numBits;
+    private static final Logger LOGGER = LoggerFactory.getLogger(FixedBitSingleValueReader.class);
+    private static final int HEADER_BYTES = V1Constants.Idx.SV_COLUMN_IDX_FILE_HEADER_BYTES;
+    private int compressedSize;
+    private int uncompressedSize;
+    private RandomAccessFile file;
+    private int rows;
+    private ByteBuffer byteBuffer;
+    private boolean ownsByteBuffer;
+    private boolean isMmap;
+    private BitUnpackResultWrapper bitUnpackWrapper;
+    private int numBits;
 
-  /**
-   * @param file
-   * @param numBits
-   * @return
-   * @throws IOException
-   */
-  public static FixedBitSingleValueReader forHeap(File file, int numBits)
-      throws IOException {
-    boolean signed = false;
-    return new FixedBitSingleValueReader(file, numBits, signed, false);
-  }
-
-  /**
-   * @param file
-   * @param numBits
-   * @param signed
-   * @return
-   * @throws IOException
-   */
-  public static FixedBitSingleValueReader forHeap(File file, int numBits, boolean signed)
-      throws IOException {
-    return new FixedBitSingleValueReader(file, numBits, signed, false);
-  }
-
-  /**
-   * @param file
-   * @param numBits
-   * @return
-   * @throws IOException
-   */
-  public static FixedBitSingleValueReader forMmap(File file, int numBits)
-      throws IOException {
-    boolean signed = false;
-    return new FixedBitSingleValueReader(file, numBits, signed, true);
-  }
-
-  /**
-   * @param file
-   * @param rows
-   * @param numBits
-   * @param signed
-   * @return
-   * @throws IOException
-   */
-  public static FixedBitSingleValueReader forMmap(File file, int rows, int numBits, boolean signed)
-      throws IOException {
-    return new FixedBitSingleValueReader(file, numBits, signed, true);
-  }
-
-  /**
-   * @param dataBuffer
-   * @param rows
-   * @param numBits
-   * @param signed
-   * @return
-   * @throws IOException
-   */
-  public static FixedBitSingleValueReader forByteBuffer(ByteBuffer dataBuffer, int rows,
-      int numBits, boolean signed) throws IOException {
-    return new FixedBitSingleValueReader(dataBuffer, numBits, signed);
-  }
-
-  /**
-   * @param dataFile
-   * @param rows
-   * @param numBits
-   * @param signed
-   * @param isMmap
-   * @throws IOException
-   */
-  public FixedBitSingleValueReader(File dataFile, int numBits, boolean signed,
-      boolean isMmap) throws IOException {
-    init(numBits, signed);
-    file = new RandomAccessFile(dataFile, "rw");
-    this.isMmap = isMmap;
-    if (isMmap) {
-      byteBuffer = MmapUtils.mmapFile(file, FileChannel.MapMode.READ_ONLY, 0, file.length(),
-          dataFile, this.getClass().getSimpleName() + " byteBuffer");
-    } else {
-      byteBuffer = MmapUtils.allocateDirectByteBuffer((int) file.length(), dataFile,
-          this.getClass().getSimpleName() + " byteBuffer");
-      file.getChannel().read(byteBuffer);
-      file.close();
+    /**
+     * @param file
+     * @param numBits
+     * @return
+     * @throws IOException
+     */
+    public static FixedBitSingleValueReader forHeap(File file, int numBits) throws IOException {
+        boolean signed = false;
+        return new FixedBitSingleValueReader(file, numBits, signed, false);
     }
-    rows = byteBuffer.getInt(0);
-    LOGGER.info("Loaded file:{} of size:{}", dataFile.getName(), dataFile.length());
-    // unpack 32 values at a time.
-    ownsByteBuffer = true;
-  }
-  /**
-   * @param buffer
-   * @param rows
-   * @param numBits
-   * @param signed
-   * @throws IOException
-   */
-  private FixedBitSingleValueReader(ByteBuffer buffer, int numBits, boolean signed)
-      throws IOException {
-    this.byteBuffer = buffer;
-    ownsByteBuffer = false;
-    this.isMmap = false;
-    init(numBits, signed);
-  }
 
-  /**
-   * @param fileName
-   * @param rows
-   * @param columnSizes
-   * @throws IOException
-   */
-  private FixedBitSingleValueReader(String fileName, int numBits, boolean signed)
-      throws IOException {
-    this(new File(fileName), numBits, signed, true);
-  }
-
-  private void init(int numBits, boolean signed) {
-    this.numBits = numBits;
-    // we always read 32 values at a time
-    this.uncompressedSize = SizeUtil.BIT_UNPACK_BATCH_SIZE;
-    // how many ints are required to store 32 values <br/>
-    // uncompressedSize * numBits/ SIZE_OF_INT = numBits [since uncompressedSize == SIZE_OF_INT ==32
-    // ]
-    this.compressedSize = numBits;
-    if (signed) {
-      numBits = numBits + 1;
-      // totalSizeInBytes = (int) (((((long) (numBits + 1)) * rows) + 7) / 8);
-    } else {
-      // totalSizeInBytes = (int) (((((long) numBits) * rows) + 7) / 8);
+    /**
+     * @param file
+     * @param numBits
+     * @param signed
+     * @return
+     * @throws IOException
+     */
+    public static FixedBitSingleValueReader forHeap(File file, int numBits, boolean signed) throws IOException {
+        return new FixedBitSingleValueReader(file, numBits, signed, false);
     }
-    bitUnpackWrapper = new BitUnpackResultWrapper(compressedSize, uncompressedSize);
-  }
 
-  /**
-   * @param rowIds assumes rowIds are sorted
-   * @param values
-   * @param length
-   */
-  public void getIntBatch(int startRow, int length, int[] values) {
-    int counter = 0;
-    BitUnpackResult tempResult = bitUnpackWrapper.get();
-    while (counter < length) {
-      int batchPosition = (startRow + counter) / uncompressedSize;
-      if (tempResult.position != batchPosition) {
-        int startIndex = batchPosition * numBits * 4;
-        for (int i = 0; i < numBits; i++) {
-          tempResult.compressed[i] = byteBuffer.getInt(startIndex + i * 4);
+    /**
+     * @param file
+     * @param numBits
+     * @return
+     * @throws IOException
+     */
+    public static FixedBitSingleValueReader forMmap(File file, int numBits) throws IOException {
+        boolean signed = false;
+        return new FixedBitSingleValueReader(file, numBits, signed, true);
+    }
+
+    /**
+     * @param file
+     * @param rows
+     * @param numBits
+     * @param signed
+     * @return
+     * @throws IOException
+     */
+    public static FixedBitSingleValueReader forMmap(File file, int rows, int numBits, boolean signed) throws IOException {
+        return new FixedBitSingleValueReader(file, numBits, signed, true);
+    }
+
+    /**
+     * @param dataBuffer
+     * @param rows
+     * @param numBits
+     * @param signed
+     * @return
+     * @throws IOException
+     */
+    public static FixedBitSingleValueReader forByteBuffer(ByteBuffer dataBuffer, int rows, int numBits, boolean signed) throws IOException {
+        return new FixedBitSingleValueReader(dataBuffer, numBits, signed);
+    }
+
+    /**
+     * @param dataFile
+     * @param rows
+     * @param numBits
+     * @param signed
+     * @param isMmap
+     * @throws IOException
+     */
+    public FixedBitSingleValueReader(File dataFile, int numBits, boolean signed, boolean isMmap) throws IOException {
+        init(numBits, signed);
+        file = new RandomAccessFile(dataFile, "rw");
+        this.isMmap = isMmap;
+        if (isMmap) {
+            byteBuffer = MmapUtils.mmapFile(file, FileChannel.MapMode.READ_ONLY, 0, file.length(), dataFile, this.getClass().getSimpleName() + " byteBuffer");
+        } else {
+            byteBuffer = MmapUtils.allocateDirectByteBuffer((int) file.length(), dataFile, this.getClass().getSimpleName() + " byteBuffer");
+            file.getChannel().read(byteBuffer);
+            file.close();
         }
-        BitPacking.fastunpack(tempResult.compressed, 0, tempResult.uncompressed, 0, numBits);
-      }
-      int endRowId = (batchPosition + 1) * uncompressedSize;
-      while (counter < length && (startRow + counter) < endRowId) {
-        values[counter] = tempResult.uncompressed[(startRow + counter) % uncompressedSize];
-        counter = counter + 1;
-      }
+        rows = byteBuffer.getInt(0);
+        LOGGER.info("Loaded file:{} of size:{}", dataFile.getName(), dataFile.length());
+        // unpack 32 values at a time.
+        ownsByteBuffer = true;
     }
-  }
 
-  /**
-   * @param rowIds assumes rowIds are sorted
-   * @param values
-   * @param length
-   */
-  public void getIntBatch(int rowIds[], int[] values, int length) {
-    int counter = 0;
-    BitUnpackResult tempResult = bitUnpackWrapper.get();
-    while (counter < length) {
-      int batchPosition = rowIds[counter] / uncompressedSize;
-      if (tempResult.position != batchPosition) {
-        int startIndex = batchPosition * numBits * 4;
-        for (int i = 0; i < numBits; i++) {
-          tempResult.compressed[i] = byteBuffer.getInt(startIndex + i * 4);
+    /**
+     * @param buffer
+     * @param rows
+     * @param numBits
+     * @param signed
+     * @throws IOException
+     */
+    private FixedBitSingleValueReader(ByteBuffer buffer, int numBits, boolean signed) throws IOException {
+        this.byteBuffer = buffer;
+        ownsByteBuffer = false;
+        this.isMmap = false;
+        init(numBits, signed);
+    }
+
+    /**
+     * @param fileName
+     * @param rows
+     * @param columnSizes
+     * @throws IOException
+     */
+    private FixedBitSingleValueReader(String fileName, int numBits, boolean signed) throws IOException {
+        this(new File(fileName), numBits, signed, true);
+    }
+
+    private void init(int numBits, boolean signed) {
+        this.numBits = numBits;
+        // we always read 32 values at a time
+        this.uncompressedSize = SizeUtil.BIT_UNPACK_BATCH_SIZE;
+        // how many ints are required to store 32 values <br/>
+        // uncompressedSize * numBits/ SIZE_OF_INT = numBits [since uncompressedSize == SIZE_OF_INT ==32
+        // ]
+        this.compressedSize = numBits;
+        if (signed) {
+            numBits = numBits + 1;
+            // totalSizeInBytes = (int) (((((long) (numBits + 1)) * rows) + 7) / 8);
+        } else {
+            // totalSizeInBytes = (int) (((((long) numBits) * rows) + 7) / 8);
         }
-        BitPacking.fastunpack(tempResult.compressed, 0, tempResult.uncompressed, 0, numBits);
-      }
-      int endRowId = (batchPosition + 1) * uncompressedSize;
-      while (counter < length && rowIds[counter] < endRowId) {
-        values[counter] = tempResult.uncompressed[rowIds[counter] % uncompressedSize];
-        counter = counter + 1;
-      }
+        bitUnpackWrapper = new BitUnpackResultWrapper(compressedSize, uncompressedSize);
     }
-  }
 
-  /**
-   * @param row
-   * @return
-   */
-  public int getInt(int row) {
-    BitUnpackResult result = bitUnpackWrapper.get();
-    int batchPosition = row / uncompressedSize;
-    if (result.position != batchPosition) {
-      int index = -1;
-      int startIndex = batchPosition * numBits * 4;
-      for (int i = 0; i < numBits; i++) {
-        try {
-          index = startIndex + i * 4 + HEADER_BYTES;
-          result.compressed[i] = byteBuffer.getInt(index);
-        } catch (Exception e) {
-          LOGGER.error("Exception while retrieving value for row:{} at index:{} numBits:{}", row,
-              index, numBits, e);
-          throw e;
+    /**
+     * @param rowIds assumes rowIds are sorted
+     * @param values
+     * @param length
+     */
+    public void getIntBatch(int startRow, int length, int[] values) {
+        int counter = 0;
+        BitUnpackResult tempResult = bitUnpackWrapper.get();
+        while (counter < length) {
+            int batchPosition = (startRow + counter) / uncompressedSize;
+            if (tempResult.position != batchPosition) {
+                int startIndex = batchPosition * numBits * 4;
+                for (int i = 0; i < numBits; i++) {
+                    tempResult.compressed[i] = byteBuffer.getInt(startIndex + i * 4);
+                }
+                BitPacking.fastunpack(tempResult.compressed, 0, tempResult.uncompressed, 0, numBits);
+            }
+            int endRowId = (batchPosition + 1) * uncompressedSize;
+            while (counter < length && (startRow + counter) < endRowId) {
+                values[counter] = tempResult.uncompressed[(startRow + counter) % uncompressedSize];
+                counter = counter + 1;
+            }
         }
-      }
-      BitPacking.fastunpack(result.compressed, 0, result.uncompressed, 0, numBits);
-      result.position = batchPosition;
-      // bitUnpackWrapper.set(result);
     }
-    int ret = result.uncompressed[row % uncompressedSize];
-    return ret;
 
-  }
-
-  public int getNumberOfRows() {
-    return rows;
-  }
-
-  @Override
-  public void close() throws IOException {
-    if (ownsByteBuffer) {
-      MmapUtils.unloadByteBuffer(byteBuffer);
-      byteBuffer = null;
-
-      if (isMmap) {
-        file.close();
-      }
+    /**
+     * @param rowIds assumes rowIds are sorted
+     * @param values
+     * @param length
+     */
+    public void getIntBatch(int[] rowIds, int[] values, int length) {
+        int counter = 0;
+        BitUnpackResult tempResult = bitUnpackWrapper.get();
+        while (counter < length) {
+            int batchPosition = rowIds[counter] / uncompressedSize;
+            if (tempResult.position != batchPosition) {
+                int startIndex = batchPosition * numBits * 4;
+                for (int i = 0; i < numBits; i++) {
+                    tempResult.compressed[i] = byteBuffer.getInt(startIndex + i * 4);
+                }
+                BitPacking.fastunpack(tempResult.compressed, 0, tempResult.uncompressed, 0, numBits);
+            }
+            int endRowId = (batchPosition + 1) * uncompressedSize;
+            while (counter < length && rowIds[counter] < endRowId) {
+                values[counter] = tempResult.uncompressed[rowIds[counter] % uncompressedSize];
+                counter = counter + 1;
+            }
+        }
     }
-  }
 
-  public boolean open() {
-    return true;
-  }
+    /**
+     * @param row
+     * @return
+     */
+    public int getInt(int row) {
+        BitUnpackResult result = bitUnpackWrapper.get();
+        int batchPosition = row / uncompressedSize;
+        if (result.position != batchPosition) {
+            int index = -1;
+            int startIndex = batchPosition * numBits * 4;
+            for (int i = 0; i < numBits; i++) {
+                try {
+                    index = startIndex + i * 4 + HEADER_BYTES;
+                    result.compressed[i] = byteBuffer.getInt(index);
+                } catch (Exception e) {
+                    LOGGER.error("Exception while retrieving value for row:{} at index:{} numBits:{}", row, index, numBits, e);
+                    throw e;
+                }
+            }
+            BitPacking.fastunpack(result.compressed, 0, result.uncompressed, 0, numBits);
+            result.position = batchPosition;
+            // bitUnpackWrapper.set(result);
+        }
+        int ret = result.uncompressed[row % uncompressedSize];
+        return ret;
 
-  @Override
-  public char getChar(int row) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public short getShort(int row) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public long getLong(int row) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public float getFloat(int row) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public double getDouble(int row) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public String getString(int row) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public byte[] getBytes(int row) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void readValues(int[] rows, int rowStartPos, int rowSize, int[] values, int valuesStartPos) {
-    int endPos = rowStartPos + rowSize;
-    for (int ri = rowStartPos; ri < endPos; ++ri) {
-      values[valuesStartPos++] = getInt(rows[ri]);
     }
-  }
+
+    public int getNumberOfRows() {
+        return rows;
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (ownsByteBuffer) {
+            MmapUtils.unloadByteBuffer(byteBuffer);
+            byteBuffer = null;
+
+            if (isMmap) {
+                file.close();
+            }
+        }
+    }
+
+    public boolean open() {
+        return true;
+    }
+
+    @Override
+    public char getChar(int row) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public short getShort(int row) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public long getLong(int row) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public float getFloat(int row) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public double getDouble(int row) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String getString(int row) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public byte[] getBytes(int row) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void readValues(int[] rows, int rowStartPos, int rowSize, int[] values, int valuesStartPos) {
+        int endPos = rowStartPos + rowSize;
+        for (int ri = rowStartPos; ri < endPos; ++ri) {
+            values[valuesStartPos++] = getInt(rows[ri]);
+        }
+    }
 }

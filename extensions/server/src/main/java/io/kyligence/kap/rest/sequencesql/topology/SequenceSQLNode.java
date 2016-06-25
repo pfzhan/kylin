@@ -19,9 +19,9 @@
 package io.kyligence.kap.rest.sequencesql.topology;
 
 public class SequenceSQLNode extends SequenceNode {
-    
-    protected  String sql;
-    protected  int sqlID;
+
+    protected String sql;
+    protected int sqlID;
 
     public SequenceSQLNode(String sql, int sqlID) {
         this.sql = sql;
@@ -36,9 +36,8 @@ public class SequenceSQLNode extends SequenceNode {
     public String getSql() {
         return sql;
     }
-    
-    public void setSql(String sql)
-    {
+
+    public void setSql(String sql) {
         this.sql = sql;
     }
 

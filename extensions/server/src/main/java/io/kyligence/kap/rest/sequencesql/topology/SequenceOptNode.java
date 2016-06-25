@@ -21,6 +21,7 @@ package io.kyligence.kap.rest.sequencesql.topology;
 import java.util.List;
 
 import com.google.common.collect.Lists;
+
 import io.kyligence.kap.rest.sequencesql.ResultOpt;
 
 public class SequenceOptNode extends SequenceNode {
@@ -46,9 +47,8 @@ public class SequenceOptNode extends SequenceNode {
     public ResultOpt getOpt() {
         return opt;
     }
-    
-    public void setOpt(ResultOpt opt)
-    { 
+
+    public void setOpt(ResultOpt opt) {
         this.opt = opt;
     }
 

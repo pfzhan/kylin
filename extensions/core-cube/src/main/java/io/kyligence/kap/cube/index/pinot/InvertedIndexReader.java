@@ -26,19 +26,19 @@ import io.kyligence.kap.cube.index.pinot.util.Pairs.IntPair;
  */
 public interface InvertedIndexReader {
 
-  /**
-   * Returns the immutable bitmap at the specified index.
-   * @param idx the index
-   * @return the immutable bitmap at the specified index.
-   */
-  ImmutableRoaringBitmap getImmutable(int idx);
+    /**
+     * Returns the immutable bitmap at the specified index.
+     * @param idx the index
+     * @return the immutable bitmap at the specified index.
+     */
+    ImmutableRoaringBitmap getImmutable(int idx);
 
-  /**
-   *
-   * @param docId
-   * @return
-   */
-  IntPair getMinMaxRangeFor(int docId);
+    /**
+     *
+     * @param docId
+     * @return
+     */
+    IntPair getMinMaxRangeFor(int docId);
 
-  void close() throws IOException;
+    void close() throws IOException;
 }

@@ -22,14 +22,13 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
 
-import me.lemire.integercompression.BitPacking;
-
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.index.pinot.util.MmapUtils;
 import io.kyligence.kap.cube.index.pinot.util.SizeUtil;
+import me.lemire.integercompression.BitPacking;
 
 /**
  * Copied from pinot 0.016 (ea6534be65b01eb878cf884d3feb1c6cdb912d2f)

@@ -1,6 +1,6 @@
 package io.kyligence.kap.storage.hbase;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.io.IOException;
@@ -8,11 +8,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
-import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.gridtable.GTScanRange;
 import org.apache.kylin.metadata.filter.ColumnTupleFilter;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;

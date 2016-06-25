@@ -1,10 +1,10 @@
 package io.kyligence.kap.storage.parquet.format.file;
 
+import java.io.IOException;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
-
-import java.io.IOException;
 
 /**
  * Created by roger on 6/15/16.

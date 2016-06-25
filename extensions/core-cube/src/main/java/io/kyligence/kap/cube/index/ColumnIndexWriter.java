@@ -18,18 +18,18 @@
 
 package io.kyligence.kap.cube.index;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.kylin.common.util.BytesUtil;
-import org.apache.kylin.dict.DateStrDictionary;
-import org.apache.kylin.dict.TrieDictionary;
-import org.apache.kylin.common.util.Dictionary;
-import org.apache.kylin.metadata.model.TblColRef;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.kylin.common.util.BytesUtil;
+import org.apache.kylin.common.util.Dictionary;
+import org.apache.kylin.dict.DateStrDictionary;
+import org.apache.kylin.dict.TrieDictionary;
+import org.apache.kylin.metadata.model.TblColRef;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Write a column's value into fwd/inv index, will pick out this col's value from the row value,.

@@ -40,10 +40,11 @@ public class KAPRESTClient extends RestClient {
     private static final Logger logger = LoggerFactory.getLogger(KAPRESTClient.class);
 
     private String basicAuthentication;
+
     /**
      * @param uri "user:pwd@host:port"
      */
-    public KAPRESTClient(String uri,String basicAuthentication) {
+    public KAPRESTClient(String uri, String basicAuthentication) {
         super(uri);
         this.basicAuthentication = basicAuthentication;
     }

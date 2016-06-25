@@ -1,6 +1,7 @@
 package io.kyligence.kap.cube.gridtable;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.BitSet;
 
@@ -10,7 +11,6 @@ import org.apache.kylin.common.util.LocalFileMetadataTestCase;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTRecord;
 import org.apache.kylin.gridtable.GTSampleCodeSystem;
-import org.apache.kylin.measure.topn.TopNCounterSerializer;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.datatype.LongMutable;
 import org.junit.AfterClass;

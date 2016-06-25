@@ -38,6 +38,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Sets;
+
 import io.kyligence.kap.cube.gridtable.AdvGTScanRangePlanner;
 
 public class ITAdvGTScanRangePlannerTest extends KAPHBaseMetadataTestCase {

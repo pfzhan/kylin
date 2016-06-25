@@ -23,7 +23,6 @@ import org.apache.kylin.engine.IBatchCubingEngine;
 import org.apache.kylin.engine.mr.IMRInput;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 
-
 public class KapMRBatchCubingEngine implements IBatchCubingEngine {
 
     @Override

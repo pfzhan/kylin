@@ -3,19 +3,9 @@ package io.kyligence.kap.cube.index;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.util.Iterator;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.util.BytesUtil;
-import org.apache.kylin.common.util.Dictionary;
-import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.cube.kv.RowKeyEncoder;
-import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.dict.DateStrDictionary;
-import org.apache.kylin.metadata.model.TblColRef;
-
-import io.kyligence.kap.cube.index.ColumnIndexFactory;
-import io.kyligence.kap.cube.index.IColumnInvertedIndex;
 
 /**
  * Created by dongli on 6/14/16.

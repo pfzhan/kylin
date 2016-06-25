@@ -1,6 +1,6 @@
 package io.kyligence.kap;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.nio.ByteBuffer;
 import java.util.Random;

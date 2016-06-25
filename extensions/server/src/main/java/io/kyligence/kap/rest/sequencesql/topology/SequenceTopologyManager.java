@@ -26,6 +26,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
+
 import io.kyligence.kap.rest.sequencesql.DiskResultCache;
 
 public class SequenceTopologyManager {

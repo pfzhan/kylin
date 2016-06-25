@@ -93,7 +93,7 @@ public class SequenceTopology {
         return sqlID;
     }
 
-   public int updateSQLNodeResult(int stepID, SQLResponse sqlResponse) {
+    public int updateSQLNodeResult(int stepID, SQLResponse sqlResponse) {
         SequenceSQLNode updating = findSQLNode(getSqlIDFromStepID(stepID));
         SequenceNodeOutput currentResult = null;
         if (sqlResponse != null) {

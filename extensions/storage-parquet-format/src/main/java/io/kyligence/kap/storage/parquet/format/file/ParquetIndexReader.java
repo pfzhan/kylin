@@ -1,16 +1,16 @@
 package io.kyligence.kap.storage.parquet.format.file;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-
 import java.io.EOFException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
 public class ParquetIndexReader {
     private FSDataInputStream is;
@@ -55,8 +55,8 @@ public class ParquetIndexReader {
                 }
                 indexListMap.get(column).add(new GroupOffsetPair(group, offset));
             }
-        }
-        catch (EOFException ex) {
+        } catch (EOFException ex) {
+            //do nothing?
         }
         return indexMap;
     }

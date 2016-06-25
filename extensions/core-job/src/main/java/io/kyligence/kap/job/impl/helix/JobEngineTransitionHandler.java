@@ -1,7 +1,7 @@
 package io.kyligence.kap.job.impl.helix;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
+import java.util.concurrent.ConcurrentMap;
+
 import org.apache.helix.NotificationContext;
 import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.model.Message;
@@ -13,7 +13,8 @@ import org.apache.kylin.job.lock.MockJobLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ConcurrentMap;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
 /**
  */

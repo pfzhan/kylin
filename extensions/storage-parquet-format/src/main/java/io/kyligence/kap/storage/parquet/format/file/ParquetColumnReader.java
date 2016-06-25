@@ -1,9 +1,9 @@
 package io.kyligence.kap.storage.parquet.format.file;
 
+import java.io.IOException;
+
 import org.roaringbitmap.PeekableIntIterator;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
-
-import java.io.IOException;
 
 /**
  * Created by roger on 6/15/16.
@@ -14,7 +14,7 @@ public class ParquetColumnReader {
     private int curPage = 0;
     private PeekableIntIterator iter = null;
 
-    public ParquetColumnReader (ParquetRawReader reader, int column, ImmutableRoaringBitmap pageBitset){
+    public ParquetColumnReader(ParquetRawReader reader, int column, ImmutableRoaringBitmap pageBitset) {
         this.reader = reader;
         this.column = column;
         if (pageBitset != null) {
@@ -33,8 +33,8 @@ public class ParquetColumnReader {
     public GeneralValuesReader getNextValuesReader() throws IOException {
         if (iter != null) {
             if (iter.hasNext()) {
-//                int pageIndex = iter.next();
-//                System.out.println("Read page " + pageIndex);
+                //                int pageIndex = iter.next();
+                //                System.out.println("Read page " + pageIndex);
                 return reader.getValuesReader(iter.next(), column);
             }
             return null;

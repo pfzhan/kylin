@@ -8,6 +8,7 @@ import org.apache.parquet.column.values.ValuesWriter;
  */
 public class FloatValueWriter implements TypeValuesWriter {
     private ValuesWriter writer;
+
     public FloatValueWriter(ValuesWriter writer) {
         this.writer = writer;
     }

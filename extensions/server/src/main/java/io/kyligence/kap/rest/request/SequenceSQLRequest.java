@@ -27,7 +27,7 @@ public class SequenceSQLRequest extends SQLRequest {
 
     protected long sequenceID = -1;
     protected int stepID = -1;//default value indicates appending this sql at the end of the sequence
-    
+
     protected SequenceOpt sequenceOpt = null;
     protected ResultOpt resultOpt = null;
 

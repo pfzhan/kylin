@@ -1,8 +1,8 @@
 package io.kyligence.kap.engine.mr.steps;
 
-import io.kyligence.kap.engine.mr.common.KapBatchConstants;
-import io.kyligence.kap.storage.parquet.format.ParquetFileOutputFormat;
-import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
+import java.io.IOException;
+import java.util.Map;
+
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -13,7 +13,11 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.engine.mr.*;
+import org.apache.kylin.engine.mr.ByteArrayWritable;
+import org.apache.kylin.engine.mr.CubingJob;
+import org.apache.kylin.engine.mr.HadoopUtil;
+import org.apache.kylin.engine.mr.IMRInput;
+import org.apache.kylin.engine.mr.MRUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.common.CubeStatsReader;
@@ -25,9 +29,8 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.Map;
-
+import io.kyligence.kap.storage.parquet.format.ParquetFileOutputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 
 public class KapInMemCuboidJob extends AbstractHadoopJob {
 
@@ -139,11 +142,7 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
 
     private String getWorkingDir(KylinConfig config, CubeInstance cube, CubeSegment cubeSegment) {
         logger.info("get Hdfs Working Directory: " + config.getHdfsWorkingDirectory());
-        return new StringBuffer(config.getHdfsWorkingDirectory())
-                .append("parquet/")
-                .append(cube.getUuid()).append("/")
-                .append(cubeSegment.getUuid()).append("/")
-                .toString();
+        return new StringBuffer(config.getHdfsWorkingDirectory()).append("parquet/").append(cube.getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
     }
 
     private int calculateReducerNum(CubeSegment cubeSeg) throws IOException {

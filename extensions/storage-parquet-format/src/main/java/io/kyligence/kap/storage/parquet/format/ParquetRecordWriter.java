@@ -1,7 +1,11 @@
 package io.kyligence.kap.storage.parquet.format;
 
-import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
-import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriterBuilder;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.security.InvalidParameterException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -22,13 +26,10 @@ import org.apache.parquet.schema.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.security.InvalidParameterException;
-import java.util.ArrayList;
-import java.util.List;
+import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
+import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriterBuilder;
 
-public class ParquetRecordWriter <K,V> extends RecordWriter<K, V>{
+public class ParquetRecordWriter<K, V> extends RecordWriter<K, V> {
     private static final Logger logger = LoggerFactory.getLogger(ParquetRecordWriter.class);
 
     private Class<?> keyClass;
@@ -46,7 +47,7 @@ public class ParquetRecordWriter <K,V> extends RecordWriter<K, V>{
     private CubeInstance cubeInstance;
     private CubeSegment cubeSegment;
     private ParquetRawWriter writer = null;
-    private String outputDir=null;
+    private String outputDir = null;
 
     public ParquetRecordWriter(TaskAttemptContext context, Class<?> keyClass, Class<?> valueClass) throws IOException {
         this.keyClass = keyClass;
@@ -71,8 +72,8 @@ public class ParquetRecordWriter <K,V> extends RecordWriter<K, V>{
     // Only support Text type
     @Override
     public void write(K key, V value) throws IOException, InterruptedException {
-        byte[] keyBytes = ((Text)key).getBytes().clone();
-        byte[] valueBytes = ((Text)value).getBytes().clone();
+        byte[] keyBytes = ((Text) key).getBytes().clone();
+        byte[] valueBytes = ((Text) value).getBytes().clone();
         long cuboidId = rowKeyDecoder.decode(keyBytes);
         short shardId = rowKeyDecoder.getRowKeySplitter().getShardId();
 
@@ -84,7 +85,6 @@ public class ParquetRecordWriter <K,V> extends RecordWriter<K, V>{
             curShardId = shardId;
             curCuboidId = cuboidId;
         }
-
 
         if (writer == null) {
             List<Type> types = new ArrayList<Type>();
@@ -98,11 +98,7 @@ public class ParquetRecordWriter <K,V> extends RecordWriter<K, V>{
             }
 
             MessageType schema = new MessageType(cubeSegment.getName(), types);
-            writer = new ParquetRawWriterBuilder()
-                    .setConf(config)
-                    .setType(schema)
-                    .setPath(getPath())
-                    .build();
+            writer = new ParquetRawWriterBuilder().setConf(config).setType(schema).setPath(getPath()).build();
         }
 
         // write data
@@ -114,7 +110,7 @@ public class ParquetRecordWriter <K,V> extends RecordWriter<K, V>{
                 keyLength += keyBuffers[i].length;
             }
             int keyOffSet = rowKeyDecoder.getRowKeySplitter().getSplitOffsets()[0];
-            
+
             int[] valueLength = measureDecoder.getPeekLength(ByteBuffer.wrap(valueBytes));
             writer.writeRow(keyBytes, keyOffSet, keyLength, valueBytes, valueLength);
         } catch (Exception e) {
@@ -130,12 +126,8 @@ public class ParquetRecordWriter <K,V> extends RecordWriter<K, V>{
     }
 
     private Path getPath() {
-        Path path = new Path(new StringBuffer()
-                .append(outputDir)
-                .append(curCuboidId).append("/")
-                .append(curShardId).append(".parquet")
-                .toString());
-//        System.out.println("Create parquet file " + path.getName());
+        Path path = new Path(new StringBuffer().append(outputDir).append(curCuboidId).append("/").append(curShardId).append(".parquet").toString());
+        //        System.out.println("Create parquet file " + path.getName());
         return path;
     }
 }
