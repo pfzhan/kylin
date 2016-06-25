@@ -92,9 +92,9 @@ public class UserController extends BasicController implements UserDetailsServic
         } catch (UsernameNotFoundException ex) {
             // that is OK, we create new
         }
-        
+
         user.setPassword(pwdEncode(user.getPassword()));
-        
+
         logger.info("Saving " + user);
 
         UserDetails details = userObjToDetails(user);
@@ -106,14 +106,14 @@ public class UserController extends BasicController implements UserDetailsServic
     public static String pwdEncode(String pwd) {
         if (BCRYPT_PATTERN.matcher(pwd).matches())
             return pwd;
-        
+
         return PWD_ENCODER.encode(pwd);
     }
-    
+
     public static boolean pwdMatches(String pwd, String encoded) {
         return PWD_ENCODER.matches(pwd, encoded);
     }
-    
+
     private void checkUserName(String userName) {
         if (userName == null || userName.isEmpty())
             throw new IllegalArgumentException();
@@ -154,7 +154,7 @@ public class UserController extends BasicController implements UserDetailsServic
         result.remove(DISABLED_ROLE);
         return result;
     }
-    
+
     private static final String DISABLED_ROLE = "--disabled--";
 
     private UserDetails userObjToDetails(UserObj obj) {
@@ -197,7 +197,7 @@ public class UserController extends BasicController implements UserDetailsServic
 
         public UserObj() {
         }
-        
+
         public UserObj(String username, String password, String... authorities) {
             this.username = username;
             this.password = password;
