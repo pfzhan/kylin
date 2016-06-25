@@ -107,4 +107,15 @@ public class SparkQueryTest extends KylinTestBase {
         }
     }
 
+    @Test
+    public void testSingleRunQueryWithFilter() throws Exception {
+
+        String queryFileName = ITDirHeader + "src/test/resources/query/temp/query02.sql";
+
+        File sqlFile = new File(queryFileName);
+        if (sqlFile.exists()) {
+            runSQL(sqlFile, true, true);
+            runSQL(sqlFile, true, false);
+        }
+    }
 }

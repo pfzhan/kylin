@@ -1,0 +1,4 @@
+select count(*),sum(LO_REVENUE),sum(LO_SUPPLYCOST),sum(V_REVENUE) ,LO_PARTKEY from SSB.V_LINEORDER
+where LO_PARTKEY in (1,20,300,4000,50000)
+group by LO_PARTKEY
+order by LO_PARTKEY

@@ -94,3 +94,6 @@ webapp/app/web.xml
 kylin/
 smoke-test-*
 extensions/examples/test_metadata/*
+
+# maven
+dependency-reduced-pom.xml

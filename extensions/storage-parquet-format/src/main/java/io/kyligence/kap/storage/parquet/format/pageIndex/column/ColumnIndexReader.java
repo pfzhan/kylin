@@ -1,26 +1,27 @@
 package io.kyligence.kap.storage.parquet.format.pageIndex.column;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeSet;
 
-import com.google.common.collect.Sets;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.kylin.common.util.ByteArray;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.index.IColumnInvertedIndex;
 
 public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray> {
-    private boolean isLazyLoad;
+    private static final Logger logger = LoggerFactory.getLogger(ColumnIndexReader.class);
+
     private FSDataInputStream inputStream;
     private long inputOffset;
 
@@ -28,64 +29,71 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
     private int cardinality;
     private int step;
     private boolean onlyEQ;
-    private int docNum;
+    private int docNum = -1;
 
     private IndexBlock eqIndex;
     private IndexBlock ltIndex;
     private IndexBlock gtIndex;
 
-    private void initFromInput() throws IOException {
-        inputStream.seek(inputOffset);
+    private void initFromInput() {
+        try {
+            inputStream.seek(inputOffset);
 
-        // read metadata
-        onlyEQ = inputStream.readInt() == 1;
-        cardinality = inputStream.readInt();
-        step = inputStream.readInt();
-        columnLength = inputStream.readInt();
-        docNum = inputStream.readInt();
+            // read metadata
+            onlyEQ = inputStream.readInt() == 1;
+            cardinality = inputStream.readInt();
+            step = inputStream.readInt();
+            columnLength = inputStream.readInt();
+            docNum = inputStream.readInt();
 
-        eqIndex = new IndexBlock();
-        eqIndex.readFromStream(inputStream, IndexBlockType.EQ);
+            logger.info("ColLength=" + columnLength);
+            logger.info("DocNum=" + docNum);
 
-        if (!onlyEQ) {
-            ltIndex = new IndexBlock();
-            ltIndex.readFromStream(inputStream, eqIndex.bodyStartOffset + eqIndex.bodyLength, IndexBlockType.LTE);
+            eqIndex = new IndexBlock();
+            eqIndex.readFromStream(inputStream, IndexBlockType.EQ);
 
-            gtIndex = new IndexBlock();
-            gtIndex.readFromStream(inputStream, ltIndex.bodyStartOffset + ltIndex.bodyLength, IndexBlockType.GTE);
+            if (!onlyEQ) {
+                ltIndex = new IndexBlock();
+                ltIndex.readFromStream(inputStream, eqIndex.bodyStartOffset + eqIndex.bodyLength, IndexBlockType.LTE);
+
+                gtIndex = new IndexBlock();
+                gtIndex.readFromStream(inputStream, ltIndex.bodyStartOffset + ltIndex.bodyLength, IndexBlockType.GTE);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to init from input stream.", e);
         }
     }
 
-    private IndexBlock getEqIndex() throws IOException {
+    private IndexBlock getEqIndex() {
         if (eqIndex == null) {
             initFromInput();
         }
         return eqIndex;
     }
 
-    private IndexBlock getGtIndex() throws IOException {
+    private IndexBlock getGtIndex() {
         if (eqIndex == null) {
             initFromInput();
         }
         return gtIndex;
     }
 
-    private IndexBlock getLtIndex() throws IOException {
+    private IndexBlock getLtIndex() {
         if (eqIndex == null) {
             initFromInput();
         }
         return ltIndex;
     }
 
-    public ColumnIndexReader(FSDataInputStream inputStream) throws IOException {
+    public ColumnIndexReader(FSDataInputStream inputStream) {
         this(inputStream, 0);
     }
 
-    public ColumnIndexReader(FSDataInputStream inputStream, long inputOffset) throws IOException {
+    public ColumnIndexReader(FSDataInputStream inputStream, long inputOffset) {
         this(inputStream, inputOffset, true);
     }
 
-    public ColumnIndexReader(FSDataInputStream inputStream, long inputOffset, boolean isLazyLoad) throws IOException {
+    public ColumnIndexReader(FSDataInputStream inputStream, long inputOffset, boolean isLazyLoad) {
         this.inputStream = inputStream;
         this.inputOffset = inputOffset;
         if (!isLazyLoad) {
@@ -94,51 +102,27 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
     }
 
     public ImmutableRoaringBitmap lookupEqIndex(ByteArray v) {
-        try {
-            return getEqIndex().getRows(v);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        return getEqIndex().getRows(v);
     }
 
     public ImmutableRoaringBitmap lookupLtIndex(ByteArray v) {
-        try {
-            return getLtIndex().getRows(v);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        return getLtIndex().getRows(v);
     }
 
     public ImmutableRoaringBitmap lookupGtIndex(ByteArray v) {
-        try {
-            return getGtIndex().getRows(v);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        return getGtIndex().getRows(v);
     }
 
     public HashMap<ByteArray, ImmutableRoaringBitmap> lookupEqIndex(Set<ByteArray> v) {
-        try {
-            return getEqIndex().getRows(v);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        return getEqIndex().getRows(v);
     }
 
     public HashMap<ByteArray, ImmutableRoaringBitmap> lookupLtIndex(Set<ByteArray> v) {
-        try {
-            return getLtIndex().getRows(v);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        return getLtIndex().getRows(v);
     }
 
     public HashMap<ByteArray, ImmutableRoaringBitmap> lookupGtIndex(Set<ByteArray> v) {
-        try {
-            return getGtIndex().getRows(v);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        return getGtIndex().getRows(v);
     }
 
     @Override
@@ -174,14 +158,19 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
             if (cardinality % step > 0) {
                 offsetMapSize += 1;
             }
+
+            logger.debug("read from stream - start: {}, offsetMapSize:{}, columnLength:{}", stream.getPos(), offsetMapSize, columnLength);
+
             for (int i = 0; i < offsetMapSize; i++) {
                 ByteArray buffer = ByteArray.allocate(columnLength);
-                stream.read(buffer.array());
+                stream.readFully(buffer.array());
                 long offset = stream.readLong();
                 offsetMap.put(buffer, offset);
             }
             bodyLength = stream.readLong();
             bodyStartOffset = stream.getPos();
+
+            logger.debug("bodyLength:{}, bodyStartOffset:{}, realOffsetMapSize:{}", bodyLength, bodyStartOffset, offsetMap.size());
         }
 
         private void readFromStream(FSDataInputStream stream, long startOffset, IndexBlockType type) throws IOException {
@@ -202,7 +191,7 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
                 sortedValues = Sets.newTreeSet(values);
             }
 
-            for (ByteArray value  : sortedValues) {
+            for (ByteArray value : sortedValues) {
                 result.put(value, getRows(value));
             }
             return result;
@@ -227,7 +216,7 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
                         }
 
                         ByteArray buffer = ByteArray.allocate(columnLength);
-                        inputStream.read(buffer.array());
+                        inputStream.readFully(buffer.array());
                         MutableRoaringBitmap pageId = MutableRoaringBitmap.bitmapOf();
                         pageId.deserialize(inputStream);
 
@@ -247,7 +236,7 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
                     }
                 }
             } catch (IOException e) {
-                throw new RuntimeException("Failed to read index. ", e);
+                throw new RuntimeException("Failed to read index. value=" + value, e);
             }
 
             return MutableRoaringBitmap.bitmapOf();
@@ -255,6 +244,9 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
     }
 
     public int getDocNum() {
+        if (docNum < 0) {
+            initFromInput();
+        }
         return docNum;
     }
 }

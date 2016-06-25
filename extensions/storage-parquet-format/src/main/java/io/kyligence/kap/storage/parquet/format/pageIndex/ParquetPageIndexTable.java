@@ -2,7 +2,6 @@ package io.kyligence.kap.storage.parquet.format.pageIndex;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Set;
 
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -12,11 +11,11 @@ import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetPageIndexTable.class);
@@ -112,7 +111,6 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
     @Override
     protected ImmutableRoaringBitmap lookupFlattenFilter(TupleFilter filter) {
         //        collectCompareTupleFilter(filter);
-
         MutableRoaringBitmap resultBitmap = null;
         for (TupleFilter childFilter : filter.getChildren()) {
             if (resultBitmap == null) {
@@ -126,8 +124,17 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
         return resultBitmap;
     }
 
+    @Override
+    protected ImmutableRoaringBitmap getFullBitmap() {
+        int totalPageNum = indexReader.getPageTotalNum(0);
+        MutableRoaringBitmap result = new MutableRoaringBitmap();
+        result.add(0L, (long) totalPageNum); // [0,totalPageNum)
+        return result;
+    }
+
     private MutableRoaringBitmap lookupAndFilter(TupleFilter filter) {
         MutableRoaringBitmap resultBitmap = null;
+
         for (TupleFilter childFilter : filter.getChildren()) {
             if (resultBitmap == null) {
                 resultBitmap = lookupCompareFilter((CompareTupleFilter) childFilter);
@@ -138,16 +145,16 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
         return resultBitmap;
     }
 
-    private Comparator<CompareTupleFilter> getCompareTupleFilterComparator() {
-        return new Comparator<CompareTupleFilter>() {
-            @Override
-            public int compare(CompareTupleFilter o1, CompareTupleFilter o2) {
-                int thisCol = o1.getColumn().getColumnDesc().getZeroBasedIndex();
-                int otherCol = o2.getColumn().getColumnDesc().getZeroBasedIndex();
-                return thisCol - otherCol;
-            }
-        };
-    }
+    //    private Comparator<CompareTupleFilter> getCompareTupleFilterComparator() {
+    //        return new Comparator<CompareTupleFilter>() {
+    //            @Override
+    //            public int compare(CompareTupleFilter o1, CompareTupleFilter o2) {
+    //                int thisCol = o1.getColumn().getColumnDesc().getZeroBasedIndex();
+    //                int otherCol = o2.getColumn().getColumnDesc().getZeroBasedIndex();
+    //                return thisCol - otherCol;
+    //            }
+    //        };
+    //    }
 
     @Override
     public void close() throws IOException {

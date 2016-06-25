@@ -12,7 +12,9 @@ import java.io.Closeable;
 public abstract class AbstractParquetPageIndexTable implements Closeable {
 
     public ImmutableRoaringBitmap lookup(TupleFilter filter) {
-        Preconditions.checkNotNull(filter);
+        if (filter == null) {
+            return getFullBitmap();
+        }
         return lookupFlattenFilter(flattenToOrAndFilter(filter));
     }
 
@@ -36,4 +38,6 @@ public abstract class AbstractParquetPageIndexTable implements Closeable {
     }
 
     protected abstract ImmutableRoaringBitmap lookupFlattenFilter(TupleFilter filter);
+
+    protected abstract ImmutableRoaringBitmap getFullBitmap();
 }
