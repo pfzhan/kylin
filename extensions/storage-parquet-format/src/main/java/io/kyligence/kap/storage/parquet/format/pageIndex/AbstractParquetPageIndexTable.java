@@ -6,8 +6,6 @@ import org.apache.kylin.metadata.filter.LogicalTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
-import com.google.common.base.Preconditions;
-
 public abstract class AbstractParquetPageIndexTable implements Closeable {
 
     public ImmutableRoaringBitmap lookup(TupleFilter filter) {
