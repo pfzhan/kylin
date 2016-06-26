@@ -1,7 +1,5 @@
 package org.apache.kylin.common;
 
-import org.apache.kylin.common.KylinConfig;
-
 public class KapConfig {
     
     public static KapConfig getInstanceFromEnv() {
