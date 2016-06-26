@@ -6,18 +6,17 @@ import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KapConfig;
 import org.apache.parquet.column.Encoding;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.parquet.schema.MessageType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.KAPKylinConfig;
-
 public class ParquetRawWriterBuilder {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetRawWriterBuilder.class);
 
-    private KAPKylinConfig kylinConfig;
+    private KapConfig kylinConfig;
     private String indexPathSuffix = "index";
     private Configuration conf = null;
     private MessageType type = null;
@@ -86,7 +85,7 @@ public class ParquetRawWriterBuilder {
     }
 
     public ParquetRawWriterBuilder() {
-        kylinConfig = KAPKylinConfig.getInstanceFromEnv();
+        this.kylinConfig = KapConfig.getInstanceFromEnv();
         this.rowsPerPage = kylinConfig.getParquetRowsPerPage();
     }
 
