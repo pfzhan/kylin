@@ -591,6 +591,7 @@
         <module>extensions/storage-hbase</module>
         <module>extensions/storage-parquet</module>
         <module>extensions/storage-parquet-format</module>
+        <module>extensions/server-base</module>
         <module>extensions/server</module>
         <module>extensions/assembly</module>
         <module>extensions/it</module>
