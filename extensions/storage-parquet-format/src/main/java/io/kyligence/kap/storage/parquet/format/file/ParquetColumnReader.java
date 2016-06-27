@@ -11,7 +11,7 @@ import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 public class ParquetColumnReader {
     private ParquetRawReader reader;
     private int column;
-    private int curPage = 0;
+    private int curPage = -1;
     private PeekableIntIterator iter = null;
 
     public ParquetColumnReader(ParquetRawReader reader, int column, ImmutableRoaringBitmap pageBitset) {
@@ -39,7 +39,7 @@ public class ParquetColumnReader {
             }
             return null;
         }
-        return reader.getValuesReader(curPage++, column);
+        return reader.getValuesReader(++curPage, column);
     }
 
     public void close() throws IOException {
