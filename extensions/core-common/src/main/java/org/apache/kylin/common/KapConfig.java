@@ -1,15 +1,15 @@
 package org.apache.kylin.common;
 
 public class KapConfig {
-    
+
     public static KapConfig getInstanceFromEnv() {
         return wrap(KylinConfig.getInstanceFromEnv());
     }
-    
+
     public static KapConfig wrap(KylinConfig config) {
         return new KapConfig(config);
     }
-    
+
     final private KylinConfig config;
 
     private KapConfig(KylinConfig config) {
