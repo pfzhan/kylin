@@ -596,6 +596,7 @@
         <module>extensions/assembly</module>
         <module>extensions/it</module>
         <module>extensions/tool</module>
+        <module>extensions/license</module>
     </modules>
 
     <profiles>
