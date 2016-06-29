@@ -8,7 +8,6 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Text;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -41,16 +40,16 @@ public class SparkInput {
         System.out.println("path put: " + path);
         config.set(ParquetFormatConstants.KYLIN_FILTER_PAGE_BITSET_MAP, serialize(pageMap));
 
-        // Set measures column bitmap
-        HashMap<String, SerializableImmutableRoaringBitmap> measureMap = new HashMap<>();
-        measureMap.put(path, sBitmap);
-        config.set(ParquetFormatConstants.KYLIN_FILTER_MEASURES_BITSET_MAP, serialize(measureMap));
+        //        // Set measures column bitmap
+        //        HashMap<String, SerializableImmutableRoaringBitmap> measureMap = new HashMap<>();
+        //        measureMap.put(path, sBitmap);
+        //        config.set(ParquetFormatConstants.KYLIN_FILTER_MEASURES_BITSET_MAP, serialize(measureMap));
 
         // Read parquet file and
-        JavaPairRDD<Text, Text> rdd = context.newAPIHadoopFile(path, ParquetRawInputFormat.class, Text.class, Text.class, config);
-        JavaRDD<Integer> rdd2 = rdd.map(new Function<Tuple2<Text, Text>, Integer>() {
+        JavaPairRDD<byte[], byte[]> rdd = context.newAPIHadoopFile(path, ParquetRawInputFormat.class, byte[].class, byte[].class, config);
+        JavaRDD<Integer> rdd2 = rdd.map(new Function<Tuple2<byte[], byte[]>, Integer>() {
             @Override
-            public Integer call(Tuple2<Text, Text> tuple) throws Exception {
+            public Integer call(Tuple2<byte[], byte[]> tuple) throws Exception {
                 //                System.out.println("Key: " + tuple._1().getBytes());
                 //                System.out.println("Value: " + tuple._2().getBytes());
                 return 0;
@@ -66,7 +65,7 @@ public class SparkInput {
         }
 
         ImmutableRoaringBitmap iBitmap = null;
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); DataOutputStream dos = new DataOutputStream(baos);) {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); DataOutputStream dos = new DataOutputStream(baos)) {
             mBitmap.serialize(dos);
             dos.flush();
             iBitmap = new ImmutableRoaringBitmap(ByteBuffer.wrap(baos.toByteArray()));

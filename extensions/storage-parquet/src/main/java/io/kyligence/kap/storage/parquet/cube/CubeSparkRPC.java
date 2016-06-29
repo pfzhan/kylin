@@ -27,12 +27,18 @@ import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.kylin.gridtable.IGTStorage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.SubmitParams;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.JobResponseBlobGTScanner;
 
 public class CubeSparkRPC implements IGTStorage {
+
+    public static final Logger logger = LoggerFactory.getLogger(CubeSparkRPC.class);
+
     private CubeSegment cubeSegment;
     private Cuboid cuboid;
     private GTInfo info;
@@ -44,18 +50,19 @@ public class CubeSparkRPC implements IGTStorage {
         this.cuboid = cuboid;
         this.info = info;
 
-        client = new SparkDriverClient("localhost", 50051);
+        client = new SparkDriverClient("sandbox", 50051);
     }
 
     @Override
     public IGTScanner getGTScanner(GTScanRequest scanRequests) throws IOException {
-        SparkJobProtos.SparkJobResponse jobResponse = client.submit(//
-                scanRequests.toByteArray(), //
-                KylinConfig.getInstanceFromEnv().getConfigAsString(), //
-                cubeSegment.getCubeInstance().getUuid(), //
-                cubeSegment.getUuid(), //
-                String.valueOf(cuboid.getId()) //
+        long startTime = System.currentTimeMillis();
+        SubmitParams submitParams = new SubmitParams(KylinConfig.getInstanceFromEnv().getConfigAsString(), //
+                cubeSegment.getCubeInstance().getUuid(), cubeSegment.getUuid(), String.valueOf(cuboid.getId()), // 
+                scanRequests.getInfo().getMaxLength(), scanRequests.getRequiredMeasures() //
         );
+        SparkJobProtos.SparkJobResponse jobResponse = client.submit(//
+                scanRequests.toByteArray(), submitParams);
+        logger.info("Time for the gRPC visit is " + (System.currentTimeMillis() - startTime));
         return new JobResponseBlobGTScanner(scanRequests, jobResponse.getGtRecordsBlob().toByteArray());
     }
 }

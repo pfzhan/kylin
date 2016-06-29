@@ -45,6 +45,7 @@ import org.junit.Test;
 import com.clearspring.analytics.util.Lists;
 
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.SubmitParams;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 
 public class SparkQueryLocalTest extends io.kyligence.kap.common.util.LocalFileMetadataTestCase {
@@ -74,7 +75,7 @@ public class SparkQueryLocalTest extends io.kyligence.kap.common.util.LocalFileM
 
         SparkDriverClient client = new SparkDriverClient("localhost", 50051);
         try {
-            SparkJobProtos.SparkJobResponse response = client.submit(reqBytes, KylinConfig.getInstanceFromEnv().getConfigAsString(), null, null, null);
+            SparkJobProtos.SparkJobResponse response = client.submit(reqBytes, new SubmitParams(KylinConfig.getInstanceFromEnv().getConfigAsString(), null, null, null, 0, null));
             ByteBuffer responseBuffer = ByteBuffer.wrap(response.getGtRecordsBlob().toByteArray());
             GTRecord temp = new GTRecord(info);
             while (responseBuffer.remaining() > 0) {

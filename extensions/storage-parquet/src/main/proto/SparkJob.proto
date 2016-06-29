@@ -32,6 +32,8 @@ message SparkJobRequest {
     required string cubeId = 3;
     required string segmentId = 4;
     required string cuboidId = 5;
+    required int32 maxRecordLength = 6;
+    repeated int32 requiredMeasures = 7;
 
 }
 

@@ -7,5 +7,6 @@ public interface ParquetFormatConstants {
 
     String KYLIN_FILTER_PAGE_BITSET_MAP = "io.kylin.job.filter.page.bitset";
     String KYLIN_FILTER_MEASURES_BITSET_MAP = "io.kylin.job.filter.measures.bitset";
+    String KYLIN_GT_MAX_LENGTH = "io.kylin.job.gtrecord.length.max";
     String KYLIN_SCAN_REQUEST = "io.kylin.job.scan.request";
 }

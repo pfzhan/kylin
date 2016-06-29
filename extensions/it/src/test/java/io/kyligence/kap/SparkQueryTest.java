@@ -37,12 +37,10 @@ import org.apache.kylin.query.schema.OLAPSchemaFactory;
 import org.apache.kylin.storage.hbase.cube.v1.coprocessor.observer.ObserverEnabler;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
 
-@Ignore
 public class SparkQueryTest extends KylinTestBase {
 
     @BeforeClass
@@ -98,12 +96,13 @@ public class SparkQueryTest extends KylinTestBase {
     @Test
     public void testSingleRunQuery() throws Exception {
 
-        String queryFileName = ITDirHeader + "src/test/resources/query/temp/query01.sql";
+        String queryFileName = ITDirHeader + "src/test/resources/query/temp/temp.sql";
 
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
-            runSQL(sqlFile, true, true);
-            runSQL(sqlFile, true, false);
+            //runSQL(sqlFile, true, true);
+            //runSQL(sqlFile, true, false);
+            runSQL(sqlFile, false, false);
         }
     }
 
