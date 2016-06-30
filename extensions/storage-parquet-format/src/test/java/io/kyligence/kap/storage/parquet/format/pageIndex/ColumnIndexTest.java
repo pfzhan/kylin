@@ -5,7 +5,6 @@ import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 import java.util.Map;
 
-import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -19,6 +18,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexReader;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexWriter;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnSpec;
