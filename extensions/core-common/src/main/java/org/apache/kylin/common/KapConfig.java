@@ -2,11 +2,19 @@ package org.apache.kylin.common;
 
 public class KapConfig {
 
+    // static cached instances
+    private static KapConfig ENV_INSTANCE = null;
+
     public static KapConfig getInstanceFromEnv() {
-        return wrap(KylinConfig.getInstanceFromEnv());
+        synchronized (KapConfig.class) {
+            if (ENV_INSTANCE == null) {
+                return wrap(KylinConfig.getInstanceFromEnv());
+            }
+            return ENV_INSTANCE;
+        }
     }
 
-    public static KapConfig wrap(KylinConfig config) {
+    private static KapConfig wrap(KylinConfig config) {
         return new KapConfig(config);
     }
 
@@ -26,5 +34,9 @@ public class KapConfig {
 
     public int getParquetPageIndexStepMin() {
         return Integer.parseInt(config.getOptional("kap.parquet.ii.step.min", String.valueOf(1000)));
+    }
+
+    public String getParquetPageCompression() {
+        return config.getOptional("kap.parquet.page.compression", "");
     }
 }

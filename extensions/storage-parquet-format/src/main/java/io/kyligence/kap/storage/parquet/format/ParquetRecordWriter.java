@@ -11,6 +11,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.SplittedBytes;
 import org.apache.kylin.cube.CubeInstance;
@@ -98,7 +99,7 @@ public class ParquetRecordWriter<K, V> extends RecordWriter<K, V> {
             }
 
             MessageType schema = new MessageType(cubeSegment.getName(), types);
-            writer = new ParquetRawWriterBuilder().setConf(config).setType(schema).setPath(getPath()).build();
+            writer = new ParquetRawWriterBuilder().setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage()).setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression()).setConf(config).setType(schema).setPath(getPath()).build();
         }
 
         // write data

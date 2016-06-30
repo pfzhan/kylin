@@ -48,7 +48,7 @@ public class JobServiceImpl implements JobServiceGrpc.JobService {
 
         long startTime = System.currentTimeMillis();
 
-        SparkCubeVisitTask submit = new SparkCubeVisitTask(sc, request);
+        SparkCubeVisitJob submit = new SparkCubeVisitJob(sc, request);
         List<byte[]> collected = submit.executeTask();
 
         System.out.println("Time for spark cube visit is " + (System.currentTimeMillis() - startTime));

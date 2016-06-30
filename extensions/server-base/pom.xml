@@ -40,6 +40,11 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-core-job</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-storage-parquet</artifactId>
             <version>${project.parent.version}</version>
             <exclusions>

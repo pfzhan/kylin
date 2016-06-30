@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
@@ -16,7 +17,6 @@ import org.slf4j.LoggerFactory;
 public class ParquetRawWriterBuilder {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetRawWriterBuilder.class);
 
-    private KapConfig kylinConfig;
     private String indexPathSuffix = "index";
     private Configuration conf = null;
     private MessageType type = null;
@@ -64,8 +64,20 @@ public class ParquetRawWriterBuilder {
         return this;
     }
 
-    public ParquetRawWriterBuilder setCodecName(CompressionCodecName codecName) {
-        this.codecName = codecName;
+    public ParquetRawWriterBuilder setCodecName(String codecName) {
+        if (StringUtils.isEmpty(codecName)) {
+            this.codecName = CompressionCodecName.UNCOMPRESSED;
+        }
+
+        CompressionCodecName compressionCodecName;
+        try {
+            compressionCodecName = CompressionCodecName.valueOf(codecName.toUpperCase());
+        } catch (Exception e) {
+            compressionCodecName = CompressionCodecName.UNCOMPRESSED;
+        }
+
+        logger.info("The chosen CompressionCodecName is " + this.codecName);
+        this.codecName = compressionCodecName;
         return this;
     }
 
@@ -85,8 +97,6 @@ public class ParquetRawWriterBuilder {
     }
 
     public ParquetRawWriterBuilder() {
-        this.kylinConfig = KapConfig.getInstanceFromEnv();
-        this.rowsPerPage = kylinConfig.getParquetRowsPerPage();
     }
 
     public ParquetRawWriter build() throws IOException {
