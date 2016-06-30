@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 import java.util.Map;
 
+import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -12,6 +13,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.Log4jConfigurer;
 import org.apache.kylin.engine.mr.HadoopUtil;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
@@ -20,7 +23,18 @@ import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexReade
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexWriter;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnSpec;
 
-public class ColumnIndexTest {
+public class ColumnIndexTest extends LocalFileMetadataTestCase {
+    @AfterClass
+    public static void after() throws Exception {
+        cleanAfterClass();
+    }
+
+    @BeforeClass
+    public static void setUp() throws Exception {
+        Log4jConfigurer.initLogger();
+        staticCreateTestMetadata();
+    }
+
     Path indexPath = new Path("/tmp/testkylin/a.inv");
 
     @Test

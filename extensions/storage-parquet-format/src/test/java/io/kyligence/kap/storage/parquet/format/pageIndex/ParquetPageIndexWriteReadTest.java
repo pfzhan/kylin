@@ -17,17 +17,25 @@ import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.common.util.Log4jConfigurer;
 import org.apache.kylin.engine.mr.HadoopUtil;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-public class ParquetPageIndexWriteReadTest {
+import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
+
+public class ParquetPageIndexWriteReadTest extends LocalFileMetadataTestCase {
+    @AfterClass
+    public static void after() throws Exception {
+        cleanAfterClass();
+    }
 
     @BeforeClass
-    public static void setupClass() {
+    public static void setUp() throws Exception {
         Log4jConfigurer.initLogger();
+        staticCreateTestMetadata();
     }
 
     @Test

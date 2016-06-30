@@ -37,9 +37,9 @@ import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 
 public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
     static ParquetPageIndexTable indexTable;
-    final static int dataSize = 50;
-    final static int maxVal = 100;
-    final static int cardinality = 50;
+    final static int dataSize = 500;
+    final static int maxVal = dataSize * 2;
+    final static int cardinality = dataSize;
 
     static int[] data1;
     static int[] data2;
@@ -133,7 +133,7 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         for (int i = 0; i < dataSize; i++) {
             TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.NEQ, colRef1, data1[i]);
             ImmutableRoaringBitmap result = indexTable.lookup(filter);
-            assertArrayEquals(rangeInts(0, 49, i), result.toArray());
+            assertArrayEquals(rangeInts(0, dataSize - 1, i), result.toArray());
         }
     }
 
@@ -148,7 +148,7 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
     public void testISNOTNULL() throws IOException {
         TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.ISNOTNULL, colRef1, data1[0]);
         ImmutableRoaringBitmap result = indexTable.lookup(filter);
-        assertArrayEquals(rangeInts(0, 49), result.toArray());
+        assertArrayEquals(rangeInts(0, dataSize - 1), result.toArray());
     }
 
     @Test
@@ -156,7 +156,7 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         for (int i = 0; i < dataSize; i++) {
             TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.GTE, colRef1, data1[i]);
             ImmutableRoaringBitmap result = indexTable.lookup(filter);
-            assertArrayEquals(rangeInts(i, 49), result.toArray());
+            assertArrayEquals(rangeInts(i, dataSize - 1), result.toArray());
         }
     }
 
@@ -165,7 +165,7 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         for (int i = 0; i < dataSize; i++) {
             TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.GT, colRef1, data1[i]);
             ImmutableRoaringBitmap result = indexTable.lookup(filter);
-            assertArrayEquals(rangeInts(1 + i, 49), result.toArray());
+            assertArrayEquals(rangeInts(1 + i, dataSize - 1), result.toArray());
         }
     }
 
@@ -174,7 +174,7 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         for (int i = 0; i < dataSize; i++) {
             TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.GTE, colRef2, data2[i]);
             ImmutableRoaringBitmap result = indexTable.lookup(filter);
-            assertArrayEquals(rangeInts(i, 49), result.toArray());
+            assertArrayEquals(rangeInts(i, dataSize - 1), result.toArray());
         }
     }
 
@@ -183,7 +183,7 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         for (int i = 0; i < dataSize; i++) {
             TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.GT, colRef2, data2[i]);
             ImmutableRoaringBitmap result = indexTable.lookup(filter);
-            assertArrayEquals(rangeInts(1 + i, 49), result.toArray());
+            assertArrayEquals(rangeInts(1 + i, dataSize - 1), result.toArray());
         }
     }
 
@@ -267,7 +267,7 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         BytesUtil.writeUnsigned(28, buffer2, 0, buffer2.length);
         filter.addChild(new ConstantTupleFilter(new ByteArray(buffer2)));
         ImmutableRoaringBitmap result = indexTable.lookup(filter);
-        assertArrayEquals(rangeInts(0, 49, 50 / 2, 28 / 2), result.toArray());
+        assertArrayEquals(rangeInts(0, dataSize - 1, 50 / 2, 28 / 2), result.toArray());
     }
 
     @Test
@@ -289,7 +289,7 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         filter.addChild(filter1);
         filter.addChild(filter2);
         ImmutableRoaringBitmap result = indexTable.lookup(filter);
-        assertArrayEquals(rangeInts(0, 49), result.toArray());
+        assertArrayEquals(rangeInts(0, dataSize - 1), result.toArray());
     }
 
     @Test
@@ -355,6 +355,6 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         filter.addChild(filter2);
 
         ImmutableRoaringBitmap result = indexTable.lookup(filter);
-        assertArrayEquals(rangeInts(0, 49, rangeInts(5, 24)), result.toArray());
+        assertArrayEquals(rangeInts(0, dataSize - 1, rangeInts(5, 24)), result.toArray());
     }
 }
