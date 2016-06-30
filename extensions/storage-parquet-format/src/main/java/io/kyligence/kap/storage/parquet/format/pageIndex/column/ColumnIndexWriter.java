@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 
 import org.apache.commons.lang.NotImplementedException;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.ByteArray;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 import org.slf4j.Logger;
@@ -25,11 +26,13 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
     private ColumnSpec columnSpec;
     private int step;
     private long totalSize = -1;
+    private KapConfig config;
 
     public ColumnIndexWriter(ColumnSpec columnSpec, DataOutputStream outputStream) {
         this.outputStream = outputStream;
         this.columnSpec = columnSpec;
-        this.step = decideStepSize(columnSpec.getCardinality());
+        this.config = KapConfig.getInstanceFromEnv();
+        this.step = decideStepSize(columnSpec.getColumnLength(), columnSpec.getCardinality());
     }
 
     public long getTotalSize() {
@@ -39,12 +42,14 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
         return totalSize;
     }
 
-    private int decideStepSize(int columnCardinality) {
-        if (columnCardinality == 0) {
-            return 1;
-        } else {
-            return 1;
-        }
+    private int decideStepSize(int columnLength, int columnCardinality) {
+        int rowBytes = columnLength + 8;
+        int blockBytes = 64 * 1024; // 64KB
+        int step = blockBytes / rowBytes;
+        step = Math.max(step, config.getParquetPageIndexStepMin());
+        step = Math.min(step, config.getParquetPageIndexStepMax());
+        logger.info("Step size={}", step);
+        return step;
     }
 
     private void writeIndex(Map<ByteArray, MutableRoaringBitmap> indexRaw) throws IOException {
@@ -111,10 +116,12 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
         MutableRoaringBitmap currValue = null;
         for (Map.Entry<ByteArray, MutableRoaringBitmap> indexEntry : indexMap.entrySet()) {
             currValue = MutableRoaringBitmap.or(lastValue, indexEntry.getValue());
+            currValue.runOptimize();
             auxiliaryIndexMap.put(indexEntry.getKey(), currValue);
             lastValue = currValue;
         }
         writeIndex(auxiliaryIndexMap);
+        auxiliaryIndexMap.clear();
 
         // write gt
         logger.info("Start to write gt index for column {}", columnSpec.getColumnName());
@@ -122,10 +129,12 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
         lastValue = MutableRoaringBitmap.bitmapOf();
         for (Map.Entry<ByteArray, MutableRoaringBitmap> indexEntry : indexMap.descendingMap().entrySet()) {
             currValue = MutableRoaringBitmap.or(lastValue, indexEntry.getValue());
+            currValue.runOptimize();
             auxiliaryIndexMap.put(indexEntry.getKey(), currValue);
             lastValue = currValue;
         }
         writeIndex(auxiliaryIndexMap);
+        auxiliaryIndexMap.clear();
     }
 
     @Override
