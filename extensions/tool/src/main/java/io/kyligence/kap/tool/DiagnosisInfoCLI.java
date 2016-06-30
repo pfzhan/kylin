@@ -1,9 +1,6 @@
 package io.kyligence.kap.tool;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-
+import com.google.common.collect.Lists;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.kylin.common.util.OptionsHelper;
@@ -11,7 +8,9 @@ import org.apache.kylin.tool.AbstractInfoExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * Created by dongli on 6/11/16.
@@ -35,7 +34,6 @@ public class DiagnosisInfoCLI extends AbstractInfoExtractor {
         super();
 
         packageType = "project";
-
         options.addOption(OPTION_PROJECT);
         options.addOption(OPTION_INCLUDE_CONF);
         options.addOption(OPTION_INCLUDE_HBASE);
