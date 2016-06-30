@@ -1,4 +1,7 @@
-package io.kyligence.kap.tool;
+package io.kyligence.kap.tool.hive.udf;
+
+import java.io.File;
+import java.io.IOException;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -9,40 +12,44 @@ import org.apache.kylin.storage.hbase.util.HiveCmdBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-
+import com.google.common.base.Preconditions;
 
 public class HiveUdfRegister {
-    final Logger logger = LoggerFactory.getLogger(HiveUdfRegister.class);
-    CliCommandExecutor cliCommandExecutor;
-    FileSystem fs;
-    String jarHdfsParentPath;
-    String hdfsJarPath;
-    String classFile;
+    private static final Logger logger = LoggerFactory.getLogger(HiveUdfRegister.class);
 
-    public HiveUdfRegister(String classFile) throws IOException {
-        this.classFile = classFile;
+    private final CliCommandExecutor cliCommandExecutor;
+    private final FileSystem fs;
+    private final String jarHdfsParentPath;
+
+    String hdfsJarPath;
+    String functionName;
+
+    private final Class classFile;
+
+    public HiveUdfRegister(Class udfClass) throws IOException, IllegalAccessException, InstantiationException {
+        Preconditions.checkState(udfClass.isAssignableFrom(AbstractUdf.class));
+
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+
+        this.classFile = udfClass;
+        this.functionName = ((AbstractUdf) udfClass.newInstance()).getFuncName();
         this.fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
-        this.jarHdfsParentPath = KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory() + "diagnose/";
-        this.cliCommandExecutor = KylinConfig.getInstanceFromEnv().getCliCommandExecutor();
+        this.jarHdfsParentPath = kylinConfig.getHdfsWorkingDirectory() + "diagnosis/";
+        this.cliCommandExecutor = kylinConfig.getCliCommandExecutor();
+
         initRegister();
     }
 
     protected void initRegister() {
         String localJarPath = getLocalJarFilePath(classFile);
         hdfsJarPath = fs.getUri() + jarHdfsParentPath + new File(localJarPath).getName();
-        uploadFileToHdfs(localJarPath,hdfsJarPath);
+        uploadFileToHdfs(localJarPath, hdfsJarPath);
         addJarFileToHiveClassPath(hdfsJarPath);
     }
 
-    private String getLocalJarFilePath(String udfClassPath) {
+    private String getLocalJarFilePath(Class udfClass) {
         String classPath = "";
-        try {
-            classPath = Class.forName(udfClassPath).getProtectionDomain().getCodeSource().getLocation().getPath();
-        } catch (ClassNotFoundException e) {
-            logger.error("Failed to get jar path" + e);
-        }
+        classPath = udfClass.getProtectionDomain().getCodeSource().getLocation().getPath();
         return classPath;
     }
 
@@ -65,7 +72,7 @@ public class HiveUdfRegister {
         }
     }
 
-    public void deregisterFromHive(String functionName) {
+    public void deregisterFromHive() {
         String dropFunctionHql = "DROP FUNCTION IF EXISTS " + functionName + ";";
         HiveCmdBuilder hiveCmdBuilder = new HiveCmdBuilder();
         hiveCmdBuilder.addStatement(dropFunctionHql);
@@ -76,7 +83,7 @@ public class HiveUdfRegister {
         }
     }
 
-    public String registerToHive(String functionName) {
+    public String registerToHive() {
         return "CREATE FUNCTION " + functionName + " AS '" + this.classFile + "' USING JAR '" + this.hdfsJarPath + "';";
     }
 
