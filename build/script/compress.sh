@@ -29,4 +29,14 @@ mkdir -p ../dist
 tar -cvzf ../dist/${package_name}.tar.gz ${package_name}
 rm -rf ${package_name}
 
+# package obf tar
+cd ../dist
+tar xzf ${package_name}.tar.gz
+mv ../tmp/kylin.war ${package_name}/tomcat/webapps/kylin.war
+mv ../tmp/kylin-coprocessor-kap-1.5.3-SNAPSHOT.jar ${package_name}/lib/kylin-coprocessor-kap-1.5.3-SNAPSHOT.jar
+mv ../tmp/kylin-job-kap-1.5.3-SNAPSHOT.jar ${package_name}/lib/kylin-job-kap-1.5.3-SNAPSHOT.jar
+tar -cvzf ${package_name}-obf.tar.gz ${package_name}
+
+rm -r ../tmp
+rm -rf ${package_name}
 echo "Package ready: dist/${package_name}.tar.gz"
