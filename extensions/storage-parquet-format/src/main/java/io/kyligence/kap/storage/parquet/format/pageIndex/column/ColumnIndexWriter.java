@@ -24,7 +24,6 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
     private NavigableMap<ByteArray, MutableRoaringBitmap> indexMap = Maps.newTreeMap();
     private MutableRoaringBitmap docIds = MutableRoaringBitmap.bitmapOf();
     private ColumnSpec columnSpec;
-    private int step;
     private long totalSize = -1;
     private KapConfig config;
 
@@ -32,7 +31,6 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
         this.outputStream = outputStream;
         this.columnSpec = columnSpec;
         this.config = KapConfig.getInstanceFromEnv();
-        this.step = decideStepSize(columnSpec.getColumnLength(), columnSpec.getCardinality());
     }
 
     public long getTotalSize() {
@@ -42,17 +40,22 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
         return totalSize;
     }
 
-    private int decideStepSize(int columnLength, int columnCardinality) {
-        int rowBytes = columnLength + 8;
+    private int decideStepSize(int columnLength, int pageNum) {
+        int rowBytes = columnLength + pageNum / 2 + 20; // we assume the avg size of bitmap is (pageNum / 2) + 20
         int blockBytes = 64 * 1024; // 64KB
         int step = blockBytes / rowBytes;
         step = Math.max(step, config.getParquetPageIndexStepMin());
         step = Math.min(step, config.getParquetPageIndexStepMax());
-        logger.info("Step size={}", step);
+
+        if (step <= 0) {
+            step = 1;
+        }
+
+        logger.info("ColumnLength={}, PageNum={}, Step={}", columnLength, pageNum, step);
         return step;
     }
 
-    private void writeIndex(Map<ByteArray, MutableRoaringBitmap> indexRaw) throws IOException {
+    private void writeIndex(Map<ByteArray, MutableRoaringBitmap> indexRaw, int step) throws IOException {
         // optimize compression
         for (MutableRoaringBitmap bitmap : indexRaw.values()) {
             bitmap.runOptimize();
@@ -93,6 +96,8 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
         // TODO: Write ID of this index, such as magic number
         totalSize = 4 * 5;
 
+        int step = decideStepSize(columnSpec.getColumnLength(), docIds.getCardinality());
+
         outputStream.writeInt(columnSpec.isOnlyEQIndex() ? 1 : 0);
         outputStream.writeInt(indexMap.size());
         outputStream.writeInt(step);
@@ -101,13 +106,13 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
 
         logger.info("onlyEQ={}, cardinality={}, columnLength={}, step={}, docNum={}", columnSpec.isOnlyEQIndex(), indexMap.size(), columnSpec.getColumnLength(), step, docIds.getCardinality());
         logger.info("Start to write eq index for column {}", columnSpec.getColumnName());
-        writeIndex(indexMap);
+        writeIndex(indexMap, step);
         if (!columnSpec.isOnlyEQIndex()) {
-            writeAuxiliary();
+            writeAuxiliary(step);
         }
     }
 
-    private void writeAuxiliary() throws IOException {
+    private void writeAuxiliary(int step) throws IOException {
         // write lt
         logger.info("Start to write lt index for column {}", columnSpec.getColumnName());
 
@@ -120,7 +125,7 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
             auxiliaryIndexMap.put(indexEntry.getKey(), currValue);
             lastValue = currValue;
         }
-        writeIndex(auxiliaryIndexMap);
+        writeIndex(auxiliaryIndexMap, step);
         auxiliaryIndexMap.clear();
 
         // write gt
@@ -133,7 +138,7 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
             auxiliaryIndexMap.put(indexEntry.getKey(), currValue);
             lastValue = currValue;
         }
-        writeIndex(auxiliaryIndexMap);
+        writeIndex(auxiliaryIndexMap, step);
         auxiliaryIndexMap.clear();
     }
 
