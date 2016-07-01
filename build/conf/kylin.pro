@@ -23,8 +23,6 @@
 	public *;
 } 
 
--keep class io.kyligence.kap.rest.**
-
 -keepparameternames
 -keepattributes Exceptions,Signature,Deprecated,LineNumberTable,*Annotation*,EnclosingMethod 
 -keepdirectories
