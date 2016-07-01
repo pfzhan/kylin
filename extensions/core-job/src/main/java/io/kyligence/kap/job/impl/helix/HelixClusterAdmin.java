@@ -249,12 +249,12 @@ public class HelixClusterAdmin {
             if (instanceRestAddresses.size() > 0) {
                 String restServersInCluster = StringUtil.join(instanceRestAddresses, ",");
                 kylinConfig.setProperty("kylin.rest.servers", restServersInCluster);
-                kylinConfig.setProperty("kylin.server.mode", isLeaderRole(HelixClusterAdmin.RESOURCE_NAME_JOB_ENGINE) ? "job" : "query");
+                kylinConfig.setProperty("kylin.server.mode", isLeaderRole(HelixClusterAdmin.RESOURCE_NAME_JOB_ENGINE) ? "all" : "query");
                 System.setProperty("kylin.rest.servers", restServersInCluster);
                 logger.info("kylin.rest.servers update to " + restServersInCluster);
                 Properties properties = new Properties();
                 properties.setProperty("kylin.rest.servers", restServersInCluster);
-                properties.setProperty("kylin.server.mode", isLeaderRole(HelixClusterAdmin.RESOURCE_NAME_JOB_ENGINE) ? "job" : "query");
+                properties.setProperty("kylin.server.mode", isLeaderRole(HelixClusterAdmin.RESOURCE_NAME_JOB_ENGINE) ? "all" : "query");
                 try {
                     KylinConfig.writeOverrideProperties(properties);
                 } catch (IOException e) {
