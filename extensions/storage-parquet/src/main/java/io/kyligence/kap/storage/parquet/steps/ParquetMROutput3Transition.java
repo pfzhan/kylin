@@ -24,6 +24,7 @@ public class ParquetMROutput3Transition implements IMROutput3 {
             @Override
             public void addStepPhase3_BuildCube(DefaultChainedExecutable jobFlow, String cuboidRootPath) {
                 jobFlow.addTask(steps.createParquetPageIndex(jobFlow.getId()));
+                jobFlow.addTask(steps.createParquetTarballJob(jobFlow.getId()));
             }
 
             @Override

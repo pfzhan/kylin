@@ -22,29 +22,22 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.nio.ByteBuffer;
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
-import io.kyligence.kap.storage.parquet.format.pageIndex.format.ParquetPageIndexInputFormat;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
-import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.api.java.function.Function;
 import org.apache.spark.broadcast.Broadcast;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
@@ -55,6 +48,7 @@ import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.OriginalBytesGTScanner;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetRawInputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetRawRecordReader;
 import io.kyligence.kap.storage.parquet.format.serialize.SerializableImmutableRoaringBitmap;
 import scala.Tuple2;
 
@@ -64,8 +58,8 @@ public class SparkCubeVisitJob implements Serializable {
     private transient SparkJobProtos.SparkJobRequest request;
     private transient KylinConfig kylinConfig;
 
-    private Broadcast<byte[]> bcGtReq;
-    private Broadcast<String> bcKylinProperties;
+    //    private Broadcast<byte[]> bcGtReq;
+    //    private Broadcast<String> bcKylinProperties;
     private Broadcast<CanonicalCuboid> bcCanonicalCuboid;
 
     public SparkCubeVisitJob(JavaSparkContext sc, SparkJobProtos.SparkJobRequest request) {
@@ -73,8 +67,8 @@ public class SparkCubeVisitJob implements Serializable {
         this.request = request;
         this.kylinConfig = KylinConfig.createKylinConfigFromInputStream(IOUtils.toInputStream(request.getKylinProperties()));
 
-        this.bcGtReq = sc.broadcast(request.getGtScanRequest().toByteArray());
-        this.bcKylinProperties = sc.broadcast(request.getKylinProperties());
+        //this.bcGtReq = sc.broadcast(request.getGtScanRequest().toByteArray());
+        //this.bcKylinProperties = sc.broadcast(request.getKylinProperties());
         this.bcCanonicalCuboid = sc.broadcast(new CanonicalCuboid(request.getCubeId(), request.getSegmentId(), request.getCuboidId()));
     }
 
@@ -125,42 +119,23 @@ public class SparkCubeVisitJob implements Serializable {
                 append(bcCanonicalCuboid.getValue().getSegmentId()).append("/").//
                 append(bcCanonicalCuboid.getValue().getCuboidId()).toString();
 
-        String parquetInvertedIndexPath = basePath + "/*.parquet.inv";
         String parquetPath = basePath + "/*.parquet";
 
         Configuration conf = new Configuration();
-
-        // lookup in parquet inverted index
-        System.out.println("================Inverted Index Start==================");
-        System.out.println("Parquet inverted index path is " + parquetInvertedIndexPath);
-        JavaPairRDD<String, ParquetPageIndexTable> indexSeed = sc.newAPIHadoopFile(parquetInvertedIndexPath, ParquetPageIndexInputFormat.class, String.class, ParquetPageIndexTable.class, conf);
-        JavaRDD<Tuple2<String, SerializableImmutableRoaringBitmap>> indexRdd = indexSeed.map(new Function<Tuple2<String, ParquetPageIndexTable>, Tuple2<String, SerializableImmutableRoaringBitmap>>() {
-            @Override
-            public Tuple2<String, SerializableImmutableRoaringBitmap> call(Tuple2<String, ParquetPageIndexTable> tuple) throws Exception {
-                GTScanRequest gtScanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(bcGtReq.getValue()));//TODO avoid ByteString's array copy
-                TupleFilter filter = gtScanRequest.getFilterPushDown();
-                SerializableImmutableRoaringBitmap result = new SerializableImmutableRoaringBitmap(tuple._2().lookup(filter));
-                return new Tuple2<>(tuple._1(), result);
-            }
-        });
-        List<Tuple2<String, SerializableImmutableRoaringBitmap>> indexTuples = indexRdd.collect();
-        HashMap<String, SerializableImmutableRoaringBitmap> indexMap = Maps.newHashMap();
-        for (Tuple2<String, SerializableImmutableRoaringBitmap> tuple : indexTuples) {
-            indexMap.put(tuple._1(), tuple._2());
-        }
-        // print index results
-        System.out.println("Index result size: " + indexMap.size());
-        for (Map.Entry<String, SerializableImmutableRoaringBitmap> indexEntry : indexMap.entrySet()) {
-            System.out.println("Inverted Index: path=" + indexEntry.getKey() + ", bitmap=" + indexEntry.getValue());
-        }
-        conf.set(ParquetFormatConstants.KYLIN_FILTER_PAGE_BITSET_MAP, serializeHashMap(indexMap));
-        System.out.println("================Inverted Index End==================");
 
         System.out.println("Required Measures: " + StringUtils.join(request.getRequiredMeasuresList(), ","));
         conf.set(ParquetFormatConstants.KYLIN_FILTER_MEASURES_BITSET_MAP, serializeBitMap(request.getRequiredMeasuresList()));
 
         System.out.println("Max GT length: " + request.getMaxRecordLength());
         conf.set(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH, String.valueOf(request.getMaxRecordLength()));
+
+        conf.set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, request.getKylinProperties());
+        try {
+            //so that ParquetRawInputFormat can use the scan request
+            conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES, new String(this.request.getGtScanRequest().toByteArray(), "ISO-8859-1"));
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
 
         System.out.println("================Cube Data Start==================");
         // visit parquet data file
@@ -177,9 +152,10 @@ public class SparkCubeVisitJob implements Serializable {
                     }
                 });
 
-                // if user change kylin.properties on kylin server, need to manually redeploy coprocessor jar to update KylinConfig of Env.
-                KylinConfig.setKylinConfigFromInputStream(IOUtils.toInputStream(bcKylinProperties.getValue()));
-                GTScanRequest gtScanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(bcGtReq.getValue()));//TODO avoid ByteString's array copy
+                //                // if user change kylin.properties on kylin server, need to manually redeploy coprocessor jar to update KylinConfig of Env.
+                //                KylinConfig.setKylinConfigFromInputStream(IOUtils.toInputStream(bcKylinProperties.getValue()));
+                //                GTScanRequest gtScanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(bcGtReq.getValue()));//TODO avoid ByteString's array copy
+                GTScanRequest gtScanRequest = ParquetRawRecordReader.gtScanRequestThreadLocal.get();
 
                 IGTScanner scanner = new OriginalBytesGTScanner(gtScanRequest.getInfo(), iterator);//in
                 IGTScanner preAggred = gtScanRequest.decorateScanner(scanner);//process

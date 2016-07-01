@@ -16,7 +16,6 @@ import org.apache.spark.api.java.function.Function;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
-import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetRawInputFormat;
 import io.kyligence.kap.storage.parquet.format.serialize.SerializableImmutableRoaringBitmap;
 import scala.Tuple2;
@@ -38,7 +37,7 @@ public class SparkInput {
         HashMap<String, SerializableImmutableRoaringBitmap> pageMap = new HashMap<>();
         pageMap.put(path, sBitmap);
         System.out.println("path put: " + path);
-        config.set(ParquetFormatConstants.KYLIN_FILTER_PAGE_BITSET_MAP, serialize(pageMap));
+        //        config.set(ParquetFormatConstants.KYLIN_FILTER_PAGE_BITSET_MAP, serialize(pageMap));
 
         //        // Set measures column bitmap
         //        HashMap<String, SerializableImmutableRoaringBitmap> measureMap = new HashMap<>();

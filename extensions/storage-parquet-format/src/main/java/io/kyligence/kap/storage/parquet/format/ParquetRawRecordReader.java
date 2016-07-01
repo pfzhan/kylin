@@ -1,12 +1,10 @@
 package io.kyligence.kap.storage.parquet.format;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
 import java.util.List;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -14,15 +12,22 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.gridtable.GTScanRequest;
+import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.parquet.io.api.Binary;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
-import io.kyligence.kap.storage.parquet.format.serialize.SerializableImmutableRoaringBitmap;
+import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
+import io.kyligence.kap.storage.parquet.format.pageIndex.format.ParquetPageIndexRecordReader;
 
 public class ParquetRawRecordReader extends RecordReader<byte[], byte[]> {
+
+    public static ThreadLocal<GTScanRequest> gtScanRequestThreadLocal = new ThreadLocal<>();
+
     protected Configuration conf;
 
     private Path shardPath;
@@ -33,23 +38,34 @@ public class ParquetRawRecordReader extends RecordReader<byte[], byte[]> {
 
     @Override
     public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
+
         FileSplit fileSplit = (FileSplit) split;
         conf = context.getConfiguration();
-        Path path = fileSplit.getPath();
-        shardPath = path;
+        shardPath = fileSplit.getPath();
 
-        ImmutableRoaringBitmap pageBitmap = readBitmapSet(path, ParquetFormatConstants.KYLIN_FILTER_PAGE_BITSET_MAP);
+        //index visit (TODO: it's remote now!)
+        KylinConfig.setKylinConfigFromInputStream(IOUtils.toInputStream(conf.get(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES)));
+        ParquetPageIndexRecordReader indexReader = new ParquetPageIndexRecordReader();
+        long fileOffset = indexReader.initialize(split, context);
+        ParquetPageIndexTable indexTable = indexReader.getIndexTable();
+        GTScanRequest gtScanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES).getBytes("ISO-8859-1")));
+        gtScanRequestThreadLocal.set(gtScanRequest);
+        TupleFilter filter = gtScanRequest.getFilterPushDown();
+        ImmutableRoaringBitmap pageBitmap = indexTable.lookup(filter);
+        System.out.println("Inverted Index bitmap: " + pageBitmap);
+
         ImmutableRoaringBitmap measureBitmap = readBitmap(ParquetFormatConstants.KYLIN_FILTER_MEASURES_BITSET_MAP);
         MutableRoaringBitmap columnBitmap = MutableRoaringBitmap.bitmapOf(0);
         for (int i : measureBitmap) {
             columnBitmap.add(i + 1);
         }
         System.out.println("All columns read by parquet: " + StringUtils.join(columnBitmap, ","));
+
         int gtMaxLength = Integer.valueOf(conf.get(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH));
         val = new byte[gtMaxLength];
 
         // init with first shard file
-        reader = new ParquetBundleReaderBuilder().setConf(conf).setPath(shardPath).setPageBitset(pageBitmap).setColumnsBitmap(columnBitmap).build();
+        reader = new ParquetBundleReaderBuilder().setFileOffset(fileOffset).setConf(conf).setPath(shardPath).setPageBitset(pageBitmap).setColumnsBitmap(columnBitmap).build();
     }
 
     private ImmutableRoaringBitmap readBitmap(String property) throws IOException {
@@ -59,26 +75,6 @@ public class ParquetRawRecordReader extends RecordReader<byte[], byte[]> {
         if (pageBitsetString != null) {
             ByteBuffer buf = ByteBuffer.wrap(pageBitsetString.getBytes("ISO-8859-1"));
             bitmap = new ImmutableRoaringBitmap(buf);
-        }
-        return bitmap;
-    }
-
-    private ImmutableRoaringBitmap readBitmapSet(Path hashKey, String property) throws IOException {
-        String pageBitsetMapString = conf.get(property);
-        ImmutableRoaringBitmap bitmap = null;
-
-        if (pageBitsetMapString != null) {
-            ByteArrayInputStream bais = new ByteArrayInputStream(pageBitsetMapString.getBytes("ISO-8859-1"));
-            HashMap<String, SerializableImmutableRoaringBitmap> bitsetMap = null;
-            try {
-                bitsetMap = (HashMap<String, SerializableImmutableRoaringBitmap>) (new ObjectInputStream(bais).readObject());
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            }
-
-            if (bitsetMap != null) {
-                bitmap = bitsetMap.get(hashKey.toString()).getBitmap();
-            }
         }
         return bitmap;
     }

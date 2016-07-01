@@ -11,7 +11,7 @@ public class ParquetTarballReader extends ParquetRawReader {
     private long skipLength = 0;
 
     public ParquetTarballReader(Configuration config, Path path, Path indexPath) throws IOException {
-        super(config, path, indexPath);
+        super(config, path, indexPath, 0);
         skipLength = getSkipOffset(config, path);
     }
 

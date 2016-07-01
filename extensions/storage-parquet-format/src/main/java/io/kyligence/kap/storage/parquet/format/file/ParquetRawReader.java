@@ -33,11 +33,12 @@ public class ParquetRawReader {
     private ParquetMetadata parquetMetadata;
     private FSDataInputStream inputStream;
     private Configuration config;
+    private long fileOffset;
 
     protected int pagesPerGroup = 0;
     protected Map<String, String> indexMap;
 
-    public ParquetRawReader(Configuration configuration, Path path, Path indexPath) throws IOException {
+    public ParquetRawReader(Configuration configuration, Path path, Path indexPath, long fileOffset) throws IOException {
         config = configuration;
         parquetMetadata = ParquetFileReader.readFooter(config, path, ParquetMetadataConverter.NO_FILTER);
         FileSystem fileSystem = FileSystem.get(config);
@@ -45,6 +46,8 @@ public class ParquetRawReader {
 
         indexMap = parquetMetadata.getFileMetaData().getKeyValueMetaData();
         pagesPerGroup = Integer.parseInt(indexMap.get("pagesPerGroup"));
+        this.fileOffset = fileOffset;
+        System.out.println("The file offset is " + this.fileOffset);
     }
 
     public MessageType getSchema() {
@@ -69,12 +72,12 @@ public class ParquetRawReader {
             return null;
         }
         long offset = Long.parseLong(indexMap.get(group + "," + column + "," + page));
-        return getValuesReaderFromOffset(group, column, offset);
+        return getValuesReaderFromOffset(group, column, offset + fileOffset);
     }
 
     public GeneralValuesReader getValuesReader(int rowGroup, int column, int pageIndex) throws IOException {
         long pageOffset = Long.parseLong(indexMap.get(rowGroup + "," + column + "," + pageIndex));
-        return getValuesReaderFromOffset(rowGroup, column, pageOffset);
+        return getValuesReaderFromOffset(rowGroup, column, pageOffset + fileOffset);
     }
 
     public int getColumnCount() {

@@ -20,6 +20,7 @@ public class ParquetBundleReaderBuilder {
     private Path indexPath;
     private ImmutableRoaringBitmap columnBitset = null;
     private ImmutableRoaringBitmap pageBitset = null;
+    private long fileOffset = 0;
 
     public ParquetBundleReaderBuilder setConf(Configuration conf) {
         this.conf = conf;
@@ -46,6 +47,11 @@ public class ParquetBundleReaderBuilder {
         return this;
     }
 
+    public ParquetBundleReaderBuilder setFileOffset(long fileOffset) {
+        this.fileOffset = fileOffset;
+        return this;
+    }
+
     public ParquetBundleReader build() throws IOException {
         if (conf == null) {
             throw new IllegalStateException("Configuration should be set");
@@ -64,7 +70,7 @@ public class ParquetBundleReaderBuilder {
             columnBitset = createBitset(columnCnt);
         }
 
-        return new ParquetBundleReader(conf, path, indexPath, columnBitset, pageBitset);
+        return new ParquetBundleReader(conf, path, indexPath, columnBitset, pageBitset, fileOffset);
     }
 
     private static ImmutableRoaringBitmap createBitset(int total) throws IOException {

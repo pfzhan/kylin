@@ -11,11 +11,11 @@ import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 public class ParquetBundleReader {
     List<ParquetReaderState> readerStates;
 
-    public ParquetBundleReader(Configuration configuration, Path path, Path indexPath, ImmutableRoaringBitmap columns, ImmutableRoaringBitmap pageBitset) throws IOException {
+    public ParquetBundleReader(Configuration configuration, Path path, Path indexPath, ImmutableRoaringBitmap columns, ImmutableRoaringBitmap pageBitset, long fileOffset) throws IOException {
         readerStates = new ArrayList<ParquetReaderState>(columns.getCardinality());
 
         for (int column : columns) {
-            readerStates.add(new ParquetReaderState(new ParquetColumnReaderBuilder().setConf(configuration).setPath(path).setIndexPath(indexPath).setColumn(column).setPageBitset(pageBitset).build()));
+            readerStates.add(new ParquetReaderState(new ParquetColumnReaderBuilder().setFileOffset(fileOffset).setConf(configuration).setPath(path).setIndexPath(indexPath).setColumn(column).setPageBitset(pageBitset).build()));
             System.out.println("Read Column: " + column);
         }
     }

@@ -34,7 +34,7 @@ public class ParquetTarballReaderTest extends AbstractParquetFormatTest {
         writeRows(groupSize);
         appendFile(100);
 
-        ParquetTarballReader reader = new ParquetTarballReader(new Configuration(), tarballPath, indexPath);
+        ParquetRawReader reader = new ParquetRawReader(new Configuration(), tarballPath, indexPath, 100);
         for (int j = 0; j < ParquetConfig.PagesPerGroup; ++j) {
             GeneralValuesReader valuesReader = reader.getValuesReader(j, 0);
             for (int i = 0; i < ParquetConfig.RowsPerPage; ++i) {
