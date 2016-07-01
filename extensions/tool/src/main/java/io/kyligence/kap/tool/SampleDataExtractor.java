@@ -2,12 +2,14 @@ package io.kyligence.kap.tool;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
@@ -15,6 +17,7 @@ import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.LookupDesc;
 import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.storage.hbase.util.HiveCmdBuilder;
@@ -51,13 +54,18 @@ public class SampleDataExtractor extends AbstractInfoExtractor {
 
     private Set<DataModelDesc> getModels(String modelSeed) {
         Set<DataModelDesc> selectedModelDescs = Sets.newHashSet();
-        if (StringUtils.isEmpty(modelSeed)) {
-            selectedModelDescs.addAll(metadataManager.getModels());
-        } else {
-            for (String modelName : modelSeed.split(",")) {
-                DataModelDesc modelDesc = metadataManager.getDataModelDesc(modelName);
-                if (modelDesc != null) {
+        List<DataModelDesc> allModelDescs = metadataManager.getModels();
+        String[] modelSeeds = null;
+        if (!StringUtils.isEmpty(modelSeed)) {
+            modelSeeds = modelSeed.split(",");
+        }
+
+        for (DataModelDesc modelDesc : allModelDescs) {
+            // only extract hive tables
+            if (modelSeeds == null || ArrayUtils.contains(modelSeeds, modelDesc.getName())) {
+                if (metadataManager.getTableDesc(modelDesc.getFactTable()).getSourceType() == ISourceAware.ID_HIVE) {
                     selectedModelDescs.add(modelDesc);
+                    logger.info("Add Data model: {}", modelDesc.getName());
                 }
             }
         }
@@ -90,7 +98,7 @@ public class SampleDataExtractor extends AbstractInfoExtractor {
     }
 
     private Map<String, Pair<Set<String>, Set<String>>> getTableColumnsPairs(Set<DataModelDesc> selectedModelDescs) {
-        //k:table v:columns
+        // k:table v:columns
         Map<String, Pair<Set<String>, Set<String>>> tableColumnPair = Maps.newHashMap();
         for (DataModelDesc dataModelDesc : selectedModelDescs) {
             String factTable = dataModelDesc.getFactTable();
@@ -123,6 +131,11 @@ public class SampleDataExtractor extends AbstractInfoExtractor {
                 }
             }
         }
+
+        for (Map.Entry<String, Pair<Set<String>, Set<String>>> entry : tableColumnPair.entrySet()) {
+            logger.info("Table {}, obfuscateColumns: {}, nonObfuscateColumns: {}", entry.getKey(), entry.getValue().getFirst(), entry.getValue().getSecond());
+        }
+
         return tableColumnPair;
     }
 
@@ -190,26 +203,33 @@ public class SampleDataExtractor extends AbstractInfoExtractor {
         Map<String, Pair<Set<String>, Set<String>>> tableColumnPair = getTableColumnsPairs(models);
         Set<String> factTables = getFactTables(models);
 
-        File createTableFile = new File(exportDir, "createTable.sql");
-
-        HiveUdfRegister hiveUdfRegister = new HiveUdfRegister(ObfuscateUDF.class);
         String udfFuncName = new ObfuscateUDF().getFuncName();
-
-        String createFunctionHql = hiveUdfRegister.registerToHive();
+        HiveUdfRegister hiveUdfRegister = new HiveUdfRegister(ObfuscateUDF.class);
+        hiveUdfRegister.register();
 
         HiveCmdBuilder hiveCmdBuilder = new HiveCmdBuilder();
-        hiveCmdBuilder.addStatement(createFunctionHql);
+        hiveCmdBuilder.addStatement(hiveUdfRegister.getCreateFuncStatement());
 
+        File createScriptFile = new File(exportDir, "createTable.sql");
         for (Map.Entry<String, Pair<Set<String>, Set<String>>> entry : tableColumnPair.entrySet()) {
             String tableName = entry.getKey();
             Set<String> obfuscateColumns = entry.getValue().getFirst();
             Set<String> nonObfuscateColumns = entry.getValue().getSecond();
             String selectSampleDataHql = factTables.contains(tableName) ? generateInsertOverwriteHql(true, new File(exportDir, tableName).getAbsolutePath(), obfuscateColumns, nonObfuscateColumns, udfFuncName, tableName, sampleRate) : generateInsertOverwriteHql(false, new File(exportDir, tableName).getAbsolutePath(), obfuscateColumns, nonObfuscateColumns, udfFuncName, tableName, sampleRate);
             String createTableHql = generateCreateTableHql(tableName, obfuscateColumns, nonObfuscateColumns);
-            FileUtils.writeStringToFile(createTableFile, createTableHql, true);
+            FileUtils.writeStringToFile(createScriptFile, createTableHql, true);
             hiveCmdBuilder.addStatement(selectSampleDataHql);
         }
-        cliCommandExecutor.execute(hiveCmdBuilder.build());
-        hiveUdfRegister.deregisterFromHive();
+
+        // log and execute
+        String hiveCmd = hiveCmdBuilder.build();
+        logger.info("Hive Cmd: {}", hiveCmd);
+        cliCommandExecutor.execute(hiveCmd);
+
+        hiveUdfRegister.unregister();
+
+        // export sampling info
+        File samplingInfo = new File(exportDir, "sampling.info");
+        FileUtils.writeStringToFile(samplingInfo, "SampleRate: " + sampleRate);
     }
 }

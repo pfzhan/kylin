@@ -20,71 +20,73 @@ public class HiveUdfRegister {
     private final CliCommandExecutor cliCommandExecutor;
     private final FileSystem fs;
     private final String jarHdfsParentPath;
-
+    private final Class udfClass;
     String hdfsJarPath;
     String functionName;
 
-    private final Class classFile;
-
     public HiveUdfRegister(Class udfClass) throws IOException, IllegalAccessException, InstantiationException {
-        Preconditions.checkState(udfClass.isAssignableFrom(AbstractUdf.class));
+        Preconditions.checkState(AbstractUdf.class.isAssignableFrom(udfClass));
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
-        this.classFile = udfClass;
+        this.udfClass = udfClass;
         this.functionName = ((AbstractUdf) udfClass.newInstance()).getFuncName();
         this.fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
         this.jarHdfsParentPath = kylinConfig.getHdfsWorkingDirectory() + "diagnosis/";
         this.cliCommandExecutor = kylinConfig.getCliCommandExecutor();
-
-        initRegister();
     }
 
-    protected void initRegister() {
-        String localJarPath = getLocalJarFilePath(classFile);
+    public void register() {
+        String localJarPath = getLocalJarFilePath(udfClass);
         hdfsJarPath = fs.getUri() + jarHdfsParentPath + new File(localJarPath).getName();
         uploadFileToHdfs(localJarPath, hdfsJarPath);
         addJarFileToHiveClassPath(hdfsJarPath);
+
+        logger.info("Hive HDF registered.");
     }
 
     private String getLocalJarFilePath(Class udfClass) {
-        String classPath = "";
-        classPath = udfClass.getProtectionDomain().getCodeSource().getLocation().getPath();
-        return classPath;
+        return udfClass.getProtectionDomain().getCodeSource().getLocation().getPath();
     }
 
     private void uploadFileToHdfs(String sourceFile, String targetFile) {
         try {
             fs.copyFromLocalFile(false, new Path(sourceFile), new Path(targetFile));
         } catch (IOException e) {
-            logger.warn("Failed to upload file " + e);
+            throw new RuntimeException("Failed to upload file.", e);
         }
     }
 
     private void addJarFileToHiveClassPath(String filePath) {
         String addJarHql = "add jar " + filePath;
+        logger.info("Hive Cmd: {}", addJarHql);
+
         HiveCmdBuilder hiveCmdBuilder = new HiveCmdBuilder();
         hiveCmdBuilder.addStatement(addJarHql);
         try {
             cliCommandExecutor.execute(hiveCmdBuilder.build());
         } catch (IOException e) {
-            logger.warn("Failed to add jar file to hive" + e);
+            throw new RuntimeException("Failed to add jar file to hive.", e);
         }
     }
 
-    public void deregisterFromHive() {
-        String dropFunctionHql = "DROP FUNCTION IF EXISTS " + functionName + ";";
+    public void unregister() {
+        String dropFunctionHql = "DROP TEMPORARY FUNCTION IF EXISTS " + functionName + ";";
+        logger.info("Hive Cmd: {}", dropFunctionHql);
+
         HiveCmdBuilder hiveCmdBuilder = new HiveCmdBuilder();
         hiveCmdBuilder.addStatement(dropFunctionHql);
         try {
             cliCommandExecutor.execute(hiveCmdBuilder.build());
         } catch (IOException e) {
-            logger.warn("Failed to drop function " + e);
+            logger.error("Failed to drop function, please manually drop it in hive. ", e);
         }
+
+        logger.info("Hive HDF unregistered.");
     }
 
-    public String registerToHive() {
-        return "CREATE FUNCTION " + functionName + " AS '" + this.classFile + "' USING JAR '" + this.hdfsJarPath + "';";
+    public String getCreateFuncStatement() {
+        return "CREATE TEMPORARY FUNCTION " + functionName + " AS '" + udfClass.getName() + "' USING JAR '" + this.hdfsJarPath + "';";
     }
 
 }

@@ -71,10 +71,8 @@ public class CubeTuningCLI extends AbstractInfoExtractor {
     }
 
     public static void main(String[] args) {
-        String[] args1 = new String[] { "-destDir", "cubeTuning" };
-
         CubeTuningCLI cubeTuningCLI = new CubeTuningCLI();
-        cubeTuningCLI.execute(args1);
+        cubeTuningCLI.execute(args);
     }
 
     @Override
@@ -131,6 +129,5 @@ public class CubeTuningCLI extends AbstractInfoExtractor {
         KylinLogExtractor logExtractor = new KylinLogExtractor();
         logger.info("KylinLogExtractor args: " + Arrays.toString(logsArgs));
         logExtractor.execute(logsArgs);
-
     }
 }
