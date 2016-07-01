@@ -44,7 +44,7 @@
     </context-param>
 
     <listener>
-        <listener-class>org.apache.kylin.rest.util.Log4jConfigListener</listener-class>
+        <listener-class>io.kyligence.kap.rest.Log4jConfigListener</listener-class>
     </listener>
 
     <listener>

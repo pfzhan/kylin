@@ -51,15 +51,26 @@ function obfuscate {
 		obf_bin=$2/$3-obf.war
 		otherParam='-printmapping server_mapping.txt'
 	fi
-
-	proguard @build/conf/kylin.pro -injars ${origin_bin} \(!META-INF/*.SF,!META-INF/*.DSA,!META-INF/*.RSA\) -outjars ${obf_bin} \(!META-INF/*.SF,!META-INF/*.DSA,!META-INF/*.RSA\) -libraryjars $cp -libraryjars $java_home/lib/rt.jar:$java_home/lib/jce.jar:$java_home/lib/jsse.jar:$java_home/lib/ext/sunjce_provider.jar $keepParam $otherParam
+	
+	# make proguard config
+	cat build/script/obfuscate.pro > tmp.pro
+	echo -injars ${origin_bin} \(!META-INF/*.SF,!META-INF/*.DSA,!META-INF/*.RSA\)  >> tmp.pro
+	echo -outjars ${obf_bin} \(!META-INF/*.SF,!META-INF/*.DSA,!META-INF/*.RSA\)    >> tmp.pro
+	echo -libraryjars $cp                                                          >> tmp.pro
+	echo -libraryjars $java_home/lib/rt.jar                                        >> tmp.pro
+	echo -libraryjars $java_home/lib/jce.jar                                       >> tmp.pro
+	echo -libraryjars $java_home/lib/jsse.jar                                      >> tmp.pro
+	echo -libraryjars $java_home/lib/ext/sunjce_provider.jar                       >> tmp.pro
+	echo $keepParam $otherParam                                                    >> tmp.pro
+	
+	proguard @tmp.pro  || { exit 1; }
+	rm tmp.pro
+	
 	if [ -f $2/$3.jar ];then
 		mv $obf_bin tmp/$3.jar
 	else
 		mv $obf_bin tmp/$3.war
 	fi
-	# rm $origin_bin
-	# mv $obf_bin $origin_bin
 }
 
 # obfuscate server war

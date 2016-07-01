@@ -1,22 +1,28 @@
 package org.apache.kylin.common;
 
+import java.io.File;
+
 public class KapConfig {
 
-    // static cached instances
-    private static KapConfig ENV_INSTANCE = null;
-
     public static KapConfig getInstanceFromEnv() {
-        synchronized (KapConfig.class) {
-            if (ENV_INSTANCE == null) {
-                return wrap(KylinConfig.getInstanceFromEnv());
-            }
-            return ENV_INSTANCE;
+        return wrap(KylinConfig.getInstanceFromEnv());
+    }
+
+    public static KapConfig wrap(KylinConfig config) {
+        return new KapConfig(config);
+    }
+
+    public static File getKylinHomeAtBestEffort() {
+        String kylinHome = KylinConfig.getKylinHome();
+        if (kylinHome != null) {
+            return new File(kylinHome).getAbsoluteFile();
+        } else {
+            File confFile = KylinConfig.getKylinPropertiesFile();
+            return confFile.getAbsoluteFile().getParentFile().getParentFile();
         }
     }
 
-    private static KapConfig wrap(KylinConfig config) {
-        return new KapConfig(config);
-    }
+    // ============================================================================
 
     final private KylinConfig config;
 
@@ -24,8 +30,8 @@ public class KapConfig {
         this.config = config;
     }
 
-    public int getParquetRowsPerPage() {
-        return Integer.parseInt(config.getOptional("kap.parquet.rows.per.page", String.valueOf(10000)));
+    public boolean isDevEnv() {
+        return config.isDevEnv();
     }
 
     public int getParquetPageIndexStepMax() {

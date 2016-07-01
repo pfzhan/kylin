@@ -7,7 +7,7 @@ source build/script/functions.sh
 exportProjectVersions
 
 sh build/script/prepare_libs.sh || { exit 1; }
-build/script/obfuscate.sh
+build/script/obfuscate.sh       || { exit 1; }
 
 cp extensions/server/target/kap-server-${kap_version}.war build/tomcat/webapps/kylin.war
 chmod 644 build/tomcat/webapps/kylin.war

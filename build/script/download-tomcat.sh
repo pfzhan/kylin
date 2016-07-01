@@ -23,7 +23,7 @@ else
     fi
 fi
 
-tar -zxvf build/apache-tomcat-${tomcat_pkg_version}.tar.gz -C build/
+tar -zxvf build/apache-tomcat-${tomcat_pkg_version}.tar.gz -C build/   || { exit 1; }
 mv build/apache-tomcat-${tomcat_pkg_version} build/tomcat
 rm -rf build/tomcat/webapps/*
 
