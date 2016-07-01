@@ -77,7 +77,7 @@ public class UserController extends BasicController implements UserDetailsServic
 
     @RequestMapping(value = "/users/{userName}", method = { RequestMethod.POST, RequestMethod.PUT })
     @ResponseBody
-    public UserObj save(@PathVariable String userName, @RequestBody UserObj user) {
+    public UserObj save(@PathVariable("userName") String userName, @RequestBody UserObj user) {
         checkUserName(userName);
 
         user.setUsername(userName);
@@ -121,7 +121,7 @@ public class UserController extends BasicController implements UserDetailsServic
 
     @RequestMapping(value = "/users/{userName}", method = { RequestMethod.GET })
     @ResponseBody
-    public UserObj get(@PathVariable String userName) throws UsernameNotFoundException {
+    public UserObj get(@PathVariable("userName") String userName) throws UsernameNotFoundException {
         checkUserName(userName);
 
         UserDetails details = userService.loadUserByUsername(userName);
@@ -141,7 +141,7 @@ public class UserController extends BasicController implements UserDetailsServic
 
     @RequestMapping(value = "/users/{userName}", method = { RequestMethod.DELETE })
     @ResponseBody
-    public void delete(@PathVariable String userName) {
+    public void delete(@PathVariable("userName") String userName) {
         checkUserName(userName);
 
         userService.deleteUser(userName);

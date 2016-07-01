@@ -299,7 +299,7 @@ public class SequenceSQLController extends BasicController {
 
     @RequestMapping(value = "/sequence_sql/result/{sequenceID}", method = { RequestMethod.GET })
     @ResponseBody
-    public SequenceSQLResponse getSequenceSQLResult(@PathVariable final long sequenceID, @RequestHeader("Authorization") String basicAuthen) {
+    public SequenceSQLResponse getSequenceSQLResult(@PathVariable("sequenceID") final long sequenceID, @RequestHeader("Authorization") String basicAuthen) {
         try {
 
             long startTime = System.currentTimeMillis();
@@ -357,7 +357,7 @@ public class SequenceSQLController extends BasicController {
 
     @RequestMapping(value = "/shardable_query_worker/result/{sequenceID}/{workerID}", method = { RequestMethod.GET })
     @ResponseBody
-    public SequenceSQLResponse getShardableQueryResult(@PathVariable long sequenceID, @PathVariable int workerID) {
+    public SequenceSQLResponse getShardableQueryResult(@PathVariable("sequenceID") long sequenceID, @PathVariable("workerID") int workerID) {
         try {
             SequenceSQLResponse sequenceSQLResponse = new SequenceSQLResponse();
             logger.info("Trying to get shard result for {} on worker {} ", sequenceID, workerID);
@@ -384,7 +384,7 @@ public class SequenceSQLController extends BasicController {
 
     @RequestMapping(value = "/sequence_sql/topology/{sequenceID}", method = { RequestMethod.GET })
     @ResponseBody
-    public List<String> getTopology(@PathVariable final long sequenceID, @RequestHeader("Authorization") String basicAuthen) {
+    public List<String> getTopology(@PathVariable("sequenceID") final long sequenceID, @RequestHeader("Authorization") String basicAuthen) {
 
         final List<KAPRESTClient> workerClients = getWorkerClients(basicAuthen);
         List<String> shardResults = Lists.newArrayList();
@@ -418,7 +418,7 @@ public class SequenceSQLController extends BasicController {
 
     @RequestMapping(value = "/shardable_query_worker/topology/{sequenceID}/{workerID}", method = { RequestMethod.GET })
     @ResponseBody
-    public String getShardTopology(@PathVariable final long sequenceID, @PathVariable int workerID) {
+    public String getShardTopology(@PathVariable("sequenceID") final long sequenceID, @PathVariable("workerID") int workerID) {
         SequenceTopology topology = topologyManager.getTopology(sequenceID, workerID);
         if (topology == null) {
             return "";

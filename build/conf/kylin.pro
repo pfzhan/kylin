@@ -5,16 +5,16 @@
 
 -keepnames class * implements java.io.Serializable
 -keepclassmembers class * implements java.io.Serializable {
-                static final long serialVersionUID;
-                private static final java.io.ObjectStreamField[] serialPersistentFields;
-                !static !transient *;
-                private void writeObject(java.io.ObjectOutputStream);
-                private void readObject(java.io.ObjectInputStream);
-                public void writeExternal(java.io.ObjectOutputStream);
-                public void readExternal(java.io.ObjectInputStream);
-                java.lang.Object writeReplace();
-                java.lang.Object readResolve();
-                }
+	static final long serialVersionUID;
+	private static final java.io.ObjectStreamField[] serialPersistentFields;
+	!static !transient *;
+	private void writeObject(java.io.ObjectOutputStream);
+	private void readObject(java.io.ObjectInputStream);
+	public void writeExternal(java.io.ObjectOutputStream);
+	public void readExternal(java.io.ObjectInputStream);
+	java.lang.Object writeReplace();
+	java.lang.Object readResolve();
+}
 
 -keep class !io.kyligence.** {*;}
 
@@ -23,7 +23,8 @@
 	public *;
 } 
 
--keep class io.kyligence.kap.rest.** {public *;}
+-keep class io.kyligence.kap.rest.**
+
 -keepparameternames
 -keepattributes Exceptions,Signature,Deprecated,LineNumberTable,*Annotation*,EnclosingMethod 
--keepdirectories 
+-keepdirectories
