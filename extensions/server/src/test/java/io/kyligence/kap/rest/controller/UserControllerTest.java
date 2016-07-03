@@ -26,6 +26,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import io.kyligence.kap.rest.ServiceTestBase;
 import io.kyligence.kap.rest.controller.UserController.UserObj;
@@ -37,6 +38,8 @@ public class UserControllerTest extends ServiceTestBase {
     @Autowired
     UserController userController;
 
+    BCryptPasswordEncoder pwdEncoder = new BCryptPasswordEncoder();
+    
     @Test
     public void testBasics() throws IOException {
         userController.delete("TEST");
@@ -80,7 +83,7 @@ public class UserControllerTest extends ServiceTestBase {
 
     private void assertEquals(UserObj u, String username, String password, boolean disabled, String... authorities) {
         Assert.assertEquals(username, u.getUsername());
-        Assert.assertTrue(UserController.pwdMatches(password, u.getPassword()));
+        Assert.assertTrue(pwdEncoder.matches(password, u.getPassword()));
         Assert.assertEquals(disabled, u.isDisabled());
         Assert.assertEquals(authorities.length, u.getAuthorities().size());
         for (String a : authorities) {

@@ -177,6 +177,23 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Hadoop Env -->
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-client</artifactId>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.servlet</groupId>
+                    <artifactId>servlet-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>javax.servlet.jsp</groupId>
+                    <artifactId>jsp-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
         <!-- Tomcat Env -->
         <dependency>
             <groupId>org.apache.tomcat</groupId>

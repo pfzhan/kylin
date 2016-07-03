@@ -51,12 +51,13 @@ import com.google.common.collect.Lists;
 public class UserController extends BasicController implements UserDetailsService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
-    private static final Pattern BCRYPT_PATTERN = Pattern.compile("\\A\\$2a?\\$\\d\\d\\$[./0-9A-Za-z]{53}");
-    private static final BCryptPasswordEncoder PWD_ENCODER = new BCryptPasswordEncoder();
 
     @Autowired
     private UserService userService;
 
+    private Pattern bcryptPattern;
+    private BCryptPasswordEncoder pwdEncoder;
+    
     @PostConstruct
     public void init() throws IOException {
         List<UserObj> all = listAllUsers();
@@ -68,6 +69,9 @@ public class UserController extends BasicController implements UserDetailsServic
         }
         for (UserObj u : all)
             logger.info(u.toString());
+
+        bcryptPattern = Pattern.compile("\\A\\$2a?\\$\\d\\d\\$[./0-9A-Za-z]{53}");
+        pwdEncoder = new BCryptPasswordEncoder();
     }
 
     @Override
@@ -103,15 +107,11 @@ public class UserController extends BasicController implements UserDetailsServic
         return get(userName);
     }
 
-    public static String pwdEncode(String pwd) {
-        if (BCRYPT_PATTERN.matcher(pwd).matches())
+    private String pwdEncode(String pwd) {
+        if (bcryptPattern.matcher(pwd).matches())
             return pwd;
 
-        return PWD_ENCODER.encode(pwd);
-    }
-
-    public static boolean pwdMatches(String pwd, String encoded) {
-        return PWD_ENCODER.matches(pwd, encoded);
+        return pwdEncoder.encode(pwd);
     }
 
     private void checkUserName(String userName) {
