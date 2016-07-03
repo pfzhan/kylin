@@ -4,6 +4,7 @@ import java.io.File;
 
 public class KapConfig {
 
+    // no need to cache KapConfig as it is so lightweight
     public static KapConfig getInstanceFromEnv() {
         return wrap(KylinConfig.getInstanceFromEnv());
     }
@@ -32,6 +33,10 @@ public class KapConfig {
 
     public boolean isDevEnv() {
         return config.isDevEnv();
+    }
+
+    public int getParquetRowsPerPage() {
+        return Integer.parseInt(config.getOptional("kap.parquet.rows.per.page", String.valueOf(10000)));
     }
 
     public int getParquetPageIndexStepMax() {
