@@ -12,10 +12,13 @@ import javax.servlet.ServletContextEvent;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Log4jConfigListener extends org.springframework.web.util.Log4jConfigListener {
 
     private boolean isDebugTomcat;
+    private Logger licenseLog;
 
     public Log4jConfigListener() {
         KapConfig config = KapConfig.getInstanceFromEnv();
@@ -27,6 +30,7 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
         if (!isDebugTomcat) {
             super.contextInitialized(event);
         }
+        licenseLog = LoggerFactory.getLogger("License");
         gatherLicenseInfo();
     }
 
@@ -39,9 +43,9 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
 
     private void gatherLicenseInfo() {
         File kylinHome = KapConfig.getKylinHomeAtBestEffort();
-        gatherEnv();
-        gatherCommits(kylinHome);
         gatherLicense(kylinHome);
+        gatherCommits(kylinHome);
+        gatherEnv();
     }
 
     private void gatherEnv() {
@@ -49,14 +53,14 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
         try {
             Pair<Integer, String> r = cmd.execute("hostname", null);
             if (r.getFirst() != 0) {
-                System.out.println("ERROR: Failed to get hostname, rc=" + r.getFirst());
+                licenseLog.error("Failed to get hostname, rc=" + r.getFirst());
             } else {
                 String s = r.getSecond().trim();
-                System.out.println("hostname=" + s);
+                licenseLog.info("hostname=" + s);
                 System.setProperty("hostname", s);
             }
-        } catch (IOException e) {
-            System.out.println("ERROR: Failed to get hostname");
+        } catch (IOException ex) {
+            licenseLog.error("Failed to get hostname", ex);
         }
         
     }
@@ -75,21 +79,22 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
                 String l;
                 while ((l = in.readLine()) != null) {
                     if ("====".equals(l)) {
-                        l = in.readLine();
-                        System.out.println("kap.dates=" + l);
-                        System.setProperty("kap.dates", l);
-                        l = in.readLine();
-                        System.out.println("kap.license=" + l);
-                        System.setProperty("kap.license", l);
+                        System.setProperty("kap.license.statement", statement);
+                        
+                        String dates = in.readLine();
+                        System.setProperty("kap.dates", dates);
+                        
+                        String license = in.readLine();
+                        System.setProperty("kap.license", license);
+                        
+                        licenseLog.info("KAP License:\n" + statement + "====\n" + dates + "\n" + license);
                         break;
                     }
                     statement += l + "\n";
                 }
                 in.close();
-                System.out.println(statement);
-                System.setProperty("kap.license.statement", statement);
             } catch (IOException ex) {
-                ex.printStackTrace();
+                licenseLog.error("", ex);
             }
         }
     }
@@ -103,18 +108,18 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
                 while ((l = in.readLine()) != null) {
                     if (l.endsWith("@ApacheKylin")) {
                         String commit = l.substring(0, l.length() - 12);
-                        System.out.println("kylin.commit=" + commit);
+                        licenseLog.info("kylin.commit=" + commit);
                         System.setProperty("kylin.commit", commit);
                     }
                     if (l.endsWith("@KAP")) {
                         String commit = l.substring(0, l.length() - 4);
-                        System.out.println("kap.commit=" + commit);
+                        licenseLog.info("kap.commit=" + commit);
                         System.setProperty("kap.commit", commit);
                     }
                 }
                 in.close();
             } catch (IOException ex) {
-                ex.printStackTrace();
+                licenseLog.error("", ex);
             }
         }
     }
