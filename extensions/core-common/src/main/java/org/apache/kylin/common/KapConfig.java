@@ -50,4 +50,8 @@ public class KapConfig {
     public String getParquetPageCompression() {
         return config.getOptional("kap.parquet.page.compression", "");
     }
+
+    public int getParquetPageIndexSpillThreshold() {
+        return Integer.parseInt(config.getOptional("kap.parquet.ii.spill.threshold", String.valueOf(10000)));
+    }
 }

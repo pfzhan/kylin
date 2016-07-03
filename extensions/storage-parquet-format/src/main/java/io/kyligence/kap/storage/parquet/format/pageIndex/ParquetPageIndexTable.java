@@ -71,7 +71,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
         case NOTIN:
         case NEQ:
         case ISNOTNULL:
-            result.flip(0L, indexReader.getPageTotalNum(column));
+            result = getFullBitmap().toMutableRoaringBitmap();
             break;
         default:
             break;

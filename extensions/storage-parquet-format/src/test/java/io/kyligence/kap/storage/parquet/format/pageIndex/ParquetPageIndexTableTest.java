@@ -27,6 +27,7 @@ import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
@@ -128,6 +129,7 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         }
     }
 
+    @Ignore
     @Test
     public void testNEQ() throws IOException {
         for (int i = 0; i < dataSize; i++) {
@@ -256,6 +258,7 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         assertArrayEquals(expected, result.toArray());
     }
 
+    @Ignore
     @Test
     public void testNotIn() throws IOException {
         TupleFilter filter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.NOTIN);
