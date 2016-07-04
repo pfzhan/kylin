@@ -1,0 +1,37 @@
+diff a/extensions/server-base/src/main/java/io/kyligence/kap/rest/controller/UserController.java b/extensions/server-base/src/main/java/io/kyligence/kap/rest/controller/UserController.java	(rejected hunks)
+@@ -103,10 +108,34 @@ public class UserController extends BasicController implements UserDetailsServic
+         return get(userName);
+     }
+ 
++    @RequestMapping(value = "/users/password", method = {RequestMethod.PUT })
++    @ResponseBody
++    public UserObj save( @RequestBody UserRequest user) {
++        if(!isAdmin()||!getPrincipal().equals(user.getUsername())){
++            throw new IllegalStateException("Permission denied!");
++        }
++        checkUserName(user.getUsername());
++
++        UserObj existing = get(user.getUsername());
++        if(!pwdMatches(user.getPassword(),existing.getPassword())){
++            throw new IllegalStateException("Old password is not correct!");
++        }
++
++        existing.setPassword(pwdEncode(user.getNewPassword()));
++
++        logger.info("update password for user " + user);
++
++        UserDetails details = userObjToDetails(existing);
++        userService.updateUser(details);
++
++        return get(user.getUsername());
++    }
++
++
+     public static String pwdEncode(String pwd) {
+         if (BCRYPT_PATTERN.matcher(pwd).matches())
+             return pwd;
+-        
++
+         return PWD_ENCODER.encode(pwd);
+     }
+     

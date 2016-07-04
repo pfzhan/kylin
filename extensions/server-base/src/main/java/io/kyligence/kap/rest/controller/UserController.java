@@ -24,13 +24,17 @@ import java.util.regex.Pattern;
 
 import javax.annotation.PostConstruct;
 
+import io.kyligence.kap.rest.request.UserRequest;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.service.UserService.UserGrantedAuthority;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -48,6 +52,7 @@ import com.google.common.collect.Lists;
 
 @Controller
 @Component("kapUserController")
+@RequestMapping(value = "/kapuser")
 public class UserController extends BasicController implements UserDetailsService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
@@ -106,6 +111,30 @@ public class UserController extends BasicController implements UserDetailsServic
 
         return get(userName);
     }
+
+    @RequestMapping(value = "/users/password", method = {RequestMethod.PUT })
+    @ResponseBody
+    public UserObj save( @RequestBody UserRequest user) {
+        if(!isAdmin()||!getPrincipal().equals(user.getUsername())){
+            throw new IllegalStateException("Permission denied!");
+        }
+        checkUserName(user.getUsername());
+
+        UserObj existing = get(user.getUsername());
+        if(!pwdMatches(user.getPassword(),existing.getPassword())){
+            throw new IllegalStateException("Old password is not correct!");
+        }
+
+        existing.setPassword(pwdEncode(user.getNewPassword()));
+
+        logger.info("update password for user " + user);
+
+        UserDetails details = userObjToDetails(existing);
+        userService.updateUser(details);
+
+        return get(user.getUsername());
+    }
+
 
     private String pwdEncode(String pwd) {
         if (bcryptPattern.matcher(pwd).matches())
@@ -185,6 +214,29 @@ public class UserController extends BasicController implements UserDetailsServic
         obj.setAuthorities(roles);
 
         return obj;
+    }
+
+    private String getPrincipal(){
+        String userName = null;
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        if (principal instanceof UserDetails) {
+            userName = ((UserDetails)principal).getUsername();
+        } else {
+            userName = principal.toString();
+        }
+        return userName;
+    }
+
+    private boolean isAdmin(){
+        boolean isAdmin = false;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        for (GrantedAuthority auth : authentication.getAuthorities()) {
+            if (auth.getAuthority().equals(Constant.ROLE_ADMIN))
+                isAdmin = true;
+            break;
+        }
+        return isAdmin;
     }
 
     public static class UserObj implements UserDetails {

@@ -96,5 +96,23 @@
             "tab": "models",
             "controller": "ModelEditCtrl"
         }
+    },
+    {
+        "url": "/setting",
+        "params": {
+          "templateUrl": "partials/users/setting.html",
+          "tab": "",
+          "controller": "UserSettingCtrl"
+     }
+  },
+  {
+    "url": "/users",
+    "params": {
+      "templateUrl": "partials/users/users.html",
+      "tab": "users",
+      "controller": "UsersCtrl",
+      "reloadOnSearch": false
     }
+  }
+
 ]

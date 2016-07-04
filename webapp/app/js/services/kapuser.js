@@ -16,22 +16,14 @@
  * limitations under the License.
  */
 
-KylinApp.constant('tableConfig', {
-  theaditems: [
-    {attr: 'id', name: 'ID'},
-    {attr: 'name', name: 'Name'},
-    {attr: 'datatype', name: 'Data Type'},
-    {attr: 'cardinality', name: 'Cardinality'}
-  ],
-  dataTypes:["tinyint","smallint","int","bigint","float","double","decimal","timestamp","date","string","varchar(256)","char","boolean","binary"]
-  ,
-  usertheaditems: [
-    {attr: 'username', name: 'Username'},
-    {attr: 'admin', name: 'Admin'},
-    {attr: 'modeler', name: 'Modeler'},
-    {attr: 'analyst', name: 'Analyst'},
-    {attr: 'disabled', name: 'Status'}
-  ],
-
-
-});
+KylinApp.factory('KapUserService', ['$resource', function ($resource, config) {
+  return $resource(Config.service.url + 'kapuser/:action/:id', {}, {
+    save: {method: 'POST', params: {action:'users'}, isArray: false},
+    update: {method: 'PUT', params: {action:'users'}, isArray: false},
+    reset: {method: 'PUT', params: {action:'users',id:'password'}, isArray: false},
+    getUser: {method: 'GET', params: {action: 'users'}, isArray: false},
+    listUsers: {method: 'GET', params: {action: 'users'}, isArray: true},
+    dropUser: {method: 'DELETE', params: {action: 'users'}, isArray: false},
+    listAuthorities: {method: 'GET', params: {action: 'userAuhtorities'}, isArray: true}
+  });
+}]);
