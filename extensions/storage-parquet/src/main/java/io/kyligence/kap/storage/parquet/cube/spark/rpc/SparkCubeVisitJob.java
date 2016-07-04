@@ -119,7 +119,7 @@ public class SparkCubeVisitJob implements Serializable {
                 append(bcCanonicalCuboid.getValue().getSegmentId()).append("/").//
                 append(bcCanonicalCuboid.getValue().getCuboidId()).toString();
 
-        String parquetPath = basePath + "/*.parquet";
+        String parquetPath = basePath + "/*.parquettar";
 
         Configuration conf = new Configuration();
 

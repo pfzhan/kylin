@@ -21,14 +21,14 @@ package io.kyligence.kap.storage.parquet.format;
 import java.io.IOException;
 
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.kylin.metadata.datatype.IntMutable;
 
-public class ParquetWithIndexRawInputFormat extends FileInputFormat<IntMutable, byte[]> {
+public class ParquetWithIndexRawInputFormat extends FileInputFormat<IntWritable, byte[]> {
     @Override
     public RecordReader createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
         return new ParquetWithIndexRawReader();

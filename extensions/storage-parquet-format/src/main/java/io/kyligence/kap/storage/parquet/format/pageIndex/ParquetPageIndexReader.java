@@ -5,6 +5,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 
+import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexReader;
 
 public class ParquetPageIndexReader implements Closeable {
@@ -22,7 +23,7 @@ public class ParquetPageIndexReader implements Closeable {
         }
 
         for (int i = 0; i < columnNum; i++) {
-            columnIndexReaders[i] = new ColumnIndexReader(inputStream, startOffsets[i]);
+            columnIndexReaders[i] = new ColumnIndexReader(inputStream, startOffsets[i] + ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE);
         }
     }
 

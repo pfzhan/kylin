@@ -36,7 +36,6 @@ public class ParquetMRSteps extends JobBuilderSupport {
         StringBuilder cmd = new StringBuilder();
         appendMapReduceParameters(cmd);
 
-        appendExecCmdParameters(cmd, BatchConstants.ARG_CUBING_JOB_ID, jobId);
         appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_Parquet_Tarball_" + seg.getRealization().getName() + "_Step");
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBE_NAME, seg.getRealization().getName());
         appendExecCmdParameters(cmd, BatchConstants.ARG_INPUT, getParquetPath((CubeSegment) seg));
