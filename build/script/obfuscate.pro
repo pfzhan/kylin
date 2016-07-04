@@ -23,6 +23,10 @@
 	public *;
 } 
 
--keepparameternames
--keepattributes Exceptions,Signature,Deprecated,LineNumberTable,*Annotation*,EnclosingMethod 
+-renamesourcefileattribute SourceFile
+-keepattributes Exceptions,Signature,Deprecated,SourceFile,LineNumberTable,*Annotation*,EnclosingMethod
 -keepdirectories
+-keepparameternames
+
+-repackageclasses 'io.kyligence'
+-allowaccessmodification
