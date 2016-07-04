@@ -32,7 +32,20 @@ rm -rf ${package_name}
 # package obf tar
 cd ../dist
 tar xzf ${package_name}.tar.gz
-mv ../tmp/kylin.war ${package_name}/tomcat/webapps/kylin.war
+
+rm -rf ../tmp/kylin-one
+mkdir ../tmp/kylin-one
+cd ../tmp/kylin-one
+jar -xvf ../kylin.war
+echo `pwd`/WEB-INF/lib
+../../build/script/one-jar.sh `pwd`/WEB-INF/lib
+jar -cvf kylin-one.war *
+mv kylin-one.war ../
+cd ..
+rm -rf kylin-one
+cd ../dist
+
+mv ../tmp/kylin-one.war ${package_name}/tomcat/webapps/kylin.war
 mv ../tmp/kylin-coprocessor-kap-1.5.3-SNAPSHOT.jar ${package_name}/lib/kylin-coprocessor-kap-1.5.3-SNAPSHOT.jar
 mv ../tmp/kylin-job-kap-1.5.3-SNAPSHOT.jar ${package_name}/lib/kylin-job-kap-1.5.3-SNAPSHOT.jar
 tar -cvzf ${package_name}-obf.tar.gz ${package_name}
