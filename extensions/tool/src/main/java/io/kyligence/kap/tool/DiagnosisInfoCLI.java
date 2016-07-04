@@ -2,10 +2,10 @@ package io.kyligence.kap.tool;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.tool.AbstractInfoExtractor;
 import org.slf4j.Logger;
@@ -42,7 +42,6 @@ public class DiagnosisInfoCLI extends AbstractInfoExtractor {
     }
 
     public static void main(String[] args) {
-        args = new String[] { "-destDir", "aa" };
         DiagnosisInfoCLI diagnosisInfoCLI = new DiagnosisInfoCLI();
         diagnosisInfoCLI.execute(args);
     }
@@ -54,6 +53,8 @@ public class DiagnosisInfoCLI extends AbstractInfoExtractor {
         ArrayList<String> argList = Lists.newArrayList();
         argList.add("-submodule");
         argList.add("true");
+        argList.add("-compress");
+        argList.add("false");
         argList.add("-project");
         argList.add("-all");
         argList.add("-destDir");
@@ -70,8 +71,9 @@ public class DiagnosisInfoCLI extends AbstractInfoExtractor {
             argList.add("-includeClient");
             argList.add(optionsHelper.getOptionValue(OPTION_INCLUDE_CLIENT));
         }
+
         String[] args = new String[argList.size()];
-        logger.info(Arrays.toString(args));
+        logger.info(StringUtils.join(argList, ","));
         diagnosisInfoCLI.execute(argList.toArray(args));
     }
 }
