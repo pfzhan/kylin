@@ -57,7 +57,7 @@ public class UserController extends BasicController implements UserDetailsServic
 
     private Pattern bcryptPattern;
     private BCryptPasswordEncoder pwdEncoder;
-    
+
     @PostConstruct
     public void init() throws IOException {
         List<UserObj> all = listAllUsers();

@@ -39,7 +39,7 @@ public class UserControllerTest extends ServiceTestBase {
     UserController userController;
 
     BCryptPasswordEncoder pwdEncoder = new BCryptPasswordEncoder();
-    
+
     @Test
     public void testBasics() throws IOException {
         userController.delete("TEST");

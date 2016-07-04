@@ -62,7 +62,7 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
         } catch (IOException ex) {
             licenseLog.error("Failed to get hostname", ex);
         }
-        
+
     }
 
     private void gatherLicense(File kylinHome) {
@@ -80,13 +80,13 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
                 while ((l = in.readLine()) != null) {
                     if ("====".equals(l)) {
                         System.setProperty("kap.license.statement", statement);
-                        
+
                         String dates = in.readLine();
                         System.setProperty("kap.dates", dates);
-                        
+
                         String license = in.readLine();
                         System.setProperty("kap.license", license);
-                        
+
                         licenseLog.info("KAP License:\n" + statement + "====\n" + dates + "\n" + license);
                         break;
                     }

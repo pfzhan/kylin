@@ -10,7 +10,6 @@ public class ParquetMRSteps extends JobBuilderSupport {
     public ParquetMRSteps(IRealizationSegment seg) {
         super(seg, null);
     }
-    
 
     public MapReduceExecutable createParquetPageIndex(String jobId) {
         MapReduceExecutable result = new MapReduceExecutable();

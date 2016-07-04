@@ -112,18 +112,18 @@ public class ParquetRawWriterBuilder {
         if (dataEncodings == null) {
             dataEncodings = new ArrayList<Encoding>();
             for (int i = 0; i < type.getColumns().size(); ++i) {
-                switch(type.getColumns().get(i).getType()) {
-                    case BOOLEAN:
-                    case INT32:
-                        dataEncodings.add(Encoding.RLE);
-                        break;
-                    case FIXED_LEN_BYTE_ARRAY:
-                    case BINARY:
-                        dataEncodings.add(Encoding.DELTA_BYTE_ARRAY);
-                        break;
-                    default:
-                        dataEncodings.add(Encoding.PLAIN);
-                        break;
+                switch (type.getColumns().get(i).getType()) {
+                case BOOLEAN:
+                case INT32:
+                    dataEncodings.add(Encoding.RLE);
+                    break;
+                case FIXED_LEN_BYTE_ARRAY:
+                case BINARY:
+                    dataEncodings.add(Encoding.DELTA_BYTE_ARRAY);
+                    break;
+                default:
+                    dataEncodings.add(Encoding.PLAIN);
+                    break;
                 }
             }
         }
