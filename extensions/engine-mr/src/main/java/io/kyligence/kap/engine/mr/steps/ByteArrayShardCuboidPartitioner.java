@@ -6,9 +6,6 @@ import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.kylin.cube.kv.RowConstants;
 import org.apache.kylin.engine.mr.ByteArrayWritable;
 
-/**
- * Created by roger on 5/27/16.
- */
 public class ByteArrayShardCuboidPartitioner extends Partitioner<ByteArrayWritable, ByteArrayWritable> {
 
     private int hash(byte[] src, int max) {

@@ -17,10 +17,6 @@ import org.apache.parquet.column.values.plain.PlainValuesWriter;
 import org.apache.parquet.column.values.rle.RunLengthBitPackingHybridValuesWriter;
 import org.apache.parquet.io.ParquetEncodingException;
 
-/**
- * Created by roger on 5/19/16.
- */
-
 // TODO: Tuning slab size, abstract it to file its own class
 // TODO: Enable Dictionary Page Writer
 public enum Encoding {

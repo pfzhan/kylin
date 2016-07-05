@@ -10,9 +10,6 @@ import org.apache.hadoop.fs.Path;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
-/**
- * Created by roger on 6/13/16.
- */
 public class ParquetBundleReaderBuilder {
     private String indexPathSuffix = "index";
     private Configuration conf;

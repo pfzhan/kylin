@@ -16,9 +16,6 @@ import com.esotericsoftware.kryo.KryoSerializable;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 
-/**
- * Created by roger on 6/21/16.
- */
 public class SerializableImmutableRoaringBitmap implements Serializable, KryoSerializable {
     private static final long serialVersionUID = 4392777396404406037L;
 

@@ -6,9 +6,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.kylin.cube.kv.RowConstants;
 
-/**
- * Created by roger on 5/27/16.
- */
 public class ShardCuboidPartitioner extends Partitioner<Text, Text> {
 
     private int hash(byte[] src, int max) {

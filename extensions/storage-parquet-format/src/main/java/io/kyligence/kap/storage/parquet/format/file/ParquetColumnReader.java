@@ -5,9 +5,6 @@ import java.io.IOException;
 import org.roaringbitmap.PeekableIntIterator;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
-/**
- * Created by roger on 6/15/16.
- */
 public class ParquetColumnReader {
     private ParquetRawReader reader;
     private int column;

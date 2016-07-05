@@ -6,9 +6,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
-/**
- * Created by roger on 6/15/16.
- */
 public class ParquetColumnReaderBuilder {
     private String indexPathSuffix = "index";
     private Configuration conf = null;

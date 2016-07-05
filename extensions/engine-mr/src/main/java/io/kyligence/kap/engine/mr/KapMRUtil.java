@@ -15,9 +15,6 @@ import org.apache.kylin.metadata.realization.IRealizationSegment;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.kylin.storage.StorageFactory;
 
-/**
- * Created by roger on 5/26/16.
- */
 public class KapMRUtil {
     public static IMRInput.IMRBatchCubingInputSide getBatchCubingInputSide(IRealizationSegment seg) {
         return SourceFactory.createEngineAdapter(seg, IMRInput.class).getBatchCubingInputSide(seg);
