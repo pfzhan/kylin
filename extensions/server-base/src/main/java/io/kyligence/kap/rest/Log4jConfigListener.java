@@ -11,14 +11,14 @@ import javax.servlet.ServletContextEvent;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
+import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.common.util.License;
 
 public class Log4jConfigListener extends org.springframework.web.util.Log4jConfigListener {
 
     private boolean isDebugTomcat;
-    private Logger licenseLog;
 
     public Log4jConfigListener() {
         KapConfig config = KapConfig.getInstanceFromEnv();
@@ -30,7 +30,6 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
         if (!isDebugTomcat) {
             super.contextInitialized(event);
         }
-        licenseLog = LoggerFactory.getLogger("License");
         gatherLicenseInfo();
     }
 
@@ -53,14 +52,14 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
         try {
             Pair<Integer, String> r = cmd.execute("hostname", null);
             if (r.getFirst() != 0) {
-                licenseLog.error("Failed to get hostname, rc=" + r.getFirst());
+                License.error("Failed to get hostname, rc=" + r.getFirst());
             } else {
                 String s = r.getSecond().trim();
-                licenseLog.info("hostname=" + s);
+                License.info("hostname=" + s);
                 System.setProperty("hostname", s);
             }
         } catch (IOException ex) {
-            licenseLog.error("Failed to get hostname", ex);
+            License.error("Failed to get hostname", ex);
         }
     }
 
@@ -89,15 +88,28 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
                         String license = in.readLine();
                         System.setProperty("kap.license", license);
 
-                        licenseLog.info("KAP License:\n" + statement + "====\n" + version + "\n" + dates + "\n" + license);
+                        License.info("KAP License:\n" + statement + "====\n" + version + "\n" + dates + "\n" + license);
+
+                        String[] split = dates.split(",");
+                        long effectDate = DateFormat.stringToMillis(split[0]);
+                        long expDate = DateFormat.stringToMillis(split[1]);
+                        long oneDay = 1000 * 3600 * 24;
+                        if (System.currentTimeMillis() < effectDate - oneDay) {
+                            License.error("License is not effective yet.");
+                        }
+                        if (System.currentTimeMillis() > expDate + oneDay) {
+                            License.error("License has expired.");
+                        }
                         break;
                     }
                     statement += l + "\n";
                 }
                 in.close();
             } catch (IOException ex) {
-                licenseLog.error("", ex);
+                License.error("", ex);
             }
+        } else {
+            License.error("Missing license file");
         }
     }
 
@@ -110,19 +122,21 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
                 while ((l = in.readLine()) != null) {
                     if (l.endsWith("@ApacheKylin")) {
                         String commit = l.substring(0, l.length() - 12);
-                        licenseLog.info("kylin.commit=" + commit);
+                        License.info("kylin.commit=" + commit);
                         System.setProperty("kylin.commit", commit);
                     }
                     if (l.endsWith("@KAP")) {
                         String commit = l.substring(0, l.length() - 4);
-                        licenseLog.info("kap.commit=" + commit);
+                        License.info("kap.commit=" + commit);
                         System.setProperty("kap.commit", commit);
                     }
                 }
                 in.close();
             } catch (IOException ex) {
-                licenseLog.error("", ex);
+                License.error("", ex);
             }
+        } else {
+            License.error("Missing commit file");
         }
     }
 
