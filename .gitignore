@@ -97,3 +97,4 @@ extensions/examples/test_metadata/*
 
 # maven
 dependency-reduced-pom.xml
+server_mapping.txt

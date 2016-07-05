@@ -82,5 +82,5 @@ obfuscate extensions/assembly/ $BUILD_LIB_DIR kylin-job-kap-${kap_version}
 # obfuscate coprocessor jar
 obfuscate extensions/storage-hbase/ $BUILD_LIB_DIR kylin-coprocessor-kap-${kap_version}
 
-rm server_mapping.txt
+#rm server_mapping.txt
 #echo "keep param " $keepParam
