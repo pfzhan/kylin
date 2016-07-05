@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.model.Message;
+import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -18,6 +19,7 @@ import com.google.common.collect.Maps;
 
 /**
  */
+@StateModelInfo(states = {"LEADER", "STANDBY", "OFFLINE"}, initialState = "OFFLINE")
 public class JobEngineTransitionHandler extends TransitionHandler {
     private static final Logger logger = LoggerFactory.getLogger(JobEngineTransitionHandler.class);
     private final KylinConfig kylinConfig;
