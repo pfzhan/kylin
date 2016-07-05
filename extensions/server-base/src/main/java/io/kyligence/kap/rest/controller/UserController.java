@@ -60,6 +60,9 @@ public class UserController extends BasicController implements UserDetailsServic
 
     @PostConstruct
     public void init() throws IOException {
+        bcryptPattern = Pattern.compile("\\A\\$2a?\\$\\d\\d\\$[./0-9A-Za-z]{53}");
+        pwdEncoder = new BCryptPasswordEncoder();
+
         List<UserObj> all = listAllUsers();
         logger.info("All " + all.size() + " users");
         if (all.isEmpty()) {
@@ -69,9 +72,6 @@ public class UserController extends BasicController implements UserDetailsServic
         }
         for (UserObj u : all)
             logger.info(u.toString());
-
-        bcryptPattern = Pattern.compile("\\A\\$2a?\\$\\d\\d\\$[./0-9A-Za-z]{53}");
-        pwdEncoder = new BCryptPasswordEncoder();
     }
 
     @Override
