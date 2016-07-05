@@ -169,6 +169,9 @@ public class HelixClusterAdmin {
             return "ERROR";
         }
         final Set<String> partitionSet = resourceExternalView.getPartitionSet();
+        if (partitionSet.size() == 0) {
+            return "ERROR";
+        }
         final Map<String, String> stateMap = resourceExternalView.getStateMap(partitionSet.iterator().next());
         if (stateMap.containsKey(instanceName)) {
             return stateMap.get(instanceName);
