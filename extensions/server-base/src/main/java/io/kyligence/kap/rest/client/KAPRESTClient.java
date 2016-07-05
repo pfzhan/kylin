@@ -20,13 +20,13 @@ package io.kyligence.kap.rest.client;
 
 import java.io.IOException;
 
-import org.apache.commons.httpclient.HttpException;
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.httpclient.methods.StringRequestEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.util.EntityUtils;
 import org.apache.kylin.common.restclient.RestClient;
-import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.common.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,22 +67,23 @@ public class KAPRESTClient extends RestClient {
         String requestString = JsonUtil.writeValueAsString(request);
 
         String url = baseUrl + "/shardable_query_worker/execution";
-        PostMethod post = new PostMethod(url);
-        post.addRequestHeader("Authorization", basicAuthentication);
-        post.setRequestEntity(new StringRequestEntity(requestString, "application/json", "UTF-8"));
+        HttpPost post = new HttpPost(url);
+        post.addHeader("Authorization", basicAuthentication);
+        post.setEntity(new StringEntity(requestString, ContentType.create("application/json", "UTF-8")));
 
         try {
-            int code = client.executeMethod(post);
-            String msg = Bytes.toString(post.getResponseBody());
+            CloseableHttpResponse response = client.execute(post);
+            String msg = EntityUtils.toString(response.getEntity());
 
-            if (code != 200)
-                throw new IOException("Invalid response " + code + " with shardable query  " + url + "\n" + msg);
+            if (response.getStatusLine().getStatusCode() != 200)
+                throw new IOException("Invalid response " + response.getStatusLine().getStatusCode() + " with shardable query  " + url + "\n" + msg);
 
             SequenceSQLResponse sequenceSQLResponse = JsonUtil.readValue(msg, SequenceSQLResponse.class);
             logger.info("KAPRESTClient {} dispatchSequenceSQLExecutionToWorker finished in {} millis", url, System.currentTimeMillis() - startTime);
+            response.close();
             return sequenceSQLResponse;
 
-        } catch (HttpException ex) {
+        } catch (Exception ex) {
             throw new IOException(ex);
         } finally {
             post.releaseConnection();
@@ -93,21 +94,22 @@ public class KAPRESTClient extends RestClient {
 
         long startTime = System.currentTimeMillis();
         String url = baseUrl + "/shardable_query_worker/result/" + sequenceID + "/" + workerID;
-        HttpMethod get = new GetMethod(url);
-        get.addRequestHeader("Authorization", basicAuthentication);
+        HttpGet get = new HttpGet(url);
+        get.addHeader("Authorization", basicAuthentication);
 
         try {
-            int code = client.executeMethod(get);
-            String msg = get.getResponseBodyAsString();
+            CloseableHttpResponse response = client.execute(get);
+            String msg = EntityUtils.toString(response.getEntity());
 
-            if (code != 200)
-                throw new IOException("Invalid response " + code + " when collecting results from  " + url + "\n" + msg);
+            if (response.getStatusLine().getStatusCode() != 200)
+                throw new IOException("Invalid response " + response.getStatusLine().getStatusCode() + " when collecting results from  " + url + "\n" + msg);
 
             SequenceSQLResponse sequenceSQLResponse = JsonUtil.readValue(msg, SequenceSQLResponse.class);
             logger.info("KAPRESTClient {} collectSequenceSQLResultFromWorker finished in {} millis", url, System.currentTimeMillis() - startTime);
+            response.close();
             return sequenceSQLResponse;
 
-        } catch (HttpException ex) {
+        } catch (Exception ex) {
             throw new IOException(ex);
         } finally {
             get.releaseConnection();
@@ -118,21 +120,22 @@ public class KAPRESTClient extends RestClient {
 
         long startTime = System.currentTimeMillis();
         String url = baseUrl + "/shardable_query_worker/topology/" + sequenceID + "/" + workerID;
-        HttpMethod get = new GetMethod(url);
-        get.addRequestHeader("Authorization", basicAuthentication);
+        HttpGet get = new HttpGet(url);
+        get.addHeader("Authorization", basicAuthentication);
 
         try {
-            int code = client.executeMethod(get);
-            String msg = get.getResponseBodyAsString();
+            CloseableHttpResponse response = client.execute(get);
+            String msg = EntityUtils.toString(response.getEntity());
 
-            if (code != 200)
-                throw new IOException("Invalid response " + code + " when collecting stats from  " + url + "\n" + msg);
+            if (response.getStatusLine().getStatusCode() != 200)
+                throw new IOException("Invalid response " + response.getStatusLine().getStatusCode() + " when collecting stats from  " + url + "\n" + msg);
 
             String ret = msg;
             logger.info("KAPRESTClient {} collectStatsFromWorker finished in {} millis", url, System.currentTimeMillis() - startTime);
+            response.close();
             return ret;
 
-        } catch (HttpException ex) {
+        } catch (Exception ex) {
             throw new IOException(ex);
         } finally {
             get.releaseConnection();
