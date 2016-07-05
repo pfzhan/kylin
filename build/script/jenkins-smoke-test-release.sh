@@ -1,5 +1,13 @@
 #!/bin/bash
 pkg_name=`ls dist/*-obf.tar.gz`
+echo $pkg_name
+if [ -f test.license ]; then
+    tar -zxvf $pkg_name
+    mv -f test.license kylin-kap-*-bin/
+    rm -f $pkg_name
+    tar -zcvf $pkg_name kylin-kap-*-bin/
+    rm -rf kylin-kap-*-bin/
+fi
 
 test_home=smoke-test
 mkdir ${test_home}
