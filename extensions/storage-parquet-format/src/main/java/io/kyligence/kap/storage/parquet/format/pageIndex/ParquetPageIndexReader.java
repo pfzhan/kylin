@@ -5,7 +5,6 @@ import java.io.IOException;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 
-import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexReader;
 
 public class ParquetPageIndexReader implements Closeable {
