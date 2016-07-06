@@ -42,6 +42,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Maps;
 
+@Ignore
 public class SparkQueryTest extends KylinTestBase {
 
     @BeforeClass
