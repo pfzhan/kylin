@@ -47,8 +47,13 @@ import com.clearspring.analytics.util.Lists;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SubmitParams;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SparkQueryLocalTest extends io.kyligence.kap.common.util.LocalFileMetadataTestCase {
+
+    public static final Logger logger = LoggerFactory.getLogger(SparkQueryLocalTest.class);
+
 
     private GridTable table;
     private GTInfo info;
@@ -80,7 +85,7 @@ public class SparkQueryLocalTest extends io.kyligence.kap.common.util.LocalFileM
             GTRecord temp = new GTRecord(info);
             while (responseBuffer.remaining() > 0) {
                 temp.loadColumns(req.getColumns(), responseBuffer);
-                System.out.println("Result record : " + temp);
+                logger.info("Result record : " + temp);
             }
         } catch (IOException e) {
             throw new RuntimeException("error", e);

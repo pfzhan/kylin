@@ -20,10 +20,8 @@ package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -40,6 +38,8 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.broadcast.Broadcast;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -49,10 +49,11 @@ import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.OriginalBytesGT
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetRawInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetRawRecordReader;
-import io.kyligence.kap.storage.parquet.format.serialize.SerializableImmutableRoaringBitmap;
 import scala.Tuple2;
 
 public class SparkCubeVisitJob implements Serializable {
+
+    public static final Logger logger = LoggerFactory.getLogger(SparkCubeVisitJob.class);
 
     private transient JavaSparkContext sc;
     private transient SparkJobProtos.SparkJobRequest request;
@@ -95,24 +96,6 @@ public class SparkCubeVisitJob implements Serializable {
         return result;
     }
 
-    private static String serializeHashMap(HashMap<String, SerializableImmutableRoaringBitmap> map) {
-        ByteArrayOutputStream bos = null;
-        ObjectOutputStream oos = null;
-        String result = null;
-        try {
-            bos = new ByteArrayOutputStream();
-            oos = new ObjectOutputStream(bos);
-            oos.writeObject(map);
-            result = new String(bos.toByteArray(), "ISO-8859-1");
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
-            IOUtils.closeQuietly(oos);
-            IOUtils.closeQuietly(bos);
-        }
-        return result;
-    }
-
     public List<byte[]> executeTask() {
         String basePath = new StringBuffer(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
                 append(bcCanonicalCuboid.getValue().getCubeId()).append("/").//
@@ -123,10 +106,10 @@ public class SparkCubeVisitJob implements Serializable {
 
         Configuration conf = new Configuration();
 
-        System.out.println("Required Measures: " + StringUtils.join(request.getRequiredMeasuresList(), ","));
+        logger.info("Required Measures: " + StringUtils.join(request.getRequiredMeasuresList(), ","));
         conf.set(ParquetFormatConstants.KYLIN_FILTER_MEASURES_BITSET_MAP, serializeBitMap(request.getRequiredMeasuresList()));
 
-        System.out.println("Max GT length: " + request.getMaxRecordLength());
+        logger.info("Max GT length: " + request.getMaxRecordLength());
         conf.set(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH, String.valueOf(request.getMaxRecordLength()));
 
         conf.set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, request.getKylinProperties());
@@ -137,9 +120,9 @@ public class SparkCubeVisitJob implements Serializable {
             throw new RuntimeException(e);
         }
 
-        System.out.println("================Cube Data Start==================");
+        logger.info("================Cube Data Start==================");
         // visit parquet data file
-        System.out.println("Parquet path is " + parquetPath);
+        logger.info("Parquet path is " + parquetPath);
         JavaPairRDD<byte[], byte[]> seed = sc.newAPIHadoopFile(parquetPath, ParquetRawInputFormat.class, byte[].class, byte[].class, conf);
         List<byte[]> collected = seed.mapPartitions(new FlatMapFunction<Iterator<Tuple2<byte[], byte[]>>, byte[]>() {
             @Override
@@ -162,9 +145,9 @@ public class SparkCubeVisitJob implements Serializable {
                 return Iterables.transform(preAggred, new CoalesceGTRecordExport(gtScanRequest));//out
             }
         }).collect();
-        System.out.println("================Cube Data End==================");
+        logger.info("================Cube Data End==================");
 
-        System.out.println("The result size is " + collected.size());
+        logger.info("The result size is " + collected.size());
         return collected;
     }
 }

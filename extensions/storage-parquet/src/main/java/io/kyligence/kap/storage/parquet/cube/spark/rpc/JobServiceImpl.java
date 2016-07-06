@@ -22,6 +22,8 @@ import java.util.List;
 
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.ByteString;
 
@@ -32,6 +34,8 @@ import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.
 
 //TODO: not thread safe now
 public class JobServiceImpl implements JobServiceGrpc.JobService {
+
+    public static final Logger logger = LoggerFactory.getLogger(JobServiceImpl.class);
 
     SparkConf conf;
     JavaSparkContext sc;
@@ -51,7 +55,7 @@ public class JobServiceImpl implements JobServiceGrpc.JobService {
         SparkCubeVisitJob submit = new SparkCubeVisitJob(sc, request);
         List<byte[]> collected = submit.executeTask();
 
-        System.out.println("Time for spark cube visit is " + (System.currentTimeMillis() - startTime));
+        logger.info("Time for spark cube visit is " + (System.currentTimeMillis() - startTime));
 
         //        int reqValue = Bytes.toInt(request.getRequest().toByteArray());
         //        System.out.println("reqValue is " + reqValue);

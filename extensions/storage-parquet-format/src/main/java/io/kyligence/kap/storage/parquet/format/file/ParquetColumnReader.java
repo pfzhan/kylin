@@ -30,8 +30,6 @@ public class ParquetColumnReader {
     public GeneralValuesReader getNextValuesReader() throws IOException {
         if (iter != null) {
             if (iter.hasNext()) {
-                //                int pageIndex = iter.next();
-                //                System.out.println("Read page " + pageIndex);
                 return reader.getValuesReader(iter.next(), column);
             }
             return null;

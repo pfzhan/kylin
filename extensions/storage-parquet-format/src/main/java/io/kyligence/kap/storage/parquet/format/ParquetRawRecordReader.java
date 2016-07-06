@@ -18,6 +18,8 @@ import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.parquet.io.api.Binary;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
@@ -25,6 +27,7 @@ import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
 import io.kyligence.kap.storage.parquet.format.pageIndex.format.ParquetPageIndexRecordReader;
 
 public class ParquetRawRecordReader extends RecordReader<byte[], byte[]> {
+    public static final Logger logger = LoggerFactory.getLogger(ParquetRawRecordReader.class);
 
     public static ThreadLocal<GTScanRequest> gtScanRequestThreadLocal = new ThreadLocal<>();
 
@@ -43,7 +46,7 @@ public class ParquetRawRecordReader extends RecordReader<byte[], byte[]> {
         conf = context.getConfiguration();
         shardPath = fileSplit.getPath();
 
-        //index visit (TODO: it's remote now!)
+        long startTime = System.currentTimeMillis();
         KylinConfig.setKylinConfigFromInputStream(IOUtils.toInputStream(conf.get(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES)));
         ParquetPageIndexRecordReader indexReader = new ParquetPageIndexRecordReader();
         long fileOffset = indexReader.initialize(split, context);
@@ -51,15 +54,15 @@ public class ParquetRawRecordReader extends RecordReader<byte[], byte[]> {
         GTScanRequest gtScanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES).getBytes("ISO-8859-1")));
         gtScanRequestThreadLocal.set(gtScanRequest);
         TupleFilter filter = gtScanRequest.getFilterPushDown();
-        ImmutableRoaringBitmap pageBitmap = indexTable.lookup(filter);
-        System.out.println("Inverted Index bitmap: " + pageBitmap);
+        ImmutableRoaringBitmap pageBitmap = indexTable.lookup(null);
+        logger.info("Inverted Index bitmap: " + pageBitmap + ". Time spent is: " + (System.currentTimeMillis() - startTime));
 
         ImmutableRoaringBitmap measureBitmap = readBitmap(ParquetFormatConstants.KYLIN_FILTER_MEASURES_BITSET_MAP);
         MutableRoaringBitmap columnBitmap = MutableRoaringBitmap.bitmapOf(0);
         for (int i : measureBitmap) {
             columnBitmap.add(i + 1);
         }
-        System.out.println("All columns read by parquet: " + StringUtils.join(columnBitmap, ","));
+        logger.info("All columns read by parquet: " + StringUtils.join(columnBitmap, ","));
 
         int gtMaxLength = Integer.valueOf(conf.get(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH));
         val = new byte[gtMaxLength];

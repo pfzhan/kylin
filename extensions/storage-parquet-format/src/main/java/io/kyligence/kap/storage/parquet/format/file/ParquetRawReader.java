@@ -28,8 +28,12 @@ import org.apache.parquet.hadoop.metadata.ColumnChunkMetaData;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.schema.MessageType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ParquetRawReader {
+    public static final Logger logger = LoggerFactory.getLogger(ParquetRawReader.class);
+
     private ParquetMetadata parquetMetadata;
     private FSDataInputStream inputStream;
     private Configuration config;
@@ -47,7 +51,7 @@ public class ParquetRawReader {
         indexMap = parquetMetadata.getFileMetaData().getKeyValueMetaData();
         pagesPerGroup = Integer.parseInt(indexMap.get("pagesPerGroup"));
         this.fileOffset = fileOffset;
-        System.out.println("The file offset is " + this.fileOffset);
+        logger.info("The file offset is " + this.fileOffset);
     }
 
     public MessageType getSchema() {

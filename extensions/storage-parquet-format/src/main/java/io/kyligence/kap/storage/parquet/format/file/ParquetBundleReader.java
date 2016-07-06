@@ -7,8 +7,12 @@ import java.util.List;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ParquetBundleReader {
+    public static final Logger logger = LoggerFactory.getLogger(ParquetBundleReader.class);
+
     List<ParquetReaderState> readerStates;
 
     public ParquetBundleReader(Configuration configuration, Path path, Path indexPath, ImmutableRoaringBitmap columns, ImmutableRoaringBitmap pageBitset, long fileOffset) throws IOException {
@@ -16,7 +20,7 @@ public class ParquetBundleReader {
 
         for (int column : columns) {
             readerStates.add(new ParquetReaderState(new ParquetColumnReaderBuilder().setFileOffset(fileOffset).setConf(configuration).setPath(path).setIndexPath(indexPath).setColumn(column).setPageBitset(pageBitset).build()));
-            System.out.println("Read Column: " + column);
+            logger.info("Read Column: " + column);
         }
     }
 

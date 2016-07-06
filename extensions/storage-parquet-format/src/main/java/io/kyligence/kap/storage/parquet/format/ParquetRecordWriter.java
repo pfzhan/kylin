@@ -128,7 +128,6 @@ public class ParquetRecordWriter<K, V> extends RecordWriter<K, V> {
 
     private Path getPath() {
         Path path = new Path(new StringBuffer().append(outputDir).append(curCuboidId).append("/").append(curShardId).append(".parquet").toString());
-        //        System.out.println("Create parquet file " + path.getName());
         return path;
     }
 }

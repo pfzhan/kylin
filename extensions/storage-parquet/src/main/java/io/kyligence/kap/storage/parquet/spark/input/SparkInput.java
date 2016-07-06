@@ -15,17 +15,20 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.storage.parquet.format.ParquetRawInputFormat;
 import io.kyligence.kap.storage.parquet.format.serialize.SerializableImmutableRoaringBitmap;
 import scala.Tuple2;
 
 public class SparkInput {
+    public static final Logger logger = LoggerFactory.getLogger(SparkInput.class);
 
     public static void main(String[] args) throws IOException, InterruptedException {
         assert (args.length >= 1);
         String path = args[0];
-        System.out.println(path);
+        logger.info(path);
         JavaSparkContext context = new JavaSparkContext(new SparkConf());
         Configuration config = new Configuration();
 
@@ -36,7 +39,7 @@ public class SparkInput {
         // Set page bitmap
         HashMap<String, SerializableImmutableRoaringBitmap> pageMap = new HashMap<>();
         pageMap.put(path, sBitmap);
-        System.out.println("path put: " + path);
+        logger.info("path put: " + path);
         //        config.set(ParquetFormatConstants.KYLIN_FILTER_PAGE_BITSET_MAP, serialize(pageMap));
 
         //        // Set measures column bitmap
