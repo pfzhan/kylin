@@ -35,7 +35,7 @@ public class ParquetPageIndexRecordReader {
         inputStream = FileSystem.get(conf).open(shardIndexPath);
         assert Longs.BYTES == ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE;
         long fileOffset = inputStream.readLong();
-        indexTable = new ParquetPageIndexTable(inputStream);
+        indexTable = new ParquetPageIndexTable(inputStream, ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE);
         return fileOffset;
     }
 

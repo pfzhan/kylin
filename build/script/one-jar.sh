@@ -6,7 +6,7 @@ mkdir ${lib_dir}/kap
 cd ${lib_dir}/kap
 
 for in_jar in `ls ${lib_dir}/kylin-*.jar` `ls ${lib_dir}/kap-*.jar`;do
-    unzip -qq $in_jar
+    unzip -o -qq $in_jar
     rm $in_jar
     rm -rf META-INF
 done

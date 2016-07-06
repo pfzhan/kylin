@@ -25,7 +25,11 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
     //    HashMap<CompareTupleFilter, MutableRoaringBitmap> filterIndexMap = new HashMap<>();
 
     public ParquetPageIndexTable(FSDataInputStream inputStream) throws IOException {
-        indexReader = new ParquetPageIndexReader(inputStream);
+        this(inputStream, 0);
+    }
+
+    public ParquetPageIndexTable(FSDataInputStream inputStream, int startOffset) throws IOException {
+        indexReader = new ParquetPageIndexReader(inputStream, startOffset);
     }
 
     // TODO: should use batch lookup

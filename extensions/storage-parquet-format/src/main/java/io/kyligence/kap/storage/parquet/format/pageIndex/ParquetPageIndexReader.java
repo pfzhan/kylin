@@ -14,6 +14,10 @@ public class ParquetPageIndexReader implements Closeable {
     private long[] startOffsets;
 
     public ParquetPageIndexReader(FSDataInputStream inputStream) throws IOException {
+        this(inputStream, 0);
+    }
+
+    public ParquetPageIndexReader(FSDataInputStream inputStream, int startOffset) throws IOException {
         this.columnNum = inputStream.readInt();
         this.columnIndexReaders = new ColumnIndexReader[columnNum];
         this.startOffsets = new long[columnNum];
@@ -23,7 +27,7 @@ public class ParquetPageIndexReader implements Closeable {
         }
 
         for (int i = 0; i < columnNum; i++) {
-            columnIndexReaders[i] = new ColumnIndexReader(inputStream, startOffsets[i] + ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE);
+            columnIndexReaders[i] = new ColumnIndexReader(inputStream, startOffsets[i] + startOffset);
         }
     }
 
