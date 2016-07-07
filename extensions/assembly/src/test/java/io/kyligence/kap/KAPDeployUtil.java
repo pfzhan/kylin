@@ -6,9 +6,9 @@ import java.io.IOException;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceTool;
+import org.apache.kylin.cube.CubeDescManager;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
-import org.apache.kylin.cube.CubeUpdate;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.slf4j.Logger;
@@ -32,9 +32,7 @@ public class KAPDeployUtil {
 
         // update cube desc signature.
         for (CubeInstance cube : CubeManager.getInstance(config()).listAllCubes()) {
-            cube.getDescriptor().setSignature(cube.getDescriptor().calculateSignature());
-            CubeUpdate cubeBuilder = new CubeUpdate(cube);
-            CubeManager.getInstance(config()).updateCube(cubeBuilder);
+            CubeDescManager.getInstance(config()).updateCubeDesc(cube.getDescriptor());//enforce signature updating
         }
     }
 
