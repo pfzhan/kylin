@@ -77,10 +77,10 @@ function obfuscate {
 obfuscate extensions/server/ extensions/server/target kap-server-${kap_version}
 
 # obfuscate job(assembly) jar
-obfuscate extensions/assembly/ $BUILD_LIB_DIR kylin-job-kap-${kap_version}
+obfuscate extensions/assembly/ $BUILD_LIB_DIR kylin-job-kap-${release_version}
 
 # obfuscate coprocessor jar
-obfuscate extensions/storage-hbase/ $BUILD_LIB_DIR kylin-coprocessor-kap-${kap_version}
+obfuscate extensions/storage-hbase/ $BUILD_LIB_DIR kylin-coprocessor-kap-${release_version}
 
 #rm server_mapping.txt
 #echo "keep param " $keepParam

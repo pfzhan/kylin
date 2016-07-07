@@ -20,6 +20,9 @@ function exportProjectVersions() {
         export kylin_version=`mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version -f kylin | grep -Ev '(^\[|Download\w+:)'`
         echo "Apache Kylin Version: ${kylin_version}"
     fi
+    if [ -z "${release_version}" ]; then
+        export release_version=$kap_version
+    fi
 }
 
 function detectOSType() {

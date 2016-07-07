@@ -8,7 +8,7 @@ exportProjectVersions
 
 # Package as *.tar.gz
 echo 'package tar.gz'
-package_name=kylin-kap-${kap_version}-bin
+package_name=kylin-kap-${release_version}-bin
 cd build/
 rm -rf ${package_name}
 mkdir ${package_name}
@@ -52,4 +52,7 @@ tar -cvzf ${package_name}-obf.tar.gz ${package_name}
 
 rm -r ../tmp
 rm -rf ${package_name}
-echo "Package ready: dist/${package_name}.tar.gz"
+
+mv ../server_mapping.txt ${package_name}-obf.mapping
+echo "Package ready."
+ls .
