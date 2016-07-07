@@ -47,7 +47,7 @@ public class PercentileSerializerTest extends LocalFileMetadataTestCase {
         PercentileCounter counter1 = new PercentileCounter(100, 0.5);
         counter1.merge(counter);
 
-        assertEquals(markResult, counter1.getResultEstimate(), 0.001);
+        assertEquals(markResult, counter1.getResultEstimate(), 0.01);
     }
 
 }

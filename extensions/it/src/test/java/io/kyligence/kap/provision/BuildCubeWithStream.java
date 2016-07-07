@@ -40,7 +40,7 @@ public class BuildCubeWithStream extends org.apache.kylin.provision.BuildCubeWit
             buildCubeWithStream.before();
             buildCubeWithStream.build();
             logger.info("Build is done");
-            afterClass();
+            buildCubeWithStream.cleanup();
             logger.info("Going to exit");
             System.exit(0);
         } catch (Exception e) {
@@ -53,4 +53,5 @@ public class BuildCubeWithStream extends org.apache.kylin.provision.BuildCubeWit
     protected void deployEnv() throws IOException {
         KAPDeployUtil.overrideJobJarLocations();
     }
+
 }
