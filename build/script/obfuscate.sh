@@ -33,54 +33,73 @@ fi
 
 # $1 - dir for get class path
 # $2 - bin location dir
-# $3 - bin orignal name
+# $3 - 0 for -printmapping, other for -applymapping
+# $4 - output jar name, without .jar
+# .. - input jar names
 function obfuscate {
 	cd $1
 	mvn dependency:build-classpath -Dmdep.outputFile=cp.txt
 	cp=`cat cp.txt`
 	rm cp.txt
-	cd ../../
+	cd -
 
 	# cover both jar and war
-	if [ -f $2/$3.jar ];then
-		origin_bin=$2/$3.jar
-		obf_bin=$2/$3-obf.jar
-		otherParam='-applymapping server_mapping.txt'
-	else
-		origin_bin=$2/$3.war
-		obf_bin=$2/$3-obf.war
+	location_dir=$2
+	output_jar=$location_dir/$4.jar
+
+	if [ "$3" -eq "0" ];then
 		otherParam='-printmapping server_mapping.txt'
+	else
+		otherParam='-applymapping server_mapping.txt'
 	fi
-	
+
+	shift 4
+
 	# make proguard config
 	cat build/script/obfuscate.pro > tmp.pro
-	echo -injars ${origin_bin} \(!META-INF/*.SF,!META-INF/*.DSA,!META-INF/*.RSA\)  >> tmp.pro
-	echo -outjars ${obf_bin} \(!META-INF/*.SF,!META-INF/*.DSA,!META-INF/*.RSA\)    >> tmp.pro
+	for input_jar in $@; do
+	    echo -injars $location_dir/$input_jar \(!META-INF/*.SF,!META-INF/*.DSA,!META-INF/*.RSA\)  >> tmp.pro
+	done
+
+	echo -outjars $output_jar \(!META-INF/*.SF,!META-INF/*.DSA,!META-INF/*.RSA\)    >> tmp.pro
 	echo -libraryjars $cp                                                          >> tmp.pro
 	echo -libraryjars $java_home/lib/rt.jar                                        >> tmp.pro
 	echo -libraryjars $java_home/lib/jce.jar                                       >> tmp.pro
 	echo -libraryjars $java_home/lib/jsse.jar                                      >> tmp.pro
 	echo -libraryjars $java_home/lib/ext/sunjce_provider.jar                       >> tmp.pro
-	echo $keepParam $otherParam                                                    >> tmp.pro
+	echo $keepParam $otherParam                                                  >> tmp.pro
 	
 	proguard @tmp.pro  || { exit 1; }
-	rm tmp.pro
-	
-	if [ -f $2/$3.jar ];then
-		mv $obf_bin tmp/$3.jar
-	else
-		mv $obf_bin tmp/$3.war
-	fi
+
+	for input_jar in $@; do
+	    rm $location_dir/$input_jar
+	done
+#	rm tmp.pro
 }
 
 # obfuscate server war
-obfuscate extensions/server/ extensions/server/target kap-server-${kap_version}
+mkdir tmp_war
+cd tmp_war
+jar -xvf ../extensions/server/target/kap-server-${kap_version}.war
+rm WEB-INF/lib/kap.jar
+
+cd ..
+obfuscate extensions/server/ tmp_war/WEB-INF/lib 0 kap `cd tmp_war/WEB-INF/lib;ls k*.jar|grep '^[kylin|kap]'`
+
+cd tmp_war
+jar cvf kap-server-${kap_version}.war *
+mv kap-server-${kap_version}.war ../tmp/kylin.war
+
+cd ..
+rm -rf tmp_war
 
 # obfuscate job(assembly) jar
-obfuscate extensions/assembly/ $BUILD_LIB_DIR kylin-job-kap-${release_version}
+obfuscate extensions/assembly/ $BUILD_LIB_DIR 1 kylin-job-kap-${release_version}-obf kylin-job-kap-${release_version}.jar
+mv $BUILD_LIB_DIR/kylin-job-kap-${release_version}-obf.jar tmp/
 
 # obfuscate coprocessor jar
-obfuscate extensions/storage-hbase/ $BUILD_LIB_DIR kylin-coprocessor-kap-${release_version}
+obfuscate extensions/storage-hbase/ $BUILD_LIB_DIR 1 kylin-coprocessor-kap-${release_version}-obf kylin-coprocessor-kap-${release_version}.jar
+mv $BUILD_LIB_DIR/kylin-coprocessor-kap-${release_version}-obf.jar tmp/
 
 #rm server_mapping.txt
 #echo "keep param " $keepParam
