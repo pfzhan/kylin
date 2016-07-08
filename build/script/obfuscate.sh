@@ -62,19 +62,19 @@ function obfuscate {
 	done
 
 	echo -outjars $output_jar \(!META-INF/*.SF,!META-INF/*.DSA,!META-INF/*.RSA\)    >> tmp.pro
-	echo -libraryjars $cp                                                          >> tmp.pro
-	echo -libraryjars $java_home/lib/rt.jar                                        >> tmp.pro
-	echo -libraryjars $java_home/lib/jce.jar                                       >> tmp.pro
-	echo -libraryjars $java_home/lib/jsse.jar                                      >> tmp.pro
-	echo -libraryjars $java_home/lib/ext/sunjce_provider.jar                       >> tmp.pro
-	echo $keepParam $otherParam                                                  >> tmp.pro
+	echo -libraryjars $cp                                                           >> tmp.pro
+	echo -libraryjars $java_home/lib/rt.jar                                         >> tmp.pro
+	echo -libraryjars $java_home/lib/jce.jar                                        >> tmp.pro
+	echo -libraryjars $java_home/lib/jsse.jar                                       >> tmp.pro
+	echo -libraryjars $java_home/lib/ext/sunjce_provider.jar                        >> tmp.pro
+	echo $keepParam $otherParam                                                     >> tmp.pro
 	
 	proguard @tmp.pro  || { exit 1; }
 
 	for input_jar in $@; do
 	    rm $location_dir/$input_jar
 	done
-#	rm tmp.pro
+	rm tmp.pro
 }
 
 # obfuscate server war
@@ -84,7 +84,9 @@ jar -xvf ../extensions/server/target/kap-server-${kap_version}.war
 rm WEB-INF/lib/kap.jar
 
 cd ..
-obfuscate extensions/server/ tmp_war/WEB-INF/lib 0 kap `cd tmp_war/WEB-INF/lib;ls k*.jar|grep '^[kylin|kap]'`
+obfuscate extensions/server/ tmp_war/WEB-INF/lib 0 kap-one `cd tmp_war/WEB-INF/lib;ls kap-*.jar`
+
+build/script/one-jar.sh tmp_war/WEB-INF/lib
 
 cd tmp_war
 jar cvf kap-server-${kap_version}.war *

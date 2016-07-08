@@ -44,4 +44,4 @@ rm -rf ${package_name}
 
 mv ../server_mapping.txt ${package_name}-obf.mapping
 echo "Package ready."
-ls .
+ls ${package_name}*.tar.gz
