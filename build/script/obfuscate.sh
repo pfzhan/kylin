@@ -34,7 +34,8 @@ fi
 # $1 - dir for get class path
 # $2 - bin location dir
 # $3 - 0 for -printmapping, other for -applymapping
-# $4 - output jar name, without .jar
+# $4 - 0 for delete input jars, other for keep
+# $5 - output jar name, without .jar
 # .. - input jar names
 function obfuscate {
 	cd $1
@@ -45,7 +46,7 @@ function obfuscate {
 
 	# cover both jar and war
 	location_dir=$2
-	output_jar=$location_dir/$4.jar
+	output_jar=$location_dir/$5.jar
 
 	if [ "$3" -eq "0" ];then
 		otherParam='-printmapping server_mapping.txt'
@@ -53,7 +54,8 @@ function obfuscate {
 		otherParam='-applymapping server_mapping.txt'
 	fi
 
-	shift 4
+    keep_input=$4
+	shift 5
 
 	# make proguard config
 	cat build/script/obfuscate.pro > tmp.pro
@@ -71,36 +73,38 @@ function obfuscate {
 	
 	proguard @tmp.pro  || { exit 1; }
 
-	for input_jar in $@; do
-	    rm $location_dir/$input_jar
-	done
+    if [ "$keep_input" -eq "0" ]; then
+        for input_jar in $@; do
+            rm $location_dir/$input_jar
+        done
+	fi
 	rm tmp.pro
 }
 
-# obfuscate server war
+# extract server war
 mkdir tmp_war
 cd tmp_war
 jar -xvf ../extensions/server/target/kap-server-${kap_version}.war
 rm WEB-INF/lib/kap.jar
-
 cd ..
-obfuscate extensions/server/ tmp_war/WEB-INF/lib 0 kap-one `cd tmp_war/WEB-INF/lib;ls kap-*.jar`
 
+# only obfuscate kap* jars
+obfuscate extensions/server/ tmp_war/WEB-INF/lib 0 0 kap-one `cd tmp_war/WEB-INF/lib;ls kap-*.jar`
+
+# combine kap* and kylin* jars to one jar
 build/script/one-jar.sh tmp_war/WEB-INF/lib
-
 cd tmp_war
 jar cvf kap-server-${kap_version}.war *
 mv kap-server-${kap_version}.war ../tmp/kylin.war
-
 cd ..
 rm -rf tmp_war
 
 # obfuscate job(assembly) jar
-obfuscate extensions/assembly/ $BUILD_LIB_DIR 1 kylin-job-kap-${release_version}-obf kylin-job-kap-${release_version}.jar
+obfuscate extensions/assembly/ $BUILD_LIB_DIR 1 1 kylin-job-kap-${release_version}-obf kylin-job-kap-${release_version}.jar
 mv $BUILD_LIB_DIR/kylin-job-kap-${release_version}-obf.jar tmp/
 
 # obfuscate coprocessor jar
-obfuscate extensions/storage-hbase/ $BUILD_LIB_DIR 1 kylin-coprocessor-kap-${release_version}-obf kylin-coprocessor-kap-${release_version}.jar
+obfuscate extensions/storage-hbase/ $BUILD_LIB_DIR 1 1 kylin-coprocessor-kap-${release_version}-obf kylin-coprocessor-kap-${release_version}.jar
 mv $BUILD_LIB_DIR/kylin-coprocessor-kap-${release_version}-obf.jar tmp/
 
 

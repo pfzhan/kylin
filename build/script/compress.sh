@@ -34,9 +34,9 @@ cd ../dist
 tar xzf ${package_name}.tar.gz
 
 mv ../tmp/kylin.war ${package_name}/tomcat/webapps/kylin.war
-mv ../tmp/kylin-coprocessor-kap-1.5.3-SNAPSHOT.jar ${package_name}/lib/kylin-coprocessor-kap-1.5.3-SNAPSHOT.jar
-mv ../tmp/kylin-storage-parquet-kap-1.5.3-SNAPSHOT.jar ${package_name}/lib/kylin-storage-parquet-kap-1.5.3-SNAPSHOT.jar
-mv ../tmp/kylin-job-kap-1.5.3-SNAPSHOT.jar ${package_name}/lib/kylin-job-kap-1.5.3-SNAPSHOT.jar
+mv ../tmp/kylin-coprocessor-kap-${release_version}-obf.jar ${package_name}/lib/kylin-coprocessor-kap-${release_version}.jar
+mv ../tmp/kylin-storage-parquet-kap-${release_version}-obf.jar ${package_name}/lib/kylin-storage-parquet-kap-${release_version}.jar
+mv ../tmp/kylin-job-kap-${release_version}-obf.jar ${package_name}/lib/kylin-job-kap-${release_version}.jar
 tar -cvzf ${package_name}-obf.tar.gz ${package_name}
 
 rm -r ../tmp
