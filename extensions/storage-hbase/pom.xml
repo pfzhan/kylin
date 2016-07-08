@@ -105,7 +105,6 @@
                                     <include>org.apache.kylin:kylin-core-cube</include>
                                     <include>io.kyligence.kap:kap-core-cube</include>
                                     <include>io.kyligence.kap:kap-core-metadata</include>
-                                    <include>org.apache.kylin:kylin-invertedindex</include>
                                     <include>org.apache.kylin:kylin-storage-hbase</include>
                                     <include>io.kyligence.kap:kap-storage-hbase</include>
                                     <include>com.ning:compress-lzf</include>

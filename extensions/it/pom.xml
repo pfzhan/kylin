@@ -88,12 +88,6 @@
             <version>${kylin.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.kylin</groupId>
-            <artifactId>kylin-invertedindex</artifactId>
-            <version>${kylin.version}</version>
-        </dependency>
-
-        <dependency>
             <groupId>org.apache.calcite</groupId>
             <artifactId>calcite-linq4j</artifactId>
         </dependency>
