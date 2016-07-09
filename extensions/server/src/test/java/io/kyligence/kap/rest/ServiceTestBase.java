@@ -20,8 +20,6 @@ package io.kyligence.kap.rest;
 
 import org.apache.kylin.cube.CubeDescManager;
 import org.apache.kylin.cube.CubeManager;
-import org.apache.kylin.invertedindex.IIDescManager;
-import org.apache.kylin.invertedindex.IIManager;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.realization.RealizationRegistry;
@@ -69,8 +67,6 @@ public class ServiceTestBase extends LocalFileMetadataTestCase {
         MetadataManager.clearCache();
         CubeDescManager.clearCache();
         CubeManager.clearCache();
-        IIDescManager.clearCache();
-        IIManager.clearCache();
         RealizationRegistry.clearCache();
         ProjectManager.clearCache();
         CacheService.removeAllOLAPDataSources();

@@ -8,7 +8,6 @@ import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.IMRInput;
 import org.apache.kylin.engine.mr.IMROutput;
 import org.apache.kylin.engine.mr.IMROutput2;
-import org.apache.kylin.invertedindex.IISegment;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.realization.IRealizationSegment;
@@ -50,10 +49,6 @@ public class KapMRUtil {
 
     public static IMROutput3.IMRBatchCubingOutputSide3 getBatchCubingOutputSide3(CubeSegment seg) {
         return StorageFactory.createEngineAdapter(seg, IMROutput3.class).getBatchCubingOutputSide(seg);
-    }
-
-    public static IMROutput.IMRBatchInvertedIndexingOutputSide getBatchInvertedIndexingOutputSide(IISegment seg) {
-        return StorageFactory.createEngineAdapter(seg, IMROutput.class).getBatchInvertedIndexingOutputSide(seg);
     }
 
     // use this method instead of ToolRunner.run() because ToolRunner.run() is not thread-sale
