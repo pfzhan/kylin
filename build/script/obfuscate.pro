@@ -16,7 +16,15 @@
 	java.lang.Object readResolve();
 }
 
+-keepclassmembers class io.kyligence.kap.rest.request.** {*;}
+-keepclassmembers class io.kyligence.kap.rest.response.** {*;}
+-keepclassmembers class io.kyligence.kap.measure.percentile.PercentileAggFunc {*;}
+
+
 -keep class !io.kyligence.** {*;}
+-keep class io.kyligence.kap.query.udf.PercentileContUdf {*;}
+
+-keepnames class io.kyligence.kap.measure.percentile.PercentileMeasureTypeFactory
 
 -keep enum io.kyligence.kap.**,io.kyligence.kap.**$** { 
     **[] $VALUES;
