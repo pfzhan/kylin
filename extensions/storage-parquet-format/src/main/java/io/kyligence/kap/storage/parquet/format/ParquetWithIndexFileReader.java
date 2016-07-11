@@ -30,7 +30,7 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
-public class ParquetWithIndexRawReader extends RecordReader<IntWritable, byte[]> {
+public class ParquetWithIndexFileReader extends RecordReader<IntWritable, byte[]> {
     protected Configuration conf;
 
     private FSDataInputStream shardIS;

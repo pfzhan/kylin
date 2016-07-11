@@ -25,7 +25,7 @@ import org.apache.parquet.io.api.Binary;
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
 
-public class ParquetRecordReader<K, V> extends RecordReader<K, V> {
+public class ParquetFileReader<K, V> extends RecordReader<K, V> {
     protected Configuration conf;
 
     private String curCubeId = null;

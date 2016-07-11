@@ -26,8 +26,8 @@ import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
 import io.kyligence.kap.storage.parquet.format.pageIndex.format.ParquetPageIndexRecordReader;
 
-public class ParquetRawRecordReader extends RecordReader<byte[], byte[]> {
-    public static final Logger logger = LoggerFactory.getLogger(ParquetRawRecordReader.class);
+public class ParquetTarballFileReader extends RecordReader<byte[], byte[]> {
+    public static final Logger logger = LoggerFactory.getLogger(ParquetTarballFileReader.class);
 
     public static ThreadLocal<GTScanRequest> gtScanRequestThreadLocal = new ThreadLocal<>();
 

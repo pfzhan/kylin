@@ -47,8 +47,8 @@ import com.google.common.collect.Iterators;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.OriginalBytesGTScanner;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
-import io.kyligence.kap.storage.parquet.format.ParquetRawInputFormat;
-import io.kyligence.kap.storage.parquet.format.ParquetRawRecordReader;
+import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetTarballFileReader;
 import scala.Tuple2;
 
 public class SparkCubeVisitJob implements Serializable {
@@ -123,7 +123,7 @@ public class SparkCubeVisitJob implements Serializable {
         logger.info("================Cube Data Start==================");
         // visit parquet data file
         logger.info("Parquet path is " + parquetPath);
-        JavaPairRDD<byte[], byte[]> seed = sc.newAPIHadoopFile(parquetPath, ParquetRawInputFormat.class, byte[].class, byte[].class, conf);
+        JavaPairRDD<byte[], byte[]> seed = sc.newAPIHadoopFile(parquetPath, ParquetTarballFileInputFormat.class, byte[].class, byte[].class, conf);
         List<byte[]> collected = seed.mapPartitions(new FlatMapFunction<Iterator<Tuple2<byte[], byte[]>>, byte[]>() {
             @Override
             public Iterable<byte[]> call(Iterator<Tuple2<byte[], byte[]>> tuple2Iterator) throws Exception {
@@ -138,7 +138,7 @@ public class SparkCubeVisitJob implements Serializable {
                 //                // if user change kylin.properties on kylin server, need to manually redeploy coprocessor jar to update KylinConfig of Env.
                 //                KylinConfig.setKylinConfigFromInputStream(IOUtils.toInputStream(bcKylinProperties.getValue()));
                 //                GTScanRequest gtScanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(bcGtReq.getValue()));//TODO avoid ByteString's array copy
-                GTScanRequest gtScanRequest = ParquetRawRecordReader.gtScanRequestThreadLocal.get();
+                GTScanRequest gtScanRequest = ParquetTarballFileReader.gtScanRequestThreadLocal.get();
 
                 IGTScanner scanner = new OriginalBytesGTScanner(gtScanRequest.getInfo(), iterator);//in
                 IGTScanner preAggred = gtScanRequest.decorateScanner(scanner);//process

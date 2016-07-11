@@ -30,8 +30,8 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
 import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriterBuilder;
 
-public class ParquetRecordWriter<K, V> extends RecordWriter<K, V> {
-    private static final Logger logger = LoggerFactory.getLogger(ParquetRecordWriter.class);
+public class ParquetFileWriter<K, V> extends RecordWriter<K, V> {
+    private static final Logger logger = LoggerFactory.getLogger(ParquetFileWriter.class);
 
     private Class<?> keyClass;
     private Class<?> valueClass;
@@ -50,7 +50,7 @@ public class ParquetRecordWriter<K, V> extends RecordWriter<K, V> {
     private ParquetRawWriter writer = null;
     private String outputDir = null;
 
-    public ParquetRecordWriter(TaskAttemptContext context, Class<?> keyClass, Class<?> valueClass) throws IOException {
+    public ParquetFileWriter(TaskAttemptContext context, Class<?> keyClass, Class<?> valueClass) throws IOException {
         this.keyClass = keyClass;
         this.valueClass = valueClass;
         this.config = context.getConfiguration();

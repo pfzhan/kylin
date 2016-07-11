@@ -10,9 +10,9 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 /**
  * spark rdd input 
  */
-public class ParquetRawInputFormat extends FileInputFormat<byte[], byte[]> {
+public class ParquetTarballFileInputFormat extends FileInputFormat<byte[], byte[]> {
     public org.apache.hadoop.mapreduce.RecordReader createRecordReader(org.apache.hadoop.mapreduce.InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
-        return new ParquetRawRecordReader();
+        return new ParquetTarballFileReader();
     }
 
     @Override

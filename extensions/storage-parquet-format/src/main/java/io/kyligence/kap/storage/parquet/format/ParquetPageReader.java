@@ -16,7 +16,7 @@ import io.kyligence.kap.storage.parquet.format.file.GeneralValuesReader;
 import io.kyligence.kap.storage.parquet.format.file.ParquetColumnReader;
 import io.kyligence.kap.storage.parquet.format.file.ParquetColumnReaderBuilder;
 
-public class ParquetPageRecordReader<K, V> extends RecordReader<K, V> {
+public class ParquetPageReader<K, V> extends RecordReader<K, V> {
     protected Configuration conf;
 
     private Path shardPath;

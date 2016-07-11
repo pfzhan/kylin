@@ -10,7 +10,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 public class ParquetFileInputFormat<K, V> extends FileInputFormat<K, V> {
     @Override
     public org.apache.hadoop.mapreduce.RecordReader<K, V> createRecordReader(org.apache.hadoop.mapreduce.InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
-        return new ParquetRecordReader<>();
+        return new ParquetFileReader<>();
     }
 
     @Override

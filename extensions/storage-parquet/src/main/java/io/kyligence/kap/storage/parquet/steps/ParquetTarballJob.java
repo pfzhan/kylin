@@ -34,7 +34,7 @@ import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.storage.parquet.format.ParquetWithIndexRawInputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetWithIndexFileInputFormat;
 
 public class ParquetTarballJob extends AbstractHadoopJob {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetTarballJob.class);
@@ -60,7 +60,7 @@ public class ParquetTarballJob extends AbstractHadoopJob {
 
             addParquetInputFile(job, new Path(getOptionValue(OPTION_INPUT_PATH)));
 
-            job.setInputFormatClass(ParquetWithIndexRawInputFormat.class);
+            job.setInputFormatClass(ParquetWithIndexFileInputFormat.class);
             job.setOutputFormatClass(NullOutputFormat.class);
             job.setMapperClass(ParquetTarballMapper.class);
             job.setNumReduceTasks(0);

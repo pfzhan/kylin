@@ -18,7 +18,7 @@ import org.roaringbitmap.buffer.MutableRoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.storage.parquet.format.ParquetRawInputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.serialize.SerializableImmutableRoaringBitmap;
 import scala.Tuple2;
 
@@ -48,7 +48,7 @@ public class SparkInput {
         //        config.set(ParquetFormatConstants.KYLIN_FILTER_MEASURES_BITSET_MAP, serialize(measureMap));
 
         // Read parquet file and
-        JavaPairRDD<byte[], byte[]> rdd = context.newAPIHadoopFile(path, ParquetRawInputFormat.class, byte[].class, byte[].class, config);
+        JavaPairRDD<byte[], byte[]> rdd = context.newAPIHadoopFile(path, ParquetTarballFileInputFormat.class, byte[].class, byte[].class, config);
         JavaRDD<Integer> rdd2 = rdd.map(new Function<Tuple2<byte[], byte[]>, Integer>() {
             @Override
             public Integer call(Tuple2<byte[], byte[]> tuple) throws Exception {

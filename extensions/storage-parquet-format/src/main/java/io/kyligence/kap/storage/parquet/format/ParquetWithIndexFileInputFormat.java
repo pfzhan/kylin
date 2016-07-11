@@ -28,10 +28,13 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 
-public class ParquetWithIndexRawInputFormat extends FileInputFormat<IntWritable, byte[]> {
+/**
+ * used to tarball parquet file and index file
+ */
+public class ParquetWithIndexFileInputFormat extends FileInputFormat<IntWritable, byte[]> {
     @Override
     public RecordReader createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
-        return new ParquetWithIndexRawReader();
+        return new ParquetWithIndexFileReader();
     }
 
     @Override
