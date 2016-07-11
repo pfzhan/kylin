@@ -4,10 +4,9 @@ import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.JobBuilderSupport;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.common.MapReduceExecutable;
-import org.apache.kylin.metadata.realization.IRealizationSegment;
 
 public class ParquetMRSteps extends JobBuilderSupport {
-    public ParquetMRSteps(IRealizationSegment seg) {
+    public ParquetMRSteps(CubeSegment seg) {
         super(seg, null);
     }
 

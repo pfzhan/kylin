@@ -10,12 +10,11 @@ import org.apache.kylin.engine.mr.IMROutput;
 import org.apache.kylin.engine.mr.IMROutput2;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.realization.IRealizationSegment;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.kylin.storage.StorageFactory;
 
 public class KapMRUtil {
-    public static IMRInput.IMRBatchCubingInputSide getBatchCubingInputSide(IRealizationSegment seg) {
+    public static IMRInput.IMRBatchCubingInputSide getBatchCubingInputSide(CubeSegment seg) {
         return SourceFactory.createEngineAdapter(seg, IMRInput.class).getBatchCubingInputSide(seg);
     }
 
