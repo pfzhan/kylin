@@ -41,7 +41,8 @@ public class JobEngineTransitionHandler extends TransitionHandler {
         logger.info("JobEngineStateModel.onBecomeLeaderFromStandby()");
         try {
             DefaultScheduler scheduler = DefaultScheduler.createInstance();
-            scheduler.init(new JobEngineConfig(this.kylinConfig), new MockJobLock());
+            this.kylinConfig.setProperty("kylin.server.mode", "all");
+                    scheduler.init(new JobEngineConfig(this.kylinConfig), new MockJobLock());
             while (!scheduler.hasStarted()) {
                 logger.error("scheduler has not been started");
                 Thread.sleep(1000);
@@ -55,6 +56,7 @@ public class JobEngineTransitionHandler extends TransitionHandler {
     @Transition(to = "STANDBY", from = "LEADER")
     public void onBecomeStandbyFromLeader(Message message, NotificationContext context) {
         logger.info("JobEngineStateModel.onBecomeStandbyFromLeader()");
+        this.kylinConfig.setProperty("kylin.server.mode", "query");
         DefaultScheduler.destroyInstance();
 
     }

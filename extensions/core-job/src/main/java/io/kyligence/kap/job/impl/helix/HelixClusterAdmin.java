@@ -251,18 +251,13 @@ public class HelixClusterAdmin {
             }
             if (instanceRestAddresses.size() > 0) {
                 String restServersInCluster = StringUtil.join(instanceRestAddresses, ",");
-                kylinConfig.setProperty("kylin.rest.servers", restServersInCluster);
-                kylinConfig.setProperty("kylin.server.mode", isLeaderRole(HelixClusterAdmin.RESOURCE_NAME_JOB_ENGINE) ? "all" : "query");
-                System.setProperty("kylin.rest.servers", restServersInCluster);
+                String serverMode = isLeaderRole(HelixClusterAdmin.RESOURCE_NAME_JOB_ENGINE) ? "all" : "query";
                 logger.info("kylin.rest.servers update to " + restServersInCluster);
-                Properties properties = new Properties();
-                properties.setProperty("kylin.rest.servers", restServersInCluster);
-                properties.setProperty("kylin.server.mode", isLeaderRole(HelixClusterAdmin.RESOURCE_NAME_JOB_ENGINE) ? "all" : "query");
-                try {
-                    KylinConfig.writeOverrideProperties(properties);
-                } catch (IOException e) {
-                    logger.error(e.getMessage(), e);
-                }
+                logger.info("kylin.server.mode update to " + serverMode);
+
+                kylinConfig.setProperty("kylin.rest.servers", restServersInCluster);
+                kylinConfig.setProperty("kylin.server.mode", serverMode);
+                System.setProperty("kylin.rest.servers", restServersInCluster);
                 Broadcaster.clearCache();
             }
         }
