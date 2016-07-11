@@ -115,13 +115,13 @@ public class UserController extends BasicController implements UserDetailsServic
     @RequestMapping(value = "/users/password", method = {RequestMethod.PUT })
     @ResponseBody
     public UserObj save( @RequestBody UserRequest user) {
-        if(!isAdmin()||!getPrincipal().equals(user.getUsername())){
+        if(!isAdmin()&&!getPrincipal().equals(user.getUsername())){
             throw new IllegalStateException("Permission denied!");
         }
         checkUserName(user.getUsername());
 
         UserObj existing = get(user.getUsername());
-        if(!pwdMatches(user.getPassword(),existing.getPassword())){
+        if(!isAdmin()&&!pwdEncoder.matches(user.getPassword(),existing.getPassword())){
             throw new IllegalStateException("Old password is not correct!");
         }
 
@@ -218,11 +218,15 @@ public class UserController extends BasicController implements UserDetailsServic
 
     private String getPrincipal(){
         String userName = null;
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Object principal = authentication.getPrincipal();
 
         if (principal instanceof UserDetails) {
             userName = ((UserDetails)principal).getUsername();
-        } else {
+        }else if (authentication.getDetails() instanceof UserDetails) {
+            userName = ((UserDetails) authentication.getPrincipal()).getUsername();
+        }
+        else {
             userName = principal.toString();
         }
         return userName;
@@ -231,10 +235,13 @@ public class UserController extends BasicController implements UserDetailsServic
     private boolean isAdmin(){
         boolean isAdmin = false;
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        for (GrantedAuthority auth : authentication.getAuthorities()) {
-            if (auth.getAuthority().equals(Constant.ROLE_ADMIN))
-                isAdmin = true;
-            break;
+        if(authentication!=null){
+            for (GrantedAuthority auth : authentication.getAuthorities()) {
+                if (auth.getAuthority().equals(Constant.ROLE_ADMIN)) {
+                    isAdmin = true;
+                }
+                break;
+            }
         }
         return isAdmin;
     }

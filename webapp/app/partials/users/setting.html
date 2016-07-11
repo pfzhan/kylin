@@ -1,23 +1,13 @@
 <div class="user-setting">
-  <!--menu-->
-  <div class="col-sm-3 user-setting-side">
-    <nav class="menu">
-      <h3 class="menu-heading">
-        Personal settings
-      </h3>
-      <a class="menu-item">Account</a>
-
-    </nav>
-  </div>
-
 
   <!--content-->
-  <div class="col-sm-9 user-setting-content">
+  <div class="user-setting-content">
+    <div class="alert alert-danger animated fadeIn" ng-if="error">{{error}}</div>
     <div class="boxed-group">
       <h3>Change password</h3>
       <div class="boxed-group-inner">
         <form >
-          <dl class="form-group">
+          <dl class="form-group" ng-if="!userService.hasRole('ROLE_ADMIN')">
             <dt><label>Old password</label></dt>
             <dd><input class="form-control" ng-model="user.password" type="password"></dd>
           </dl>

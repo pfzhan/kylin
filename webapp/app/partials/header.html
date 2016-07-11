@@ -43,11 +43,8 @@
                     <li class="{{activeTab=='jobs'?'purple':'green'}}" ng-if="userService.isAuthorized()">
                         <a href="jobs">Monitor</a>
                     </li>
-                    <li class="{{activeTab=='admin'?'purple':'green'}}" ng-if="userService.isAuthorized()">
-                        <a href="admin">System</a>
-                    </li>
-                    <li class="{{activeTab=='users'?'purple':'green'}}" ng-if="userService.isAuthorized()">
-                        <a href="users">Users</a>
+                    <li class="{{activeTab=='admin'?'purple':'green'}}" ng-if="userService.hasRole('ROLE_ADMIN')">
+                        <a href="admin">Admin</a>
                     </li>
                 </ul>
                 <ul class="nav navbar-nav navbar-right">

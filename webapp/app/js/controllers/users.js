@@ -234,7 +234,7 @@ var resetUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService
   $scope.submitUser = function(){
 
     if($scope.resetUser.confirmPassword !== $scope.resetUser.newPassword){
-      $scope.error ="New password and confirm password is not the same.";
+      $scope.error ="New password and confirm password are not the same.";
       return;
     }
 
@@ -266,6 +266,7 @@ function userToUserDetail(user){
 
   userDetail.username = user.username;
   userDetail.password = user.password;
+  userDetail.newPassword = user.newPassword;
   if(user.admin){
     userDetail.authorities.push('ROLE_ADMIN');
   }

@@ -23,6 +23,8 @@ KylinApp.controller('UserSettingCtrl', function ($scope, $rootScope, $location, 
   var user = UserService.getCurUser();
   $scope.confirmPassword = '';
 
+  $scope.error;
+
   $scope.user ={
     username: '',
     password: '',
@@ -38,8 +40,13 @@ KylinApp.controller('UserSettingCtrl', function ($scope, $rootScope, $location, 
 
   $scope.resetPassword = function(){
 
-    if($scope.confirmPassword !== $scope.user.newPassword){
-      SweetAlert.swal('', "New password and confirm password is not the same.", 'error');
+    $scope.error ='';
+    if($scope.user.newPassword != $scope.confirmPassword){
+      $scope.error = 'Password and confirm password are not the same.';
+      return;
+    }
+    if(!UserService.hasRole('ROLE_ADMIN')&&$scope.user.password==''){
+      $scope.error = 'Password invalid.';
       return;
     }
 

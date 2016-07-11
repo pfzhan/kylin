@@ -16,26 +16,27 @@
 * limitations under the License.
 -->
 
-<div class="container" style="padding-top: 80px">
-    <div class="col-md-5">
+  <table width="100%">
+    <tr>
+    <td width="40%">
         <div>
             <h3>Server Config <button class="btn btn-xs btn-success" ng-click="getConfig()"><i class="fa fa-refresh"></i></button></h3>
         </div>
         <div style="padding-top: 10px">
             <pre>{{configStr}}</pre>
         </div>
-    </div>
+    </td>
 
-    <div class="col-md-5">
+    <td width="40%">
         <div>
             <h3>Server Environment <button class="btn btn-xs btn-success" ng-click="getEnv()"><i class="fa fa-refresh"></i></button></h3>
         </div>
         <div style="padding-top: 10px">
             <pre>{{envStr}}</pre>
         </div>
-    </div>
+    </td>
 
-    <div class="col-md-2">
+    <td style="padding-left: 10px;">
         <div>
             <h3>Actions</h3>
         </div>
@@ -89,9 +90,9 @@
                 Hadoop Monitor
             </a>
         </div>
-    </div>
-</div>
-
+    </td>
+    </tr>
+  </table>
 <script type="text/ng-template" id="calCardinality.html">
     <div class="modal-header">
         <h4>Load Hive Table Metadata</h4>

@@ -30,7 +30,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
   $scope.getEnv = function () {
     AdminService.env({}, function (env) {
       $scope.envStr = env.env;
-      MessageService.sendMsg('Server environment get successfully', 'success', {});
+      //MessageService.sendMsg('Server environment get successfully', 'success', {});
 //            SweetAlert.swal('Success!', 'Server environment get successfully', 'success');
     }, function (e) {
       if (e.data && e.data.exception) {
@@ -46,7 +46,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
   $scope.getConfig = function () {
     AdminService.config({}, function (config) {
       $scope.configStr = config.config;
-      MessageService.sendMsg('Server config get successfully', 'success', {});
+      //MessageService.sendMsg('Server config get successfully', 'success', {});
     }, function (e) {
       if (e.data && e.data.exception) {
         var message = e.data.exception;

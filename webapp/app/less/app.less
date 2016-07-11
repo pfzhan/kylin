@@ -912,7 +912,8 @@ pre {
 }
 
 .user-setting-content{
-
+  width: 600px;
+  margin: 0 auto;
 }
 
 .user-setting-content .boxed-group{
@@ -946,6 +947,7 @@ pre {
 .system-setting .system-setting-side{
   float: left;
   width: 280px;
+  margin-top:40px;
 }
 
 .system-setting .system-setting-content{
@@ -980,8 +982,25 @@ pre {
   padding: 8px 10px;
   text-shadow: 0 1px 0 #fff;
   border-bottom: 1px solid #eee;
+  cursor: pointer;
 }
 
 .add-user-window .modal-dialog {
   width: 600px; /* desired relative width */
+}
+
+.menu-item.active{
+  font-weight:bold;
+  color:#222;
+  cursor:default;
+  background-color:#fff
+}
+.menu-item.active::before{
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:0;
+  width:2px;
+  content:"";
+  background-color:#d26911
 }
