@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -18,18 +17,21 @@ import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
+import org.apache.kylin.cube.kv.RowConstants;
 import org.apache.kylin.cube.kv.RowKeyEncoder;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
+import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.parquet.io.api.Binary;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
 
-public class ParquetFileReader<K, V> extends RecordReader<K, V> {
-    protected Configuration conf;
+public class ParquetFileReader extends RecordReader<Text, Text> {
+    public static final Logger logger = LoggerFactory.getLogger(ParquetFileReader.class);
 
-    private String curCubeId = null;
-    private String curSegmentId = null;
+    protected Configuration conf;
 
     private long curCuboidId;
 
@@ -42,28 +44,43 @@ public class ParquetFileReader<K, V> extends RecordReader<K, V> {
     private int shardIndex = 0;
     private ParquetBundleReader reader = null;
 
-    private K key;
-    private V val;
+    private Text key = new Text();
+    private Text val = new Text();
 
     @Override
     public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
         FileSplit fileSplit = (FileSplit) split;
         conf = context.getConfiguration();
         Path path = fileSplit.getPath();
-        FileSystem fs = path.getFileSystem(conf);
         shardPath = new ArrayList<>();
         shardPath.add(path);
-
-        curCubeId = conf.get(ParquetFormatConstants.KYLIN_CUBE_ID);
-        curSegmentId = conf.get(ParquetFormatConstants.KYLIN_SEGMENT_ID);
-
         kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
-        cubeInstance = CubeManager.getInstance(kylinConfig).getCubeByUuid(curCubeId);
-        cubeSegment = cubeInstance.getSegmentById(curSegmentId);
+
+        String cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
+        String segmentName = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_NAME);
+        logger.info("cubeName is " + cubeName + " and segmentName is " + segmentName);
+        cubeInstance = CubeManager.getInstance(kylinConfig).getCube(cubeName);
+        cubeSegment = cubeInstance.getSegment(segmentName, null);
 
         // init with first shard file
         reader = getNextValuesReader();
     }
+    //
+    //    private K getKeyFromBytes(byte[] bytes) {
+    //        if (isText) {
+    //            return (K) new Text(bytes);
+    //        } else {
+    //            return (K) bytes;
+    //        }
+    //    }
+    //
+    //    private V getValueFromBytes(byte[] bytes) {
+    //        if (isText) {
+    //            return (V) new Text(bytes);
+    //        } else {
+    //            return (V) bytes;
+    //        }
+    //    }
 
     @Override
     public boolean nextKeyValue() throws IOException, InterruptedException {
@@ -83,9 +100,9 @@ public class ParquetFileReader<K, V> extends RecordReader<K, V> {
 
         // key
         byte[] keyBytes = ((Binary) data.get(0)).getBytes();
-        ByteArray keyByteArray = new ByteArray(keyBytes.length + 10);
+        ByteArray keyByteArray = new ByteArray(keyBytes.length + RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN);
         rowKeyEncoder.encode(new ByteArray(keyBytes), keyByteArray);
-        key = (K) new Text(keyByteArray.array());
+        key.set(keyByteArray.array());
 
         // value
         setVal(data);
@@ -107,7 +124,7 @@ public class ParquetFileReader<K, V> extends RecordReader<K, V> {
             offset += src.length;
         }
 
-        val = (V) new Text(valueBytes);
+        val.set(valueBytes);
     }
 
     private void setCurrentCuboidShard(Path path) {
@@ -131,12 +148,12 @@ public class ParquetFileReader<K, V> extends RecordReader<K, V> {
     }
 
     @Override
-    public K getCurrentKey() throws IOException, InterruptedException {
+    public Text getCurrentKey() throws IOException, InterruptedException {
         return key;
     }
 
     @Override
-    public V getCurrentValue() throws IOException, InterruptedException {
+    public Text getCurrentValue() throws IOException, InterruptedException {
         return val;
     }
 

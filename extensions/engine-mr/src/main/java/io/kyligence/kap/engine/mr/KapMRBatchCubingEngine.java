@@ -21,6 +21,7 @@ package io.kyligence.kap.engine.mr;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.IBatchCubingEngine;
 import org.apache.kylin.engine.mr.IMRInput;
+import org.apache.kylin.engine.mr.IMROutput2;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 
 public class KapMRBatchCubingEngine implements IBatchCubingEngine {
@@ -42,7 +43,7 @@ public class KapMRBatchCubingEngine implements IBatchCubingEngine {
 
     @Override
     public Class<?> getStorageInterface() {
-        return IMROutput3.class;
+        return IMROutput2.class;
     }
 
 }

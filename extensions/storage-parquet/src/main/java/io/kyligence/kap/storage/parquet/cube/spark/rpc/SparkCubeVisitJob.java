@@ -18,8 +18,6 @@
 
 package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.util.Iterator;
@@ -37,7 +35,6 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.broadcast.Broadcast;
-import org.roaringbitmap.buffer.MutableRoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,6 +46,7 @@ import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.OriginalBytesGT
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileReader;
+import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 import scala.Tuple2;
 
 public class SparkCubeVisitJob implements Serializable {
@@ -73,29 +71,6 @@ public class SparkCubeVisitJob implements Serializable {
         this.bcCanonicalCuboid = sc.broadcast(new CanonicalCuboid(request.getCubeId(), request.getSegmentId(), request.getCuboidId()));
     }
 
-    private static String serializeBitMap(Iterable<Integer> bits) {
-        MutableRoaringBitmap bitmap = new MutableRoaringBitmap();
-        for (int i : bits) {
-            bitmap.add(i);
-        }
-        ByteArrayOutputStream bos = null;
-        DataOutputStream dos = null;
-        String result = null;
-        try {
-            bos = new ByteArrayOutputStream();
-            dos = new DataOutputStream(bos);
-            bitmap.serialize(dos);
-            dos.flush();
-            result = new String(bos.toByteArray(), "ISO-8859-1");
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
-            IOUtils.closeQuietly(dos);
-            IOUtils.closeQuietly(bos);
-        }
-        return result;
-    }
-
     public List<byte[]> executeTask() {
         String basePath = new StringBuffer(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
                 append(bcCanonicalCuboid.getValue().getCubeId()).append("/").//
@@ -107,7 +82,7 @@ public class SparkCubeVisitJob implements Serializable {
         Configuration conf = new Configuration();
 
         logger.info("Required Measures: " + StringUtils.join(request.getRequiredMeasuresList(), ","));
-        conf.set(ParquetFormatConstants.KYLIN_FILTER_MEASURES_BITSET_MAP, serializeBitMap(request.getRequiredMeasuresList()));
+        conf.set(ParquetFormatConstants.KYLIN_FILTER_MEASURES_BITSET_MAP, RoaringBitmaps.writeToString(request.getRequiredMeasuresList()));
 
         logger.info("Max GT length: " + request.getMaxRecordLength());
         conf.set(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH, String.valueOf(request.getMaxRecordLength()));

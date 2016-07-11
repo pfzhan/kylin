@@ -126,17 +126,13 @@ public class KapCuboidJob extends AbstractHadoopJob {
             job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_NAME, segmentName);
             job.getConfiguration().setInt(BatchConstants.CFG_CUBE_CUBOID_LEVEL, nCuboidLevel);
 
-            // put some cube info in configuration
-            job.getConfiguration().set(ParquetFormatConstants.KYLIN_CUBE_ID, cube.getUuid());
-            job.getConfiguration().set(ParquetFormatConstants.KYLIN_SEGMENT_ID, cubeSeg.getUuid());
-
             // set path for output
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_OUTPUT_DIR, getWorkingDir(config, cube, cubeSeg));
 
             // add metadata to distributed cache
             attachKylinPropsAndMetadata(cube, job.getConfiguration());
 
-            setReduceTaskNum(job, config, cubeName, nCuboidLevel);
+            setReduceTaskNum(job, cube.getDescriptor(), nCuboidLevel);
 
             this.deletePath(job.getConfiguration(), output);
 
@@ -214,12 +210,10 @@ public class KapCuboidJob extends AbstractHadoopJob {
         }
     }
 
-    protected void setReduceTaskNum(Job job, KylinConfig config, String cubeName, int level) throws ClassNotFoundException, IOException, InterruptedException, JobException {
+    protected void setReduceTaskNum(Job job, CubeDesc cubeDesc, int level) throws ClassNotFoundException, IOException, InterruptedException, JobException {
         Configuration jobConf = job.getConfiguration();
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
-        CubeDesc cubeDesc = CubeManager.getInstance(config).getCube(cubeName).getDescriptor();
-        kylinConfig = cubeDesc.getConfig();
+        KylinConfig kylinConfig = cubeDesc.getConfig();
 
         double perReduceInputMB = kylinConfig.getDefaultHadoopJobReducerInputMB();
         double reduceCountRatio = kylinConfig.getDefaultHadoopJobReducerCountRatio();

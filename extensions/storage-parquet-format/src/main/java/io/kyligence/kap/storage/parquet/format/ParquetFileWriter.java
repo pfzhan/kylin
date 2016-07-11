@@ -19,6 +19,7 @@ import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.kv.RowKeyDecoder;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
+import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.measure.MeasureDecoder;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.parquet.schema.MessageType;
@@ -30,14 +31,9 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
 import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriterBuilder;
 
-public class ParquetFileWriter<K, V> extends RecordWriter<K, V> {
+public class ParquetFileWriter extends RecordWriter<Text, Text> {
     private static final Logger logger = LoggerFactory.getLogger(ParquetFileWriter.class);
 
-    private Class<?> keyClass;
-    private Class<?> valueClass;
-
-    private String curCubeId = null;
-    private String curSegmentId = null;
     private long curCuboidId = 0;
     private short curShardId = 0;
 
@@ -51,30 +47,32 @@ public class ParquetFileWriter<K, V> extends RecordWriter<K, V> {
     private String outputDir = null;
 
     public ParquetFileWriter(TaskAttemptContext context, Class<?> keyClass, Class<?> valueClass) throws IOException {
-        this.keyClass = keyClass;
-        this.valueClass = valueClass;
         this.config = context.getConfiguration();
 
-        curCubeId = config.get(ParquetFormatConstants.KYLIN_CUBE_ID);
-        curSegmentId = config.get(ParquetFormatConstants.KYLIN_SEGMENT_ID);
         outputDir = config.get(ParquetFormatConstants.KYLIN_OUTPUT_DIR);
-
         kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
-        cubeInstance = CubeManager.getInstance(kylinConfig).getCubeByUuid(curCubeId);
-        cubeSegment = cubeInstance.getSegmentById(curSegmentId);
+
+        String cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
+        String segmentName = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_NAME);
+        logger.info("cubeName is " + cubeName + " and segmentName is " + segmentName);
+        cubeInstance = CubeManager.getInstance(kylinConfig).getCube(cubeName);
+        cubeSegment = cubeInstance.getSegment(segmentName, null);
+
         rowKeyDecoder = new RowKeyDecoder(cubeSegment);
         measureDecoder = new MeasureDecoder(cubeSegment.getCubeDesc().getMeasures());
 
-        if (keyClass != Text.class || valueClass != Text.class) {
+        if (keyClass == Text.class && valueClass == Text.class) {
+            logger.info("KV class is Text");
+        } else {
             throw new InvalidParameterException("ParquetRecordWriter only support Text type now");
         }
     }
 
     // Only support Text type
     @Override
-    public void write(K key, V value) throws IOException, InterruptedException {
-        byte[] keyBytes = ((Text) key).getBytes().clone();
-        byte[] valueBytes = ((Text) value).getBytes().clone();
+    public void write(Text key, Text value) throws IOException, InterruptedException {
+        byte[] keyBytes = key.getBytes().clone();//on purpose, because parquet writer will cache 
+        byte[] valueBytes = value.getBytes().clone();
         long cuboidId = rowKeyDecoder.decode(keyBytes);
         short shardId = rowKeyDecoder.getRowKeySplitter().getShardId();
 

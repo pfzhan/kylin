@@ -94,9 +94,6 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
             job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, cubeName);
             job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_NAME, segmentName);
 
-            // put some cube info in configuration
-            job.getConfiguration().set(ParquetFormatConstants.KYLIN_CUBE_ID, cube.getUuid());
-            job.getConfiguration().set(ParquetFormatConstants.KYLIN_SEGMENT_ID, cubeSeg.getUuid());
 
             // set path for output
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_OUTPUT_DIR, getWorkingDir(config, cube, cubeSeg));

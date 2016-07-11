@@ -25,6 +25,7 @@ import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
 import io.kyligence.kap.storage.parquet.format.pageIndex.format.ParquetPageIndexRecordReader;
+import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 
 public class ParquetTarballFileReader extends RecordReader<byte[], byte[]> {
     public static final Logger logger = LoggerFactory.getLogger(ParquetTarballFileReader.class);
@@ -47,39 +48,45 @@ public class ParquetTarballFileReader extends RecordReader<byte[], byte[]> {
         shardPath = fileSplit.getPath();
 
         long startTime = System.currentTimeMillis();
-        KylinConfig.setKylinConfigFromInputStream(IOUtils.toInputStream(conf.get(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES)));
+        String kylinPropertiesStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES);
+        if (kylinPropertiesStr == null) {
+            KylinConfig.setKylinConfigFromInputStream(IOUtils.toInputStream(""));
+        } else {
+            KylinConfig.setKylinConfigFromInputStream(IOUtils.toInputStream(kylinPropertiesStr));
+        }
         ParquetPageIndexRecordReader indexReader = new ParquetPageIndexRecordReader();
         long fileOffset = indexReader.initialize(split, context);
-        ParquetPageIndexTable indexTable = indexReader.getIndexTable();
-        GTScanRequest gtScanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES).getBytes("ISO-8859-1")));
-        gtScanRequestThreadLocal.set(gtScanRequest);
-        TupleFilter filter = gtScanRequest.getFilterPushDown();
-        ImmutableRoaringBitmap pageBitmap = indexTable.lookup(null);
-        logger.info("Inverted Index bitmap: " + pageBitmap + ". Time spent is: " + (System.currentTimeMillis() - startTime));
 
-        ImmutableRoaringBitmap measureBitmap = readBitmap(ParquetFormatConstants.KYLIN_FILTER_MEASURES_BITSET_MAP);
-        MutableRoaringBitmap columnBitmap = MutableRoaringBitmap.bitmapOf(0);
-        for (int i : measureBitmap) {
-            columnBitmap.add(i + 1);
+        String scanReqStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES);
+        ImmutableRoaringBitmap pageBitmap;
+        if (scanReqStr != null) {
+            ParquetPageIndexTable indexTable = indexReader.getIndexTable();
+            GTScanRequest gtScanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(scanReqStr.getBytes("ISO-8859-1")));
+            gtScanRequestThreadLocal.set(gtScanRequest);
+            TupleFilter filter = gtScanRequest.getFilterPushDown();
+            pageBitmap = indexTable.lookup(filter);
+            logger.info("Inverted Index bitmap: " + pageBitmap + ". Time spent is: " + (System.currentTimeMillis() - startTime));
+        } else {
+            pageBitmap = null;
+            logger.info("KYLIN_SCAN_REQUEST_BYTES not set, read all pages");
+        }
+
+        ImmutableRoaringBitmap measureBitmap = RoaringBitmaps.readFromString(conf.get(ParquetFormatConstants.KYLIN_FILTER_MEASURES_BITSET_MAP));
+        MutableRoaringBitmap columnBitmap = null;
+        if (measureBitmap != null) {
+            columnBitmap = MutableRoaringBitmap.bitmapOf(0);
+            for (int i : measureBitmap) {
+                columnBitmap.add(i + 1);//dimensions occupying the first column in parquet, so measures' index should inc one
+            }
         }
         logger.info("All columns read by parquet: " + StringUtils.join(columnBitmap, ","));
 
-        int gtMaxLength = Integer.valueOf(conf.get(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH));
+        String gtMaxLengthStr = conf.get(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH);
+        int gtMaxLength = gtMaxLengthStr == null ? 1024 : Integer.valueOf(gtMaxLengthStr);
         val = new byte[gtMaxLength];
 
         // init with first shard file
         reader = new ParquetBundleReaderBuilder().setFileOffset(fileOffset).setConf(conf).setPath(shardPath).setPageBitset(pageBitmap).setColumnsBitmap(columnBitmap).build();
-    }
-
-    private ImmutableRoaringBitmap readBitmap(String property) throws IOException {
-        String pageBitsetString = conf.get(property);
-        ImmutableRoaringBitmap bitmap = null;
-
-        if (pageBitsetString != null) {
-            ByteBuffer buf = ByteBuffer.wrap(pageBitsetString.getBytes("ISO-8859-1"));
-            bitmap = new ImmutableRoaringBitmap(buf);
-        }
-        return bitmap;
     }
 
     @Override
@@ -95,11 +102,23 @@ public class ParquetTarballFileReader extends RecordReader<byte[], byte[]> {
 
     // We put all columns in values and keep key empty
     private void setVal(List<Object> data) {
-        int offset = 0;
-        for (int i = 0; i < data.size(); ++i) {
-            byte[] src = ((Binary) data.get(i)).getBytes();
-            System.arraycopy(src, 0, val, offset, src.length);
-            offset += src.length;
+        int retry = 0;
+        while (true) {
+            try {
+                int offset = 0;
+                for (int i = 0; i < data.size(); ++i) {
+                    byte[] src = ((Binary) data.get(i)).getBytes();
+                    System.arraycopy(src, 0, val, offset, src.length);
+                    offset += src.length;
+                }
+                break;
+            } catch (ArrayIndexOutOfBoundsException e) {
+                if (++retry > 10) {
+                    throw new IllegalStateException("Measures taking too much space! ");
+                }
+                val = new byte[val.length * 2];
+                logger.info("val buffer size adjusted to: " + val.length);
+            }
         }
     }
 

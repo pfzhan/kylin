@@ -21,8 +21,10 @@ package io.kyligence.kap.engine.mr;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.BatchMergeJobBuilder2;
 import org.apache.kylin.engine.mr.CubingJob;
+import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.steps.CubingExecutableUtil;
 
+import io.kyligence.kap.engine.mr.steps.KapMergeCuboidJob;
 import io.kyligence.kap.engine.mr.steps.MergeSecondaryIndexStep;
 
 public class KapBatchMergeJobBuilder extends BatchMergeJobBuilder2 {
@@ -42,4 +44,7 @@ public class KapBatchMergeJobBuilder extends BatchMergeJobBuilder2 {
         return result;
     }
 
+    protected Class<? extends AbstractHadoopJob> getMergeCuboidJob() {
+        return KapMergeCuboidJob.class;
+    }
 }
