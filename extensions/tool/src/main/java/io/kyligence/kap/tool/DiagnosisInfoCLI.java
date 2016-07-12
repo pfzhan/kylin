@@ -8,7 +8,6 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.tool.AbstractInfoExtractor;
-import org.apache.kylin.tool.JobInstanceExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
