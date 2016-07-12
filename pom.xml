@@ -74,7 +74,7 @@
         <ehcache.version>2.8.1</ehcache.version>
         <apache-httpclient.version>4.5.2</apache-httpclient.version>
         <apache-httpcore.version>4.4.4</apache-httpcore.version>
-        <roaring.version>(0.5.4,]</roaring.version>
+        <roaring.version>0.6.18</roaring.version>
         <fastPFOR.version>0.0.13</fastPFOR.version>
 
         <!-- REST Service -->
