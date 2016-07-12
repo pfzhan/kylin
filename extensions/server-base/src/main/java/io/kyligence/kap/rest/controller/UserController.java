@@ -24,7 +24,6 @@ import java.util.regex.Pattern;
 
 import javax.annotation.PostConstruct;
 
-import io.kyligence.kap.rest.request.UserRequest;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.service.UserService;
@@ -49,6 +48,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.rest.request.UserRequest;
 
 @Controller
 @Component("kapUserController")
@@ -112,16 +113,16 @@ public class UserController extends BasicController implements UserDetailsServic
         return get(userName);
     }
 
-    @RequestMapping(value = "/users/password", method = {RequestMethod.PUT })
+    @RequestMapping(value = "/users/password", method = { RequestMethod.PUT })
     @ResponseBody
-    public UserObj save( @RequestBody UserRequest user) {
-        if(!isAdmin()&&!getPrincipal().equals(user.getUsername())){
+    public UserObj save(@RequestBody UserRequest user) {
+        if (!isAdmin() && !getPrincipal().equals(user.getUsername())) {
             throw new IllegalStateException("Permission denied!");
         }
         checkUserName(user.getUsername());
 
         UserObj existing = get(user.getUsername());
-        if(!isAdmin()&&!pwdEncoder.matches(user.getPassword(),existing.getPassword())){
+        if (!isAdmin() && !pwdEncoder.matches(user.getPassword(), existing.getPassword())) {
             throw new IllegalStateException("Old password is not correct!");
         }
 
@@ -134,7 +135,6 @@ public class UserController extends BasicController implements UserDetailsServic
 
         return get(user.getUsername());
     }
-
 
     private String pwdEncode(String pwd) {
         if (bcryptPattern.matcher(pwd).matches())
@@ -216,26 +216,25 @@ public class UserController extends BasicController implements UserDetailsServic
         return obj;
     }
 
-    private String getPrincipal(){
+    private String getPrincipal() {
         String userName = null;
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Object principal = authentication.getPrincipal();
 
         if (principal instanceof UserDetails) {
-            userName = ((UserDetails)principal).getUsername();
-        }else if (authentication.getDetails() instanceof UserDetails) {
+            userName = ((UserDetails) principal).getUsername();
+        } else if (authentication.getDetails() instanceof UserDetails) {
             userName = ((UserDetails) authentication.getPrincipal()).getUsername();
-        }
-        else {
+        } else {
             userName = principal.toString();
         }
         return userName;
     }
 
-    private boolean isAdmin(){
+    private boolean isAdmin() {
         boolean isAdmin = false;
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if(authentication!=null){
+        if (authentication != null) {
             for (GrantedAuthority auth : authentication.getAuthorities()) {
                 if (auth.getAuthority().equals(Constant.ROLE_ADMIN)) {
                     isAdmin = true;

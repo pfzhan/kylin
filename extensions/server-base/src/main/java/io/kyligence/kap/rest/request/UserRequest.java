@@ -1,7 +1,5 @@
 package io.kyligence.kap.rest.request;
 
-import org.apache.kylin.rest.service.UserService;
-
 import java.util.List;
 
 /**
