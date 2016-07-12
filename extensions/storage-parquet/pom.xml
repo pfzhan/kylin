@@ -182,7 +182,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>2.3</version>
+                <version>2.2</version>
 
                 <executions>
                     <execution>
@@ -218,7 +218,7 @@
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"/>
                             </transformers>
                             <minimizeJar>false</minimizeJar>
-                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
                             <shadedClassifierName>spark</shadedClassifierName>
                             <filters>
                                 <filter>

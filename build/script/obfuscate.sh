@@ -108,8 +108,8 @@ obfuscate extensions/storage-hbase/ $BUILD_LIB_DIR 1 1 kylin-coprocessor-kap-${r
 mv $BUILD_LIB_DIR/kylin-coprocessor-kap-${release_version}-obf.jar tmp/
 
 
-# obfuscate coprocessor jar
-obfuscate extensions/storage-parquet/ $BUILD_LIB_DIR 1 kylin-storage-parquet-kap-${release_version}-obf kylin-storage-parquet-kap-${release_version}.jar
+# obfuscate storage parquet jar
+obfuscate extensions/storage-parquet/ $BUILD_LIB_DIR 1 1 kylin-storage-parquet-kap-${release_version}-obf kylin-storage-parquet-kap-${release_version}.jar
 mv $BUILD_LIB_DIR/kylin-storage-parquet-kap-${release_version}-obf.jar tmp
 
 #rm server_mapping.txt
