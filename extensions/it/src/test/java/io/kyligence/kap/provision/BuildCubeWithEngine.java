@@ -20,14 +20,14 @@ package io.kyligence.kap.provision;
 
 import java.io.IOException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.KAPDeployUtil;
 
 public class BuildCubeWithEngine extends org.apache.kylin.provision.BuildCubeWithEngine {
 
-    private static final Log logger = LogFactory.getLog(BuildCubeWithEngine.class);
+    private static final Logger logger = LoggerFactory.getLogger(BuildCubeWithEngine.class);
 
     public static void main(String[] args) throws Exception {
         try {
