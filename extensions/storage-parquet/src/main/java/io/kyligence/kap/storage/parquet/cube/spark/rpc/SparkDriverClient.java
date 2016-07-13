@@ -39,8 +39,13 @@ public class SparkDriverClient {
     private final JobServiceGrpc.JobServiceBlockingStub blockingStub;
 
     public SparkDriverClient(String host, int port) {
+        logger.info("SparkDriverClient host:" + host);
+        logger.info("SparkDriverClient port:" + port);
+
         channel = ManagedChannelBuilder.forAddress(host, port).usePlaintext(true).build();
         blockingStub = JobServiceGrpc.newBlockingStub(channel);
+
+        logger.info("finish ctor");
     }
 
     public SparkJobResponse submit(byte[] gtScanReq, SubmitParams submitParams) {

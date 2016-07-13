@@ -54,4 +54,12 @@ public class KapConfig {
     public int getParquetPageIndexSpillThreshold() {
         return Integer.parseInt(config.getOptional("kap.parquet.ii.spill.threshold", String.valueOf(10000)));
     }
+
+    public String getSparkClientHost() {
+        return config.getOptional("kap.parquet.spark.client.host", "localhost");
+    }
+
+    public int getSparkClientPort() {
+        return Integer.parseInt(config.getOptional("kap.parquet.spark.client.port", "50051"));
+    }
 }

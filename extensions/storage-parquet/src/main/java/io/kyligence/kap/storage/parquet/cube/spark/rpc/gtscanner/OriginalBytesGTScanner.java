@@ -20,12 +20,15 @@ package io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.BitSet;
 import java.util.Iterator;
 
 import javax.annotation.Nullable;
 
+import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTRecord;
+import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
 
 import com.google.common.collect.Iterators;
@@ -35,11 +38,28 @@ public class OriginalBytesGTScanner implements IGTScanner {
     private Iterator<byte[]> iterator;
     private GTInfo info;
     private GTRecord temp;
+    private ImmutableBitSet columns;
 
-    public OriginalBytesGTScanner(GTInfo info, Iterator<byte[]> iterator) {
+    private ImmutableBitSet getParquetCoveredColumns(GTScanRequest scanRequest) {
+        BitSet bs = new BitSet();
+
+        ImmutableBitSet dimensions = scanRequest.getInfo().getPrimaryKey();
+        for (int i = 0; i < dimensions.trueBitCount(); ++i) {
+            bs.set(dimensions.trueBitAt(i));
+        }
+
+        ImmutableBitSet queriedColumns = scanRequest.getColumns();
+        for (int i = 0; i < queriedColumns.trueBitCount(); ++i) {
+            bs.set(queriedColumns.trueBitAt(i));
+        }
+        return new ImmutableBitSet(bs);
+    }
+
+    public OriginalBytesGTScanner(GTInfo info, Iterator<byte[]> iterator, GTScanRequest scanRequest) {
         this.iterator = iterator;
         this.info = info;
         this.temp = new GTRecord(info);
+        this.columns = getParquetCoveredColumns(scanRequest);
     }
 
     @Override
@@ -62,7 +82,7 @@ public class OriginalBytesGTScanner implements IGTScanner {
             @Nullable
             @Override
             public GTRecord apply(@Nullable byte[] input) {
-                temp.loadColumns(info.getAllColumns(), ByteBuffer.wrap(input));
+                temp.loadColumns(OriginalBytesGTScanner.this.columns, ByteBuffer.wrap(input));
                 return temp;
             }
         });

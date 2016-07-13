@@ -26,17 +26,14 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.HBaseMetadataTestCase;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.query.H2Database;
-import org.apache.kylin.query.KylinTestBase;
+import org.apache.kylin.query.ITKylinQueryTest;
 import org.apache.kylin.query.enumerator.OLAPQuery;
 import org.apache.kylin.query.routing.Candidate;
 import org.apache.kylin.query.schema.OLAPSchemaFactory;
 import org.apache.kylin.storage.hbase.cube.v1.coprocessor.observer.ObserverEnabler;
-import org.dbunit.database.DatabaseConnection;
-import org.dbunit.database.IDatabaseConnection;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -44,18 +41,17 @@ import org.junit.Test;
 
 import com.google.common.collect.Maps;
 
-@Ignore("KAPITKylinQueryTest is contained by KAPITCombinationTest")
-public class KAPITKylinQueryTest extends KylinTestBase {
+//@Ignore("KAPITKylinQueryTest is contained by KAPITCombinationTest")
+public class KAPITKylinQueryTest extends ITKylinQueryTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
         Map<RealizationType, Integer> priorities = Maps.newHashMap();
-        priorities.put(RealizationType.INVERTED_INDEX, 2);
         priorities.put(RealizationType.HYBRID, 0);
         priorities.put(RealizationType.CUBE, 0);
         Candidate.setPriorities(priorities);
 
-        printInfo("setUp in KylinQueryTest");
+        printInfo("setUp in KAPITKylinQueryTest");
         joinType = "inner";
 
         setupAll();
@@ -64,7 +60,7 @@ public class KAPITKylinQueryTest extends KylinTestBase {
     @AfterClass
     public static void tearDown() throws Exception {
         Candidate.restorePriorities();
-        printInfo("tearDown in KylinQueryTest");
+        printInfo("tearDown in KAPITKylinQueryTest");
         clean();
     }
 
@@ -87,27 +83,41 @@ public class KAPITKylinQueryTest extends KylinTestBase {
 
     }
 
-    protected static void clean() {
-        if (cubeConnection != null)
-            closeConnection(cubeConnection);
-        if (h2Connection != null)
-            closeConnection(h2Connection);
+    //inherit query tests from ITKylinQueryTest
 
-        ObserverEnabler.forceCoprocessorUnset();
-        HBaseMetadataTestCase.staticCleanupTestMetadata();
+    protected String getQueryFolderPrefix() {
+        return "../../kylin/kylin-it/";
     }
 
-    @Ignore("this is only for debug")
+    // unique query tests in kap
     @Test
-    public void testTempQuery() throws Exception {
-        execAndCompQuery(ITDirHeader + "src/test/resources/query/temp", null, true);
+    public void testPercentileQuery() throws Exception {
+        batchExecuteQuery("src/test/resources/query/percentile");
     }
 
-    @Ignore("this is only for debug")
+    @Ignore("dev only")
     @Test
-    public void testSingleRunQuery() throws Exception {
+    public void testKAPSingleInternalQuery() throws Exception {
 
-        String queryFileName = ITDirHeader + "src/test/resources/query/sql/query99.sql";
+        try {
+            String queryFileName = "src/test/resources/query/temp/temp.sql";
+
+            File sqlFile = new File(queryFileName);
+            if (sqlFile.exists()) {
+                //runSQL(sqlFile, true, true);
+                //runSQL(sqlFile, true, false);
+                runSQL(sqlFile, false, false);
+            }
+        } catch (Exception e) {
+            System.out.println(e.getLocalizedMessage());
+            throw e;
+        }
+    }
+
+    @Test
+    public void testKAPSinglePublicQuery() throws Exception {
+
+        String queryFileName = getQueryFolderPrefix() + "src/test/resources/query/sql_derived/query10.sql";
 
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
@@ -116,27 +126,14 @@ public class KAPITKylinQueryTest extends KylinTestBase {
         }
     }
 
-    @Ignore("this is only for debug")
-    @Test
-    public void testSingleExecuteQuery() throws Exception {
+    protected static void clean() {
+        if (cubeConnection != null)
+            closeConnection(cubeConnection);
+        if (h2Connection != null)
+            closeConnection(h2Connection);
 
-        String queryFileName = ITDirHeader + "src/test/resources/query/sql_tableau/query20.sql";
-
-        File sqlFile = new File(queryFileName);
-        String sql = getTextFromFile(sqlFile);
-        IDatabaseConnection kylinConn = new DatabaseConnection(cubeConnection);
-
-        executeQuery(kylinConn, queryFileName, sql, true);
+        ObserverEnabler.forceCoprocessorUnset();
+        KAPHBaseMetadataTestCase.staticCleanupTestMetadata();
     }
 
-    @Test
-    public void testPercentileQuery() throws Exception {
-        batchExecuteQuery(ITDirHeader + "src/test/resources/query/percentile");
-    }
-
-    @Ignore("this is only for test")
-    @Test
-    public void testH2Query() throws Exception {
-        execQueryUsingH2(ITDirHeader + "src/test/resources/query/percentile", false);
-    }
 }

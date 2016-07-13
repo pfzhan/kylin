@@ -42,7 +42,7 @@ public class JobServiceImpl implements JobServiceGrpc.JobService {
 
     public JobServiceImpl() {
         conf = new SparkConf().setAppName("Kylin Parquet Storage Query Driver");
-        conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
+        //conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
         conf.set("spark.scheduler.mode", "FAIR");
         sc = new JavaSparkContext(conf);
     }

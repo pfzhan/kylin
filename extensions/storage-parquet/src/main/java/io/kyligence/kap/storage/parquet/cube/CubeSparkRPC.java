@@ -20,6 +20,7 @@ package io.kyligence.kap.storage.parquet.cube;
 
 import java.io.IOException;
 
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
@@ -41,20 +42,23 @@ public class CubeSparkRPC implements IGTStorage {
 
     private CubeSegment cubeSegment;
     private Cuboid cuboid;
-    private GTInfo info;
 
     private SparkDriverClient client;
 
     public CubeSparkRPC(CubeSegment cubeSegment, Cuboid cuboid, GTInfo info) {
-        this.cubeSegment = cubeSegment;
-        this.cuboid = cuboid;
-        this.info = info;
-
-        client = new SparkDriverClient("sandbox", 50051);
+        try {
+            this.cubeSegment = cubeSegment;
+            this.cuboid = cuboid;
+            client = new SparkDriverClient(KapConfig.getInstanceFromEnv().getSparkClientHost(), KapConfig.getInstanceFromEnv().getSparkClientPort());
+        } catch (Exception e) {
+            logger.error("error is " + e.getLocalizedMessage());
+            throw e;
+        }
     }
 
     @Override
     public IGTScanner getGTScanner(GTScanRequest scanRequests) throws IOException {
+
         long startTime = System.currentTimeMillis();
         SubmitParams submitParams = new SubmitParams(KylinConfig.getInstanceFromEnv().getConfigAsString(), //
                 cubeSegment.getCubeInstance().getUuid(), cubeSegment.getUuid(), String.valueOf(cuboid.getId()), // 

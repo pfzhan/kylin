@@ -47,6 +47,11 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-storage-parquet</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-engine-mr</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
@@ -333,7 +338,7 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
-                        <version>1.4.0</version>
+                        <version>1.5.0</version>
                         <executions>
                             <execution>
                                 <id>build_cube_with_engine</id>

@@ -38,6 +38,7 @@ import org.apache.spark.broadcast.Broadcast;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
@@ -102,7 +103,7 @@ public class SparkCubeVisitJob implements Serializable {
         List<byte[]> collected = seed.mapPartitions(new FlatMapFunction<Iterator<Tuple2<byte[], byte[]>>, byte[]>() {
             @Override
             public Iterable<byte[]> call(Iterator<Tuple2<byte[], byte[]>> tuple2Iterator) throws Exception {
-                Iterator<byte[]> iterator = Iterators.transform(tuple2Iterator, new com.google.common.base.Function<Tuple2<byte[], byte[]>, byte[]>() {
+                Iterator<byte[]> iterator = Iterators.transform(tuple2Iterator, new Function<Tuple2<byte[], byte[]>, byte[]>() {
                     @Nullable
                     @Override
                     public byte[] apply(@Nullable Tuple2<byte[], byte[]> input) {
@@ -110,14 +111,11 @@ public class SparkCubeVisitJob implements Serializable {
                     }
                 });
 
-                //                // if user change kylin.properties on kylin server, need to manually redeploy coprocessor jar to update KylinConfig of Env.
-                //                KylinConfig.setKylinConfigFromInputStream(IOUtils.toInputStream(bcKylinProperties.getValue()));
-                //                GTScanRequest gtScanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(bcGtReq.getValue()));//TODO avoid ByteString's array copy
                 GTScanRequest gtScanRequest = ParquetTarballFileReader.gtScanRequestThreadLocal.get();
 
-                IGTScanner scanner = new OriginalBytesGTScanner(gtScanRequest.getInfo(), iterator);//in
+                IGTScanner scanner = new OriginalBytesGTScanner(gtScanRequest.getInfo(), iterator, gtScanRequest);//in
                 IGTScanner preAggred = gtScanRequest.decorateScanner(scanner);//process
-                return Iterables.transform(preAggred, new CoalesceGTRecordExport(gtScanRequest));//out
+                return Iterables.transform(preAggred, new CoalesceGTRecordExport(gtScanRequest, gtScanRequest.getColumns()));//out
             }
         }).collect();
         logger.info("================Cube Data End==================");
