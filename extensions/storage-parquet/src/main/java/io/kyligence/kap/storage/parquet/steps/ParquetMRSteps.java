@@ -62,9 +62,22 @@ public class ParquetMRSteps extends JobBuilderSupport {
         return ret;
     }
 
-    public void addMergingGarbageCollectionSteps(DefaultChainedExecutable jobFlow) {
-        List<String> toCleanFolders = getMergingSegmentsParquetFolders();
+    public List<String> getMergingSegmentJobWorkingDirs() {
+        final List<CubeSegment> mergingSegments = ((CubeInstance) seg.getRealization()).getMergingSegments((CubeSegment) seg);
+        Preconditions.checkState(mergingSegments.size() > 1, "there should be more than 2 segments to merge");
+        final List<String> mergingHDFSPaths = Lists.newArrayList();
+        for (CubeSegment merging : mergingSegments) {
+            mergingHDFSPaths.add(getJobWorkingDir(merging.getLastBuildJobID()));
+        }
+        return mergingHDFSPaths;
+    }
 
+    public void addMergingGarbageCollectionSteps(DefaultChainedExecutable jobFlow) {
+
+        //clean two parts: 1.parquet storage folders 2. working dirs
+        List<String> toCleanFolders = getMergingSegmentsParquetFolders();
+        toCleanFolders.addAll(getMergingSegmentJobWorkingDirs());
+        
         ParquetStorageCleanupStep step = new ParquetStorageCleanupStep();
         step.setName(ExecutableConstants.STEP_NAME_GARBAGE_COLLECTION);
         step.setToCleanFolders(toCleanFolders);
