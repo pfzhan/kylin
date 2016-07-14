@@ -27,6 +27,12 @@
         </dependency>
 
         <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-core-common</artifactId>
+            <version>${kylin.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-exec</artifactId>
             <version>${hive.version}</version>

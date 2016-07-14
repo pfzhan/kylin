@@ -62,4 +62,12 @@ public class KapConfig {
     public int getSparkClientPort() {
         return Integer.parseInt(config.getOptional("kap.parquet.spark.client.port", "50051"));
     }
+
+    /**
+     * where is parquet fles stored in hdfs , end with /
+     */
+    public String getParquentStoragePath() {
+        String defaultPath = config.getHdfsWorkingDirectory() + "parquet/";
+        return config.getOptional("kap.parquet.hdfs.dir", defaultPath);
+    }
 }

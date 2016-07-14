@@ -2,6 +2,8 @@ package io.kyligence.kap.storage.parquet.steps;
 
 import java.util.List;
 
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.JobBuilderSupport;
@@ -77,7 +79,7 @@ public class ParquetMRSteps extends JobBuilderSupport {
         //clean two parts: 1.parquet storage folders 2. working dirs
         List<String> toCleanFolders = getMergingSegmentsParquetFolders();
         toCleanFolders.addAll(getMergingSegmentJobWorkingDirs());
-        
+
         ParquetStorageCleanupStep step = new ParquetStorageCleanupStep();
         step.setName(ExecutableConstants.STEP_NAME_GARBAGE_COLLECTION);
         step.setToCleanFolders(toCleanFolders);
@@ -99,6 +101,6 @@ public class ParquetMRSteps extends JobBuilderSupport {
     }
 
     private String getParquetFolderPath(CubeSegment cubeSegment) {
-        return new StringBuffer(config.getHdfsWorkingDirectory()).append("parquet/").append(cubeSegment.getCubeInstance().getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
+        return new StringBuffer(KapConfig.wrap(config.getConfig()).getParquentStoragePath()).append(cubeSegment.getCubeInstance().getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
     }
 }
