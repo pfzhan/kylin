@@ -61,7 +61,7 @@ public class ParquetTarballFileReader extends RecordReader<byte[], byte[]> {
         ImmutableRoaringBitmap pageBitmap = null;
         if (scanReqStr != null) {
             GTScanRequest gtScanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(scanReqStr.getBytes("ISO-8859-1")));
-            gtScanRequestThreadLocal.set(gtScanRequest);//for later use convenience
+            gtScanRequestThreadLocal.set(GTScanRequest.serializer.deserialize(ByteBuffer.wrap(scanReqStr.getBytes("ISO-8859-1"))));//for later use convenience
 
             if (Boolean.valueOf(conf.get(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX))) {
                 ParquetPageIndexTable indexTable = indexReader.getIndexTable();
