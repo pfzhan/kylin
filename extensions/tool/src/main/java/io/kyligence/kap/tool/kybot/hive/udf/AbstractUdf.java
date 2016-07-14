@@ -1,4 +1,4 @@
-package io.kyligence.kap.tool.hive.udf;
+package io.kyligence.kap.tool.kybot.hive.udf;
 
 import org.apache.hadoop.hive.ql.exec.UDF;
 

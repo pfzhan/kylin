@@ -75,7 +75,7 @@ then
         hbase ${KYLIN_EXTRA_START_OPTS} \
         -Dlog4j.configuration=kylin-server-log4j.properties \
         -Dcatalina.home=${tomcat_root} \
-        io.kyligence.kap.tool.DiagnosisInfoCLI \
+        io.kyligence.kap.tool.kybot.DiagnosisInfoCLI \
         -project -all \
         -destDir $destDir
     fi

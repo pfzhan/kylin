@@ -19,7 +19,6 @@
 package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
 import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
 import java.util.Iterator;
 import java.util.List;
 
@@ -57,48 +56,45 @@ public class SparkCubeVisitJob implements Serializable {
     private transient JavaSparkContext sc;
     private transient SparkJobProtos.SparkJobRequest request;
     private transient KylinConfig kylinConfig;
+    private transient String parquetPath;
 
-    //    private Broadcast<byte[]> bcGtReq;
-    //    private Broadcast<String> bcKylinProperties;
     private Broadcast<CanonicalCuboid> bcCanonicalCuboid;
 
     public SparkCubeVisitJob(JavaSparkContext sc, SparkJobProtos.SparkJobRequest request) {
         this.sc = sc;
         this.request = request;
         this.kylinConfig = KylinConfig.createKylinConfigFromInputStream(IOUtils.toInputStream(request.getKylinProperties()));
-
-        //this.bcGtReq = sc.broadcast(request.getGtScanRequest().toByteArray());
-        //this.bcKylinProperties = sc.broadcast(request.getKylinProperties());
-        this.bcCanonicalCuboid = sc.broadcast(new CanonicalCuboid(request.getCubeId(), request.getSegmentId(), request.getCuboidId()));
+        this.parquetPath = new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
+                append(request.getCubeId()).append("/").//
+                append(request.getSegmentId()).append("/").//
+                append(request.getCuboidId()).//
+                append("/*.parquettar").toString();
     }
 
-    public List<byte[]> executeTask() {
-        String basePath = new StringBuffer(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
-                append(bcCanonicalCuboid.getValue().getCubeId()).append("/").//
-                append(bcCanonicalCuboid.getValue().getSegmentId()).append("/").//
-                append(bcCanonicalCuboid.getValue().getCuboidId()).toString();
-
-        String parquetPath = basePath + "/*.parquettar";
-
+    public List<byte[]> executeTask() throws Exception {
         Configuration conf = new Configuration();
 
-        logger.info("Required Measures: " + StringUtils.join(request.getRequiredMeasuresList(), ","));
+        // which measure are needed
         conf.set(ParquetFormatConstants.KYLIN_FILTER_MEASURES_BITSET_MAP, RoaringBitmaps.writeToString(request.getRequiredMeasuresList()));
 
-        logger.info("Max GT length: " + request.getMaxRecordLength());
+        // max gt length
         conf.set(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH, String.valueOf(request.getMaxRecordLength()));
 
+        //push down kylin config
         conf.set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, request.getKylinProperties());
-        try {
-            //so that ParquetRawInputFormat can use the scan request
-            conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES, new String(this.request.getGtScanRequest().toByteArray(), "ISO-8859-1"));
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
 
-        logger.info("================Cube Data Start==================");
-        // visit parquet data file
+        //so that ParquetRawInputFormat can use the scan request
+        conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES, new String(this.request.getGtScanRequest().toByteArray(), "ISO-8859-1"));
+
+        //whether to use II
+        conf.set(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX, String.valueOf(request.getUseII()));
+
         logger.info("Parquet path is " + parquetPath);
+        logger.info("Required Measures: " + StringUtils.join(request.getRequiredMeasuresList(), ","));
+        logger.info("Max GT length: " + request.getMaxRecordLength());
+        logger.info("Start to visit cube data with Spark <<<<<<");
+
+        // visit parquet data file
         JavaPairRDD<byte[], byte[]> seed = sc.newAPIHadoopFile(parquetPath, ParquetTarballFileInputFormat.class, byte[].class, byte[].class, conf);
         List<byte[]> collected = seed.mapPartitions(new FlatMapFunction<Iterator<Tuple2<byte[], byte[]>>, byte[]>() {
             @Override
@@ -118,8 +114,7 @@ public class SparkCubeVisitJob implements Serializable {
                 return Iterables.transform(preAggred, new CoalesceGTRecordExport(gtScanRequest, gtScanRequest.getColumns()));//out
             }
         }).collect();
-        logger.info("================Cube Data End==================");
-
+        logger.info(">>>>>> End of visiting cube data with Spark");
         logger.info("The result size is " + collected.size());
         return collected;
     }

@@ -1,13 +1,10 @@
-package io.kyligence.kap.tool.hive.udf;
+package io.kyligence.kap.tool.kybot.hive.udf;
 
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Charsets;
 import com.google.common.hash.Hashing;
 
-/**
- * Created by lingyanjiang on 16/6/24.
- */
 public class ObfuscateUDF extends AbstractUdf {
     private static final String NAME = "kylin_obfuscate";
 

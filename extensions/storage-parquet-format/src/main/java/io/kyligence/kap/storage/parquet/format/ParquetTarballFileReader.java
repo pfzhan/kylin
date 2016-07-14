@@ -58,16 +58,20 @@ public class ParquetTarballFileReader extends RecordReader<byte[], byte[]> {
         long fileOffset = indexReader.initialize(split, context);
 
         String scanReqStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES);
-        ImmutableRoaringBitmap pageBitmap;
+        ImmutableRoaringBitmap pageBitmap = null;
         if (scanReqStr != null) {
-            ParquetPageIndexTable indexTable = indexReader.getIndexTable();
             GTScanRequest gtScanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(scanReqStr.getBytes("ISO-8859-1")));
-            gtScanRequestThreadLocal.set(gtScanRequest);
-            TupleFilter filter = gtScanRequest.getFilterPushDown();
-            pageBitmap = indexTable.lookup(filter);
-            logger.info("Inverted Index bitmap: " + pageBitmap + ". Time spent is: " + (System.currentTimeMillis() - startTime));
+            gtScanRequestThreadLocal.set(gtScanRequest);//for later use convenience
+
+            if (Boolean.valueOf(conf.get(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX))) {
+                ParquetPageIndexTable indexTable = indexReader.getIndexTable();
+                TupleFilter filter = gtScanRequest.getFilterPushDown();
+                pageBitmap = indexTable.lookup(filter);
+                logger.info("Inverted Index bitmap: " + pageBitmap + ". Time spent is: " + (System.currentTimeMillis() - startTime));
+            } else {
+                logger.info("Told not to use II, read all pages");
+            }
         } else {
-            pageBitmap = null;
             logger.info("KYLIN_SCAN_REQUEST_BYTES not set, read all pages");
         }
 
