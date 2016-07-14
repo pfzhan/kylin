@@ -208,7 +208,7 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testLT1() throws IOException {
-        for (int i = 0; i < dataSize; i++) {
+        for (int i = 1; i < dataSize; i++) {
             TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.LT, colRef1, data1[i]);
             ImmutableRoaringBitmap result = indexTable.lookup(filter);
             assertArrayEquals(rangeInts(0, i - 1), result.toArray());
@@ -240,6 +240,20 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
             ImmutableRoaringBitmap result = indexTable.lookup(filter);
             assertArrayEquals(rangeInts(0, i), result.toArray());
         }
+    }
+
+    @Test
+    public void testLTEMax() throws IOException {
+        TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.LTE, colRef2, Integer.MAX_VALUE);
+        ImmutableRoaringBitmap result = indexTable.lookup(filter);
+        assertArrayEquals(rangeInts(0, dataSize - 1), result.toArray());
+    }
+
+    @Test
+    public void testGTEMin() throws IOException {
+        TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.GTE, colRef2, 0);
+        ImmutableRoaringBitmap result = indexTable.lookup(filter);
+        assertArrayEquals(rangeInts(0, dataSize - 1), result.toArray());
     }
 
     @Test
