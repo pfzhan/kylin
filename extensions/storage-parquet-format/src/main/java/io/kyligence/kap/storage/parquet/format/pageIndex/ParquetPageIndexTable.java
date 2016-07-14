@@ -1,7 +1,6 @@
 package io.kyligence.kap.storage.parquet.format.pageIndex;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Set;
 
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -56,17 +55,17 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
         case GTE:
             val = Iterables.getOnlyElement(vals);
             if (compareOp == TupleFilter.FilterOperatorEnum.GT) {
-                incrementByteArray(val, 1);
+                val = incrementByteArray(val, 1);
             }
-            result = indexReader.readColumnIndex(column).lookupGtIndex(Iterables.getOnlyElement(vals)).toMutableRoaringBitmap();
+            result = indexReader.readColumnIndex(column).lookupGtIndex(val).toMutableRoaringBitmap();
             break;
         case LT:
         case LTE:
             val = Iterables.getOnlyElement(vals);
             if (compareOp == TupleFilter.FilterOperatorEnum.LT) {
-                incrementByteArray(val, -1);
+                val = incrementByteArray(val, -1);
             }
-            result = indexReader.readColumnIndex(column).lookupLtIndex(Iterables.getOnlyElement(vals)).toMutableRoaringBitmap();
+            result = indexReader.readColumnIndex(column).lookupLtIndex(val).toMutableRoaringBitmap();
             break;
         default:
             throw new RuntimeException("Unknown Operator: " + compareOp);
@@ -111,10 +110,13 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
         throw new RuntimeException("Unrecognized tuple filter: " + filter);
     }
 
-    private void incrementByteArray(ByteArray val, int c) {
+    private ByteArray incrementByteArray(ByteArray val, int c) {
         int v = BytesUtil.readUnsigned(val.array(), val.offset(), val.length()) + c;
-        Arrays.fill(val.array(), val.offset(), val.length(), (byte) 0);
-        BytesUtil.writeUnsigned(v, val.array(), val.offset(), val.length());
+        v = Math.max(v, 0);
+        v = Math.min(Integer.MAX_VALUE, v);
+        ByteArray result = ByteArray.allocate(val.length());
+        BytesUtil.writeUnsigned(v, result.array(), result.offset(), result.length());
+        return result;
     }
 
     //    private void collectCompareTupleFilter(TupleFilter rootFilter) {
