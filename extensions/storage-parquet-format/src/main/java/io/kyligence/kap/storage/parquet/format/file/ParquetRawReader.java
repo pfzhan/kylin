@@ -33,12 +33,14 @@ import org.slf4j.LoggerFactory;
 
 public class ParquetRawReader {
     public static final Logger logger = LoggerFactory.getLogger(ParquetRawReader.class);
-    protected int pagesPerGroup = 0;
-    protected Map<String, String> indexMap;
+
     private ParquetMetadata parquetMetadata;
     private FSDataInputStream inputStream;
     private Configuration config;
     private long fileOffset;
+
+    protected int pagesPerGroup = 0;
+    protected Map<String, String> indexMap;
 
     public ParquetRawReader(Configuration configuration, Path path, Path indexPath, long fileOffset) throws IOException {
         config = configuration;
@@ -68,7 +70,6 @@ public class ParquetRawReader {
      * @return values reader, if returns null, there's no such page
      */
     public GeneralValuesReader getValuesReader(int globalPageIndex, int column) throws IOException {
-        logger.info("ParquetRawReader.getValuesReader read page: {}", globalPageIndex);
         int group = globalPageIndex / pagesPerGroup;
         int page = globalPageIndex % pagesPerGroup;
         if (!indexMap.containsKey(group + "," + column + "," + page)) {
