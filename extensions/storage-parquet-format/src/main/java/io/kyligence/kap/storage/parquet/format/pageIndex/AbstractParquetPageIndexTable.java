@@ -37,4 +37,6 @@ public abstract class AbstractParquetPageIndexTable implements Closeable {
     protected abstract ImmutableRoaringBitmap lookupFlattenFilter(TupleFilter filter);
 
     protected abstract ImmutableRoaringBitmap getFullBitmap();
+
+    protected abstract ImmutableRoaringBitmap getEmptyBitmap();
 }

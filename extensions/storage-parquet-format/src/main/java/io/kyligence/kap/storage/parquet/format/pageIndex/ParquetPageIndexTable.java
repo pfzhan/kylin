@@ -8,6 +8,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
+import org.apache.kylin.metadata.filter.ConstantTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
@@ -84,17 +85,30 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
         return result;
     }
 
-    private MutableRoaringBitmap lookupCompareFilter(CompareTupleFilter filter) {
-        int col = filter.getColumn().getColumnDesc().getZeroBasedIndex();
-        Set<ByteArray> conditionVals = Sets.newHashSet();
-        for (Object conditionVal : filter.getValues()) {
-            if (conditionVal instanceof ByteArray) {
-                conditionVals.add((ByteArray) conditionVal);
+    private MutableRoaringBitmap lookupChildFilter(TupleFilter filter) {
+        if (filter instanceof ConstantTupleFilter) {
+            ConstantTupleFilter constantTupleFilter = (ConstantTupleFilter) filter;
+            if (!constantTupleFilter.getValues().isEmpty()) {
+                // TRUE
+                return getFullBitmap().toMutableRoaringBitmap();
             } else {
-                throw new IllegalArgumentException("Unknown type for condition values.");
+                // FALSE
+                return getEmptyBitmap().toMutableRoaringBitmap();
             }
+        } else if (filter instanceof CompareTupleFilter) {
+            CompareTupleFilter compareTupleFilter = (CompareTupleFilter) filter;
+            int col = compareTupleFilter.getColumn().getColumnDesc().getZeroBasedIndex();
+            Set<ByteArray> conditionVals = Sets.newHashSet();
+            for (Object conditionVal : compareTupleFilter.getValues()) {
+                if (conditionVal instanceof ByteArray) {
+                    conditionVals.add((ByteArray) conditionVal);
+                } else {
+                    throw new IllegalArgumentException("Unknown type for condition values.");
+                }
+            }
+            return lookColumnIndex(col, compareTupleFilter.getOperator(), conditionVals);
         }
-        return lookColumnIndex(col, filter.getOperator(), conditionVals);
+        throw new RuntimeException("Unrecognized tuple filter: " + filter);
     }
 
     private void incrementByteArray(ByteArray val, int c) {
@@ -111,7 +125,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
     //        }
     //
     //        for (CompareTupleFilter filter : columnFilterSet) {
-    //            filterIndexMap.put(filter, lookupCompareFilter(filter));
+    //            filterIndexMap.put(filter, lookupChildFilter(filter));
     //        }
     //    }
 
@@ -139,14 +153,19 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
         return result;
     }
 
+    @Override
+    protected ImmutableRoaringBitmap getEmptyBitmap() {
+        return new MutableRoaringBitmap();
+    }
+
     private MutableRoaringBitmap lookupAndFilter(TupleFilter filter) {
         MutableRoaringBitmap resultBitmap = null;
 
         for (TupleFilter childFilter : filter.getChildren()) {
             if (resultBitmap == null) {
-                resultBitmap = lookupCompareFilter((CompareTupleFilter) childFilter);
+                resultBitmap = lookupChildFilter(childFilter);
             } else {
-                resultBitmap.and(lookupCompareFilter((CompareTupleFilter) childFilter));
+                resultBitmap.and(lookupChildFilter(childFilter));
             }
         }
         return resultBitmap;

@@ -37,11 +37,10 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 
 public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
-    static ParquetPageIndexTable indexTable;
     final static int dataSize = 500;
     final static int maxVal = dataSize * 2;
     final static int cardinality = dataSize;
-
+    static ParquetPageIndexTable indexTable;
     static int[] data1;
     static int[] data2;
     static int columnLength = Integer.SIZE - Integer.numberOfLeadingZeros(maxVal);
@@ -127,6 +126,24 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
             ImmutableRoaringBitmap result = indexTable.lookup(filter);
             assertArrayEquals(rangeInts(i, i), result.toArray());
         }
+    }
+
+    @Test
+    public void testNullFilter() {
+        ImmutableRoaringBitmap result = indexTable.lookup(null);
+        assertArrayEquals(rangeInts(0, dataSize - 1), result.toArray());
+    }
+
+    @Test
+    public void testConstantTrueFilter() {
+        ImmutableRoaringBitmap result = indexTable.lookup(ConstantTupleFilter.TRUE);
+        assertArrayEquals(rangeInts(0, dataSize - 1), result.toArray());
+    }
+
+    @Test
+    public void testConstantFalseFilter() {
+        ImmutableRoaringBitmap result = indexTable.lookup(ConstantTupleFilter.FALSE);
+        assertArrayEquals(new int[0], result.toArray());
     }
 
     @Ignore

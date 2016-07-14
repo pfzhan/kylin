@@ -94,7 +94,8 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
             TblColRef colRef = cuboid.getColumns().get(col);
             int colCardinality = -1;
             Dictionary<String> dict = cubeSegment.getDictionary(colRef);
-            onlyEQIndex[col] = true;
+            // TODO: all column has eq/gt/lt index now
+            onlyEQIndex[col] = false;
 
             if (dict != null) {
                 colCardinality = dict.getSize();

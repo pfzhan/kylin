@@ -64,6 +64,8 @@ public class CubeSparkRPC implements IGTStorage {
                 cubeSegment.getCubeInstance().getUuid(), cubeSegment.getUuid(), String.valueOf(cuboid.getId()), // 
                 scanRequests.getInfo().getMaxLength(), scanRequests.getRequiredMeasures() //
         );
+        logger.info("Filter: {}" + scanRequests.getFilterPushDown());
+
         SparkJobProtos.SparkJobResponse jobResponse = client.submit(//
                 scanRequests.toByteArray(), submitParams);
         logger.info("Time for the gRPC visit is " + (System.currentTimeMillis() - startTime));
