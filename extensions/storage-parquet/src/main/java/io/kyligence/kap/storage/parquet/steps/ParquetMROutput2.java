@@ -28,7 +28,8 @@ public class ParquetMROutput2 implements IMROutput2 {
 
             @Override
             public void addStepPhase4_Cleanup(DefaultChainedExecutable jobFlow) {
-                // nothing to do
+                steps.addCubingGarbageCollectionSteps(jobFlow);
+
             }
         };
     }
@@ -51,7 +52,7 @@ public class ParquetMROutput2 implements IMROutput2 {
 
             @Override
             public void addStepPhase3_Cleanup(DefaultChainedExecutable jobFlow) {
-                // nothing to do
+                steps.addMergingGarbageCollectionSteps(jobFlow);
             }
         };
     }
