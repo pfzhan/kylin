@@ -53,7 +53,6 @@ public class SparkDriverClient {
                 setKylinProperties(submitParams.getKylinProperties()).setCubeId(submitParams.getCubeId()).//
                 setSegmentId(submitParams.getSegmentId()).setCuboidId(submitParams.getCuboidId()).//
                 setMaxRecordLength(submitParams.getMaxGTLength()).addAllRequiredMeasures(submitParams.getRequiredMeasures()).//
-                setUseII(false).//
                 setUseII(true).//
                 build();
 

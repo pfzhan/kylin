@@ -27,8 +27,6 @@ import java.util.Map;
 
 import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.query.routing.Candidate;
-import org.apache.kylin.storage.hbase.HBaseStorage;
-import org.apache.kylin.storage.hbase.cube.v1.coprocessor.observer.ObserverEnabler;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
@@ -55,7 +53,6 @@ public class KAPITCombinationTest extends KAPITKylinQueryTest {
     public static void tearDown() {
         printInfo("tearDown in ITCombinationTest");
         clean();
-        HBaseStorage.overwriteStorageQuery = null;
         Candidate.restorePriorities();
     }
 
@@ -66,29 +63,16 @@ public class KAPITCombinationTest extends KAPITKylinQueryTest {
      */
     @Parameterized.Parameters
     public static Collection<Object[]> configs() {
-        //       return Arrays.asList(new Object[][] { { "inner", "unset" }, { "left", "unset" }, { "inner", "off" }, { "left", "off" }, { "inner", "on" }, { "left", "on" }, });
-        return Arrays.asList(new Object[][] { { "inner", "on", "v2" }, { "left", "on", "v2" } });
+        return Arrays.asList(new Object[][] { { "inner" }, { "left" } });
     }
 
-    public KAPITCombinationTest(String joinType, String coprocessorToggle, String queryEngine) throws Exception {
+    public KAPITCombinationTest(String joinType) throws Exception {
 
-        printInfo("Into combination join type: " + joinType + ", coprocessor toggle: " + coprocessorToggle + ", query engine: " + queryEngine);
+        printInfo("Into combination join type: " + joinType);
 
         KAPITKylinQueryTest.clean();
 
         KAPITKylinQueryTest.joinType = joinType;
         KAPITKylinQueryTest.setupAll();
-
-        if (coprocessorToggle.equals("on")) {
-            ObserverEnabler.forceCoprocessorOn();
-        } else if (coprocessorToggle.equals("off")) {
-            ObserverEnabler.forceCoprocessorOff();
-        } else if (coprocessorToggle.equals("unset")) {
-            // unset
-        }
-
-        if ("v1".equalsIgnoreCase(queryEngine)) {
-            HBaseStorage.overwriteStorageQuery = HBaseStorage.v1CubeStorageQuery;
-        }
     }
 }

@@ -3,7 +3,6 @@ package io.kyligence.kap.storage.parquet.steps;
 import java.util.List;
 
 import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.JobBuilderSupport;
