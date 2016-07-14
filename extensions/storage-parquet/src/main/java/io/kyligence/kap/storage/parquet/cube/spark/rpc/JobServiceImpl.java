@@ -18,6 +18,8 @@
 
 package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.List;
 
 import org.apache.spark.SparkConf;
@@ -50,18 +52,30 @@ public class JobServiceImpl implements JobServiceGrpc.JobService {
     @Override
     public void submitJob(SparkJobRequest request, StreamObserver<SparkJobResponse> responseObserver) {
 
-        long startTime = System.currentTimeMillis();
+        try {
+            long startTime = System.currentTimeMillis();
 
-        SparkCubeVisitJob submit = new SparkCubeVisitJob(sc, request);
-        List<byte[]> collected = submit.executeTask();
+            SparkCubeVisitJob submit = new SparkCubeVisitJob(sc, request);
+            List<byte[]> collected = submit.executeTask();
 
-        logger.info("Time for spark cube visit is " + (System.currentTimeMillis() - startTime));
+            logger.info("Time for spark cube visit is " + (System.currentTimeMillis() - startTime));
 
-        //        int reqValue = Bytes.toInt(request.getRequest().toByteArray());
-        //        System.out.println("reqValue is " + reqValue);
-        SparkJobResponse response = SparkJobResponse.newBuilder().setGtRecordsBlob(ByteString.copyFrom(concat(collected))).build();
-        responseObserver.onNext(response);
-        responseObserver.onCompleted();
+            //        int reqValue = Bytes.toInt(request.getRequest().toByteArray());
+            //        System.out.println("reqValue is " + reqValue);
+            SparkJobResponse response = SparkJobResponse.newBuilder().setSucceed(true).setGtRecordsBlob(ByteString.copyFrom(concat(collected))).build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            e.printStackTrace(pw);
+            String msg = sw.toString();
+            logger.error("error stacktrace: " + msg);
+
+            SparkJobResponse response = SparkJobResponse.newBuilder().setSucceed(false).setErrorMsg(msg).build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        }
     }
 
     private byte[] concat(List<byte[]> rows) {

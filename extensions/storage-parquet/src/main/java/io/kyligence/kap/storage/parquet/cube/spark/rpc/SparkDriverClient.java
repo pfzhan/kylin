@@ -27,7 +27,7 @@ import com.google.protobuf.ByteString;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import io.grpc.StatusRuntimeException;
+import io.grpc.Status;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.JobServiceGrpc;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobRequest;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobResponse;
@@ -57,8 +57,10 @@ public class SparkDriverClient {
 
         try {
             return blockingStub.submitJob(request);
-        } catch (StatusRuntimeException e) {
-            throw new RuntimeException("rpc failed", e);
+        } catch (Exception e) {
+            Status status = Status.fromThrowable(e);
+            logger.error("error description:" + status.getDescription());
+            throw new RuntimeException("RPC failed", e);
         }
     }
 

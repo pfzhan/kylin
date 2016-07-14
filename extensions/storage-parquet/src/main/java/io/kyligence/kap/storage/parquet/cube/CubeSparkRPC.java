@@ -69,6 +69,11 @@ public class CubeSparkRPC implements IGTStorage {
         SparkJobProtos.SparkJobResponse jobResponse = client.submit(//
                 scanRequests.toByteArray(), submitParams);
         logger.info("Time for the gRPC visit is " + (System.currentTimeMillis() - startTime));
-        return new JobResponseBlobGTScanner(scanRequests, jobResponse.getGtRecordsBlob().toByteArray());
+        if (jobResponse.getSucceed()) {
+            return new JobResponseBlobGTScanner(scanRequests, jobResponse.getGtRecordsBlob().toByteArray());
+        } else {
+            logger.error(jobResponse.getErrorMsg());
+            throw new RuntimeException("RPC failed due to above reason");
+        }
     }
 }

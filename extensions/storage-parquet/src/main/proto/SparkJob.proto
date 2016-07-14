@@ -38,7 +38,10 @@ message SparkJobRequest {
 }
 
 message SparkJobResponse {
-    required bytes gtRecordsBlob = 1;
+    required bool succeed = 1;
+    optional bytes gtRecordsBlob = 2;
+    optional string errorMsg = 3;
+    
 }
 
 service JobService {
