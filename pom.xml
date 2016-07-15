@@ -587,7 +587,7 @@
         <module>extensions/server-base</module>
         <module>extensions/server</module>
         <module>extensions/assembly</module>
-        <module>extensions/it</module>
+        <module>extensions/kap-it</module>
         <module>extensions/tool</module>
     </modules>
 
