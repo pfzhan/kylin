@@ -91,8 +91,8 @@ public class ParquetStorageCleanupStep extends AbstractExecutable {
                                 logger.debug("working on HDFS file " + currentFileName);
                                 output.append("working on HDFS file " + currentFileName + "\n");
                                 fileSystem.delete(locatedFileStatus.getPath(), false);
-                                logger.debug("HDFS file " + currentFileName + " is deleted.");
-                                output.append("HDFS file " + currentFileName + " is deleted.\n");
+                                logger.debug("Successfully deleted.");
+                                output.append("Successfully deleted.\n");
                             }
                         }
                     } else {
@@ -100,8 +100,8 @@ public class ParquetStorageCleanupStep extends AbstractExecutable {
                         logger.debug("working on HDFS folder " + folder);
                         output.append("working on HDFS folder " + folder + "\n");
                         fileSystem.delete(folderPath, true);
-                        logger.debug("HDFS folder " + folder + " is dropped.");
-                        output.append("HDFS folder " + folder + " is dropped.\n");
+                        logger.debug("Successfully dropped.");
+                        output.append("Successfully dropped.\n");
                     }
                 } else {
                     logger.debug("Folder " + folder + " not exists.");
