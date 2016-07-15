@@ -383,6 +383,39 @@
                                 </configuration>
                             </execution>
 
+                            <execution>
+                                <id>start_spark</id>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <phase>pre-integration-test</phase>
+                                <configuration>
+                                    <skip>${skipTests}</skip>
+                                    <executable>build/bin/spark_client.sh</executable>
+                                    <commandlineArgs>start</commandlineArgs>
+                                    <environmentVariables>
+                                        <CI_MODE>true</CI_MODE>
+                                    </environmentVariables>
+                                    <workingDirectory>${project.basedir}/../../</workingDirectory>
+                                </configuration>
+                            </execution>
+
+                            <execution>
+                                <id>stop_spark</id>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <phase>post-integration-test</phase>
+                                <configuration>
+                                    <skip>${skipTests}</skip>
+                                    <executable>build/bin/spark_client.sh</executable>
+                                    <commandlineArgs>stop</commandlineArgs>
+                                    <environmentVariables>
+                                        <CI_MODE>true</CI_MODE>
+                                    </environmentVariables>
+                                    <workingDirectory>${project.basedir}/../../</workingDirectory>
+                                </configuration>
+                            </execution>
                         </executions>
                     </plugin>
 
