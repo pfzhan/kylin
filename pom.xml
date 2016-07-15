@@ -618,7 +618,6 @@
                             <reportsDirectory>${project.basedir}/../../target/surefire-reports</reportsDirectory>
                             <excludes>
                                 <exclude>**/IT*.java</exclude>
-                                <exclude>**/KAPIT*.java</exclude>
                             </excludes>
                             <systemProperties>
                                 <property>

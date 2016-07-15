@@ -37,7 +37,7 @@ import com.google.common.collect.Maps;
 /**
  */
 @RunWith(Parameterized.class)
-public class KAPITCombinationTest extends KAPITKylinQueryTest {
+public class ITKapCombinationTest extends ITKapKylinQueryTest {
 
     @BeforeClass
     public static void setUp() throws SQLException {
@@ -66,13 +66,13 @@ public class KAPITCombinationTest extends KAPITKylinQueryTest {
         return Arrays.asList(new Object[][] { { "inner" }, { "left" } });
     }
 
-    public KAPITCombinationTest(String joinType) throws Exception {
+    public ITKapCombinationTest(String joinType) throws Exception {
 
         printInfo("Into combination join type: " + joinType);
 
-        KAPITKylinQueryTest.clean();
+        ITKapKylinQueryTest.clean();
 
-        KAPITKylinQueryTest.joinType = joinType;
-        KAPITKylinQueryTest.setupAll();
+        ITKapKylinQueryTest.joinType = joinType;
+        ITKapKylinQueryTest.setupAll();
     }
 }

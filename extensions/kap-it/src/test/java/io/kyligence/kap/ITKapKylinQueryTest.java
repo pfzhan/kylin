@@ -42,7 +42,7 @@ import org.junit.Test;
 import com.google.common.collect.Maps;
 
 //@Ignore("KAPITKylinQueryTest is contained by KAPITCombinationTest")
-public class KAPITKylinQueryTest extends ITKylinQueryTest {
+public class ITKapKylinQueryTest extends ITKylinQueryTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
@@ -51,7 +51,7 @@ public class KAPITKylinQueryTest extends ITKylinQueryTest {
         priorities.put(RealizationType.CUBE, 0);
         Candidate.setPriorities(priorities);
 
-        printInfo("setUp in KAPITKylinQueryTest");
+        printInfo("setUp in ITKapKylinQueryTest");
         joinType = "inner";
 
         setupAll();
@@ -60,7 +60,7 @@ public class KAPITKylinQueryTest extends ITKylinQueryTest {
     @AfterClass
     public static void tearDown() throws Exception {
         Candidate.restorePriorities();
-        printInfo("tearDown in KAPITKylinQueryTest");
+        printInfo("tearDown in ITKapKylinQueryTest");
         clean();
     }
 
