@@ -35,12 +35,14 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.storage.StorageMockUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.gridtable.AdvGTScanRangePlanner;
 
+@Ignore
 public class ITAdvGTScanRangePlannerTest extends KAPHBaseMetadataTestCase {
 
     @Before
