@@ -27,7 +27,6 @@ import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
@@ -146,11 +145,27 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         assertArrayEquals(new int[0], result.toArray());
     }
 
-    @Ignore
     @Test
-    public void testNEQ() throws IOException {
-        for (int i = 0; i < dataSize; i++) {
+    public void testNEQ1() throws IOException {
+        for (int i = 1; i < dataSize; i++) {
             TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.NEQ, colRef1, data1[i]);
+            ImmutableRoaringBitmap result = indexTable.lookup(filter);
+            assertArrayEquals(rangeInts(0, dataSize - 1, i), result.toArray());
+        }
+    }
+
+    @Test
+    public void testNEQ1_NEQ0() throws IOException {
+        // currently lt 0 will become lte 0, because ByteArray of -1 is larger.
+        TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.NEQ, colRef1, data1[0]);
+        ImmutableRoaringBitmap result = indexTable.lookup(filter);
+        assertArrayEquals(rangeInts(0, dataSize - 1), result.toArray());
+    }
+
+    @Test
+    public void testNEQ2() throws IOException {
+        for (int i = 0; i < dataSize; i++) {
+            TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.NEQ, colRef2, data2[i]);
             ImmutableRoaringBitmap result = indexTable.lookup(filter);
             assertArrayEquals(rangeInts(0, dataSize - 1, i), result.toArray());
         }
@@ -289,7 +304,6 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         assertArrayEquals(expected, result.toArray());
     }
 
-    @Ignore
     @Test
     public void testNotIn() throws IOException {
         TupleFilter filter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.NOTIN);

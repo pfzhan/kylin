@@ -37,51 +37,65 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
         MutableRoaringBitmap result = null;
         ByteArray val = null;
         switch (compareOp) {
-        // more Operator
         case ISNULL:
-        case ISNOTNULL:
-            result = indexReader.readColumnIndex(column).lookupEqIndex(ByteArray.EMPTY).toMutableRoaringBitmap();
+            val = ByteArray.EMPTY;
+            result = indexReader.readColumnIndex(column).lookupEqIndex(val).toMutableRoaringBitmap();
             break;
-        case NOTIN:
+        case ISNOTNULL:
+            val = ByteArray.EMPTY;
+            result = MutableRoaringBitmap.or(lookupGt(column, val), lookupLt(column, val));
+            break;
         case IN:
             result = ImmutableRoaringBitmap.or(indexReader.readColumnIndex(column).lookupEqIndex(vals).values().iterator());
             break;
+        case NOTIN:
+            for (ByteArray inVal : vals) {
+                if (result == null) {
+                    result = MutableRoaringBitmap.or(lookupGt(column, inVal), lookupLt(column, inVal));
+                } else {
+                    result.and(MutableRoaringBitmap.or(lookupGt(column, inVal), lookupLt(column, inVal)));
+                }
+            }
+            break;
         case EQ:
-        case NEQ:
             val = Iterables.getOnlyElement(vals);
             result = indexReader.readColumnIndex(column).lookupEqIndex(val).toMutableRoaringBitmap();
             break;
+        case NEQ:
+            val = Iterables.getOnlyElement(vals);
+            result = MutableRoaringBitmap.or(lookupGt(column, val), lookupLt(column, val));
+            break;
         case GT:
+            val = Iterables.getOnlyElement(vals);
+            result = lookupGt(column, val);
+            break;
         case GTE:
             val = Iterables.getOnlyElement(vals);
-            if (compareOp == TupleFilter.FilterOperatorEnum.GT) {
-                val = incrementByteArray(val, 1);
-            }
             result = indexReader.readColumnIndex(column).lookupGtIndex(val).toMutableRoaringBitmap();
             break;
         case LT:
+            val = Iterables.getOnlyElement(vals);
+            result = lookupLt(column, val);
+            break;
         case LTE:
             val = Iterables.getOnlyElement(vals);
-            if (compareOp == TupleFilter.FilterOperatorEnum.LT) {
-                val = incrementByteArray(val, -1);
-            }
             result = indexReader.readColumnIndex(column).lookupLtIndex(val).toMutableRoaringBitmap();
             break;
         default:
             throw new RuntimeException("Unknown Operator: " + compareOp);
         }
 
-        switch (compareOp) {
-        case NOTIN:
-        case NEQ:
-        case ISNOTNULL:
-            result = getFullBitmap().toMutableRoaringBitmap();
-            break;
-        default:
-            break;
-        }
-
         return result;
+    }
+
+    private MutableRoaringBitmap lookupGt(int column, ByteArray val) {
+        ByteArray newVal = incrementByteArray(val, 1);
+        return indexReader.readColumnIndex(column).lookupGtIndex(newVal).toMutableRoaringBitmap();
+    }
+
+    private MutableRoaringBitmap lookupLt(int column, ByteArray val) {
+        ByteArray newVal = incrementByteArray(val, -1);
+        return indexReader.readColumnIndex(column).lookupLtIndex(newVal).toMutableRoaringBitmap();
     }
 
     private MutableRoaringBitmap lookupChildFilter(TupleFilter filter) {

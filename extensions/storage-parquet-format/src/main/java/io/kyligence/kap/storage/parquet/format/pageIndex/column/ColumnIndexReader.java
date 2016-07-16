@@ -35,6 +35,22 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
     private IndexBlock ltIndex;
     private IndexBlock gtIndex;
 
+    public ColumnIndexReader(FSDataInputStream inputStream) {
+        this(inputStream, 0);
+    }
+
+    public ColumnIndexReader(FSDataInputStream inputStream, long inputOffset) {
+        this(inputStream, inputOffset, true);
+    }
+
+    public ColumnIndexReader(FSDataInputStream inputStream, long inputOffset, boolean isLazyLoad) {
+        this.inputStream = inputStream;
+        this.inputOffset = inputOffset;
+        if (!isLazyLoad) {
+            initFromInput();
+        }
+    }
+
     private void initFromInput() {
         try {
             inputStream.seek(inputOffset);
@@ -85,22 +101,6 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
         return ltIndex;
     }
 
-    public ColumnIndexReader(FSDataInputStream inputStream) {
-        this(inputStream, 0);
-    }
-
-    public ColumnIndexReader(FSDataInputStream inputStream, long inputOffset) {
-        this(inputStream, inputOffset, true);
-    }
-
-    public ColumnIndexReader(FSDataInputStream inputStream, long inputOffset, boolean isLazyLoad) {
-        this.inputStream = inputStream;
-        this.inputOffset = inputOffset;
-        if (!isLazyLoad) {
-            initFromInput();
-        }
-    }
-
     public ImmutableRoaringBitmap lookupEqIndex(ByteArray v) {
         return getEqIndex().getRows(v);
     }
@@ -140,6 +140,13 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
     @Override
     public int getNumberOfRows() {
         return cardinality;
+    }
+
+    public int getDocNum() {
+        if (docNum < 0) {
+            initFromInput();
+        }
+        return docNum;
     }
 
     private enum IndexBlockType {
@@ -199,6 +206,9 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
 
         private ImmutableRoaringBitmap getRows(ByteArray value) {
             try {
+                if (type == IndexBlockType.LTE && value.compareTo(offsetMap.firstKey()) < 0) {
+                    return MutableRoaringBitmap.bitmapOf();
+                }
                 Map.Entry<ByteArray, Long> startEntry = offsetMap.floorEntry(value);
                 if (startEntry == null && type == IndexBlockType.GTE) {
                     startEntry = offsetMap.firstEntry();
@@ -212,8 +222,13 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
                     // scan from this step node to next step node
                     for (int i = 0; i < step + 1; i++) {
                         if (inputStream.getPos() >= bodyStartOffset + bodyLength) {
+                            // search to end of index, still not see the value
                             if (type == IndexBlockType.LTE) {
+                                // return pages of last value
                                 return lastPageId;
+                            } else if (type == IndexBlockType.GTE) {
+                                // return empty because no value greater than the condVal
+                                return MutableRoaringBitmap.bitmapOf();
                             }
                             break;
                         }
@@ -244,12 +259,5 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
 
             return MutableRoaringBitmap.bitmapOf();
         }
-    }
-
-    public int getDocNum() {
-        if (docNum < 0) {
-            initFromInput();
-        }
-        return docNum;
     }
 }
