@@ -97,6 +97,7 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,MetaModel,cubes
   $scope.clearNewMeasure = function () {
     $scope.newMeasure = null;
     $scope.initUpdateMeasureStatus();
+    $scope.nextParameterInit();
   };
 
   $scope.saveNewMeasure = function () {
@@ -117,6 +118,7 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,MetaModel,cubes
     }
     $scope.newMeasure = null;
     $scope.initUpdateMeasureStatus();
+    $scope.nextParameterInit();
     return true;
   };
 
@@ -128,7 +130,9 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,MetaModel,cubes
       "next_parameter":null
     }
 
-    $scope.newMeasure.function.parameter.next_parameter = null;
+    if($scope.newMeasure){
+      $scope.newMeasure.function.parameter.next_parameter = null;
+    }
   }
 
   //map right return type for param
