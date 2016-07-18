@@ -20,31 +20,25 @@
 
 KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,MetaModel,cubesManager,CubeDescModel,SweetAlert) {
 
-
-  $scope.addNewMeasure = function (measure) {
-    $scope.nextParameters = [];
-    $scope.newMeasure = (!!measure)? measure:CubeDescModel.createMeasure();
-    if(!!measure){
-      $scope.convertNextParameters();
+  $scope.initUpdateMeasureStatus = function(){
+    $scope.updateMeasureStatus = {
+      isEdit:false,
+      editIndex:-1
     }
   };
-  $scope.convertNextParameters = function(){
-    $scope.nextParameters = [];
-    var paramater = jQuery.extend(true, {}, $scope.newMeasure.function.parameter);
-    while(paramater.next_parameter){
-      var paraMeter =
-      {
-       "type": paramater.next_parameter.type,
-       "value":paramater.next_parameter.value,
-        "next_parameter":null
-      }
-      $scope.nextParameters.push(paraMeter);
+  $scope.initUpdateMeasureStatus();
 
-      paramater = paramater.next_parameter;
-
+  $scope.addNewMeasure = function (measure,index) {
+    if(measure&&index>=0){
+      $scope.updateMeasureStatus.isEdit = true;
+      $scope.updateMeasureStatus.editIndex = index;
     }
-
-  }
+    $scope.nextParameters = [];
+    $scope.newMeasure = (!!measure)? jQuery.extend(true, {},measure):CubeDescModel.createMeasure();
+    if(!!measure && measure.function.parameter.next_parameter){
+      $scope.nextPara.value = measure.function.parameter.next_parameter.value;
+    }
+  };
 
   $scope.updateNextParameter = function(){
     //jQuery.extend(true, {},$scope.newMeasure.function.parameter.next_parameter)
@@ -52,7 +46,6 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,MetaModel,cubes
       $scope.nextParameters[i].next_parameter=$scope.nextParameters[i+1];
     }
     $scope.newMeasure.function.parameter.next_parameter = $scope.nextParameters[0];
-    console.log($scope.newMeasure.function.parameter);
   }
 
   $scope.editNextParameter = function(parameter){
@@ -70,6 +63,14 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,MetaModel,cubes
     }
     $scope.updateNextParameter();
   }
+
+
+  $scope.nextPara = {
+    "type":"column",
+    "value":"",
+    "next_parameter":null
+  }
+
   $scope.openParameterModal = function (parameter) {
     $modal.open({
       templateUrl: 'nextParameter.html',
@@ -95,25 +96,54 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,MetaModel,cubes
 
   $scope.clearNewMeasure = function () {
     $scope.newMeasure = null;
+    $scope.initUpdateMeasureStatus();
   };
 
   $scope.saveNewMeasure = function () {
-    if ($scope.newMeasure.function.expression === 'TOP_N' && $scope.nextParameters.length == 0) {
+    if ($scope.newMeasure.function.expression === 'TOP_N' && $scope.nextPara.value == "") {
       SweetAlert.swal('', '[TOP_N] Group by Column is required', 'warning');
       return false;
     }
-    if ($scope.cubeMetaFrame.measures.indexOf($scope.newMeasure) === -1) {
+
+    if($scope.nextPara.value!=="" && ($scope.newMeasure.function.expression == 'EXTENDED_COLUMN' || $scope.newMeasure.function.expression == 'TOP_N')){
+      $scope.newMeasure.function.parameter.next_parameter = jQuery.extend(true,{},$scope.nextPara);
+    }
+
+    if($scope.updateMeasureStatus.isEdit == true){
+      $scope.cubeMetaFrame.measures[$scope.updateMeasureStatus.editIndex] = $scope.newMeasure;
+    }
+    else {
       $scope.cubeMetaFrame.measures.push($scope.newMeasure);
     }
     $scope.newMeasure = null;
+    $scope.initUpdateMeasureStatus();
     return true;
   };
+
+
+  $scope.nextParameterInit = function(){
+    $scope.nextPara = {
+      "type":"column",
+      "value":"",
+      "next_parameter":null
+    }
+
+    $scope.newMeasure.function.parameter.next_parameter = null;
+  }
 
   //map right return type for param
   $scope.measureReturnTypeUpdate = function(){
 
     if($scope.newMeasure.function.expression == 'TOP_N'){
+      $scope.newMeasure.function.parameter.type= 'column';
+      $scope.newMeasure.function.returntype = "topn(100)";
       return;
+    }else if($scope.newMeasure.function.expression == 'EXTENDED_COLUMN'){
+      $scope.newMeasure.function.parameter.type= 'column';
+      $scope.newMeasure.function.returntype = "extendedcolumn(100)";
+      return;
+    }else{
+      $scope.nextParameterInit();
     }
 
     if($scope.newMeasure.function.expression == 'COUNT'){
