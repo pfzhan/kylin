@@ -84,6 +84,12 @@ KylinApp.controller('CubeCtrl', function ($scope, AccessService, MessageService,
     };
 
     $scope.getHbaseInfo = function (cube) {
+
+        cube.tablemap = {};
+        angular.forEach(cube.segments,function(seg){
+            cube.tablemap[seg.storage_location_identifier] =  seg.uuid;
+        })
+
         if (!cube.hbase) {
             CubeService.getHbaseInfo({cubeId: cube.name, propValue: null, action: null}, function (hbase) {
                 cube.hbase = hbase;
