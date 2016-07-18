@@ -19,6 +19,7 @@
 package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
 
@@ -27,13 +28,13 @@ import javax.annotation.Nullable;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.broadcast.Broadcast;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,8 +58,6 @@ public class SparkCubeVisitJob implements Serializable {
     private transient SparkJobProtos.SparkJobRequest request;
     private transient KylinConfig kylinConfig;
     private transient String parquetPath;
-
-    private Broadcast<CanonicalCuboid> bcCanonicalCuboid;
 
     public SparkCubeVisitJob(JavaSparkContext sc, SparkJobProtos.SparkJobRequest request) {
         this.sc = sc;
@@ -89,21 +88,24 @@ public class SparkCubeVisitJob implements Serializable {
         //whether to use II
         conf.set(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX, String.valueOf(request.getUseII()));
 
+        //read fashion
+        conf.set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileReader.ReadStrategy.COMPACT.toString());
+
         logger.info("Parquet path is " + parquetPath);
         logger.info("Required Measures: " + StringUtils.join(request.getRequiredMeasuresList(), ","));
         logger.info("Max GT length: " + request.getMaxRecordLength());
         logger.info("Start to visit cube data with Spark <<<<<<");
 
         // visit parquet data file
-        JavaPairRDD<byte[], byte[]> seed = sc.newAPIHadoopFile(parquetPath, ParquetTarballFileInputFormat.class, byte[].class, byte[].class, conf);
-        List<byte[]> collected = seed.mapPartitions(new FlatMapFunction<Iterator<Tuple2<byte[], byte[]>>, byte[]>() {
+        JavaPairRDD<Text, Text> seed = sc.newAPIHadoopFile(parquetPath, ParquetTarballFileInputFormat.class, Text.class, Text.class, conf);
+        List<byte[]> collected = seed.mapPartitions(new FlatMapFunction<Iterator<Tuple2<Text, Text>>, byte[]>() {
             @Override
-            public Iterable<byte[]> call(Iterator<Tuple2<byte[], byte[]>> tuple2Iterator) throws Exception {
-                Iterator<byte[]> iterator = Iterators.transform(tuple2Iterator, new Function<Tuple2<byte[], byte[]>, byte[]>() {
+            public Iterable<byte[]> call(Iterator<Tuple2<Text, Text>> tuple2Iterator) throws Exception {
+                Iterator<ByteBuffer> iterator = Iterators.transform(tuple2Iterator, new Function<Tuple2<Text, Text>, ByteBuffer>() {
                     @Nullable
                     @Override
-                    public byte[] apply(@Nullable Tuple2<byte[], byte[]> input) {
-                        return input._2;
+                    public ByteBuffer apply(@Nullable Tuple2<Text, Text> input) {
+                        return ByteBuffer.wrap(input._2.getBytes(), 0, input._2.getLength());
                     }
                 });
 

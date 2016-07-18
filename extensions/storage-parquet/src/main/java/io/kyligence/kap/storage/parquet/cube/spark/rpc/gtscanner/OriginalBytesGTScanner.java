@@ -35,7 +35,7 @@ import com.google.common.collect.Iterators;
 
 public class OriginalBytesGTScanner implements IGTScanner {
 
-    private Iterator<byte[]> iterator;
+    private Iterator<ByteBuffer> iterator;
     private GTInfo info;
     private GTRecord temp;
     private ImmutableBitSet columns;
@@ -55,7 +55,7 @@ public class OriginalBytesGTScanner implements IGTScanner {
         return new ImmutableBitSet(bs);
     }
 
-    public OriginalBytesGTScanner(GTInfo info, Iterator<byte[]> iterator, GTScanRequest scanRequest) {
+    public OriginalBytesGTScanner(GTInfo info, Iterator<ByteBuffer> iterator, GTScanRequest scanRequest) {
         this.iterator = iterator;
         this.info = info;
         this.temp = new GTRecord(info);
@@ -78,11 +78,11 @@ public class OriginalBytesGTScanner implements IGTScanner {
 
     @Override
     public Iterator<GTRecord> iterator() {
-        return Iterators.transform(iterator, new com.google.common.base.Function<byte[], GTRecord>() {
+        return Iterators.transform(iterator, new com.google.common.base.Function<ByteBuffer, GTRecord>() {
             @Nullable
             @Override
-            public GTRecord apply(@Nullable byte[] input) {
-                temp.loadColumns(OriginalBytesGTScanner.this.columns, ByteBuffer.wrap(input));
+            public GTRecord apply(@Nullable ByteBuffer input) {
+                temp.loadColumns(OriginalBytesGTScanner.this.columns, input);
                 return temp;
             }
         });

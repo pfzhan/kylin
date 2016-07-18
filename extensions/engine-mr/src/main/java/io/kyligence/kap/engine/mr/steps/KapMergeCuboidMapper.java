@@ -35,6 +35,6 @@ public class KapMergeCuboidMapper extends MergeCuboidMapper {
         Path path = fileSplit.getPath();
         String segmentID = path.getParent().getParent().getName();
         logger.info("Identified segment id for current input split is " + segmentID);
-        return cube.getSegment(segmentID, null);
+        return cube.getSegmentById(segmentID);
     }
 }

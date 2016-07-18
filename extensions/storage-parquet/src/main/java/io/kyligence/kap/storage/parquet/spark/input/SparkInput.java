@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Text;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -48,12 +49,10 @@ public class SparkInput {
         //        config.set(ParquetFormatConstants.KYLIN_FILTER_MEASURES_BITSET_MAP, serialize(measureMap));
 
         // Read parquet file and
-        JavaPairRDD<byte[], byte[]> rdd = context.newAPIHadoopFile(path, ParquetTarballFileInputFormat.class, byte[].class, byte[].class, config);
-        JavaRDD<Integer> rdd2 = rdd.map(new Function<Tuple2<byte[], byte[]>, Integer>() {
+        JavaPairRDD<Text, Text> rdd = context.newAPIHadoopFile(path, ParquetTarballFileInputFormat.class, Text.class, Text.class, config);
+        JavaRDD<Integer> rdd2 = rdd.map(new Function<Tuple2<Text, Text>, Integer>() {
             @Override
-            public Integer call(Tuple2<byte[], byte[]> tuple) throws Exception {
-                //                System.out.println("Key: " + tuple._1().getBytes());
-                //                System.out.println("Value: " + tuple._2().getBytes());
+            public Integer call(Tuple2<Text, Text> tuple) throws Exception {
                 return 0;
             }
         });

@@ -1,10 +1,14 @@
 package io.kyligence.kap.storage.parquet.steps;
 
+import java.util.List;
+
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.IMROutput2;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.engine.mr.steps.KapMergeCuboidJob;
 
 public class ParquetMROutput2 implements IMROutput2 {
     @SuppressWarnings("unused")
@@ -21,7 +25,7 @@ public class ParquetMROutput2 implements IMROutput2 {
             }
 
             @Override
-            public void addStepPhase3_BuildCube(DefaultChainedExecutable jobFlow, String cuboidRootPath) {
+            public void addStepPhase3_BuildCube(DefaultChainedExecutable jobFlow) {
                 jobFlow.addTask(steps.createParquetPageIndex(jobFlow.getId()));
                 jobFlow.addTask(steps.createParquetTarballJob(jobFlow.getId()));
             }
@@ -45,7 +49,8 @@ public class ParquetMROutput2 implements IMROutput2 {
             }
 
             @Override
-            public void addStepPhase2_BuildCube(DefaultChainedExecutable jobFlow, String cuboidRootPath) {
+            public void addStepPhase2_BuildCube(CubeSegment seg, List<CubeSegment> mergingSegments, DefaultChainedExecutable jobFlow) {
+                jobFlow.addTask(steps.createMergeCuboidDataStep(seg, mergingSegments, jobFlow.getId(), KapMergeCuboidJob.class));
                 jobFlow.addTask(steps.createParquetPageIndex(jobFlow.getId()));
                 jobFlow.addTask(steps.createParquetTarballJob(jobFlow.getId()));
             }

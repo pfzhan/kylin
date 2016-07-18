@@ -3,9 +3,11 @@ package io.kyligence.kap.storage.parquet.steps;
 import java.util.List;
 
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.JobBuilderSupport;
+import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.common.MapReduceExecutable;
 import org.apache.kylin.job.constant.ExecutableConstants;
@@ -13,10 +15,39 @@ import org.apache.kylin.job.execution.DefaultChainedExecutable;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ParquetMRSteps extends JobBuilderSupport {
+    private static final Logger logger = LoggerFactory.getLogger(ParquetMRSteps.class);
+
     public ParquetMRSteps(CubeSegment seg) {
         super(seg, null);
+    }
+
+    public MapReduceExecutable createMergeCuboidDataStep(CubeSegment seg, List<CubeSegment> mergingSegments, String jobID, Class<? extends AbstractHadoopJob> clazz) {
+
+        final List<String> mergingCuboidPaths = Lists.newArrayList();
+        for (CubeSegment merging : mergingSegments) {
+            mergingCuboidPaths.add(getParquetFolderPath(merging) + "*");
+        }
+        String formattedPath = StringUtil.join(mergingCuboidPaths, ",");
+        String outputPath = getParquetFolderPath(seg);
+
+        MapReduceExecutable mergeCuboidDataStep = new MapReduceExecutable();
+        mergeCuboidDataStep.setName(ExecutableConstants.STEP_NAME_MERGE_CUBOID);
+        StringBuilder cmd = new StringBuilder();
+
+        appendMapReduceParameters(cmd);
+        appendExecCmdParameters(cmd, BatchConstants.ARG_CUBE_NAME, seg.getCubeInstance().getName());
+        appendExecCmdParameters(cmd, BatchConstants.ARG_SEGMENT_NAME, seg.getName());
+        appendExecCmdParameters(cmd, BatchConstants.ARG_INPUT, formattedPath);
+        appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, outputPath);
+        appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_Merge_Cuboid_" + seg.getCubeInstance().getName() + "_Step");
+
+        mergeCuboidDataStep.setMapReduceParams(cmd.toString());
+        mergeCuboidDataStep.setMapReduceJobClass(clazz);
+        return mergeCuboidDataStep;
     }
 
     public MapReduceExecutable createParquetPageIndex(String jobId) {
@@ -78,6 +109,8 @@ public class ParquetMRSteps extends JobBuilderSupport {
         //clean two parts: 1.parquet storage folders 2. working dirs
         List<String> toCleanFolders = getMergingSegmentsParquetFolders();
         toCleanFolders.addAll(getMergingSegmentJobWorkingDirs());
+        
+        logger.info("toCleanFolders are :" + toCleanFolders);
 
         ParquetStorageCleanupStep step = new ParquetStorageCleanupStep();
         step.setName(ExecutableConstants.STEP_NAME_GARBAGE_COLLECTION);

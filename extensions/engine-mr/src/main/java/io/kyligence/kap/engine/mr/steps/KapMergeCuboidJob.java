@@ -34,6 +34,7 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import io.kyligence.kap.storage.parquet.format.ParquetFileOutputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetTarballFileReader;
 
 public class KapMergeCuboidJob extends KapCuboidJob {
 
@@ -71,6 +72,7 @@ public class KapMergeCuboidJob extends KapCuboidJob {
 
             // Mapper
             job.setInputFormatClass(ParquetTarballFileInputFormat.class);
+            job.getConfiguration().set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileReader.ReadStrategy.KV.toString());
             job.setMapperClass(KapMergeCuboidMapper.class);
             job.setMapOutputKeyClass(Text.class);
             job.setMapOutputValueClass(Text.class);
@@ -104,9 +106,5 @@ public class KapMergeCuboidJob extends KapCuboidJob {
             if (job != null)
                 cleanupTempConfFile(job.getConfiguration());
         }
-    }
-
-    private String getWorkingDir(KylinConfig config, CubeInstance cube, CubeSegment cubeSegment) {
-        return new StringBuffer(config.getHdfsWorkingDirectory()).append("parquet/").append(cube.getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
     }
 }

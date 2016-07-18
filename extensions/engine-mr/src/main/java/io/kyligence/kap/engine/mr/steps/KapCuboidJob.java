@@ -15,6 +15,7 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
@@ -147,8 +148,8 @@ public class KapCuboidJob extends AbstractHadoopJob {
         }
     }
 
-    private String getWorkingDir(KylinConfig config, CubeInstance cube, CubeSegment cubeSegment) {
-        return new StringBuffer(config.getHdfsWorkingDirectory()).append("parquet/").append(cube.getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
+    public static String getWorkingDir(KylinConfig config, CubeInstance cube, CubeSegment cubeSegment) {
+        return new StringBuffer(KapConfig.wrap(config).getParquentStoragePath()).append(cube.getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
     }
 
     private void setInputFiles(KylinConfig config, int level, CubeInstance cube, CubeSegment cubeSegment, CubeDesc desc) throws IOException {

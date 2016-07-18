@@ -3,6 +3,7 @@ package io.kyligence.kap.storage.parquet.format;
 import java.io.IOException;
 
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -10,8 +11,9 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 /**
  * spark rdd input 
  */
-public class ParquetTarballFileInputFormat extends FileInputFormat<byte[], byte[]> {
-    public org.apache.hadoop.mapreduce.RecordReader createRecordReader(org.apache.hadoop.mapreduce.InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
+public class ParquetTarballFileInputFormat extends FileInputFormat<Text, Text> {
+
+    public org.apache.hadoop.mapreduce.RecordReader<Text, Text> createRecordReader(org.apache.hadoop.mapreduce.InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
         return new ParquetTarballFileReader();
     }
 
