@@ -12,10 +12,6 @@ build/script/obfuscate.sh       || { exit 1; }
 cp extensions/server/target/kap-server-${kap_version}.war build/tomcat/webapps/kylin.war
 chmod 644 build/tomcat/webapps/kylin.war
 
-# rename obf war
-mv tmp/kap-server-${kap_version}.war tmp/kylin.war
-chmod 644 tmp/kylin.war
-
 echo "Start to add js & css to war..."
 if [ ! -d "webapp/dist" ]
 then

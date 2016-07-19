@@ -96,6 +96,7 @@ build/script/one-jar.sh tmp_war/WEB-INF/lib
 cd tmp_war
 jar cvf kap-server-${kap_version}.war *
 mv kap-server-${kap_version}.war ../tmp/kylin.war
+chmod 644 ../tmp/kylin.war
 cd ..
 rm -rf tmp_war
 
