@@ -16,3 +16,9 @@ To setup development environment:
 
 Or you can just clone from code repository with one go:
 > git clone --recursive https://github.com/Kyligence/KAP.git
+
+To build,
+
+1. go to extensions/storage-parquet-protocol and run "mvn clean install -DskipTests"
+
+2. go to kap home and run "mvn clean install -DskipTests"
