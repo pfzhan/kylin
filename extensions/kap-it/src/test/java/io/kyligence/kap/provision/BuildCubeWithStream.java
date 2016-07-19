@@ -20,6 +20,8 @@ package io.kyligence.kap.provision;
 
 import java.io.IOException;
 
+import io.kyligence.kap.tool.storage.KapStorageCleanupCLI;
+import org.apache.kylin.storage.hbase.util.StorageCleanupJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +54,14 @@ public class BuildCubeWithStream extends org.apache.kylin.provision.BuildCubeWit
 
     protected void deployEnv() throws IOException {
         KAPDeployUtil.overrideJobJarLocations();
+    }
+
+    protected int cleanupOldStorage() throws Exception {
+        String[] args = { "--delete", "true" };
+
+        KapStorageCleanupCLI cli = new KapStorageCleanupCLI();
+        cli.execute(args);
+        return 0;
     }
 
 }
