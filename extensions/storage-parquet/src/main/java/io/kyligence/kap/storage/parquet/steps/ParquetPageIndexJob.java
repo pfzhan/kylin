@@ -19,9 +19,6 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.storage.parquet.format.ParquetPageInputFormat;
 
-/**
- * Created by dongli on 5/31/16.
- */
 public class ParquetPageIndexJob extends AbstractHadoopJob {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetPageIndexJob.class);
 
@@ -47,7 +44,11 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
             job = Job.getInstance(getConf(), getOptionValue(OPTION_JOB_NAME));
             setJobClasspath(job, cube.getConfig());
 
-            addParquetInputFile(job, new Path(getOptionValue(OPTION_INPUT_PATH)));
+            int inputNum = ParquerMRJobUtils.addParquetInputFile(job, new Path(getOptionValue(OPTION_INPUT_PATH)));
+            if (inputNum == 0) {
+                logger.info("ParquetPageIndexJob is skipped because there's no input file");
+                return 0;
+            }
 
             job.setInputFormatClass(ParquetPageInputFormat.class);
             job.setOutputFormatClass(NullOutputFormat.class);
@@ -69,26 +70,6 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
                 cleanupTempConfFile(job.getConfiguration());
             }
         }
-    }
-
-    private void addParquetInputFile(Job job, Path path) throws IOException {
-        FileSystem fs = FileSystem.get(job.getConfiguration());
-        if (!fs.exists(path)) {
-            logger.warn("Input {} does not exist.", path.toString());
-        } else if (fs.isDirectory(path)) {
-            for (FileStatus fileStatus : fs.listStatus(path)) {
-                addParquetInputFile(job, fileStatus.getPath());
-            }
-        } else if (fs.isFile(path)) {
-            if (isParquetFile(path)) {
-                FileInputFormat.addInputPath(job, path);
-                logger.debug("Input Path: " + path);
-            }
-        }
-    }
-
-    private boolean isParquetFile(Path path) {
-        return path.getName().endsWith("parquet");
     }
 
 }

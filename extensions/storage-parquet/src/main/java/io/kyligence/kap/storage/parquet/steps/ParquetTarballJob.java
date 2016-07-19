@@ -18,14 +18,9 @@
 
 package io.kyligence.kap.storage.parquet.steps;
 
-import java.io.IOException;
-
 import org.apache.commons.cli.Options;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
@@ -58,7 +53,11 @@ public class ParquetTarballJob extends AbstractHadoopJob {
             job = Job.getInstance(getConf(), getOptionValue(OPTION_JOB_NAME));
             setJobClasspath(job, cube.getConfig());
 
-            addParquetInputFile(job, new Path(getOptionValue(OPTION_INPUT_PATH)));
+            int inputNum = ParquerMRJobUtils.addParquetInputFile(job, new Path(getOptionValue(OPTION_INPUT_PATH)));
+            if (inputNum == 0) {
+                logger.info("ParquetTarballJob is skipped because there's no input file");
+                return 0;
+            }
 
             job.setInputFormatClass(ParquetWithIndexFileInputFormat.class);
             job.setOutputFormatClass(NullOutputFormat.class);
@@ -74,26 +73,6 @@ public class ParquetTarballJob extends AbstractHadoopJob {
                 cleanupTempConfFile(job.getConfiguration());
             }
         }
-    }
-
-    private void addParquetInputFile(Job job, Path path) throws IOException {
-        FileSystem fs = FileSystem.get(job.getConfiguration());
-        if (!fs.exists(path)) {
-            logger.warn("Input {} does not exist.", path.toString());
-        } else if (fs.isDirectory(path)) {
-            for (FileStatus fileStatus : fs.listStatus(path)) {
-                addParquetInputFile(job, fileStatus.getPath());
-            }
-        } else if (fs.isFile(path)) {
-            if (isParquetFile(path)) {
-                FileInputFormat.addInputPath(job, path);
-                logger.debug("Input Path: " + path);
-            }
-        }
-    }
-
-    private boolean isParquetFile(Path path) {
-        return path.getName().endsWith("parquet");
     }
 
 }

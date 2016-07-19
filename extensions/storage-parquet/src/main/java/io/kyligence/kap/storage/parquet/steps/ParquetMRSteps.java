@@ -1,7 +1,13 @@
 package io.kyligence.kap.storage.parquet.steps;
 
+import java.io.IOException;
 import java.util.List;
 
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.cube.CubeInstance;
@@ -12,11 +18,11 @@ import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.common.MapReduceExecutable;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ParquetMRSteps extends JobBuilderSupport {
     private static final Logger logger = LoggerFactory.getLogger(ParquetMRSteps.class);
@@ -109,7 +115,7 @@ public class ParquetMRSteps extends JobBuilderSupport {
         //clean two parts: 1.parquet storage folders 2. working dirs
         List<String> toCleanFolders = getMergingSegmentsParquetFolders();
         toCleanFolders.addAll(getMergingSegmentJobWorkingDirs());
-        
+
         logger.info("toCleanFolders are :" + toCleanFolders);
 
         ParquetStorageCleanupStep step = new ParquetStorageCleanupStep();
@@ -135,4 +141,6 @@ public class ParquetMRSteps extends JobBuilderSupport {
     private String getParquetFolderPath(CubeSegment cubeSegment) {
         return new StringBuffer(KapConfig.wrap(config.getConfig()).getParquentStoragePath()).append(cubeSegment.getCubeInstance().getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
     }
+
+
 }
