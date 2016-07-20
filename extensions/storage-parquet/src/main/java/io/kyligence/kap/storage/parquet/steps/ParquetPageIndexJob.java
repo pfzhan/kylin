@@ -1,13 +1,9 @@
 package io.kyligence.kap.storage.parquet.steps;
 
-import java.io.IOException;
-
+import io.kyligence.kap.engine.mr.steps.ParquertMRJobUtils;
 import org.apache.commons.cli.Options;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
@@ -22,6 +18,13 @@ import io.kyligence.kap.storage.parquet.format.ParquetPageInputFormat;
 public class ParquetPageIndexJob extends AbstractHadoopJob {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetPageIndexJob.class);
 
+    private boolean skipped = false;
+
+    @Override
+    public boolean isSkipped() {
+        return skipped;
+    }
+    
     @Override
     public int run(String[] args) throws Exception {
         Options options = new Options();
@@ -44,8 +47,9 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
             job = Job.getInstance(getConf(), getOptionValue(OPTION_JOB_NAME));
             setJobClasspath(job, cube.getConfig());
 
-            int inputNum = ParquerMRJobUtils.addParquetInputFile(job, new Path(getOptionValue(OPTION_INPUT_PATH)));
+            int inputNum = ParquertMRJobUtils.addParquetInputFile(job, new Path(getOptionValue(OPTION_INPUT_PATH)));
             if (inputNum == 0) {
+                skipped = true;
                 logger.info("ParquetPageIndexJob is skipped because there's no input file");
                 return 0;
             }

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.storage.parquet.steps;
+package io.kyligence.kap.engine.mr.steps;
 
 import java.io.IOException;
 
@@ -28,9 +28,9 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ParquerMRJobUtils {
+public class ParquertMRJobUtils {
 
-    private static final Logger logger = LoggerFactory.getLogger(ParquerMRJobUtils.class);
+    private static final Logger logger = LoggerFactory.getLogger(ParquertMRJobUtils.class);
 
     public static int addParquetInputFile(Job job, Path path) throws IOException {
         int ret = 0;

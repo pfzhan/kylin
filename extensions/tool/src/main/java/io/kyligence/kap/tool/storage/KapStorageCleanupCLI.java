@@ -41,6 +41,11 @@ import org.apache.kylin.storage.hbase.util.StorageCleanupJob;
 
 public class KapStorageCleanupCLI extends StorageCleanupJob {
 
+    public static void main(String[] args) throws Exception {
+        KapStorageCleanupCLI cli = new KapStorageCleanupCLI();
+        cli.execute(args);
+    }
+
     @Override
     protected void execute(OptionsHelper optionsHelper) throws Exception {
         super.execute(optionsHelper);
@@ -59,7 +64,8 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
             FileStatus[] segmentFolders = fs.listStatus(cubeFolder.getPath());
 
             for (FileStatus segmentFolder : segmentFolders) {
-                allHdfsPathsNeedToBeDeleted.add(segmentFolder.getPath().toString());
+                String folderName = KapConfig.getInstanceFromEnv().getParquentStoragePath() + cubeFolder.getPath().getName() + "/" + segmentFolder.getPath().getName();
+                allHdfsPathsNeedToBeDeleted.add(folderName);
             }
         }
 

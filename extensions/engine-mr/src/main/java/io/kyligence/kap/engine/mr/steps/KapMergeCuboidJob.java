@@ -37,6 +37,12 @@ import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileReader;
 
 public class KapMergeCuboidJob extends KapCuboidJob {
+    private boolean skipped = false;
+
+    @Override
+    public boolean isSkipped() {
+        return skipped;
+    }
 
     @Override
     public int run(String[] args) throws Exception {
@@ -65,7 +71,12 @@ public class KapMergeCuboidJob extends KapCuboidJob {
             setJobClasspath(job, cube.getConfig());
 
             // set inputs
-            addInputDirs(getOptionValue(OPTION_INPUT_PATH), job);
+            int folderNum = addInputDirs(getOptionValue(OPTION_INPUT_PATH), job);
+            if (folderNum == 0) {
+                skipped = true;
+                logger.info("{} is skipped because there's no input folder", getOptionValue(OPTION_JOB_NAME));
+                return 0;
+            }
 
             Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
             FileOutputFormat.setOutputPath(job, output);

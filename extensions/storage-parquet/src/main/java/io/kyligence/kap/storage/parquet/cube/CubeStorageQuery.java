@@ -19,12 +19,17 @@
 package io.kyligence.kap.storage.parquet.cube;
 
 import org.apache.kylin.cube.CubeInstance;
+import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryBase;
 
 public class CubeStorageQuery extends GTCubeStorageQueryBase {
 
     public CubeStorageQuery(CubeInstance cube) {
         super(cube);
+    }
+
+    protected boolean skipZeroInputSegment(CubeSegment cubeSegment) {
+        return true;
     }
 
     @Override

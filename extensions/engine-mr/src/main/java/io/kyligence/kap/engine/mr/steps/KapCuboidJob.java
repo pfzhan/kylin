@@ -6,14 +6,10 @@ import java.util.Set;
 
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -35,6 +31,8 @@ import org.apache.kylin.job.manager.ExecutableManager;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.storage.parquet.format.ParquetFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetFileOutputFormat;
@@ -105,7 +103,13 @@ public class KapCuboidJob extends AbstractHadoopJob {
             setJobClasspath(job, cube.getConfig());
 
             // Mapper
-            configureMapperInputFormat(config, nCuboidLevel, cube, cube.getSegment(segmentName, SegmentStatusEnum.NEW), cube.getDescriptor());
+            int numFiles = configureMapperInputFormat(config, nCuboidLevel, cube, cube.getSegment(segmentName, SegmentStatusEnum.NEW), cube.getDescriptor());
+            if (numFiles == 0) {
+                skipped = true;
+                logger.info("{} is skipped because there's no input file", getOptionValue(OPTION_JOB_NAME));
+                return 0;
+            }
+
             job.setMapperClass(this.mapperClass);
             job.setMapOutputKeyClass(Text.class);
             job.setMapOutputValueClass(Text.class);
@@ -152,61 +156,51 @@ public class KapCuboidJob extends AbstractHadoopJob {
         return new StringBuffer(KapConfig.wrap(config).getParquentStoragePath()).append(cube.getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
     }
 
-    private void setInputFiles(KylinConfig config, int level, CubeInstance cube, CubeSegment cubeSegment, CubeDesc desc) throws IOException {
+    private int setInputFiles(KylinConfig config, int level, CubeInstance cube, CubeSegment cubeSegment, CubeDesc desc) throws IOException {
         // base cuboid should not enter this method
-        if (level > 0) {
-            Set<Long> parentSet = new HashSet<Long>();
-            Set<Long> childSet = null;
-            parentSet.add(Cuboid.getBaseCuboidId(desc));
-            CuboidScheduler scheduler = new CuboidScheduler(desc);
-            for (int i = 0; i < (level - 1); ++i) {
-                childSet = new HashSet<Long>();
-                for (long parent : parentSet) {
-                    childSet.addAll(scheduler.getSpanningCuboid(parent));
-                }
-                parentSet = childSet;
-            }
+        Preconditions.checkState(level > 0);
 
+        Set<Long> parentSet = new HashSet<Long>();
+        Set<Long> childSet = null;
+        parentSet.add(Cuboid.getBaseCuboidId(desc));
+        CuboidScheduler scheduler = new CuboidScheduler(desc);
+        for (int i = 0; i < (level - 1); ++i) {
+            childSet = new HashSet<Long>();
             for (long parent : parentSet) {
-                Path path = new Path(getWorkingDir(config, cube, cubeSegment) + parent);
-                //FileInputFormat.setInputPathFilter(job, ParquetFilter.class);
-                addParquetInputFile(job.getConfiguration(), path);
+                childSet.addAll(scheduler.getSpanningCuboid(parent));
             }
+            parentSet = childSet;
         }
-    }
 
-    private void addParquetInputFile(Configuration config, Path path) throws IOException {
-        FileSystem fs = FileSystem.get(config);
-        if (fs.isDirectory(path)) {
-            for (FileStatus fileStatus : fs.listStatus(path)) {
-                Path p = fileStatus.getPath();
-                if (isParquetFile(p)) {
-                    FileInputFormat.addInputPath(job, p);
-                }
-            }
+        int numFiles = 0;
+        for (long parent : parentSet) {
+            Path path = new Path(getWorkingDir(config, cube, cubeSegment) + parent);
+            //FileInputFormat.setInputPathFilter(job, ParquetFilter.class);
+            numFiles += ParquertMRJobUtils.addParquetInputFile(job, path);
         }
+        return numFiles;
+
     }
 
-    private boolean isParquetFile(Path path) {
-        return path.getName().endsWith("parquet");
-    }
-
-    private void configureMapperInputFormat(KylinConfig config, int level, CubeInstance cube, CubeSegment cubeSeg, CubeDesc desc) throws IOException {
+    private int configureMapperInputFormat(KylinConfig config, int level, CubeInstance cube, CubeSegment cubeSeg, CubeDesc desc) throws IOException {
         String input = getOptionValue(OPTION_INPUT_PATH);
 
         if ("FLAT_TABLE".equals(input)) {
             // base cuboid case
             IMRInput.IMRTableInputFormat flatTableInputFormat = MRUtil.getBatchCubingInputSide(cubeSeg).getFlatTableInputFormat();
             flatTableInputFormat.configureJob(job);
+            return 1; //return a non-zero value
         } else {
             // n-dimension cuboid case
             if (hasOption(OPTION_INPUT_FORMAT) && ("textinputformat".equalsIgnoreCase(getOptionValue(OPTION_INPUT_FORMAT)))) {
-                FileInputFormat.setInputPaths(job, new Path(input));
-                job.setInputFormatClass(TextInputFormat.class);
+                //                FileInputFormat.setInputPaths(job, new Path(input));
+                //                job.setInputFormatClass(TextInputFormat.class);
+                throw new IllegalStateException();
             } else {
                 // default intput is parquet file
-                setInputFiles(config, level, cube, cubeSeg, desc);
+                int numFiles = setInputFiles(config, level, cube, cubeSeg, desc);
                 job.setInputFormatClass(ParquetFileInputFormat.class);
+                return numFiles;
             }
         }
     }

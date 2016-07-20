@@ -29,10 +29,18 @@ import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.engine.mr.steps.ParquertMRJobUtils;
 import io.kyligence.kap.storage.parquet.format.ParquetWithIndexFileInputFormat;
 
 public class ParquetTarballJob extends AbstractHadoopJob {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetTarballJob.class);
+
+    private boolean skipped = false;
+
+    @Override
+    public boolean isSkipped() {
+        return skipped;
+    }
 
     @Override
     public int run(String[] args) throws Exception {
@@ -53,8 +61,9 @@ public class ParquetTarballJob extends AbstractHadoopJob {
             job = Job.getInstance(getConf(), getOptionValue(OPTION_JOB_NAME));
             setJobClasspath(job, cube.getConfig());
 
-            int inputNum = ParquerMRJobUtils.addParquetInputFile(job, new Path(getOptionValue(OPTION_INPUT_PATH)));
+            int inputNum = ParquertMRJobUtils.addParquetInputFile(job, new Path(getOptionValue(OPTION_INPUT_PATH)));
             if (inputNum == 0) {
+                skipped = true;
                 logger.info("ParquetTarballJob is skipped because there's no input file");
                 return 0;
             }
@@ -74,5 +83,4 @@ public class ParquetTarballJob extends AbstractHadoopJob {
             }
         }
     }
-
 }

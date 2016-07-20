@@ -117,7 +117,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     @Test
     public void testKAPSinglePublicQuery() throws Exception {
 
-        String queryFileName = getQueryFolderPrefix() + "src/test/resources/query/sql_cache/query05.sql";
+        String queryFileName = getQueryFolderPrefix() + "src/test/resources/query/sql/query04.sql";
 
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
