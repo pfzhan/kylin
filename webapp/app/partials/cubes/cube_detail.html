@@ -38,7 +38,7 @@
         </li>
         <li class="{{cube.visiblePage=='hbase'? 'active':''}}"
             ng-if="userService.hasRole('ROLE_ADMIN')">
-            <a href="" ng-click="cube.visiblePage='hbase';getHbaseInfo(cube)">HBase</a>
+            <a href="" ng-click="cube.visiblePage='storage';getHbaseInfo(cube)">Storage</a>
         </li>
     </ul>
 
@@ -93,7 +93,7 @@
         </div>
     </div>
 
-  <div class="cube-detail" ng-show="cube.visiblePage=='hbase'">
+  <div class="cube-detail" ng-show="cube.visiblePage=='storage'">
         <div style="margin: 15px;">
             <div ng-repeat="table in cube.hbase">
                 <h5><b>Segment ID:</b> {{cube.tablemap[table.tableName]}}</h5>
