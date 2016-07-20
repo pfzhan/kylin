@@ -91,8 +91,9 @@ public class ParquetStorageCleanupStep extends AbstractExecutable {
                             LocatedFileStatus locatedFileStatus = iterator.next();
                             String currentFileName = locatedFileStatus.getPath().toString();
                             if (matchFileSuffix(currentFileName, fileSuffixs)) {
-                                logger.debug("working on HDFS file " + currentFileName);
-                                output.append("working on HDFS file " + currentFileName + "\n");
+                                long size = fileSystem.getContentSummary(locatedFileStatus.getPath()).getLength();
+                                logger.debug("working on HDFS file " + currentFileName + " with size " + size);
+                                output.append("working on HDFS file " + currentFileName + " with size " + size + "\n");
                                 fileSystem.delete(locatedFileStatus.getPath(), false);
                                 logger.debug("Successfully deleted.");
                                 output.append("Successfully deleted.\n");

@@ -79,9 +79,6 @@ public class SparkCubeVisitJob implements Serializable {
         // max gt length
         conf.set(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH, String.valueOf(request.getMaxRecordLength()));
 
-        //push down kylin config
-        conf.set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, request.getKylinProperties());
-
         //so that ParquetRawInputFormat can use the scan request
         conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES, new String(this.request.getGtScanRequest().toByteArray(), "ISO-8859-1"));
 

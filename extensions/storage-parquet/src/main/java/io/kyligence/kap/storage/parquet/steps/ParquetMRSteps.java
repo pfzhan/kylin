@@ -6,6 +6,7 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.JobBuilderSupport;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
@@ -72,6 +73,8 @@ public class ParquetMRSteps extends JobBuilderSupport {
         MapReduceExecutable result = new MapReduceExecutable();
         result.setName("Tarball Parquet Files");
         result.setMapReduceJobClass(ParquetTarballJob.class);
+        result.setCounterSaveAs(",," + CubingJob.CUBE_SIZE_BYTES);
+
         StringBuilder cmd = new StringBuilder();
         appendMapReduceParameters(cmd);
 
