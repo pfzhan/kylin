@@ -26,6 +26,7 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.tool.AbstractInfoExtractor;
+import org.apache.kylin.tool.DiagnosisInfoCLI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,8 +35,8 @@ import com.google.common.collect.Lists;
 /**
  * Created by dongli on 6/11/16.
  */
-public class DiagnosisInfoCLI extends AbstractInfoExtractor {
-    private static final Logger logger = LoggerFactory.getLogger(DiagnosisInfoCLI.class);
+public class KybotClientCLI extends AbstractInfoExtractor {
+    private static final Logger logger = LoggerFactory.getLogger(KybotClientCLI.class);
 
     @SuppressWarnings("static-access")
     private static final Option OPTION_PROJECT = OptionBuilder.withArgName("project").hasArg().isRequired(false).withDescription("Specify realizations in which project to extract").create("project");
@@ -49,7 +50,7 @@ public class DiagnosisInfoCLI extends AbstractInfoExtractor {
     @SuppressWarnings("static-access")
     private static final Option OPTION_INCLUDE_CLIENT = OptionBuilder.withArgName("includeClient").hasArg().isRequired(false).withDescription("Specify whether to include client info to extract. Default true.").create("includeClient");
 
-    public DiagnosisInfoCLI() {
+    public KybotClientCLI() {
         super();
 
         packageType = "project";
@@ -60,14 +61,14 @@ public class DiagnosisInfoCLI extends AbstractInfoExtractor {
     }
 
     public static void main(String[] args) {
-        DiagnosisInfoCLI diagnosisInfoCLI = new DiagnosisInfoCLI();
-        diagnosisInfoCLI.execute(args);
+        KybotClientCLI kybotClientCLI = new KybotClientCLI();
+        kybotClientCLI.execute(args);
     }
 
     @Override
     protected void executeExtract(OptionsHelper optionsHelper, File exportDir) throws Exception {
         // by default, KAP extracts all project's metadata and hbase usage
-        org.apache.kylin.tool.DiagnosisInfoCLI diagnosisInfoCLI = new org.apache.kylin.tool.DiagnosisInfoCLI();
+        DiagnosisInfoCLI diagnosisInfoCLI = new DiagnosisInfoCLI();
         ArrayList<String> argList = Lists.newArrayList();
         argList.add("-submodule");
         argList.add("true");

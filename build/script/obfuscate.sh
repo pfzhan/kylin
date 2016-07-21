@@ -111,7 +111,11 @@ mv $BUILD_LIB_DIR/kylin-coprocessor-kap-${release_version}-obf.jar tmp/
 
 # obfuscate storage parquet jar
 obfuscate extensions/storage-parquet/ $BUILD_LIB_DIR 1 1 kylin-storage-parquet-kap-${release_version}-obf kylin-storage-parquet-kap-${release_version}.jar
-mv $BUILD_LIB_DIR/kylin-storage-parquet-kap-${release_version}-obf.jar tmp
+mv $BUILD_LIB_DIR/kylin-storage-parquet-kap-${release_version}-obf.jar tmp/
+
+# obfuscate kybot client jar
+obfuscate extensions/tool/ $BUILD_LIB_DIR/../kybot 1 1 kybot-client-${release_version}-obf kybot-client-${release_version}.jar
+mv $BUILD_LIB_DIR/../kybot/kybot-client-${release_version}-obf.jar tmp/
 
 #rm server_mapping.txt
 #echo "keep param " $keepParam

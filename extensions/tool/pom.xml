@@ -64,13 +64,19 @@
                         </goals>
                         <configuration>
                             <shadedArtifactAttached>true</shadedArtifactAttached>
-                            <shadedClassifierName>assembly</shadedClassifierName>
+                            <shadedClassifierName>kybot</shadedClassifierName>
                             <artifactSet>
                                 <includes>
                                     <include>org.apache.kylin:kylin-tool</include>
                                     <include>io.kyligence.kap:kap-tool</include>
                                 </includes>
                             </artifactSet>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.apache.kylin.tool</pattern>
+                                    <shadedPattern>io.kyligence.kybot</shadedPattern>
+                                </relocation>
+                            </relocations>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>

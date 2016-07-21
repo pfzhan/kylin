@@ -23,6 +23,9 @@
 
 -keep class !io.kyligence.** {*;}
 -keep class io.kyligence.kap.query.udf.PercentileContUdf {*;}
+-keep class io.kyligence.kybot.** {*;}
+-keep class io.kyligence.kap.tool.kybot.** {*;}
+
 
 -keepnames class io.kyligence.kap.measure.percentile.PercentileMeasureTypeFactory
 
