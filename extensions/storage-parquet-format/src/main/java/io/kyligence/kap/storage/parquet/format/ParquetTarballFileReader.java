@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -12,6 +13,7 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.cube.kv.RowConstants;
 import org.apache.kylin.gridtable.GTScanRequest;
@@ -59,6 +61,15 @@ public class ParquetTarballFileReader extends RecordReader<Text, Text> {
         Path shardPath = fileSplit.getPath();
 
         long startTime = System.currentTimeMillis();
+        String kylinPropertiesStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES);
+        if (kylinPropertiesStr == null) { 
+            logger.warn("Creating an empty KylinConfig");
+            KylinConfig.setKylinConfigFromInputStream(IOUtils.toInputStream(""));
+        } else {
+            logger.info("Creating KylinConfig from conf");
+            KylinConfig.setKylinConfigFromInputStream(IOUtils.toInputStream(kylinPropertiesStr));
+        }
+
         ParquetPageIndexRecordReader indexReader = new ParquetPageIndexRecordReader();
         long fileOffset = indexReader.initialize(split, context);
 

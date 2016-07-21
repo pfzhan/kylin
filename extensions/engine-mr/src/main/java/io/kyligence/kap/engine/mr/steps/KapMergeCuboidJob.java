@@ -104,6 +104,9 @@ public class KapMergeCuboidJob extends KapCuboidJob {
             // set path for output
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_OUTPUT_DIR, getWorkingDir(cube.getDescriptor().getConfig(), cube, cubeSeg));
 
+            //push down kylin config
+            job.getConfiguration().set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, KylinConfig.getInstanceFromEnv().getConfigAsString());
+
             setReduceTaskNum(job, cube.getDescriptor(), 0);
 
             this.deletePath(job.getConfiguration(), output);
