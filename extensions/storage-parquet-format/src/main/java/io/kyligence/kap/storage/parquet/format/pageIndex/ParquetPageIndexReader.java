@@ -42,6 +42,6 @@ public class ParquetPageIndexReader implements Closeable {
     }
 
     public int getPageTotalNum(int col) {
-        return columnIndexReaders[col].getDocNum();
+        return columnIndexReaders[col].getPageNum();
     }
 }

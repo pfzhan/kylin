@@ -9,6 +9,7 @@ import java.util.TreeSet;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.kylin.common.util.ByteArray;
+import org.apache.kylin.common.util.BytesUtil;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 import org.slf4j.Logger;
@@ -29,7 +30,7 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
     private int cardinality;
     private int step;
     private boolean onlyEQ;
-    private int docNum = -1;
+    private int pageNum = -1;
 
     private IndexBlock eqIndex;
     private IndexBlock ltIndex;
@@ -60,10 +61,9 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
             cardinality = inputStream.readInt();
             step = inputStream.readInt();
             columnLength = inputStream.readInt();
-            docNum = inputStream.readInt();
+            pageNum = inputStream.readInt();
 
-            logger.info("ColLength=" + columnLength);
-            logger.info("DocNum=" + docNum);
+            logger.debug("ColLength {}, PageNum {}, Cardinality {}, Step {}, onlyEQ {}", columnLength, pageNum, cardinality, step, onlyEQ);
 
             eqIndex = new IndexBlock();
             eqIndex.readFromStream(inputStream, IndexBlockType.EQ);
@@ -142,11 +142,11 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
         return cardinality;
     }
 
-    public int getDocNum() {
-        if (docNum < 0) {
+    public int getPageNum() {
+        if (pageNum < 0) {
             initFromInput();
         }
-        return docNum;
+        return pageNum;
     }
 
     private enum IndexBlockType {
@@ -172,6 +172,9 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
                 ByteArray buffer = ByteArray.allocate(columnLength);
                 stream.readFully(buffer.array());
                 long offset = stream.readLong();
+                if (offsetMap.containsKey(buffer)) {
+                    logger.warn("Key {} Duplicate key: {}", i, BytesUtil.toReadableText(buffer.array()));
+                }
                 offsetMap.put(buffer, offset);
             }
             bodyLength = stream.readLong();
