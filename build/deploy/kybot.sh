@@ -27,13 +27,12 @@ source $KYLIN_HOME/bin/check-env.sh
 tomcat_root=$KYLIN_HOME/tomcat
 export tomcat_root
 
-if [ $# -eq 1 ] || [ $# -eq 2 ]
+if [ $# -eq 0 ] || [ $# -eq 1 ] || [ $# -eq 2 ]
 then
     patient="$1"
     if [ -z "$patient" ]
     then
-        echo "You need to specify a Project or Job Id for diagnosis."
-        exit 1
+        patient="-all"
     fi
     destDir="$2"
     if [ -z "$destDir" ]
@@ -68,6 +67,7 @@ then
         -jobId $patient \
         -destDir $destDir
     else
+        # Currently export all projects by default.
         hbase ${KYLIN_EXTRA_START_OPTS} \
         -Dlog4j.configuration=kylin-server-log4j.properties \
         -Dcatalina.home=${tomcat_root} \
