@@ -192,7 +192,7 @@ KylinApp
     };
 
 //    Cube Action
-    $scope.enable = function (cube, cubeIndex) {
+    $scope.enable = function (cube) {
       SweetAlert.swal({
         title: '',
         text: 'Are you sure to enable the cube? Please note: if cube schema is changed in the disabled period, all segments of the cube will be discarded due to data and schema mismatch.',
@@ -209,7 +209,7 @@ KylinApp
             loadingRequest.hide();
             $scope.refreshCube(cube).then(function(_cube){
               if(_cube && _cube.name){
-                $scope.cubeList.cubes[cubeIndex] = _cube;
+                $scope.cubeList.cubes[$scope.cubeList.cubes.indexOf(cube)] = _cube;
               }
             });
             SweetAlert.swal('Success!', 'Enable job was submitted successfully', 'success');
@@ -228,7 +228,7 @@ KylinApp
       });
     };
 
-    $scope.purge = function (cube, cubeIndex) {
+    $scope.purge = function (cube) {
       SweetAlert.swal({
         title: '',
         text: 'Are you sure to purge the cube? ',
@@ -246,7 +246,7 @@ KylinApp
             SweetAlert.swal('Success!', 'Purge job was submitted successfully', 'success');
             $scope.refreshCube(cube).then(function(_cube){
               if(_cube && _cube.name){
-                $scope.cubeList.cubes[cubeIndex] = _cube;
+                $scope.cubeList.cubes[$scope.cubeList.cubes.indexOf(cube)] = _cube;
               }
             });
           },function(e){
@@ -263,7 +263,7 @@ KylinApp
       });
     }
 
-    $scope.disable = function (cube, cubeIndex) {
+    $scope.disable = function (cube) {
 
       SweetAlert.swal({
         title: '',
@@ -281,7 +281,7 @@ KylinApp
             loadingRequest.hide();
             $scope.refreshCube(cube).then(function(_cube){
               if(_cube && _cube.name){
-                $scope.cubeList.cubes[cubeIndex] = _cube;
+                $scope.cubeList.cubes[$scope.cubeList.cubes.indexOf(cube)] = _cube;
               }
             });
             SweetAlert.swal('Success!', 'Disable job was submitted successfully', 'success');
@@ -302,7 +302,7 @@ KylinApp
 
 
 
-    $scope.dropCube = function (cube,cubeIndex) {
+    $scope.dropCube = function (cube) {
 
       SweetAlert.swal({
         title: '',
@@ -320,7 +320,7 @@ KylinApp
             loadingRequest.hide();
             SweetAlert.swal('Success!', 'Cube drop is done successfully', 'success');
             //location.reload();
-            $scope.cubeList.cubes.splice(cubeIndex,1);
+            $scope.cubeList.cubes.splice($scope.cubeList.cubes.indexOf(cube),1);
           },function(e){
 
             loadingRequest.hide();
@@ -337,7 +337,7 @@ KylinApp
       });
     };
 
-    $scope.startJobSubmit = function (cube, cubeIndex) {
+    $scope.startJobSubmit = function (cube) {
       $scope.loadDetail(cube);
       // for streaming cube build tip
       if(cube.streaming){
@@ -364,9 +364,6 @@ KylinApp
               },
               scope:function(){
                 return $scope;
-              },
-              cubeIndex:function(){
-                return cubeIndex;
               },
               metaModel:function(){
                 return $scope.metaModel;
@@ -421,7 +418,7 @@ KylinApp
       }
     };
 
-    $scope.startRefresh = function (cube, cubeIndex) {
+    $scope.startRefresh = function (cube) {
       $scope.metaModel={
         model:modelsManager.getModelByCube(cube.name)
       };
@@ -434,9 +431,6 @@ KylinApp
           },
           metaModel:function(){
             return $scope.metaModel;
-          },
-          cubeIndex:function(){
-            return cubeIndex;
           },
           scope:function(){
             return $scope;
@@ -468,7 +462,7 @@ KylinApp
     $scope.cubeEdit = function (cube) {
       $location.path("cubes/edit/" + cube.name);
     }
-    $scope.startMerge = function (cube, cubeIndex) {
+    $scope.startMerge = function (cube) {
       $scope.metaModel={
         model:modelsManager.getModelByCube(cube.name)
       };
@@ -488,9 +482,6 @@ KylinApp
           scope:function(){
             return $scope;
           },
-          cubeIndex:function(){
-            return cubeIndex;
-          }
         }
       });
     }
@@ -554,7 +545,7 @@ var cubeCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServic
 }
 
 
-var jobSubmitCtrl = function ($scope,scope, $modalInstance, CubeService, MessageService, $location, cube, metaModel, buildType, SweetAlert, loadingRequest, cubeIndex,CubeList) {
+var jobSubmitCtrl = function ($scope,scope, $modalInstance, CubeService, MessageService, $location, cube, metaModel, buildType, SweetAlert, loadingRequest, CubeList) {
   $scope.cubeList = CubeList;
   $scope.cube = cube;
   $scope.metaModel = metaModel;
@@ -580,7 +571,7 @@ var jobSubmitCtrl = function ($scope,scope, $modalInstance, CubeService, Message
       $modalInstance.dismiss('cancel');
       SweetAlert.swal('Success!', 'Rebuild job was submitted successfully', 'success');
       scope.refreshCube(cube).then(function(_cube){
-        $scope.cubeList.cubes[cubeIndex] = _cube;
+        $scope.cubeList.cubes[$scope.cubeList.cubes.indexOf(cube)] = _cube;
       });
     }, function (e) {
 
