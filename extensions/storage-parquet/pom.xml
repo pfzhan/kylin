@@ -24,33 +24,27 @@
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-storage-parquet-protocol</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-cube</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-engine-mr</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-storage-parquet-format</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-engine-mr</artifactId>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-core-storage</artifactId>
-            <version>${kylin.version}</version>
         </dependency>
 
         <dependency>
@@ -105,21 +99,18 @@
             <artifactId>kylin-core-common</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-core-cube</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-common</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>

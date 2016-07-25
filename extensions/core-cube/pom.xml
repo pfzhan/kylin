@@ -22,22 +22,18 @@
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-common</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-metadata</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-core-metadata</artifactId>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-core-cube</artifactId>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>me.lemire.integercompression</groupId>
@@ -50,14 +46,12 @@
             <artifactId>kylin-core-common</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-common</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>

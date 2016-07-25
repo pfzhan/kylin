@@ -23,55 +23,46 @@
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-assembly</artifactId>
-            <version>${kylin.version}</version>
         </dependency>
 
         <!--KAP-->
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-cube</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-metadata</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-storage-hbase</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-storage-parquet</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-engine-mr</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
 
         <!-- Env & Test -->
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-common</artifactId>
-            <version>${project.parent.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-storage-hbase</artifactId>
-            <version>${project.parent.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-assembly</artifactId>
-            <version>${kylin.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -134,13 +125,11 @@
         <dependency>
             <groupId>org.apache.hive.hcatalog</groupId>
             <artifactId>hive-hcatalog-core</artifactId>
-            <version>${hive-hcatalog.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-testing-util</artifactId>
-            <version>${hbase-hadoop2.version}</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -156,7 +145,6 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.10</artifactId>
-            <version>${kafka.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -171,8 +159,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>2.3</version>
-
                 <executions>
                     <execution>
                         <phase>package</phase>

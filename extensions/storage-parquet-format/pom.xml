@@ -22,17 +22,14 @@
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-cube</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-engine-mr</artifactId>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-core-storage</artifactId>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.parquet</groupId>
@@ -46,14 +43,12 @@
             <artifactId>kylin-core-common</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-common</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>

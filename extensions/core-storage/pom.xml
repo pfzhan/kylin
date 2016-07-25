@@ -24,12 +24,10 @@
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-core-storage</artifactId>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-common</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
     </dependencies>
 

@@ -28,43 +28,35 @@
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-cube</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-metadata</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-query</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-storage-hbase</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-storage-parquet</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-engine-mr</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-tool</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>atopcalcite</artifactId>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
@@ -75,27 +67,22 @@
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-core-storage</artifactId>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-source-hive</artifactId>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-jdbc</artifactId>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-storage-hbase</artifactId>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-query</artifactId>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.calcite</groupId>
@@ -122,14 +109,12 @@
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-common</artifactId>
-            <version>${project.parent.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-assembly</artifactId>
-            <version>${project.parent.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -138,40 +123,34 @@
             <artifactId>kylin-it</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-core-common</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-core-cube</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-core-storage</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-storage-hbase</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.hive.hcatalog</groupId>
             <artifactId>hive-hcatalog-core</artifactId>
-            <version>${hive-hcatalog.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -179,7 +158,6 @@
             <artifactId>kylin-assembly</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
-            <version>${kylin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>
@@ -278,7 +256,6 @@
         <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-testing-util</artifactId>
-            <version>${hbase-hadoop2.version}</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -295,7 +272,6 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.10</artifactId>
-            <version>${kafka.version}</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
