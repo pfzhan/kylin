@@ -70,7 +70,7 @@ public class ParquetShardSizingStep extends AbstractExecutable {
         Map<Long, Double> cuboidSizeMap = new CubeStatsReader(seg, kylinConf).getCuboidSizeMap();
         int mbPerShard = kapConfig.getParquetStorageShardSize();
         int shardMax = kapConfig.getParquetStorageShardMax();
-        int shardMin = kapConfig.getParquetPageIndexStepMin();
+        int shardMin = kapConfig.getParquetStorageShardMin();
 
         List<Long> allCuboids = Lists.newArrayList();
         allCuboids.addAll(cuboidSizeMap.keySet());
