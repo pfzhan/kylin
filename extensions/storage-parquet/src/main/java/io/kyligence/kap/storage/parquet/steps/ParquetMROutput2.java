@@ -44,7 +44,7 @@ public class ParquetMROutput2 implements IMROutput2 {
 
             @Override
             public void addStepPhase1_MergeDictionary(DefaultChainedExecutable jobFlow) {
-                // nothing to do
+                jobFlow.addTask(steps.createParquetShardSizingStep(jobFlow.getId()));
             }
 
             @Override
