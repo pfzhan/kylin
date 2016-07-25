@@ -20,7 +20,6 @@ package io.kyligence.kap.storage.parquet.steps;
 
 import java.io.IOException;
 
-import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -36,6 +35,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.primitives.Longs;
 
+import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
+
 public class ParquetTarballMapper extends KylinMapper<IntWritable, byte[], Text, Text> {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetTarballMapper.class);
 
@@ -47,6 +48,8 @@ public class ParquetTarballMapper extends KylinMapper<IntWritable, byte[], Text,
         Configuration conf = context.getConfiguration();
         Path inputPath = ((FileSplit) context.getInputSplit()).getPath();
         super.bindCurrentConfiguration(conf);
+        HadoopUtil.getCurrentConfiguration().setInt("dfs.blocksize", 268435456);
+
         FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
 
         String shardId = inputPath.getName().substring(0, inputPath.getName().indexOf('.'));
