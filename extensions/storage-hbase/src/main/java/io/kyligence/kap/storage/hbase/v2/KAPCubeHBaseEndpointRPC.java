@@ -35,7 +35,7 @@ public class KAPCubeHBaseEndpointRPC extends CubeHBaseEndpointRPC {
     protected Pair<Short, Short> getShardNumAndBaseShard() {
         short shardNum = cubeSeg.getCuboidShardNum(cuboid.getId());
         short baseShard = cubeSeg.getCuboidBaseShard(cuboid.getId());
-        int totalShards = cubeSeg.getTotalShards();
+        int totalShards = cubeSeg.getTotalShards(cuboid.getId());
 
         Pair<Short, Short> parallelAssignment = BackdoorToggles.getShardAssignment();
         if (parallelAssignment == null)

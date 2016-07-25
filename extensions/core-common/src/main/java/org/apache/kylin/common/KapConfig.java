@@ -70,4 +70,19 @@ public class KapConfig {
         String defaultPath = config.getHdfsWorkingDirectory() + "parquet/";
         return config.getOptional("kap.parquet.hdfs.dir", defaultPath);
     }
+
+    /**
+     * parquet shard size, in MB
+     */
+    public int getParquetStorageShardSize() {
+        return Integer.valueOf(config.getOptional("kap.parquet.storage.shard.size", "64"));
+    }
+
+    public int getParquetStorageShardMin() {
+        return Integer.valueOf(config.getOptional("kap.parquet.storage.shard.min", "1"));
+    }
+
+    public int getParquetStorageShardMax() {
+        return Integer.valueOf(config.getOptional("kap.parquet.storage.shard.max", "1000"));
+    }
 }

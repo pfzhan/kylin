@@ -11,6 +11,7 @@ import org.apache.kylin.engine.mr.JobBuilderSupport;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.common.MapReduceExecutable;
+import org.apache.kylin.engine.mr.steps.CubingExecutableUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.slf4j.Logger;
@@ -133,6 +134,15 @@ public class ParquetMRSteps extends JobBuilderSupport {
         step.setToCleanFileSuffix(toCleanFileSuffixs);
 
         jobFlow.addTask(step);
+    }
+
+    public ParquetShardSizingStep createParquetShardSizingStep(String jobId) {
+        ParquetShardSizingStep result = new ParquetShardSizingStep();
+        result.setName("Sizing parquet shard step");
+        CubingExecutableUtil.setCubeName(seg.getRealization().getName(), result.getParams());
+        CubingExecutableUtil.setSegmentId(seg.getUuid(), result.getParams());
+        CubingExecutableUtil.setCubingJobId(jobId, result.getParams());
+        return result;
     }
 
     private String getParquetFolderPath(CubeSegment cubeSegment) {
