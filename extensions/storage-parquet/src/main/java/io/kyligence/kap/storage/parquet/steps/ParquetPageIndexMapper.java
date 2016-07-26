@@ -18,7 +18,6 @@ import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.cube.kv.AbstractRowKeyEncoder;
 import org.apache.kylin.cube.kv.RowKeyEncoder;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.cube.model.RowKeyColDesc;
 import org.apache.kylin.dict.DateStrDictionary;
 import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.engine.mr.KylinMapper;
@@ -96,7 +95,6 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
             int colCardinality = -1;
             Dictionary<String> dict = cubeSegment.getDictionary(colRef);
 
-            
             String rowKeyIndexType = cubeDesc.getRowkey().getColDesc(colRef).getIndex();
             if ("eq".equalsIgnoreCase(rowKeyIndexType)) {
                 onlyEQIndex[col] = true;
