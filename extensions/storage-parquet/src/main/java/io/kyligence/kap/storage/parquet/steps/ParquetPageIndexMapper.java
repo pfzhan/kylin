@@ -19,7 +19,6 @@ import org.apache.kylin.cube.kv.AbstractRowKeyEncoder;
 import org.apache.kylin.cube.kv.RowKeyEncoder;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.cube.model.RowKeyColDesc;
-import org.apache.kylin.cube.model.RowKeyDesc;
 import org.apache.kylin.dict.DateStrDictionary;
 import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.engine.mr.KylinMapper;
@@ -108,10 +107,10 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
 
             if (dict != null) {
                 colCardinality = dict.getSize();
-//                if (dict instanceof DateStrDictionary) {
-//                    colCardinality = -1;
-//                    onlyEQIndex[col] = false;
-//                }
+                if (dict instanceof DateStrDictionary) {
+                    colCardinality = -1;
+                    //                                    onlyEQIndex[col] = false;
+                }
             }
 
             cardinality[col] = colCardinality;
