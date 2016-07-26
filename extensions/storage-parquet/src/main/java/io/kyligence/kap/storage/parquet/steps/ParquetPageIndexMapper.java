@@ -98,7 +98,7 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
             TblColRef colRef = cuboid.getColumns().get(col);
             int colCardinality = -1;
             Dictionary<String> dict = cubeSegment.getDictionary(colRef);
-            // TODO: all column has eq/gt/lt index now
+
             String rowKeyIndexType = rowKeyColDesc[col].getIndex();
             if (rowKeyIndexType.equalsIgnoreCase("eq")) {
                 onlyEQIndex[col] = true;
@@ -106,13 +106,13 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
                 onlyEQIndex[col] = false;
             }
 
-//            if (dict != null) {
-//                colCardinality = dict.getSize();
+            if (dict != null) {
+                colCardinality = dict.getSize();
 //                if (dict instanceof DateStrDictionary) {
 //                    colCardinality = -1;
 //                    onlyEQIndex[col] = false;
 //                }
-//            }
+            }
 
             cardinality[col] = colCardinality;
             columnLength[col] = rowKeyEncoder.getColumnLength(colRef);

@@ -42,12 +42,14 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
     static ParquetPageIndexTable indexTable;
     static int[] data1;
     static int[] data2;
+    static int[] data3;
     static int columnLength = Integer.SIZE - Integer.numberOfLeadingZeros(maxVal);
 
-    static String[] columnName = { "odd", "even" };
-    static boolean[] onlyEq = { false, false };
+    static String[] columnName = { "odd", "even", "only" };
+    static boolean[] onlyEq = { false, false, true };
     static TblColRef colRef1;
     static TblColRef colRef2;
+    static TblColRef colRef3;
 
     @AfterClass
     public static void after() throws Exception {
@@ -68,22 +70,26 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
 
         colRef1 = ColumnDesc.mockup(null, 1, columnName[0], null).getRef();
         colRef2 = ColumnDesc.mockup(null, 2, columnName[1], null).getRef();
+        colRef3 = ColumnDesc.mockup(null, 3, columnName[2], null).getRef();
     }
 
     private static void writeIndexFile(File indexFile) throws IOException {
         data1 = new int[dataSize];
         data2 = new int[dataSize];
+        data3 = new int[dataSize];
         for (int i = 0; i < dataSize; i++) {
             data1[i] = 2 * i;
             data2[i] = 2 * i + 1;
+            data3[i] = 2 * i + 1;
         }
-        int[] cardinalities = { cardinality, cardinality };
-        int[] columnLengthes = { columnLength, columnLength };
+        int[] cardinalities = { cardinality, cardinality, cardinality };
+        int[] columnLengthes = { columnLength, columnLength, columnLength };
         ParquetPageIndexWriter writer = new ParquetPageIndexWriter(columnName, columnLengthes, cardinalities, onlyEq, new DataOutputStream(new FileOutputStream(indexFile)));
         for (int i = 0; i < dataSize; i++) {
-            byte[] buffer = new byte[columnLength * 2];
+            byte[] buffer = new byte[columnLength * 3];
             BytesUtil.writeUnsigned(data1[i], buffer, 0, columnLength);
             BytesUtil.writeUnsigned(data2[i], buffer, columnLength, columnLength);
+            BytesUtil.writeUnsigned(data3[i], buffer, columnLength * 2, columnLength);
             writer.write(buffer, 0, i);
         }
         writer.close();
@@ -116,6 +122,36 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         allInts.removeAll(excludeSet);
         Integer[] result = new Integer[allInts.size()];
         return ArrayUtils.toPrimitive(allInts.toArray(result));
+    }
+
+    @Test
+    public void testOnlyEQ() {
+        TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.GT, colRef3, 10);
+        ImmutableRoaringBitmap result = indexTable.lookup(filter);
+        assertArrayEquals(rangeInts(0, dataSize - 1), result.toArray());
+
+
+        filter = makeFilter(TupleFilter.FilterOperatorEnum.LT, colRef3, 10);
+        result = indexTable.lookup(filter);
+        assertArrayEquals(rangeInts(0, dataSize - 1), result.toArray());
+
+        filter = makeFilter(TupleFilter.FilterOperatorEnum.GTE, colRef3, 10);
+        result = indexTable.lookup(filter);
+        assertArrayEquals(rangeInts(0, dataSize - 1), result.toArray());
+
+
+        filter = makeFilter(TupleFilter.FilterOperatorEnum.LTE, colRef3, 10);
+        result = indexTable.lookup(filter);
+        assertArrayEquals(rangeInts(0, dataSize - 1), result.toArray());
+
+        filter = makeFilter(TupleFilter.FilterOperatorEnum.NEQ, colRef3, 10);
+        result = indexTable.lookup(filter);
+        assertArrayEquals(rangeInts(0, dataSize - 1), result.toArray());
+
+
+        filter = makeFilter(TupleFilter.FilterOperatorEnum.NOTIN, colRef3, 10);
+        result = indexTable.lookup(filter);
+        assertArrayEquals(rangeInts(0, dataSize - 1), result.toArray());
     }
 
     @Test

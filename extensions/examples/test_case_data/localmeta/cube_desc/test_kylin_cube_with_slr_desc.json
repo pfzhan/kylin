@@ -114,31 +114,40 @@
     "rowkey_columns" : [ {
       "column" : "seller_id",
       "encoding" : "int:4",
-      "isShardBy" : true
+      "isShardBy" : true,
+      "index" : "eq"
     }, {
       "column" : "cal_dt",
-      "encoding" : "dict"
+      "encoding" : "dict",
+      "index" : "eq"
     }, {
       "column" : "leaf_categ_id",
-      "encoding" : "fixed_length:18"
+      "encoding" : "fixed_length:18",
+      "index" : "eq"
     }, {
       "column" : "meta_categ_name",
-      "encoding" : "dict"
+      "encoding" : "dict",
+      "index" : "eq"
     }, {
       "column" : "categ_lvl2_name",
-      "encoding" : "dict"
+      "encoding" : "dict",
+      "index" : "eq"
     }, {
       "column" : "categ_lvl3_name",
-      "encoding" : "dict"
+      "encoding" : "dict",
+      "index" : "eq"
     }, {
       "column" : "lstg_format_name",
-      "encoding" : "fixed_length:12"
+      "encoding" : "fixed_length:12",
+      "index" : "eq"
     }, {
       "column" : "lstg_site_id",
-      "encoding" : "dict"
+      "encoding" : "dict",
+      "index" : "eq"
     }, {
       "column" : "slr_segment_cd",
-      "encoding" : "dict"
+      "encoding" : "dict",
+      "index" : "eq"
     } ]
   },
   "signature" : null,
