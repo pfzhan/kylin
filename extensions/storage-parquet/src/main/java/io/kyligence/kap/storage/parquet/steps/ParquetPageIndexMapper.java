@@ -91,14 +91,13 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
         columnName = new String[columnNum];
         onlyEQIndex = new boolean[columnNum]; // should get from rowKey.index
 
-        RowKeyColDesc[] rowKeyColDesc = cubeDesc.getRowkey().getRowKeyColumns();
-
         for (int col = 0; col < columnNum; col++) {
             TblColRef colRef = cuboid.getColumns().get(col);
             int colCardinality = -1;
             Dictionary<String> dict = cubeSegment.getDictionary(colRef);
 
-            String rowKeyIndexType = rowKeyColDesc[col].getIndex();
+            
+            String rowKeyIndexType = cubeDesc.getRowkey().getColDesc(colRef).getIndex();
             if ("eq".equalsIgnoreCase(rowKeyIndexType)) {
                 onlyEQIndex[col] = true;
             } else {
