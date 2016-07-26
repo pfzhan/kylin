@@ -49,6 +49,7 @@ public class ParquetTarballMapper extends KylinMapper<IntWritable, byte[], Text,
         Path inputPath = ((FileSplit) context.getInputSplit()).getPath();
         super.bindCurrentConfiguration(conf);
         HadoopUtil.getCurrentConfiguration().setInt("dfs.blocksize", 268435456);
+        HadoopUtil.getCurrentConfiguration().setInt("fs.local.block.size", 268435456);
 
         FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
 
