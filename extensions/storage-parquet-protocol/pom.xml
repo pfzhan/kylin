@@ -118,6 +118,10 @@
                                     <pattern>com.google</pattern>
                                     <shadedPattern>kap.google</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>com.fasterxml</pattern>
+                                    <shadePattern>kap.fasterxml</shadePattern>
+                                </relocation>
                             </relocations>
                             <transformers>
                                 <transformer
