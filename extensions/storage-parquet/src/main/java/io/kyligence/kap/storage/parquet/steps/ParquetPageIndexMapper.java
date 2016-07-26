@@ -99,7 +99,7 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
             Dictionary<String> dict = cubeSegment.getDictionary(colRef);
 
             String rowKeyIndexType = rowKeyColDesc[col].getIndex();
-            if (rowKeyIndexType.equalsIgnoreCase("eq")) {
+            if ("eq".equalsIgnoreCase(rowKeyIndexType)) {
                 onlyEQIndex[col] = true;
             } else {
                 onlyEQIndex[col] = false;
