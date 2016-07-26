@@ -119,7 +119,7 @@ public class ParquetRawWriterBuilder {
                     break;
                 case FIXED_LEN_BYTE_ARRAY:
                 case BINARY:
-                    dataEncodings.add(Encoding.DELTA_BYTE_ARRAY);
+                    dataEncodings.add(Encoding.PLAIN);
                     break;
                 default:
                     dataEncodings.add(Encoding.PLAIN);
