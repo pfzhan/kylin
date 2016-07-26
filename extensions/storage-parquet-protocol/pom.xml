@@ -120,7 +120,7 @@
                                 </relocation>
                                 <relocation>
                                     <pattern>com.fasterxml</pattern>
-                                    <shadePattern>kap.fasterxml</shadePattern>
+                                    <shadedPattern>kap.fasterxml</shadedPattern>
                                 </relocation>
                             </relocations>
                             <transformers>
