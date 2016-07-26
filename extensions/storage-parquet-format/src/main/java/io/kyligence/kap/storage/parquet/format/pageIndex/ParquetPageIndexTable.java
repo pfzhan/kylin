@@ -71,7 +71,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             break;
         case GTE:
             val = Iterables.getOnlyElement(vals);
-            result = indexReader.readColumnIndex(column).lookupGtIndex(val).toMutableRoaringBitmap();
+            result = lookupGte(column, val);
             break;
         case LT:
             val = Iterables.getOnlyElement(vals);
@@ -79,7 +79,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             break;
         case LTE:
             val = Iterables.getOnlyElement(vals);
-            result = indexReader.readColumnIndex(column).lookupLtIndex(val).toMutableRoaringBitmap();
+            result = lookupLte(column, val);
             break;
         default:
             throw new RuntimeException("Unknown Operator: " + compareOp);
@@ -90,12 +90,28 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
 
     private MutableRoaringBitmap lookupGt(int column, ByteArray val) {
         ByteArray newVal = incrementByteArray(val, 1);
-        return indexReader.readColumnIndex(column).lookupGtIndex(newVal).toMutableRoaringBitmap();
+        return lookupGte(column, newVal);
+    }
+
+    private MutableRoaringBitmap lookupLte(int column, ByteArray val) {
+        ImmutableRoaringBitmap columnIndexResult = indexReader.readColumnIndex(column).lookupLtIndex(val);
+        if (columnIndexResult == null) {
+            return getFullBitmap().toMutableRoaringBitmap();
+        }
+        return columnIndexResult.toMutableRoaringBitmap();
+    }
+
+    private MutableRoaringBitmap lookupGte(int column, ByteArray val) {
+        ImmutableRoaringBitmap columnIndexResult = indexReader.readColumnIndex(column).lookupGtIndex(val);
+        if (columnIndexResult == null) {
+            return getFullBitmap().toMutableRoaringBitmap();
+        }
+        return columnIndexResult.toMutableRoaringBitmap();
     }
 
     private MutableRoaringBitmap lookupLt(int column, ByteArray val) {
         ByteArray newVal = incrementByteArray(val, -1);
-        return indexReader.readColumnIndex(column).lookupLtIndex(newVal).toMutableRoaringBitmap();
+        return lookupLte(column, newVal);
     }
 
     private MutableRoaringBitmap lookupChildFilter(TupleFilter filter) {

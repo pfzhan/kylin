@@ -106,11 +106,19 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
     }
 
     public ImmutableRoaringBitmap lookupLtIndex(ByteArray v) {
-        return getLtIndex().getRows(v);
+        IndexBlock ltIndex = getLtIndex();
+        if (ltIndex == null) {
+            return null;
+        }
+        return ltIndex.getRows(v);
     }
 
     public ImmutableRoaringBitmap lookupGtIndex(ByteArray v) {
-        return getGtIndex().getRows(v);
+        IndexBlock gtIndex = getGtIndex();
+        if (gtIndex == null) {
+            return null;
+        }
+        return gtIndex.getRows(v);
     }
 
     public HashMap<ByteArray, ImmutableRoaringBitmap> lookupEqIndex(Set<ByteArray> v) {
@@ -118,11 +126,19 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
     }
 
     public HashMap<ByteArray, ImmutableRoaringBitmap> lookupLtIndex(Set<ByteArray> v) {
-        return getLtIndex().getRows(v);
+        IndexBlock ltIndex = getLtIndex();
+        if (ltIndex == null) {
+            return null;
+        }
+        return ltIndex.getRows(v);
     }
 
     public HashMap<ByteArray, ImmutableRoaringBitmap> lookupGtIndex(Set<ByteArray> v) {
-        return getGtIndex().getRows(v);
+        IndexBlock gtIndex = getGtIndex();
+        if (gtIndex == null) {
+            return null;
+        }
+        return gtIndex.getRows(v);
     }
 
     @Override
