@@ -13,6 +13,7 @@ import org.apache.parquet.column.values.delta.DeltaBinaryPackingValuesWriter;
 import org.apache.parquet.column.values.deltalengthbytearray.DeltaLengthByteArrayValuesWriter;
 import org.apache.parquet.column.values.deltastrings.DeltaByteArrayWriter;
 import org.apache.parquet.column.values.plain.BooleanPlainValuesWriter;
+import org.apache.parquet.column.values.plain.FixedLenByteArrayPlainValuesWriter;
 import org.apache.parquet.column.values.plain.PlainValuesWriter;
 import org.apache.parquet.column.values.rle.RunLengthBitPackingHybridValuesWriter;
 import org.apache.parquet.io.ParquetEncodingException;
@@ -26,8 +27,10 @@ public enum Encoding {
             switch (descriptor.getType()) {
             case BOOLEAN:
                 return new BooleanPlainValuesWriter();
+            case FIXED_LEN_BYTE_ARRAY:
+                return new FixedLenByteArrayPlainValuesWriter(descriptor.getTypeLength(), descriptor.getTypeLength() * count, descriptor.getTypeLength() * count);
             default:
-                return new PlainValuesWriter(count * 4, count * 8);
+                return new PlainValuesWriter(count * 4, count * 20);
             }
         }
     },
