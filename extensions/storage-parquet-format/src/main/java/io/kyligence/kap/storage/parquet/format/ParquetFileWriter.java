@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
@@ -13,11 +14,11 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.SplittedBytes;
+import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.cube.kv.RowKeyDecoder;
+import org.apache.kylin.cube.kv.RowConstants;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.measure.MeasureDecoder;
@@ -27,6 +28,8 @@ import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
 import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriterBuilder;
@@ -39,7 +42,6 @@ public class ParquetFileWriter extends RecordWriter<Text, Text> {
 
     private Configuration config;
     private KylinConfig kylinConfig;
-    private RowKeyDecoder rowKeyDecoder;
     private MeasureDecoder measureDecoder;
     private CubeInstance cubeInstance;
     private CubeSegment cubeSegment;
@@ -57,8 +59,8 @@ public class ParquetFileWriter extends RecordWriter<Text, Text> {
         logger.info("cubeName is " + cubeName + " and segmentName is " + segmentName);
         cubeInstance = CubeManager.getInstance(kylinConfig).getCube(cubeName);
         cubeSegment = cubeInstance.getSegment(segmentName, null);
+        Preconditions.checkState(cubeSegment.isEnableSharding(), "Cube segment sharding not enabled " + cubeSegment.getName());
 
-        rowKeyDecoder = new RowKeyDecoder(cubeSegment);
         measureDecoder = new MeasureDecoder(cubeSegment.getCubeDesc().getMeasures());
 
         if (keyClass == Text.class && valueClass == Text.class) {
@@ -71,10 +73,10 @@ public class ParquetFileWriter extends RecordWriter<Text, Text> {
     // Only support Text type
     @Override
     public void write(Text key, Text value) throws IOException, InterruptedException {
-        byte[] keyBytes = key.getBytes().clone();//on purpose, because parquet writer will cache 
-        byte[] valueBytes = value.getBytes().clone();
-        long cuboidId = rowKeyDecoder.decode(keyBytes);
-        short shardId = rowKeyDecoder.getRowKeySplitter().getShardId();
+        byte[] keyBytes = key.getBytes();//clone is done at end of  write(Text key, Text value)
+        byte[] valueBytes = value.getBytes().clone();//on purpose, because parquet writer will cache 
+        long cuboidId = Bytes.toLong(keyBytes, RowConstants.ROWKEY_SHARDID_LEN, RowConstants.ROWKEY_CUBOIDID_LEN);
+        short shardId = Bytes.toShort(keyBytes, 0, RowConstants.ROWKEY_SHARDID_LEN);
 
         if (shardId != curShardId || cuboidId != curCuboidId) {
             if (writer != null) {
@@ -88,7 +90,7 @@ public class ParquetFileWriter extends RecordWriter<Text, Text> {
         if (writer == null) {
             List<Type> types = new ArrayList<Type>();
 
-            types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY, keyBytes.length, "Row Key"));
+            types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY, keyBytes.length - RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN, "Row Key"));
 
             // measures
             for (MeasureDesc measure : cubeSegment.getCubeDesc().getMeasures()) {
@@ -101,16 +103,10 @@ public class ParquetFileWriter extends RecordWriter<Text, Text> {
 
         // write data
         try {
-            //TODO: why encode again?
-            SplittedBytes[] keyBuffers = rowKeyDecoder.getRowKeySplitter().getSplitBuffers();
-            int keyLength = 0;
-            for (int i = 2; i < rowKeyDecoder.getRowKeySplitter().getBufferSize(); ++i) {
-                keyLength += keyBuffers[i].length;
-            }
-            int keyOffSet = rowKeyDecoder.getRowKeySplitter().getSplitOffsets()[0];
+            byte[] keyBody = Arrays.copyOfRange(keyBytes, RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN, keyBytes.length);
 
             int[] valueLength = measureDecoder.getPeekLength(ByteBuffer.wrap(valueBytes));
-            writer.writeRow(keyBytes, keyOffSet, keyLength, valueBytes, valueLength);
+            writer.writeRow(keyBody, 0, keyBody.length, valueBytes, valueLength);
         } catch (Exception e) {
             e.printStackTrace();
         }
