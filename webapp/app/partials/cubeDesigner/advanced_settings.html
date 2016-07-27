@@ -20,11 +20,11 @@
   <ng-form name="forms.cube_setting_form">
     <div>
       <div class="form-group">
-        <h3 style="margin-left:42px;">Aggregation Groups </h3>
+        <h3 style="margin-left:42px;">{{dataKylin.cube.aggregationGroups}} </h3>
         <div style="margin-left:22px;">
           <div class="box-body">
             <div class="col-xs-12">
-              Visit <a href="http://kylin.apache.org/blog/2016/02/18/new-aggregation-group" target="_blank">aggregation group</a> for more about aggregation group.
+              {{dataKylin.cube.tip_visit}} <a href="http://kylin.apache.org/blog/2016/02/18/new-aggregation-group" target="_blank">{{dataKylin.cube.aggregationGroups}}</a> {{dataKylin.cube.tip_about_aggregation_group}}
             </div>
           </div>
         </div>
@@ -214,7 +214,7 @@
           <tr>
             <th>{{dataKylin.cube.cubeASID}}</th>
             <th style="width:200px;">{{dataKylin.cube.cubeASColumn}}</th>
-            <th>{{dataKylin.cube.cubeASEncoding}}Encoding</th>
+            <th>{{dataKylin.cube.cubeASEncoding}}Encoding</th>git
             <th>{{dataKylin.cube.cubeASLength}}</th>
             <th>{{dataKylin.cube.cubeASShardBy}}/th>
             <th ng-if="state.mode=='edit'"></th>

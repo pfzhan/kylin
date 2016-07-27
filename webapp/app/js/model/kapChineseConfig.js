@@ -165,8 +165,8 @@ KylinApp.constant('kapChineseConfig', {
     tip_tile_gridSTSetSeparate: '单独的时间列',
     tip_tile_gridHasSepTimeColumn: '分区时间列',
     tip_gridSTSetSeparate: '仅用于事实表上将日期和时间分开存储于两列的情况(KYLIN-1427)',
-    gridHasSepTimeColumn: '分区列（时间类型）',
-    tip_gridHasSeparateTimeColumn: '分区时间列中应该为时间值（类型可以是Timestamp, String, VARCHAR）',
+    gridHasParTimeColumn: '分区列（时间类型）',
+    tip_gridParTimeColumn: '分区时间列中应该为时间值（类型可以是Timestamp, String, VARCHAR）',
     gridHasSepTimeColumnSelect: '--选择时间类型--',
     gridHasSepTimeColumnTF: '时间格式',
     gridHasSepTimeColumnTFSelect: '--选择时间格式--',
@@ -211,6 +211,9 @@ KylinApp.constant('kapChineseConfig', {
       {attr: 'owner', name: '所有者'},
       {attr: 'create_time_utc', name: '创建时间'}
     ],
+    aggregationGroups: '聚合组',
+    tip_visit: '点击',
+    tip_about_aggregation_group:'查看更多相关聚合组信息',
     actions: '操作',
     schema: ['Cube信息','维度','度量','更新配置','高级设置','配置覆盖','概览'],
     admins: 'Admins',
@@ -392,7 +395,7 @@ KylinApp.constant('kapChineseConfig', {
     tip_loading_queries: '加载查询记录...',
   },
   insight:{
-    insight: '洞察',
+    insight: '分析',
     tables: '表',//query.html begin
     tip_no_table: '没有任何表.',
     tip_loading_Tables: '下载中...',

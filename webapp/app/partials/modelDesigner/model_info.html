@@ -33,7 +33,7 @@
             <!-- edit -->
             <input ng-if="state.mode=='edit'" name="model_name" type="text" class="form-control"  ng-disabled="{{modelMode=='editExistModel'}}"
                    ng-model="modelsManager.selectedModel.name" required
-                   placeholder="model name.."
+                   placeholder="{{dataKylin.model.gridMIModelName}}.."
                    ng-maxlength=100 ng-pattern="/^\w+$/" />
             <small class="help-block" ng-show="forms.model_info_form.model_name.$error.required && (forms.model_info_form.model_name.$dirty||forms.model_info_form.$submitted)">{{dataKylin.model.check_info_required_model_name}}</small>
             <small class="help-block" ng-show="!forms.model_info_form.model_name.$error.required&&forms.model_info_form.model_name.$invalid && (forms.model_info_form.model_name.$dirty||forms.model_info_form.$submitted)">{{dataKylin.model.check_info_invalid_model_name}}</small>
