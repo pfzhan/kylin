@@ -33,6 +33,7 @@ import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
@@ -48,9 +49,6 @@ public class ParquetTarballMapper extends KylinMapper<IntWritable, byte[], Text,
         Configuration conf = context.getConfiguration();
         Path inputPath = ((FileSplit) context.getInputSplit()).getPath();
         super.bindCurrentConfiguration(conf);
-        HadoopUtil.getCurrentConfiguration().setInt("dfs.blocksize", 268435456);
-        HadoopUtil.getCurrentConfiguration().setInt("fs.local.block.size", 268435456);
-
         FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
 
         String shardId = inputPath.getName().substring(0, inputPath.getName().indexOf('.'));
@@ -65,7 +63,7 @@ public class ParquetTarballMapper extends KylinMapper<IntWritable, byte[], Text,
         logger.info("Output path: " + outputPath.toString());
 
         os = fs.create(outputPath);
-        assert Longs.BYTES == ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE;
+        Preconditions.checkState(Longs.BYTES == ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE);
         os.writeLong(Longs.BYTES + invLength);
     }
 

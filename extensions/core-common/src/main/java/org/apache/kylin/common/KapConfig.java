@@ -85,4 +85,8 @@ public class KapConfig {
     public int getParquetStorageShardMax() {
         return Integer.valueOf(config.getOptional("kap.parquet.storage.shard.max", "1000"));
     }
+
+    public int getParquetStorageBlockSize() {
+        return Integer.valueOf(config.getOptional("kap.parquet.storage.dfs.blocksize", "134217728"));//default 128M
+    }
 }

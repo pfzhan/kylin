@@ -22,6 +22,7 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
@@ -68,6 +69,7 @@ public class ParquetTarballJob extends AbstractHadoopJob {
                 return 0;
             }
 
+            job.getConfiguration().setInt("dfs.blocksize", KapConfig.getInstanceFromEnv().getParquetStorageBlockSize());
             job.setInputFormatClass(ParquetWithIndexFileInputFormat.class);
             job.setOutputFormatClass(NullOutputFormat.class);
             job.setMapperClass(ParquetTarballMapper.class);
