@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location, $window, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, modelConfig, ProjectModel, ModelService, MetaModel, modelsManager, cubesManager, TableModel, $animate,kylinCommon) {
+KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location, $window, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, modelConfig, ProjectModel, ModelService, MetaModel, modelsManager, cubesManager, TableModel, $animate,language,kylinCommon) {
 
   //tree data
 
@@ -182,9 +182,9 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
 });
 
 
-var modelCloneCtrl = function ($scope, $modalInstance, CubeService, MessageService, $location, model, MetaModel, SweetAlert,ProjectModel, loadingRequest,ModelService) {
+var modelCloneCtrl = function ($scope, $modalInstance, CubeService, MessageService, $location, model, MetaModel, SweetAlert,ProjectModel, loadingRequest,ModelService,language,kylinCommon) {
   $scope.projectModel = ProjectModel;
-
+  $scope.dataKylin = language.getDataKylin();
   $scope.targetObj={
     modelName:model.name+"_clone",
     targetProject:$scope.projectModel.selectedProject

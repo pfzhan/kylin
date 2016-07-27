@@ -156,7 +156,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
     });
   }
 
-  var CardinalityGenCtrl = function ($scope, $modalInstance, tableName, MessageService,language) {
+  var CardinalityGenCtrl = function ($scope, $modalInstance, tableName, MessageService,language,kylinCommon) {
     $scope.dataKylin = language.getDataKylin();
     $scope.tableName = tableName;
     $scope.delimiter = 0;
@@ -180,7 +180,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
     }
   };
 
-  var updateConfigCtrl = function ($scope, $modalInstance, AdminService, MessageService,language) {
+  var updateConfigCtrl = function ($scope, $modalInstance, AdminService, MessageService,language,kylinCommon) {
     $scope.dataKylin = language.getDataKylin();
     $scope.state = {
       key: null,

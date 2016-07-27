@@ -374,7 +374,7 @@ KylinApp
             });
         }
 
-        var saveQueryController = function ($scope, $modalInstance, curQuery, QueryService,language) {
+        var saveQueryController = function ($scope, $modalInstance, curQuery, QueryService,language,kylinCommon) {
             $scope.dataKylin = language.getDataKylin();
             $scope.curQuery = curQuery;
             $scope.cancel = function () {

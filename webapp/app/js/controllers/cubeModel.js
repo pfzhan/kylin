@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConfig,MetaModel,SweetAlert,ModelGraphService,$log,TableModel,ModelService,loadingRequest,modelsManager) {
+KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConfig,MetaModel,SweetAlert,ModelGraphService,$log,TableModel,ModelService,loadingRequest,modelsManager,kylinCommon) {
 
     $scope.modelsManager = modelsManager;
 
@@ -97,7 +97,7 @@ KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConf
     };
 
     // Controller for cube model lookup modal.
-    var cubeModelLookupModalCtrl = function ($scope, $modalInstance,language) {
+    var cubeModelLookupModalCtrl = function ($scope, $modalInstance,language,kylinCommon) {
       $scope.dataKylin = language.getDataKylin();
         $scope.ok = function () {
             $modalInstance.close();

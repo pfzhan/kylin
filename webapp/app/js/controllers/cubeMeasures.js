@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,MetaModel,cubesManager,CubeDescModel,SweetAlert) {
+KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,MetaModel,cubesManager,CubeDescModel,SweetAlert,kylinCommon) {
 
   $scope.initUpdateMeasureStatus = function(){
     $scope.updateMeasureStatus = {
@@ -207,7 +207,7 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,MetaModel,cubes
 
 });
 
-var NextParameterModalCtrl = function ($scope, scope,para,$modalInstance,cubeConfig, CubeService, MessageService, $location, SweetAlert,ProjectModel, loadingRequest,ModelService,language) {
+var NextParameterModalCtrl = function ($scope, scope,para,$modalInstance,cubeConfig, CubeService, MessageService, $location, SweetAlert,ProjectModel, loadingRequest,ModelService,language,kylinCommon) {
   $scope.dataKylin = language.getDataKylin();
   $scope.newmea={
     "measure":scope.newMeasure

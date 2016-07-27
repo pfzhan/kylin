@@ -218,19 +218,13 @@ KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $lo
 
 });
 
-var projCtrl = function ($scope, $location, $modalInstance, ProjectService, MessageService, projects, project, SweetAlert, ProjectModel, $cookieStore, $route,language) {
+var projCtrl = function ($scope, $location, $modalInstance, ProjectService, MessageService, projects, project, SweetAlert, ProjectModel, $cookieStore, $route,language,kylinCommon) {
   $scope.state = {
     isEdit: false,
     oldProjName: null,
     projectIdx: -1
   };
-  $scope.$on('modal.shown', function() {
-     alert(1);
-  });
-  $(document).ready(function(){
-    $("#test").scrollTop(500);
-    console.log($('#test').attr('id'));
-  });
+
   $scope.isEdit = false;
   $scope.proj = {name: '', description: ''};
   $scope.dataKylin = language.getDataKylin();

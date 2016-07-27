@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cubesManager) {
+KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cubesManager,kylinCommon) {
 
     $scope.cubeManager = cubesManager;
     // Available columns list derived from cube data model.
@@ -362,7 +362,7 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
     };
 
     // Controller for cube dimension auto-gen modal.
-    var cubeAutoGenDimModalCtrl = function ($scope, $modalInstance,language) {
+    var cubeAutoGenDimModalCtrl = function ($scope, $modalInstance,language,kylinCommon) {
       $scope.dataKylin = language.getDataKylin();
         $scope.ok = function () {
             $modalInstance.close();

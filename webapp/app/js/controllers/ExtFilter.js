@@ -107,7 +107,7 @@ KylinApp.controller('ExtFilterCtrl', function ($scope,$rootScope,$modal, ExtFilt
 
 
 
-var filterCreateCtrl = function ($scope,$rootScope,ExtFilterService,cubeConfig, $location, $modalInstance, ProjectService, MessageService, projects,project, extfilter, SweetAlert, ProjectModel,language) {
+var filterCreateCtrl = function ($scope,$rootScope,ExtFilterService,cubeConfig, $location, $modalInstance, ProjectService, MessageService, projects,project, extfilter, SweetAlert, ProjectModel,language,kylinCommon) {
   $scope.dataKylin = language.getDataKylin();
   $scope.cubeConfig = cubeConfig;
   $scope.state={

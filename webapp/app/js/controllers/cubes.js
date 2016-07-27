@@ -18,8 +18,7 @@
 
 'use strict';
 
-KylinApp
-  .controller('CubesCtrl', function ($scope, $q, $routeParams, $location, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, cubeConfig, ProjectModel, ModelService, MetaModel, CubeList,modelsManager,cubesManager,TableService,kylinCommon,language) {
+KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, cubeConfig, ProjectModel, ModelService, MetaModel, CubeList,modelsManager,cubesManager,TableService,kylinCommon,language) {
 
     $scope.cubeConfig = cubeConfig;
     $scope.cubeList = CubeList;
@@ -451,8 +450,8 @@ KylinApp
     }
   });
 
-
-var cubeCloneCtrl = function ($scope, $modalInstance, CubeService, MessageService, $location, cube, MetaModel, SweetAlert,ProjectModel, loadingRequest, language) {
+var cubeCloneCtrl = function ($scope, $modalInstance, CubeService, MessageService, $location, cube, MetaModel, SweetAlert,ProjectModel, loadingRequest,language,kylinCommon) {
+  $scope.dataKylin = language.getDataKylin();
   $scope.projectModel = ProjectModel;
 
   $scope.dataKylin = language.getDataKylin();
@@ -505,7 +504,7 @@ var cubeCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServic
 }
 
 
-var jobSubmitCtrl = function ($scope,scope, $modalInstance, CubeService, MessageService, $location, cube, metaModel, buildType, SweetAlert, loadingRequest, CubeList,language) {
+var jobSubmitCtrl = function ($scope,scope, $modalInstance, CubeService, MessageService, $location, cube, metaModel, buildType, SweetAlert, loadingRequest, CubeList,language,kylinCommon) {
   $scope.dataKylin = language.getDataKylin();
   $scope.cubeList = CubeList;
   $scope.cube = cube;
@@ -604,7 +603,7 @@ var jobSubmitCtrl = function ($scope,scope, $modalInstance, CubeService, Message
 };
 
 
-var streamingBuildCtrl = function ($scope, $modalInstance,kylinConfig) {
+var streamingBuildCtrl = function ($scope, $modalInstance,kylinConfig,kylinCommon) {
   $scope.kylinConfig = kylinConfig;
   var streamingGuildeUrl = kylinConfig.getProperty("kylin.web.streaming.guide");
   $scope.streamingBuildUrl = streamingGuildeUrl?streamingGuildeUrl:"http://kylin.apache.org/";
