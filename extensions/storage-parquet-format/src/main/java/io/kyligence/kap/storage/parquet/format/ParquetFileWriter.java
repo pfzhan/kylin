@@ -88,7 +88,7 @@ public class ParquetFileWriter extends RecordWriter<Text, Text> {
         if (writer == null) {
             List<Type> types = new ArrayList<Type>();
 
-            types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY, "Row Key"));
+            types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY, keyBytes.length, "Row Key"));
 
             // measures
             for (MeasureDesc measure : cubeSegment.getCubeDesc().getMeasures()) {
