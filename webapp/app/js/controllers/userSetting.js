@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('UserSettingCtrl', function ($scope, $rootScope, $location, $base64, SweetAlert,AuthenticationService, UserService,KapUserService) {
+KylinApp.controller('UserSettingCtrl', function ($scope, $rootScope, $location, $base64, SweetAlert,AuthenticationService, UserService,KapUserService,kylinCommon) {
 
   var user = UserService.getCurUser();
   $scope.confirmPassword = '';
@@ -42,18 +42,18 @@ KylinApp.controller('UserSettingCtrl', function ($scope, $rootScope, $location, 
 
     $scope.error ='';
     if($scope.user.newPassword != $scope.confirmPassword){
-      $scope.error = 'Password and confirm password are not the same.';
+      $scope.error = $scope.dataKylin.user.tip_error_not_same;
       return;
     }
     if(!UserService.hasRole('ROLE_ADMIN')&&$scope.user.password==''){
-      $scope.error = 'Password invalid.';
+      $scope.error = $scope.dataKylin.user.tip_password_invalid;
       return;
     }
 
     KapUserService.reset({},$scope.user,function(){
-      SweetAlert.swal('', 'Reset password successfully.', 'success');
+      kylinCommon.success_alert($scope.dataKylin.user.success_resetSuccess);
     },function(e){
-      var message = "Failed to reset password."
+      var message = $scope.dataKylin.user.failed_reset;
       if( e.data&& e.data.exception){
         message = e.data.exception;
       }

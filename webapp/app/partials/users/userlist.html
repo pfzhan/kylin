@@ -1,9 +1,9 @@
-<a class="btn btn-success btn-sm" ng-click="addUser();"  ng-if="userService.hasRole('ROLE_MODELER')"><i class="fa fa-plus"></i> User</a>
+<a class="btn btn-success btn-sm" ng-click="addUser();"  ng-if="userService.hasRole('ROLE_MODELER')"><i class="fa fa-plus"></i> {{dataKylin.user.user}}</a>
 <table ng-if="users.length > 0" class="table table-striped table-bordered table-hover dataTable no-footer" style="margin-top:10px;">
   <!--Header-->
   <thead>
   <tr style="cursor: pointer">
-    <th ng-repeat="theaditem in tableConfig.usertheaditems"
+    <th ng-repeat="theaditem in dataKylin.user.usertheaditems"
         ng-click="state.filterAttr= theaditem.attr;state.reverseColumn=theaditem.attr;state.filterReverse=!state.filterReverse;">
       {{theaditem.name}}
       <i ng-if="state.reverseColumn!= theaditem.attr"
@@ -36,7 +36,7 @@
     <td>
           <span class="label badge"
                 ng-class="{'label-success': user.disabled==false, 'label-default': user.disabled==true}">
-                    {{user.disabled?'Disabled':'Enabled'}}
+                    {{user.disabled?dataKylin.user.disable:dataKylin.user.enable}}
           </span>
 
     </td>
@@ -47,11 +47,11 @@
           Action <span class="ace-icon fa fa-caret-down icon-on-right"></span>
         </button>
         <ul class="dropdown-menu" role="menu">
-          <li><a ng-click="editUser(user)">Edit Role</a></li>
-          <li><a ng-click="resetPassowrd(user)">Reset Password</a></li>
-          <li><a ng-click="dropUser(user, $index)">Drop</a></li>
-          <li><a ng-click="enableUser(user, $index)" ng-if="user.disabled" ng-click="">Enable</a></li>
-          <li><a ng-click="disableUser(user, $index)" ng-if="!user.disabled">Disable</a></li>
+          <li><a ng-click="editUser(user)">{{dataKylin.user.editRole}}</a></li>
+          <li><a ng-click="resetPassowrd(user)">{{dataKylin.user.resetPassword}}</a></li>
+          <li><a ng-click="dropUser(user, $index)">{{dataKylin.user.drop}}</a></li>
+          <li><a ng-click="enableUser(user, $index)" ng-if="user.disabled" ng-click="">{{dataKylin.user.enable}}</a></li>
+          <li><a ng-click="disableUser(user, $index)" ng-if="!user.disabled">{{dataKylin.user.disable}}</a></li>
 
         </ul>
       </div>

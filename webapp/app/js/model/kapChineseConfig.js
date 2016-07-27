@@ -17,6 +17,42 @@
  */
 
 KylinApp.constant('kapChineseConfig', {
+  user:{
+    setting: '设置',//reset password
+    changePassword: '更改密码',
+    oldPassword: '旧密码',
+    newPassword: '新的密码',
+    confirmNewPassword: '确认密码',
+    tip_error_not_same: '两次密码不一致,请检查',
+    updatePassword: '更新密码',
+    tip_password_invalid: '密码不合法.',
+    success_resetSuccess: '重置密码成功',
+    failed_reset: '重置密码失败',
+    users: 'Users',
+    submit: '提交',
+    close: '关闭',
+    addUser: '添加用户',
+    password: '密码',
+    role: 'Role',
+    analyst: 'Analyst',
+    modeler: 'Modeler',
+    admin: 'Admin',
+    editUser: '编辑用户',
+    user: '用户',
+    usertheaditems: [
+      {attr: 'username', name: 'Username'},
+      {attr: 'admin', name: 'Admin'},
+      {attr: 'modeler', name: 'Modeler'},
+      {attr: 'analyst', name: 'Analyst'},
+      {attr: 'disabled', name: 'Status'}
+    ],
+    editRole: 'Edit Role',
+    resetPassword: '重置密码',
+    drop: '删除',
+    enable: 'Enable',
+    disable: 'Disable'
+
+  },
   login:{
     username: '用户名',
     password: '密码',

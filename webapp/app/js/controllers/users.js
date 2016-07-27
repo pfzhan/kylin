@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('UsersCtrl', function ($scope, $rootScope, $location, $base64, SweetAlert,AuthenticationService, UserService,KapUserService,tableConfig,$modal) {
+KylinApp.controller('UsersCtrl', function ($scope, $rootScope, $location, $base64, SweetAlert,AuthenticationService, UserService,KapUserService,tableConfig,$modal,language,kylinCommon) {
 
     $scope.tableConfig = tableConfig;
     $scope.users = [];
@@ -135,8 +135,8 @@ KylinApp.controller('UsersCtrl', function ($scope, $rootScope, $location, $base6
 });
 
 
-var addUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService, scope, loadingRequest) {
-
+var addUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService, scope, loadingRequest,language,kylinCommon) {
+  $scope.dataKylin=language.getDataKylin();
   $scope.error='';
   $scope.confirmPassword = "";
   $scope.newUser = {
@@ -181,8 +181,8 @@ var addUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService, 
 
 }
 
-var editUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService, scope, user) {
-
+var editUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService, scope, user,language,kylinCommon) {
+  $scope.dataKylin=language.getDataKylin();
   $scope.error='';
   $scope.confirmPassword = "";
   $scope.editUser = {
@@ -214,8 +214,8 @@ var editUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService,
 
 }
 
-var resetUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService, scope, user) {
-
+var resetUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService, scope, user,language,kylinCommon) {
+  $scope.dataKylin=language.getDataKylin();
   $scope.error='';
   $scope.resetUser = {
     'username':user.username,

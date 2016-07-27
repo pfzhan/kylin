@@ -17,6 +17,41 @@
  */
 
 KylinApp.constant('kapEnglishConfig', {
+  user:{
+    setting: 'Settings',//reset password
+    changePassword: 'Change password',
+    oldPassword: 'Old password',
+    newPassword: 'New password',
+    confirmNewPassword: 'Confirm new password',
+    tip_error_not_same: 'Password and confirm password are not the same.',
+    updatePassword: 'Update Password',
+    tip_password_invalid: 'Password invalid.',
+    success_resetSuccess: 'Reset password successfully.',
+    failed_reset: 'Failed to reset password.',
+    users: 'Users',
+    submit: 'Submit',
+    close: 'Close',
+    addUser: 'Add User',
+    password: 'Pssword',
+    role: 'Role',
+    analyst: 'Analyst',
+    modeler: 'Modeler',
+    admin: 'Admin',
+    editUser: 'Edit User',
+    user: 'User',
+    usertheaditems: [
+      {attr: 'username', name: 'Username'},
+      {attr: 'admin', name: 'Admin'},
+      {attr: 'modeler', name: 'Modeler'},
+      {attr: 'analyst', name: 'Analyst'},
+      {attr: 'disabled', name: 'Status'}
+    ],
+    editRole: 'Edit Role',
+    resetPassword: 'Reset Password',
+    drop: 'Drop',
+    enable: 'Enable',
+    disable: 'Disable'
+  },
   login:{
     username: 'Username',
     password: 'Password',

@@ -18,7 +18,7 @@
 
 <script type="text/ng-template" id="editUser.html">
   <div class="modal-header">
-    <h4 tooltip="submit">Edit User</h4>
+    <h4 tooltip="submit">{{dataKylin.user.editUser}}</h4>
   </div>
   <div class="modal-body" style="background-color: white">
 
@@ -26,22 +26,22 @@
     <div class="boxed-group-inner">
       <form >
         <dl class="form-group">
-          <dt><label>Username</label></dt>
+          <dt><label>{{dataKylin.user.username}}</label></dt>
           <dd><input class="form-control" disabled ng-model="editUser.username" type="text" /></dd>
         </dl>
         <dl class="form-group">
-          <dt><label>Role</label></dt>
+          <dt><label>{{dataKylin.user.role}}</label></dt>
           <dd>
-            <input type="checkbox" ng-model="editUser.analyst" /> Analyst
-            <input type="checkbox" ng-model="editUser.modeler"/> Modeler
-            <input type="checkbox" ng-model="editUser.admin" /> Admin
+            <input type="checkbox" ng-model="editUser.analyst" /> {{dataKylin.user.analyst}}
+            <input type="checkbox" ng-model="editUser.modeler"/> {{dataKylin.user.modeler}}
+            <input type="checkbox" ng-model="editUser.admin" /> {{dataKylin.user.admin}}
           </dd>
         </dl>
       </form>
     </div>
   </div>
   <div class="modal-footer">
-    <button class="btn btn-success" ng-click="submitUser()">Submit</button>
-    <button class="btn btn-primary" ng-click="cancel()">Close</button>
+    <button class="btn btn-success" ng-click="submitUser()">{{dataKylin.user.submit}}</button>
+    <button class="btn btn-primary" ng-click="cancel()">{{dataKylin.user.close}}</button>
   </div>
 </script>

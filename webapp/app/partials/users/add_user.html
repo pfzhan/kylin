@@ -18,7 +18,7 @@
 
 <script type="text/ng-template" id="addUser.html">
   <div class="modal-header">
-    <h4 tooltip="submit">Add User</h4>
+    <h4 tooltip="submit">{{dataKylin.user.addUser}}</h4>
   </div>
   <div class="modal-body" style="background-color: white">
 
@@ -27,31 +27,31 @@
     <div class="boxed-group-inner">
       <form >
         <dl class="form-group">
-          <dt><label>Username</label></dt>
+          <dt><label>{{dataKylin.login.username}}</label></dt>
           <dd><input class="form-control" ng-model="newUser.username" type="text" /></dd>
         </dl>
         <dl class="form-group">
-          <dt><label>Password</label></dt>
+          <dt><label>{{dataKylin.user.password}}</label></dt>
           <dd><input class="form-control" ng-model="newUser.password" type="password" />
           </dd>
         </dl>
         <dl class="form-group">
-          <dt><label>Confirm new password</label></dt>
+          <dt><label>{{dataKylin.user.confirmNewPassword}}</label></dt>
           <dd><input class="form-control" ng-model="newUser.confirmPassword" type="password" /></dd>
         </dl>
         <dl class="form-group">
-          <dt><label>Role</label></dt>
+          <dt><label>{{dataKylin.user.role}}</label></dt>
           <dd>
-            <input type="checkbox" ng-model="newUser.analyst" /> Analyst
-            <input type="checkbox" ng-model="newUser.modeler"/> Modeler
-            <input type="checkbox" ng-model="newUser.admin" /> Admin
+            <input type="checkbox" ng-model="newUser.analyst" /> {{dataKylin.user.analyst}}
+            <input type="checkbox" ng-model="newUser.modeler"/> {{dataKylin.user.modeler}}
+            <input type="checkbox" ng-model="newUser.admin" /> {{dataKylin.user.admin}}
           </dd>
         </dl>
       </form>
     </div>
   </div>
   <div class="modal-footer">
-    <button class="btn btn-success" ng-click="submitUser()">Submit</button>
-    <button class="btn btn-primary" ng-click="cancel()">Close</button>
+    <button class="btn btn-success" ng-click="submitUser()">{{dataKylin.user.submit}}</button>
+    <button class="btn btn-primary" ng-click="cancel()">{{dataKylin.user.close}}</button>
   </div>
 </script>
