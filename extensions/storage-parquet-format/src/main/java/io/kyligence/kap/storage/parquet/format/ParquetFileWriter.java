@@ -90,7 +90,7 @@ public class ParquetFileWriter extends RecordWriter<Text, Text> {
         if (writer == null) {
             List<Type> types = new ArrayList<Type>();
 
-            types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY, keyBytes.length - RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN, "Row Key"));
+            types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY, key.getLength() - RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN, "Row Key"));
 
             // measures
             for (MeasureDesc measure : cubeSegment.getCubeDesc().getMeasures()) {
@@ -103,8 +103,7 @@ public class ParquetFileWriter extends RecordWriter<Text, Text> {
 
         // write data
         try {
-            byte[] keyBody = Arrays.copyOfRange(keyBytes, RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN, keyBytes.length);
-
+            byte[] keyBody = Arrays.copyOfRange(keyBytes, RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN, key.getLength());
             int[] valueLength = measureDecoder.getPeekLength(ByteBuffer.wrap(valueBytes));
             writer.writeRow(keyBody, 0, keyBody.length, valueBytes, valueLength);
         } catch (Exception e) {
