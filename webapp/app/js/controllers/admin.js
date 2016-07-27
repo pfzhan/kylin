@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, TableService, loadingRequest, MessageService, $modal, SweetAlert,kylinConfig,ProjectModel,$window) {
+KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, TableService, loadingRequest, MessageService, $modal, SweetAlert,kylinConfig,ProjectModel,$window,kylinCommon) {
   $scope.configStr = "";
   $scope.envStr = "";
 
@@ -30,38 +30,26 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
   $scope.getEnv = function () {
     AdminService.env({}, function (env) {
       $scope.envStr = env.env;
-      //MessageService.sendMsg('Server environment get successfully', 'success', {});
-//            SweetAlert.swal('Success!', 'Server environment get successfully', 'success');
+      MessageService.sendMsg($scope.dataKylin.alert.success_server_environment, 'success', {});
+
     }, function (e) {
-      if (e.data && e.data.exception) {
-        var message = e.data.exception;
-        var msg = !!(message) ? message : 'Failed to take action.';
-        SweetAlert.swal('Oops...', msg, 'error');
-      } else {
-        SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-      }
+      kylinCommon.error_default(e);
     });
   }
 
   $scope.getConfig = function () {
     AdminService.config({}, function (config) {
       $scope.configStr = config.config;
-      //MessageService.sendMsg('Server config get successfully', 'success', {});
+      MessageService.sendMsg($scope.dataKylin.alert.success_server_config, 'success', {});
     }, function (e) {
-      if (e.data && e.data.exception) {
-        var message = e.data.exception;
-        var msg = !!(message) ? message : 'Failed to take action.';
-        SweetAlert.swal('Oops...', msg, 'error');
-      } else {
-        SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-      }
+      kylinCommon.error_default(e);
     });
   }
 
   $scope.reloadMeta = function () {
     SweetAlert.swal({
       title: '',
-      text: 'Are you sure to reload metadata and clean cache?',
+      text: $scope.dataKylin.alert.tip_to_reload_metadata,
       type: '',
       showCancelButton: true,
       confirmButtonColor: '#DD6B55',
@@ -70,15 +58,9 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
     }, function (isConfirm) {
       if (isConfirm) {
         CacheService.clean({}, function () {
-          SweetAlert.swal('Success!', 'Cache reload successfully', 'success');
+          kylinCommon.success_alert($scope.dataKylin.alert.success_cache_reload);
         }, function (e) {
-          if (e.data && e.data.exception) {
-            var message = e.data.exception;
-            var msg = !!(message) ? message : 'Failed to take action.';
-            SweetAlert.swal('Oops...', msg, 'error');
-          } else {
-            SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-          }
+          kylinCommon.error_default(e);
         });
       }
 
@@ -103,7 +85,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
   $scope.cleanStorage = function () {
     SweetAlert.swal({
       title: '',
-      text: 'Are you sure to clean up unused HDFS and HBase space?',
+      text: $scope.dataKylin.alert.tip_clean_HDFS_HBase,
       type: '',
       showCancelButton: true,
       confirmButtonColor: '#DD6B55',
@@ -112,15 +94,9 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
     }, function (isConfirm) {
       if (isConfirm) {
         AdminService.cleanStorage({}, function () {
-          SweetAlert.swal('Success!', 'Storage cleaned successfully!', 'success');
+          kylinCommon.success_alert($scope.dataKylin.alert.success_storage_cleaned);
         }, function (e) {
-          if (e.data && e.data.exception) {
-            var message = e.data.exception;
-            var msg = !!(message) ? message : 'Failed to take action.';
-            SweetAlert.swal('Oops...', msg, 'error');
-          } else {
-            SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-          }
+          kylinCommon.error_default(e);
         });
       }
     });
@@ -129,7 +105,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
   $scope.disableCache = function () {
     SweetAlert.swal({
       title: '',
-      text: 'Are you sure to disable query cache?',
+      text: $scope.dataKylin.alert.tip_to_disable_cache,
       type: '',
       showCancelButton: true,
       confirmButtonColor: '#DD6B55',
@@ -138,16 +114,10 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
     }, function (isConfirm) {
       if (isConfirm) {
         AdminService.updateConfig({}, {key: 'kylin.query.cache.enabled', value: false}, function () {
-          SweetAlert.swal('Success!', 'Cache disabled successfully!', 'success');
+          kylinCommon.success_alert($scope.dataKylin.alert.success_cache_disabled);
           location.reload();
         }, function (e) {
-          if (e.data && e.data.exception) {
-            var message = e.data.exception;
-            var msg = !!(message) ? message : 'Failed to take action.';
-            SweetAlert.swal('Oops...', msg, 'error');
-          } else {
-            SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-          }
+          kylinCommon.error_default(e);
         });
       }
 
@@ -158,7 +128,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
   $scope.enableCache = function () {
     SweetAlert.swal({
       title: '',
-      text: 'Are you sure to enable query cache?',
+      text: $scope.dataKylin.alert.tip_enable_query_cache,
       type: '',
       showCancelButton: true,
       confirmButtonColor: '#DD6B55',
@@ -167,16 +137,10 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
     }, function (isConfirm) {
       if (isConfirm) {
         AdminService.updateConfig({}, {key: 'kylin.query.cache.enabled', value: true}, function () {
-          SweetAlert.swal('Success!', 'Cache enabled successfully!', 'success');
+          kylinCommon.success_alert($scope.dataKylin.alert.success_cache_enabled);
           location.reload();
         }, function (e) {
-          if (e.data && e.data.exception) {
-            var message = e.data.exception;
-            var msg = !!(message) ? message : 'Failed to take action.';
-            SweetAlert.swal('Oops...', msg, 'error');
-          } else {
-            SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-          }
+          kylinCommon.error_default(e);
         });
       }
 
@@ -192,7 +156,8 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
     });
   }
 
-  var CardinalityGenCtrl = function ($scope, $modalInstance, tableName, MessageService) {
+  var CardinalityGenCtrl = function ($scope, $modalInstance, tableName, MessageService,language) {
+    $scope.dataKylin = language.getDataKylin();
     $scope.tableName = tableName;
     $scope.delimiter = 0;
     $scope.format = 0;
@@ -207,21 +172,16 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
         format: $scope.format
       }, function (result) {
         loadingRequest.hide();
-        SweetAlert.swal('Success!', 'Cardinality job was calculated successfully. . Click Refresh button ...', 'success');
+        kylinCommon.success_alert($scope.dataKylin.alert.success_cardinality_job);
       }, function (e) {
         loadingRequest.hide();
-        if (e.data && e.data.exception) {
-          var message = e.data.exception;
-          var msg = !!(message) ? message : 'Failed to take action.';
-          SweetAlert.swal('Oops...', msg, 'error');
-        } else {
-          SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-        }
+        kylinCommon.error_default(e);
       });
     }
   };
 
-  var updateConfigCtrl = function ($scope, $modalInstance, AdminService, MessageService) {
+  var updateConfigCtrl = function ($scope, $modalInstance, AdminService, MessageService,language) {
+    $scope.dataKylin = language.getDataKylin();
     $scope.state = {
       key: null,
       value: null
@@ -233,16 +193,10 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
 
 
       AdminService.updateConfig({}, {key: $scope.state.key, value: $scope.state.value}, function (result) {
-        SweetAlert.swal('Success!', 'Config updated successfully!', 'success');
+        kylinCommon.success_alert($scope.dataKylin.alert.success_config_updated);
         $modalInstance.dismiss();
       }, function (e) {
-        if (e.data && e.data.exception) {
-          var message = e.data.exception;
-          var msg = !!(message) ? message : 'Failed to take action.';
-          SweetAlert.swal('Oops...', msg, 'error');
-        } else {
-          SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-        }
+        kylinCommon.error_default(e);
       });
     }
   };
@@ -250,7 +204,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
   $scope.downloadBadQueryFiles = function(){
     var _project = ProjectModel.selectedProject;
     if (_project == null){
-      SweetAlert.swal('', "No project selected.", 'info');
+      SweetAlert.swal('', $scope.dataKylin.alert.tip_no_project_selected, 'info');
       return;
     }
     var downloadUrl = Config.service.url + 'diag/project/'+_project+'/download';

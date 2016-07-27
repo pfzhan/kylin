@@ -23,34 +23,34 @@
                 <tbody>
                     <!--Project Name-->
                     <tr>
-                        <th>Model Name</th>
+                        <th>{{dataKylin.cube.cubeOVModelName}}</th>
                         <td>{{metaModel.model.name}}</td>
                     </tr>
                     <!--Cube Name-->
                     <tr>
-                        <th>Cube Name</th>
+                        <th>{{dataKylin.cube.cubeOVCubeName}}</th>
                         <td>{{cubeMetaFrame.name}}</td>
                     </tr>
                     <!--Fact Table-->
                     <tr>
-                        <th>Fact Table</th>
+                        <th>{{dataKylin.cube.cubeOVFactTable}}</th>
                         <td>{{metaModel.model.fact_table}}</td>
                     </tr>
                     <!--Lookup Table-->
                     <tr>
-                        <th>Lookup Table</th>
+                        <th>{{dataKylin.cube.cubeOVLookupTable}}</th>
                         <td>
                             {{metaModel.model.lookups.length}}
                         </td>
                     </tr>
                     <!--Dimensions-->
                     <tr>
-                        <th>Dimensions</th>
+                        <th>{{dataKylin.cube.cubeOVDimensions}}</th>
                         <td>{{cubeMetaFrame.dimensions.length}}</td>
                     </tr>
                     <!--Measures-->
                     <tr>
-                        <th>Measures</th>
+                        <th>{{dataKylin.cube.cubeOVMeasures}}</th>
                         <td>{{cubeMetaFrame.measures.length}}</td>
                     </tr>
                 </tbody>
@@ -63,7 +63,7 @@
         <div class="box box-solid">
             <div class="box-header">
                 <h4 class="smaller">
-                    Description
+                    {{dataKylin.cube.Description}}
                 </h4>
             </div>
             <div class="box-body">

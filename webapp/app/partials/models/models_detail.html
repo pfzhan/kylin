@@ -21,10 +21,10 @@
   <div  class="nav-tabs-custom" height ng-controller="CubeModelCtrl" style="margin-top:40px;">
     <ul ng-show="model.name" class="nav nav-tabs">
       <li class="{{(!model.visiblePage || model.visiblePage=='metadata')? 'active':''}}">
-        <a href="" ng-click="model.visiblePage='metadata'">Grid</a>
+        <a href="" ng-click="model.visiblePage='metadata'">{{dataKylin.model.grid}}</a>
       </li>
       <li class="{{model.visiblePage=='graph'? 'active':''}}">
-        <a href="" ng-click="model.visiblePage='graph';buildGraph(model);$event.stopPropagation();">Visualization</a>
+        <a href="" ng-click="model.visiblePage='graph';buildGraph(model);$event.stopPropagation();">{{dataKylin.model.visualization}}</a>
       </li>
       <li class="{{model.visiblePage=='json_model'? 'active':''}}">
         <a href="" ng-click="model.visiblePage='json_model';">JSON</a>

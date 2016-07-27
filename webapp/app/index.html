@@ -67,6 +67,14 @@
 <div class="navbar navbar-default navbar-fixed-top"  ng-include="'partials/header.html'"></div>
 <div id="main" class="main-container">
     <div class="main-content">
+        <div class="language-select">
+          <label for="languageSelect"> select language: </label>
+          <select name="languageSelect" ng-model="languageType">
+            <option value="0">english</option>
+            <option value="1">中文</option>
+          </select>
+        </div>
+        <p style="height:20px;"></p>
         <div class="page-content" ng-view></div>
     </div>
 </div>
@@ -135,6 +143,7 @@
 <script src="js/services/streaming.js"></script>
 <script src="js/services/graph.js"></script>
 <script src="js/services/jobs.js"></script>
+<script src="js/services/kylinCommon.js"></script>
 <script src="js/services/message.js"></script>
 <script src="js/services/projects.js"></script>
 <script src="js/services/query.js"></script>
@@ -151,6 +160,9 @@
 <script src="js/model/cubeConfig.js"></script>
 <script src="js/model/jobConfig.js"></script>
 <script src="js/model/projectConfig.js"></script>
+<script src="js/model/kapChineseConfig.js"></script>
+<script src="js/model/kapEnglishConfig.js"></script>
+<script src="js/model/languageType.js"></script>
 <script src="js/model/tableConfig.js"></script>
 <script src="js/model/streamingModel.js"></script>
 <script src="js/model/streamingListModel.js"></script>

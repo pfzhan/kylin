@@ -23,8 +23,8 @@
     <table ng-if="state.mode=='view'&& model.metrics.length > 0" class="table table-striped table-hover">
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Column</th>
+                <th>{{dataKylin.model.gridMSID}}</th>
+                <th>{{dataKylin.model.gridMSColumn}}</th>
             </tr>
         </thead>
         <tbody>
@@ -41,7 +41,7 @@
         </tbody>
     </table>
     <div  ng-if="state.mode=='edit'" class="form-group" style="width: 100%">
-        <h3 class="box-title">Select your measures</h3>
+        <h3 class="box-title">{{dataKylin.model.gridMSSelectMeasure}}</h3>
 
       <ui-select
         close-on-select="false"

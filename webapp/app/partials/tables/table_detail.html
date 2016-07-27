@@ -18,18 +18,18 @@
 
 <div ng-controller="SourceMetaCtrl" class="nav-tabs-custom">
   <div class="col-xs-12" ng-show="tableModel.selectedSrcDb&&tableModel.selectedSrcTable.name">
-    <h3 class="text-info">Table Schema:{{ tableModel.selectedSrcTable.name}}</h3>
+    <h3 class="text-info">{{dataKylin.data_source.tableSchema}}{{ tableModel.selectedSrcTable.name}}</h3>
 
     <div class="tabbable nav-tabs-custom">
       <ul class="nav nav-tabs">
         <li class="active">
-          <a data-toggle="tab" href="#column">Columns</a>
+          <a data-toggle="tab" href="#column">{{dataKylin.data_source.columns}}</a>
         </li>
         <li>
-          <a data-toggle="tab" href="#schema">Extend Information</a>
+          <a data-toggle="tab" href="#schema">{{dataKylin.data_source.extendInformation}}</a>
         </li>
         <li>
-          <a data-toggle="tab" ng-if="tableModel.selectedSrcTable.source_type==1" href="#streaming">Streaming Cluster</a>
+          <a data-toggle="tab" ng-if="tableModel.selectedSrcTable.source_type==1" href="#streaming">{{dataKylin.data_source.streamingCluster}}</a>
         </li>
       </ul>
       <div class="tab-content">
@@ -39,49 +39,49 @@
             <table class="table">
               <tbody>
               <tr>
-                <th style="width:20%">NAME</th>
+                <th style="width:20%">{{dataKylin.data_source.name}}</th>
                 <td>{{ tableModel.selectedSrcTable.name}}</td>
               </tr>
               <tr>
-                <th>Hive DATABASE</th>
+                <th>{{dataKylin.data_source.hiveDatabase}}</th>
                 <td>{{tableModel.selectedSrcTable.database}}</td>
               </tr>
               <tr>
-                <th>SNAPSHOT TIME</th>
+                <th>{{dataKylin.data_source.snapshotTime}}</th>
                 <td>{{tableModel.selectedSrcTable.exd.lastUpdateTime | utcToConfigTimeZone}}</td>
               </tr>
               <tr>
-                <th>LOCATION</th>
+                <th>{{dataKylin.data_source.location}}</th>
                 <td>{{tableModel.selectedSrcTable.exd.location}}</td>
               </tr>
               <tr>
-                <th>INPUT FORMAT</th>
+                <th>{{dataKylin.data_source.inputFormat}}</th>
                 <td>{{tableModel.selectedSrcTable.exd.inputformat}}</td>
               </tr>
               <tr>
-                <th>OUTPUT FORMAT</th>
+                <th>{{dataKylin.data_source.outputFormat}}</th>
                 <td>{{tableModel.selectedSrcTable.exd.outputformat}}</td>
               </tr>
               <tr>
-                <th>OWNER</th>
+                <th>{{dataKylin.data_source.owner}}</th>
                 <td><a
                   href="mailto:{{tableModel.selectedSrcTable.exd.owner}}">{{tableModel.selectedSrcTable.exd.owner}}</a>
                 </td>
               </tr>
               <tr>
-                <th>TOTAL FILE NUMBER</th>
+                <th>{{dataKylin.data_source.totalFileNumber}}</th>
                 <td>{{tableModel.selectedSrcTable.exd.totalNumberFiles}}</td>
               </tr>
               <tr>
-                <th>TOTAL FILE SIZE</th>
+                <th>{{dataKylin.data_source.totalFileSize}}</th>
                 <td>{{tableModel.selectedSrcTable.exd.totalFileSize}}</td>
               </tr>
               <tr>
-                <th>PARTITIONED</th>
+                <th>{{dataKylin.data_source.partitioned}}</th>
                 <td>{{tableModel.selectedSrcTable.exd.partitioned}}</td>
               </tr>
               <tr>
-                <th>PARTITION COLUMNS</th>
+                <th>{{dataKylin.data_source.partitionColumns}}</th>
                 <td>{{tableModel.selectedSrcTable.exd.partitionColumns}}</td>
               </tr>
               </tbody>
@@ -92,9 +92,9 @@
         <div id="column" class="tab-pane active">
           <div class="profile-user-info">
             <div>
-              <label class="table-header-text">Columns</label>
+              <label class="table-header-text">{{dataKylin.data_source.columns}}</label>
                             <span class="input-icon form-search nav-search pull-right">
-                                <input type="text" placeholder="Filter ..." class="nav-search-input"
+                                <input type="text" placeholder="{{dataKylin.data_source.plac_column}}" class="nav-search-input"
                                        ng-model="columnName"/>
                                 <i class="ace-icon fa fa-search nav-search-icon"></i>
                             </span>
@@ -104,7 +104,7 @@
               <table class="table table-hover table-striped list">
                 <thead>
                 <tr style="cursor: pointer">
-                  <th ng-repeat="theaditem in tableConfig.theaditems"
+                  <th ng-repeat="theaditem in dataKylin.data_source.theaditems"
                       ng-click="state.filterAttr= theaditem.attr;state.reverseColumn=theaditem.attr;state.filterReverse=!state.filterReverse;">
                     {{theaditem.name}}
                     <i ng-if="state.reverseColumn!= theaditem.attr"
@@ -142,7 +142,7 @@
             <div ng-if="(tableModel.selectedSrcTable.columns | filter: columnName).length == 0" no-result
                  text="No Matched Table Column."></div>
             <div ng-if="!!!tableModel.selectedSrcTable.uuid">
-              <div no-result text="No Table Selected."></div>
+              <div no-result text="{{dataKylin.data_source.tip_no_table_selected}}"></div>
             </div>
           </div>
         </div>
@@ -166,12 +166,12 @@
       <div class="box-header with-border">
         <i class="fa fa-bullhorn"></i>
 
-        <h3 class="box-title">No tables</h3>
+        <h3 class="box-title">{{dataKylin.data_source.noTables}}</h3>
       </div>
       <div class="box-body">
         <div>
           <a tooltip="Load Hive Table" href="javascript:void(0);" ng-if="userService.hasRole('ROLE_MODELER')"
-             ng-click="openModal()">Click here to load your hive table</a>
+             ng-click="openModal()">{{dataKylin.data_source.tip_load_hive_table}}</a>
         </div>
       </div>
       <!-- /.box-body -->
@@ -181,12 +181,12 @@
       <div class="box-header with-border">
         <i class="icon fa fa-warning"></i>
 
-        <h3 class="box-title">No project selected</h3>
+        <h3 class="box-title">{{dataKylin.data_source.tip_no_project_selected}}</h3>
       </div>
       <div class="box-body">
         <div class="callout callout-danger">
           <p class="text-danger">
-            Please select your project first
+            {{dataKylin.data_source.tip_select_project}}
           </p>
         </div>
       </div>
@@ -200,10 +200,10 @@
       <div class="box-header with-border">
         <i class="fa fa-bullhorn"></i>
 
-        <h3 class="box-title">No table selected</h3>
+        <h3 class="box-title">{{dataKylin.data_source.tip_no_table_selected}}</h3>
       </div>
       <div class="box-body">
-        Select your table
+        {{dataKylin.data_source.tip_select_table}}
       </div>
       <!-- /.box-body -->
     </div>

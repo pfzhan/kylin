@@ -18,73 +18,73 @@
 
 <div ng-controller="ModelDimensionsCtrl">
 
-   <ng-form name="forms.model_dimensions_form" novalidate>
+  <ng-form name="forms.model_dimensions_form" novalidate>
     <!-- Dimensions Summary -->
     <div class="dataTables_wrapper form-inline no-footer">
-         <!-- VIEW MODE -->
-        <div class="row"  ng-if="state.mode=='view'&&model && model.dimensions.length > 0">
-            <table class="table table-striped table-hover">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Table Name</th>
-                        <th>Columns</th>
-                    </tr>
-                </thead>
-                <tbody class="cube-dimension">
-                    <tr ng-repeat="dimension in model.dimensions | filter:dimState.filter track by $index">
-                        <!--ID -->
-                        <td>
-                            <b>{{dimension.id = ($index + 1)}}</b>
-                        </td>
-                        <!--Name -->
-                        <td>
-                            <span>{{dimension.table}}</span>
-                        </td>
-                        <!--Table Name -->
-                        <td>
-                            <span>{{dimension.columns}}</span>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <div  ng-if="state.mode=='edit'" class="form-group model-dimension-edit" style="width: 100%">
-            <h4 style="margin-left:42px">Dimensions</h4>
-            <table style="margin-left:42px; width:92%"
-                   ng-if="modelsManager.selectedModel.dimensions.length > 0"
-                   class="table table-hover list">
-                <tr class="row">
-                    <th class="col-xs-1">ID</th>
-                    <th class="col-xs-2">Table Name</th>
-                    <th class="col-xs-9">Columns</th>
-                </tr>
+      <!-- VIEW MODE -->
+      <div class="row"  ng-if="state.mode=='view'&&model && model.dimensions.length > 0">
+        <table class="table table-striped table-hover">
+          <thead>
+          <tr>
+            <th>{{dataKylin.model.gridDSID}}</th>
+            <th>{{dataKylin.model.gridDSTableName}}</th>
+            <th>{{dataKylin.model.gridDSColumns}}</th>
+          </tr>
+          </thead>
+          <tbody class="cube-dimension">
+          <tr ng-repeat="dimension in model.dimensions | filter:dimState.filter track by $index">
+            <!--ID -->
+            <td>
+              <b>{{dimension.id = ($index + 1)}}</b>
+            </td>
+            <!--Name -->
+            <td>
+              <span>{{dimension.table}}</span>
+            </td>
+            <!--Table Name -->
+            <td>
+              <span>{{dimension.columns}}</span>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <div  ng-if="state.mode=='edit'" class="form-group model-dimension-edit" style="width: 100%">
+        <h4 style="margin-left:42px">{{dataKylin.model.gridDimensions}}</h4>
+        <table style="margin-left:42px; width:92%"
+               ng-if="modelsManager.selectedModel.dimensions.length > 0"
+               class="table table-hover list">
+          <tr class="row">
+            <th class="col-xs-1">{{dataKylin.model.gridDSID}}</th>
+            <th class="col-xs-2">{{dataKylin.model.gridDSTableName}}</th>
+            <th class="col-xs-9">{{dataKylin.model.gridDSColumns}}</th>
+          </tr>
 
-                <tr ng-repeat="dimension in modelsManager.selectedModel.dimensions" class="row">
-                    <td class="col-xs-1">
-                        <!-- ID -->
-                        <b>{{($index + 1)}}</b>
-                    </td>
-                    <td class="col-xs-2">
-                            {{dimension.table}}
-                    </td>
-                    <td class="col-xs-9">
-                      <ui-select
-                        ng-if="state.mode=='edit'" style="width: 100%"
-                        autofocus="true"
-                        close-on-select="false"
-                        ng-model="modelsManager.selectedModel.dimensions[$index].columns" multiple>
-                        <ui-select-match placeholder="Select Column...">{{$item.name}}</ui-select-match>
-                        <ui-select-choices
-                          repeat="column.name as column in getColumnsByTable(dimension.table) | filter:$select.search">
-                          {{column.name}}
-                        </ui-select-choices>
-                      </ui-select>
-                    </td>
-                </tr>
-            </table>
-         </div>
+          <tr ng-repeat="dimension in modelsManager.selectedModel.dimensions" class="row">
+            <td class="col-xs-1">
+              <!-- ID -->
+              <b>{{($index + 1)}}</b>
+            </td>
+            <td class="col-xs-2">
+              {{dimension.table}}
+            </td>
+            <td class="col-xs-9">
+              <ui-select
+                ng-if="state.mode=='edit'" style="width: 100%"
+                autofocus="true"
+                close-on-select="false"
+                ng-model="modelsManager.selectedModel.dimensions[$index].columns" multiple>
+                <ui-select-match placeholder="Select Column...">{{$item.name}}</ui-select-match>
+                <ui-select-choices
+                  repeat="column.name as column in getColumnsByTable(dimension.table) | filter:$select.search">
+                  {{column.name}}
+                </ui-select-choices>
+              </ui-select>
+            </td>
+          </tr>
+        </table>
+      </div>
 
     </div>
-   </ng-form>
+  </ng-form>
 </div>

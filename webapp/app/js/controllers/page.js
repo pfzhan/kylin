@@ -18,16 +18,44 @@
 
 'use strict';
 
-KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $location, $rootScope, $routeParams, $http, UserService, ProjectService, SweetAlert, $cookieStore, $log, kylinConfig, ProjectModel, TableModel) {
+KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $location, $rootScope, $routeParams, $http, UserService, ProjectService, SweetAlert, $cookieStore, language,$log, kylinConfig, ProjectModel, TableModel,kapEnglishConfig,kapChineseConfig,kylinCommon) {
 
   //init kylinConfig to get kylin.Propeties
   kylinConfig.init().$promise.then(function (data) {
     $log.debug(data);
     kylinConfig.initWebConfigInfo();
   });
+
+  $scope.language = language;
   $rootScope.userAction={
    'islogout':false
   }
+
+  $scope.dataEnglish = kapEnglishConfig;
+
+  $scope.dataChina = kapChineseConfig;
+
+  $scope.languageType = $cookieStore.get('language')?$cookieStore.get('language'):0;
+
+  $scope.dataKylin = {};
+  $scope.dataInit = function () {
+    $scope.dataKylin = $scope.languageType == 0?$scope.dataEnglish:$scope.dataChina;
+    language.setLanguageType($scope.languageType);
+    language.setDataKylin($scope.dataKylin);
+  };
+
+  $scope.dataInit();
+
+  $scope.$watch('languageType', function (newValue, oldValue) {
+    if (newValue != oldValue) {
+      $scope.languageType = newValue;
+      $cookieStore.put('language',$scope.languageType);
+      $scope.dataInit();
+      $scope.$broadcast("finish",$scope.languageType);
+
+    }
+
+  });
   $scope.kylinConfig = kylinConfig;
 
   $scope.header = {show: true};
@@ -190,15 +218,22 @@ KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $lo
 
 });
 
-var projCtrl = function ($scope, $location, $modalInstance, ProjectService, MessageService, projects, project, SweetAlert, ProjectModel, $cookieStore, $route) {
+var projCtrl = function ($scope, $location, $modalInstance, ProjectService, MessageService, projects, project, SweetAlert, ProjectModel, $cookieStore, $route,language) {
   $scope.state = {
     isEdit: false,
     oldProjName: null,
     projectIdx: -1
   };
+  $scope.$on('modal.shown', function() {
+     alert(1);
+  });
+  $(document).ready(function(){
+    $("#test").scrollTop(500);
+    console.log($('#test').attr('id'));
+  });
   $scope.isEdit = false;
   $scope.proj = {name: '', description: ''};
-
+  $scope.dataKylin = language.getDataKylin();
   if (project) {
     $scope.state.isEdit = true;
     $scope.state.oldProjName = project.name;
@@ -220,7 +255,8 @@ var projCtrl = function ($scope, $location, $modalInstance, ProjectService, Mess
         newDescription: $scope.proj.description
       };
       ProjectService.update({}, requestBody, function (newProj) {
-        SweetAlert.swal('Success!', 'Project update successfully!', 'success');
+        KylinCommon.success_alert()
+        SweetAlert.swal('Success!', $scope.dataKylin.alert.success_project_update, 'success');
 
         //update project in project model
         ProjectModel.updateProject($scope.proj.name, $scope.state.oldProjName);
@@ -228,18 +264,12 @@ var projCtrl = function ($scope, $location, $modalInstance, ProjectService, Mess
         ProjectModel.setSelectedProject($scope.proj.name);
         $modalInstance.dismiss('cancel');
       }, function (e) {
-        if (e.data && e.data.exception) {
-          var message = e.data.exception;
-          var msg = !!(message) ? message : 'Failed to take action.';
-          SweetAlert.swal('Oops...', msg, 'error');
-        } else {
-          SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-        }
+        kylinCommon.error_default(e);
       });
     }
     else {
       ProjectService.save({}, $scope.proj, function (newProj) {
-        SweetAlert.swal('Success!', 'New project created successfully!', 'success');
+        SweetAlert.swal('Success!', $scope.dataKylin.alert.tip_new_project_created, 'success');
         $modalInstance.dismiss('cancel');
 //                if(projects) {
 //                    projects.push(newProj);
@@ -248,13 +278,7 @@ var projCtrl = function ($scope, $location, $modalInstance, ProjectService, Mess
         $cookieStore.put("project", newProj.name);
         location.reload();
       }, function (e) {
-        if (e.data && e.data.exception) {
-          var message = e.data.exception;
-          var msg = !!(message) ? message : 'Failed to take action.';
-          SweetAlert.swal('Oops...', msg, 'error');
-        } else {
-          SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-        }
+        kylinCommon.error_default(e);
       });
     }
   };

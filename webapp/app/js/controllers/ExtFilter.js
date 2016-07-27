@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('ExtFilterCtrl', function ($scope,$rootScope,$modal, ExtFilterService,AccessService, MessageService, AuthenticationService, SweetAlert) {
+KylinApp.controller('ExtFilterCtrl', function ($scope,$rootScope,$modal, ExtFilterService,AccessService, MessageService, AuthenticationService, SweetAlert,kylinCommon) {
   $scope.extFilters =[];
   $scope.filterProject = {};
 
@@ -31,7 +31,7 @@ KylinApp.controller('ExtFilterCtrl', function ($scope,$rootScope,$modal, ExtFilt
     ExtFilterService.list(param,function (filters){
       $scope.extFilters = filters;
     },function(){
-      SweetAlert.swal('', 'Failed to load external filters.', 'error');
+      SweetAlert.swal('', $scope.dataKylin.alert.error_info, 'error');
 
     });
   }
@@ -78,7 +78,7 @@ KylinApp.controller('ExtFilterCtrl', function ($scope,$rootScope,$modal, ExtFilt
   $scope.deleteFilter= function(filters,filter,project){
     SweetAlert.swal({
       title: '',
-      text: 'Are you sure to delete ?',
+      text: $scope.dataKylin.alert.tip_to_delete_filter,
       type: '',
       showCancelButton: true,
       confirmButtonColor: '#DD6B55',
@@ -88,15 +88,9 @@ KylinApp.controller('ExtFilterCtrl', function ($scope,$rootScope,$modal, ExtFilt
       if(isConfirm){
         ExtFilterService.remove({filterName: filter.name,projectName:project.name}, function(){
           $rootScope.$emit('extFiltersUpdated');
-          SweetAlert.swal('Success!',"Filter [" + filter.name + "] has been deleted successfully!", 'success');
+          kylinCommon.success_alert($scope.dataKylin.alert.tip_delete_filter_part_one+ filter.name + $scope.dataKylin.tip_delete_filter_part_two);
         },function(e){
-          if(e.data&& e.data.exception){
-            var message =e.data.exception;
-            var msg = !!(message) ? message : 'Failed to take action.';
-            SweetAlert.swal('Oops...', msg, 'error');
-          }else{
-            SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-          }
+          kylinCommon.error_default(e);
         });
       }
     });
@@ -113,8 +107,8 @@ KylinApp.controller('ExtFilterCtrl', function ($scope,$rootScope,$modal, ExtFilt
 
 
 
-var filterCreateCtrl = function ($scope,$rootScope,ExtFilterService,cubeConfig, $location, $modalInstance, ProjectService, MessageService, projects,project, extfilter, SweetAlert, ProjectModel) {
-
+var filterCreateCtrl = function ($scope,$rootScope,ExtFilterService,cubeConfig, $location, $modalInstance, ProjectService, MessageService, projects,project, extfilter, SweetAlert, ProjectModel,language) {
+  $scope.dataKylin = language.getDataKylin();
   $scope.cubeConfig = cubeConfig;
   $scope.state={
     isEdit:false
@@ -142,16 +136,10 @@ var filterCreateCtrl = function ($scope,$rootScope,ExtFilterService,cubeConfig, 
         extFilter:filterData
       }, function (e) {
         $rootScope.$emit('extFiltersUpdated');
-        SweetAlert.swal('Success!', 'Filter [' + $scope.projectFilter.name + '] updated successfully!', 'success');
+        kylinCommon.success_alert($scope.dataKylin.alert.tip_delete_filter_part_one + $scope.projectFilter.name + $scope.dataKylin.alert.tip_update_filter_part_two);
         $modalInstance.dismiss('cancel');
       }, function (e) {
-        if (e.data && e.data.exception) {
-          var message = e.data.exception;
-          var msg = !!(message) ? message : 'Failed to take action.';
-          SweetAlert.swal('Oops...', msg, 'error');
-        } else {
-          SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-        }
+        kylinCommon.error_default(e);
       });
     }
     else {
@@ -161,16 +149,11 @@ var filterCreateCtrl = function ($scope,$rootScope,ExtFilterService,cubeConfig, 
         extFilter:filterData
       }, function (e) {
         $rootScope.$emit('extFiltersUpdated');
+        kylinCommon.success_alert($scope.dataKylin.alert.tip_create_filter_part_one+$scope.projectFilter.name+$scope.dataKylin.alert.tip_create_filter_part_two);
         SweetAlert.swal('Success!', 'New Filter [' + $scope.projectFilter.name + '] created successfully!', 'success');
         $modalInstance.dismiss('cancel');
       }, function (e) {
-        if (e.data && e.data.exception) {
-          var message = e.data.exception;
-          var msg = !!(message) ? message : 'Failed to take action.';
-          SweetAlert.swal('Oops...', msg, 'error');
-        } else {
-          SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-        }
+        kylinCommon.error_default(e);
       });
     }
   };

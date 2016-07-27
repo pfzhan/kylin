@@ -20,7 +20,7 @@
 
 /* Directives */
 
-KylinApp.directive('kylinPagination', function ($parse, $q) {
+KylinApp.directive('kylinPagination', function ($parse, $q, language) {
   return {
     restrict: 'E',
     scope: {},
@@ -29,6 +29,7 @@ KylinApp.directive('kylinPagination', function ($parse, $q) {
       var _this = this;
       scope.limit = 15;
       scope.hasMore = false;
+      scope.language = language;
       scope.data = $parse(attrs.data)(scope.$parent);
       scope.action = $parse(attrs.action)(scope.$parent);
       scope.loadFunc = $parse(attrs.loadFunc)(scope.$parent);
@@ -111,10 +112,14 @@ KylinApp.directive('kylinPagination', function ($parse, $q) {
   })
   .directive('noResult', function ($parse, $q) {
     return {
-      scope: {},
+      scope: {
+        text:'@text'
+      },
       templateUrl: 'partials/directives/noResult.html',
       link: function (scope, element, attrs) {
-        scope.text = (!!!attrs.text) ? 'No Result.' : attrs.text;
+        scope.$watch('text',function(newTitle,oldTitle) {
+          scope.text = (!!!attrs.text) ? 'No Result.' : attrs.text;
+        })
       }
     };
   }).directive('showonhoverparent',
@@ -332,27 +337,30 @@ KylinApp.directive('kylinPagination', function ($parse, $q) {
       };
     }
   };
-}).directive('kylinpopover', function ($compile,$templateCache) {
+}).directive('kylinpopover', function ($compile,$templateCache,language) {
   return {
-    restrict: "A",
+    restrict: "EA",
+    scope:{title:'@ngTitle'},
     link: function (scope, element, attrs) {
-      var popOverContent;
-      var dOptions = {
-        placement : 'right'
-      }
-      popOverContent = $templateCache.get(attrs.template);
+      scope.$watch('title',function(newTitle,oldTitle){
+        var popOverContent;
+        scope.dataKylin = language.getDataKylin();
+        var dOptions = {
+          placement : 'right'
+        }
+        popOverContent = $compile($templateCache.get(attrs.template))(scope);
+        var placement = attrs.placement? attrs.placement : dOptions.placement;
+        //var title = attrs.title;
+        var options = {
+          content: popOverContent,
+          placement: placement,
+          trigger: "hover",
+          title: newTitle,
+          html: true
+        };
+        $(element).popover('destroy').popover(options);
+      });
 
-      var placement = attrs.placement? attrs.placement : dOptions.placement;
-      var title = attrs.title;
-
-      var options = {
-        content: popOverContent,
-        placement: placement,
-        trigger: "hover",
-        title: title,
-        html: true
-      };
-      $(element).popover(options);
     }
   };
 }).directive("extendedcolumntree", function($compile) {

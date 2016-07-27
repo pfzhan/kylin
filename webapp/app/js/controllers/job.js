@@ -19,16 +19,21 @@
 'use strict';
 
 KylinApp
-    .controller('JobCtrl', function ($scope, $q, $routeParams, $interval, $modal, ProjectService, MessageService, JobService,SweetAlert,loadingRequest,UserService,jobConfig,JobList,$window) {
-
+    .controller('JobCtrl', function ($scope, $q, $routeParams, $interval, $modal, ProjectService, MessageService, JobService,SweetAlert,loadingRequest,UserService,jobConfig,JobList,$window,language,kylinCommon) {
+        $scope.initJobData = function(){
+          $scope.dataKylin.monitor.jobConfig = language.getLanguageType()==0?jobConfig.dataEnglish:jobConfig.dataChinese;//init data depend on English or Chinese
+          $scope.jobConfig = $scope.dataKylin.monitor.jobConfig;
+          $scope.timeFilter = $scope.dataKylin.monitor.jobConfig.timeFilter[1];
+        };
+      $scope.$on("finish",function (event,data) {
+        $scope.initJobData();
+      });
+        $scope.initJobData();
         $scope.jobList = JobList;
         JobList.removeAll();
-        $scope.jobConfig = jobConfig;
         $scope.cubeName = null;
         //$scope.projects = [];
         $scope.action = {};
-        $scope.timeFilter = jobConfig.timeFilter[1];
-
         $scope.status = [];
         $scope.toggleSelection = function toggleSelection(current) {
             var idx = $scope.status.indexOf(current);
@@ -112,7 +117,7 @@ KylinApp
         $scope.resume = function (job) {
             SweetAlert.swal({
                 title: '',
-                text: 'Are you sure to resume the job?',
+                text: $scope.dataKylin.alert.tip_to_resume_job,
                 type: '',
                 showCancelButton: true,
                 confirmButtonColor: '#DD6B55',
@@ -127,16 +132,10 @@ KylinApp
                   if (angular.isDefined($scope.state.selectedJob)) {
                     $scope.state.selectedJob = JobList.jobs[$scope.state.selectedJob.uuid];
                   }
-                  SweetAlert.swal('Success!', 'Job has been resumed successfully!', 'success');
+                  kylinCommon.success_alert($scope.dataKylin.alert.success_job_been_resumed);
                 }, function (e) {
                   loadingRequest.hide();
-                  if (e.data && e.data.exception) {
-                    var message = e.data.exception;
-                    var msg = !!(message) ? message : 'Failed to take action.';
-                    SweetAlert.swal('Oops...', msg, 'error');
-                  } else {
-                    SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-                  }
+                  kylinCommon.error_default(e);
                 });
               }
             });
@@ -146,7 +145,7 @@ KylinApp
         $scope.cancel = function (job) {
             SweetAlert.swal({
                 title: '',
-                text: 'Are you sure to discard the job?',
+                text: $scope.dataKylin.alert.tip_to_discard_job,
                 type: '',
                 showCancelButton: true,
                 confirmButtonColor: '#DD6B55',
@@ -164,16 +163,10 @@ KylinApp
                         }
 
                     });
-                    SweetAlert.swal('Success!', 'Job has been discarded successfully!', 'success');
+                    kylinCommon.success_alert($scope.dataKylin.alert.success_Job_been_discarded);
                 },function(e){
                     loadingRequest.hide();
-                    if(e.data&& e.data.exception){
-                        var message =e.data.exception;
-                        var msg = !!(message) ? message : 'Failed to take action.';
-                        SweetAlert.swal('Oops...', msg, 'error');
-                    }else{
-                        SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-                    }
+                    kylinCommon.error_default(e);
                 });
               }
             });
@@ -182,7 +175,7 @@ KylinApp
 
       $scope.diagnosisJob =function(job) {
         if (!job){
-          SweetAlert.swal('', "No job selected.", 'info');
+          SweetAlert.swal('', $scope.dataKylin.alert.tip_no_job_selected, 'info');
           return;
         }
         var downloadUrl = Config.service.url + 'diag/job/'+job.uuid+'/download';
@@ -203,7 +196,7 @@ KylinApp
                             tjob.steps[stepId].loadingOp = false;
                         }
                     },function(e){
-                      SweetAlert.swal('Oops...',"Failed to load job info, please check system log for details.", 'error');
+                      SweetAlert.swal('Oops...',$scope.dataKylin.alert.error_failed_to_load_job, 'error');
                     });
                 } else {
                     internalOpenModal();
@@ -228,7 +221,8 @@ KylinApp
     }
 );
 
-var jobStepDetail = function ($scope, $modalInstance, step, attr) {
+var jobStepDetail = function ($scope, $modalInstance, step, attr,language) {
+    $scope.dataKylin = language.getDataKylin();//get datakYLIN;
     $scope.step = step;
     $scope.stepAttrToShow = attr;
     $scope.cancel = function () {

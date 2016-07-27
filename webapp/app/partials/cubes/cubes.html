@@ -25,7 +25,7 @@
         <select  ng-model="queryFilter.model"
                 style="width: 180px"
                 data-ng-options="model.name as model.name for model in modelsManager.models">
-          <option ng-selected="modelFilter==null"  value=""> -- All -- </option>
+          <option ng-selected="modelFilter==null"  value=""> {{dataKylin.model.cubesIn}} </option>
         </select>
         <button class="btn btn-success btn-xs" style="margin-left: 10px" ng-click="cubeList.removeAll();reload();"><i class="fa fa-refresh"></i></button>
       </label>
@@ -35,7 +35,7 @@
       <!--STATUS-->
       <div class="pull-right">
         <!-- + Cubes-->
-        <a class="btn btn-primary btn-sm" href="cubes/add"  ng-if="userService.hasRole('ROLE_MODELER')" id="addCubeButton"><i class="fa fa-plus"></i> Cube</a>
+        <a class="btn btn-primary btn-sm" href="cubes/add"  ng-if="userService.hasRole('ROLE_MODELER')" id="addCubeButton"><i class="fa fa-plus"></i> {{dataKylin.cube.ac_cube}}</a>
       </div>
     </div>
   </div>
@@ -44,7 +44,7 @@
         <!--Header-->
         <thead>
         <tr style="cursor: pointer">
-            <th ng-repeat="theaditem in cubeConfig.theaditems"
+            <th ng-repeat="theaditem in dataKylin.cube.theaditems"
                 ng-click="state.filterAttr= theaditem.attr;state.reverseColumn=theaditem.attr;state.filterReverse=!state.filterReverse;">
                 {{theaditem.name}}
                 <i ng-if="state.reverseColumn!= theaditem.attr"
@@ -54,9 +54,9 @@
                 <i ng-if="state.reverseColumn== theaditem.attr && state.filterReverse"
                    class="fa fa-sort-desc"></i>
             </th>
-            <th>Actions</th>
-            <th ng-if="userService.hasRole('ROLE_ADMIN')">Admins</th>
-            <th>Streaming</th>
+            <th>{{dataKylin.cube.actions}}</th>
+            <th ng-if="userService.hasRole('ROLE_ADMIN')">{{dataKylin.cube.admins}}</th>
+            <th>{{dataKylin.cube.streaming}}</th>
         </tr>
         </thead>
         <!--Body-->
@@ -95,17 +95,17 @@
                     </button>
                     <ul class="dropdown-menu" role="menu">
                         <li ng-if="cube.status=='DISABLED' && userService.hasRole('ROLE_ADMIN') ">
-                            <a ng-click="dropCube(cube)" tooltip="Drop the cube, related jobs and data permanently.">Drop</a></li>
+                          <a ng-click="dropCube(cube, $index)" tooltip="Drop the cube, related jobs and data permanently.">{{dataKylin.cube.cubeActions[0]}}</a></li>
                         <li ng-if="cube.status=='DISABLED' && (userService.hasRole('ROLE_ADMIN') || hasPermission(cube, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask))">
-                            <a ng-click="cubeEdit(cube);">Edit</a></li>
+                          <a ng-click="cubeEdit(cube);">{{dataKylin.cube.cubeActions[1]}}</a></li>
                       <li ng-if="cube.streaming && cube.status=='DISABLED' && (userService.hasRole('ROLE_ADMIN') || hasPermission(cube, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask))">
-                        <li><a ng-click="startJobSubmit(cube);">Build</a></li>
-                        <li><a ng-click="startRefresh(cube)">Refresh</a></li>
-                        <li><a ng-click="startMerge(cube)">Merge</a></li>
-                        <li ng-if="cube.status!='DISABLED'"><a ng-click="disable(cube)">Disable</a></li>
-                        <li ng-if="cube.status=='DISABLED'"><a ng-click="enable(cube)">Enable</a></li>
-                        <li ng-if="cube.status=='DISABLED'"><a ng-click="purge(cube)">Purge</a></li>
-                        <li><a ng-click="cloneCube(cube)">Clone</a></li>
+                      <li><a ng-click="startJobSubmit(cube, $index);">{{dataKylin.cube.cubeActions[2]}}</a></li>
+                      <li><a ng-click="startRefresh(cube, $index)">{{dataKylin.cube.cubeActions[3]}}</a></li>
+                      <li><a ng-click="startMerge(cube, $index)">{{dataKylin.cube.cubeActions[4]}}</a></li>
+                      <li ng-if="cube.status!='DISABLED'"><a ng-click="disable(cube, $index)">{{dataKylin.cube.cubeActions[5]}}</a></li>
+                      <li ng-if="cube.status=='DISABLED'"><a ng-click="enable(cube, $index)">{{dataKylin.cube.cubeActions[6]}}</a></li>
+                      <li ng-if="cube.status=='DISABLED'"><a ng-click="purge(cube, $index)">{{dataKylin.cube.cubeActions[7]}}</a></li>
+                      <li><a ng-click="cloneCube(cube)">{{dataKylin.cube.cubeActions[8]}}</a></li>
 
                     </ul>
                 </div>
@@ -119,7 +119,7 @@
                         Action <span class="ace-icon fa fa-caret-down icon-on-right"></span>
                     </button>
                     <ul class="dropdown-menu" role="menu">
-                        <li ng-if="cube.status=='DISABLED'"><a href="cubes/edit/{{cube.name}}/json">Edit(JSON)</a></li>
+                        <li ng-if="cube.status=='DISABLED'"><a href="cubes/edit/{{cube.name}}/json">{{dataKylin.cube.edit}}(JSON)</a></li>
                     </ul>
                 </div>
             </td>
@@ -139,7 +139,7 @@
   <div ng-if="!loading && cubeList.cubes.length == 0">
     <div no-result text="No Cube."></div>
   </div>
-  <loading ng-if="loading" text="Loading Cubes..."></loading>
+  <loading ng-if="loading" text="{{dataKylin.cube.tip_loading_cubes}}"></loading>
 
 
 
@@ -149,7 +149,7 @@
     </div>
 </div>
 <div ng-if="cubeList.cubes.length" class="pull-left font-color-default" style="font-size: 15px" >
-    <strong>Storage: {{getTotalSize(cubeList.cubes)}}</strong>
+    <strong>{{dataKylin.cube.storage}}: {{getTotalSize(cubeList.cubes)}}</strong>
 </div>
 
 <div ng-include="'partials/jobs/job_submit.html'"></div>

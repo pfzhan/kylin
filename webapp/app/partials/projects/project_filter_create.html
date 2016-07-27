@@ -20,25 +20,25 @@
   <div>
     <ng-form name="filter_create_form">
         <div class="modal-header">
-            <h4>New Filter</h4>
+            <h4>{{dataKylin.project.efNewFilter}}</h4>
         </div>
         <div class="modal-body" style="background-color: white">
 
           <div class="form-group row">
-            <label  class="col-sm-2 form-control-label">Filter Name</label>
+            <label  class="col-sm-2 form-control-label">{{dataKylin.project.efFilterName}}</label>
             <div class="col-sm-10">
               <input name="filter_name" ng-disabled="state.isEdit" type="text" class="form-control" ng-model="projectFilter.name" required
-                     placeholder="You can use letters, numbers, and underscore characters '_'"
+                     placeholder="{{dataKylin.project.plac_efFilterName}}"
                      ng-maxlength = 100 ng-pattern="/^\w+$/" />
                       <span class="text-warning" ng-if="filter_create_form.filter_name.$error.required  && filter_create_form.filter_name.$dirty"
-                      >&nbsp;The filter name is required</span>
+                      >&nbsp;{{dataKylin.project.checkInfo_require_efFilterName}}</span>
                     <span class="text-warning" ng-if="filter_create_form.filter_name.$invalid && filter_create_form.filter_name.$dirty && !filter_create_form.filter_name.$error.required"
-                    >&nbsp;The filter name is invalid</span>
+                    >&nbsp;{{dataKylin.project.checkInfo_invalid_efFilterName}}</span>
             </div>
           </div>
 
           <div class="form-group row">
-            <label  class="col-sm-2 form-control-label">Table Type</label>
+            <label  class="col-sm-2 form-control-label">{{dataKylin.project.efTableType}}</label>
             <div class="col-sm-10">
 
               <select ng-required="projectFilter.filter_table_type" chosen ng-model="projectFilter.filter_table_type"
@@ -52,32 +52,32 @@
           </div>
 
           <div class="form-group row">
-            <label  class="col-sm-2 form-control-label">Resource Path</label>
+            <label  class="col-sm-2 form-control-label">{{dataKylin.project.efResourcePath}}</label>
             <div class="col-sm-10">
               <input name="filter_resource_identifier" type="text" class="form-control" ng-model="projectFilter.filter_resource_identifier" required
-                     placeholder="You can use letters, numbers, and underscore characters '_'"
+                     placeholder="{{dataKylin.project.plac_efResourcePath}}"
                      ng-maxlength = 100/>
                       <span class="text-warning" ng-if="filter_create_form.filter_resource_identifier.$error.required  && filter_create_form.filter_resource_identifier.$dirty"
-                      >&nbsp;The resource path is required</span>
+                      >&nbsp;{{dataKylin.project.checkInfo_require_efResourcePath}}</span>
                     <span class="text-warning" ng-if="filter_create_form.filter_resource_identifier.$invalid && filter_create_form.filter_resource_identifier.$dirty && !filter_create_form.filter_resource_identifier.$error.required"
-                    >&nbsp;The resource path is invalid</span>
+                    >&nbsp;{{dataKylin.project.checkInfo_invalid_efResourcePath}}</span>
             </div>
           </div>
 
           <div class="form-group row">
-            <label  class="col-sm-2 form-control-label">Description</label>
+            <label  class="col-sm-2 form-control-label">{{dataKylin.project.checkInfo_invalid_plac_efDescription}}</label>
             <div class="col-sm-10">
                       <textarea name="description_input" type="text" class="form-control"
-                                placeholder="Filter Description.."
+                                placeholder="{{dataKylin.project.plac_efDescription}}"
                                 ng-model="projectFilter.description"
                       ></textarea>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-primary" ng-click="cancel()">Close</button>
+            <button class="btn btn-primary" ng-click="cancel()">{{dataKylin.project.ac_efClose}}</button>
             <button class="btn btn-success" ng-click="createOrUpdate()" ng-disabled="filter_create_form.$invalid">
-                Submit
+              {{dataKylin.project.ac_efSubmit}}
             </button>
         </div>
     </ng-form>

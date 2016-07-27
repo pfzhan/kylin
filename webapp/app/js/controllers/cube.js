@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('CubeCtrl', function ($scope, AccessService, MessageService, CubeService, TableService, ModelGraphService, UserService,SweetAlert,loadingRequest,modelsManager,$modal,cubesManager) {
+KylinApp.controller('CubeCtrl', function ($scope, AccessService, MessageService, CubeService, TableService, ModelGraphService, UserService,SweetAlert,loadingRequest,modelsManager,$modal,cubesManager,kylinCommon) {
     $scope.newAccess = null;
     $scope.state = {jsonEdit: false};
 
@@ -33,13 +33,7 @@ KylinApp.controller('CubeCtrl', function ($scope, AccessService, MessageService,
         CubeService.getSql({cubeId: cube.name, propValue: "null"}, function (sql) {
             cube.sql = sql.sql;
         },function(e){
-            if(e.data&& e.data.exception){
-                var message =e.data.exception;
-                var msg = !!(message) ? message : 'Failed to take action.';
-                SweetAlert.swal('Oops...', msg, 'error');
-            }else{
-                SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-            }
+          kylinCommon.error_default(e);
         });
     };
 
@@ -71,15 +65,9 @@ KylinApp.controller('CubeCtrl', function ($scope, AccessService, MessageService,
     $scope.updateNotifyList = function (cube) {
         cube.detail.notify_list = cube.notifyListString.split(",");
         CubeService.updateNotifyList({cubeId: cube.name}, cube.detail.notify_list, function () {
-            SweetAlert.swal('Success!', 'Notify List updated successfully!', 'success');
+          kylinCommon.success_alert($scope.dataKylin.alert.success_notify_list_updated);
         },function(e){
-            if(e.data&& e.data.exception){
-                var message =e.data.exception;
-                var msg = !!(message) ? message : 'Failed to take action.';
-                SweetAlert.swal('Oops...', msg, 'error');
-            }else{
-                SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-            }
+          kylinCommon.error_default(e);
         });
     };
 
@@ -101,13 +89,7 @@ KylinApp.controller('CubeCtrl', function ($scope, AccessService, MessageService,
                 });
                 cube.totalSize = totalSize;
             },function(e){
-                if(e.data&& e.data.exception){
-                    var message =e.data.exception;
-                    var msg = !!(message) ? message : 'Failed to take action.';
-                    SweetAlert.swal('Oops...', msg, 'error');
-                }else{
-                    SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-                }
+              kylinCommon.error_default(e);
             });
         }
     };

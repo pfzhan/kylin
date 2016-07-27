@@ -19,18 +19,18 @@
 <div ng-controller="CubeCtrl" class="nav-tabs-custom" style="margin-top:40px;">
     <ul class="nav nav-tabs">
         <li class="{{(!cube.visiblePage || cube.visiblePage=='metadata')? 'active':''}}">
-            <a href="" ng-click="cube.visiblePage='metadata'">Grid</a>
+          <a href="" ng-click="cube.visiblePage='metadata'">{{dataKylin.cube.cubeItems[0]}}</a>
         </li>
         <!--</li>-->
         <li class="{{cube.visiblePage=='sql'? 'active':''}}">
-            <a href="" ng-click="cube.visiblePage='sql';getCubeSql(cube)">SQL</a>
+          <a href="" ng-click="cube.visiblePage='sql';getCubeSql(cube)">{{dataKylin.cube.cubeItems[1]}}</a>
         </li>
         <li class="{{cube.visiblePage=='json'? 'active':''}}"
             ng-if="userService.hasRole('ROLE_ADMIN') || hasPermission(cube, 16) && !newAccess">
-            <a href="" ng-click="cube.visiblePage='json';">JSON(Cube)</a>
+          <a href="" ng-click="cube.visiblePage='json';">{{dataKylin.cube.cubeItems[2]}}</a>
         </li>
         <li class="{{cube.visiblePage=='access'? 'active':''}}">
-            <a href="" ng-click="cube.visiblePage='access';listAccess(cube, 'CubeInstance');">Access</a>
+          <a href="" ng-click="cube.visiblePage='access';listAccess(cube, 'CubeInstance');">{{dataKylin.cube.cubeItems[3]}}</a>
         </li>
         <li class="{{cube.visiblePage=='notification'? 'active':''}}"
             ng-if="userService.hasRole('ROLE_ADMIN') || hasPermission(cube, 16) && !newAccess">
@@ -38,7 +38,7 @@
         </li>
         <li class="{{cube.visiblePage=='hbase'? 'active':''}}"
             ng-if="userService.hasRole('ROLE_ADMIN')">
-            <a href="" ng-click="cube.visiblePage='storage';getHbaseInfo(cube)">Storage</a>
+          <a href="" ng-click="cube.visiblePage='hbase';getHbaseInfo(cube)">{{dataKylin.cube.cubeItems[5]}}</a>
         </li>
     </ul>
 
@@ -81,12 +81,12 @@
     <div class="cube-detail" ng-show="cube.visiblePage=='notification'">
         <div style="margin: 15px;">
             <form>
-                <h5>Notification List(Common Separated)</h5>
+                <h5>{{dataKylin.cube.cubeNoNotification}}</h5>
                 <div class="form-group">
                     <input ng-model="cube.notifyListString" class="form-control" placeholder="Notification List..." />
                 </div>
                 <div class="form-group">
-                    <button class="btn btn-primary btn-sm" ng-click="updateNotifyList(cube)">Save</button>
+                    <button class="btn btn-primary btn-sm" ng-click="updateNotifyList(cube)">{{dataKylin.cube.ac_cubeNotification_save}}</button>
                 </div>
                 <div class="space-4"></div>
             </form>
@@ -96,23 +96,23 @@
   <div class="cube-detail" ng-show="cube.visiblePage=='storage'">
         <div style="margin: 15px;">
             <div ng-repeat="table in cube.hbase">
-                <h5><b>Segment ID:</b> {{cube.tablemap[table.tableName]}}</h5>
+              <h5><b>{{dataKylin.cube.SegmentId}}</b> {{table.tableName}}</h5>
                 <ul>
                     <li>Htable: <span class="red">{{table.tableName}}</span></li>
-                    <li>Region Count: <span class="red">{{table.regionCount}}</span></li>
-                    <li>Size: <span class="red">{{table.tableSize | bytes}}</span></li>
-                    <li>Start Time: <span class="red">{{table.dateRangeStart | reverseToGMT0}}</span></li>
-                    <li>End Time: <span class="red">{{table.dateRangeEnd | reverseToGMT0}}</span></li>
+                  <li>{{dataKylin.cube.cubeHBRegionCount}}<span class="red">{{table.regionCount}}</span></li>
+                  <li>{{dataKylin.cube.cubeHBSize}}<span class="red">{{table.tableSize | bytes}}</span></li>
+                  <li>{{dataKylin.cube.cubeHBStartTime}}<span class="red">{{table.dateRangeStart | reverseToGMT0}}</span></li>
+                  <li>{{dataKylin.cube.cubeHBEndTime}}<span class="red">{{table.dateRangeEnd | reverseToGMT0}}</span></li>
                 </ul>
             </div>
             <div ng-if="cube.hbase">
                 <div class="hr hr8 hr-double hr-dotted"></div>
-                <h5><b>Total Size:</b> <span class="red">{{cube.totalSize | bytes}}</span></h5>
-                <h5><b>Total Number:</b> <span class="red">{{cube.hbase.length}}</span></h5>
+                <h5><b>{{dataKylin.cube.cubHBTotalSize}}</b> <span class="red">{{cube.totalSize | bytes}}</span></h5>
+                <h5><b>{{dataKylin.cube.cubHBTotalNumber}}</b> <span class="red">{{cube.hbase.length}}</span></h5>
                 <h5><b>Cube ID:</b> <span class="red">{{cube.uuid}}</span></h5>
             </div>
             <div ng-if="cube.hbase.length == 0">
-                <h5>No HBase Info.</h5>
+              <h5>{{dataKylin.cube.cubHBNoHBaseInfo}}</h5>
             </div>
         </div>
     </div>

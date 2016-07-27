@@ -18,15 +18,9 @@
 
 'use strict';
 
-KylinApp.controller('AccessCtrl', function ($scope, AccessService, MessageService, AuthenticationService, SweetAlert) {
+KylinApp.controller('AccessCtrl', function ($scope, $compile,AccessService, MessageService, AuthenticationService, SweetAlert,kylinCommon) {
 
-  $scope.accessTooltip = "<div style='text-align: left'>" +
-  "<label>What does access mean to cube?</label>" +
-  "<ul><li>CUBE QUERY: Access to query cube</li>" +
-  "<li>CUBE OPERATION: Access to rebuild, resume and cancel jobs. Also include access of CUBE QUERY.</li>" +
-  "<li>CUBE MANAGEMENT: Access to edit/delete cube. Also include access of CUBE OPERATION.</li>" +
-  "<li>CUBE ADMIN: Full access to cube and jobs, including access management.</li></ul></div>";
-
+  $scope.accessTooltip = $scope.dataKylin.project.tip_access;
   $scope.authorities = null;
 
   AuthenticationService.authorities({}, function (authorities) {
@@ -53,19 +47,22 @@ KylinApp.controller('AccessCtrl', function ($scope, AccessService, MessageServic
       entity.accessEntities = accessEntities;
       $scope.resetNewAcess();
 //            MessageService.sendMsg('Access granted!', 'success', {});
-      SweetAlert.swal('Success!', 'Access granted!', 'success');
+      kylinCommon.success_alert($scope.dataKylin.alert.success_grant);
+     // SweetAlert.swal('Success!', 'Access granted!', 'success');
     }, function (e) {
       if (e.status == 404) {
 //                MessageService.sendMsg('User not found!', 'error', {});
-        SweetAlert.swal('Oops...', 'User not found!!', 'error');
+        kylinCommon.error_alert($scope.dataKylin.alert.userNotFound);
+        //SweetAlert.swal('Oops...', 'User not found!!', 'error');
       }
       else {
         if (e.data && e.data.exception) {
           var message = e.data.exception;
-          var msg = !!(message) ? message : 'Failed to take action.';
-          SweetAlert.swal('Oops...', msg, 'error');
+          var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
+          kylinCommon.error_alert(msg);
+          //SweetAlert.swal('Oops...', msg, 'error');
         } else {
-          SweetAlert.swal('Oops...', "Failed to take action.", 'error');
+          kylinCommon.error_alert($scope.dataKylin.alert.error_info);
         }
 
       }
@@ -82,13 +79,7 @@ KylinApp.controller('AccessCtrl', function ($scope, AccessService, MessageServic
 //            MessageService.sendMsg('Access granted!', 'success', {});
       SweetAlert.swal('', 'Access granted!', 'success');
     }, function (e) {
-      if (e.data && e.data.exception) {
-        var message = e.data.exception;
-        var msg = !!(message) ? message : 'Failed to take action.';
-        SweetAlert.swal('Oops...', msg, 'error');
-      } else {
-        SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-      }
+      kylinCommon.error_default(e);
     });
 
   }
@@ -96,7 +87,7 @@ KylinApp.controller('AccessCtrl', function ($scope, AccessService, MessageServic
   $scope.revoke = function (type, access, entity) {
     SweetAlert.swal({
       title: '',
-      text: 'Are you sure to revoke the access?',
+      text: $scope.dataKylin.alert.tip_sure_to_revoke,
       type: '',
       showCancelButton: true,
       confirmButtonColor: '#DD6B55',
@@ -111,15 +102,10 @@ KylinApp.controller('AccessCtrl', function ($scope, AccessService, MessageServic
       };
       AccessService.revoke(revokeRequst, function (accessEntities) {
         entity.accessEntities = accessEntities.accessEntryResponseList;
-        SweetAlert.swal('Success!', 'The access has been revoked.', 'success');
+        kylinCommon.success_alert($scope.dataKylin.alert.success_access_been_revoked);
+        //SweetAlert.swal('Success!', 'The access has been revoked.', 'success');
       }, function (e) {
-        if (e.data && e.data.exception) {
-          var message = e.data.exception;
-          var msg = !!(message) ? message : 'Failed to take action.';
-          SweetAlert.swal('Oops...', msg, 'error');
-        } else {
-          SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-        }
+        kylinCommon.error_alert($scope.dataKylin.alert.error_info);
       });
       }
     });

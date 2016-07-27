@@ -17,6 +17,7 @@
  */
 
 KylinApp.constant('jobConfig', {
+  dataEnglish:{
   allStatus: [
     {name: 'NEW', value: 0},
     {name: 'PENDING', value: 1},
@@ -47,6 +48,40 @@ KylinApp.constant('jobConfig', {
     {attr: 'start_time', name: 'Start Time'},
     {attr: 'last_modified', name: 'Last Modified'},
     {attr: 'thread', name: 'Thread'}
-  ]
+  ]},
+  dataChinese:{
+    allStatus: [
+      {name: '新建', value: 0},
+      {name: '等待', value: 1},
+      {name: '运行', value: 2},
+      {name: '完成', value: 4},
+      {name: '错误', value: 8},
+      {name: '无效', value: 16}
+    ],
+    timeFilter: [
+      {name: '最近一天', value: 0},
+      {name: '最近一周', value: 1},
+      {name: '最近一月', value: 2},
+      {name: '最近一年', value: 3},
+      {name: '所有', value: 4},
+    ],
+    theaditems: [
+      {attr: 'name', name: '任务名称'},
+      {attr: 'related_cube', name: 'Cube'},
+      {attr: 'progress', name: '进程'},
+      {attr: 'last_modified', name: '最后修改时间'},
+      {attr: 'duration', name: '耗时'}
+    ],
+    queryitems: [
+      {attr: 'server', name: '服务器'},
+      {attr: 'sql', name: 'Sql'},
+      {attr: 'adj', name: '描述'},
+      {attr: 'running_seconds', name: '运行时间'},
+      {attr: 'start_time', name: '开始时间'},
+      {attr: 'last_modified', name: '最后修改时间'},
+      {attr: 'thread', name: '线程'}
+    ]
+
+  }
 
 });

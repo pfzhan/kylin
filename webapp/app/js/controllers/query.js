@@ -19,7 +19,7 @@
 'use strict';
 
 KylinApp
-    .controller('QueryCtrl', function ($scope, storage, $base64, $q, $location, $anchorScroll, $routeParams, QueryService, $modal, MessageService, $domUtilityService, $timeout, TableService,SweetAlert) {
+    .controller('QueryCtrl', function ($scope, storage, $base64, $q, $location, $anchorScroll, $routeParams, QueryService, $modal, MessageService, $domUtilityService, $timeout, TableService,SweetAlert,kylinCommon) {
         $scope.mainPanel = 'query';
         $scope.rowsPerPage = 50000;
         $scope.base64 = $base64;
@@ -374,16 +374,16 @@ KylinApp
             });
         }
 
-        var saveQueryController = function ($scope, $modalInstance, curQuery, QueryService) {
+        var saveQueryController = function ($scope, $modalInstance, curQuery, QueryService,language) {
+            $scope.dataKylin = language.getDataKylin();
             $scope.curQuery = curQuery;
-
             $scope.cancel = function () {
                 $modalInstance.dismiss('cancel');
             }
 
             $scope.saveQuery = function (query) {
                 QueryService.save({}, {name: query.name, project: query.project, sql: query.sql, description: query.description}, function () {
-                    SweetAlert.swal('Success!', 'New query saved..', 'success');
+                    kylinCommon.success_alert($scope.dataKylin.alert.success_new_query_saved)
                     $modalInstance.dismiss('cancel');
                 });
             }
@@ -400,7 +400,7 @@ KylinApp
             if (isExecuting && (next.replace(current, "").indexOf("#") != 0)) {
                 SweetAlert.swal({
                     title: '',
-                    text: "You've executing query in current page, are you sure to leave this page?",
+                    text: $scope.dataKylin.alert.tip_to_leave_page,
                     type: '',
                     showCancelButton: true,
                     confirmButtonColor: '#DD6B55',

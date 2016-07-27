@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location, $window, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, modelConfig, ProjectModel, ModelService, MetaModel, modelsManager, cubesManager, TableModel, $animate) {
+KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location, $window, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, modelConfig, ProjectModel, ModelService, MetaModel, modelsManager, cubesManager, TableModel, $animate,kylinCommon) {
 
   //tree data
 
@@ -118,7 +118,7 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
 
     SweetAlert.swal({
       title: '',
-      text: "Are you sure to drop this model?",
+      text: $scope.dataKylin.alert.tip_to_drop_model,
       type: '',
       showCancelButton: true,
       confirmButtonColor: '#DD6B55',
@@ -131,17 +131,11 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
         ModelService.drop({modelId: model.name}, {}, function (result) {
           loadingRequest.hide();
 //                    CubeList.removeCube(cube);
-          SweetAlert.swal('Success!', 'Model drop is done successfully', 'success');
+          kylinCommon.success_alert($scope.dataKylin.alert.success_model_drop_done);
           location.reload();
         }, function (e) {
           loadingRequest.hide();
-          if (e.data && e.data.exception) {
-            var message = e.data.exception;
-            var msg = !!(message) ? message : 'Failed to take action.';
-            SweetAlert.swal('Oops...', msg, 'error');
-          } else {
-            SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-          }
+          kylinCommon.error_default(e);
         });
       }
 
@@ -203,7 +197,7 @@ var modelCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServi
   $scope.cloneModel = function(){
 
     if(!$scope.targetObj.targetProject){
-      SweetAlert.swal('Oops...', "Please select target project.", 'info');
+      SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_select_target_project, 'info');
       return;
     }
     $scope.modelRequest = {
@@ -214,7 +208,7 @@ var modelCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServi
 
     SweetAlert.swal({
       title: '',
-      text: 'Are you sure to clone the model? ',
+      text: $scope.dataKylin.alert.tip_to_clone_model,
       type: '',
       showCancelButton: true,
       confirmButtonColor: '#DD6B55',
@@ -226,17 +220,11 @@ var modelCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServi
         loadingRequest.show();
         ModelService.clone({modelId: model.name}, $scope.modelRequest, function (result) {
           loadingRequest.hide();
-          SweetAlert.swal('Success!', 'Clone model successfully', 'success');
+          SweetAlert.swal('Success!', $scope.dataKylin.alert.success_clone_model, 'success');
           location.reload();
         }, function (e) {
           loadingRequest.hide();
-          if (e.data && e.data.exception) {
-            var message = e.data.exception;
-            var msg = !!(message) ? message : 'Failed to take action.';
-            SweetAlert.swal('Oops...', msg, 'error');
-          } else {
-            SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-          }
+          kylinCommon.error_default(e);
         });
       }
     });

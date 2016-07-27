@@ -4,7 +4,7 @@
 * distributed with this work for additional information
 * regarding copyright ownership.  The ASF licenses this file
 * to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
+  * "License"); you may not use this file except in compliance
 * with the License.  You may obtain a copy of the License at
 *
 *     http://www.apache.org/licenses/LICENSE-2.0
@@ -17,70 +17,56 @@
 -->
 
 <div class="row">
-    <div class="col-xs-12">
-        <!--Project-->
-        <ng-form name="forms.model_info_form" novalidate>
+  <div class="col-xs-12">
+    <!--Project-->
+    <ng-form name="forms.model_info_form" novalidate>
 
-            <!--Model Name-->
-            <div class="form-group middle-popover" ng-class="{'required':state.mode=='edit'}">
-                <div class="row">
-                    <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default">
-                      <b>Model Name</b> <i class="fa fa-info-circle"  kylinpopover placement="right" title="Model Name" template="modelNameTip.html"></i>
-                    </label>
+      <!--Model Name-->
+      <div class="form-group middle-popover" ng-class="{'required':state.mode=='edit'}">
+        <div class="row">
+          <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default">
+            <b>{{dataKylin.model.gridMIModelName}}</b> <i class="fa fa-info-circle"  kylinpopover placement="right"  ng-title="{{dataKylin.model.grid}}" template="modelNameTip.html"></i>
+          </label>
 
-                    <div class="col-xs-12 col-sm-6" ng-class="{'has-error':forms.model_info_form.model_name.$invalid && (forms.model_info_form.model_name.$dirty||forms.model_info_form.$submitted)}">
+          <div class="col-xs-12 col-sm-6" ng-class="{'has-error':forms.model_info_form.model_name.$invalid && (forms.model_info_form.model_name.$dirty||forms.model_info_form.$submitted)}">
 
-                        <!-- edit -->
-                        <input ng-if="state.mode=='edit'" name="model_name" type="text" class="form-control"  ng-disabled="{{modelMode=='editExistModel'}}"
-                               ng-model="modelsManager.selectedModel.name" required
-                               placeholder="You can use letters, numbers, and '_'"
-                               ng-maxlength=100 ng-pattern="/^\w+$/" />
-                        <small class="help-block" ng-show="forms.model_info_form.model_name.$error.required && (forms.model_info_form.model_name.$dirty||forms.model_info_form.$submitted)">Model name is required.</small>
-                        <small class="help-block" ng-show="!forms.model_info_form.model_name.$error.required&&forms.model_info_form.model_name.$invalid && (forms.model_info_form.model_name.$dirty||forms.model_info_form.$submitted)">Model name is invalid.</small>
+            <!-- edit -->
+            <input ng-if="state.mode=='edit'" name="model_name" type="text" class="form-control"  ng-disabled="{{modelMode=='editExistModel'}}"
+                   ng-model="modelsManager.selectedModel.name" required
+                   placeholder="model name.."
+                   ng-maxlength=100 ng-pattern="/^\w+$/" />
+            <small class="help-block" ng-show="forms.model_info_form.model_name.$error.required && (forms.model_info_form.model_name.$dirty||forms.model_info_form.$submitted)">{{dataKylin.model.check_info_required_model_name}}</small>
+            <small class="help-block" ng-show="!forms.model_info_form.model_name.$error.required&&forms.model_info_form.model_name.$invalid && (forms.model_info_form.model_name.$dirty||forms.model_info_form.$submitted)">{{dataKylin.model.check_info_invalid_model_name}}</small>
 
 
-                        <span ng-if="state.mode=='view'">{{model.name}}</span>
-                    </div>
-                </div>
-            </div>
+            <span ng-if="state.mode=='view'">{{model.name}}</span>
+          </div>
+        </div>
+      </div>
 
-            <!--Description-->
-            <div class="form-group">
-                <div class="row">
-                    <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default">
-                        <b>Description</b>
-                    </label>
-                    <div class="col-xs-12 col-sm-6">
-                        <textarea ng-if="state.mode=='edit'" class="form-control box-default"
-                                  name="comment" id="comment" ng-model="modelsManager.selectedModel.description"></textarea>
-                        <span ng-if="state.mode=='view'">{{model.description}}</span>
-                    </div>
-                </div>
-            </div>
+      <!--Description-->
+      <div class="form-group">
+        <div class="row">
+          <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default">
+            <b>{{dataKylin.model.gridMIDescription}}</b>
+          </label>
+          <div class="col-xs-12 col-sm-6">
+  <textarea ng-if="state.mode=='edit'" class="form-control box-default"
+            name="comment" id="comment" ng-model="modelsManager.selectedModel.description"></textarea>
+            <span ng-if="state.mode=='view'">{{model.description}}</span>
+          </div>
+        </div>
+      </div>
 
-        </ng-form>
-    </div>
+    </ng-form>
+  </div>
 </div>
 
 <div class="row" ng-hide="true">
-    <div class="col-xs-8">
-    <div class="box box-danger">
-        <div class="box-header with-border">
-            <i class="fa fa-warning"></i>
-            <h3 class="box-title">Warning!</h3>
-        </div>
-        <div class="box-body callout callout-warning">
-            <ol>
-                <li>Project can't be empty</li>
-                <li>Model Name can't be empty</li>
-            </ol>
-        </div><!-- /.box-body -->
-    </div>
-    </div>
+  <div class="col-xs-8" ng-bind-html="dataKylin.model.check_info_warning_MI">
+  </div>
 </div>
 <script type="text/ng-template" id="modelNameTip.html">
-<ol>
-  <li>Model name is unique name of entire system.</li>
-  <li>Can not edit model name after created.</li>
-</ol>
+  <ol ng-bind-html="dataKylin.model.tip_body_model_name">
+  </ol>
 </script>

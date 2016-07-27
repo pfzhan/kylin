@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('ModelSchemaCtrl', function ($scope, QueryService, UserService, ProjectService, $q, AuthenticationService, $filter, ModelService, MetaModel, CubeDescModel, CubeList, TableModel, ProjectModel, $log, SweetAlert, modelsManager) {
+KylinApp.controller('ModelSchemaCtrl', function ($scope, QueryService, UserService, ProjectService, $q, AuthenticationService, $filter, ModelService, MetaModel, CubeDescModel, CubeList, TableModel, ProjectModel, $log, SweetAlert, modelsManager,language) {
 
   $scope.modelsManager = modelsManager;
   $scope.projectModel = ProjectModel;
@@ -39,23 +39,24 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope, QueryService, UserServi
     }
   }
 
-  $scope.wizardSteps = [
-    {title: 'Model Info', src: 'partials/modelDesigner/model_info.html', isComplete: false, form: 'model_info_form'},
-    {title: 'Data Model', src: 'partials/modelDesigner/data_model.html', isComplete: false, form: 'data_model_form'},
+  $scope.dataKylin =  language.getDataKylin();
+  $scope.wizardSteps =  [
+    {title: $scope.dataKylin.model.schema[0], src: 'partials/modelDesigner/model_info.html', isComplete: false, form: 'model_info_form'},
+    {title: $scope.dataKylin.model.schema[1], src: 'partials/modelDesigner/data_model.html', isComplete: false, form: 'data_model_form'},
     {
-      title: 'Dimensions',
+      title: $scope.dataKylin.model.schema[2],
       src: 'partials/modelDesigner/model_dimensions.html',
       isComplete: false,
       form: 'model_dimensions_form'
     },
     {
-      title: 'Measures',
+      title: $scope.dataKylin.model.schema[3],
       src: 'partials/modelDesigner/model_measures.html',
       isComplete: false,
       form: 'model_measure_form'
     },
     {
-      title: 'Settings',
+      title: $scope.dataKylin.model.schema[4],
       src: 'partials/modelDesigner/conditions_settings.html',
       isComplete: false,
       form: 'model_setting_form'
@@ -63,6 +64,13 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope, QueryService, UserServi
   ];
 
   $scope.curStep = $scope.wizardSteps[0];
+
+  $scope.$on("finish",function (event,data) {
+    $scope.dataKylin =  language.getDataKylin();
+    for(var i in $scope.wizardSteps){
+      $scope.wizardSteps[i].title = $scope.dataKylin.model.schema[i];
+    }
+  });
 
   //init modelsManager
   if ($scope.state.mode == "edit") {
@@ -107,7 +115,6 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope, QueryService, UserServi
 
     $scope.opened = true;
   };
-
   $scope.preView = function () {
     var stepIndex = $scope.wizardSteps.indexOf($scope.curStep);
     if (stepIndex >= 1) {
@@ -118,7 +125,6 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope, QueryService, UserServi
 
   $scope.nextView = function () {
     var stepIndex = $scope.wizardSteps.indexOf($scope.curStep);
-
     if (stepIndex < ($scope.wizardSteps.length - 1)) {
       $scope.curStep.isComplete = true;
       $scope.curStep = $scope.wizardSteps[stepIndex + 1];
@@ -277,9 +283,9 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope, QueryService, UserServi
 
   $scope.goToStep = function (stepIndex) {
     if ($scope.modelMode == "addNewModel") {
-      if (stepIndex + 1 >= $scope.curStep.step) {
+      /*if (stepIndex + 1 >= $scope.curStep.step) {
         return;
-      }
+      }*/
     }
     for (var i = 0; i < $scope.wizardSteps.length; i++) {
       if (i <= stepIndex) {

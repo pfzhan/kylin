@@ -19,16 +19,15 @@
 <div class="modal-body streaming-source" style="height: 360px;">
   <div class="col-xs-5">
     <p class="text-info">
-      Need to input streaming source record here, will detect the source schema and create a table schema for
-      streaming.
+      {{dataKylin.data_source.info_loadStreamingTable}}
     </p>
 
     <div style="padding:15px;" class="has-error">
       <small class="help-block" ng-show="streaming.sourceSchema==''&&form.setStreamingSchema.$submitted">Please
-        input Streaming source record to generate schema.
+       {{dataKylin.data_source.tip_streaming_sourceSchema}}
       </small>
       <small class="help-block" ng-if="!table.sourceValid&&table.schemaChecked">
-        Source json invalid, Please correct your schema and generate again.
+        {{dataKylin.data_source.tip_table_schemaChecked}}
       </small>
     </div>
 
@@ -49,21 +48,18 @@
       class="fa fa-angle-double-right fa-5" style="font-size:2em;"></i></button>
   </div>
   <div class="col-xs-6" ng-show="table.schemaChecked">
-    <ol class="text-info" style="margin-bottom: 30px;">
-      <li>Choose 'timestamp' type column for streaming table.</li>
-      <li>By default, system will choose 'Default' as database, you can specify database like this 'database.table'</li>
-      <li>derived time dimensions are calculated from timestamp field to help analysis against different time granularities.</li>
+    <ol class="text-info" style="margin-bottom: 30px;" ng-bind-html="dataKylin.data_source.tip_table_schemaChecked_detail">
     </ol>
     <form class="form-horizontal" name="form.setStreamingSchema" novalidate>
       <div class="form-group required">
-        <label class="col-xs-4 control-label" style="text-align: left;">Table Name</label>
+        <label class="col-xs-4 control-label" style="text-align: left;">{{dataKylin.data_source.tableName}}</label>
 
         <div class="col-xs-8"
              ng-class="{'has-error':form.setStreamingSchema.streamingObject.$invalid && (form.setStreamingSchema.streamingObject.$dirty||form.setStreamingSchema.$submitted)}">
           <input type="text" name="streamingObject" placeholder="database.table" required="" ng-model="table.name" class="form-control"/>
           <small class="help-block"
                  ng-show="form.setStreamingSchema.streamingObject.$error.required&&(form.setStreamingSchema.streamingObject.$dirty||form.setStreamingSchema.$submitted)">
-            Table name is required.
+            {{dataKylin.data_source.tip_table_name}}
           </small>
         </div>
       </div>
@@ -71,9 +67,9 @@
     <table class="table table-hover table-bordered">
       <tr>
         <th></th>
-        <th>Column</th>
-        <th>Column Type</th>
-        <th>Comment</th>
+        <th>{{dataKylin.data_source.column}}</th>
+        <th>{{dataKylin.data_source.columnType}}</th>
+        <th>{{dataKylin.data_source.comment}}</th>
       </tr>
       <tr ng-repeat="column in columnList">
         <td><label style="width:100%;cursor: pointer;" for="{{column.name}}"><input style="width:1em;height:1em;"
@@ -87,21 +83,21 @@
         <td>
           <select chosen ng-model="column.type"
                   ng-options="type as type for type in tableConfig.dataTypes"
-                  data-placeholder="select a column type"
+                  data-placeholder="{{dataKylin.data_source.plac_select_column_type}}"
                   style="width: 120px !important;"
                   class="chosen-select">
           </select>
         </td>
         <td>
-          <label ng-if="column.type=='timestamp'&&column.fromSource=='Y'" class="badge badge-info">timestamp</label>
-          <label ng-if="column.fromSource=='N'" class="badge badge-info">derived time dimension</label>
+          <label ng-if="column.type=='timestamp'&&column.fromSource=='Y'" class="badge badge-info">{{dataKylin.data_source.timestamp}}</label>
+          <label ng-if="column.fromSource=='N'" class="badge badge-info">{{dataKylin.data_source.derivedTimeDimension}}</label>
         </td>
       </tr>
     </table>
 
     <div class="has-error" ng-if="!rule.timestampColumnExist&&form.setStreamingSchema.$submitted">
       <small class="help-block">
-        You should choose at least one 'timestamp' type column generated from source schema.
+        {{dataKylin.data_source.tip_choose_timestamp}}
       </small>
     </div>
   </div>

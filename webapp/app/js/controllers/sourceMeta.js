@@ -19,7 +19,7 @@
 'use strict';
 
 KylinApp
-  .controller('SourceMetaCtrl', function ($scope, $cacheFactory, $q, $window, $routeParams, CubeService, $modal, TableService, $route, loadingRequest, SweetAlert, tableConfig, TableModel,cubeConfig) {
+  .controller('SourceMetaCtrl', function ($scope, $cacheFactory, $q, $window, $routeParams, CubeService, $modal, TableService, $route, loadingRequest, SweetAlert, tableConfig, TableModel,cubeConfig,kylinCommon) {
     var $httpDefaultCache = $cacheFactory.get('$http');
     $scope.tableModel = TableModel;
     $scope.tableModel.selectedSrcDb = [];
@@ -83,7 +83,7 @@ KylinApp
 
     $scope.openModal = function () {
       if(!$scope.projectModel.selectedProject){
-        SweetAlert.swal('Oops...', "Please select a project.", 'info');
+        SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_select_project, 'info');
         return;
       }
       $modal.open({
@@ -106,7 +106,7 @@ KylinApp
 
     $scope.openTreeModal = function () {
       if(!$scope.projectModel.selectedProject){
-        SweetAlert.swal('Oops...', "Please select a project.", 'info');
+        SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_select_project, 'info');
         return;
       }
       $modal.open({
@@ -128,7 +128,7 @@ KylinApp
 
     $scope.openUnLoadModal = function () {
       if(!$scope.projectModel.selectedProject){
-        SweetAlert.swal('Oops...', "Please select a project.", 'info');
+        SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_select_project, 'info');
         return;
       }
       $modal.open({
@@ -149,7 +149,8 @@ KylinApp
       });
     };
 
-    var ModalInstanceCtrl = function ($scope, $location, $modalInstance, tableNames, MessageService, projectName, scope,kylinConfig) {
+    var ModalInstanceCtrl = function ($scope, $location, $modalInstance, tableNames, MessageService, projectName, scope,kylinConfig,language) {
+      $scope.dataKylin = language.getDataKylin();
       $scope.tableNames = "";
       $scope.projectName = projectName;
       $scope.cancel = function () {
@@ -319,12 +320,12 @@ KylinApp
         }
 
         if ($scope.tableNames.trim() === "") {
-          SweetAlert.swal('', 'Please input table(s) you want to synchronize.', 'info');
+          SweetAlert.swal('', $scope.dataKylin.alert.tip_to_synchronize, 'info');
           return;
         }
 
         if (!$scope.projectName) {
-          SweetAlert.swal('', 'Please choose your project first!.', 'info');
+          SweetAlert.swal('', $scope.dataKylin.alert.tip_choose_project, 'info');
           return;
         }
 
@@ -341,25 +342,19 @@ KylinApp
           })
 
           if (result['result.unloaded'].length != 0 && result['result.loaded'].length == 0) {
-            SweetAlert.swal('Failed!', 'Failed to synchronize following table(s): ' + unloadedTableInfo, 'error');
+            SweetAlert.swal($scope.dataKylin.alert.tip_result_unload_title, $scope.dataKylin.alert.tip_result_unload_body + unloadedTableInfo, 'error');
           }
           if (result['result.loaded'].length != 0 && result['result.unloaded'].length == 0) {
-            SweetAlert.swal('Success!', 'The following table(s) have been successfully synchronized: ' + loadTableInfo, 'success');
+            kylinCommon.success_alert($scope.dataKylin.alert.success_table_been_synchronized);
           }
           if (result['result.loaded'].length != 0 && result['result.unloaded'].length != 0) {
-            SweetAlert.swal('Partial loaded!', 'The following table(s) have been successfully synchronized: ' + loadTableInfo + "\n\n Failed to synchronize following table(s):" + unloadedTableInfo, 'warning');
+            SweetAlert.swal($scope.dataKylin.alert.tip_partial_loaded_title, $scope.dataKylin.alert.tip_partial_loaded_body_part_one + loadTableInfo + $scope.dataKylin.alert.tip_partial_loaded_body_part_two + unloadedTableInfo, 'warning');
           }
           loadingRequest.hide();
           scope.aceSrcTbLoaded(true);
 
         }, function (e) {
-          if (e.data && e.data.exception) {
-            var message = e.data.exception;
-            var msg = !!(message) ? message : 'Failed to take action.';
-            SweetAlert.swal('Oops...', msg, 'error');
-          } else {
-            SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-          }
+          kylinCommon.error_default(e);
           loadingRequest.hide();
         })
       }
@@ -367,12 +362,12 @@ KylinApp
 
     $scope.remove = function () {
         if ($scope.tableNames.trim() === "") {
-          SweetAlert.swal('', 'Please input table(s) you want to synchronize.', 'info');
+          SweetAlert.swal('', $scope.dataKylin.alert.tip_to_synchronize, 'info');
           return;
         }
 
         if (!$scope.projectName) {
-          SweetAlert.swal('', 'Please choose your project first!.', 'info');
+          SweetAlert.swal('', $scope.dataKylin.alert.tip_choose_project, 'info');
           return;
         }
 
@@ -389,25 +384,19 @@ KylinApp
           })
 
           if (result['result.unload.fail'].length != 0 && result['result.unload.success'].length == 0) {
-            SweetAlert.swal('Failed!', 'Failed to synchronize following table(s): ' + unRemovedTableInfo, 'error');
+            SweetAlert.swal($scope.dataKylin.alert.tip_result_unload_title, $scope.dataKylin.alert.tip_result_unload_body + unRemovedTableInfo, 'error');
           }
           if (result['result.unload.success'].length != 0 && result['result.unload.fail'].length == 0) {
-            SweetAlert.swal('Success!', 'The following table(s) have been successfully synchronized: ' + removedTableInfo, 'success');
+            kylinCommon.success_alert($scope.dataKylin.alert.success_table_been_synchronized);
           }
           if (result['result.unload.success'].length != 0 && result['result.unload.fail'].length != 0) {
-            SweetAlert.swal('Partial unloaded!', 'The following table(s) have been successfully synchronized: ' + removedTableInfo + "\n\n Failed to synchronize following table(s):" + unRemovedTableInfo, 'warning');
+            SweetAlert.swal($scope.dataKylin.alert.tip_partial_loaded_title, $scope.dataKylin.alert.tip_partial_loaded_body_part_one + loadTableInfo + $scope.dataKylin.alert.tip_partial_loaded_body_part_two + unloadedTableInfo, 'warning');
           }
           loadingRequest.hide();
           scope.aceSrcTbLoaded(true);
 
         }, function (e) {
-          if (e.data && e.data.exception) {
-            var message = e.data.exception;
-            var msg = !!(message) ? message : 'Failed to take action.';
-            SweetAlert.swal('Oops...', msg, 'error');
-          } else {
-            SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-          }
+          kylinCommon.error_default(e);
           loadingRequest.hide();
         })
       }
@@ -417,7 +406,7 @@ KylinApp
     //streaming model
     $scope.openStreamingSourceModal = function () {
       if(!$scope.projectModel.selectedProject){
-        SweetAlert.swal('Oops...', "Please select a project.", 'info');
+        SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_select_project, 'info');
         return;
       }
       $modal.open({
@@ -438,8 +427,8 @@ KylinApp
       });
     };
 
-    var StreamingSourceCtrl = function ($scope, $location,$interpolate,$templateCache, $modalInstance, tableNames, MessageService, projectName, scope, tableConfig,cubeConfig,StreamingModel,StreamingService) {
-
+    var StreamingSourceCtrl = function ($scope, $location,$interpolate,$templateCache, $modalInstance, tableNames, MessageService, projectName, scope, tableConfig,cubeConfig,StreamingModel,StreamingService,language) {
+      $scope.dataKylin = language.getDataKylin();
       $scope.cubeState={
         "isStreaming": false
       }
@@ -663,7 +652,7 @@ KylinApp
 
         SweetAlert.swal({
           title:"",
-          text: 'Are you sure to save the streaming table and cluster info ?',
+          text: $scope.dataKylin.alert.tip_save_streaming_table,
           showCancelButton: true,
           confirmButtonColor: '#DD6B55',
           confirmButtonText: "Yes",
@@ -680,11 +669,11 @@ KylinApp
                 kafkaConfig: angular.toJson($scope.kafkaMeta)
               }, function (request) {
                 if (request.successful) {
-                  SweetAlert.swal('', 'Updated the streaming successfully.', 'success');
+                  SweetAlert.swal('', $scope.dataKylin.alert.success_updated_streaming, 'success');
                   $location.path("/models");
                 } else {
                   var message = request.message;
-                  var msg = !!(message) ? message : 'Failed to take action.';
+                  var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
                   MessageService.sendMsg($scope.streamingResultTmpl({
                     'text': msg,
                     'streamingSchema': angular.toJson($scope.streamingMeta,true),
@@ -695,7 +684,7 @@ KylinApp
               }, function (e) {
                 if (e.data && e.data.exception) {
                   var message = e.data.exception;
-                  var msg = !!(message) ? message : 'Failed to take action.';
+                  var msg = !!(message) ? message :  $scope.dataKylin.alert.error_info;
                   MessageService.sendMsg($scope.streamingResultTmpl({
                     'text': msg,
                     'streamingSchema': angular.toJson($scope.streamingMeta,true),
@@ -720,12 +709,12 @@ KylinApp
                 kafkaConfig: angular.toJson($scope.kafkaMeta)
               }, function (request) {
                 if (request.successful) {
-                  SweetAlert.swal('', 'Created the streaming successfully.', 'success');
+                  SweetAlert.swal('', $scope.dataKylin.alert.tip_created_streaming, 'success');
                   $scope.cancel();
                   scope.aceSrcTbLoaded(true);
                 } else {
                   var message = request.message;
-                  var msg = !!(message) ? message : 'Failed to take action.';
+                  var msg = !!(message) ? message :  $scope.dataKylin.alert.error_info;
                   MessageService.sendMsg($scope.streamingResultTmpl({
                     'text': msg,
                     'streamingSchema': angular.toJson($scope.streamingMeta,true),
@@ -736,7 +725,7 @@ KylinApp
               }, function (e) {
                 if (e.data && e.data.exception) {
                   var message = e.data.exception;
-                  var msg = !!(message) ? message : 'Failed to take action.';
+                  var msg = !!(message) ? message :  $scope.dataKylin.alert.error_info;
 
                   MessageService.sendMsg($scope.streamingResultTmpl({
                     'text': msg,

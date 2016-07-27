@@ -102,7 +102,7 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,MetaModel,cubes
 
   $scope.saveNewMeasure = function () {
     if ($scope.newMeasure.function.expression === 'TOP_N' && $scope.nextPara.value == "") {
-      SweetAlert.swal('', '[TOP_N] Group by Column is required', 'warning');
+      SweetAlert.swal('', $scope.dataKylin.alert.tip_column_required, 'warning');
       return false;
     }
 
@@ -207,8 +207,8 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,MetaModel,cubes
 
 });
 
-var NextParameterModalCtrl = function ($scope, scope,para,$modalInstance,cubeConfig, CubeService, MessageService, $location, SweetAlert,ProjectModel, loadingRequest,ModelService) {
-
+var NextParameterModalCtrl = function ($scope, scope,para,$modalInstance,cubeConfig, CubeService, MessageService, $location, SweetAlert,ProjectModel, loadingRequest,ModelService,language) {
+  $scope.dataKylin = language.getDataKylin();
   $scope.newmea={
     "measure":scope.newMeasure
   }

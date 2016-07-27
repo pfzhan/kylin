@@ -19,7 +19,7 @@
 'use strict';
 
 KylinApp
-  .controller('CubesCtrl', function ($scope, $q, $routeParams, $location, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, cubeConfig, ProjectModel, ModelService, MetaModel, CubeList,modelsManager,cubesManager,TableService) {
+  .controller('CubesCtrl', function ($scope, $q, $routeParams, $location, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, cubeConfig, ProjectModel, ModelService, MetaModel, CubeList,modelsManager,cubesManager,TableService,kylinCommon) {
 
     $scope.cubeConfig = cubeConfig;
     $scope.cubeList = CubeList;
@@ -114,16 +114,10 @@ KylinApp
                 defer.resolve(cube.detail);
 
               } else {
-                SweetAlert.swal('Oops...', "No cube detail info loaded.", 'error');
+                SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_no_cube_detail, 'error');
               }
             }, function (e) {
-              if (e.data && e.data.exception) {
-                var message = e.data.exception;
-                var msg = !!(message) ? message : 'Failed to take action.';
-                SweetAlert.swal('Oops...', msg, 'error');
-              } else {
-                SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-              }
+              kylinCommon.error_default(e);
             });
 
           })
@@ -162,16 +156,10 @@ KylinApp
               defer.resolve(cube.detail);
 
           } else {
-            SweetAlert.swal('Oops...', "No cube detail info loaded.", 'error');
+            SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_no_cube_detail_loaded, 'error');
           }
         }, function (e) {
-          if (e.data && e.data.exception) {
-            var message = e.data.exception;
-            var msg = !!(message) ? message : 'Failed to take action.';
-            SweetAlert.swal('Oops...', msg, 'error');
-          } else {
-            SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-          }
+          kylinCommon.error_default(e);
         });
       }
 
@@ -195,7 +183,7 @@ KylinApp
     $scope.enable = function (cube) {
       SweetAlert.swal({
         title: '',
-        text: 'Are you sure to enable the cube? Please note: if cube schema is changed in the disabled period, all segments of the cube will be discarded due to data and schema mismatch.',
+        text: $scope.dataKylin.alert.tip_sure_to_enable_cube,
         type: '',
         showCancelButton: true,
         confirmButtonColor: '#DD6B55',
@@ -212,17 +200,11 @@ KylinApp
                 $scope.cubeList.cubes[$scope.cubeList.cubes.indexOf(cube)] = _cube;
               }
             });
-            SweetAlert.swal('Success!', 'Enable job was submitted successfully', 'success');
+            kylinCommon.success_alert($scope.dataKylin.alert.success_Enable_submitted);
           },function(e){
 
             loadingRequest.hide();
-            if(e.data&& e.data.exception){
-              var message =e.data.exception;
-              var msg = !!(message) ? message : 'Failed to take action.';
-              SweetAlert.swal('Oops...', msg, 'error');
-            }else{
-              SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-            }
+            kylinCommon.error_default(e);
           });
         }
       });
@@ -231,7 +213,7 @@ KylinApp
     $scope.purge = function (cube) {
       SweetAlert.swal({
         title: '',
-        text: 'Are you sure to purge the cube? ',
+        text:  $scope.dataKylin.alert.tip_to_purge_cube,
         type: '',
         showCancelButton: true,
         confirmButtonColor: '#DD6B55',
@@ -243,7 +225,7 @@ KylinApp
           loadingRequest.show();
           CubeService.purge({cubeId: cube.name}, {}, function (result) {
             loadingRequest.hide();
-            SweetAlert.swal('Success!', 'Purge job was submitted successfully', 'success');
+            kylinCommon.success_alert($scope.dataKylin.alert.success_purge_job);
             $scope.refreshCube(cube).then(function(_cube){
               if(_cube && _cube.name){
                 $scope.cubeList.cubes[$scope.cubeList.cubes.indexOf(cube)] = _cube;
@@ -251,13 +233,7 @@ KylinApp
             });
           },function(e){
             loadingRequest.hide();
-            if(e.data && e.data.exception){
-              var message =e.data.exception;
-              var msg = !!(message) ? message : 'Failed to take action.';
-              SweetAlert.swal('Oops...', msg, 'error');
-            }else{
-              SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-            }
+            kylinCommon.error_default(e);
           });
         }
       });
@@ -267,7 +243,7 @@ KylinApp
 
       SweetAlert.swal({
         title: '',
-        text: 'Are you sure to disable the cube? ',
+        text: $scope.dataKylin.alert.tip_disable_cube,
         type: '',
         showCancelButton: true,
         confirmButtonColor: '#DD6B55',
@@ -284,16 +260,10 @@ KylinApp
                 $scope.cubeList.cubes[$scope.cubeList.cubes.indexOf(cube)] = _cube;
               }
             });
-            SweetAlert.swal('Success!', 'Disable job was submitted successfully', 'success');
+            kylinCommon.success_alert($scope.dataKylin.alert.success_disable_job_submit);
           },function(e){
             loadingRequest.hide();
-            if(e.data&& e.data.exception){
-              var message =e.data.exception;
-              var msg = !!(message) ? message : 'Failed to take action.';
-              SweetAlert.swal('Oops...', msg, 'error');
-            }else{
-              SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-            }
+            kylinCommon.error_default(e);
           });
         }
 
@@ -306,7 +276,7 @@ KylinApp
 
       SweetAlert.swal({
         title: '',
-        text: " Once it's dropped, your cube’s metadata and data will be cleaned up and can’t be restored back. ",
+        text: $scope.dataKylin.alert.tip_metadata_cleaned_up,
         type: '',
         showCancelButton: true,
         confirmButtonColor: '#DD6B55',
@@ -318,19 +288,13 @@ KylinApp
           loadingRequest.show();
           CubeService.drop({cubeId: cube.name}, {}, function (result) {
             loadingRequest.hide();
-            SweetAlert.swal('Success!', 'Cube drop is done successfully', 'success');
+            kylinCommon.success_alert($scope.dataKylin.alert.tip_cube_drop);
             //location.reload();
             $scope.cubeList.cubes.splice($scope.cubeList.cubes.indexOf(cube),1);
           },function(e){
 
             loadingRequest.hide();
-            if(e.data&& e.data.exception){
-              var message =e.data.exception;
-              var msg = !!(message) ? message : 'Failed to take action.';
-              SweetAlert.swal('Oops...', msg, 'error');
-            }else{
-              SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-            }
+            kylinCommon.error_default(e);
           });
         }
 
@@ -378,7 +342,7 @@ KylinApp
 
           SweetAlert.swal({
             title: '',
-            text: "Are you sure to start the build ?",
+            text: $scope.dataKylin.alert.tip_to_start_build,
             type: '',
             showCancelButton: true,
             confirmButtonColor: '#DD6B55',
@@ -399,17 +363,10 @@ KylinApp
                 }, function (job) {
 
                   loadingRequest.hide();
-                  SweetAlert.swal('Success!', 'Rebuild job was submitted successfully', 'success');
+                  kylinCommon.success_alert($scope.dataKylin.alert.success_rebuild_job);
                 },function(e){
-
                   loadingRequest.hide();
-                  if(e.data&& e.data.exception){
-                    var message =e.data.exception;
-                    var msg = !!(message) ? message : 'Failed to take action.';
-                    SweetAlert.swal('Oops...', msg, 'error');
-                  }else{
-                    SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-                  }
+                  kylinCommon.error_default(e);
                 });
             }
 
@@ -503,7 +460,7 @@ var cubeCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServic
   $scope.cloneCube = function(){
 
     if(!$scope.targetObj.targetProject){
-      SweetAlert.swal('Oops...', "Please select target project.", 'info');
+      SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_select_target_project, 'info');
       return;
     }
 
@@ -514,7 +471,7 @@ var cubeCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServic
 
     SweetAlert.swal({
       title: '',
-      text: 'Are you sure to clone the cube? ',
+      text: $scope.dataKylin.alert.tip_to_clone_cube,
       type: '',
       showCancelButton: true,
       confirmButtonColor: '#DD6B55',
@@ -526,17 +483,11 @@ var cubeCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServic
         loadingRequest.show();
         CubeService.clone({cubeId: cube.name}, $scope.cubeRequest, function (result) {
           loadingRequest.hide();
-          SweetAlert.swal('Success!', 'Clone cube successfully', 'success');
+          kylinCommon.success_alert($scope.dataKylin.alert.success_clone_cube);
           location.reload();
         }, function (e) {
           loadingRequest.hide();
-          if (e.data && e.data.exception) {
-            var message = e.data.exception;
-            var msg = !!(message) ? message : 'Failed to take action.';
-            SweetAlert.swal('Oops...', msg, 'error');
-          } else {
-            SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-          }
+          kylinCommon.error_default(e);
         });
       }
     });
@@ -545,7 +496,8 @@ var cubeCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServic
 }
 
 
-var jobSubmitCtrl = function ($scope,scope, $modalInstance, CubeService, MessageService, $location, cube, metaModel, buildType, SweetAlert, loadingRequest, CubeList) {
+var jobSubmitCtrl = function ($scope,scope, $modalInstance, CubeService, MessageService, $location, cube, metaModel, buildType, SweetAlert, loadingRequest, CubeList,language) {
+  $scope.dataKylin = language.getDataKylin();
   $scope.cubeList = CubeList;
   $scope.cube = cube;
   $scope.metaModel = metaModel;
@@ -569,7 +521,7 @@ var jobSubmitCtrl = function ($scope,scope, $modalInstance, CubeService, Message
     CubeService.rebuildCube({cubeId: cube.name}, $scope.jobBuildRequest, function (job) {
       loadingRequest.hide();
       $modalInstance.dismiss('cancel');
-      SweetAlert.swal('Success!', 'Rebuild job was submitted successfully', 'success');
+      SweetAlert.swal('Success!', $scope.dataKylin.alert.success_rebuild_job, 'success');
       scope.refreshCube(cube).then(function(_cube){
         $scope.cubeList.cubes[$scope.cubeList.cubes.indexOf(cube)] = _cube;
       });
@@ -585,7 +537,7 @@ var jobSubmitCtrl = function ($scope,scope, $modalInstance, CubeService, Message
           SweetAlert.swal({
             title:'',
             type:'info',
-            text: 'Empty cube segment found'+':'+_segment+', do you want to merge segments forcely ?',
+            text: $scope.dataKylin.alert.tip_rebuild_part_one+':'+_segment+$scope.dataKylin.alert.tip_rebuild_part_two,
             showCancelButton: true,
             confirmButtonColor: '#DD6B55',
             closeOnConfirm: true
@@ -598,10 +550,10 @@ var jobSubmitCtrl = function ($scope,scope, $modalInstance, CubeService, Message
           return;
         }
 
-        var msg = !!(message) ? message : 'Failed to take action.';
+        var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
         SweetAlert.swal('Oops...', msg, 'error');
       } else {
-        SweetAlert.swal('Oops...', "Failed to take action.", 'error');
+        SweetAlert.swal('Oops...', $scope.dataKylin.alert.error_info, 'error');
       }
     });
   };

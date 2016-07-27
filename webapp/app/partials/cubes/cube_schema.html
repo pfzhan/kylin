@@ -18,7 +18,7 @@
 
 <div class="box box-primary box-2px">
     <div class="box-header widget-header-blue widget-header-flat">
-        <h4 class="box-title text-info">Cube Designer</h4>
+        <h4 class="box-title text-info">{{dataKylin.cube.cubeCubeDesigner}}</h4>
     </div>
     <div class="box-body">
             <div>
@@ -42,18 +42,18 @@
                         </div>
                     </div>
                     <div class="col-xs-4">
-                        <button class="btn btn-prev" ng-click="preView()" ng-show="curStep.title!='Cube Info'">
+                        <button class="btn btn-prev" ng-click="preView()" ng-show="curStep.title!='Cube Info'&&curStep.title!='Cube信息'">
                             <i class="ace-icon fa fa-arrow-left"></i>
-                            Prev
+                            {{dataKylin.cube.cubePrev}}
                         </button>
                         <button id="nextButton" class="btn btn-success btn-next"  ng-click="checkCubeForm($index)?nextView():''" ng-disabled="forms[curStep.form].$invalid"
                                 ng-show="curStep.title!='Overview'">
-                            Next
+                            {{dataKylin.cube.cubeNext}}
                             <i class="ace-icon fa fa-arrow-right icon-on-right"></i>
                         </button>
                         <button class="btn btn-primary" ng-click="prepareCube();saveCube()" ng-disabled="design_form.$invalid"
-                                ng-if="curStep.title=='Overview' && state.mode=='edit'">
-                            Save
+                                ng-if="(curStep.title=='Overview'||curStep.title=='概览') && state.mode=='edit'">
+                            {{dataKylin.cube.cubeSave}}
                         </button>
                     </div>
                 </div>

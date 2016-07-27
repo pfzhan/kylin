@@ -31,7 +31,7 @@
       <!--Header-->
       <thead>
       <tr style="cursor: pointer">
-        <th ng-repeat="theaditem in modelConfig.theaditems"
+        <th ng-repeat="theaditem in dataKylin.model.theaditems"
             ng-click="state.filterAttr= theaditem.attr;state.reverseColumn=theaditem.attr;state.filterReverse=!state.filterReverse;">
           {{theaditem.name}}
           <i ng-if="state.reverseColumn!= theaditem.attr"
@@ -41,7 +41,7 @@
           <i ng-if="state.reverseColumn== theaditem.attr && state.filterReverse"
              class="fa fa-sort-desc"></i>
         </th>
-        <th>Actions</th>
+        <th>{{dataKylin.model.actions}}</th>
       </tr>
       </thead>
       <!--Body-->
@@ -62,9 +62,9 @@
               Action <span class="ace-icon fa fa-caret-down icon-on-right"></span>
             </button>
             <ul class="dropdown-menu" role="menu">
-              <li><a ng-click="modelEdit(model)">Edit</a></li>
-              <li><a ng-click="cloneModel(model)">Clone</a></li>
-              <li><a ng-click="dropModel(model)">Drop</a></li>
+              <li><a ng-click="modelEdit(model)">{{dataKylin.model.edit}}</a></li>
+              <li><a ng-click="cloneModel(model)">{{dataKylin.model.clone}}</a></li>
+              <li><a ng-click="dropModel(model)">{{dataKylin.model.drop}}</a></li>
 
             </ul>
           </div>

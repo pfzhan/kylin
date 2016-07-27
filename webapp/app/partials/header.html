@@ -31,41 +31,41 @@
                                 style="width: 180px"
                                 data-placeholder="select a project"
                                 class="chosen-select">
-                            <option ng-if="userService.hasRole('ROLE_ADMIN')" ng-selected="projectModel.selectedProject==null"  value=""> -- Choose Project -- </option>
+                          <option ng-if="userService.hasRole('ROLE_ADMIN')" ng-selected="projectModel.selectedProject==null"  value=""> -- {{dataKylin.header.chooseProject}} -- </option>
                         </select>
                     </li>
                     <li class="{{activeTab=='query'?'purple':'green'}}" ng-if="userService.isAuthorized()">
-                        <a href="query">Insight</a>
+                      <a href="query">{{dataKylin.insight.insight}}</a>
                     </li>
                     <li class="{{activeTab=='models'?'purple':'green'}}" ng-if="userService.isAuthorized()">
-                        <a href="models">Model</a>
+                      <a href="models">{{dataKylin.model.model}}</a>
                     </li>
                     <li class="{{activeTab=='jobs'?'purple':'green'}}" ng-if="userService.isAuthorized()">
-                        <a href="jobs">Monitor</a>
+                      <a href="jobs">{{dataKylin.monitor.monitor}}</a>
                     </li>
                     <li class="{{activeTab=='admin'?'purple':'green'}}" ng-if="userService.hasRole('ROLE_ADMIN')">
-                        <a href="admin">Admin</a>
+                      <a href="admin">{{dataKylin.system.system}}</a>
                     </li>
                 </ul>
                 <ul class="nav navbar-nav navbar-right">
-                    <li class="dropdown light-blue" ng-if="config.documents.length > 0">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-book"></i> Help <i class="ace-icon fa fa-caret-down"></i></a>
+                    <li class="dropdown light-blue" ng-if="dataKylin.header.documents.length > 0">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-book"></i> {{dataKylin.header.help}} <i class="ace-icon fa fa-caret-down"></i></a>
                         <ul class="user-menu dropdown-menu-right dropdown-menu dropdown-yellow dropdown-caret dropdown-close">
-                            <li ng-repeat="document in config.documents" ng-if="document.link">
+                            <li ng-repeat="document in dataKylin.header.documents" ng-if="document.link">
                                 <a target="_blank" href="{{document.link}}" >{{document.displayName}}</a>
                             </li>
                         </ul>
                     </li>
-                    <li class="purple" ng-if="!userService.isAuthorized()"><a href="login">Login</a></li>
+                    <li class="purple" ng-if="!userService.isAuthorized()"><a href="login">{{dataKylin.header.login}}</a></li>
                     <li class="dropdown light-blue" ng-if="userService.isAuthorized()">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                            <span class="user-info"><small>Welcome,</small> {{userService.getCurUser().userDetails.username}}</span>
+                            <span class="user-info"><small>{{dataKylin.header.welcome}},</small> {{userService.getCurUser().userDetails.username}}</span>
                             <i class="ace-icon fa fa-caret-down"></i>
                         </a>
                         <ul class="user-menu dropdown-menu-right dropdown-menu dropdown-yellow dropdown-caret dropdown-close" role="menu">
                             <li> <a href="setting"><i class="ace-icon fa fa-user"></i>Settings</a> </li>
                             <div class="dropdown-divider"></div>
-                            <li> <a ng-click="logout()"><i class="ace-icon fa fa-power-off"></i> Logout</a> </li>
+                            <li> <a ng-click="logout()"><i class="ace-icon fa fa-power-off"></i> {{dataKylin.header.logout}}</a> </li>
                         </ul>
                     </li>
                 </ul>

@@ -97,7 +97,8 @@ KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConf
     };
 
     // Controller for cube model lookup modal.
-    var cubeModelLookupModalCtrl = function ($scope, $modalInstance) {
+    var cubeModelLookupModalCtrl = function ($scope, $modalInstance,language) {
+      $scope.dataKylin = language.getDataKylin();
         $scope.ok = function () {
             $modalInstance.close();
         };
@@ -142,7 +143,7 @@ KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConf
             if(dimExist) {
                 SweetAlert.swal({
                     title: '',
-                    text: "Once it's removed, all relative dimensions will be removed. Are you sure to remove the lookup table?",
+                    text: $scope.dataKylin.alert.tip_remove_lookup_table,
                     type: '',
                     showCancelButton: true,
                     confirmButtonColor: '#DD6B55',

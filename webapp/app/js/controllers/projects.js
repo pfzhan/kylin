@@ -19,7 +19,7 @@
 'use strict';
 
 KylinApp
-    .controller('ProjectCtrl', function ($scope,ExtFilterService, $modal, $q, ProjectService, MessageService,SweetAlert,$log,kylinConfig,projectConfig,ProjectModel) {
+    .controller('ProjectCtrl', function ($scope,ExtFilterService, $modal, $q, ProjectService, MessageService,SweetAlert,$log,kylinConfig,projectConfig,ProjectModel,kylinCommon) {
 
         $scope.projects = [];
         $scope.loading = false;
@@ -64,7 +64,7 @@ KylinApp
         $scope.delete = function(project){
             SweetAlert.swal({
                 title: '',
-                text: 'Are you sure to delete ?',
+                text: $scope.dataKylin.alert.tip_sure_to_delete,
                 type: '',
                 showCancelButton: true,
                 confirmButtonColor: '#DD6B55',
@@ -78,15 +78,9 @@ KylinApp
                         $scope.projects.splice(pIndex, 1);
                     }
                 ProjectModel.removeProject(project.name);
-                SweetAlert.swal('Success!',"Project [" + project.name + "] has been deleted successfully!", 'success');
+                  kylinCommon.success_alert($scope.dataKylin.alert.tip_project_delete_part_one+project.name+$scope.dataKylin.alert.tip_project_delete_part_two);
                 },function(e){
-                    if(e.data&& e.data.exception){
-                        var message =e.data.exception;
-                        var msg = !!(message) ? message : 'Failed to take action.';
-                        SweetAlert.swal('Oops...', msg, 'error');
-                    }else{
-                        SweetAlert.swal('Oops...', "Failed to take action.", 'error');
-                    }
+                    kylinCommon.error_default(e);
                 });
                 }
             });

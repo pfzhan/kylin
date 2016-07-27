@@ -175,7 +175,8 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
         var types = [];
 
         if (dim.derived && dim.derived.length) {
-            types.push('derived');
+            types.push($scope.dataKylin.cube.cubeDSSwitchDer);
+            //types.push('derived');
         }
 
         //if (dim.hierarchy && dim.column.length) {
@@ -183,7 +184,8 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
         //}
 
         if (!types.length) {
-            types.push('normal');
+          //types.push('normal');
+            types.push($scope.dataKylin.cube.cubeDSSwitchNormal);
         }
 
         return types;
@@ -219,9 +221,9 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
     };
 
     // Controller for cube dimension add/edit modal.
-    var cubeDimModalCtrl = function ($scope, $modalInstance, dimType,SweetAlert) {
+    var cubeDimModalCtrl = function ($scope, $modalInstance, dimType,SweetAlert,language) {
         $scope.dimType = dimType;
-
+        $scope.dataKylin = language.getDataKylin();
         $scope.ok = function () {
             $modalInstance.close();
         };
@@ -360,7 +362,8 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
     };
 
     // Controller for cube dimension auto-gen modal.
-    var cubeAutoGenDimModalCtrl = function ($scope, $modalInstance) {
+    var cubeAutoGenDimModalCtrl = function ($scope, $modalInstance,language) {
+      $scope.dataKylin = language.getDataKylin();
         $scope.ok = function () {
             $modalInstance.close();
         };

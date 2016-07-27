@@ -32,8 +32,8 @@
                ng-if="cubeMetaFrame.aggregation_groups.length > 0"
                class="table table-hover list">
           <tr class="row">
-            <th class="col-xs-1">ID</th>
-            <th class="col-xs-11">Aggregation Groups</th>
+            <th class="col-xs-1">{{dataKylin.cubeASID}}</th>
+            <th class="col-xs-11">{{dataKylin.cubeASAggregationGroups}}</th>
             <th ng-if="state.mode=='edit'" class="col-xs-1"></th>
           </tr>
 
@@ -46,7 +46,7 @@
               <table class="table">
                 <tr class="row">
                   <td class="col-xs-3">
-                    Includes
+                    {{dataKylin.cube.cubeASIncludes}}
                   </td>
                   <td class="col-xs-8">
                     <!-- Dimensions -->
@@ -57,7 +57,7 @@
                       on-select="refreshAggregationGroup(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group)"
                       on-remove="refreshAggregationGroup(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group)"
                       ng-if="state.mode=='edit'" style="width: 100%" multiple ng-model="aggregation_group.includes">
-                     <ui-select-match placeholder="Select Column...">{{$item.column}}</ui-select-match>
+                     <ui-select-match placeholder="{{dataKylin.cube.plac_cubeAS}}">{{$item.column}}</ui-select-match>
                       <ui-select-choices
                       repeat="rowkey_column.column as rowkey_column in cubeMetaFrame.rowkey.rowkey_columns | filter:$select.search">
                     {{rowkey_column.column}}
@@ -72,7 +72,7 @@
                 </tr>
                 <tr class="row">
                   <td class="col-xs-3">
-                    Mandatory Dimensions
+                    {{dataKylin.cube.cubeASMandatoryDimensions}}
                   </td>
                   <td class="col-xs-8">
                     <ui-select
@@ -81,7 +81,7 @@
                       on-select="refreshAggregationGroup(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group)"
                       on-remove="refreshAggregationGroup(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group)"
                       ng-if="state.mode=='edit'" style="width: 100%" multiple ng-model="aggregation_group.select_rule.mandatory_dims">
-                      <ui-select-match placeholder="Select Column...">{{$item}}</ui-select-match>
+                      <ui-select-match placeholder="{{dataKylin.cube.plac_cubeAS}}">{{$item}}</ui-select-match>
                       <ui-select-choices
                         repeat="column in aggregation_group.includes | filter:$select.search">
                         {{column}}
@@ -98,7 +98,7 @@
 
                 <tr class="row">
                   <td class="col-xs-3">
-                    Hierarchy Dimensions
+                    {{dataKylin.cube.cubeASHierarchyDimensions}}
                   </td>
                   <td class="col-xs-9">
                     <table class="table">
@@ -110,7 +110,7 @@
                             on-select="refreshAggregationHierarchy(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group,$index,hierarchyDims)"
                             on-remove="refreshAggregationHierarchy(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group,$index,hierarchyDims)"
                             ng-if="state.mode=='edit'" style="width: 100%" multiple ng-model="hierarchyDims">
-                            <ui-select-match placeholder="Select Column...">{{$item}}</ui-select-match>
+                            <ui-select-match placeholder="{{dataKylin.cube.plac_cubeAS}}">{{$item}}</ui-select-match>
                             <ui-select-choices
                               repeat="column in aggregation_group.includes | filter:$select.search">
                               {{column}}
@@ -131,7 +131,7 @@
                       <tr class="row">
                         <td class="col-xs-12">
                           <button class="btn btn-sm btn-info"
-                                  ng-click="addNewHierarchy(aggregation_group)" ng-show="state.mode=='edit'">New Hierarchy<i class="fa fa-plus"></i>
+                                  ng-click="addNewHierarchy(aggregation_group)" ng-show="state.mode=='edit'">{{dataKylin.cube.cubeASNewHierarchy}}<i class="fa fa-plus"></i>
                           </button>
                         </td>
                       </tr>
@@ -143,7 +143,7 @@
 
                 <tr class="row">
                   <td class="col-xs-3">
-                    Joint Dimensions
+                    {{dataKylin.cube.cubeASJointDimensions}}
                   </td>
                   <td class="col-xs-9">
                     <table class="table">
@@ -156,7 +156,7 @@
                             on-select="refreshAggregationJoint(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group,$index,jointDims)"
                             on-remove="refreshAggregationJoint(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group,$index,jointDims)"
                             ng-if="state.mode=='edit'" style="width: 100%" multiple ng-model="jointDims">
-                            <ui-select-match placeholder="Select Column...">{{$item}}</ui-select-match>
+                            <ui-select-match placeholder="{{dataKylin.cube.plac_cubeAS}}">{{$item}}</ui-select-match>
                             <ui-select-choices
                               repeat="column in aggregation_group.includes | filter:$select.search">
                               {{column}}
@@ -176,7 +176,7 @@
                       <tr class="row">
                         <td class="col-xs-12">
                           <button class="btn btn-sm btn-info"
-                                  ng-click="addNewJoint(aggregation_group)" ng-show="state.mode=='edit'">New Joint<i class="fa fa-plus"></i>
+                                  ng-click="addNewJoint(aggregation_group)" ng-show="state.mode=='edit'">{{dataKylin.cube.cubeASNewJoint}}<i class="fa fa-plus"></i>
                           </button>
                         </td>
                       </tr>
@@ -197,7 +197,7 @@
         </table>
 
         <button class="btn btn-sm btn-info" style="margin-left:42px" ng-click="addNewAggregationGroup()"
-                ng-show="state.mode=='edit'">New Aggregation Group<i class="fa fa-plus"></i>
+                ng-show="state.mode=='edit'">{{dataKylin.cube.cubeASNewAggregationGroup}}<i class="fa fa-plus"></i>
         </button>
 
 
@@ -205,18 +205,19 @@
 
 
       <div class="form-group large-popover" style="overflow:auto">
-        <h3 style="margin-left:42px">Rowkeys  <i kylinpopover placement="right" title="Rowkey" template="rowkeyTip.html" class="fa fa-info-circle"></i></h3>
+        <h3 style="margin-left:42px">{{dataKylin.cube.cubeASRowkeys}}  <i kylinpopover placement="right" ng-title="{{dataKylin.cube.tip_title_cubeASRowkeys}}" template="rowkeyTip.html" class="fa fa-info-circle"></i></h3>
         <table style="margin-left:42px; width:92%"
                ng-if="cubeMetaFrame.rowkey.rowkey_columns.length > 0"
                class="table table-hover table-bordered list"
           >
           <thead>
           <tr>
-            <th>ID</th>
-            <th style="width:200px;">Column</th>
-            <th>Encoding</th>
-            <th>Length</th>
-            <th>Shard By</th>
+            <th>{{dataKylin.cube.cubeASID}}</th>
+            <th style="width:200px;">{{dataKylin.cube.cubeASColumn}}</th>
+            <th>{{dataKylin.cube.cubeASEncoding}}Encoding</th>
+            <th>{{dataKylin.cube.cubeASLength}}</th>
+            <th>{{dataKylin.cube.cubeASShardBy}}/th>
+            <th ng-if="state.mode=='edit'"></th>
             <th ng-if="state.mode=='edit'"></th>
           </tr>
           </thead>
@@ -232,9 +233,9 @@
             </td>
             <td>
               <!--Column Name -->
-              <input type="text" class="form-control" placeholder="Column Name.." ng-if="state.mode=='edit'"
+              <input type="text" class="form-control" placeholder="{{dataKylin.cube.tip_Column_Name}}" ng-if="state.mode=='edit'"
                      ng-change="refreshRowKey(convertedRowkeys,$index,rowkey_column)"
-                     tooltip="rowkey column name.." tooltip-trigger="focus"
+                     tooltip="{{dataKylin.cube.tip_rowkey_column_name}}" tooltip-trigger="focus"
                      ng-model="rowkey_column.column" class="form-control">
 
               <span ng-if="state.mode=='view'">{{rowkey_column.column}}</span>
@@ -252,7 +253,7 @@
             <td>
               <!--Column Length -->
               <input type="text" class="form-control" placeholder="Column Length.." ng-if="state.mode=='edit'"
-                     tooltip="rowkey column length.." tooltip-trigger="focus"
+                     tooltip="{{dataKylin.cube.rowkey_column_length}}" tooltip-trigger="focus"
                      ng-disabled="rowkey_column.encoding=='dict'||rowkey_column.encoding=='date'||rowkey_column.encoding=='time'"
                      ng-change="refreshRowKey(convertedRowkeys,$index,rowkey_column);"
                      ng-model="rowkey_column.valueLength" class="form-control">
@@ -264,7 +265,7 @@
             <td>
               <select ng-if="state.mode=='edit'" style="width:180px;"
                       chosen ng-model="rowkey_column.isShardBy"
-                      tooltip="false by default"
+                      tooltip="{{dataKylin.cube.tip_false_by_default}}"
                       data-placeholder="false by default"
                       ng-change="refreshRowKey(convertedRowkeys,$index,rowkey_column,true)"
                       ng-options="dt as dt for dt in cubeConfig.rowKeyShardOptions">
@@ -285,7 +286,7 @@
         </table>
 
         <button class="btn btn-sm btn-info" style="margin-left:42px"
-                ng-click="addNewRowkeyColumn()" ng-show="state.mode=='edit'">New Rowkey Column<i class="fa fa-plus"></i>
+                ng-click="addNewRowkeyColumn()" ng-show="state.mode=='edit'">{{dataKylin.cube.cubeASNewRowkeyColumn}}<i class="fa fa-plus"></i>
         </button>
       </div>
 
@@ -294,23 +295,6 @@
   </ng-form>
 </div>
 <script type="text/ng-template" id="rowkeyTip.html">
-<div>
-  <h4>Shard By this column?</h4>
-  <p>
-    If specified as "true", cube data will be sharded according to its value.
-  </p>
-
-  <h4>RowKey Encoding</h4>
-  <ol>
-    <li>
-      "dict" encoding will try to build a dictionary for the dimension
-    </li>
-    <li>
-      "fixed_length" encoding will encode the dimension vlaues by fixed length bytes with padding
-    </li>
-    <li>
-      "int" encoding uses variable integer to encode integers
-    </li>
-  </ol>
+<div ng-bind-html="dataKylin.cube.tip_body_cubeASRowkeys">
 </div>
 </script>

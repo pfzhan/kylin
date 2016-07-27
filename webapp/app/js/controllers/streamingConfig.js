@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q, $routeParams, $location, $window, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, modelConfig, ProjectModel, ModelService, MetaModel, modelsManager, cubesManager, TableModel, $animate,StreamingModel) {
+KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q, $routeParams, $location, $window, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, modelConfig, ProjectModel, ModelService, MetaModel, modelsManager, cubesManager, TableModel, $animate,StreamingModel,kylinCommon) {
 
   $scope.tableModel = TableModel;
 
@@ -36,7 +36,7 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
 
     SweetAlert.swal({
       title: '',
-      text: 'Are you sure to remove this cluster ?',
+      text: $scope.dataKylin.alert.tip_to_remove_cluster,
       type: '',
       showCancelButton: true,
       confirmButtonColor: '#DD6B55',
