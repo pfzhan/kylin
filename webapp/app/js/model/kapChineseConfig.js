@@ -17,6 +17,14 @@
  */
 
 KylinApp.constant('kapChineseConfig', {
+  login:{
+    username: '用户名',
+    password: '密码',
+    loginIssue: '登录遇到问题?',
+    loginIn: '登录',
+    loginInNow: '登录中...',
+    error: '登录失败,请检查用户名/密码'
+  },
   header:{
   chooseProject: '选择项目',
   login: '登陆',
@@ -25,7 +33,8 @@ KylinApp.constant('kapChineseConfig', {
   welcome: '欢迎',
   documents: [
     {link:'http://kyligence.io',displayName:'关于我们'}
-  ]
+  ],
+  selectLanguage: '请选择语言'
   },
   /*
    module of  project
@@ -111,6 +120,9 @@ KylinApp.constant('kapChineseConfig', {
     /*
      management of model
      */
+    Model: '模型',
+    Measure: '度量',
+    paramValue: '参数值',
     model: '模型',
     schema:['模型信息','数据模型','维度','度量','设置'],
     models: '模型',

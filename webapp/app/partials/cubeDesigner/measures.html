@@ -73,7 +73,7 @@
   <!--Add Measures Button-->
   <div class="form-group">
     <button class="btn btn-sm btn-info" ng-click="addNewMeasure()" ng-show="state.mode=='edit' && !newMeasure">
-      <i class="fa fa-plus"></i> Measure
+      <i class="fa fa-plus"></i> {{dataKylin.model.Measure}}
     </button>
   </div>
 
@@ -136,7 +136,7 @@
                 <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default">
                   <b ng-if="newMeasure.function.expression == 'EXTENDED_COLUMN'">Host column On Fact Table</b>  <i ng-if="newMeasure.function.expression == 'EXTENDED_COLUMN'" title="Host Column" class="fa fa-info-circle" kylinpopover placement="right" template="hostTableTip.html"></i>
                   <b ng-if="newMeasure.function.expression == 'TOP_N'">ORDER|SUM by Column</b>  <i ng-if="newMeasure.function.expression == 'TOP_N'" class="fa fa-info-circle" title="ORDER|SUM by Column" kylinpopover placement="right" template="topnTip.html"></i>
-                  <b ng-if="newMeasure.function.expression !== 'EXTENDED_COLUMN' && newMeasure.function.expression !== 'TOP_N' ">Param Value</b>  <i ng-if="newMeasure.function.expression !== 'EXTENDED_COLUMN' && newMeasure.function.expression !== 'TOP_N' " class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.cubeMSParamValue}}" template="paramvalueTip.html"></i>
+                  <b ng-if="newMeasure.function.expression !== 'EXTENDED_COLUMN' && newMeasure.function.expression !== 'TOP_N' ">{{dataKylin.model.paramValue}}</b>  <i ng-if="newMeasure.function.expression !== 'EXTENDED_COLUMN' && newMeasure.function.expression !== 'TOP_N' " class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.cubeMSParamValue}}" template="paramvalueTip.html"></i>
                   <!--tip for top_n-->
                   <!--<small ng-if="newMeasure.function.expression == 'TOP_N'" class="help-block" style="color:#3a87ad">(SUM|ORDER BY Column for TOP_N)</small>-->
                 </label>

@@ -17,6 +17,14 @@
  */
 
 KylinApp.constant('kapEnglishConfig', {
+  login:{
+    username: 'Username',
+    password: 'Password',
+    loginIssue: 'Login Issue?',
+    loginIn: 'Login In',
+    loginInNow: 'Login In...',
+    error: 'Unable to login, please check your username/password.'
+  },
   header:{
   chooseProject: 'Choose Project',
   login: 'Login',
@@ -25,7 +33,8 @@ KylinApp.constant('kapEnglishConfig', {
   welcome: 'Welcome',
   documents: [
     {link:'http://kyligence.io',displayName:'About us'}
-  ]
+  ],
+  selectLanguage: 'select language'
   },
   /*
    module of  project
@@ -111,6 +120,9 @@ KylinApp.constant('kapEnglishConfig', {
     /*
      management of model
      */
+    Model: 'Model',
+    Measure: 'Measure',
+    paramValue: 'Param Value',
     model: 'model',
     schema:['Model Info','Data Mode','Dimensions','Measures','Setting'],
     models: 'models',
