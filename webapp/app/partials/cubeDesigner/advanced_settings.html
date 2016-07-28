@@ -214,7 +214,7 @@
           <tr>
             <th>{{dataKylin.cube.cubeASID}}</th>
             <th style="width:200px;">{{dataKylin.cube.cubeASColumn}}</th>
-            <th>{{dataKylin.cube.cubeASEncoding}}Encoding</th>git
+            <th>{{dataKylin.cube.cubeASEncoding}}Encoding</th>
             <th>{{dataKylin.cube.cubeASLength}}</th>
             <th>{{dataKylin.cube.cubeASShardBy}}/th>
             <th ng-if="state.mode=='edit'"></th>
@@ -274,7 +274,6 @@
               <small class="help-block red" ng-show="state.mode=='edit' && rule.shardColumnAvailable==false && rowkey_column.isShardBy == true">at most one 'shard by' column is allowed.</small>
               <span ng-if="state.mode=='view'">{{rowkey_column.isShardBy}}</span>
             </td>
-a
             <td ng-if="state.mode=='edit'">
               <button class="btn btn-xs btn-info"
                       ng-click="removeRowkey(convertedRowkeys, $index,rowkey_column)"><i
