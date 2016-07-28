@@ -173,7 +173,7 @@ KylinApp.constant('kapEnglishConfig', {
     Measure: 'Measure',
     paramValue: 'Param Value',
     model: 'model',
-    schema:['Model Info','Data Mode','Dimensions','Measures','Setting'],
+    schema:['Model Info','Data Mode','Dimensions','Measures','Settings'],
     models: 'models',
     theaditems : [
       {attr: 'name', name: 'Name'},
