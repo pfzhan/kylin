@@ -85,6 +85,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             throw new RuntimeException("Unknown Operator: " + compareOp);
         }
 
+        logger.debug("lookColumnIndex returning " + result);
         return result;
     }
 
@@ -119,9 +120,11 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             ConstantTupleFilter constantTupleFilter = (ConstantTupleFilter) filter;
             if (!constantTupleFilter.getValues().isEmpty()) {
                 // TRUE
+                logger.debug("lookupChildFilter returning full bitmap");
                 return getFullBitmap().toMutableRoaringBitmap();
             } else {
                 // FALSE
+                logger.debug("lookupChildFilter returning empty bitmap");
                 return getEmptyBitmap().toMutableRoaringBitmap();
             }
         } else if (filter instanceof CompareTupleFilter) {
