@@ -18,7 +18,7 @@
 
 <script type="text/ng-template" id="cubeClone.html">
   <div class="modal-header">
-    <h4 tooltip="submit">CUBE CLONE</h4>
+    <h4 tooltip="submit">{{dataKylin.cube.cubeClone}}</h4>
   </div>
   <div class="modal-body" style="background-color: white">
 
@@ -49,7 +49,7 @@
       <div class="col-md-8">
         <div class="row">
           <div class="form-group">
-            <b>New Cube Name:</b>
+            <b>{{dataKylin.cube.newCubeName}}</b>
             <br/>
             <input type="text" class="form-control" ng-model="targetObj.cubeName"/>
           </div>
@@ -59,7 +59,7 @@
     </div>
   </div>
   <div class="modal-footer">
-    <button class="btn btn-success" ng-click="cloneCube()">Submit</button>
-    <button class="btn btn-primary" ng-click="cancel()">Close</button>
+    <button class="btn btn-success" ng-click="cloneCube()">{{dataKylin.cube.submit}}</button>
+    <button class="btn btn-primary" ng-click="cancel()">{{dataKylin.cube.close}}</button>
   </div>
 </script>

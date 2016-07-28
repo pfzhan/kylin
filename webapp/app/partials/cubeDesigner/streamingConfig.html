@@ -186,22 +186,22 @@
           <div class="form-group" ng-class="{'required':state.mode=='edit'}">
             <div class="row">
               <label class="col-xs-12 col-sm-3 control-label no-padding-right">
-                <b>Margin</b>
+                <b>{{dataKylin.cube.kaMargin}}</b>
               </label>
 
               <div class="col-xs-12 col-sm-6"
                    ng-class="{'has-error':form.cube_streaming_form.margin.$invalid && (form.cube_streaming_form.margin.$dirty||form.cube_streaming_form.$submitted)}">
                 <input ng-if="state.mode=='edit'" name="margin" required ng-model="kafkaMeta.margin" type="text"
-                       placeholder="Input kafkaConfig margin"
+                       placeholder="{{dataKylin.cube.tip_input_kafkaConfig_margin}}"
                        ng-maxlength=100 ng-pattern="/^\+?[1-9][0-9]*$/"
                        class="form-control"/>
                 <small class="help-block"
                        ng-show="!form.cube_streaming_form.margin.$error.required && form.cube_streaming_form.margin.$invalid && (form.cube_streaming_form.margin.$dirty||form.cube_streaming_form.$submitted)">
-                  Kafka margin is invalid.
+                  {{dataKylin.cube.tip_kafka_margin_invalid}}
                 </small>
                 <small class="help-block"
                        ng-show="form.cube_streaming_form.margin.$error.required && (form.cube_streaming_form.margin.$dirty||form.cube_streaming_form.$submitted)">
-                  Kafka margin is required.
+                  {{dataKylin.cube.tip_kafka_margin_required}}
                 </small>
                 <span ng-if="state.mode=='view'">{{kafkaMeta.margin}}</span>
               </div>
@@ -215,7 +215,7 @@
 
         <accordion-group is-open="state.isParserHeaderOpen">
           <accordion-heading>
-            Parser Setting
+            {{dataKylin.cube.kaParserSetting}}
             <i class="pull-right glyphicon"
                ng-class="{'glyphicon-chevron-down': state.isParserHeaderOpen, 'glyphicon-chevron-right': !state.isParserHeaderOpen}"></i>
           </accordion-heading>
@@ -223,21 +223,21 @@
           <div class="form-group" ng-class="{'required':state.mode=='edit'}">
             <div class="row">
               <label class="col-xs-12 col-sm-3 control-label no-padding-right">
-                <b>Parser Name</b>
+                <b>{{dataKylin.cube.kaParserName}}</b>
               </label>
 
               <div class="col-xs-12 col-sm-6"
                    ng-class="{'has-error':form.cube_streaming_form.parserName.$invalid && (form.cube_streaming_form.parserName.$dirty||form.cube_streaming_form.$submitted)}">
                 <input ng-if="state.mode=='edit'" name="parserName" required ng-model="kafkaMeta.parserName" type="text"
-                       placeholder="Input kafkaConfig parserName"
+                       placeholder="{{dataKylin.cube.tip_input_kafkaConfig_parserName}}"
                        class="form-control"/>
                 <small class="help-block"
                        ng-show="!form.cube_streaming_form.parserName.$error.required && form.cube_streaming_form.parserName.$invalid && (form.cube_streaming_form.parserName.$dirty||form.cube_streaming_form.$submitted)">
-                  Kafka parser name is invalid.
+                  {{dataKylin.cube.tip_kafka_parser_name_invalid}}
                 </small>
                 <small class="help-block"
                        ng-show="form.cube_streaming_form.parserName.$error.required && (form.cube_streaming_form.parserName.$dirty||form.cube_streaming_form.$submitted)">
-                  Kafka parser name is required.
+                  {{dataKylin.cube.tip_kafka_parser_name_required}}
                 </small>
                 <span ng-if="state.mode=='view'">{{kafkaMeta.parserName}}</span>
               </div>
@@ -246,14 +246,14 @@
           <div class="form-group" ng-if="state.mode=='edit'" ng-class="{'required':state.mode=='edit'}">
             <div class="row">
               <label class="col-xs-12 col-sm-3 control-label no-padding-right">
-                <b>Parser Timestamp Column</b>
+                <b>{{dataKylin.cube.kaParserTimestampColumn}}</b>
               </label>
 
               <div class="col-xs-12 col-sm-6 streamingParserCtr">
                   <select chosen ng-model="streamingCfg.parseTsColumn"
                            ng-options="column as column for column in streamingCfg.columnOptions "
                            ng-change="streamingTsColUpdate()"
-                           data-placeholder="select a column"
+                           data-placeholder="{{dataKylin.cube.kaSelectColumn}}"
                            class="chosen-select">
                     <option value=""></option>
                   </select>
@@ -263,7 +263,7 @@
           <div class="form-group" ng-class="{'required':state.mode=='edit'}">
             <div class="row">
               <label class="col-xs-12 col-sm-3 control-label no-padding-right">
-                <b>Parser Properties</b>
+                <b>{{dataKylin.cube.kaParserProperties}}</b>
               </label>
 
               <div class="col-xs-12 col-sm-6"
@@ -273,11 +273,11 @@
                        class="form-control"/>
                 <small class="help-block"
                        ng-show="!form.cube_streaming_form.parserProperties.$error.required && form.cube_streaming_form.parserProperties.$invalid && (form.cube_streaming_form.parserProperties.$dirty||form.cube_streaming_form.$submitted)">
-                  Parser properties is invalid.
+                  {{dataKylin.cube.tip_parser_properties_invalid}}
                 </small>
                 <small class="help-block"
                        ng-show="form.cube_streaming_form.parserProperties.$error.required && (form.cube_streaming_form.parserProperties.$dirty||form.cube_streaming_form.$submitted)">
-                  Parser properties is required.
+                  {{dataKylin.cube.tip_parser_properties_required}}
                 </small>
                 <span ng-if="state.mode=='view'">{{kafkaMeta.parserProperties}}</span>
               </div>

@@ -18,7 +18,7 @@
 
 <script type="text/ng-template" id="modelClone.html">
   <div class="modal-header">
-    <h4 tooltip="submit">MODEL CLONE</h4>
+    <h4 tooltip="submit">{{dataKylin.cube.modelClone}}</h4>
   </div>
   <div class="modal-body" style="background-color: white">
 
@@ -27,13 +27,13 @@
       <div class="col-md-8">
         <div class="row">
           <div class="form-group">
-            <b>Target Project is:</b>
+            <b>{{dataKylin.cube.targetProject}}:</b>
             <br/>
             <select ng-required="projectModel.projects.length" chosen ng-model="targetObj.targetProject"
                     ng-init="newAccess.permission=permissions.READ.value;"
                     ng-options="project.name as project.name for project in projectModel.projects "
                     style="width: 100% !important;"
-                    data-placeholder="select a project"
+                    data-placeholder="{{dataKylin.cube.selectProject}}"
                     class="chosen-select">
               <option value=""></option>
             </select>
@@ -47,7 +47,7 @@
       <div class="col-md-8">
         <div class="row">
           <div class="form-group">
-            <b>New Model Name:</b>
+            <b>{{dataKylin.cube.newModelName}}</b>
             <br/>
             <input type="text" class="form-control" ng-model="targetObj.modelName"/>
           </div>
@@ -57,7 +57,7 @@
     </div>
   </div>
   <div class="modal-footer">
-    <button class="btn btn-success" ng-click="cloneModel()">Submit</button>
-    <button class="btn btn-primary" ng-click="cancel()">Close</button>
+    <button class="btn btn-success" ng-click="cloneModel()">{{dataKylin.cube.submit}}</button>
+    <button class="btn btn-primary" ng-click="cancel()">{{dataKylin.cube.close}}</button>
   </div>
 </script>

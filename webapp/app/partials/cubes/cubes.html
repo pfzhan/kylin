@@ -95,7 +95,7 @@
                     </button>
                     <ul class="dropdown-menu" role="menu">
                         <li ng-if="cube.status=='DISABLED' && userService.hasRole('ROLE_ADMIN') ">
-                          <a ng-click="dropCube(cube, $index)" tooltip="Drop the cube, related jobs and data permanently.">{{dataKylin.cube.cubeActions[0]}}</a></li>
+                          <a ng-click="dropCube(cube, $index)" tooltip="{{dataKylin.cube.tip_drop_cube}}">{{dataKylin.cube.cubeActions[0]}}</a></li>
                         <li ng-if="cube.status=='DISABLED' && (userService.hasRole('ROLE_ADMIN') || hasPermission(cube, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask))">
                           <a ng-click="cubeEdit(cube);">{{dataKylin.cube.cubeActions[1]}}</a></li>
                       <li ng-if="cube.streaming && cube.status=='DISABLED' && (userService.hasRole('ROLE_ADMIN') || hasPermission(cube, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask))">

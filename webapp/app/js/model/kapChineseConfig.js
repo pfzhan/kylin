@@ -29,22 +29,22 @@ KylinApp.constant('kapChineseConfig', {
     tip_password_invalid: '密码不合法.',
     success_resetSuccess: '重置密码成功',
     failed_reset: '重置密码失败',
-    users: 'Users',
+    users: '用户',
     submit: '提交',
     close: '关闭',
     addUser: '添加用户',
     password: '密码',
     role: '角色',
-    analyst: 'Analyst',
-    modeler: 'Modeler',
-    admin: 'Admin',
+    analyst: '分析人员',
+    modeler: '建模人员',
+    admin: '管理人员',
     editUser: '编辑用户',
     user: '用户',
     usertheaditems: [
       {attr: 'username', name: '用户名'},
-      {attr: 'admin', name: '管理员'},
-      {attr: 'modeler', name: 'Modeler'},
-      {attr: 'analyst', name: 'Analyst'},
+      {attr: 'admin', name: '管理人员'},
+      {attr: 'modeler', name: '建模人员'},
+      {attr: 'analyst', name: '分析人员'},
       {attr: 'disabled', name: '状态'}
     ],
     editRole: '编辑角色',
@@ -160,6 +160,12 @@ KylinApp.constant('kapChineseConfig', {
    module of model
    */
   model:{
+    modelClone: '克隆模型',//cube clone
+    targetProject: '所在项目',
+    selectProject: '选择项目',
+    newModelName: '新的模型名称:',
+    submit: '提交',
+    close: '关闭',
     /*
      management of model
      */
@@ -247,6 +253,12 @@ KylinApp.constant('kapChineseConfig', {
     visualization: '可视化'
   },
   cube:{
+    cubeClone: '克隆Cube',//cube clone
+    targetProject: '所在项目',
+    selectProject: '选择项目',
+    newCubeName: '新的Cube名称:',
+    submit: '提交',
+    close: '关闭',
     cubeName: 'Cube名称',
     tip_cube_required: 'Cube名称不可为空.',
     tip_cube_name_invalid: 'Cube名称不合法.',
@@ -275,6 +287,7 @@ KylinApp.constant('kapChineseConfig', {
     storage: '存储',
     streaming: 'Streaming',
     cubeActions:['删除','编辑','构建','刷新','合并','禁用','启用','清理','克隆'],
+    tip_drop_cube: '永久删除Cube以及Cube相关的Job和数据',
     edit: '编辑',
     SegmentId: 'Segment ID',
     cubeItems: ['Grid','SQL','JSON(Cube)','权限','通知列表','存储'],
@@ -392,7 +405,45 @@ KylinApp.constant('kapChineseConfig', {
     cubeOVDimensions: '维度',
     cubeOVMeasures: '度量',
     cubeOVDescription: '描述',
-    tip_loading_cubes: '下载Cubes...'
+    tip_loading_cubes: '下载Cubes...',
+    kaTopic: 'Topic', //kafka begin
+    tip_Kafka_topic: 'Kafka topic不能为空.',
+    tip_kafka_topic_invalid: 'Kafka topic不合法.',
+    kaCluster: '集群',
+    tip_input_kafkaConfig_topic: '输入kafkaConfig topic',
+    kaHost: '主机',
+    kaPort: '端口号',
+    kaActions: '操作',
+    tip_input_broker: '输入 broker ID',
+    tip_input_broker_host: '输入broker 主机',
+    tip_input_broker_port: '输入broker 端口号',
+    kaBroker: 'Broker',
+    kaSave: '保存',
+    kaCancel: '取消',
+    kaKafkaSetting: 'Kafka 设置',
+    kaAdvancedSetting: '高级设置',
+    kaTimeout: '超时',
+    tip_input_kafkaConfig_timeout: '输入kafkaConfig timeout',
+    tip_timeout_invalid: 'Kafka timeout设置不合法.',
+    tip_timeout_required: 'Kafka timeout设置不能为空.',
+    kaBufferSize: 'Buffer Size',
+    tip_kafkaConfig_bufferSize: '输入kafkaConfig bufferSize',
+    tip_bufferSize_invalid: 'Kafka bufferSize设置不合法.',
+    tip_bufferSize_required: 'Kafka bufferSize设置不能为空.',
+    kaMargin: 'Margin',
+    tip_input_kafkaConfig_margin: '输入kafkaConfig margin',
+    tip_kafka_margin_invalid: 'Kafka margin设置不合法.',
+    tip_kafka_margin_required: 'Kafka margin设置不能为空.',
+    kaParserSetting: 'Parser设置',
+    kaParserName: 'Parser名称',
+    tip_input_kafkaConfig_parserName: '输入kafkaConfig parserName',
+    tip_kafka_parser_name_invalid: 'Kafka parser名称不合法',
+    tip_kafka_parser_name_required: 'Kafka parser名称不能为空.',
+    kaParserTimestampColumn: 'Parser Timestamp Column',
+    kaSelectColumn: '选择列',
+    kaParserProperties: 'Parser Properties',
+    tip_parser_properties_invalid: 'Parser properties不合法.',
+    tip_parser_properties_required: 'Parser properties不能为空.'
   },
   monitor:{
     monitor: '监控',
@@ -407,6 +458,7 @@ KylinApp.constant('kapChineseConfig', {
     jobResume: '恢复',
     jobDiscard: '终止',
     jobDiagnosis: '诊断',
+    tip_jobDiagnosis: '下载Job诊断包',
     jobsDetailInfo: '详细信息',//job detail begin
     tip_jobsDetailInfo: '收起',
     jobsJobName: '任务名',

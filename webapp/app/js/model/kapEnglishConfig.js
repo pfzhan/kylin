@@ -160,6 +160,12 @@ KylinApp.constant('kapEnglishConfig', {
    module of model
    */
   model:{
+    modelClone: 'MODEL CLONE',//cube clone
+    targetProject: 'Target Project is',
+    selectProject: 'select a project',
+    newModelName: 'New Model Name:',
+    submit: 'Submit',
+    close: 'Close',
     /*
      management of model
      */
@@ -265,6 +271,12 @@ KylinApp.constant('kapEnglishConfig', {
     visualization: 'Visualization'
   },
   cube:{
+    cubeClone: 'CUBE CLONE',//cube clone
+    targetProject: 'Target Project is',
+    selectProject: 'select a project',
+    newCubeName: 'New Cube Name:',
+    submit: 'Submit',
+    close: 'Close',
     cubeName: 'Cube Name',
     tip_cube_required: 'Cube name is required.',
     tip_cube_name_invalid: 'Cube name is invalid.',
@@ -293,6 +305,7 @@ KylinApp.constant('kapEnglishConfig', {
     storage: 'Storage',
     streaming: 'Streaming',
     cubeActions:['Drop','Edit','Build','Refresh','Merge','Disable','Enable','Purge','Clone'],
+    tip_drop_cube: 'Drop the cube, related jobs and data permanently.',
     edit: 'Edit',
     SegmentId: 'Segment ID',
     cubeItems: ['Grid','SQL','JSON(Cube)','Access','Notification','Storage'],
@@ -436,11 +449,20 @@ KylinApp.constant('kapEnglishConfig', {
     tip_kafkaConfig_bufferSize: 'Input kafkaConfig bufferSize',
     tip_bufferSize_invalid: 'Kafka bufferSize is invalid.',
     tip_bufferSize_required: 'Kafka bufferSize is required.',
-
-
-
-
-
+    kaMargin: 'Margin',
+    tip_input_kafkaConfig_margin: 'Input kafkaConfig margin',
+    tip_kafka_margin_invalid: 'Kafka margin is invalid.',
+    tip_kafka_margin_required: 'Kafka margin is required.',
+    kaParserSetting: 'Parser Setting',
+    kaParserName: 'Parser Name',
+    tip_input_kafkaConfig_parserName: 'Input kafkaConfig parserName',
+    tip_kafka_parser_name_invalid: 'Kafka parser name is invalid.',
+    tip_kafka_parser_name_required: 'Kafka parser name is required.',
+    kaParserTimestampColumn: 'Parser Timestamp Column',
+    kaSelectColumn: 'select a column',
+    kaParserProperties: 'Parser Properties',
+    tip_parser_properties_invalid: 'Parser properties is invalid.',
+    tip_parser_properties_required: 'Parser properties is required.'
   },
   monitor:{
     monitor: 'Monitor',
@@ -455,6 +477,7 @@ KylinApp.constant('kapEnglishConfig', {
     jobResume: 'Resume',
     jobDiscard: 'Discard',
     jobDiagnosis: 'Diagnosis',
+    tip_jobDiagnosis: 'Download Diagnosis Info For This Job',
     jobsDetailInfo: 'Detail Information',//job detail begin
     tip_jobsDetailInfo: 'Collapse',
     jobsJobName: 'Job Name',
