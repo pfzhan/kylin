@@ -20,12 +20,12 @@
     <div class="navbar navbar-default" role="navigation">
         <div class="container-fluid">
             <div class="navbar-header">
-                <a class="navbar-brand" ng-if="userService.isAuthorized()" href="query" style="padding: 2px 10px 0px 0px"><img src="image/logo.png" height="40px" width="40px"/></a>
+                <a class="navbar-brand" ng-if="userService.isAuthorized()" href="query" style="padding: 2px 10px 0px 0px"><img src="image/logo.png" height="40px" width="170px"/></a>
             </div>
 
             <div class="navbar-collapse collapse" collapse="isCollapsed">
                 <ul class="nav navbar-nav">
-                    <li class="project-cntnr"  style="padding:7px 15px;background-color:#2e8965;" ng-if="userService.isAuthorized()">
+                    <li class="project-cntnr"  style="padding:7px 15px;" ng-if="userService.isAuthorized()">
                         <select chosen ng-model="projectModel.selectedProject" ng-init="newAccess.permission=permissions.READ.value;"
                                 ng-options="project.name as project.name for project in projectModel.projects"
                                 style="width: 180px"
