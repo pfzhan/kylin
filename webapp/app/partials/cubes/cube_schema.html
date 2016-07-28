@@ -47,7 +47,7 @@
                             {{dataKylin.cube.cubePrev}}
                         </button>
                         <button id="nextButton" class="btn btn-success btn-next"  ng-click="checkCubeForm($index)?nextView():''" ng-disabled="forms[curStep.form].$invalid"
-                                ng-show="curStep.title!='Overview'">
+                                ng-show="curStep.title!='Overview'&&curStep.title!='概览'">
                             {{dataKylin.cube.cubeNext}}
                             <i class="ace-icon fa fa-arrow-right icon-on-right"></i>
                         </button>

@@ -25,6 +25,7 @@ KylinApp.constant('kapEnglishConfig', {
     confirmNewPassword: 'Confirm new password',
     tip_error_not_same: 'Password and confirm password are not the same.',
     updatePassword: 'Update Password',
+    tip_username_invalid: 'Username invalid.',
     tip_password_invalid: 'Password invalid.',
     success_resetSuccess: 'Reset password successfully.',
     failed_reset: 'Failed to reset password.',
@@ -50,7 +51,14 @@ KylinApp.constant('kapEnglishConfig', {
     resetPassword: 'Reset Password',
     drop: 'Drop',
     enable: 'Enable',
-    disable: 'Disable'
+    disable: 'Disable',
+    alert_sure_to_drop: 'Are you sure to drop the user ?',
+    success_drop: 'Drop user successfully',
+    success_disable: 'Disable user successfully',
+    success_enable: 'Enable user successfully',
+    tip_failed_list_users: 'Failed to list users.',
+    success_add_user: 'Add user successfully',
+    success_update_user: 'Update user successfully'
   },
   login:{
     username: 'Username',
@@ -403,7 +411,11 @@ KylinApp.constant('kapEnglishConfig', {
     cubeOVDimensions: 'Dimensions',
     cubeOVMeasures: 'Measures',
     cubeOVDescription: 'Description',
-    tip_loading_cubes: 'Loading Cubes...'
+    tip_loading_cubes: 'Loading Cubes...',
+    kaTopic: 'Topic', //kafka begin
+    tip_Kafka_topic: 'Kafka topic is required.',
+    kaCluster: 'Cluster',
+
   },
   monitor:{
     monitor: 'Monitor',

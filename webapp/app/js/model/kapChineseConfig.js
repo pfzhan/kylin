@@ -25,6 +25,7 @@ KylinApp.constant('kapChineseConfig', {
     confirmNewPassword: '确认密码',
     tip_error_not_same: '两次密码不一致,请检查',
     updatePassword: '更新密码',
+    tip_username_invalid: '用户名不合法.',
     tip_password_invalid: '密码不合法.',
     success_resetSuccess: '重置密码成功',
     failed_reset: '重置密码失败',
@@ -33,25 +34,31 @@ KylinApp.constant('kapChineseConfig', {
     close: '关闭',
     addUser: '添加用户',
     password: '密码',
-    role: 'Role',
+    role: '角色',
     analyst: 'Analyst',
     modeler: 'Modeler',
     admin: 'Admin',
     editUser: '编辑用户',
     user: '用户',
     usertheaditems: [
-      {attr: 'username', name: 'Username'},
-      {attr: 'admin', name: 'Admin'},
+      {attr: 'username', name: '用户名'},
+      {attr: 'admin', name: '管理员'},
       {attr: 'modeler', name: 'Modeler'},
       {attr: 'analyst', name: 'Analyst'},
-      {attr: 'disabled', name: 'Status'}
+      {attr: 'disabled', name: '状态'}
     ],
-    editRole: 'Edit Role',
+    editRole: '编辑角色',
     resetPassword: '重置密码',
     drop: '删除',
-    enable: 'Enable',
-    disable: 'Disable'
-
+    enable: '启用',
+    disable: '禁用',
+    alert_sure_to_drop: '确定删除该用户?',
+    success_drop: '删除用户成功',
+    success_disable: '禁用用户成功',
+    success_enable: '启用用户成功',
+    tip_failed_list_users: '载入用户失败.',
+    success_add_user: '添加用户成功',
+    success_update_user: '更新用户成功'
   },
   login:{
     username: '用户名',

@@ -20,117 +20,132 @@
 
 KylinApp.controller('UsersCtrl', function ($scope, $rootScope, $location, $base64, SweetAlert,AuthenticationService, UserService,KapUserService,tableConfig,$modal,language,kylinCommon) {
 
-    $scope.tableConfig = tableConfig;
-    $scope.users = [];
-    $scope.newUser = function(){
-      return {
-        'username':'',
-        'disabled':false,
-        'admin':false,
-        'modeler':false,
-        'analyst':false
+  $scope.tableConfig = tableConfig;
+  $scope.users = [];
+  $scope.newUser = function(){
+    return {
+      'username':'',
+      'disabled':false,
+      'admin':false,
+      'modeler':false,
+      'analyst':false
+    }
+  }
+
+  $scope.state = {
+    filterAttr: 'username', filterReverse: true, reverseColumn: 'username'
+  };
+
+  $scope.addUser = function(){
+    $modal.open({
+      templateUrl: 'addUser.html',
+      controller: addUserCtrl,
+      windowClass:"add-user-window",
+      resolve: {
+        scope: function(){
+          return $scope
+        }
       }
-    }
+    });
+  }
 
-    $scope.state = {
-      filterAttr: 'username', filterReverse: true, reverseColumn: 'username'
-    };
+  $scope.dropUser = function(user, index){
 
-    $scope.addUser = function(){
-      $modal.open({
-        templateUrl: 'addUser.html',
-        controller: addUserCtrl,
-        windowClass:"add-user-window",
-        resolve: {
-          scope: function(){
-            return $scope
-          }
-        }
-      });
-    }
-
-    $scope.dropUser = function(user, index){
-      KapUserService.dropUser({id:user.username},{},function(){
-        var _index = findUserIndex($scope.users, user);
-        //var _index =  _.findIndex($scope.users,function(item){return item.username == user.username})
-        $scope.users.splice(_index,1);
-        SweetAlert.swal('Success!', 'Drop user successfully', 'success');
-      },function(){
-        SweetAlert.swal('', message, 'error');
-      })
-    }
-
-    $scope.disableUser = function(user, index){
-      KapUserService.update({id:user.username},{'username':user.username,'disabled':'true'},function(user){
-        var _index = findUserIndex($scope.users, user);
-        //var _index =  _.findIndex($scope.users,function(item){return item.username == user.username});
-        $scope.users[_index] = userDetailToUser(user);
-        SweetAlert.swal('Success!', 'Disable user successfully', 'success');
-      },function(){
-        SweetAlert.swal('', message, 'error');
-      })
-
-    }
-
-    $scope.enableUser = function(user, index){
-      KapUserService.update({id:user.username},{'username':user.username,'disabled':'false'},function(user){
-        var _index = findUserIndex($scope.users, user);
-        //var _index =  _.findIndex($scope.users,function(item){return item.username == user.username});
-        $scope.users[_index] = userDetailToUser(user);
-        SweetAlert.swal('Success!', 'Enable user successfully', 'success');
-      },function(){
-        SweetAlert.swal('', message, 'error');
-      })
-
-    }
-
-    $scope.editUser = function(user){
-      $modal.open({
-        templateUrl: 'editUser.html',
-        controller: editUserCtrl,
-        windowClass:"add-user-window",
-        resolve: {
-          scope: function(){
-            return $scope
-          },
-          user: function(){
-            return user;
-          }
-        }
-      });
-    }
-
-    $scope.resetPassowrd = function(user){
-      $modal.open({
-        templateUrl: 'resetUserpwd.html',
-        controller: resetUserCtrl,
-        windowClass:"add-user-window",
-        resolve: {
-          scope: function(){
-            return $scope
-          },
-          user: function(){
-            return user;
-          }
-        }
-      });
-    }
-
-    KapUserService.listUsers({},$scope.user,function(users){
-      angular.forEach(users,function(_user){
-        $scope.users.push(userDetailToUser(_user));
-
-      })
-
-      //$scope.userGridOptions.data = $scope.users;
-
-    },function(e){
-      var message = "Failed to list users."
-      if( e.data&& e.data.exception){
-        message = e.data.exception;
+    SweetAlert.swal({
+      title: '',
+      text: $scope.dataKylin.user.alert_sure_to_drop,
+      type: '',
+      showCancelButton: true,
+      confirmButtonColor: '#DD6B55',
+      confirmButtonText: "Yes",
+      closeOnConfirm: true
+    }, function (isConfirm) {
+      if (isConfirm) {
+        KapUserService.dropUser({id: user.username}, {}, function () {
+          var _index = findUserIndex($scope.users, user);
+          //var _index =  _.findIndex($scope.users,function(item){return item.username == user.username})
+          $scope.users.splice(_index, 1);
+          kylinCommon.success_alert($scope.dataKylin.user.success_drop);
+        }, function () {
+          SweetAlert.swal('', message, 'error');
+        })
       }
+      else {
+      }
+    })
+  }
+
+  $scope.disableUser = function(user, index){
+    KapUserService.update({id:user.username},{'username':user.username,'disabled':'true'},function(user){
+      var _index = findUserIndex($scope.users, user);
+      //var _index =  _.findIndex($scope.users,function(item){return item.username == user.username});
+      $scope.users[_index] = userDetailToUser(user);
+      kylinCommon.success_alert($scope.dataKylin.user.success_disable);
+    },function(){
       SweetAlert.swal('', message, 'error');
     })
+
+  }
+
+  $scope.enableUser = function(user, index){
+    KapUserService.update({id:user.username},{'username':user.username,'disabled':'false'},function(user){
+      var _index = findUserIndex($scope.users, user);
+      //var _index =  _.findIndex($scope.users,function(item){return item.username == user.username});
+      $scope.users[_index] = userDetailToUser(user);
+      kylinCommon.success_alert($scope.dataKylin.user.success_enable);
+    },function(){
+      SweetAlert.swal('', message, 'error');
+    })
+
+  }
+
+  $scope.editUser = function(user){
+    $modal.open({
+      templateUrl: 'editUser.html',
+      controller: editUserCtrl,
+      windowClass:"add-user-window",
+      resolve: {
+        scope: function(){
+          return $scope
+        },
+        user: function(){
+          return user;
+        }
+      }
+    });
+  }
+
+  $scope.resetPassowrd = function(user){
+    $modal.open({
+      templateUrl: 'resetUserpwd.html',
+      controller: resetUserCtrl,
+      windowClass:"add-user-window",
+      resolve: {
+        scope: function(){
+          return $scope
+        },
+        user: function(){
+          return user;
+        }
+      }
+    });
+  }
+
+  KapUserService.listUsers({},$scope.user,function(users){
+    angular.forEach(users,function(_user){
+      $scope.users.push(userDetailToUser(_user));
+
+    })
+
+    //$scope.userGridOptions.data = $scope.users;
+
+  },function(e){
+    var message = $scope.dataKylin.user.tip_failed_list_users;
+    if( e.data&& e.data.exception){
+      message = e.data.exception;
+    }
+    SweetAlert.swal('', message, 'error');
+  })
 
 });
 
@@ -140,13 +155,13 @@ var addUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService, 
   $scope.error='';
   $scope.confirmPassword = "";
   $scope.newUser = {
-      'username':'',
-      'password':'',
-      'disabled':false,
-      'admin':false,
-      'modeler':false,
-      'analyst':true,
-      'confirmPassword':''
+    'username':'',
+    'password':'',
+    'disabled':false,
+    'admin':false,
+    'modeler':false,
+    'analyst':true,
+    'confirmPassword':''
   }
 
   $scope.cancel = function () {
@@ -156,15 +171,15 @@ var addUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService, 
   $scope.submitUser = function(){
     $scope.error ='';
     if($scope.newUser.password != $scope.newUser.confirmPassword){
-      $scope.error = 'Password and confirm password are not the same.';
+      $scope.error = $scope.dataKylin.user.tip_error_not_same;
       return;
     }
     if($scope.newUser.username==''){
-      $scope.error = 'Username invalid.';
+      $scope.error = $scope.dataKylin.user.tip_username_invalid;
       return;
     }
     if($scope.newUser.password==''){
-      $scope.error = 'Password invalid.';
+      $scope.error = $scope.dataKylin.user.tip_password_invalid;
       return;
     }
 
@@ -172,7 +187,7 @@ var addUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService, 
     KapUserService.save({id:userDetail.username},userDetail,function(user){
       $modalInstance.dismiss('cancel');
       scope.users.push(userDetailToUser(user));
-      SweetAlert.swal('Success!', 'Add user successfully', 'success');
+      kylinCommon.success_alert($scope.dataKylin.user.success_add_user);
     },function(){
       SweetAlert.swal('', message, 'error');
     })
@@ -205,7 +220,7 @@ var editUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService,
       $modalInstance.dismiss('cancel');
       var _index = findUserIndex(scope.users,user);
       scope.users[_index] = userDetailToUser(user);
-      SweetAlert.swal('Success!', 'Update user successfully', 'success');
+      kylinCommon.success_alert($scope.dataKylin.user.success_update_user);
     },function(){
       SweetAlert.swal('', message, 'error');
     })
@@ -234,16 +249,16 @@ var resetUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService
   $scope.submitUser = function(){
 
     if($scope.resetUser.confirmPassword !== $scope.resetUser.newPassword){
-      $scope.error ="New password and confirm password are not the same.";
+      $scope.error = $scope.dataKylin.user.tip_error_not_same;
       return;
     }
 
     var userDetail = userToUserDetail($scope.resetUser);
     KapUserService.reset({},userDetail,function(user){
       $modalInstance.dismiss('cancel');
-      SweetAlert.swal('Success!', 'Reset user password successfully', 'success');
+      kylinCommon.success_alert($scope.dataKylin.user.success_resetSuccess);
     },function(e){
-      var message = "Failed to reset password."
+      var message = $scope.dataKylin.user.failed_reset;
       if( e.data&& e.data.exception){
         message = e.data.exception;
       }
@@ -316,3 +331,4 @@ function findUserIndex(users,user){
 
   return index;
 }
+
