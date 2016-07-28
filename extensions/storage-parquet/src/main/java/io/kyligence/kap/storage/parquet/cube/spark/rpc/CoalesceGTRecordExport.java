@@ -20,23 +20,25 @@ package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
 import javax.annotation.Nullable;
 
+import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.gridtable.GTRecord;
 import org.apache.kylin.gridtable.GTScanRequest;
 
-public class CoalesceGTRecordExport implements com.google.common.base.Function<GTRecord, byte[]> {
-    private GTScanRequest gtScanRequest;
+//not thread safe!
+public class CoalesceGTRecordExport implements com.google.common.base.Function<GTRecord, ByteArray> {
     private ImmutableBitSet columns;
+    private ByteArray buffer;//shared
 
     public CoalesceGTRecordExport(GTScanRequest gtScanRequest, ImmutableBitSet columns) {
-        this.gtScanRequest = gtScanRequest;
         this.columns = columns;
+        this.buffer = ByteArray.allocate(gtScanRequest.getInfo().getMaxLength());
     }
 
     @Nullable
     @Override
-    public byte[] apply(@Nullable GTRecord input) {
-        byte[] temp = input.exportColumns(columns).array();
-        return temp;
+    public ByteArray apply(@Nullable GTRecord input) {
+        input.exportColumns(columns, buffer);
+        return buffer;
     }
 }

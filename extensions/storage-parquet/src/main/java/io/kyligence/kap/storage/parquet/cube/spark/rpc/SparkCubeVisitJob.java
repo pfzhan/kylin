@@ -20,17 +20,19 @@ package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
 import java.io.Serializable;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
 import javax.annotation.Nullable;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.gridtable.GTRecord;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
@@ -64,7 +66,7 @@ public class SparkCubeVisitJob implements Serializable {
     public SparkCubeVisitJob(JavaSparkContext sc, SparkJobProtos.SparkJobRequest request) {
         this.sc = sc;
         this.request = request;
-        this.kylinConfig = KylinConfig.createKylinConfigFromInputStream(IOUtils.toInputStream(request.getKylinProperties(), Charset.defaultCharset()));
+        this.kylinConfig = KylinConfig.createKylinConfigFromInputStream(IOUtils.toInputStream(request.getKylinProperties()));
         this.parquetPath = new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
                 append(request.getCubeId()).append("/").//
                 append(request.getSegmentId()).append("/").//
@@ -103,6 +105,7 @@ public class SparkCubeVisitJob implements Serializable {
 
         // visit parquet data file
         JavaPairRDD<Text, Text> seed = sc.newAPIHadoopFile(parquetPath, ParquetTarballFileInputFormat.class, Text.class, Text.class, conf);
+        
         List<byte[]> collected = seed.mapPartitions(new FlatMapFunction<Iterator<Tuple2<Text, Text>>, byte[]>() {
             @Override
             public Iterable<byte[]> call(Iterator<Tuple2<Text, Text>> tuple2Iterator) throws Exception {
@@ -119,45 +122,27 @@ public class SparkCubeVisitJob implements Serializable {
                 IGTScanner scanner = new OriginalBytesGTScanner(gtScanRequest.getInfo(), iterator, gtScanRequest);//in
                 final IGTScanner preAggred = gtScanRequest.decorateScanner(scanner);//process
                 final CoalesceGTRecordExport function = new CoalesceGTRecordExport(gtScanRequest, gtScanRequest.getColumns());
-                return new Iterable<byte[]>() {
-                    final Iterator<GTRecord> iterator = preAggred.iterator();
 
-                    @Override
-                    public Iterator<byte[]> iterator() {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                Iterator<GTRecord> gtIterator = preAggred.iterator();
+                long counter = 0;
+                while (iterator.hasNext()) {
+                    counter++;
+                    GTRecord row = gtIterator.next();
+                    ByteArray byteArray = function.apply(row);
+                    baos.write(byteArray.array(), 0, byteArray.length());
+                }
+                logger.info("Current task scanned {} raw records", preAggred.getScannedRowCount());
+                logger.info("Current task contributing {} results", counter);
+                scannedRecords.add(preAggred.getScannedRowCount());
+                collectedRecords.add(counter);
 
-                        return new Iterator<byte[]>() {
-                            long counter = 0;
-
-                            @Override
-                            public boolean hasNext() {
-                                boolean temp = iterator.hasNext();
-                                if (!temp) {
-                                    logger.info("Current task scanned {} raw records", preAggred.getScannedRowCount());
-                                    logger.info("Current task contributing {} results", counter);
-                                    scannedRecords.add(preAggred.getScannedRowCount());
-                                    collectedRecords.add(counter);
-                                }
-                                return temp;
-                            }
-
-                            @Override
-                            public byte[] next() {
-                                counter++;
-                                return function.apply(iterator.next());
-
-                            }
-
-                            @Override
-                            public void remove() {
-                                throw new UnsupportedOperationException();
-                            }
-                        };
-                    }
-                };
+                byte[] ret = baos.toByteArray();
+                return Collections.singleton(ret);
             }
         }).collect();
         logger.info(">>>>>> End of visiting cube data with Spark");
-        logger.info("The result size is " + collected.size());
+        logger.info("The result blob count is " + collected.size());
         return collected;
     }
 }

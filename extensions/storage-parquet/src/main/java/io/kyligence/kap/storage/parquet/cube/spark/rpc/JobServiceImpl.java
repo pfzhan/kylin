@@ -78,6 +78,10 @@ public class JobServiceImpl implements JobServiceGrpc.JobService {
     }
 
     private byte[] concat(List<byte[]> rows) {
+        if (rows.size() == 1) {
+            return rows.get(0);
+        }
+
         int length = 0;
         for (byte[] row : rows) {
             length += row.length;
