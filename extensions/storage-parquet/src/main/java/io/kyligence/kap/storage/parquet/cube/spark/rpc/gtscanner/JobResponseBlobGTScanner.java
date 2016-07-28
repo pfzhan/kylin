@@ -47,7 +47,7 @@ public class JobResponseBlobGTScanner implements IGTScanner {
     }
 
     @Override
-    public int getScannedRowCount() {
+    public long getScannedRowCount() {
         return 0;
     }
 

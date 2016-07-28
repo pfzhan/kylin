@@ -31,8 +31,10 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.gridtable.GTRecord;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
+import org.apache.spark.Accumulator;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
@@ -40,7 +42,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
@@ -97,6 +98,9 @@ public class SparkCubeVisitJob implements Serializable {
         logger.info("Max GT length: " + request.getMaxRecordLength());
         logger.info("Start to visit cube data with Spark <<<<<<");
 
+        final Accumulator<Long> scannedRecords = sc.accumulator(0L, "Scanned Records", LongAccumulableParam.INSTANCE);
+        final Accumulator<Long> collectedRecords = sc.accumulator(0L, "Collected Records", LongAccumulableParam.INSTANCE);
+
         // visit parquet data file
         JavaPairRDD<Text, Text> seed = sc.newAPIHadoopFile(parquetPath, ParquetTarballFileInputFormat.class, Text.class, Text.class, conf);
         List<byte[]> collected = seed.mapPartitions(new FlatMapFunction<Iterator<Tuple2<Text, Text>>, byte[]>() {
@@ -113,8 +117,43 @@ public class SparkCubeVisitJob implements Serializable {
                 GTScanRequest gtScanRequest = ParquetTarballFileReader.gtScanRequestThreadLocal.get();
 
                 IGTScanner scanner = new OriginalBytesGTScanner(gtScanRequest.getInfo(), iterator, gtScanRequest);//in
-                IGTScanner preAggred = gtScanRequest.decorateScanner(scanner);//process
-                return Iterables.transform(preAggred, new CoalesceGTRecordExport(gtScanRequest, gtScanRequest.getColumns()));//out
+                final IGTScanner preAggred = gtScanRequest.decorateScanner(scanner);//process
+                final CoalesceGTRecordExport function = new CoalesceGTRecordExport(gtScanRequest, gtScanRequest.getColumns());
+                return new Iterable<byte[]>() {
+                    final Iterator<GTRecord> iterator = preAggred.iterator();
+
+                    @Override
+                    public Iterator<byte[]> iterator() {
+
+                        return new Iterator<byte[]>() {
+                            long counter = 0;
+
+                            @Override
+                            public boolean hasNext() {
+                                boolean temp = iterator.hasNext();
+                                if (!temp) {
+                                    logger.info("Current task scanned {} raw records", preAggred.getScannedRowCount());
+                                    logger.info("Current task contributing {} results", counter);
+                                    scannedRecords.add(preAggred.getScannedRowCount());
+                                    collectedRecords.add(counter);
+                                }
+                                return temp;
+                            }
+
+                            @Override
+                            public byte[] next() {
+                                counter++;
+                                return function.apply(iterator.next());
+
+                            }
+
+                            @Override
+                            public void remove() {
+                                throw new UnsupportedOperationException();
+                            }
+                        };
+                    }
+                };
             }
         }).collect();
         logger.info(">>>>>> End of visiting cube data with Spark");

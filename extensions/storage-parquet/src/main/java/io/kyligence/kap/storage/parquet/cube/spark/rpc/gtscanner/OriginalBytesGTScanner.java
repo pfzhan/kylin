@@ -39,6 +39,7 @@ public class OriginalBytesGTScanner implements IGTScanner {
     private GTInfo info;
     private GTRecord temp;
     private ImmutableBitSet columns;
+    private long counter = 0L;
 
     private ImmutableBitSet getParquetCoveredColumns(GTScanRequest scanRequest) {
         BitSet bs = new BitSet();
@@ -68,8 +69,8 @@ public class OriginalBytesGTScanner implements IGTScanner {
     }
 
     @Override
-    public int getScannedRowCount() {
-        return 0;//TODO: stats
+    public long getScannedRowCount() {
+        return counter;
     }
 
     @Override
@@ -82,6 +83,7 @@ public class OriginalBytesGTScanner implements IGTScanner {
             @Nullable
             @Override
             public GTRecord apply(@Nullable ByteBuffer input) {
+                counter++;
                 temp.loadColumns(OriginalBytesGTScanner.this.columns, input);
                 return temp;
             }
