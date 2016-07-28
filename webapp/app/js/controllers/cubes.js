@@ -19,10 +19,11 @@
 'use strict';
 
 KylinApp
-  .controller('CubesCtrl', function ($scope, $q, $routeParams, $location, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, cubeConfig, ProjectModel, ModelService, MetaModel, CubeList,modelsManager,cubesManager,TableService,kylinCommon) {
+  .controller('CubesCtrl', function ($scope, $q, $routeParams, $location, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, cubeConfig, ProjectModel, ModelService, MetaModel, CubeList,modelsManager,cubesManager,TableService,kylinCommon,language) {
 
     $scope.cubeConfig = cubeConfig;
     $scope.cubeList = CubeList;
+    $scope.dataKylin = language.getDataKylin();
 
     $scope.modelsManager = modelsManager;
     //$scope.cubesManager = cubesManager;
@@ -401,6 +402,12 @@ KylinApp
     };
 
     $scope.cloneCube = function(cube){
+
+      if(!$scope.projectModel.selectedProject){
+        SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_select_target_project, 'info');
+        return;
+      }
+
       $scope.loadDetail(cube).then(function () {
         $modal.open({
           templateUrl: 'cubeClone.html',

@@ -616,6 +616,7 @@ KylinApp.constant('kapChineseConfig', {
     success_model_drop_done: '模型删除成功',
     tip_select_target_project: '请选择项目.',
     tip_to_clone_model: '确定要克隆模型? ',
+    tip_for_clone_project: '当前仅支持在同一个项目下克隆Cube.',
     success_clone_model: '模型克隆成功',
     success_project_update: '项目更新成功',//alert of PageCtrl
     tip_new_project_created: '项目创建成功',

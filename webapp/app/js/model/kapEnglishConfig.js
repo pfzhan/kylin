@@ -606,6 +606,7 @@ KylinApp.constant('kapEnglishConfig', {
     success_rebuild_job: 'Rebuild job was submitted successfully',
     tip_select_target_project: 'Please select target project.',
     tip_to_clone_cube: 'Are you sure to clone the cube? ',
+    tip_for_clone_project: 'Cross project clone is not allowed now,  cube will be cloned into current project.',
     success_clone_cube: 'Clone cube successfully',
     success_rebuild_job: 'Rebuild job was submitted successfully',
     tip_rebuild_part_one: 'Empty cube segment found',

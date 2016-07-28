@@ -36,9 +36,9 @@
             ng-if="userService.hasRole('ROLE_ADMIN') || hasPermission(cube, 16) && !newAccess">
             <a href="" ng-click="cube.visiblePage='notification';getNotifyListString(cube);">Notification</a>
         </li>
-        <li class="{{cube.visiblePage=='hbase'? 'active':''}}"
+        <li class="{{cube.visiblePage=='storage'? 'active':''}}"
             ng-if="userService.hasRole('ROLE_ADMIN')">
-          <a href="" ng-click="cube.visiblePage='hbase';getHbaseInfo(cube)">{{dataKylin.cube.cubeItems[5]}}</a>
+          <a href="" ng-click="cube.visiblePage='storage';getHbaseInfo(cube)">{{dataKylin.cube.cubeItems[5]}}</a>
         </li>
     </ul>
 
@@ -107,8 +107,8 @@
             </div>
             <div ng-if="cube.hbase">
                 <div class="hr hr8 hr-double hr-dotted"></div>
-                <h5><b>{{dataKylin.cube.cubHBTotalSize}}</b> <span class="red">{{cube.totalSize | bytes}}</span></h5>
-                <h5><b>{{dataKylin.cube.cubHBTotalNumber}}</b> <span class="red">{{cube.hbase.length}}</span></h5>
+                <h5><b>{{dataKylin.cube.cubeHBTotalSize}}</b> <span class="red">{{cube.totalSize | bytes}}</span></h5>
+                <h5><b>{{dataKylin.cube.cubeHBTotalNumber}}</b> <span class="red">{{cube.hbase.length}}</span></h5>
                 <h5><b>Cube ID:</b> <span class="red">{{cube.uuid}}</span></h5>
             </div>
             <div ng-if="cube.hbase.length == 0">
