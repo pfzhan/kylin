@@ -18,11 +18,21 @@
 
 package io.kyligence.kap.storage.parquet.cube;
 
+import java.util.Collection;
+import java.util.HashSet;
+
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.cube.cuboid.Cuboid;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryBase;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Sets;
 
 public class CubeStorageQuery extends GTCubeStorageQueryBase {
+    private static final Logger logger = LoggerFactory.getLogger(CubeStorageQuery.class);
 
     public CubeStorageQuery(CubeInstance cube) {
         super(cube);
@@ -35,5 +45,21 @@ public class CubeStorageQuery extends GTCubeStorageQueryBase {
     @Override
     protected String getGTStorage() {
         return "io.kyligence.kap.storage.parquet.cube.CubeSparkRPC";
+    }
+
+    public boolean isNeedStorageAggregation(Cuboid cuboid, Collection<TblColRef> groupD, Collection<TblColRef> singleValueD, boolean isExactAggregation) {
+
+        logger.info("GroupD :" + groupD);
+        logger.info("SingleValueD :" + singleValueD);
+        logger.info("Cuboid columns :" + cuboid.getColumns());
+
+        HashSet<TblColRef> temp = Sets.newHashSet();
+        temp.addAll(groupD);
+        temp.addAll(singleValueD);
+        if (cuboid.getColumns().size() != temp.size()) {
+            return false;
+        } else {
+            return true;
+        }
     }
 }
