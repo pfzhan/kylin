@@ -20,6 +20,7 @@ package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.spark.SparkConf;
@@ -46,6 +47,14 @@ public class JobServiceImpl implements JobServiceGrpc.JobService {
         //conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
         conf.set("spark.scheduler.mode", "FAIR");
         sc = new JavaSparkContext(conf);
+
+        logger.info("Starting to warm up all executors");
+        List<Integer> warmupData = new ArrayList<Integer>();
+        for (int i = 0; i < 10000; i++) {
+            warmupData.add(i);
+        }
+        sc.parallelize(warmupData).count();
+        logger.info("Finish warming up all executors");
     }
 
     @Override
