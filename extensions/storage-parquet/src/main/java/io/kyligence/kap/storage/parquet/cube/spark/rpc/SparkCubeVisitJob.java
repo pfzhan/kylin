@@ -105,7 +105,7 @@ public class SparkCubeVisitJob implements Serializable {
 
         // visit parquet data file
         JavaPairRDD<Text, Text> seed = sc.newAPIHadoopFile(parquetPath, ParquetTarballFileInputFormat.class, Text.class, Text.class, conf);
-        
+
         List<byte[]> collected = seed.mapPartitions(new FlatMapFunction<Iterator<Tuple2<Text, Text>>, byte[]>() {
             @Override
             public Iterable<byte[]> call(Iterator<Tuple2<Text, Text>> tuple2Iterator) throws Exception {
@@ -120,13 +120,13 @@ public class SparkCubeVisitJob implements Serializable {
                 GTScanRequest gtScanRequest = ParquetTarballFileReader.gtScanRequestThreadLocal.get();
 
                 IGTScanner scanner = new OriginalBytesGTScanner(gtScanRequest.getInfo(), iterator, gtScanRequest);//in
-                final IGTScanner preAggred = gtScanRequest.decorateScanner(scanner);//process
-                final CoalesceGTRecordExport function = new CoalesceGTRecordExport(gtScanRequest, gtScanRequest.getColumns());
+                IGTScanner preAggred = gtScanRequest.decorateScanner(scanner);//process
+                CoalesceGTRecordExport function = new CoalesceGTRecordExport(gtScanRequest, gtScanRequest.getColumns());
 
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 Iterator<GTRecord> gtIterator = preAggred.iterator();
                 long counter = 0;
-                while (iterator.hasNext()) {
+                while (gtIterator.hasNext()) {
                     counter++;
                     GTRecord row = gtIterator.next();
                     ByteArray byteArray = function.apply(row);
