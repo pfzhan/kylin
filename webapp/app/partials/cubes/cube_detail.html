@@ -34,7 +34,7 @@
         </li>
         <li class="{{cube.visiblePage=='notification'? 'active':''}}"
             ng-if="userService.hasRole('ROLE_ADMIN') || hasPermission(cube, 16) && !newAccess">
-            <a href="" ng-click="cube.visiblePage='notification';getNotifyListString(cube);">Notification</a>
+            <a href="" ng-click="cube.visiblePage='notification';getNotifyListString(cube);">{{dataKylin.cube.cubeItems[4]}}</a>
         </li>
         <li class="{{cube.visiblePage=='storage'? 'active':''}}"
             ng-if="userService.hasRole('ROLE_ADMIN')">

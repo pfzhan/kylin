@@ -405,6 +405,8 @@ KylinApp.constant('kapChineseConfig', {
     tip_no_job: '没有任务记录',
     tip_loading_jobs: '加载任务...',
     jobResume: '恢复',
+    jobDiscard: '终止',
+    jobDiagnosis: '诊断',
     jobsDetailInfo: '详细信息',//job detail begin
     tip_jobsDetailInfo: '收起',
     jobsJobName: '任务名',

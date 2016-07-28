@@ -414,7 +414,32 @@ KylinApp.constant('kapEnglishConfig', {
     tip_loading_cubes: 'Loading Cubes...',
     kaTopic: 'Topic', //kafka begin
     tip_Kafka_topic: 'Kafka topic is required.',
+    tip_kafka_topic_invalid: 'Kafka topic is invalid.',
     kaCluster: 'Cluster',
+    tip_input_kafkaConfig_topic: 'Input kafkaConfig topic',
+    kaHost: 'Host',
+    kaPort: 'Port',
+    kaActions: 'Actions',
+    tip_input_broker: 'Input broker ID',
+    tip_input_broker_host: 'Input broker host',
+    tip_input_broker_port: 'Input broker port',
+    kaBroker: 'Broker',
+    kaSave: 'Save',
+    kaCancel: 'Cancel',
+    kaKafkaSetting: 'Kafka Setting',
+    kaAdvancedSetting: 'Advanced Setting',
+    kaTimeout: 'Timeout',
+    tip_input_kafkaConfig_timeout: 'Input kafkaConfig timeout',
+    tip_timeout_invalid: 'Kafka timeout is invalid.',
+    tip_timeout_required: 'Kafka timeout is required.',
+    kaBufferSize: 'Buffer Size',
+    tip_kafkaConfig_bufferSize: 'Input kafkaConfig bufferSize',
+    tip_bufferSize_invalid: 'Kafka bufferSize is invalid.',
+    tip_bufferSize_required: 'Kafka bufferSize is required.',
+
+
+
+
 
   },
   monitor:{
@@ -428,6 +453,8 @@ KylinApp.constant('kapEnglishConfig', {
     tip_no_job: 'No Job.',
     tip_loading_jobs: 'Loading Jobs ...',
     jobResume: 'Resume',
+    jobDiscard: 'Discard',
+    jobDiagnosis: 'Diagnosis',
     jobsDetailInfo: 'Detail Information',//job detail begin
     tip_jobsDetailInfo: 'Collapse',
     jobsJobName: 'Job Name',
