@@ -452,8 +452,10 @@ KylinApp
   });
 
 
-var cubeCloneCtrl = function ($scope, $modalInstance, CubeService, MessageService, $location, cube, MetaModel, SweetAlert,ProjectModel, loadingRequest) {
+var cubeCloneCtrl = function ($scope, $modalInstance, CubeService, MessageService, $location, cube, MetaModel, SweetAlert,ProjectModel, loadingRequest, language) {
   $scope.projectModel = ProjectModel;
+
+  $scope.dataKylin = language.getDataKylin();
 
   $scope.targetObj={
     cubeName:cube.descriptor+"_clone",
