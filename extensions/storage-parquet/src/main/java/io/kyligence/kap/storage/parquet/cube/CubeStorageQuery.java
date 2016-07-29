@@ -56,9 +56,11 @@ public class CubeStorageQuery extends GTCubeStorageQueryBase {
         HashSet<TblColRef> temp = Sets.newHashSet();
         temp.addAll(groupD);
         temp.addAll(singleValueD);
-        if (cuboid.getColumns().size() != temp.size()) {
+        if (cuboid.getColumns().size() == temp.size()) {
+            logger.info("Does not need storage aggregation");
             return false;
         } else {
+            logger.info("Need storage aggregation");
             return true;
         }
     }
