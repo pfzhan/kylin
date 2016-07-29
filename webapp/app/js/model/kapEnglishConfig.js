@@ -172,9 +172,9 @@ KylinApp.constant('kapEnglishConfig', {
     Model: 'Model',
     Measure: 'Measure',
     paramValue: 'Param Value',
-    model: 'model',
+    model: 'Model',
     schema:['Model Info','Data Mode','Dimensions','Measures','Settings'],
-    models: 'models',
+    models: 'Models',
     theaditems : [
       {attr: 'name', name: 'Name'},
       {attr: 'project', name: 'Project'},
@@ -574,7 +574,7 @@ KylinApp.constant('kapEnglishConfig', {
     ac_close: 'Close'
   },
   data_source:{
-    data_source: 'data_source',
+    data_source: 'Data Source',
     tables: 'tables',//--table tree begin
     tip_load_hive_table: 'Load Hive Table',
     tip_load_table_tree: 'Load Hive Table From Tree',

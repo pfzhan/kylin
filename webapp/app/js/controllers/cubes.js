@@ -22,7 +22,6 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
 
     $scope.cubeConfig = cubeConfig;
     $scope.cubeList = CubeList;
-    $scope.dataKylin = language.getDataKylin();
 
     $scope.modelsManager = modelsManager;
     //$scope.cubesManager = cubesManager;
