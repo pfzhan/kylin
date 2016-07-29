@@ -70,7 +70,7 @@ KylinApp.constant('kapChineseConfig', {
   },
   header:{
   chooseProject: '选择项目',
-  login: '登陆',
+  login: '登录',
   logout: '注销',
   help: '帮助',
   welcome: '欢迎',
