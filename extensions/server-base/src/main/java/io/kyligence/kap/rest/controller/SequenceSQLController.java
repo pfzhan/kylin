@@ -245,7 +245,7 @@ public class SequenceSQLController extends BasicController {
 
                     sqlResponse.setDuration(System.currentTimeMillis() - startTime);
                     logger.info("Stats of SQL response: isException: {}, duration: {}, total scan count {}", //
-                            new String[] { String.valueOf(sqlResponse.getIsException()), String.valueOf(sqlResponse.getDuration()), String.valueOf(sqlResponse.getTotalScanCount()) });
+                            String.valueOf(sqlResponse.getIsException()), String.valueOf(sqlResponse.getDuration()), String.valueOf(sqlResponse.getTotalScanCount()));
 
                     //TODO: auth
                     //checkQueryAuth(sqlResponse);

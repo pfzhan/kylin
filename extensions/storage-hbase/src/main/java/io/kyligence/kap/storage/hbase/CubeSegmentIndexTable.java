@@ -19,7 +19,6 @@ import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.DiscreteDomains;
 import com.google.common.collect.Range;
-import com.google.common.collect.Ranges;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.gridtable.GTScanRanges;
@@ -120,14 +119,14 @@ public class CubeSegmentIndexTable implements IIndexTable {
             case GT:
             case GTE:
                 int gtValue = BytesUtil.readUnsigned(((ByteArray) filter.getFirstValue()).asBuffer(), dict.getSizeOfId());
-                Set<Integer> gtValues = Ranges.closed(gtValue, dict.getMaxId()).asSet(DiscreteDomains.integers());
+                Set<Integer> gtValues = Range.closed(gtValue, dict.getMaxId()).asSet(DiscreteDomains.integers());
                 scanRanges = buildPositiveGTScanRanges(invertedIndex, column, gtValues);
                 break;
 
             case LT:
             case LTE:
                 int ltValue = BytesUtil.readUnsigned(((ByteArray) filter.getFirstValue()).asBuffer(), dict.getSizeOfId());
-                Set<Integer> ltValues = Ranges.closed(dict.getMinId(), ltValue).asSet(DiscreteDomains.integers());
+                Set<Integer> ltValues = Range.closed(dict.getMinId(), ltValue).asSet(DiscreteDomains.integers());
                 scanRanges = buildPositiveGTScanRanges(invertedIndex, column, ltValues);
                 break;
 

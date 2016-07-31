@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.Random;
 
 import org.apache.commons.io.FileUtils;
@@ -48,7 +49,7 @@ public class KAPEhcacheTest {
         URL resource = classLoader.getResource("ehcache-test.xml");
         URL resource2 = classLoader.getResource("kylin-log4j.properties");
 
-        String x = FileUtils.readFileToString(new File(resource.toURI()));
+        String x = FileUtils.readFileToString(new File(resource.toURI()), Charset.defaultCharset());
         System.out.println(resource);
         System.out.println(resource2);
         System.out.println(x);

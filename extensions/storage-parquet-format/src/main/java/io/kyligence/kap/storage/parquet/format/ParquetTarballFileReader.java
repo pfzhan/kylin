@@ -2,6 +2,7 @@ package io.kyligence.kap.storage.parquet.format;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
@@ -64,10 +65,10 @@ public class ParquetTarballFileReader extends RecordReader<Text, Text> {
         String kylinPropertiesStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES);
         if (kylinPropertiesStr == null) { 
             logger.warn("Creating an empty KylinConfig");
-            KylinConfig.setKylinConfigFromInputStream(IOUtils.toInputStream(""));
+            KylinConfig.setKylinConfigFromInputStream(IOUtils.toInputStream("", Charset.defaultCharset()));
         } else {
             logger.info("Creating KylinConfig from conf");
-            KylinConfig.setKylinConfigFromInputStream(IOUtils.toInputStream(kylinPropertiesStr));
+            KylinConfig.setKylinConfigFromInputStream(IOUtils.toInputStream(kylinPropertiesStr, Charset.defaultCharset()));
         }
 
         ParquetPageIndexRecordReader indexReader = new ParquetPageIndexRecordReader();

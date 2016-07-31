@@ -20,6 +20,7 @@ package io.kyligence.kap.tool.kybot;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -235,7 +236,7 @@ public class SampleDataExtractor extends AbstractInfoExtractor {
             Set<String> nonObfuscateColumns = entry.getValue().getSecond();
             String selectSampleDataHql = factTables.contains(tableName) ? generateInsertOverwriteHql(true, new File(exportDir, tableName).getAbsolutePath(), obfuscateColumns, nonObfuscateColumns, udfFuncName, tableName, sampleRate) : generateInsertOverwriteHql(false, new File(exportDir, tableName).getAbsolutePath(), obfuscateColumns, nonObfuscateColumns, udfFuncName, tableName, sampleRate);
             String createTableHql = generateCreateTableHql(tableName, obfuscateColumns, nonObfuscateColumns);
-            FileUtils.writeStringToFile(createScriptFile, createTableHql, true);
+            FileUtils.writeStringToFile(createScriptFile, createTableHql, Charset.defaultCharset(), true);
             hiveCmdBuilder.addStatement(selectSampleDataHql);
         }
 
@@ -248,6 +249,6 @@ public class SampleDataExtractor extends AbstractInfoExtractor {
 
         // export sampling info
         File samplingInfo = new File(exportDir, "sampling.info");
-        FileUtils.writeStringToFile(samplingInfo, "SampleRate: " + sampleRate);
+        FileUtils.writeStringToFile(samplingInfo, "SampleRate: " + sampleRate, Charset.defaultCharset());
     }
 }

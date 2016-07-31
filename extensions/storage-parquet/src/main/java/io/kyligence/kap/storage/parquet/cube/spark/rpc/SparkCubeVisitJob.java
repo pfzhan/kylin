@@ -20,6 +20,7 @@ package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.List;
 
@@ -62,7 +63,7 @@ public class SparkCubeVisitJob implements Serializable {
     public SparkCubeVisitJob(JavaSparkContext sc, SparkJobProtos.SparkJobRequest request) {
         this.sc = sc;
         this.request = request;
-        this.kylinConfig = KylinConfig.createKylinConfigFromInputStream(IOUtils.toInputStream(request.getKylinProperties()));
+        this.kylinConfig = KylinConfig.createKylinConfigFromInputStream(IOUtils.toInputStream(request.getKylinProperties(), Charset.defaultCharset()));
         this.parquetPath = new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
                 append(request.getCubeId()).append("/").//
                 append(request.getSegmentId()).append("/").//
