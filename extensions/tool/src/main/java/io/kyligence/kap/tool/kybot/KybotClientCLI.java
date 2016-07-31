@@ -20,6 +20,7 @@ package io.kyligence.kap.tool.kybot;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
@@ -94,5 +95,10 @@ public class KybotClientCLI extends AbstractInfoExtractor {
         String[] args = new String[argList.size()];
         logger.info(StringUtils.join(argList, ","));
         diagnosisInfoCLI.execute(argList.toArray(args));
+
+        String[] garbageArgs = { "-destDir", new File(exportDir, "garbage").getAbsolutePath(), "-compress", "false", "-submodule", "true" };
+        StorageGarbageStatsExtractor garbageExtractor = new StorageGarbageStatsExtractor();
+        logger.info("StorageGarbageStatsExtractor args: " + Arrays.toString(garbageArgs));
+        garbageExtractor.execute(garbageArgs);
     }
 }
