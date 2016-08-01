@@ -363,10 +363,11 @@ KylinApp.constant('kapChineseConfig', {
     cubeMSParameterAdd: '添加参数',
     cubeMSParameterSelect: '选择Group By列',
     cubeRSAutoMerge: '触发自动合并的时间阀值',//refresh_settings begin
-    tip_cubeRSAutoMerge: 'The thresholds will be checked ascendingly to see if any consectuive segments\' time range has exceeded it. For example the [7 days, 30 days] will result in daily incremental segments being merged every 7 days, and the 7-days segments will get merged every 30 days.',
+    tip_cubeRSAutoMerge: '系统会自动检查您设置的时间阀值,例如设置了时间阀值为[7天,30天],则系统会每隔7天合并一次segment,并且每隔30天再合并一次已合并的segment',
     cubeRSNewThresholds: '新建阀值',
     cubeRSRetentionThreshold: '保留时间阀值',
-    tip_cubeRSRetentionThreshold: 'By default it\'s \'0\',which will keep all historic cube segments ,or will keep latest [Retention Threshold] days cube segments.',
+    tip_cubeRSRetentionThreshold: '该值默认值为0, 系统会保留所有的历史Cube Segment, 当用户设置值为n时,系统会保留对应最近n天的历史',
+    cubeRSPartitionStart: '起始日期',
     tip_cubePartitionDate: '选择起始日期（如果此模型是按日期分区的）',
     cubeASID: 'ID',//Advanced Setting begin
     cubeASAggregationGroups: '聚合组',
