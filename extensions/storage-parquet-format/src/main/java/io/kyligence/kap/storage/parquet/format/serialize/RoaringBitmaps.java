@@ -60,4 +60,33 @@ public class RoaringBitmaps {
         }
         return bitmap;
     }
+
+    public static byte[] writeToBytes(MutableRoaringBitmap bitmap) {
+        ByteArrayOutputStream bos = null;
+        DataOutputStream dos = null;
+        byte[] result = null;
+        try {
+            bos = new ByteArrayOutputStream();
+            dos = new DataOutputStream(bos);
+            bitmap.serialize(dos);
+            dos.flush();
+            result = bos.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            IOUtils.closeQuietly(dos);
+            IOUtils.closeQuietly(bos);
+        }
+        return result;
+    }
+
+    public static MutableRoaringBitmap readFromBytes(byte[] bytes) {
+        MutableRoaringBitmap bitmap = null;
+
+        if (bytes != null) {
+            ByteBuffer buf = ByteBuffer.wrap(bytes);
+            bitmap = new ImmutableRoaringBitmap(buf).toMutableRoaringBitmap();
+        }
+        return bitmap;
+    }
 }

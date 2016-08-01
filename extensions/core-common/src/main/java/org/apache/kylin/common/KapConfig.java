@@ -52,7 +52,7 @@ public class KapConfig {
     }
 
     public int getParquetPageIndexSpillThreshold() {
-        return Integer.parseInt(config.getOptional("kap.parquet.ii.spill.threshold", String.valueOf(10000)));
+        return Integer.parseInt(config.getOptional("kap.parquet.ii.spill.threshold", String.valueOf(100000)));
     }
 
     public String getSparkClientHost() {

@@ -29,6 +29,7 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
         this.columnSpec = columnSpec;
         this.config = KapConfig.getInstanceFromEnv();
         this.indexMapCache = new IndexMapCache(!columnSpec.isOnlyEQIndex());
+//        this.indexMapCache = new MemorySavingIndexMapCache(!columnSpec.isOnlyEQIndex());
     }
 
     public long getTotalSize() {
@@ -109,6 +110,7 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
         // write lt
         logger.info("Start to write lt index for column {}", columnSpec.getColumnName());
 
+//        IndexMapCache auxiliaryIndexMap = new MemorySavingIndexMapCache(false);
         IndexMapCache auxiliaryIndexMap = new IndexMapCache(false);
         MutableRoaringBitmap lastValue = MutableRoaringBitmap.bitmapOf();
         MutableRoaringBitmap currValue = null;
@@ -123,6 +125,7 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
 
         // write gt
         logger.info("Start to write gt index for column {}", columnSpec.getColumnName());
+//        auxiliaryIndexMap = new MemorySavingIndexMapCache(false);
         auxiliaryIndexMap = new IndexMapCache(false);
         lastValue = MutableRoaringBitmap.bitmapOf();
         for (Pair<ByteArray, MutableRoaringBitmap> indexEntry : indexMapCache.getIterable(false)) {
