@@ -188,6 +188,8 @@ KylinApp.constant('kapChineseConfig', {
     prev: '上一步',
     save: '保存',
     grid: 'grid',    //grid of model begin
+    aggregationGroups: 'Aggregation Groups',
+    toAggregationGroups: 'Visit aggregation group for more about aggregation group.',
     gridModelDesign: '模型设计',
     gridModelInfo: '模型信息',
     gridMIModelName: '模型名称',
