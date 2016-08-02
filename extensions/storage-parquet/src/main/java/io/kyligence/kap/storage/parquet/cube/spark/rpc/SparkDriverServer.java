@@ -30,9 +30,18 @@ import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.JobServiceGrpc;
 public class SparkDriverServer {
     private static final Logger logger = LoggerFactory.getLogger(SparkDriverServer.class);
 
-    /* The port on which the server should run */
-    private int port = 50051;
+    private final static int defaultPort = 50051;
+    private final int port;
     private Server server;
+
+    public SparkDriverServer(int port) {
+        this.port = port;
+    }
+
+    public SparkDriverServer() {
+        /* The port on which the server should listen to */
+        this.port = defaultPort;
+    }
 
     public void start() throws IOException {
         server = ServerBuilder.forPort(port).addService(JobServiceGrpc.bindService(new JobServiceImpl())).build().start();
@@ -67,7 +76,14 @@ public class SparkDriverServer {
      * Main launches the server from the command line.
      */
     public static void main(String[] args) throws IOException, InterruptedException {
-        final SparkDriverServer server = new SparkDriverServer();
+        SparkDriverServer server;
+        if (args != null && args.length > 1) {
+            System.out.println("Port is set to " + args[0]);
+            server = new SparkDriverServer(Integer.valueOf(args[0]));
+        } else {
+            System.out.println("Port is set to default value " + defaultPort);
+            server = new SparkDriverServer();
+        }
         server.start();
         server.blockUntilShutdown();
     }

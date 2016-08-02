@@ -18,6 +18,8 @@
 
 package io.kyligence.kap.storage.parquet.cube.spark;
 
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.util.AbstractApplication;
 import org.apache.kylin.common.util.OptionsHelper;
@@ -30,10 +32,14 @@ public class SparkQueryDriver extends AbstractApplication {
 
     protected static final Logger logger = LoggerFactory.getLogger(SparkQueryDriver.class);
 
+    @SuppressWarnings("static-access")
+    private static final Option OPTION_PORT = OptionBuilder.withArgName("port").hasArg().isRequired(false).withDescription("specify which port to listen to").create("port");
+
     private Options options;
 
     public SparkQueryDriver() {
         options = new Options();
+        options.addOption(OPTION_PORT);
     }
 
     @Override
@@ -43,6 +49,7 @@ public class SparkQueryDriver extends AbstractApplication {
 
     @Override
     protected void execute(OptionsHelper optionsHelper) throws Exception {
+        
         SparkDriverServer server = new SparkDriverServer();
         server.start();
         server.blockUntilShutdown();
