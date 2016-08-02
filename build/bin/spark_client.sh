@@ -43,7 +43,7 @@ then
     
     $SPARK_HOME/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry \
     --master yarn --deploy-mode client ${KYLIN_SPARK_JAR_PATH} \
-    -className io.kyligence.kap.storage.parquet.cube.spark.SparkQueryDriver --port $2 >> ${KAP_HOME}/logs/spark_client.out 2>&1 & echo $! > ${KAP_HOME}/spark_client_pid &
+    -className io.kyligence.kap.storage.parquet.cube.spark.SparkQueryDriver --port ${2:-50051} >> ${KAP_HOME}/logs/spark_client.out 2>&1 & echo $! > ${KAP_HOME}/spark_client_pid &
     
     echo "A new spark client instance is started by $USER, stop it using \"spark_client.sh stop\""
     echo "You can check the log at ${KAP_HOME}/logs/spark_client.out"
