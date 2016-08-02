@@ -118,7 +118,7 @@ KylinApp.directive('kylinPagination', function ($parse, $q, language) {
       templateUrl: 'partials/directives/noResult.html',
       link: function (scope, element, attrs) {
         scope.$watch('text',function(newTitle,oldTitle) {
-          scope.text = (!!!attrs.text) ? (language.getLanguageType()===0?'No Result.':'无相关结果') : attrs.text;
+          scope.text = (!!!attrs.text) ? (language.getLanguageType()==0?'No Result.':'无相关结果') : attrs.text;
         })
       }
     };
