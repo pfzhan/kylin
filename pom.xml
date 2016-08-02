@@ -27,7 +27,7 @@
         <kylin.version>1.5.4-SNAPSHOT</kylin.version>
 
         <!-- Spark -->
-        <spark.version>1.6.1</spark.version>
+        <spark.version>1.6.2</spark.version>
         <hive.version>0.14.0</hive.version>
         <fastPFOR.version>0.0.13</fastPFOR.version>
         <!-- rpc -->

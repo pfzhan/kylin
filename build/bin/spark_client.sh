@@ -15,11 +15,11 @@ if [[ $CI_MODE == 'true' ]]
 then
     echo 'in ci mode'
     export KAP_HOME=${dir}/../../
-    export KYLIN_SPARK_JAR_PATH=$KAP_HOME/extensions/storage-parquet/target/kap-storage-parquet-1.5.3-SNAPSHOT-spark.jar
+    export KYLIN_SPARK_JAR_PATH=$KAP_HOME/extensions/storage-parquet/target/kap-storage-parquet-1.5.4-SNAPSHOT-spark.jar
 else
     echo 'in normal mode'
     export KAP_HOME=${dir}/../
-    export KYLIN_SPARK_JAR_PATH=$KAP_HOME/lib/kylin-storage-parquet-kap-1.5.3-SNAPSHOT.jar
+    export KYLIN_SPARK_JAR_PATH=$KAP_HOME/lib/kylin-storage-parquet-kap-1.5.4-SNAPSHOT.jar
 fi
 
 echo "KYLIN_HOME is set to ${KAP_HOME}"
