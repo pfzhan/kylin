@@ -39,7 +39,7 @@
             </div>
             <div ng-class="(state.mode=='edit')?'col-xs-6':'col-xs-12'">
                 <span class="pull-right input-icon input-icon-right nav-search" style="margin-left: 22px;">
-                    <input type="text" placeholder="Filter ..." class="nav-search-input" ng-model="dimState.filter"/>
+                    <input type="text" placeholder="{{dataKylin.monitor.plac_jobsCubeName}}" class="nav-search-input" ng-model="dimState.filter"/>
                     <i class="ace-icon fa fa-search nav-search-icon"></i>
                 </span>
             </div>
@@ -138,8 +138,8 @@
                         <div class="row">
                             <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default"><b>{{dataKylin.cube.cubeDSName}}</b></label>
                             <div class="col-xs-12 col-sm-6">
-                                <input type="text" placeholder="Name.." class="form-control" name="dim_name"
-                                       tooltip="dimension name.." tooltip-trigger="focus"
+                                <input type="text" placeholder="{{dataKylin.cube.tip_cubeDSName}}" class="form-control" name="dim_name"
+                                       tooltip="{{dataKylin.cube.tip_cubeDSDiName}}" tooltip-trigger="focus"
                                        ng-model="newDimension.name" required />
                             </div>
                             <div class="col-xs-12 col-sm-3">
@@ -155,13 +155,13 @@
                         <div class="row">
                             <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default"><b>{{dataKylin.cube.cubeDSTableName}}</b></label>
                             <div class="col-xs-12 col-sm-6" ng-if="dimType.indexOf('derived') >= 0">
-                                <select class="form-control" required="true" chosen data-placeholder="Select a lookup table"
+                                <select class="form-control" required="true" chosen data-placeholder="{{dataKylin.cube.tip_select_lookup}}"
                                         ng-model="newDimension.table" ng-options="table for table in availableTables.slice(1)">
                                     <option value=""></option>
                                 </select>
                             </div>
                             <div class="col-xs-12 col-sm-6" ng-if="dimType.indexOf('derived') == -1">
-                                <select class="form-control" required="true" chosen data-placeholder="Select a table"
+                                <select class="form-control" required="true" chosen data-placeholder="{{dataKylin.cube.tip_select_table}}"
                                         ng-model="newDimension.table" ng-options="table for table in availableTables">
                                     <option value=""></option>
                                 </select>
