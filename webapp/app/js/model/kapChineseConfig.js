@@ -403,7 +403,7 @@ KylinApp.constant('kapChineseConfig', {
     tip_Column_Name: '列名..',
     cubeASNewRowkeyColumn: '新加Rowkey列',
     plac_cubeCOKey: 'Key',//Configuration Overwrites begin
-    tip_cubeCOKey: '属性值不能为空.',
+    tip_cubeCOKey: '属性名不能为空.',
     plac_cubeCOValue: 'Value',
     tip_cubeCOValue: '属性值不能为空.',
     cubeCOProperty: 'Property',

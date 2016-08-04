@@ -419,7 +419,7 @@ KylinApp.constant('kapEnglishConfig', {
     tip_Column_Name: 'Column Name..',
     cubeASNewRowkeyColumn: 'New Rowkey Column',
     plac_cubeCOKey: 'Key',//Configuration Overwrites begin
-    tip_cubeCOKey: 'Property value is required.',
+    tip_cubeCOKey: 'Property name is required.',
     plac_cubeCOValue: 'Value',
     tip_cubeCOValue: 'Property value is required.',
     cubeCOProperty: 'Property',

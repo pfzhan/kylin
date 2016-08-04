@@ -300,10 +300,10 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
 
     for(var key in $scope.cubeMetaFrame.override_kylin_properties){
       if(key==''){
-        errors.push("Property name is required.");
+        errors.push($scope.dataKylin.cube.tip_cubeCOKey);
       }
       if($scope.cubeMetaFrame.override_kylin_properties[key] == ''){
-        errors.push("Property value is required.");
+        errors.push($scope.dataKylin.cube.tip_cubeCOValue);
       }
     }
 
