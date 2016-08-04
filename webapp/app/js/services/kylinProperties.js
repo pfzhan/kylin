@@ -20,6 +20,7 @@ KylinApp.service('kylinConfig', function (AdminService, $log) {
   var _config;
   var timezone;
   var deployEnv;
+  var profile;
 
 
   this.init = function () {
@@ -45,6 +46,13 @@ KylinApp.service('kylinConfig', function (AdminService, $log) {
       this.timezone = this.getProperty("kylin.rest.timezone").trim();
     }
     return this.timezone;
+  }
+
+  this.getProfile = function () {
+    if (!this.profile) {
+      this.profile = this.getProperty("kylin.security.profile").trim();
+    }
+    return this.profile;
   }
 
   this.isCacheEnabled = function(){
