@@ -293,6 +293,7 @@ KylinApp.constant('kapChineseConfig', {
     cubeActions:['删除','编辑','构建','刷新','合并','禁用','启用','清理','克隆'],
     tip_drop_cube: '永久删除Cube以及Cube相关的Job和数据',
     edit: '编辑',
+    view: '查看',
     SegmentId: 'Segment ID',
     cubeItems: ['Grid','SQL','JSON(Cube)','权限','通知列表','存储'],
     cubeNoNotification: '通知列表(逗号分隔)',
@@ -457,7 +458,7 @@ KylinApp.constant('kapChineseConfig', {
   monitor:{
     monitor: '监控',
     jobs: '任务',
-    slowQueries: '过慢的查询',
+    slowQueries: '慢查询',
     jobsCubeName: 'Cube名称:',
     plac_jobsCubeName: '过滤器 ...',
     jobsJobsIn: 'Jobs in',
@@ -509,7 +510,7 @@ KylinApp.constant('kapChineseConfig', {
     jobsSegmentDetail: 'SEGMENT详细信息',
     jobsCubeBuildConfirm: 'Cube构建确认',//jobs submit modal begin
     tip_no_project_selected: '没有选择项目.',//job slow query begin
-    tip_no_slow_query: '没有记录到过慢的查询.',
+    tip_no_slow_query: '没有记录到慢查询.',
     tip_loading_queries: '加载查询记录...',
   },
   insight:{

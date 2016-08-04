@@ -309,6 +309,7 @@ KylinApp.constant('kapEnglishConfig', {
     cubeActions:['Drop','Edit','Build','Refresh','Merge','Disable','Enable','Purge','Clone'],
     tip_drop_cube: 'Drop the cube, related jobs and data permanently.',
     edit: 'Edit',
+    view: 'View',
     SegmentId: 'Segment ID',
     cubeItems: ['Grid','SQL','JSON(Cube)','Access','Notification','Storage'],
     cubeNoNotification: 'Notification List(Common Separated)',
