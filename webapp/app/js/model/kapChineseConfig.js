@@ -240,16 +240,16 @@ KylinApp.constant('kapChineseConfig', {
     //gridSTWhere: 'Where',
     edit: '编辑',  //edit of model begin
     editDMSelectFact: '-- 选择事实表 --',
-    editDMAddLookupTable: '添加查找表',
-    editDMSelectLookup: '-- 选择查找表 --',
+    editDMAddLookupTable: '添加维度表',
+    editDMSelectLookup: '-- 选择维度表 --',
     editDMActions: '操作',
     editDMLookupAdd: '添加',
-    editDMLookupAdd: '编辑',//查找表 modal
-    editDMLookupTableName: '查找表名称',
+    editDMLookupAdd: '编辑',//维度表 modal
+    editDMLookupTableName: '维度表名称',
     editDMLookupNewJoin: '新的连接类型',
     tip_join_delete: '删除',
     tip_header_lookup_modal: ' <h4 class="box-title">提示</h4>',
-    tip_body_lookup_modal: '<ol class="text-info"><li>清选择查找表</li><li>指定事实表和查找表的连接关系.</li><li>连接类型需跟SQL查询时的连接关系相同</li></ol>',
+    tip_body_lookup_modal: '<ol class="text-info"><li>请选择维度表</li><li>指定事实表和维度表的连接关系.</li><li>连接类型需跟SQL查询时的连接关系相同</li></ol>',
     ac_lookup_ok: '确定',
     ac_lookup_cancel: '取消',
     clone: '克隆',
@@ -334,7 +334,7 @@ KylinApp.constant('kapChineseConfig', {
     cubeDSEditDSEdit: '编辑维度',
     cubeDSEditDSAdd: '添加维度',//add dimension begin
     tip_no_dimension_name: '维度名不可为空.',
-    tip_derived_dimension: '可推导(Derived)维度需要来自查找表.',
+    tip_derived_dimension: '可推导(Derived)维度需要来自维度表.',
     cubeDSColumnName: '列名',
     cubeDSSelectColumn: '-- 选择列 --',
     ac_delete_cubeDSColumn: '删除',
@@ -348,9 +348,9 @@ KylinApp.constant('kapChineseConfig', {
     cubeDSAutoGenerate: '自动生成维度 <small>这个工具会帮助您批量生成维度.</small> ',//Auto Generate Dimensions begin
     cubeDSColumns: 'Columns',
     cubeDSFactTable: '[事实表]',
-    cubeDSLookupTable: '[查找表]',
+    cubeDSLookupTable: '[维度表]',
     tip_title_DSAutoGenerate: '自动生成规则',
-    tip_body_DSAutoGenerate: '<li>如果某列已经被创建为维度，将不能再选择此列.</li><li>事实表上的每个选中的列，会自动创建为一个普通维度.</li><li>查找表上选中的列，会被自动创建为从外键可推导的(Derived)维度.</li>',
+    tip_body_DSAutoGenerate: '<li>如果某列已经被创建为维度，将不能再选择此列.</li><li>事实表上的每个选中的列，会自动创建为一个普通维度.</li><li>维度表上选中的列，会被自动创建为从外键可推导的(Derived)维度.</li>',
     cubeMSName: '名称',//measures begin
     cubeMSExpression: '表达式',
     cubeMSParameters: '参数',
@@ -388,7 +388,7 @@ KylinApp.constant('kapChineseConfig', {
     cubeASJointDimensions: '组合维度',
     cubeASNewJoint: '新的组合',
     cubeASNewAggregationGroup: '新建聚合组',
-    cubeASRowkeys: 'Rowkey',
+    cubeASRowkeys: 'Rowkeys',
     tip_title_cubeASRowkeys: 'Rowkey',
     tip_body_cubeASRowkeys: '<h4>是否按该列分散存储?</h4><p>若设为"true"，Cube数据将按该列值分散存储</p><h4>Rowkey编码</h4><ol><li>选用"dict"编码将该维度构建字典保存</li><li>选用"fixed_length"编码将该维度保存为等长字节块</li><li>选用"int"编码将该维度以整数编码保存</li></ol>',
     cubeASID: 'ID',
@@ -411,7 +411,7 @@ KylinApp.constant('kapChineseConfig', {
     cubeOVModelName: '模型名称',//Overview begin
     cubeOVCubeName: 'Cube名',
     cubeOVFactTable: '事实表',
-    cubeOVLookupTable: '查找表',
+    cubeOVLookupTable: '维度表',
     cubeOVDimensions: '维度',
     cubeOVMeasures: '度量',
     cubeOVDescription: '描述',
@@ -696,7 +696,7 @@ KylinApp.constant('kapChineseConfig', {
     success_updated_cube: '更新Cube成功',
     success_created_cube: '创建Cube成功.',
     tip_column_required: '[TOP_N]的Group by列不能为空',//alert of CubeMeasuresCtrl
-    tip_remove_lookup_table: '删除后，所有与此表相关的维度会一起删除，确定删除查找表?',//alert of CubeModelCtrl
+    tip_remove_lookup_table: '删除后，所有与此表相关的维度会一起删除，确定删除维度表?',//alert of CubeModelCtrl
     tip_no_cube_detail: '没有Cube详细信息.',//alert of cubesCtrl
     tip_no_cube_detail_loaded: '没有Cube详细信息.',
     tip_sure_to_enable_cube: '请注意，如果在禁用期间，Cube的元数据发生改变，所有的Segment会被丢弃. 确定要启用Cube?',
