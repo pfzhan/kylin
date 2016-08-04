@@ -249,9 +249,7 @@ var projCtrl = function ($scope, $location, $modalInstance, ProjectService, Mess
         newDescription: $scope.proj.description
       };
       ProjectService.update({}, requestBody, function (newProj) {
-        kylinCommon.success_alert()
-        SweetAlert.swal('Success!', $scope.dataKylin.alert.success_project_update, 'success');
-
+        kylinCommon.success_alert($scope.dataKylin.alert.success_project_update);
         //update project in project model
         ProjectModel.updateProject($scope.proj.name, $scope.state.oldProjName);
         $cookieStore.put("project", $scope.proj.name);
