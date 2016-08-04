@@ -324,7 +324,7 @@ KylinApp.constant('kapEnglishConfig', {
     cubeHBNoHBaseInfo: 'No HBase Info.',
     cubeCIModelName: 'Model Name',
     cubeCIAddChooseModel: '-- Choose Model --',
-    tip_title_cube_name: 'cube_name',
+    tip_title_cube_name: 'Cube Name',
     tip_body_cube_name: '<li>Cube name is unique name of entire system.</li><li>Can not edit cube name after created.</li>',
     cubeCINotifiEmail: 'Notification Email List',
     cubeCINotifiEvents: 'Notification Events',
