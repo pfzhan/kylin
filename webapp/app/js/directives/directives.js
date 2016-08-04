@@ -342,7 +342,13 @@ KylinApp.directive('kylinPagination', function ($parse, $q, language) {
     restrict: "EA",
     scope:{title:'@ngTitle'},
     link: function (scope, element, attrs) {
-      scope.$watch('title',function(newTitle,oldTitle){
+      scope.$watch(function() {
+        if(!!attrs.ngWatch){
+        return attrs.ngTitle+''+attrs.ngWatch;
+        }else{
+          return attrs.ngTitle;
+        }
+      },function(newTitle,oldTitle){
         var popOverContent;
         scope.dataKylin = language.getDataKylin();
         var dOptions = {
@@ -355,7 +361,7 @@ KylinApp.directive('kylinPagination', function ($parse, $q, language) {
           content: popOverContent,
           placement: placement,
           trigger: "hover",
-          title: newTitle,
+          title: attrs.ngTitle,
           html: true
         };
         $(element).popover('destroy').popover(options);

@@ -405,7 +405,7 @@ KylinApp.constant('kapEnglishConfig', {
     cubeASNewJoint: 'New Joint',
     cubeASNewAggregationGroup: 'New Aggregation Group',
     cubeASRowkeys: 'Rowkeys',
-    tip_title_cubeASRowkeys: 'Rowkey',
+    tip_title_cubeASRowkeys: {name:'Rowkey',watch:true},
     tip_body_cubeASRowkeys: '<h4>Shard By this column?</h4><p>If specified as "true", cube data will be sharded according to its value.</p><h4>RowKey Encoding</h4><ol><li>"dict" encoding will try to build a dictionary for the dimension</li><li>"fixed_length" encoding will encode the dimension vlaues by fixed length bytes with padding</li><li>"int" encoding uses variable integer to encode integers </li></ol>',
     cubeASID: 'ID',
     cubeASColumn: 'Column',
