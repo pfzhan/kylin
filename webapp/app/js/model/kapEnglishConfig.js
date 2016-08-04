@@ -347,6 +347,7 @@ KylinApp.constant('kapEnglishConfig', {
     cubeDSType: 'Type',
     cubeDSActions: 'Actions',
     info_no_following_columns: 'There are following columns defined in multiple dimensions. <small>This is not recommended!</small>',
+    info_no_cube: 'No Cube',
     cubeDSEditDSEdit: 'Edit Dimension',
     cubeDSEditDSAdd: 'Add Dimension',//add dimension begin
     tip_no_dimension_name: 'The Dimension Name is required.',
@@ -771,7 +772,7 @@ KylinApp.constant('kapEnglishConfig', {
     success_table_been_synchronized: 'The following table(s) have been successfully synchronized: ',
     tip_partial_loaded_title: 'Partial loaded!',
     tip_partial_loaded_body_part_one: 'The following table(s) have been successfully synchronized: ',
-    tip_partial_loaded_body_part_one: '\n\n Failed to synchronize following table(s):',
+    tip_partial_loaded_body_part_two: '\n\n Failed to synchronize following table(s):',
     tip_save_streaming_table: 'Are you sure to save the streaming table and cluster info ?',
     success_updated_streaming: 'Updated the streaming successfully.',
     tip_created_streaming: 'Created the streaming successfully.',

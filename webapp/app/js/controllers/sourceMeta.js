@@ -345,7 +345,7 @@ KylinApp
             SweetAlert.swal($scope.dataKylin.alert.tip_result_unload_title, $scope.dataKylin.alert.tip_result_unload_body + unloadedTableInfo, 'error');
           }
           if (result['result.loaded'].length != 0 && result['result.unloaded'].length == 0) {
-            kylinCommon.success_alert($scope.dataKylin.alert.success_table_been_synchronized);
+            kylinCommon.success_alert($scope.dataKylin.alert.success_table_been_synchronized+loadTableInfo);
           }
           if (result['result.loaded'].length != 0 && result['result.unloaded'].length != 0) {
             SweetAlert.swal($scope.dataKylin.alert.tip_partial_loaded_title, $scope.dataKylin.alert.tip_partial_loaded_body_part_one + loadTableInfo + $scope.dataKylin.alert.tip_partial_loaded_body_part_two + unloadedTableInfo, 'warning');

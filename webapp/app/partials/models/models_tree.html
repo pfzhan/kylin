@@ -85,7 +85,7 @@
   <loading  ng-if="modelsManager.loading==true" text="Loading Models..."></loading>
 
   <div ng-if="modelsManager.loading!=true&&modelsManager.models.length==0">
-    <div no-result text="No Model."></div>
+    <div no-result text="{{dataKylin.model.info_no_model}}"></div>
   </div>
 
 </div>

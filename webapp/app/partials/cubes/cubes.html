@@ -138,7 +138,7 @@
 </div>
 
   <div ng-if="!loading && cubeList.cubes.length == 0">
-    <div no-result text="No Cube."></div>
+    <div no-result text="{{dataKylin.cube.info_no_cube}}"></div>
   </div>
   <loading ng-if="loading" text="{{dataKylin.cube.tip_loading_cubes}}"></loading>
 

@@ -331,6 +331,7 @@ KylinApp.constant('kapChineseConfig', {
     cubeDSType: '类型',
     cubeDSActions: '操作',
     info_no_following_columns: '下面的这些列，被定义在列多个维度中. <small>不建议这么做</small>',
+    info_no_cube: '没有相关Cube',
     cubeDSEditDSEdit: '编辑维度',
     cubeDSEditDSAdd: '添加维度',//add dimension begin
     tip_no_dimension_name: '维度名不可为空.',
@@ -626,7 +627,7 @@ KylinApp.constant('kapChineseConfig', {
     ],
     tip_no_table_selected: '没有表被选中.',
     noTables: '没有表',
-    tip_load_hive_table: '点击下载Hive中的表',
+    tip_load_hive_table: '点击加载Hive中的表',
     tip_no_project_selected: '没有项目被选中',
     tip_select_project: '请先选中项目',
     tip_select_table: '请选择表'
@@ -755,7 +756,7 @@ KylinApp.constant('kapChineseConfig', {
     success_table_been_synchronized: '下列表的信息已成功同步: ',
     tip_partial_loaded_title: '部分同步',
     tip_partial_loaded_body_part_one: '下列表的信息已成功同步: ',
-    tip_partial_loaded_body_part_one: '\n\n 同步失败的表是:',
+    tip_partial_loaded_body_part_two: '\n\n 同步失败的表是:',
     tip_save_streaming_table: '确定要保存此流式表及其集群信息?',
     success_updated_streaming: '成功更新流式表.',
     tip_created_streaming: '成功创建流式表.',
