@@ -44,9 +44,13 @@ KylinApp.service('modelsManager',function(ModelService,CubeService,$q,AccessServ
                   AccessService.list({type: "DataModelDesc", uuid: model.uuid}, function (accessEntities) {
                       model.accessEntities = accessEntities;
                       //if no owner in metadata, will get from acl
+                    try{
                       if(!model.owner){
                         model.owner = accessEntities[0].sid.principal;
                       }
+                    } catch(error){
+                      $log.error("No acl info. Model: %s",model.name);
+                    }
                   }).$promise
                   )
                 }
