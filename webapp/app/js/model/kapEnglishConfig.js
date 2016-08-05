@@ -180,6 +180,7 @@ KylinApp.constant('kapEnglishConfig', {
     theaditems : [
       {attr: 'name', name: 'Name'},
       {attr: 'project', name: 'Project'},
+      {attr: 'owner', name: 'Owner'},
       {attr: 'fact_table', name: 'Fact Table'},
       {attr: 'last_modified', name: 'Last Modified Time'}
     ],

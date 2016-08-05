@@ -180,6 +180,7 @@ KylinApp.constant('kapChineseConfig', {
     theaditems : [
       {attr: 'name', name: '名称'},
       {attr: 'project', name: '项目'},
+      {attr: 'owner', name: '所有者'},
       {attr: 'fact_table', name: '事实表'},
       {attr: 'last_modified', name: '最后修改时间'}
     ],
