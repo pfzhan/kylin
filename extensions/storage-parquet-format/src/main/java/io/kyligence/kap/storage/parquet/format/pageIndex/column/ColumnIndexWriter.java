@@ -7,13 +7,16 @@ import org.apache.commons.lang.NotImplementedException;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.Pair;
-import org.roaringbitmap.buffer.MutableRoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.cube.index.IColumnInvertedIndex;
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.key.IKeyEncoding;
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.key.KeyEncodingFactory;
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.value.IValueSetEncoding;
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.value.ValueSetEncodingFactory;
 
 public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray> {
     protected static final Logger logger = LoggerFactory.getLogger(ColumnIndexWriter.class);
@@ -23,13 +26,16 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
     private ColumnSpec columnSpec;
     private long totalSize = -1;
     private KapConfig config;
+    private IKeyEncoding keyEncoding;
+    private IValueSetEncoding valueSetEncoding;
 
     public ColumnIndexWriter(ColumnSpec columnSpec, DataOutputStream outputStream) {
         this.outputStream = outputStream;
         this.columnSpec = columnSpec;
         this.config = KapConfig.getInstanceFromEnv();
-        this.indexMapCache = new IndexMapCache(!columnSpec.isOnlyEQIndex());
-//        this.indexMapCache = new MemorySavingIndexMapCache(!columnSpec.isOnlyEQIndex());
+        this.keyEncoding = KeyEncodingFactory.selectEncoding(columnSpec.getKeyEncodingIdentifier(), columnSpec.getColumnLength());
+        this.valueSetEncoding = ValueSetEncodingFactory.selectEncoding(columnSpec.getValueEncodingIdentifier(), columnSpec.getCardinality());
+        this.indexMapCache = new IndexMapCache(!columnSpec.isOnlyEQIndex(), keyEncoding, valueSetEncoding);
     }
 
     public long getTotalSize() {
@@ -59,16 +65,17 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
         int counter = 0;
         long position = 0;
         int headerSize = 0;
-        for (Pair<ByteArray, MutableRoaringBitmap> indexEntry : indexRaw.getIterable(true)) {
-            ByteArray key = indexEntry.getKey();
-            MutableRoaringBitmap value = indexEntry.getValue();
+        for (Pair<Comparable, ? extends Iterable<? extends Number>> indexEntry : indexRaw.getIterable(true)) {
+            Comparable key = indexEntry.getKey();
+            Iterable<? extends Number> value = indexEntry.getValue();
+            valueSetEncoding.runOptimize(value);
 
             if (counter++ % step == 0) {
-                outputStream.write(key.array(), key.offset(), key.length());
+                keyEncoding.serialize(key, outputStream);
                 outputStream.writeLong(position);
-                headerSize += key.length() + 8;
+                headerSize += keyEncoding.getLength() + 8;
             }
-            position += key.length() + value.serializedSizeInBytes();
+            position += keyEncoding.getLength() + valueSetEncoding.getSerializeBytes(value);
         }
 
         // write body length of bytes
@@ -76,10 +83,11 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
         headerSize += 8;
 
         // write body bytes
-        for (Pair<ByteArray, MutableRoaringBitmap> indexEntry : indexRaw.getIterable(true)) {
-            ByteArray key = indexEntry.getKey();
-            outputStream.write(key.array(), key.offset(), key.length());
-            indexEntry.getValue().serialize(outputStream);
+        for (Pair<Comparable, ? extends Iterable<? extends Number>> indexEntry : indexRaw.getIterable(true)) {
+            Comparable key = indexEntry.getKey();
+            Iterable<? extends Number> value = indexEntry.getValue();
+            keyEncoding.serialize(key, outputStream);
+            valueSetEncoding.serialize(value, outputStream);
         }
         totalSize += headerSize + position;
         logger.info("Index Length Stats: Header={}, Body={}, Step={}", headerSize, position, step);
@@ -88,7 +96,7 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
     private void seal() throws IOException {
         // write metadata
         // TODO: Write ID of this index, such as magic number
-        totalSize = 4 * 5;
+        totalSize = 4 * 5 + 2 * 2;
 
         int step = decideStepSize(columnSpec.getColumnLength(), indexMapCache.cardinality());
         int indexSize = indexMapCache.size();
@@ -97,6 +105,9 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
         outputStream.writeInt(step);
         outputStream.writeInt(columnSpec.getColumnLength());
         outputStream.writeInt(indexMapCache.cardinality());
+
+        outputStream.writeChar(keyEncoding.getEncodingIdentifier());
+        outputStream.writeChar(valueSetEncoding.getEncodingIdentifier());
 
         logger.info("column={}, onlyEQ={}, cardinality={}, columnLength={}, step={}, docNum={}", columnSpec.getColumnName(), columnSpec.isOnlyEQIndex(), indexSize, columnSpec.getColumnLength(), step, indexMapCache.cardinality());
         logger.info("Start to write eq index for column {}", columnSpec.getColumnName());
@@ -109,15 +120,12 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
     private void writeAuxiliary(int step) throws IOException {
         // write lt
         logger.info("Start to write lt index for column {}", columnSpec.getColumnName());
-
-//        IndexMapCache auxiliaryIndexMap = new MemorySavingIndexMapCache(false);
-        IndexMapCache auxiliaryIndexMap = new IndexMapCache(false);
-        MutableRoaringBitmap lastValue = MutableRoaringBitmap.bitmapOf();
-        MutableRoaringBitmap currValue = null;
-        for (Pair<ByteArray, MutableRoaringBitmap> indexEntry : indexMapCache.getIterable(true)) {
-            currValue = MutableRoaringBitmap.or(lastValue, indexEntry.getValue());
-            currValue.runOptimize();
-            auxiliaryIndexMap.put(indexEntry.getKey(), currValue);
+        IndexMapCache auxiliaryIndexMap = new IndexMapCache(false, keyEncoding, valueSetEncoding);
+        Iterable<? extends Number> lastValue = valueSetEncoding.newValueSet();
+        Iterable<? extends Number> currValue = null;
+        for (Pair<Comparable, ? extends Iterable<? extends Number>> indexEntry : indexMapCache.getIterable(true)) {
+            currValue = valueSetEncoding.or(lastValue, indexEntry.getValue());
+            auxiliaryIndexMap.putEncoded(indexEntry.getKey(), currValue);
             lastValue = currValue;
         }
         writeIndex(auxiliaryIndexMap, step);
@@ -125,13 +133,11 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
 
         // write gt
         logger.info("Start to write gt index for column {}", columnSpec.getColumnName());
-//        auxiliaryIndexMap = new MemorySavingIndexMapCache(false);
-        auxiliaryIndexMap = new IndexMapCache(false);
-        lastValue = MutableRoaringBitmap.bitmapOf();
-        for (Pair<ByteArray, MutableRoaringBitmap> indexEntry : indexMapCache.getIterable(false)) {
-            currValue = MutableRoaringBitmap.or(lastValue, indexEntry.getValue());
-            currValue.runOptimize();
-            auxiliaryIndexMap.put(indexEntry.getKey(), currValue);
+        auxiliaryIndexMap = new IndexMapCache(false, keyEncoding, valueSetEncoding);
+        lastValue = valueSetEncoding.newValueSet();
+        for (Pair<Comparable, ? extends Iterable<? extends Number>> indexEntry : indexMapCache.getIterable(false)) {
+            currValue = valueSetEncoding.or(lastValue, indexEntry.getValue());
+            auxiliaryIndexMap.putEncoded(indexEntry.getKey(), currValue);
             lastValue = currValue;
         }
         writeIndex(auxiliaryIndexMap, step);

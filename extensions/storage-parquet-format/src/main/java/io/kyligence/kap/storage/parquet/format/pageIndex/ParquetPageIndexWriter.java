@@ -31,6 +31,13 @@ public class ParquetPageIndexWriter implements Closeable {
         indexWriter = new ColumnIndexBundleWriter(columnSpecs, tempLocalDir);
     }
 
+    public ParquetPageIndexWriter(ColumnSpec[] columnSpecs, DataOutputStream outputStream) throws IOException {
+        this.columnNum = columnSpecs.length;
+        this.outputStream = outputStream;
+        tempLocalDir = Files.createTempDir();
+        indexWriter = new ColumnIndexBundleWriter(columnSpecs, tempLocalDir);
+    }
+
     public void write(byte[] rowKey, int pageId) {
         indexWriter.write(rowKey, 0, pageId);
     }

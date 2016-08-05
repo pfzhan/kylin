@@ -3,16 +3,11 @@ package io.kyligence.kap.storage.parquet.format.pageIndex.column;
 public class ColumnSpec {
     private int columnLength;
     private int cardinality;
-
-    public String getColumnName() {
-        return columnName;
-    }
-
-    public void setColumnName(String columnName) {
-        this.columnName = columnName;
-    }
-
+    private char keyEncodingIdentifier = 'a';
+    private char valueEncodingIdentifier = 'a';
     private String columnName;
+    private boolean onlyEQIndex;
+    private int columnSequence;
 
     public ColumnSpec(String columnName, int columnLength, int cardinality, boolean onlyEQIndex, int columnSequence) {
         this.columnLength = columnLength;
@@ -22,6 +17,30 @@ public class ColumnSpec {
         this.columnSequence = columnSequence;
     }
 
+    public char getKeyEncodingIdentifier() {
+        return keyEncodingIdentifier;
+    }
+
+    public void setKeyEncodingIdentifier(char keyEncodingIdentifier) {
+        this.keyEncodingIdentifier = keyEncodingIdentifier;
+    }
+
+    public char getValueEncodingIdentifier() {
+        return valueEncodingIdentifier;
+    }
+
+    public void setValueEncodingIdentifier(char valueEncodingIdentifier) {
+        this.valueEncodingIdentifier = valueEncodingIdentifier;
+    }
+
+    public String getColumnName() {
+        return columnName;
+    }
+
+    public void setColumnName(String columnName) {
+        this.columnName = columnName;
+    }
+
     public int getCardinality() {
         return cardinality;
     }
@@ -29,8 +48,6 @@ public class ColumnSpec {
     public void setCardinality(int cardinality) {
         this.cardinality = cardinality;
     }
-
-    private boolean onlyEQIndex;
 
     public boolean isOnlyEQIndex() {
         return onlyEQIndex;
@@ -55,6 +72,4 @@ public class ColumnSpec {
     public void setColumnSequence(int columnSequence) {
         this.columnSequence = columnSequence;
     }
-
-    private int columnSequence;
 }
