@@ -42,6 +42,7 @@ KylinApp.constant('jobConfig', {
   ],
   queryitems: [
     {attr: 'server', name: 'Server'},
+    {attr: 'user', name: 'User'},
     {attr: 'sql', name: 'Sql'},
     {attr: 'adj', name: 'Description'},
     {attr: 'running_seconds', name: 'Running Seconds'},
@@ -74,6 +75,7 @@ KylinApp.constant('jobConfig', {
     ],
     queryitems: [
       {attr: 'server', name: '服务器'},
+      {attr: 'user', name: '用户'},
       {attr: 'sql', name: 'Sql'},
       {attr: 'adj', name: '描述'},
       {attr: 'running_seconds', name: '运行时间'},
