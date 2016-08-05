@@ -54,9 +54,9 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
                 return 0;
             }
 
-            job.setInputFormatClass(ParquetPageInputFormat.class);
+            setInputFormatClass(job);
             job.setOutputFormatClass(NullOutputFormat.class);
-            job.setMapperClass(ParquetPageIndexMapper.class);
+            setMapperClass(job);
             job.setNumReduceTasks(0);
 
             // set job configuration
@@ -76,4 +76,11 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
         }
     }
 
+    protected void setMapperClass(Job job) {
+        job.setMapperClass(ParquetPageIndexMapper.class);
+    }
+
+    protected void setInputFormatClass(Job job) {
+        job.setInputFormatClass(ParquetPageInputFormat.class);
+    }
 }

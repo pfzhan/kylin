@@ -50,6 +50,10 @@ public class ParquetBundleReader {
         return result;
     }
 
+    public int getPageIndex() {
+        return readerStates.get(0).reader.getPageIndex();
+    }
+
     public void close() throws IOException {
         for (ParquetReaderState state : readerStates) {
             state.reader.close();
