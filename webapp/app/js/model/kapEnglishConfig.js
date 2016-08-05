@@ -77,7 +77,7 @@ KylinApp.constant('kapEnglishConfig', {
   documents: [
     {link:'http://kyligence.io',displayName:'About us'},
     {link:'https://www.gitbook.com/book/kyligence-git/kap-user-manual/details',displayName:'User Manual'},
-    {link:' https://www.gitbook.com/book/kyligence-git/kap-admin-manual/details',displayName:'Admin Manual',hasAdmin:true}
+    {link:' https://www.gitbook.com/book/kyligence-git/kap-admin-manual/details',displayName:'Admin Manual'}
   ],
   selectLanguage: 'select language'
   },
