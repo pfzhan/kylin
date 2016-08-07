@@ -148,6 +148,7 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
     public void close() throws IOException {
         seal();
         indexMapCache.close();
+        outputStream.close();
     }
 
     @Override

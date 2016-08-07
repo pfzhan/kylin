@@ -1,5 +1,7 @@
 package io.kyligence.kap.storage.parquet.format.pageIndex.column;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -190,7 +192,7 @@ public class IndexMapCache implements Closeable {
                 try {
                     dumpedFile = File.createTempFile("PARQUET_II_SPILL_", ".tmp");
                     logger.info("Parquet page index spill: size={}, file={}", indexMap.size(), dumpedFile.getAbsolutePath());
-                    dos = new DataOutputStream(new FileOutputStream(dumpedFile));
+                    dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(dumpedFile), ColumnIndexConstants.INDEX_IO_BUFFER_SIZE));
                     dos.writeInt(size);
                     for (Map.Entry<Comparable, Iterable<? extends Number>> entry : indexMap.entrySet()) {
                         keyEncoding.serialize(entry.getKey(), dos);
@@ -233,7 +235,7 @@ public class IndexMapCache implements Closeable {
                             throw new RuntimeException("Spill file not found at: " + (spillFile == null ? "<null>" : spillFile.getAbsolutePath()));
                         }
 
-                        dis = new DataInputStream(new FileInputStream(spillFile));
+                        dis = new DataInputStream(new BufferedInputStream(new FileInputStream(spillFile), ColumnIndexConstants.INDEX_IO_BUFFER_SIZE));
                         final int count = dis.readInt();
                         return new Iterator<Pair<Comparable, ? extends Iterable<? extends Number>>>() {
                             int cursorIdx = 0;

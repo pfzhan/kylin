@@ -9,6 +9,7 @@ import java.util.TreeSet;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.kylin.common.util.ByteArray;
+import org.apache.kylin.dimension.DimensionEncoding;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 import org.slf4j.Logger;
@@ -41,6 +42,7 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
 
     private IKeyEncoding keyEncoding;
     private IValueSetEncoding valueSetEncoding;
+    private ByteArray nullValue;
 
     public ColumnIndexReader(FSDataInputStream inputStream) {
         this(inputStream, 0);

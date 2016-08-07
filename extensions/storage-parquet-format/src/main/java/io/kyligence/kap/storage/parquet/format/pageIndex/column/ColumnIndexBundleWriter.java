@@ -1,5 +1,6 @@
 package io.kyligence.kap.storage.parquet.format.pageIndex.column;
 
+import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -25,7 +26,7 @@ public class ColumnIndexBundleWriter implements Closeable {
         this.indexWriters = new ColumnIndexWriter[columnNum];
         for (int col = 0; col < columnNum; col++) {
             File indexFile = getColumnIndexFile(col);
-            indexWriters[col] = new ColumnIndexWriter(columnSpecs[col], new DataOutputStream(new FileOutputStream(indexFile)));
+            indexWriters[col] = new ColumnIndexWriter(columnSpecs[col], new DataOutputStream(new BufferedOutputStream(new FileOutputStream(indexFile), ColumnIndexConstants.INDEX_IO_BUFFER_SIZE)));
         }
     }
 
