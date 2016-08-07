@@ -1,7 +1,5 @@
 package io.kyligence.kap.storage.parquet.format.pageIndex.column;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -16,6 +14,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.PriorityQueue;
 
+import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.ByteArray;
@@ -27,17 +26,19 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-public class IndexMapCache implements Closeable {
-    protected static final Logger logger = LoggerFactory.getLogger(IndexMapCache.class);
+public class MemorySavingIndexMapCache extends IndexMapCache {
+    protected static final Logger logger = LoggerFactory.getLogger(MemorySavingIndexMapCache.class);
 
     final int SPILL_THRESHOLD_SIZE = KapConfig.getInstanceFromEnv().getParquetPageIndexSpillThreshold();
 
     MutableRoaringBitmap docIds = MutableRoaringBitmap.bitmapOf();
     List<Dump> dumps;
-    NavigableMap<ByteArray, MutableRoaringBitmap> indexMapBuf;
+    NavigableMap<ByteArray, byte[]> indexMapBuf;
     boolean needReverse;
 
-    public IndexMapCache(boolean needReverse) {
+    public MemorySavingIndexMapCache(boolean needReverse) {
+        super(needReverse);
+
         this.indexMapBuf = Maps.newTreeMap();
         this.dumps = Lists.newLinkedList();
         this.needReverse = needReverse;
@@ -63,10 +64,13 @@ public class IndexMapCache implements Closeable {
 
     public void put(ByteArray key, int docId) {
         if (indexMapBuf.containsKey(key)) {
-            MutableRoaringBitmap currentValue = indexMapBuf.get(key);
-            currentValue.add(docId);
+            byte[] currentValue = indexMapBuf.get(key);
+            MutableRoaringBitmap currentBitmap = RoaringBitmaps.readFromBytes(currentValue);
+            currentBitmap.add(docId);
+            indexMapBuf.put(key, RoaringBitmaps.writeToBytes(currentBitmap));
         } else {
-            indexMapBuf.put(key, MutableRoaringBitmap.bitmapOf(docId));
+            MutableRoaringBitmap bitmap = MutableRoaringBitmap.bitmapOf(docId);
+            indexMapBuf.put(key, RoaringBitmaps.writeToBytes(bitmap));
         }
         docIds.add(docId);
 
@@ -77,10 +81,12 @@ public class IndexMapCache implements Closeable {
 
     public void put(ByteArray key, MutableRoaringBitmap bitmap) {
         if (indexMapBuf.containsKey(key)) {
-            MutableRoaringBitmap currentValue = indexMapBuf.get(key);
-            currentValue.or(bitmap);
+            byte[] currentValue = indexMapBuf.get(key);
+            MutableRoaringBitmap currentBitmap = RoaringBitmaps.readFromBytes(currentValue);
+            currentBitmap.or(bitmap);
+            indexMapBuf.put(key, RoaringBitmaps.writeToBytes(currentBitmap));
         } else {
-            indexMapBuf.put(key, bitmap);
+            indexMapBuf.put(key, RoaringBitmaps.writeToBytes(bitmap));
         }
         docIds.or(bitmap);
 
@@ -111,7 +117,7 @@ public class IndexMapCache implements Closeable {
                     // the all-in-mem case
                     return new Iterator<Pair<ByteArray, MutableRoaringBitmap>>() {
 
-                        final Iterator<Map.Entry<ByteArray, MutableRoaringBitmap>> it = notReverse ? indexMapBuf.entrySet().iterator() : indexMapBuf.descendingMap().entrySet().iterator();
+                        final Iterator<Map.Entry<ByteArray, byte[]>> it = notReverse ? indexMapBuf.entrySet().iterator() : indexMapBuf.descendingMap().entrySet().iterator();
 
                         @Override
                         public boolean hasNext() {
@@ -120,8 +126,8 @@ public class IndexMapCache implements Closeable {
 
                         @Override
                         public Pair<ByteArray, MutableRoaringBitmap> next() {
-                            Map.Entry<ByteArray, MutableRoaringBitmap> entry = it.next();
-                            return new Pair<>(entry.getKey(), entry.getValue());
+                            Map.Entry<ByteArray, byte[]> entry = it.next();
+                            return new Pair<>(entry.getKey(), RoaringBitmaps.readFromBytes(entry.getValue()));
                         }
 
                         @Override
@@ -153,11 +159,11 @@ public class IndexMapCache implements Closeable {
         File dumpedFile;
         File dumpedReverseFile;
         DataInputStream dis;
-        NavigableMap<ByteArray, MutableRoaringBitmap> indexMap;
+        NavigableMap<ByteArray, byte[]> indexMap;
         int size;
         boolean needReverse;
 
-        public Dump(NavigableMap<ByteArray, MutableRoaringBitmap> indexMap, boolean needReverse) {
+        public Dump(NavigableMap<ByteArray, byte[]> indexMap, boolean needReverse) {
             this.indexMap = indexMap;
             this.size = indexMap.size();
             this.needReverse = needReverse;
@@ -174,24 +180,28 @@ public class IndexMapCache implements Closeable {
                 try {
                     dumpedFile = File.createTempFile("PARQUET_II_SPILL_", ".tmp");
                     logger.info("Parquet page index spill: size={}, file={}", indexMap.size(), dumpedFile.getAbsolutePath());
-                    dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(dumpedFile), ColumnIndexConstants.INDEX_IO_BUFFER_SIZE));
+                    dos = new DataOutputStream(new FileOutputStream(dumpedFile));
                     dos.writeInt(size);
-                    for (Map.Entry<ByteArray, MutableRoaringBitmap> entry : indexMap.entrySet()) {
+                    for (Map.Entry<ByteArray, byte[]> entry : indexMap.entrySet()) {
                         ByteArray key = entry.getKey();
                         dos.writeInt(key.length());
                         dos.write(key.array(), key.offset(), key.length());
-                        entry.getValue().serialize(dos);
+                        byte[] val = entry.getValue();
+                        dos.writeInt(val.length);
+                        dos.write(val);
                     }
 
                     if (needReverse) {
                         dumpedReverseFile = File.createTempFile("PARQUET_II_SPILL_REVERSE_", ".tmp");
                         dosReverse = new DataOutputStream(new FileOutputStream(dumpedReverseFile));
                         dosReverse.writeInt(size);
-                        for (Map.Entry<ByteArray, MutableRoaringBitmap> entry : indexMap.descendingMap().entrySet()) {
+                        for (Map.Entry<ByteArray, byte[]> entry : indexMap.descendingMap().entrySet()) {
                             ByteArray key = entry.getKey();
                             dosReverse.writeInt(key.length());
                             dosReverse.write(key.array(), key.offset(), key.length());
-                            entry.getValue().serialize(dosReverse);
+                            byte[] val = entry.getValue();
+                            dosReverse.writeInt(val.length);
+                            dosReverse.write(val);
                         }
                     }
                 } finally {
@@ -221,7 +231,7 @@ public class IndexMapCache implements Closeable {
                             throw new RuntimeException("Spill file not found at: " + (spillFile == null ? "<null>" : spillFile.getAbsolutePath()));
                         }
 
-                        dis = new DataInputStream(new BufferedInputStream(new FileInputStream(spillFile), ColumnIndexConstants.INDEX_IO_BUFFER_SIZE));
+                        dis = new DataInputStream(new FileInputStream(spillFile));
                         final int count = dis.readInt();
                         return new Iterator<Pair<ByteArray, MutableRoaringBitmap>>() {
                             int cursorIdx = 0;
@@ -240,8 +250,10 @@ public class IndexMapCache implements Closeable {
                                     ByteArray key = ByteArray.allocate(keyLen);
                                     dis.read(key.array());
                                     // read value
-                                    MutableRoaringBitmap value = MutableRoaringBitmap.bitmapOf();
-                                    value.deserialize(dis);
+                                    int valLen = dis.readInt();
+                                    byte[] val = new byte[valLen];
+                                    dis.read(val);
+                                    MutableRoaringBitmap value = RoaringBitmaps.readFromBytes(val);
                                     return new Pair<>(key, value);
                                 } catch (Exception e) {
                                     throw new RuntimeException("Cannot read parquet page index spill from file. ", e);

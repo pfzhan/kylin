@@ -24,8 +24,6 @@ import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexWrite
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnSpec;
 
 public class ColumnIndexTest extends LocalFileMetadataTestCase {
-    Path indexPath = new Path("/tmp/testkylin/a.inv");
-
     @AfterClass
     public static void after() throws Exception {
         cleanAfterClass();
@@ -36,6 +34,8 @@ public class ColumnIndexTest extends LocalFileMetadataTestCase {
         Log4jConfigurer.initLogger();
         staticCreateTestMetadata();
     }
+
+    Path indexPath = new Path("/tmp/testkylin/a.inv");
 
     @Test
     public void testRoundTrip() throws IOException {
