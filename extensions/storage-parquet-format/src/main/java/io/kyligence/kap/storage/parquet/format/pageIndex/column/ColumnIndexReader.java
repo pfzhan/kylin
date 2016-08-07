@@ -58,6 +58,20 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
         }
     }
 
+    public ByteArray getNullValue() {
+        if (nullValue == null) {
+            if (columnLength == 0) {
+                initFromInput();
+            }
+            byte[] bytes = new byte[columnLength];
+            for (int i = 0; i < columnLength; i++) {
+                bytes[i] = DimensionEncoding.NULL;
+            }
+            nullValue = new ByteArray(bytes);
+        }
+        return nullValue;
+    }
+
     private void initFromInput() {
         try {
             inputStream.seek(inputOffset);

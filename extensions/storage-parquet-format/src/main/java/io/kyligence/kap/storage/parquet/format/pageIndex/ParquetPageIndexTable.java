@@ -3,6 +3,7 @@ package io.kyligence.kap.storage.parquet.format.pageIndex;
 import java.io.IOException;
 import java.util.Set;
 
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexReader;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
@@ -36,17 +37,21 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
     public MutableRoaringBitmap lookColumnIndex(int column, TupleFilter.FilterOperatorEnum compareOp, Set<ByteArray> vals) {
         MutableRoaringBitmap result = null;
         ByteArray val = null;
+        ColumnIndexReader columnIndexReader = null;
         switch (compareOp) {
         case ISNULL:
-            val = ByteArray.EMPTY;
-            result = indexReader.readColumnIndex(column).lookupEqIndex(val).toMutableRoaringBitmap();
+            columnIndexReader = indexReader.readColumnIndex(column);
+            val = columnIndexReader.getNullValue();
+            result = columnIndexReader.lookupEqIndex(val).toMutableRoaringBitmap();
             break;
         case ISNOTNULL:
-            val = ByteArray.EMPTY;
+            columnIndexReader = indexReader.readColumnIndex(column);
+            val = columnIndexReader.getNullValue();
             result = MutableRoaringBitmap.or(lookupGt(column, val), lookupLt(column, val));
             break;
         case IN:
-            result = ImmutableRoaringBitmap.or(indexReader.readColumnIndex(column).lookupEqIndex(vals).values().iterator());
+            columnIndexReader = indexReader.readColumnIndex(column);
+            result = ImmutableRoaringBitmap.or(columnIndexReader.lookupEqIndex(vals).values().iterator());
             break;
         case NOTIN:
             for (ByteArray inVal : vals) {
@@ -59,7 +64,8 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             break;
         case EQ:
             val = Iterables.getOnlyElement(vals);
-            result = indexReader.readColumnIndex(column).lookupEqIndex(val).toMutableRoaringBitmap();
+            columnIndexReader = indexReader.readColumnIndex(column);
+            result = columnIndexReader.lookupEqIndex(val).toMutableRoaringBitmap();
             break;
         case NEQ:
             val = Iterables.getOnlyElement(vals);
