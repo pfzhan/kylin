@@ -19,6 +19,7 @@
 KylinApp.constant('kapEnglishConfig', {
   user:{
     setting: 'Settings',//reset password
+    profile: 'Profile',
     changePassword: 'Change password',
     oldPassword: 'Old password',
     newPassword: 'New password',

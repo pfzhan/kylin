@@ -31,6 +31,20 @@ KylinApp.controller('UserSettingCtrl', function ($scope, $rootScope, $location, 
     newPassword: ''
   }
 
+  $scope.role;
+
+  $scope.init =  function(){
+    if(UserService.hasRole('ROLE_ADMIN')){
+      $scope.role = "ADMIN";
+    }
+    else if(UserService.hasRole('ROLE_MODELER')){
+      $scope.role = "MODELER";
+    }
+    else if(UserService.hasRole('ROLE_ANALYST')){
+      $scope.role = "ANALYST";
+    }
+  }();
+
   AuthenticationService.login({}, {}, function (data) {
     $scope.loading = false;
     $scope.user.username = data.userDetails.username;

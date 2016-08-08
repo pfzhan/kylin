@@ -19,6 +19,7 @@
 KylinApp.constant('kapChineseConfig', {
   user:{
     setting: '设置',//reset password
+    profile: '用户信息',
     changePassword: '更改密码',
     oldPassword: '旧密码',
     newPassword: '新的密码',
