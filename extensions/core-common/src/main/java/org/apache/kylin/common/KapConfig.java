@@ -47,6 +47,10 @@ public class KapConfig {
         return Integer.parseInt(config.getOptional("kap.parquet.ii.step.min", String.valueOf(1000)));
     }
 
+    public int getParquetPageIndexIOBufSize() {
+        return Integer.parseInt(config.getOptional("kap.parquet.ii.io.buffer", String.valueOf(1024 * 1024)));
+    }
+
     public String getParquetPageCompression() {
         return config.getOptional("kap.parquet.page.compression", "");
     }

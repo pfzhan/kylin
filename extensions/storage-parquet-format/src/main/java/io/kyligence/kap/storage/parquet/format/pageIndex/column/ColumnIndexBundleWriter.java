@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.ByteArray;
 
 /**
@@ -18,15 +19,17 @@ public class ColumnIndexBundleWriter implements Closeable {
     private ColumnIndexWriter[] indexWriters;
     private File localIndexDir;
     private ColumnSpec[] columnSpecs;
+    private KapConfig kapConfig;
 
     public ColumnIndexBundleWriter(ColumnSpec[] columnSpecs, File localIndexDir) throws IOException {
         this.columnNum = columnSpecs.length;
         this.columnSpecs = columnSpecs;
         this.localIndexDir = localIndexDir;
+        this.kapConfig = KapConfig.getInstanceFromEnv();
         this.indexWriters = new ColumnIndexWriter[columnNum];
         for (int col = 0; col < columnNum; col++) {
             File indexFile = getColumnIndexFile(col);
-            indexWriters[col] = new ColumnIndexWriter(columnSpecs[col], new DataOutputStream(new BufferedOutputStream(new FileOutputStream(indexFile), ColumnIndexConstants.INDEX_IO_BUFFER_SIZE)));
+            indexWriters[col] = new ColumnIndexWriter(columnSpecs[col], new DataOutputStream(new BufferedOutputStream(new FileOutputStream(indexFile), kapConfig.getParquetPageIndexIOBufSize())));
         }
     }
 

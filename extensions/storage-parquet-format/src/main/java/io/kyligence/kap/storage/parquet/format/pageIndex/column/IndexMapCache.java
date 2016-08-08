@@ -36,11 +36,13 @@ public class IndexMapCache implements Closeable {
     List<Dump> dumps;
     NavigableMap<ByteArray, MutableRoaringBitmap> indexMapBuf;
     boolean needReverse;
+    KapConfig kapConfig;
 
     public IndexMapCache(boolean needReverse) {
         this.indexMapBuf = Maps.newTreeMap();
         this.dumps = Lists.newLinkedList();
         this.needReverse = needReverse;
+        this.kapConfig = KapConfig.getInstanceFromEnv();
     }
 
     public int size() {
@@ -174,7 +176,7 @@ public class IndexMapCache implements Closeable {
                 try {
                     dumpedFile = File.createTempFile("PARQUET_II_SPILL_", ".tmp");
                     logger.info("Parquet page index spill: size={}, file={}", indexMap.size(), dumpedFile.getAbsolutePath());
-                    dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(dumpedFile), ColumnIndexConstants.INDEX_IO_BUFFER_SIZE));
+                    dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(dumpedFile), kapConfig.getParquetPageIndexIOBufSize()));
                     dos.writeInt(size);
                     for (Map.Entry<ByteArray, MutableRoaringBitmap> entry : indexMap.entrySet()) {
                         ByteArray key = entry.getKey();
@@ -221,7 +223,7 @@ public class IndexMapCache implements Closeable {
                             throw new RuntimeException("Spill file not found at: " + (spillFile == null ? "<null>" : spillFile.getAbsolutePath()));
                         }
 
-                        dis = new DataInputStream(new BufferedInputStream(new FileInputStream(spillFile), ColumnIndexConstants.INDEX_IO_BUFFER_SIZE));
+                        dis = new DataInputStream(new BufferedInputStream(new FileInputStream(spillFile), kapConfig.getParquetPageIndexIOBufSize()));
                         final int count = dis.readInt();
                         return new Iterator<Pair<ByteArray, MutableRoaringBitmap>>() {
                             int cursorIdx = 0;
