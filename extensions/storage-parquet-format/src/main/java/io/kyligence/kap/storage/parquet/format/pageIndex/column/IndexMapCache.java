@@ -191,7 +191,7 @@ public class IndexMapCache implements Closeable {
                         dosReverse = new DataOutputStream(new FileOutputStream(dumpedReverseFile));
                         dosReverse.writeInt(size);
                         for (Map.Entry<Comparable, Iterable<? extends Number>> entry : indexMap.descendingMap().entrySet()) {
-                            keyEncoding.serialize(entry.getKey(), dos);
+                            keyEncoding.serialize(entry.getKey(), dosReverse);
                             valueSetEncoding.serialize(entry.getValue(), dosReverse);
                         }
                     }
