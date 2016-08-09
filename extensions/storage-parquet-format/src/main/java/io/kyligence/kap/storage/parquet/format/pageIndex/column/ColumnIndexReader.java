@@ -9,7 +9,6 @@ import java.util.TreeSet;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.kylin.common.util.ByteArray;
-import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.dimension.DimensionEncoding;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
@@ -20,6 +19,10 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.index.IColumnInvertedIndex;
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.key.IKeyEncoding;
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.key.KeyEncodingFactory;
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.value.IValueSetEncoding;
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.value.ValueSetEncodingFactory;
 
 public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray> {
     private static final Logger logger = LoggerFactory.getLogger(ColumnIndexReader.class);
@@ -38,6 +41,9 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
     private IndexBlock gtIndex;
 
     private ByteArray nullValue;
+
+    private IKeyEncoding keyEncoding;
+    private IValueSetEncoding valueSetEncoding;
 
     public ColumnIndexReader(FSDataInputStream inputStream) {
         this(inputStream, 0);
@@ -79,6 +85,12 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
             step = inputStream.readInt();
             columnLength = inputStream.readInt();
             pageNum = inputStream.readInt();
+
+            char keyEncodingIdentifier = inputStream.readChar();
+            this.keyEncoding = KeyEncodingFactory.useEncoding(keyEncodingIdentifier, columnLength);
+
+            char valueEncodingIdentifier = inputStream.readChar();
+            this.valueSetEncoding = ValueSetEncodingFactory.useEncoding(valueEncodingIdentifier);
 
             logger.debug("ColLength {}, PageNum {}, Cardinality {}, Step {}, onlyEQ {}", columnLength, pageNum, cardinality, step, onlyEQ);
 
@@ -187,7 +199,7 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
     }
 
     private class IndexBlock {
-        NavigableMap<ByteArray, Long> offsetMap = Maps.newTreeMap();
+        NavigableMap<Comparable, Long> offsetMap = Maps.newTreeMap();
         long bodyStartOffset;
         long bodyLength;
         IndexBlockType type;
@@ -202,13 +214,12 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
             logger.debug("read from stream - start: {}, offsetMapSize:{}, columnLength:{}", stream.getPos(), offsetMapSize, columnLength);
 
             for (int i = 0; i < offsetMapSize; i++) {
-                ByteArray buffer = ByteArray.allocate(columnLength);
-                stream.readFully(buffer.array());
+                Comparable key = keyEncoding.deserialize(stream);
                 long offset = stream.readLong();
-                if (offsetMap.containsKey(buffer)) {
-                    logger.warn("Key {} Duplicate key: {}", i, BytesUtil.toReadableText(buffer.array()));
+                if (offsetMap.containsKey(key)) {
+                    logger.warn("Key {} Duplicate key: {}", i, key);
                 }
-                offsetMap.put(buffer, offset);
+                offsetMap.put(key, offset);
             }
             bodyLength = stream.readLong();
             bodyStartOffset = stream.getPos();
@@ -242,16 +253,18 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
 
         private ImmutableRoaringBitmap getRows(ByteArray value) {
             try {
-                if (type == IndexBlockType.LTE && value.compareTo(offsetMap.firstKey()) < 0) {
+                Comparable encodedVal = keyEncoding.encode(value);
+                if (type == IndexBlockType.LTE && encodedVal.compareTo(offsetMap.firstKey()) < 0) {
                     return MutableRoaringBitmap.bitmapOf();
                 }
-                Map.Entry<ByteArray, Long> startEntry = offsetMap.floorEntry(value);
+
+                Map.Entry<Comparable, Long> startEntry = offsetMap.floorEntry(encodedVal);
                 if (startEntry == null && type == IndexBlockType.GTE) {
                     startEntry = offsetMap.firstEntry();
                 }
 
                 if (startEntry != null) {
-                    MutableRoaringBitmap lastPageId = MutableRoaringBitmap.bitmapOf();
+                    Iterable<Number> lastPageId = valueSetEncoding.newValueSet();
 
                     long bodyOffset = startEntry.getValue();
                     inputStream.seek(bodyOffset + bodyStartOffset);
@@ -261,7 +274,7 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
                             // search to end of index, still not see the value
                             if (type == IndexBlockType.LTE) {
                                 // return pages of last value
-                                return lastPageId;
+                                return valueSetEncoding.toMutableRoaringBitmap(lastPageId);
                             } else if (type == IndexBlockType.GTE) {
                                 // return empty because no value greater than the condVal
                                 return MutableRoaringBitmap.bitmapOf();
@@ -269,21 +282,20 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
                             break;
                         }
 
-                        ByteArray buffer = ByteArray.allocate(columnLength);
-                        inputStream.readFully(buffer.array());
-                        MutableRoaringBitmap pageId = MutableRoaringBitmap.bitmapOf();
-                        pageId.deserialize(inputStream);
+                        Comparable currKey = keyEncoding.deserialize(inputStream);
 
-                        int compare = buffer.compareTo(value);
+                        Iterable<Number> pageId = valueSetEncoding.deserialize(inputStream);
+
+                        int compare = currKey.compareTo(encodedVal);
                         if (compare == 0) {
-                            return pageId;
+                            return valueSetEncoding.toMutableRoaringBitmap(pageId);
                         } else if (compare > 0) {
                             if (type == IndexBlockType.EQ) {
                                 break;
                             } else if (type == IndexBlockType.LTE) {
-                                return lastPageId;
+                                return valueSetEncoding.toMutableRoaringBitmap(lastPageId);
                             } else if (type == IndexBlockType.GTE) {
-                                return pageId;
+                                return valueSetEncoding.toMutableRoaringBitmap(pageId);
                             }
                         }
                         lastPageId = pageId;
