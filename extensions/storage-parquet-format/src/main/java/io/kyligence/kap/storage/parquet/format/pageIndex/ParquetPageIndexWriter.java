@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.io.FileUtils;
@@ -44,6 +45,10 @@ public class ParquetPageIndexWriter implements Closeable {
 
     public void write(byte[] rowKey, int startOffset, int pageId) {
         indexWriter.write(rowKey, startOffset, pageId);
+    }
+
+    public void write(List<byte[]> rowKeys, int pageId) {
+        indexWriter.write(rowKeys, pageId);
     }
 
     @Override

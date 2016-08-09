@@ -6,6 +6,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.ByteArray;
@@ -42,6 +43,25 @@ public class ColumnIndexBundleWriter implements Closeable {
         for (int i = 0; i < columnNum; i++) {
             indexWriters[i].appendToRow(new ByteArray(rowKey, columnOffset, columnSpecs[i].getColumnLength()), docId);
             columnOffset += columnSpecs[i].getColumnLength();
+        }
+    }
+
+    public void write(List<byte[]> rowKeys, int docId) {
+        int start = 0;
+        for (int r = 0; r < rowKeys.size(); r++) {
+            int pos = 0;
+            for (int i = start; i < columnNum; i++) {
+                byte[] currRowKey = rowKeys.get(r);
+                ByteArray rowKeyBuf = new ByteArray(currRowKey, pos, columnSpecs[i].getColumnLength());
+                indexWriters[i].appendToRow(rowKeyBuf, docId);
+                pos += columnSpecs[i].getColumnLength();
+                if (pos == currRowKey.length) {
+                    start = i + 1;
+                    break;
+                } else if (pos > currRowKey.length) {
+                    throw new RuntimeException("Length of input byte list did not match columns length.");
+                }
+            }
         }
     }
 

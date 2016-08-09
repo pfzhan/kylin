@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import com.google.common.collect.Lists;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -80,7 +81,7 @@ public class ParquetPageIndexWriteReadTest extends LocalFileMetadataTestCase {
             int pageId = random.nextInt(totalPageNum);
             BytesUtil.writeUnsigned(data1[i], buffer, 0, columnLength[0]);
             BytesUtil.writeUnsigned(data2[i], buffer, columnLength[0], columnLength[1]);
-            writer.write(buffer, 0, pageId);
+            writer.write(Lists.newArrayList(buffer), pageId);
 
             if (!dataMap1.containsKey(data1[i])) {
                 dataMap1.put(data1[i], Sets.<Integer> newLinkedHashSet());
