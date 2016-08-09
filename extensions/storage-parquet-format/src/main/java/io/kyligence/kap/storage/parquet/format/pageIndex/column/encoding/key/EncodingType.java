@@ -3,7 +3,7 @@ package io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.key;
 public enum EncodingType {
     AUTO('a'), FIXED_LEN('f'), LONG('l'), INTEGER('i'), SHORT('s'), BYTE('b');
 
-    private char identifier;
+    final private char identifier;
 
     EncodingType(char identifier) {
         this.identifier = identifier;

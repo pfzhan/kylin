@@ -67,11 +67,10 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
         // write index header
         int counter = 0;
         long position = 0;
-        int headerSize = 0;
+        long headerSize = 0;
         for (Pair<Comparable, ? extends Iterable<? extends Number>> indexEntry : indexRaw.getIterable(true)) {
             Comparable key = indexEntry.getKey();
             Iterable<? extends Number> value = indexEntry.getValue();
-            valueSetEncoding.runOptimize(value);
 
             if (counter++ % step == 0) {
                 keyEncoding.serialize(key, outputStream);
@@ -112,7 +111,7 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
         outputStream.writeChar(keyEncoding.getEncodingIdentifier());
         outputStream.writeChar(valueSetEncoding.getEncodingIdentifier());
 
-        logger.info("column={}, onlyEQ={}, cardinality={}, columnLength={}, step={}, docNum={}", columnSpec.getColumnName(), columnSpec.isOnlyEQIndex(), indexSize, columnSpec.getColumnLength(), step, totalPageNum);
+        logger.info("column={}, onlyEQ={}, cardinality={}, columnLength={}, step={}, docNum={}, keyEncoding={}, valueEncoding={}", columnSpec.getColumnName(), columnSpec.isOnlyEQIndex(), indexSize, columnSpec.getColumnLength(), step, totalPageNum, keyEncoding.getEncodingIdentifier(), valueSetEncoding.getEncodingIdentifier());
         logger.info("Start to write eq index for column {}", columnSpec.getColumnName());
         writeIndex(indexMapCache, step);
         if (!columnSpec.isOnlyEQIndex()) {

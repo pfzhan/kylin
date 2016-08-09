@@ -80,19 +80,19 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
             inputStream.seek(inputOffset);
 
             // read metadata
-            onlyEQ = inputStream.readInt() == 1;
+            onlyEQ = (inputStream.readInt() == 1);
             cardinality = inputStream.readInt();
             step = inputStream.readInt();
             columnLength = inputStream.readInt();
             pageNum = inputStream.readInt();
 
             char keyEncodingIdentifier = inputStream.readChar();
-            this.keyEncoding = KeyEncodingFactory.useEncoding(keyEncodingIdentifier, columnLength);
-
             char valueEncodingIdentifier = inputStream.readChar();
-            this.valueSetEncoding = ValueSetEncodingFactory.useEncoding(valueEncodingIdentifier);
 
-            logger.debug("ColLength {}, PageNum {}, Cardinality {}, Step {}, onlyEQ {}", columnLength, pageNum, cardinality, step, onlyEQ);
+            logger.info("Init column index: ColLength={}, PageNum={}, Cardinality={}, Step={}, onlyEQ={}, keyEncoding={}, valueEncoding={}", columnLength, pageNum, cardinality, step, onlyEQ, keyEncodingIdentifier, valueEncodingIdentifier);
+
+            keyEncoding = KeyEncodingFactory.useEncoding(keyEncodingIdentifier, columnLength);
+            valueSetEncoding = ValueSetEncodingFactory.useEncoding(valueEncodingIdentifier);
 
             eqIndex = new IndexBlock();
             eqIndex.readFromStream(inputStream, IndexBlockType.EQ);

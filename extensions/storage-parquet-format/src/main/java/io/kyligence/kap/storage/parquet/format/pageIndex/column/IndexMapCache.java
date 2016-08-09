@@ -329,6 +329,9 @@ public class IndexMapCache implements Closeable {
                         innerMerge(result);
                     }
 
+                    // run optimize for values
+                    valueSetEncoding.runOptimize(result);
+
                     // generate final result of bitmaps
                     return new Pair<>(peekKey, result);
                 }
