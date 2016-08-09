@@ -35,6 +35,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
 
     // TODO: should use batch lookup
     public MutableRoaringBitmap lookColumnIndex(int column, TupleFilter.FilterOperatorEnum compareOp, Set<ByteArray> vals) {
+        logger.info("column: {}, op: {}, vals: {} - {}", column, compareOp, vals.size(), Iterables.getFirst(vals, null));
         MutableRoaringBitmap result = null;
         ByteArray val = null;
         ColumnIndexReader columnIndexReader = null;
@@ -91,7 +92,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             throw new RuntimeException("Unknown Operator: " + compareOp);
         }
 
-        logger.debug("lookColumnIndex returning " + result);
+        logger.info("lookColumnIndex returning " + result);
         return result;
     }
 

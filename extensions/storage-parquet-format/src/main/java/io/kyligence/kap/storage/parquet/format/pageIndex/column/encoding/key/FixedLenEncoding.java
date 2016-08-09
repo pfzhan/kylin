@@ -35,7 +35,7 @@ public class FixedLenEncoding implements IKeyEncoding<ByteArray> {
     @Override
     public ByteArray deserialize(DataInputStream inputStream) throws IOException {
         ByteArray value = ByteArray.allocate(length);
-        inputStream.read(value.array());
+        inputStream.readFully(value.array());
         return value;
     }
 

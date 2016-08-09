@@ -4,20 +4,19 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
 public class IntSetEncoding implements IValueSetEncoding<Set<Integer>, Integer> {
-    @Override
-    public Set<Integer> or(List<Set<Integer>> vals) {
-        Set<Integer> result = new HashSet<>(vals.size());
-        for (Set<Integer> val : vals) {
-            result.addAll(val);
-        }
-        return result;
-    }
+    //    @Override
+    //    public Set<Integer> or(List<Set<Integer>> vals) {
+    //        Set<Integer> result = new HashSet<>(vals.size());
+    //        for (Set<Integer> val : vals) {
+    //            result.addAll(val);
+    //        }
+    //        return result;
+    //    }
 
     @Override
     public Set<Integer> or(Set<Integer> val1, Set<Integer> val2) {

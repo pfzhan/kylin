@@ -188,7 +188,7 @@ public class IndexMapCache implements Closeable {
 
                     if (needReverse) {
                         dumpedReverseFile = File.createTempFile("PARQUET_II_SPILL_REVERSE_", ".tmp");
-                        dosReverse = new DataOutputStream(new FileOutputStream(dumpedReverseFile));
+                        dosReverse = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(dumpedReverseFile), kapConfig.getParquetPageIndexIOBufSize()));
                         dosReverse.writeInt(size);
                         for (Map.Entry<Comparable, Iterable<? extends Number>> entry : indexMap.descendingMap().entrySet()) {
                             keyEncoding.serialize(entry.getKey(), dosReverse);

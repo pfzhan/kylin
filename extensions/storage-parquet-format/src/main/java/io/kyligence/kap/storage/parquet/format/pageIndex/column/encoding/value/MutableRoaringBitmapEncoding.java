@@ -3,16 +3,15 @@ package io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.value;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.List;
 
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
 public class MutableRoaringBitmapEncoding implements IValueSetEncoding<MutableRoaringBitmap, Integer> {
 
-    @Override
-    public MutableRoaringBitmap or(List<MutableRoaringBitmap> vals) {
-        return MutableRoaringBitmap.or(vals.iterator());
-    }
+    //    @Override
+    //    public MutableRoaringBitmap or(List<MutableRoaringBitmap> vals) {
+    //        return MutableRoaringBitmap.or(vals.iterator());
+    //    }
 
     @Override
     public MutableRoaringBitmap or(MutableRoaringBitmap map1, MutableRoaringBitmap map2) {

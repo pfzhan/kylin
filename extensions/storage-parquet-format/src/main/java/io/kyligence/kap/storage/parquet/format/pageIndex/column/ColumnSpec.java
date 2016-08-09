@@ -3,8 +3,8 @@ package io.kyligence.kap.storage.parquet.format.pageIndex.column;
 public class ColumnSpec {
     private int columnLength;
     private int cardinality;
-    private char keyEncodingIdentifier = 'a';
-    private char valueEncodingIdentifier = 'a';
+    private char keyEncodingIdentifier = 'f';
+    private char valueEncodingIdentifier = 'r';
     private String columnName;
     private boolean onlyEQIndex;
     private int columnSequence;

@@ -34,16 +34,17 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnSpec;
 
 public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
-    final static int dataSize = 500;
+    final static int dataSize = 50;
     final static int maxVal = dataSize * 2;
     final static int cardinality = dataSize;
     static ParquetPageIndexTable indexTable;
     static int[] data1;
     static int[] data2;
     static int[] data3;
-    static int columnLength = Integer.SIZE - Integer.numberOfLeadingZeros(maxVal);
+    static int columnLength = 1 + (Integer.SIZE - Integer.numberOfLeadingZeros(maxVal)) / Byte.SIZE;
 
     static String[] columnName = { "odd", "even", "only" };
     static boolean[] onlyEq = { false, false, true };
@@ -84,6 +85,12 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         }
         int[] cardinalities = { cardinality, cardinality, cardinality };
         int[] columnLengthes = { columnLength, columnLength, columnLength };
+        ColumnSpec[] specs = new ColumnSpec[3];
+        for (int i = 0; i < 3; i++) {
+            specs[0] = new ColumnSpec(columnName[i], columnLength, cardinality, onlyEq[i], i);
+            specs[0].setKeyEncodingIdentifier('a');
+            specs[0].setValueEncodingIdentifier('s');
+        }
         ParquetPageIndexWriter writer = new ParquetPageIndexWriter(columnName, columnLengthes, cardinalities, onlyEq, new DataOutputStream(new FileOutputStream(indexFile)));
         for (int i = 0; i < dataSize; i++) {
             byte[] buffer = new byte[columnLength * 3];

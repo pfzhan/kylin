@@ -102,3 +102,4 @@ server_mapping.txt
 #obfuscation
 cp.txt
 tmp.pro
+spark_client_pid

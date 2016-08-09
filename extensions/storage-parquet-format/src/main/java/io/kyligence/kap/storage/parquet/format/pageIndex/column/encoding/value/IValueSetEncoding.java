@@ -3,12 +3,11 @@ package io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.value;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.List;
 
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
 public interface IValueSetEncoding<T extends Iterable<K>, K extends Number> {
-    public T or(List<T> vals);
+    //    public T or(List<T> vals);
 
     public T or(T val1, T val2);
 
