@@ -18,8 +18,8 @@ public class KeyEncodingFactory {
         case AUTO:
             if (!onlyEQ) {
                 // keep order
-                if (columnLength <= 1) {
-                    return new ByteEncoding();
+                if (columnLength < 2) {
+                    return new ShortEncoding();
                 } else if (columnLength < 4) {
                     return new IntEncoding();
                 } else if (columnLength < 8) {
