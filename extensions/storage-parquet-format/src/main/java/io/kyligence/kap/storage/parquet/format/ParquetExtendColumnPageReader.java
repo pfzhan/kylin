@@ -1,6 +1,6 @@
 package io.kyligence.kap.storage.parquet.format;
 
-import io.kyligence.kap.storage.parquet.format.datatype.TwoDByteArrayWritable;
+import io.kyligence.kap.storage.parquet.format.datatype.ByteArrayListWritable;
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
 import org.apache.hadoop.conf.Configuration;
@@ -65,7 +65,7 @@ public class ParquetExtendColumnPageReader<K, V> extends RecordReader<K, V> {
             columnBytes[i] = ((Binary) row.get(i)).getBytes();
         }
 
-        key = (K) new TwoDByteArrayWritable(columnBytes);
+        key = (K) new ByteArrayListWritable(columnBytes);
         val = (V) new IntWritable(reader.getPageIndex());
         return true;
     }
