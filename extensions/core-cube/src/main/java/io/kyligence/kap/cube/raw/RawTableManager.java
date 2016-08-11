@@ -73,4 +73,7 @@ public class RawTableManager implements IRealizationProvider {
         return null;
     }
 
+    public RawTableInstance getRawTable(String name) {
+        return (RawTableInstance) getRealization(name);
+    }
 }
