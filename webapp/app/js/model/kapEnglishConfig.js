@@ -65,7 +65,7 @@ KylinApp.constant('kapEnglishConfig', {
     username: 'Username',
     password: 'Password',
     loginIssue: 'Login Issue?',
-    loginIn: 'Login In',
+    loginIn: 'Log In',
     loginInNow: 'Login In...',
     error: 'Unable to login, please check your username/password.'
   },
