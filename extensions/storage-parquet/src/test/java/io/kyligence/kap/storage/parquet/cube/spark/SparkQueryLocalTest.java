@@ -30,6 +30,7 @@ import org.apache.kylin.gridtable.DictGridTableTest;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTRecord;
 import org.apache.kylin.gridtable.GTScanRequest;
+import org.apache.kylin.gridtable.GTScanRequestBuilder;
 import org.apache.kylin.gridtable.GridTable;
 import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.kylin.gridtable.memstore.GTSimpleMemStore;
@@ -75,7 +76,7 @@ public class SparkQueryLocalTest extends io.kyligence.kap.common.util.LocalFileM
     public void remoteSimulate() throws InterruptedException {
         GTInfo info = table.getInfo();
 
-        final GTScanRequest req = new GTScanRequest(info, null, null, DictGridTableTest.setOf(0), DictGridTableTest.setOf(3), new String[] { "sum" }, null, true, 0);
+        final GTScanRequest req = new GTScanRequestBuilder().setInfo(info).setRanges(null).setDimensions(null).setAggrGroupBy(DictGridTableTest.setOf(0)).setAggrMetrics(DictGridTableTest.setOf(3)).setAggrMetricsFuncs(new String[]{"sum"}).setFilterPushDown(null).setAllowStorageAggregation(true).setAggCacheMemThreshold(0).createGTScanRequest();
         byte[] reqBytes = req.toByteArray();
 
         SparkDriverClient client = new SparkDriverClient("localhost", 50051);
@@ -102,7 +103,7 @@ public class SparkQueryLocalTest extends io.kyligence.kap.common.util.LocalFileM
         CompareTupleFilter fComp2 = DictGridTableTest.compare(info.colRef(1), TupleFilter.FilterOperatorEnum.GT, DictGridTableTest.enc(info, 1, "10"));
         LogicalTupleFilter filter = DictGridTableTest.and(fComp1, fComp2);
 
-        GTScanRequest req = new GTScanRequest(info, null, null, DictGridTableTest.setOf(0), DictGridTableTest.setOf(3), new String[] { "sum" }, filter, true, 0);
+        GTScanRequest req = new GTScanRequestBuilder().setInfo(info).setRanges(null).setDimensions(null).setAggrGroupBy(DictGridTableTest.setOf(0)).setAggrMetrics(DictGridTableTest.setOf(3)).setAggrMetricsFuncs(new String[]{"sum"}).setFilterPushDown(filter).setAllowStorageAggregation(true).setAggCacheMemThreshold(0).createGTScanRequest();
         // note the evaluatable column 1 in filter is added to returned columns but not in group by
         assertEquals("GTScanRequest [range=[[null, null]-[null, null]], columns={0, 1, 3}, filterPushDown=AND [NULL.GT_MOCKUP_TABLE.0 GT [\\x00\\x00\\x01J\\xE5\\xBD\\x5C\\x00], NULL.GT_MOCKUP_TABLE.1 GT [\\x00]], aggrGroupBy={0}, aggrMetrics={3}, aggrMetricsFuncs=[sum]]", req.toString());
 
