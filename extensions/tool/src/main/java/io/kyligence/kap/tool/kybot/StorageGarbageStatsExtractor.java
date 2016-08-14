@@ -33,6 +33,8 @@ import org.apache.kylin.job.manager.ExecutableManager;
 import org.apache.kylin.metadata.realization.IRealizationConstants;
 import org.apache.kylin.storage.hbase.util.HiveCmdBuilder;
 import org.apache.kylin.tool.AbstractInfoExtractor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
@@ -40,6 +42,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class StorageGarbageStatsExtractor extends AbstractInfoExtractor {
+
+    private static final Logger logger = LoggerFactory.getLogger(StorageGarbageStatsExtractor.class);
 
     KylinConfig kylinConfig;
     CubeManager cubeManager;
@@ -177,18 +181,22 @@ public class StorageGarbageStatsExtractor extends AbstractInfoExtractor {
             }
 
             while ((line = reader.readLine()) != null) {
-                if (line.startsWith("kylin_intermediate_")) {
-                    boolean isNeedDel = false;
-                    String uuid = line.substring(line.length() - uuidLength, line.length());
-                    uuid = uuid.replace("_", "-");
-                    //Check whether it's a hive table in use
-                    if (allJobs.contains(uuid) && !workingJobList.contains(uuid)) {
-                        isNeedDel = true;
-                    }
+                try {
+                    if (line.startsWith("kylin_intermediate_")) {
+                        boolean isNeedDel = false;
+                        String uuid = line.substring(line.length() - uuidLength, line.length());
+                        uuid = uuid.replace("_", "-");
+                        //Check whether it's a hive table in use
+                        if (allJobs.contains(uuid) && !workingJobList.contains(uuid)) {
+                            isNeedDel = true;
+                        }
 
-                    if (isNeedDel) {
-                        allHiveTablesNeedToBeDeleted.add(line);
+                        if (isNeedDel) {
+                            allHiveTablesNeedToBeDeleted.add(line);
+                        }
                     }
+                } catch (Exception e) {
+                    logger.error("illegal hive tmp table: {}", line, e);
                 }
             }
         }
