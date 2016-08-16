@@ -57,10 +57,10 @@ public class ParquetFileReader extends RecordReader<Text, Text> {
         kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
 
         String cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
-        String segmentName = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_NAME);
-        logger.info("cubeName is " + cubeName + " and segmentName is " + segmentName);
+        String segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
+        logger.info("cubeName is " + cubeName + " and segmentID is " + segmentID);
         cubeInstance = CubeManager.getInstance(kylinConfig).getCube(cubeName);
-        cubeSegment = cubeInstance.getSegment(segmentName, null);
+        cubeSegment = cubeInstance.getSegmentById(segmentID);
 
         // init with first shard file
         reader = getNextValuesReader();

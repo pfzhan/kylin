@@ -55,10 +55,10 @@ public class ParquetFileWriter extends RecordWriter<Text, Text> {
         kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
 
         String cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
-        String segmentName = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_NAME);
-        logger.info("cubeName is " + cubeName + " and segmentName is " + segmentName);
+        String segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
+        logger.info("cubeName is " + cubeName + " and segmentID is " + segmentID);
         cubeInstance = CubeManager.getInstance(kylinConfig).getCube(cubeName);
-        cubeSegment = cubeInstance.getSegment(segmentName, null);
+        cubeSegment = cubeInstance.getSegmentById(segmentID);
         Preconditions.checkState(cubeSegment.isEnableSharding(), "Cube segment sharding not enabled " + cubeSegment.getName());
 
         measureDecoder = new MeasureDecoder(cubeSegment.getCubeDesc().getMeasures());
