@@ -1,7 +1,11 @@
 package io.kyligence.kap.cube.raw;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.model.CubeDesc;
@@ -12,11 +16,8 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
@@ -38,7 +39,6 @@ public class RawTableDesc extends RootPersistentEntity {
     @JsonProperty("order_column")
     private List<ColumnDesc> orderedColumn;
 
-
     private HashMap<String, TableDesc> tableDict;
     private TableDesc factTable;
     private Set<ColumnDesc> indexedColumnSet;
@@ -50,16 +50,15 @@ public class RawTableDesc extends RootPersistentEntity {
     public RawTableDesc(CubeInstance cubeInstance) {
         CubeDesc cubeDesc = cubeInstance.getDescriptor();
         DataModelDesc dataModelDesc = cubeDesc.getModel();
-
         this.name = dataModelDesc.getName();
         this.model = dataModelDesc;
+        initTableDict();
         initColumns(model.getDimensions(), model.getMetrics());
         indexedColumns = new ArrayList<>();
         indexedColumns.addAll(columns);
-
+        orderedColumn = new ArrayList<>();
         orderedColumn.add(columns.get(0));
         orderedColumn.add(columns.get(1));
-
         varyLengthColumns = new ArrayList<>();
         for (ColumnDesc column : columns) {
             if (!orderedColumn.contains(column)) {
@@ -67,9 +66,9 @@ public class RawTableDesc extends RootPersistentEntity {
             }
         }
 
-        initTableDict();
-        initIndexedSet();
         initVaryLengthSet();
+        initIndexedSet();
+        initDimensions(model.getDimensions());
     }
 
     public static RawTableDesc getInstance(CubeDesc cubeDesc) {
@@ -112,7 +111,6 @@ public class RawTableDesc extends RootPersistentEntity {
     public void setVaryLengthColumns(List<ColumnDesc> varyLengthColumns) {
         this.varyLengthColumns = varyLengthColumns;
     }
-
 
     public boolean isNeedIndex(ColumnDesc column) {
         return indexedColumnSet.contains(column);
@@ -157,7 +155,6 @@ public class RawTableDesc extends RootPersistentEntity {
 
     private void initColumns(List<ModelDimensionDesc> mdd, String[] metrix) {
         columns = new ArrayList<>();
-        dimensions = new ArrayList<>();
 
         for (ModelDimensionDesc m : mdd) {
             String[] dims = m.getColumns();
@@ -165,6 +162,21 @@ public class RawTableDesc extends RootPersistentEntity {
             for (String d : dims) {
                 ColumnDesc column = table.findColumnByName(d);
                 columns.add(column);
+            }
+        }
+
+        for (String m : metrix) {
+            columns.add(factTable.findColumnByName(m));
+        }
+    }
+
+    private void initDimensions(List<ModelDimensionDesc> mdd) {
+        dimensions = new ArrayList<>();
+        for (ModelDimensionDesc m : mdd) {
+            String[] dims = m.getColumns();
+            TableDesc table = tableDict.get(m.getTable());
+            for (String d : dims) {
+                ColumnDesc column = table.findColumnByName(d);
 
                 // for columns in modle dimensions and not varylength, it's real dimensions
                 if (!isVaryLength(column)) {
@@ -172,22 +184,18 @@ public class RawTableDesc extends RootPersistentEntity {
                 }
             }
         }
-
-        for (String m: metrix) {
-            columns.add(factTable.findColumnByName(m));
-        }
     }
 
     private void initIndexedSet() {
         indexedColumnSet = new HashSet<>();
-        for (ColumnDesc c: indexedColumns) {
+        for (ColumnDesc c : indexedColumns) {
             indexedColumnSet.add(c);
         }
     }
 
     private void initVaryLengthSet() {
         varyLengthColumnSet = new HashSet<>();
-        for (ColumnDesc c: varyLengthColumns) {
+        for (ColumnDesc c : varyLengthColumns) {
             varyLengthColumnSet.add(c);
         }
     }
@@ -197,9 +205,9 @@ public class RawTableDesc extends RootPersistentEntity {
         factTable = model.getFactTableDesc();
         List<TableDesc> lookupTable = model.getLookupTableDescs();
 
-        tableDict.put(factTable.getName(), factTable);
+        tableDict.put(factTable.getDatabase() + "." + factTable.getName(), factTable);
         for (TableDesc l : lookupTable) {
-            tableDict.put(l.getName(), l);
+            tableDict.put(l.getDatabase() + "." + l.getName(), l);
         }
     }
 
