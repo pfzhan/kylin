@@ -4065,3 +4065,6 @@ Gradient Background colors
     white-space: normal!important;
   }
 }
+.users-paging-grid {
+  overflow:visible;
+}
