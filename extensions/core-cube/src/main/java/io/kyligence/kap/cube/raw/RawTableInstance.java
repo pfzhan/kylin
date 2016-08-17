@@ -5,7 +5,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.model.IKapStorageAware;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -13,38 +12,43 @@ import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.metadata.realization.SQLDigest;
 
+import io.kyligence.kap.metadata.model.IKapStorageAware;
+
 /**
  * RawTable is a parasite on Cube (at the moment).
  */
 public class RawTableInstance implements IRealization {
-    
+
     public static boolean isRawTableEnabled(CubeDesc cube) {
         return cube.getOverrideKylinProps().containsKey("kylin.rawtable.enabled");
     }
-    
+
     public static void setRawTableEnabled(CubeDesc cube) {
         cube.getOverrideKylinProps().put("kylin.rawtable.enabled", "true");
     }
-    
+
     // ============================================================================
 
     private CubeInstance cube;
     private RawTableDesc rawTableDesc;
-    
+
     private List<TblColRef> allColumns;
     private List<TblColRef> dimensions;
     private List<MeasureDesc> measures;
 
+    private List<RawTableSegment> segments = new ArrayList<>();
+
     public RawTableInstance(CubeInstance cube) {
         this.cube = cube;
         rawTableDesc = new RawTableDesc(cube);
-        
+
         init();
     }
 
@@ -61,14 +65,14 @@ public class RawTableInstance implements IRealization {
 
     private void initAllColumns() {
         allColumns = new ArrayList<>();
-        for (ColumnDesc columnDesc: rawTableDesc.getColumns()) {
+        for (ColumnDesc columnDesc : rawTableDesc.getColumns()) {
             allColumns.add(columnDesc.getRef());
         }
     }
 
     private void initDimensions() {
         dimensions = new ArrayList<>();
-        for (ColumnDesc columnDesc: rawTableDesc.getDimensions()) {
+        for (ColumnDesc columnDesc : rawTableDesc.getDimensions()) {
             dimensions.add(columnDesc.getRef());
         }
     }
@@ -76,11 +80,11 @@ public class RawTableInstance implements IRealization {
     private void initMeasures() {
         measures = new ArrayList<>();
         Set<ColumnDesc> dimensionsSet = new HashSet<>();
-        for (ColumnDesc columnDesc: rawTableDesc.getDimensions()) {
+        for (ColumnDesc columnDesc : rawTableDesc.getDimensions()) {
             dimensionsSet.add(columnDesc);
         }
 
-        for (ColumnDesc columnDesc: rawTableDesc.getColumns()) {
+        for (ColumnDesc columnDesc : rawTableDesc.getColumns()) {
             if (!dimensionsSet.contains(columnDesc)) {
                 measures.add(transferToMeasureDesc(columnDesc));
             }
@@ -171,4 +175,43 @@ public class RawTableInstance implements IRealization {
         return cube.getDateRangeEnd();
     }
 
+    public List<RawTableSegment> getSegments() {
+        return segments;
+    }
+
+    public List<RawTableSegment> getSegments(SegmentStatusEnum status) {
+        List<RawTableSegment> result = new ArrayList<>();
+
+        for (RawTableSegment segment : segments) {
+            if (segment.getStatus() == status) {
+                result.add(segment);
+            }
+        }
+
+        return result;
+    }
+
+    public void setSegments(List<RawTableSegment> segments) {
+        this.segments = segments;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        RawTableInstance other = (RawTableInstance) obj;
+        if (cube == null) {
+            if (other.cube != null) {
+                return false;
+            }
+        } else if (!cube.equals(other.cube)) {
+            return false;
+        }
+
+        return true;
+    }
 }
