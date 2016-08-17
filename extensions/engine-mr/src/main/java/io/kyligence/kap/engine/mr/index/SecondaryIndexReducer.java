@@ -37,7 +37,6 @@ import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.engine.mr.KylinReducer;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,7 +72,7 @@ public class SecondaryIndexReducer extends KylinReducer<Text, Text, NullWritable
 
         CubeInstance cube = CubeManager.getInstance(config).getCube(cubeName);
         cubeDesc = cube.getDescriptor();
-        cubeSegment = cube.getSegment(segmentID, SegmentStatusEnum.NEW);
+        cubeSegment = cube.getSegmentById(segmentID);
         RowKeyColumnIO colIO = new RowKeyColumnIO(new CubeDimEncMap(cubeSegment));
         int taskId = context.getTaskAttemptID().getTaskID().getId();
         int colIndexInRowKey = cube.getDescriptor().getRowkey().getColumnsNeedIndex()[taskId];

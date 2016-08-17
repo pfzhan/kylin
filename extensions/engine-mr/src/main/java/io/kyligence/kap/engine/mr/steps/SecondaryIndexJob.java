@@ -34,7 +34,6 @@ import org.apache.kylin.engine.mr.IMRInput.IMRTableInputFormat;
 import org.apache.kylin.engine.mr.MRUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,7 +79,7 @@ public class SecondaryIndexJob extends AbstractHadoopJob {
             setJobClasspath(job, cube.getConfig());
 
             // Mapper
-            IMRTableInputFormat flatTableInputFormat = MRUtil.getBatchCubingInputSide(cube.getSegment(segmentID, SegmentStatusEnum.NEW)).getFlatTableInputFormat();
+            IMRTableInputFormat flatTableInputFormat = MRUtil.getBatchCubingInputSide(cube.getSegmentById(segmentID)).getFlatTableInputFormat();
             flatTableInputFormat.configureJob(job);
 
             job.setMapperClass(SecondaryIndexMapper.class);

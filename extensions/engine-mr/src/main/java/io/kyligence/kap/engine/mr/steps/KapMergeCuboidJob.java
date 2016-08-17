@@ -29,7 +29,6 @@ import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.steps.CuboidReducer;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
 import io.kyligence.kap.storage.parquet.format.ParquetFileOutputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
@@ -61,7 +60,7 @@ public class KapMergeCuboidJob extends KapCuboidJob {
 
             CubeManager cubeMgr = CubeManager.getInstance(KylinConfig.getInstanceFromEnv());
             CubeInstance cube = cubeMgr.getCube(cubeName);
-            CubeSegment cubeSeg = cube.getSegment(segmentID, SegmentStatusEnum.NEW);
+            CubeSegment cubeSeg = cube.getSegmentById(segmentID);
 
             // start job
             String jobName = getOptionValue(OPTION_JOB_NAME);
