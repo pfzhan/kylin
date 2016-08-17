@@ -6,8 +6,8 @@ import java.util.Set;
 
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
+import org.apache.kylin.cube.gridtable.CubeScanRangePlanner;
 import org.apache.kylin.gridtable.GTScanRange;
-import org.apache.kylin.gridtable.GTScanRangePlanner;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.ConstantTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.cube.gridtable.GTScanRanges;
 import io.kyligence.kap.cube.index.IIndexTable;
 
-public class IndexGTScanRangePlanner extends GTScanRangePlanner {
+public class IndexGTScanRangePlanner extends CubeScanRangePlanner {
     private static final Logger logger = LoggerFactory.getLogger(IndexGTScanRangePlanner.class);
     private final IIndexTable indexTable;
 

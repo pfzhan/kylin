@@ -32,9 +32,9 @@ import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
+import org.apache.kylin.cube.gridtable.CubeScanRangePlanner;
 import org.apache.kylin.gridtable.GTRecord;
 import org.apache.kylin.gridtable.GTScanRange;
-import org.apache.kylin.gridtable.GTScanRangePlanner;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.ScannerWorker;
 import org.apache.kylin.metadata.filter.TupleFilter;
@@ -48,7 +48,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-public class AdvGTScanRangePlanner extends GTScanRangePlanner {
+public class AdvGTScanRangePlanner extends CubeScanRangePlanner {
     private static final Logger logger = LoggerFactory.getLogger(AdvGTScanRangePlanner.class);
 
     public AdvGTScanRangePlanner(CubeSegment cubeSegment, Cuboid cuboid, TupleFilter filter, Set<TblColRef> dimensions, Set<TblColRef> groupbyDims, Collection<FunctionDesc> metrics) {
@@ -93,7 +93,7 @@ public class AdvGTScanRangePlanner extends GTScanRangePlanner {
         newGroupByDims.retainAll(cuboidColumns);
 
         //TODO: don't need the metrics
-        GTScanRangePlanner scanRangePlanner = new GTScanRangePlanner(cubeSegment, prefixCuboid, filter, newDimensions, newDimensions, metrics);
+        CubeScanRangePlanner scanRangePlanner = new CubeScanRangePlanner(cubeSegment, prefixCuboid, filter, newDimensions, newDimensions, metrics);
         GTScanRequest scanRequest = scanRangePlanner.planScanRequest();
         ScannerWorker scanner = new ScannerWorker(cubeSegment, prefixCuboid, scanRequest, KylinConfig.getInstanceFromEnv().getDefaultIGTStorage());
 
