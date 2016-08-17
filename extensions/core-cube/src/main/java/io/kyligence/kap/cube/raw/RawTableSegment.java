@@ -134,6 +134,11 @@ public class RawTableSegment implements Comparable<RawTableSegment>, IStorageAwa
     }
 
     @Override
+    public int hashCode() {
+        return uuid.hashCode();
+    }
+    
+    @Override
     public boolean equals(Object obj) {
         if (this == obj)
             return true;

@@ -124,7 +124,7 @@ public class KapBatchCubingIndexJobBuilder extends BatchCubingJobBuilder2 {
         StringBuilder cmd = new StringBuilder();
         appendMapReduceParameters(cmd);
 
-        rawTableStep.setName(ExecutableConstants.STEP_NAME_BUILD_RAWTABLE);
+        rawTableStep.setName("Build Raw Table");
 
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBE_NAME, seg.getRealization().getName());
         appendExecCmdParameters(cmd, BatchConstants.ARG_SEGMENT_NAME, seg.getName());

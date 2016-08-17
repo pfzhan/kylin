@@ -194,6 +194,11 @@ public class RawTableInstance implements IRealization {
     public void setSegments(List<RawTableSegment> segments) {
         this.segments = segments;
     }
+    
+    @Override
+    public int hashCode() {
+        return cube.hashCode();
+    }
 
     @Override
     public boolean equals(Object obj) {
