@@ -96,7 +96,7 @@
   <div class="cube-detail" ng-show="cube.visiblePage=='storage'">
         <div style="margin: 15px;">
             <div ng-repeat="table in cube.hbase">
-              <h5><b>{{dataKylin.cube.SegmentId}}</b> {{table.tableName}}</h5>
+              <h5><b>{{dataKylin.cube.SegmentId}}</b> {{cube.tablemap[table.tableName]}}</h5>
                 <ul>
                     <li>Htable: <span class="red">{{table.tableName}}</span></li>
                   <li>{{dataKylin.cube.cubeHBRegionCount}}<span class="red">{{table.regionCount}}</span></li>
