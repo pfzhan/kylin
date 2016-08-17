@@ -65,7 +65,7 @@ public class SecondaryIndexReducer extends KylinReducer<Text, Text, NullWritable
 
         Configuration conf = context.getConfiguration();
         final String cubeName = conf.get(BatchConstants.CFG_CUBE_NAME);
-        final String segmentName = conf.get(BatchConstants.CFG_CUBE_SEGMENT_NAME);
+        final String segmentID = conf.get(BatchConstants.CFG_CUBE_SEGMENT_ID);
 
         outputPath = conf.get(BatchConstants.CFG_OUTPUT_PATH);
 
@@ -73,7 +73,7 @@ public class SecondaryIndexReducer extends KylinReducer<Text, Text, NullWritable
 
         CubeInstance cube = CubeManager.getInstance(config).getCube(cubeName);
         cubeDesc = cube.getDescriptor();
-        cubeSegment = cube.getSegment(segmentName, SegmentStatusEnum.NEW);
+        cubeSegment = cube.getSegment(segmentID, SegmentStatusEnum.NEW);
         RowKeyColumnIO colIO = new RowKeyColumnIO(new CubeDimEncMap(cubeSegment));
         int taskId = context.getTaskAttemptID().getTaskID().getId();
         int colIndexInRowKey = cube.getDescriptor().getRowkey().getColumnsNeedIndex()[taskId];

@@ -49,7 +49,7 @@ public class SparkQueryDriver extends AbstractApplication {
 
     @Override
     protected void execute(OptionsHelper optionsHelper) throws Exception {
-        
+
         SparkDriverServer server = new SparkDriverServer();
         server.start();
         server.blockUntilShutdown();

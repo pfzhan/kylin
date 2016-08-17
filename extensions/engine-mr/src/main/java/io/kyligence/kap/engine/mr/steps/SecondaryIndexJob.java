@@ -62,13 +62,13 @@ public class SecondaryIndexJob extends AbstractHadoopJob {
         try {
             options.addOption(OPTION_JOB_NAME);
             options.addOption(OPTION_CUBE_NAME);
-            options.addOption(OPTION_SEGMENT_NAME);
+            options.addOption(OPTION_SEGMENT_ID);
             options.addOption(OPTION_OUTPUT_PATH);
             parseOptions(options, args);
 
             Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
             String cubeName = getOptionValue(OPTION_CUBE_NAME).toUpperCase();
-            String segmentName = getOptionValue(OPTION_SEGMENT_NAME);
+            String segmentID = getOptionValue(OPTION_SEGMENT_ID);
 
             KylinConfig config = KylinConfig.getInstanceFromEnv();
             CubeManager cubeMgr = CubeManager.getInstance(config);
@@ -80,7 +80,7 @@ public class SecondaryIndexJob extends AbstractHadoopJob {
             setJobClasspath(job, cube.getConfig());
 
             // Mapper
-            IMRTableInputFormat flatTableInputFormat = MRUtil.getBatchCubingInputSide(cube.getSegment(segmentName, SegmentStatusEnum.NEW)).getFlatTableInputFormat();
+            IMRTableInputFormat flatTableInputFormat = MRUtil.getBatchCubingInputSide(cube.getSegment(segmentID, SegmentStatusEnum.NEW)).getFlatTableInputFormat();
             flatTableInputFormat.configureJob(job);
 
             job.setMapperClass(SecondaryIndexMapper.class);
@@ -93,7 +93,7 @@ public class SecondaryIndexJob extends AbstractHadoopJob {
 
             // set job configuration
             job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, cubeName);
-            job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_NAME, segmentName);
+            job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_ID, segmentID);
             // add metadata to distributed cache
             attachKylinPropsAndMetadata(cube, job.getConfiguration());
 

@@ -23,7 +23,6 @@ import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.engine.mr.KylinMapper;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +36,7 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
     protected static final Logger logger = LoggerFactory.getLogger(ParquetPageIndexMapper.class);
 
     protected String cubeName;
-    protected String segmentName;
+    protected String segmentID;
     protected long cuboidId;
     protected String shardId;
     protected CubeInstance cube;
@@ -64,7 +63,7 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
         KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
 
         cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME).toUpperCase();
-        segmentName = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_NAME);
+        segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
         cuboidId = Long.parseLong(inputPath.getParent().getName());
         shardId = inputPath.getName().substring(0, inputPath.getName().indexOf('.'));
 
@@ -73,7 +72,7 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
         cube = CubeManager.getInstance(config).getCube(cubeName);
         cubeDesc = cube.getDescriptor();
         cuboid = Cuboid.findById(cubeDesc, cuboidId);
-        cubeSegment = cube.getSegment(segmentName, SegmentStatusEnum.NEW);
+        cubeSegment = cube.getSegmentById(segmentID);
 
         logger.info("Input path: " + inputPath.toUri().toString());
         logger.info("Output path: " + outputPath.toString());

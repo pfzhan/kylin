@@ -1,6 +1,5 @@
 package io.kyligence.kap.storage.parquet.steps;
 
-import io.kyligence.kap.engine.mr.steps.ParquertMRJobUtils;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
@@ -13,6 +12,7 @@ import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.engine.mr.steps.ParquertMRJobUtils;
 import io.kyligence.kap.storage.parquet.format.ParquetPageInputFormat;
 
 public class ParquetPageIndexJob extends AbstractHadoopJob {
@@ -24,7 +24,7 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
     public boolean isSkipped() {
         return skipped;
     }
-    
+
     @Override
     public int run(String[] args) throws Exception {
         Options options = new Options();
@@ -32,14 +32,14 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
         try {
             options.addOption(OPTION_JOB_NAME);
             options.addOption(OPTION_CUBE_NAME);
-            options.addOption(OPTION_SEGMENT_NAME);
+            options.addOption(OPTION_SEGMENT_ID);
             options.addOption(OPTION_INPUT_PATH);
             options.addOption(OPTION_OUTPUT_PATH);
             options.addOption(OPTION_CUBING_JOB_ID);
             parseOptions(options, args);
 
             String cubeName = getOptionValue(OPTION_CUBE_NAME).toUpperCase();
-            String segmentName = getOptionValue(OPTION_SEGMENT_NAME);
+            String segmentID = getOptionValue(OPTION_SEGMENT_ID);
 
             CubeManager cubeMgr = CubeManager.getInstance(KylinConfig.getInstanceFromEnv());
             CubeInstance cube = cubeMgr.getCube(cubeName);
@@ -61,7 +61,7 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
 
             // set job configuration
             job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, cubeName);
-            job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_NAME, segmentName);
+            job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_ID, segmentID);
 
             // add metadata to distributed cache
             attachKylinPropsAndMetadata(cube, job.getConfiguration());
