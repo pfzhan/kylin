@@ -1,11 +1,11 @@
 package io.kyligence.kap.storage.parquet.format;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.List;
+import java.util.Properties;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -47,7 +47,7 @@ public class ParquetTarballFileReader extends RecordReader<Text, Text> {
     protected Configuration conf;
 
     private ParquetBundleReader reader = null;
-    private Text key = null;//key will be fixed length,
+    private Text key = null; //key will be fixed length,
     private Text val = null; //reusing the val bytes, the returned bytes might contain useless tail, but user will use it as bytebuffer, so it's okay
 
     private ReadStrategy readStrategy;
@@ -62,14 +62,14 @@ public class ParquetTarballFileReader extends RecordReader<Text, Text> {
         Path shardPath = fileSplit.getPath();
 
         long startTime = System.currentTimeMillis();
-        String kylinPropertiesStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES);
-        if (kylinPropertiesStr == null) { 
+        String kylinPropsStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, "");
+        if (kylinPropsStr.isEmpty()) { 
             logger.warn("Creating an empty KylinConfig");
-            KylinConfig.setKylinConfigFromInputStream(IOUtils.toInputStream("", Charset.defaultCharset()));
-        } else {
-            logger.info("Creating KylinConfig from conf");
-            KylinConfig.setKylinConfigFromInputStream(IOUtils.toInputStream(kylinPropertiesStr, Charset.defaultCharset()));
         }
+        logger.info("Creating KylinConfig from conf");
+        Properties kylinProps = new Properties();
+        kylinProps.load(new StringReader(kylinPropsStr));
+        KylinConfig.setKylinConfigInEnvIfMissing(kylinProps);
 
         ParquetPageIndexRecordReader indexReader = new ParquetPageIndexRecordReader();
         long fileOffset = indexReader.initialize(split, context);

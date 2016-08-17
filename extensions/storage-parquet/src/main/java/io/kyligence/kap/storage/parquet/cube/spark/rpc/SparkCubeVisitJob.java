@@ -18,6 +18,7 @@
 
 package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -26,7 +27,6 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -64,14 +64,18 @@ public class SparkCubeVisitJob implements Serializable {
     private transient String parquetPath;
 
     public SparkCubeVisitJob(JavaSparkContext sc, SparkJobProtos.SparkJobRequest request) {
-        this.sc = sc;
-        this.request = request;
-        this.kylinConfig = KylinConfig.createKylinConfigFromInputStream(IOUtils.toInputStream(request.getKylinProperties()));
-        this.parquetPath = new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
-                append(request.getCubeId()).append("/").//
-                append(request.getSegmentId()).append("/").//
-                append(request.getCuboidId()).//
-                append("/*.parquettar").toString();
+        try {
+            this.sc = sc;
+            this.request = request;
+            this.kylinConfig = KylinConfig.createKylinConfig(request.getKylinProperties());
+            this.parquetPath = new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
+                    append(request.getCubeId()).append("/").//
+                    append(request.getSegmentId()).append("/").//
+                    append(request.getCuboidId()).//
+                    append("/*.parquettar").toString();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public List<byte[]> executeTask() throws Exception {
