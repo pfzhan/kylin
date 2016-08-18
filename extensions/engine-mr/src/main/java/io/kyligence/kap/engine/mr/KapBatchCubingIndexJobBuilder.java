@@ -59,7 +59,6 @@ public class KapBatchCubingIndexJobBuilder extends BatchCubingJobBuilder2 {
         if (RawTableInstance.isRawTableEnabled(seg.getCubeDesc())) {
             RawTableInstance rawIns = new RawTableInstance(seg.getCubeInstance());
             RawTableDesc rawDesc = rawIns.getRawTableDesc();
-            rawDesc.getDimensions();
             result.addTask(createRawTableStep(cuboidRootPath, jobId));
         }
 

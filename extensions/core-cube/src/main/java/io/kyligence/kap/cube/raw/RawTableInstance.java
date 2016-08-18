@@ -1,9 +1,7 @@
 package io.kyligence.kap.cube.raw;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.model.CubeDesc;
@@ -47,7 +45,7 @@ public class RawTableInstance implements IRealization {
 
     public RawTableInstance(CubeInstance cube) {
         this.cube = cube;
-        rawTableDesc = new RawTableDesc(cube);
+        rawTableDesc = new RawTableDesc(cube.getDescriptor());
 
         init();
     }
@@ -65,28 +63,23 @@ public class RawTableInstance implements IRealization {
 
     private void initAllColumns() {
         allColumns = new ArrayList<>();
-        for (ColumnDesc columnDesc : rawTableDesc.getColumns()) {
-            allColumns.add(columnDesc.getRef());
+        for (TblColRef col : rawTableDesc.getColumns()) {
+            allColumns.add(col);
         }
     }
 
     private void initDimensions() {
         dimensions = new ArrayList<>();
-        for (ColumnDesc columnDesc : rawTableDesc.getDimensions()) {
-            dimensions.add(columnDesc.getRef());
-        }
+        TblColRef orderedColumn = rawTableDesc.getOrderedColumn();
+        if (orderedColumn != null)
+            dimensions.add(orderedColumn);
     }
 
     private void initMeasures() {
         measures = new ArrayList<>();
-        Set<ColumnDesc> dimensionsSet = new HashSet<>();
-        for (ColumnDesc columnDesc : rawTableDesc.getDimensions()) {
-            dimensionsSet.add(columnDesc);
-        }
-
-        for (ColumnDesc columnDesc : rawTableDesc.getColumns()) {
-            if (!dimensionsSet.contains(columnDesc)) {
-                measures.add(transferToMeasureDesc(columnDesc));
+        for (TblColRef col : rawTableDesc.getColumns()) {
+            if (!dimensions.contains(col)) {
+                measures.add(transferToMeasureDesc(col.getColumnDesc()));
             }
         }
     }

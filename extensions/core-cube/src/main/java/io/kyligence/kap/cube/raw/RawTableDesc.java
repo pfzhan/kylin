@@ -1,236 +1,180 @@
 package io.kyligence.kap.cube.raw;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.cube.model.RowKeyColDesc;
+import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.ModelDimensionDesc;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.kylin.metadata.model.TblColRef;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class RawTableDesc extends RootPersistentEntity {
-    private static final Logger logger = LoggerFactory.getLogger(RawTableDesc.class);
+    public static final String RAW_TABLE_DESC_RESOURCE_ROOT = "/raw_table_desc";
 
+    public static final String INDEX_DISCRETE = "discrete";
+    public static final String INDEX_SORTED = "sorted";
+    public static final String ENCODING_VAR = "var";
+    
     @JsonProperty("name")
     private String name;
-    @JsonProperty("model")
-    private DataModelDesc model;
+    @JsonProperty("model_name")
+    private String modelName;
     @JsonProperty("columns")
-    private List<ColumnDesc> columns;
-    @JsonProperty("indexed_columns")
-    private List<ColumnDesc> indexedColumns;
-    @JsonProperty("vary_length_columns")
-    private List<ColumnDesc> varyLengthColumns;
-    @JsonProperty("dimensions")
-    private List<ColumnDesc> dimensions;
-    @JsonProperty("order_column")
-    private List<ColumnDesc> orderedColumn;
-
-    private HashMap<String, TableDesc> tableDict;
-    private TableDesc factTable;
-    private Set<ColumnDesc> indexedColumnSet;
-    private Set<ColumnDesc> varyLengthColumnSet;
-
-    // datamodel to rawtable 1-to-1 mapping
-    private static HashMap<DataModelDesc, RawTableDesc> rawTableDescCache;
-
-    public RawTableDesc(CubeInstance cubeInstance) {
-        CubeDesc cubeDesc = cubeInstance.getDescriptor();
-        DataModelDesc dataModelDesc = cubeDesc.getModel();
-        this.name = dataModelDesc.getName();
-        this.model = dataModelDesc;
-        initTableDict();
-        initColumns(model.getDimensions(), model.getMetrics());
-        indexedColumns = new ArrayList<>();
-        indexedColumns.addAll(columns);
-        orderedColumn = new ArrayList<>();
-        orderedColumn.add(columns.get(0));
-        orderedColumn.add(columns.get(1));
-        varyLengthColumns = new ArrayList<>();
-        for (ColumnDesc column : columns) {
-            if (!orderedColumn.contains(column)) {
-                varyLengthColumns.add(column);
-            }
-        }
-
-        initVaryLengthSet();
-        initIndexedSet();
-        initDimensions(model.getDimensions());
+    private List<RawTableColumnDesc> columns;
+    
+    // computed
+    private KylinConfig config;
+    private DataModelDesc model;
+    private Map<TblColRef, RawTableColumnDesc> columnMap;
+    
+    // for Jackson
+    public RawTableDesc() {
     }
 
-    public static RawTableDesc getInstance(CubeDesc cubeDesc) {
-        if (rawTableDescCache == null) {
-            rawTableDescCache = new HashMap<>();
+    // for debug/test, create a mockup RawTable from DataModel
+    public RawTableDesc(CubeDesc cubeDesc) {
+        this.name = cubeDesc.getName();
+        this.modelName = cubeDesc.getModelName();
+        
+        this.config = cubeDesc.getConfig();
+        this.model = cubeDesc.getModel();
+        this.columnMap = Maps.newHashMap();
+        
+        MetadataManager metaMgr = MetadataManager.getInstance(model.getConfig());
+        TableDesc factTable = model.getFactTableDesc();
+        
+        for (ModelDimensionDesc dim : model.getDimensions()) {
+            TableDesc dimTable = metaMgr.getTableDesc(dim.getTable());
+            for (String col : dim.getColumns()) {
+                TblColRef colRef = dimTable.findColumnByName(col).getRef();
+                String index = guessColIndex(cubeDesc, colRef);
+                String encoding = guessColEncoding(cubeDesc, colRef);
+                RawTableColumnDesc rawColDesc = new RawTableColumnDesc(colRef.getColumnDesc(), index, encoding);
+                columnMap.put(colRef, rawColDesc);
+            }
         }
-
-        DataModelDesc modelDesc = cubeDesc.getModel();
-        if (rawTableDescCache.containsKey(modelDesc)) {
-            return rawTableDescCache.get(modelDesc);
+        
+        for (String col : model.getMetrics()) {
+            TblColRef colRef = factTable.findColumnByName(col).getRef();
+            String index = null;
+            String encoding = ENCODING_VAR;
+            RawTableColumnDesc rawColDesc = new RawTableColumnDesc(colRef.getColumnDesc(), index, encoding);
+            columnMap.put(colRef, rawColDesc);
         }
+        
+        this.columns = Lists.newArrayList(columnMap.values());
+    }
 
+    private String guessColIndex(CubeDesc cubeDesc, TblColRef colRef) {
+        PartitionDesc partDesc = cubeDesc.getModel().getPartitionDesc();
+        if (partDesc != null && colRef.equals(partDesc.getPartitionDateColumnRef()))
+            return INDEX_SORTED;
+        else
+            return INDEX_DISCRETE;
+    }
+
+    private String guessColEncoding(CubeDesc cubeDesc, TblColRef colRef) {
+        RowKeyColDesc colDesc = cubeDesc.getRowkey().getColDesc(colRef);
+        if (colDesc == null)
+            return ENCODING_VAR;
+        else
+            return colDesc.getEncoding();
+    }
+
+    public TblColRef getOrderedColumn() {
+        for (RawTableColumnDesc colDesc : columns) {
+            if (INDEX_SORTED.equals(colDesc.getIndex()))
+                return colDesc.getColumn().getRef();
+        }
         return null;
     }
 
-    public static void putInstance(DataModelDesc modelDesc, RawTableDesc rawTableDesc) {
-        if (rawTableDescCache == null) {
-            rawTableDescCache = new HashMap<>();
+    public boolean isNeedIndex(TblColRef col) {
+        RawTableColumnDesc desc = columnMap.get(col);
+        return desc.getIndex() != null;
+    }
+
+    public boolean isVaryLength(TblColRef col) {
+        RawTableColumnDesc desc = columnMap.get(col);
+        return ENCODING_VAR.equals(desc.getEncoding());
+    }
+
+    public List<TblColRef> getColumns() {
+        return Lists.newArrayList(columnMap.keySet());
+    }
+
+    public String getResourcePath() {
+        return concatResourcePath(name);
+    }
+
+    public static String concatResourcePath(String descName) {
+        return RAW_TABLE_DESC_RESOURCE_ROOT + "/" + descName + MetadataConstants.FILE_SURFIX;
+    }
+
+    void init(KylinConfig config) {
+        MetadataManager metaMgr = MetadataManager.getInstance(config);
+        
+        this.config = config;
+        this.model = metaMgr.getDataModelDesc(modelName);
+        this.columnMap = Maps.newHashMap();
+        
+        for (RawTableColumnDesc colDesc : columns) {
+            colDesc.init(metaMgr);
+            columnMap.put(colDesc.getColumn().getRef(), colDesc);
         }
-
-        rawTableDescCache.put(modelDesc, rawTableDesc);
     }
 
-    public List<ColumnDesc> getOrderedColumn() {
-        return orderedColumn;
+    // ============================================================================
+    
+    public KylinConfig getConfig() {
+        return config;
     }
-
-    public void setOrderedColumn(List<ColumnDesc> orderedColumn) {
-        this.orderedColumn = orderedColumn;
-    }
-
-    public void setModel(DataModelDesc model) {
-        this.model = model;
-    }
-
-    public void setIndexedColumns(List<ColumnDesc> indexedColumns) {
-        this.indexedColumns = indexedColumns;
-    }
-
-    public void setVaryLengthColumns(List<ColumnDesc> varyLengthColumns) {
-        this.varyLengthColumns = varyLengthColumns;
-    }
-
-    public boolean isNeedIndex(ColumnDesc column) {
-        return indexedColumnSet.contains(column);
-    }
-
-    public boolean isVaryLength(ColumnDesc column) {
-        return varyLengthColumnSet.contains(column);
-    }
-
+    
     public DataModelDesc getModel() {
         return model;
-    }
-
-    public List<ColumnDesc> getColumns() {
-        return columns;
-    }
-
-    public List<ColumnDesc> getIndexedColumns() {
-        return indexedColumns;
-    }
-
-    public List<ColumnDesc> getDimensions() {
-        return dimensions;
     }
 
     public String getName() {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public void init() {
-        initTableDict();
-        initIndexedSet();
-        initVaryLengthSet();
-        initColumns(model.getDimensions(), model.getMetrics());
-
-        putInstance(model, this);
-    }
-
-    private void initColumns(List<ModelDimensionDesc> mdd, String[] metrix) {
-        columns = new ArrayList<>();
-
-        for (ModelDimensionDesc m : mdd) {
-            String[] dims = m.getColumns();
-            TableDesc table = tableDict.get(m.getTable());
-            for (String d : dims) {
-                ColumnDesc column = table.findColumnByName(d);
-                columns.add(column);
-            }
-        }
-
-        for (String m : metrix) {
-            columns.add(factTable.findColumnByName(m));
-        }
-    }
-
-    private void initDimensions(List<ModelDimensionDesc> mdd) {
-        dimensions = new ArrayList<>();
-        for (ModelDimensionDesc m : mdd) {
-            String[] dims = m.getColumns();
-            TableDesc table = tableDict.get(m.getTable());
-            for (String d : dims) {
-                ColumnDesc column = table.findColumnByName(d);
-
-                // for columns in modle dimensions and not varylength, it's real dimensions
-                if (!isVaryLength(column)) {
-                    dimensions.add(column);
-                }
-            }
-        }
-    }
-
-    private void initIndexedSet() {
-        indexedColumnSet = new HashSet<>();
-        for (ColumnDesc c : indexedColumns) {
-            indexedColumnSet.add(c);
-        }
-    }
-
-    private void initVaryLengthSet() {
-        varyLengthColumnSet = new HashSet<>();
-        for (ColumnDesc c : varyLengthColumns) {
-            varyLengthColumnSet.add(c);
-        }
-    }
-
-    private void initTableDict() {
-        tableDict = new HashMap<>();
-        factTable = model.getFactTableDesc();
-        List<TableDesc> lookupTable = model.getLookupTableDescs();
-
-        tableDict.put(factTable.getDatabase() + "." + factTable.getName(), factTable);
-        for (TableDesc l : lookupTable) {
-            tableDict.put(l.getDatabase() + "." + l.getName(), l);
-        }
-    }
-
     @Override
     public int hashCode() {
-        return model.hashCode();
+        final int prime = 31;
+        int result = super.hashCode();
+        result = prime * result + ((name == null) ? 0 : name.hashCode());
+        return result;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o)
+    public boolean equals(Object obj) {
+        if (this == obj)
             return true;
-        if (o == null || getClass() != o.getClass())
+        if (!super.equals(obj))
             return false;
-
-        RawTableDesc rawTableDesc = (RawTableDesc) o;
-
-        if (!name.equals(rawTableDesc.name))
+        if (getClass() != obj.getClass())
             return false;
-
-        if (!getModel().equals(rawTableDesc.getModel()))
+        RawTableDesc other = (RawTableDesc) obj;
+        if (name == null) {
+            if (other.name != null)
+                return false;
+        } else if (!name.equals(other.name))
             return false;
-
         return true;
     }
+
 }

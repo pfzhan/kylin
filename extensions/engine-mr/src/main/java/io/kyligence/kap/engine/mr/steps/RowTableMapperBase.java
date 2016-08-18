@@ -2,6 +2,7 @@ package io.kyligence.kap.engine.mr.steps;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +81,7 @@ public class RowTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
         logger.error("*******" + segmentID);
 
         rawTableInstance = new RawTableInstance(cube);
-        orderKeyBytesBuf = new byte[rawTableInstance.getRawTableDesc().getOrderedColumn().size()][];
+        orderKeyBytesBuf = new byte[1][];
         valueBytesBuf = new byte[rawTableInstance.getAllColumns().size()][];
 
         intermediateTableDesc = new CubeJoinedFlatTableDesc(cube.getDescriptor(), cubeSegment);
@@ -104,9 +105,10 @@ public class RowTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
 
     protected byte[] buildKey(SplittedBytes[] splitBuffers) {
         int i = 0;
-        for (ColumnDesc col : rawTableInstance.getRawTableDesc().getOrderedColumn()) {
-            int indexAtHive = intermediateTableDesc.getColumnIndex(col.getRef());
-            DimensionEncoding dimEnc = cubeSegment.getDimensionEncodingMap().get(col.getRef());
+        ArrayList<TblColRef> orderedColumns = Lists.newArrayList(rawTableInstance.getRawTableDesc().getOrderedColumn());
+        for (TblColRef col : orderedColumns) {
+            int indexAtHive = intermediateTableDesc.getColumnIndex(col);
+            DimensionEncoding dimEnc = cubeSegment.getDimensionEncodingMap().get(col);
 
             byte[] colValue = Arrays.copyOf(splitBuffers[indexAtHive].value, splitBuffers[indexAtHive].length);
 

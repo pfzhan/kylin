@@ -54,7 +54,7 @@ public class RawTableManager implements IRealizationProvider {
 
     private KylinConfig config;
 
-    public RawTableManager(KylinConfig config) throws IOException {
+    private RawTableManager(KylinConfig config) throws IOException {
         this.config = config;
     }
     

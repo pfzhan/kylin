@@ -28,6 +28,7 @@ import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,9 +96,9 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
         columnName = new String[columnNum];
         onlyEQIndex = new boolean[columnNum]; // should get from rowKey.index
 
-        List<ColumnDesc> columnDescs = rawTableDesc.getColumns();
-        for (int i = 0; i < columnDescs.size(); i++) {
-            ColumnDesc column = columnDescs.get(i);
+        List<TblColRef> columns = rawTableDesc.getColumns();
+        for (int i = 0; i < columns.size(); i++) {
+            TblColRef column = columns.get(i);
 
             if (rawTableDesc.isVaryLength(column)) {
                 columnLength[i] = 8; //length of long
