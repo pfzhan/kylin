@@ -27,11 +27,11 @@ if [ -z "$BUILD_SYSTEM" ]; then
 fi
 echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit_SHA1
 
-echo "BUILD STAGE 2 - Prepare tomcat..."
-sh build/script/download-tomcat.sh      || { exit 1; }
-
-echo "BUILD STAGE 3 - Build binaries..."
+echo "BUILD STAGE 2 - Build binaries..."
 sh build/script/build.sh $@             || { exit 1; }
+
+echo "BUILD STAGE 3 - Prepare tomcat..."
+sh build/script/download-tomcat.sh      || { exit 1; }
 
 echo "BUILD STAGE 4 - Prepare and compress package..."
 sh build/script/prepare.sh              || { exit 1; }

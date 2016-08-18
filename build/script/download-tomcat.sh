@@ -29,5 +29,15 @@ rm -rf build/tomcat/webapps/*
 
 mv build/tomcat/conf/server.xml build/tomcat/conf/server.xml.bak
 cp build/deploy/server.xml build/tomcat/conf/server.xml
-cp build/deploy/.keystore build/tomcat/conf/.keystore
 echo "server.xml overwritten..."
+
+mv build/tomcat/conf/context.xml build/tomcat/conf/context.xml.bak
+cp build/deploy/context.xml build/tomcat/conf/context.xml
+echo "context.xml overwritten..."
+
+cp build/deploy/.keystore build/tomcat/conf/.keystore
+
+cp kylin/tomcat-ext/target/kylin-tomcat-ext-${kylin_version}.jar build/tomcat/lib/kylin-tomcat-ext-${kylin_version}.jar
+chmod 644 build/tomcat/lib/kylin-tomcat-ext-${kylin_version}.jar
+
+

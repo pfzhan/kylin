@@ -9,9 +9,9 @@ import java.util.Random;
 import java.util.Set;
 
 import org.apache.kylin.common.util.BytesUtil;
-import org.apache.kylin.common.util.Log4jConfigurer;
-import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -19,10 +19,7 @@ import com.google.common.io.Files;
 
 public class ColumnIIBundleWriterTest {
 
-    @BeforeClass
-    public static void setupClass() {
-        Log4jConfigurer.initLogger();
-    }
+    private static final Logger logger = LoggerFactory.getLogger(ColumnIIBundleWriterTest.class);
 
     @Test
     public void testWrite() throws IOException {
@@ -50,6 +47,7 @@ public class ColumnIIBundleWriterTest {
 
         File localIdxDir = Files.createTempDir();
         System.out.println("Temp index dir: " + localIdxDir.getAbsolutePath());
+        logger.info("====");
 
         // act
         ColumnIIBundleWriter writer = new ColumnIIBundleWriter(columnName, columnLength, cardinality, localIdxDir);

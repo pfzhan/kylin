@@ -48,6 +48,7 @@ public class IndexGTScanRangePlannerTest extends LocalFileMetadataTestCase {
 
     @Before
     public void setup() throws Exception {
+        logger.info("setup");
         createTestMetadata();
 
         cubeInstance = mgr().getCube("test_kylin_cube_without_slr_secondary_index_2");

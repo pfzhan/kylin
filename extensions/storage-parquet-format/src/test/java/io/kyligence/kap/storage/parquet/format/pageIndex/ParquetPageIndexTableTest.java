@@ -16,7 +16,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
-import org.apache.kylin.common.util.Log4jConfigurer;
 import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.metadata.filter.ColumnTupleFilter;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
@@ -60,7 +59,6 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        Log4jConfigurer.initLogger();
 
         staticCreateTestMetadata();
 

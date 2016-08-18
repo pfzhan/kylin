@@ -26,7 +26,6 @@ import java.nio.charset.Charset;
 import java.util.Random;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.kylin.common.util.Log4jConfigurer;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -41,7 +40,6 @@ public class KAPEhcacheTest {
 
     @Test
     public void basicTest() throws InterruptedException, URISyntaxException, IOException {
-        Log4jConfigurer.initLogger();
 
         System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
 

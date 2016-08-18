@@ -18,7 +18,6 @@ package io.kyligence.kap.cube.index.pinot;
 import java.io.File;
 import java.util.Random;
 
-import org.apache.kylin.common.util.Log4jConfigurer;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -26,7 +25,6 @@ public class FixedBitSingleValueTest {
 
     @Test
     public void testV2() throws Exception {
-        Log4jConfigurer.initLogger();
 
         int[] ROWS_LIST = { 1, 100, 1000, 10000, 100000 };
         for (int ROWS : ROWS_LIST) {

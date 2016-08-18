@@ -10,7 +10,6 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.util.ByteArray;
-import org.apache.kylin.common.util.Log4jConfigurer;
 import org.apache.kylin.engine.mr.HadoopUtil;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -33,13 +32,11 @@ public class ColumnIndexTest extends LocalFileMetadataTestCase {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        Log4jConfigurer.initLogger();
         staticCreateTestMetadata();
     }
 
     @Test
     public void testRoundTrip() throws IOException {
-        Log4jConfigurer.initLogger();
         // prepare data
         Map<ByteArray, Integer> data = Maps.newLinkedHashMap();
         for (int i = 0; i < 100; i++) {

@@ -9,19 +9,18 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import com.google.common.collect.Lists;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
-import org.apache.kylin.common.util.Log4jConfigurer;
 import org.apache.kylin.engine.mr.HadoopUtil;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -35,7 +34,6 @@ public class ParquetPageIndexWriteReadTest extends LocalFileMetadataTestCase {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        Log4jConfigurer.initLogger();
         staticCreateTestMetadata();
     }
 
