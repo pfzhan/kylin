@@ -210,7 +210,7 @@ then
         then source ${dir}/setenv-tool.sh
     fi
 
-    export HBASE_CLASSPATH=${KYLIN_HOME}/kybot/*:${KYLIN_HOME}/lib/*:${KYLIN_HOME}/tool/*:$hive_dependency:${HBASE_CLASSPATH}
+    export HBASE_CLASSPATH=${KYLIN_HOME}/kybot/*:${KYLIN_HOME}/conf:${KYLIN_HOME}/lib/*:${KYLIN_HOME}/tool/*:$hive_dependency:${HBASE_CLASSPATH}
 
     exec hbase ${KYLIN_EXTRA_START_OPTS} -Dkylin.hive.dependency=${hive_dependency} -Dkylin.hbase.dependency=${hbase_dependency} -Dlog4j.configuration=kylin-log4j.properties "$@"
 
