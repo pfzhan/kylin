@@ -156,7 +156,25 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
   }
 
   $scope.modelEdit = function (model) {
-    $location.path("models/edit/" + model.name);
+
+    var cubename = [];
+    var i = 0;
+    var modelstate = false;
+    if (model.cubes.length != 0) {
+      angular.forEach(model.cubes, function (cube) {
+        if (cube.status == "READY") {
+          modelstate = true;
+          cubename[i] = cube.name;
+          i++;
+        }
+      })
+      if (modelstate == false) {
+        $location.path("/models/edit/" + model.name);
+      }
+      else {
+        SweetAlert.swal('Sorry', $scope.dataKylin.alert.tip_model_be_used + cubename.join(',') + $scope.dataKylin.alert.tip_model_be_used_by);
+      }
+    }
   }
 
 

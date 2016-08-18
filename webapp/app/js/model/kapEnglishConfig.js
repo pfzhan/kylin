@@ -798,6 +798,8 @@ KylinApp.constant('kapEnglishConfig', {
     success_updated_streaming: 'Updated the streaming successfully.',
     tip_created_streaming: 'Created the streaming successfully.',
     tip_to_remove_cluster: 'Are you sure to remove this cluster ?',
+    tip_model_be_used:'This model is still used by ',
+    tip_model_be_used_by:'',
     warning_oops:'Oops...',
     warning_dictionaries_part_one:'The column named [',
     warning_dictionaries_part_two: '] already exists'
