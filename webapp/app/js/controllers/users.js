@@ -245,6 +245,17 @@ var addUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService, 
 
   $scope.submitUser = function(){
     $scope.error ='';
+    $scope.keepGoing = true;
+    angular.forEach(scope.girdData, function(user){
+      if($scope.keepGoing) {
+        if($scope.newUser.username == user.username){
+          $scope.error = $scope.dataKylin.user.tip_error_user_exits;
+          $scope.keepGoing = false;
+        }
+      }
+    });
+    
+    if(!$scope.keepGoing) return;
     if($scope.newUser.password != $scope.newUser.confirmPassword){
       $scope.error = $scope.dataKylin.user.tip_error_not_same;
       return;

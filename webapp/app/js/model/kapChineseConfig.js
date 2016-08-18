@@ -25,6 +25,7 @@ KylinApp.constant('kapChineseConfig', {
     newPassword: '新的密码',
     confirmNewPassword: '确认密码',
     tip_error_not_same: '两次密码不一致,请检查',
+    tip_error_user_exits: '该用户已存在',
     updatePassword: '更新密码',
     tip_username_invalid: '用户名不合法.',
     tip_password_invalid: '密码不合法.',

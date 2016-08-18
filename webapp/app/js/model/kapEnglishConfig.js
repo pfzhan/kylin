@@ -25,6 +25,7 @@ KylinApp.constant('kapEnglishConfig', {
     newPassword: 'New password',
     confirmNewPassword: 'Confirm new password',
     tip_error_not_same: 'Password and confirm password are not the same.',
+    tip_error_user_exits:'The user already exists',
     updatePassword: 'Update Password',
     tip_username_invalid: 'Username invalid.',
     tip_password_invalid: 'Password invalid.',
