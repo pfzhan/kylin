@@ -47,6 +47,7 @@ public class RawTableDesc extends RootPersistentEntity {
 
     // for debug/test, create a mockup RawTable from DataModel
     public RawTableDesc(CubeDesc cubeDesc) {
+        this.updateRandomUuid();
         this.name = cubeDesc.getName();
         this.modelName = cubeDesc.getModelName();
         
@@ -88,7 +89,12 @@ public class RawTableDesc extends RootPersistentEntity {
     }
 
     private String guessColEncoding(CubeDesc cubeDesc, TblColRef colRef) {
-        RowKeyColDesc colDesc = cubeDesc.getRowkey().getColDesc(colRef);
+        RowKeyColDesc colDesc = null;
+        try {
+            colDesc = cubeDesc.getRowkey().getColDesc(colRef);
+        } catch (NullPointerException ex) {
+            // getColDesc throws NPE if colRef not found
+        }
         if (colDesc == null)
             return ENCODING_VAR;
         else
@@ -175,6 +181,11 @@ public class RawTableDesc extends RootPersistentEntity {
         } else if (!name.equals(other.name))
             return false;
         return true;
+    }
+
+    @Override
+    public String toString() {
+        return "RawTableDesc [name=" + name + "]";
     }
 
 }

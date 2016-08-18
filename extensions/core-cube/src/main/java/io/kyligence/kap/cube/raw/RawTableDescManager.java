@@ -154,7 +154,7 @@ public class RawTableDescManager {
         rawTableDescMap.removeLocal(name);
     }
 
-    private void reloadAllRawTableDesc() throws IOException {
+    void reloadAllRawTableDesc() throws IOException {
         ResourceStore store = getStore();
         logger.info("Reloading RawTableDesc from folder " + store.getReadableResourcePath(RawTableDesc.RAW_TABLE_DESC_RESOURCE_ROOT));
 
