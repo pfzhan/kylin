@@ -1,118 +1,52 @@
 package io.kyligence.kap.cube.raw;
 
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class RawTableSegment implements Comparable<RawTableSegment>, IStorageAware {
 
-    @JsonBackReference
     private RawTableInstance rawTableInstance;
-    @JsonProperty
     private CubeSegment cubeSegment;
-    @JsonProperty("uuid")
-    private String uuid;
-    @JsonProperty("name")
-    private String name;
-    @JsonProperty("date_range_start")
-    private long dateRangeStart;
-    @JsonProperty("date_range_end")
-    private long dateRangeEnd;
-    @JsonProperty("source_offset_start")
-    private long sourceOffsetStart;
-    @JsonProperty("source_offset_end")
-    private long sourceOffsetEnd;
-    @JsonProperty("status")
-    private SegmentStatusEnum status;
 
-    @JsonProperty("dictionaries")
-    private ConcurrentHashMap<String, String> dictionaries;
+    public RawTableSegment(RawTableInstance rawTable, CubeSegment seg) {
+        this.rawTableInstance = rawTable;
+        this.cubeSegment = seg;
+    }
 
     public RawTableInstance getRawTableInstance() {
         return rawTableInstance;
     }
 
-    public void setRawTableInstance(RawTableInstance rawTableInstance) {
-        this.rawTableInstance = rawTableInstance;
-    }
-
-    public String getUuid() {
-        return uuid;
-    }
-
-    public void setUuid(String uuid) {
-        this.uuid = uuid;
-    }
-
     public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
+        return cubeSegment.getName();
     }
 
     public long getDateRangeStart() {
-        return dateRangeStart;
-    }
-
-    public void setDateRangeStart(long dateRangeStart) {
-        this.dateRangeStart = dateRangeStart;
+        return cubeSegment.getDateRangeStart();
     }
 
     public long getDateRangeEnd() {
-        return dateRangeEnd;
-    }
-
-    public void setDateRangeEnd(long dateRangeEnd) {
-        this.dateRangeEnd = dateRangeEnd;
+        return cubeSegment.getDateRangeEnd();
     }
 
     public long getSourceOffsetStart() {
-        return sourceOffsetStart;
-    }
-
-    public void setSourceOffsetStart(long sourceOffsetStart) {
-        this.sourceOffsetStart = sourceOffsetStart;
+        return cubeSegment.getSourceOffsetStart();
     }
 
     public long getSourceOffsetEnd() {
-        return sourceOffsetEnd;
-    }
-
-    public void setSourceOffsetEnd(long sourceOffsetEnd) {
-        this.sourceOffsetEnd = sourceOffsetEnd;
+        return cubeSegment.getSourceOffsetEnd();
     }
 
     public SegmentStatusEnum getStatus() {
-        return status;
-    }
-
-    public void setStatus(SegmentStatusEnum status) {
-        this.status = status;
-    }
-
-    public ConcurrentHashMap<String, String> getDictionaries() {
-        return dictionaries;
-    }
-
-    public void setDictionaries(ConcurrentHashMap<String, String> dictionaries) {
-        this.dictionaries = dictionaries;
+        return cubeSegment.getStatus();
     }
 
     public CubeSegment getCubeSegment() {
         return cubeSegment;
-    }
-
-    public void setCubeSegment(CubeSegment cubeSegment) {
-        this.cubeSegment = cubeSegment;
     }
 
     @Override
@@ -135,9 +69,12 @@ public class RawTableSegment implements Comparable<RawTableSegment>, IStorageAwa
 
     @Override
     public int hashCode() {
-        return uuid.hashCode();
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((cubeSegment == null) ? 0 : cubeSegment.hashCode());
+        return result;
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj)
@@ -147,23 +84,12 @@ public class RawTableSegment implements Comparable<RawTableSegment>, IStorageAwa
         if (getClass() != obj.getClass())
             return false;
         RawTableSegment other = (RawTableSegment) obj;
-        if (rawTableInstance == null) {
-            if (other.rawTableInstance != null)
+        if (cubeSegment == null) {
+            if (other.cubeSegment != null)
                 return false;
-        } else if (!rawTableInstance.equals(other.rawTableInstance))
-            return false;
-        if (uuid == null) {
-            if (other.uuid != null)
-                return false;
-        } else if (!uuid.equals(other.uuid))
-            return false;
-        if (name == null) {
-            if (other.name != null)
-                return false;
-        } else if (!name.equals(other.name))
-            return false;
-        if (status != other.status)
+        } else if (!cubeSegment.equals(other.cubeSegment))
             return false;
         return true;
     }
+
 }

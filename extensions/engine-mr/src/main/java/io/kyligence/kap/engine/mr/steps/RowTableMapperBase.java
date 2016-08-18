@@ -22,7 +22,6 @@ import org.apache.kylin.dimension.DimensionEncoding;
 import org.apache.kylin.engine.mr.KylinMapper;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
-import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.cube.raw.RawTableManager;
 
 /**
  * Created by wangcheng on 8/15/16.
@@ -80,7 +80,7 @@ public class RowTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
         cubeSegment = cube.getSegmentById(segmentID);
         logger.error("*******" + segmentID);
 
-        rawTableInstance = new RawTableInstance(cube);
+        rawTableInstance = RawTableManager.getInstance(config).getRawTableInstance(cubeDesc.getName());;
         orderKeyBytesBuf = new byte[1][];
         valueBytesBuf = new byte[rawTableInstance.getAllColumns().size()][];
 

@@ -84,7 +84,7 @@ public class RawTableDescManager {
     private RawTableDescManager(KylinConfig config) throws IOException {
         logger.info("Initializing RawTableDescManager with config " + config);
         this.config = config;
-        this.rawTableDescMap = new CaseInsensitiveStringCache<RawTableDesc>(config, Broadcaster.TYPE.INVERTED_INDEX_DESC);
+        this.rawTableDescMap = new CaseInsensitiveStringCache<RawTableDesc>(config, Broadcaster.TYPE.INVERTED_INDEX_DESC); // FIXME: broadcast raw table meta changes
         reloadAllRawTableDesc();
     }
 

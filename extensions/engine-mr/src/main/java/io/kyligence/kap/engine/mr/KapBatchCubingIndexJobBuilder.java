@@ -16,7 +16,6 @@ import org.apache.kylin.job.constant.ExecutableConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.engine.mr.steps.KapBaseCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapInMemCuboidJob;
@@ -57,8 +56,6 @@ public class KapBatchCubingIndexJobBuilder extends BatchCubingJobBuilder2 {
         outputSide.addStepPhase2_BuildDictionary(result);
 
         if (RawTableInstance.isRawTableEnabled(seg.getCubeDesc())) {
-            RawTableInstance rawIns = new RawTableInstance(seg.getCubeInstance());
-            RawTableDesc rawDesc = rawIns.getRawTableDesc();
             result.addTask(createRawTableStep(cuboidRootPath, jobId));
         }
 

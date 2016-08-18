@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.kylin.cube.CubeInstance;
+import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
@@ -16,6 +17,8 @@ import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.metadata.realization.SQLDigest;
+
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.IKapStorageAware;
 
@@ -36,14 +39,13 @@ public class RawTableInstance implements IRealization {
 
     private CubeInstance cube;
     private RawTableDesc rawTableDesc;
-
+    
     private List<TblColRef> allColumns;
-    private List<TblColRef> dimensions;
-    private List<MeasureDesc> measures;
+    private List<TblColRef> mockupDimensions;
+    private List<MeasureDesc> mockupMeasures;
 
-    private List<RawTableSegment> segments = new ArrayList<>();
 
-    public RawTableInstance(CubeInstance cube) {
+    RawTableInstance(CubeInstance cube) {
         this.cube = cube;
         this.rawTableDesc = RawTableDescManager.getInstance(cube.getConfig()).getRawTableDesc(cube.getName());
         
@@ -72,17 +74,17 @@ public class RawTableInstance implements IRealization {
     }
 
     private void initDimensions() {
-        dimensions = new ArrayList<>();
+        mockupDimensions = new ArrayList<>();
         TblColRef orderedColumn = rawTableDesc.getOrderedColumn();
         if (orderedColumn != null)
-            dimensions.add(orderedColumn);
+            mockupDimensions.add(orderedColumn);
     }
 
     private void initMeasures() {
-        measures = new ArrayList<>();
+        mockupMeasures = new ArrayList<>();
         for (TblColRef col : rawTableDesc.getColumns()) {
-            if (!dimensions.contains(col)) {
-                measures.add(transferToMeasureDesc(col.getColumnDesc()));
+            if (!mockupDimensions.contains(col)) {
+                mockupMeasures.add(transferToMeasureDesc(col.getColumnDesc()));
             }
         }
     }
@@ -138,12 +140,12 @@ public class RawTableInstance implements IRealization {
 
     @Override
     public List<TblColRef> getAllDimensions() {
-        return dimensions;
+        return mockupDimensions;
     }
 
     @Override
     public List<MeasureDesc> getMeasures() {
-        return measures;
+        return mockupMeasures;
     }
 
     @Override
@@ -172,23 +174,19 @@ public class RawTableInstance implements IRealization {
     }
 
     public List<RawTableSegment> getSegments() {
-        return segments;
+        return asRawTableSegments(cube.getSegments());
     }
 
     public List<RawTableSegment> getSegments(SegmentStatusEnum status) {
-        List<RawTableSegment> result = new ArrayList<>();
-
-        for (RawTableSegment segment : segments) {
-            if (segment.getStatus() == status) {
-                result.add(segment);
-            }
-        }
-
-        return result;
+        return asRawTableSegments(cube.getSegments(status));
     }
 
-    public void setSegments(List<RawTableSegment> segments) {
-        this.segments = segments;
+    private List<RawTableSegment> asRawTableSegments(List<CubeSegment> cubeSegs) {
+        List<RawTableSegment> segs = Lists.newArrayList();
+        for (CubeSegment seg : cubeSegs) {
+            segs.add(new RawTableSegment(this, seg));
+        }
+        return segs;
     }
     
     @Override

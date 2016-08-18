@@ -78,7 +78,7 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
         cuboid = Cuboid.findById(cubeDesc, cuboidId);
         cubeSegment = cube.getSegment(segmentName, SegmentStatusEnum.NEW);
 
-        rawTableInstance = RawTableManager.getInstance(config).getRawTable(cubeName);
+        rawTableInstance = RawTableManager.getInstance(config).getRawTableInstance(cubeName);
         rawTableDesc = rawTableInstance.getRawTableDesc();
 
         logger.info("Input path: " + inputPath.toUri().toString());

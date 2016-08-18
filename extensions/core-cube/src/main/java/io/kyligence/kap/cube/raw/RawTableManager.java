@@ -12,6 +12,9 @@ import org.apache.kylin.metadata.realization.RealizationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/*
+ * FIXME: RawTableInstance should has its own JSON, rather than parasitise in CubeInstance
+ */
 public class RawTableManager implements IRealizationProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(RawTableManager.class);
@@ -73,7 +76,7 @@ public class RawTableManager implements IRealizationProvider {
         return null;
     }
 
-    public RawTableInstance getRawTable(String name) {
+    public RawTableInstance getRawTableInstance(String name) {
         return (RawTableInstance) getRealization(name);
     }
 }
