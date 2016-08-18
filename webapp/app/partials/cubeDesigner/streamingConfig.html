@@ -28,10 +28,11 @@
                ng-class="{'glyphicon-chevron-down': state.isKfkSettingOpen, 'glyphicon-chevron-right': !state.isKfkSettingOpen}"></i>
           </accordion-heading>
 
-          <div class="form-group" ng-class="{'required':state.mode=='edit'}">
+          <div class="form-group middle-popover" ng-class="{'required':state.mode=='edit'}">
         <div class="row">
           <label class="col-xs-12 col-sm-3 control-label no-padding-right">
-            <b>{{dataKylin.cube.kaTopic}}</b>
+            <b>{{dataKylin.cube.kaTopic.name}}</b>
+            <i class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.kaTopic.name}}" ng-watch="{{dataKylin.cube.kaTopic.watch}}" template="KafkaTopicTip.html"></i>
           </label>
           <div class="col-xs-12 col-sm-6"   ng-class="{'has-error':form.cube_streaming_form.topic.$invalid && (form.cube_streaming_form.topic.$dirty||form.cube_streaming_form.$submitted)}">
             <input  ng-if="state.mode=='edit'"  name="topic" required ng-model="kafkaMeta.topic" type="text"
@@ -133,10 +134,11 @@
                ng-class="{'glyphicon-chevron-down': state.isStreamingAdOpen, 'glyphicon-chevron-right': !state.isStreamingAdOpen}"></i>
           </accordion-heading>
 
-          <div class="form-group" ng-class="{'required':state.mode=='edit'}">
+          <div class="form-group middle-popover" ng-class="{'required':state.mode=='edit'}">
             <div class="row">
               <label class="col-xs-12 col-sm-3 control-label no-padding-right">
                 <b>{{dataKylin.cube.kaTimeout}}</b>
+                <i class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.kaTimeout}}" template="TimeoutTip.html"></i>
               </label>
 
               <div class="col-xs-12 col-sm-6"
@@ -158,10 +160,11 @@
             </div>
           </div>
 
-          <div class="form-group" ng-class="{'required':state.mode=='edit'}">
+          <div class="form-group middle-popover" ng-class="{'required':state.mode=='edit'}">
             <div class="row">
               <label class="col-xs-12 col-sm-3 control-label no-padding-right">
                 <b>{{dataKylin.cube.kaBufferSize}}</b>
+                <i class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.kaBufferSize}}" template="BufferSizecTip.html"></i>
               </label>
 
               <div class="col-xs-12 col-sm-6"
@@ -183,10 +186,12 @@
             </div>
           </div>
 
-          <div class="form-group" ng-class="{'required':state.mode=='edit'}">
+          <div class="form-group middle-popover" ng-class="{'required':state.mode=='edit'}">
             <div class="row">
               <label class="col-xs-12 col-sm-3 control-label no-padding-right">
                 <b>{{dataKylin.cube.kaMargin}}</b>
+
+                <i class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.kaMargin}}" template="MarginTip.html"></i>
               </label>
 
               <div class="col-xs-12 col-sm-6"
@@ -220,10 +225,11 @@
                ng-class="{'glyphicon-chevron-down': state.isParserHeaderOpen, 'glyphicon-chevron-right': !state.isParserHeaderOpen}"></i>
           </accordion-heading>
 
-          <div class="form-group" ng-class="{'required':state.mode=='edit'}">
+          <div class="form-group middle-popover" ng-class="{'required':state.mode=='edit'}">
             <div class="row">
               <label class="col-xs-12 col-sm-3 control-label no-padding-right">
                 <b>{{dataKylin.cube.kaParserName}}</b>
+                <i class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.kaParserName}}" template="ParserName.html"></i>
               </label>
 
               <div class="col-xs-12 col-sm-6"
@@ -243,10 +249,11 @@
               </div>
             </div>
           </div>
-          <div class="form-group" ng-if="state.mode=='edit'" ng-class="{'required':state.mode=='edit'}">
+          <div class="form-group middle-popover" ng-if="state.mode=='edit'" ng-class="{'required':state.mode=='edit'}">
             <div class="row">
               <label class="col-xs-12 col-sm-3 control-label no-padding-right">
-                <b>{{dataKylin.cube.kaParserTimestampColumn}}</b>
+                <b>{{dataKylin.cube.kaParserTimestampField}}</b>
+                <i class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.kaParserTimestampField}}" template="ParserTimestampFieldsTip.html"></i>
               </label>
 
               <div class="col-xs-12 col-sm-6 streamingParserCtr">
@@ -260,10 +267,11 @@
               </div>
             </div>
           </div>
-          <div class="form-group" ng-class="{'required':state.mode=='edit'}">
+          <div class="form-group middle-popover" ng-class="{'required':state.mode=='edit'}">
             <div class="row">
               <label class="col-xs-12 col-sm-3 control-label no-padding-right">
                 <b>{{dataKylin.cube.kaParserProperties}}</b>
+                <i class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.kaParserProperties}}" template="ParserPropertiesTip.html"></i>
               </label>
 
               <div class="col-xs-12 col-sm-6"
@@ -289,3 +297,24 @@
     </div>
   </form>
 </div>
+<script type="text/ng-template" id="KafkaTopicTip.html">
+  <p>{{dataKylin.cube.tip_body_kafka_topic}}</p>
+</script>
+<script type="text/ng-template" id="TimeoutTip.html">
+  <p>{{dataKylin.cube.tip_body_timeout}}</p>
+</script>
+<script type="text/ng-template" id="BufferSizecTip.html">
+  <p>{{dataKylin.cube.tip_body_buffer_size}}</p>
+</script>
+<script type="text/ng-template" id="MarginTip.html">
+  <p>{{dataKylin.cube.tip_body_margin}}</p>
+</script>
+<script type="text/ng-template" id="ParserName.html">
+  <p>{{dataKylin.cube.tip_body_parser_name}}</p>
+</script>
+<script type="text/ng-template" id="ParserTimestampFieldsTip.html">
+  <p>{{dataKylin.cube.tip_body_parser_timestamp_field}}</p>
+</script>
+<script type="text/ng-template" id="ParserPropertiesTip.html">
+  <p>{{dataKylin.cube.tip_body_parser_properties}}</p>
+</script>

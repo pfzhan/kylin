@@ -436,7 +436,7 @@ KylinApp.constant('kapEnglishConfig', {
     cubeOVMeasures: 'Measures',
     cubeOVDescription: 'Description',
     tip_loading_cubes: 'Loading Cubes...',
-    kaTopic: 'Topic', //kafka begin
+    kaTopic: {name:'Topic',watch:true}, //kafka begin
     tip_Kafka_topic: 'Kafka topic is required.',
     tip_kafka_topic_invalid: 'Kafka topic is invalid.',
     kaCluster: 'Cluster',
@@ -469,11 +469,18 @@ KylinApp.constant('kapEnglishConfig', {
     tip_input_kafkaConfig_parserName: 'Input kafkaConfig parserName',
     tip_kafka_parser_name_invalid: 'Kafka parser name is invalid.',
     tip_kafka_parser_name_required: 'Kafka parser name is required.',
-    kaParserTimestampColumn: 'Parser Timestamp Column',
+    kaParserTimestampField: 'Parser Timestamp Field',
     kaSelectColumn: 'select a column',
     kaParserProperties: 'Parser Properties',
     tip_parser_properties_invalid: 'Parser properties is invalid.',
-    tip_parser_properties_required: 'Parser properties is required.'
+    tip_parser_properties_required: 'Parser properties is required.',
+    tip_body_kafka_topic: 'Input the kafka topic that contains source data.',
+    tip_body_timeout:'Set timeout for kafka client.',
+    tip_body_buffer_size:'Set byte size for kafka client’s buffer.',
+    tip_body_margin:'When the messages in kafka is not strictly sorted on timestamp, read more data (expressed in ts) before and after the specified interval to avoid data loss.',
+    tip_body_parser_name:'Set the parser to parse source data messages. The default parser works for json messages with a timestamp field.',
+    tip_body_parser_timestamp_field:'Provide the name of the timestamp field to the default parser.',
+    tip_body_parser_properties:'Provide a list of KV properties to the parser, delimited by semicolon.'
   },
   monitor:{
     monitor: 'Monitor',
