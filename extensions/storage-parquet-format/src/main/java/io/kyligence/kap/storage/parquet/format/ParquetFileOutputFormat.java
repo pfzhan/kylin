@@ -13,6 +13,6 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 public class ParquetFileOutputFormat extends FileOutputFormat<Text, Text> {
     @Override
     public RecordWriter<Text, Text> getRecordWriter(TaskAttemptContext job) throws IOException, InterruptedException {
-        return new ParquetFileWriter(job, job.getOutputKeyClass(), job.getOutputValueClass());
+        return new ParquetCubeFileWriter(job, job.getOutputKeyClass(), job.getOutputValueClass());
     }
 }

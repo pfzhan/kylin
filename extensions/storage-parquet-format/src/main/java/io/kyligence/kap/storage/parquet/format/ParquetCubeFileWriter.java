@@ -10,7 +10,6 @@ import java.util.List;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -34,8 +33,8 @@ import com.google.common.base.Preconditions;
 import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
 import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriterBuilder;
 
-public class ParquetFileWriter extends RecordWriter<Text, Text> {
-    private static final Logger logger = LoggerFactory.getLogger(ParquetFileWriter.class);
+public class ParquetCubeFileWriter extends ParquetOrderedFileWriter {
+    private static final Logger logger = LoggerFactory.getLogger(ParquetCubeFileWriter.class);
 
     private long curCuboidId = 0;
     private short curShardId = 0;
@@ -45,10 +44,9 @@ public class ParquetFileWriter extends RecordWriter<Text, Text> {
     private MeasureDecoder measureDecoder;
     private CubeInstance cubeInstance;
     private CubeSegment cubeSegment;
-    private ParquetRawWriter writer = null;
     private String outputDir = null;
 
-    public ParquetFileWriter(TaskAttemptContext context, Class<?> keyClass, Class<?> valueClass) throws IOException {
+    public ParquetCubeFileWriter(TaskAttemptContext context, Class<?> keyClass, Class<?> valueClass) throws IOException {
         this.config = context.getConfiguration();
 
         outputDir = config.get(ParquetFormatConstants.KYLIN_OUTPUT_DIR);
@@ -70,52 +68,52 @@ public class ParquetFileWriter extends RecordWriter<Text, Text> {
         }
     }
 
-    // Only support Text type
     @Override
-    public void write(Text key, Text value) throws IOException, InterruptedException {
-        byte[] keyBytes = key.getBytes();//clone is done at end of  write(Text key, Text value)
-        byte[] valueBytes = value.getBytes().clone();//on purpose, because parquet writer will cache 
+    protected boolean needCutUp(Text key, Text value) {
+        byte[] keyBytes = key.getBytes();
         long cuboidId = Bytes.toLong(keyBytes, RowConstants.ROWKEY_SHARDID_LEN, RowConstants.ROWKEY_CUBOIDID_LEN);
         short shardId = Bytes.toShort(keyBytes, 0, RowConstants.ROWKEY_SHARDID_LEN);
 
         if (shardId != curShardId || cuboidId != curCuboidId) {
-            if (writer != null) {
-                writer.close();
-                writer = null;
-            }
             curShardId = shardId;
             curCuboidId = cuboidId;
+            return true;
         }
 
-        if (writer == null) {
-            List<Type> types = new ArrayList<Type>();
-
-            //types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY, key.getLength() - RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN, "Row Key"));
-            types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, "Row Key"));
-
-            // measures
-            for (MeasureDesc measure : cubeSegment.getCubeDesc().getMeasures()) {
-                types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, measure.getName()));
-            }
-
-            MessageType schema = new MessageType(cubeSegment.getName(), types);
-            writer = new ParquetRawWriterBuilder().setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage()).setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression()).setConf(config).setType(schema).setPath(getPath()).build();
+        if (super.needCutUp(key, value)) {
+            return true;
         }
 
-        // write data
+        return false;
+    }
+
+    @Override
+    protected ParquetRawWriter newWriter() throws IOException {
+        ParquetRawWriter rawWriter = null;
+        List<Type> types = new ArrayList<Type>();
+
+        //types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY, key.getLength() - RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN, "Row Key"));
+        types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, "Row Key"));
+
+        // measures
+        for (MeasureDesc measure : cubeSegment.getCubeDesc().getMeasures()) {
+            types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, measure.getName()));
+        }
+
+        MessageType schema = new MessageType(cubeSegment.getName(), types);
+        rawWriter = new ParquetRawWriterBuilder().setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage()).setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression()).setConf(config).setType(schema).setPath(getPath()).build();
+        return rawWriter;
+    }
+
+    @Override
+    protected void writeData(Text key, Text value) {
+        byte[] valueBytes = value.getBytes().clone(); //on purpose, because parquet writer will cache
         try {
-            byte[] keyBody = Arrays.copyOfRange(keyBytes, RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN, key.getLength());
+            byte[] keyBody = Arrays.copyOfRange(key.getBytes(), RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN, key.getLength());
             int[] valueLength = measureDecoder.getPeekLength(ByteBuffer.wrap(valueBytes));
             writer.writeRow(keyBody, 0, keyBody.length, valueBytes, valueLength);
         } catch (Exception e) {
             e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void close(TaskAttemptContext context) throws IOException, InterruptedException {
-        if (writer != null) {
-            writer.close();
         }
     }
 

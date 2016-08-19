@@ -4,10 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.kyligence.kap.cube.raw.RawTableDesc;
-import io.kyligence.kap.cube.raw.RawTableInstance;
-import io.kyligence.kap.cube.raw.RawTableManager;
-import io.kyligence.kap.storage.parquet.format.datatype.ByteArrayListWritable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -25,13 +21,16 @@ import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.engine.mr.KylinMapper;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
-import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.cube.raw.RawTableDesc;
+import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.cube.raw.RawTableManager;
+import io.kyligence.kap.storage.parquet.format.datatype.ByteArrayListWritable;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexWriter;
 
 public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, IntWritable, Text, Text> {
@@ -88,7 +87,7 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
     }
 
     private void initIndexWriters() throws IOException {
-//        RowKeyEncoder rowKeyEncoder = (RowKeyEncoder) AbstractRowKeyEncoder.createInstance(cubeSegment, cuboid);
+        //        RowKeyEncoder rowKeyEncoder = (RowKeyEncoder) AbstractRowKeyEncoder.createInstance(cubeSegment, cuboid);
 
         int columnNum = rawTableDesc.getColumns().size();
         columnLength = new int[columnNum];
@@ -104,7 +103,7 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
                 columnLength[i] = 8; //length of long
                 onlyEQIndex[i] = true;
             } else {
-//                columnLength[i] = rowKeyEncoder.getColumnLength(column.getRef());
+                //                columnLength[i] = rowKeyEncoder.getColumnLength(column.getRef());
                 onlyEQIndex[i] = false;
             }
 
@@ -113,36 +112,36 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
             columnName[i] = column.getName();
 
         }
-//        for (ColumnDesc column : columnDescs) {
-//            if (rawTableDesc.isVaryLength(column)) {
-//            }
-//        }
+        //        for (ColumnDesc column : columnDescs) {
+        //            if (rawTableDesc.isVaryLength(column)) {
+        //            }
+        //        }
 
-//        for (int col = 0; col < columnNum; col++) {
-//            TblColRef colRef = cuboid.getColumns().get(col);
-//            int colCardinality = -1;
-//            Dictionary<String> dict = cubeSegment.getDictionary(colRef);
-//
-//            String rowKeyIndexType = cubeDesc.getRowkey().getColDesc(colRef).getIndex();
-//            if ("eq".equalsIgnoreCase(rowKeyIndexType)) {
-//                onlyEQIndex[col] = true;
-//            } else {
-//                onlyEQIndex[col] = false;
-//            }
-//
-//            if (dict != null) {
-//                colCardinality = dict.getSize();
-//                if (dict instanceof DateStrDictionary) {
-//                    colCardinality = -1;
-//                }
-//            }
-//
-//            cardinality[col] = colCardinality;
-//            columnLength[col] = rowKeyEncoder.getColumnLength(colRef);
-//            columnName[col] = colRef.getName();
-//
-//            logger.debug("Column Length:" + columnName[col] + "=" + columnLength[col]);
-//        }
+        //        for (int col = 0; col < columnNum; col++) {
+        //            TblColRef colRef = cuboid.getColumns().get(col);
+        //            int colCardinality = -1;
+        //            Dictionary<String> dict = cubeSegment.getDictionary(colRef);
+        //
+        //            String rowKeyIndexType = cubeDesc.getRowkey().getColDesc(colRef).getIndex();
+        //            if ("eq".equalsIgnoreCase(rowKeyIndexType)) {
+        //                onlyEQIndex[col] = true;
+        //            } else {
+        //                onlyEQIndex[col] = false;
+        //            }
+        //
+        //            if (dict != null) {
+        //                colCardinality = dict.getSize();
+        //                if (dict instanceof DateStrDictionary) {
+        //                    colCardinality = -1;
+        //                }
+        //            }
+        //
+        //            cardinality[col] = colCardinality;
+        //            columnLength[col] = rowKeyEncoder.getColumnLength(colRef);
+        //            columnName[col] = colRef.getName();
+        //
+        //            logger.debug("Column Length:" + columnName[col] + "=" + columnLength[col]);
+        //        }
 
         FSDataOutputStream outputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(outputPath);
         indexBundleWriter = new ParquetPageIndexWriter(columnName, columnLength, cardinality, onlyEQIndex, outputStream);
@@ -164,7 +163,7 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
 
     private List<Integer> getExtendedColumnLen() {
         List<Integer> lens = new ArrayList<>();
-        for (MeasureDesc measure: cubeDesc.getMeasures()) {
+        for (MeasureDesc measure : cubeDesc.getMeasures()) {
             if (measure.getFunction().getExpression().equalsIgnoreCase("EXTENDED_COLUMN")) {
                 lens.add(Integer.parseInt(measure.getFunction().getReturnType().split("\\(|\\)")[2]));
             }
