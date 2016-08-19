@@ -593,6 +593,7 @@ KylinApp.constant('kapEnglishConfig', {
   },
   data_source:{
     data_source: 'Data Source',
+    extendInformation: 'Extend Information',
     tables: 'tables',//--table tree begin
     tip_load_hive_table: 'Load Hive Table',
     tip_load_table_tree: 'Load Hive Table From Tree',

@@ -577,6 +577,7 @@ KylinApp.constant('kapChineseConfig', {
   },
   data_source:{
     data_source: '数据源',
+    extendInformation: '扩展信息',
     tables: '表',//--table tree begin
     tip_load_hive_table: '加载Hive表',
     tip_load_table_tree: '使用图形化树状结构方式加载Hive表',
