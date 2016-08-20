@@ -81,7 +81,7 @@ public class RowTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
         orderKeyBytesBuf = new byte[1][];
         valueBytesBuf = new byte[rawTableInstance.getAllColumns().size()][];
 
-        intermediateTableDesc = new CubeJoinedFlatTableDesc(cube.getDescriptor(), cubeSegment);
+        intermediateTableDesc = new CubeJoinedFlatTableDesc(cubeSegment);
 
         bytesSplitter = new BytesSplitter(200, 16384);
         dictionaryMap = cubeSegment.buildDictionaryMap();
