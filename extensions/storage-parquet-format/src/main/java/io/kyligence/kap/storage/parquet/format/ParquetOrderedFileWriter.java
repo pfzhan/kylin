@@ -41,6 +41,9 @@ public abstract class ParquetOrderedFileWriter extends RecordWriter<Text, Text> 
     @Override
     public void write(Text key, Text value) throws IOException, InterruptedException {
         if (needCutUp(key, value)) {
+            if (writer != null) {
+                writer.close();
+            }
             writer = newWriter();
         }
 
