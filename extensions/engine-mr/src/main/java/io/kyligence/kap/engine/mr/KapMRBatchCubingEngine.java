@@ -20,6 +20,7 @@ package io.kyligence.kap.engine.mr;
 
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.cube.model.CubeJoinedFlatTableDesc;
 import org.apache.kylin.engine.IBatchCubingEngine;
 import org.apache.kylin.engine.mr.IMRInput;
 import org.apache.kylin.engine.mr.IMROutput2;
@@ -30,14 +31,12 @@ public class KapMRBatchCubingEngine implements IBatchCubingEngine {
 
     @Override
     public IJoinedFlatTableDesc getJoinedFlatTableDesc(CubeDesc cubeDesc) {
-        // TODO Auto-generated method stub
-        return null;
+        return new CubeJoinedFlatTableDesc(cubeDesc);
     }
 
     @Override
     public IJoinedFlatTableDesc getJoinedFlatTableDesc(CubeSegment newSegment) {
-        // TODO Auto-generated method stub
-        return null;
+        return new CubeJoinedFlatTableDesc(newSegment);
     }
 
     @Override

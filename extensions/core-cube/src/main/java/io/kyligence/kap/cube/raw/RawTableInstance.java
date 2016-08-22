@@ -45,7 +45,7 @@ public class RawTableInstance implements IRealization {
     private List<MeasureDesc> mockupMeasures;
 
 
-    RawTableInstance(CubeInstance cube) {
+    public RawTableInstance(CubeInstance cube) {
         this.cube = cube;
         this.rawTableDesc = RawTableDescManager.getInstance(cube.getConfig()).getRawTableDesc(cube.getName());
         
