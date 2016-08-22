@@ -39,16 +39,15 @@ public class RawTableInstance implements IRealization {
 
     private CubeInstance cube;
     private RawTableDesc rawTableDesc;
-    
+
     private List<TblColRef> allColumns;
     private List<TblColRef> mockupDimensions;
     private List<MeasureDesc> mockupMeasures;
-
-
+    
     public RawTableInstance(CubeInstance cube) {
         this.cube = cube;
         this.rawTableDesc = RawTableDescManager.getInstance(cube.getConfig()).getRawTableDesc(cube.getName());
-        
+
         if (this.rawTableDesc == null) // mockup for test
             this.rawTableDesc = new RawTableDesc(cube.getDescriptor());
 
@@ -188,7 +187,7 @@ public class RawTableInstance implements IRealization {
         }
         return segs;
     }
-    
+
     @Override
     public int hashCode() {
         return cube.hashCode();

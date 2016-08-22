@@ -2,7 +2,7 @@ package io.kyligence.kap.engine.mr.steps;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -17,8 +17,6 @@ import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.cube.model.CubeJoinedFlatTableEnrich;
-import org.apache.kylin.dimension.DimensionEncoding;
 import org.apache.kylin.engine.EngineFactory;
 import org.apache.kylin.engine.mr.KylinMapper;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
@@ -29,8 +27,11 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.cube.model.DataModelFlatTableDesc;
+import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
+import io.kyligence.kap.raw.BufferedRawEncoder;
 
 public class RowTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUEIN, Text, Text> {
     protected static final Logger logger = LoggerFactory.getLogger(RowTableMapperBase.class);
@@ -42,16 +43,15 @@ public class RowTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
     protected CubeDesc cubeDesc;
     protected CubeSegment cubeSegment;
     protected List<byte[]> nullBytes;
-    protected CubeJoinedFlatTableEnrich intermediateTableDesc;
+    protected DataModelFlatTableDesc intermediateTableDesc;
     protected String intermediateTableRowDelimiter;
     protected byte byteRowDelimiter;
     protected Map<TblColRef, Dictionary<String>> dictionaryMap;
     protected BytesSplitter bytesSplitter;
     private int errorRecordCounter;
     private RawTableInstance rawTableInstance;
-    protected byte[][] orderKeyBytesBuf;
-    protected byte[][] valueBytesBuf;
-    protected int orderKeyBytesLength;
+    private RawTableDesc rawTableDesc;
+    private BufferedRawEncoder rawEncoder;
     protected int valueBytesLength;
     protected int counter;
     protected Text outputKey = new Text();
@@ -62,31 +62,22 @@ public class RowTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
         super.bindCurrentConfiguration(context.getConfiguration());
 
         cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME).toUpperCase();
-
-        logger.info("Cube Name: ****    " + cubeName);
         segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
         intermediateTableRowDelimiter = context.getConfiguration().get(BatchConstants.CFG_CUBE_INTERMEDIATE_TABLE_ROW_DELIMITER, Character.toString(BatchConstants.INTERMEDIATE_TABLE_ROW_DELIMITER));
         if (Bytes.toBytes(intermediateTableRowDelimiter).length > 1) {
             throw new RuntimeException("Expected delimiter byte length is 1, but got " + Bytes.toBytes(intermediateTableRowDelimiter).length);
         }
         byteRowDelimiter = Bytes.toBytes(intermediateTableRowDelimiter)[0];
-
         KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
-
         cube = CubeManager.getInstance(config).getCube(cubeName);
         cubeDesc = cube.getDescriptor();
         cubeSegment = cube.getSegmentById(segmentID);
-        logger.error("*******" + segmentID);
-
         rawTableInstance = RawTableManager.getInstance(config).getRawTableInstance(cubeDesc.getName());
-        orderKeyBytesBuf = new byte[1][];
-        valueBytesBuf = new byte[rawTableInstance.getAllColumns().size()][];
-
-        intermediateTableDesc = new CubeJoinedFlatTableEnrich(EngineFactory.getJoinedFlatTableDesc(cubeSegment), cubeSegment.getCubeDesc());
-
+        rawTableDesc = rawTableInstance.getRawTableDesc();
+        intermediateTableDesc = (DataModelFlatTableDesc) EngineFactory.getJoinedFlatTableDesc(cubeSegment);
+        rawEncoder = new BufferedRawEncoder(rawTableDesc.getColumnsExcludingOrdered());
         bytesSplitter = new BytesSplitter(200, 16384);
         dictionaryMap = cubeSegment.buildDictionaryMap();
-
         initNullBytes();
     }
 
@@ -96,77 +87,29 @@ public class RowTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
         byte[] rowKey = buildKey(bytesSplitter.getSplitBuffers());
         outputKey.set(rowKey, 0, rowKey.length);
 
-        byte[] valueBuf = buildValue(bytesSplitter.getSplitBuffers());
-        outputValue.set(valueBuf, 0, valueBuf.length);
+        ByteBuffer valueBuf = buildValue(bytesSplitter.getSplitBuffers());
+        outputValue.set(valueBuf.array(), 0, valueBuf.position());
         context.write(outputKey, outputValue);
     }
 
     protected byte[] buildKey(SplittedBytes[] splitBuffers) {
-        int i = 0;
-        ArrayList<TblColRef> orderedColumns = Lists.newArrayList(rawTableInstance.getRawTableDesc().getOrderedColumn());
-        for (TblColRef col : orderedColumns) {
-            int indexAtHive = intermediateTableDesc.getColumnIndex(col);
-            DimensionEncoding dimEnc = cubeSegment.getDimensionEncodingMap().get(col);
+        TblColRef orderCol = rawTableDesc.getOrderedColumn();
+        int index = intermediateTableDesc.getColumnIndex(orderCol);
+        byte[] colValue = Arrays.copyOf(splitBuffers[index].value, splitBuffers[index].length);
 
-            byte[] colValue = Arrays.copyOf(splitBuffers[indexAtHive].value, splitBuffers[indexAtHive].length);
-
-            if (isNull(colValue)) {
-                orderKeyBytesBuf[i] = null;
-                continue;
-            }
-            // if encode
-            if (null != dimEnc) {
-                byte[] bytes = new byte[dimEnc.getLengthOfEncoding()];
-                orderKeyBytesLength += dimEnc.getLengthOfEncoding();
-                dimEnc.encode(splitBuffers[indexAtHive].value, splitBuffers[indexAtHive].length, bytes, 0);
-                orderKeyBytesBuf[i] = bytes;
-            } else {
-                orderKeyBytesBuf[i] = colValue;
-                orderKeyBytesLength += splitBuffers[indexAtHive].length;
-            }
-            i++;
+        if (isNull(colValue)) {
+            colValue = null;
         }
-        return encodeKey();
+        return colValue;
     }
 
-    protected byte[] buildValue(SplittedBytes[] splitBuffers) {
-        int i = 0;
-        for (TblColRef col : rawTableInstance.getAllColumns()) {
-            int indexAtHive = intermediateTableDesc.getColumnIndex(col);
-            DimensionEncoding dimEnc = cubeSegment.getDimensionEncodingMap().get(col);
-            // if encode
-            if (null != dimEnc) {
-                byte[] bytes = new byte[dimEnc.getLengthOfEncoding()];
-                valueBytesLength += dimEnc.getLengthOfEncoding();
-                dimEnc.encode(splitBuffers[indexAtHive].value, splitBuffers[indexAtHive].length, bytes, 0);
-                valueBytesBuf[i] = bytes;
-            } else {
-                valueBytesBuf[i] = Arrays.copyOf(splitBuffers[indexAtHive].value, splitBuffers[indexAtHive].length);
-                valueBytesLength += splitBuffers[indexAtHive].length;
-            }
-            i++;
+    protected ByteBuffer buildValue(SplittedBytes[] splitBuffers) {
+        for (TblColRef col : rawTableDesc.getColumnsExcludingOrdered()) {
+            int index = intermediateTableDesc.getColumnIndex(col);
+            byte[] colValue = Arrays.copyOf(splitBuffers[index].value, splitBuffers[index].length);
+            //work here, need to continue
         }
-        return encodeValue();
-    }
-
-    protected byte[] encodeKey() {
-        byte[] encodeBytes = new byte[orderKeyBytesLength];
-        int nPos = 0;
-        for (int i = 0; i < orderKeyBytesBuf.length; i++) {
-            System.arraycopy(orderKeyBytesBuf[i], 0, encodeBytes, nPos, orderKeyBytesBuf[i].length);
-            nPos += orderKeyBytesBuf[i].length;
-        }
-        return encodeBytes;
-    }
-
-    protected byte[] encodeValue() {
-        byte[] encodeBytes = new byte[valueBytesLength];
-        int nPos = 0;
-        for (int i = 0; i < valueBytesBuf.length; i++) {
-            System.arraycopy(valueBytesBuf[i], 0, encodeBytes, nPos, valueBytesBuf[i].length);
-            nPos += orderKeyBytesBuf[i].length;
-        }
-        return encodeBytes;
+        return null;
     }
 
     private void initNullBytes() {

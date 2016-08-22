@@ -1,5 +1,6 @@
 package io.kyligence.kap.cube.raw;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -28,19 +29,19 @@ public class RawTableDesc extends RootPersistentEntity {
     public static final String INDEX_DISCRETE = "discrete";
     public static final String INDEX_SORTED = "sorted";
     public static final String ENCODING_VAR = "var";
-    
+
     @JsonProperty("name")
     private String name;
     @JsonProperty("model_name")
     private String modelName;
     @JsonProperty("columns")
     private List<RawTableColumnDesc> columns;
-    
+
     // computed
     private KylinConfig config;
     private DataModelDesc model;
     private Map<TblColRef, RawTableColumnDesc> columnMap;
-    
+
     // for Jackson
     public RawTableDesc() {
     }
@@ -50,14 +51,14 @@ public class RawTableDesc extends RootPersistentEntity {
         this.updateRandomUuid();
         this.name = cubeDesc.getName();
         this.modelName = cubeDesc.getModelName();
-        
+
         this.config = cubeDesc.getConfig();
         this.model = cubeDesc.getModel();
         this.columnMap = Maps.newHashMap();
-        
+
         MetadataManager metaMgr = MetadataManager.getInstance(model.getConfig());
         TableDesc factTable = model.getFactTableDesc();
-        
+
         for (ModelDimensionDesc dim : model.getDimensions()) {
             TableDesc dimTable = metaMgr.getTableDesc(dim.getTable());
             for (String col : dim.getColumns()) {
@@ -68,7 +69,7 @@ public class RawTableDesc extends RootPersistentEntity {
                 columnMap.put(colRef, rawColDesc);
             }
         }
-        
+
         for (String col : model.getMetrics()) {
             TblColRef colRef = factTable.findColumnByName(col).getRef();
             String index = null;
@@ -76,7 +77,7 @@ public class RawTableDesc extends RootPersistentEntity {
             RawTableColumnDesc rawColDesc = new RawTableColumnDesc(colRef.getColumnDesc(), index, encoding);
             columnMap.put(colRef, rawColDesc);
         }
-        
+
         this.columns = Lists.newArrayList(columnMap.values());
     }
 
@@ -109,6 +110,16 @@ public class RawTableDesc extends RootPersistentEntity {
         return null;
     }
 
+    public List<TblColRef> getColumnsExcludingOrdered() {
+        List<TblColRef> cols = new ArrayList<>();
+        for (RawTableColumnDesc colDesc : columns) {
+            if (INDEX_SORTED.equals(colDesc.getIndex()))
+                continue;
+            cols.add(colDesc.getColumn().getRef());
+        }
+        return cols;
+    }
+
     public boolean isNeedIndex(TblColRef col) {
         RawTableColumnDesc desc = columnMap.get(col);
         return desc.getIndex() != null;
@@ -133,11 +144,11 @@ public class RawTableDesc extends RootPersistentEntity {
 
     void init(KylinConfig config) {
         MetadataManager metaMgr = MetadataManager.getInstance(config);
-        
+
         this.config = config;
         this.model = metaMgr.getDataModelDesc(modelName);
         this.columnMap = Maps.newHashMap();
-        
+
         for (RawTableColumnDesc colDesc : columns) {
             colDesc.init(metaMgr);
             columnMap.put(colDesc.getColumn().getRef(), colDesc);
@@ -145,11 +156,11 @@ public class RawTableDesc extends RootPersistentEntity {
     }
 
     // ============================================================================
-    
+
     public KylinConfig getConfig() {
         return config;
     }
-    
+
     public DataModelDesc getModel() {
         return model;
     }

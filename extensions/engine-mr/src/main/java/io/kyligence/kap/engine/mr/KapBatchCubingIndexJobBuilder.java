@@ -123,7 +123,7 @@ public class KapBatchCubingIndexJobBuilder extends BatchCubingJobBuilder2 {
         rawTableStep.setName("Build Raw Table");
 
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBE_NAME, seg.getRealization().getName());
-        appendExecCmdParameters(cmd, BatchConstants.ARG_SEGMENT_NAME, seg.getName());
+        appendExecCmdParameters(cmd, BatchConstants.ARG_SEGMENT_ID, seg.getUuid());
         appendExecCmdParameters(cmd, BatchConstants.ARG_INPUT, "FLAT_TABLE"); // marks flat table input
         appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, rawTableOutputTempPath);
         appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_Raw_Table_Builder_" + seg.getRealization().getName());

@@ -27,6 +27,8 @@ import org.apache.kylin.engine.mr.IMROutput2;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 
+import io.kyligence.kap.cube.model.DataModelFlatTableDesc;
+
 public class KapMRBatchCubingForIndexEngine implements IBatchCubingEngine {
 
     @Override
@@ -36,7 +38,7 @@ public class KapMRBatchCubingForIndexEngine implements IBatchCubingEngine {
 
     @Override
     public IJoinedFlatTableDesc getJoinedFlatTableDesc(CubeSegment newSegment) {
-        return new CubeJoinedFlatTableDesc(newSegment);
+        return new DataModelFlatTableDesc(newSegment);
     }
 
     @Override
