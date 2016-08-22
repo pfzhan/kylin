@@ -17,8 +17,9 @@ import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.cube.model.CubeJoinedFlatTableDesc;
+import org.apache.kylin.cube.model.CubeJoinedFlatTableEnrich;
 import org.apache.kylin.dimension.DimensionEncoding;
+import org.apache.kylin.engine.EngineFactory;
 import org.apache.kylin.engine.mr.KylinMapper;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
@@ -41,7 +42,7 @@ public class RowTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
     protected CubeDesc cubeDesc;
     protected CubeSegment cubeSegment;
     protected List<byte[]> nullBytes;
-    protected CubeJoinedFlatTableDesc intermediateTableDesc;
+    protected CubeJoinedFlatTableEnrich intermediateTableDesc;
     protected String intermediateTableRowDelimiter;
     protected byte byteRowDelimiter;
     protected Map<TblColRef, Dictionary<String>> dictionaryMap;
@@ -81,7 +82,7 @@ public class RowTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
         orderKeyBytesBuf = new byte[1][];
         valueBytesBuf = new byte[rawTableInstance.getAllColumns().size()][];
 
-        intermediateTableDesc = new CubeJoinedFlatTableDesc(cubeSegment);
+        intermediateTableDesc = new CubeJoinedFlatTableEnrich(EngineFactory.getJoinedFlatTableDesc(cubeSegment), cubeSegment.getCubeDesc());
 
         bytesSplitter = new BytesSplitter(200, 16384);
         dictionaryMap = cubeSegment.buildDictionaryMap();
