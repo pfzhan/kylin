@@ -1,6 +1,6 @@
 package io.kyligence.kap.storage.parquet.steps;
 
-import io.kyligence.kap.storage.parquet.format.ParquetExtendColumnPageInputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetRawTablePageInputFormat;
 import org.apache.hadoop.mapreduce.Job;
 
 public class RawTablePageIndexJob extends ParquetPageIndexJob {
@@ -10,6 +10,6 @@ public class RawTablePageIndexJob extends ParquetPageIndexJob {
 
     @Override
     protected void setInputFormatClass(Job job) {
-        job.setInputFormatClass(ParquetExtendColumnPageInputFormat.class);
+        job.setInputFormatClass(ParquetRawTablePageInputFormat.class);
     }
 }

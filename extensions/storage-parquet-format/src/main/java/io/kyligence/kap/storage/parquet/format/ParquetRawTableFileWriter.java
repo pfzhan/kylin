@@ -6,10 +6,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import io.kyligence.kap.cube.raw.RawTableDesc;
-import io.kyligence.kap.cube.raw.RawTableInstance;
-import io.kyligence.kap.cube.raw.kv.RawTableConstants;
-import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriterBuilder;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -29,7 +25,11 @@ import org.apache.parquet.schema.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.cube.raw.RawTableDesc;
+import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.cube.raw.kv.RawTableConstants;
 import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
+import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriterBuilder;
 
 public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
     private static final Logger logger = LoggerFactory.getLogger(ParquetRawTableFileWriter.class);
@@ -96,7 +96,7 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
         List<TblColRef> columns = rawTableDesc.getColumns();
 
         types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, orderedColumn.getName()));
-        for (TblColRef column: columns) {
+        for (TblColRef column : columns) {
             if (!column.equals(orderedColumn)) {
                 types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, column.getName()));
             }

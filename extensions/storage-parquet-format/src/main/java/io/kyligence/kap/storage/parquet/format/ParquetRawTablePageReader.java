@@ -23,7 +23,7 @@ import org.roaringbitmap.buffer.MutableRoaringBitmap;
 import java.io.IOException;
 import java.util.List;
 
-public class ParquetExtendColumnPageReader<K, V> extends RecordReader<K, V> {
+public class ParquetRawTablePageReader<K, V> extends RecordReader<K, V> {
     protected Configuration conf;
 
     private Path shardPath;
@@ -39,7 +39,6 @@ public class ParquetExtendColumnPageReader<K, V> extends RecordReader<K, V> {
         conf = context.getConfiguration();
         shardPath = fileSplit.getPath();
         String[] pathSplits = shardPath.toString().split("/");
-        long cuboidId = Long.parseLong(pathSplits[pathSplits.length - 2]);
 
         kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata()/**/;
 
