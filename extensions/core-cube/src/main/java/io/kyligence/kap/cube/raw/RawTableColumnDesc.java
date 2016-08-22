@@ -20,10 +20,10 @@ public class RawTableColumnDesc {
     @JsonProperty("encoding")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String encoding;
-    
+
     // computed
     private ColumnDesc column;
-    
+
     // for Jackson
     public RawTableColumnDesc() {
     }
@@ -34,22 +34,22 @@ public class RawTableColumnDesc {
         this.columnName = col.getName();
         this.index = index;
         this.encoding = encoding;
-        
+
         this.column = col;
     }
-    
+
     void init(MetadataManager metaMgr) {
         tableName = tableName.toUpperCase();
         columnName = columnName.toUpperCase();
         column = metaMgr.getColumnDesc(tableName + "." + columnName);
     }
-    
+
     // ============================================================================
 
     public ColumnDesc getColumn() {
         return column;
     }
-    
+
     void setColumn(ColumnDesc column) {
         this.column = column;
     }

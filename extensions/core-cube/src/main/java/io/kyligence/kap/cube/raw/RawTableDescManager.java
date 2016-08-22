@@ -122,7 +122,7 @@ public class RawTableDescManager {
         }
 
         desc.init(config);
-        
+
         return desc;
     }
 
@@ -136,7 +136,7 @@ public class RawTableDescManager {
             throw new IllegalArgumentException("RawTableDesc '" + rawTableDesc.getName() + "' already exists");
 
         rawTableDesc.init(config);
-            
+
         String path = rawTableDesc.getResourcePath();
         getStore().putResource(path, rawTableDesc, DESC_SERIALIZER);
         rawTableDescMap.put(rawTableDesc.getName(), rawTableDesc);

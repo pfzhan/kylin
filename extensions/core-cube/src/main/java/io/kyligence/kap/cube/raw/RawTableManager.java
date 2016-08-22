@@ -60,7 +60,7 @@ public class RawTableManager implements IRealizationProvider {
     private RawTableManager(KylinConfig config) throws IOException {
         this.config = config;
     }
-    
+
     @Override
     public RealizationType getRealizationType() {
         return RealizationType.INVERTED_INDEX;

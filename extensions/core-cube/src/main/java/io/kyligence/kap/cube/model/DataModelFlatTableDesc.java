@@ -53,11 +53,9 @@ public class DataModelFlatTableDesc implements IJoinedFlatTableDesc {
 
         // add dimensions
         int columnIndex = 0;
-        for ( ModelDimensionDesc mdDesc: dataModelDesc.getDimensions() )
-        {
-            for ( String col : mdDesc.getColumns() )
-            {
-                TblColRef tblColRef = getTblByName( col , mdDesc.getTable() );
+        for (ModelDimensionDesc mdDesc : dataModelDesc.getDimensions()) {
+            for (String col : mdDesc.getColumns()) {
+                TblColRef tblColRef = getTblByName(col, mdDesc.getTable());
                 columnIndexMap.put(tblColRef, columnIndex);
                 columnList.add(tblColRef);
                 columnIndex++;
@@ -65,9 +63,8 @@ public class DataModelFlatTableDesc implements IJoinedFlatTableDesc {
         }
 
         // add metrics
-        for ( String metric : dataModelDesc.getMetrics() )
-        {
-            TblColRef tblColRef = getTblByName( metric , dataModelDesc.getFactTable() );
+        for (String metric : dataModelDesc.getMetrics()) {
+            TblColRef tblColRef = getTblByName(metric, dataModelDesc.getFactTable());
             columnIndexMap.put(tblColRef, columnIndex);
             columnList.add(tblColRef);
             columnIndex++;
@@ -75,34 +72,28 @@ public class DataModelFlatTableDesc implements IJoinedFlatTableDesc {
         columnCount = columnIndex;
     }
 
-    private TblColRef getTblByName(String colName, String tableName )
-    {
-        if ( isFactTable( tableName ))
-        {
+    private TblColRef getTblByName(String colName, String tableName) {
+        if (isFactTable(tableName)) {
             for (ColumnDesc col : dataModelDesc.getFactTableDesc().getColumns()) {
-                if ( col.getName().equals( colName ))
-                    return col.getRef() ;
+                if (col.getName().equals(colName))
+                    return col.getRef();
             }
-        }
-        else
-        {
-            for (TableDesc desc : dataModelDesc.getLookupTableDescs())
-            {
-                if ( ! ( desc.getDatabase() + "." + desc.getName() ).equals(tableName) )
+        } else {
+            for (TableDesc desc : dataModelDesc.getLookupTableDescs()) {
+                if (!(desc.getDatabase() + "." + desc.getName()).equals(tableName))
                     continue;
 
                 for (ColumnDesc col : desc.getColumns()) {
-                    if ( col.getName().equals( colName ))
-                        return col.getRef() ;
+                    if (col.getName().equals(colName))
+                        return col.getRef();
                 }
             }
         }
-        return  null ;
+        return null;
     }
 
-    private boolean isFactTable( String tableName )
-    {
-        return dataModelDesc.getFactTable().equals( tableName );
+    private boolean isFactTable(String tableName) {
+        return dataModelDesc.getFactTable().equals(tableName);
     }
 
     // sanity check the input record (in bytes) matches what's expected
