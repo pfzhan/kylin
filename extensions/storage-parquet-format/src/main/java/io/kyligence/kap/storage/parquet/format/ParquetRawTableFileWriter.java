@@ -68,6 +68,7 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
         rawTableDesc = new RawTableDesc(cubeInstance.getDescriptor());
         rawEncoder = new BufferedRawEncoder(rawTableDesc.getColumnsExcludingOrdered());
 
+        // FIXME: Text involves array copy every time
         if (keyClass == Text.class && valueClass == Text.class) {
             logger.info("KV class is Text");
         } else {
