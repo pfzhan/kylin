@@ -35,9 +35,6 @@ import io.kyligence.kap.storage.parquet.format.ParquetFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableOutputFormat;
 
-/**
- * Created by wangcheng on 8/10/16.
- */
 public class KapRawTableJob extends AbstractHadoopJob {
     protected static final Logger logger = LoggerFactory.getLogger(KapRawTableJob.class);
     private static final String MAPRED_REDUCE_TASKS = "mapred.reduce.tasks";

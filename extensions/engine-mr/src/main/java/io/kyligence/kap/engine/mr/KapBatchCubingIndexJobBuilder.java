@@ -23,9 +23,6 @@ import io.kyligence.kap.engine.mr.steps.KapNDCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapRawTableJob;
 import io.kyligence.kap.engine.mr.steps.SecondaryIndexJob;
 
-/**
- * Created by wangcheng on 8/4/16.
- */
 public class KapBatchCubingIndexJobBuilder extends BatchCubingJobBuilder2 {
     private static final Logger logger = LoggerFactory.getLogger(KapBatchCubingIndexJobBuilder.class);
 

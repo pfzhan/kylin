@@ -11,7 +11,9 @@ import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.common.util.BytesSplitter;
+import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.common.util.Dictionary;
+import org.apache.kylin.common.util.ShardingHash;
 import org.apache.kylin.common.util.SplittedBytes;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
@@ -96,7 +98,12 @@ public class RowTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
     protected byte[] buildKey(SplittedBytes[] splitBuffers) {
         TblColRef orderCol = rawTableDesc.getOrderedColumn();
         int index = intermediateTableDesc.getColumnIndex(orderCol);
-        byte[] colValue = Arrays.copyOf(splitBuffers[index].value, splitBuffers[index].length);
+
+        // TODO: get total shard num dynamically
+        short shardId = ShardingHash.getShard(splitBuffers[index].value, 0, splitBuffers[index].length, 10);
+        byte[] colValue = new byte[splitBuffers[index].length + 2];
+        BytesUtil.writeShort(shardId, colValue, 0, 2);
+        System.arraycopy(splitBuffers[index].value, 0, colValue, 2, splitBuffers[index].length);
 
         if (isNull(colValue)) {
             colValue = null;
