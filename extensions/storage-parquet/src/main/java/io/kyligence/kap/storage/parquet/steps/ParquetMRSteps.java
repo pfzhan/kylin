@@ -145,6 +145,15 @@ public class ParquetMRSteps extends JobBuilderSupport {
         return result;
     }
 
+    public RawShardSizingStep createRawShardSizingStep(String jobId) {
+        RawShardSizingStep result = new RawShardSizingStep(jobId);
+        result.setName("Sizing Raw Shards");
+        CubingExecutableUtil.setCubeName(seg.getRealization().getName(), result.getParams());
+        CubingExecutableUtil.setSegmentId(seg.getUuid(), result.getParams());
+        CubingExecutableUtil.setCubingJobId(jobId, result.getParams());
+        return result;
+    }
+
     private String getParquetFolderPath(CubeSegment cubeSegment) {
         return new StringBuffer(KapConfig.wrap(config.getConfig()).getParquentStoragePath()).append(cubeSegment.getCubeInstance().getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
     }

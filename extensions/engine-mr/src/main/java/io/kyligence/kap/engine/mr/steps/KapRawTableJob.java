@@ -32,8 +32,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.storage.parquet.format.ParquetFileInputFormat;
-import io.kyligence.kap.storage.parquet.format.ParquetFileOutputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
+import io.kyligence.kap.storage.parquet.format.ParquetRawTableOutputFormat;
 
 /**
  * Created by wangcheng on 8/10/16.
@@ -105,7 +105,7 @@ public class KapRawTableJob extends AbstractHadoopJob {
 
             // Reducer
             job.setReducerClass(KylinReducer.class);
-            job.setOutputFormatClass(ParquetFileOutputFormat.class);
+            job.setOutputFormatClass(ParquetRawTableOutputFormat.class);
             job.setOutputKeyClass(Text.class);
             job.setOutputValueClass(Text.class);
 

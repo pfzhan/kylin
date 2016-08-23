@@ -52,7 +52,7 @@ public class RowTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
     private RawTableInstance rawTableInstance;
     private RawTableDesc rawTableDesc;
     private BufferedRawEncoder rawEncoder;
-    protected int valueBytesLength;
+    private String[] columnValues;
     protected int counter;
     protected Text outputKey = new Text();
     protected Text outputValue = new Text();
@@ -76,6 +76,7 @@ public class RowTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
         rawTableDesc = rawTableInstance.getRawTableDesc();
         intermediateTableDesc = (DataModelFlatTableDesc) EngineFactory.getJoinedFlatTableDesc(cubeSegment);
         rawEncoder = new BufferedRawEncoder(rawTableDesc.getColumnsExcludingOrdered());
+        columnValues = new String[rawTableDesc.getColumnsExcludingOrdered().size()];
         bytesSplitter = new BytesSplitter(200, 16384);
         dictionaryMap = cubeSegment.buildDictionaryMap();
         initNullBytes();
@@ -104,12 +105,14 @@ public class RowTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
     }
 
     protected ByteBuffer buildValue(SplittedBytes[] splitBuffers) {
+        int i = 0;
         for (TblColRef col : rawTableDesc.getColumnsExcludingOrdered()) {
             int index = intermediateTableDesc.getColumnIndex(col);
             byte[] colValue = Arrays.copyOf(splitBuffers[index].value, splitBuffers[index].length);
-            //work here, need to continue
+            columnValues[i] = Bytes.toString(colValue);
+            i++;
         }
-        return null;
+        return rawEncoder.encode(columnValues);
     }
 
     private void initNullBytes() {

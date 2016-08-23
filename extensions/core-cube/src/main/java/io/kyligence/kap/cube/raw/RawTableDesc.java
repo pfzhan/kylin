@@ -120,6 +120,14 @@ public class RawTableDesc extends RootPersistentEntity {
         return cols;
     }
 
+    public int getEstimateRowSize() {
+        int size = 0;
+        for (RawTableColumnDesc col : columns) {
+            size += col.getColumn().getType().getStorageBytesEstimate();
+        }
+        return size;
+    }
+
     public boolean isNeedIndex(TblColRef col) {
         RawTableColumnDesc desc = columnMap.get(col);
         return desc.getIndex() != null;

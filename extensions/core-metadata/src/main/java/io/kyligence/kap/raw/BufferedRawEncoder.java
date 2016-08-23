@@ -43,6 +43,13 @@ public class BufferedRawEncoder {
         codec.decode(buf, result);
     }
 
+    public ByteBuffer encode(String[] values) {
+        Object[] objects = new Object[values.length];
+        for (int i = 0; i < values.length; i++)
+            objects[i] = codec.serializers[i].valueOf(values[i]);
+        return encode(objects);
+    }
+
     public ByteBuffer encode(Object[] values) {
         if (buf == null) {
             setBufferSize(DEFAULT_BUFFER_SIZE);

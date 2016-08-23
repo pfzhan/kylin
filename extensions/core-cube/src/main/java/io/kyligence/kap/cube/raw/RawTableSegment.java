@@ -11,10 +11,23 @@ public class RawTableSegment implements Comparable<RawTableSegment>, IStorageAwa
 
     private RawTableInstance rawTableInstance;
     private CubeSegment cubeSegment;
+    private Long shardNumber;
 
     public RawTableSegment(RawTableInstance rawTable, CubeSegment seg) {
         this.rawTableInstance = rawTable;
         this.cubeSegment = seg;
+    }
+
+    public static RawTableSegment getInstance(CubeSegment seg) {
+        return new RawTableSegment(new RawTableInstance(seg.getCubeInstance()), seg);
+    }
+
+    public void setShardNum(Long num) {
+        this.shardNumber = num;
+    }
+
+    public Long getShardNum() {
+        return this.shardNumber;
     }
 
     public RawTableInstance getRawTableInstance() {
