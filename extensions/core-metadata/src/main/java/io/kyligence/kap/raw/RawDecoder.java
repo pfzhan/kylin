@@ -7,9 +7,6 @@ import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 import org.apache.kylin.metadata.model.TblColRef;
 
-/**
- * Created by wangcheng on 8/22/16.
- */
 public class RawDecoder {
     int nColumns;
     DataTypeSerializer[] serializers;
@@ -69,6 +66,16 @@ public class RawDecoder {
         for (int i = 0; i < nColumns; i++) {
             result[i] = serializers[i].deserialize(buf);
         }
+    }
+
+    public int[] peekLength(ByteBuffer buf) {
+        int[] result = new int[nColumns];
+        for (int i = 0; i < nColumns; i++) {
+            result[i] = serializers[i].peekLength(buf);
+            buf.position(buf.position() + result[i]);
+        }
+
+        return result;
     }
 
 }

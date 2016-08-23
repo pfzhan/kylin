@@ -40,6 +40,10 @@ public class BufferedRawEncoder {
         codec.decode(buf, result);
     }
 
+    public int[] peekLength(ByteBuffer buf) {
+        return codec.peekLength(buf);
+    }
+
     public ByteBuffer encode(String[] values) {
         Object[] objects = new Object[values.length];
         for (int i = 0; i < values.length; i++)

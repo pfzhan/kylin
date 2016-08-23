@@ -1,11 +1,13 @@
 package io.kyligence.kap.storage.parquet.format;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import io.kyligence.kap.raw.BufferedRawEncoder;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -41,6 +43,7 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
     private CubeInstance cubeInstance;
     private CubeSegment cubeSegment;
     private RawTableDesc rawTableDesc;
+    private BufferedRawEncoder rawEncoder;
     private String outputDir = null;
 
     @Override
@@ -63,6 +66,7 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
         new RawTableInstance(cubeInstance);
 
         rawTableDesc = new RawTableDesc(cubeInstance.getDescriptor());
+        rawEncoder = new BufferedRawEncoder(rawTableDesc.getColumnsExcludingOrdered());
 
         if (keyClass == Text.class && valueClass == Text.class) {
             logger.info("KV class is Text");
@@ -113,7 +117,7 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
         byte[] valueBytes = value.getBytes().clone(); //on purpose, because parquet writer will cache
         try {
             byte[] keyBody = Arrays.copyOfRange(key.getBytes(), RawTableConstants.SHARDID_LEN, key.getLength());
-            int[] valueLength = null; // TODO: decode and get length
+            int[] valueLength = rawEncoder.peekLength(ByteBuffer.wrap(valueBytes));
             writer.writeRow(keyBody, 0, keyBody.length, valueBytes, valueLength);
         } catch (Exception e) {
             e.printStackTrace();
