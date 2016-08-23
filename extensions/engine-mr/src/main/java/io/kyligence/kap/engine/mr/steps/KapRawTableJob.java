@@ -107,7 +107,7 @@ public class KapRawTableJob extends AbstractHadoopJob {
             job.setOutputValueClass(Text.class);
 
             // Partitioner
-            job.setPartitionerClass(ShardCuboidPartitioner.class);
+            job.setPartitionerClass(ShardPartitioner.class);
 
             FileOutputFormat.setOutputPath(job, output);
 

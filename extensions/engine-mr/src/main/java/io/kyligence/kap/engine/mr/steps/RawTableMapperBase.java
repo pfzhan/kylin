@@ -35,8 +35,8 @@ import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.raw.BufferedRawEncoder;
 
-public class RowTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUEIN, Text, Text> {
-    protected static final Logger logger = LoggerFactory.getLogger(RowTableMapperBase.class);
+public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUEIN, Text, Text> {
+    protected static final Logger logger = LoggerFactory.getLogger(RawTableMapperBase.class);
     public static final byte[] HIVE_NULL = Bytes.toBytes("\\N");
     public static final byte[] ONE = Bytes.toBytes("1");
     protected String cubeName;
@@ -115,8 +115,7 @@ public class RowTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
         int i = 0;
         for (TblColRef col : rawTableDesc.getColumnsExcludingOrdered()) {
             int index = intermediateTableDesc.getColumnIndex(col);
-            byte[] colValue = Arrays.copyOf(splitBuffers[index].value, splitBuffers[index].length);
-            columnValues[i] = Bytes.toString(colValue);
+            columnValues[i] = Bytes.toString(splitBuffers[index].value, 0, splitBuffers[index].length);
             i++;
         }
         return rawEncoder.encode(columnValues);

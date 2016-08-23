@@ -6,9 +6,6 @@ import java.util.Collection;
 
 import org.apache.kylin.metadata.model.TblColRef;
 
-/**
- * Created by wangcheng on 8/22/16.
- */
 public class BufferedRawEncoder {
 
     public static final int DEFAULT_BUFFER_SIZE = 1024 * 1024; // 1 MB

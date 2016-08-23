@@ -6,7 +6,7 @@ import org.apache.kylin.engine.mr.IMRInput;
 import org.apache.kylin.engine.mr.MRUtil;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 
-public class HiveToRawTableMapper<KEYIN> extends RowTableMapperBase<KEYIN, Object> {
+public class HiveToRawTableMapper<KEYIN> extends RawTableMapperBase<KEYIN, Object> {
     private IMRInput.IMRTableInputFormat flatTableInputFormat;
 
     @Override

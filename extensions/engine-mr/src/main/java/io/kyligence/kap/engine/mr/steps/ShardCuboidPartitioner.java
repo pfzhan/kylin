@@ -6,7 +6,7 @@ import org.apache.kylin.cube.kv.RowConstants;
 
 public class ShardCuboidPartitioner extends Partitioner<Text, Text> {
 
-    private int hash(byte[] src, int start, int end, int max) {
+    protected int hash(byte[] src, int start, int end, int max) {
         int sum = 0;
         for (int i = start; i < end; ++i) {
             int temp = src[i];
