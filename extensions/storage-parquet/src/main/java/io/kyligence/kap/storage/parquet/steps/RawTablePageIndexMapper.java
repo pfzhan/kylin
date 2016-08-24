@@ -15,7 +15,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.engine.mr.KylinMapper;
@@ -38,12 +37,10 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
 
     protected String cubeName;
     protected String segmentName;
-    protected long cuboidId;
     protected String shardId;
     protected CubeInstance cube;
     protected CubeDesc cubeDesc;
     protected CubeSegment cubeSegment;
-    protected Cuboid cuboid;
     protected RawTableInstance rawTableInstance;
     protected RawTableDesc rawTableDesc;
 
@@ -67,14 +64,12 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
 
         cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME).toUpperCase();
         segmentName = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_NAME);
-        cuboidId = Long.parseLong(inputPath.getParent().getName());
         shardId = inputPath.getName().substring(0, inputPath.getName().indexOf('.'));
 
         // write to same dir with input
         outputPath = new Path(inputPath.getParent(), shardId + ".parquet.inv");
         cube = CubeManager.getInstance(config).getCube(cubeName);
         cubeDesc = cube.getDescriptor();
-        cuboid = Cuboid.findById(cubeDesc, cuboidId);
         cubeSegment = cube.getSegment(segmentName, SegmentStatusEnum.NEW);
 
         rawTableInstance = RawTableManager.getInstance(config).getRawTableInstance(cubeName);
@@ -98,17 +93,9 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
         List<TblColRef> columns = rawTableDesc.getColumns();
         for (int i = 0; i < columns.size(); i++) {
             TblColRef column = columns.get(i);
-
-            if (rawTableDesc.isVaryLength(column)) {
-                columnLength[i] = 8; //length of long
-                onlyEQIndex[i] = true;
-            } else {
-                //                columnLength[i] = rowKeyEncoder.getColumnLength(column.getRef());
-                onlyEQIndex[i] = false;
-            }
-
+            columnLength[i] = 8;
+            onlyEQIndex[i] = true;
             cardinality[i] = 10000;
-
             columnName[i] = column.getName();
 
         }
@@ -123,12 +110,40 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
         if (counter % BatchConstants.NORMAL_RECORD_LOG_THRESHOLD == 0) {
             logger.info("Handled " + counter + " records!");
         }
-        indexBundleWriter.write(key.get(), value.get());
+        List<byte[]> hashedValue = hash(key.get());
+        indexBundleWriter.write(hashedValue, value.get());
     }
 
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
         indexBundleWriter.close();
+    }
+
+    private List<byte[]> hash(List<byte[]> value) {
+        List<byte[]> result = new ArrayList<>(value.size());
+        for (byte[] v: value) {
+            result.add(hash(v));
+        }
+        return result;
+    }
+
+    private byte[] hash(byte[] value) {
+        byte[] result = new byte[8];
+
+        if (value.length <= 8) {
+            System.arraycopy(value, 0, result, 0, value.length);
+            for (int i = value.length; i < 8; i++) {
+                result[i] = (byte)0;
+            }
+        } else {
+            System.arraycopy(value, 0, result, 0, 8);
+
+            for (int i = 8; i < value.length; i++) {
+                result[i % 8] ^= value[i];
+            }
+        }
+
+        return result;
     }
 
     private List<Integer> getExtendedColumnLen() {

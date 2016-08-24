@@ -19,11 +19,15 @@ import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.parquet.io.api.Binary;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
 
 public class ParquetRawTablePageReader<K, V> extends RecordReader<K, V> {
+    protected static final Logger logger = LoggerFactory.getLogger(ParquetRawTablePageReader.class);
+
     protected Configuration conf;
 
     private Path shardPath;
@@ -38,26 +42,27 @@ public class ParquetRawTablePageReader<K, V> extends RecordReader<K, V> {
         FileSplit fileSplit = (FileSplit) split;
         conf = context.getConfiguration();
         shardPath = fileSplit.getPath();
-        String[] pathSplits = shardPath.toString().split("/");
 
-        kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata()/**/;
+        kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
 
         String cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
         CubeInstance cubeInstance = CubeManager.getInstance(kylinConfig).getCube(cubeName);
 
+        logger.info("shard file path: {}", shardPath.toString());
+
         // init with first shard file
-        reader = new ParquetBundleReaderBuilder().setColumnsBitmap(countExtendedColumn(cubeInstance)).setConf(conf).setPath(shardPath).build();
+        reader = new ParquetBundleReaderBuilder().setConf(conf).setPath(shardPath).build();
     }
 
     @Override
     public boolean nextKeyValue() throws IOException, InterruptedException {
         List<Object> row = reader.read();
-        int len = row.size();
 
         if (row == null) {
             return false;
         }
 
+        int len = row.size();
         byte[][] columnBytes = new byte[len][];
 
         for (int i = 0; i < len; i++) {
