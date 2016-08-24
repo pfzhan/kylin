@@ -28,7 +28,7 @@
 -keep class io.kyligence.kap.tool.general.** {*;}
 
 
--keepnames class io.kyligence.kap.measure.percentile.PercentileMeasureTypeFactory
+-keepnames class io.kyligence.kap.measure.percentile.**
 
 -keep enum io.kyligence.kap.**,io.kyligence.kap.**$** { 
     **[] $VALUES;
