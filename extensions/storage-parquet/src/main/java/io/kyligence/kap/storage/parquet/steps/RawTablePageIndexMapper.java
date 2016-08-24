@@ -112,36 +112,6 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
             columnName[i] = column.getName();
 
         }
-        //        for (ColumnDesc column : columnDescs) {
-        //            if (rawTableDesc.isVaryLength(column)) {
-        //            }
-        //        }
-
-        //        for (int col = 0; col < columnNum; col++) {
-        //            TblColRef colRef = cuboid.getColumns().get(col);
-        //            int colCardinality = -1;
-        //            Dictionary<String> dict = cubeSegment.getDictionary(colRef);
-        //
-        //            String rowKeyIndexType = cubeDesc.getRowkey().getColDesc(colRef).getIndex();
-        //            if ("eq".equalsIgnoreCase(rowKeyIndexType)) {
-        //                onlyEQIndex[col] = true;
-        //            } else {
-        //                onlyEQIndex[col] = false;
-        //            }
-        //
-        //            if (dict != null) {
-        //                colCardinality = dict.getSize();
-        //                if (dict instanceof DateStrDictionary) {
-        //                    colCardinality = -1;
-        //                }
-        //            }
-        //
-        //            cardinality[col] = colCardinality;
-        //            columnLength[col] = rowKeyEncoder.getColumnLength(colRef);
-        //            columnName[col] = colRef.getName();
-        //
-        //            logger.debug("Column Length:" + columnName[col] + "=" + columnLength[col]);
-        //        }
 
         FSDataOutputStream outputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(outputPath);
         indexBundleWriter = new ParquetPageIndexWriter(columnName, columnLength, cardinality, onlyEQIndex, outputStream);

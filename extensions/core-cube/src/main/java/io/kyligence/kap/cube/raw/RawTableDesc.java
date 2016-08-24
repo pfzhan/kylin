@@ -169,11 +169,9 @@ public class RawTableDesc extends RootPersistentEntity {
 
     public List<TblColRef> getColumns() {
         List<TblColRef> result = Lists.newArrayList();
-        for (RawTableColumnDesc column: columns) {
-            result.add(column.getColumn().getRef());
-        }
+        result.add(getOrderedColumn());
+        result.addAll(getColumnsExcludingOrdered());
         return result;
-//        return Lists.newArrayList(columnMap.keySet());
     }
 
     public String getResourcePath() {

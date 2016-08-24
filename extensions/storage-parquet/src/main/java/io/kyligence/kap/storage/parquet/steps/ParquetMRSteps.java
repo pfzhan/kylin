@@ -73,7 +73,7 @@ public class ParquetMRSteps extends JobBuilderSupport {
     public MapReduceExecutable createRawTableParquetPageIndex(String jobId) {
         MapReduceExecutable result = new MapReduceExecutable();
         result.setName("Build Raw Table Parquet Page Index");
-        result.setMapReduceJobClass(ParquetRawTablePageIndexJob.class);
+        result.setMapReduceJobClass(RawTablePageIndexJob.class);
         StringBuilder cmd = new StringBuilder();
         appendMapReduceParameters(cmd);
 
