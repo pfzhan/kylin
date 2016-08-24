@@ -383,6 +383,7 @@
         <module>extensions/assembly</module>
         <module>extensions/kap-it</module>
         <module>extensions/tool</module>
+        <module>kybot</module>
     </modules>
 
     <profiles>

@@ -4,8 +4,8 @@ dir=$(dirname ${0})
 cd ${dir}/../..
 
 echo 'Build back-end'
-mvn -f extensions/storage-parquet-protocol/pom.xml clean install -DskipTests $@     || { exit 1; }
-mvn clean install -DskipTests $@                                                    || { exit 1; }
+mvn -f extensions/storage-parquet-protocol/pom.xml clean install -DskipTests        || { exit 1; }
+mvn clean install -DskipTests                                                       || { exit 1; }
 
 #package webapp
 echo 'Build front-end'

@@ -1,3 +1,6 @@
 [submodule "kylin"]
 	path = kylin
 	url = https://github.com/apache/kylin.git
+[submodule "kybot"]
+	path = kybot
+	url = https://github.com/Kyligence/kybot-client.git

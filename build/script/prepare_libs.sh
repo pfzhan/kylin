@@ -7,11 +7,11 @@ source build/script/functions.sh
 exportProjectVersions
 
 echo "copy lib file"
-rm -rf build/lib build/kybot
-mkdir build/lib build/kybot
+rm -rf build/lib
+mkdir build/lib
 cp extensions/assembly/target/kap-assembly-${kap_version}-job.jar build/lib/kylin-job-kap-${release_version}.jar
 cp extensions/storage-hbase/target/kap-storage-hbase-${kap_version}-coprocessor.jar build/lib/kylin-coprocessor-kap-${release_version}.jar
-cp extensions/tool/target/kap-tool-${kap_version}-kybot.jar build/kybot/kybot-client-${release_version}.jar
+cp extensions/tool/target/kap-tool-${kap_version}-kybot.jar build/lib/kylin-tool-kap-${release_version}.jar
 cp extensions/storage-parquet/target/kap-storage-parquet-${kap_version}-spark.jar build/lib/kylin-storage-parquet-kap-${release_version}.jar
 cp kylin/jdbc/target/kylin-jdbc-${kylin_version}.jar build/lib/kylin-jdbc-kap-${release_version}.jar
 
@@ -20,4 +20,4 @@ chmod 644 build/lib/kylin-job-kap-${release_version}.jar
 chmod 644 build/lib/kylin-coprocessor-kap-${release_version}.jar
 chmod 644 build/lib/kylin-jdbc-kap-${release_version}.jar
 chmod 644 build/lib/kylin-storage-parquet-kap-${release_version}.jar
-chmod 644 build/kybot/kybot-client-${release_version}.jar
+chmod 644 build/lib/kylin-tool-kap-${release_version}.jar

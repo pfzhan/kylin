@@ -79,6 +79,7 @@ webapp/CHANGELOG.md
 # package file
 build/tomcat
 build/lib
+build/kybot
 *.tgz
 *.tar.gz
 webapp/app/components/*
@@ -94,6 +95,9 @@ webapp/app/web.xml
 kylin/
 smoke-test-*
 extensions/examples/test_metadata/*
+
+#kybot
+kybot/
 
 # maven
 dependency-reduced-pom.xml
