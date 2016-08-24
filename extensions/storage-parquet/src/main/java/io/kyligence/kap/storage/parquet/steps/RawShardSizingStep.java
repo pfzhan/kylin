@@ -27,9 +27,7 @@ public class RawShardSizingStep extends AbstractExecutable {
 
     private static final Logger logger = LoggerFactory.getLogger(RawShardSizingStep.class);
 
-    private String jobId;
-
-    public RawShardSizingStep(String jobId) {
+    public RawShardSizingStep() {
         super();
     }
 
@@ -75,7 +73,8 @@ public class RawShardSizingStep extends AbstractExecutable {
 
     private double caculateEstimateStorageSize(RawTableSegment seg) throws IOException {
         JobEngineConfig conf = new JobEngineConfig(KylinConfig.getInstanceFromEnv());
-        final String rowCountOutputDir = JobBuilderSupport.getJobWorkingDir(conf, jobId) + "/row_count";
+        String jobID = CubingExecutableUtil.getCubingJobId(getParams()) ;
+        final String rowCountOutputDir = JobBuilderSupport.getJobWorkingDir(conf, jobID) + "/row_count";
         Path rowCountFile = new Path(rowCountOutputDir, "000000_0");
 
         Long nRow;

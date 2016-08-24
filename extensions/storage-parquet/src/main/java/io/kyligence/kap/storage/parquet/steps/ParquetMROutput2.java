@@ -8,6 +8,7 @@ import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.engine.mr.steps.KapMergeCuboidJob;
 
 public class ParquetMROutput2 implements IMROutput2 {
@@ -22,6 +23,8 @@ public class ParquetMROutput2 implements IMROutput2 {
             @Override
             public void addStepPhase2_BuildDictionary(DefaultChainedExecutable jobFlow) {
                 jobFlow.addTask(steps.createParquetShardSizingStep(jobFlow.getId()));
+                if (RawTableInstance.isRawTableEnabled(seg.getCubeDesc()))
+                    jobFlow.addTask(steps.createRawShardSizingStep(jobFlow.getId()));
             }
 
             @Override

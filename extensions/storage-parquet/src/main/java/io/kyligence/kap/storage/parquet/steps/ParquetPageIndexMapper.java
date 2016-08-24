@@ -64,7 +64,9 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
 
         cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME).toUpperCase();
         segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
-        cuboidId = Long.parseLong(inputPath.getParent().getName());
+
+        if (inputPath.getParent().getName().matches("[0-9]+"))
+            cuboidId = Long.parseLong(inputPath.getParent().getName());
         shardId = inputPath.getName().substring(0, inputPath.getName().indexOf('.'));
 
         // write to same dir with input

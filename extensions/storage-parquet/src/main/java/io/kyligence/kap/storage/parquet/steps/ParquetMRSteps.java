@@ -146,7 +146,7 @@ public class ParquetMRSteps extends JobBuilderSupport {
     }
 
     public RawShardSizingStep createRawShardSizingStep(String jobId) {
-        RawShardSizingStep result = new RawShardSizingStep(jobId);
+        RawShardSizingStep result = new RawShardSizingStep();
         result.setName("Sizing Raw Shards");
         CubingExecutableUtil.setCubeName(seg.getRealization().getName(), result.getParams());
         CubingExecutableUtil.setSegmentId(seg.getUuid(), result.getParams());
