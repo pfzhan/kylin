@@ -29,6 +29,9 @@ public class ParquetMROutput2 implements IMROutput2 {
 
             @Override
             public void addStepPhase3_BuildCube(DefaultChainedExecutable jobFlow) {
+                if (RawTableInstance.isRawTableEnabled(seg.getCubeDesc())) {
+                    jobFlow.addTask(steps.createRawTableParquetPageIndex(jobFlow.getId()));
+                }
                 jobFlow.addTask(steps.createParquetPageIndex(jobFlow.getId()));
                 jobFlow.addTask(steps.createParquetTarballJob(jobFlow.getId()));
             }

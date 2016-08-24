@@ -29,9 +29,6 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexWriter;
 
-/**
- * Created by dongli on 5/31/16.
- */
 public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text, Text> {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetPageIndexMapper.class);
 

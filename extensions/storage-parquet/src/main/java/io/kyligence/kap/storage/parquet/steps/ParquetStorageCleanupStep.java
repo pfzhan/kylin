@@ -23,10 +23,9 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -86,19 +85,7 @@ public class ParquetStorageCleanupStep extends AbstractExecutable {
                 if (fileSystem.exists(folderPath) && fileSystem.isDirectory(folderPath)) {
                     if (fileSuffixs != null && fileSuffixs.size() > 0) {
                         logger.info("Selectively delete some files");
-                        RemoteIterator<LocatedFileStatus> iterator = fileSystem.listFiles(folderPath, true);
-                        while (iterator.hasNext()) {
-                            LocatedFileStatus locatedFileStatus = iterator.next();
-                            String currentFileName = locatedFileStatus.getPath().toString();
-                            if (matchFileSuffix(currentFileName, fileSuffixs)) {
-                                long size = fileSystem.getContentSummary(locatedFileStatus.getPath()).getLength();
-                                logger.debug("working on HDFS file " + currentFileName + " with size " + size);
-                                output.append("working on HDFS file " + currentFileName + " with size " + size + "\n");
-                                fileSystem.delete(locatedFileStatus.getPath(), false);
-                                logger.debug("Successfully deleted.");
-                                output.append("Successfully deleted.\n");
-                            }
-                        }
+                        dropCuboidPath(fileSystem, folderPath, fileSuffixs);
                     } else {
                         logger.info("Delete entire folders");
                         //if no file suffix provided, delete the whole folder
@@ -112,6 +99,41 @@ public class ParquetStorageCleanupStep extends AbstractExecutable {
                     logger.debug("Folder " + folder + " not exists.");
                     output.append("Folder " + folder + " not exists.\n");
                 }
+            }
+        }
+    }
+
+    private void dropCuboidPath(FileSystem fs, Path path, List<String> fileSuffixs) throws IOException {
+        if (!fs.exists(path)) {
+            logger.warn("path {} does not exist", path.toString());
+        } else if (fs.isDirectory(path)) {
+            for (FileStatus fileStatus : fs.listStatus(path)) {
+                // only delete cuboid files
+                if (fileStatus.getPath().getName().matches("^\\d+$")) {
+                    dropPath(fs, fileStatus.getPath(), fileSuffixs);
+                }
+            }
+        } else {
+            logger.warn("path {} should be folder", path.toString());
+        }
+    }
+
+    private void dropPath(FileSystem fs, Path path, List<String> fileSuffixs) throws IOException {
+        if (!fs.exists(path)) {
+            logger.warn("path {} does not exist", path.toString());
+        } else if (fs.isDirectory(path)) {
+            for (FileStatus fileStatus : fs.listStatus(path)) {
+                dropPath(fs, fileStatus.getPath(), fileSuffixs);
+            }
+        } else {
+            String currentFileName = path.toString();
+            if (matchFileSuffix(currentFileName, fileSuffixs)) {
+                long size = fs.getContentSummary(path).getLength();
+                logger.debug("working on HDFS file " + currentFileName + " with size " + size);
+                output.append("working on HDFS file " + currentFileName + " with size " + size + "\n");
+                fs.delete(path, false);
+                logger.debug("Successfully deleted.");
+                output.append("Successfully deleted.\n");
             }
         }
     }

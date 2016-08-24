@@ -1,6 +1,12 @@
 package io.kyligence.kap.storage.parquet.steps;
 
+import static io.kyligence.kap.engine.mr.steps.ParquertMRJobUtils.addParquetInputFile;
+
+import java.io.IOException;
+
 import org.apache.commons.cli.Options;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
@@ -12,13 +18,12 @@ import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.engine.mr.steps.ParquertMRJobUtils;
 import io.kyligence.kap.storage.parquet.format.ParquetPageInputFormat;
 
 public class ParquetPageIndexJob extends AbstractHadoopJob {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetPageIndexJob.class);
 
-    private boolean skipped = false;
+    protected boolean skipped = false;
 
     @Override
     public boolean isSkipped() {
@@ -47,7 +52,7 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
             job = Job.getInstance(getConf(), getOptionValue(OPTION_JOB_NAME));
             setJobClasspath(job, cube.getConfig());
 
-            int inputNum = ParquertMRJobUtils.addParquetInputFile(job, new Path(getOptionValue(OPTION_INPUT_PATH)));
+            int inputNum = setJobInputFile(job, new Path(getOptionValue(OPTION_INPUT_PATH)));
             if (inputNum == 0) {
                 skipped = true;
                 logger.info("ParquetPageIndexJob is skipped because there's no input file");
@@ -74,6 +79,24 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
                 cleanupTempConfFile(job.getConfiguration());
             }
         }
+    }
+
+    protected int setJobInputFile(Job job, Path path) throws IOException {
+        int ret = 0;
+        FileSystem fs = FileSystem.get(job.getConfiguration());
+        if (!fs.exists(path)) {
+            logger.warn("Input {} does not exist.", path.toString());
+        } else if (fs.isDirectory(path)) {
+            for (FileStatus fileStatus : fs.listStatus(path)) {
+                // build index for only cuboid file
+                if (fileStatus.getPath().getName().matches("^\\d+$")) {
+                    ret += addParquetInputFile(job, fileStatus.getPath());
+                }
+            }
+        } else {
+            logger.warn("Input Path: {} should be directory", path);
+        }
+        return ret;
     }
 
     protected void setMapperClass(Job job) {

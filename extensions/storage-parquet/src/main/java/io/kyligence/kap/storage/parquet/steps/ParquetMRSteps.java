@@ -70,6 +70,24 @@ public class ParquetMRSteps extends JobBuilderSupport {
         return result;
     }
 
+    public MapReduceExecutable createRawTableParquetPageIndex(String jobId) {
+        MapReduceExecutable result = new MapReduceExecutable();
+        result.setName("Build Raw Table Parquet Page Index");
+        result.setMapReduceJobClass(ParquetRawTablePageIndexJob.class);
+        StringBuilder cmd = new StringBuilder();
+        appendMapReduceParameters(cmd);
+
+        appendExecCmdParameters(cmd, BatchConstants.ARG_CUBING_JOB_ID, jobId);
+        appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_Build_Raw_Table_Parquet_Page_Index_" + seg.getRealization().getName() + "_Step");
+        appendExecCmdParameters(cmd, BatchConstants.ARG_CUBE_NAME, seg.getRealization().getName());
+        appendExecCmdParameters(cmd, BatchConstants.ARG_SEGMENT_ID, seg.getUuid());
+        appendExecCmdParameters(cmd, BatchConstants.ARG_INPUT, getParquetFolderPath((CubeSegment) seg));
+        appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, getJobWorkingDir(jobId) + "/parquet.inv"); // just tmp files
+
+        result.setMapReduceParams(cmd.toString());
+        return result;
+    }
+
     public MapReduceExecutable createParquetTarballJob(String jobId) {
         MapReduceExecutable result = new MapReduceExecutable();
         result.setName("Tarball Parquet Files");
