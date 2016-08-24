@@ -52,6 +52,10 @@ public class ParquetMRSteps extends JobBuilderSupport {
         return mergeCuboidDataStep;
     }
 
+    public MapReduceExecutable createMergeRawDataStep(CubeSegment seg, List<CubeSegment> mergingSegments, String jobID, Class<? extends AbstractHadoopJob> clazz) {
+        return null;
+    }
+
     public MapReduceExecutable createParquetPageIndex(String jobId) {
         MapReduceExecutable result = new MapReduceExecutable();
         result.setName("Build Parquet Page Index");
