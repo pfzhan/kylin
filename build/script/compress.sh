@@ -15,6 +15,9 @@ mkdir ${package_name}
 
 # add apache kylin files
 cp -rf ../kylin/build/bin ../kylin/build/conf ../kylin/examples/sample_cube ${package_name}
+if [ -f "kybot/diag.sh" ]; then
+    mv kybot/diag.sh ${package_name}/bin
+fi
 cp -rf commit_SHA1 lib kybot tomcat ${package_name}/
 
 # add kap files
@@ -25,6 +28,8 @@ rm -rf lib tomcat commit_SHA1
 find ${package_name} -type d -exec chmod 755 {} \;
 find ${package_name} -type f -exec chmod 644 {} \;
 find ${package_name} -type f -name "*.sh" -exec chmod 755 {} \;
+
+rm -rf ../dist
 mkdir -p ../dist
 tar -cvzf ../dist/${package_name}.tar.gz ${package_name}
 rm -rf ${package_name}
