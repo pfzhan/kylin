@@ -9,6 +9,7 @@ import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
+import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -16,9 +17,6 @@ import org.apache.kylin.metadata.model.TblColRef;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-/**
- * Created by wangcheng on 8/22/16.
- */
 public class DataModelFlatTableDesc implements IJoinedFlatTableDesc {
 
     private String tableName;
@@ -65,9 +63,31 @@ public class DataModelFlatTableDesc implements IJoinedFlatTableDesc {
         // add metrics
         for (String metric : dataModelDesc.getMetrics()) {
             TblColRef tblColRef = getTblByName(metric, dataModelDesc.getFactTable());
-            columnIndexMap.put(tblColRef, columnIndex);
-            columnList.add(tblColRef);
-            columnIndex++;
+            if (!columnIndexMap.containsKey(tblColRef)) {
+                columnIndexMap.put(tblColRef, columnIndex);
+                columnList.add(tblColRef);
+                columnIndex++;
+            }
+        }
+
+        int lookupLength = dataModelDesc.getLookups().length;
+        for (int i = 0; i < lookupLength; i++) {
+            JoinDesc join = dataModelDesc.getLookups()[i].getJoin();
+            for (TblColRef primary: join.getPrimaryKeyColumns()) {
+                if (!columnIndexMap.containsKey(primary)) {
+                    columnIndexMap.put(primary, columnIndex);
+                    columnList.add(primary);
+                    columnIndex++;
+                }
+            }
+
+            for (TblColRef foreign: join.getForeignKeyColumns()) {
+                if (!columnIndexMap.containsKey(foreign)) {
+                    columnIndexMap.put(foreign, columnIndex);
+                    columnList.add(foreign);
+                    columnIndex++;
+                }
+            }
         }
         columnCount = columnIndex;
     }

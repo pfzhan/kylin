@@ -11,6 +11,7 @@ import org.apache.kylin.cube.model.RowKeyColDesc;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -56,6 +57,8 @@ public class RawTableDesc extends RootPersistentEntity {
         this.model = cubeDesc.getModel();
         this.columnMap = Maps.newHashMap();
 
+        this.columns = Lists.newArrayList();
+
         MetadataManager metaMgr = MetadataManager.getInstance(model.getConfig());
         TableDesc factTable = model.getFactTableDesc();
 
@@ -67,18 +70,44 @@ public class RawTableDesc extends RootPersistentEntity {
                 String encoding = guessColEncoding(cubeDesc, colRef);
                 RawTableColumnDesc rawColDesc = new RawTableColumnDesc(colRef.getColumnDesc(), index, encoding);
                 columnMap.put(colRef, rawColDesc);
+                columns.add(rawColDesc);
             }
         }
 
         for (String col : model.getMetrics()) {
             TblColRef colRef = factTable.findColumnByName(col).getRef();
-            String index = null;
-            String encoding = ENCODING_VAR;
-            RawTableColumnDesc rawColDesc = new RawTableColumnDesc(colRef.getColumnDesc(), index, encoding);
-            columnMap.put(colRef, rawColDesc);
+            if (!columnMap.containsKey(colRef)) {
+                String index = null;
+                String encoding = ENCODING_VAR;
+                RawTableColumnDesc rawColDesc = new RawTableColumnDesc(colRef.getColumnDesc(), index, encoding);
+                columnMap.put(colRef, rawColDesc);
+                columns.add(rawColDesc);
+            }
         }
 
-        this.columns = Lists.newArrayList(columnMap.values());
+        int lookupLength = model.getLookups().length;
+        for (int i = 0; i < lookupLength; i++) {
+            JoinDesc join = model.getLookups()[i].getJoin();
+            for (TblColRef primary: join.getPrimaryKeyColumns()) {
+                if (!columnMap.containsKey(primary)) {
+                    String index = null;
+                    String encoding = ENCODING_VAR;
+                    RawTableColumnDesc rawColDesc = new RawTableColumnDesc(primary.getColumnDesc(), index, encoding);
+                    columnMap.put(primary, rawColDesc);
+                    columns.add(rawColDesc);
+                }
+            }
+
+            for (TblColRef foreign: join.getForeignKeyColumns()) {
+                if (!columnMap.containsKey(foreign)) {
+                    String index = null;
+                    String encoding = ENCODING_VAR;
+                    RawTableColumnDesc rawColDesc = new RawTableColumnDesc(foreign.getColumnDesc(), index, encoding);
+                    columnMap.put(foreign, rawColDesc);
+                    columns.add(rawColDesc);
+                }
+            }
+        }
     }
 
     private String guessColIndex(CubeDesc cubeDesc, TblColRef colRef) {
@@ -139,7 +168,12 @@ public class RawTableDesc extends RootPersistentEntity {
     }
 
     public List<TblColRef> getColumns() {
-        return Lists.newArrayList(columnMap.keySet());
+        List<TblColRef> result = Lists.newArrayList();
+        for (RawTableColumnDesc column: columns) {
+            result.add(column.getColumn().getRef());
+        }
+        return result;
+//        return Lists.newArrayList(columnMap.keySet());
     }
 
     public String getResourcePath() {
