@@ -11,16 +11,18 @@ source ${dir}/check-env.sh
 mkdir -p ${KYLIN_HOME}/logs
 mkdir -p ${KYLIN_HOME}/ext
 
-#retrive $hive_dependency and $hbase_dependency
-source ${dir}/find-hive-dependency.sh
-source ${dir}/find-hbase-dependency.sh
-#retrive $KYLIN_EXTRA_START_OPTS
-if [ -f "${dir}/setenv.sh" ]
-    then source ${dir}/setenv.sh
-fi
+function retrieveDependency() {
+    #retrive $hive_dependency and $hbase_dependency
+    source ${dir}/find-hive-dependency.sh
+    source ${dir}/find-hbase-dependency.sh
+    #retrive $KYLIN_EXTRA_START_OPTS
+    if [ -f "${dir}/setenv.sh" ]
+        then source ${dir}/setenv.sh
+    fi
 
-export HBASE_CLASSPATH_PREFIX=${KYLIN_HOME}/conf:${KYLIN_HOME}/lib/*:${KYLIN_HOME}/kybot/*:${KYLIN_HOME}/ext/*:${HBASE_CLASSPATH_PREFIX}
-export HBASE_CLASSPATH=${HBASE_CLASSPATH}:${hive_dependency}
+    export HBASE_CLASSPATH_PREFIX=${KYLIN_HOME}/conf:${KYLIN_HOME}/lib/*:${KYLIN_HOME}/kybot/*:${KYLIN_HOME}/ext/*:${HBASE_CLASSPATH_PREFIX}
+    export HBASE_CLASSPATH=${HBASE_CLASSPATH}:${hive_dependency}
+}
 
 # start command
 if [ "$1" == "start" ]
@@ -37,7 +39,6 @@ then
     
     tomcat_root=${dir}/../tomcat
     export tomcat_root
-
 
     #The location of all hadoop/hbase configurations are difficult to get.
     #Plus, some of the system properties are secretly set in hadoop/hbase shell command.
@@ -56,6 +57,8 @@ then
     else
         echo "kylin.security.profile is set to $spring_profile"
     fi
+
+    retrieveDependency
 
     #additionally add tomcat libs to HBASE_CLASSPATH_PREFIX
     export HBASE_CLASSPATH_PREFIX=${tomcat_root}/bin/bootstrap.jar:${tomcat_root}/bin/tomcat-juli.jar:${tomcat_root}/lib/*:${HBASE_CLASSPATH_PREFIX}
@@ -125,7 +128,7 @@ then
     fi
     if [ "$2" == "start" ]
     then
-
+        retrieveDependency
         source ${dir}/find-kafka-dependency.sh
 
         # KYLIN_EXTRA_START_OPTS is for customized settings, checkout bin/setenv.sh
@@ -164,6 +167,7 @@ elif [ "$1" == "monitor" ]
 then
     echo "monitor job"
 
+    retrieveDependency
     source ${dir}/find-kafka-dependency.sh
 
     # KYLIN_EXTRA_START_OPTS is for customized settings, checkout bin/setenv.sh
@@ -188,6 +192,8 @@ then
 # tool command
 elif [[ "$1" = org.apache.kylin.* ]] || [[ "$1" = io.kyligence.* ]]
 then
+    retrieveDependency
+
     #retrive $KYLIN_EXTRA_START_OPTS
     reset KYLIN_EXTRA_START_OPTS # reset the global server setenv config first
     if [ -f "${dir}/setenv-tool.sh" ]
