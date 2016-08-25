@@ -2,7 +2,9 @@ package io.kyligence.kap.raw;
 
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import org.apache.kylin.metadata.model.TblColRef;
 
@@ -11,12 +13,22 @@ public class BufferedRawEncoder {
     public static final int DEFAULT_BUFFER_SIZE = 1024 * 1024; // 1 MB
     public static final int MAX_BUFFER_SIZE = 1 * 1024 * DEFAULT_BUFFER_SIZE; // 1 GB
 
-    final private RawDecoder codec;
+    private RawDecoder codec;
 
     private ByteBuffer buf;
-    final private int[] colsSizes;
+    private int[] colsSizes;
 
     public BufferedRawEncoder(Collection<TblColRef> cols) {
+        init(cols);
+    }
+
+    public BufferedRawEncoder(TblColRef cols) {
+        List<TblColRef> colRefList = new ArrayList<>();
+        colRefList.add(cols);
+        init(colRefList);
+    }
+
+    private void init(Collection<TblColRef> cols) {
         this.codec = new RawDecoder(cols);
         this.colsSizes = new int[codec.nColumns];
     }

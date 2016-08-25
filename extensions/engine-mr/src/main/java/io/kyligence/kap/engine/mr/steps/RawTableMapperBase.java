@@ -53,6 +53,8 @@ public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
     private RawTableInstance rawTableInstance;
     private RawTableDesc rawTableDesc;
     private BufferedRawEncoder rawEncoder;
+    private BufferedRawEncoder orderedEncoder;
+
     private String[] columnValues;
     protected int counter;
     protected Text outputKey = new Text();
@@ -77,6 +79,7 @@ public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
         rawTableDesc = rawTableInstance.getRawTableDesc();
         intermediateTableDesc = (DataModelFlatTableDesc) EngineFactory.getJoinedFlatTableDesc(cubeSegment);
         rawEncoder = new BufferedRawEncoder(rawTableDesc.getColumnsExcludingOrdered());
+        orderedEncoder = new BufferedRawEncoder(rawTableDesc.getOrderedColumn());
         columnValues = new String[rawTableDesc.getColumnsExcludingOrdered().size()];
         bytesSplitter = new BytesSplitter(200, 16384);
         dictionaryMap = cubeSegment.buildDictionaryMap();
@@ -100,9 +103,11 @@ public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
 
         // TODO: get total shard num dynamically
         short shardId = ShardingHash.getShard(splitBuffers[index].value, 0, splitBuffers[index].length, 10);
-        byte[] colValue = new byte[splitBuffers[index].length + 2];
+        String[] orderString = new String[] {Bytes.toString(splitBuffers[index].value, 0, splitBuffers[index].length)};
+        ByteBuffer buffer = orderedEncoder.encode(orderString);
+        byte[] colValue = new byte[buffer.position()+ 2];
         BytesUtil.writeShort(shardId, colValue, 0, 2);
-        System.arraycopy(splitBuffers[index].value, 0, colValue, 2, splitBuffers[index].length);
+        System.arraycopy(buffer.array(), 0, colValue, 2, buffer.position());
 
         if (isNull(colValue)) {
             colValue = null;
