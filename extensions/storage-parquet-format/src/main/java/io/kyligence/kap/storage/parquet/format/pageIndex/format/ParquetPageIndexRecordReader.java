@@ -6,9 +6,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
 import com.google.common.primitives.Longs;
 
@@ -29,13 +27,16 @@ public class ParquetPageIndexRecordReader {
     /**
      * @return file offset to the actual cube data
      */
-    public long initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
-        FileSplit fileSplit = (FileSplit) split;
+    public long initialize(Path indexPath, TaskAttemptContext context, boolean needRead) throws IOException, InterruptedException {
         conf = context.getConfiguration();
-        shardIndexPath = fileSplit.getPath();
+        shardIndexPath = indexPath;
         inputStream = FileSystem.get(conf).open(shardIndexPath);
         assert Longs.BYTES == ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE;
-        long fileOffset = inputStream.readLong();
+        long fileOffset = 0;
+
+        if (needRead) {
+            fileOffset = inputStream.readLong();
+        }
         indexTable = new ParquetPageIndexTable(inputStream, ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE);
         return fileOffset;
     }

@@ -8,6 +8,7 @@ public interface ParquetFormatConstants {
     String KYLIN_SCAN_PROPERTIES = "io.kylin.job.properties";
     String KYLIN_SCAN_REQUEST_BYTES = "io.kylin.job.scan.request.bytes";
     String KYLIN_FILTER_MEASURES_BITSET_MAP = "io.kylin.job.filter.measures.bitset";
+    String KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS = "io.kylin.job.filter.columns.bitset";
     String KYLIN_GT_MAX_LENGTH = "io.kylin.job.gtrecord.length.max";
     String KYLIN_USE_INVERTED_INDEX = "io.kylin.job.scan.use.ii";
     String KYLIN_TARBALL_READ_STRATEGY = "io.kylin.parquet.read.strategy";
