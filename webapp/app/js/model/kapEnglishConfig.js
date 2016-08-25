@@ -436,6 +436,16 @@ KylinApp.constant('kapEnglishConfig', {
     cubeOVMeasures: 'Measures',
     cubeOVDescription: 'Description',
     tip_loading_cubes: 'Loading Cubes...',
+    cubeASBuilderClass:'Builder Class',
+    cubeASReuse:'Reuse',
+    cubeASActions: 'Actions',
+    cubeASAdvancedDictionaries:'Advanced Dictionaries',
+    cubeASEditDictionaries:'Edit Dictionaries',
+    cubeASSelectColumn: '-- Select a Column --',
+    tip_dictionaries:'Special settings for dictionaries. Leave blank by default.',
+    cubeASDictionaries:'Dictionaries',
+    cubeASOK: 'OK',
+    cubeASCancel: 'Cancel',
     kaTopic: {name:'Topic',watch:true}, //kafka begin
     tip_Kafka_topic: 'Kafka topic is required.',
     tip_kafka_topic_invalid: 'Kafka topic is invalid.',
@@ -788,7 +798,9 @@ KylinApp.constant('kapEnglishConfig', {
     success_updated_streaming: 'Updated the streaming successfully.',
     tip_created_streaming: 'Created the streaming successfully.',
     tip_to_remove_cluster: 'Are you sure to remove this cluster ?',
-
+    warning_oops:'Oops...',
+    warning_dictionaries_part_one:'The column named [',
+    warning_dictionaries_part_two: '] already exists'
 }
 
 });

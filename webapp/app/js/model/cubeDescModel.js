@@ -46,6 +46,7 @@ KylinApp.service('CubeDescModel', function () {
       },
       "aggregation_groups": []
       ,
+      "dictionaries" :[],
       "partition_date_start":0,
       "partition_date_end":undefined,
       "notify_list": [],
@@ -91,6 +92,15 @@ KylinApp.service('CubeDescModel', function () {
     }
 
     return group;
+  }
+
+  this.createDictionaries = function () {
+    var dictionaries = {
+      "column": null,
+      "builder": null,
+      "reuse":null
+    }
+    return dictionaries;
   }
 
 

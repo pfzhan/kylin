@@ -288,6 +288,125 @@
         </button>
       </div>
 
+      <div class="form-group large-popover" style="overflow:auto">
+        <h3 style="margin-left:42px">{{dataKylin.cube.cubeASAdvancedDictionaries}} <i kylinpopover placement="right" ng-title="{{dataKylin.cube.cubeASAdvancedDictionaries}}" template="AdvancedDictionariesTip.html" class="fa fa-info-circle"></i></h3>
+        <div style="margin-left:42px">
+          <div class="box-body">
+            <br/>
+            <table class="table table-striped table-hover">
+              <thead>
+              <tr>
+                <th>{{dataKylin.cube.cubeASColumn}}</th>
+                <th>{{dataKylin.cube.cubeASBuilderClass}}</th>
+                <th>{{dataKylin.cube.cubeASReuse}}</th>
+                <th ng-if="state.mode=='edit'">{{dataKylin.cube.cubeASActions}}</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr ng-repeat="dictionaries in cubeMetaFrame.dictionaries | filter: state.measureFilter track by $index">
+                <td>
+                  <!--Column -->
+                  <span>{{dictionaries.column}}</span>
+                </td>
+                <td>
+                  <!--Builder-->
+                  <span>{{dictionaries.builder}}</span>
+                </td>
+                <td>
+                  <!--Reuse-->
+                  <span>{{dictionaries.reuse}}</span>
+                </td>
+                <td ng-if="state.mode=='edit'">
+                  <!--Edit Button -->
+                  <button class="btn btn-xs btn-info" ng-click="addNewDictionaries(dictionaries, $index)" >
+                    <i class="fa fa-pencil"></i>
+                  </button>
+                  <!--Remove Button -->
+                  <button class="btn btn-xs  btn-danger" ng-click="removeDictionaries(cubeMetaFrame.dictionaries, dictionaries)">
+                    <i class="fa fa-trash-o"></i>
+                  </button>
+                </td>
+              </tr>
+              </tbody>
+            </table>
+
+          </div>
+        </div>
+      </div>
+      <!--Add Dictionaries Button-->
+
+      <div class="form-group" style="margin-left:42px;">
+        <button class="btn btn-sm btn-info" ng-click="addNewDictionaries()" ng-show="state.mode=='edit' && !addNew">
+          {{dataKylin.cube.cubeASDictionaries}}<i class="fa fa-plus"></i>
+        </button>
+      </div>
+      <!--Edit Dictionsry-->
+      <ng-form name="edit_mes_form" style="margin-left:42px;">
+        <div class="box box-solid"  ng-if="addNew" style="margin-left:42px;">
+          <div class="box-header">
+            <h4 class="box-title text-info">{{dataKylin.cube.cubeASEditDictionaries}}</h4>
+          </div>
+          <div class="box-body">
+            <div class="row">
+              <div class="col-xs-8">
+                <!--Column-->
+                <div class="form-group middle-popover">
+                  <div class="row">
+                    <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default"><b>{{dataKylin.cube.cubeASColumn}}</b></label>
+                    <div class="col-xs-12 col-sm-6">
+                      <select class="form-control" chosen
+                              ng-model="newDictionaries.column"
+                              ng-change="measureReturnTypeUpdate();"
+                              ng-options="column as column for column in getFactColumns()" required>
+                        <option value="">{{dataKylin.cube.cubeASSelectColumn}}</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <div class="row" style="margin-left:5px;">
+                    <label class="radio-inline ng-binding ng-scope">
+                      <input type="radio" name="reuse" ng-value=false ng-model="isReuse"  ng-change="change()"/><b>{{dataKylin.cube.cubeASBuilderClass}}</b>
+                    </label>
+                    <label class="radio-inline ng-binding ng-scope">
+                      <input type="radio" name="reuse"  ng-value=true ng-model="isReuse" ng-change="change()"/><b>{{dataKylin.cube.cubeASReuse}}</b>
+                    </label>
+                  </div>
+                </div>
+                <!--Builder-->
+                <div class="form-group" ng-if="!isReuse" >
+                  <div class="row">
+                    <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default"><b>{{dataKylin.cube.cubeASBuilderClass}}</b></label>
+                    <div class="col-xs-12 col-sm-6">
+                      <input type="text" name="builder"  ng-model="newDictionaries.builder" required  style="width:100% " />
+                    </div>
+                  </div>
+                </div>
+                <!--Reuse-->
+                <div class="form-group middle-popover" ng-if="isReuse" >
+                  <div class="row">
+                    <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default"><b>{{dataKylin.cube.cubeASReuse}}</b></label>
+                    <div class="col-xs-12 col-sm-6">
+                      <select class="form-control" chosen
+                              ng-model="newDictionaries.reuse"
+                              ng-change="measureReturnTypeUpdate();"
+                              ng-options="column as column for column in getFactColumns()" required>
+                        <option value="">{{dataKylin.cube.cubeASSelectColumn}}</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="box-footer">
+            <button class="btn btn-sm btn-info" ng-disabled="edit_mes_form.$invalid"
+                    ng-click="saveNewDictionaries()" ng-show="state.mode=='edit'">{{dataKylin.cube.cubeASOK}}</button>
+            <button class="btn btn-link" ng-click="clearNewDictionaries()">{{dataKylin.cube.cubeASCancel}}</button>
+          </div>
+        </div>
+      </ng-form>
+
     </div>
 
   </ng-form>
@@ -295,4 +414,9 @@
 <script type="text/ng-template" id="rowkeyTip.html">
 <div ng-bind-html="dataKylin.cube.tip_body_cubeASRowkeys">
 </div>
+</script>
+<script type="text/ng-template" id="AdvancedDictionariesTip.html">
+  <div>
+    <h4>{{dataKylin.cube.tip_dictionaries}}</h4>
+  </div>
 </script>

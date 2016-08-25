@@ -133,6 +133,32 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
 
   };
 
+  $scope.getFactColumns = function () {
+    var me_columns = [];
+    angular.forEach($scope.cubeMetaFrame.dimensions,function(dimension,index){
+      if(dimension.column && dimension.derived == null){
+        me_columns.push(dimension.column);
+      }
+      else{
+        angular.forEach(dimension.derived,function(derived){
+          me_columns.push(derived);
+        });
+      }
+    });
+    angular.forEach($scope.cubeMetaFrame.measure,function(measure){
+      if(measure.function.parameter.type==column){
+        me_columns.push(measure.function.parameter.value);
+      }
+    });
+    var unique = []
+    angular.forEach(me_columns, function (column) {
+      if (unique.indexOf(column) === -1) {
+        unique.push(column);
+      }
+    });
+    return unique;
+  };
+
   $scope.getColumnType = function (_column, table) {
     var columns = $scope.getColumnsByTable(table);
     var type;
@@ -219,7 +245,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
               SweetAlert.swal('Oops...', "Failed to take action.", 'error');
             }
         });
-  
+
 
 
 

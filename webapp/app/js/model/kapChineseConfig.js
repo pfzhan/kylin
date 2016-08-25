@@ -420,6 +420,16 @@ KylinApp.constant('kapChineseConfig', {
     cubeOVMeasures: '度量',
     cubeOVDescription: '描述',
     tip_loading_cubes: '下载Cubes...',
+    cubeASBuilderClass:'构造类',
+    cubeASReuse:'复用',
+    cubeASActions: '操作',
+    cubeASAdvancedDictionaries:'高级字典',
+    cubeASEditDictionaries:'编辑字典',
+    cubeASSelectColumn: '选择列',
+    tip_dictionaries:'对于字典的特殊设置.默认为空.',
+    cubeASDictionaries:'添加字典',
+    cubeASOK: '确定',
+    cubeASCancel: '取消',
     kaTopic: {name:'Topic'}, //kafka begin
     tip_Kafka_topic: 'Kafka topic不能为空.',
     tip_kafka_topic_invalid: 'Kafka topic不合法.',
@@ -772,7 +782,9 @@ KylinApp.constant('kapChineseConfig', {
     success_updated_streaming: '成功更新流式表.',
     tip_created_streaming: '成功创建流式表.',
     tip_to_remove_cluster: '确定要删除此集群信息?',
-
+    warning_oops:'',
+    warning_dictionaries_part_one:'名为 [',
+    warning_dictionaries_part_two: '] 的列已经存在'
   }
 
 });
