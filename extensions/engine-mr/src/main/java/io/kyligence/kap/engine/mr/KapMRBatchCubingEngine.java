@@ -18,6 +18,7 @@
 
 package io.kyligence.kap.engine.mr;
 
+import io.kyligence.kap.cube.model.DataModelFlatTableDesc;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.cube.model.CubeJoinedFlatTableDesc;
@@ -36,7 +37,7 @@ public class KapMRBatchCubingEngine implements IBatchCubingEngine {
 
     @Override
     public IJoinedFlatTableDesc getJoinedFlatTableDesc(CubeSegment newSegment) {
-        return new CubeJoinedFlatTableDesc(newSegment);
+        return new DataModelFlatTableDesc(newSegment);
     }
 
     @Override
