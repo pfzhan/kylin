@@ -73,7 +73,7 @@ public class RawShardSizingStep extends AbstractExecutable {
 
     private double caculateEstimateStorageSize(RawTableSegment seg) throws IOException {
         JobEngineConfig conf = new JobEngineConfig(KylinConfig.getInstanceFromEnv());
-        String jobID = CubingExecutableUtil.getCubingJobId(getParams()) ;
+        String jobID = CubingExecutableUtil.getCubingJobId(getParams());
         final String rowCountOutputDir = JobBuilderSupport.getJobWorkingDir(conf, jobID) + "/row_count";
         Path rowCountFile = new Path(rowCountOutputDir, "000000_0");
 

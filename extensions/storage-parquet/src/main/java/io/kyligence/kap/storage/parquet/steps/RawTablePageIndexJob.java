@@ -1,14 +1,15 @@
 package io.kyligence.kap.storage.parquet.steps;
 
-import io.kyligence.kap.storage.parquet.format.ParquetRawTablePageInputFormat;
+import static io.kyligence.kap.engine.mr.steps.ParquertMRJobUtils.addParquetInputFile;
+
+import java.io.IOException;
+
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 
-import java.io.IOException;
-
-import static io.kyligence.kap.engine.mr.steps.ParquertMRJobUtils.addParquetInputFile;
+import io.kyligence.kap.storage.parquet.format.ParquetRawTablePageInputFormat;
 
 public class RawTablePageIndexJob extends ParquetPageIndexJob {
     @Override
