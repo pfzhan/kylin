@@ -45,6 +45,10 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-storage-parquet-format</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
