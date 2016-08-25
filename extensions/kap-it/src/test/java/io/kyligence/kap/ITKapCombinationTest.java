@@ -44,6 +44,7 @@ public class ITKapCombinationTest extends ITKapKylinQueryTest {
         Map<RealizationType, Integer> priorities = Maps.newHashMap();
         priorities.put(RealizationType.HYBRID, 0);
         priorities.put(RealizationType.CUBE, 0);
+        priorities.put(RealizationType.INVERTED_INDEX, 0);
         Candidate.setPriorities(priorities);
 
         printInfo("setUp in ITCombinationTest");

@@ -67,6 +67,14 @@ public class KapConfig {
         return Integer.parseInt(config.getOptional("kap.parquet.spark.client.port", "50051"));
     }
 
+    public String getSparkCubeGTStorage() {
+        return config.getOptional("kap.parquet.spark.cube.gtstorage", "io.kyligence.kap.storage.parquet.cube.CubeSparkRPC");
+    }
+
+    public String getSparkRawTableGTStorage() {
+        return config.getOptional("kap.parquet.spark.rawtable.gtstorage", "io.kyligence.kap.storage.parquet.cube.raw.RawTableSparkRPC");
+    }
+
     /**
      * where is parquet fles stored in hdfs , end with /
      */

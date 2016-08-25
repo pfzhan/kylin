@@ -49,10 +49,10 @@ public class SparkDriverClient {
 
     public SparkJobResponse submit(byte[] gtScanReq, SubmitParams submitParams) {
         SparkJobRequest request = SparkJobRequest.newBuilder().setGtScanRequest(ByteString.copyFrom(gtScanReq)).//
-                setKylinProperties(submitParams.getKylinProperties()).setCubeId(submitParams.getCubeId()).//
-                setSegmentId(submitParams.getSegmentId()).setCuboidId(submitParams.getCuboidId()).//
-                setMaxRecordLength(submitParams.getMaxGTLength()).addAllRequiredMeasures(submitParams.getRequiredMeasures()).//
-                setUseII(true).//
+                setKylinProperties(submitParams.getKylinProperties()).setRealizationId(submitParams.getRealizationId()).//
+                setSegmentId(submitParams.getSegmentId()).setDataFolderName(submitParams.getCuboidId()).//
+                setMaxRecordLength(submitParams.getMaxGTLength()).addAllParquetColumns(submitParams.getParquetColumns()).//
+                setUseII(true).setRealizationType(submitParams.getRealizationType()).//
                 build();
 
         try {

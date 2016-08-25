@@ -27,14 +27,14 @@ import org.apache.kylin.gridtable.GTRecord;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
 
-public class JobResponseBlobGTScanner implements IGTScanner {
+public class SparkResponseBlobGTScanner implements IGTScanner {
 
     private byte[] blob;
     private GTInfo info;
     private GTScanRequest scanRequest;
     private GTRecord temp;
 
-    public JobResponseBlobGTScanner(GTScanRequest scanRequest, byte[] blob) {
+    public SparkResponseBlobGTScanner(GTScanRequest scanRequest, byte[] blob) {
         this.scanRequest = scanRequest;
         this.info = scanRequest.getInfo();
         this.blob = blob;

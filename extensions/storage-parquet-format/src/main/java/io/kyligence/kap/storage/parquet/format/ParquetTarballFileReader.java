@@ -21,7 +21,6 @@ import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.parquet.io.api.Binary;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
-import org.roaringbitmap.buffer.MutableRoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +62,7 @@ public class ParquetTarballFileReader extends RecordReader<Text, Text> {
 
         long startTime = System.currentTimeMillis();
         String kylinPropsStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, "");
-        if (kylinPropsStr.isEmpty()) { 
+        if (kylinPropsStr.isEmpty()) {
             logger.warn("Creating an empty KylinConfig");
         }
         logger.info("Creating KylinConfig from conf");
@@ -92,14 +91,7 @@ public class ParquetTarballFileReader extends RecordReader<Text, Text> {
             logger.info("KYLIN_SCAN_REQUEST_BYTES not set, read all pages");
         }
 
-        ImmutableRoaringBitmap measureBitmap = RoaringBitmaps.readFromString(conf.get(ParquetFormatConstants.KYLIN_FILTER_MEASURES_BITSET_MAP));
-        MutableRoaringBitmap columnBitmap = null;
-        if (measureBitmap != null) {
-            columnBitmap = MutableRoaringBitmap.bitmapOf(0);
-            for (int i : measureBitmap) {
-                columnBitmap.add(i + 1);//dimensions occupying the first column in parquet, so measures' index should inc one
-            }
-        }
+        ImmutableRoaringBitmap columnBitmap = RoaringBitmaps.readFromString(conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS));
         logger.info("All columns read by parquet: " + StringUtils.join(columnBitmap, ","));
 
         //for readStrategy

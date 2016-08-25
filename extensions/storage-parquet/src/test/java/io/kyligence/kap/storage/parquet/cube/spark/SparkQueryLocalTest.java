@@ -37,24 +37,24 @@ import org.apache.kylin.gridtable.memstore.GTSimpleMemStore;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.LogicalTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
+import org.apache.kylin.metadata.realization.RealizationType;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.clearspring.analytics.util.Lists;
 
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SubmitParams;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SparkQueryLocalTest extends io.kyligence.kap.common.util.LocalFileMetadataTestCase {
 
     public static final Logger logger = LoggerFactory.getLogger(SparkQueryLocalTest.class);
-
 
     private GridTable table;
     private GTInfo info;
@@ -76,12 +76,12 @@ public class SparkQueryLocalTest extends io.kyligence.kap.common.util.LocalFileM
     public void remoteSimulate() throws InterruptedException {
         GTInfo info = table.getInfo();
 
-        final GTScanRequest req = new GTScanRequestBuilder().setInfo(info).setRanges(null).setDimensions(null).setAggrGroupBy(DictGridTableTest.setOf(0)).setAggrMetrics(DictGridTableTest.setOf(3)).setAggrMetricsFuncs(new String[]{"sum"}).setFilterPushDown(null).setAllowStorageAggregation(true).setAggCacheMemThreshold(0).createGTScanRequest();
+        final GTScanRequest req = new GTScanRequestBuilder().setInfo(info).setRanges(null).setDimensions(null).setAggrGroupBy(DictGridTableTest.setOf(0)).setAggrMetrics(DictGridTableTest.setOf(3)).setAggrMetricsFuncs(new String[] { "sum" }).setFilterPushDown(null).setAllowStorageAggregation(true).setAggCacheMemThreshold(0).createGTScanRequest();
         byte[] reqBytes = req.toByteArray();
 
         SparkDriverClient client = new SparkDriverClient("localhost", 50051);
         try {
-            SparkJobProtos.SparkJobResponse response = client.submit(reqBytes, new SubmitParams(KylinConfig.getInstanceFromEnv().getConfigAsString(), null, null, null, 0, null));
+            SparkJobProtos.SparkJobResponse response = client.submit(reqBytes, new SubmitParams(KylinConfig.getInstanceFromEnv().getConfigAsString(), RealizationType.CUBE.toString(), null, null, null, 0, null));
             ByteBuffer responseBuffer = ByteBuffer.wrap(response.getGtRecordsBlob().toByteArray());
             GTRecord temp = new GTRecord(info);
             while (responseBuffer.remaining() > 0) {
@@ -103,7 +103,7 @@ public class SparkQueryLocalTest extends io.kyligence.kap.common.util.LocalFileM
         CompareTupleFilter fComp2 = DictGridTableTest.compare(info.colRef(1), TupleFilter.FilterOperatorEnum.GT, DictGridTableTest.enc(info, 1, "10"));
         LogicalTupleFilter filter = DictGridTableTest.and(fComp1, fComp2);
 
-        GTScanRequest req = new GTScanRequestBuilder().setInfo(info).setRanges(null).setDimensions(null).setAggrGroupBy(DictGridTableTest.setOf(0)).setAggrMetrics(DictGridTableTest.setOf(3)).setAggrMetricsFuncs(new String[]{"sum"}).setFilterPushDown(filter).setAllowStorageAggregation(true).setAggCacheMemThreshold(0).createGTScanRequest();
+        GTScanRequest req = new GTScanRequestBuilder().setInfo(info).setRanges(null).setDimensions(null).setAggrGroupBy(DictGridTableTest.setOf(0)).setAggrMetrics(DictGridTableTest.setOf(3)).setAggrMetricsFuncs(new String[] { "sum" }).setFilterPushDown(filter).setAllowStorageAggregation(true).setAggCacheMemThreshold(0).createGTScanRequest();
         // note the evaluatable column 1 in filter is added to returned columns but not in group by
         assertEquals("GTScanRequest [range=[[null, null]-[null, null]], columns={0, 1, 3}, filterPushDown=AND [NULL.GT_MOCKUP_TABLE.0 GT [\\x00\\x00\\x01J\\xE5\\xBD\\x5C\\x00], NULL.GT_MOCKUP_TABLE.1 GT [\\x00]], aggrGroupBy={0}, aggrMetrics={3}, aggrMetricsFuncs=[sum]]", req.toString());
 

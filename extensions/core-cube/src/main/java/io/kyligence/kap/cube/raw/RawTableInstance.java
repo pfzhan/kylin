@@ -20,6 +20,7 @@ import org.apache.kylin.metadata.realization.SQLDigest;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.cube.raw.gridtable.RawToGridTableMapping;
 import io.kyligence.kap.metadata.model.IKapStorageAware;
 
 /**
@@ -44,8 +45,11 @@ public class RawTableInstance implements IRealization {
     private List<TblColRef> mockupDimensions;
     private List<MeasureDesc> mockupMeasures;
 
+    private RawToGridTableMapping mapping = null;
+
     // FIXME: this constructor should be package private
     public RawTableInstance(CubeInstance cube) {
+
         this.cube = cube;
         this.rawTableDesc = RawTableDescManager.getInstance(cube.getConfig()).getRawTableDesc(cube.getName());
 
@@ -66,6 +70,11 @@ public class RawTableInstance implements IRealization {
         return rawTableDesc;
     }
 
+    //TODO: use its own uuid
+    public String getUuid() {
+        return cube.getUuid();
+    }
+
     private void initAllColumns() {
         allColumns = new ArrayList<>();
         for (TblColRef col : rawTableDesc.getColumns()) {
@@ -83,9 +92,9 @@ public class RawTableInstance implements IRealization {
     private void initMeasures() {
         mockupMeasures = new ArrayList<>();
         for (TblColRef col : rawTableDesc.getColumns()) {
-            if (!mockupDimensions.contains(col)) {
-                mockupMeasures.add(transferToMeasureDesc(col.getColumnDesc()));
-            }
+            //            if (!mockupDimensions.contains(col)) {
+            //                mockupMeasures.add(transferToMeasureDesc(col.getColumnDesc()));
+            //            }
         }
     }
 
@@ -107,14 +116,17 @@ public class RawTableInstance implements IRealization {
     public int getStorageType() {
         // TODO a new storage type
         // OLAPEnumerator.queryStorage() uses this to create a IStorageQuery
-        return IKapStorageAware.ID_RAWTABLE_SHARDED_PARQUET;
+        return IKapStorageAware.ID_SHARDED_PARQUET;
     }
 
     @Override
     public CapabilityResult isCapable(SQLDigest digest) {
-        // TODO mimic CubeCapabilityChecker
-        CapabilityResult result = new CapabilityResult();
-        result.capable = true;
+        CapabilityResult result = RawTableCapabilityChecker.check(this, digest);
+        result.cost = 10 * this.cube.getCost(digest);//cube precedes raw in normal cases
+
+        if (!result.capable) {
+            result.cost = -1;
+        }
         return result;
     }
 
@@ -212,5 +224,12 @@ public class RawTableInstance implements IRealization {
         }
 
         return true;
+    }
+
+    public RawToGridTableMapping getRawToGridTableMapping() {
+        if (mapping == null) {
+            mapping = new RawToGridTableMapping(this);
+        }
+        return mapping;
     }
 }

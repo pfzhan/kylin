@@ -20,7 +20,6 @@ package io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.BitSet;
 import java.util.Iterator;
 
 import javax.annotation.Nullable;
@@ -33,7 +32,7 @@ import org.apache.kylin.gridtable.IGTScanner;
 
 import com.google.common.collect.Iterators;
 
-public class OriginalBytesGTScanner implements IGTScanner {
+public abstract class ParquetBytesGTScanner implements IGTScanner {
 
     private Iterator<ByteBuffer> iterator;
     private GTInfo info;
@@ -41,22 +40,7 @@ public class OriginalBytesGTScanner implements IGTScanner {
     private ImmutableBitSet columns;
     private long counter = 0L;
 
-    private ImmutableBitSet getParquetCoveredColumns(GTScanRequest scanRequest) {
-        BitSet bs = new BitSet();
-
-        ImmutableBitSet dimensions = scanRequest.getInfo().getPrimaryKey();
-        for (int i = 0; i < dimensions.trueBitCount(); ++i) {
-            bs.set(dimensions.trueBitAt(i));
-        }
-
-        ImmutableBitSet queriedColumns = scanRequest.getColumns();
-        for (int i = 0; i < queriedColumns.trueBitCount(); ++i) {
-            bs.set(queriedColumns.trueBitAt(i));
-        }
-        return new ImmutableBitSet(bs);
-    }
-
-    public OriginalBytesGTScanner(GTInfo info, Iterator<ByteBuffer> iterator, GTScanRequest scanRequest) {
+    public ParquetBytesGTScanner(GTInfo info, Iterator<ByteBuffer> iterator, GTScanRequest scanRequest) {
         this.iterator = iterator;
         this.info = info;
         this.temp = new GTRecord(info);
@@ -84,9 +68,12 @@ public class OriginalBytesGTScanner implements IGTScanner {
             @Override
             public GTRecord apply(@Nullable ByteBuffer input) {
                 counter++;
-                temp.loadColumns(OriginalBytesGTScanner.this.columns, input);
+                temp.loadColumns(ParquetBytesGTScanner.this.columns, input);
                 return temp;
             }
         });
     }
+
+    abstract protected ImmutableBitSet getParquetCoveredColumns(GTScanRequest scanRequest);
+
 }

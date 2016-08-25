@@ -29,12 +29,13 @@ option optimize_for = SPEED;
 message SparkJobRequest {
     required bytes gtScanRequest = 1;
     required string kylinProperties = 2;
-    required string cubeId = 3;
-    required string segmentId = 4;
-    required string cuboidId = 5;
-    required int32 maxRecordLength = 6;
-    repeated int32 requiredMeasures = 7;
-    required bool useII = 8;
+    required string realizationType = 3;
+    required string realizationId = 4;
+    required string segmentId = 5;
+    required string dataFolderName = 6;
+    required int32 maxRecordLength = 7;
+    repeated int32 parquetColumns = 8;
+    required bool useII = 9;
 }
 
 message SparkJobResponse {

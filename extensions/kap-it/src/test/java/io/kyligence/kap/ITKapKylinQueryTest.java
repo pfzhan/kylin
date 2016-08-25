@@ -46,12 +46,13 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
+        printInfo("setUp in ITKapKylinQueryTest");
         Map<RealizationType, Integer> priorities = Maps.newHashMap();
         priorities.put(RealizationType.HYBRID, 0);
         priorities.put(RealizationType.CUBE, 0);
+        priorities.put(RealizationType.INVERTED_INDEX, 0);
         Candidate.setPriorities(priorities);
 
-        printInfo("setUp in ITKapKylinQueryTest");
         joinType = "inner";
 
         setupAll();
@@ -59,8 +60,8 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
 
     @AfterClass
     public static void tearDown() throws Exception {
-        Candidate.restorePriorities();
         printInfo("tearDown in ITKapKylinQueryTest");
+        Candidate.restorePriorities();
         clean();
     }
 
@@ -68,6 +69,12 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         //setup env
         KAPHBaseMetadataTestCase.staticCreateTestMetadata();
         config = KylinConfig.getInstanceFromEnv();
+        
+        //uncomment this to use MockedCubeSparkRPC instead of real spark
+        config.setProperty("kap.parquet.spark.cube.gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
+
+        //uncomment this to use MockedRawTableTableRPC instead of real spark
+        config.setProperty("kap.parquet.spark.rawtable.gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
 
         //setup cube conn
         File olapTmp = OLAPSchemaFactory.createTempOLAPJson(ProjectInstance.DEFAULT_PROJECT_NAME, config);
@@ -88,6 +95,10 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     protected String getQueryFolderPrefix() {
         return "../../kylin/kylin-it/";
     }
+
+
+
+    
 
     // unique query tests in kap
     @Test
@@ -117,9 +128,12 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     @Test
     public void testKAPSinglePublicQuery() throws Exception {
 
-        String queryFileName = getQueryFolderPrefix() + "src/test/resources/query/sql/query04.sql";
+        String queryFileName = getQueryFolderPrefix() + "src/test/resources/query/sql_raw/query03.sql";
+        //String queryFileName =  "src/test/resources/query/temp/temp.sql";
 
         File sqlFile = new File(queryFileName);
+        System.out.println(sqlFile.getAbsolutePath());
+
         if (sqlFile.exists()) {
             runSQL(sqlFile, true, true);
             runSQL(sqlFile, true, false);

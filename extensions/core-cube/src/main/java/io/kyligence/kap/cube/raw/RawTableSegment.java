@@ -1,13 +1,15 @@
 package io.kyligence.kap.cube.raw;
 
 import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.cube.ISegment;
+import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class RawTableSegment implements Comparable<RawTableSegment>, IStorageAware {
+public class RawTableSegment implements Comparable<RawTableSegment>, IStorageAware, ISegment {
 
     private RawTableInstance rawTableInstance;
     private CubeSegment cubeSegment;
@@ -34,6 +36,11 @@ public class RawTableSegment implements Comparable<RawTableSegment>, IStorageAwa
         return rawTableInstance;
     }
 
+    //TODO: use its own uuid
+    public String getUuid() {
+        return cubeSegment.getUuid();
+    }
+
     public String getName() {
         return cubeSegment.getName();
     }
@@ -56,6 +63,11 @@ public class RawTableSegment implements Comparable<RawTableSegment>, IStorageAwa
 
     public SegmentStatusEnum getStatus() {
         return cubeSegment.getStatus();
+    }
+
+    @Override
+    public DataModelDesc getModel() {
+        return this.getRawTableInstance().getRawTableDesc().getModel();
     }
 
     public CubeSegment getCubeSegment() {

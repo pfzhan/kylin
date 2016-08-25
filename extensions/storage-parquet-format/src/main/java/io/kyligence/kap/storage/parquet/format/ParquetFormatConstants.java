@@ -5,13 +5,12 @@ import com.google.common.primitives.Longs;
 public interface ParquetFormatConstants {
     String KYLIN_OUTPUT_DIR = "io.kylin.job.output.path";
 
-    String KYLIN_SCAN_PROPERTIES = "io.kylin.job.properties";
-    String KYLIN_SCAN_REQUEST_BYTES = "io.kylin.job.scan.request.bytes";
-    String KYLIN_FILTER_MEASURES_BITSET_MAP = "io.kylin.job.filter.measures.bitset";
-    String KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS = "io.kylin.job.filter.columns.bitset";
-    String KYLIN_GT_MAX_LENGTH = "io.kylin.job.gtrecord.length.max";
-    String KYLIN_USE_INVERTED_INDEX = "io.kylin.job.scan.use.ii";
-    String KYLIN_TARBALL_READ_STRATEGY = "io.kylin.parquet.read.strategy";
+    String KYLIN_SCAN_PROPERTIES = "io.kylin.storage.parquet.scan.properties";
+    String KYLIN_SCAN_REQUEST_BYTES = "io.kylin.storage.parquet.scan.request";
+    String KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS = "io.kylin.storage.parquet.scan.parquetcolumns";
+    String KYLIN_GT_MAX_LENGTH = "io.kylin.storage.parquet.scan.gtrecord.maxlength";
+    String KYLIN_USE_INVERTED_INDEX = "io.kylin.storage.parquet.scan.useii";
+    String KYLIN_TARBALL_READ_STRATEGY = "io.kylin.storage.parquet.read.strategy";
 
     int KYLIN_PARQUET_TARBALL_HEADER_SIZE = Longs.BYTES;
 }

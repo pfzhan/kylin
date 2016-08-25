@@ -44,7 +44,7 @@ public class SparkDriverServer {
     }
 
     public void start() throws IOException {
-        server = ServerBuilder.forPort(port).addService(JobServiceGrpc.bindService(new JobServiceImpl())).build().start();
+        server = ServerBuilder.forPort(port).addService(JobServiceGrpc.bindService(new SparkAppClientService())).build().start();
         logger.info("Server started, listening on " + port);
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override

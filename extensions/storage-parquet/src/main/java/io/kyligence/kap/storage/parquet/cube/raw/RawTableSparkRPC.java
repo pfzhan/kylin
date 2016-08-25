@@ -16,14 +16,14 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.storage.parquet.cube;
+package io.kyligence.kap.storage.parquet.cube.raw;
 
 import java.io.IOException;
 import java.util.List;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.cube.ISegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.gridtable.GTInfo;
@@ -36,25 +36,22 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SubmitParams;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.SparkResponseBlobGTScanner;
 
-public class CubeSparkRPC implements IGTStorage {
+public class RawTableSparkRPC implements IGTStorage {
 
-    public static final Logger logger = LoggerFactory.getLogger(CubeSparkRPC.class);
+    public static final Logger logger = LoggerFactory.getLogger(RawTableSparkRPC.class);
 
-    protected CubeSegment cubeSegment;
-    protected Cuboid cuboid;
-
+    protected RawTableSegment rawTableSegment;
     private SparkDriverClient client;
 
-    public CubeSparkRPC(ISegment segment, Cuboid cuboid, GTInfo info) {
-        this.cubeSegment = (CubeSegment) segment;
-        this.cuboid = cuboid;
-
-        init();
+    public RawTableSparkRPC(ISegment segment, Cuboid cuboid, GTInfo info) {
+        this.rawTableSegment = (RawTableSegment) segment;
+        this.init();
     }
 
     protected void init() {
@@ -67,14 +64,12 @@ public class CubeSparkRPC implements IGTStorage {
     }
 
     protected List<Integer> getRequiredParquetColumns(GTScanRequest request) {
-        List<Integer> measures = Lists.newArrayList(0);//the row key parquet column
-        int numDim = request.getInfo().getPrimaryKey().trueBitCount();
-        for (int i = 0; i < request.getAggrMetrics().trueBitCount(); i++) {
-            int index = request.getAggrMetrics().trueBitAt(i);
-            measures.add(index - numDim + 1);
+        List<Integer> ret = Lists.newArrayList();
+        ImmutableBitSet immutableBitSet = request.getColumns();
+        for (int i = 0; i < immutableBitSet.trueBitCount(); i++) {
+            ret.add(immutableBitSet.trueBitAt(i));
         }
-        return measures;
-
+        return ret;
     }
 
     @Override
@@ -82,7 +77,7 @@ public class CubeSparkRPC implements IGTStorage {
 
         long startTime = System.currentTimeMillis();
         SubmitParams submitParams = new SubmitParams(KylinConfig.getInstanceFromEnv().getConfigAsString(), //
-                RealizationType.CUBE.toString(), cubeSegment.getCubeInstance().getUuid(), cubeSegment.getUuid(), String.valueOf(cuboid.getId()), // 
+                RealizationType.INVERTED_INDEX.toString(), rawTableSegment.getRawTableInstance().getUuid(), rawTableSegment.getUuid(), "RawTable", // 
                 scanRequests.getInfo().getMaxLength(), getRequiredParquetColumns(scanRequests) //
         );
         logger.info("Filter: {}" + scanRequests.getFilterPushDown());

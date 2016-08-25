@@ -21,15 +21,15 @@ package io.kyligence.kap.storage.hbase.v2;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ShardingHash;
-import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.cube.ISegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.storage.hbase.cube.v2.CubeHBaseEndpointRPC;
 
 public class KAPCubeHBaseEndpointRPC extends CubeHBaseEndpointRPC {
 
-    public KAPCubeHBaseEndpointRPC(CubeSegment cubeSeg, Cuboid cuboid, GTInfo fullGTInfo) {
-        super(cubeSeg, cuboid, fullGTInfo);
+    public KAPCubeHBaseEndpointRPC(ISegment segment, Cuboid cuboid, GTInfo fullGTInfo) {
+        super(segment, cuboid, fullGTInfo);
     }
 
     protected Pair<Short, Short> getShardNumAndBaseShard() {

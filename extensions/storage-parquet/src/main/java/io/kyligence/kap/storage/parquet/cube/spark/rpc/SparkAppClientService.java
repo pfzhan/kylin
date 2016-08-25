@@ -35,14 +35,14 @@ import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.
 import kap.google.protobuf.ByteString;
 
 //TODO: not thread safe now
-public class JobServiceImpl implements JobServiceGrpc.JobService {
+public class SparkAppClientService implements JobServiceGrpc.JobService {
 
-    public static final Logger logger = LoggerFactory.getLogger(JobServiceImpl.class);
+    public static final Logger logger = LoggerFactory.getLogger(SparkAppClientService.class);
 
     SparkConf conf;
     JavaSparkContext sc;
 
-    public JobServiceImpl() {
+    public SparkAppClientService() {
         conf = new SparkConf().setAppName("Kylin Parquet Storage Query Driver");
         //conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
         conf.set("spark.scheduler.mode", "FAIR");
@@ -63,10 +63,10 @@ public class JobServiceImpl implements JobServiceGrpc.JobService {
         try {
             long startTime = System.currentTimeMillis();
 
-            SparkCubeVisitJob submit = new SparkCubeVisitJob(sc, request);
+            SparkParquetVisit submit = new SparkParquetVisit(sc, request);
             List<byte[]> collected = submit.executeTask();
 
-            logger.info("Time for spark cube visit is " + (System.currentTimeMillis() - startTime));
+            logger.info("Time for spark parquet visit is " + (System.currentTimeMillis() - startTime));
 
             //        int reqValue = Bytes.toInt(request.getRequest().toByteArray());
             //        System.out.println("reqValue is " + reqValue);
@@ -86,7 +86,7 @@ public class JobServiceImpl implements JobServiceGrpc.JobService {
         }
     }
 
-    private byte[] concat(List<byte[]> rows) {
+    public static byte[] concat(List<byte[]> rows) {
         if (rows.size() == 1) {
             return rows.get(0);
         }

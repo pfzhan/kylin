@@ -21,6 +21,7 @@ package io.kyligence.kap.storage.parquet.cube;
 import java.util.Collection;
 import java.util.HashSet;
 
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
@@ -44,7 +45,7 @@ public class CubeStorageQuery extends GTCubeStorageQueryBase {
 
     @Override
     protected String getGTStorage() {
-        return "io.kyligence.kap.storage.parquet.cube.CubeSparkRPC";
+        return KapConfig.getInstanceFromEnv().getSparkCubeGTStorage();
     }
 
     public boolean isNeedStorageAggregation(Cuboid cuboid, Collection<TblColRef> groupD, Collection<TblColRef> singleValueD, boolean isExactAggregation) {

@@ -22,27 +22,29 @@ import java.util.List;
 
 public class SubmitParams {
     private final String kylinProperties;
-    private final String cubeId;
+    private final String realizationType;
+    private final String realizationId;
     private final String segmentId;
     private final String cuboidId;
     private final int maxGTLength;
-    private final List<Integer> requiredMeasures;
+    private final List<Integer> parquetColumns;
 
-    public SubmitParams(String kylinProperties, String cubeId, String segmentId, String cuboidId, int maxGTLength, List<Integer> requiredMeasures) {
+    public SubmitParams(String kylinProperties, String realizationType, String realizationId, String segmentId, String cuboidId, int maxGTLength, List<Integer> parquetColumns) {
         this.kylinProperties = kylinProperties;
-        this.cubeId = cubeId;
+        this.realizationType = realizationType;
+        this.realizationId = realizationId;
         this.segmentId = segmentId;
         this.cuboidId = cuboidId;
         this.maxGTLength = maxGTLength;
-        this.requiredMeasures = requiredMeasures;
+        this.parquetColumns = parquetColumns;
     }
 
     public String getKylinProperties() {
         return kylinProperties;
     }
 
-    public String getCubeId() {
-        return cubeId;
+    public String getRealizationId() {
+        return realizationId;
     }
 
     public String getSegmentId() {
@@ -57,7 +59,11 @@ public class SubmitParams {
         return maxGTLength;
     }
 
-    public List<Integer> getRequiredMeasures() {
-        return requiredMeasures;
+    public List<Integer> getParquetColumns() {
+        return parquetColumns;
+    }
+
+    public String getRealizationType() {
+        return realizationType;
     }
 }
