@@ -20,6 +20,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.cube.raw.RawTableInstance;
+
 public class ParquetMRSteps extends JobBuilderSupport {
     private static final Logger logger = LoggerFactory.getLogger(ParquetMRSteps.class);
 
@@ -55,7 +57,9 @@ public class ParquetMRSteps extends JobBuilderSupport {
     public MapReduceExecutable createMergeRawDataStep(CubeSegment seg, List<CubeSegment> mergingSegments, String jobID, Class<? extends AbstractHadoopJob> clazz) {
         final List<String> mergingCuboidPaths = Lists.newArrayList();
         for (CubeSegment merging : mergingSegments) {
-            mergingCuboidPaths.add(getParquetFolderPath(merging) + "RawTable/" + "*");
+            if (RawTableInstance.isRawTableEnabled(merging.getCubeDesc())) {
+                mergingCuboidPaths.add(getParquetFolderPath(merging) + "RawTable/" + "*");
+            }
         }
         String formattedPath = StringUtil.join(mergingCuboidPaths, ",");
         String outputPath = getParquetFolderPath(seg) + "RawTable/";

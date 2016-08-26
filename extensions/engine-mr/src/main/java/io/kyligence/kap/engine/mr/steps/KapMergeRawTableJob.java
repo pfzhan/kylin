@@ -2,6 +2,7 @@ package io.kyligence.kap.engine.mr.steps;
 
 import java.io.IOException;
 
+import io.kyligence.kap.storage.parquet.format.ParquetRawTablePageInputFormat;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -81,8 +82,7 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
             FileOutputFormat.setOutputPath(job, output);
 
             // Mapper
-            job.setInputFormatClass(ParquetRawTableFileInputFormat.class);
-            job.getConfiguration().set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileReader.ReadStrategy.KV.toString());
+            job.setInputFormatClass(ParquetRawTablePageInputFormat.class);
             job.setMapperClass(KapMergeRawTableMapper.class);
             job.setMapOutputKeyClass(Text.class);
             job.setMapOutputValueClass(Text.class);

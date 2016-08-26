@@ -20,18 +20,18 @@ public class ParquetMROutput2 implements IMROutput2 {
     public IMROutput2.IMRBatchCubingOutputSide2 getBatchCubingOutputSide(final CubeSegment seg) {
         return new IMROutput2.IMRBatchCubingOutputSide2() {
             ParquetMRSteps steps = new ParquetMRSteps(seg);
-            boolean isRawTable = RawTableInstance.isRawTableEnabled(seg.getCubeDesc());
+            boolean isRawTableEnable = RawTableInstance.isRawTableEnabled(seg.getCubeDesc());
 
             @Override
             public void addStepPhase2_BuildDictionary(DefaultChainedExecutable jobFlow) {
                 jobFlow.addTask(steps.createParquetShardSizingStep(jobFlow.getId()));
-                if (isRawTable)
+                if (isRawTableEnable)
                     jobFlow.addTask(steps.createRawShardSizingStep(jobFlow.getId()));
             }
 
             @Override
             public void addStepPhase3_BuildCube(DefaultChainedExecutable jobFlow) {
-                if (isRawTable) {
+                if (isRawTableEnable) {
                     jobFlow.addTask(steps.createRawTableParquetPageIndex(jobFlow.getId()));
                 }
                 jobFlow.addTask(steps.createParquetPageIndex(jobFlow.getId()));
@@ -49,7 +49,7 @@ public class ParquetMROutput2 implements IMROutput2 {
     public IMROutput2.IMRBatchMergeOutputSide2 getBatchMergeOutputSide(final CubeSegment seg) {
         return new IMROutput2.IMRBatchMergeOutputSide2() {
             ParquetMRSteps steps = new ParquetMRSteps(seg);
-            boolean isRawTable = RawTableInstance.isRawTableEnabled(seg.getCubeDesc());
+            boolean isRawTableEnable = RawTableInstance.isRawTableEnabled(seg.getCubeDesc());
 
             @Override
             public void addStepPhase1_MergeDictionary(DefaultChainedExecutable jobFlow) {
@@ -61,7 +61,7 @@ public class ParquetMROutput2 implements IMROutput2 {
                 jobFlow.addTask(steps.createMergeCuboidDataStep(seg, mergingSegments, jobFlow.getId(), KapMergeCuboidJob.class));
                 jobFlow.addTask(steps.createParquetPageIndex(jobFlow.getId()));
                 jobFlow.addTask(steps.createParquetTarballJob(jobFlow.getId()));
-                if (isRawTable) {
+                if (isRawTableEnable) {
                     jobFlow.addTask(steps.createMergeRawDataStep(seg, mergingSegments, jobFlow.getId(), KapMergeRawTableJob.class));
                     jobFlow.addTask(steps.createRawTableParquetPageIndex(jobFlow.getId()));
                 }
