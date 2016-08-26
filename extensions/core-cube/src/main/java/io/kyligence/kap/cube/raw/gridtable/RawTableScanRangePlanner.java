@@ -39,22 +39,22 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.raw.RawTableSegment;
 
-public class RawScanRangePlanner extends ScanRangePlannerBase {
+public class RawTableScanRangePlanner extends ScanRangePlannerBase {
 
-    private static final Logger logger = LoggerFactory.getLogger(RawScanRangePlanner.class);
+    private static final Logger logger = LoggerFactory.getLogger(RawTableScanRangePlanner.class);
 
     //non-GT
     protected RawTableSegment rawSegment;
 
-    public RawScanRangePlanner(RawTableSegment rawSegment, TupleFilter filter, Set<TblColRef> dimensions, Set<TblColRef> groupbyDims, //
-            Collection<FunctionDesc> metrics) {
+    public RawTableScanRangePlanner(RawTableSegment rawSegment, TupleFilter filter, Set<TblColRef> dimensions, Set<TblColRef> groupbyDims, //
+                                    Collection<FunctionDesc> metrics) {
 
         this.rawSegment = rawSegment;
 
         Set<TblColRef> filterDims = Sets.newHashSet();
         TupleFilter.collectColumns(filter, filterDims);
 
-        this.gtInfo = RawGridTable.newGTInfo(this.rawSegment.getRawTableInstance());
+        this.gtInfo = RawTableGridTable.newGTInfo(this.rawSegment.getRawTableInstance());
         RawToGridTableMapping mapping = new RawToGridTableMapping(this.rawSegment.getRawTableInstance());
 
         IGTComparator comp = gtInfo.getCodeSystem().getComparator();

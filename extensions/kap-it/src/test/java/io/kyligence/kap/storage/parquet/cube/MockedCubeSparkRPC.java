@@ -70,7 +70,7 @@ public class MockedCubeSparkRPC extends CubeSparkRPC {
     }
 
     @Override
-    public IGTScanner getGTScanner(GTScanRequest scanRequests) throws IOException {
+    public IGTScanner getGTScanner(GTScanRequest scanRequest) throws IOException {
         Configuration conf = HadoopUtil.getCurrentConfiguration();
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
@@ -80,9 +80,9 @@ public class MockedCubeSparkRPC extends CubeSparkRPC {
                 append(cuboid.getId()).//
                 append("/*.parquettar").toString();
 
-        conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS, RoaringBitmaps.writeToString(getRequiredParquetColumns(scanRequests))); // which columns are required
+        conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS, RoaringBitmaps.writeToString(getRequiredParquetColumns(scanRequest))); // which columns are required
         conf.set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, kylinConfig.getConfigAsString()); //push down kylin config
-        conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES, new String(scanRequests.toByteArray(), "ISO-8859-1")); //so that ParquetRawInputFormat can use the scan request
+        conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES, new String(scanRequest.toByteArray(), "ISO-8859-1")); //so that ParquetRawInputFormat can use the scan request
         conf.set(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX, String.valueOf(true)); //whether to use II
         conf.set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileReader.ReadStrategy.COMPACT.toString()); //read fashion
 
@@ -111,7 +111,7 @@ public class MockedCubeSparkRPC extends CubeSparkRPC {
                 closeable.close();
             }
 
-            return new SparkResponseBlobGTScanner(scanRequests, concat);
+            return new SparkResponseBlobGTScanner(scanRequest, concat);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

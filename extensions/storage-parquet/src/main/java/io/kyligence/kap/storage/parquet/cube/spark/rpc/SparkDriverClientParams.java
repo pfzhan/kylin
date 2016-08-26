@@ -20,7 +20,7 @@ package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
 import java.util.List;
 
-public class SubmitParams {
+public class SparkDriverClientParams {
     private final String kylinProperties;
     private final String realizationType;
     private final String realizationId;
@@ -29,7 +29,7 @@ public class SubmitParams {
     private final int maxGTLength;
     private final List<Integer> parquetColumns;
 
-    public SubmitParams(String kylinProperties, String realizationType, String realizationId, String segmentId, String cuboidId, int maxGTLength, List<Integer> parquetColumns) {
+    public SparkDriverClientParams(String kylinProperties, String realizationType, String realizationId, String segmentId, String cuboidId, int maxGTLength, List<Integer> parquetColumns) {
         this.kylinProperties = kylinProperties;
         this.realizationType = realizationType;
         this.realizationId = realizationId;

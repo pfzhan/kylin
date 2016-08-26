@@ -37,20 +37,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.raw.RawTableSegment;
-import io.kyligence.kap.cube.raw.gridtable.RawScanRangePlanner;
+import io.kyligence.kap.cube.raw.gridtable.RawTableScanRangePlanner;
 
-public class RawSegmentScanner implements IGTScanner {
+public class RawTableSegmentScanner implements IGTScanner {
 
-    private static final Logger logger = LoggerFactory.getLogger(RawSegmentScanner.class);
+    private static final Logger logger = LoggerFactory.getLogger(RawTableSegmentScanner.class);
 
     final GTScanRequest scanRequest;
     final ScannerWorker scanner;
 
-    public RawSegmentScanner(RawTableSegment rawTableSegment, Set<TblColRef> dimensions, Set<TblColRef> groups, //
-            Collection<FunctionDesc> metrics, TupleFilter filter, StorageContext context) {
+    public RawTableSegmentScanner(RawTableSegment rawTableSegment, Set<TblColRef> dimensions, Set<TblColRef> groups, //
+                                  Collection<FunctionDesc> metrics, TupleFilter filter, StorageContext context) {
         //CubeSegmentScanner will do BuildInFunctionTransformer here, but it's not necessary for this
 
-        RawScanRangePlanner planner = new RawScanRangePlanner(rawTableSegment, filter, dimensions, groups, metrics);
+        RawTableScanRangePlanner planner = new RawTableScanRangePlanner(rawTableSegment, filter, dimensions, groups, metrics);
         scanRequest = planner.planScanRequest();
 
         //TODO: set allow storage aggregation, set agg cache threshold, set limit, etc.

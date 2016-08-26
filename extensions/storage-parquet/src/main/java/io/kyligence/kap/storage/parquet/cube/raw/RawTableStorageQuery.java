@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableSegment;
-import io.kyligence.kap.gtrecord.RawSegmentScanner;
+import io.kyligence.kap.gtrecord.RawTableSegmentScanner;
 import io.kyligence.kap.gtrecord.SequentialRawTableTupleIterator;
 
 public class RawTableStorageQuery implements IStorageQuery {
@@ -62,9 +62,9 @@ public class RawTableStorageQuery implements IStorageQuery {
         Set<FunctionDesc> metrics = new LinkedHashSet<FunctionDesc>();
         buildDimensionsAndMetrics(sqlDigest, dimensions, metrics);
 
-        List<RawSegmentScanner> scanners = Lists.newArrayList();
+        List<RawTableSegmentScanner> scanners = Lists.newArrayList();
         for (RawTableSegment rawTableSegment : rawTableInstance.getSegments(SegmentStatusEnum.READY)) {
-            RawSegmentScanner scanner;
+            RawTableSegmentScanner scanner;
             if (rawTableSegment.getCubeSegment().getInputRecords() == 0) {
                 if (!skipZeroInputSegment(rawTableSegment)) {
                     logger.warn("raw segment {} input record is 0, " + "it may caused by kylin failed to the job counter " + "as the hadoop history server wasn't running", rawTableSegment);
@@ -74,7 +74,7 @@ public class RawTableStorageQuery implements IStorageQuery {
                 }
             }
 
-            scanner = new RawSegmentScanner(rawTableSegment, dimensions, Collections.<TblColRef> emptySet(), Collections.<FunctionDesc> emptySet(), sqlDigest.filter, context);
+            scanner = new RawTableSegmentScanner(rawTableSegment, dimensions, Collections.<TblColRef> emptySet(), Collections.<FunctionDesc> emptySet(), sqlDigest.filter, context);
             scanners.add(scanner);
         }
         return new SequentialRawTableTupleIterator(scanners, rawTableInstance, dimensions, metrics, returnTupleInfo, context);

@@ -45,18 +45,18 @@ public class SequentialRawTableTupleIterator implements ITupleIterator {
     private static final Logger logger = LoggerFactory.getLogger(SequentialRawTableTupleIterator.class);
 
     private RawTableTupleConverter converter;
-    private List<RawSegmentScanner> scanners;
+    private List<RawTableSegmentScanner> scanners;
     private Iterator<GTRecord> combinedGTItr;
     private Tuple tuple;
 
-    public SequentialRawTableTupleIterator(List<RawSegmentScanner> scanners, RawTableInstance rawTableInstance, Set<TblColRef> selectedDimensions, //
+    public SequentialRawTableTupleIterator(List<RawTableSegmentScanner> scanners, RawTableInstance rawTableInstance, Set<TblColRef> selectedDimensions, //
                                            Set<FunctionDesc> selectedMetrics, TupleInfo returnTupleInfo, StorageContext context) {
         this.converter = new RawTableTupleConverter(rawTableInstance, selectedDimensions, selectedMetrics, returnTupleInfo);
         this.scanners = scanners;
-        Iterator<Iterator<GTRecord>> transformed = Iterators.transform(scanners.iterator(), new Function<RawSegmentScanner, Iterator<GTRecord>>() {
+        Iterator<Iterator<GTRecord>> transformed = Iterators.transform(scanners.iterator(), new Function<RawTableSegmentScanner, Iterator<GTRecord>>() {
             @Nullable
             @Override
-            public Iterator<GTRecord> apply(@Nullable RawSegmentScanner input) {
+            public Iterator<GTRecord> apply(@Nullable RawTableSegmentScanner input) {
                 return input.iterator();
             }
         });
@@ -66,7 +66,7 @@ public class SequentialRawTableTupleIterator implements ITupleIterator {
 
     @Override
     public void close() {
-        for (RawSegmentScanner scanner : scanners) {
+        for (RawTableSegmentScanner scanner : scanners) {
             try {
                 scanner.close();
             } catch (IOException e) {

@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.SubmitParams;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClientParams;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.SparkResponseBlobGTScanner;
 
@@ -78,20 +78,20 @@ public class CubeSparkRPC implements IGTStorage {
     }
 
     @Override
-    public IGTScanner getGTScanner(GTScanRequest scanRequests) throws IOException {
+    public IGTScanner getGTScanner(GTScanRequest scanRequest) throws IOException {
 
         long startTime = System.currentTimeMillis();
-        SubmitParams submitParams = new SubmitParams(KylinConfig.getInstanceFromEnv().getConfigAsString(), //
+        SparkDriverClientParams sparkDriverClientParams = new SparkDriverClientParams(KylinConfig.getInstanceFromEnv().getConfigAsString(), //
                 RealizationType.CUBE.toString(), cubeSegment.getCubeInstance().getUuid(), cubeSegment.getUuid(), String.valueOf(cuboid.getId()), // 
-                scanRequests.getInfo().getMaxLength(), getRequiredParquetColumns(scanRequests) //
+                scanRequest.getInfo().getMaxLength(), getRequiredParquetColumns(scanRequest) //
         );
-        logger.info("Filter: {}" + scanRequests.getFilterPushDown());
+        logger.info("Filter: {}" + scanRequest.getFilterPushDown());
 
         SparkJobProtos.SparkJobResponse jobResponse = client.submit(//
-                scanRequests.toByteArray(), submitParams);
+                scanRequest.toByteArray(), sparkDriverClientParams);
         logger.info("Time for the gRPC visit is " + (System.currentTimeMillis() - startTime));
         if (jobResponse.getSucceed()) {
-            return new SparkResponseBlobGTScanner(scanRequests, jobResponse.getGtRecordsBlob().toByteArray());
+            return new SparkResponseBlobGTScanner(scanRequest, jobResponse.getGtRecordsBlob().toByteArray());
         } else {
             logger.error(jobResponse.getErrorMsg());
             throw new RuntimeException("RPC failed due to above reason");

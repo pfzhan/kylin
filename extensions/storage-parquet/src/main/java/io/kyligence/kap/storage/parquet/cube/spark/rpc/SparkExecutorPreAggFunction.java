@@ -82,7 +82,7 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
         }
 
         IGTScanner preAggred = gtScanRequest.decorateScanner(scanner);//process
-        CoalesceGTRecordExport function = new CoalesceGTRecordExport(gtScanRequest, gtScanRequest.getColumns());
+        SparkExecutorGTRecordSerializer function = new SparkExecutorGTRecordSerializer(gtScanRequest, gtScanRequest.getColumns());
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Iterator<GTRecord> gtIterator = preAggred.iterator();

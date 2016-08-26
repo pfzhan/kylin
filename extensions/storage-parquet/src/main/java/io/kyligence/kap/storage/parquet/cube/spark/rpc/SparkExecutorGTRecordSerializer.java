@@ -18,40 +18,27 @@
 
 package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
-import java.io.Serializable;
+import javax.annotation.Nullable;
 
-public class CanonicalCuboid implements Serializable {
-    private String cubeId;
-    private String segmentId;
-    private String cuboidId;
+import org.apache.kylin.common.util.ByteArray;
+import org.apache.kylin.common.util.ImmutableBitSet;
+import org.apache.kylin.gridtable.GTRecord;
+import org.apache.kylin.gridtable.GTScanRequest;
 
-    public CanonicalCuboid(String cubeId, String segmentId, String cuboidId) {
-        this.cubeId = cubeId;
-        this.segmentId = segmentId;
-        this.cuboidId = cuboidId;
+//not thread safe!
+public class SparkExecutorGTRecordSerializer implements com.google.common.base.Function<GTRecord, ByteArray> {
+    private ImmutableBitSet columns;
+    private ByteArray buffer;//shared
+
+    public SparkExecutorGTRecordSerializer(GTScanRequest gtScanRequest, ImmutableBitSet columns) {
+        this.columns = columns;
+        this.buffer = ByteArray.allocate(gtScanRequest.getInfo().getMaxLength());
     }
 
-    public String getCubeId() {
-        return cubeId;
-    }
-
-    public void setCubeId(String cubeId) {
-        this.cubeId = cubeId;
-    }
-
-    public String getSegmentId() {
-        return segmentId;
-    }
-
-    public void setSegmentId(String segmentId) {
-        this.segmentId = segmentId;
-    }
-
-    public String getCuboidId() {
-        return cuboidId;
-    }
-
-    public void setCuboidId(String cuboidId) {
-        this.cuboidId = cuboidId;
+    @Nullable
+    @Override
+    public ByteArray apply(@Nullable GTRecord input) {
+        input.exportColumns(columns, buffer);
+        return buffer;
     }
 }

@@ -47,12 +47,12 @@ public class SparkDriverClient {
         logger.info("finish ctor");
     }
 
-    public SparkJobResponse submit(byte[] gtScanReq, SubmitParams submitParams) {
+    public SparkJobResponse submit(byte[] gtScanReq, SparkDriverClientParams sparkDriverClientParams) {
         SparkJobRequest request = SparkJobRequest.newBuilder().setGtScanRequest(ByteString.copyFrom(gtScanReq)).//
-                setKylinProperties(submitParams.getKylinProperties()).setRealizationId(submitParams.getRealizationId()).//
-                setSegmentId(submitParams.getSegmentId()).setDataFolderName(submitParams.getCuboidId()).//
-                setMaxRecordLength(submitParams.getMaxGTLength()).addAllParquetColumns(submitParams.getParquetColumns()).//
-                setUseII(true).setRealizationType(submitParams.getRealizationType()).//
+                setKylinProperties(sparkDriverClientParams.getKylinProperties()).setRealizationId(sparkDriverClientParams.getRealizationId()).//
+                setSegmentId(sparkDriverClientParams.getSegmentId()).setDataFolderName(sparkDriverClientParams.getCuboidId()).//
+                setMaxRecordLength(sparkDriverClientParams.getMaxGTLength()).addAllParquetColumns(sparkDriverClientParams.getParquetColumns()).//
+                setUseII(true).setRealizationType(sparkDriverClientParams.getRealizationType()).//
                 build();
 
         try {

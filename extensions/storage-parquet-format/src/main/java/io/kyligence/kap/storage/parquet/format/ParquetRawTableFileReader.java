@@ -15,8 +15,12 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.gridtable.GTScanRequest;
+import org.apache.kylin.gridtable.GTUtil;
+import org.apache.kylin.metadata.filter.IFilterCodeSystem;
 import org.apache.kylin.metadata.filter.TupleFilter;
+import org.apache.kylin.metadata.filter.TupleFilterSerializer;
 import org.apache.parquet.io.api.Binary;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.slf4j.Logger;
@@ -27,6 +31,7 @@ import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
 import io.kyligence.kap.storage.parquet.format.pageIndex.format.ParquetPageIndexRecordReader;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
+import io.kyligence.kap.storage.parquet.format.serialize.TupleFilterLiteralHasher;
 
 public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
 
@@ -74,7 +79,14 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
             if (Boolean.valueOf(conf.get(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX))) {
                 ParquetPageIndexTable indexTable = indexReader.getIndexTable();
                 TupleFilter filter = gtScanRequest.getFilterPushDown();
-                pageBitmap = indexTable.lookup(filter);
+
+                //for Rawtable filters, replace all the literals with hash value first
+                TupleFilterLiteralHasher decorator = new TupleFilterLiteralHasher();
+                IFilterCodeSystem<ByteArray> wrap = GTUtil.wrap(gtScanRequest.getInfo().getCodeSystem().getComparator());
+                byte[] serialize = TupleFilterSerializer.serialize(filter, decorator, wrap);
+                TupleFilter hashedFilter = TupleFilterSerializer.deserialize(serialize, wrap);
+                pageBitmap = indexTable.lookup(hashedFilter);
+                
                 logger.info("Inverted Index bitmap: " + pageBitmap + ". Time spent is: " + (System.currentTimeMillis() - startTime));
             } else {
                 logger.info("Told not to use II, read all pages");

@@ -25,7 +25,9 @@ import java.util.List;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.spark.Accumulator;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -34,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
+import io.kyligence.kap.storage.parquet.format.ParquetRawTableFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileReader;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
@@ -54,19 +57,27 @@ public class SparkParquetVisit implements Serializable {
             this.request = request;
             this.kylinConfig = KylinConfig.createKylinConfig(request.getKylinProperties());
             this.realizationType = request.getRealizationType();
-            
-            this.parquetPath = new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
-                    append(request.getRealizationId()).append("/").//
-                    append(request.getSegmentId()).append("/").//
-                    append(request.getDataFolderName()).//
-                    append("/*.parquettar").toString();
+
+            if (RealizationType.CUBE.equals(this.realizationType)) {
+                this.parquetPath = new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
+                        append(request.getRealizationId()).append("/").//
+                        append(request.getSegmentId()).append("/").//
+                        append(request.getDataFolderName()).//
+                        append("/*.parquettar").toString();
+            } else {
+                this.parquetPath = new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
+                        append(request.getRealizationId()).append("/").//
+                        append(request.getSegmentId()).append("/").//
+                        append(request.getDataFolderName()).//
+                        append("/*.parquet").toString();
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     public List<byte[]> executeTask() throws Exception {
-        
+
         Configuration conf = new Configuration();
         conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS, RoaringBitmaps.writeToString(request.getParquetColumnsList())); // which columns are required
         conf.set(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH, String.valueOf(request.getMaxRecordLength())); // max gt length
@@ -84,7 +95,8 @@ public class SparkParquetVisit implements Serializable {
         final Accumulator<Long> collectedRecords = sc.accumulator(0L, "Collected Records", LongAccumulableParam.INSTANCE);
 
         // visit parquet data file
-        JavaPairRDD<Text, Text> seed = sc.newAPIHadoopFile(parquetPath, ParquetTarballFileInputFormat.class, Text.class, Text.class, conf);
+        Class inputFormatClass = RealizationType.CUBE.equals(this.realizationType) ? ParquetTarballFileInputFormat.class : ParquetRawTableFileInputFormat.class;
+        JavaPairRDD<Text, Text> seed = sc.newAPIHadoopFile(parquetPath, inputFormatClass, Text.class, Text.class, conf);
 
         List<byte[]> collected = seed.mapPartitions(new SparkExecutorPreAggFunction(realizationType, scannedRecords, collectedRecords)).collect();
         logger.info(">>>>>> End of visiting cube data with Spark");

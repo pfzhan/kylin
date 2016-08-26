@@ -30,12 +30,12 @@ import org.apache.kylin.gridtable.IGTComparator;
 import org.apache.kylin.measure.MeasureAggregator;
 import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 
-public class RawCodeSystem implements IGTCodeSystem {
+public class RawTableCodeSystem implements IGTCodeSystem {
     GTInfo info;
     DataTypeSerializer[] serializers;
     IGTComparator comparator;
 
-    public RawCodeSystem() {
+    public RawTableCodeSystem() {
         this.comparator = new DefaultGTComparator();
     }
 

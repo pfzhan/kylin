@@ -22,13 +22,13 @@ import org.apache.kylin.gridtable.GTInfo;
 
 import io.kyligence.kap.cube.raw.RawTableInstance;
 
-public class RawGridTable {
+public class RawTableGridTable {
     public static GTInfo newGTInfo(RawTableInstance rawTableInstance) {
         RawToGridTableMapping mapping = new RawToGridTableMapping(rawTableInstance);
 
         GTInfo.Builder builder = GTInfo.builder();
         builder.setTableName("RawTable " + rawTableInstance.getName());
-        builder.setCodeSystem(new RawCodeSystem());
+        builder.setCodeSystem(new RawTableCodeSystem());
         builder.setColumns(mapping.getDataTypes());
         builder.setPrimaryKey(mapping.getPrimaryKey());
         return builder.build();

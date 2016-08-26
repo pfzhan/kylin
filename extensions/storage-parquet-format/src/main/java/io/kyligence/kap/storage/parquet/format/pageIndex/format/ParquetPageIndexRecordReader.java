@@ -37,6 +37,9 @@ public class ParquetPageIndexRecordReader {
 
         if (hasOffset) {
             fileOffset = inputStream.readLong();
+            indexTable = new ParquetPageIndexTable(inputStream, ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE);
+        } else {
+            indexTable = new ParquetPageIndexTable(inputStream, 0);
         }
 
         int indexOffset = hasOffset ? ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE : 0;
@@ -46,6 +49,7 @@ public class ParquetPageIndexRecordReader {
         } else {
             indexTable = new ParquetPageIndexTable(inputStream, indexOffset);
         }
+        
         return fileOffset;
     }
 
