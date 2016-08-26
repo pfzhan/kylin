@@ -11,6 +11,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import com.google.common.primitives.Longs;
 
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
+import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetOrderedPageIndexTable;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
 
 /**
@@ -27,7 +28,7 @@ public class ParquetPageIndexRecordReader {
     /**
      * @return file offset to the actual cube data
      */
-    public long initialize(Path indexPath, TaskAttemptContext context, boolean hasOffset) throws IOException, InterruptedException {
+    public long initialize(Path indexPath, TaskAttemptContext context, boolean hasOffset, boolean ordered) throws IOException, InterruptedException {
         conf = context.getConfiguration();
         shardIndexPath = indexPath;
         inputStream = FileSystem.get(conf).open(shardIndexPath);
@@ -37,7 +38,14 @@ public class ParquetPageIndexRecordReader {
         if (hasOffset) {
             fileOffset = inputStream.readLong();
         }
-        indexTable = new ParquetPageIndexTable(inputStream, ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE);
+
+        int indexOffset = hasOffset ? ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE : 0;
+
+        if (ordered) {
+            indexTable = new ParquetOrderedPageIndexTable(inputStream, indexOffset);
+        } else {
+            indexTable = new ParquetPageIndexTable(inputStream, indexOffset);
+        }
         return fileOffset;
     }
 

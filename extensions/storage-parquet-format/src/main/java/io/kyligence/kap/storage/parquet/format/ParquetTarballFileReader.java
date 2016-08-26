@@ -71,7 +71,7 @@ public class ParquetTarballFileReader extends RecordReader<Text, Text> {
         KylinConfig.setKylinConfigInEnvIfMissing(kylinProps);
 
         ParquetPageIndexRecordReader indexReader = new ParquetPageIndexRecordReader();
-        long fileOffset = indexReader.initialize(shardPath, context, true);
+        long fileOffset = indexReader.initialize(shardPath, context, true, true);
 
         String scanReqStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES);
         ImmutableRoaringBitmap pageBitmap = null;

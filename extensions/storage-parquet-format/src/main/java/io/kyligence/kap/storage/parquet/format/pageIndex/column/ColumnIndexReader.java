@@ -150,6 +150,14 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
         return gtIndex.getRows(v);
     }
 
+    public ImmutableRoaringBitmap lookupEqRoundGte(ByteArray v) {
+        return getEqIndex().getRows(v, RoundDirectType.GTE);
+    }
+
+    public ImmutableRoaringBitmap lookupEqRoundLte(ByteArray v) {
+        return getEqIndex().getRows(v, RoundDirectType.LTE);
+    }
+
     public HashMap<ByteArray, ImmutableRoaringBitmap> lookupEqIndex(Set<ByteArray> v) {
         return getEqIndex().getRows(v);
     }
@@ -196,6 +204,10 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
 
     private enum IndexBlockType {
         EQ, LTE, GTE
+    }
+
+    private enum RoundDirectType {
+        LTE, GTE
     }
 
     private class IndexBlock {
@@ -307,5 +319,78 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
 
             return MutableRoaringBitmap.bitmapOf();
         }
+
+        private ImmutableRoaringBitmap getRows(ByteArray value, RoundDirectType round) {
+            try {
+                Comparable encodedVal = keyEncoding.encode(value);
+
+                Map.Entry<Comparable, Long> startEntry = offsetMap.floorEntry(encodedVal);
+                if (startEntry == null) {
+                    if (round == RoundDirectType.GTE) {
+                        startEntry = offsetMap.firstEntry();
+                    } else {
+                        return MutableRoaringBitmap.bitmapOf();
+                    }
+                }
+
+                if (startEntry != null) {
+                    Iterable<Number> lastPageId = valueSetEncoding.newValueSet();
+
+                    long bodyOffset = startEntry.getValue();
+                    inputStream.seek(bodyOffset + bodyStartOffset);
+                    // scan from this step node to next step node
+                    for (int i = 0; i < step + 1; i++) {
+                        if (inputStream.getPos() >= bodyStartOffset + bodyLength) {
+                            // search to end of index, still not see the value
+                            if (round == RoundDirectType.LTE) {
+                                // return pages of last value
+                                return roundWrap(valueSetEncoding.toMutableRoaringBitmap(lastPageId), round);
+                            } else if (round == RoundDirectType.GTE) {
+                                // return empty because no value greater than the condVal
+                                return MutableRoaringBitmap.bitmapOf();
+                            }
+                            break;
+                        }
+
+                        Comparable currKey = keyEncoding.deserialize(inputStream);
+
+                        Iterable<Number> pageId = valueSetEncoding.deserialize(inputStream);
+
+                        int compare = currKey.compareTo(encodedVal);
+                        if (compare == 0) {
+                            return roundWrap(valueSetEncoding.toMutableRoaringBitmap(pageId), round);
+                        } else if (compare > 0) {
+                            if (round == RoundDirectType.LTE) {
+                                return roundWrap(valueSetEncoding.toMutableRoaringBitmap(lastPageId), round);
+                            } else if (round == RoundDirectType.GTE) {
+                                return roundWrap(valueSetEncoding.toMutableRoaringBitmap(pageId), round);
+                            }
+                        }
+                        lastPageId = pageId;
+                    }
+                }
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to read index. value=" + value, e);
+            }
+
+            return MutableRoaringBitmap.bitmapOf();
+        }
+    }
+
+    private ImmutableRoaringBitmap roundWrap(ImmutableRoaringBitmap bitmap, RoundDirectType roundType) {
+        MutableRoaringBitmap tmpBitmap = new MutableRoaringBitmap();
+        if (roundType == RoundDirectType.LTE) {
+            int least = bitmap.getIntIterator().next();
+            tmpBitmap.add((long) 0, (long) least);
+        } else if (roundType == RoundDirectType.GTE) {
+            int highest = bitmap.getReverseIntIterator().next();
+            int end = getPageNum();
+            tmpBitmap.add((long) highest, (long) end);
+        } else {
+            throw new RuntimeException();
+        }
+
+        tmpBitmap.or(bitmap);
+        return tmpBitmap.toImmutableRoaringBitmap();
     }
 }

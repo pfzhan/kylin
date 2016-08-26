@@ -62,7 +62,7 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
 
         // read index file
         ParquetPageIndexRecordReader indexReader = new ParquetPageIndexRecordReader();
-        indexReader.initialize(indexPath, context, false);
+        indexReader.initialize(indexPath, context, false, false);
 
         // page bitmap
         String scanReqStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES);

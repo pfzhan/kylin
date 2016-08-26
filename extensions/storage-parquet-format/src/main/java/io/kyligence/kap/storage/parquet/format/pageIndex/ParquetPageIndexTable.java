@@ -3,7 +3,6 @@ package io.kyligence.kap.storage.parquet.format.pageIndex;
 import java.io.IOException;
 import java.util.Set;
 
-import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexReader;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
@@ -17,6 +16,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexReader;
 
 public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetPageIndexTable.class);
@@ -34,7 +35,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
     }
 
     // TODO: should use batch lookup
-    public MutableRoaringBitmap lookColumnIndex(int column, TupleFilter.FilterOperatorEnum compareOp, Set<ByteArray> vals) {
+    public MutableRoaringBitmap lookColumnIndex(int column, TupleFilter.FilterOperatorEnum compareOp, Set<ByteArray> vals, boolean ordered) {
         logger.info("column: {}, op: {}, vals: {} - {}", column, compareOp, vals.size(), Iterables.getFirst(vals, null));
         MutableRoaringBitmap result = null;
         ByteArray val = null;
@@ -74,19 +75,35 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             break;
         case GT:
             val = Iterables.getOnlyElement(vals);
-            result = lookupGt(column, val);
+            if (ordered) {
+                result = lookupOrderedGt(column, val);
+            } else {
+                result = lookupGt(column, val);
+            }
             break;
         case GTE:
             val = Iterables.getOnlyElement(vals);
-            result = lookupGte(column, val);
+            if (ordered) {
+                result = lookupOrderedGte(column, val);
+            } else {
+                result = lookupGte(column, val);
+            }
             break;
         case LT:
             val = Iterables.getOnlyElement(vals);
-            result = lookupLt(column, val);
+            if (ordered) {
+                result = lookupOrderedLt(column, val);
+            } else {
+                result = lookupLt(column, val);
+            }
             break;
         case LTE:
             val = Iterables.getOnlyElement(vals);
-            result = lookupLte(column, val);
+            if (ordered) {
+                result = lookupOrderedLte(column, val);
+            } else {
+                result = lookupLte(column, val);
+            }
             break;
         default:
             throw new RuntimeException("Unknown Operator: " + compareOp);
@@ -94,6 +111,11 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
 
         logger.info("lookColumnIndex returning " + result);
         return result;
+    }
+
+    private MutableRoaringBitmap lookupLt(int column, ByteArray val) {
+        ByteArray newVal = incrementByteArray(val, -1);
+        return lookupLte(column, newVal);
     }
 
     private MutableRoaringBitmap lookupGt(int column, ByteArray val) {
@@ -117,12 +139,33 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
         return columnIndexResult.toMutableRoaringBitmap();
     }
 
-    private MutableRoaringBitmap lookupLt(int column, ByteArray val) {
+    private MutableRoaringBitmap lookupOrderedLt(int column, ByteArray val) {
         ByteArray newVal = incrementByteArray(val, -1);
-        return lookupLte(column, newVal);
+        return lookupOrderedLte(column, newVal);
     }
 
-    private MutableRoaringBitmap lookupChildFilter(TupleFilter filter) {
+    private MutableRoaringBitmap lookupOrderedGt(int column, ByteArray val) {
+        ByteArray newVal = incrementByteArray(val, 1);
+        return lookupOrderedGte(column, newVal);
+    }
+
+    private MutableRoaringBitmap lookupOrderedLte(int column, ByteArray val) {
+        ImmutableRoaringBitmap columnIndexResult = indexReader.readColumnIndex(column).lookupEqRoundLte(val);
+        if (columnIndexResult == null) {
+            return getFullBitmap().toMutableRoaringBitmap();
+        }
+        return columnIndexResult.toMutableRoaringBitmap();
+    }
+
+    private MutableRoaringBitmap lookupOrderedGte(int column, ByteArray val) {
+        ImmutableRoaringBitmap columnIndexResult = indexReader.readColumnIndex(column).lookupEqRoundGte(val);
+        if (columnIndexResult == null) {
+            return getFullBitmap().toMutableRoaringBitmap();
+        }
+        return columnIndexResult.toMutableRoaringBitmap();
+    }
+
+    protected MutableRoaringBitmap lookupChildFilter(TupleFilter filter) {
         if (filter instanceof ConstantTupleFilter) {
             ConstantTupleFilter constantTupleFilter = (ConstantTupleFilter) filter;
             if (!constantTupleFilter.getValues().isEmpty()) {
@@ -145,7 +188,9 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
                     throw new IllegalArgumentException("Unknown type for condition values.");
                 }
             }
-            return lookColumnIndex(col, compareTupleFilter.getOperator(), conditionVals);
+
+            // hard code first line is ordered
+            return lookColumnIndex(col, compareTupleFilter.getOperator(), conditionVals, false);
         }
         throw new RuntimeException("Unrecognized tuple filter: " + filter);
     }

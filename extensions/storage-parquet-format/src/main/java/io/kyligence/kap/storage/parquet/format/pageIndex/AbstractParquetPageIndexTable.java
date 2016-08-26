@@ -8,6 +8,7 @@ import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
 public abstract class AbstractParquetPageIndexTable implements Closeable {
 
+    // If no column is ordered, pass null in orderedColumnIndex
     public ImmutableRoaringBitmap lookup(TupleFilter filter) {
         if (filter == null) {
             return getFullBitmap();

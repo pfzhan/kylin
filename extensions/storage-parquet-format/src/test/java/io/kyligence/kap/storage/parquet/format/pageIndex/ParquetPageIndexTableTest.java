@@ -40,6 +40,7 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
     final static int maxVal = dataSize * 2;
     final static int cardinality = dataSize;
     static ParquetPageIndexTable indexTable;
+    static ParquetPageIndexTable indexOrderedTable;
     static int[] data1;
     static int[] data2;
     static int[] data3;
@@ -55,6 +56,7 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
     public static void after() throws Exception {
         cleanAfterClass();
         indexTable.close();
+        indexOrderedTable.close();
     }
 
     @BeforeClass
@@ -66,6 +68,8 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         writeIndexFile(indexFile);
         FSDataInputStream inputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).open(new Path(indexFile.getAbsolutePath()));
         indexTable = new ParquetPageIndexTable(inputStream);
+        inputStream.seek(0);
+        indexOrderedTable = new ParquetOrderedPageIndexTable(inputStream);
 
         colRef1 = ColumnDesc.mockup(null, 1, columnName[0], null).getRef();
         colRef2 = ColumnDesc.mockup(null, 2, columnName[1], null).getRef();
@@ -255,10 +259,28 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
     }
 
     @Test
+    public void testEqEqualGTE1() throws  IOException {
+        for (int i = 0; i < dataSize; i++) {
+            TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.GTE, colRef1, data1[i]);
+            ImmutableRoaringBitmap result = indexOrderedTable.lookup(filter);
+            assertArrayEquals(rangeInts(i, dataSize - 1), result.toArray());
+        }
+    }
+
+    @Test
     public void testGT1() throws IOException {
         for (int i = 0; i < dataSize; i++) {
             TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.GT, colRef1, data1[i]);
             ImmutableRoaringBitmap result = indexTable.lookup(filter);
+            assertArrayEquals(rangeInts(1 + i, dataSize - 1), result.toArray());
+        }
+    }
+
+    @Test
+    public void testEqRoundGT1() throws IOException {
+        for (int i = 0; i < dataSize; i++) {
+            TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.GT, colRef1, data1[i]);
+            ImmutableRoaringBitmap result = indexOrderedTable.lookup(filter);
             assertArrayEquals(rangeInts(1 + i, dataSize - 1), result.toArray());
         }
     }
@@ -273,10 +295,28 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
     }
 
     @Test
+    public void testEqRoundGTE2() throws IOException {
+        for (int i = 0; i < dataSize; i++) {
+            TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.GTE, colRef2, data2[i]);
+            ImmutableRoaringBitmap result = indexOrderedTable.lookup(filter);
+            assertArrayEquals(rangeInts(i, dataSize - 1), result.toArray());
+        }
+    }
+
+    @Test
     public void testGT2() throws IOException {
         for (int i = 0; i < dataSize; i++) {
             TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.GT, colRef2, data2[i]);
             ImmutableRoaringBitmap result = indexTable.lookup(filter);
+            assertArrayEquals(rangeInts(1 + i, dataSize - 1), result.toArray());
+        }
+    }
+
+    @Test
+    public void testEqRoundGT2() throws IOException {
+        for (int i = 0; i < dataSize; i++) {
+            TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.GT, colRef2, data2[i]);
+            ImmutableRoaringBitmap result = indexOrderedTable.lookup(filter);
             assertArrayEquals(rangeInts(1 + i, dataSize - 1), result.toArray());
         }
     }
@@ -291,10 +331,28 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
     }
 
     @Test
+    public void testEqRoundLT1() throws IOException {
+        for (int i = 1; i < dataSize; i++) {
+            TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.LT, colRef1, data1[i]);
+            ImmutableRoaringBitmap result = indexOrderedTable.lookup(filter);
+            assertArrayEquals(rangeInts(0, i - 1), result.toArray());
+        }
+    }
+
+    @Test
     public void testLTE1() throws IOException {
         for (int i = 0; i < dataSize; i++) {
             TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.LTE, colRef1, data1[i]);
             ImmutableRoaringBitmap result = indexTable.lookup(filter);
+            assertArrayEquals(rangeInts(0, i), result.toArray());
+        }
+    }
+
+    @Test
+    public void testEqRoundLTE1() throws IOException {
+        for (int i = 0; i < dataSize; i++) {
+            TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.LTE, colRef1, data1[i]);
+            ImmutableRoaringBitmap result = indexOrderedTable.lookup(filter);
             assertArrayEquals(rangeInts(0, i), result.toArray());
         }
     }
@@ -309,10 +367,28 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
     }
 
     @Test
+    public void testEqRoundLT2() throws IOException {
+        for (int i = 0; i < dataSize; i++) {
+            TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.LT, colRef2, data2[i]);
+            ImmutableRoaringBitmap result = indexOrderedTable.lookup(filter);
+            assertArrayEquals(rangeInts(0, i - 1), result.toArray());
+        }
+    }
+
+    @Test
     public void testLTE2() throws IOException {
         for (int i = 0; i < dataSize; i++) {
             TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.LTE, colRef2, data2[i]);
             ImmutableRoaringBitmap result = indexTable.lookup(filter);
+            assertArrayEquals(rangeInts(0, i), result.toArray());
+        }
+    }
+
+    @Test
+    public void testEqRoundLTE2() throws IOException {
+        for (int i = 0; i < dataSize; i++) {
+            TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.LTE, colRef2, data2[i]);
+            ImmutableRoaringBitmap result = indexOrderedTable.lookup(filter);
             assertArrayEquals(rangeInts(0, i), result.toArray());
         }
     }
