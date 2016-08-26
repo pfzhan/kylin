@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
+import io.kyligence.kap.storage.parquet.format.ParquetRawTableFileInputFormat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -88,7 +89,7 @@ public class MockedRawTableTableRPC extends RawTableSparkRPC {
         Job job = Job.getInstance(conf);
         FileInputFormat.setInputPaths(job, dataFolder);
 
-        ParquetTarballFileInputFormat inputFormat = new ParquetTarballFileInputFormat();
+        ParquetRawTableFileInputFormat inputFormat = new ParquetRawTableFileInputFormat();
         List<InputSplit> splits = inputFormat.getSplits(job);
 
         try {
@@ -97,7 +98,7 @@ public class MockedRawTableTableRPC extends RawTableSparkRPC {
 
             for (int i = 0; i < splits.size(); i++) {
                 ParquetRecordIterator iterator = new ParquetRecordIterator(job, inputFormat, splits.get(i));
-                SparkExecutorPreAggFunction function = new SparkExecutorPreAggFunction(RealizationType.CUBE.toString(), null, null);
+                SparkExecutorPreAggFunction function = new SparkExecutorPreAggFunction(RealizationType.INVERTED_INDEX.toString(), null, null);
                 Iterable<byte[]> ret = function.call(iterator);
                 rets.add(ret);
                 parquetRecordIterators.add(iterator);

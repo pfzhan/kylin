@@ -27,14 +27,14 @@ public class ParquetPageIndexRecordReader {
     /**
      * @return file offset to the actual cube data
      */
-    public long initialize(Path indexPath, TaskAttemptContext context, boolean needRead) throws IOException, InterruptedException {
+    public long initialize(Path indexPath, TaskAttemptContext context, boolean hasOffset) throws IOException, InterruptedException {
         conf = context.getConfiguration();
         shardIndexPath = indexPath;
         inputStream = FileSystem.get(conf).open(shardIndexPath);
         assert Longs.BYTES == ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE;
         long fileOffset = 0;
 
-        if (needRead) {
+        if (hasOffset) {
             fileOffset = inputStream.readLong();
         }
         indexTable = new ParquetPageIndexTable(inputStream, ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE);

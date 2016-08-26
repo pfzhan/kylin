@@ -41,6 +41,7 @@ import com.google.common.collect.Iterators;
 
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner4Cube;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner4Raw;
+import io.kyligence.kap.storage.parquet.format.ParquetRawTableFileReader;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileReader;
 import scala.Tuple2;
 
@@ -67,12 +68,14 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
             }
         });
 
-        GTScanRequest gtScanRequest = ParquetTarballFileReader.gtScanRequestThreadLocal.get();
+        GTScanRequest gtScanRequest = null;
 
         IGTScanner scanner;
         if (RealizationType.CUBE.toString().equals(realizationType)) {
+            gtScanRequest = ParquetTarballFileReader.gtScanRequestThreadLocal.get();
             scanner = new ParquetBytesGTScanner4Cube(gtScanRequest.getInfo(), iterator, gtScanRequest);//in
         } else if (RealizationType.INVERTED_INDEX.toString().equals(realizationType)) {
+            gtScanRequest = ParquetRawTableFileReader.gtScanRequestThreadLocal.get();
             scanner = new ParquetBytesGTScanner4Raw(gtScanRequest.getInfo(), iterator, gtScanRequest);//in
         } else {
             throw new IllegalArgumentException("Unsupported realization type " + realizationType);

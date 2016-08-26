@@ -62,7 +62,7 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
 
         // read index file
         ParquetPageIndexRecordReader indexReader = new ParquetPageIndexRecordReader();
-        long fileOffset = indexReader.initialize(indexPath, context, false);
+        indexReader.initialize(indexPath, context, false);
 
         // page bitmap
         String scanReqStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES);
@@ -94,7 +94,7 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
         val.set(new byte[gtMaxLength]);
 
         // init with first shard file
-        reader = new ParquetBundleReaderBuilder().setFileOffset(fileOffset).setConf(conf).setPath(parquetPath).setPageBitset(pageBitmap).setColumnsBitmap(columnBitmap).build();
+        reader = new ParquetBundleReaderBuilder().setFileOffset(0).setConf(conf).setPath(parquetPath).setPageBitset(pageBitmap).setColumnsBitmap(columnBitmap).build();
     }
 
     @Override

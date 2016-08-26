@@ -96,10 +96,6 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         return "../../kylin/kylin-it/";
     }
 
-
-
-    
-
     // unique query tests in kap
     @Test
     public void testPercentileQuery() throws Exception {
@@ -123,6 +119,12 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
             System.out.println(e.getLocalizedMessage());
             throw e;
         }
+    }
+
+
+    @Test
+    public void testRawQuery() throws Exception {
+        this.execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_raw", null, true);
     }
 
     @Test

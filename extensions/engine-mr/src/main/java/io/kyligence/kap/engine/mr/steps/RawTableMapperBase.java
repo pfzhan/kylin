@@ -75,7 +75,7 @@ public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
         cube = CubeManager.getInstance(config).getCube(cubeName);
         cubeDesc = cube.getDescriptor();
         cubeSegment = cube.getSegmentById(segmentID);
-        rawTableInstance = RawTableManager.getInstance(config).getRawTableInstance(cubeDesc.getName());
+        rawTableInstance = RawTableManager.getInstance(config).getRawTableInstance(cube.getName());
         rawTableDesc = rawTableInstance.getRawTableDesc();
         intermediateTableDesc = (DataModelFlatTableDesc) EngineFactory.getJoinedFlatTableDesc(cubeSegment);
         rawEncoder = new BufferedRawEncoder(rawTableDesc.getColumnsExcludingOrdered());
