@@ -112,6 +112,6 @@ mv $BUILD_LIB_DIR/kylin-coprocessor-kap-${release_version}-obf.jar tmp/
 obfuscate extensions/storage-parquet/ $BUILD_LIB_DIR 1 1 kylin-storage-parquet-kap-${release_version}-obf kylin-storage-parquet-kap-${release_version}.jar
 mv $BUILD_LIB_DIR/kylin-storage-parquet-kap-${release_version}-obf.jar tmp/
 
-# obfuscate kybot client jar
+# obfuscate tool jar
 obfuscate extensions/tool/ $BUILD_LIB_DIR 1 1 kylin-tool-kap-${release_version}-obf kylin-tool-kap-${release_version}.jar
 mv $BUILD_LIB_DIR/kylin-tool-kap-${release_version}-obf.jar tmp/

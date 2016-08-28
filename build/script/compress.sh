@@ -43,7 +43,7 @@ if [ "$SKIP_OBF" != "1" ]; then
     mv ../tmp/kylin-coprocessor-kap-${release_version}-obf.jar ${package_name}/lib/kylin-coprocessor-kap-${release_version}.jar
     mv ../tmp/kylin-storage-parquet-kap-${release_version}-obf.jar ${package_name}/lib/kylin-storage-parquet-kap-${release_version}.jar
     mv ../tmp/kylin-job-kap-${release_version}-obf.jar ${package_name}/lib/kylin-job-kap-${release_version}.jar
-    mv ../tmp/kybot-client-${release_version}-obf.jar ${package_name}/kybot/kybot-client-${release_version}.jar
+    mv ../tmp/kylin-tool-kap-${release_version}-obf.jar ${package_name}/lib/kylin-tool-kap-${release_version}.jar
     tar -cvzf ${package_name}-obf.tar.gz ${package_name}
 
     rm -r ../tmp
