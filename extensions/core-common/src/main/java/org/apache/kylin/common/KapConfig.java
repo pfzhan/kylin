@@ -35,6 +35,14 @@ public class KapConfig {
         return config.isDevEnv();
     }
 
+    public int getParquetFuzzyIndexLength() {
+        return Integer.parseInt(config.getOptional("kap.parquet.ii.fuzzy.length", String.valueOf(6)));
+    }
+
+    public int getParquetIndexHashLength() {
+        return Integer.parseInt(config.getOptional("kap.parquet.ii.hash.length", String.valueOf(8)));
+    }
+
     public int getParquetRowsPerPage() {
         return Integer.parseInt(config.getOptional("kap.parquet.rows.per.page", String.valueOf(10000)));
     }

@@ -2,6 +2,7 @@ package io.kyligence.kap.storage.parquet.steps;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import io.kyligence.kap.storage.parquet.format.raw.RawTableUtils;
@@ -12,6 +13,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
@@ -32,6 +34,7 @@ import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.storage.parquet.format.datatype.ByteArrayListWritable;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexWriter;
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnSpec;
 
 public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, IntWritable, Text, Text> {
     protected static final Logger logger = LoggerFactory.getLogger(RawTablePageIndexMapper.class);
@@ -45,8 +48,11 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
     protected RawTableInstance rawTableInstance;
     protected RawTableDesc rawTableDesc;
 
+    private Path inputPath;
     private ParquetPageIndexWriter indexBundleWriter;
+    private HashMap<Integer, ParquetPageIndexWriter> fuzzyIndexWriterMap;
     private int counter = 0;
+    private int fuzzyLength = 0;
     private Path outputPath;
 
     private int[] columnLength;
@@ -57,11 +63,12 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
     @Override
     protected void setup(Context context) throws IOException {
         Configuration conf = context.getConfiguration();
-        Path inputPath = ((FileSplit) context.getInputSplit()).getPath();
+        inputPath = ((FileSplit) context.getInputSplit()).getPath();
 
         super.bindCurrentConfiguration(conf);
 
         KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
+        fuzzyLength = KapConfig.getInstanceFromEnv().getParquetFuzzyIndexLength();
 
         cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME).toUpperCase();
         segmentName = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_NAME);
@@ -83,22 +90,28 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
     }
 
     private void initIndexWriters() throws IOException {
-        //        RowKeyEncoder rowKeyEncoder = (RowKeyEncoder) AbstractRowKeyEncoder.createInstance(cubeSegment, cuboid);
-
         int columnNum = rawTableDesc.getColumns().size();
         columnLength = new int[columnNum];
         cardinality = new int[columnNum];
         columnName = new String[columnNum];
-        onlyEQIndex = new boolean[columnNum]; // should get from rowKey.index
+        onlyEQIndex = new boolean[columnNum];
+        int hashLength = KapConfig.getInstanceFromEnv().getParquetIndexHashLength();
 
+        fuzzyIndexWriterMap = new HashMap<>();
         List<TblColRef> columns = rawTableDesc.getColumns();
         for (int i = 0; i < columns.size(); i++) {
             TblColRef column = columns.get(i);
-            columnLength[i] = 8;
+            columnLength[i] = hashLength;
             onlyEQIndex[i] = true;
             cardinality[i] = 10000;
             columnName[i] = column.getName();
 
+            if (rawTableDesc.isNeedFuzzyIndex(column)) {
+                Path path = new Path(inputPath.getParent(), shardId + "." + column.getName() + ".parquet.fuzzy");
+                FSDataOutputStream output = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(path);
+                ColumnSpec columnSpec = new ColumnSpec(column.getName(), fuzzyLength, 10000, true, i);
+                fuzzyIndexWriterMap.put(i, new ParquetPageIndexWriter(new ColumnSpec[] { columnSpec }, output));
+            }
         }
 
         FSDataOutputStream outputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(outputPath);
@@ -111,13 +124,35 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
         if (counter % BatchConstants.NORMAL_RECORD_LOG_THRESHOLD == 0) {
             logger.info("Handled " + counter + " records!");
         }
-        List<byte[]> hashedValue = RawTableUtils.hash(key.get());
+
+        List<byte[]> originValue = key.get();
+        List<byte[]> hashedValue = RawTableUtils.hash(originValue);
+
+        for (Integer fuzzyIndex : fuzzyIndexWriterMap.keySet()) {
+            ParquetPageIndexWriter writer = fuzzyIndexWriterMap.get(fuzzyIndex);
+            writeSubstring(writer, originValue.get(fuzzyIndex), fuzzyLength);
+        }
+
         indexBundleWriter.write(hashedValue, value.get());
+    }
+
+    private void writeSubstring(ParquetPageIndexWriter writer, byte[] value, int length) {
+        // skip if value's length is less than required length
+        if (value.length < length) {
+            return;
+        }
+
+        for (int index = 0; index <= (value.length - length); index++) {
+            writer.write(value, index);
+        }
     }
 
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
         indexBundleWriter.close();
+        for (ParquetPageIndexWriter writer : fuzzyIndexWriterMap.values()) {
+            writer.close();
+        }
     }
 
     private List<Integer> getExtendedColumnLen() {

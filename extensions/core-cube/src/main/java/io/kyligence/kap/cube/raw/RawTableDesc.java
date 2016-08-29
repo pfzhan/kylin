@@ -3,6 +3,7 @@ package io.kyligence.kap.cube.raw;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -16,15 +17,19 @@ import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class RawTableDesc extends RootPersistentEntity {
+    private static final Logger logger = LoggerFactory.getLogger(RawTableDesc.class);
     public static final String RAW_TABLE_DESC_RESOURCE_ROOT = "/raw_table_desc";
 
     public static final String INDEX_DISCRETE = "discrete";
@@ -37,6 +42,8 @@ public class RawTableDesc extends RootPersistentEntity {
     private String modelName;
     @JsonProperty("columns")
     private List<RawTableColumnDesc> columns;
+    @JsonProperty("fuzzy_columns")
+    private Set<String> fuzzyColumnSet;
 
     // computed
     private KylinConfig config;
@@ -58,6 +65,7 @@ public class RawTableDesc extends RootPersistentEntity {
         this.columnMap = Maps.newHashMap();
 
         this.columns = Lists.newArrayList();
+        this.fuzzyColumnSet = getFuzzyColumnSet(cubeDesc);
 
         MetadataManager metaMgr = MetadataManager.getInstance(model.getConfig());
         TableDesc factTable = model.getFactTableDesc();
@@ -71,6 +79,7 @@ public class RawTableDesc extends RootPersistentEntity {
                 RawTableColumnDesc rawColDesc = new RawTableColumnDesc(colRef.getColumnDesc(), index, encoding);
                 columnMap.put(colRef, rawColDesc);
                 columns.add(rawColDesc);
+                logger.info("Column name: {}", colRef.getName());
             }
         }
 
@@ -82,32 +91,45 @@ public class RawTableDesc extends RootPersistentEntity {
                 RawTableColumnDesc rawColDesc = new RawTableColumnDesc(colRef.getColumnDesc(), index, encoding);
                 columnMap.put(colRef, rawColDesc);
                 columns.add(rawColDesc);
+                logger.info("Column name: {}", colRef.getName());
             }
         }
 
         int lookupLength = model.getLookups().length;
         for (int i = 0; i < lookupLength; i++) {
             JoinDesc join = model.getLookups()[i].getJoin();
-            for (TblColRef primary: join.getPrimaryKeyColumns()) {
+            for (TblColRef primary : join.getPrimaryKeyColumns()) {
                 if (!columnMap.containsKey(primary)) {
                     String index = null;
                     String encoding = ENCODING_VAR;
                     RawTableColumnDesc rawColDesc = new RawTableColumnDesc(primary.getColumnDesc(), index, encoding);
                     columnMap.put(primary, rawColDesc);
                     columns.add(rawColDesc);
+                    logger.info("Column name: {}", primary.getName());
                 }
             }
 
-            for (TblColRef foreign: join.getForeignKeyColumns()) {
+            for (TblColRef foreign : join.getForeignKeyColumns()) {
                 if (!columnMap.containsKey(foreign)) {
                     String index = null;
                     String encoding = ENCODING_VAR;
                     RawTableColumnDesc rawColDesc = new RawTableColumnDesc(foreign.getColumnDesc(), index, encoding);
                     columnMap.put(foreign, rawColDesc);
                     columns.add(rawColDesc);
+                    logger.info("Column name: {}", foreign.getName());
                 }
             }
         }
+    }
+
+    public static Set<String> getFuzzyColumnSet(CubeDesc cube) {
+        String fuzzyColumns = cube.getOverrideKylinProps().get("kylin.rawtable.fuzzy_columns");
+
+        if (fuzzyColumns == null) {
+            return Sets.newHashSet();
+        }
+
+        return Sets.newHashSet(fuzzyColumns.split(","));
     }
 
     private String guessColIndex(CubeDesc cubeDesc, TblColRef colRef) {
@@ -147,6 +169,10 @@ public class RawTableDesc extends RootPersistentEntity {
             cols.add(colDesc.getColumn().getRef());
         }
         return cols;
+    }
+
+    public Boolean isNeedFuzzyIndex(TblColRef colRef) {
+        return fuzzyColumnSet.contains(colRef.getName());
     }
 
     public int getEstimateRowSize() {

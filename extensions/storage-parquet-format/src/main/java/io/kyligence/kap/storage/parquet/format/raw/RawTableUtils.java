@@ -21,6 +21,7 @@ package io.kyligence.kap.storage.parquet.format.raw;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.ByteArray;
 
 public class RawTableUtils {
@@ -52,18 +53,19 @@ public class RawTableUtils {
     }
 
     public static ByteArray hash(ByteArray value) {
-        byte[] result = new byte[8];
+        int hashLength= KapConfig.getInstanceFromEnv().getParquetIndexHashLength();
+        byte[] result = new byte[hashLength];
 
-        if (value.length() <= 8) {
+        if (value.length() <= hashLength) {
             System.arraycopy(value.array(), value.offset(), result, 0, value.length());
-            for (int i = value.length(); i < 8; i++) {
+            for (int i = value.length(); i < hashLength; i++) {
                 result[i] = (byte) 0;
             }
         } else {
-            System.arraycopy(value.array(), value.offset(), result, 0, 8);
+            System.arraycopy(value.array(), value.offset(), result, 0, hashLength);
 
-            for (int i = 8; i < value.length(); i++) {
-                result[i % 8] ^= value.array()[i + value.offset()];
+            for (int i = hashLength; i < value.length(); i++) {
+                result[i % hashLength] ^= value.array()[i + value.offset()];
             }
         }
 

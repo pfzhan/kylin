@@ -25,7 +25,6 @@ import java.util.List;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.spark.Accumulator;
