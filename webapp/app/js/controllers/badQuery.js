@@ -49,9 +49,9 @@ KylinApp
           if (e.data && e.data.exception) {
             var message = e.data.exception;
             var msg = !!(message) ? message : $scope.dataKylin.alert.error_failed_to_load_query;
-            SweetAlert.swal('Oops...', msg, 'error');
+            SweetAlert.swal($scope.dataKylin.alert.oops, msg, 'error');
           } else {
-            SweetAlert.swal('Oops...', $scope.dataKylin.alert.error_failed_to_load_query, 'error');
+            SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.error_failed_to_load_query, 'error');
           }
         });
       }

@@ -208,7 +208,7 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
 
   $scope.check_cube_info = function(){
     if(($scope.state.mode === "edit") &&$scope.cubeMode=="addNewCube"&&($scope.allCubes.indexOf($scope.cubeMetaFrame.name.toUpperCase()) >= 0)){
-      SweetAlert.swal('Oops...', "The cube named [" + $scope.cubeMetaFrame.name.toUpperCase() + "] already exists", 'warning');
+      SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.warning_cube_part_one + $scope.cubeMetaFrame.name.toUpperCase() + $scope.dataKylin.alert.warning_cube_part_two, 'warning');
       return false;
     }
     return true;
@@ -217,7 +217,7 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
     $scope.check_cube_dimension = function(){
         var errors = [];
         if(!$scope.cubeMetaFrame.dimensions.length){
-            errors.push("Dimension can't be null");
+            errors.push($scope.dataKylin.alert.check_cube_dimension);
         }
         var errorInfo = "";
         angular.forEach(errors,function(item){
@@ -235,7 +235,7 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
         var _measures = $scope.cubeMetaFrame.measures;
         var errors = [];
         if(!_measures||!_measures.length){
-            errors.push("Please define your metrics.");
+            errors.push($scope.dataKylin.alert.check_cube_measure_define);
         }
 
         var existCountExpression = false;
@@ -246,7 +246,7 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
             }
         }
         if(!existCountExpression){
-            errors.push("[COUNT] metric is required.");
+            errors.push($scope.dataKylin.alert.check_cube_measure_metric);
         }
 
         var errorInfo = "";
@@ -265,8 +265,8 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
         var errors = [];
 
         angular.forEach($scope.cubeMetaFrame.aggregation_groups,function(group){
-            if(!group&&!group.includes){
-                errors.push("Each aggregation group can't be empty.");
+            if(!group||!group.includes||group.includes.length==0){
+                errors.push($scope.dataKylin.alert.check_cube_aggregation_groups);
             }
         })
 
@@ -276,11 +276,11 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
           shardRowkeyList.push(rowkey.column);
         }
         if(rowkey.encoding.substr(0,3)=='int' && (rowkey.encoding.substr(4)<1 || rowkey.encoding.substr(4)>8)){
-          errors.push("int encoding column length should between 1 and 8.");
+          errors.push($scope.dataKylin.alert.check_cube_rowkeys_int);
         }
       })
       if(shardRowkeyList.length >1){
-          errors.push("At most one 'shard by' column is allowed.");
+          errors.push($scope.dataKylin.alert.check_cube_rowkeys_shard);
       }
 
         var errorInfo = "";

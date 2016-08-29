@@ -249,7 +249,7 @@ var projCtrl = function ($scope, $location, $modalInstance, ProjectService, Mess
         newDescription: $scope.proj.description
       };
       ProjectService.update({}, requestBody, function (newProj) {
-        kylinCommon.success_alert($scope.dataKylin.alert.success_project_update);
+        kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_project_update);
         //update project in project model
         ProjectModel.updateProject($scope.proj.name, $scope.state.oldProjName);
         $cookieStore.put("project", $scope.proj.name);
@@ -261,7 +261,7 @@ var projCtrl = function ($scope, $location, $modalInstance, ProjectService, Mess
     }
     else {
       ProjectService.save({}, $scope.proj, function (newProj) {
-        SweetAlert.swal('Success!', $scope.dataKylin.alert.tip_new_project_created, 'success');
+        SweetAlert.swal($scope.dataKylin.alert.success, $scope.dataKylin.alert.tip_new_project_created, 'success');
         $modalInstance.dismiss('cancel');
 //                if(projects) {
 //                    projects.push(newProj);

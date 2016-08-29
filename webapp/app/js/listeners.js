@@ -137,7 +137,7 @@ KylinApp.run(function ($rootScope, $http, $location, UserService, Authentication
    */
   $rootScope.$on('event:forbidden', function (event, message) {
     var msg = !!(message) ? message : 'You don\' have right to take the action.';
-    SweetAlert.swal('Oops...', 'Permission Denied: ' + msg, 'error');
+    SweetAlert.swal($scope.dataKylin.alert.oops, 'Permission Denied: ' + msg, 'error');
 
   });
 

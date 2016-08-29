@@ -88,7 +88,7 @@ KylinApp.controller('ExtFilterCtrl', function ($scope,$rootScope,$modal, ExtFilt
       if(isConfirm){
         ExtFilterService.remove({filterName: filter.name,projectName:project.name}, function(){
           $rootScope.$emit('extFiltersUpdated');
-          kylinCommon.success_alert($scope.dataKylin.alert.tip_delete_filter_part_one+ filter.name + $scope.dataKylin.tip_delete_filter_part_two);
+          kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.tip_delete_filter_part_one+ filter.name + $scope.dataKylin.tip_delete_filter_part_two);
         },function(e){
           kylinCommon.error_default(e);
         });
@@ -136,7 +136,7 @@ var filterCreateCtrl = function ($scope,$rootScope,ExtFilterService,cubeConfig, 
         extFilter:filterData
       }, function (e) {
         $rootScope.$emit('extFiltersUpdated');
-        kylinCommon.success_alert($scope.dataKylin.alert.tip_delete_filter_part_one + $scope.projectFilter.name + $scope.dataKylin.alert.tip_update_filter_part_two);
+        kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.tip_delete_filter_part_one + $scope.projectFilter.name + $scope.dataKylin.alert.tip_update_filter_part_two);
         $modalInstance.dismiss('cancel');
       }, function (e) {
         kylinCommon.error_default(e);
@@ -149,8 +149,8 @@ var filterCreateCtrl = function ($scope,$rootScope,ExtFilterService,cubeConfig, 
         extFilter:filterData
       }, function (e) {
         $rootScope.$emit('extFiltersUpdated');
-        kylinCommon.success_alert($scope.dataKylin.alert.tip_create_filter_part_one+$scope.projectFilter.name+$scope.dataKylin.alert.tip_create_filter_part_two);
-        SweetAlert.swal('Success!', 'New Filter [' + $scope.projectFilter.name + '] created successfully!', 'success');
+        kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.tip_create_filter_part_one+$scope.projectFilter.name+$scope.dataKylin.alert.tip_create_filter_part_two);
+        SweetAlert.swal($scope.dataKylin.alert.success, $scope.dataKylin.alert.success_filecreat_part_one + $scope.projectFilter.name + $scope.dataKylin.alert.success_filecreat_part_two, 'success');
         $modalInstance.dismiss('cancel');
       }, function (e) {
         kylinCommon.error_default(e);

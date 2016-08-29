@@ -47,22 +47,22 @@ KylinApp.controller('AccessCtrl', function ($scope, $compile,AccessService, Mess
       entity.accessEntities = accessEntities;
       $scope.resetNewAcess();
 //            MessageService.sendMsg('Access granted!', 'success', {});
-      kylinCommon.success_alert($scope.dataKylin.alert.success_grant);
+      kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_grant);
      // SweetAlert.swal('Success!', 'Access granted!', 'success');
     }, function (e) {
       if (e.status == 404) {
 //                MessageService.sendMsg('User not found!', 'error', {});
-        kylinCommon.error_alert($scope.dataKylin.alert.userNotFound);
+        kylinCommon.error_alert($scope.dataKylin.alert.oops,$scope.dataKylin.alert.userNotFound);
         //SweetAlert.swal('Oops...', 'User not found!!', 'error');
       }
       else {
         if (e.data && e.data.exception) {
           var message = e.data.exception;
           var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
-          kylinCommon.error_alert(msg);
+          kylinCommon.error_alert($scope.dataKylin.alert.oops,msg);
           //SweetAlert.swal('Oops...', msg, 'error');
         } else {
-          kylinCommon.error_alert($scope.dataKylin.alert.error_info);
+          kylinCommon.error_alert($scope.dataKylin.alert.oops,$scope.dataKylin.alert.error_info);
         }
 
       }
@@ -77,7 +77,7 @@ KylinApp.controller('AccessCtrl', function ($scope, $compile,AccessService, Mess
     AccessService.update({type: type, uuid: entity.uuid}, updateRequst, function (accessEntities) {
       entity.accessEntities = accessEntities;
 //            MessageService.sendMsg('Access granted!', 'success', {});
-      SweetAlert.swal('', 'Access granted!', 'success');
+      SweetAlert.swal('',$scope.dataKylin.alert.success_access, 'success');
     }, function (e) {
       kylinCommon.error_default(e);
     });
@@ -102,10 +102,10 @@ KylinApp.controller('AccessCtrl', function ($scope, $compile,AccessService, Mess
       };
       AccessService.revoke(revokeRequst, function (accessEntities) {
         entity.accessEntities = accessEntities.accessEntryResponseList;
-        kylinCommon.success_alert($scope.dataKylin.alert.success_access_been_revoked);
+        kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_access_been_revoked);
         //SweetAlert.swal('Success!', 'The access has been revoked.', 'success');
       }, function (e) {
-        kylinCommon.error_alert($scope.dataKylin.alert.error_info);
+        kylinCommon.error_alert($scope.dataKylin.alert.oops,$scope.dataKylin.alert.error_info);
       });
       }
     });

@@ -78,7 +78,7 @@ KylinApp
                         $scope.projects.splice(pIndex, 1);
                     }
                 ProjectModel.removeProject(project.name);
-                  kylinCommon.success_alert($scope.dataKylin.alert.tip_project_delete_part_one+project.name+$scope.dataKylin.alert.tip_project_delete_part_two);
+                  kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.tip_project_delete_part_one+project.name+$scope.dataKylin.alert.tip_project_delete_part_two);
                 },function(e){
                     kylinCommon.error_default(e);
                 });

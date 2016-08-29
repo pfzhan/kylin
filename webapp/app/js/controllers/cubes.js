@@ -112,7 +112,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
                 defer.resolve(cube.detail);
 
               } else {
-                SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_no_cube_detail, 'error');
+                SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.tip_no_cube_detail, 'error');
               }
             }, function (e) {
               kylinCommon.error_default(e);
@@ -126,7 +126,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
       },function(resp){
         $scope.loading = false;
         defer.resolve([]);
-        SweetAlert.swal('Oops...', resp, 'error');
+        SweetAlert.swal($scope.dataKylin.alert.oops, resp, 'error');
         return defer.promise;
       });
     };
@@ -154,7 +154,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
               defer.resolve(cube.detail);
 
           } else {
-            SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_no_cube_detail_loaded, 'error');
+            SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.tip_no_cube_detail_loaded, 'error');
           }
         }, function (e) {
           kylinCommon.error_default(e);
@@ -198,7 +198,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
                 $scope.cubeList.cubes[$scope.cubeList.cubes.indexOf(cube)] = _cube;
               }
             });
-            kylinCommon.success_alert($scope.dataKylin.alert.success_Enable_submitted);
+            kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_Enable_submitted);
           },function(e){
 
             loadingRequest.hide();
@@ -223,7 +223,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
           loadingRequest.show();
           CubeService.purge({cubeId: cube.name}, {}, function (result) {
             loadingRequest.hide();
-            kylinCommon.success_alert($scope.dataKylin.alert.success_purge_job);
+            kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_purge_job);
             $scope.refreshCube(cube).then(function(_cube){
               if(_cube && _cube.name){
                 $scope.cubeList.cubes[$scope.cubeList.cubes.indexOf(cube)] = _cube;
@@ -258,7 +258,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
                 $scope.cubeList.cubes[$scope.cubeList.cubes.indexOf(cube)] = _cube;
               }
             });
-            kylinCommon.success_alert($scope.dataKylin.alert.success_disable_job_submit);
+            kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_disable_job_submit);
           },function(e){
             loadingRequest.hide();
             kylinCommon.error_default(e);
@@ -286,7 +286,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
           loadingRequest.show();
           CubeService.drop({cubeId: cube.name}, {}, function (result) {
             loadingRequest.hide();
-            kylinCommon.success_alert($scope.dataKylin.alert.tip_cube_drop);
+            kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.tip_cube_drop);
             //location.reload();
             $scope.cubeList.cubes.splice($scope.cubeList.cubes.indexOf(cube),1);
           },function(e){
@@ -361,7 +361,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
                 }, function (job) {
 
                   loadingRequest.hide();
-                  kylinCommon.success_alert($scope.dataKylin.alert.success_rebuild_job);
+                  kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_rebuild_job);
                 },function(e){
                   loadingRequest.hide();
                   kylinCommon.error_default(e);
@@ -401,7 +401,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
     $scope.cloneCube = function(cube){
 
       if(!$scope.projectModel.selectedProject){
-        SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_select_target_project, 'info');
+        SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.tip_select_target_project, 'info');
         return;
       }
 
@@ -466,7 +466,7 @@ var cubeCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServic
   $scope.cloneCube = function(){
 
     if(!$scope.targetObj.targetProject){
-      SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_select_target_project, 'info');
+      SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.tip_select_target_project, 'info');
       return;
     }
 
@@ -489,7 +489,7 @@ var cubeCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServic
         loadingRequest.show();
         CubeService.clone({cubeId: cube.name}, $scope.cubeRequest, function (result) {
           loadingRequest.hide();
-          kylinCommon.success_alert($scope.dataKylin.alert.success_clone_cube);
+          kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_clone_cube);
           location.reload();
         }, function (e) {
           loadingRequest.hide();
@@ -527,7 +527,7 @@ var jobSubmitCtrl = function ($scope,scope, $modalInstance, CubeService, Message
     CubeService.rebuildCube({cubeId: cube.name}, $scope.jobBuildRequest, function (job) {
       loadingRequest.hide();
       $modalInstance.dismiss('cancel');
-      SweetAlert.swal('Success!', $scope.dataKylin.alert.success_rebuild_job, 'success');
+      SweetAlert.swal($scope.dataKylin.alert.success, $scope.dataKylin.alert.success_rebuild_job, 'success');
       scope.refreshCube(cube).then(function(_cube){
         $scope.cubeList.cubes[$scope.cubeList.cubes.indexOf(cube)] = _cube;
       });
@@ -557,9 +557,9 @@ var jobSubmitCtrl = function ($scope,scope, $modalInstance, CubeService, Message
         }
 
         var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
-        SweetAlert.swal('Oops...', msg, 'error');
+        SweetAlert.swal($scope.dataKylin.alert.oops, msg, 'error');
       } else {
-        SweetAlert.swal('Oops...', $scope.dataKylin.alert.error_info, 'error');
+        SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.error_info, 'error');
       }
     });
   };

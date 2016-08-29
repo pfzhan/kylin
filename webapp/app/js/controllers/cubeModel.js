@@ -186,13 +186,13 @@ KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConf
             // null validate
             for(var i = 0;i<$scope.newLookup.join.primary_key.length;i++){
                 if($scope.newLookup.join.primary_key[i]==='null'){
-                    errors.push("Primary Key can't be null.");
+                    errors.push($scope.dataKylin.alert.check_look_up_primary_key);
                     break;
                 }
             }
             for(var i = 0;i<$scope.newLookup.join.foreign_key.length;i++){
                 if($scope.newLookup.join.foreign_key[i]==='null'){
-                    errors.push("Foreign Key can't be null.");
+                    errors.push($scope.dataKylin.alert.check_look_up_foreign_key);
                     break;
                 }
             }
@@ -208,7 +208,7 @@ KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConf
                     var pk_type = TableModel.getColumnType(pk_column,lookup_table);
                     var fk_type = TableModel.getColumnType(fk_column,fact_table);
                     if(pk_type!==fk_type){
-                        errors.push(" Column Type incompatible "+pk_column+"["+pk_type+"]"+","+fk_column+"["+fk_type+"].");
+                        errors.push($scope.dataKylin.alert.check_look_up_column+pk_column+"["+pk_type+"]"+","+fk_column+"["+fk_type+"].");
                     }
                 }
             }

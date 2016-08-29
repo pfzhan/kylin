@@ -30,7 +30,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
   $scope.cubeMode = absUrl.indexOf("/cubes/add") != -1 ? 'addNewCube' : absUrl.indexOf("/cubes/edit") != -1 ? 'editExistCube' : 'default';
 
   if ($scope.cubeMode == "addNewCube" &&ProjectModel.selectedProject==null) {
-    SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_select_project, 'warning');
+    SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.tip_select_project, 'warning');
     $location.path("/models");
     return;
   }
@@ -233,16 +233,16 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
               $scope.state.cubeInstance =angular.toJson($scope.instance,true);
 
               } else {
-              SweetAlert.swal('Oops...', "No cube detail info loaded.", 'error');
+              SweetAlert.swal($scope.dataKylin.alert.oops,$scope.dataKylin.alert.error_cube_edit_cube_detail, 'error');
             }
 
           },function(e){
           if (e.data && e.data.exception) {
               var message = e.data.exception;
-              var msg = !!(message) ? message : 'Failed to take action.';
-              SweetAlert.swal('Oops...', msg, 'error');
+              var msg = !!(message) ? message : $scope.dataKylin.alert.check_cube_edit_query_param;
+              SweetAlert.swal($scope.dataKylin.alert.oops, msg, 'error');
             } else {
-              SweetAlert.swal('Oops...', "Failed to take action.", 'error');
+              SweetAlert.swal($scope.dataKylin.alert.oops,$scope.dataKylin.alert.check_cube_edit_query_param, 'error');
             }
         });
 
@@ -298,7 +298,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
     try {
       angular.fromJson($scope.state.cubeSchema);
     } catch (e) {
-      SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_invalid_cube, 'error');
+      SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.tip_invalid_cube, 'error');
       return;
     }
 
@@ -322,7 +322,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
           }, function (request) {
             if (request.successful) {
               $scope.state.cubeSchema = request.cubeDescData;
-              kylinCommon.success_alert($scope.dataKylin.alert.success_updated_cube);
+              kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_updated_cube);
               $location.path("/models");
             } else {
               $scope.saveCubeRollBack();
@@ -361,7 +361,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
           }, function (request) {
             if (request.successful) {
               $scope.state.cubeSchema = request.cubeDescData;
-              kylinCommon.success_alert($scope.dataKylin.alert.success_created_cube);
+              kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_created_cube);
               $location.path("/models");
               //location.reload();
             } else {

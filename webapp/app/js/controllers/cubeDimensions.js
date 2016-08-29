@@ -257,11 +257,11 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
 
             if($scope.dimType[0]=="derived"){
                 if(!$scope.newDimension.derived.length){
-                    errors.push("Please define your derived columns.");
+                    errors.push($scope.dataKylin.alert.check_cube_dimensions_derived);
                 }
                 for(var i = 0;i<$scope.newDimension.derived.length;i++){
                     if($scope.newDimension.derived[i]===""){
-                        errors.push("Derived value can't be null.");
+                        errors.push($scope.dataKylin.alert.check_cube_dimensions_value);
                         break;
                     }
                 }
@@ -269,7 +269,7 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
                     var _columns = angular.copy($scope.newDimension.derived).sort();
                     for(var i = 0;i<_columns.length-1;i++){
                         if(_columns[i]==_columns[i+1]&&_columns[i]!==""){
-                            errors.push("Duplicate column "+_columns[i]+".");
+                            errors.push($scope.dataKylin.alert.check_cube_dimensions_duplicate+_columns[i]+".");
                         }
                     }
                 }

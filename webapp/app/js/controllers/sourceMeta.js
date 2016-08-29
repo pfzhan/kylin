@@ -61,7 +61,7 @@ KylinApp
 //         will load table when enter this page,null or not
       $scope.aceSrcTbLoaded();
     }, function (resp) {
-      SweetAlert.swal('Oops...', resp, 'error');
+      SweetAlert.swal($scope.dataKylin.alert.oops, resp, 'error');
     });
 
 
@@ -83,7 +83,7 @@ KylinApp
 
     $scope.openModal = function () {
       if(!$scope.projectModel.selectedProject){
-        SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_select_project, 'info');
+        SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.tip_select_project, 'info');
         return;
       }
       $modal.open({
@@ -106,7 +106,7 @@ KylinApp
 
     $scope.openTreeModal = function () {
       if(!$scope.projectModel.selectedProject){
-        SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_select_project, 'info');
+        SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.tip_select_project, 'info');
         return;
       }
       $modal.open({
@@ -128,7 +128,7 @@ KylinApp
 
     $scope.openUnLoadModal = function () {
       if(!$scope.projectModel.selectedProject){
-        SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_select_project, 'info');
+        SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.tip_select_project, 'info');
         return;
       }
       $modal.open({
@@ -345,7 +345,7 @@ KylinApp
             SweetAlert.swal($scope.dataKylin.alert.tip_result_unload_title, $scope.dataKylin.alert.tip_result_unload_body + unloadedTableInfo, 'error');
           }
           if (result['result.loaded'].length != 0 && result['result.unloaded'].length == 0) {
-            kylinCommon.success_alert($scope.dataKylin.alert.success_table_been_synchronized+loadTableInfo);
+            kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_table_been_synchronized+loadTableInfo);
           }
           if (result['result.loaded'].length != 0 && result['result.unloaded'].length != 0) {
             SweetAlert.swal($scope.dataKylin.alert.tip_partial_loaded_title, $scope.dataKylin.alert.tip_partial_loaded_body_part_one + loadTableInfo + $scope.dataKylin.alert.tip_partial_loaded_body_part_two + unloadedTableInfo, 'warning');
@@ -387,7 +387,7 @@ KylinApp
             SweetAlert.swal($scope.dataKylin.alert.tip_result_unload_title, $scope.dataKylin.alert.tip_result_unload_body + unRemovedTableInfo, 'error');
           }
           if (result['result.unload.success'].length != 0 && result['result.unload.fail'].length == 0) {
-            kylinCommon.success_alert($scope.dataKylin.alert.success_table_been_synchronized);
+            kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_table_been_synchronized);
           }
           if (result['result.unload.success'].length != 0 && result['result.unload.fail'].length != 0) {
             SweetAlert.swal($scope.dataKylin.alert.tip_partial_loaded_title, $scope.dataKylin.alert.tip_partial_loaded_body_part_one + loadTableInfo + $scope.dataKylin.alert.tip_partial_loaded_body_part_two + unloadedTableInfo, 'warning');
@@ -406,7 +406,7 @@ KylinApp
     //streaming model
     $scope.openStreamingSourceModal = function () {
       if(!$scope.projectModel.selectedProject){
-        SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_select_project, 'info');
+        SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.tip_select_project, 'info');
         return;
       }
       $modal.open({

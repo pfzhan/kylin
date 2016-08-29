@@ -28,14 +28,14 @@ KylinApp.service('kylinCommon', function (SweetAlert,$timeout,language) {
         this.error_alert( dataKylin.alert.error_info);
       }
   }
-  this.error_alert = function(msg){
+  this.error_alert = function(opps,msg){
     $timeout(function(){
-      SweetAlert.swal( 'Oops...', msg, 'error' );
+      SweetAlert.swal( opps, msg, 'error' );
     }, 200);
   };
-  this.success_alert = function(msg){
+  this.success_alert = function(success,msg){
     $timeout(function(){
-      SweetAlert.swal( 'Success', msg, 'success' );
+      SweetAlert.swal( success, msg, 'success' );
     }, 200);
   }
 });

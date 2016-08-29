@@ -25,7 +25,7 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
     $scope.modelMode = absUrl.indexOf("/models/add")!=-1?'addNewModel':absUrl.indexOf("/models/edit")!=-1?'editExistModel':'default';
 
     if($scope.modelMode=="addNewModel"&&ProjectModel.selectedProject==null){
-        SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_select_project, 'warning');
+        SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.tip_select_project, 'warning');
         $location.path("/models");
     }
 
@@ -136,7 +136,7 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
         try {
             angular.fromJson($scope.state.modelSchema);
         } catch (e) {
-            SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_invalid_model_json, 'error');
+            SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.tip_invalid_model_json, 'error');
             return;
         }
 

@@ -279,7 +279,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
       }
     })
     if(isColumnExit){
-      SweetAlert.swal($scope.dataKylin.alert.warning_oops, $scope.dataKylin.alert.warning_dictionaries_part_one + $scope.newDictionaries.column + $scope.dataKylin.alert.warning_dictionaries_part_two, 'warning');
+      SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.warning_dictionaries_part_one + $scope.newDictionaries.column + $scope.dataKylin.alert.warning_dictionaries_part_two, 'warning');
       return false;
     }
     return true;

@@ -383,7 +383,7 @@ KylinApp
 
             $scope.saveQuery = function (query) {
                 QueryService.save({}, {name: query.name, project: query.project, sql: query.sql, description: query.description}, function () {
-                    kylinCommon.success_alert($scope.dataKylin.alert.success_new_query_saved)
+                    kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_new_query_saved)
                     $modalInstance.dismiss('cancel');
                 });
             }

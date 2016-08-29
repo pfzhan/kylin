@@ -65,7 +65,7 @@ KylinApp.controller('UserSettingCtrl', function ($scope, $rootScope, $location, 
     }
 
     KapUserService.reset({},$scope.user,function(){
-      kylinCommon.success_alert($scope.dataKylin.user.success_resetSuccess);
+      kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.user.success_resetSuccess);
     },function(e){
       var message = $scope.dataKylin.user.failed_reset;
       if( e.data&& e.data.exception){

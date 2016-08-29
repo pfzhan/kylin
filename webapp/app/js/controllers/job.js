@@ -95,7 +95,7 @@ KylinApp
             },function(resp){
               $scope.state.loading = false;
               defer.resolve([]);
-              SweetAlert.swal('Oops...', resp, 'error');
+              SweetAlert.swal($scope.dataKylin.alert.oops, resp, 'error');
               return defer.promise;
             });
         }
@@ -132,7 +132,7 @@ KylinApp
                   if (angular.isDefined($scope.state.selectedJob)) {
                     $scope.state.selectedJob = JobList.jobs[$scope.state.selectedJob.uuid];
                   }
-                  kylinCommon.success_alert($scope.dataKylin.alert.success_job_been_resumed);
+                  kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_job_been_resumed);
                 }, function (e) {
                   loadingRequest.hide();
                   kylinCommon.error_default(e);
@@ -163,7 +163,7 @@ KylinApp
                         }
 
                     });
-                    kylinCommon.success_alert($scope.dataKylin.alert.success_Job_been_discarded);
+                    kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_Job_been_discarded);
                 },function(e){
                     loadingRequest.hide();
                     kylinCommon.error_default(e);
@@ -196,7 +196,7 @@ KylinApp
                             tjob.steps[stepId].loadingOp = false;
                         }
                     },function(e){
-                      SweetAlert.swal('Oops...',$scope.dataKylin.alert.error_failed_to_load_job, 'error');
+                      SweetAlert.swal($scope.dataKylin.alert.oops,$scope.dataKylin.alert.error_failed_to_load_job, 'error');
                     });
                 } else {
                     internalOpenModal();

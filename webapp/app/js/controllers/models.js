@@ -131,7 +131,7 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
         ModelService.drop({modelId: model.name}, {}, function (result) {
           loadingRequest.hide();
 //                    CubeList.removeCube(cube);
-          kylinCommon.success_alert($scope.dataKylin.alert.success_model_drop_done);
+          kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_model_drop_done);
           location.reload();
         }, function (e) {
           loadingRequest.hide();
@@ -172,7 +172,7 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
         $location.path("/models/edit/" + model.name);
       }
       else {
-        SweetAlert.swal('Sorry', $scope.dataKylin.alert.tip_model_be_used + cubename.join(',') + $scope.dataKylin.alert.tip_model_be_used_by);
+        SweetAlert.swal($scope.dataKylin.alert.oops,$scope.dataKylin.alert.tip_model_be_used + cubename.join(',') +$scope.dataKylin.alert.tip_model_be_used_by,'warning');
       }
     }
   }
@@ -215,7 +215,7 @@ var modelCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServi
   $scope.cloneModel = function(){
 
     if(!$scope.targetObj.targetProject){
-      SweetAlert.swal('Oops...', $scope.dataKylin.alert.tip_select_target_project, 'info');
+      SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.tip_select_target_project, 'info');
       return;
     }
     $scope.modelRequest = {
@@ -238,7 +238,7 @@ var modelCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServi
         loadingRequest.show();
         ModelService.clone({modelId: model.name}, $scope.modelRequest, function (result) {
           loadingRequest.hide();
-          SweetAlert.swal('Success!', $scope.dataKylin.alert.success_clone_model, 'success');
+          SweetAlert.swal($scope.dataKylin.alert.success, $scope.dataKylin.alert.success_clone_model, 'success');
           location.reload();
         }, function (e) {
           loadingRequest.hide();

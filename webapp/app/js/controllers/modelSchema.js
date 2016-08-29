@@ -184,7 +184,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope, QueryService, UserServi
     var models = $scope.modelsManager.modelNameList;
     if ($scope.modelMode=="addNewModel") {
       if(models.indexOf(modelName) != -1 || models.indexOf(modelName.toLowerCase()) !=-1){
-        SweetAlert.swal('', "Model named [" + modelName + "] already exist!", 'warning');
+        SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.warning_model_part_one + modelName + $scope.dataKylin.alert.warning_model_part_two, 'warning');
         return false;
       }
     }
@@ -229,14 +229,14 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope, QueryService, UserServi
       }
     });
     if(!isDimensionDefined){
-      errors.push("No dimensions defined.");
+      errors.push($scope.dataKylin.alert.check_model_dimension);
     }
     var errorInfo = "";
     angular.forEach(errors, function (item) {
       errorInfo += "\n" + item;
     });
     if (errors.length) {
-      SweetAlert.swal('Oops...', errorInfo, 'warning');
+      SweetAlert.swal($scope.dataKylin.alert.oops, errorInfo, 'warning');
       return false;
     } else {
       return true;
@@ -252,7 +252,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope, QueryService, UserServi
 
     var errors = [];
     if (!modelsManager.selectedModel.metrics || !modelsManager.selectedModel.metrics.length) {
-      errors.push("Please define your metrics.");
+      errors.push($scope.dataKylin.alert.check_model_measure_define);
     }
     var errorInfo = "";
     angular.forEach(errors, function (item) {

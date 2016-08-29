@@ -159,7 +159,7 @@ KylinApp.controller('UsersCtrl', function ($scope, $rootScope, $location, $base6
           var _index = findUserIndex($scope.girdData, user.entity);
           //var _index =  _.findIndex($scope.girdData,function(item){return item.username == user.username})
           $scope.girdData.splice(_index, 1);
-          kylinCommon.success_alert($scope.dataKylin.user.success_drop);
+          kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.user.success_drop);
         }, function () {
           SweetAlert.swal('', message, 'error');
         })
@@ -172,7 +172,7 @@ KylinApp.controller('UsersCtrl', function ($scope, $rootScope, $location, $base6
       var _index = findUserIndex($scope.girdData, user);
       //var _index =  _.findIndex($scope.girdData,function(item){return item.username == user.username});
       $scope.girdData[_index] = userDetailToUser(user);
-      kylinCommon.success_alert($scope.dataKylin.user.success_disable);
+      kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.user.success_disable);
     },function(){
       SweetAlert.swal('', message, 'error');
     })
@@ -183,7 +183,7 @@ KylinApp.controller('UsersCtrl', function ($scope, $rootScope, $location, $base6
       var _index = findUserIndex($scope.girdData, user);
       //var _index =  _.findIndex($scope.girdData,function(item){return item.username == user.username});
       $scope.girdData[_index] = userDetailToUser(user);
-      kylinCommon.success_alert($scope.dataKylin.user.success_enable);
+      kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.user.success_enable);
     },function(){
       SweetAlert.swal('', message, 'error');
     })
@@ -254,7 +254,7 @@ var addUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService, 
         }
       }
     });
-    
+
     if(!$scope.keepGoing) return;
     if($scope.newUser.password != $scope.newUser.confirmPassword){
       $scope.error = $scope.dataKylin.user.tip_error_not_same;
@@ -273,7 +273,7 @@ var addUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService, 
     KapUserService.save({id:userDetail.username},userDetail,function(user){
       $modalInstance.dismiss('cancel');
       scope.girdData.push(userDetailToUser(user));
-      kylinCommon.success_alert($scope.dataKylin.user.success_add_user);
+      kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.user.success_add_user);
     },function(){
       SweetAlert.swal('', message, 'error');
     })
@@ -305,7 +305,7 @@ var editUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService,
       $modalInstance.dismiss('cancel');
       var _index = findUserIndex(scope.girdData,user);
       scope.girdData[_index] = userDetailToUser(user);
-      kylinCommon.success_alert($scope.dataKylin.user.success_update_user);
+      kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.user.success_update_user);
     },function(){
       SweetAlert.swal('', message, 'error');
     })
@@ -341,7 +341,7 @@ var resetUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService
     var userDetail = userToUserDetail($scope.resetUser);
     KapUserService.reset({},userDetail,function(user){
       $modalInstance.dismiss('cancel');
-      kylinCommon.success_alert($scope.dataKylin.user.success_resetSuccess);
+      kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.user.success_resetSuccess);
     },function(e){
       var message = $scope.dataKylin.user.failed_reset;
       if( e.data&& e.data.exception){

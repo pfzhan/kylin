@@ -58,7 +58,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
     }, function (isConfirm) {
       if (isConfirm) {
         CacheService.clean({}, function () {
-          kylinCommon.success_alert($scope.dataKylin.alert.success_cache_reload);
+          kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_cache_reload);
         }, function (e) {
           kylinCommon.error_default(e);
         });
@@ -94,7 +94,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
     }, function (isConfirm) {
       if (isConfirm) {
         AdminService.cleanStorage({}, function () {
-          kylinCommon.success_alert($scope.dataKylin.alert.success_storage_cleaned);
+          kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_storage_cleaned);
         }, function (e) {
           kylinCommon.error_default(e);
         });
@@ -114,7 +114,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
     }, function (isConfirm) {
       if (isConfirm) {
         AdminService.updateConfig({}, {key: 'kylin.query.cache.enabled', value: false}, function () {
-          kylinCommon.success_alert($scope.dataKylin.alert.success_cache_disabled);
+          kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_cache_disabled);
           location.reload();
         }, function (e) {
           kylinCommon.error_default(e);
@@ -137,7 +137,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
     }, function (isConfirm) {
       if (isConfirm) {
         AdminService.updateConfig({}, {key: 'kylin.query.cache.enabled', value: true}, function () {
-          kylinCommon.success_alert($scope.dataKylin.alert.success_cache_enabled);
+          kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_cache_enabled);
           location.reload();
         }, function (e) {
           kylinCommon.error_default(e);
@@ -172,7 +172,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
         format: $scope.format
       }, function (result) {
         loadingRequest.hide();
-        kylinCommon.success_alert($scope.dataKylin.alert.success_cardinality_job);
+        kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_cardinality_job);
       }, function (e) {
         loadingRequest.hide();
         kylinCommon.error_default(e);
@@ -193,7 +193,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
 
 
       AdminService.updateConfig({}, {key: $scope.state.key, value: $scope.state.value}, function (result) {
-        kylinCommon.success_alert($scope.dataKylin.alert.success_config_updated);
+        kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_config_updated);
         $modalInstance.dismiss();
       }, function (e) {
         kylinCommon.error_default(e);
