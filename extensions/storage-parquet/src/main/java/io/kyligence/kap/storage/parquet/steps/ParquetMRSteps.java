@@ -58,7 +58,7 @@ public class ParquetMRSteps extends JobBuilderSupport {
         final List<String> mergingCuboidPaths = Lists.newArrayList();
         for (CubeSegment merging : mergingSegments) {
             if (RawTableInstance.isRawTableEnabled(merging.getCubeDesc())) {
-                mergingCuboidPaths.add(getParquetFolderPath(merging) + "RawTable/" + "*");
+                mergingCuboidPaths.add(getParquetFolderPath(merging) + "RawTable/*");
             }
         }
         String formattedPath = StringUtil.join(mergingCuboidPaths, ",");

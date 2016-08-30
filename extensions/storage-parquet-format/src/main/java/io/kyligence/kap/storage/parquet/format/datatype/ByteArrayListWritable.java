@@ -1,13 +1,13 @@
 package io.kyligence.kap.storage.parquet.format.datatype;
 
-import org.apache.hadoop.io.WritableComparable;
-import org.apache.hadoop.io.WritableComparator;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.io.WritableComparator;
 
 public class ByteArrayListWritable implements WritableComparable<ByteArrayListWritable> {
 
@@ -45,7 +45,7 @@ public class ByteArrayListWritable implements WritableComparable<ByteArrayListWr
             out.writeInt(b.length);
         }
 
-        for (byte[] b: value) {
+        for (byte[] b : value) {
             out.write(b);
         }
     }

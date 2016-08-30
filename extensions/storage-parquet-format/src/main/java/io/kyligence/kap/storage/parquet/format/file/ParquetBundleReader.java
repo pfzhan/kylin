@@ -28,11 +28,11 @@ public class ParquetBundleReader {
         List<Object> result = new ArrayList<Object>();
         for (ParquetReaderState state : readerStates) {
             GeneralValuesReader valuesReader = state.getValuesReader();
-            
+
             if (valuesReader == null) {
                 return null;
             }
-            
+
             Object value = valuesReader.readData();
 
             if (value == null) {

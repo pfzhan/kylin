@@ -20,8 +20,10 @@ package io.kyligence.kap.engine.mr.steps;
 
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
@@ -68,6 +70,7 @@ public class KapMergeCuboidJob extends KapCuboidJob {
             job = Job.getInstance(getConf(), jobName);
 
             setJobClasspath(job, cube.getConfig());
+            FileInputFormat.setInputPathFilter(job, CuboidPathFilter.class);
 
             // set inputs
             int folderNum = addInputDirs(getOptionValue(OPTION_INPUT_PATH), job);
@@ -119,5 +122,18 @@ public class KapMergeCuboidJob extends KapCuboidJob {
             if (job != null)
                 cleanupTempConfFile(job.getConfiguration());
         }
+    }
+
+    public static class CuboidPathFilter implements PathFilter {
+        public CuboidPathFilter() {
+        }
+
+        @Override
+        public boolean accept(Path path) {
+            String pathValue = path.toString();
+            boolean ret = !pathValue.contains("RowTable");
+            return ret;
+        }
+
     }
 }

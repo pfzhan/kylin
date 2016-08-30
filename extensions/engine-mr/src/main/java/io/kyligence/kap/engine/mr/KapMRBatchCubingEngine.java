@@ -18,7 +18,6 @@
 
 package io.kyligence.kap.engine.mr;
 
-import io.kyligence.kap.cube.model.DataModelFlatTableDesc;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.cube.model.CubeJoinedFlatTableDesc;
@@ -27,6 +26,8 @@ import org.apache.kylin.engine.mr.IMRInput;
 import org.apache.kylin.engine.mr.IMROutput2;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
+
+import io.kyligence.kap.cube.model.DataModelFlatTableDesc;
 
 public class KapMRBatchCubingEngine implements IBatchCubingEngine {
 

@@ -103,9 +103,9 @@ public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
 
         // TODO: get total shard num dynamically
         short shardId = ShardingHash.getShard(splitBuffers[index].value, 0, splitBuffers[index].length, 10);
-        String[] orderString = new String[] {Bytes.toString(splitBuffers[index].value, 0, splitBuffers[index].length)};
+        String[] orderString = new String[] { Bytes.toString(splitBuffers[index].value, 0, splitBuffers[index].length) };
         ByteBuffer buffer = orderedEncoder.encode(orderString);
-        byte[] colValue = new byte[buffer.position()+ 2];
+        byte[] colValue = new byte[buffer.position() + 2];
         BytesUtil.writeShort(shardId, colValue, 0, 2);
         System.arraycopy(buffer.array(), 0, colValue, 2, buffer.position());
 

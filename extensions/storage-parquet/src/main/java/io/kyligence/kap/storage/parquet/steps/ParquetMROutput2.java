@@ -65,7 +65,6 @@ public class ParquetMROutput2 implements IMROutput2 {
                     jobFlow.addTask(steps.createMergeRawDataStep(seg, mergingSegments, jobFlow.getId(), KapMergeRawTableJob.class));
                     jobFlow.addTask(steps.createRawTableParquetPageIndex(jobFlow.getId()));
                 }
-
             }
 
             @Override

@@ -2,15 +2,18 @@ package io.kyligence.kap.engine.mr.steps;
 
 import java.io.IOException;
 
-import io.kyligence.kap.storage.parquet.format.ParquetRawTablePageInputFormat;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.StringSplitter;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
@@ -24,9 +27,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
-import io.kyligence.kap.storage.parquet.format.ParquetRawTableFileInputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetRawTableMergeInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableOutputFormat;
-import io.kyligence.kap.storage.parquet.format.ParquetTarballFileReader;
 
 /**
  * Created by wangcheng on 8/25/16.
@@ -71,7 +73,7 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
             setJobClasspath(job, cube.getConfig());
 
             // set inputs
-            int folderNum = addInputDirs(getOptionValue(OPTION_INPUT_PATH), job);
+            int folderNum = addRawInputDirs(getOptionValue(OPTION_INPUT_PATH), job);
             if (folderNum == 0) {
                 skipped = true;
                 logger.info("{} is skipped because there's no input folder", getOptionValue(OPTION_JOB_NAME));
@@ -82,10 +84,11 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
             FileOutputFormat.setOutputPath(job, output);
 
             // Mapper
-            job.setInputFormatClass(ParquetRawTablePageInputFormat.class);
+            job.setInputFormatClass(ParquetRawTableMergeInputFormat.class);
             job.setMapperClass(KapMergeRawTableMapper.class);
             job.setMapOutputKeyClass(Text.class);
             job.setMapOutputValueClass(Text.class);
+            job.setCombinerClass(KylinReducer.class);
             job.setPartitionerClass(ShardPartitioner.class);
 
             job.setReducerClass(KylinReducer.class);
@@ -168,5 +171,44 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
         logger.info("Having level " + level + ", pre-level cuboids " + preLevelCuboids + ", this level cuboids " + thisLevelCuboids);
         logger.info("Having per reduce MB " + perReduceInputMB + ", reduce count ratio " + reduceCountRatio);
         logger.info("Setting " + MAPRED_REDUCE_TASKS + "=" + numReduceTasks);
+    }
+
+    public int addRawInputDirs(String input, Job job) throws IOException {
+        int folderNum = addRawInputDirs(StringSplitter.split(input, ","), job);
+        logger.info("Number of added folders:" + folderNum);
+        return folderNum;
+    }
+
+    public int addRawInputDirs(String[] inputs, Job job) throws IOException {
+        int ret = 0;//return number of added folders
+        for (String inp : inputs) {
+            inp = inp.trim();
+            if (inp.endsWith("/*")) {
+                inp = inp.substring(0, inp.length() - 2);
+                FileSystem fs = FileSystem.get(job.getConfiguration());
+                Path path = new Path(inp);
+
+                if (!fs.exists(path)) {
+                    logger.warn("Path not exist:" + path.toString());
+                    continue;
+                }
+
+                FileStatus[] fileStatuses = fs.listStatus(path);
+                boolean hasDir = false;
+                for (FileStatus stat : fileStatuses) {
+                    String name = stat.getPath().getName();
+                    //if (stat.isDirectory() && !stat.getPath().getName().startsWith("_") && stat.getPath().getName().equals("RawTable")) {
+                    //hasDir = true;
+                    if (stat.getPath().getName().endsWith(".parquet"))
+                        ret += addRawInputDirs(new String[] { stat.getPath().toString() }, job);
+                    //}
+                }
+            } else {
+                logger.info("Add input " + inp);
+                FileInputFormat.addInputPath(job, new Path(inp));
+                ret++;
+            }
+        }
+        return ret;
     }
 }

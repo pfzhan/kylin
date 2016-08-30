@@ -13,10 +13,10 @@ import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 import org.apache.kylin.metadata.datatype.DateTimeSerializer;
 import org.apache.kylin.metadata.datatype.LongSerializer;
 import org.apache.kylin.metadata.datatype.StringSerializer;
+import org.apache.parquet.io.api.Binary;
 
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
-import org.apache.parquet.io.api.Binary;
 
 /**
  * This tool is used to print raw table parquet file
@@ -29,6 +29,7 @@ public class RawTableParquetFilePrinter {
         String path = args[0];
         PrintFile(path);
     }
+
     public static void PrintFile(String path) throws IOException {
 
         DateTimeSerializer dateSe = new DateTimeSerializer(null);
@@ -37,9 +38,10 @@ public class RawTableParquetFilePrinter {
         IntegerDimEnc.IntegerSerializer intSe = (IntegerDimEnc.IntegerSerializer) new IntegerDimEnc().asDataTypeSerializer();
         BigDecimalSerializer bigdecSe = new BigDecimalSerializer(new DataType("B", 1, 1));
 
-        DataTypeSerializer[] ses = new DataTypeSerializer[] { dateSe, dateSe, dateSe, stringSe, stringSe, stringSe, stringSe, stringSe, stringSe, stringSe, stringSe, longSe, bigdecSe, longSe, longSe, intSe, longSe, intSe };
-
+        //DataTypeSerializer[] ses = new DataTypeSerializer[] { dateSe, dateSe, dateSe, stringSe, stringSe, stringSe, stringSe, stringSe, stringSe, stringSe, stringSe, longSe, bigdecSe, longSe, longSe, intSe, longSe, intSe };
+        DataTypeSerializer[] ses = new DataTypeSerializer[] { dateSe, intSe, intSe, stringSe, intSe, intSe, stringSe, intSe, bigdecSe, intSe };
         ParquetBundleReader bundleReader = new ParquetBundleReaderBuilder().setPath(new Path(path)).setConf(new Configuration()).build();
+        int count = 0;
         while (true) {
             List<Object> data = bundleReader.read();
             if (data == null) {
@@ -54,9 +56,10 @@ public class RawTableParquetFilePrinter {
                     System.out.print(new String(d.getBytes()) + "\t");
                 }
             }
-
+            count++;
             System.out.println();
         }
+        System.out.println(count);
     }
 
     private static void des(Binary binary, DataTypeSerializer<?> se) {
