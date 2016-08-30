@@ -437,7 +437,7 @@ public class SequenceSQLController extends BasicController {
     private void checkQueryAuth(SQLResponse sqlResponse) throws AccessDeniedException {
         if (!sqlResponse.getIsException() && KylinConfig.getInstanceFromEnv().isQuerySecureEnabled()) {
             CubeInstance cubeInstance = this.queryService.getCubeManager().getCube(sqlResponse.getCube());
-            queryService.checkAuthorization(cubeInstance);
+            queryService.checkAuthorization(cubeInstance.getName());
         }
     }
 
