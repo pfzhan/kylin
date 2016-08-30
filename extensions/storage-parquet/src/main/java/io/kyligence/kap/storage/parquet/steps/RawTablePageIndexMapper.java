@@ -111,7 +111,7 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
             columnName[i] = column.getName();
 
             if (rawTableDesc.isNeedFuzzyIndex(column)) {
-                Path path = new Path(inputPath.getParent(), shardId + "." + column.getName() + ".parquet.fuzzy");
+                Path path = new Path(inputPath.getParent(), shardId + "." + i + ".parquet.fuzzy");
                 FSDataOutputStream output = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(path);
                 ColumnSpec columnSpec = new ColumnSpec(column.getName(), fuzzyLength, 10000, true, i);
                 fuzzyIndexWriterMap.put(i, new ParquetPageIndexWriter(new ColumnSpec[] { columnSpec }, output));
