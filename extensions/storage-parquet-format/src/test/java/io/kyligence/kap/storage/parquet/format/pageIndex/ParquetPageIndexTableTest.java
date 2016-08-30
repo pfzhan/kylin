@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Set;
 
 import org.apache.commons.lang.ArrayUtils;
@@ -66,10 +67,12 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
 
         File indexFile = File.createTempFile("local", "inv");
         writeIndexFile(indexFile);
-        FSDataInputStream inputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).open(new Path(indexFile.getAbsolutePath()));
-        indexTable = new ParquetPageIndexTable(inputStream);
+        Path invPath = new Path(indexFile.getAbsolutePath());
+        FileSystem fileSystem = FileSystem.get(HadoopUtil.getCurrentConfiguration());
+        FSDataInputStream inputStream = fileSystem.open(invPath);
+        indexTable = new ParquetPageIndexTable(fileSystem, invPath, inputStream, 0);
         inputStream.seek(0);
-        indexOrderedTable = new ParquetOrderedPageIndexTable(inputStream);
+        indexOrderedTable = new ParquetOrderedPageIndexTable(fileSystem, invPath, inputStream, 0, Collections.singleton(0));
 
         colRef1 = ColumnDesc.mockup(null, 1, columnName[0], null).getRef();
         colRef2 = ColumnDesc.mockup(null, 2, columnName[1], null).getRef();
@@ -259,7 +262,7 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
     }
 
     @Test
-    public void testEqEqualGTE1() throws  IOException {
+    public void testEqEqualGTE1() throws IOException {
         for (int i = 0; i < dataSize; i++) {
             TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.GTE, colRef1, data1[i]);
             ImmutableRoaringBitmap result = indexOrderedTable.lookup(filter);

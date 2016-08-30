@@ -94,7 +94,7 @@ public class ParquetPageIndexWriteReadTest extends LocalFileMetadataTestCase {
 
         // read
         FSDataInputStream inputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).open(new Path(indexFile.getAbsolutePath()));
-        ParquetPageIndexReader reader = new ParquetPageIndexReader(inputStream);
+        ParquetPageIndexReader reader = new ParquetPageIndexReader(inputStream, 0);
 
         for (int i = 0; i < data1.length; i++) {
             byte[] buffer = new byte[columnLength[0]];

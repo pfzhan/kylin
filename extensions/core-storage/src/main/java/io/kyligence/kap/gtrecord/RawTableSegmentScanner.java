@@ -29,7 +29,9 @@ import org.apache.kylin.gridtable.GTRecord;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.kylin.gridtable.ScannerWorker;
+import org.apache.kylin.metadata.filter.StringCodeSystem;
 import org.apache.kylin.metadata.filter.TupleFilter;
+import org.apache.kylin.metadata.filter.TupleFilterSerializer;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.storage.StorageContext;
@@ -38,6 +40,7 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.cube.raw.gridtable.RawTableScanRangePlanner;
+import io.kyligence.kap.metadata.filter.EvaluatableLikeFunctionTransformer;
 
 public class RawTableSegmentScanner implements IGTScanner {
 
@@ -47,8 +50,17 @@ public class RawTableSegmentScanner implements IGTScanner {
     final ScannerWorker scanner;
 
     public RawTableSegmentScanner(RawTableSegment rawTableSegment, Set<TblColRef> dimensions, Set<TblColRef> groups, //
-                                  Collection<FunctionDesc> metrics, TupleFilter filter, StorageContext context) {
-        //CubeSegmentScanner will do BuildInFunctionTransformer here, but it's not necessary for this
+            Collection<FunctionDesc> metrics, TupleFilter originalfilter, StorageContext context) {
+        
+        //the filter might be changed later in this SegmentScanner (In EvaluatableLikeFunctionTransformer)
+        //to avoid issues like in https://issues.apache.org/jira/browse/KYLIN-1954, make sure each SegmentScanner
+        //is working on its own copy
+        byte[] serialize = TupleFilterSerializer.serialize(originalfilter, StringCodeSystem.INSTANCE);
+        TupleFilter filter = TupleFilterSerializer.deserialize(serialize, StringCodeSystem.INSTANCE);
+        
+        //CubeSegmentScanner will do BuildInFunctionTransformer here, however RawTableSegmentScanner only supports Like function 
+        //exception will be thrown at other functions, because they're considered to be too costly for the query server
+        filter = EvaluatableLikeFunctionTransformer.transform(filter);
 
         RawTableScanRangePlanner planner = new RawTableScanRangePlanner(rawTableSegment, filter, dimensions, groups, metrics);
         scanRequest = planner.planScanRequest();

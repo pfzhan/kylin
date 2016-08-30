@@ -47,6 +47,7 @@ public class RawTableCodeSystem implements IGTCodeSystem {
         for (int i = 0; i < serializers.length; i++) {
             serializers[i] = DataTypeSerializer.create(info.getColumnType(i));
         }
+
     }
 
     @Override

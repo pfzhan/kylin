@@ -3,11 +3,14 @@ package io.kyligence.kap.storage.parquet.format;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -28,8 +31,8 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
+import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetOrderedPageIndexTable;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
-import io.kyligence.kap.storage.parquet.format.pageIndex.format.ParquetPageIndexRecordReader;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 import io.kyligence.kap.storage.parquet.format.serialize.TupleFilterLiteralHasher;
 
@@ -45,6 +48,7 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
     protected Configuration conf;
 
     private ParquetBundleReader reader = null;
+    ParquetPageIndexTable indexTable = null;
     private Text key = null; //key will be fixed length,
     private Text val = null; //reusing the val bytes, the returned bytes might contain useless tail, but user will use it as bytebuffer, so it's okay
 
@@ -65,9 +69,10 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
         kylinProps.load(new StringReader(kylinPropsStr));
         KylinConfig.setKylinConfigInEnvIfMissing(kylinProps);
 
-        // read index file
-        ParquetPageIndexRecordReader indexReader = new ParquetPageIndexRecordReader();
-        indexReader.initialize(indexPath, context, false, false);
+        // read index file 
+        FileSystem fileSystem = FileSystem.get(conf);
+        FSDataInputStream inputStream = fileSystem.open(indexPath);
+        indexTable = new ParquetOrderedPageIndexTable(fileSystem, indexPath, inputStream, 0, Collections.singleton(0));
 
         // page bitmap
         String scanReqStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES);
@@ -77,7 +82,6 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
             gtScanRequestThreadLocal.set(gtScanRequest);//for later use convenience
 
             if (Boolean.valueOf(conf.get(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX))) {
-                ParquetPageIndexTable indexTable = indexReader.getIndexTable();
                 TupleFilter filter = gtScanRequest.getFilterPushDown();
 
                 //for Rawtable filters, replace all the literals with hash value first
@@ -86,7 +90,7 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
                 byte[] serialize = TupleFilterSerializer.serialize(filter, decorator, wrap);
                 TupleFilter hashedFilter = TupleFilterSerializer.deserialize(serialize, wrap);
                 pageBitmap = indexTable.lookup(hashedFilter);
-                
+
                 logger.info("Inverted Index bitmap: " + pageBitmap + ". Time spent is: " + (System.currentTimeMillis() - startTime));
             } else {
                 logger.info("Told not to use II, read all pages");
@@ -160,5 +164,6 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
     @Override
     public void close() throws IOException {
         reader.close();
+        indexTable.close();
     }
 }

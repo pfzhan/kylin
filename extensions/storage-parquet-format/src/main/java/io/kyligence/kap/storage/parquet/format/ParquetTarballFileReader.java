@@ -8,6 +8,8 @@ import java.util.Properties;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -31,7 +33,6 @@ import com.google.common.primitives.Shorts;
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
-import io.kyligence.kap.storage.parquet.format.pageIndex.format.ParquetPageIndexRecordReader;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 
 public class ParquetTarballFileReader extends RecordReader<Text, Text> {
@@ -46,6 +47,7 @@ public class ParquetTarballFileReader extends RecordReader<Text, Text> {
     protected Configuration conf;
 
     private ParquetBundleReader reader = null;
+    ParquetPageIndexTable indexTable = null;
     private Text key = null; //key will be fixed length,
     private Text val = null; //reusing the val bytes, the returned bytes might contain useless tail, but user will use it as bytebuffer, so it's okay
 
@@ -70,8 +72,11 @@ public class ParquetTarballFileReader extends RecordReader<Text, Text> {
         kylinProps.load(new StringReader(kylinPropsStr));
         KylinConfig.setKylinConfigInEnvIfMissing(kylinProps);
 
-        ParquetPageIndexRecordReader indexReader = new ParquetPageIndexRecordReader();
-        long fileOffset = indexReader.initialize(shardPath, context, true, true);
+        FileSystem fileSystem = FileSystem.get(conf);
+        FSDataInputStream inputStream = fileSystem.open(shardPath);
+        long fileOffset = inputStream.readLong();//read the offset
+        int indexOffset = ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE;
+        indexTable = new ParquetPageIndexTable(fileSystem, shardPath, inputStream, indexOffset);
 
         String scanReqStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES);
         ImmutableRoaringBitmap pageBitmap = null;
@@ -80,7 +85,6 @@ public class ParquetTarballFileReader extends RecordReader<Text, Text> {
             gtScanRequestThreadLocal.set(gtScanRequest);//for later use convenience
 
             if (Boolean.valueOf(conf.get(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX))) {
-                ParquetPageIndexTable indexTable = indexReader.getIndexTable();
                 TupleFilter filter = gtScanRequest.getFilterPushDown();
                 pageBitmap = indexTable.lookup(filter);
                 logger.info("Inverted Index bitmap: " + pageBitmap + ". Time spent is: " + (System.currentTimeMillis() - startTime));
@@ -185,5 +189,6 @@ public class ParquetTarballFileReader extends RecordReader<Text, Text> {
     @Override
     public void close() throws IOException {
         reader.close();
+        indexTable.close();
     }
 }
