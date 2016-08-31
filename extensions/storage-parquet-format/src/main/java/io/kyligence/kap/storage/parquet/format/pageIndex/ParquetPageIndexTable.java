@@ -12,6 +12,7 @@ import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.ConstantTupleFilter;
+import org.apache.kylin.metadata.filter.EvaluatableLikeFunction;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
@@ -22,7 +23,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import org.apache.kylin.metadata.filter.EvaluatableLikeFunction;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexReader;
 
 public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
@@ -294,13 +294,26 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             }
         }
 
-        logger.info("Parquet II Metrics: TotalPageNum={}, ResultPageNum={}", indexReader.getPageTotalNum(0), resultBitmap.getCardinality());
+        logger.info("Parquet II Metrics: TotalPageNum={}, ResultPageNum={}", getPageTotalNum(), resultBitmap.getCardinality());
         return resultBitmap;
+    }
+
+    private int getPageTotalNum() {
+        if (indexReader.getLastestUsedColumn() != -1) {
+            return indexReader.getPageTotalNum(indexReader.getLastestUsedColumn());
+        }
+        for (ParquetPageIndexReader reader : likeIndexReaders.values()) {
+            if (reader.getLastestUsedColumn() != -1) {
+                return reader.getPageTotalNum(reader.getLastestUsedColumn());
+            }
+        }
+
+        throw new RuntimeException("No ParquetPageIndexReader used?");
     }
 
     @Override
     protected ImmutableRoaringBitmap getFullBitmap() {
-        int totalPageNum = indexReader.getPageTotalNum(0);
+        int totalPageNum = getPageTotalNum();
         MutableRoaringBitmap result = new MutableRoaringBitmap();
         result.add(0L, (long) totalPageNum); // [0,totalPageNum)
         return result;
