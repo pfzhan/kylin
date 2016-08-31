@@ -137,20 +137,21 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
             ParquetPageIndexWriter writer = fuzzyIndexWriterMap.get(fuzzyIndex);
             String[] decoded = new String[1];
             fuzzyIndexEncodingMap.get(fuzzyIndex).decode(ByteBuffer.wrap(originValue.get(fuzzyIndex)), decoded);
-            writeSubstring(writer, decoded[0].getBytes(), fuzzyLength);
+//            logger.info("origin value: {}", decoded);
+            writeSubstring(writer, decoded[0].getBytes(), value.get(), fuzzyLength);
         }
 
         indexBundleWriter.write(hashedValue, value.get());
     }
 
-    private void writeSubstring(ParquetPageIndexWriter writer, byte[] value, int length) {
+    private void writeSubstring(ParquetPageIndexWriter writer, byte[] value, int pageId, int length) {
         // skip if value's length is less than required length
         if (value.length < length) {
             return;
         }
 
         for (int index = 0; index <= (value.length - length); index++) {
-            writer.write(value, index);
+            writer.write(value, index, pageId);
         }
     }
 
