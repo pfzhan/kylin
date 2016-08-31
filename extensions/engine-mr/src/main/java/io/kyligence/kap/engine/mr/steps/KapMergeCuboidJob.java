@@ -130,8 +130,8 @@ public class KapMergeCuboidJob extends KapCuboidJob {
 
         @Override
         public boolean accept(Path path) {
-            String pathValue = path.toString();
-            boolean ret = !pathValue.contains("RowTable");
+            String name = path.getName();
+            boolean ret = !(name.endsWith(".parquet") || name.endsWith(".inv"));
             return ret;
         }
 
