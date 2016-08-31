@@ -30,7 +30,6 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.restclient.Broadcaster;
 import org.apache.kylin.common.restclient.CaseInsensitiveStringCache;
-import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,7 +108,6 @@ public class RawTableDescManager {
 
         // Here replace the old one
         rawTableDescMap.putLocal(desc.getName(), desc);
-        Cuboid.reloadCache(name);
         return desc;
     }
 

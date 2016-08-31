@@ -3,9 +3,12 @@ package io.kyligence.kap.cube.raw;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -18,6 +21,8 @@ import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.metadata.realization.SQLDigest;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.raw.gridtable.RawToGridTableMapping;
@@ -26,7 +31,11 @@ import io.kyligence.kap.metadata.model.IKapStorageAware;
 /**
  * RawTable is a parasite on Cube (at the moment).
  */
-public class RawTableInstance implements IRealization {
+@SuppressWarnings("serial")
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
+public class RawTableInstance extends RootPersistentEntity implements IRealization {
+
+    public static final String RAW_TABLE_INSTANCE_RESOURCE_ROOT = "/raw_table_instance";
 
     public static boolean isRawTableEnabled(CubeDesc cube) {
         return cube.getOverrideKylinProps().containsKey("kylin.rawtable.enabled");
@@ -39,28 +48,43 @@ public class RawTableInstance implements IRealization {
     // ============================================================================
 
     private CubeInstance cube;
-    private RawTableDesc rawTableDesc;
 
+    @JsonProperty("name")
+    private String name;
+    @JsonProperty("uuid")
+    private String uuid;
+    @JsonProperty("rawtable_desc")
+    private RawTableDesc rawTableDesc;
+    @JsonProperty("shard_num")
+    private Integer shardNumber;
+
+    private RawToGridTableMapping mapping = null;
     private List<TblColRef> allColumns;
     private List<TblColRef> mockupDimensions;
     private List<MeasureDesc> mockupMeasures;
 
-    private RawToGridTableMapping mapping = null;
+    // for Jackson
+    public RawTableInstance() {
+    }
 
     // FIXME: this constructor should be package private
     public RawTableInstance(CubeInstance cube) {
 
+        this.name = cube.getName();
+        this.uuid = cube.getUuid();
         this.cube = cube;
         this.rawTableDesc = RawTableDescManager.getInstance(cube.getConfig()).getRawTableDesc(cube.getName());
 
         if (this.rawTableDesc == null) // mockup for test
             this.rawTableDesc = new RawTableDesc(cube.getDescriptor());
 
-        init();
+        initAllColumns();
+        initDimensions();
+        initMeasures();
     }
 
-    private void init() {
-        // load from data model
+    public void init(KylinConfig config) {
+        rawTableDesc.init(config);
         initAllColumns();
         initDimensions();
         initMeasures();
@@ -72,7 +96,7 @@ public class RawTableInstance implements IRealization {
 
     //TODO: use its own uuid
     public String getUuid() {
-        return cube.getUuid();
+        return uuid;
     }
 
     private void initAllColumns() {
@@ -91,11 +115,6 @@ public class RawTableInstance implements IRealization {
 
     private void initMeasures() {
         mockupMeasures = new ArrayList<>();
-        for (TblColRef col : rawTableDesc.getColumns()) {
-            //            if (!mockupDimensions.contains(col)) {
-            //                mockupMeasures.add(transferToMeasureDesc(col.getColumnDesc()));
-            //            }
-        }
     }
 
     // Put column type to measure descriptor's first parameter
@@ -167,7 +186,7 @@ public class RawTableInstance implements IRealization {
 
     @Override
     public String getName() {
-        return cube.getName();
+        return name;
     }
 
     @Override
@@ -191,6 +210,14 @@ public class RawTableInstance implements IRealization {
 
     public List<RawTableSegment> getSegments(SegmentStatusEnum status) {
         return asRawTableSegments(cube.getSegments(status));
+    }
+
+    public Integer getShardNumber() {
+        return shardNumber;
+    }
+
+    public void setShardNumber(Integer shardNumber) {
+        this.shardNumber = shardNumber;
     }
 
     private List<RawTableSegment> asRawTableSegments(List<CubeSegment> cubeSegs) {
@@ -231,5 +258,13 @@ public class RawTableInstance implements IRealization {
             mapping = new RawToGridTableMapping(this);
         }
         return mapping;
+    }
+
+    public String getResourcePath() {
+        return concatResourcePath(name);
+    }
+
+    public static String concatResourcePath(String instanceName) {
+        return RAW_TABLE_INSTANCE_RESOURCE_ROOT + "/" + instanceName + MetadataConstants.FILE_SURFIX;
     }
 }

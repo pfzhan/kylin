@@ -195,7 +195,10 @@ public class RawTableDesc extends RootPersistentEntity {
 
     public List<TblColRef> getColumns() {
         List<TblColRef> result = Lists.newArrayList();
-        result.add(getOrderedColumn());
+        TblColRef ordered = getOrderedColumn();
+        if (ordered != null) {
+            result.add(ordered);
+        }
         result.addAll(getColumnsExcludingOrdered());
         return result;
     }
