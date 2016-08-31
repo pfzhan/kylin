@@ -30,9 +30,6 @@ import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableMergeInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableOutputFormat;
 
-/**
- * Created by wangcheng on 8/25/16.
- */
 public class KapMergeRawTableJob extends AbstractHadoopJob {
 
     protected static final Logger logger = LoggerFactory.getLogger(KapMergeRawTableJob.class);

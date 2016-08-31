@@ -11,9 +11,6 @@ import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Created by wangcheng on 8/25/16.
- */
 public class KapMergeRawTableMapper extends KylinMapper<Text, Text, Text, Text> {
 
     protected static final Logger logger = LoggerFactory.getLogger(KapMergeRawTableMapper.class);
