@@ -69,7 +69,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         //setup env
         KAPHBaseMetadataTestCase.staticCreateTestMetadata();
         config = KylinConfig.getInstanceFromEnv();
-        
+
         //uncomment this to use MockedCubeSparkRPC instead of real spark
         config.setProperty("kap.parquet.spark.cube.gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
 
@@ -121,10 +121,20 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         }
     }
 
-
+    /**
+     * currently the raw queries of kap differ from kylin because raw table in left join is not ready
+     * later we need to keep both side same
+     */
     @Test
     public void testRawQuery() throws Exception {
-        this.execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_raw", null, true);
+        this.execAndCompQuery("src/test/resources/query/sql_raw", null, true);
+    }
+
+    @Test
+    public void testTempQuery() throws Exception {
+        PRINT_RESULT = true;
+        execAndCompQuery("src/test/resources/query/temp", null, true);
+        PRINT_RESULT = false;
     }
 
     @Test

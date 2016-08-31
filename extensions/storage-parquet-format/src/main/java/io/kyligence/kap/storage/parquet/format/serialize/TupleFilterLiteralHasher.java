@@ -22,9 +22,12 @@ import java.util.Collection;
 import java.util.Set;
 
 import org.apache.kylin.common.util.ByteArray;
+import org.apache.kylin.metadata.filter.ColumnTupleFilter;
+import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.ConstantTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilterSerializer;
+import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.Sets;
 
@@ -34,15 +37,36 @@ public class TupleFilterLiteralHasher implements TupleFilterSerializer.Decorator
     @Override
     public TupleFilter onSerialize(TupleFilter filter) {
 
-        if (filter instanceof ConstantTupleFilter) {
-            ConstantTupleFilter constantTupleFilter = (ConstantTupleFilter) filter;
-            Set<ByteArray> newValues = Sets.newHashSet();
-
-            for (ByteArray value : (Collection<ByteArray>) constantTupleFilter.getValues()) {
-                newValues.add(RawTableUtils.hash(value));
-            }
-            return new ConstantTupleFilter(newValues);
+        if (!(filter instanceof CompareTupleFilter)) {
+            return filter;
         }
-        return filter;
+
+        CompareTupleFilter oldCompareFilter = (CompareTupleFilter) filter;
+
+        // extract ColumnFilter & ConstantFilter
+        TblColRef externalCol = oldCompareFilter.getColumn();
+
+        if (externalCol == null) {
+            return oldCompareFilter;
+        }
+
+        Collection constValues = oldCompareFilter.getValues();
+        if (constValues == null || constValues.isEmpty()) {
+            return oldCompareFilter;
+        }
+
+        //CompareTupleFilter containing BuiltInFunctionTupleFilter will not reach here caz it will be transformed by BuiltInFunctionTransformer
+        CompareTupleFilter newCompareFilter = new CompareTupleFilter(oldCompareFilter.getOperator());
+        newCompareFilter.addChild(new ColumnTupleFilter(externalCol));
+
+        //for CompareTupleFilter containing dynamicVariables, the below codes will actually replace dynamicVariables
+        //with normal ConstantTupleFilter
+
+        Set<ByteArray> newValues = Sets.newHashSet();
+        for (ByteArray value : (Collection<ByteArray>) constValues) {
+            newValues.add(RawTableUtils.hash(value));
+        }
+        newCompareFilter.addChild(new ConstantTupleFilter(newValues));
+        return newCompareFilter;
     }
 }

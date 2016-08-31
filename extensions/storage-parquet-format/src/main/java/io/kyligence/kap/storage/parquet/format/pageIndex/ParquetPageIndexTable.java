@@ -22,7 +22,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.filter.EvaluatableLikeFunction;
+import org.apache.kylin.metadata.filter.EvaluatableLikeFunction;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexReader;
 
 public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
@@ -41,7 +41,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
 
     // TODO: should use batch lookup
     MutableRoaringBitmap lookColumnIndex(int column, TupleFilter.FilterOperatorEnum compareOp, Set<ByteArray> vals) {
-        logger.info("column: {}, op: {}, vals: {} - {}", column, compareOp, vals.size(), Iterables.getFirst(vals, null));
+        logger.info("lookColumnIndex: column: {}, op: {}, vals: {} - {}", column, compareOp, vals.size(), Iterables.getFirst(vals, null));
         MutableRoaringBitmap result = null;
         ByteArray val = null;
         ColumnIndexReader columnIndexReader = null;
@@ -110,7 +110,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
                 result = lookupLte(column, val);
             }
             break;
-        case FUNCTION:
+        case LIKE:
             val = Iterables.getOnlyElement(vals);
             result = lookupLikeWithPattern(column, val);
             break;
@@ -126,7 +126,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
 
         ParquetPageIndexReader likeIndexTable = this.likeIndexReaders.get(column);
         if (likeIndexTable == null) {
-            int shardId = Integer.valueOf(parquetIndexPath.getName().split(".")[0]);
+            int shardId = Integer.valueOf(parquetIndexPath.getName().split("\\.")[0]);
             Path likeIndexPath = new Path(parquetIndexPath.getParent(), shardId + "." + column + ".parquet.fuzzy");
             FSDataInputStream fsDataInputStream;
             try {

@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.cube.raw.gridtable.RawTableScanRangePlanner;
-import io.kyligence.kap.metadata.filter.EvaluatableLikeFunctionTransformer;
+import org.apache.kylin.metadata.filter.EvaluatableLikeFunctionTransformer;
 
 public class RawTableSegmentScanner implements IGTScanner {
 
