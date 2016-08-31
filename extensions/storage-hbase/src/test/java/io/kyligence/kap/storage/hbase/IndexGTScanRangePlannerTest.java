@@ -23,6 +23,7 @@ import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +32,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
-
+@Ignore
 public class IndexGTScanRangePlannerTest extends LocalFileMetadataTestCase {
 
     private static final Logger logger = LoggerFactory.getLogger(IndexGTScanRangePlannerTest.class);
