@@ -36,7 +36,6 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.engine.mr.steps.KapBaseCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapInMemCuboidJob;
@@ -79,7 +78,6 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
         // Phase 3: build RawTable if needed
         if (RawTableInstance.isRawTableEnabled(seg.getCubeDesc())) {
             result.addTask(createRawTableStep(cuboidRootPath, jobId));
-            RawTableDesc desc = new RawTableInstance(seg.getCubeInstance()).getRawTableDesc();
         }
 
         // Phase 4: Build Cube
@@ -185,7 +183,7 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
     }
 
     private MapReduceExecutable createRawTableStep(String rawTableOutputTempPath, String jobId) {
-        // base cuboid job
+        // build raw table job
         MapReduceExecutable rawTableStep = new MapReduceExecutable();
 
         StringBuilder cmd = new StringBuilder();
