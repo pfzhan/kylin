@@ -36,7 +36,7 @@ then
     fi
     
     #spark driver client
-    driverPort=`sh ${KAP_BIN_PARENT}/bin/get-properties.sh kap.parquet.spark.driver.port`
+    driverPort=`sh ${KAP_BIN_PARENT}/bin/get-properties.sh kap.storage.columnar.spark.driver.port`
 
     # spark envs
     sparkEnvPrefix="kap.storage.columnar.env."

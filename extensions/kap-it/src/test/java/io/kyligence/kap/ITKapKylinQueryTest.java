@@ -71,10 +71,10 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         config = KylinConfig.getInstanceFromEnv();
 
         //uncomment this to use MockedCubeSparkRPC instead of real spark
-        //config.setProperty("kap.parquet.spark.cube.gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
+        //config.setProperty("kap.storage.columnar.spark.cube.gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
 
         //uncomment this to use MockedRawTableTableRPC instead of real spark
-        //config.setProperty("kap.parquet.spark.rawtable.gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
+        //config.setProperty("kap.storage.columnar.spark.rawtable.gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
 
         //setup cube conn
         File olapTmp = OLAPSchemaFactory.createTempOLAPJson(ProjectInstance.DEFAULT_PROJECT_NAME, config);
