@@ -63,8 +63,8 @@ public class KapConfig {
         return config.getOptional("kap.parquet.page.compression", "");
     }
 
-    public int getParquetPageIndexSpillThreshold() {
-        return Integer.parseInt(config.getOptional("kap.parquet.ii.spill.threshold", String.valueOf(100000)));
+    public double getQueryCoprocessorMemMB() {
+        return Double.parseDouble(config.getOptional("kap.parquet.ii.spill.threshold.mb", "256"));
     }
 
     public String getSparkClientHost() {

@@ -27,20 +27,20 @@ public class IndexMapCacheTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testSpill() {
-        System.setProperty("kap.parquet.ii.spill.threshold", "79");
+        System.setProperty("kap.parquet.ii.spill.threshold.mb", Integer.toString(Integer.MAX_VALUE));
         testIndexMapCache();
     }
 
     @Test
     public void testNoSpill() {
-        System.setProperty("kap.parquet.ii.spill.threshold", Integer.toString(Integer.MAX_VALUE));
+        System.setProperty("kap.parquet.ii.spill.threshold.mb", Integer.toString(Integer.MIN_VALUE));
         testIndexMapCache();
     }
 
     private void testIndexMapCache() {
-        int dataSize = 1342;
+        int dataSize = 10;
         int columnLength = 8;
-        int pageNum = 100;
+        int pageNum = 10;
 
         IndexMapCache indexMapCache = new IndexMapCache(true, new IntEncoding(), new MutableRoaringBitmapEncoding());
         for (int c = 0; c < 3; c++) {

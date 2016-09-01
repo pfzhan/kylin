@@ -19,6 +19,7 @@ import java.util.PriorityQueue;
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.ByteArray;
+import org.apache.kylin.common.util.MemoryBudgetController;
 import org.apache.kylin.common.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +33,7 @@ import io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.value.I
 public class IndexMapCache implements Closeable {
     protected static final Logger logger = LoggerFactory.getLogger(IndexMapCache.class);
 
-    final int SPILL_THRESHOLD_SIZE = KapConfig.getInstanceFromEnv().getParquetPageIndexSpillThreshold();
+    final double spillThresholdMB = KapConfig.getInstanceFromEnv().getQueryCoprocessorMemMB();
 
     private List<Dump> dumps;
     private NavigableMap<Comparable, Iterable<? extends Number>> indexMapBuf;
@@ -76,9 +77,7 @@ public class IndexMapCache implements Closeable {
             indexMapBuf.put(keyEncoded, currentValue);
         }
 
-        if (SPILL_THRESHOLD_SIZE <= indexMapBuf.size()) {
-            spill();
-        }
+        spillIfNeeded();
     }
 
     public void putEncoded(Comparable keyEncoded, Iterable<? extends Number> bitmap) {
@@ -89,7 +88,14 @@ public class IndexMapCache implements Closeable {
             indexMapBuf.put(keyEncoded, bitmap);
         }
 
-        if (SPILL_THRESHOLD_SIZE <= indexMapBuf.size()) {
+        spillIfNeeded();
+    }
+
+    private void spillIfNeeded() {
+        // spill if free memory less than threshold
+        long availMemoryMB = MemoryBudgetController.getSystemAvailMB();
+        if (availMemoryMB < spillThresholdMB) {
+            logger.info("Available memory mb {}, prepare to spill.", availMemoryMB);
             spill();
         }
     }
