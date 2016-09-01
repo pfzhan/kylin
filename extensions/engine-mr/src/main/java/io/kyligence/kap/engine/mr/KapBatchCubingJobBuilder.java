@@ -49,14 +49,11 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
 
     private final IMRInput.IMRBatchCubingInputSide inputSide;
     private final IMROutput2.IMRBatchCubingOutputSide2 outputSide;
-    private final IMROutput2.IMRBatchMergeOutputSide2 outputSide1;
 
     public KapBatchCubingJobBuilder(CubeSegment newSegment, String submitter) {
-
         super(newSegment, submitter);
         this.inputSide = MRUtil.getBatchCubingInputSide(seg);
         this.outputSide = MRUtil.getBatchCubingOutputSide2((CubeSegment) seg);
-        this.outputSide1 = MRUtil.getBatchMergeOutputSide2(seg);
     }
 
     public CubingJob build() {

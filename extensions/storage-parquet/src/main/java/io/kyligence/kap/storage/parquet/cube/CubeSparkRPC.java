@@ -85,16 +85,15 @@ public class CubeSparkRPC implements IGTStorage {
                 RealizationType.CUBE.toString(), cubeSegment.getCubeInstance().getUuid(), cubeSegment.getUuid(), String.valueOf(cuboid.getId()), // 
                 scanRequest.getInfo().getMaxLength(), getRequiredParquetColumns(scanRequest) //
         );
-        logger.info("Filter: {}" + scanRequest.getFilterPushDown());
+        logger.info("Filter: {}", scanRequest.getFilterPushDown());
 
-        SparkJobProtos.SparkJobResponse jobResponse = client.submit(//
-                scanRequest.toByteArray(), sparkDriverClientParams);
+        SparkJobProtos.SparkJobResponse jobResponse = client.submit(scanRequest.toByteArray(), sparkDriverClientParams);
         logger.info("Time for the gRPC visit is " + (System.currentTimeMillis() - startTime));
         if (jobResponse.getSucceed()) {
             return new SparkResponseBlobGTScanner(scanRequest, jobResponse.getGtRecordsBlob().toByteArray());
         } else {
             logger.error(jobResponse.getErrorMsg());
-            throw new RuntimeException("RPC failed due to above reason");
+            throw new RuntimeException("RPC failed due to: " + jobResponse.getErrorMsg());
         }
     }
 }
