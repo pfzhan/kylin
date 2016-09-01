@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
-import io.kyligence.kap.storage.parquet.format.ParquetRawTableFileInputFormat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -52,7 +51,7 @@ import io.kyligence.kap.storage.parquet.cube.raw.RawTableSparkRPC;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkExecutorPreAggFunction;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.SparkResponseBlobGTScanner;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
-import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetRawTableFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileReader;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 import scala.Tuple2;
@@ -137,6 +136,7 @@ public class MockedRawTableTableRPC extends RawTableSparkRPC {
         private boolean fetched = false;
         private Tuple2<Text, Text> buffer = new Tuple2<>(null, null);
         private RecordReader<Text, Text> reader;
+        private int counter = 0;
 
         public ParquetRecordIterator(Job job, FileInputFormat<Text, Text> inputFormat, InputSplit inputSplit) throws IOException, InterruptedException {
             TaskAttemptContext context = MapReduceTestUtil.createDummyMapTaskAttemptContext(job.getConfiguration());
@@ -147,6 +147,7 @@ public class MockedRawTableTableRPC extends RawTableSparkRPC {
 
         @Override
         public boolean hasNext() {
+            counter++;
             if (fetched) {
                 return true;
             }

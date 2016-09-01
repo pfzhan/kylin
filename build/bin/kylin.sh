@@ -37,6 +37,13 @@ then
         fi
     fi
     
+    columnarEnabled=`sh $KYLIN_HOME/bin/get-properties.sh kap.columnar.enabled`
+    if [ ${columnarEnabled} == "true" ]
+    then
+        echo "kap columnar storage is enabled, starting spark driver first"
+        sh ${dir}/spark_client.sh start
+    fi
+    
     tomcat_root=${dir}/../tomcat
     export tomcat_root
 
@@ -99,6 +106,14 @@ then
 # stop command
 elif [ "$1" == "stop" ]
 then
+
+    columnarEnabled=`sh $KYLIN_HOME/bin/get-properties.sh kap.columnar.enabled`
+    if [ ${columnarEnabled} == "true" ]
+    then
+        echo "kap columnar storage is enabled, stopping spark driver first"
+        sh ${dir}/spark_client.sh stop
+    fi
+    
     if [ -f "${KYLIN_HOME}/pid" ]
     then
         PID=`cat $KYLIN_HOME/pid`

@@ -68,11 +68,11 @@ public class KapConfig {
     }
 
     public String getSparkClientHost() {
-        return config.getOptional("kap.parquet.spark.client.host", "localhost");
+        return config.getOptional("kap.parquet.spark.driver.host", "localhost");
     }
 
     public int getSparkClientPort() {
-        return Integer.parseInt(config.getOptional("kap.parquet.spark.client.port", "50051"));
+        return Integer.parseInt(config.getOptional("kap.parquet.spark.driver.port", "50051"));
     }
 
     public String getSparkCubeGTStorage() {

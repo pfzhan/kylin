@@ -307,6 +307,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
                 return reader.getPageTotalNum(reader.getLastestUsedColumn());
             }
         }
+
         logger.warn("No ParquetPageIndexReader used");
         return indexReader.getPageTotalNum(0);
     }

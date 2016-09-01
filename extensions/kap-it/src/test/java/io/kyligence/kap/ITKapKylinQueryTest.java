@@ -71,10 +71,10 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         config = KylinConfig.getInstanceFromEnv();
 
         //uncomment this to use MockedCubeSparkRPC instead of real spark
-        config.setProperty("kap.parquet.spark.cube.gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
+        //config.setProperty("kap.parquet.spark.cube.gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
 
         //uncomment this to use MockedRawTableTableRPC instead of real spark
-        config.setProperty("kap.parquet.spark.rawtable.gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
+        //config.setProperty("kap.parquet.spark.rawtable.gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
 
         //setup cube conn
         File olapTmp = OLAPSchemaFactory.createTempOLAPJson(ProjectInstance.DEFAULT_PROJECT_NAME, config);
@@ -127,9 +127,12 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
      */
     @Test
     public void testRawQuery() throws Exception {
-        this.execAndCompQuery("src/test/resources/query/sql_raw", null, true);
+        if ("inner".equals(joinType)) {
+            this.execAndCompQuery("src/test/resources/query/sql_raw", null, true);
+        }
     }
 
+    @Ignore
     @Test
     public void testTempQuery() throws Exception {
         PRINT_RESULT = true;
@@ -137,6 +140,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         PRINT_RESULT = false;
     }
 
+    @Ignore
     @Test
     public void testKAPSinglePublicQuery() throws Exception {
 
@@ -162,4 +166,9 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         KAPHBaseMetadataTestCase.staticCleanupTestMetadata();
     }
 
+    @Ignore
+    @Test
+    public void testVerifyQuery() throws Exception {
+        verifyResultRowCount(getQueryFolderPrefix() + "src/test/resources/query/sql_verifyCount");
+    }
 }
