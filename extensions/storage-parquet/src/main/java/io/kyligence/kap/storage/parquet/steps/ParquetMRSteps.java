@@ -13,6 +13,7 @@ import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.common.MapReduceExecutable;
 import org.apache.kylin.engine.mr.steps.CubingExecutableUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
+import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,7 +86,7 @@ public class ParquetMRSteps extends JobBuilderSupport {
         result.setName("Build Parquet Page Index");
         result.setMapReduceJobClass(ParquetPageIndexJob.class);
         StringBuilder cmd = new StringBuilder();
-        appendMapReduceParameters(cmd);
+        appendMapReduceParameters(cmd, JobEngineConfig.IN_MEM_JOB_CONF_SUFFIX);
 
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBING_JOB_ID, jobId);
         appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_Build_Parquet_Page_Index_" + seg.getRealization().getName() + "_Step");
@@ -103,7 +104,7 @@ public class ParquetMRSteps extends JobBuilderSupport {
         result.setName("Build Raw Table Parquet Page Index");
         result.setMapReduceJobClass(RawTablePageIndexJob.class);
         StringBuilder cmd = new StringBuilder();
-        appendMapReduceParameters(cmd);
+        appendMapReduceParameters(cmd, JobEngineConfig.IN_MEM_JOB_CONF_SUFFIX);
 
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBING_JOB_ID, jobId);
         appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_Build_Raw_Table_Parquet_Page_Index_" + seg.getRealization().getName() + "_Step");
