@@ -98,17 +98,12 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         }
         ParquetPageIndexWriter writer = new ParquetPageIndexWriter(columnName, columnLengthes, cardinalities, onlyEq, new DataOutputStream(new FileOutputStream(indexFile)));
         for (int i = 0; i < dataSize; i++) {
-            byte[] buffer1 = new byte[columnLength * 2];
-            BytesUtil.writeUnsigned(data1[i], buffer1, 0, columnLength);
-            BytesUtil.writeUnsigned(data2[i], buffer1, columnLength, columnLength);
+            byte[] buffer = new byte[columnLength * 3];
+            BytesUtil.writeUnsigned(data1[i], buffer, 0, columnLength);
+            BytesUtil.writeUnsigned(data2[i], buffer, columnLength, columnLength);
+            BytesUtil.writeUnsigned(data3[i], buffer, columnLength * 2, columnLength);
 
-            byte[] buffer2 = new byte[columnLength];
-            BytesUtil.writeUnsigned(data3[i], buffer2, 0, columnLength);
-
-            ArrayList<byte[]> input = Lists.newArrayList();
-            input.add(buffer1);
-            input.add(buffer2);
-            writer.write(input, i);
+            writer.write(buffer, i);
         }
         writer.close();
     }

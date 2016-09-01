@@ -75,11 +75,12 @@ public class ParquetPageIndexWriteReadTest extends LocalFileMetadataTestCase {
         boolean[] onlyEq = { false, false };
         ParquetPageIndexWriter writer = new ParquetPageIndexWriter(columnName, columnLength, cardinality, onlyEq, new FSDataOutputStream(new FileOutputStream(indexFile)));
         for (int i = 0; i < dataSize; i++) {
-            byte[] buffer = new byte[columnLength[0] + columnLength[1]];
+            byte[] buffer1 = new byte[columnLength[0]];
+            byte[] buffer2 = new byte[columnLength[1]];
             int pageId = random.nextInt(totalPageNum);
-            BytesUtil.writeUnsigned(data1[i], buffer, 0, columnLength[0]);
-            BytesUtil.writeUnsigned(data2[i], buffer, columnLength[0], columnLength[1]);
-            writer.write(Lists.newArrayList(buffer), pageId);
+            BytesUtil.writeUnsigned(data1[i], buffer1, 0, columnLength[0]);
+            BytesUtil.writeUnsigned(data2[i], buffer2, 0, columnLength[1]);
+            writer.write(Lists.newArrayList(buffer1, buffer2), pageId);
 
             if (!dataMap1.containsKey(data1[i])) {
                 dataMap1.put(data1[i], Sets.<Integer> newLinkedHashSet());
