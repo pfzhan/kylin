@@ -29,6 +29,7 @@ import org.apache.kylin.gridtable.GTRecord;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.kylin.gridtable.ScannerWorker;
+import io.kyligence.kap.metadata.filter.EvaluatableLikeFunctionTransformer;
 import org.apache.kylin.metadata.filter.StringCodeSystem;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilterSerializer;
@@ -38,9 +39,10 @@ import org.apache.kylin.storage.StorageContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Sets;
+
 import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.cube.raw.gridtable.RawTableScanRangePlanner;
-import org.apache.kylin.metadata.filter.EvaluatableLikeFunctionTransformer;
 
 public class RawTableSegmentScanner implements IGTScanner {
 
@@ -51,16 +53,25 @@ public class RawTableSegmentScanner implements IGTScanner {
 
     public RawTableSegmentScanner(RawTableSegment rawTableSegment, Set<TblColRef> dimensions, Set<TblColRef> groups, //
             Collection<FunctionDesc> metrics, TupleFilter originalfilter, StorageContext context) {
-        
+
         //the filter might be changed later in this SegmentScanner (In EvaluatableLikeFunctionTransformer)
         //to avoid issues like in https://issues.apache.org/jira/browse/KYLIN-1954, make sure each SegmentScanner
         //is working on its own copy
         byte[] serialize = TupleFilterSerializer.serialize(originalfilter, StringCodeSystem.INSTANCE);
         TupleFilter filter = TupleFilterSerializer.deserialize(serialize, StringCodeSystem.INSTANCE);
-        
+
         //CubeSegmentScanner will do BuildInFunctionTransformer here, however RawTableSegmentScanner only supports Like function 
         //exception will be thrown at other functions, because they're considered to be too costly for the query server
-        filter = EvaluatableLikeFunctionTransformer.transform(filter);
+        Set<TblColRef> likeColumnsCollector = Sets.newHashSet();
+        filter = EvaluatableLikeFunctionTransformer.transform(filter, likeColumnsCollector);
+        //check if the like query can be evaluated. If no like index is created, the query is considered to be too costly to continue.
+        //TODO: move this check to capability check?
+        //TODO: if not index is built for > and < cases, shall we throw exceptions immediately too?
+        for (TblColRef likeColumn : likeColumnsCollector) {
+            if (!rawTableSegment.getRawTableInstance().getRawTableDesc().isNeedFuzzyIndex(likeColumn)) {
+                throw new IllegalStateException("Like index is not built for column:" + likeColumn);
+            }
+        }
 
         RawTableScanRangePlanner planner = new RawTableScanRangePlanner(rawTableSegment, filter, dimensions, groups, metrics);
         scanRequest = planner.planScanRequest();
