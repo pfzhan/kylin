@@ -108,7 +108,7 @@ elif [ "$1" == "stop" ]
 then
 
     columnarEnabled=`sh $KYLIN_HOME/bin/get-properties.sh kap.columnar.enabled`
-    if [ ${columnarEnabled} == "true" ]
+    if [ "${columnarEnabled}" == "true" ]
     then
         echo "kap columnar storage is enabled, stopping spark driver first"
         sh ${dir}/spark_client.sh stop
