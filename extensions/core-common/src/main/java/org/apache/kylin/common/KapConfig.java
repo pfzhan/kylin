@@ -64,7 +64,7 @@ public class KapConfig {
     }
 
     public double getParquetPageIndexSpillThresholdMB() {
-        return Double.parseDouble(config.getOptional("kap.storage.columnar.ii.spill.threshold.mb", "512"));
+        return Double.parseDouble(config.getOptional("kap.storage.columnar.ii.spill.threshold.mb", "128"));
     }
 
     public String getSparkClientHost() {
