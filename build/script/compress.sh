@@ -21,8 +21,13 @@ fi
 cp -rf commit_SHA1 lib kybot tomcat spark ${package_name}/
 
 # add kap files
-cp -rf conf/* ${package_name}/conf/
+cp -rf conf/kylin.properties ${package_name}/conf/
 cp -rf bin/* ${package_name}/bin/
+
+# update kap plus config files
+if [ "${PACKAGE_PLUS}" == "1" ]; then
+    cat conf/plus/kylin.properties.append >> ${package_name}/conf/kylin.properties
+fi
 
 rm -rf lib tomcat commit_SHA1 # keep the spark folder on purpose
 find ${package_name} -type d -exec chmod 755 {} \;

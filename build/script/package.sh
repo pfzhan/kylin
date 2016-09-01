@@ -5,8 +5,14 @@ cd ${dir}/../..
 
 source build/script/functions.sh
 
-if [ "$1" == "-skipObf" ]; then
+if [ "$1" == "-skipObf" ] || [ "$2" == "-skipObf" ]; then
     export SKIP_OBF=1
+    echo "Skip Obfuscation..."
+fi
+
+if [ "$1" == "-plus" ] || [ "$2" == "-plus" ]; then
+    export PACKAGE_PLUS=1
+    echo "Packing for KAP Plus..."
 fi
 
 # Make share commands exist in environment
@@ -42,5 +48,3 @@ sh build/script/prepare.sh              || { exit 1; }
 sh build/script/compress.sh             || { exit 1; }
 
 echo "BUILD FINISHED!"
-
-
