@@ -59,7 +59,7 @@ public class ColumnIndexTest extends LocalFileMetadataTestCase {
         // read
         FSDataInputStream inputStream = FileSystem.getLocal(HadoopUtil.getCurrentConfiguration()).open(indexPath);
         ColumnIndexReader indexReader = new ColumnIndexReader(inputStream);
-        System.out.println(indexReader.getNumberOfRows());
+        assertEquals(100, indexReader.getNumberOfRows());
         for (Map.Entry<ByteArray, Integer> dataEntry : data.entrySet()) {
             long t0 = System.currentTimeMillis();
             int row = indexReader.getRows(dataEntry.getKey()).toArray()[0];
@@ -69,7 +69,5 @@ public class ColumnIndexTest extends LocalFileMetadataTestCase {
 
             assertEquals(dataEntry.getValue().intValue(), row);
         }
-
-        System.out.println(indexReader.getRows(new ByteArray(new byte[] { (byte) 100 })));
     }
 }

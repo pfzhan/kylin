@@ -114,7 +114,7 @@ public class IndexMapCache implements Closeable {
             dumps.add(dump);
             indexMapBuf = Maps.newTreeMap();
         } catch (Exception e) {
-            throw new RuntimeException("AggregationCache spill failed: " + e.getMessage());
+            throw new RuntimeException("Columnar index spill failed: " + e.getMessage());
         }
     }
 
@@ -187,8 +187,8 @@ public class IndexMapCache implements Closeable {
                 DataOutputStream dos = null;
                 DataOutputStream dosReverse = null;
                 try {
-                    dumpedFile = File.createTempFile("PARQUET_II_SPILL_" + columnName + "_", ".tmp");
-                    logger.info("Parquet page index spill: column={}, size={}, file={}", columnName, indexMap.size(), dumpedFile.getAbsolutePath());
+                    dumpedFile = File.createTempFile("COLUMNAR_IDX_SPILL_" + columnName + "_", ".tmp");
+                    logger.info("Columnar index spill: column={}, size={}, file={}", columnName, indexMap.size(), dumpedFile.getAbsolutePath());
                     dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(dumpedFile), kapConfig.getParquetPageIndexIOBufSize()));
                     dos.writeInt(size);
                     for (Map.Entry<Comparable, Iterable<? extends Number>> entry : indexMap.entrySet()) {
@@ -197,7 +197,7 @@ public class IndexMapCache implements Closeable {
                     }
 
                     if (needReverse) {
-                        dumpedReverseFile = File.createTempFile("PARQUET_II_SPILL_REVERSE_" + columnName + "_", ".tmp");
+                        dumpedReverseFile = File.createTempFile("COLUMNAR_IDX_SPILL_REVERSE_" + columnName + "_", ".tmp");
                         dosReverse = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(dumpedReverseFile), kapConfig.getParquetPageIndexIOBufSize()));
                         dosReverse.writeInt(size);
                         for (Map.Entry<Comparable, Iterable<? extends Number>> entry : indexMap.descendingMap().entrySet()) {
@@ -252,7 +252,7 @@ public class IndexMapCache implements Closeable {
                                     Iterable<? extends Number> value = valueSetEncoding.deserialize(dis);
                                     return new Pair<>(key, value);
                                 } catch (Exception e) {
-                                    throw new RuntimeException("Cannot read parquet page index spill from file. ", e);
+                                    throw new RuntimeException("Cannot read columnar index spill from file. ", e);
                                 }
                             }
 

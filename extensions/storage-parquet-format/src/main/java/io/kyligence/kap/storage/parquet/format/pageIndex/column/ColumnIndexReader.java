@@ -192,6 +192,9 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
 
     @Override
     public int getNumberOfRows() {
+        if (eqIndex == null) {
+            initFromInput();
+        }
         return cardinality;
     }
 
