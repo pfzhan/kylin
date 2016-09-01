@@ -99,8 +99,8 @@ public class IndexMapCache implements Closeable {
             if (availMemoryMB < spillThresholdMB) {
                 logger.info("Available memory mb {}, prepare to spill.", availMemoryMB);
                 spill();
+                logger.info("Available memory mb {} after spill.", MemoryBudgetController.gcAndGetSystemAvailMB());
             }
-            logger.info("Available memory mb {} after spill.", MemoryBudgetController.gcAndGetSystemAvailMB());
         }
     }
 

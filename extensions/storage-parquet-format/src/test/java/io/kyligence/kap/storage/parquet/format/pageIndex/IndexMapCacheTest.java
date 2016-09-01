@@ -29,12 +29,14 @@ public class IndexMapCacheTest extends LocalFileMetadataTestCase {
     public void testSpill() {
         System.setProperty("kap.storage.columnar.ii.spill.threshold.mb", Integer.toString(Integer.MAX_VALUE));
         testIndexMapCache();
+        System.clearProperty("kap.storage.columnar.ii.spill.threshold.mb");
     }
 
     @Test
     public void testNoSpill() {
         System.setProperty("kap.storage.columnar.ii.spill.threshold.mb", Integer.toString(Integer.MIN_VALUE));
         testIndexMapCache();
+        System.clearProperty("kap.storage.columnar.ii.spill.threshold.mb");
     }
 
     private void testIndexMapCache() {
