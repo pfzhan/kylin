@@ -11,6 +11,8 @@ import java.util.List;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.ByteArray;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Created by dongli on 6/14/16.
  */
@@ -47,21 +49,11 @@ public class ColumnIndexBundleWriter implements Closeable {
     }
 
     public void write(List<byte[]> rowKeys, int docId) {
-        int start = 0;
-        for (int r = 0; r < rowKeys.size(); r++) {
-            int pos = 0;
-            for (int i = start; i < columnNum; i++) {
-                byte[] currRowKey = rowKeys.get(r);
-                ByteArray rowKeyBuf = new ByteArray(currRowKey, pos, columnSpecs[i].getColumnLength());
-                indexWriters[i].appendToRow(rowKeyBuf, docId);
-                pos += columnSpecs[i].getColumnLength();
-                if (pos == currRowKey.length) {
-                    start = i + 1;
-                    break;
-                } else if (pos > currRowKey.length) {
-                    throw new RuntimeException("Length of input byte list did not match columns length.");
-                }
-            }
+        Preconditions.checkState(rowKeys.size() == columnNum);
+
+        for (int i = 0; i < columnNum; i++) {
+            byte[] currRowKey = rowKeys.get(i);
+            indexWriters[i].appendToRow(new ByteArray(currRowKey), docId);
         }
     }
 
