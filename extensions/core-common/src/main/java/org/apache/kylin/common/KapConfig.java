@@ -63,7 +63,7 @@ public class KapConfig {
         return config.getOptional("kap.storage.columnar.page.compression", "");
     }
 
-    public double getQueryCoprocessorMemMB() {
+    public double getParquetPageIndexSpillThresholdMB() {
         return Double.parseDouble(config.getOptional("kap.storage.columnar.ii.spill.threshold.mb", "256"));
     }
 

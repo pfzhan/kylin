@@ -33,23 +33,25 @@ import io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.value.I
 public class IndexMapCache implements Closeable {
     protected static final Logger logger = LoggerFactory.getLogger(IndexMapCache.class);
 
-    final double spillThresholdMB = KapConfig.getInstanceFromEnv().getQueryCoprocessorMemMB();
-
     private List<Dump> dumps;
     private NavigableMap<Comparable, Iterable<? extends Number>> indexMapBuf;
     private boolean needReverse;
     private IKeyEncoding keyEncoding;
     private IValueSetEncoding valueSetEncoding;
-    private KapConfig kapConfig;
+    private KapConfig kapConfig = KapConfig.getInstanceFromEnv();
+    private String columnName;
+    private boolean needSpill;
+    private final double spillThresholdMB = kapConfig.getParquetPageIndexSpillThresholdMB();
 
-    public IndexMapCache(boolean needReverse, IKeyEncoding keyEncoding, IValueSetEncoding valueSetEncoding) {
+    public IndexMapCache(String columnName, boolean needReverse, IKeyEncoding keyEncoding, IValueSetEncoding valueSetEncoding, boolean needSpill) {
         this.indexMapBuf = Maps.newTreeMap();
         this.dumps = Lists.newLinkedList();
         this.needReverse = needReverse;
         this.kapConfig = KapConfig.getInstanceFromEnv();
         this.keyEncoding = keyEncoding;
         this.valueSetEncoding = valueSetEncoding;
-        this.kapConfig = KapConfig.getInstanceFromEnv();
+        this.columnName = columnName;
+        this.needSpill = needSpill;
     }
 
     public int size() {
@@ -92,15 +94,17 @@ public class IndexMapCache implements Closeable {
     }
 
     private void spillIfNeeded() {
-        // spill if free memory less than threshold
-        long availMemoryMB = MemoryBudgetController.getSystemAvailMB();
-        if (availMemoryMB < spillThresholdMB) {
-            logger.info("Available memory mb {}, prepare to spill.", availMemoryMB);
-            spill();
+        if (needSpill) {
+            long availMemoryMB = MemoryBudgetController.getSystemAvailMB();
+            if (availMemoryMB < spillThresholdMB) {
+                logger.info("Available memory mb {}, prepare to spill.", availMemoryMB);
+                spill();
+            }
+            logger.info("Available memory mb {} after spill.", MemoryBudgetController.gcAndGetSystemAvailMB());
         }
     }
 
-    private void spill() {
+    public void spill() {
         if (indexMapBuf.isEmpty())
             return;
 
@@ -183,8 +187,8 @@ public class IndexMapCache implements Closeable {
                 DataOutputStream dos = null;
                 DataOutputStream dosReverse = null;
                 try {
-                    dumpedFile = File.createTempFile("PARQUET_II_SPILL_", ".tmp");
-                    logger.info("Parquet page index spill: size={}, file={}", indexMap.size(), dumpedFile.getAbsolutePath());
+                    dumpedFile = File.createTempFile("PARQUET_II_SPILL_" + columnName + "_", ".tmp");
+                    logger.info("Parquet page index spill: column={}, size={}, file={}", columnName, indexMap.size(), dumpedFile.getAbsolutePath());
                     dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(dumpedFile), kapConfig.getParquetPageIndexIOBufSize()));
                     dos.writeInt(size);
                     for (Map.Entry<Comparable, Iterable<? extends Number>> entry : indexMap.entrySet()) {
@@ -193,7 +197,7 @@ public class IndexMapCache implements Closeable {
                     }
 
                     if (needReverse) {
-                        dumpedReverseFile = File.createTempFile("PARQUET_II_SPILL_REVERSE_", ".tmp");
+                        dumpedReverseFile = File.createTempFile("PARQUET_II_SPILL_REVERSE_" + columnName + "_", ".tmp");
                         dosReverse = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(dumpedReverseFile), kapConfig.getParquetPageIndexIOBufSize()));
                         dosReverse.writeInt(size);
                         for (Map.Entry<Comparable, Iterable<? extends Number>> entry : indexMap.descendingMap().entrySet()) {

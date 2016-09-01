@@ -37,7 +37,7 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
         this.totalPageNum = columnSpec.getTotalPageNum();
         this.keyEncoding = KeyEncodingFactory.selectEncoding(columnSpec.getKeyEncodingIdentifier(), columnSpec.getColumnLength(), columnSpec.isOnlyEQIndex());
         this.valueSetEncoding = ValueSetEncodingFactory.selectEncoding(columnSpec.getValueEncodingIdentifier(), columnSpec.getCardinality(), columnSpec.isOnlyEQIndex());
-        this.indexMapCache = new IndexMapCache(!columnSpec.isOnlyEQIndex(), keyEncoding, valueSetEncoding);
+        this.indexMapCache = new IndexMapCache(columnSpec.getColumnName(), !columnSpec.isOnlyEQIndex(), keyEncoding, valueSetEncoding, false);
         logger.info("KeyEncoding={}, ValueEncoding={}", keyEncoding.getClass().getName(), valueSetEncoding.getClass().getName());
     }
 
@@ -122,7 +122,7 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
     private void writeAuxiliary(int step) throws IOException {
         // write lt
         logger.info("Start to write lt index for column {}", columnSpec.getColumnName());
-        IndexMapCache auxiliaryIndexMap = new IndexMapCache(false, keyEncoding, valueSetEncoding);
+        IndexMapCache auxiliaryIndexMap = new IndexMapCache(columnSpec.getColumnName(), false, keyEncoding, valueSetEncoding, true);
         Iterable<? extends Number> lastValue = valueSetEncoding.newValueSet();
         Iterable<? extends Number> currValue = null;
         for (Pair<Comparable, ? extends Iterable<? extends Number>> indexEntry : indexMapCache.getIterable(true)) {
@@ -135,7 +135,7 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
 
         // write gt
         logger.info("Start to write gt index for column {}", columnSpec.getColumnName());
-        auxiliaryIndexMap = new IndexMapCache(false, keyEncoding, valueSetEncoding);
+        auxiliaryIndexMap = new IndexMapCache(columnSpec.getColumnName(), false, keyEncoding, valueSetEncoding, true);
         lastValue = valueSetEncoding.newValueSet();
         for (Pair<Comparable, ? extends Iterable<? extends Number>> indexEntry : indexMapCache.getIterable(false)) {
             currValue = valueSetEncoding.or(lastValue, indexEntry.getValue());
@@ -178,5 +178,9 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
             }
             totalPageNum = Math.max(totalPageNum, docId + 1);
         }
+    }
+
+    public void spill() {
+        indexMapCache.spill();
     }
 }

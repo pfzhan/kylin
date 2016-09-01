@@ -10,25 +10,26 @@ import java.util.List;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.ByteArray;
+import org.apache.kylin.common.util.MemoryBudgetController;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-/**
- * Created by dongli on 6/14/16.
- */
 public class ColumnIndexBundleWriter implements Closeable {
+    protected static final Logger logger = LoggerFactory.getLogger(ColumnIndexBundleWriter.class);
 
     private int columnNum;
     private ColumnIndexWriter[] indexWriters;
     private File localIndexDir;
     private ColumnSpec[] columnSpecs;
-    private KapConfig kapConfig;
+    private KapConfig kapConfig = KapConfig.getInstanceFromEnv();
+    private final double spillThresholdMB = kapConfig.getParquetPageIndexSpillThresholdMB();
 
     public ColumnIndexBundleWriter(ColumnSpec[] columnSpecs, File localIndexDir) throws IOException {
         this.columnNum = columnSpecs.length;
         this.columnSpecs = columnSpecs;
         this.localIndexDir = localIndexDir;
-        this.kapConfig = KapConfig.getInstanceFromEnv();
         this.indexWriters = new ColumnIndexWriter[columnNum];
         for (int col = 0; col < columnNum; col++) {
             File indexFile = getColumnIndexFile(col);
@@ -46,6 +47,7 @@ public class ColumnIndexBundleWriter implements Closeable {
             indexWriters[i].appendToRow(new ByteArray(rowKey, columnOffset, columnSpecs[i].getColumnLength()), docId);
             columnOffset += columnSpecs[i].getColumnLength();
         }
+        spillIfNeeded();
     }
 
     public void write(List<byte[]> rowKeys, int docId) {
@@ -55,6 +57,20 @@ public class ColumnIndexBundleWriter implements Closeable {
             byte[] currRowKey = rowKeys.get(i);
             indexWriters[i].appendToRow(new ByteArray(currRowKey), docId);
         }
+
+        spillIfNeeded();
+    }
+
+    private void spillIfNeeded() {
+        long availMemoryMB = MemoryBudgetController.getSystemAvailMB();
+        if (availMemoryMB < spillThresholdMB) {
+            logger.info("Available memory mb {}, prepare to spill.", availMemoryMB);
+            for (int i = 0; i < columnNum; i++) {
+                indexWriters[i].spill();
+            }
+            logger.info("Available memory mb {} after spill.", MemoryBudgetController.gcAndGetSystemAvailMB());
+        }
+
     }
 
     @Override
