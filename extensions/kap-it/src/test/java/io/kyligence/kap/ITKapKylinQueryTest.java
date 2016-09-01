@@ -156,6 +156,12 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         }
     }
 
+    @Ignore
+    @Test
+    public void testVerifyQuery() throws Exception {
+        verifyResultRowCount(getQueryFolderPrefix() + "src/test/resources/query/sql_verifyCount");
+    }
+
     protected static void clean() {
         if (cubeConnection != null)
             closeConnection(cubeConnection);
