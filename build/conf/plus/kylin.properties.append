@@ -4,7 +4,7 @@ kap.storage.columnar.enabled=true
 
 # spark configuration
 ## path to hadoop conf, must be local on the server running kylin.sh. it is sth like /etc/hadoop/conf
-kap.storage.columnar.env.HADOOP_CONF_DIR=/PATH/TO/HADOOP/CONF/DIR
+kap.storage.columnar.env.HADOOP_CONF_DIR=/etc/hadoop/conf
 
 # columnar engine definition
 kylin.storage.engine.100=io.kyligence.kap.storage.parquet.ParquetStorage
