@@ -7,6 +7,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -207,5 +208,17 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
             }
         }
         return ret;
+    }
+
+    public static class RawTablePathFilter implements PathFilter {
+        public RawTablePathFilter() {
+        }
+
+        @Override
+        public boolean accept(Path path) {
+            String name = path.getName();
+            boolean ret = name.endsWith(".parquet");
+            return ret;
+        }
     }
 }
