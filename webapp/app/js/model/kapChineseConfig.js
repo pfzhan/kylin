@@ -375,6 +375,11 @@ KylinApp.constant('kapChineseConfig', {
     cubeMSCancel: '取消',
     cubeMSParameterAdd: '添加参数',
     cubeMSParameterSelect: '选择Group By列',
+    cubeMSID: 'ID',
+    cubeMSColumn: '列',
+    cubeMSEncoding: '编码',
+    cubeMSLength: '长度',
+    cubeMSNewColumn:'新加列',
     cubeRSAutoMerge: '触发自动合并的时间阀值',//refresh_settings begin
     tip_cubeRSAutoMerge: '系统会自动检查您设置的时间阀值,例如设置了时间阀值为[7天,30天],则系统会每隔7天合并一次segment,并且每隔30天再合并一次已合并的segment',
     cubeRSNewThresholds: '新建阀值',
@@ -717,7 +722,8 @@ KylinApp.constant('kapChineseConfig', {
     tip_to_save_cube: '确定要保存Cube?',
     success_updated_cube: '更新Cube成功',
     success_created_cube: '创建Cube成功.',
-    tip_column_required: '[TOP_N]的Group by列不能为空',//alert of CubeMeasuresCtrl
+    tip_column_required: '[TOP_N]的Group by Column不能为空',//alert of CubeMeasuresCtrl
+    warning_column_required:'[TOP_N]的ORDER|SUM by Column不能为空',
     tip_remove_lookup_table: '删除后，所有与此表相关的维度会一起删除，确定删除维度表?',//alert of CubeModelCtrl
     tip_no_cube_detail: '没有Cube详细信息.',//alert of cubesCtrl
     tip_no_cube_detail_loaded: '没有Cube详细信息.',
@@ -810,7 +816,9 @@ KylinApp.constant('kapChineseConfig', {
     check_cube_dimensions_value:"可推导列的值不能为空.",
     check_cube_dimensions_duplicate:"重复的列",
     success_access:"同意访问!",
-    check_look_up_column:"列类型不相容"
+    check_look_up_column:"列类型不相容",
+    warning_measures_part_one:'名为 [',
+    warning_measures_part_two: '] 的列已经存在'
   }
 
 });

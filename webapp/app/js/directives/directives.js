@@ -314,6 +314,29 @@ KylinApp.directive('kylinPagination', function ($parse, $q, language) {
         };
       }
     };
+  }).directive("groupbytree", function($compile) {
+    return {
+      restrict: "E",
+      transclude: true,
+      scope: {
+        nextpara: '=',
+      },
+      template:
+      '<b>{{nextpara.value}}<b ng-if="nextpara.next_parameter!=null">,</b></b>'+
+      '<groupbytree ng-if="nextpara.next_parameter!=null" nextpara="nextpara.next_parameter"></groupbytree>',
+      compile: function(tElement, tAttr, transclude) {
+        var contents = tElement.contents().remove();
+        var compiledContents;
+        return function(scope, iElement, iAttr) {
+          if(!compiledContents) {
+            compiledContents = $compile(contents, transclude);
+          }
+          compiledContents(scope, function(clone, scope) {
+            iElement.append(clone);
+          });
+        };
+      }
+    };
   }).directive("topntree", function($compile) {
   return {
     restrict: "E",
@@ -323,7 +346,9 @@ KylinApp.directive('kylinPagination', function ($parse, $q, language) {
     },
     template:
     '<li class="parent_li">SUM|ORDER BY:<b>{{nextpara.value}}</b></b></li>' +
-    '<li class="parent_li">GROUP BY:<b>{{nextpara.next_parameter.value}}</b></li>',
+    '<li class="parent_li">Group By:'+
+    '<groupbytree nextpara="nextpara.next_parameter"></groupbytree>'+
+    '</li>',
     compile: function(tElement, tAttr, transclude) {
       var contents = tElement.contents().remove();
       var compiledContents;

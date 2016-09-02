@@ -391,6 +391,11 @@ KylinApp.constant('kapEnglishConfig', {
     cubeMSCancel: 'Cancel',
     cubeMSParameterAdd: 'Add Parameter',
     cubeMSParameterSelect: 'Select Group By Column',
+    cubeMSID: 'ID',
+    cubeMSColumn: 'Column',
+    cubeMSEncoding: 'Encoding',
+    cubeMSLength: 'Length',
+    cubeMSNewColumn:'New Column',
     cubeRSAutoMerge: 'Auto Merge Thresholds',//refresh_settings begin
     tip_cubeRSAutoMerge: 'The thresholds will be checked ascendingly to see if any consectuive segments\' time range has exceeded it. For example the [7 days, 30 days] will result in daily incremental segments being merged every 7 days, and the 7-days segments will get merged every 30 days.',
     cubeRSNewThresholds: 'New Thresholds',
@@ -734,6 +739,7 @@ KylinApp.constant('kapEnglishConfig', {
     success_updated_cube: 'Updated the cube successfully',
     success_created_cube: 'Created the cube successfully.',
     tip_column_required: '[TOP_N] Group by Column is required',//alert of CubeMeasuresCtrl
+    warning_column_required:'[TOP_N] ORDER|SUM by Column  is required',
     tip_remove_lookup_table: 'Once it\'s removed, all relative dimensions will be removed. Are you sure to remove the lookup table?',//alert of CubeModelCtrl
     tip_no_cube_detail: 'No cube detail info loaded.',//alert of cubesCtrl
     tip_no_cube_detail_loaded: 'No cube detail info loaded.',
@@ -826,7 +832,9 @@ KylinApp.constant('kapEnglishConfig', {
     check_cube_dimensiona_value:"Derived value can't be null.",
     check_cube_dimensions_duplicate:"Duplicate column ",
     success_access:"Access granted!",
-    check_look_up_column:" Column Type incompatible "
+    check_look_up_column:" Column Type incompatible ",
+    warning_measures_part_one:'The column named [',
+    warning_measures_part_two: '] already exists!'
 }
 
 });
