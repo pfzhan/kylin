@@ -37,7 +37,7 @@ then
         fi
     fi
     
-    columnarEnabled=`sh $KYLIN_HOME/bin/get-properties.sh kap.columnar.enabled`
+    columnarEnabled=`sh $KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.enabled`
     if [ "${columnarEnabled}" == "true" ]
     then
         echo "kap columnar storage is enabled, starting spark driver first"
@@ -107,7 +107,7 @@ then
 elif [ "$1" == "stop" ]
 then
 
-    columnarEnabled=`sh $KYLIN_HOME/bin/get-properties.sh kap.columnar.enabled`
+    columnarEnabled=`sh $KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.enabled`
     if [ "${columnarEnabled}" == "true" ]
     then
         echo "kap columnar storage is enabled, stopping spark driver first"
