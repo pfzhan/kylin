@@ -65,8 +65,9 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
 
         super.bindCurrentConfiguration(conf);
 
-        KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
-        fuzzyLength = KapConfig.getInstanceFromEnv().getParquetFuzzyIndexLength();
+        KylinConfig kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
+        KapConfig kapConfig = KapConfig.wrap(AbstractHadoopJob.loadKylinPropsAndMetadata());
+        fuzzyLength = kapConfig.getParquetFuzzyIndexLength();
 
         cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME).toUpperCase();
         segmentName = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_NAME);
@@ -74,11 +75,11 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
 
         // write to same dir with input
         outputPath = new Path(inputPath.getParent(), shardId + ".parquet.inv");
-        cube = CubeManager.getInstance(config).getCube(cubeName);
+        cube = CubeManager.getInstance(kylinConfig).getCube(cubeName);
         cubeDesc = cube.getDescriptor();
         cubeSegment = cube.getSegment(segmentName, SegmentStatusEnum.NEW);
 
-        rawTableInstance = RawTableManager.getInstance(config).getRawTableInstance(cubeName);
+        rawTableInstance = RawTableManager.getInstance(kylinConfig).getRawTableInstance(cubeName);
         rawTableDesc = rawTableInstance.getRawTableDesc();
 
         logger.info("Input path: " + inputPath.toUri().toString());
