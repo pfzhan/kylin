@@ -10,9 +10,9 @@ if [ "$1" == "-skipObf" ] || [ "$2" == "-skipObf" ]; then
     echo "Skip Obfuscation..."
 fi
 
-if [ "$1" == "-plus" ] || [ "$2" == "-plus" ]; then
-    export PACKAGE_PLUS=1
-    echo "Packing for KAP Plus..."
+if [ "$1" == "-noPlus" ] || [ "$2" == "-noPlus" ]; then
+    export PACKAGE_PLUS=0
+    echo "Packing for KAP Normal..."
 fi
 
 # Make share commands exist in environment

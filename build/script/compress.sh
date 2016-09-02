@@ -25,7 +25,7 @@ cp -rf conf/kylin.properties ${package_name}/conf/
 cp -rf bin/* ${package_name}/bin/
 
 # update kap plus config files
-if [ "${PACKAGE_PLUS}" == "1" ]; then
+if [ "${PACKAGE_PLUS}" != "0" ]; then
     cat conf/plus/kylin.properties.append >> ${package_name}/conf/kylin.properties
 fi
 
