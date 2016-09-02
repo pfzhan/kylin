@@ -61,8 +61,7 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
 
     private ColumnSpec[] columnSpecs;
 
-    private KapConfig kapConfig = KapConfig.getInstanceFromEnv();
-    private final double spillThresholdMB = kapConfig.getParquetPageIndexSpillThresholdMB();
+    private final double spillThresholdMB = 512;
 
     @Override
     protected void setup(Context context) throws IOException {
