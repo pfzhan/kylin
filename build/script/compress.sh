@@ -26,7 +26,7 @@ cp -rf bin/* ${package_name}/bin/
 
 # update kap plus config files
 if [ "${PACKAGE_PLUS}" != "0" ]; then
-    cat conf/plus/kylin.properties.append >> ${package_name}/conf/kylin.properties
+    cat conf/plus/kap-plus.properties >> ${package_name}/conf/kylin.properties
 fi
 
 rm -rf lib tomcat commit_SHA1 # keep the spark folder on purpose

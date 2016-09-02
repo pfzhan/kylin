@@ -72,7 +72,7 @@ public class KapConfig {
     }
 
     public int getSparkClientPort() {
-        return Integer.parseInt(config.getOptional("kap.storage.columnar.spark.driver.port", "50051"));
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.spark.driver.port", "7071"));
     }
 
     public String getSparkCubeGTStorage() {

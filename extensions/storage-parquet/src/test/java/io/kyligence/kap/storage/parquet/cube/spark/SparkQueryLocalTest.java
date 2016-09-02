@@ -79,7 +79,7 @@ public class SparkQueryLocalTest extends io.kyligence.kap.common.util.LocalFileM
         final GTScanRequest req = new GTScanRequestBuilder().setInfo(info).setRanges(null).setDimensions(null).setAggrGroupBy(DictGridTableTest.setOf(0)).setAggrMetrics(DictGridTableTest.setOf(3)).setAggrMetricsFuncs(new String[] { "sum" }).setFilterPushDown(null).setAllowStorageAggregation(true).setAggCacheMemThreshold(0).createGTScanRequest();
         byte[] reqBytes = req.toByteArray();
 
-        SparkDriverClient client = new SparkDriverClient("localhost", 50051);
+        SparkDriverClient client = new SparkDriverClient("localhost", 7071);
         try {
             SparkJobProtos.SparkJobResponse response = client.submit(reqBytes, new SparkDriverClientParams(KylinConfig.getInstanceFromEnv().getConfigAsString(), RealizationType.CUBE.toString(), null, null, null, 0, null));
             ByteBuffer responseBuffer = ByteBuffer.wrap(response.getGtRecordsBlob().toByteArray());

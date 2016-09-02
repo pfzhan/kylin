@@ -30,7 +30,7 @@ import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.JobServiceGrpc;
 public class SparkDriverServer {
     private static final Logger logger = LoggerFactory.getLogger(SparkDriverServer.class);
 
-    private final static int defaultPort = 50051;
+    private final static int defaultPort = 7071;
     private final int port;
     private Server server;
 

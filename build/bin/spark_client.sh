@@ -7,17 +7,26 @@ if [[ $CI_MODE == 'true' ]]
 then
     echo 'in ci mode'
     export KYLIN_HOME=${dir}/../../
-    export BIN_PARENT=${KYLIN_HOME}/build/
+    export CONF_DIR=${KYLIN_HOME}/extensions/examples/test_case_data/sandbox
+    export SPARK_DIR=${KYLIN_HOME}/build/spark/
     export KYLIN_SPARK_JAR_PATH=$KYLIN_HOME/extensions/storage-parquet/target/kap-storage-parquet-1.5.4-SNAPSHOT-spark.jar
 else
     echo 'in normal mode'
     export KYLIN_HOME=${dir}/../
-    export BIN_PARENT=${KYLIN_HOME}/
+    export CONF_DIR=${KYLIN_HOME}/conf
+    export SPARK_DIR=${KYLIN_HOME}/spark/
     export KYLIN_SPARK_JAR_PATH=$KYLIN_HOME/lib/kylin-storage-parquet-kap-1.5.4-SNAPSHOT.jar
+    
+    if [ ! -d ${CONF_DIR} ]
+    then
+        echo "CONF_DIR does not exist, did you forget to set CI_MODE=true?"
+        exit 1
+    fi
 fi
 
 echo "KYLIN_HOME is set to ${KYLIN_HOME}"
-echo "BIN_PARENT is set to ${BIN_PARENT}"
+echo "CONF_DIR is set to ${CONF_DIR}"
+echo "SPARK_DIR is set to ${SPARK_DIR}"
 echo "KYLIN_SPARK_JAR_PATH is set to ${KYLIN_SPARK_JAR_PATH}"
 
 mkdir -p ${KYLIN_HOME}/logs
@@ -25,9 +34,9 @@ mkdir -p ${KYLIN_HOME}/logs
 #auto detect SPARK_HOME
 if [ -z "$SPARK_HOME" ]
 then
-    if [ -d ${BIN_PARENT}/spark ]
+    if [ -d ${SPARK_DIR} ]
     then
-        export SPARK_HOME=${KYLIN_HOME}/spark
+        export SPARK_HOME=${SPARK_DIR}
         echo "SPARK_HOME is set to ${SPARK_HOME}"
     else
         echo 'please make sure SPARK_HOME has been set(export as environment variable first)'
@@ -51,13 +60,21 @@ then
         fi
     fi
     
-    #spark driver client
-    driverPort=`sh ${BIN_PARENT}/bin/get-properties.sh kap.storage.columnar.spark.driver.port`
-
+    #spark driver client port
+    driverPortPrefix="kap.storage.columnar.spark.driver.port="
+    realStart=$((${#driverPortPrefix} + 1))
+    driverPort=
+    for x in `cat ${CONF_DIR}/*.properties | grep "^$driverPortPrefix" | cut -c ${realStart}-   `
+    do  
+        driverPort=$x
+    done
+    
+    echo "The driver port is $driverPort"
+    
     # spark envs
     sparkEnvPrefix="kap.storage.columnar.env."
     realStart=$((${#sparkEnvPrefix} + 1))
-    for kv in `cat ${BIN_PARENT}/conf/kylin.properties | grep "^${sparkEnvPrefix}" | cut -c ${realStart}-   `
+    for kv in `cat ${CONF_DIR}/*.properties | grep "^${sparkEnvPrefix}" | cut -c ${realStart}-   `
     do  
         key=`echo "$kv" |  awk '{ n = index($0,"="); print substr($0,0,n-1)}'`
         existingValue=`printenv ${key}`
@@ -73,12 +90,12 @@ then
     # spark conf
     sparkConfPrefix="kap.storage.columnar.conf."
     realStart=$((${#sparkConfPrefix} + 1))
-    confStr=`cat ${BIN_PARENT}/conf/kylin.properties | grep "^${sparkConfPrefix}" | cut -c ${realStart}- |  awk '{ print "--conf " "\"" $0 "\""}' | tr '\n' ' ' `
+    confStr=`cat ${CONF_DIR}/*.properties | grep "^${sparkConfPrefix}" | cut -c ${realStart}- |  awk '{ print "--conf " "\"" $0 "\""}' | tr '\n' ' ' `
     echo "additional confs spark-submit: $confStr"
 
     submitCommand='$SPARK_HOME/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry --master yarn --deploy-mode client --verbose '
     submitCommand=${submitCommand}${confStr}
-    submitCommand=${submitCommand}' ${KYLIN_SPARK_JAR_PATH} -className io.kyligence.kap.storage.parquet.cube.spark.SparkQueryDriver --port ${driverPort:-50051} >> ${KYLIN_HOME}/logs/spark_client.out 2>&1 & echo $! > ${KYLIN_HOME}/spark_client_pid &'
+    submitCommand=${submitCommand}' ${KYLIN_SPARK_JAR_PATH} -className io.kyligence.kap.storage.parquet.cube.spark.SparkQueryDriver --port ${driverPort:-7071} >> ${KYLIN_HOME}/logs/spark_client.out 2>&1 & echo $! > ${KYLIN_HOME}/spark_client_pid &'
     echo "The submit command is: $submitCommand"
     eval $submitCommand 
     
