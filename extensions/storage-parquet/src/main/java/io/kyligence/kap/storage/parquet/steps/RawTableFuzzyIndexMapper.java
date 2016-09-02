@@ -55,8 +55,7 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
     private int fuzzyLength = 0;
     private Path outputPath;
 
-    private KapConfig kapConfig = KapConfig.getInstanceFromEnv();
-    private final double spillThresholdMB = kapConfig.getParquetPageIndexSpillThresholdMB();
+    private double spillThresholdMB;
 
     @Override
     protected void setup(Context context) throws IOException {
@@ -68,6 +67,7 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
         KylinConfig kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
         KapConfig kapConfig = KapConfig.wrap(AbstractHadoopJob.loadKylinPropsAndMetadata());
         fuzzyLength = kapConfig.getParquetFuzzyIndexLength();
+        spillThresholdMB = kapConfig.getParquetPageIndexSpillThresholdMB();
 
         cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME).toUpperCase();
         segmentName = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_NAME);
