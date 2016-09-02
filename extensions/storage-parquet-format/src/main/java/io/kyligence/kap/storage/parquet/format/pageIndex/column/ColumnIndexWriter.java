@@ -36,7 +36,7 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
         this.config = KapConfig.getInstanceFromEnv();
         this.totalPageNum = columnSpec.getTotalPageNum();
         this.keyEncoding = KeyEncodingFactory.selectEncoding(columnSpec.getKeyEncodingIdentifier(), columnSpec.getColumnLength(), columnSpec.isOnlyEQIndex());
-        this.valueSetEncoding = ValueSetEncodingFactory.selectEncoding(columnSpec.getValueEncodingIdentifier(), columnSpec.getCardinality(), columnSpec.isOnlyEQIndex());
+        this.valueSetEncoding = ValueSetEncodingFactory.selectEncoding(columnSpec.getValueEncodingIdentifier(), 0, columnSpec.isOnlyEQIndex()); // todo: not auto calulate value encoding
         this.indexMapCache = new IndexMapCache(columnSpec.getColumnName(), !columnSpec.isOnlyEQIndex(), keyEncoding, valueSetEncoding, false);
         logger.info("KeyEncoding={}, ValueEncoding={}", keyEncoding.getClass().getName(), valueSetEncoding.getClass().getName());
     }
@@ -80,6 +80,8 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
             position += keyEncoding.getLength() + valueSetEncoding.getSerializeBytes(value);
         }
 
+        logger.info("Offset Map for column {} built finished.", columnSpec.getColumnName());
+
         // write body length of bytes
         outputStream.writeLong(position);
         headerSize += 8;
@@ -92,7 +94,7 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
             valueSetEncoding.serialize(value, outputStream);
         }
         totalSize += headerSize + position;
-        logger.info("Index Length Stats: Header={}, Body={}, Step={}", headerSize, position, step);
+        logger.info("Index block built finished. Stats: Header={}, Body={}, Step={}", headerSize, position, step);
     }
 
     private void seal() throws IOException {

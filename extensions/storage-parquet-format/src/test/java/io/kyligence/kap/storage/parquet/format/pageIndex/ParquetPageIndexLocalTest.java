@@ -3,26 +3,33 @@ package io.kyligence.kap.storage.parquet.format.pageIndex;
 import java.io.FileOutputStream;
 import java.util.List;
 
-import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
-import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.util.MemoryBudgetController;
 import org.apache.parquet.io.api.Binary;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
-import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexWriter;
+import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
+import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnSpec;
 import io.kyligence.kap.storage.parquet.format.raw.RawTableUtils;
 
 @Ignore("This is used for debugging index.")
 public class ParquetPageIndexLocalTest extends LocalFileMetadataTestCase {
+    protected static final Logger logger = LoggerFactory.getLogger(ParquetPageIndexLocalTest.class);
+
+    private KapConfig kapConfig = KapConfig.getInstanceFromEnv();
+    private final double spillThresholdMB = kapConfig.getParquetPageIndexSpillThresholdMB();
 
     @AfterClass
     public static void after() throws Exception {
@@ -46,13 +53,15 @@ public class ParquetPageIndexLocalTest extends LocalFileMetadataTestCase {
         ColumnSpec[] specs = new ColumnSpec[9];
         for (int i = 0; i < 9; i++) {
             specs[i] = new ColumnSpec(name[i], length[i], card[i], onlyEQ[i], i);
+            specs[i].setValueEncodingIdentifier('s');
             //            specs[i].setKeyEncodingIdentifier('a');
             //            specs[i].setValueEncodingIdentifier('s');
         }
         ColumnSpec[] specsSub = new ColumnSpec[1];
         specsSub[0] = new ColumnSpec("key", 6, 1, true, 1);
-        ParquetPageIndexWriter indexWriter = new ParquetPageIndexWriter(specs, new FSDataOutputStream(new FileOutputStream("/tmp/new2.parquetindex")));
-        ParquetPageIndexWriter indexWriterSub = new ParquetPageIndexWriter(specsSub, new FSDataOutputStream(new FileOutputStream("/tmp/new3.parquetindex")));
+        specsSub[0].setValueEncodingIdentifier('s');
+        ParquetPageIndexWriter indexWriter = new ParquetPageIndexWriter(specs, new FSDataOutputStream(new FileOutputStream("/tmp/new2.parquetindex")), false);
+        ParquetPageIndexWriter indexWriterSub = new ParquetPageIndexWriter(specsSub, new FSDataOutputStream(new FileOutputStream("/tmp/new3.parquetindex")), false);
 
         int i = 0;
         while (true) {
@@ -72,6 +81,14 @@ public class ParquetPageIndexLocalTest extends LocalFileMetadataTestCase {
             indexWriter.write(byteList, pageIndex);
 
             writeSubstring(indexWriterSub, byteList.get(1), pageIndex, 6);
+
+            long availMemoryMB = MemoryBudgetController.getSystemAvailMB();
+            if (availMemoryMB < spillThresholdMB) {
+                logger.info("Available memory mb {}, prepare to spill.", availMemoryMB);
+                indexWriter.spill();
+                indexWriterSub.spill();
+                logger.info("Available memory mb {} after spill.", MemoryBudgetController.gcAndGetSystemAvailMB());
+            }
         }
 
         indexWriter.close();
@@ -89,4 +106,5 @@ public class ParquetPageIndexLocalTest extends LocalFileMetadataTestCase {
             writer.write(value, index, pageId);
         }
     }
+
 }

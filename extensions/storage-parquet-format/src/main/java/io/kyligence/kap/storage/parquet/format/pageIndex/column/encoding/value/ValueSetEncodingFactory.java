@@ -1,7 +1,7 @@
 package io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.value;
 
 public class ValueSetEncodingFactory {
-    public static IValueSetEncoding selectEncoding(char identifier, int cardinality, boolean onlyEQ) {
+    public static IValueSetEncoding selectEncoding(char identifier, int docCardinality, boolean onlyEQ) {
         EncodingType type = EncodingType.fromIdentifier(identifier);
         switch (type) {
         case ROARING:
@@ -11,7 +11,7 @@ public class ValueSetEncodingFactory {
         case SHORT_SET:
             return new ShortSetEncoding();
         case AUTO:
-            if (onlyEQ && cardinality < 4096) {
+            if (onlyEQ && docCardinality > 0 && docCardinality < 4096) {
                 return new ShortSetEncoding();
             } else {
                 return new MutableRoaringBitmapEncoding();

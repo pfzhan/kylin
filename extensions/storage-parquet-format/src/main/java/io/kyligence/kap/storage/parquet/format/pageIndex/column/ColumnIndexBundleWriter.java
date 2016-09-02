@@ -10,7 +10,6 @@ import java.util.List;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.ByteArray;
-import org.apache.kylin.common.util.MemoryBudgetController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +23,6 @@ public class ColumnIndexBundleWriter implements Closeable {
     private File localIndexDir;
     private ColumnSpec[] columnSpecs;
     private KapConfig kapConfig = KapConfig.getInstanceFromEnv();
-    private final double spillThresholdMB = kapConfig.getParquetPageIndexSpillThresholdMB();
 
     public ColumnIndexBundleWriter(ColumnSpec[] columnSpecs, File localIndexDir) throws IOException {
         this.columnNum = columnSpecs.length;
@@ -47,7 +45,6 @@ public class ColumnIndexBundleWriter implements Closeable {
             indexWriters[i].appendToRow(new ByteArray(rowKey, columnOffset, columnSpecs[i].getColumnLength()), docId);
             columnOffset += columnSpecs[i].getColumnLength();
         }
-        spillIfNeeded();
     }
 
     public void write(List<byte[]> rowKeys, int docId) {
@@ -57,20 +54,12 @@ public class ColumnIndexBundleWriter implements Closeable {
             byte[] currRowKey = rowKeys.get(i);
             indexWriters[i].appendToRow(new ByteArray(currRowKey), docId);
         }
-
-        spillIfNeeded();
     }
 
-    private void spillIfNeeded() {
-        long availMemoryMB = MemoryBudgetController.getSystemAvailMB();
-        if (availMemoryMB < spillThresholdMB) {
-            logger.info("Available memory mb {}, prepare to spill.", availMemoryMB);
-            for (int i = 0; i < columnNum; i++) {
-                indexWriters[i].spill();
-            }
-            logger.info("Available memory mb {} after spill.", MemoryBudgetController.gcAndGetSystemAvailMB());
+    public void spill() {
+        for (int i = 0; i < columnNum; i++) {
+            indexWriters[i].spill();
         }
-
     }
 
     @Override

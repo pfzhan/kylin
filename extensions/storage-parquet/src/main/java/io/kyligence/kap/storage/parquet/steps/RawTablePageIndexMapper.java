@@ -15,6 +15,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.MemoryBudgetController;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
@@ -58,10 +59,10 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
     private int fuzzyLength = 0;
     private Path outputPath;
 
-    private int[] columnLength;
-    private int[] cardinality;
-    private String[] columnName;
-    private boolean[] onlyEQIndex;
+    private ColumnSpec[] columnSpecs;
+
+    private KapConfig kapConfig = KapConfig.getInstanceFromEnv();
+    private final double spillThresholdMB = kapConfig.getParquetPageIndexSpillThresholdMB();
 
     @Override
     protected void setup(Context context) throws IOException {
@@ -94,33 +95,29 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
 
     private void initIndexWriters() throws IOException {
         int columnNum = rawTableDesc.getColumns().size();
-        columnLength = new int[columnNum];
-        cardinality = new int[columnNum];
-        columnName = new String[columnNum];
-        onlyEQIndex = new boolean[columnNum];
         int hashLength = KapConfig.getInstanceFromEnv().getParquetIndexHashLength();
 
         fuzzyIndexWriterMap = new HashMap<>();
         fuzzyIndexEncodingMap = new HashMap<>();
         List<TblColRef> columns = rawTableDesc.getColumns();
+        columnSpecs = new ColumnSpec[columns.size()];
         for (int i = 0; i < columns.size(); i++) {
             TblColRef column = columns.get(i);
-            columnLength[i] = hashLength;
-            onlyEQIndex[i] = true;
-            cardinality[i] = 10000;
-            columnName[i] = column.getName();
+            columnSpecs[i] = new ColumnSpec(column.getName(), hashLength, 10000, true, i);
+            columnSpecs[i].setValueEncodingIdentifier('s');
 
             if (rawTableDesc.isNeedFuzzyIndex(column)) {
                 Path path = new Path(inputPath.getParent(), shardId + "." + i + ".parquet.fuzzy");
                 FSDataOutputStream output = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(path);
                 ColumnSpec columnSpec = new ColumnSpec(column.getName(), fuzzyLength, 10000, true, i);
+                columnSpec.setValueEncodingIdentifier('s');
                 fuzzyIndexWriterMap.put(i, new ParquetPageIndexWriter(new ColumnSpec[] { columnSpec }, output));
                 fuzzyIndexEncodingMap.put(i, new BufferedRawEncoder(column));
             }
         }
 
         FSDataOutputStream outputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(outputPath);
-        indexBundleWriter = new ParquetPageIndexWriter(columnName, columnLength, cardinality, onlyEQIndex, outputStream);
+        indexBundleWriter = new ParquetPageIndexWriter(columnSpecs, outputStream);
     }
 
     @Override
@@ -137,11 +134,13 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
             ParquetPageIndexWriter writer = fuzzyIndexWriterMap.get(fuzzyIndex);
             String[] decoded = new String[1];
             fuzzyIndexEncodingMap.get(fuzzyIndex).decode(ByteBuffer.wrap(originValue.get(fuzzyIndex)), decoded);
-//            logger.info("origin value: {}", decoded);
+            //            logger.info("origin value: {}", decoded);
             writeSubstring(writer, decoded[0].getBytes(), value.get(), fuzzyLength);
         }
 
         indexBundleWriter.write(hashedValue, value.get());
+
+        spillIfNeeded();
     }
 
     private void writeSubstring(ParquetPageIndexWriter writer, byte[] value, int pageId, int length) {
@@ -172,5 +171,17 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
         }
 
         return lens;
+    }
+
+    private void spillIfNeeded() {
+        long availMemoryMB = MemoryBudgetController.getSystemAvailMB();
+        if (availMemoryMB < spillThresholdMB) {
+            logger.info("Available memory mb {}, prepare to spill.", availMemoryMB);
+            indexBundleWriter.spill();
+            for (ParquetPageIndexWriter writer : fuzzyIndexWriterMap.values()) {
+                writer.spill();
+            }
+            logger.info("Available memory mb {} after spill.", MemoryBudgetController.gcAndGetSystemAvailMB());
+        }
     }
 }
