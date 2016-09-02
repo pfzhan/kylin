@@ -1,6 +1,6 @@
 
 # set the this to true to enable kap columnar storage before running kylin.sh
-kap.storage.columnar.enabled=false
+kap.storage.columnar.enabled=true
 
 # columnar engine definition
 kylin.storage.engine.100=io.kyligence.kap.storage.parquet.ParquetStorage
