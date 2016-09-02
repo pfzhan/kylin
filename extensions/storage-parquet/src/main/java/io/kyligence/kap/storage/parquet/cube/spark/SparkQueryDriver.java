@@ -33,7 +33,7 @@ public class SparkQueryDriver extends AbstractApplication {
     protected static final Logger logger = LoggerFactory.getLogger(SparkQueryDriver.class);
 
     @SuppressWarnings("static-access")
-    private static final Option OPTION_PORT = OptionBuilder.withArgName("port").hasArg().isRequired(false).withDescription("specify which port to listen to").create("port");
+    private static final Option OPTION_PORT = OptionBuilder.withArgName("port").hasArg().isRequired(true).withDescription("specify which port to listen to").create("port");
 
     private Options options;
 
@@ -50,7 +50,7 @@ public class SparkQueryDriver extends AbstractApplication {
     @Override
     protected void execute(OptionsHelper optionsHelper) throws Exception {
 
-        SparkDriverServer server = new SparkDriverServer();
+        SparkDriverServer server = new SparkDriverServer(Integer.valueOf(optionsHelper.getOptionValue(OPTION_PORT)));
         server.start();
         server.blockUntilShutdown();
     }

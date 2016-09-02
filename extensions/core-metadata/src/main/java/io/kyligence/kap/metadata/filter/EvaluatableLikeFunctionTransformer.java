@@ -23,6 +23,7 @@ import java.util.Set;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.metadata.filter.BuiltInFunctionTupleFilter;
+import org.apache.kylin.metadata.filter.ColumnTupleFilter;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.ConstantTupleFilter;
 import org.apache.kylin.metadata.filter.EvaluatableLikeFunction;
@@ -52,8 +53,8 @@ public class EvaluatableLikeFunctionTransformer {
             if (isLikeFunction(builtInFunctionTupleFilter)) {
                 for (TupleFilter child : builtInFunctionTupleFilter.getChildren()) {
                     
-                    if (child instanceof CompareTupleFilter) {
-                        likeColumnsCollector.add(((CompareTupleFilter) child).getColumn());
+                    if (child instanceof ColumnTupleFilter) {
+                        likeColumnsCollector.add(((ColumnTupleFilter) child).getColumn());
                     } else if (child instanceof ConstantTupleFilter) {
                         String pattern = (String) Iterables.getOnlyElement(child.getValues());// %xyz%
                         if (pattern.length() < KapConfig.getInstanceFromEnv().getParquetFuzzyIndexLength() + 2) {

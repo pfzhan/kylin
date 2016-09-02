@@ -17,9 +17,9 @@ else
     export SPARK_DIR=${KYLIN_HOME}/spark/
     export KYLIN_SPARK_JAR_PATH=$KYLIN_HOME/lib/kylin-storage-parquet-kap-1.5.4-SNAPSHOT.jar
     
-    if [ ! -d ${CONF_DIR} ]
+    if [ ! -f ${KYLIN_HOME}/commit_SHA1 ]
     then
-        echo "CONF_DIR does not exist, did you forget to set CI_MODE=true?"
+        echo "Seems you're not in binary package, did you forget to set CI_MODE=true?"
         exit 1
     fi
 fi
@@ -49,7 +49,7 @@ fi
 # start command
 if [ "$1" == "start" ] # ./spark_client.sh start [port]
 then
-    echo "Starting the spark driver client"
+    echo "Starting the spark driver"
     if [ -f "${KYLIN_HOME}/spark_client_pid" ]
     then
         PID=`cat $KYLIN_HOME/spark_client_pid`
@@ -70,6 +70,7 @@ then
     done
     
     echo "The driver port is $driverPort"
+    export driverPort
     
     # spark envs
     sparkEnvPrefix="kap.storage.columnar.env."
@@ -113,7 +114,7 @@ then
 # stop command
 elif [ "$1" == "stop" ]
 then
-    echo "Stopping the spark driver client"
+    echo "Stopping the spark driver"
     if [ -f "${KYLIN_HOME}/spark_client_pid" ]
     then
         PID=`cat $KYLIN_HOME/spark_client_pid`
