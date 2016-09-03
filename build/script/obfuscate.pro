@@ -22,6 +22,8 @@
 -keepclassmembers class io.kyligence.kap.rest.response.** {*;}
 -keepclassmembers class io.kyligence.kap.measure.percentile.PercentileAggFunc {*;}
 
+-keepclassmembers class io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkExecutorPreAggFunction {*;}
+-keepclassmembers class io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkAppClientService {*;}
 
 -keep class !io.kyligence.** {*;}
 -keep class io.kyligence.kap.query.udf.** {*;}
