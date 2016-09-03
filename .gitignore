@@ -93,7 +93,6 @@ webapp/app/web.xml
 
 #kylin
 kylin/
-smoke-test-*
 extensions/examples/test_metadata/*
 
 #kybot
