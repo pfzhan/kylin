@@ -9,13 +9,13 @@ then
     export KYLIN_HOME=${dir}/../../
     export CONF_DIR=${KYLIN_HOME}/extensions/examples/test_case_data/sandbox
     export SPARK_DIR=${KYLIN_HOME}/build/spark/
-    export KYLIN_SPARK_JAR_PATH=$KYLIN_HOME/extensions/storage-parquet/target/kap-storage-parquet-1.5.4-SNAPSHOT-spark.jar
+    export KYLIN_SPARK_JAR_PATH=`ls $KYLIN_HOME/extensions/storage-parquet/target/kap-storage-parquet-*-spark.jar`
 else
     echo 'in normal mode'
     export KYLIN_HOME=${dir}/../
     export CONF_DIR=${KYLIN_HOME}/conf
     export SPARK_DIR=${KYLIN_HOME}/spark/
-    export KYLIN_SPARK_JAR_PATH=$KYLIN_HOME/lib/kylin-storage-parquet-kap-1.5.4-SNAPSHOT.jar
+    export KYLIN_SPARK_JAR_PATH=`ls $KYLIN_HOME/lib/kylin-storage-parquet-kap-*.jar`
     
     if [ ! -f ${KYLIN_HOME}/commit_SHA1 ]
     then
