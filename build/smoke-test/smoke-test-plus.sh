@@ -61,19 +61,21 @@ ${KYLIN_HOME}/bin/metastore.sh reset
 ${KYLIN_HOME}/bin/sample.sh
 ${KYLIN_HOME}/bin/kylin.sh start
 
-# Temp stop spark driver to release resources for yarn
-${KYLIN_HOME}/bin/spark_client.sh stop
-
 echo "Wait 3 minutes for service start."
 sleep 3m
 
+# Temp stop spark driver to release resources for yarn
+${KYLIN_HOME}/bin/spark_client.sh stop
+
 cd $dir/smoke-test
+echo "Start building..."
 python testBuildCube.py     || { exit 1; }
 
 ${KYLIN_HOME}/bin/spark_client.sh start
 echo "sleep one minute before exit, allowing spark fully start"
-sleep 60
+sleep 1m
 
+echo "Start query..."
 python testQuery.py         || { exit 1; }
 cd -
 
@@ -82,3 +84,5 @@ ${KYLIN_HOME}/bin/metastore.sh clean --delete true
 ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.storage.hbase.util.StorageCleanupJob --delete true
 ${KYLIN_HOME}/bin/metastore.sh reset
 ${KYLIN_HOME}/bin/kylin.sh stop
+
+echo "Finished!"
