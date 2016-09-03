@@ -71,6 +71,9 @@ cd $dir/smoke-test
 python testBuildCube.py     || { exit 1; }
 
 ${KYLIN_HOME}/bin/spark_client.sh start
+echo "sleep one minute before exit, allowing spark fully start"
+sleep 60
+
 python testQuery.py         || { exit 1; }
 cd -
 
