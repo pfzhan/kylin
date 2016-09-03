@@ -77,6 +77,8 @@ sleep 1m
 
 echo "Start query..."
 python testQuery.py         || { exit 1; }
+${KYLIN_HOME}/bin/spark_client.sh stop
+
 cd -
 
 # Tear down stage
