@@ -24,7 +24,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.Lists;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -36,11 +35,14 @@ import org.apache.kylin.storage.StorageContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.gtrecord.RawTableSegmentScanner;
 import io.kyligence.kap.gtrecord.SequentialRawTableTupleIterator;
+import kap.google.common.collect.Sets;
 
 public class RawTableStorageQuery implements IStorageQuery {
 
@@ -54,8 +56,29 @@ public class RawTableStorageQuery implements IStorageQuery {
         this.rawTableDesc = rawTableInstance.getRawTableDesc();
     }
 
+    private void hackSelectStar(SQLDigest sqlDigest) {
+        if (!sqlDigest.isRawQuery) {
+            return;
+        }
+
+        // If it's select * from ...,
+        // We need to retrieve cube to manually add columns into sqlDigest, so that we have full-columns results as output.
+        boolean isSelectAll = sqlDigest.allColumns.isEmpty() || sqlDigest.allColumns.equals(sqlDigest.filterColumns);
+
+        if (!isSelectAll)
+            return;
+
+        for (TblColRef col : this.rawTableDesc.getColumns()) {
+            if (col.getTable().equals(sqlDigest.factTable)) {
+                sqlDigest.allColumns.add(col);
+            }
+        }
+    }
+
     @Override
     public ITupleIterator search(StorageContext context, SQLDigest sqlDigest, TupleInfo returnTupleInfo) {
+
+        hackSelectStar(sqlDigest);
 
         // build dimension & metrics
         Set<TblColRef> dimensions = new LinkedHashSet<TblColRef>();
@@ -74,7 +97,8 @@ public class RawTableStorageQuery implements IStorageQuery {
                 }
             }
 
-            scanner = new RawTableSegmentScanner(rawTableSegment, dimensions, Collections.<TblColRef> emptySet(), Collections.<FunctionDesc> emptySet(), sqlDigest.filter, context);
+            Set<TblColRef> groups = Sets.newHashSet();
+            scanner = new RawTableSegmentScanner(rawTableSegment, dimensions, groups, Collections.<FunctionDesc> emptySet(), sqlDigest.filter, context);
             scanners.add(scanner);
         }
         return new SequentialRawTableTupleIterator(scanners, rawTableInstance, dimensions, metrics, returnTupleInfo, context);
@@ -84,7 +108,6 @@ public class RawTableStorageQuery implements IStorageQuery {
         for (TblColRef column : sqlDigest.allColumns) {
             dimensions.add(column);
         }
-        //TODO
     }
 
     protected boolean skipZeroInputSegment(RawTableSegment segment) {

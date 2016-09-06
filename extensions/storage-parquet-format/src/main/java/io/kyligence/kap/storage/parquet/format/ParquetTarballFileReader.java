@@ -97,6 +97,9 @@ public class ParquetTarballFileReader extends RecordReader<Text, Text> {
 
         ImmutableRoaringBitmap columnBitmap = RoaringBitmaps.readFromString(conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS));
         logger.info("All columns read by parquet: " + StringUtils.join(columnBitmap, ","));
+        if (columnBitmap.isEmpty()) {
+            throw new IllegalStateException("columnBitmap cannot be empty");
+        }
 
         //for readStrategy
         readStrategy = ReadStrategy.valueOf(conf.get(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY));

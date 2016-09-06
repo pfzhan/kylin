@@ -12,7 +12,7 @@ import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.ConstantTupleFilter;
-import org.apache.kylin.metadata.filter.EvaluatableLikeFunction;
+import org.apache.kylin.metadata.filter.EvaluatableFunctionTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
@@ -111,7 +111,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
                 result = lookupLte(column, val);
             }
             break;
-        case LIKE:
+        case EVAL_FUNC:
             val = Iterables.getOnlyElement(vals);
             result = lookupLikeWithPattern(column, val);
             break;
@@ -228,15 +228,21 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             ConstantTupleFilter constantTupleFilter = (ConstantTupleFilter) filter;
             if (!constantTupleFilter.getValues().isEmpty()) {
                 // TRUE
-                logger.debug("lookupChildFilter returning full bitmap");
+                logger.info("lookupChildFilter returning full bitmap");
                 return getFullBitmap().toMutableRoaringBitmap();
             } else {
                 // FALSE
-                logger.debug("lookupChildFilter returning empty bitmap");
+                logger.info("lookupChildFilter returning empty bitmap");
                 return getEmptyBitmap().toMutableRoaringBitmap();
             }
         } else if (filter instanceof CompareTupleFilter) {
             CompareTupleFilter compareTupleFilter = (CompareTupleFilter) filter;
+
+            if (compareTupleFilter.getFunction() != null) {
+                logger.info("lookupChildFilter returning full bitmap because it's a compare filter with function");
+                return getFullBitmap().toMutableRoaringBitmap();
+            }
+
             int col = compareTupleFilter.getColumn().getColumnDesc().getZeroBasedIndex();
             Set<ByteArray> conditionVals = Sets.newHashSet();
             for (Object conditionVal : compareTupleFilter.getValues()) {
@@ -248,11 +254,21 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             }
 
             return lookColumnIndex(col, compareTupleFilter.getOperator(), conditionVals);
-        } else if (filter instanceof EvaluatableLikeFunction) {
-            EvaluatableLikeFunction likeFunction = (EvaluatableLikeFunction) filter;
+        } else if (filter instanceof EvaluatableFunctionTupleFilter) {
+            EvaluatableFunctionTupleFilter likeFunction = (EvaluatableFunctionTupleFilter) filter;
             int col = likeFunction.getColumn().getColumnDesc().getZeroBasedIndex();
             String pattern = likeFunction.getLikePattern();
+            if (pattern == null) {
+                logger.info("lookupChildFilter returning full bitmap because it's not a like function");
+                return getFullBitmap().toMutableRoaringBitmap();
+            }
+
             pattern = pattern.replaceAll("%", "");
+            if (pattern.length() < KapConfig.getInstanceFromEnv().getParquetFuzzyIndexLength()) {
+                logger.info("The like pattern: " + pattern + " is too short, minimal length: " + KapConfig.getInstanceFromEnv().getParquetFuzzyIndexLength());
+                return getFullBitmap().toMutableRoaringBitmap();
+            }
+
             ByteArray patternBytes = new ByteArray(pattern.getBytes(), 0, pattern.getBytes().length);
 
             return lookColumnIndex(col, likeFunction.getOperator(), Sets.newHashSet(patternBytes));

@@ -19,8 +19,12 @@
 package io.kyligence.kap.cube.raw;
 
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.cube.JoinChecker;
+import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.SQLDigest;
@@ -43,10 +47,34 @@ public class RawTableCapabilityChecker {
             return result;
         }
 
+        //raw table cannot handle lookup queries
+        if (!StringUtils.equals(digest.factTable, rawTable.getFactTable())) {
+            logger.info("Exclude RawTableInstance " + rawTable.getName() + " because the query does not contain fact table");
+            return result;
+        }
+
         Collection<TblColRef> missingColumns = Sets.newHashSet(digest.allColumns);
         missingColumns.removeAll(rawTable.getAllColumns());
         if (missingColumns.size() > 0) {
             logger.info("Exclude rawtable " + rawTable.getName() + " because missing column(s):" + missingColumns);
+        }
+
+        //handle distinct count by kylin, cuz calcite can't
+        Iterator<FunctionDesc> it = digest.aggregations.iterator();
+        while (it.hasNext()) {
+            
+            FunctionDesc functionDesc = it.next();
+            // let calcite handle count
+            if (functionDesc.isCount()) {
+                continue;
+            }
+            
+            List<TblColRef> neededCols = functionDesc.getParameter().getColRefs();
+            
+            if (neededCols.size() > 0 && rawTable.getRawTableDesc().getColumns().containsAll(neededCols) && FunctionDesc.FUNC_COUNT_DISTINCT.equals(functionDesc.getExpression())) {
+                functionDesc.setDimensionAsMetric(true);
+                logger.info("Adjust DimensionAsMeasure for " + functionDesc);
+            }
         }
 
         // cost will be minded by caller

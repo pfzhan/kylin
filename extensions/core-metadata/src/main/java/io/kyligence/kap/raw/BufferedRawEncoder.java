@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.kylin.metadata.datatype.StringSerializer;
 import org.apache.kylin.metadata.model.TblColRef;
 
 public class BufferedRawEncoder {
@@ -58,8 +59,20 @@ public class BufferedRawEncoder {
 
     public ByteBuffer encode(String[] values) {
         Object[] objects = new Object[values.length];
-        for (int i = 0; i < values.length; i++)
-            objects[i] = codec.serializers[i].valueOf(values[i]);
+        for (int i = 0; i < values.length; i++) {
+            //special treatment for hive null values, only string will reserve null values
+            //other types will be changed to 0
+            if (!"\\N".equals(values[i])) {
+                objects[i] = codec.serializers[i].valueOf(values[i]);
+            } else {
+                if (codec.serializers[i] instanceof StringSerializer) {
+                    objects[i] = null;
+                } else {
+                    objects[i] = codec.serializers[i].valueOf("0");
+                }
+            }
+        }
+
         return encode(objects);
     }
 

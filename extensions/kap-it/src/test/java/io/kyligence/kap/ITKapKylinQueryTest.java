@@ -44,16 +44,21 @@ import com.google.common.collect.Maps;
 //@Ignore("KAPITKylinQueryTest is contained by KAPITCombinationTest")
 public class ITKapKylinQueryTest extends ITKylinQueryTest {
 
+    protected static boolean rawTableFirst = true;
+
     @BeforeClass
     public static void setUp() throws Exception {
         printInfo("setUp in ITKapKylinQueryTest");
         Map<RealizationType, Integer> priorities = Maps.newHashMap();
-        priorities.put(RealizationType.HYBRID, 0);
-        priorities.put(RealizationType.CUBE, 0);
+
+        //TODO: delete
+        priorities.put(RealizationType.HYBRID, 1);
+        priorities.put(RealizationType.CUBE, 1);
         priorities.put(RealizationType.INVERTED_INDEX, 0);
         Candidate.setPriorities(priorities);
+        ITKapKylinQueryTest.rawTableFirst = true;
 
-        joinType = "inner";
+        joinType = "left";
 
         setupAll();
     }
@@ -74,7 +79,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         //config.setProperty("kap.storage.columnar.spark.cube.gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
 
         //uncomment this to use MockedRawTableTableRPC instead of real spark
-        //config.setProperty("kap.storage.columnar.spark.rawtable.gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
+        config.setProperty("kap.storage.columnar.spark.rawtable.gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
 
         //setup cube conn
         File olapTmp = OLAPSchemaFactory.createTempOLAPJson(ProjectInstance.DEFAULT_PROJECT_NAME, config);
@@ -90,16 +95,32 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
 
     }
 
-    //inherit query tests from ITKylinQueryTest
+    protected static void clean() {
+        if (cubeConnection != null)
+            closeConnection(cubeConnection);
+        if (h2Connection != null)
+            closeConnection(h2Connection);
 
+        ObserverEnabler.forceCoprocessorUnset();
+        KAPHBaseMetadataTestCase.staticCleanupTestMetadata();
+    }
+
+    //inherit query tests from ITKylinQueryTest
     protected String getQueryFolderPrefix() {
         return "../../kylin/kylin-it/";
     }
 
-    // unique query tests in kap
     @Test
     public void testPercentileQuery() throws Exception {
-        batchExecuteQuery("src/test/resources/query/percentile");
+        if (!rawTableFirst) {
+            batchExecuteQuery("src/test/resources/query/percentile");
+        }
+    }
+
+    @Test
+    public void testRawTableQuery() throws Exception {
+        if (rawTableFirst)
+            this.execAndCompQuery("src/test/resources/query/sql_rawtable", null, true);
     }
 
     @Ignore("dev only")
@@ -121,25 +142,6 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         }
     }
 
-    /**
-     * currently the raw queries of kap differ from kylin because raw table in left join is not ready
-     * later we need to keep both side same
-     */
-    @Test
-    public void testRawQuery() throws Exception {
-        if ("inner".equals(joinType)) {
-            this.execAndCompQuery("src/test/resources/query/sql_raw", null, true);
-        }
-    }
-
-    @Ignore
-    @Test
-    public void testTempQuery() throws Exception {
-        PRINT_RESULT = true;
-        execAndCompQuery("src/test/resources/query/temp", null, true);
-        PRINT_RESULT = false;
-    }
-
     @Ignore
     @Test
     public void testKAPSinglePublicQuery() throws Exception {
@@ -156,19 +158,23 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         }
     }
 
-    protected static void clean() {
-        if (cubeConnection != null)
-            closeConnection(cubeConnection);
-        if (h2Connection != null)
-            closeConnection(h2Connection);
-
-        ObserverEnabler.forceCoprocessorUnset();
-        KAPHBaseMetadataTestCase.staticCleanupTestMetadata();
+    @Test
+    public void testTempQuery() throws Exception {
+        PRINT_RESULT = true;
+        execAndCompQuery("src/test/resources/query/temp", null, true);
+        PRINT_RESULT = false;
     }
 
-    @Ignore
+
     @Test
-    public void testVerifyQuery() throws Exception {
-        verifyResultRowCount(getQueryFolderPrefix() + "src/test/resources/query/sql_verifyCount");
+    public void testTopNQuery() throws Exception {
+        if ("left".equalsIgnoreCase(joinType)) {
+            this.execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_topn", null, true);
+        }
+    }
+
+    @Test
+    public void testCommonQuery() throws Exception {
+        execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql", null, true);
     }
 }

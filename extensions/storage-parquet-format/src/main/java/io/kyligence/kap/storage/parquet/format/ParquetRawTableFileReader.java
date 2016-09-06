@@ -102,6 +102,9 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
         // column bitmap
         ImmutableRoaringBitmap columnBitmap = RoaringBitmaps.readFromString(conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS));
         logger.info("All columns read by parquet: " + StringUtils.join(columnBitmap, ","));
+        if (columnBitmap.isEmpty()) {
+            throw new IllegalStateException("columnBitmap cannot be empty");
+        }
 
         String gtMaxLengthStr = conf.get(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH);
         int gtMaxLength = gtMaxLengthStr == null ? 1024 : Integer.valueOf(gtMaxLengthStr);

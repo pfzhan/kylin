@@ -41,11 +41,6 @@ public class ITKapCombinationTest extends ITKapKylinQueryTest {
 
     @BeforeClass
     public static void setUp() throws SQLException {
-        Map<RealizationType, Integer> priorities = Maps.newHashMap();
-        priorities.put(RealizationType.HYBRID, 0);
-        priorities.put(RealizationType.CUBE, 0);
-        priorities.put(RealizationType.INVERTED_INDEX, 0);
-        Candidate.setPriorities(priorities);
 
         printInfo("setUp in ITCombinationTest");
     }
@@ -64,10 +59,26 @@ public class ITKapCombinationTest extends ITKapKylinQueryTest {
      */
     @Parameterized.Parameters
     public static Collection<Object[]> configs() {
-        return Arrays.asList(new Object[][] { { "inner" }, { "left" } });
+        return Arrays.asList(new Object[][] { { "inner", false }, { "left", false }, { "left", true } });
     }
 
-    public ITKapCombinationTest(String joinType) throws Exception {
+    public ITKapCombinationTest(String joinType, Boolean rawTableFirst) throws Exception {
+
+        if (rawTableFirst) {
+            Map<RealizationType, Integer> priorities = Maps.newHashMap();
+            priorities.put(RealizationType.HYBRID, 1);
+            priorities.put(RealizationType.CUBE, 1);
+            priorities.put(RealizationType.INVERTED_INDEX, 0);
+            Candidate.setPriorities(priorities);
+            ITKapKylinQueryTest.rawTableFirst = true;
+        } else {
+            Map<RealizationType, Integer> priorities = Maps.newHashMap();
+            priorities.put(RealizationType.HYBRID, 0);
+            priorities.put(RealizationType.CUBE, 0);
+            priorities.put(RealizationType.INVERTED_INDEX, 0);
+            Candidate.setPriorities(priorities);
+            ITKapKylinQueryTest.rawTableFirst = false;
+        }
 
         printInfo("Into combination join type: " + joinType);
 

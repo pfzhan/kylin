@@ -27,7 +27,6 @@ import org.apache.kylin.cube.gridtable.ScanRangePlannerBase;
 import org.apache.kylin.cube.gridtable.SegmentGTStartAndEnd;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.GTScanRequestBuilder;
-import org.apache.kylin.gridtable.GTUtil;
 import org.apache.kylin.gridtable.IGTComparator;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -37,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.cube.gridtable.GTUtilExd;
 import io.kyligence.kap.cube.raw.RawTableSegment;
 
 public class RawTableScanRangePlanner extends ScanRangePlannerBase {
@@ -47,7 +47,7 @@ public class RawTableScanRangePlanner extends ScanRangePlannerBase {
     protected RawTableSegment rawSegment;
 
     public RawTableScanRangePlanner(RawTableSegment rawSegment, TupleFilter filter, Set<TblColRef> dimensions, Set<TblColRef> groupbyDims, //
-                                    Collection<FunctionDesc> metrics) {
+            Collection<FunctionDesc> metrics) {
 
         this.rawSegment = rawSegment;
 
@@ -66,7 +66,7 @@ public class RawTableScanRangePlanner extends ScanRangePlannerBase {
         this.rangeStartEndComparator = RecordComparators.getRangeStartEndComparator(comp);
 
         //replace the constant values in filter to dictionary codes 
-        this.gtFilter = GTUtil.convertFilterColumnsAndConstants(filter, gtInfo, mapping.getGtOrderColumns(), groupbyDims);
+        this.gtFilter = GTUtilExd.kapConvertFilterColumnsAndConstants(filter, gtInfo, mapping.getGtOrderColumns(), groupbyDims);
 
         this.gtDimensions = mapping.makeGridTableColumns(dimensions);
         this.gtAggrGroups = mapping.makeGridTableColumns(groupbyDims);

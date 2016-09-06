@@ -42,8 +42,12 @@ public class RawDecoder {
         serializers = new DataTypeSerializer[nColumns];
 
         for (int i = 0; i < nColumns; i++) {
-            serializers[i] = DataTypeSerializer.create(dataTypes[i]);
+            serializers[i] = RawDecoder.getSerializer(dataTypes[i]);
         }
+    }
+
+    public static DataTypeSerializer<?> getSerializer(DataType dataType) {
+        return DataTypeSerializer.create(dataType);
     }
 
     public DataTypeSerializer getSerializer(int idx) {

@@ -121,7 +121,9 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
             ParquetPageIndexWriter writer = fuzzyIndexWriterMap.get(fuzzyIndex);
             String[] decoded = new String[1];
             fuzzyIndexEncodingMap.get(fuzzyIndex).decode(ByteBuffer.wrap(originValue.get(fuzzyIndex)), decoded);
-            writeSubstring(writer, decoded[0].toLowerCase().getBytes(), value.get(), fuzzyLength);
+            if (decoded[0] != null) {
+                writeSubstring(writer, decoded[0].toLowerCase().getBytes(), value.get(), fuzzyLength);
+            }
         }
 
         spillIfNeeded();

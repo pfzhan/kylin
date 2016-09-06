@@ -101,6 +101,7 @@ public class MockedRawTableTableRPC extends RawTableSparkRPC {
                 Iterable<byte[]> ret = function.call(iterator);
                 rets.add(ret);
                 parquetRecordIterators.add(iterator);
+                logger.info("End of one shard......");
             }
             Iterable<byte[]> merged = Iterables.concat(rets);
             byte[] concat = concat(merged);
