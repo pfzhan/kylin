@@ -134,7 +134,7 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
         }
 
         for (int index = 0; index <= (value.length - length); index++) {
-            writer.write(RawTableUtils.shrink(value, fuzzyHashLength), index, pageId);
+            writer.write(RawTableUtils.shrink(value, index, length, fuzzyHashLength), 0, pageId);
         }
     }
 

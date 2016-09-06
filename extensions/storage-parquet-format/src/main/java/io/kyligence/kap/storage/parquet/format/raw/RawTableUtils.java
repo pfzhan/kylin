@@ -116,17 +116,17 @@ public class RawTableUtils {
         for (int i = offset; i < (offset + length); i += 4) {
             shrinked[si] = (byte) (origin[i] << 2);
 
-            if ((i + 1) < origin.length) {
+            if ((i + 1) < (offset + length)) {
                 shrinked[si++] |= (byte) (origin[i + 1] >> 4);
                 shrinked[si] = (byte) (origin[i + 1] << 4);
             }
 
-            if ((i + 2) < origin.length) {
+            if ((i + 2) < (offset + length)) {
                 shrinked[si++] |= (byte) (origin[i + 2] >> 2);
                 shrinked[si] = (byte) (origin[i + 2] << 6);
             }
 
-            if ((i + 3) < origin.length) {
+            if ((i + 3) < (offset + length)) {
                 shrinked[si++] |= origin[i + 3];
             }
         }
