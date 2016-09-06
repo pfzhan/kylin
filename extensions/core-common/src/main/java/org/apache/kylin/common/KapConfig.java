@@ -39,6 +39,10 @@ public class KapConfig {
         return Integer.parseInt(config.getOptional("kap.storage.columnar.ii.fuzzy.length", String.valueOf(6)));
     }
 
+    public int getParquetFuzzyIndexHashLength() {
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.ii.fuzzy.hash.length", String.valueOf(32)));
+    }
+
     public int getParquetIndexHashLength() {
         return Integer.parseInt(config.getOptional("kap.storage.columnar.ii.hash.length", String.valueOf(8)));
     }

@@ -46,6 +46,7 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
     protected RawTableInstance rawTableInstance;
     protected RawTableDesc rawTableDesc;
 
+    private KapConfig kapConfig;
     private Path inputPath;
     private ParquetPageIndexWriter indexBundleWriter;
     private int counter = 0;
@@ -63,9 +64,8 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
         super.bindCurrentConfiguration(conf);
 
         KylinConfig kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
-        KapConfig kapConfig = KapConfig.wrap(AbstractHadoopJob.loadKylinPropsAndMetadata());
+        kapConfig = KapConfig.wrap(AbstractHadoopJob.loadKylinPropsAndMetadata());
         spillThresholdMB = kapConfig.getParquetPageIndexSpillThresholdMB();
-
 
         cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME).toUpperCase();
         segmentName = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_NAME);

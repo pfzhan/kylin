@@ -24,6 +24,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexReader;
+import io.kyligence.kap.storage.parquet.format.raw.RawTableUtils;
 
 public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetPageIndexTable.class);
@@ -151,13 +152,16 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
 
     private MutableRoaringBitmap lookupLikeWithPattern(int column, ByteArray val) {
         int window = KapConfig.getInstanceFromEnv().getParquetFuzzyIndexLength();
+        int fuzzyHashLength = KapConfig.getInstanceFromEnv().getParquetFuzzyIndexHashLength();
         if (val.length() < window) {
             throw new IllegalStateException("Like Pattern is too short, at least should be :" + window);
         }
 
+        val = RawTableUtils.toLower(val);
+
         MutableRoaringBitmap ret = null;
         for (int i = 0; i <= val.length() - window; i++) {
-            MutableRoaringBitmap temp = lookupLikeWithNGram(column, new ByteArray(val.array(), i, window));
+            MutableRoaringBitmap temp = lookupLikeWithNGram(column, RawTableUtils.shrink(new ByteArray(val.array(), i, window), fuzzyHashLength));
             if (ret == null) {
                 ret = temp;
             } else {

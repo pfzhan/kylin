@@ -35,6 +35,7 @@ import io.kyligence.kap.raw.BufferedRawEncoder;
 import io.kyligence.kap.storage.parquet.format.datatype.ByteArrayListWritable;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexWriter;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnSpec;
+import io.kyligence.kap.storage.parquet.format.raw.RawTableUtils;
 
 public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable, IntWritable, Text, Text> {
     protected static final Logger logger = LoggerFactory.getLogger(RawTableFuzzyIndexMapper.class);
@@ -53,6 +54,7 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
     private HashMap<Integer, BufferedRawEncoder> fuzzyIndexEncodingMap;
     private int counter = 0;
     private int fuzzyLength = 0;
+    private int fuzzyHashLength = 0;
     private Path outputPath;
 
     private double spillThresholdMB;
@@ -67,6 +69,7 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
         KylinConfig kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
         KapConfig kapConfig = KapConfig.wrap(AbstractHadoopJob.loadKylinPropsAndMetadata());
         fuzzyLength = kapConfig.getParquetFuzzyIndexLength();
+        fuzzyHashLength = kapConfig.getParquetFuzzyIndexHashLength();
         spillThresholdMB = kapConfig.getParquetPageIndexSpillThresholdMB();
 
         cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME).toUpperCase();
@@ -97,7 +100,7 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
             if (rawTableDesc.isNeedFuzzyIndex(column)) {
                 Path path = new Path(inputPath.getParent(), shardId + "." + i + ".parquet.fuzzy");
                 FSDataOutputStream output = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(path);
-                ColumnSpec columnSpec = new ColumnSpec(column.getName(), fuzzyLength, 10000, true, i);
+                ColumnSpec columnSpec = new ColumnSpec(column.getName(), RawTableUtils.roundToByte(fuzzyHashLength), 10000, true, i);
                 columnSpec.setValueEncodingIdentifier('s');
                 fuzzyIndexWriterMap.put(i, new ParquetPageIndexWriter(new ColumnSpec[] { columnSpec }, output));
                 fuzzyIndexEncodingMap.put(i, new BufferedRawEncoder(column));
@@ -118,7 +121,7 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
             ParquetPageIndexWriter writer = fuzzyIndexWriterMap.get(fuzzyIndex);
             String[] decoded = new String[1];
             fuzzyIndexEncodingMap.get(fuzzyIndex).decode(ByteBuffer.wrap(originValue.get(fuzzyIndex)), decoded);
-            writeSubstring(writer, decoded[0].getBytes(), value.get(), fuzzyLength);
+            writeSubstring(writer, decoded[0].toLowerCase().getBytes(), value.get(), fuzzyLength);
         }
 
         spillIfNeeded();
@@ -131,7 +134,7 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
         }
 
         for (int index = 0; index <= (value.length - length); index++) {
-            writer.write(value, index, pageId);
+            writer.write(RawTableUtils.shrink(value, fuzzyHashLength), index, pageId);
         }
     }
 
