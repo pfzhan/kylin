@@ -834,7 +834,9 @@ KylinApp.constant('kapEnglishConfig', {
     success_access:"Access granted!",
     check_look_up_column:" Column Type incompatible ",
     warning_measures_part_one:'The column named [',
-    warning_measures_part_two: '] already exists!'
+    warning_measures_part_two: '] already exists!',
+    duplicate_measures_part_one:'The measure named [',
+    duplicate_measures_part_two: '] already exists!'
 }
 
 });
