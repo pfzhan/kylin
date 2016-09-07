@@ -168,14 +168,12 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
           i++;
         }
       })
-      if (modelstate == false) {
-        $location.path("/models/edit/" + model.name);
-      }
-      else {
-        SweetAlert.swal($scope.dataKylin.alert.oops,$scope.dataKylin.alert.tip_model_be_used + cubename.join(',') +$scope.dataKylin.alert.tip_model_be_used_by,'warning');
-      }
-    }else{
+    }
+    if (modelstate == false) {
       $location.path("/models/edit/" + model.name);
+    }
+    else {
+      SweetAlert.swal($scope.dataKylin.alert.oops,$scope.dataKylin.alert.tip_model_be_used + cubename.join(',') +$scope.dataKylin.alert.tip_model_be_used_by,'warning');
     }
   }
 
