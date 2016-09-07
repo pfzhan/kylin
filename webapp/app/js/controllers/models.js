@@ -174,6 +174,8 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
       else {
         SweetAlert.swal($scope.dataKylin.alert.oops,$scope.dataKylin.alert.tip_model_be_used + cubename.join(',') +$scope.dataKylin.alert.tip_model_be_used_by,'warning');
       }
+    }else{
+      $location.path("/models/edit/" + model.name);
     }
   }
 
