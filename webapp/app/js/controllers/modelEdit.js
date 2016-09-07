@@ -35,7 +35,7 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
 
     $scope.getPartitonColumns = function(tableName){
         var columns = _.filter($scope.getColumnsByTable(tableName),function(column){
-            return column.datatype==="date"||column.datatype==="timestamp"||column.datatype==="string"||column.datatype.startsWith("varchar");
+            return column.datatype==="date"||column.datatype==="timestamp"||column.datatype==="string"||column.datatype.startsWith("varchar")||column.datatype==="bigint"||column.datatype==="int";
         });
         return columns;
     };
@@ -71,6 +71,29 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
         return type;
     };
 
+    $scope.isBigInt=false;
+    $scope.partitionChange = function (dateColumn) {
+        if(dateColumn==null){
+           return ;
+        }
+        var column = _.filter($scope.getColumnsByTable($scope.modelsManager.selectedModel.fact_table),function(_column){
+        var columnName=$scope.modelsManager.selectedModel.fact_table+"."+_column.name;
+        if(dateColumn==columnName)
+            return _column;
+        });
+        if(column[0].datatype==="bigint"||column[0].datatype==="int"){
+            $scope.isBigInt=true;
+            $scope.modelsManager.selectedModel.partition_desc.partition_date_format=null;;
+            $scope.partitionColumn.hasSeparateTimeColumn=false;
+            $scope.modelsManager.selectedModel.partition_desc.partition_time_column=null;
+            $scope.modelsManager.selectedModel.partition_desc.partition_time_format=null;
+        }
+        else{
+            $scope.isBigInt=false;
+        }
+    }
+
+
     // ~ Define data
     $scope.state = {
         "modelSchema": "",
@@ -89,6 +112,9 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
         ModelDescService.query({model_name: modelName}, function (model) {
                     if (model) {
                         modelsManager.selectedModel = model;
+                        if(!$scope.modelsManager.selectedModel.partition_desc.partition_data_format){
+                          $scope.isBigInt = true;
+                        }
                         if($scope.modelsManager.selectedModel.partition_desc.partition_time_column){
                           $scope.partitionColumn.hasSeparateTimeColumn = true;
                         }

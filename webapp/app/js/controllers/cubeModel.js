@@ -60,7 +60,10 @@ KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConf
             join: {
                 type: '',
                 primary_key: [],
-                foreign_key: []
+                foreign_key: [],
+                isCompatible:[],
+                pk_type:[],
+                fk_type:[]
             }
         };
     };
@@ -83,7 +86,6 @@ KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConf
             backdrop: 'static',
             scope: $scope
         });
-
         modalInstance.result.then(function () {
             if (!$scope.lookupState.editing) {
                 $scope.doneAddLookup();
@@ -165,14 +167,37 @@ KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConf
         };
 
 
+    $scope.changeKey = function(index){
+         var fact_table = modelsManager.selectedModel.fact_table;
+         var lookup_table = $scope.newLookup.table;
+         var pk_column = $scope.newLookup.join.primary_key[index];
+         var fk_column = $scope.newLookup.join.foreign_key[index];
+         if(pk_column!=='null'&&fk_column!=='null'){
+             $scope.newLookup.join.pk_type[index] = TableModel.getColumnType(pk_column,lookup_table);
+             $scope.newLookup.join.fk_type[index] = TableModel.getColumnType(fk_column,fact_table);
+            if($scope.newLookup.join.pk_type[index]!==$scope.newLookup.join.fk_type[index]){
+               $scope.newLookup.join.isCompatible[index]=false;
+            }else{
+               $scope.newLookup.join.isCompatible[index]=true;
+            }
+
+         }
+    }
+
     $scope.addNewJoin = function(){
         $scope.newLookup.join.primary_key.push("null");
         $scope.newLookup.join.foreign_key.push("null");
+        $scope.newLookup.join.isCompatible.push(true);
+        $scope.newLookup.join.pk_type.push("null");
+        $scope.newLookup.join.fk_type.push("null");
     };
 
     $scope.removeJoin = function($index){
         $scope.newLookup.join.primary_key.splice($index,1);
         $scope.newLookup.join.foreign_key.splice($index,1);
+        $scope.newLookup.join.isCompatible.splice($index,1);
+        $scope.newLookup.join.pk_type.splice($index,1);
+        $scope.newLookup.join.fk_type.splice($index,1);
     };
 
     $scope.resetParams = function () {
@@ -196,23 +221,6 @@ KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConf
                     break;
                 }
             }
-
-            //column type validate
-            var fact_table = modelsManager.selectedModel.fact_table;
-            var lookup_table = $scope.newLookup.table;
-
-            for(var i = 0;i<$scope.newLookup.join.primary_key.length;i++){
-                var pk_column = $scope.newLookup.join.primary_key[i];
-                var fk_column = $scope.newLookup.join.foreign_key[i];
-                if(pk_column!=='null'&&fk_column!=='null'){
-                    var pk_type = TableModel.getColumnType(pk_column,lookup_table);
-                    var fk_type = TableModel.getColumnType(fk_column,fact_table);
-                    if(pk_type!==fk_type){
-                        errors.push($scope.dataKylin.alert.check_look_up_column+pk_column+"["+pk_type+"]"+","+fk_column+"["+fk_type+"].");
-                    }
-                }
-            }
-
             var errorInfo = "";
             angular.forEach(errors,function(item){
                 errorInfo+="\n"+item;
