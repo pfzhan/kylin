@@ -11,6 +11,7 @@ rm -rf build/kybot
 mkdir build/kybot
 cp kybot/core/target/kybot-client-core-*-assembly.jar build/kybot/kybot-client-lib.jar
 cp kybot/build/bin/kybot.sh build/kybot/kybot.sh
+cp kybot/build/conf/kybot-client.properties build/kybot/kybot-client.properties
 cp kybot/build/kap/diag.sh build/kybot/diag.sh
 
 # Copied file becomes 000 for some env (e.g. Cygwin)
