@@ -603,6 +603,7 @@ KylinApp.constant('kapChineseConfig', {
     tableNames: '表名:(逗号分隔)',
     plac_table_with_comma: 'table1,table2  默认系统会使用\'Default\'做为数据库名, 可以指定数据库名如 \'database.table\'',
     sync: '同步',
+    unsync: '卸载',
     cancel: '取消',
     titleAddHiveTableFromTree: '使用树状结构加载Hive表',//modal addHiveTableFromTree begin
     plac_filter: '过滤器',

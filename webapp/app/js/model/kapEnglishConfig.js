@@ -619,6 +619,7 @@ KylinApp.constant('kapEnglishConfig', {
     tableNames: 'Table Names:(Seperate with comma)',
     plac_table_with_comma: 'table1,table2  By default,system will choose \'Default\' as database,you can specify database like this \'database.table\'',
     sync: 'Sync',
+    unsync: 'Unsync',
     cancel: 'Cancel',
     titleAddHiveTableFromTree: 'Load Hive Table Metadata From Tree',//modal addHiveTableFromTree begin
     plac_filter: 'Filter ...',
