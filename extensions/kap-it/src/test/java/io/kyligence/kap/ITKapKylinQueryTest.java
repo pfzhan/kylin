@@ -123,6 +123,24 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
             this.execAndCompQuery("src/test/resources/query/sql_rawtable", null, true);
     }
 
+    //over write to cover more
+    @Test
+    public void testDistinctCountQuery() throws Exception {
+        execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_distinct", null, true);
+    }
+
+    //over write to cover more
+    @Test
+    public void testTopNQuery() throws Exception {
+        this.execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_topn", null, true);
+    }
+
+    //over write to cover more
+    @Test
+    public void testPreciselyDistinctCountQuery() throws Exception {
+        execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_distinct_precisely", null, true);
+    }
+
     @Ignore("dev only")
     @Test
     public void testKAPSingleInternalQuery() throws Exception {
@@ -165,16 +183,4 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         PRINT_RESULT = false;
     }
 
-
-    @Test
-    public void testTopNQuery() throws Exception {
-        if ("left".equalsIgnoreCase(joinType)) {
-            this.execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_topn", null, true);
-        }
-    }
-
-    @Test
-    public void testCommonQuery() throws Exception {
-        execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql", null, true);
-    }
 }
