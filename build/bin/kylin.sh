@@ -121,6 +121,20 @@ then
         then
            echo "stopping Kylin:$PID"
            kill $PID
+           for i in {1..10}
+           do
+              sleep 3
+              if ps -p $PID -f | grep kylin > /dev/null
+              then
+                 if [ "$i" == "10" ]
+                 then
+                    echo "killing Kylin:$PID"
+                    kill -9 $PID
+                 fi
+                 continue
+              fi
+              break
+           done
            rm ${KYLIN_HOME}/pid
            exit 0
         else
