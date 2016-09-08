@@ -143,6 +143,7 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
         for (ParquetPageIndexWriter writer : fuzzyIndexWriterMap.values()) {
+            writer.spill();
             writer.close();
         }
     }

@@ -118,6 +118,7 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
 
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
+        indexBundleWriter.spill();
         indexBundleWriter.close();
     }
 

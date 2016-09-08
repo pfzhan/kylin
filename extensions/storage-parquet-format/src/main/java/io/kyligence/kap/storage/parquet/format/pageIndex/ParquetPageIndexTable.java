@@ -282,12 +282,21 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
     }
 
     private ByteArray incrementByteArray(ByteArray val, int c) {
-        int v = BytesUtil.readUnsigned(val.array(), val.offset(), val.length()) + c;
-        v = Math.max(v, 0);
-        v = Math.min(Integer.MAX_VALUE, v);
-        ByteArray result = ByteArray.allocate(val.length());
-        BytesUtil.writeUnsigned(v, result.array(), result.offset(), result.length());
-        return result;
+        if (val.length() > 4) {
+            long v = BytesUtil.readLong(val.array(), val.offset(), val.length()) + c;
+            v = Math.max(v, 0);
+            v = Math.min(Long.MAX_VALUE, v);
+            ByteArray result = ByteArray.allocate(val.length());
+            BytesUtil.writeLong(v, result.array(), result.offset(), result.length());
+            return result;
+        } else {
+            int v = BytesUtil.readUnsigned(val.array(), val.offset(), val.length()) + c;
+            v = Math.max(v, 0);
+            v = Math.min(Integer.MAX_VALUE, v);
+            ByteArray result = ByteArray.allocate(val.length());
+            BytesUtil.writeUnsigned(v, result.array(), result.offset(), result.length());
+            return result;
+        }
     }
 
     //    private void collectCompareTupleFilter(TupleFilter rootFilter) {
