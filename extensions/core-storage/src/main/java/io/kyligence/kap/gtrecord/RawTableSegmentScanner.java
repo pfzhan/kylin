@@ -65,9 +65,6 @@ public class RawTableSegmentScanner implements IGTScanner {
         scanRequest = planner.planScanRequest();
 
         //TODO: set allow storage aggregation, set agg cache threshold, set limit, etc.
-        if (scanRequest != null) {
-            scanRequest.setAllowStorageAggregation(false);
-        }
 
         scanner = new ScannerWorker(rawTableSegment, null, scanRequest, KapConfig.getInstanceFromEnv().getSparkRawTableGTStorage());
     }

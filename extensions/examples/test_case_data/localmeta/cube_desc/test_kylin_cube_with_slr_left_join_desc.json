@@ -277,7 +277,9 @@
   "engine_type": 100,
   "storage_type": 100,
   "override_kylin_properties": {
-    "kylin.cube.algorithm": "INMEM"
+    "kylin.cube.algorithm": "INMEM",
+    "kylin.rawtable.enabled": true,
+    "kylin.rawtable.fuzzy_columns": "USER_DEFINED_FIELD3"
   },
   "partition_date_start": 0
 }

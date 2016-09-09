@@ -32,6 +32,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
+
 @Ignore
 public class IndexGTScanRangePlannerTest extends LocalFileMetadataTestCase {
 
@@ -81,7 +82,7 @@ public class IndexGTScanRangePlannerTest extends LocalFileMetadataTestCase {
 
         filter.addChild(filter1);
 
-        planner = new IndexGTScanRangePlanner(cubeSegment, cuboid, filter, dimensions, groupbyDims, metrics);
+        planner = new IndexGTScanRangePlanner(cubeSegment, cuboid, filter, dimensions, groupbyDims, metrics, null);
 
         List<GTScanRange> ranges = planner.planScanRanges();
         System.out.println(ranges);

@@ -6,13 +6,14 @@ import java.util.Set;
 
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
-import org.apache.kylin.cube.gridtable.CubeScanRangePlanner;
 import org.apache.kylin.gridtable.GTScanRange;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.ConstantTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.storage.StorageContext;
+import org.apache.kylin.storage.gtrecord.CubeScanRangePlanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,8 +24,8 @@ public class IndexGTScanRangePlanner extends CubeScanRangePlanner {
     private static final Logger logger = LoggerFactory.getLogger(IndexGTScanRangePlanner.class);
     private final IIndexTable indexTable;
 
-    public IndexGTScanRangePlanner(CubeSegment cubeSegment, Cuboid cuboid, TupleFilter filter, Set<TblColRef> dimensions, Set<TblColRef> groupbyDims, Collection<FunctionDesc> metrics) {
-        super(cubeSegment, cuboid, filter, dimensions, groupbyDims, metrics);
+    public IndexGTScanRangePlanner(CubeSegment cubeSegment, Cuboid cuboid, TupleFilter filter, Set<TblColRef> dimensions, Set<TblColRef> groupbyDims, Collection<FunctionDesc> metrics, StorageContext context) {
+        super(cubeSegment, cuboid, filter, dimensions, groupbyDims, metrics, context);
 
         indexTable = new CubeSegmentIndexTable(cubeSegment, gtInfo, cuboid);
     }

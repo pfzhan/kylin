@@ -88,7 +88,10 @@ public class RawTableScanRangePlanner extends ScanRangePlannerBase {
         GTScanRequest scanRequest;
         boolean shouldSkip = this.shouldSkipSegment();
         if (!shouldSkip) {
-            scanRequest = new GTScanRequestBuilder().setInfo(gtInfo).setRanges(null).setDimensions(gtDimensions).setAggrGroupBy(gtAggrGroups).setAggrMetrics(gtAggrMetrics).setAggrMetricsFuncs(gtAggrFuncs).setFilterPushDown(gtFilter).createGTScanRequest();
+            scanRequest = new GTScanRequestBuilder().setInfo(gtInfo).setRanges(null).setDimensions(gtDimensions).//
+                    setAggrGroupBy(gtAggrGroups).setAggrMetrics(gtAggrMetrics).setAggrMetricsFuncs(gtAggrFuncs).setFilterPushDown(gtFilter).//
+                    setAllowStorageAggregation(false).//no agg at raw table executors
+                    createGTScanRequest();
         } else {
             scanRequest = null;
         }
