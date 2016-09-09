@@ -79,6 +79,8 @@ echo "Start query..."
 python testQuery.py         || { exit 1; }
 ${KYLIN_HOME}/bin/spark_client.sh stop
 
+echo "Start diagnosis..."
+python testDiag.py         || { exit 1; }
 cd -
 
 # Tear down stage
