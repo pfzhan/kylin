@@ -23,18 +23,44 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
+        <!-- Keep same order with dependencyManagment -->
         <!-- Kylin versions -->
         <kylin.version>1.5.4-SNAPSHOT</kylin.version>
 
-        <!-- Spark -->
-        <spark.version>1.6.2</spark.version>
-        <hive.version>0.14.0</hive.version>
-        <fastPFOR.version>0.0.13</fastPFOR.version>
-        <!-- rpc -->
+        <cglib.version>2.2.2</cglib.version>
+        <zkclient.version>0.5</zkclient.version>
+        <t-digest.version>3.1</t-digest.version>
+        <super-csv.version>2.1.0</super-csv.version>
         <grpc.version>0.13.1</grpc.version>
+        <fastPFOR.version>0.0.13</fastPFOR.version>
         <helix.version>0.7.1</helix.version>
+        <hive.version>0.14.0</hive.version>
         <parquet.version>1.8.1</parquet.version>
+        <tomcat.version>7.0.52</tomcat.version>
+        <spark.version>1.6.2</spark.version>
+        <aspectj.version>1.6.11</aspectj.version>
     </properties>
+
+    <modules>
+        <module>kylin</module>
+        <module>extensions/sample</module>
+        <module>extensions/core-common</module>
+        <module>extensions/core-metadata</module>
+        <module>extensions/core-cube</module>
+        <module>extensions/core-job</module>
+        <module>extensions/core-storage</module>
+        <module>extensions/query</module>
+        <module>extensions/engine-mr</module>
+        <module>extensions/storage-hbase</module>
+        <module>extensions/storage-parquet</module>
+        <module>extensions/storage-parquet-format</module>
+        <module>extensions/server-base</module>
+        <module>extensions/server</module>
+        <module>extensions/assembly</module>
+        <module>extensions/kap-it</module>
+        <module>extensions/tool</module>
+        <module>kybot</module>
+    </modules>
 
     <dependencyManagement>
         <dependencies>
@@ -54,15 +80,15 @@
                 <type>test-jar</type>
             </dependency>
 
-            <!-- KAP -->
+            <!-- KAP, same order with modules -->
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
-                <artifactId>kap-assembly</artifactId>
+                <artifactId>kap-core-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
-                <artifactId>kap-core-common</artifactId>
+                <artifactId>kap-core-metadata</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -77,17 +103,7 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
-                <artifactId>kap-core-metadata</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.kap</groupId>
                 <artifactId>kap-core-storage</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.kap</groupId>
-                <artifactId>kap-engine-mr</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -97,12 +113,7 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
-                <artifactId>kap-server</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.kap</groupId>
-                <artifactId>kap-server-base</artifactId>
+                <artifactId>kap-engine-mr</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -117,12 +128,6 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
-                <artifactId>kap-storage-parquet</artifactId>
-                <type>test-jar</type>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.kap</groupId>
                 <artifactId>kap-storage-parquet-format</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -133,16 +138,26 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
+                <artifactId>kap-server-base</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.kap</groupId>
+                <artifactId>kap-server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.kap</groupId>
+                <artifactId>kap-assembly</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.kap</groupId>
                 <artifactId>kap-tool</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>org.apache.hive</groupId>
-                <artifactId>hive-exec</artifactId>
-                <version>${hive.version}</version>
-            </dependency>
-
+            <!--KAP test scope-->
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
                 <artifactId>kap-core-common</artifactId>
@@ -163,16 +178,46 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
+                <artifactId>kap-storage-parquet</artifactId>
+                <type>test-jar</type>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.kap</groupId>
                 <artifactId>kap-assembly</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
 
-
+            <!-- Sorted by groupId, artifactId; kylin and KAP dependencies first. -->
+            <dependency>
+                <groupId>cglib</groupId>
+                <artifactId>cglib</artifactId>
+                <version>${cglib.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.101tec</groupId>
+                <artifactId>zkclient</artifactId>
+                <version>${zkclient.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.tdunning</groupId>
+                <artifactId>t-digest</artifactId>
+                <version>${t-digest.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-all</artifactId>
+            </dependency>
             <dependency>
                 <groupId>me.lemire.integercompression</groupId>
                 <artifactId>JavaFastPFOR</artifactId>
                 <version>${fastPFOR.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.sf.supercsv</groupId>
+                <artifactId>super-csv</artifactId>
+                <version>${super-csv.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.helix</groupId>
@@ -183,6 +228,36 @@
                 <groupId>org.apache.helix</groupId>
                 <artifactId>helix-examples</artifactId>
                 <version>${helix.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hive</groupId>
+                <artifactId>hive-exec</artifactId>
+                <version>${hive.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.parquet</groupId>
+                <artifactId>parquet-hadoop-bundle</artifactId>
+                <version>${parquet.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.spark</groupId>
+                <artifactId>spark-core_2.10</artifactId>
+                <version>${spark.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat</groupId>
+                <artifactId>tomcat-catalina</artifactId>
+                <version>${tomcat.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.aspectj</groupId>
+                <artifactId>aspectjrt</artifactId>
+                <version>${aspectj.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.aspectj</groupId>
+                <artifactId>aspectjweaver</artifactId>
+                <version>${aspectj.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -370,27 +445,6 @@
             </plugin>
         </plugins>
     </build>
-
-    <modules>
-        <module>kylin</module>
-        <module>extensions/sample</module>
-        <module>extensions/core-common</module>
-        <module>extensions/core-metadata</module>
-        <module>extensions/core-cube</module>
-        <module>extensions/core-job</module>
-        <module>extensions/core-storage</module>
-        <module>extensions/query</module>
-        <module>extensions/engine-mr</module>
-        <module>extensions/storage-hbase</module>
-        <module>extensions/storage-parquet</module>
-        <module>extensions/storage-parquet-format</module>
-        <module>extensions/server-base</module>
-        <module>extensions/server</module>
-        <module>extensions/assembly</module>
-        <module>extensions/kap-it</module>
-        <module>extensions/tool</module>
-        <module>kybot</module>
-    </modules>
 
     <profiles>
         <profile>

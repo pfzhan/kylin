@@ -59,7 +59,6 @@
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-all</artifactId>
-            <version>${grpc.version}</version>
         </dependency>
      
     </dependencies>
