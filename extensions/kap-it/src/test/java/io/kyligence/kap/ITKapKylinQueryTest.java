@@ -20,6 +20,8 @@
 
 package io.kyligence.kap;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.sql.DriverManager;
 import java.util.Map;
@@ -31,6 +33,7 @@ import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.query.H2Database;
 import org.apache.kylin.query.ITKylinQueryTest;
 import org.apache.kylin.query.enumerator.OLAPQuery;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.Candidate;
 import org.apache.kylin.query.schema.OLAPSchemaFactory;
 import org.apache.kylin.storage.hbase.cube.v1.coprocessor.observer.ObserverEnabler;
@@ -41,10 +44,12 @@ import org.junit.Test;
 
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.cube.raw.RawTableInstance;
+
 //@Ignore("KAPITKylinQueryTest is contained by KAPITCombinationTest")
 public class ITKapKylinQueryTest extends ITKylinQueryTest {
 
-    protected static boolean rawTableFirst = true;
+    protected static boolean rawTableFirst = false;
 
     @BeforeClass
     public static void setUp() throws Exception {
@@ -76,7 +81,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         config = KylinConfig.getInstanceFromEnv();
 
         //uncomment this to use MockedCubeSparkRPC instead of real spark
-        //config.setProperty("kap.storage.columnar.spark.cube.gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
+        config.setProperty("kap.storage.columnar.spark.cube.gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
 
         //uncomment this to use MockedRawTableTableRPC instead of real spark
         config.setProperty("kap.storage.columnar.spark.rawtable.gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
@@ -110,35 +115,56 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         return "../../kylin/kylin-it/";
     }
 
-    @Test
-    public void testPercentileQuery() throws Exception {
-        if (!rawTableFirst) {
-            batchExecuteQuery("src/test/resources/query/percentile");
-        }
-    }
+    /////////////////test more
 
+    //only raw can do
     @Test
     public void testRawTableQuery() throws Exception {
         if (rawTableFirst)
             this.execAndCompQuery("src/test/resources/query/sql_rawtable", null, true);
     }
 
-    //over write to cover more
+    //only raw can support execAndCompQuery
     @Test
-    public void testDistinctCountQuery() throws Exception {
-        execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_distinct", null, true);
+    public void testDistinctCountQueryExt() throws Exception {
+        if (rawTableFirst)
+            execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_distinct", null, true);
     }
 
-    //over write to cover more
+    //in ITKylinQueryTest only left join case
     @Test
-    public void testTopNQuery() throws Exception {
-        this.execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_topn", null, true);
+    public void testTopNQueryExt() throws Exception {
+        if (rawTableFirst)
+            this.execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_topn", null, true);
     }
 
-    //over write to cover more
+    //in ITKylinQueryTest only left join case
     @Test
-    public void testPreciselyDistinctCountQuery() throws Exception {
-        execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_distinct_precisely", null, true);
+    public void testPreciselyDistinctCountQueryExt() throws Exception {
+        if (rawTableFirst)
+            execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_distinct_precisely", null, true);
+    }
+
+    @Test
+    public void testRawTablePrecedesCubeOnRawQueries() throws Exception {
+        this.batchExecuteQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_raw");
+        OLAPContext context = OLAPContext.getThreadLocalContexts().iterator().next();
+        assertTrue(context.realization instanceof RawTableInstance);
+    }
+
+    /////////////////test less
+
+    // parquet storage(including cube and raw table) does not support timeout/limit pushdown now
+    @Test
+    public void testTimeoutQuery() throws Exception {
+    }
+
+    //raw table does not support percentile
+    @Test
+    public void testPercentileQuery() throws Exception {
+        if (!rawTableFirst) {
+            batchExecuteQuery("src/test/resources/query/percentile");
+        }
     }
 
     @Ignore("dev only")
@@ -183,8 +209,4 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         PRINT_RESULT = false;
     }
 
-    // parquet storage does not support timeout/limit pushdown now
-    @Test
-    public void testTimeoutQuery() throws Exception {
-    }
 }
