@@ -131,7 +131,7 @@ public class KapMergeCuboidJob extends KapCuboidJob {
         @Override
         public boolean accept(Path path) {
             String name = path.getName();
-            boolean ret = !(name.endsWith(".parquet") || name.endsWith(".inv"));
+            boolean ret = !(name.endsWith(".parquet") || name.endsWith(".inv") || name.endsWith(".fuzzy"));
             return ret;
         }
 
