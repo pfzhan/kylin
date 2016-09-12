@@ -40,9 +40,12 @@ message SparkJobRequest {
 
 message SparkJobResponse {
     required bool succeed = 1;
-    optional bytes gtRecordsBlob = 2;
+    repeated ShardBlob shardBlobs = 2;
     optional string errorMsg = 3;
-    
+
+    message ShardBlob {
+        required bytes blob = 1;
+    }
 }
 
 service JobService {

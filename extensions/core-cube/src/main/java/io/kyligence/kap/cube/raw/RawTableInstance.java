@@ -204,6 +204,11 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
         return cube.getDateRangeEnd();
     }
 
+    @Override
+    public boolean supportsLimitPushDown() {
+        return true;
+    }
+
     public List<RawTableSegment> getSegments() {
         return asRawTableSegments(cube.getSegments());
     }

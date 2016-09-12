@@ -75,7 +75,7 @@ public class SparkParquetVisit implements Serializable {
         }
     }
 
-    public List<byte[]> executeTask() throws Exception {
+    public List<List<byte[]>> executeTask() throws Exception {
 
         Configuration conf = new Configuration();
         conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS, RoaringBitmaps.writeToString(request.getParquetColumnsList())); // which columns are required
@@ -97,10 +97,18 @@ public class SparkParquetVisit implements Serializable {
         Class inputFormatClass = RealizationType.CUBE.toString().equals(this.realizationType) ? ParquetTarballFileInputFormat.class : ParquetRawTableFileInputFormat.class;
         JavaPairRDD<Text, Text> seed = sc.newAPIHadoopFile(parquetPath, inputFormatClass, Text.class, Text.class, conf);
 
-        List<byte[]> collected = seed.mapPartitions(new SparkExecutorPreAggFunction(realizationType, scannedRecords, collectedRecords)).collect();
+        List<List<byte[]>> collect = seed.mapPartitions(new SparkExecutorPreAggFunction(realizationType, scannedRecords, collectedRecords)).glom().collect();
         logger.info(">>>>>> End of visiting cube data with Spark");
-        logger.info("The result blob count is " + collected.size());
-        return collected;
+        logger.info("The result blob count is {}, the scanned count is {} and the collected count is {}", count(collect), scannedRecords.value(), collectedRecords.value());
+        return collect;
+    }
+
+    private int count(List<List<byte[]>> input) {
+        int count = 0;
+        for (List<byte[]> temp : input) {
+            count += temp.size();
+        }
+        return count;
     }
 
 }

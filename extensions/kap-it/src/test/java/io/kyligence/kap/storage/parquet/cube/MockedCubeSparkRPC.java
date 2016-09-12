@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
-import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -43,13 +42,13 @@ import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.kylin.metadata.realization.RealizationType;
+import org.apache.kylin.storage.gtrecord.StorageResponseGTScatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkExecutorPreAggFunction;
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.SparkResponseBlobGTScanner;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileReader;
@@ -75,7 +74,7 @@ public class MockedCubeSparkRPC extends CubeSparkRPC {
 
         scanRequest.setTimeout(KapConfig.getInstanceFromEnv().getSparkVisitTimeout());
         logger.info("Spark visit timeout is set to " + scanRequest.getTimeout());
-        
+
         Configuration conf = HadoopUtil.getCurrentConfiguration();
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
@@ -98,25 +97,28 @@ public class MockedCubeSparkRPC extends CubeSparkRPC {
         List<InputSplit> splits = inputFormat.getSplits(job);
 
         try {
-            List<Iterable<byte[]>> rets = Lists.newArrayList();
+            List<Iterable<byte[]>> shardRecords = Lists.newArrayList();
             List<ParquetRecordIterator> parquetRecordIterators = Lists.newArrayList();
 
             for (int i = 0; i < splits.size(); i++) {
                 ParquetRecordIterator iterator = new ParquetRecordIterator(job, inputFormat, splits.get(i));
                 SparkExecutorPreAggFunction function = new SparkExecutorPreAggFunction(RealizationType.CUBE.toString(), null, null);
                 Iterable<byte[]> ret = function.call(iterator);
-                rets.add(ret);
+                shardRecords.add(ret);
                 parquetRecordIterators.add(iterator);
             }
-            Iterable<byte[]> merged = Iterables.concat(rets);
-            byte[] concat = concat(merged);
+
+            List<byte[]> mockedShardBlobs = Lists.newArrayList();
+            for (Iterable<byte[]> shard : shardRecords) {
+                mockedShardBlobs.add(concat(shard));
+            }
 
             //remember to close
             for (Closeable closeable : parquetRecordIterators) {
                 closeable.close();
             }
 
-            return new SparkResponseBlobGTScanner(scanRequest, concat);
+            return new StorageResponseGTScatter(info, mockedShardBlobs.iterator(), scanRequest.getColumns(), 0, scanRequest.getStoragePushDownLimit());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

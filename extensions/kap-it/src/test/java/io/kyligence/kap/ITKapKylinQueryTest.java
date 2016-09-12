@@ -23,20 +23,20 @@ package io.kyligence.kap;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.common.debug.BackdoorToggles;
+import org.apache.kylin.common.util.HBaseMetadataTestCase;
+import org.apache.kylin.gridtable.StorageSideBehavior;
 import org.apache.kylin.metadata.realization.RealizationType;
-import org.apache.kylin.query.H2Database;
 import org.apache.kylin.query.ITKylinQueryTest;
-import org.apache.kylin.query.enumerator.OLAPQuery;
+import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.Candidate;
-import org.apache.kylin.query.schema.OLAPSchemaFactory;
+import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
 import org.apache.kylin.storage.hbase.cube.v1.coprocessor.observer.ObserverEnabler;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -56,13 +56,13 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     public static void setUp() throws Exception {
         printInfo("setUp in ITKapKylinQueryTest");
         Map<RealizationType, Integer> priorities = Maps.newHashMap();
-
-        //TODO: delete
-        priorities.put(RealizationType.HYBRID, 1);
-        priorities.put(RealizationType.CUBE, 1);
-        priorities.put(RealizationType.INVERTED_INDEX, 0);
-        Candidate.setPriorities(priorities);
-        ITKapKylinQueryTest.rawTableFirst = true;
+        //
+        //        //TODO: delete
+        //        priorities.put(RealizationType.HYBRID, 1);
+        //        priorities.put(RealizationType.CUBE, 1);
+        //        priorities.put(RealizationType.INVERTED_INDEX, 0);
+        //        Candidate.setPriorities(priorities);
+        //        ITKapKylinQueryTest.rawTableFirst = true;
 
         joinType = "left";
 
@@ -77,28 +77,13 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     }
 
     protected static void setupAll() throws Exception {
-        //setup env
-        KAPHBaseMetadataTestCase.staticCreateTestMetadata();
-        config = KylinConfig.getInstanceFromEnv();
+        KylinTestBase.setupAll();
 
         //uncomment this to use MockedCubeSparkRPC instead of real spark
-        //config.setProperty("kap.storage.columnar.spark.cube.gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
+        config.setProperty("kap.storage.columnar.spark.cube.gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
 
         //uncomment this to use MockedRawTableTableRPC instead of real spark
-        //config.setProperty("kap.storage.columnar.spark.rawtable.gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
-
-        //setup cube conn
-        File olapTmp = OLAPSchemaFactory.createTempOLAPJson(ProjectInstance.DEFAULT_PROJECT_NAME, config);
-        Properties props = new Properties();
-        props.setProperty(OLAPQuery.PROP_SCAN_THRESHOLD, "10001");
-        cubeConnection = DriverManager.getConnection("jdbc:calcite:model=" + olapTmp.getAbsolutePath(), props);
-
-        //setup h2
-        h2Connection = DriverManager.getConnection("jdbc:h2:mem:db" + (h2InstanceCount++), "sa", "");
-        // Load H2 Tables (inner join)
-        H2Database h2DB = new H2Database(h2Connection, config);
-        h2DB.loadAllTables();
-
+        config.setProperty("kap.storage.columnar.spark.rawtable.gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
     }
 
     protected static void clean() {
@@ -108,7 +93,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
             closeConnection(h2Connection);
 
         ObserverEnabler.forceCoprocessorUnset();
-        KAPHBaseMetadataTestCase.staticCleanupTestMetadata();
+        HBaseMetadataTestCase.staticCleanupTestMetadata();
     }
 
     //inherit query tests from ITKylinQueryTest
@@ -148,18 +133,70 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
 
     @Test
     public void testRawTablePrecedesCubeOnRawQueries() throws Exception {
-        this.batchExecuteQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_raw");
-        OLAPContext context = OLAPContext.getThreadLocalContexts().iterator().next();
-        assertTrue(context.realization instanceof RawTableInstance);
+
+        List<File> sqlFiles = getFilesFromFolder(new File(getQueryFolderPrefix() + "src/test/resources/query/sql_raw"), ".sql");
+        for (File sqlFile : sqlFiles) {
+            runSQL(sqlFile, false, false);
+
+            OLAPContext context = OLAPContext.getThreadLocalContexts().iterator().next();
+            assertTrue(context.realization instanceof RawTableInstance);
+        }
     }
 
-    /////////////////test less
+    /////////////////test differently
 
-    // parquet storage(including cube and raw table) does not support timeout/limit pushdown now
-    @Test(expected = SQLException.class)
+    @Test
+    public void testLimitEnabled() throws Exception {
+        //test in ITKapLimitEnabledTest
+    }
+
+    protected void runTimeoutQueries() throws Exception {
+        List<File> sqlFiles = getFilesFromFolder(new File(getQueryFolderPrefix() + "src/test/resources/query/sql_timeout"), ".sql");
+        for (File sqlFile : sqlFiles) {
+            try {
+                runSQL(sqlFile, false, false);
+            } catch (SQLException e) {
+                if (findRoot(e) instanceof RuntimeException) {
+                    //expected
+                    continue;
+                }
+            }
+            throw new RuntimeException("Not expected ");
+        }
+    }
+
+    @Test
+    @Override
     public void testTimeoutQuery() throws Exception {
-        runTimetoutQueries();
+        super.testTimeoutQuery();
     }
+
+    //raw query will be preceded by RawTable all the times
+    //as compensation we additionally test timeout for raw query against cube
+    @Test
+    public void testTimeoutQuery2() throws Exception {
+        try {
+
+            Map<String, String> toggles = Maps.newHashMap();
+            toggles.put(BackdoorToggles.DEBUG_TOGGLE_COPROCESSOR_BEHAVIOR, StorageSideBehavior.SCAN_FILTER_AGGR_CHECKMEM_WITHDELAY.toString());//delay 10ms for every scan
+            BackdoorToggles.setToggles(toggles);
+
+            KylinConfig.getInstanceFromEnv().setProperty("kylin.query.cube.visit.timeout.times", "0.01");//set timeout to 3s
+
+            RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=test_kylin_cube_with_slr_empty]");
+            RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=test_kylin_cube_without_slr_empty]");
+
+            runTimeoutQueries();
+
+        } finally {
+            RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=test_kylin_cube_with_slr_empty]");
+            RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=test_kylin_cube_without_slr_empty]");
+
+            KylinConfig.getInstanceFromEnv().setProperty("kylin.query.cube.visit.timeout.times", "1");//set timeout to 9s 
+            BackdoorToggles.cleanToggles();
+        }
+    }
+    /////////////////test less
 
     //raw table does not support percentile
     @Test

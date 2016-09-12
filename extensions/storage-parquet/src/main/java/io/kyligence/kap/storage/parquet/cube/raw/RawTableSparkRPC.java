@@ -21,6 +21,8 @@ package io.kyligence.kap.storage.parquet.cube.raw;
 import java.io.IOException;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ImmutableBitSet;
@@ -31,26 +33,32 @@ import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.kylin.gridtable.IGTStorage;
 import org.apache.kylin.metadata.realization.RealizationType;
+import org.apache.kylin.storage.gtrecord.StorageResponseGTScatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClientParams;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.SparkResponseBlobGTScanner;
 
 public class RawTableSparkRPC implements IGTStorage {
 
     public static final Logger logger = LoggerFactory.getLogger(RawTableSparkRPC.class);
 
     protected RawTableSegment rawTableSegment;
+    protected Cuboid cuboid;
+    protected GTInfo info;
     private SparkDriverClient client;
 
     public RawTableSparkRPC(ISegment segment, Cuboid cuboid, GTInfo info) {
         this.rawTableSegment = (RawTableSegment) segment;
+        this.cuboid = cuboid;
+        this.info = info;
         this.init();
     }
 
@@ -89,7 +97,14 @@ public class RawTableSparkRPC implements IGTStorage {
                 scanRequest.toByteArray(), sparkDriverClientParams);
         logger.info("Time for the gRPC visit is " + (System.currentTimeMillis() - startTime));
         if (jobResponse.getSucceed()) {
-            return new SparkResponseBlobGTScanner(scanRequest, jobResponse.getGtRecordsBlob().toByteArray());
+            Iterable<byte[]> shardBytes = Iterables.transform(jobResponse.getShardBlobsList(), new Function<SparkJobProtos.SparkJobResponse.ShardBlob, byte[]>() {
+                @Nullable
+                @Override
+                public byte[] apply(@Nullable SparkJobProtos.SparkJobResponse.ShardBlob x) {
+                    return x.toByteArray();
+                }
+            });
+            return new StorageResponseGTScatter(info, shardBytes.iterator(), scanRequest.getColumns(), 0, scanRequest.getStoragePushDownLimit());
         } else {
             logger.error(jobResponse.getErrorMsg());
             throw new RuntimeException("RPC failed due to above reason");

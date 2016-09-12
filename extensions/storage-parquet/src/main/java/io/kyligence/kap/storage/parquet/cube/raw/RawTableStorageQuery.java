@@ -24,6 +24,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -85,6 +86,10 @@ public class RawTableStorageQuery implements IStorageQuery {
         Set<FunctionDesc> metrics = new LinkedHashSet<FunctionDesc>();
         buildDimensionsAndMetrics(sqlDigest, dimensions, metrics);
 
+        enableStorageLimitIfPossible(sqlDigest, sqlDigest.filter, context);
+        context.setFinalPushDownLimit(rawTableInstance);
+
+
         List<RawTableSegmentScanner> scanners = Lists.newArrayList();
         for (RawTableSegment rawTableSegment : rawTableInstance.getSegments(SegmentStatusEnum.READY)) {
             RawTableSegmentScanner scanner;
@@ -102,6 +107,33 @@ public class RawTableStorageQuery implements IStorageQuery {
             scanners.add(scanner);
         }
         return new SequentialRawTableTupleIterator(scanners, rawTableInstance, dimensions, metrics, returnTupleInfo, context);
+    }
+
+    private void enableStorageLimitIfPossible(SQLDigest sqlDigest, TupleFilter filter, StorageContext context) {
+        boolean possible = true;
+
+        boolean isRaw = sqlDigest.isRawQuery;
+        if (!isRaw) {
+            possible = false;
+            logger.info("Storage limit push down it's a non-raw query");
+        }
+
+        boolean goodFilter = filter == null || TupleFilter.isEvaluableRecursively(filter);
+        if (!goodFilter) {
+            possible = false;
+            logger.info("Storage limit push down is impossible because the filter is unevaluatable");
+        }
+
+        boolean goodSort = !context.hasSort();
+        if (!goodSort) {
+            possible = false;
+            logger.info("Storage limit push down is impossible because the query has order by");
+        }
+
+        if (possible) {
+            logger.info("Enable limit " + context.getLimit());
+            context.enableLimit();
+        }
     }
 
     private void buildDimensionsAndMetrics(SQLDigest sqlDigest, Collection<TblColRef> dimensions, Collection<FunctionDesc> metrics) {

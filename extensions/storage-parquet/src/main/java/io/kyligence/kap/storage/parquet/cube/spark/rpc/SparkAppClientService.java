@@ -21,6 +21,8 @@ package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
@@ -30,7 +32,10 @@ import io.grpc.stub.StreamObserver;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.JobServiceGrpc;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobRequest;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobResponse;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobResponse.ShardBlob;
+import kap.google.common.base.Function;
 import kap.google.common.base.Throwables;
+import kap.google.common.collect.Iterables;
 import kap.google.protobuf.ByteString;
 
 //TODO: not thread safe now
@@ -63,13 +68,19 @@ public class SparkAppClientService implements JobServiceGrpc.JobService {
             long startTime = System.currentTimeMillis();
 
             SparkParquetVisit submit = new SparkParquetVisit(sc, request);
-            List<byte[]> collected = submit.executeTask();
+            List<List<byte[]>> collected = submit.executeTask();
 
             logger.info("Time for spark parquet visit is " + (System.currentTimeMillis() - startTime));
 
-            //        int reqValue = Bytes.toInt(request.getRequest().toByteArray());
-            //        System.out.println("reqValue is " + reqValue);
-            SparkJobResponse response = SparkJobResponse.newBuilder().setSucceed(true).setGtRecordsBlob(ByteString.copyFrom(concat(collected))).build();
+            SparkJobResponse.Builder builder = SparkJobResponse.newBuilder().setSucceed(true);
+            builder.addAllShardBlobs(Iterables.transform(collected, new Function<List<byte[]>, ShardBlob>() {
+                @Nullable
+                @Override
+                public ShardBlob apply(@Nullable List<byte[]> bytes) {
+                    return ShardBlob.newBuilder().setBlob(ByteString.copyFrom(concat(bytes))).build();
+                }
+            }));
+            SparkJobResponse response = builder.build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
         } catch (Exception e) {
