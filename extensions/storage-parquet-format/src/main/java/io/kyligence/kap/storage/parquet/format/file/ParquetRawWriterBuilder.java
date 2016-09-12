@@ -133,6 +133,7 @@ public class ParquetRawWriterBuilder {
         }
 
         logger.info("ParquetRawWriterBuilder: rowsPerPage={}", rowsPerPage);
+        logger.info("write file: {}", path.toString());
         return new ParquetRawWriter(conf, type, path, rlEncodings, dlEncodings, dataEncodings, codecName, indexPath, rowsPerPage, pagesPerGroup);
     }
 }

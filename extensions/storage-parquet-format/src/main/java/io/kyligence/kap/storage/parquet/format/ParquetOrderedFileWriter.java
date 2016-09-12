@@ -5,10 +5,13 @@ import java.io.IOException;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
 
 public abstract class ParquetOrderedFileWriter extends RecordWriter<Text, Text> {
+    private static final Logger logger = LoggerFactory.getLogger(ParquetOrderedFileWriter.class);
 
     protected ParquetRawWriter writer = null;
 
@@ -42,6 +45,7 @@ public abstract class ParquetOrderedFileWriter extends RecordWriter<Text, Text> 
     public void write(Text key, Text value) throws IOException, InterruptedException {
         if (needCutUp(key, value)) {
             if (writer != null) {
+                logger.info("close file");
                 writer.close();
             }
             writer = newWriter();
