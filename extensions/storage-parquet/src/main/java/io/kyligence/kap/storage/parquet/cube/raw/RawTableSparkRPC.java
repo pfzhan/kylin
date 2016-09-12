@@ -75,6 +75,9 @@ public class RawTableSparkRPC implements IGTStorage {
     @Override
     public IGTScanner getGTScanner(GTScanRequest scanRequest) throws IOException {
 
+        scanRequest.setTimeout(KapConfig.getInstanceFromEnv().getSparkVisitTimeout());
+        logger.info("Spark visit timeout is set to " + scanRequest.getTimeout());
+
         long startTime = System.currentTimeMillis();
         SparkDriverClientParams sparkDriverClientParams = new SparkDriverClientParams(KylinConfig.getInstanceFromEnv().getConfigAsString(), //
                 RealizationType.INVERTED_INDEX.toString(), rawTableSegment.getRawTableInstance().getUuid(), rawTableSegment.getUuid(), "RawTable", // 

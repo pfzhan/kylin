@@ -89,8 +89,9 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
                 IFilterCodeSystem<ByteArray> wrap = GTUtil.wrap(gtScanRequest.getInfo().getCodeSystem().getComparator());
                 byte[] serialize = TupleFilterSerializer.serialize(filter, decorator, wrap);
                 TupleFilter hashedFilter = TupleFilterSerializer.deserialize(serialize, wrap);
-                pageBitmap = indexTable.lookup(hashedFilter);
 
+                logger.info("Starting to lookup inverted index");
+                pageBitmap = indexTable.lookup(hashedFilter);
                 logger.info("Inverted Index bitmap: " + pageBitmap + ". Time spent is: " + (System.currentTimeMillis() - startTime));
             } else {
                 logger.info("Told not to use II, read all pages");
@@ -101,9 +102,10 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
 
         // column bitmap
         ImmutableRoaringBitmap columnBitmap = RoaringBitmaps.readFromString(conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS));
-        logger.info("All columns read by parquet: " + StringUtils.join(columnBitmap, ","));
-        if (columnBitmap.isEmpty()) {
-            throw new IllegalStateException("columnBitmap cannot be empty");
+        if (columnBitmap != null) {
+            logger.info("All columns read by parquet: " + StringUtils.join(columnBitmap, ","));
+        } else {
+            logger.info("All columns read by parquet is not set");
         }
 
         String gtMaxLengthStr = conf.get(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH);

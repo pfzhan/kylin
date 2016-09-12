@@ -18,19 +18,19 @@
 
 package io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner;
 
-import org.apache.kylin.common.util.ImmutableBitSet;
-import org.apache.kylin.gridtable.GTInfo;
-import org.apache.kylin.gridtable.GTScanRequest;
-
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.Iterator;
 
+import org.apache.kylin.common.util.ImmutableBitSet;
+import org.apache.kylin.gridtable.GTInfo;
+import org.apache.kylin.gridtable.GTScanRequest;
+
 public class ParquetBytesGTScanner4Cube extends ParquetBytesGTScanner {
-    public ParquetBytesGTScanner4Cube(GTInfo info, Iterator<ByteBuffer> iterator, GTScanRequest scanRequest) {
-        super(info, iterator, scanRequest);
+    public ParquetBytesGTScanner4Cube(GTInfo info, Iterator<ByteBuffer> iterator, GTScanRequest scanRequest, boolean withDelay) {
+        super(info, iterator, scanRequest, withDelay);
     }
-    
+
     protected ImmutableBitSet getParquetCoveredColumns(GTScanRequest scanRequest) {
         BitSet bs = new BitSet();
 
@@ -45,5 +45,5 @@ public class ParquetBytesGTScanner4Cube extends ParquetBytesGTScanner {
         }
         return new ImmutableBitSet(bs);
     }
-    
+
 }

@@ -33,6 +33,7 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.task.MapContextImpl;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.ISegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
@@ -70,6 +71,10 @@ public class MockedRawTableTableRPC extends RawTableSparkRPC {
 
     @Override
     public IGTScanner getGTScanner(GTScanRequest scanRequest) throws IOException {
+
+        scanRequest.setTimeout(KapConfig.getInstanceFromEnv().getSparkVisitTimeout());
+        logger.info("Spark visit timeout is set to " + scanRequest.getTimeout());
+
         Configuration conf = HadoopUtil.getCurrentConfiguration();
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
@@ -114,7 +119,6 @@ public class MockedRawTableTableRPC extends RawTableSparkRPC {
             return new SparkResponseBlobGTScanner(scanRequest, concat);
         } catch (Exception e) {
             throw new RuntimeException(e);
-
         }
     }
 

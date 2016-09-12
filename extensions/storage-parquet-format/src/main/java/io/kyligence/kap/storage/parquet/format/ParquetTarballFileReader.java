@@ -86,6 +86,8 @@ public class ParquetTarballFileReader extends RecordReader<Text, Text> {
 
             if (Boolean.valueOf(conf.get(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX))) {
                 TupleFilter filter = gtScanRequest.getFilterPushDown();
+                
+                logger.info("Starting to lookup inverted index");
                 pageBitmap = indexTable.lookup(filter);
                 logger.info("Inverted Index bitmap: " + pageBitmap + ". Time spent is: " + (System.currentTimeMillis() - startTime));
             } else {

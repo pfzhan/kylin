@@ -97,7 +97,7 @@ then
     submitCommand='$SPARK_HOME/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry --master yarn --deploy-mode client --verbose '
     submitCommand=${submitCommand}${confStr}
     submitCommand=${submitCommand}' ${KYLIN_SPARK_JAR_PATH} -className io.kyligence.kap.storage.parquet.cube.spark.SparkQueryDriver --port ${driverPort:-7071} >> ${KYLIN_HOME}/logs/spark_client.out 2>&1 & echo $! > ${KYLIN_HOME}/spark_client_pid &'
-    echo "The submit command is: $submitCommand"
+    #echo "The submit command is: $submitCommand"
     eval $submitCommand 
     
     echo "A new spark client instance is started by $USER, stop it using \"spark_client.sh stop\""

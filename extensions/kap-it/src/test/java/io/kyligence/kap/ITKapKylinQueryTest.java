@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.Map;
 import java.util.Properties;
 
@@ -81,10 +82,10 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         config = KylinConfig.getInstanceFromEnv();
 
         //uncomment this to use MockedCubeSparkRPC instead of real spark
-        config.setProperty("kap.storage.columnar.spark.cube.gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
+        //config.setProperty("kap.storage.columnar.spark.cube.gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
 
         //uncomment this to use MockedRawTableTableRPC instead of real spark
-        config.setProperty("kap.storage.columnar.spark.rawtable.gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
+        //config.setProperty("kap.storage.columnar.spark.rawtable.gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
 
         //setup cube conn
         File olapTmp = OLAPSchemaFactory.createTempOLAPJson(ProjectInstance.DEFAULT_PROJECT_NAME, config);
@@ -155,8 +156,9 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     /////////////////test less
 
     // parquet storage(including cube and raw table) does not support timeout/limit pushdown now
-    @Test
+    @Test(expected = SQLException.class)
     public void testTimeoutQuery() throws Exception {
+        runTimetoutQueries();
     }
 
     //raw table does not support percentile

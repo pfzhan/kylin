@@ -38,13 +38,15 @@ public abstract class ParquetBytesGTScanner implements IGTScanner {
     private GTInfo info;
     private GTRecord temp;
     private ImmutableBitSet columns;
+    private boolean withDelay;
     private long counter = 0L;
 
-    public ParquetBytesGTScanner(GTInfo info, Iterator<ByteBuffer> iterator, GTScanRequest scanRequest) {
+    public ParquetBytesGTScanner(GTInfo info, Iterator<ByteBuffer> iterator, GTScanRequest scanRequest, boolean withDelay) {
         this.iterator = iterator;
         this.info = info;
         this.temp = new GTRecord(info);
         this.columns = getParquetCoveredColumns(scanRequest);
+        this.withDelay = withDelay;
     }
 
     @Override
@@ -67,6 +69,16 @@ public abstract class ParquetBytesGTScanner implements IGTScanner {
             @Nullable
             @Override
             public GTRecord apply(@Nullable ByteBuffer input) {
+                
+                //for test use
+                if (withDelay) {
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                
                 counter++;
                 temp.loadColumns(ParquetBytesGTScanner.this.columns, input);
                 return temp;

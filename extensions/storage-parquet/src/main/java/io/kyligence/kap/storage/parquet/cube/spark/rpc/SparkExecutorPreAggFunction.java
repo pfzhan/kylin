@@ -29,7 +29,9 @@ import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.gridtable.GTRecord;
 import org.apache.kylin.gridtable.GTScanRequest;
+import org.apache.kylin.gridtable.GTScanTimeoutException;
 import org.apache.kylin.gridtable.IGTScanner;
+import org.apache.kylin.gridtable.StorageSideBehavior;
 import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.spark.Accumulator;
 import org.apache.spark.api.java.function.FlatMapFunction;
@@ -60,6 +62,9 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
 
     @Override
     public Iterable<byte[]> call(Iterator<Tuple2<Text, Text>> tuple2Iterator) throws Exception {
+
+        long localStartTime = System.currentTimeMillis();
+
         Iterator<ByteBuffer> iterator = Iterators.transform(tuple2Iterator, new Function<Tuple2<Text, Text>, ByteBuffer>() {
             @Nullable
             @Override
@@ -69,29 +74,43 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
         });
 
         GTScanRequest gtScanRequest = null;
+        StorageSideBehavior behavior = null;
 
         IGTScanner scanner;
         if (RealizationType.CUBE.toString().equals(realizationType)) {
             gtScanRequest = ParquetTarballFileReader.gtScanRequestThreadLocal.get();
-            scanner = new ParquetBytesGTScanner4Cube(gtScanRequest.getInfo(), iterator, gtScanRequest);//in
+            behavior = StorageSideBehavior.valueOf(gtScanRequest.getStorageBehavior());
+            scanner = new ParquetBytesGTScanner4Cube(gtScanRequest.getInfo(), iterator, gtScanRequest, behavior.delayToggledOn());//in
         } else if (RealizationType.INVERTED_INDEX.toString().equals(realizationType)) {
             gtScanRequest = ParquetRawTableFileReader.gtScanRequestThreadLocal.get();
-            scanner = new ParquetBytesGTScanner4Raw(gtScanRequest.getInfo(), iterator, gtScanRequest);//in
+            behavior = StorageSideBehavior.valueOf(gtScanRequest.getStorageBehavior());
+            scanner = new ParquetBytesGTScanner4Raw(gtScanRequest.getInfo(), iterator, gtScanRequest, behavior.delayToggledOn());//in
         } else {
             throw new IllegalArgumentException("Unsupported realization type " + realizationType);
         }
 
-        IGTScanner preAggred = gtScanRequest.decorateScanner(scanner);//process
+        long deadline = gtScanRequest.getTimeout() + localStartTime;
+        logger.info("Local start time is {} and the deadline is {}", localStartTime, deadline);
+
+        IGTScanner preAggred = gtScanRequest.decorateScanner(scanner, behavior.filterToggledOn(), behavior.aggrToggledOn(), deadline);
+
         SparkExecutorGTRecordSerializer function = new SparkExecutorGTRecordSerializer(gtScanRequest, gtScanRequest.getColumns());
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Iterator<GTRecord> gtIterator = preAggred.iterator();
         long counter = 0;
         while (gtIterator.hasNext()) {
-            counter++;
+
+            //check deadline
+            if (counter % GTScanRequest.terminateCheckInterval == 1 && System.currentTimeMillis() > deadline) {
+                throw new GTScanTimeoutException("Timeout in GTAggregateScanner with scanned count " + counter);
+            }
+
             GTRecord row = gtIterator.next();
             ByteArray byteArray = function.apply(row);
             baos.write(byteArray.array(), 0, byteArray.length());
+
+            counter++;
         }
 
         logger.info("Current task scanned {} raw records", preAggred.getScannedRowCount());

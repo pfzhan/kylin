@@ -80,6 +80,9 @@ public class CubeSparkRPC implements IGTStorage {
     @Override
     public IGTScanner getGTScanner(GTScanRequest scanRequest) throws IOException {
 
+        scanRequest.setTimeout(KapConfig.getInstanceFromEnv().getSparkVisitTimeout());
+        logger.info("Spark visit timeout is set to " + scanRequest.getTimeout());
+
         long startTime = System.currentTimeMillis();
         SparkDriverClientParams sparkDriverClientParams = new SparkDriverClientParams(KylinConfig.getInstanceFromEnv().getConfigAsString(), //
                 RealizationType.CUBE.toString(), cubeSegment.getCubeInstance().getUuid(), cubeSegment.getUuid(), String.valueOf(cuboid.getId()), // 

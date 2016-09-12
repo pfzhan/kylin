@@ -18,8 +18,6 @@
 
 package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,6 +30,7 @@ import io.grpc.stub.StreamObserver;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.JobServiceGrpc;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobRequest;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobResponse;
+import kap.google.common.base.Throwables;
 import kap.google.protobuf.ByteString;
 
 //TODO: not thread safe now
@@ -74,10 +73,7 @@ public class SparkAppClientService implements JobServiceGrpc.JobService {
             responseObserver.onNext(response);
             responseObserver.onCompleted();
         } catch (Exception e) {
-            StringWriter sw = new StringWriter();
-            PrintWriter pw = new PrintWriter(sw);
-            e.printStackTrace(pw);
-            String msg = sw.toString();
+            String msg = Throwables.getStackTraceAsString(e);
             logger.error("error stacktrace: " + msg);
 
             SparkJobResponse response = SparkJobResponse.newBuilder().setSucceed(false).setErrorMsg(msg).build();

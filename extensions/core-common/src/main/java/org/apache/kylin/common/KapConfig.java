@@ -87,6 +87,11 @@ public class KapConfig {
         return config.getOptional("kap.storage.columnar.spark.rawtable.gtstorage", "io.kyligence.kap.storage.parquet.cube.raw.RawTableSparkRPC");
     }
 
+    public long getSparkVisitTimeout() {
+        long value = Long.valueOf(config.getOptional("kap.storage.columnar.spark.visit.timeout", "300000"));
+        return (long) (value * config.getCubeVisitTimeoutTimes());
+    }
+
     /**
      * where is parquet fles stored in hdfs , end with /
      */
