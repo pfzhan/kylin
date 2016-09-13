@@ -14,8 +14,6 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Bytes;
-import org.apache.kylin.cube.CubeInstance;
-import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -26,6 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.raw.RawTableDesc;
+import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.kv.RawTableConstants;
 import io.kyligence.kap.raw.BufferedRawEncoder;
 import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
@@ -38,11 +38,9 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
 
     private Configuration config;
     private KylinConfig kylinConfig;
-    private CubeInstance cubeInstance;
     private RawTableDesc rawTableDesc;
     private BufferedRawEncoder rawEncoder;
     private String outputDir = null;
-    private TaskAttemptContext context = null;
 
     @Override
     public void write(Text key, Text value) throws IOException, InterruptedException {
@@ -53,16 +51,14 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
         this.config = context.getConfiguration();
         this.tmpDir = workingPath;
 
-        this.context = context;
         kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
 
         outputDir = config.get(ParquetFormatConstants.KYLIN_OUTPUT_DIR);
-        String cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
+        String rawName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
         String segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
-        logger.info("cubeName is " + cubeName + " and segmentID is " + segmentID);
-        cubeInstance = CubeManager.getInstance(kylinConfig).getCube(cubeName);
-
-        rawTableDesc = new RawTableDesc(cubeInstance.getDescriptor());
+        logger.info("RawTableName is " + rawName + " and segmentID is " + segmentID);
+        RawTableInstance rawInstance = RawTableManager.getInstance(kylinConfig).getRawTableInstance(rawName);
+        rawTableDesc = rawInstance.getRawTableDesc();
         rawEncoder = new BufferedRawEncoder(rawTableDesc.getColumnsExcludingOrdered());
 
         // FIXME: Text involves array copy every time

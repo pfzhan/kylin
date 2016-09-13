@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.engine.mr.steps.KapMergeCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapMergeRawTableJob;
 
@@ -20,7 +21,8 @@ public class ParquetMROutput2 implements IMROutput2 {
     public IMROutput2.IMRBatchCubingOutputSide2 getBatchCubingOutputSide(final CubeSegment seg) {
         return new IMROutput2.IMRBatchCubingOutputSide2() {
             ParquetMRSteps steps = new ParquetMRSteps(seg);
-            boolean isRawTableEnable = RawTableInstance.isRawTableEnabled(seg.getCubeDesc());
+            RawTableInstance raw = RawTableManager.getInstance(seg.getConfig()).getRawTableInstance(seg.getRealization().getName());
+            boolean isRawTableEnable = (null != raw);
 
             @Override
             public void addStepPhase2_BuildDictionary(DefaultChainedExecutable jobFlow) {
@@ -50,7 +52,8 @@ public class ParquetMROutput2 implements IMROutput2 {
     public IMROutput2.IMRBatchMergeOutputSide2 getBatchMergeOutputSide(final CubeSegment seg) {
         return new IMROutput2.IMRBatchMergeOutputSide2() {
             ParquetMRSteps steps = new ParquetMRSteps(seg);
-            boolean isRawTableEnable = RawTableInstance.isRawTableEnabled(seg.getCubeDesc());
+            RawTableInstance raw = RawTableManager.getInstance(seg.getConfig()).getRawTableInstance(seg.getRealization().getName());
+            boolean isRawTableEnable = (null != raw);
 
             @Override
             public void addStepPhase1_MergeDictionary(DefaultChainedExecutable jobFlow) {
@@ -63,7 +66,7 @@ public class ParquetMROutput2 implements IMROutput2 {
                 jobFlow.addTask(steps.createParquetPageIndex(jobFlow.getId()));
                 jobFlow.addTask(steps.createParquetTarballJob(jobFlow.getId()));
                 if (isRawTableEnable) {
-                    jobFlow.addTask(steps.createMergeRawDataStep(seg, mergingSegments, jobFlow.getId(), KapMergeRawTableJob.class));
+                    jobFlow.addTask(steps.createMergeRawDataStep(seg, jobFlow.getId(), KapMergeRawTableJob.class));
                     jobFlow.addTask(steps.createRawTableParquetPageIndex(jobFlow.getId()));
                     jobFlow.addTask(steps.createRawTableParquetPageFuzzyIndex(jobFlow.getId()));
                 }

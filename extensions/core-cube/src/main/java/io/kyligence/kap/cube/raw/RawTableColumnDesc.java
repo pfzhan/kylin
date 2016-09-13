@@ -20,8 +20,8 @@ public class RawTableColumnDesc {
     @JsonProperty("encoding")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String encoding;
-    @JsonProperty("fuzzyIndex")
-    private Boolean fuzzyIndex;
+    @JsonProperty("fuzzy_index")
+    private Boolean fuzzyIndex = false;
 
     // computed
     private ColumnDesc column;
@@ -96,7 +96,7 @@ public class RawTableColumnDesc {
         RawTableColumnDesc other = (RawTableColumnDesc) obj;
 
         if (tableName == null) {
-            if (other.tableName!= null)
+            if (other.tableName != null)
                 return false;
         } else if (!tableName.equals(other.tableName))
             return false;

@@ -5,8 +5,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
-import org.apache.kylin.cube.CubeDescManager;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -26,32 +26,35 @@ public class RawTableDescManagerTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testBasics() throws IOException {
-        CubeDescManager cubeDescMgr = CubeDescManager.getInstance(getTestConfig());
-        RawTableDescManager mgr = RawTableDescManager.getInstance(getTestConfig());
 
+        RawTableDescManager mgr = RawTableDescManager.getInstance(getTestConfig());
         final String name = "test_kylin_cube_with_slr_desc";
 
-        // remove existing
+        // init
         RawTableDesc existing = mgr.getRawTableDesc(name);
         assertTrue(existing != null);
+        Assert.assertEquals(1, existing.getFuzzyColumnSet().size());
+
+        // remove
         mgr.removeRawTableDesc(existing);
-
-        // create again
-        RawTableDesc rawTableDesc = new RawTableDesc(cubeDescMgr.getCubeDesc(name));
-        rawTableDesc = mgr.createRawTableDesc(rawTableDesc);
-
-        // reload
         mgr.reloadAllRawTableDesc();
-        // get and update
+        RawTableDesc toRemove = mgr.getRawTableDesc(name);
+        assertTrue(null == toRemove);
+
+        // create
+        existing.setLastModified(0L);
+        mgr.createRawTableDesc(existing);
+        mgr.reloadAllRawTableDesc();
+        RawTableDesc toCreate = mgr.getRawTableDesc(name);
+        assertTrue(null != toCreate);
+        Assert.assertEquals(1, toCreate.getFuzzyColumnSet().size());
+
+        // update
         RawTableDesc toUpdate = mgr.getRawTableDesc(name);
         toUpdate.setVersion("dummy");
         mgr.updateRawTableDesc(toUpdate);
-
-        // reload
         mgr.reloadAllRawTableDesc();
-
-        // get and update
-        RawTableDesc existing2 = mgr.getRawTableDesc(name);
-        assertEquals("dummy", existing2.getVersion());
+        RawTableDesc updated = mgr.getRawTableDesc(name);
+        assertEquals("dummy", updated.getVersion());
     }
 }

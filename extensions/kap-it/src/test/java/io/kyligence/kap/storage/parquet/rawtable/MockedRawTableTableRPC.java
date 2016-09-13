@@ -78,8 +78,8 @@ public class MockedRawTableTableRPC extends RawTableSparkRPC {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
         String dataFolder = new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
-                append(rawTableSegment.getCubeSegment().getCubeInstance().getUuid()).append("/").//
-                append(rawTableSegment.getCubeSegment().getUuid()).append("/").//
+                append(rawTableSegment.getRawTableInstance().getUuid()).append("/").//
+                append(rawTableSegment.getUuid()).append("/").//
                 append("RawTable").//
                 append("/*.parquet").toString();
 

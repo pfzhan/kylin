@@ -6,4 +6,12 @@ public class RawTableConstants {
 
     // directory name of rawtable
     public static final String RawTableDir = "RawTable";
+
+    // build rawtable step name
+    public static final String BUILD_RAWTABLE = "Build Raw Table";
+
+    /**
+     * command line ARGuments
+     */
+    public static final String ARG_RAWTABLE_NAME = "rawtablename";
 }

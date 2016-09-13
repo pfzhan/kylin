@@ -16,15 +16,10 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.MemoryBudgetController;
-import org.apache.kylin.cube.CubeInstance;
-import org.apache.kylin.cube.CubeManager;
-import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.engine.mr.KylinMapper;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,11 +37,7 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
     protected static final Logger logger = LoggerFactory.getLogger(RawTableFuzzyIndexMapper.class);
 
     protected String cubeName;
-    protected String segmentName;
     protected String shardId;
-    protected CubeInstance cube;
-    protected CubeDesc cubeDesc;
-    protected CubeSegment cubeSegment;
     protected RawTableInstance rawTableInstance;
     protected RawTableDesc rawTableDesc;
 
@@ -77,14 +68,10 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
         spillThresholdMB = kapConfig.getParquetPageIndexSpillThresholdMB();
 
         cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME).toUpperCase();
-        segmentName = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_NAME);
         shardId = inputPath.getName().substring(0, inputPath.getName().indexOf('.'));
 
         // write to same dir with input
         outputPath = new Path(inputPath.getParent(), shardId + ".parquet.inv");
-        cube = CubeManager.getInstance(kylinConfig).getCube(cubeName);
-        cubeDesc = cube.getDescriptor();
-        cubeSegment = cube.getSegment(segmentName, SegmentStatusEnum.NEW);
 
         rawTableInstance = RawTableManager.getInstance(kylinConfig).getRawTableInstance(cubeName);
         rawTableDesc = rawTableInstance.getRawTableDesc();

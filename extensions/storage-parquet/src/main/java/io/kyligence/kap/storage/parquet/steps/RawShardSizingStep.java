@@ -9,7 +9,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.engine.mr.JobBuilderSupport;
 import org.apache.kylin.engine.mr.steps.CubingExecutableUtil;
@@ -21,7 +20,10 @@ import org.apache.kylin.job.execution.ExecuteResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableSegment;
+import io.kyligence.kap.cube.raw.RawTableUpdate;
 
 public class RawShardSizingStep extends AbstractExecutable {
 
@@ -33,11 +35,14 @@ public class RawShardSizingStep extends AbstractExecutable {
 
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
-        CubeSegment newSegment = CubingExecutableUtil.findSegment(context, CubingExecutableUtil.getCubeName(this.getParams()), CubingExecutableUtil.getSegmentId(this.getParams()));
-        KylinConfig kylinConf = newSegment.getConfig();
+        KylinConfig kylinConf = context.getConfig();
+        String rawName = CubingExecutableUtil.getCubeName(this.getParams());
+        String segmentId = CubingExecutableUtil.getSegmentId(this.getParams());
+        RawTableInstance rawInstance = RawTableManager.getInstance(kylinConf).getRawTableInstance(rawName);
+        RawTableSegment seg = rawInstance.getSegmentById(segmentId);
 
         try {
-            rawShardSizing(newSegment, kylinConf);
+            rawShardSizing(rawInstance, seg, kylinConf);
             return new ExecuteResult(ExecuteResult.State.SUCCEED, "succeed");
         } catch (IOException e) {
             logger.error("fail to save rawtable statistics", e);
@@ -45,18 +50,13 @@ public class RawShardSizingStep extends AbstractExecutable {
         }
     }
 
-    private void rawShardSizing(CubeSegment seg, KylinConfig kylinConf) throws IOException {
+    private void rawShardSizing(RawTableInstance rawInstance, RawTableSegment seg, KylinConfig kylinConf) throws IOException {
         KapConfig kapConfig = KapConfig.wrap(kylinConf);
         int mbPerShard = kapConfig.getParquetStorageShardSize();
         int shardMax = kapConfig.getParquetStorageShardMax();
         int shardMin = kapConfig.getParquetStorageShardMin();
-        RawTableSegment rawSeg = RawTableSegment.getInstance(seg);
 
-        if (!seg.isEnableSharding()) {
-            throw new IllegalStateException("Shard must be enabled");
-        }
-
-        double estimatedSize = caculateEstimateStorageSize(rawSeg);
+        double estimatedSize = caculateEstimateStorageSize(seg);
         int shardNum = (int) (estimatedSize / mbPerShard);
 
         if (shardNum > shardMax) {
@@ -68,7 +68,13 @@ public class RawShardSizingStep extends AbstractExecutable {
         } else {
             logger.info(String.format("RawTable's estimated size %.2f MB will generate %d regions", estimatedSize, shardNum));
         }
-
+        if (null != rawInstance) {
+            seg.setShardNum(shardNum);
+            rawInstance.setShardNumber(rawInstance.getShardNumber() + shardNum);
+            RawTableUpdate builder = new RawTableUpdate(rawInstance);
+            builder.setToUpdateSegs(seg);
+            RawTableManager.getInstance(kylinConf).updateRawTable(builder);
+        }
     }
 
     private double caculateEstimateStorageSize(RawTableSegment seg) throws IOException {
@@ -77,7 +83,7 @@ public class RawShardSizingStep extends AbstractExecutable {
         final String rowCountOutputDir = JobBuilderSupport.getJobWorkingDir(conf, jobID) + "/row_count";
         Path rowCountFile = new Path(rowCountOutputDir, "000000_0");
 
-        Long nRow;
+        Long nRow = 0L;
         FileSystem fs = FileSystem.get(rowCountFile.toUri(), HadoopUtil.getCurrentConfiguration());
         InputStream in = fs.open(rowCountFile);
         try {

@@ -38,8 +38,16 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.storage.hbase.util.StorageCleanupJob;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.cube.raw.RawTableManager;
+import io.kyligence.kap.cube.raw.RawTableSegment;
 
 public class KapStorageCleanupCLI extends StorageCleanupJob {
+
+    protected static final Logger logger = LoggerFactory.getLogger(KapStorageCleanupCLI.class);
 
     public static void main(String[] args) throws Exception {
         KapStorageCleanupCLI cli = new KapStorageCleanupCLI();
@@ -55,6 +63,7 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
     private void cleanUnusedParquetFolders(Configuration conf) throws IOException {
         JobEngineConfig engineConfig = new JobEngineConfig(KylinConfig.getInstanceFromEnv());
         CubeManager cubeMgr = CubeManager.getInstance(KylinConfig.getInstanceFromEnv());
+        RawTableManager rawMgr = RawTableManager.getInstance(KylinConfig.getInstanceFromEnv());
 
         FileSystem fs = FileSystem.get(conf);
         List<String> allHdfsPathsNeedToBeDeleted = new ArrayList<String>();
@@ -78,9 +87,13 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
                 String cubeName = CubingExecutableUtil.getCubeName(params);
                 String segmentId = CubingExecutableUtil.getSegmentId(params);
                 String cubeId = cubeMgr.getCube(cubeName).getId();
-                String path = KapConfig.getInstanceFromEnv().getParquentStoragePath() + cubeId + "/" + segmentId;
-                allHdfsPathsNeedToBeDeleted.remove(path);
-                logger.info("Skip " + path + " from deletion list, as the path belongs to job " + jobId + " with state " + state);
+                String cubePath = KapConfig.getInstanceFromEnv().getParquentStoragePath() + cubeId + "/" + segmentId;
+                String rawId = rawMgr.getRawTableInstance(cubeName).getId();
+                // TODO: raw segment should have own uuid
+                String rawPath = KapConfig.getInstanceFromEnv().getParquentStoragePath() + rawId + "/" + segmentId;
+                allHdfsPathsNeedToBeDeleted.remove(cubePath);
+                allHdfsPathsNeedToBeDeleted.remove(rawPath);
+                logger.info("Skip " + cubePath + " from deletion list, as the path belongs to job " + jobId + " with state " + state);
             }
         }
 
@@ -94,6 +107,19 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
                     String exclude = KapConfig.getInstanceFromEnv().getParquentStoragePath() + cube.getId() + "/" + seg.getUuid();
                     allHdfsPathsNeedToBeDeleted.remove(exclude);
                     logger.info("Skip " + exclude + " from deletion list, as the path belongs to segment " + seg + " of cube " + cube.getName() + ", with status " + status);
+                }
+            }
+        }
+
+        // remove every rawtable segment working dir from deletion list
+        for (RawTableInstance raw : rawMgr.listAllRawTables()) {
+            for (RawTableSegment seg : raw.getSegments()) {
+                SegmentStatusEnum status = seg.getStatus();
+                String jobUuid = seg.getLastBuildJobID();
+                if (jobUuid != null && jobUuid.equals("") == false) {
+                    String exclude = KapConfig.getInstanceFromEnv().getParquentStoragePath() + raw.getId() + "/" + seg.getUuid();
+                    allHdfsPathsNeedToBeDeleted.remove(exclude);
+                    logger.info("Skip " + exclude + " from deletion list, as the path belongs to segment " + seg + " of rawtable " + raw.getName() + ", with status " + status);
                 }
             }
         }

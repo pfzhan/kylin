@@ -1,21 +1,16 @@
 package io.kyligence.kap.cube.raw;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.cube.model.RowKeyColDesc;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
-import org.apache.kylin.metadata.model.JoinDesc;
-import org.apache.kylin.metadata.model.ModelDimensionDesc;
-import org.apache.kylin.metadata.model.PartitionDesc;
-import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.IEngineAware;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,11 +19,12 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class RawTableDesc extends RootPersistentEntity {
+public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
+
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(RawTableDesc.class);
     public static final String RAW_TABLE_DESC_RESOURCE_ROOT = "/raw_table_desc";
 
@@ -41,116 +37,26 @@ public class RawTableDesc extends RootPersistentEntity {
     @JsonProperty("model_name")
     private String modelName;
     @JsonProperty("columns")
-    private List<RawTableColumnDesc> columns;
-    @JsonProperty("fuzzy_columns")
-    private Set<String> fuzzyColumnSet;
+    private List<RawTableColumnDesc> columns = new ArrayList<>();
+    @JsonProperty("engine_type")
+    private int engineType;
+    @JsonProperty("storage_type")
+    private int storageType;
+    @JsonProperty("auto_merge_time_ranges")
+    private long[] autoMergeTimeRanges;
 
     // computed
     private KylinConfig config;
     private DataModelDesc model;
     private Map<TblColRef, RawTableColumnDesc> columnMap;
+    private HashSet<String> fuzzyColumnSet;
 
     // for Jackson
     public RawTableDesc() {
     }
 
-    // for debug/test, create a mockup RawTable from DataModel
-    public RawTableDesc(CubeDesc cubeDesc) {
-        this.updateRandomUuid();
-        this.name = cubeDesc.getName();
-        this.modelName = cubeDesc.getModelName();
-
-        this.config = cubeDesc.getConfig();
-        this.model = cubeDesc.getModel();
-        this.columnMap = Maps.newHashMap();
-
-        this.columns = Lists.newArrayList();
-        this.fuzzyColumnSet = getFuzzyColumnSet(cubeDesc);
-
-        MetadataManager metaMgr = MetadataManager.getInstance(model.getConfig());
-        TableDesc factTable = model.getFactTableDesc();
-
-        for (ModelDimensionDesc dim : model.getDimensions()) {
-            TableDesc dimTable = metaMgr.getTableDesc(dim.getTable());
-            for (String col : dim.getColumns()) {
-                TblColRef colRef = dimTable.findColumnByName(col).getRef();
-                String index = guessColIndex(cubeDesc, colRef);
-                String encoding = guessColEncoding(cubeDesc, colRef);
-                RawTableColumnDesc rawColDesc = new RawTableColumnDesc(colRef.getColumnDesc(), index, encoding);
-                columnMap.put(colRef, rawColDesc);
-                columns.add(rawColDesc);
-                logger.info("Column name: {}", colRef.getName());
-            }
-        }
-
-        for (String col : model.getMetrics()) {
-            TblColRef colRef = factTable.findColumnByName(col).getRef();
-            if (!columnMap.containsKey(colRef)) {
-                String index = null;
-                String encoding = ENCODING_VAR;
-                RawTableColumnDesc rawColDesc = new RawTableColumnDesc(colRef.getColumnDesc(), index, encoding);
-                columnMap.put(colRef, rawColDesc);
-                columns.add(rawColDesc);
-                logger.info("Column name: {}", colRef.getName());
-            }
-        }
-
-        int lookupLength = model.getLookups().length;
-        for (int i = 0; i < lookupLength; i++) {
-            JoinDesc join = model.getLookups()[i].getJoin();
-            for (TblColRef primary : join.getPrimaryKeyColumns()) {
-                if (!columnMap.containsKey(primary)) {
-                    String index = null;
-                    String encoding = ENCODING_VAR;
-                    RawTableColumnDesc rawColDesc = new RawTableColumnDesc(primary.getColumnDesc(), index, encoding);
-                    columnMap.put(primary, rawColDesc);
-                    columns.add(rawColDesc);
-                    logger.info("Column name: {}", primary.getName());
-                }
-            }
-
-            for (TblColRef foreign : join.getForeignKeyColumns()) {
-                if (!columnMap.containsKey(foreign)) {
-                    String index = null;
-                    String encoding = ENCODING_VAR;
-                    RawTableColumnDesc rawColDesc = new RawTableColumnDesc(foreign.getColumnDesc(), index, encoding);
-                    columnMap.put(foreign, rawColDesc);
-                    columns.add(rawColDesc);
-                    logger.info("Column name: {}", foreign.getName());
-                }
-            }
-        }
-    }
-
-    public static Set<String> getFuzzyColumnSet(CubeDesc cube) {
-        String fuzzyColumns = cube.getOverrideKylinProps().get("kylin.rawtable.fuzzy_columns");
-
-        if (fuzzyColumns == null) {
-            return Sets.newHashSet();
-        }
-
-        return Sets.newHashSet(fuzzyColumns.split(","));
-    }
-
-    private String guessColIndex(CubeDesc cubeDesc, TblColRef colRef) {
-        PartitionDesc partDesc = cubeDesc.getModel().getPartitionDesc();
-        if (partDesc != null && colRef.equals(partDesc.getPartitionDateColumnRef()))
-            return INDEX_SORTED;
-        else
-            return INDEX_DISCRETE;
-    }
-
-    private String guessColEncoding(CubeDesc cubeDesc, TblColRef colRef) {
-        RowKeyColDesc colDesc = null;
-        try {
-            colDesc = cubeDesc.getRowkey().getColDesc(colRef);
-        } catch (NullPointerException ex) {
-            // getColDesc throws NPE if colRef not found
-        }
-        if (colDesc == null)
-            return ENCODING_VAR;
-        else
-            return colDesc.getEncoding();
+    public HashSet<String> getFuzzyColumnSet() {
+        return fuzzyColumnSet;
     }
 
     public TblColRef getOrderedColumn() {
@@ -213,6 +119,7 @@ public class RawTableDesc extends RootPersistentEntity {
 
     void init(KylinConfig config) {
         MetadataManager metaMgr = MetadataManager.getInstance(config);
+        fuzzyColumnSet = new HashSet<>();
 
         this.config = config;
         this.model = metaMgr.getDataModelDesc(modelName);
@@ -220,6 +127,9 @@ public class RawTableDesc extends RootPersistentEntity {
 
         for (RawTableColumnDesc colDesc : columns) {
             colDesc.init(metaMgr);
+            if (colDesc.getFuzzyIndex()) {
+                fuzzyColumnSet.add(colDesc.getColumn().getName());
+            }
             columnMap.put(colDesc.getColumn().getRef(), colDesc);
         }
     }
@@ -236,6 +146,10 @@ public class RawTableDesc extends RootPersistentEntity {
 
     public String getName() {
         return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     @Override
@@ -263,9 +177,41 @@ public class RawTableDesc extends RootPersistentEntity {
         return true;
     }
 
+    public long[] getAutoMergeTimeRanges() {
+        return autoMergeTimeRanges;
+    }
+
+    public void setAutoMergeTimeRanges(long[] autoMergeTimeRanges) {
+        this.autoMergeTimeRanges = autoMergeTimeRanges;
+    }
+
     @Override
     public String toString() {
         return "RawTableDesc [name=" + name + "]";
     }
 
+    @Override
+    public int getEngineType() {
+        return engineType;
+    }
+
+    public void setEngineType(int engineType) {
+        this.engineType = engineType;
+    }
+
+    public int getStorageType() {
+        return storageType;
+    }
+
+    public void setStorageType(int storageType) {
+        this.storageType = storageType;
+    }
+
+    public String getModelName() {
+        return modelName;
+    }
+
+    public void setModelName(String modelName) {
+        this.modelName = modelName;
+    }
 }

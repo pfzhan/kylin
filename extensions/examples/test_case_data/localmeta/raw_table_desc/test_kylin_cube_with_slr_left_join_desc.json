@@ -1,10 +1,9 @@
 {
-  "uuid" : "f3185833-82d9-4642-bbd4-267dc0d85629",
+  "uuid" : "f3345267-82d9-4642-bbd4-267dc0d98765",
   "version" : "1.5.4",
-  "name" : "test_kylin_cube_with_slr_desc",
+  "name" : "test_kylin_cube_with_slr_left_join_desc",
   "fuzzy_columns" : ["USER_DEFINED_FIELD3"],
   "columns" : [ {
-    "index" : "discrete",
     "encoding" : "var",
     "table" : "DEFAULT.TEST_KYLIN_FACT",
     "column" : "ITEM_COUNT"
@@ -87,8 +86,7 @@
     "index" : "discrete",
     "encoding" : "var",
     "table" : "DEFAULT.TEST_CATEGORY_GROUPINGS",
-    "column" : "USER_DEFINED_FIELD3",
-    "fuzzy_index" : true
+    "column" : "USER_DEFINED_FIELD3"
   }, {
     "index" : "discrete",
     "encoding" : "var",
@@ -109,7 +107,6 @@
     "table" : "DEFAULT.TEST_KYLIN_FACT",
     "column" : "LEAF_CATEG_ID"
   }, {
-    "index" : "discrete",
     "encoding" : "var",
     "table" : "DEFAULT.TEST_KYLIN_FACT",
     "column" : "SELLER_ID"
@@ -130,7 +127,7 @@
     "column" : "SELLER_TYPE_CD"
   } ],
   "last_modified" : 1471506321632,
-  "model_name" : "test_kylin_inner_join_model_desc",
+  "model_name" : "test_kylin_left_join_model_desc",
   "engine_type" : 100,
   "storage_type" : 100
 }

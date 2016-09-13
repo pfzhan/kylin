@@ -245,8 +245,6 @@
     }
   ],
   "override_kylin_properties": {
-    "kylin.rawtable.enabled": true,
-    "kylin.rawtable.fuzzy_columns": "USER_DEFINED_FIELD3"
   },
   "notify_list": null,
   "status_need_notify": [],

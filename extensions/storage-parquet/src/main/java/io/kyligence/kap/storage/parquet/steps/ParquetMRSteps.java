@@ -1,5 +1,6 @@
 package io.kyligence.kap.storage.parquet.steps;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.kylin.common.KapConfig;
@@ -22,6 +23,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.cube.raw.RawTableManager;
+import io.kyligence.kap.cube.raw.RawTableSegment;
 
 public class ParquetMRSteps extends JobBuilderSupport {
     private static final Logger logger = LoggerFactory.getLogger(ParquetMRSteps.class);
@@ -55,15 +58,23 @@ public class ParquetMRSteps extends JobBuilderSupport {
         return mergeCuboidDataStep;
     }
 
-    public MapReduceExecutable createMergeRawDataStep(CubeSegment seg, List<CubeSegment> mergingSegments, String jobID, Class<? extends AbstractHadoopJob> clazz) {
-        final List<String> mergingCuboidPaths = Lists.newArrayList();
-        for (CubeSegment merging : mergingSegments) {
-            if (RawTableInstance.isRawTableEnabled(merging.getCubeDesc())) {
-                mergingCuboidPaths.add(getParquetFolderPath(merging) + "RawTable/*");
-            }
+    public MapReduceExecutable createMergeRawDataStep(CubeSegment seg, String jobID, Class<? extends AbstractHadoopJob> clazz) {
+        final List<String> mergingRawTableSegmetPaths = Lists.newArrayList();
+        RawTableInstance rawInstance = RawTableManager.getInstance(seg.getConfig()).getRawTableInstance(seg.getRealization().getName());
+        RawTableSegment rawSegment = null;
+        try {
+            rawSegment = RawTableManager.getInstance(rawInstance.getConfig()).appendSegment(rawInstance, seg);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        String formattedPath = StringUtil.join(mergingCuboidPaths, ",");
-        String outputPath = getParquetFolderPath(seg) + "RawTable/";
+        List<RawTableSegment> mergingRawSegments = rawInstance.getMergingSegments(rawSegment);
+        Preconditions.checkState(mergingRawSegments.size() > 1, "there should be more than 2 segments to merge, target segment " + rawSegment);
+
+        for (RawTableSegment merging : mergingRawSegments) {
+            mergingRawTableSegmetPaths.add(getRawParquetFolderPath(merging) + "RawTable/*");
+        }
+        String formattedPath = StringUtil.join(mergingRawTableSegmetPaths, ",");
+        String outputPath = getRawParquetFolderPath(rawSegment) + "RawTable/";
 
         MapReduceExecutable mergeRawDataStep = new MapReduceExecutable();
         mergeRawDataStep.setName("Merge RowTable Data");
@@ -101,6 +112,8 @@ public class ParquetMRSteps extends JobBuilderSupport {
 
     public MapReduceExecutable createRawTableParquetPageIndex(String jobId) {
         MapReduceExecutable result = new MapReduceExecutable();
+        RawTableInstance rawInstance = RawTableManager.getInstance(seg.getConfig()).getRawTableInstance(seg.getRealization().getName());
+        RawTableSegment rawSeg = rawInstance.getSegmentById(seg.getUuid());
         result.setName("Build Raw Table Parquet Page Index");
         result.setMapReduceJobClass(RawTablePageIndexJob.class);
         StringBuilder cmd = new StringBuilder();
@@ -108,10 +121,10 @@ public class ParquetMRSteps extends JobBuilderSupport {
 
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBING_JOB_ID, jobId);
         appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_Build_Raw_Table_Parquet_Page_Index_" + seg.getRealization().getName() + "_Step");
-        appendExecCmdParameters(cmd, BatchConstants.ARG_CUBE_NAME, seg.getRealization().getName());
-        appendExecCmdParameters(cmd, BatchConstants.ARG_SEGMENT_ID, seg.getUuid());
-        appendExecCmdParameters(cmd, BatchConstants.ARG_INPUT, getParquetFolderPath((CubeSegment) seg));
-        appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, getJobWorkingDir(jobId) + "/parquet.inv"); // just tmp files
+        appendExecCmdParameters(cmd, BatchConstants.ARG_CUBE_NAME, rawInstance.getName());
+        appendExecCmdParameters(cmd, BatchConstants.ARG_SEGMENT_ID, rawSeg.getUuid());
+        appendExecCmdParameters(cmd, BatchConstants.ARG_INPUT, getRawParquetFolderPath(rawSeg));
+        appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, getRawParquetFolderPath(rawSeg)); // just tmp files
 
         result.setMapReduceParams(cmd.toString());
         return result;
@@ -119,6 +132,8 @@ public class ParquetMRSteps extends JobBuilderSupport {
 
     public MapReduceExecutable createRawTableParquetPageFuzzyIndex(String jobId) {
         MapReduceExecutable result = new MapReduceExecutable();
+        RawTableInstance rawInstance = RawTableManager.getInstance(seg.getConfig()).getRawTableInstance(seg.getRealization().getName());
+        RawTableSegment rawSeg = rawInstance.getSegmentById(seg.getUuid());
         result.setName("Build Raw Table Parquet Fuzzy Index");
         result.setMapReduceJobClass(RawTableFuzzyIndexJob.class);
         StringBuilder cmd = new StringBuilder();
@@ -126,10 +141,10 @@ public class ParquetMRSteps extends JobBuilderSupport {
 
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBING_JOB_ID, jobId);
         appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_Build_Raw_Table_Parquet_Fuzzy_Index_" + seg.getRealization().getName() + "_Step");
-        appendExecCmdParameters(cmd, BatchConstants.ARG_CUBE_NAME, seg.getRealization().getName());
-        appendExecCmdParameters(cmd, BatchConstants.ARG_SEGMENT_ID, seg.getUuid());
-        appendExecCmdParameters(cmd, BatchConstants.ARG_INPUT, getParquetFolderPath((CubeSegment) seg));
-        appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, getJobWorkingDir(jobId) + "/parquet.inv"); // just tmp files
+        appendExecCmdParameters(cmd, BatchConstants.ARG_CUBE_NAME, rawInstance.getName());
+        appendExecCmdParameters(cmd, BatchConstants.ARG_SEGMENT_ID, rawSeg.getUuid());
+        appendExecCmdParameters(cmd, BatchConstants.ARG_INPUT, getRawParquetFolderPath(rawSeg));
+        appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, getRawParquetFolderPath(rawSeg)); // just tmp files
 
         result.setMapReduceParams(cmd.toString());
         return result;
@@ -223,4 +238,7 @@ public class ParquetMRSteps extends JobBuilderSupport {
         return new StringBuffer(KapConfig.wrap(config.getConfig()).getParquentStoragePath()).append(cubeSegment.getCubeInstance().getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
     }
 
+    private String getRawParquetFolderPath(RawTableSegment rawSegment) {
+        return new StringBuffer(KapConfig.wrap(config.getConfig()).getParquentStoragePath()).append(rawSegment.getRawTableInstance().getUuid()).append("/").append(rawSegment.getUuid()).append("/").toString();
+    }
 }

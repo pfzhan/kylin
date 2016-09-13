@@ -12,9 +12,6 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
-import org.apache.kylin.cube.CubeManager;
-import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
-import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.parquet.io.api.Binary;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
@@ -43,14 +40,7 @@ public class ParquetRawTablePageReader<K, V> extends RecordReader<K, V> {
         FileSplit fileSplit = (FileSplit) split;
         conf = context.getConfiguration();
         shardPath = fileSplit.getPath();
-
-        kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
-
-        String cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
-        CubeInstance cubeInstance = CubeManager.getInstance(kylinConfig).getCube(cubeName);
-
         logger.info("shard file path: {}", shardPath.toString());
-
         // init with first shard file
         reader = new ParquetBundleReaderBuilder().setConf(conf).setPath(shardPath).build();
     }

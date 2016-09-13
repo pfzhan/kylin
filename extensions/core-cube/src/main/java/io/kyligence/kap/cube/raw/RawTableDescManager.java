@@ -142,10 +142,10 @@ public class RawTableDescManager {
         return rawTableDesc;
     }
 
-    public void removeRawTableDesc(RawTableDesc RawTableDesc) throws IOException {
-        String path = RawTableDesc.getResourcePath();
+    public void removeRawTableDesc(RawTableDesc rawTableDesc) throws IOException {
+        String path = rawTableDesc.getResourcePath();
         getStore().deleteResource(path);
-        rawTableDescMap.remove(RawTableDesc.getName());
+        rawTableDescMap.remove(rawTableDesc.getName());
     }
 
     public void removeRawTableDescLocal(String name) throws IOException {

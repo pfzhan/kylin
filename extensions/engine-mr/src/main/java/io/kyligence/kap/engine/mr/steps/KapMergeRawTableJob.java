@@ -1,13 +1,14 @@
 package io.kyligence.kap.engine.mr.steps;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -15,18 +16,18 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.StringSplitter;
-import org.apache.kylin.cube.CubeInstance;
-import org.apache.kylin.cube.CubeManager;
-import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.cube.cuboid.CuboidCLI;
-import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.engine.mr.KylinReducer;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
-import org.apache.kylin.job.exception.JobException;
+import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.cube.raw.RawTableManager;
+import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableMergeInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableOutputFormat;
@@ -59,16 +60,16 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
             String cubeName = getOptionValue(OPTION_CUBE_NAME).toUpperCase();
             String segmentID = getOptionValue(OPTION_SEGMENT_ID);
 
-            CubeManager cubeMgr = CubeManager.getInstance(KylinConfig.getInstanceFromEnv());
-            CubeInstance cube = cubeMgr.getCube(cubeName);
-            CubeSegment cubeSeg = cube.getSegmentById(segmentID);
+            RawTableManager rawMgr = RawTableManager.getInstance(KylinConfig.getInstanceFromEnv());
+            RawTableInstance raw = rawMgr.getRawTableInstance(cubeName);
+            RawTableSegment rawSeg = raw.getSegmentById(segmentID);
 
             // start job
             String jobName = getOptionValue(OPTION_JOB_NAME);
             logger.info("Starting: " + jobName);
             job = Job.getInstance(getConf(), jobName);
 
-            setJobClasspath(job, cube.getConfig());
+            setJobClasspath(job, raw.getConfig());
 
             // set inputs
             int folderNum = addRawInputDirs(getOptionValue(OPTION_INPUT_PATH), job);
@@ -99,15 +100,16 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
             job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_ID, segmentID);
 
             // add metadata to distributed cache
-            attachKylinPropsAndMetadata(cube, job.getConfiguration());
+            attachKylinPropsAndMetadata(rawSeg, job.getConfiguration());
 
             // set path for output
-            job.getConfiguration().set(ParquetFormatConstants.KYLIN_OUTPUT_DIR, getWorkingDir(cube.getDescriptor().getConfig(), cube, cubeSeg));
+            job.getConfiguration().set(ParquetFormatConstants.KYLIN_OUTPUT_DIR, getWorkingDir(raw.getConfig(), raw, rawSeg));
 
             //push down kylin config
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, KylinConfig.getInstanceFromEnv().getConfigAsString());
 
-            setReduceTaskNum(job, cube.getDescriptor(), 0);
+            if (raw.getShardNumber() > 0)
+                job.getConfiguration().setInt(MAPRED_REDUCE_TASKS, raw.getShardNumber());
 
             this.deletePath(job.getConfiguration(), output);
 
@@ -122,53 +124,26 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
         }
     }
 
-    public static String getWorkingDir(KylinConfig config, CubeInstance cube, CubeSegment cubeSegment) {
-        return new StringBuffer(KapConfig.wrap(config).getParquentStoragePath()).append(cube.getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
+    private void attachKylinPropsAndMetadata(RawTableSegment rawSegment, Configuration conf) throws IOException {
+        MetadataManager metaMgr = MetadataManager.getInstance(rawSegment.getConfig());
+        RawTableInstance instance = rawSegment.getRawTableInstance();
+        // write raw/cube / model_desc / raw_desc / dict / table
+        ArrayList<String> dumpList = new ArrayList<String>();
+        dumpList.add(instance.getResourcePath());
+        dumpList.add(instance.getRawTableDesc().getModel().getResourcePath());
+        dumpList.add(instance.getRawTableDesc().getResourcePath());
+
+        for (String tableName : instance.getRawTableDesc().getModel().getAllTables()) {
+            TableDesc table = metaMgr.getTableDesc(tableName);
+            dumpList.add(table.getResourcePath());
+            List<String> dependentResources = SourceFactory.getMRDependentResources(table);
+            dumpList.addAll(dependentResources);
+        }
+        attachKylinPropsAndMetadata(dumpList, instance.getConfig(), conf);
     }
 
-    protected void setReduceTaskNum(Job job, CubeDesc cubeDesc, int level) throws ClassNotFoundException, IOException, InterruptedException, JobException {
-        Configuration jobConf = job.getConfiguration();
-
-        KylinConfig kylinConfig = cubeDesc.getConfig();
-
-        double perReduceInputMB = kylinConfig.getDefaultHadoopJobReducerInputMB();
-        double reduceCountRatio = kylinConfig.getDefaultHadoopJobReducerCountRatio();
-
-        // total map input MB
-        double totalMapInputMB = this.getTotalMapInputMB();
-
-        // output / input ratio
-        int preLevelCuboids, thisLevelCuboids;
-        if (level == 0) { // base cuboid
-            preLevelCuboids = thisLevelCuboids = 1;
-        } else { // n-cuboid
-            int[] allLevelCount = CuboidCLI.calculateAllLevelCount(cubeDesc);
-            preLevelCuboids = allLevelCount[level - 1];
-            thisLevelCuboids = allLevelCount[level];
-        }
-
-        // total reduce input MB
-        double totalReduceInputMB = totalMapInputMB * thisLevelCuboids / preLevelCuboids;
-
-        // number of reduce tasks
-        int numReduceTasks = (int) Math.round(totalReduceInputMB / perReduceInputMB * reduceCountRatio);
-
-        // adjust reducer number for cube which has DISTINCT_COUNT measures for better performance
-        if (cubeDesc.hasMemoryHungryMeasures()) {
-            numReduceTasks = numReduceTasks * 4;
-        }
-
-        // at least 1 reducer by default
-        numReduceTasks = Math.max(kylinConfig.getHadoopJobMinReducerNumber(), numReduceTasks);
-        // no more than 500 reducer by default
-        numReduceTasks = Math.min(kylinConfig.getHadoopJobMaxReducerNumber(), numReduceTasks);
-
-        jobConf.setInt(MAPRED_REDUCE_TASKS, numReduceTasks);
-
-        logger.info("Having total map input MB " + Math.round(totalMapInputMB));
-        logger.info("Having level " + level + ", pre-level cuboids " + preLevelCuboids + ", this level cuboids " + thisLevelCuboids);
-        logger.info("Having per reduce MB " + perReduceInputMB + ", reduce count ratio " + reduceCountRatio);
-        logger.info("Setting " + MAPRED_REDUCE_TASKS + "=" + numReduceTasks);
+    public static String getWorkingDir(KylinConfig config, RawTableInstance raw, RawTableSegment rawSegment) {
+        return new StringBuffer(KapConfig.wrap(config).getParquentStoragePath()).append(raw.getUuid()).append("/").append(rawSegment.getUuid()).append("/").toString();
     }
 
     public int addRawInputDirs(String input, Job job) throws IOException {
@@ -192,14 +167,9 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
                 }
 
                 FileStatus[] fileStatuses = fs.listStatus(path);
-                boolean hasDir = false;
                 for (FileStatus stat : fileStatuses) {
-                    String name = stat.getPath().getName();
-                    //if (stat.isDirectory() && !stat.getPath().getName().startsWith("_") && stat.getPath().getName().equals("RawTable")) {
-                    //hasDir = true;
                     if (stat.getPath().getName().endsWith(".parquet"))
                         ret += addRawInputDirs(new String[] { stat.getPath().toString() }, job);
-                    //}
                 }
             } else {
                 logger.info("Add input " + inp);
@@ -208,17 +178,5 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
             }
         }
         return ret;
-    }
-
-    public static class RawTablePathFilter implements PathFilter {
-        public RawTablePathFilter() {
-        }
-
-        @Override
-        public boolean accept(Path path) {
-            String name = path.getName();
-            boolean ret = name.endsWith(".parquet");
-            return ret;
-        }
     }
 }
