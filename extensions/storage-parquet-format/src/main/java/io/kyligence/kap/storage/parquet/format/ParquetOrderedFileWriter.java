@@ -56,6 +56,7 @@ public abstract class ParquetOrderedFileWriter extends RecordWriter<Text, Text> 
 
     @Override
     public void close(TaskAttemptContext context) throws IOException, InterruptedException {
+        
         if (writer != null) {
             writer.close();
         }

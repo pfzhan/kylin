@@ -56,13 +56,11 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     public static void setUp() throws Exception {
         printInfo("setUp in ITKapKylinQueryTest");
         Map<RealizationType, Integer> priorities = Maps.newHashMap();
-        //
-        //        //TODO: delete
-        //        priorities.put(RealizationType.HYBRID, 1);
-        //        priorities.put(RealizationType.CUBE, 1);
-        //        priorities.put(RealizationType.INVERTED_INDEX, 0);
-        //        Candidate.setPriorities(priorities);
-        //        ITKapKylinQueryTest.rawTableFirst = true;
+        //TODO: delete
+        priorities.put(RealizationType.HYBRID, 0);
+        priorities.put(RealizationType.CUBE, 0);
+        priorities.put(RealizationType.INVERTED_INDEX, 0);
+        Candidate.setPriorities(priorities);
 
         joinType = "left";
 
@@ -243,9 +241,12 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
 
     @Test
     public void testTempQuery() throws Exception {
-        PRINT_RESULT = true;
-        execAndCompQuery("src/test/resources/query/temp", null, true);
-        PRINT_RESULT = false;
+        try {
+            PRINT_RESULT = true;
+            execAndCompQuery("src/test/resources/query/temp", null, true);
+        } finally {
+            PRINT_RESULT = false;
+        }
     }
 
 }
