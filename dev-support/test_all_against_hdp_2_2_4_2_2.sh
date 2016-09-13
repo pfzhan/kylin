@@ -20,9 +20,12 @@
 dir=$(dirname ${0})
 cd ${dir}/..
 
-mvn -f extensions/storage-parquet-protocol/pom.xml clean install -DskipTests
-mvn clean install -DskipTests 2>&1 | tee mci.log
-mvn test -Dhdp.version=2.2.4.2-2 -fae 2>&1 | tee mvntest.log
-mvn -pl :kap-it pre-integration-test -Dhdp.version=2.2.4.2-2 | tee mvncubing.log
-mvn -pl :kap-it failsafe:integration-test -Dhdp.version=2.2.4.2-2 | tee mvnintegration.log
-mvn -pl :kap-it failsafe:verify -Dhdp.version=2.2.4.2-2 | tee mvnverify.log
+set -o pipefail
+rm testall*.log
+
+mvn -f extensions/storage-parquet-protocol/pom.xml clean install -DskipTests  || exit 1
+mvn clean install -DskipTests 2>&1                                | tee testall-1.log  || exit 1
+mvn test -Dhdp.version=2.2.4.2-2 -fae 2>&1                        | tee testall-2.log  || exit 1
+mvn -pl :kap-it pre-integration-test -Dhdp.version=2.2.4.2-2      | tee testall-3.log  || exit 1
+mvn -pl :kap-it failsafe:integration-test -Dhdp.version=2.2.4.2-2 | tee testall-4.log  || exit 1
+mvn -pl :kap-it failsafe:verify -Dhdp.version=2.2.4.2-2           | tee testall-5.log  || exit 1
