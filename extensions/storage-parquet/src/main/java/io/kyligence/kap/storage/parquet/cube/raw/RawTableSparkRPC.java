@@ -101,7 +101,7 @@ public class RawTableSparkRPC implements IGTStorage {
                 @Nullable
                 @Override
                 public byte[] apply(@Nullable SparkJobProtos.SparkJobResponse.ShardBlob x) {
-                    return x.toByteArray();
+                    return x.getBlob().toByteArray();
                 }
             });
             return new StorageResponseGTScatter(info, shardBytes.iterator(), scanRequest.getColumns(), 0, scanRequest.getStoragePushDownLimit());
