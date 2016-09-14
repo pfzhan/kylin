@@ -18,7 +18,6 @@
 
 package io.kyligence.kap.rest.controller;
 
-
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kylin.rest.controller.BasicController;
@@ -28,7 +27,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-
 @Controller
 @Component("kapSystemController")
 @RequestMapping(value = "/kap/system")
@@ -36,11 +34,11 @@ public class SystemController extends BasicController {
 
     @RequestMapping(value = "/license", method = { RequestMethod.GET })
     @ResponseBody
-    public Map<String,String> listLicense() {
-        Map<String,String> result = new HashMap<>();
-        result.put("kap.license.statement",System.getProperty("kap.license.statement"));
-        result.put("kap.version",System.getProperty("kap.version"));
-        result.put("kap.dates",System.getProperty("kap.dates"));
+    public Map<String, String> listLicense() {
+        Map<String, String> result = new HashMap<>();
+        result.put("kap.license.statement", System.getProperty("kap.license.statement"));
+        result.put("kap.version", System.getProperty("kap.version"));
+        result.put("kap.dates", System.getProperty("kap.dates"));
         return result;
     }
 
