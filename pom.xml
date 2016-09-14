@@ -348,8 +348,8 @@
                             <id>validate</id>
                             <phase>validate</phase>
                             <configuration>
-                                <configLocation>kylin/checkstyle.xml</configLocation>
-                                <suppressionsLocation>kylin/checkstyle-suppressions.xml</suppressionsLocation>
+                                <configLocation>dev-support/checkstyle.xml</configLocation>
+                                <suppressionsLocation>dev-support/checkstyle-suppressions.xml</suppressionsLocation>
                                 <encoding>UTF-8</encoding>
                                 <consoleOutput>true</consoleOutput>
                                 <failsOnError>true</failsOnError>
