@@ -838,6 +838,12 @@ KylinApp.constant('kapEnglishConfig', {
     warning_measures_part_two: '] already exists!',
     duplicate_measures_part_one:'The measure named [',
     duplicate_measures_part_two: '] already exists!'
-}
+},
+  license:{
+    aboutkap:"About KAP",
+    version:"VERSION",
+    dates:"DATES",
+    statement:"LICENSE STATEMENT"
+  }
 
 });

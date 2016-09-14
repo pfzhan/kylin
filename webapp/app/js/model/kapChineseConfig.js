@@ -822,6 +822,12 @@ KylinApp.constant('kapChineseConfig', {
     warning_measures_part_two: '] 的列已经存在.',
     duplicate_measures_part_one:'名为 [',
     duplicate_measures_part_two: '] 的度量已经存在.'
+  },
+  license:{
+    aboutkap:"关于 KAP",
+    version:"版本",
+    dates:"使用期限",
+    statement:"许可声明"
   }
 
 });

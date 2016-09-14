@@ -95,6 +95,17 @@ KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $lo
     ;
   };
 
+  $scope.aboutKap = function(){
+    $modal.open({
+      templateUrl: 'aboutKap.html',
+      controller: aboutKapCtrl,
+      windowClass:"about-kap-window",
+      resolve: {
+      }
+    });
+  }
+
+
   Messenger.options = {
     extraClasses: 'messenger-fixed messenger-on-bottom messenger-on-right',
     theme: 'air'
@@ -217,6 +228,25 @@ KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $lo
   };
 
 });
+
+var aboutKapCtrl = function($scope,KapSystemService,language){
+  $scope.dataKylin = language.getDataKylin();
+  $scope.license = {};
+  KapSystemService.license({},function(data){
+    if(!data['kap.version']){
+      data['kap.version'] = 'N/A';
+    }
+    if(!data['kap.license.statement']){
+      data['kap.license.statement'] = 'N/A';
+    }
+    if(!data['kap.dates']){
+      data['kap.dates'] = 'N/A';
+    }
+    $scope.license = data;
+  },function(){
+
+  })
+}
 
 var projCtrl = function ($scope, $location, $modalInstance, ProjectService, MessageService, projects, project, SweetAlert, ProjectModel, $cookieStore, $route,language,kylinCommon) {
   $scope.state = {

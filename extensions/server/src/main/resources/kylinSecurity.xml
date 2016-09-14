@@ -190,6 +190,7 @@
 			<scr:intercept-url pattern="/api/projects" access="permitAll" />
 			<scr:intercept-url pattern="/api/admin*/**" access="hasRole('ROLE_ADMIN')" />
 			<scr:intercept-url pattern="/api/**" access="isAuthenticated()" />
+			<scr:intercept-url pattern="/api/kapsystem/**" access="permitAll" />
 
 			<scr:logout invalidate-session="true" delete-cookies="JSESSIONID" />
 			<scr:session-management session-fixation-protection="newSession" />

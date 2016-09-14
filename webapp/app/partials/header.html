@@ -54,8 +54,13 @@
                             <li ng-repeat="document in dataKylin.header.documents" ng-if="document.link">
                                 <a target="_blank" href="{{document.link}}" >{{document.displayName}}</a>
                             </li>
+                          <li role="separator" class="divider"></li>
+                          <li dropdown>
+                              <a ng-click="aboutKap();">{{dataKylin.license.aboutkap}}</a>
+                          </li>
                         </ul>
                     </li>
+
                     <li class="purple" ng-if="!userService.isAuthorized()"><a href="login">{{dataKylin.header.login}}</a></li>
                     <li class="dropdown light-blue" ng-if="userService.isAuthorized()">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">
@@ -78,7 +83,6 @@
         </div>
     </div>
 
-
-
-
 </div>
+
+<div ng-include="'partials/aboutKap.html'"></div>

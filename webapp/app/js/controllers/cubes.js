@@ -449,7 +449,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
   });
 
 var cubeCloneCtrl = function ($scope, $modalInstance, CubeService, MessageService, $location, cube, MetaModel, SweetAlert,ProjectModel, loadingRequest,language,kylinCommon) {
-  $scope.dataKylin = language.getDataKylin();
+
   $scope.projectModel = ProjectModel;
 
   $scope.dataKylin = language.getDataKylin();
