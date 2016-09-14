@@ -17,13 +17,13 @@
  */
 
 KylinApp.factory('KapUserService', ['$resource', function ($resource, config) {
-  return $resource(Config.service.url + 'kapuser/:action/:id', {}, {
-    save: {method: 'POST', params: {action:'users'}, isArray: false},
-    update: {method: 'PUT', params: {action:'users'}, isArray: false},
-    reset: {method: 'PUT', params: {action:'users',id:'password'}, isArray: false},
-    getUser: {method: 'GET', params: {action: 'users'}, isArray: false},
+  return $resource(Config.service.url + 'kap/user/:action/:id', {}, {
+    save: {method: 'POST', params: {}, isArray: false},
+    update: {method: 'PUT', params: {}, isArray: false},
+    reset: {method: 'PUT', params: {id:'password'}, isArray: false},
+    getUser: {method: 'GET', params: {}, isArray: false},
     listUsers: {method: 'GET', params: {action: 'users'}, isArray: true},
-    dropUser: {method: 'DELETE', params: {action: 'users'}, isArray: false},
+    dropUser: {method: 'DELETE', params: {}, isArray: false},
     listAuthorities: {method: 'GET', params: {action: 'userAuhtorities'}, isArray: true}
   });
 }]);

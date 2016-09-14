@@ -53,7 +53,7 @@ import io.kyligence.kap.rest.request.UserRequest;
 
 @Controller
 @Component("kapUserController")
-@RequestMapping(value = "/kapuser")
+@RequestMapping(value = "/kap/user")
 public class UserController extends BasicController implements UserDetailsService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
@@ -85,7 +85,7 @@ public class UserController extends BasicController implements UserDetailsServic
         return get(username);
     }
 
-    @RequestMapping(value = "/users/{userName}", method = { RequestMethod.POST, RequestMethod.PUT })
+    @RequestMapping(value = "/{userName}", method = { RequestMethod.POST, RequestMethod.PUT })
     @ResponseBody
     public UserObj save(@PathVariable("userName") String userName, @RequestBody UserObj user) {
         checkUserName(userName);
@@ -113,7 +113,7 @@ public class UserController extends BasicController implements UserDetailsServic
         return get(userName);
     }
 
-    @RequestMapping(value = "/users/password", method = { RequestMethod.PUT })
+    @RequestMapping(value = "/password", method = { RequestMethod.PUT })
     @ResponseBody
     public UserObj save(@RequestBody UserRequest user) {
         if (!isAdmin() && !getPrincipal().equals(user.getUsername())) {
@@ -148,7 +148,7 @@ public class UserController extends BasicController implements UserDetailsServic
             throw new IllegalArgumentException();
     }
 
-    @RequestMapping(value = "/users/{userName}", method = { RequestMethod.GET })
+    @RequestMapping(value = "/{userName}", method = { RequestMethod.GET })
     @ResponseBody
     public UserObj get(@PathVariable("userName") String userName) throws UsernameNotFoundException {
         checkUserName(userName);
@@ -168,7 +168,7 @@ public class UserController extends BasicController implements UserDetailsServic
         return result;
     }
 
-    @RequestMapping(value = "/users/{userName}", method = { RequestMethod.DELETE })
+    @RequestMapping(value = "/{userName}", method = { RequestMethod.DELETE })
     @ResponseBody
     public void delete(@PathVariable("userName") String userName) {
         checkUserName(userName);

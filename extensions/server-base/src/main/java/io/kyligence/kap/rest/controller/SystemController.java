@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
 @Component("kapSystemController")
-@RequestMapping(value = "/kapsystem")
+@RequestMapping(value = "/kap/system")
 public class SystemController extends BasicController {
 
     @RequestMapping(value = "/license", method = { RequestMethod.GET })

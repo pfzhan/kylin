@@ -17,7 +17,7 @@
 */
 
 KylinApp.factory('KapSystemService', ['$resource', function ($resource, config) {
-    return $resource(Config.service.url + 'kapsystem/:action', {}, {
+    return $resource(Config.service.url + 'kap/system/:action', {}, {
         license: {method: 'GET', params: {action: 'license'}, isArray: false}
     });
 }])
