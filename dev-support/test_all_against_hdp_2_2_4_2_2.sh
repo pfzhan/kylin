@@ -23,9 +23,12 @@ cd ${dir}/..
 set -o pipefail
 rm testall*.log
 
+#export SPARK_HOME=/root/spark-1.6.2-bin-hadoop2.6
+hdpv="2.2.4.2-2"
+
 mvn -f extensions/storage-parquet-protocol/pom.xml clean install -DskipTests  || exit 1
-mvn clean install -DskipTests 2>&1                                | tee testall-1.log  || exit 1
-mvn test -Dhdp.version=2.2.4.2-2 -fae 2>&1                        | tee testall-2.log  || exit 1
-mvn -pl :kap-it pre-integration-test -Dhdp.version=2.2.4.2-2      | tee testall-3.log  || exit 1
-mvn -pl :kap-it failsafe:integration-test -Dhdp.version=2.2.4.2-2 | tee testall-4.log  || exit 1
-mvn -pl :kap-it failsafe:verify -Dhdp.version=2.2.4.2-2           | tee testall-5.log  || exit 1
+mvn clean install -DskipTests                                  2>&1 | tee testall-1.log  || exit 1
+mvn test -Dhdp.version=$hdpv -fae                              2>&1 | tee testall-2.log  || exit 1
+mvn -pl :kap-it pre-integration-test -Dhdp.version=$hdpv       2>&1 | tee testall-3.log  || exit 1
+mvn -pl :kap-it failsafe:integration-test -Dhdp.version=$hdpv  2>&1 | tee testall-4.log  || exit 1
+mvn -pl :kap-it failsafe:verify -Dhdp.version=$hdpv            2>&1 | tee testall-5.log  || exit 1
