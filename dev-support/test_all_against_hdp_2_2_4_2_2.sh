@@ -25,7 +25,7 @@ rm testall*.log
 
 #export SPARK_HOME=/root/spark-1.6.2-bin-hadoop2.6
 export CI_MODE=true
-export hdpv=current
+export hdpv="2.2.4.2-2"
 
 mvn -f extensions/storage-parquet-protocol/pom.xml clean install -DskipTests  || exit 1
 mvn clean install -DskipTests                                  2>&1 | tee testall-1.log  || exit 1
