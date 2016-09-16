@@ -47,7 +47,7 @@ public class SparkAppClientService implements JobServiceGrpc.JobService {
     JavaSparkContext sc;
 
     public SparkAppClientService() {
-        conf = new SparkConf().setAppName("Kylin Parquet Storage Query Driver");
+        conf = new SparkConf().setAppName("Kyligence Columnar Storage Query Driver");
         //conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
         conf.set("spark.scheduler.mode", "FAIR");
         sc = new JavaSparkContext(conf);
