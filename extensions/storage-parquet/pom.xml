@@ -11,7 +11,7 @@
     <parent>
         <groupId>io.kyligence.kap</groupId>
         <artifactId>kap</artifactId>
-        <version>1.5.4-SNAPSHOT</version>
+        <version>1.6.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -139,32 +139,6 @@
             </activation>
             <build>
                 <plugins>
-                    <plugin>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <version>1.5.0</version>
-                        <executions>
-                            <execution>
-                                <id>compileprotocol</id>
-                                <phase>compile</phase>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <configuration>
-                                    <executable>mvn</executable>
-                                    <arguments>
-                                        <argument>-f</argument>
-                                        <argument>extensions/storage-parquet-protocol/pom.xml</argument>
-                                        <argument>clean</argument>
-                                        <argument>install</argument>
-                                        <argument>-DskipTests</argument>
-                                    </arguments>
-                                    <workingDirectory>${project.basedir}/../../</workingDirectory>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-shade-plugin</artifactId>

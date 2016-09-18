@@ -9,6 +9,7 @@ import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
+import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -73,7 +74,7 @@ public class DataModelFlatTableDesc implements IJoinedFlatTableDesc {
         int lookupLength = dataModelDesc.getLookups().length;
         for (int i = 0; i < lookupLength; i++) {
             JoinDesc join = dataModelDesc.getLookups()[i].getJoin();
-            for (TblColRef primary: join.getPrimaryKeyColumns()) {
+            for (TblColRef primary : join.getPrimaryKeyColumns()) {
                 if (!columnIndexMap.containsKey(primary)) {
                     columnIndexMap.put(primary, columnIndex);
                     columnList.add(primary);
@@ -81,7 +82,7 @@ public class DataModelFlatTableDesc implements IJoinedFlatTableDesc {
                 }
             }
 
-            for (TblColRef foreign: join.getForeignKeyColumns()) {
+            for (TblColRef foreign : join.getForeignKeyColumns()) {
                 if (!columnIndexMap.containsKey(foreign)) {
                     columnIndexMap.put(foreign, columnIndex);
                     columnList.add(foreign);
@@ -162,5 +163,10 @@ public class DataModelFlatTableDesc implements IJoinedFlatTableDesc {
     @Override
     public TblColRef getDistributedBy() {
         return cubeDesc.getDistributedByColumn();
+    }
+
+    @Override
+    public ISegment getSegment() {
+        return cubeSegment;
     }
 }
