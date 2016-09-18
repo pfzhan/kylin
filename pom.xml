@@ -208,6 +208,7 @@
             <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-all</artifactId>
+                <version>${grpc.version}</version>
             </dependency>
             <dependency>
                 <groupId>me.lemire.integercompression</groupId>
