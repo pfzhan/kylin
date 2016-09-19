@@ -46,8 +46,9 @@ public class ParquetCubeFileWriter extends ParquetOrderedFileWriter {
     private CubeSegment cubeSegment;
     private String outputDir = null;
 
-    public ParquetCubeFileWriter(TaskAttemptContext context, Class<?> keyClass, Class<?> valueClass) throws IOException {
+    public ParquetCubeFileWriter(Path workingPath, TaskAttemptContext context, Class<?> keyClass, Class<?> valueClass) throws IOException {
         this.config = context.getConfiguration();
+        this.tmpDir = workingPath;
 
         outputDir = config.get(ParquetFormatConstants.KYLIN_OUTPUT_DIR);
         kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
@@ -69,26 +70,24 @@ public class ParquetCubeFileWriter extends ParquetOrderedFileWriter {
     }
 
     @Override
-    protected boolean needCutUp(Text key, Text value) {
+    protected void freshWriter(Text key, Text value) throws InterruptedException, IOException {
         byte[] keyBytes = key.getBytes();
         long cuboidId = Bytes.toLong(keyBytes, RowConstants.ROWKEY_SHARDID_LEN, RowConstants.ROWKEY_CUBOIDID_LEN);
         short shardId = Bytes.toShort(keyBytes, 0, RowConstants.ROWKEY_SHARDID_LEN);
 
         if (shardId != curShardId || cuboidId != curCuboidId) {
+            cleanWriter();
             curShardId = shardId;
             curCuboidId = cuboidId;
-            return true;
         }
 
-        if (super.needCutUp(key, value)) {
-            return true;
+        if (writer == null) {
+            writer = newWriter();
         }
-
-        return false;
     }
 
     @Override
-    protected ParquetRawWriter newWriter() throws IOException {
+    protected ParquetRawWriter newWriter() throws IOException, InterruptedException {
         ParquetRawWriter rawWriter = null;
         List<Type> types = new ArrayList<Type>();
 
@@ -101,7 +100,8 @@ public class ParquetCubeFileWriter extends ParquetOrderedFileWriter {
         }
 
         MessageType schema = new MessageType(cubeSegment.getName(), types);
-        rawWriter = new ParquetRawWriterBuilder().setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage()).setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression()).setConf(config).setType(schema).setPath(getPath()).build();
+        tmpPath = new Path(tmpDir, String.valueOf(curCuboidId) + "-" + String.valueOf(curShardId));
+        rawWriter = new ParquetRawWriterBuilder().setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage()).setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression()).setConf(config).setType(schema).setPath(tmpPath).build();
         return rawWriter;
     }
 
@@ -117,7 +117,8 @@ public class ParquetCubeFileWriter extends ParquetOrderedFileWriter {
         }
     }
 
-    private Path getPath() {
+    @Override
+    protected Path getDestPath() {
         Path path = new Path(new StringBuffer().append(outputDir).append(curCuboidId).append("/").append(curShardId).append(".parquet").toString());
         return path;
     }

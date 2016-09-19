@@ -10,6 +10,6 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 public class ParquetRawTableOutputFormat extends FileOutputFormat<Text, Text> {
     @Override
     public RecordWriter<Text, Text> getRecordWriter(TaskAttemptContext job) throws IOException, InterruptedException {
-        return new ParquetRawTableFileWriter(job, job.getOutputKeyClass(), job.getOutputValueClass());
+        return new ParquetRawTableFileWriter(this.getDefaultWorkFile(job, "raw").getParent(), job, job.getOutputKeyClass(), job.getOutputValueClass());
     }
 }

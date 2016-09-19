@@ -16,7 +16,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
-import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -27,7 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.raw.RawTableDesc;
-import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.kv.RawTableConstants;
 import io.kyligence.kap.raw.BufferedRawEncoder;
 import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
@@ -41,19 +39,21 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
     private Configuration config;
     private KylinConfig kylinConfig;
     private CubeInstance cubeInstance;
-    private CubeSegment cubeSegment;
     private RawTableDesc rawTableDesc;
     private BufferedRawEncoder rawEncoder;
     private String outputDir = null;
+    private TaskAttemptContext context = null;
 
     @Override
     public void write(Text key, Text value) throws IOException, InterruptedException {
         super.write(key, value);
     }
 
-    public ParquetRawTableFileWriter(TaskAttemptContext context, Class<?> keyClass, Class<?> valueClass) throws IOException {
+    public ParquetRawTableFileWriter(Path workingPath, TaskAttemptContext context, Class<?> keyClass, Class<?> valueClass) throws IOException {
         this.config = context.getConfiguration();
+        this.tmpDir = workingPath;
 
+        this.context = context;
         kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
 
         outputDir = config.get(ParquetFormatConstants.KYLIN_OUTPUT_DIR);
@@ -61,9 +61,6 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
         String segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
         logger.info("cubeName is " + cubeName + " and segmentID is " + segmentID);
         cubeInstance = CubeManager.getInstance(kylinConfig).getCube(cubeName);
-        cubeSegment = cubeInstance.getSegmentById(segmentID);
-
-        new RawTableInstance(cubeInstance);
 
         rawTableDesc = new RawTableDesc(cubeInstance.getDescriptor());
         rawEncoder = new BufferedRawEncoder(rawTableDesc.getColumnsExcludingOrdered());
@@ -77,25 +74,23 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
     }
 
     @Override
-    protected boolean needCutUp(Text key, Text value) {
+    protected void freshWriter(Text key, Text value) throws IOException, InterruptedException {
         byte[] keyByte = key.getBytes();
         short shardId = Bytes.toShort(keyByte, 0, RawTableConstants.SHARDID_LEN);
 
         if (shardId != curShardId) {
+            cleanWriter();
             curShardId = shardId;
-            return true;
         }
 
-        if (super.needCutUp(key, value)) {
-            return true;
+        if (writer == null) {
+            writer = newWriter();
         }
-
-        return false;
     }
 
     @Override
-    protected ParquetRawWriter newWriter() throws IOException {
-        ParquetRawWriter rawWriter = null;
+    protected ParquetRawWriter newWriter() throws IOException, InterruptedException {
+        ParquetRawWriter rawWriter;
         List<Type> types = new ArrayList<Type>();
         TblColRef orderedColumn = rawTableDesc.getOrderedColumn();
         List<TblColRef> columns = rawTableDesc.getColumns();
@@ -108,8 +103,8 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
         }
 
         MessageType schema = new MessageType(rawTableDesc.getName(), types);
-        rawWriter = new ParquetRawWriterBuilder().setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage()).setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression()).setConf(config).setType(schema).setPath(getPath()).build();
-
+        tmpPath = new Path(tmpDir, String.valueOf(curShardId));
+        rawWriter = new ParquetRawWriterBuilder().setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage()).setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression()).setConf(config).setType(schema).setPath(tmpPath).build();
         return rawWriter;
     }
 
@@ -125,7 +120,8 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
         }
     }
 
-    private Path getPath() {
+    @Override
+    protected Path getDestPath() {
         Path path = new Path(new StringBuffer().append(outputDir).append(RawTableConstants.RawTableDir).append("/").append(curShardId).append(".parquet").toString());
         return path;
     }
