@@ -9,6 +9,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.cube.CubeInstance;
@@ -44,6 +45,7 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
     private ParquetPageIndexWriter indexBundleWriter;
     private int counter = 0;
     private Path outputPath;
+    private Path tmpPath;
 
     private int[] columnLength;
     private int[] cardinality;
@@ -51,7 +53,7 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
     private boolean[] onlyEQIndex;
 
     @Override
-    protected void setup(Context context) throws IOException {
+    protected void setup(Context context) throws IOException, InterruptedException {
         Configuration conf = context.getConfiguration();
         Path inputPath = ((FileSplit) context.getInputSplit()).getPath();
 
@@ -76,10 +78,10 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
         logger.info("Input path: " + inputPath.toUri().toString());
         logger.info("Output path: " + outputPath.toString());
 
-        initIndexWriters();
+        initIndexWriters(context);
     }
 
-    private void initIndexWriters() throws IOException {
+    private void initIndexWriters(Context context) throws IOException, InterruptedException {
         RowKeyEncoder rowKeyEncoder = (RowKeyEncoder) AbstractRowKeyEncoder.createInstance(cubeSegment, cuboid);
 
         int columnNum = cuboid.getColumns().size();
@@ -115,7 +117,11 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
             logger.debug("Column Length:" + columnName[col] + "=" + columnLength[col]);
         }
 
-        FSDataOutputStream outputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(outputPath);
+        tmpPath = new Path(FileOutputFormat.getUniqueFile(context, String.valueOf(cuboid) + "-" + String.valueOf(shardId), ""));
+//        Path tmpDir = FileOutputFormat.getWorkOutputPath(context);
+//        tmpPath = new Path(tmpDir, "index");
+
+        FSDataOutputStream outputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(tmpPath);
         indexBundleWriter = new ParquetPageIndexWriter(columnName, columnLength, cardinality, onlyEQIndex, outputStream);
     }
 
@@ -131,5 +137,10 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
         indexBundleWriter.close();
+
+        FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
+        fs.mkdirs(outputPath.getParent());
+        fs.rename(tmpPath, outputPath);
+        logger.info("move file {} to {}", tmpPath, outputPath);
     }
 }

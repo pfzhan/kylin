@@ -10,6 +10,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.MemoryBudgetController;
@@ -51,13 +52,14 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
     private ParquetPageIndexWriter indexBundleWriter;
     private int counter = 0;
     private Path outputPath;
+    private Path tmpPath;
 
     private ColumnSpec[] columnSpecs;
 
     private double spillThresholdMB;
 
     @Override
-    protected void setup(Context context) throws IOException {
+    protected void setup(Context context) throws IOException, InterruptedException {
         Configuration conf = context.getConfiguration();
         inputPath = ((FileSplit) context.getInputSplit()).getPath();
 
@@ -83,10 +85,10 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
         logger.info("Input path: " + inputPath.toUri().toString());
         logger.info("Output path: " + outputPath.toString());
 
-        initIndexWriters();
+        initIndexWriters(context);
     }
 
-    private void initIndexWriters() throws IOException {
+    private void initIndexWriters(Context context) throws IOException, InterruptedException {
         int hashLength = KapConfig.getInstanceFromEnv().getParquetIndexHashLength();
 
         List<TblColRef> columns = rawTableDesc.getColumns();
@@ -97,7 +99,11 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
             columnSpecs[i].setValueEncodingIdentifier('s');
         }
 
-        FSDataOutputStream outputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(outputPath);
+        tmpPath = new Path(FileOutputFormat.getUniqueFile(context, String.valueOf(shardId), ""));
+//        Path tmpDir = FileOutputFormat.getWorkOutputPath(context);
+//        tmpPath = new Path(tmpDir, "index");
+
+        FSDataOutputStream outputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(tmpPath);
         indexBundleWriter = new ParquetPageIndexWriter(columnSpecs, outputStream);
     }
 
@@ -120,6 +126,11 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
     protected void cleanup(Context context) throws IOException, InterruptedException {
         indexBundleWriter.spill();
         indexBundleWriter.close();
+
+        FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
+        fs.mkdirs(outputPath.getParent());
+        fs.rename(tmpPath, outputPath);
+        logger.info("move file {} to {}", tmpPath, outputPath);
     }
 
     private void spillIfNeeded() {

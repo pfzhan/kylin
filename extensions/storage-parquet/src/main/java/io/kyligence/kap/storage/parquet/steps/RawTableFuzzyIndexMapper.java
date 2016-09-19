@@ -12,6 +12,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.MemoryBudgetController;
@@ -57,12 +58,15 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
     private int fuzzyHashLength = 0;
     private Path outputPath;
 
+    private HashMap<Path, Path> pathMap;
+
     private double spillThresholdMB;
 
     @Override
-    protected void setup(Context context) throws IOException {
+    protected void setup(Context context) throws IOException, InterruptedException {
         Configuration conf = context.getConfiguration();
         inputPath = ((FileSplit) context.getInputSplit()).getPath();
+        pathMap = new HashMap<>();
 
         super.bindCurrentConfiguration(conf);
 
@@ -88,18 +92,23 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
         logger.info("Input path: " + inputPath.toUri().toString());
         logger.info("Output path: " + outputPath.toString());
 
-        initIndexWriters();
+        initIndexWriters(context);
     }
 
-    private void initIndexWriters() throws IOException {
+    private void initIndexWriters(Context context) throws IOException, InterruptedException {
         fuzzyIndexWriterMap = new HashMap<>();
         fuzzyIndexEncodingMap = new HashMap<>();
         List<TblColRef> columns = rawTableDesc.getColumns();
+//        Path tmpDir = FileOutputFormat.getWorkOutputPath(context);
         for (int i = 0; i < columns.size(); i++) {
             TblColRef column = columns.get(i);
             if (rawTableDesc.isNeedFuzzyIndex(column)) {
-                Path path = new Path(inputPath.getParent(), shardId + "." + i + ".parquet.fuzzy");
-                FSDataOutputStream output = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(path);
+                Path outputPath = new Path(inputPath.getParent(), shardId + "." + i + ".parquet.fuzzy");
+                Path tmpPath = new Path(FileOutputFormat.getUniqueFile(context, String.valueOf(shardId) + "-" + String.valueOf(i), ""));
+//                Path tmpPath = new Path(tmpDir, i + "fuzzy");
+                pathMap.put(outputPath, tmpPath);
+
+                FSDataOutputStream output = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(tmpPath);
                 ColumnSpec columnSpec = new ColumnSpec(column.getName(), RawTableUtils.roundToByte(fuzzyHashLength), 10000, true, i);
                 columnSpec.setValueEncodingIdentifier('s');
                 fuzzyIndexWriterMap.put(i, new ParquetPageIndexWriter(new ColumnSpec[] { columnSpec }, output));
@@ -145,6 +154,13 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
         for (ParquetPageIndexWriter writer : fuzzyIndexWriterMap.values()) {
             writer.spill();
             writer.close();
+        }
+
+        FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
+        for (Path outputPath : pathMap.keySet()) {
+            fs.mkdirs(outputPath.getParent());
+            fs.rename(pathMap.get(outputPath), outputPath);
+            logger.info("move file {} to {}", pathMap.get(outputPath), outputPath);
         }
     }
 
