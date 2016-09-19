@@ -36,7 +36,7 @@
         <helix.version>0.7.1</helix.version>
         <hive.version>0.14.0</hive.version>
         <parquet.version>1.8.1</parquet.version>
-        <tomcat.version>7.0.52</tomcat.version>
+        <tomcat.version>7.0.69</tomcat.version>
         <spark.version>1.6.2</spark.version>
         <aspectj.version>1.6.11</aspectj.version>
     </properties>
