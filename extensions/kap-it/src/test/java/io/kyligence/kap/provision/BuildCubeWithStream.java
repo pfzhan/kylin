@@ -20,12 +20,11 @@ package io.kyligence.kap.provision;
 
 import java.io.IOException;
 
-import io.kyligence.kap.tool.storage.KapStorageCleanupCLI;
-import org.apache.kylin.storage.hbase.util.StorageCleanupJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.KAPDeployUtil;
+import io.kyligence.kap.tool.storage.KapStorageCleanupCLI;
 
 /**
  *  for streaming cubing case "test_streaming_table"
