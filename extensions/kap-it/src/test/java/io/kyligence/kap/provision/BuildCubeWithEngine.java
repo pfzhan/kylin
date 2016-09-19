@@ -36,6 +36,7 @@ public class BuildCubeWithEngine extends org.apache.kylin.provision.BuildCubeWit
             BuildCubeWithEngine buildCubeWithEngine = new BuildCubeWithEngine();
             buildCubeWithEngine.before();
             buildCubeWithEngine.build();
+            buildCubeWithEngine.after();
             logger.info("Build is done");
             afterClass();
             logger.info("Going to exit");

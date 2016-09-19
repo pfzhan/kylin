@@ -48,7 +48,7 @@ public class ParquetPageIndexWriteReadTest extends LocalFileMetadataTestCase {
         int cardinality1 = 50;
         int cardinality2 = 100;
 
-        int[] columnLength = { Integer.SIZE - Integer.numberOfLeadingZeros(maxVal1), Integer.SIZE - Integer.numberOfLeadingZeros(maxVal2) };
+        int[] columnLength = { (Integer.SIZE - Integer.numberOfLeadingZeros(maxVal1) + 7) / 8, (Integer.SIZE - Integer.numberOfLeadingZeros(maxVal2) + 7) / 8 };
         int[] cardinality = { cardinality1, cardinality2 };
         String[] columnName = { "1", "2" };
         int[] data1 = new int[dataSize];
