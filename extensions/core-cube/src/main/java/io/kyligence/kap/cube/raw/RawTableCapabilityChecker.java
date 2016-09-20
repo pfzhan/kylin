@@ -74,8 +74,9 @@ public class RawTableCapabilityChecker {
             if (parameterDesc != null) {
                 List<TblColRef> neededCols = parameterDesc.getColRefs();
                 if (neededCols.size() > 0 && rawTable.getRawTableDesc().getColumns().containsAll(neededCols) && FunctionDesc.FUNC_COUNT_DISTINCT.equals(functionDesc.getExpression())) {
-                    functionDesc.setDimensionAsMetric(true);
-                    logger.info("Adjust DimensionAsMeasure for " + functionDesc);
+                    result.influences.add(new CapabilityResult.DimensionAsMeasure(functionDesc));
+                    //                    functionDesc.setDimensionAsMetric(true);
+                    //                    logger.info("Adjust DimensionAsMeasure for " + functionDesc);
                 }
             }
         }
