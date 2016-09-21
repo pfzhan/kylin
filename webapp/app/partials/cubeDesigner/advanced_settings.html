@@ -45,7 +45,7 @@
             <td class="col-xs-11">
               <table class="table">
                 <tr class="row">
-                  <td class="col-xs-3">
+                  <td class="col-xs-3" style="min-width:130px;">
                     {{dataKylin.cube.cubeASIncludes}}
                   </td>
                   <td class="col-xs-8">
@@ -204,7 +204,7 @@
       </div>
 
 
-      <div class="form-group large-popover" style="overflow:auto">
+      <div class="form-group large-popover" >
         <h3 style="margin-left:42px">{{dataKylin.cube.cubeASRowkeys}}  <i kylinpopover placement="right" ng-title="{{dataKylin.cube.tip_title_cubeASRowkeys.name}}" ng-watch="{{dataKylin.cube.tip_title_cubeASRowkeys.watch}}" template="rowkeyTip.html" class="fa fa-info-circle"></i></h3>
         <table style="margin-left:42px; width:92%"
                ng-if="cubeMetaFrame.rowkey.rowkey_columns.length > 0"
@@ -288,7 +288,7 @@
         </button>
       </div>
 
-      <div class="form-group large-popover" style="overflow:auto">
+      <div class="form-group large-popover" >
         <h3 style="margin-left:42px">{{dataKylin.cube.cubeASAdvancedDictionaries}} <i kylinpopover placement="right" ng-title="{{dataKylin.cube.cubeASAdvancedDictionaries}}" template="AdvancedDictionariesTip.html" class="fa fa-info-circle"></i></h3>
         <div style="margin-left:42px">
           <div class="box-body">
