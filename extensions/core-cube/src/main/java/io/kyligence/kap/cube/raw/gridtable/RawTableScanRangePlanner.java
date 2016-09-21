@@ -61,7 +61,7 @@ public class RawTableScanRangePlanner extends ScanRangePlannerBase {
         TupleFilter.collectColumns(filter, filterDims);
 
         this.gtInfo = RawTableGridTable.newGTInfo(this.rawSegment.getRawTableInstance());
-        RawToGridTableMapping mapping = new RawToGridTableMapping(this.rawSegment.getRawTableInstance());
+        RawToGridTableMapping mapping = this.rawSegment.getRawTableInstance().getRawToGridTableMapping();
 
         IGTComparator comp = gtInfo.getCodeSystem().getComparator();
         //start key GTRecord compare to start key GTRecord

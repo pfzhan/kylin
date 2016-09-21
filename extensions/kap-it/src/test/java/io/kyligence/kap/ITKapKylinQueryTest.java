@@ -57,10 +57,11 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         printInfo("setUp in ITKapKylinQueryTest");
         Map<RealizationType, Integer> priorities = Maps.newHashMap();
         //TODO: delete
-        priorities.put(RealizationType.HYBRID, 0);
-        priorities.put(RealizationType.CUBE, 0);
+        priorities.put(RealizationType.HYBRID, 1);
+        priorities.put(RealizationType.CUBE, 1);
         priorities.put(RealizationType.INVERTED_INDEX, 0);
         Candidate.setPriorities(priorities);
+        ITKapKylinQueryTest.rawTableFirst = true;
 
         joinType = "left";
 
@@ -78,10 +79,10 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         KylinTestBase.setupAll();
 
         //uncomment this to use MockedCubeSparkRPC instead of real spark
-        //config.setProperty("kap.storage.columnar.spark.cube.gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
+        config.setProperty("kap.storage.columnar.spark.cube.gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
 
         //uncomment this to use MockedRawTableTableRPC instead of real spark
-        //config.setProperty("kap.storage.columnar.spark.rawtable.gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
+        config.setProperty("kap.storage.columnar.spark.rawtable.gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
     }
 
     protected static void clean() {
@@ -244,6 +245,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         }
     }
 
+    //don't try to ignore this test, try to clean your "temp" folder
     @Test
     public void testTempQuery() throws Exception {
         try {
@@ -252,6 +254,12 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         } finally {
             PRINT_RESULT = false;
         }
+    }
+
+
+    @Test
+    public void testLikeQuery() throws Exception {
+        execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_like", null, true);
     }
 
 }

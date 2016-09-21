@@ -136,7 +136,7 @@ public class FixedBitSingleValueReader implements SingleColumnSingleValueReader 
             file.close();
         }
         rows = byteBuffer.getInt(0);
-        LOGGER.info("Loaded file:{} of size:{}", dataFile.getName(), dataFile.length());
+        LOGGER.debug("Loaded file:{} of size:{}", dataFile.getName(), dataFile.length());
         // unpack 32 values at a time.
         ownsByteBuffer = true;
     }

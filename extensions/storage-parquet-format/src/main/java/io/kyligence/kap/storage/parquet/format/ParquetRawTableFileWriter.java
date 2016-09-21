@@ -38,8 +38,10 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Bytes;
+import org.apache.kylin.cube.kv.RowConstants;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
+import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
@@ -47,11 +49,13 @@ import org.apache.parquet.schema.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.cube.raw.BufferedRawColumnCodec;
 import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
+import io.kyligence.kap.cube.raw.gridtable.RawTableCodeSystem;
+import io.kyligence.kap.cube.raw.gridtable.RawTableGridTable;
 import io.kyligence.kap.cube.raw.kv.RawTableConstants;
-import io.kyligence.kap.raw.BufferedRawEncoder;
 import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
 import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriterBuilder;
 
@@ -62,8 +66,9 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
 
     private Configuration config;
     private KylinConfig kylinConfig;
+    private RawTableInstance rawTableInstance;
     private RawTableDesc rawTableDesc;
-    private BufferedRawEncoder rawEncoder;
+    private BufferedRawColumnCodec rawColumnsCodec;
     private String outputDir = null;
 
     @Override
@@ -81,9 +86,10 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
         String rawName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
         String segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
         logger.info("RawTableName is " + rawName + " and segmentID is " + segmentID);
-        RawTableInstance rawInstance = RawTableManager.getInstance(kylinConfig).getRawTableInstance(rawName);
-        rawTableDesc = rawInstance.getRawTableDesc();
-        rawEncoder = new BufferedRawEncoder(rawTableDesc.getColumnsExcludingOrdered());
+        rawTableInstance = RawTableManager.getInstance(kylinConfig).getRawTableInstance(rawName);
+        rawTableDesc = rawTableInstance.getRawTableDesc();
+        GTInfo gtInfo = RawTableGridTable.newGTInfo(rawTableInstance);
+        rawColumnsCodec = new BufferedRawColumnCodec((RawTableCodeSystem) gtInfo.getCodeSystem());
 
         // FIXME: Text involves array copy every time
         if (keyClass == Text.class && valueClass == Text.class) {
@@ -96,7 +102,7 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
     @Override
     protected void freshWriter(Text key, Text value) throws IOException, InterruptedException {
         byte[] keyByte = key.getBytes();
-        short shardId = Bytes.toShort(keyByte, 0, RawTableConstants.SHARDID_LEN);
+        short shardId = Bytes.toShort(keyByte, 0, RowConstants.ROWKEY_SHARDID_LEN);
 
         if (shardId != curShardId) {
             cleanWriter();
@@ -132,9 +138,9 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
     protected void writeData(Text key, Text value) {
         byte[] valueBytes = value.getBytes().clone(); //on purpose, because parquet writer will cache
         try {
-            byte[] keyBody = Arrays.copyOfRange(key.getBytes(), RawTableConstants.SHARDID_LEN, key.getLength());
-            int[] valueLength = rawEncoder.peekLength(ByteBuffer.wrap(valueBytes));
-            writer.writeRow(keyBody, 0, keyBody.length, valueBytes, valueLength);
+            byte[] keyBody = Arrays.copyOfRange(key.getBytes(), RowConstants.ROWKEY_SHARDID_LEN, key.getLength());
+            int[] valueLengths = rawColumnsCodec.peekLengths(ByteBuffer.wrap(valueBytes), rawTableInstance.getRawToGridTableMapping().getNonOrderedColumnSet());
+            writer.writeRow(keyBody, 0, keyBody.length, valueBytes, valueLengths);
         } catch (Exception e) {
             e.printStackTrace();
         }

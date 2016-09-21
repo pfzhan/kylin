@@ -37,15 +37,15 @@ import org.apache.kylin.metadata.filter.BuiltInFunctionTupleFilter;
 import org.apache.kylin.metadata.filter.ColumnTupleFilter;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.ConstantTupleFilter;
-import org.apache.kylin.metadata.filter.EvaluatableFunctionTupleFilter;
+import io.kyligence.kap.metadata.filter.EvaluatableFunctionTupleFilter;
 import org.apache.kylin.metadata.filter.IFilterCodeSystem;
 import org.apache.kylin.metadata.filter.TupleFilter;
-import org.apache.kylin.metadata.filter.TupleFilterSerializer;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.raw.RawDecoder;
+import io.kyligence.kap.cube.raw.RawColumnCodec;
+import io.kyligence.kap.metadata.filter.TupleFilterSerializerExt;
 
 public class GTUtilExd extends GTUtil {
 
@@ -65,9 +65,9 @@ public class GTUtilExd extends GTUtil {
 
         IFilterCodeSystem<ByteArray> filterCodeSystem = wrap(info.getCodeSystem().getComparator());
 
-        byte[] bytes = TupleFilterSerializer.serialize(rootFilter, new KapGTConvertDecorator(unevaluatableColumnCollector, colMapping, info, encodeConstants), filterCodeSystem);
+        byte[] bytes = TupleFilterSerializerExt.serialize(rootFilter, new KapGTConvertDecorator(unevaluatableColumnCollector, colMapping, info, encodeConstants), filterCodeSystem);
 
-        return TupleFilterSerializer.deserialize(bytes, filterCodeSystem);
+        return TupleFilterSerializerExt.deserialize(bytes, filterCodeSystem);
     }
 
     private static class KapGTConvertDecorator extends GTConvertDecorator {
@@ -118,8 +118,8 @@ public class GTUtilExd extends GTUtil {
             TupleFilter.FilterOperatorEnum operatorEnum = compareTupleFilter.getOperator();
             if (operatorEnum == TupleFilter.FilterOperatorEnum.GT || operatorEnum == TupleFilter.FilterOperatorEnum.GTE || //
                     operatorEnum == TupleFilter.FilterOperatorEnum.LT || operatorEnum == TupleFilter.FilterOperatorEnum.LTE) {
-                // due to https://github.com/Kyligence/KAP/issues/96, < and > are restricted
-                DataTypeSerializer<?> dataTypeSerializer = RawDecoder.getSerializer(compareTupleFilter.getColumn().getType());
+                //TODO: due to https://github.com/Kyligence/KAP/issues/96, < and > are restricted
+                DataTypeSerializer<?> dataTypeSerializer = RawColumnCodec.createSerializer(compareTupleFilter.getColumn().getType());
                 if (dataTypeSerializer instanceof DateTimeSerializer) {
                     return true;
                 } else {

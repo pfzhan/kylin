@@ -116,7 +116,7 @@ public class FixedBitSingleValueWriter implements SingleColumnSingleValueWriter 
     }
 
     private void createBuffer() throws IOException {
-        logger.info("Creating byteBuffer of size:{}Bytes to store values of bits:{}", bufferBytes, numBits);
+        logger.debug("Creating byteBuffer of size: {} Bytes to store values of bits: {}", bufferBytes, numBits);
         byteBuffer = MmapUtils.mmapFile(raf, FileChannel.MapMode.READ_WRITE, HEADER_BYTES + bufferBytes * reallocateCounter, bufferBytes, idxFile, this.getClass().getSimpleName() + " byteBuffer");
         isMmap = true;
         ownsByteBuffer = true;

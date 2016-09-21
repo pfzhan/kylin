@@ -41,31 +41,32 @@ public class RawToGridTableMapping {
 
     private List<DataType> gtDataTypes = Lists.newArrayList();
     private List<TblColRef> orderedColumns = Lists.newArrayList();
-    private List<TblColRef> otherColumns = Lists.newArrayList();
     private List<TblColRef> gtOrderColumns = Lists.newArrayList();
     private ImmutableBitSet gtPrimaryKey;
+    private ImmutableBitSet gtNonPKKey;
 
     public RawToGridTableMapping(RawTableInstance rawTableInstance) {
         int gtColIdx = 0;
         TblColRef orderedCol = rawTableInstance.getRawTableDesc().getOrderedColumn();
         orderedColumns.add(orderedCol);
-        gtOrderColumns.add(orderedCol);
 
         BitSet pk = new BitSet();
         for (TblColRef o : orderedColumns) {
+            gtOrderColumns.add(orderedCol);
             gtDataTypes.add(o.getType());
-            pk.set(gtColIdx);
-            gtColIdx++;
+            pk.set(gtColIdx++);
         }
         gtPrimaryKey = new ImmutableBitSet(pk);
 
+        BitSet nonPK = new BitSet();
         for (TblColRef columnRef : rawTableInstance.getRawTableDesc().getColumns()) {
             if (!orderedColumns.contains(columnRef)) {
-                otherColumns.add(columnRef);
                 gtOrderColumns.add(columnRef);
                 gtDataTypes.add(columnRef.getType());
+                nonPK.set(gtColIdx++);
             }
         }
+        gtNonPKKey = new ImmutableBitSet(nonPK);
     }
 
     public DataType[] getDataTypes() {
@@ -74,6 +75,14 @@ public class RawToGridTableMapping {
 
     public ImmutableBitSet getPrimaryKey() {
         return gtPrimaryKey;
+    }
+
+    public ImmutableBitSet getOrderedColumnSet() {
+        return gtPrimaryKey;
+    }
+
+    public ImmutableBitSet getNonOrderedColumnSet() {
+        return gtNonPKKey;
     }
 
     public List<TblColRef> getGtOrderColumns() {

@@ -65,7 +65,7 @@ public class ParquetCubeFileWriter extends ParquetOrderedFileWriter {
 
     private Configuration config;
     private KylinConfig kylinConfig;
-    private MeasureCodec measureDecoder;
+    private MeasureCodec measureCodec;
     private CubeInstance cubeInstance;
     private CubeSegment cubeSegment;
     private String outputDir = null;
@@ -84,7 +84,7 @@ public class ParquetCubeFileWriter extends ParquetOrderedFileWriter {
         cubeSegment = cubeInstance.getSegmentById(segmentID);
         Preconditions.checkState(cubeSegment.isEnableSharding(), "Cube segment sharding not enabled " + cubeSegment.getName());
 
-        measureDecoder = new MeasureCodec(cubeSegment.getCubeDesc().getMeasures());
+        measureCodec = new MeasureCodec(cubeSegment.getCubeDesc().getMeasures());
 
         if (keyClass == Text.class && valueClass == Text.class) {
             logger.info("KV class is Text");
@@ -134,7 +134,7 @@ public class ParquetCubeFileWriter extends ParquetOrderedFileWriter {
         byte[] valueBytes = value.getBytes().clone(); //on purpose, because parquet writer will cache
         try {
             byte[] keyBody = Arrays.copyOfRange(key.getBytes(), RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN, key.getLength());
-            int[] valueLength = measureDecoder.getPeekLength(ByteBuffer.wrap(valueBytes));
+            int[] valueLength = measureCodec.getPeekLength(ByteBuffer.wrap(valueBytes));
             writer.writeRow(keyBody, 0, keyBody.length, valueBytes, valueLength);
         } catch (Exception e) {
             e.printStackTrace();

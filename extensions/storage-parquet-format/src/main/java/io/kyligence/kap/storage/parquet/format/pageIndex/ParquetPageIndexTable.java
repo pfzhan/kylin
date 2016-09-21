@@ -36,7 +36,7 @@ import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.ConstantTupleFilter;
-import org.apache.kylin.metadata.filter.EvaluatableFunctionTupleFilter;
+import io.kyligence.kap.metadata.filter.EvaluatableFunctionTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;

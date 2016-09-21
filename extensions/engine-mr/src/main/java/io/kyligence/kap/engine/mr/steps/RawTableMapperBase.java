@@ -27,6 +27,8 @@ package io.kyligence.kap.engine.mr.steps;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.List;
 
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.KapConfig;
@@ -38,20 +40,27 @@ import org.apache.kylin.common.util.ShardingHash;
 import org.apache.kylin.common.util.SplittedBytes;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.cube.kv.RowConstants;
 import org.apache.kylin.engine.EngineFactory;
 import org.apache.kylin.engine.mr.KylinMapper;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
+import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.cube.model.DataModelFlatTableDesc;
+import io.kyligence.kap.cube.raw.BufferedRawColumnCodec;
 import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableSegment;
-import io.kyligence.kap.raw.BufferedRawEncoder;
+import io.kyligence.kap.cube.raw.RawValueIngester;
+import io.kyligence.kap.cube.raw.gridtable.RawTableCodeSystem;
+import io.kyligence.kap.cube.raw.gridtable.RawTableGridTable;
 
 public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUEIN, Text, Text> {
     protected static final Logger logger = LoggerFactory.getLogger(RawTableMapperBase.class);
@@ -61,15 +70,18 @@ public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
     protected String segmentID;
     protected CubeSegment cubeSegment;
     protected RawTableSegment rawSegment;
+    protected List<byte[]> nullBytes;
     protected DataModelFlatTableDesc intermediateTableDesc;
     protected BytesSplitter bytesSplitter;
     private int errorRecordCounter;
-    private RawTableInstance rawInstance;
+    private RawTableInstance rawTableInstance;
     private RawTableDesc rawTableDesc;
-    private BufferedRawEncoder rawEncoder;
-    private BufferedRawEncoder orderedEncoder;
+    private BufferedRawColumnCodec rawColumnCodec;
+    private String[] codecBuffer;
+    private int orderColIdxInSource;
+    private int orderColIdxInRawTable;
+    private int[] nonOrderColInxInSource;// array index=> IdxInRawTable, array value=> IdxInSource
 
-    private String[] columnValues;
     protected int counter;
     protected Text outputKey = new Text();
     protected Text outputValue = new Text();
@@ -83,15 +95,49 @@ public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
         KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
         KapConfig kapConfig = KapConfig.wrap(config);
 
-        rawInstance = RawTableManager.getInstance(config).getRawTableInstance(rawTableName);
-        rawSegment = rawInstance.getSegmentById(segmentID);
-        rawTableDesc = rawInstance.getRawTableDesc();
+        rawTableInstance = RawTableManager.getInstance(config).getRawTableInstance(rawTableName);
+        rawSegment = rawTableInstance.getSegmentById(segmentID);
+        rawTableDesc = rawTableInstance.getRawTableDesc();
         cubeSegment = CubeManager.getInstance(config).getCube(rawTableName).getSegmentById(segmentID);
         intermediateTableDesc = (DataModelFlatTableDesc) EngineFactory.getJoinedFlatTableDesc(cubeSegment);
-        rawEncoder = new BufferedRawEncoder(rawTableDesc.getColumnsExcludingOrdered());
-        orderedEncoder = new BufferedRawEncoder(rawTableDesc.getOrderedColumn());
-        columnValues = new String[rawTableDesc.getColumnsExcludingOrdered().size()];
+
+        GTInfo gtInfo = RawTableGridTable.newGTInfo(rawTableInstance);
+        rawColumnCodec = new BufferedRawColumnCodec((RawTableCodeSystem) gtInfo.getCodeSystem());
+        codecBuffer = new String[rawColumnCodec.getColumnsCount()];
+
         bytesSplitter = new BytesSplitter(kapConfig.getRawTableColumnCountMax(), kapConfig.getRawTableColumnLengthMax());
+        initNullBytes();
+
+        //precalculate index mappings for perf
+        TblColRef orderCol = rawTableDesc.getOrderedColumn();//TODO: assuming only one sorted column here
+        orderColIdxInSource = intermediateTableDesc.getColumnIndex(orderCol);
+        orderColIdxInRawTable = rawTableInstance.getRawToGridTableMapping().getIndexOf(orderCol);
+        nonOrderColInxInSource = new int[rawColumnCodec.getColumnsCount()];
+        Arrays.fill(nonOrderColInxInSource, -1);
+        for (TblColRef col : rawTableDesc.getColumnsExcludingOrdered()) {
+            int sourceIdx = intermediateTableDesc.getColumnIndex(col);
+            int rawTableIdx = rawTableInstance.getRawToGridTableMapping().getIndexOf(col);
+            nonOrderColInxInSource[rawTableIdx] = sourceIdx;
+        }
+    }
+
+    private void initNullBytes() {
+        nullBytes = Lists.newArrayList();
+        nullBytes.add(HIVE_NULL);
+        String[] nullStrings = cubeSegment.getCubeDesc().getNullStrings();
+        if (nullStrings != null) {
+            for (String s : nullStrings) {
+                nullBytes.add(Bytes.toBytes(s));
+            }
+        }
+    }
+
+    protected boolean isNull(byte[] v, int offset, int length) {
+        for (byte[] nullByte : nullBytes) {
+            if (Bytes.equals(v, offset, length, nullByte, 0, nullByte.length))
+                return true;
+        }
+        return false;
     }
 
     protected void outputKV(Context context) throws IOException, InterruptedException {
@@ -106,27 +152,41 @@ public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
     }
 
     protected byte[] buildKey(SplittedBytes[] splitBuffers) {
-        TblColRef orderCol = rawTableDesc.getOrderedColumn();
-        int index = intermediateTableDesc.getColumnIndex(orderCol);
 
-        int shardNum = rawSegment.getShardNum() == 0 ? 10 : rawSegment.getShardNum();
-        short shardId = ShardingHash.getShard(splitBuffers[index].value, 0, splitBuffers[index].length, shardNum);
-        String[] orderString = new String[] { Bytes.toString(splitBuffers[index].value, 0, splitBuffers[index].length) };
-        ByteBuffer buffer = orderedEncoder.encode(orderString);
-        byte[] colValue = new byte[buffer.position() + 2];
-        BytesUtil.writeShort(shardId, colValue, 0, 2);
-        System.arraycopy(buffer.array(), 0, colValue, 2, buffer.position());
+        int shardNum = rawSegment.getShardNum() == 0 ? 2 : rawSegment.getShardNum();//by default 2 shards for raw table
+        SplittedBytes orderedColSplittedBytes = splitBuffers[orderColIdxInSource];
+
+        if (isNull(orderedColSplittedBytes.value, 0, orderedColSplittedBytes.length)) {
+            codecBuffer[orderColIdxInRawTable] = null;
+        } else {
+            codecBuffer[orderColIdxInRawTable] = Bytes.toString(orderedColSplittedBytes.value, 0, orderedColSplittedBytes.length);
+        }
+
+        Object[] values = RawValueIngester.buildObjectOf(codecBuffer, rawColumnCodec, rawTableInstance.getRawToGridTableMapping().getOrderedColumnSet());
+        ByteBuffer buffer = rawColumnCodec.encode(values, rawTableInstance.getRawToGridTableMapping().getOrderedColumnSet());
+
+        //write body first
+        int bodyLength = buffer.position();
+        byte[] colValue = new byte[bodyLength + RowConstants.ROWKEY_SHARDID_LEN];
+        System.arraycopy(buffer.array(), 0, colValue, RowConstants.ROWKEY_SHARDID_LEN, bodyLength);
+        //then write shard
+        short shardId = ShardingHash.getShard(colValue, RowConstants.ROWKEY_SHARDID_LEN, bodyLength, shardNum);
+        BytesUtil.writeShort(shardId, colValue, 0, RowConstants.ROWKEY_SHARDID_LEN);
         return colValue;
     }
 
     protected ByteBuffer buildValue(SplittedBytes[] splitBuffers) {
-        int i = 0;
-        for (TblColRef col : rawTableDesc.getColumnsExcludingOrdered()) {
-            int index = intermediateTableDesc.getColumnIndex(col);
-            columnValues[i] = Bytes.toString(splitBuffers[index].value, 0, splitBuffers[index].length);
-            i++;
+        for (int i = 0; i < codecBuffer.length; i++) {
+            if (nonOrderColInxInSource[i] != -1) {
+                if (isNull(splitBuffers[nonOrderColInxInSource[i]].value, 0, splitBuffers[nonOrderColInxInSource[i]].length)) {
+                    codecBuffer[i] = null;
+                } else {
+                    codecBuffer[i] = Bytes.toString(splitBuffers[nonOrderColInxInSource[i]].value, 0, splitBuffers[nonOrderColInxInSource[i]].length);
+                }
+            }
         }
-        return rawEncoder.encode(columnValues);
+        Object[] values = RawValueIngester.buildObjectOf(codecBuffer, rawColumnCodec, rawTableInstance.getRawToGridTableMapping().getNonOrderedColumnSet());
+        return rawColumnCodec.encode(values, rawTableInstance.getRawToGridTableMapping().getNonOrderedColumnSet());
     }
 
     protected byte[][] convertUTF8Bytes(String[] row) throws UnsupportedEncodingException {

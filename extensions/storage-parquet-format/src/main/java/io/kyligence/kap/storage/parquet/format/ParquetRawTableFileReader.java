@@ -47,12 +47,12 @@ import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.GTUtil;
 import org.apache.kylin.metadata.filter.IFilterCodeSystem;
 import org.apache.kylin.metadata.filter.TupleFilter;
-import org.apache.kylin.metadata.filter.TupleFilterSerializer;
 import org.apache.parquet.io.api.Binary;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.metadata.filter.TupleFilterSerializerExt;
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetOrderedPageIndexTable;
@@ -111,8 +111,8 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
                 //for Rawtable filters, replace all the literals with hash value first
                 TupleFilterLiteralHasher decorator = new TupleFilterLiteralHasher();
                 IFilterCodeSystem<ByteArray> wrap = GTUtil.wrap(gtScanRequest.getInfo().getCodeSystem().getComparator());
-                byte[] serialize = TupleFilterSerializer.serialize(filter, decorator, wrap);
-                TupleFilter hashedFilter = TupleFilterSerializer.deserialize(serialize, wrap);
+                byte[] serialize = TupleFilterSerializerExt.serialize(filter, decorator, wrap);
+                TupleFilter hashedFilter = TupleFilterSerializerExt.deserialize(serialize, wrap);
 
                 logger.info("Starting to lookup inverted index");
                 pageBitmap = indexTable.lookup(hashedFilter);

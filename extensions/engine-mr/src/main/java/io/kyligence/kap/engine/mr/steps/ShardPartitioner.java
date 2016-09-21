@@ -25,11 +25,10 @@
 package io.kyligence.kap.engine.mr.steps;
 
 import org.apache.hadoop.io.Text;
-
-import io.kyligence.kap.cube.raw.kv.RawTableConstants;
+import org.apache.kylin.cube.kv.RowConstants;
 
 public class ShardPartitioner extends ShardCuboidPartitioner {
     public int getPartition(Text key, Text value, int numReduceTasks) {
-        return hash(key.getBytes(), 0, RawTableConstants.SHARDID_LEN, numReduceTasks);
+        return hash(key.getBytes(), 0, RowConstants.ROWKEY_SHARDID_LEN, numReduceTasks);
     }
 }

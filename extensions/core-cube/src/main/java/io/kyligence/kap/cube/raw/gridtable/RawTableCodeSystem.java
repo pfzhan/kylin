@@ -35,12 +35,34 @@ import org.apache.kylin.gridtable.IGTCodeSystem;
 import org.apache.kylin.gridtable.IGTComparator;
 import org.apache.kylin.measure.MeasureAggregator;
 import org.apache.kylin.metadata.datatype.DataTypeSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.metadata.datatype.OrderedBytesSerializer;
 
 public class RawTableCodeSystem implements IGTCodeSystem {
+
+    protected static final Logger logger = LoggerFactory.getLogger(RawTableCodeSystem.class);
+
     GTInfo info;
+
+    DimensionEncoding[] dimensionEncodings;
     DataTypeSerializer[] serializers;
     IGTComparator comparator;
 
+    /**
+     * 
+     * @param dimensionEncodings is a array whose length equals column number of current GTinfo
+     *                           however each array value is nullable. Null means using OrderedBytes
+     */
+    public RawTableCodeSystem(DimensionEncoding[] dimensionEncodings) {
+        this.comparator = new DefaultGTComparator();
+        this.dimensionEncodings = dimensionEncodings;
+    }
+
+    /**
+     * temporal , don't use it!
+     */
     public RawTableCodeSystem() {
         this.comparator = new DefaultGTComparator();
     }
@@ -51,9 +73,14 @@ public class RawTableCodeSystem implements IGTCodeSystem {
 
         this.serializers = new DataTypeSerializer[info.getColumnCount()];
         for (int i = 0; i < serializers.length; i++) {
-            serializers[i] = DataTypeSerializer.create(info.getColumnType(i));
+            if (dimensionEncodings != null && dimensionEncodings[i] != null) {
+                serializers[i] = this.dimensionEncodings[i].asDataTypeSerializer();
+            } else {
+                logger.info("info column type {} {} {}", i, info.getColumnType(i), info.getColumnType(i).getName());
+                serializers[i] = OrderedBytesSerializer.createOrdered(info.getColumnType(i));
+                //serializers[i] = DataTypeSerializer.create(info.getColumnType(i));
+            }
         }
-
     }
 
     @Override
@@ -85,6 +112,7 @@ public class RawTableCodeSystem implements IGTCodeSystem {
     public void encodeColumnValue(int col, Object value, int roundingFlag, ByteBuffer buf) {
         DataTypeSerializer serializer = serializers[col];
         if (serializer instanceof DictionaryDimEnc.DictionarySerializer) {
+            //TODO:
             throw new IllegalStateException("Raw table does not support dict now");
         } else {
             if (value instanceof String) {
@@ -103,5 +131,13 @@ public class RawTableCodeSystem implements IGTCodeSystem {
     @Override
     public MeasureAggregator<?>[] newMetricsAggregators(ImmutableBitSet columns, String[] aggrFunctions) {
         throw new UnsupportedOperationException();
+    }
+
+    public DataTypeSerializer getSerializer(int idx) {
+        return serializers[idx];
+    }
+
+    public int getColumnCount() {
+        return serializers.length;
     }
 }
