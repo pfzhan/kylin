@@ -65,7 +65,11 @@ KylinApp.constant('cubeConfig', {
     topN:{name: 'Top 100', value: "topn(100)"}
   },
     dictionaries: ["true", "false"],
-    encodings:["dict","fixed_length","int"],
+  encodings:[
+    {name:"dict",value:"value"},
+    {name:"fixed_length",value:"fixed_length"},
+    {name:"int (deprecated)",value:"int"}
+  ],
 //    cubes config
   theaditems: [
     {attr: 'name', name: 'Name'},
