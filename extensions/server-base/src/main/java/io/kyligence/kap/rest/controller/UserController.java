@@ -19,31 +19,15 @@
 package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.math.BigInteger;
-import java.security.KeyFactory;
-import java.security.PublicKey;
-import java.security.Signature;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
 import javax.annotation.PostConstruct;
 
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.Bytes;
-import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.service.UserService.UserGrantedAuthority;
-import org.apache.kylin.storage.hbase.HBaseConnection;
-import org.apache.kylin.storage.hbase.HBaseResourceStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,9 +48,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Lists;
-import com.google.common.hash.Hashing;
 
-import io.kyligence.kap.common.util.License;
 import io.kyligence.kap.rest.request.UserRequest;
 
 @Controller
@@ -96,109 +78,6 @@ public class UserController extends BasicController implements UserDetailsServic
         }
         for (UserObj u : all)
             logger.info(u.toString());
-
-        // read license
-        byte[] l;
-        {
-            String lstr = System.getProperty("kap.license");
-            byte[] ltmp = new BigInteger(lstr, Character.MAX_RADIX).toByteArray();
-            l = Arrays.copyOfRange(ltmp, 1, ltmp.length);
-        }
-        // de-obfuscate
-        {
-            for (int i = 0, j = l.length - 1; i < j; i++, j--) {
-                if ((l[i] & 1) == (l[j] & 1)) {
-                    l[i] = (byte) ~l[i];
-                    l[j] = (byte) ~l[j];
-                } else {
-                    byte t = l[i];
-                    l[i] = l[j];
-                    l[j] = t;
-                }
-            }
-        }
-        // validate signature
-        try {
-            int nEnv = (l[28] << 8) + l[29];
-            int pubOff = 30 + 48 * nEnv;
-            byte[] pubb = Arrays.copyOfRange(l, pubOff, pubOff + 444);
-            PublicKey pub2 = KeyFactory.getInstance("DSA").generatePublic(new X509EncodedKeySpec(pubb));
-            Signature dsa = Signature.getInstance("SHA1withDSA");
-            dsa.initVerify(pub2);
-            dsa.update(l, 0, pubOff);
-            boolean verify = dsa.verify(l, pubOff + 444, l.length - pubOff - 444);
-            if (!verify) {
-                License.error("Cannot verify license");
-            }
-        } catch (Exception ex) {
-            License.error("Cannot verify license", ex);
-        }
-        // prepare data
-        String hostname = System.getProperty("hostname");
-        String kylinCommit = System.getProperty("kylin.commit");
-        String kapCommit = System.getProperty("kap.commit");
-        String statement = System.getProperty("kap.license.statement");
-        String metaStoreId = System.getProperty("kap.metastore");
-        if (metaStoreId == null) {
-            try {
-                HBaseResourceStore store = (HBaseResourceStore) ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
-                Field tnameField = HBaseResourceStore.class.getDeclaredField("tableNameBase");
-                tnameField.setAccessible(true);
-                String tname = (String) tnameField.get(store);
-                Field urlField = HBaseResourceStore.class.getDeclaredField("hbaseUrl");
-                urlField.setAccessible(true);
-                String url = (String) urlField.get(store);
-                HBaseAdmin admin = new HBaseAdmin(HBaseConnection.get(url));
-                HTableDescriptor tableDescriptor = admin.getTableDescriptor(TableName.valueOf(tname));
-                metaStoreId = tableDescriptor.getValue(HBaseConnection.HTABLE_UUID_TAG);
-                if (metaStoreId == null)
-                    metaStoreId = "";
-                System.setProperty("kap.metastore", metaStoreId);
-                admin.close();
-            } catch (Exception e) {
-                License.error("Cannot access HBase", e);
-            }
-        }
-
-        // data
-        byte[] data;
-        {
-            int infoBits = (int) BytesUtil.readLong(l, 8, 4);
-            String env = "{0:}";
-            if ((infoBits & 1) == 0)
-                env = "{}";
-            else
-                env = "{0=" + hostname + "}";
-            if ((infoBits & (1 << 29)) == 0)
-                metaStoreId = "";
-            if ((infoBits & (1 << 30)) == 0)
-                kylinCommit = "";
-            if ((infoBits & (1 << 31)) == 0)
-                kapCommit = "";
-
-            long expDate = BytesUtil.readLong(l, 0, 8);
-            String str = "" + expDate + kylinCommit + kapCommit + metaStoreId + env + statement;
-            data = str.getBytes("UTF-8");
-            data = Arrays.copyOf(data, data.length + 16);
-            System.arraycopy(l, 12, data, data.length - 16, 16);
-
-            if (System.currentTimeMillis() > expDate + 86400000L) {
-                License.error("License expired.");
-            }
-        }
-
-        // verify md5
-        {
-            byte[] md5 = Hashing.md5().hashBytes(data).asBytes();
-            int nEnv = (l[28] << 8) + l[29];
-            boolean verify = false;
-            for (int i = 0, off = 30; i < nEnv; i++, off += 48) {
-                verify = verify || Bytes.equals(md5, 0, md5.length, l, off, 16);
-            }
-            if (!verify) {
-                License.error("Invalid license");
-            }
-        }
     }
 
     @Override

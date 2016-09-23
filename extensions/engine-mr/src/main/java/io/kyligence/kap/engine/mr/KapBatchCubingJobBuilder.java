@@ -58,11 +58,6 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
 
     public CubingJob build() {
         logger.info("MR_V2 new job to BUILD segment " + seg);
-        
-        String version = System.getProperty("kap.version");
-        boolean ok = version.contains("Enterprise Plus");
-        if (!ok)
-            throw new RuntimeException("Columnar Storage is not enabled.");
 
         final CubingJob result = CubingJob.createBuildJob((CubeSegment) seg, submitter, config);
         final String jobId = result.getId();
