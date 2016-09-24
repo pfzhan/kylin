@@ -20,7 +20,7 @@ import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.kv.RowConstants;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
-import org.apache.kylin.measure.MeasureDecoder;
+import org.apache.kylin.measure.MeasureCodec;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
@@ -41,7 +41,7 @@ public class ParquetCubeFileWriter extends ParquetOrderedFileWriter {
 
     private Configuration config;
     private KylinConfig kylinConfig;
-    private MeasureDecoder measureDecoder;
+    private MeasureCodec measureDecoder;
     private CubeInstance cubeInstance;
     private CubeSegment cubeSegment;
     private String outputDir = null;
@@ -60,7 +60,7 @@ public class ParquetCubeFileWriter extends ParquetOrderedFileWriter {
         cubeSegment = cubeInstance.getSegmentById(segmentID);
         Preconditions.checkState(cubeSegment.isEnableSharding(), "Cube segment sharding not enabled " + cubeSegment.getName());
 
-        measureDecoder = new MeasureDecoder(cubeSegment.getCubeDesc().getMeasures());
+        measureDecoder = new MeasureCodec(cubeSegment.getCubeDesc().getMeasures());
 
         if (keyClass == Text.class && valueClass == Text.class) {
             logger.info("KV class is Text");

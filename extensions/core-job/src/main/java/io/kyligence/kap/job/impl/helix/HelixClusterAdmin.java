@@ -39,7 +39,6 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.restclient.Broadcaster;
 import org.apache.kylin.common.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -256,7 +255,6 @@ public class HelixClusterAdmin {
                 kylinConfig.setProperty("kylin.rest.servers", restServersInCluster);
                 kylinConfig.setProperty("kylin.server.mode", serverMode);
                 System.setProperty("kylin.rest.servers", restServersInCluster);
-                Broadcaster.clearCache();
             }
         }
     }

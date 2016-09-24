@@ -28,9 +28,13 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
-import org.apache.kylin.common.restclient.Broadcaster;
-import org.apache.kylin.common.restclient.CaseInsensitiveStringCache;
 import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.metadata.cachesync.Broadcaster;
+import org.apache.kylin.metadata.cachesync.Broadcaster.Event;
+import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.project.ProjectManager;
+import org.apache.kylin.metadata.realization.IRealization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,8 +87,45 @@ public class RawTableDescManager {
     private RawTableDescManager(KylinConfig config) throws IOException {
         logger.info("Initializing RawTableDescManager with config " + config);
         this.config = config;
-        this.rawTableDescMap = new CaseInsensitiveStringCache<RawTableDesc>(config, Broadcaster.TYPE.INVERTED_INDEX_DESC); // FIXME: broadcast raw table meta changes
+        this.rawTableDescMap = new CaseInsensitiveStringCache<RawTableDesc>(config, "raw_table_desc");
+        
+        // touch lower level metadata before registering my listener
         reloadAllRawTableDesc();
+        Broadcaster.getInstance(config).registerListener(new RawTableDescSyncListener(), "raw_table_desc");
+    }
+
+    private class RawTableDescSyncListener extends Broadcaster.Listener {
+        
+        @Override
+        public void onClearAll(Broadcaster broadcaster) throws IOException {
+            clearCache();
+        }
+
+        @Override
+        public void onProjectSchemaChange(Broadcaster broadcaster, String project) throws IOException {
+            for (IRealization real : ProjectManager.getInstance(config).listAllRealizations(project)) {
+                if (real instanceof RawTableInstance) {
+                    String descName = ((RawTableInstance) real).getDescName();
+                    reloadRawTableDescLocal(descName);
+                }
+            }
+        }
+
+        @Override
+        public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey) throws IOException {
+            String descName = cacheKey;
+            RawTableDesc desc = getRawTableDesc(descName);
+            String modelName = desc == null ? null : desc.getModel().getName();
+            
+            if (event == Event.DROP)
+                removeRawTableDescLocal(descName);
+            else
+                reloadRawTableDescLocal(descName);
+            
+            for (ProjectInstance prj : ProjectManager.getInstance(config).findProjectsByModel(modelName)) {
+                broadcaster.notifyProjectSchemaUpdate(prj.getName());
+            }
+        }
     }
 
     public RawTableDesc getRawTableDesc(String name) {

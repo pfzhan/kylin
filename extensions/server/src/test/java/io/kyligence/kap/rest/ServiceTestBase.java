@@ -18,12 +18,8 @@
 
 package io.kyligence.kap.rest;
 
-import org.apache.kylin.cube.CubeDescManager;
-import org.apache.kylin.cube.CubeManager;
-import org.apache.kylin.metadata.MetadataManager;
-import org.apache.kylin.metadata.project.ProjectManager;
-import org.apache.kylin.metadata.realization.RealizationRegistry;
-import org.apache.kylin.rest.service.CacheService;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -64,12 +60,8 @@ public class ServiceTestBase extends LocalFileMetadataTestCase {
     public void setup() throws Exception {
         this.createTestMetadata();
 
-        MetadataManager.clearCache();
-        CubeDescManager.clearCache();
-        CubeManager.clearCache();
-        RealizationRegistry.clearCache();
-        ProjectManager.clearCache();
-        CacheService.removeAllOLAPDataSources();
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        Broadcaster.getInstance(config).notifyClearAll();
     }
 
     @After

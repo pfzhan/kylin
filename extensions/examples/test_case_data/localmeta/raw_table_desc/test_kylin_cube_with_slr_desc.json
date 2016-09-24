@@ -2,7 +2,6 @@
   "uuid" : "f3185833-82d9-4642-bbd4-267dc0d85629",
   "version" : "1.5.4",
   "name" : "test_kylin_cube_with_slr_desc",
-  "fuzzy_columns" : ["USER_DEFINED_FIELD3"],
   "columns" : [ {
     "index" : "discrete",
     "encoding" : "var",

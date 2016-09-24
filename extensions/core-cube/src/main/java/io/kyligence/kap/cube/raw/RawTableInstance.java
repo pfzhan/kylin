@@ -65,7 +65,6 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
     @JsonProperty("create_time_utc")
     private long createTimeUTC;
 
-    private RawTableDesc rawTableDesc;
     private RawToGridTableMapping mapping;
     private List<TblColRef> allColumns;
     private List<TblColRef> mockupDimensions;
@@ -90,7 +89,6 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
     public void init(KylinConfig config) {
         if (null == config)
             throw new IllegalArgumentException("config is null in RawTableInstance Init!");
-        this.rawTableDesc = RawTableDescManager.getInstance(config).getRawTableDesc(descName);
         this.config = config;
         initAllColumns();
         initDimensions();
@@ -98,20 +96,19 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
     }
 
     public RawTableDesc getRawTableDesc() {
-        return this.rawTableDesc;
+        return RawTableDescManager.getInstance(config).getRawTableDesc(descName);
     }
 
-    //TODO: should get from descName
     private void initAllColumns() {
         allColumns = new ArrayList<>();
-        for (TblColRef col : rawTableDesc.getColumns()) {
+        for (TblColRef col : getRawTableDesc().getColumns()) {
             allColumns.add(col);
         }
     }
 
     private void initDimensions() {
         mockupDimensions = new ArrayList<>();
-        TblColRef orderedColumn = rawTableDesc.getOrderedColumn();
+        TblColRef orderedColumn = getRawTableDesc().getOrderedColumn();
         if (orderedColumn != null)
             mockupDimensions.add(orderedColumn);
     }
@@ -210,6 +207,10 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
     @Override
     public String getCanonicalName() {
         return getType() + "[name=" + getName() + "]";
+    }
+    
+    public String getDescName() {
+        return descName;
     }
 
     @Override

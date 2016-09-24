@@ -20,7 +20,7 @@ package io.kyligence.kap.rest.client;
 
 import java.io.IOException;
 
-import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
@@ -72,7 +72,7 @@ public class KAPRESTClient extends RestClient {
         post.setEntity(new StringEntity(requestString, ContentType.create("application/json", "UTF-8")));
 
         try {
-            CloseableHttpResponse response = client.execute(post);
+            HttpResponse response = client.execute(post);
             String msg = EntityUtils.toString(response.getEntity());
 
             if (response.getStatusLine().getStatusCode() != 200)
@@ -80,9 +80,7 @@ public class KAPRESTClient extends RestClient {
 
             SequenceSQLResponse sequenceSQLResponse = JsonUtil.readValue(msg, SequenceSQLResponse.class);
             logger.info("KAPRESTClient {} dispatchSequenceSQLExecutionToWorker finished in {} millis", url, System.currentTimeMillis() - startTime);
-            response.close();
             return sequenceSQLResponse;
-
         } catch (Exception ex) {
             throw new IOException(ex);
         } finally {
@@ -98,7 +96,7 @@ public class KAPRESTClient extends RestClient {
         get.addHeader("Authorization", basicAuthentication);
 
         try {
-            CloseableHttpResponse response = client.execute(get);
+            HttpResponse response = client.execute(get);
             String msg = EntityUtils.toString(response.getEntity());
 
             if (response.getStatusLine().getStatusCode() != 200)
@@ -106,7 +104,6 @@ public class KAPRESTClient extends RestClient {
 
             SequenceSQLResponse sequenceSQLResponse = JsonUtil.readValue(msg, SequenceSQLResponse.class);
             logger.info("KAPRESTClient {} collectSequenceSQLResultFromWorker finished in {} millis", url, System.currentTimeMillis() - startTime);
-            response.close();
             return sequenceSQLResponse;
 
         } catch (Exception ex) {
@@ -124,7 +121,7 @@ public class KAPRESTClient extends RestClient {
         get.addHeader("Authorization", basicAuthentication);
 
         try {
-            CloseableHttpResponse response = client.execute(get);
+            HttpResponse response = client.execute(get);
             String msg = EntityUtils.toString(response.getEntity());
 
             if (response.getStatusLine().getStatusCode() != 200)
@@ -132,7 +129,6 @@ public class KAPRESTClient extends RestClient {
 
             String ret = msg;
             logger.info("KAPRESTClient {} collectStatsFromWorker finished in {} millis", url, System.currentTimeMillis() - startTime);
-            response.close();
             return ret;
 
         } catch (Exception ex) {

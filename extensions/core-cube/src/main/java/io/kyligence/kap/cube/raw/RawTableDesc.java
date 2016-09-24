@@ -49,13 +49,13 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     private KylinConfig config;
     private DataModelDesc model;
     private Map<TblColRef, RawTableColumnDesc> columnMap;
-    private HashSet<String> fuzzyColumnSet;
+    private HashSet<TblColRef> fuzzyColumnSet;
 
     // for Jackson
     public RawTableDesc() {
     }
 
-    public HashSet<String> getFuzzyColumnSet() {
+    public HashSet<TblColRef> getFuzzyColumnSet() {
         return fuzzyColumnSet;
     }
 
@@ -78,7 +78,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     }
 
     public Boolean isNeedFuzzyIndex(TblColRef colRef) {
-        return fuzzyColumnSet.contains(colRef.getName());
+        return fuzzyColumnSet.contains(colRef);
     }
 
     public int getEstimateRowSize() {
@@ -128,7 +128,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         for (RawTableColumnDesc colDesc : columns) {
             colDesc.init(metaMgr);
             if (colDesc.getFuzzyIndex()) {
-                fuzzyColumnSet.add(colDesc.getColumn().getName());
+                fuzzyColumnSet.add(colDesc.getColumn().getRef());
             }
             columnMap.put(colDesc.getColumn().getRef(), colDesc);
         }
