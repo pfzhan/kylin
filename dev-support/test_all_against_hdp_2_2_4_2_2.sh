@@ -30,7 +30,4 @@ export hdpv="2.2.4.2-2"
 mvn -f extensions/storage-parquet-protocol/pom.xml clean install -DskipTests  || exit 1
 mvn clean install -DskipTests                                  2>&1 | tee testall-1.log  || exit 1
 mvn test -Dhdp.version=$hdpv -fae                              2>&1 | tee testall-2.log  || exit 1
-mvn -pl :kap-it pre-integration-test -Dhdp.version=$hdpv       2>&1 | tee testall-3.log  || exit 1
-mvn -pl :kap-it failsafe:integration-test -Dhdp.version=$hdpv  2>&1 | tee testall-4.log  || exit 1
-mvn -pl :kap-it post-integration-test -Dhdp.version=$hdpv      2>&1 | tee testall-5.log  || exit 1
-mvn -pl :kap-it failsafe:verify -Dhdp.version=$hdpv            2>&1 | tee testall-6.log  || exit 1
+mvn -pl :kap-it verify -Dhdp.version=$hdpv                     2>&1 | tee testall-3.log  || exit 1
