@@ -30,7 +30,7 @@
 <module name="Checker">
     <!--
     <module name="Header">
-        <property name="headerFile" value="dev-support/license_header.txt"/>
+        <property name="headerFile" value="dev-support/checkstyle-kyligence-header.txt"/>
         <property name="fileExtensions" value="java"/>
     </module>
     -->
