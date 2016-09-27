@@ -80,10 +80,11 @@ public class RawTableManager implements IRealizationProvider {
         logger.info("Initializing RawTableDescManager with config " + config);
         this.config = config;
         this.rawTableInstanceMap = new CaseInsensitiveStringCache<RawTableInstance>(config, "raw_table");
-        
+
         // touch lower level metadata before registering my listener
         reloadAllRawTableInstance();
         Broadcaster.getInstance(config).registerListener(new RawTableSyncListener(), "raw_table");
+        Broadcaster.getInstance(config).registerListener(new RawTableCubeSyncListener(), "cube");
     }
 
     private class RawTableSyncListener extends Broadcaster.Listener {
@@ -104,14 +105,28 @@ public class RawTableManager implements IRealizationProvider {
         @Override
         public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey) throws IOException {
             String rawTableName = cacheKey;
-            
+
             if (event == Event.DROP)
                 removeRawTableInstanceLocal(rawTableName);
             else
                 reloadRawTableInstanceLocal(rawTableName);
-            
+
             for (ProjectInstance prj : ProjectManager.getInstance(config).findProjects(RealizationType.INVERTED_INDEX, rawTableName)) {
                 broadcaster.notifyProjectDataUpdate(prj.getName());
+            }
+        }
+    }
+
+    private class RawTableCubeSyncListener extends Broadcaster.Listener {
+        @Override
+        public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey) throws IOException {
+            String cubeName = cacheKey;
+
+            if (rawTableInstanceMap.containsKey(cubeName)) {
+                if (event == Event.DROP)
+                    removeRawTableInstanceLocal(cubeName);
+                else
+                    reloadRawTableInstanceLocal(cubeName);
             }
         }
     }
