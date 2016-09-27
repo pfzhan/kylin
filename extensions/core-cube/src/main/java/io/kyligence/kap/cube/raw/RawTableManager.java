@@ -131,6 +131,9 @@ public class RawTableManager implements IRealizationProvider {
         // Reload the RawTableInstance
         RawTableInstance instance = loadRawTableInstance(path);
 
+        // Keep consistence with cube
+        instance.validateSegments();
+
         // Here replace the old one
         rawTableInstanceMap.putLocal(instance.getName(), instance);
         return instance;
@@ -209,6 +212,8 @@ public class RawTableManager implements IRealizationProvider {
                 logger.error("Dup RawTableInstance name '" + instance.getName() + "' on path " + path);
                 continue;
             }
+            // Keep consistence with cube
+            instance.validateSegments();
             rawTableInstanceMap.putLocal(instance.getName(), instance);
         }
 
@@ -537,6 +542,21 @@ public class RawTableManager implements IRealizationProvider {
         for (RawTableSegment seg : mergingSegments)
             max = Math.max(max, seg.getDateRangeEnd());
         return max;
+    }
+
+    public List<RawTableInstance> getRawTablesByDesc(String descName) {
+
+        descName = descName.toUpperCase();
+        List<RawTableInstance> list = this.listAllRawTables();
+        List<RawTableInstance> result = new ArrayList<RawTableInstance>();
+        Iterator<RawTableInstance> it = list.iterator();
+        while (it.hasNext()) {
+            RawTableInstance ci = it.next();
+            if (descName.equalsIgnoreCase(ci.getDescName())) {
+                result.add(ci);
+            }
+        }
+        return result;
     }
 
     public RawTableInstance updateRawTable(RawTableUpdate update) throws IOException {
