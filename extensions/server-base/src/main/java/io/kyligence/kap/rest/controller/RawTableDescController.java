@@ -29,7 +29,7 @@ public class RawTableDescController {
      * @return
      * @throws IOException
      */
-    @RequestMapping(value = "/{rawName}/desc", method = { RequestMethod.GET })
+    @RequestMapping(value = "/{rawName}", method = { RequestMethod.GET })
     @ResponseBody
     public RawTableDesc getDesc(@PathVariable String rawName) {
         RawTableInstance rawInstance = rawService.getRawTableManager().getRawTableInstance(rawName);

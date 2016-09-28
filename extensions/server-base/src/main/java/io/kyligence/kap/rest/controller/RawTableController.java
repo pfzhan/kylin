@@ -149,12 +149,12 @@ public class RawTableController extends BasicController {
 
     @RequestMapping(value = "/{rawTableName}", method = { RequestMethod.GET })
     @ResponseBody
-    public RawTableInstance getRawTable(@PathVariable String cubeName) {
-        RawTableInstance raw = rawService.getRawTableManager().getRawTableInstance(cubeName);
+    public RawTableDesc getRawTable(@PathVariable String rawTableName) {
+        RawTableInstance raw = rawService.getRawTableManager().getRawTableInstance(rawTableName);
         if (raw == null) {
-            throw new InternalErrorException("Cannot find raw " + cubeName);
+            throw new InternalErrorException("Cannot find raw " + rawTableName);
         }
-        return raw;
+        return raw.getRawTableDesc();
     }
 
     private void updateRequest(RawTableRequest request, boolean success, String message) {
