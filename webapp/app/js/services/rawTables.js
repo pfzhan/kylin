@@ -20,7 +20,7 @@
  */
 
 KylinApp.factory('RawTablesService', ['$resource', function ($resource, config) {
-  return $resource(Config.service.url + 'rawtables/:rowTableName', {}, {
+  return $resource(Config.service.url + 'rawtables/:rowTableName/:action', {}, {
     //list: {method: 'GET', params: {}, isArray: true},
     //getValidEncodings: {method: 'GET', params: {action:"validEncodings"}, isArray: true},
     //getCube: {method: 'GET', params: {}, isArray: false},
@@ -36,6 +36,9 @@ KylinApp.factory('RawTablesService', ['$resource', function ($resource, config) 
     //drop: {method: 'DELETE', params: {}, isArray: false},
     save: {method: 'POST', params: {}, isArray: false},
     update: {method: 'PUT', params: {}, isArray: false},
-    getRawTableInfo: {method: 'GET', params: {}, isArray: false}
+    delete:{method:'DELETE',params:{},isArray:false},
+    enable:{method:'PUT',params:{action:'enable'},isArray:false},
+    disable:{method:'PUT',params:{action:'disable'},isArray:false},
+    getRawTableInfo: {method: 'GET', params:{},isArray:false}
   });
 }]);

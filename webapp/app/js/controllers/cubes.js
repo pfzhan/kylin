@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, cubeConfig, ProjectModel, ModelService, MetaModel, CubeList,modelsManager,cubesManager,TableService,kylinCommon,language) {
+KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, $modal, MessageService, CubeDescService,RawTablesService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, cubeConfig, ProjectModel, ModelService, MetaModel, CubeList,modelsManager,cubesManager,TableService,kylinCommon,language) {
 
     $scope.cubeConfig = cubeConfig;
     $scope.cubeList = CubeList;
@@ -199,11 +199,19 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
               }
             });
             kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_Enable_submitted);
+            //enbalerawtable
+            RawTablesService.enable({rowTableName:cube.name},{},function(){
+
+            })
           },function(e){
 
             loadingRequest.hide();
             kylinCommon.error_default(e);
           });
+
+
+
+
         }
       });
     };
@@ -259,10 +267,17 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
               }
             });
             kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_disable_job_submit);
+            //enbalerawtable
+            RawTablesService.disable({rowTableName:cube.name},{},function(){
+
+            })
+
           },function(e){
             loadingRequest.hide();
             kylinCommon.error_default(e);
           });
+
+
         }
 
       });
@@ -289,11 +304,19 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
             kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.tip_cube_drop);
             //location.reload();
             $scope.cubeList.cubes.splice($scope.cubeList.cubes.indexOf(cube),1);
+            //删除rawtable
+            RawTablesService.delete({rowTableName:cube.name},{},function(){
+
+            })
           },function(e){
 
             loadingRequest.hide();
             kylinCommon.error_default(e);
           });
+
+
+
+
         }
 
       });
