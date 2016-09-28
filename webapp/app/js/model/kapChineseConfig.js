@@ -177,7 +177,7 @@ KylinApp.constant('kapChineseConfig', {
     Measure: '度量',
     paramValue: '参数值',
     model: '模型',
-    schema:['模型信息','数据模型','维度','度量','设置'],
+    schema:['模型信息','数据模型','维度','度量','设置',''],
     models: '模型',
     theaditems : [
       {attr: 'name', name: '名称'},

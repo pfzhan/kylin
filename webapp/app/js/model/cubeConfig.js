@@ -106,5 +106,8 @@ KylinApp.constant('cubeConfig', {
   rowKeyShardOptions:[
     true,false
   ],
+  rowTableIndexOptions:[
+    'discrete','fuzzy'
+  ],
   statusNeedNofity:['ERROR', 'DISCARDED', 'SUCCEED']
 });

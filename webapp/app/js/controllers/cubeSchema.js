@@ -34,9 +34,10 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
     {title: $scope.dataKylin.cube.schema[2], src: 'partials/cubeDesigner/measures.html', isComplete: false,form:'cube_measure_form'},
     {title: $scope.dataKylin.cube.schema[3], src: 'partials/cubeDesigner/refresh_settings.html', isComplete: false,form:'refresh_setting_form'},
     {title: $scope.dataKylin.cube.schema[4], src: 'partials/cubeDesigner/advanced_settings.html', isComplete: false,form:'cube_setting_form'},
-    {title: $scope.dataKylin.cube.schema[5], src: 'partials/cubeDesigner/cubeOverwriteProp.html', isComplete: false,form:'cube_overwrite_prop_form'},
-    {title: $scope.dataKylin.cube.schema[6], src: 'partials/cubeDesigner/overview.html', isComplete: false,form:null}
-  ];
+    {title: $scope.dataKylin.cube.schema[5], src: 'partials/cubeDesigner/rowtable_setting.html', isComplete: false,form:'rowtable_setting_form'},
+    {title: $scope.dataKylin.cube.schema[6], src: 'partials/cubeDesigner/cubeOverwriteProp.html', isComplete: false,form:'cube_overwrite_prop_form'},
+    {title: $scope.dataKylin.cube.schema[7], src: 'partials/cubeDesigner/overview.html', isComplete: false,form:null}
+    ];
 
   $scope.curStep = $scope.wizardSteps[0];
   $scope.$on("finish",function (event,data) {

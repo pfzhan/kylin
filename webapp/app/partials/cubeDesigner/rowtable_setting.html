@@ -1,0 +1,87 @@
+<!--
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+-->
+
+<div ng-controller="RowTableSettingCtrl">
+  <ng-form name="forms.rowtable_setting_form">
+    <div>
+      <div class="form-group large-popover" >
+        <h3 style="margin-left:42px">{{dataKylin.cube.cubeOfRowTable}}  <i kylinpopover placement="right" ng-title="{{dataKylin.cube.tip_title_cubeASRowkeys.name}}" ng-watch="true" template="rowtableTip.html" class="fa fa-info-circle"></i></h3>
+        <table style="margin-left:42px; width:92%"
+               ng-if="cubeMetaFrame.rowkey.rowkey_columns.length > 0"
+               class="table table-hover table-bordered list"
+          >
+          <thead>
+          <tr>
+            <th>{{dataKylin.cube.cubeASID}}</th>
+            <th style="width:30%;">{{dataKylin.cube.rowtableASColumn}}</th>
+            <th style="width:30%;">{{dataKylin.cube.rowtableASEncoding}}</th>
+            <th style="width:30%;">{{dataKylin.cube.rowtableASIndex}}</th>
+          </tr>
+          </thead>
+
+          <tbody >
+
+          <tr
+            ng-repeat="col in rowTableColumns.columns track by $index">
+
+            <td>
+              <!-- ID -->
+              <span class="ng-binding" ng-class="state.mode=='edit'?'badge':''">{{($index + 1)}}</span>
+            </td>
+            <td>
+
+              <span >{{col.column}}</span>
+            </td>
+            <td>
+              <select ng-if="state.mode=='edit'" style="width:180px;"
+                      chosen ng-model="rowkey_column.encoding"
+                      ng-change="refreshRowKey(convertedRowkeys,$index,rowkey_column);"
+                      >
+                <option value="null"></option>
+              </select>
+              <span ng-if="state.mode=='view'">{{col.encoding}}</span>
+
+            </td>
+            <td>
+              <!--Column Length -->
+              <select ng-if="state.mode=='edit'" style="width:180px;"
+                      chosen ng-model="col.index"
+                      tooltip="{{dataKylin.cube.tip_false_by_default}}"
+                      data-placeholder="false by default"
+                      ng-change="refreshRowTablesIndex(col,col.index)"
+                      ng-options="dt as dt for dt in cubeConfig.rowTableIndexOptions">
+                <option value=""></option>
+              </select>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+
+
+      </div>
+
+
+    </div>
+
+  </ng-form>
+</div>
+<script type="text/ng-template" id="rowtableTip.html">
+  <div ng-bind-html="dataKylin.cube.tip_body_cubeRowTable">
+  </div>
+</script>
+
