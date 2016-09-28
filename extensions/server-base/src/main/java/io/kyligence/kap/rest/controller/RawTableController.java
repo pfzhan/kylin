@@ -29,6 +29,7 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.service.CubeService;
+import org.apache.kylin.rest.service.JobService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,6 +56,9 @@ public class RawTableController extends BasicController {
 
     @Autowired
     private RawTableService rawService;
+
+    @Autowired
+    private JobService jobService;
 
     @RequestMapping(value = "", method = { RequestMethod.POST })
     @ResponseBody
@@ -158,5 +162,13 @@ public class RawTableController extends BasicController {
         request.setRawTableDescData("");
         request.setSuccessful(success);
         request.setMessage(message);
+    }
+
+    public void setCubeService(RawTableService rawService) {
+        this.rawService = rawService;
+    }
+
+    public void setJobService(JobService jobService) {
+        this.jobService = jobService;
     }
 }

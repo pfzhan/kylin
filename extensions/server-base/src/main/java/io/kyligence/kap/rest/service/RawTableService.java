@@ -29,7 +29,9 @@ import io.kyligence.kap.cube.raw.RawTableDescManager;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableUpdate;
+import org.springframework.stereotype.Component;
 
+@Component("rawMgmtService")
 public class RawTableService extends BasicService {
     private static final String DESC_SUFFIX = "_desc";
 
@@ -41,7 +43,7 @@ public class RawTableService extends BasicService {
     private AccessService accessService;
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#raw, 'ADMINISTRATION') or hasPermission(#raw, 'MANAGEMENT')")
-    public RawTableInstance updateCubeCost(RawTableInstance raw, int cost) throws IOException {
+    public RawTableInstance updateRawCost(RawTableInstance raw, int cost) throws IOException {
 
         if (raw.getCost() == cost) {
             // Do nothing
