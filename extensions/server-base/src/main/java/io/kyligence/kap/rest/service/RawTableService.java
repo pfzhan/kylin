@@ -23,13 +23,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableDescManager;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableUpdate;
-import org.springframework.stereotype.Component;
 
 @Component("rawMgmtService")
 public class RawTableService extends BasicService {
@@ -133,6 +133,14 @@ public class RawTableService extends BasicService {
             return updatedRawTableDesc;
         } catch (IOException e) {
             throw new InternalErrorException("Failed to deal with the request.", e);
+        }
+    }
+
+    public static String getRawTableNameFromDesc(String descName) {
+        if (descName.toLowerCase().endsWith(DESC_SUFFIX)) {
+            return descName.substring(0, descName.toLowerCase().indexOf(DESC_SUFFIX));
+        } else {
+            return descName;
         }
     }
 }

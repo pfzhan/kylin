@@ -28,7 +28,6 @@ import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.InternalErrorException;
-import org.apache.kylin.rest.service.CubeService;
 import org.apache.kylin.rest.service.JobService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +68,7 @@ public class RawTableController extends BasicController {
             rawRequest.setMessage("RawTableDesc is null.");
             return rawRequest;
         }
-        String name = CubeService.getCubeNameFromDesc(desc.getName());
+        String name = RawTableService.getRawTableNameFromDesc(desc.getName());
         if (StringUtils.isEmpty(name)) {
             logger.info("RawTable name should not be empty.");
             throw new BadRequestException("RawTable name should not be empty.");
