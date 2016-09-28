@@ -8,9 +8,11 @@ import java.util.WeakHashMap;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.job.exception.JobException;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.project.RealizationEntry;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.InternalErrorException;
@@ -83,6 +85,17 @@ public class RawTableService extends BasicService {
         return createdRaw;
     }
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'MANAGEMENT')")
+    public void deleteRaw(RawTableInstance raw) throws IOException, JobException {
+        final List<CubingJob> cubingJobs = listAllCubingJobs(raw.getName(), null, EnumSet.of(ExecutableState.READY, ExecutableState.RUNNING));
+        if (!cubingJobs.isEmpty()) {
+            throw new JobException("The raw " + raw.getName() + " has running job, please discard it and try again.");
+        }
+        int rawNum = getRawTableManager().getRawTablesByDesc(raw.getDescName()).size();
+        getCubeManager().dropCube(raw.getName(), rawNum == 1);//only delete cube desc when no other cube is using it
+        accessService.clean(raw, true);
+    }
+
     public RawTableManager getRawTableManager() {
         return RawTableManager.getInstance(getConfig());
     }
@@ -133,6 +146,56 @@ public class RawTableService extends BasicService {
             return updatedRawTableDesc;
         } catch (IOException e) {
             throw new InternalErrorException("Failed to deal with the request.", e);
+        }
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION')  or hasPermission(#cube, 'MANAGEMENT')")
+    public RawTableInstance enableRaw(RawTableInstance raw) throws IOException, JobException {
+        String cubeName = raw.getName();
+
+        RealizationStatusEnum ostatus = raw.getStatus();
+        if (!raw.getStatus().equals(RealizationStatusEnum.DISABLED)) {
+            throw new InternalErrorException("Only disabled raw can be enabled, status of " + cubeName + " is " + ostatus);
+        }
+
+        if (raw.getSegments(SegmentStatusEnum.READY).size() == 0) {
+            throw new InternalErrorException("Raw " + cubeName + " dosen't contain any READY segment");
+        }
+
+        final List<CubingJob> cubingJobs = listAllCubingJobs(raw.getName(), null, EnumSet.of(ExecutableState.READY, ExecutableState.RUNNING));
+        if (!cubingJobs.isEmpty()) {
+            throw new JobException("Enable is not allowed with a running job.");
+        }
+
+        try {
+            RawTableUpdate builder = new RawTableUpdate(raw);
+            builder.setStatus(RealizationStatusEnum.READY);
+            return getRawTableManager().updateRawTable(builder);
+        } catch (IOException e) {
+            raw.setStatus(ostatus);
+            throw e;
+        }
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
+    public RawTableInstance disableRaw(RawTableInstance raw) throws IOException, JobException {
+
+        String cubeName = raw.getName();
+
+        RealizationStatusEnum ostatus = raw.getStatus();
+        if (null != ostatus && !RealizationStatusEnum.READY.equals(ostatus)) {
+            throw new InternalErrorException("Only ready raw can be disabled, status of " + cubeName + " is " + ostatus);
+        }
+
+        raw.setStatus(RealizationStatusEnum.DISABLED);
+
+        try {
+            RawTableUpdate builder = new RawTableUpdate(raw);
+            builder.setStatus(RealizationStatusEnum.DISABLED);
+            return getRawTableManager().updateRawTable(builder);
+        } catch (IOException e) {
+            raw.setStatus(ostatus);
+            throw e;
         }
     }
 
