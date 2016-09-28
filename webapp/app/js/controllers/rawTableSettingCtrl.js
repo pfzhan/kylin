@@ -88,10 +88,15 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
      columnObj.encoding = "var";
      columnObj.table = rowTableColumns[i].table;
      columnObj.column = rowTableColumns[i].name;
+     if($scope.metaModel.model.partition_desc&&columnObj.table+"."+columnObj.column==$scope.metaModel.model.partition_desc.partition_date_column){
+       columnObj.index="sorted";
+     }
      saveData.columns.push(columnObj);
+
    }
 
    $scope.rowTableColumns = saveData;
+   $scope.$emit('RawTableEdited', $scope.rowTableColumns);
  }
     $scope.refreshRawTablesIndex = function (item, val) {
       $scope.$emit('RawTableEdited', $scope.rowTableColumns);
