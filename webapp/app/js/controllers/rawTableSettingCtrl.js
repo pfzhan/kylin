@@ -21,7 +21,7 @@
 
 'use strict';
 
-KylinApp.controller('RowTableSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,RowTablesService,cubesManager,modelsManager,SweetAlert) {
+KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,RowTablesService,cubesManager,modelsManager,SweetAlert) {
   $scope.availableColumns = {};
   $scope.selectedColumns = {};
 

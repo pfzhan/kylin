@@ -19,7 +19,7 @@
  * limitations under the License.
  */
 
-KylinApp.factory('RowTablesService', ['$resource', function ($resource, config) {
+KylinApp.factory('RawTablesService', ['$resource', function ($resource, config) {
   return $resource(Config.service.url + 'rowtables/:rowTableName', {}, {
     //list: {method: 'GET', params: {}, isArray: true},
     //getValidEncodings: {method: 'GET', params: {action:"validEncodings"}, isArray: true},
@@ -36,6 +36,6 @@ KylinApp.factory('RowTablesService', ['$resource', function ($resource, config) 
     //drop: {method: 'DELETE', params: {}, isArray: false},
     save: {method: 'POST', params: {}, isArray: false},
     update: {method: 'PUT', params: {}, isArray: false},
-    getRowTableInfo: {method: 'GET', params: {}, isArray: true}
+    getRawTableInfo: {method: 'GET', params: {}, isArray: true}
   });
 }]);
