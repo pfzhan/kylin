@@ -49,10 +49,10 @@
             </td>
             <td>
               <select ng-if="state.mode=='edit'" style="width:180px;"
-                      chosen ng-model="rowkey_column.encoding"
-                      ng-change="refreshRowKey(convertedRowkeys,$index,rowkey_column);"
+                      chosen
+
                       >
-                <option value="null"></option>
+                <option value="var">default</option>
               </select>
               <span ng-if="state.mode=='view'">{{col.encoding}}</span>
 
@@ -67,6 +67,7 @@
                       ng-options="dt as dt for dt in cubeConfig.rowTableIndexOptions">
                 <option value=""></option>
               </select>
+              <span ng-if="state.mode=='view'">{{col.index}}</span>
             </td>
           </tr>
           </tbody>

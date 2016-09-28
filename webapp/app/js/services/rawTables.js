@@ -36,6 +36,6 @@ KylinApp.factory('RawTablesService', ['$resource', function ($resource, config) 
     //drop: {method: 'DELETE', params: {}, isArray: false},
     save: {method: 'POST', params: {}, isArray: false},
     update: {method: 'PUT', params: {}, isArray: false},
-    getRawTableInfo: {method: 'GET', params: {}, isArray: true}
+    getRawTableInfo: {method: 'GET', params: {}, isArray: false}
   });
 }]);

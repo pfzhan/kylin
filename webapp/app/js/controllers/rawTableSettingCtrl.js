@@ -92,17 +92,16 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
    }
 
    $scope.rowTableColumns = saveData;
-   $scope.$emit('RowTableEdited', $scope.rowTableColumns);
  }
     $scope.refreshRawTablesIndex = function (item, val) {
-      $scope.$emit('RowTableEdited', $scope.rowTableColumns);
+      $scope.$emit('RawTableEdited', $scope.rowTableColumns);
     }
     if($scope.isEdit||$scope.state.mode=="view"){
       $scope.loadRowTable = function () {
         RawTablesService.getRawTableInfo({rowTableName: $scope.state.cubeName}, {}, function (request) {
           if(request){
             $scope.rowTableColumns = request;
-            $scope.$emit('RowTableEdited', $scope.rowTableColumns);
+            $scope.$emit('RawTableEdited', $scope.rowTableColumns);
           }
 
         })
