@@ -487,10 +487,10 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
           });
 
           //保存rowTable
-          $scope.RawTables.name=$scope.state.cubeSchema.name;
-          $scope.RawTables.model_name=$scope.state.cubeSchema.model_name;
-          $scope.RawTables.engine_type=$scope.state.cubeSchema.engine_type;
-          $scope.RawTables.storage_type=$scope.state.cubeSchema.storage_type;
+          $scope.RawTables.name=$scope.cubeMetaFrame.name;
+          $scope.RawTables.model_name=$scope.cubeMetaFrame.model_name;
+          $scope.RawTables.engine_type=$scope.cubeMetaFrame.engine_type;
+          $scope.RawTables.storage_type=$scope.cubeMetaFrame.storage_type;
           RawTablesService.save({},{
              rawTableDescData:angular.toJson($scope.RawTables, true),
              project: $scope.state.project
