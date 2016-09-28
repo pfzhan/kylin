@@ -434,7 +434,9 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
             project: $scope.state.project,
             rawTableName:$scope.RawTables.name
 
-          },function(){
+          },function(request){
+
+          },function(request){
 
           })
 
@@ -486,7 +488,9 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
             loadingRequest.hide();
 
           });
-
+          if(!$scope.RawTables){
+            return;
+          }
           //保存rowTable
           $scope.RawTables.name=$scope.cubeMetaFrame.name;
           $scope.RawTables.model_name=$scope.cubeMetaFrame.model_name;
@@ -495,7 +499,9 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
           RawTablesService.save({},{
              rawTableDescData:angular.toJson($scope.RawTables, true),
              project: $scope.state.project
-          },function(){
+          },function(request){
+
+          },function(request){
 
           })
 

@@ -20,9 +20,9 @@
   <ng-form name="forms.rowtable_setting_form">
     <div>
       <div class="form-group large-popover" >
-        <h3 style="margin-left:42px">{{dataKylin.cube.cubeOfRowTable}}  <i kylinpopover placement="right" ng-title="{{dataKylin.cube.tip_title_cubeASRowkeys.name}}" ng-watch="true" template="rowtableTip.html" class="fa fa-info-circle"></i></h3>
+        <h3 style="margin-left:42px">{{dataKylin.cube.cubeOfRowTable}}</h3>
         <table style="margin-left:42px; width:92%"
-               ng-if="cubeMetaFrame.rowkey.rowkey_columns.length > 0"
+               ng-if="rowTableColumns.columns.length > 0"
                class="table table-hover table-bordered list"
           >
           <thead>
