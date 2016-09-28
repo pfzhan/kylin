@@ -16,7 +16,7 @@
 * limitations under the License.
 -->
 
-<div ng-controller="RowTableSettingCtrl">
+<div ng-controller="RawTableSettingCtrl">
   <ng-form name="forms.rowtable_setting_form">
     <div>
       <div class="form-group large-popover" >
@@ -63,7 +63,7 @@
                       chosen ng-model="col.index"
                       tooltip="{{dataKylin.cube.tip_false_by_default}}"
                       data-placeholder="false by default"
-                      ng-change="refreshRowTablesIndex(col,col.index)"
+                      ng-change="refreshRawTablesIndex(col,col.index)"
                       ng-options="dt as dt for dt in cubeConfig.rowTableIndexOptions">
                 <option value=""></option>
               </select>

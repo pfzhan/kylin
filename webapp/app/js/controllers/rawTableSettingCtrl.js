@@ -21,7 +21,7 @@
 
 'use strict';
 
-KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,RowTablesService,cubesManager,modelsManager,SweetAlert) {
+KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,RawTablesService,cubesManager,modelsManager,SweetAlert) {
   $scope.availableColumns = {};
   $scope.selectedColumns = {};
 
@@ -93,12 +93,12 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
 
    $scope.rowTableColumns = saveData;
  }
-    $scope.refreshRowTablesIndex = function (item, val) {
+    $scope.refreshRawTablesIndex = function (item, val) {
       $scope.$emit('RowTableEdited', $scope.rowTableColumns);
     }
     if($scope.isEdit||$scope.state.mode=="view"){
       $scope.loadRowTable = function () {
-        RowTablesService.getRowTableInfo({rowTableName: $scope.state.cubeName}, {}, function (request) {
+        RawTablesService.getRawTableInfo({rowTableName: $scope.state.cubeName}, {}, function (request) {
           if(request){
             $scope.rowTableColumns = request;
           }

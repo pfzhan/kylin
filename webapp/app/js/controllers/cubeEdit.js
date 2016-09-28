@@ -19,7 +19,7 @@
 'use strict';
 
 
-KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $location, $templateCache, $interpolate, MessageService, TableService, CubeDescService, CubeService,RowTablesService, loadingRequest, SweetAlert, $log, cubeConfig, CubeDescModel, MetaModel, TableModel, ModelDescService, modelsManager, cubesManager, ProjectModel, StreamingModel, StreamingService,kylinCommon) {
+KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $location, $templateCache, $interpolate, MessageService, TableService, CubeDescService, CubeService,RawTablesService, loadingRequest, SweetAlert, $log, cubeConfig, CubeDescModel, MetaModel, TableModel, ModelDescService, modelsManager, cubesManager, ProjectModel, StreamingModel, StreamingService,kylinCommon) {
   $scope.cubeConfig = cubeConfig;
 
   $scope.metaModel = {};
@@ -428,10 +428,10 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
           //$scope.RowTables.model_name=$scope.state.cubeSchema.model_name;
           //$scope.RowTables.engine_type=$scope.state.cubeSchema.engine_type;
           //$scope.RowTables.storage_type=$scope.state.cubeSchema.storage_type;
-          RowTablesService.update({},{
-            rawTableDescData:angular.toJson($scope.RowTables, true),
+          RawTablesService.update({},{
+            rawTableDescData:angular.toJson($scope.RawTables, true),
             project: $scope.state.project,
-            rawTableName:$scope.RowTables.name
+            rawTableName:$scope.RawTables.name
 
           },function(){
 
@@ -487,12 +487,12 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
           });
 
           //保存rowTable
-          $scope.RowTables.name=$scope.state.cubeSchema.name;
-          $scope.RowTables.model_name=$scope.state.cubeSchema.model_name;
-          $scope.RowTables.engine_type=$scope.state.cubeSchema.engine_type;
-          $scope.RowTables.storage_type=$scope.state.cubeSchema.storage_type;
-          RowTablesService.save({},{
-             rawTableDescData:angular.toJson($scope.RowTables, true),
+          $scope.RawTables.name=$scope.state.cubeSchema.name;
+          $scope.RawTables.model_name=$scope.state.cubeSchema.model_name;
+          $scope.RawTables.engine_type=$scope.state.cubeSchema.engine_type;
+          $scope.RawTables.storage_type=$scope.state.cubeSchema.storage_type;
+          RawTablesService.save({},{
+             rawTableDescData:angular.toJson($scope.RawTables, true),
              project: $scope.state.project
           },function(){
 
@@ -844,9 +844,9 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
     }
   });
   //RowTables数据变化
-  $scope.RowTables;
+  $scope.RawTables;
   $scope.$on('RowTableEdited', function (event,data) {
-    $scope.RowTables=data;
+    $scope.RawTables=data;
     console.log(data);
   });
 

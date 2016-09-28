@@ -20,7 +20,7 @@
  */
 
 KylinApp.factory('RawTablesService', ['$resource', function ($resource, config) {
-  return $resource(Config.service.url + 'rowtables/:rowTableName', {}, {
+  return $resource(Config.service.url + 'rawtables/:rowTableName', {}, {
     //list: {method: 'GET', params: {}, isArray: true},
     //getValidEncodings: {method: 'GET', params: {action:"validEncodings"}, isArray: true},
     //getCube: {method: 'GET', params: {}, isArray: false},
