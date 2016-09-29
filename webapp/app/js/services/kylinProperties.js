@@ -32,13 +32,8 @@ KylinApp.service('kylinConfig', function (AdminService, $log) {
   };
 
   this.getProperty = function (name) {
-    var keyIndex = _config.indexOf(name);
-    var keyLength = name.length;
-    var partialResult = _config.substr(keyIndex);
-    var preValueIndex = partialResult.indexOf("=");
-    var sufValueIndex = partialResult.indexOf("\n");
-    return partialResult.substring(preValueIndex + 1, sufValueIndex);
-
+    var result=(new RegExp(name+"=(.*?)\\n")).exec(_config);
+    return result&&result[1]||"";
   }
 
   this.getTimeZone = function () {
