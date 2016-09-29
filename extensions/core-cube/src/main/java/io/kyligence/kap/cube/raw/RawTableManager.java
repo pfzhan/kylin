@@ -104,7 +104,12 @@ public class RawTableManager implements IRealizationProvider {
 
         @Override
         public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey) throws IOException {
+
+            if (event == Event.DROP)
+                return;
+
             String rawTableName = cacheKey;
+
             reloadRawTableInstanceLocal(rawTableName);
 
             for (ProjectInstance prj : ProjectManager.getInstance(config).findProjects(RealizationType.INVERTED_INDEX, rawTableName)) {
@@ -117,6 +122,9 @@ public class RawTableManager implements IRealizationProvider {
         @Override
         public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey) throws IOException {
             String cubeName = cacheKey;
+
+            if (event == Event.DROP)
+                return;
 
             if (rawTableInstanceMap.containsKey(cubeName)) {
                 reloadRawTableInstanceLocal(cubeName);
