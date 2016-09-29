@@ -259,7 +259,6 @@ public class RawTableManager implements IRealizationProvider {
     public void promoteNewlyBuiltSegments(RawTableInstance raw, RawTableSegment... newSegments) throws IOException {
         List<RawTableSegment> tobe = calculateToBeSegments(raw);
 
-        raw.validateSegments();
         for (RawTableSegment seg : newSegments) {
             if (tobe.contains(seg) == false)
                 throw new IllegalStateException("For rawtable " + raw + ", segment " + seg + " is expected but not in the tobe " + tobe);
@@ -660,6 +659,9 @@ public class RawTableManager implements IRealizationProvider {
                 }
             }
         }
+
+        raw.validateSegments();
+
         this.rawTableInstanceMap.put(raw.getName(), raw);
 
         //this is a duplicate call to take care of scenarios where REST cache service unavailable
