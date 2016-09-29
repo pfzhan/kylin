@@ -414,7 +414,7 @@ KylinApp.constant('kapEnglishConfig', {
     cubeASNewJoint: 'New Joint',
     cubeASNewAggregationGroup: 'New Aggregation Group',
     cubeASRowkeys: 'Rowkeys',
-    noConfigRawTableInfo:'无元数据配置信息',
+    noConfigRawTableInfo:'No RawTable Configuration Information',
     needConfigRawTable:'Config RowTable',
     cubeOfRawTable: 'RawTable',
     rawtableASColumn:'Column',
