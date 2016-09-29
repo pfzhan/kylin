@@ -119,7 +119,6 @@ public class RawTableManager implements IRealizationProvider {
             String cubeName = cacheKey;
 
             if (rawTableInstanceMap.containsKey(cubeName)) {
-                // TODO: Optionally, Raw DROP is processed from GUI
                 reloadRawTableInstanceLocal(cubeName);
             }
         }
