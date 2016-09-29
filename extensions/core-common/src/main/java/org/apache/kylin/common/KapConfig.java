@@ -118,4 +118,15 @@ public class KapConfig {
     public int getParquetStorageBlockSize() {
         return Integer.valueOf(config.getOptional("kap.storage.columnar.dfs.blocksize", "134217728"));//default 128M
     }
+
+    /**
+     * Rawtable column
+     */
+    public int getRawTableColumnCountMax() {
+        return Integer.valueOf(config.getOptional("kap.storage.columnar.rawtable.column.count.max", "3000"));
+    }
+
+    public int getRawTableColumnLengthMax() {
+        return Integer.valueOf(config.getOptional("kap.storage.columnar.rawtable.column.length.max", "16384"));
+    }
 }

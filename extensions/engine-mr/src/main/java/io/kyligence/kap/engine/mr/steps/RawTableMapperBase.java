@@ -5,6 +5,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 
 import org.apache.hadoop.io.Text;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.common.util.BytesSplitter;
@@ -56,6 +57,7 @@ public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
         rawTableName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME).toUpperCase();
         segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
         KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
+        KapConfig kapConfig = KapConfig.wrap(config);
 
         rawInstance = RawTableManager.getInstance(config).getRawTableInstance(rawTableName);
         rawSegment = rawInstance.getSegmentById(segmentID);
@@ -65,7 +67,7 @@ public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUE
         rawEncoder = new BufferedRawEncoder(rawTableDesc.getColumnsExcludingOrdered());
         orderedEncoder = new BufferedRawEncoder(rawTableDesc.getOrderedColumn());
         columnValues = new String[rawTableDesc.getColumnsExcludingOrdered().size()];
-        bytesSplitter = new BytesSplitter(200, 16384);
+        bytesSplitter = new BytesSplitter(kapConfig.getRawTableColumnCountMax(), kapConfig.getRawTableColumnLengthMax());
     }
 
     protected void outputKV(Context context) throws IOException, InterruptedException {

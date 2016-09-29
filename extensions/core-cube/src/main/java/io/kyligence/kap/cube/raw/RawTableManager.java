@@ -138,6 +138,7 @@ public class RawTableManager implements IRealizationProvider {
 
         // Reload the RawTableInstance
         RawTableInstance instance = loadRawTableInstance(path);
+        instance.validateSegments();
 
         // Keep consistence with cube
         instance.validateSegments();
@@ -220,7 +221,6 @@ public class RawTableManager implements IRealizationProvider {
                 logger.error("Dup RawTableInstance name '" + instance.getName() + "' on path " + path);
                 continue;
             }
-            // Keep consistence with cube
             instance.validateSegments();
             rawTableInstanceMap.putLocal(instance.getName(), instance);
         }

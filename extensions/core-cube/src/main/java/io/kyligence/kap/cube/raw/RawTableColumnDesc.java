@@ -20,8 +20,6 @@ public class RawTableColumnDesc {
     @JsonProperty("encoding")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String encoding;
-    @JsonProperty("fuzzy_index")
-    private Boolean fuzzyIndex = false;
 
     // computed
     private ColumnDesc column;
@@ -73,7 +71,7 @@ public class RawTableColumnDesc {
     }
 
     public Boolean getFuzzyIndex() {
-        return fuzzyIndex;
+        return index.equalsIgnoreCase("fuzzy");
     }
 
     @Override
