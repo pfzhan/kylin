@@ -428,17 +428,19 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
           //$scope.RowTables.model_name=$scope.state.cubeSchema.model_name;
           //$scope.RowTables.engine_type=$scope.state.cubeSchema.engine_type;
           //$scope.RowTables.storage_type=$scope.state.cubeSchema.storage_type;
-          console.log($scope.RawTables);
-          RawTablesService.update({},{
-            rawTableDescData:angular.toJson($scope.RawTables, true),
-            project: $scope.state.project,
-            rawTableName:$scope.RawTables.name
+          //console.log($scope.RawTables);
+          if($scope.RawTables){
+            RawTablesService.update({},{
+              rawTableDescData:angular.toJson($scope.RawTables, true),
+              project: $scope.state.project,
+              rawTableName:$scope.RawTables.name
 
-          },function(request){
+            },function(request){
 
-          },function(request){
+            },function(request){
 
-          })
+            })
+          }
 
 
 
@@ -456,20 +458,21 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
               $location.path("/models");
               //location.reload();
 
+              if($scope.RawTables){
+                //保存rowTable
+                $scope.RawTables.name=$scope.cubeMetaFrame.name;
+                $scope.RawTables.model_name=$scope.cubeMetaFrame.model_name;
+                $scope.RawTables.engine_type=$scope.cubeMetaFrame.engine_type;
+                $scope.RawTables.storage_type=$scope.cubeMetaFrame.storage_type;
+                RawTablesService.save({},{
+                  rawTableDescData:angular.toJson($scope.RawTables, true),
+                  project: $scope.state.project
+                },function(request){
 
-              //保存rowTable
-              $scope.RawTables.name=$scope.cubeMetaFrame.name;
-              $scope.RawTables.model_name=$scope.cubeMetaFrame.model_name;
-              $scope.RawTables.engine_type=$scope.cubeMetaFrame.engine_type;
-              $scope.RawTables.storage_type=$scope.cubeMetaFrame.storage_type;
-              RawTablesService.save({},{
-                rawTableDescData:angular.toJson($scope.RawTables, true),
-                project: $scope.state.project
-              },function(request){
+                },function(request){
 
-              },function(request){
-
-              })
+                })
+              }
 
             } else {
               $scope.saveCubeRollBack();
@@ -504,9 +507,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
             loadingRequest.hide();
 
           });
-          if(!$scope.RawTables){
-            return;
-          }
+
 
 
 
@@ -858,7 +859,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
   $scope.RawTables;
   $scope.$on('RawTableEdited', function (event,data) {
     $scope.RawTables=data;
-    console.log(data);
+    //console.log(data);
   });
 
 

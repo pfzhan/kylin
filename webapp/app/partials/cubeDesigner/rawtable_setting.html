@@ -18,11 +18,13 @@
 
 <div ng-controller="RawTableSettingCtrl">
   <ng-form name="forms.rowtable_setting_form">
-    <div>
-      <div class="form-group large-popover" >
+    <h4 style="margin-left:42px" ng-if="!rowTableColumns.columns.length">{{dataKylin.cube.noConfigRawTableInfo}}</h4>
+    <div ng-if="rowTableColumns.columns.length > 0">
+      <div ng-if="state.mode!='view'"><input type="checkbox" style="margin-left: 40px" ng-model="wantSetting" ng-change="checkNeedSet()"  id="wantSet"><label for="wantSet" style="margin-left:10px;">{{dataKylin.cube.needConfigRawTable}}</label></div>
+      <div class="form-group large-popover"  ng-if="rowTableColumns.columns.length > 0&&wantSetting">
         <h3 style="margin-left:42px">{{dataKylin.cube.cubeOfRawTable}}</h3>
         <table style="margin-left:42px; width:92%"
-               ng-if="rowTableColumns.columns.length > 0"
+
                class="table table-hover table-bordered list"
           >
           <thead>

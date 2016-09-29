@@ -24,7 +24,14 @@
 KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,RawTablesService,cubesManager,modelsManager,SweetAlert) {
   $scope.availableColumns = {};
   $scope.selectedColumns = {};
-
+  $scope.wantSetting=false;
+  if($scope.state.mode=="view"){
+    $scope.wantSetting=true;
+  }
+  $scope.checkNeedSet=function(){
+    $scope.wantSetting=! $scope.wantSetting;
+    transferRawTableData();
+  }
   // Available tables cache: 1st is the fact table, next are lookup tables.
  $scope.availableTables = [];
  if($scope.state.mode=="edit") {
@@ -92,27 +99,39 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
        columnObj.index="sorted";
      }
      saveData.columns.push(columnObj);
-
    }
-
    $scope.rowTableColumns = saveData;
-   $scope.$emit('RawTableEdited', $scope.rowTableColumns);
+   transferRawTableData();
  }
-    $scope.refreshRawTablesIndex = function (item, val) {
-      $scope.$emit('RawTableEdited', $scope.rowTableColumns);
-    }
-    if($scope.isEdit||$scope.state.mode=="view"){
-      $scope.loadRowTable = function () {
-        RawTablesService.getRawTableInfo({rowTableName: $scope.state.cubeName}, {}, function (request) {
-          if(request){
-            $scope.rowTableColumns = request;
-            $scope.$emit('RawTableEdited', $scope.rowTableColumns);
+  $scope.refreshRawTablesIndex = function () {
+    transferRawTableData();
+  }
+  if($scope.isEdit||$scope.state.mode=="view"){
+    $scope.loadRowTable = function () {
+      RawTablesService.getRawTableInfo({rowTableName: $scope.state.cubeName}, {}, function (request) {
+        if(request){
+          $scope.rowTableColumns = request;
+          if($scope.rowTableColumns&&$scope.rowTableColumns.columns.length>0){
+            $scope.wantSetting=true;
           }
+          transferRawTableData();
+        }
 
-        })
-      }
-      $scope.loadRowTable();
+      },function(){
+         $scope.rowTableColumns=[];
+         $scope.wantSetting=false;
+      })
     }
+    $scope.loadRowTable();
+  }
+
+  function transferRawTableData(){
+    if($scope.wantSetting){
+      $scope.$emit('RawTableEdited', $scope.rowTableColumns);
+    }else{
+      $scope.$emit('RawTableEdited',[]);
+    }
+  }
 
 
 });
