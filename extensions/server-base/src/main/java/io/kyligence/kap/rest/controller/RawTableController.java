@@ -28,7 +28,6 @@ import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.InternalErrorException;
-import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.service.JobService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -148,12 +147,13 @@ public class RawTableController extends BasicController {
         return rawRequest;
     }
 
-    @RequestMapping(value = "/{rawTableName}", method = { RequestMethod.GET })
+    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.GET })
     @ResponseBody
-    public RawTableDesc getRawTable(@PathVariable String rawTableName) {
-        RawTableInstance raw = rawService.getRawTableManager().getRawTableInstance(rawTableName);
+    public RawTableDesc getRawTableDesc(@PathVariable String cubeName) {
+        RawTableInstance raw = rawService.getRawTableManager().getRawTableInstance(cubeName);
         if (raw == null) {
-            throw new InternalErrorException("Cannot find raw " + rawTableName);
+            logger.info("raw " + cubeName + " does not exist!");
+            return null;
         }
         return raw.getRawTableDesc();
     }
@@ -163,16 +163,15 @@ public class RawTableController extends BasicController {
     public void deleteRaw(@PathVariable String cubeName) {
         RawTableInstance raw = rawService.getRawTableManager().getRawTableInstance(cubeName);
         if (null == raw) {
-            throw new NotFoundException("Raw with name " + cubeName + " not found..");
+            logger.info("raw " + cubeName + " does not exist!");
+            return;
         }
-
         try {
             rawService.deleteRaw(raw);
         } catch (Exception e) {
             logger.error(e.getLocalizedMessage(), e);
             throw new InternalErrorException("Failed to delete raw. " + " Caused by: " + e.getMessage(), e);
         }
-
     }
 
     @RequestMapping(value = "/{cubeName}/enable", method = { RequestMethod.PUT })
@@ -181,7 +180,8 @@ public class RawTableController extends BasicController {
         try {
             RawTableInstance raw = rawService.getRawTableManager().getRawTableInstance(cubeName);
             if (null == raw) {
-                throw new InternalErrorException("Cannot find raw " + cubeName);
+                logger.info("raw " + cubeName + " does not exist!");
+                return null;
             }
 
             return rawService.enableRaw(raw);
@@ -198,9 +198,9 @@ public class RawTableController extends BasicController {
         try {
             RawTableInstance raw = rawService.getRawTableManager().getRawTableInstance(cubeName);
             if (null == raw) {
-                throw new InternalErrorException("Cannot find raw " + cubeName);
+                logger.info("raw " + cubeName + " does not exist!");
+                return null;
             }
-
             return rawService.disableRaw(raw);
         } catch (Exception e) {
             String message = "Failed to enable raw: " + cubeName;
