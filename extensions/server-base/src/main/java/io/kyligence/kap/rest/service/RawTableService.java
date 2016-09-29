@@ -92,7 +92,7 @@ public class RawTableService extends BasicService {
             throw new JobException("The raw " + raw.getName() + " has running job, please discard it and try again.");
         }
         int rawNum = getRawTableManager().getRawTablesByDesc(raw.getDescName()).size();
-        getCubeManager().dropCube(raw.getName(), rawNum == 1);//only delete cube desc when no other cube is using it
+        getRawTableManager().dropRawTableInstance(raw.getName(), rawNum == 1);//only delete cube desc when no other cube is using it
         accessService.clean(raw, true);
     }
 
