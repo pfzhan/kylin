@@ -299,20 +299,24 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
         if(isConfirm){
 
           loadingRequest.show();
-          CubeService.drop({cubeId: cube.name}, {}, function (result) {
-            loadingRequest.hide();
-            kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.tip_cube_drop);
-            //location.reload();
-            $scope.cubeList.cubes.splice($scope.cubeList.cubes.indexOf(cube),1);
-            //删除rawtable
-            RawTablesService.delete({rowTableName:cube.name},{},function(){
+          //删除rawtable
+          RawTablesService.delete({rowTableName:cube.name},{},function(){
+            CubeService.drop({cubeId: cube.name}, {}, function (result) {
+              loadingRequest.hide();
+              kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.tip_cube_drop);
+              //location.reload();
+              $scope.cubeList.cubes.splice($scope.cubeList.cubes.indexOf(cube),1);
 
-            })
+            },function(e){
+
+              loadingRequest.hide();
+              kylinCommon.error_default(e);
+            });
+
           },function(e){
-
             loadingRequest.hide();
             kylinCommon.error_default(e);
-          });
+          })
 
 
 
