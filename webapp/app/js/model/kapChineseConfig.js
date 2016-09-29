@@ -750,7 +750,7 @@ KylinApp.constant('kapChineseConfig', {
     success_rebuild_job: '构建任务已提交',
     tip_rebuild_part_one: '发现空的Segment',
     tip_rebuild_part_two: ', 要强制合并空的Segment吗 ?',
-    error_info: '加载外部过滤器失败.',//alert of ExtFilterCtrl
+    //error_info: '加载外部过滤器失败.',//alert of ExtFilterCtrl
     tip_to_delete_filter: '确定要删除?',
     tip_delete_filter_part_one: '过滤器 [',
     tip_delete_filter_part_two: '] 删除成功!',

@@ -768,7 +768,7 @@ KylinApp.constant('kapEnglishConfig', {
     success_rebuild_job: 'Rebuild job was submitted successfully',
     tip_rebuild_part_one: 'Empty cube segment found',
     tip_rebuild_part_two: ', do you want to merge segments forcely ?',
-    error_info: 'Failed to load external filters.',//alert of ExtFilterCtrl
+    //error_info: 'Failed to load external filters.',//alert of ExtFilterCtrl
     tip_to_delete_filter: 'Are you sure to delete ?',
     tip_delete_filter_part_one: 'Filter [',
     tip_delete_filter_part_two: '] has been deleted successfully!',
