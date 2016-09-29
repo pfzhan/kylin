@@ -429,7 +429,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
           //$scope.RowTables.engine_type=$scope.state.cubeSchema.engine_type;
           //$scope.RowTables.storage_type=$scope.state.cubeSchema.storage_type;
           //console.log($scope.RawTables);
-          if($scope.RawTables){
+          if($scope.RawTables&&$scope.RawTables.columns){
             RawTablesService.update({},{
               rawTableDescData:angular.toJson($scope.RawTables, true),
               project: $scope.state.project,
@@ -458,7 +458,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
               $location.path("/models");
               //location.reload();
 
-              if($scope.RawTables){
+              if($scope.RawTables&&$scope.RawTables.columns){
                 //保存rowTable
                 $scope.RawTables.name=$scope.cubeMetaFrame.name;
                 $scope.RawTables.model_name=$scope.cubeMetaFrame.model_name;
