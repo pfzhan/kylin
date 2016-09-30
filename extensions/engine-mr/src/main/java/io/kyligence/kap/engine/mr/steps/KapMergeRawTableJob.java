@@ -16,6 +16,8 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.StringSplitter;
+import org.apache.kylin.cube.CubeInstance;
+import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.engine.mr.KylinReducer;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
@@ -63,6 +65,8 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
             RawTableManager rawMgr = RawTableManager.getInstance(KylinConfig.getInstanceFromEnv());
             RawTableInstance raw = rawMgr.getRawTableInstance(cubeName);
             RawTableSegment rawSeg = raw.getSegmentById(segmentID);
+            CubeManager cubeManager = CubeManager.getInstance(KylinConfig.getInstanceFromEnv());
+            CubeInstance cube = cubeManager.getCube(cubeName);
 
             // start job
             String jobName = getOptionValue(OPTION_JOB_NAME);
@@ -100,7 +104,7 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
             job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_ID, segmentID);
 
             // add metadata to distributed cache
-            attachKylinPropsAndMetadata(rawSeg, job.getConfiguration());
+            attachKylinPropsAndMetadata(rawSeg, cube, job.getConfiguration());
 
             // set path for output
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_OUTPUT_DIR, getWorkingDir(raw.getConfig(), raw, rawSeg));
@@ -124,7 +128,7 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
         }
     }
 
-    private void attachKylinPropsAndMetadata(RawTableSegment rawSegment, Configuration conf) throws IOException {
+    private void attachKylinPropsAndMetadata(RawTableSegment rawSegment, CubeInstance cube, Configuration conf) throws IOException {
         MetadataManager metaMgr = MetadataManager.getInstance(rawSegment.getConfig());
         RawTableInstance instance = rawSegment.getRawTableInstance();
         // write raw/cube / model_desc / raw_desc / dict / table
@@ -132,6 +136,8 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
         dumpList.add(instance.getResourcePath());
         dumpList.add(instance.getRawTableDesc().getModel().getResourcePath());
         dumpList.add(instance.getRawTableDesc().getResourcePath());
+        dumpList.add(cube.getResourcePath());
+        dumpList.add(cube.getDescriptor().getResourcePath());
 
         for (String tableName : instance.getRawTableDesc().getModel().getAllTables()) {
             TableDesc table = metaMgr.getTableDesc(tableName);
