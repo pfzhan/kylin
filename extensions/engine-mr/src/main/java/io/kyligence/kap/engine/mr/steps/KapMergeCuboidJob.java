@@ -114,10 +114,6 @@ public class KapMergeCuboidJob extends KapCuboidJob {
             this.deletePath(job.getConfiguration(), output);
 
             return waitForCompletion(job);
-        } catch (Exception e) {
-            logger.error("error in MergeCuboidJob", e);
-            printUsage(options);
-            throw e;
         } finally {
             if (job != null)
                 cleanupTempConfFile(job.getConfiguration());

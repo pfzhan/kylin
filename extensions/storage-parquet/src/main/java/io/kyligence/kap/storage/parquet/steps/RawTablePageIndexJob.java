@@ -83,9 +83,6 @@ public class RawTablePageIndexJob extends AbstractHadoopJob {
             // add metadata to distributed cache
             attachKylinPropsAndMetadata(raw.getSegmentById(segmentID), cube, job.getConfiguration());
             return waitForCompletion(job);
-        } catch (Exception e) {
-            printUsage(options);
-            throw e;
         } finally {
             if (job != null) {
                 cleanupTempConfFile(job.getConfiguration());

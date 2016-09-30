@@ -141,10 +141,6 @@ public class KapCuboidJob extends AbstractHadoopJob {
             this.deletePath(job.getConfiguration(), output);
 
             return waitForCompletion(job);
-        } catch (Exception e) {
-            logger.error("error in CuboidJob", e);
-            printUsage(options);
-            throw e;
         } finally {
             if (job != null)
                 cleanupTempConfFile(job.getConfiguration());

@@ -81,9 +81,6 @@ public class ParquetTarballJob extends AbstractHadoopJob {
             job.setNumReduceTasks(0);
 
             return waitForCompletion(job);
-        } catch (Exception e) {
-            printUsage(options);
-            throw e;
         } finally {
             if (job != null) {
                 cleanupTempConfFile(job.getConfiguration());

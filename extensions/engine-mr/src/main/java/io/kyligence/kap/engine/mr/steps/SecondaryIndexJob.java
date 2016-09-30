@@ -97,10 +97,6 @@ public class SecondaryIndexJob extends AbstractHadoopJob {
             attachKylinPropsAndMetadata(cube, job.getConfiguration());
 
             return waitForCompletion(job);
-        } catch (Exception e) {
-            logger.error("error in CuboidJob", e);
-            printUsage(options);
-            throw e;
         } finally {
             if (job != null)
                 cleanupTempConfFile(job.getConfiguration());
