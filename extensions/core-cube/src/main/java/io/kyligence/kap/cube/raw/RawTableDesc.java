@@ -29,6 +29,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     public static final String RAW_TABLE_DESC_RESOURCE_ROOT = "/raw_table_desc";
 
     public static final String INDEX_DISCRETE = "discrete";
+    public static final String INDEX_FUZZY = "fuzzy";
     public static final String INDEX_SORTED = "sorted";
     public static final String ENCODING_VAR = "var";
 
@@ -47,7 +48,6 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
 
     // computed
     private KylinConfig config;
-    private DataModelDesc model;
     private Map<TblColRef, RawTableColumnDesc> columnMap;
     private HashSet<TblColRef> fuzzyColumnSet;
 
@@ -64,7 +64,12 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
             if (INDEX_SORTED.equals(colDesc.getIndex()))
                 return colDesc.getColumn().getRef();
         }
-        return null;
+        
+        DataModelDesc model = getModel();
+        if (model.getPartitionDesc().isPartitioned())
+            return model.getPartitionDesc().getPartitionDateColumnRef();
+        
+        throw new IllegalStateException(this + " missing ordered column");
     }
 
     public List<TblColRef> getColumnsExcludingOrdered() {
@@ -122,7 +127,6 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         fuzzyColumnSet = new HashSet<>();
 
         this.config = config;
-        this.model = metaMgr.getDataModelDesc(modelName);
         this.columnMap = Maps.newHashMap();
 
         for (RawTableColumnDesc colDesc : columns) {
@@ -141,11 +145,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     }
 
     public DataModelDesc getModel() {
-        return model;
-    }
-
-    public void setModel(DataModelDesc model) {
-        this.model = model;
+        return MetadataManager.getInstance(config).getDataModelDesc(modelName);
     }
 
     public String getName() {

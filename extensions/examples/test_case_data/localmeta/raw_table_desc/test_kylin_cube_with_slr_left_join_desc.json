@@ -86,7 +86,7 @@
     "encoding" : "var",
     "table" : "DEFAULT.TEST_CATEGORY_GROUPINGS",
     "column" : "USER_DEFINED_FIELD3",
-    "fuzzy_index" : true
+    "index" : "fuzzy"
   }, {
     "index" : "discrete",
     "encoding" : "var",

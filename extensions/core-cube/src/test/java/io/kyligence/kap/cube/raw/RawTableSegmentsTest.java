@@ -242,9 +242,8 @@ public class RawTableSegmentsTest extends LocalFileMetadataTestCase {
         assertEquals(2, raw.getSegments().size());
 
         // reject overlap
-        CubeSegment midSegment = null;
         try {
-            midSegment = mgr.appendSegment(cube, 1000, 2500, 0, 0);
+            mgr.appendSegment(cube, 1000, 2500, 0, 0);
             fail();
         } catch (IllegalStateException ex) {
             // good

@@ -71,7 +71,7 @@ public class RawTableColumnDesc {
     }
 
     public Boolean getFuzzyIndex() {
-        return index.equalsIgnoreCase("fuzzy");
+        return RawTableDesc.INDEX_FUZZY.equals(index);
     }
 
     @Override
