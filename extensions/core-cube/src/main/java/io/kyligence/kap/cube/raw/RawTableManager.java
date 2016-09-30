@@ -104,12 +104,13 @@ public class RawTableManager implements IRealizationProvider {
 
         @Override
         public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey) throws IOException {
-            String rawTableName = cacheKey;
 
             if (event == Event.DROP)
-                removeRawTableInstanceLocal(rawTableName);
-            else
-                reloadRawTableInstanceLocal(rawTableName);
+                return;
+
+            String rawTableName = cacheKey;
+
+            reloadRawTableInstanceLocal(rawTableName);
 
             for (ProjectInstance prj : ProjectManager.getInstance(config).findProjects(RealizationType.INVERTED_INDEX, rawTableName)) {
                 broadcaster.notifyProjectDataUpdate(prj.getName());
@@ -122,11 +123,11 @@ public class RawTableManager implements IRealizationProvider {
         public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey) throws IOException {
             String cubeName = cacheKey;
 
+            if (event == Event.DROP)
+                return;
+
             if (rawTableInstanceMap.containsKey(cubeName)) {
-                if (event == Event.DROP)
-                    removeRawTableInstanceLocal(cubeName);
-                else
-                    reloadRawTableInstanceLocal(cubeName);
+                reloadRawTableInstanceLocal(cubeName);
             }
         }
     }
@@ -145,6 +146,10 @@ public class RawTableManager implements IRealizationProvider {
 
         // Reload the RawTableInstance
         RawTableInstance instance = loadRawTableInstance(path);
+        instance.validateSegments();
+
+        // Keep consistence with cube
+        instance.validateSegments();
 
         // Here replace the old one
         rawTableInstanceMap.putLocal(instance.getName(), instance);
@@ -224,6 +229,7 @@ public class RawTableManager implements IRealizationProvider {
                 logger.error("Dup RawTableInstance name '" + instance.getName() + "' on path " + path);
                 continue;
             }
+            instance.validateSegments();
             rawTableInstanceMap.putLocal(instance.getName(), instance);
         }
 
@@ -554,6 +560,21 @@ public class RawTableManager implements IRealizationProvider {
         return max;
     }
 
+    public List<RawTableInstance> getRawTablesByDesc(String descName) {
+
+        descName = descName.toUpperCase();
+        List<RawTableInstance> list = this.listAllRawTables();
+        List<RawTableInstance> result = new ArrayList<RawTableInstance>();
+        Iterator<RawTableInstance> it = list.iterator();
+        while (it.hasNext()) {
+            RawTableInstance ci = it.next();
+            if (descName.equalsIgnoreCase(ci.getDescName())) {
+                result.add(ci);
+            }
+        }
+        return result;
+    }
+
     public RawTableInstance updateRawTable(RawTableUpdate update) throws IOException {
         return updateRawTableWithRetry(update, 0);
     }
@@ -646,8 +667,9 @@ public class RawTableManager implements IRealizationProvider {
                 }
             }
         }
-        // keep consistence with cube
+
         raw.validateSegments();
+
         this.rawTableInstanceMap.put(raw.getName(), raw);
 
         //this is a duplicate call to take care of scenarios where REST cache service unavailable

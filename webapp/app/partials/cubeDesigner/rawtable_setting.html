@@ -1,0 +1,90 @@
+<!--
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+-->
+
+<div ng-controller="RawTableSettingCtrl">
+  <ng-form name="forms.rowtable_setting_form">
+    <h4 style="margin-left:42px" ng-if="!rowTableColumns.columns.length">{{dataKylin.cube.noConfigRawTableInfo}}</h4>
+    <div ng-if="rowTableColumns.columns.length > 0">
+      <div ng-if="state.mode!='view'"><input type="checkbox" style="margin-left: 40px" ng-model="wantSetting" ng-change="checkNeedSet()"  id="wantSet"><label for="wantSet" style="margin-left:10px;">{{dataKylin.cube.needConfigRawTable}}</label></div>
+      <div class="form-group large-popover"  ng-if="rowTableColumns.columns.length > 0&&wantSetting">
+        <h3 style="margin-left:42px">{{dataKylin.cube.cubeOfRawTable}}</h3>
+        <table style="margin-left:42px; width:92%"
+
+               class="table table-hover table-bordered list"
+          >
+          <thead>
+          <tr>
+            <th>{{dataKylin.cube.cubeASID}}</th>
+            <th style="width:30%;">{{dataKylin.cube.rawtableASColumn}}</th>
+            <th style="width:30%;">{{dataKylin.cube.rawtableASEncoding}}</th>
+            <th style="width:30%;">{{dataKylin.cube.rawtableASIndex}}</th>
+          </tr>
+          </thead>
+
+          <tbody >
+
+          <tr
+            ng-repeat="col in rowTableColumns.columns track by $index" ng-class="col.index=='sorted'?'sortedrow':''">
+
+            <td>
+              <!-- ID -->
+              <span class="ng-binding" ng-class="state.mode=='edit'?'badge':''">{{($index + 1)}}</span>
+            </td>
+            <td>
+
+              <span >{{col.column}}</span>
+            </td>
+            <td>
+              <select ng-if="state.mode=='edit'" style="width:180px;"
+                      chosen
+
+                      >
+                <option value="var">default</option>
+              </select>
+              <span ng-if="state.mode=='view'">{{col.encoding}}</span>
+
+            </td>
+            <td>
+              <!--Column Length -->
+              <select ng-if="state.mode=='edit'&&col.index!='sorted'" style="width:180px;"
+                      chosen ng-model="col.index"
+                      tooltip="{{dataKylin.cube.tip_false_by_default}}"
+                      data-placeholder="false by default"
+                      ng-change="refreshRawTablesIndex(col,col.index)"
+                      ng-options="dt as dt for dt in cubeConfig.rowTableIndexOptions">
+                <option value=""></option>
+              </select>
+              <span ng-if="state.mode=='view'||col.index=='sorted'">{{col.index}}</span>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+
+
+      </div>
+
+
+    </div>
+
+  </ng-form>
+</div>
+<script type="text/ng-template" id="rowtableTip.html">
+  <div ng-bind-html="dataKylin.cube.tip_body_cubeRowTable">
+  </div>
+</script>
+

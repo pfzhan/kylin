@@ -144,6 +144,10 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         return model;
     }
 
+    public void setModel(DataModelDesc model) {
+        this.model = model;
+    }
+
     public String getName() {
         return name;
     }

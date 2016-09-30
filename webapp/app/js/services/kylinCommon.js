@@ -17,8 +17,8 @@
  */
 
 KylinApp.service('kylinCommon', function (SweetAlert,$timeout,language) {
-  var dataKylin = language.getDataKylin();
   this.error_default = function(e){
+      var dataKylin = language.getDataKylin();
       if (e.data && e.data.exception) {
         var message = e.data.exception;
         var msg = !!(message) ? message : dataKylin.alert.error_info;

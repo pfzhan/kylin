@@ -14,6 +14,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.cube.CubeInstance;
+import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.metadata.MetadataManager;
@@ -56,6 +58,9 @@ public class RawTablePageIndexJob extends AbstractHadoopJob {
             RawTableManager rawMgr = RawTableManager.getInstance(KylinConfig.getInstanceFromEnv());
             RawTableInstance raw = rawMgr.getRawTableInstance(cubeName);
 
+            CubeManager cubeManager = CubeManager.getInstance(KylinConfig.getInstanceFromEnv());
+            CubeInstance cube = cubeManager.getCube(cubeName);
+
             job = Job.getInstance(getConf(), getOptionValue(OPTION_JOB_NAME));
             setJobClasspath(job, raw.getConfig());
 
@@ -76,7 +81,7 @@ public class RawTablePageIndexJob extends AbstractHadoopJob {
             job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_ID, segmentID);
 
             // add metadata to distributed cache
-            attachKylinPropsAndMetadata(raw.getSegmentById(segmentID), job.getConfiguration());
+            attachKylinPropsAndMetadata(raw.getSegmentById(segmentID), cube, job.getConfiguration());
             return waitForCompletion(job);
         } catch (Exception e) {
             printUsage(options);
@@ -92,7 +97,7 @@ public class RawTablePageIndexJob extends AbstractHadoopJob {
         job.setMapperClass(RawTablePageIndexMapper.class);
     }
 
-    private void attachKylinPropsAndMetadata(RawTableSegment rawSegment, Configuration conf) throws IOException {
+    private void attachKylinPropsAndMetadata(RawTableSegment rawSegment, CubeInstance cube, Configuration conf) throws IOException {
         MetadataManager metaMgr = MetadataManager.getInstance(rawSegment.getConfig());
         RawTableInstance instance = rawSegment.getRawTableInstance();
         // write raw / model_desc / raw_desc / dict / table
@@ -100,6 +105,8 @@ public class RawTablePageIndexJob extends AbstractHadoopJob {
         dumpList.add(instance.getResourcePath());
         dumpList.add(instance.getRawTableDesc().getModel().getResourcePath());
         dumpList.add(instance.getRawTableDesc().getResourcePath());
+        dumpList.add(cube.getResourcePath());
+        dumpList.add(cube.getDescriptor().getResourcePath());
 
         for (String tableName : instance.getRawTableDesc().getModel().getAllTables()) {
             TableDesc table = metaMgr.getTableDesc(tableName);
