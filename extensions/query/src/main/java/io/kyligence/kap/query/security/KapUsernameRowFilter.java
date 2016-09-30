@@ -1,6 +1,9 @@
 package io.kyligence.kap.query.security;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.metadata.filter.ColumnTupleFilter;
@@ -16,34 +19,43 @@ import org.slf4j.LoggerFactory;
 public class KapUsernameRowFilter implements IRowFilter {
     private static final Logger logger = LoggerFactory.getLogger(KapUsernameRowFilter.class);
 
+    private List<TblColRef> tblColumns = new ArrayList<>();
+
     @Override
     public TupleFilter getRowFilter(OLAPAuthentication authentication, Collection<TblColRef> allCubeColumns, Map<String, String> conditions) {
 
-        String userColumn = conditions.get(IRowFilter.USER_COLUMN);
-        if (null == userColumn || userColumn.isEmpty())
-            return null;
+        List<String> columns = new ArrayList<>();
 
+        for (Map.Entry<String, String> entry : conditions.entrySet()) {
+            if (entry.getKey().equalsIgnoreCase(IRowFilter.ACL_COLUMN))
+                columns.add(entry.getValue());
+        }
         // validate if the given username column is contained by cube
-        TblColRef cubeUserColumn = null;
-        for (TblColRef tblColRef : allCubeColumns) {
-            String columnName = tblColRef.getTable() + "." + tblColRef.getName();
-            if (columnName.contains(userColumn)) {
-                cubeUserColumn = tblColRef;
-                break;
+        for (String col : columns) {
+            for (TblColRef tblColRef : allCubeColumns) {
+                String columnName = tblColRef.getTable() + "." + tblColRef.getName();
+                if (columnName.toLowerCase().contains(col)) {
+                    tblColumns.add(tblColRef);
+                }
             }
         }
-        if (null == cubeUserColumn) {
-            logger.error("the given column of username is not contained in current cube");
+        if (0 == tblColumns.size()) {
+            logger.error("the given acl_columns are not contained in current cube");
             return null;
         }
-        // build the "And USER = XXX" condition filter
-        TupleFilter combineFilter = new LogicalTupleFilter(TupleFilter.FilterOperatorEnum.AND);
+
+        Hashtable<String, String> attrs = IACLMetaData.limitedColumnsByUser.get(authentication.getUsername().toLowerCase());
+
+        String value = authentication.getUsername();
+
+        TupleFilter finalFilter = new LogicalTupleFilter(TupleFilter.FilterOperatorEnum.AND);
         TupleFilter rootFilter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.EQ);
-        TupleFilter colFilter = new ColumnTupleFilter(cubeUserColumn);
-        TupleFilter constantFilter = new ConstantTupleFilter(authentication.getUsername());
+        TupleFilter colFilter = new ColumnTupleFilter(tblColumns.get(0));
+        TupleFilter constantFilter = new ConstantTupleFilter(value);
         rootFilter.addChild(colFilter);
         rootFilter.addChild(constantFilter);
-        combineFilter.addChild(rootFilter);
-        return combineFilter;
+        finalFilter.addChild(rootFilter);
+
+        return finalFilter;
     }
 }

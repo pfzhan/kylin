@@ -4,10 +4,10 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Hashtable;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.Vector;
 
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
@@ -25,23 +25,17 @@ public class KapAclReader extends TimerTask implements IACLMetaData {
             path = System.getenv("KYLIN_HOME") + File.separator + "conf";
         else
             path = System.getProperty(KylinConfig.KYLIN_CONF);
-        filename = path + File.separator + "acl.csv";
+
+        filename = path + File.separator + "userctrl.acl";
         try {
             loadACLFile();
         } catch (IOException e) {
             e.printStackTrace();
         }
         // interval set as 3 seconds
-        timer.scheduleAtFixedRate(this, 0, 3 * 1000);
+        timer.scheduleAtFixedRate(this, 5000, 3 * 1000);
     }
 
-    /*
-    * Suppose the ACL data schema like:
-    * User           Column1   Column2   Column3 ...
-    * ADMIN           yes        yes       yes
-    * John             no        yes       no
-    * Mike             yes       no        no
-    */
     @Override
     public synchronized boolean loadACLFile() throws IOException {
         BufferedReader reader = new BufferedReader(new FileReader(this.filename));
@@ -57,11 +51,10 @@ public class KapAclReader extends TimerTask implements IACLMetaData {
             IACLMetaData.allAclColumns.add(cols[i]);
         //scan acl table
         while (null != (line = reader.readLine())) {
-            Vector<String> limitedColumns = new Vector();
+            Hashtable<String, String> limitedColumns = new Hashtable<>();
             String[] values = line.split(IACLMetaData.CSV_SPLIT);
             for (int i = 1; i < values.length; i++) {
-                if (values[i].toLowerCase().equals(IACLMetaData.DENY))
-                    limitedColumns.add(cols[i].toLowerCase());
+                limitedColumns.put(cols[i].toLowerCase(), values[i].toLowerCase().trim());
             }
             IACLMetaData.limitedColumnsByUser.put(values[0].toLowerCase(), limitedColumns);
         }
@@ -92,12 +85,11 @@ public class KapAclReader extends TimerTask implements IACLMetaData {
     public long lastModifiedACL() {
         File file = new File(this.filename);
         long last = file.lastModified();
-        file = null;
         return last;
     }
 
     public void clearAll() {
-        for (Map.Entry<String, Vector<String>> columnPair : IACLMetaData.limitedColumnsByUser.entrySet()) {
+        for (Map.Entry<String, Hashtable<String, String>> columnPair : IACLMetaData.limitedColumnsByUser.entrySet()) {
             columnPair.getValue().clear();
         }
         IACLMetaData.limitedColumnsByUser.clear();
