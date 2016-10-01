@@ -47,7 +47,5 @@ public class RawTableControllerTest extends ServiceTestBase {
 
         newDesc.setName(newRawName);
         newDesc.setModelName(desc.getModelName());
-        newDesc.setModel(desc.getModel());
-        newDesc.getModel().setLastModified(0);
     }
 }
