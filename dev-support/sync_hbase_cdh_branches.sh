@@ -48,7 +48,11 @@ cd ..
 cd kylin
 git am -3 --ignore-whitespace 0001-KYLIN-1528-Create-a-branch-for-v1.5-with-HBase-1.x-A.patch
 cd ..
-git am -3 --ignore-whitespace 0001-Support-HBase-1.x.patch || git add kylin && git am --continue
+if git am -3 --ignore-whitespace 0001-Support-HBase-1.x.patch; then
+    echo git am 0001-Support-HBase-1.x.patch was successful
+else
+    git add kylin && git am --continue
+fi
 mvn clean compile -DskipTests
 git add kylin
 git commit --amend --no-edit
@@ -63,7 +67,11 @@ rm kylin/0001-KYLIN-1528-Create-a-branch-for-v1.5-with-HBase-1.x-A.patch
 cd kylin
 git am -3 --ignore-whitespace 0001-KYLIN-1672-support-kylin-on-cdh-5.7.patch
 cd ..
-git am -3 --ignore-whitespace 0001-Support-CDH-5.7.patch || git add kylin && git am --continue
+if git am -3 --ignore-whitespace 0001-Support-CDH-5.7.patch; then
+    echo git am 0001-Support-CDH-5.7.patch was successful
+else
+    git add kylin && git am --continue
+fi
 mvn clean compile -DskipTests
 git add kylin
 git commit --amend --no-edit
