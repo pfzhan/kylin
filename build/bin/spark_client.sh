@@ -1,7 +1,7 @@
 #!/bin/bash
 # Kyligence Inc. License
 
-dir=$(dirname ${0})
+dir=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
 
 if [[ $CI_MODE == 'true' ]]
 then
@@ -69,6 +69,7 @@ then
         driverPort=$x
     done
     
+    driverPort=${driverPort:-7071}
     echo "The driver port is $driverPort"
     export driverPort
     
@@ -96,7 +97,7 @@ then
 
     submitCommand='$SPARK_HOME/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry --master yarn --deploy-mode client --verbose '
     submitCommand=${submitCommand}${confStr}
-    submitCommand=${submitCommand}' ${KYLIN_SPARK_JAR_PATH} -className io.kyligence.kap.storage.parquet.cube.spark.SparkQueryDriver --port ${driverPort:-7071} >> ${KYLIN_HOME}/logs/spark_client.out 2>&1 & echo $! > ${KYLIN_HOME}/spark_client_pid &'
+    submitCommand=${submitCommand}' ${KYLIN_SPARK_JAR_PATH} -className io.kyligence.kap.storage.parquet.cube.spark.SparkQueryDriver --port ${driverPort} >> ${KYLIN_HOME}/logs/spark_client.out 2>&1 & echo $! > ${KYLIN_HOME}/spark_client_pid &'
     #echo "The submit command is: $submitCommand"
     eval $submitCommand 
     

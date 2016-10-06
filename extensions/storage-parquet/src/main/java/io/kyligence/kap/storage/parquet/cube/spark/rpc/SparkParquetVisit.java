@@ -85,7 +85,7 @@ public class SparkParquetVisit implements Serializable {
         conf.set(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX, String.valueOf(request.getUseII())); //whether to use II
         conf.set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileReader.ReadStrategy.COMPACT.toString()); //read fashion
 
-        logger.info("Parquet path is " + parquetPath);
+        logger.info("Columnar path is " + parquetPath);
         logger.info("Required Measures: " + StringUtils.join(request.getParquetColumnsList(), ","));
         logger.info("Max GT length: " + request.getMaxRecordLength());
         logger.info("Start to visit cube data with Spark <<<<<<");

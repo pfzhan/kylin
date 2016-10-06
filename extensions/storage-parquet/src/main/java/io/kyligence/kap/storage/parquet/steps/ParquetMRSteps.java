@@ -94,7 +94,7 @@ public class ParquetMRSteps extends JobBuilderSupport {
 
     public MapReduceExecutable createParquetPageIndex(String jobId) {
         MapReduceExecutable result = new MapReduceExecutable();
-        result.setName("Build Parquet Page Index");
+        result.setName("Build Columnar Page Index");
         result.setMapReduceJobClass(ParquetPageIndexJob.class);
         StringBuilder cmd = new StringBuilder();
         appendMapReduceParameters(cmd, JobEngineConfig.IN_MEM_JOB_CONF_SUFFIX);
@@ -114,7 +114,7 @@ public class ParquetMRSteps extends JobBuilderSupport {
         MapReduceExecutable result = new MapReduceExecutable();
         RawTableInstance rawInstance = RawTableManager.getInstance(seg.getConfig()).getRawTableInstance(seg.getRealization().getName());
         RawTableSegment rawSeg = rawInstance.getSegmentById(seg.getUuid());
-        result.setName("Build Raw Table Parquet Page Index");
+        result.setName("Build Raw Table Columnar Page Index");
         result.setMapReduceJobClass(RawTablePageIndexJob.class);
         StringBuilder cmd = new StringBuilder();
         appendMapReduceParameters(cmd, JobEngineConfig.IN_MEM_JOB_CONF_SUFFIX);
@@ -134,7 +134,7 @@ public class ParquetMRSteps extends JobBuilderSupport {
         MapReduceExecutable result = new MapReduceExecutable();
         RawTableInstance rawInstance = RawTableManager.getInstance(seg.getConfig()).getRawTableInstance(seg.getRealization().getName());
         RawTableSegment rawSeg = rawInstance.getSegmentById(seg.getUuid());
-        result.setName("Build Raw Table Parquet Fuzzy Index");
+        result.setName("Build Raw Table Columnar Fuzzy Index");
         result.setMapReduceJobClass(RawTableFuzzyIndexJob.class);
         StringBuilder cmd = new StringBuilder();
         appendMapReduceParameters(cmd, JobEngineConfig.IN_MEM_JOB_CONF_SUFFIX);
@@ -152,7 +152,7 @@ public class ParquetMRSteps extends JobBuilderSupport {
 
     public MapReduceExecutable createParquetTarballJob(String jobId) {
         MapReduceExecutable result = new MapReduceExecutable();
-        result.setName("Tarball Parquet Files");
+        result.setName("Tarball Columnar Files");
         result.setMapReduceJobClass(ParquetTarballJob.class);
         result.setCounterSaveAs(",," + CubingJob.CUBE_SIZE_BYTES);
 
@@ -218,7 +218,7 @@ public class ParquetMRSteps extends JobBuilderSupport {
 
     public ParquetShardSizingStep createParquetShardSizingStep(String jobId) {
         ParquetShardSizingStep result = new ParquetShardSizingStep();
-        result.setName("Sizing Parquet Shards");
+        result.setName("Sizing Columnar Shards");
         CubingExecutableUtil.setCubeName(seg.getRealization().getName(), result.getParams());
         CubingExecutableUtil.setSegmentId(seg.getUuid(), result.getParams());
         CubingExecutableUtil.setCubingJobId(jobId, result.getParams());

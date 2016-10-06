@@ -323,7 +323,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             }
         }
 
-        logger.info("Parquet II Metrics: TotalPageNum={}, ResultPageNum={}", getPageTotalNum(), resultBitmap.getCardinality());
+        logger.info("Columnar II Metrics: TotalPageNum={}, ResultPageNum={}", getPageTotalNum(), resultBitmap.getCardinality());
         return resultBitmap;
     }
 
