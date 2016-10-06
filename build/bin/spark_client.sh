@@ -12,7 +12,7 @@ then
     export KYLIN_SPARK_JAR_PATH=`ls $KYLIN_HOME/extensions/storage-parquet/target/kap-storage-parquet-*-spark.jar`
 else
     echo 'in normal mode'
-    export KYLIN_HOME=${dir}/../
+    export KYLIN_HOME=${KYLIN_HOME:-"${dir}/../"}
     export CONF_DIR=${KYLIN_HOME}/conf
     export SPARK_DIR=${KYLIN_HOME}/spark/
     export KYLIN_SPARK_JAR_PATH=`ls $KYLIN_HOME/lib/kylin-storage-parquet-kap-*.jar`
