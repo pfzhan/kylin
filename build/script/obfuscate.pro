@@ -5,6 +5,7 @@
 -ignorewarnings
 
 -keepnames class * implements java.io.Serializable
+-keepnames class * extends org.apache.kylin.rest.controller.BasicController
 -keepnames class * extends org.apache.kylin.measure.MeasureTypeFactory
 
 -keepclassmembers class * implements java.io.Serializable {
