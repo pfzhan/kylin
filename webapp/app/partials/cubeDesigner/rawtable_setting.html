@@ -17,11 +17,11 @@
 -->
 
 <div ng-controller="RawTableSettingCtrl">
-  <ng-form name="forms.rowtable_setting_form">
-    <h4 style="margin-left:42px" ng-if="!rowTableColumns.columns.length">{{dataKylin.cube.noConfigRawTableInfo}}</h4>
-    <div ng-if="rowTableColumns.columns.length > 0">
+  <ng-form name="forms.rawtable_setting_form">
+    <h4 style="margin-left:42px" ng-if="!rawTableColumns.columns.length">{{dataKylin.cube.noConfigRawTableInfo}}</h4>
+    <div ng-if="rawTableColumns.columns.length > 0">
       <div ng-if="state.mode!='view'"><input type="checkbox" style="margin-left: 40px" ng-model="wantSetting" ng-change="checkNeedSet()"  id="wantSet"><label for="wantSet" style="margin-left:10px;">{{dataKylin.cube.needConfigRawTable}}</label></div>
-      <div class="form-group large-popover"  ng-if="rowTableColumns.columns.length > 0&&wantSetting">
+      <div class="form-group large-popover"  ng-if="rawTableColumns.columns.length > 0&&wantSetting">
         <h3 style="margin-left:42px">{{dataKylin.cube.cubeOfRawTable}}</h3>
         <table style="margin-left:42px; width:92%"
 
@@ -39,7 +39,7 @@
           <tbody >
 
           <tr
-            ng-repeat="col in rowTableColumns.columns track by $index" ng-class="col.index=='sorted'?'sortedrow':''">
+            ng-repeat="col in rawTableColumns.columns track by $index" ng-class="col.index=='sorted'?'sortedrow':''">
 
             <td>
               <!-- ID -->
@@ -66,7 +66,7 @@
                       tooltip="{{dataKylin.cube.tip_false_by_default}}"
                       data-placeholder="false by default"
                       ng-change="refreshRawTablesIndex(col,col.index)"
-                      ng-options="dt as dt for dt in cubeConfig.rowTableIndexOptions">
+                      ng-options="dt as dt for dt in cubeConfig.rawTableIndexOptions">
                 <option value=""></option>
               </select>
               <span ng-if="state.mode=='view'||col.index=='sorted'">{{col.index}}</span>
@@ -83,8 +83,8 @@
 
   </ng-form>
 </div>
-<script type="text/ng-template" id="rowtableTip.html">
-  <div ng-bind-html="dataKylin.cube.tip_body_cubeRowTable">
+<script type="text/ng-template" id="rawtableTip.html">
+  <div ng-bind-html="dataKylin.cube.tip_body_cubeRawTable">
   </div>
 </script>
 

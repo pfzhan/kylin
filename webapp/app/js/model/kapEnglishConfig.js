@@ -305,7 +305,7 @@ KylinApp.constant('kapEnglishConfig', {
       {attr: 'create_time_utc', name: 'Create Time'}
     ],
     actions: 'Actions',
-    schema: ['Cube Info','Dimensions','Measures','Refresh Setting','Advanced Setting','Rowtable Setting','Configuration Overwrites','Overview'],
+    schema: ['Cube Info','Dimensions','Measures','Refresh Setting','Advanced Setting','RawTable(Beta)','Configuration Overwrites','Overview'],
     admins: 'Admins',
     storage: 'Storage',
     streaming: 'Streaming',
@@ -415,14 +415,14 @@ KylinApp.constant('kapEnglishConfig', {
     cubeASNewAggregationGroup: 'New Aggregation Group',
     cubeASRowkeys: 'Rowkeys',
     noConfigRawTableInfo:'No RawTable Configuration Information',
-    needConfigRawTable:'Config RowTable',
+    needConfigRawTable:'Config RawTable',
     cubeOfRawTable: 'RawTable',
     rawtableASColumn:'Column',
     rawtableASEncoding:'Encoding',
     rawtableASIndex:'Index',
     tip_title_cubeASRowkeys: {name:'Rowkey',watch:true},
     tip_body_cubeASRowkeys: '<h4>Shard By this column?</h4><p>If specified as "true", cube data will be sharded according to its value.</p><h4>RowKey Encoding</h4><ol><li>"dict" encoding will try to build a dictionary for the dimension</li><li>"fixed_length" encoding will encode the dimension vlaues by fixed length bytes with padding</li><li>"int" encoding uses variable integer to encode integers </li></ol>',
-    tip_body_cubeRowTable: '<h4>Shard By this column?</h4><p>If specified as "true", cube data will be sharded according to its value.</p><h4>RowKey Encoding</h4><ol><li>"dict" encoding will try to build a dictionary for the dimension</li><li>"fixed_length" encoding will encode the dimension vlaues by fixed length bytes with padding</li><li>"int" encoding uses variable integer to encode integers </li></ol>',
+    tip_body_cubeRawTable: '<h4>Shard By this column?</h4><p>If specified as "true", cube data will be sharded according to its value.</p><h4>RowKey Encoding</h4><ol><li>"dict" encoding will try to build a dictionary for the dimension</li><li>"fixed_length" encoding will encode the dimension vlaues by fixed length bytes with padding</li><li>"int" encoding uses variable integer to encode integers </li></ol>',
     cubeASID: 'ID',
     cubeASColumn: 'Column',
     cubeASEncoding: 'Encoding',
@@ -848,9 +848,9 @@ KylinApp.constant('kapEnglishConfig', {
 },
   license:{
     aboutkap:"About KAP",
-    version:"VERSION",
-    dates:"DATES",
-    statement:"LICENSE STATEMENT"
+    version:"Version",
+    dates:"Valid Period",
+    statement:"License Statement"
   }
 
 });

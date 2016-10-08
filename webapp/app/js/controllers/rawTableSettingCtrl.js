@@ -81,53 +81,53 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
        $scope.availableTables.push(lookups[j].table);
      }
    }
-   var rowTableColumns = [];
+   var rawTableColumns = [];
    for (var i in $scope.availableColumns) {
-     rowTableColumns = rowTableColumns.concat($scope.availableColumns[i]);
+     rawTableColumns = rawTableColumns.concat($scope.availableColumns[i]);
    }
 
 
    var saveData = {};
    saveData.columns = [];
-   for (var i = 0; i < rowTableColumns.length; i++) {
+   for (var i = 0; i < rawTableColumns.length; i++) {
      var columnObj = {};
      columnObj.index = "discrete";
      columnObj.encoding = "var";
-     columnObj.table = rowTableColumns[i].table;
-     columnObj.column = rowTableColumns[i].name;
+     columnObj.table = rawTableColumns[i].table;
+     columnObj.column = rawTableColumns[i].name;
      if($scope.metaModel.model.partition_desc&&columnObj.table+"."+columnObj.column==$scope.metaModel.model.partition_desc.partition_date_column){
        columnObj.index="sorted";
      }
      saveData.columns.push(columnObj);
    }
-   $scope.rowTableColumns = saveData;
+   $scope.rawTableColumns = saveData;
    transferRawTableData();
  }
   $scope.refreshRawTablesIndex = function () {
     transferRawTableData();
   }
   if($scope.isEdit||$scope.state.mode=="view"){
-    $scope.loadRowTable = function () {
-      RawTablesService.getRawTableInfo({rowTableName: $scope.state.cubeName}, {}, function (request) {
+    $scope.loadRawTable = function () {
+      RawTablesService.getRawTableInfo({rawTableName: $scope.state.cubeName}, {}, function (request) {
         if(request){
-          $scope.rowTableColumns = request;
-          if($scope.rowTableColumns&&$scope.rowTableColumns.columns.length>0){
+          $scope.rawTableColumns = request;
+          if($scope.rawTableColumns&&$scope.rawTableColumns.column&&$scope.rawTableColumns.columns.length>0){
             $scope.wantSetting=true;
           }
           transferRawTableData();
         }
 
       },function(){
-         $scope.rowTableColumns=[];
+         $scope.rawTableColumns=[];
          $scope.wantSetting=false;
       })
     }
-    $scope.loadRowTable();
+    $scope.loadRawTable();
   }
 
   function transferRawTableData(){
     if($scope.wantSetting){
-      $scope.$emit('RawTableEdited', $scope.rowTableColumns);
+      $scope.$emit('RawTableEdited', $scope.rawTableColumns);
     }else{
       $scope.$emit('RawTableEdited',[]);
     }

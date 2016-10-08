@@ -423,12 +423,8 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
           });
 
 
-          //更新rowTable
-          //$scope.RowTables.name=$scope.state.cubeSchema.name;
-          //$scope.RowTables.model_name=$scope.state.cubeSchema.model_name;
-          //$scope.RowTables.engine_type=$scope.state.cubeSchema.engine_type;
-          //$scope.RowTables.storage_type=$scope.state.cubeSchema.storage_type;
-          //console.log($scope.RawTables);
+          //更新rawTable
+
           if($scope.RawTables&&$scope.RawTables.columns){
             RawTablesService.update({},{
               rawTableDescData:angular.toJson($scope.RawTables, true),
@@ -459,7 +455,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
               //location.reload();
 
               if($scope.RawTables&&$scope.RawTables.columns){
-                //保存rowTable
+                //保存rawTable
                 $scope.RawTables.name=$scope.cubeMetaFrame.name;
                 $scope.RawTables.model_name=$scope.cubeMetaFrame.model_name;
                 $scope.RawTables.engine_type=$scope.cubeMetaFrame.engine_type;
@@ -855,7 +851,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
       reGenerateRowKey();
     }
   });
-  //RowTables数据变化
+  //RawTables数据变化
   $scope.RawTables;
   $scope.$on('RawTableEdited', function (event,data) {
     $scope.RawTables=data;

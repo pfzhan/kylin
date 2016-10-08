@@ -200,7 +200,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
             });
             kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_Enable_submitted);
             //enbalerawtable
-            RawTablesService.enable({rowTableName:cube.name},{},function(){
+            RawTablesService.enable({rawTableName:cube.name},{},function(){
 
             })
           },function(e){
@@ -268,7 +268,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
             });
             kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_disable_job_submit);
             //enbalerawtable
-            RawTablesService.disable({rowTableName:cube.name},{},function(){
+            RawTablesService.disable({rawTableName:cube.name},{},function(){
 
             })
 
@@ -300,7 +300,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
 
           loadingRequest.show();
           //删除rawtable
-          RawTablesService.delete({rowTableName:cube.name},{},function(){
+          RawTablesService.delete({rawTableName:cube.name},{},function(){
             CubeService.drop({cubeId: cube.name}, {}, function (result) {
               loadingRequest.hide();
               kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.tip_cube_drop);
