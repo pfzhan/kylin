@@ -6,7 +6,8 @@ import java.util.ArrayList;
 public interface IACLMetaData {
     public static final String CSV_SPLIT = " ";
     public static final String DENY = "no";
-    public static final ACLAttribution limitedColumnsByUser = new ACLAttribution();
+    public static final String YES = "yes";
+    public static final ACLAttribution accessControlColumnsByUser = new ACLAttribution();
     public static final ArrayList<String> allAclColumns = new ArrayList<>();
 
     public static enum metadataSource {

@@ -8,10 +8,6 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPAuthentication;
 
 public interface IRowFilter {
-    public static final String ACL_CONFIG = "acl_config";
-    public static final String ACL_COLUMN = "acl_column";
-    public static final String ROW_FILTER = "kylin.cell.level.security.row.filter";
-
     /*
     * Extend the row filter by given conditions
     * @authentication user authentication

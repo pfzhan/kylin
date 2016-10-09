@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +27,8 @@ public class KapAclReader extends TimerTask implements IACLMetaData {
         else
             path = System.getProperty(KylinConfig.KYLIN_CONF);
 
-        filename = path + File.separator + "userctrl.acl";
+        filename = path + File.separator + KapConfig.getInstanceFromEnv().getCellLevelSecurityConfig();
+
         try {
             loadACLFile();
         } catch (IOException e) {
@@ -53,10 +55,10 @@ public class KapAclReader extends TimerTask implements IACLMetaData {
         while (null != (line = reader.readLine())) {
             Hashtable<String, String> limitedColumns = new Hashtable<>();
             String[] values = line.split(IACLMetaData.CSV_SPLIT);
-            for (int i = 1; i < values.length; i++) {
-                limitedColumns.put(cols[i].toLowerCase(), values[i].toLowerCase().trim());
+            for (int i = 0; i < values.length; i++) {
+                limitedColumns.put(cols[i].toLowerCase(), values[i].trim());
             }
-            IACLMetaData.limitedColumnsByUser.put(values[0].toLowerCase(), limitedColumns);
+            IACLMetaData.accessControlColumnsByUser.put(values[0].toLowerCase(), limitedColumns);
         }
         reader.close();
         return true;
@@ -89,10 +91,10 @@ public class KapAclReader extends TimerTask implements IACLMetaData {
     }
 
     public void clearAll() {
-        for (Map.Entry<String, Hashtable<String, String>> columnPair : IACLMetaData.limitedColumnsByUser.entrySet()) {
+        for (Map.Entry<String, Hashtable<String, String>> columnPair : IACLMetaData.accessControlColumnsByUser.entrySet()) {
             columnPair.getValue().clear();
         }
-        IACLMetaData.limitedColumnsByUser.clear();
+        IACLMetaData.accessControlColumnsByUser.clear();
         IACLMetaData.allAclColumns.clear();
     }
 }

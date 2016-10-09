@@ -129,4 +129,15 @@ public class KapConfig {
     public int getRawTableColumnLengthMax() {
         return Integer.valueOf(config.getOptional("kap.storage.columnar.rawtable.column.length.max", "16384"));
     }
+
+    /*
+     * Cell level security config file
+     */
+    public String getCellLevelSecurityConfig() {
+        return config.getOptional("kylin.cell.level.security.acl.config", "userctrl.acl");
+    }
+
+    public String getCellLevelSecurityEnable() {
+        return config.getOptional("kylin.cell.level.security.enable", "false");
+    }
 }
