@@ -28,34 +28,29 @@ import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
 public class ParquetColumnReaderBuilder {
-    private String indexPathSuffix = "index";
     private Configuration conf = null;
+    private ParquetMetadata metadata = null;
     private Path path = null;
-    private Path indexPath = null;
     private int column = 0;
     private ImmutableRoaringBitmap pageBitset = null;
     private long fileOffset;
-
-    public ParquetColumnReaderBuilder setIndexPathSuffix(String indexPathSuffix) {
-        this.indexPathSuffix = indexPathSuffix;
-        return this;
-    }
 
     public ParquetColumnReaderBuilder setConf(Configuration conf) {
         this.conf = conf;
         return this;
     }
 
-    public ParquetColumnReaderBuilder setPath(Path path) {
-        this.path = path;
+    public ParquetColumnReaderBuilder setMetadata(ParquetMetadata metadata) {
+        this.metadata = metadata;
         return this;
     }
 
-    public ParquetColumnReaderBuilder setIndexPath(Path indexPath) {
-        this.indexPath = indexPath;
+    public ParquetColumnReaderBuilder setPath(Path path) {
+        this.path = path;
         return this;
     }
 
@@ -83,10 +78,6 @@ public class ParquetColumnReaderBuilder {
             throw new IllegalStateException("Output file path should be set");
         }
 
-        if (indexPath == null) {
-            indexPath = new Path(path.toString() + indexPathSuffix);
-        }
-
-        return new ParquetColumnReader(new ParquetRawReader(conf, path, indexPath, fileOffset), column, pageBitset);
+        return new ParquetColumnReader(new ParquetRawReader(conf, path, metadata, fileOffset), column, pageBitset);
     }
 }

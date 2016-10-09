@@ -25,11 +25,16 @@
 package io.kyligence.kap.storage.parquet.format.file;
 
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.parquet.format.converter.ParquetMetadataConverter;
+import org.apache.parquet.hadoop.ParquetFileReader;
+import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,11 +44,12 @@ public class ParquetBundleReader {
 
     List<ParquetReaderState> readerStates;
 
-    public ParquetBundleReader(Configuration configuration, Path path, Path indexPath, ImmutableRoaringBitmap columns, ImmutableRoaringBitmap pageBitset, long fileOffset) throws IOException {
-        readerStates = new ArrayList<ParquetReaderState>(columns.getCardinality());
+    public ParquetBundleReader(Configuration configuration, Path path, ImmutableRoaringBitmap columns, ImmutableRoaringBitmap pageBitset, long fileOffset) throws IOException {
+        readerStates = new ArrayList<>(columns.getCardinality());
 
+        ParquetMetadata metadata = ParquetFileReader.readFooter(configuration, path, ParquetMetadataConverter.NO_FILTER);
         for (int column : columns) {
-            readerStates.add(new ParquetReaderState(new ParquetColumnReaderBuilder().setFileOffset(fileOffset).setConf(configuration).setPath(path).setIndexPath(indexPath).setColumn(column).setPageBitset(pageBitset).build()));
+            readerStates.add(new ParquetReaderState(new ParquetColumnReaderBuilder().setFileOffset(fileOffset).setConf(configuration).setPath(path).setColumn(column).setPageBitset(pageBitset).setMetadata(metadata).build()));
             logger.info("Read Column: " + column);
         }
     }
@@ -51,24 +57,25 @@ public class ParquetBundleReader {
     public List<Object> read() throws IOException {
         List<Object> result = new ArrayList<Object>();
         for (ParquetReaderState state : readerStates) {
-            GeneralValuesReader valuesReader = state.getValuesReader();
-
-            if (valuesReader == null) {
-                return null;
-            }
-
-            Object value = valuesReader.readData();
-
+            Object value = state.cache.poll();
             if (value == null) {
-                if ((valuesReader = getNextValuesReader(state)) == null) {
+                GeneralValuesReader curReader;
+                if ((curReader = state.getNextValuesReader()) == null) {
                     return null;
                 }
-                value = valuesReader.readData();
+
+                // create cache
+                Object o = null;
+                state.cache.clear();
+                while ((o = curReader.readData()) != null) {
+                    state.cache.add(o);
+                }
+
+                value = state.cache.poll();
                 if (value == null) {
                     return null;
                 }
             }
-
             result.add(value);
         }
         return result;
@@ -84,35 +91,21 @@ public class ParquetBundleReader {
         }
     }
 
-    private GeneralValuesReader getNextValuesReader(ParquetReaderState state) throws IOException {
-        GeneralValuesReader valuesReader = state.getNextValuesReader();
-        state.setValuesReader(valuesReader);
-        return valuesReader;
-    }
-
     private class ParquetReaderState {
         private ParquetColumnReader reader;
-        private GeneralValuesReader valuesReader;
+        private Queue<Object> cache;
 
         public ParquetReaderState(ParquetColumnReader reader) throws IOException {
             this.reader = reader;
-            this.valuesReader = reader.getNextValuesReader();
+            cache = new ArrayDeque<>();
         }
 
         public GeneralValuesReader getNextValuesReader() throws IOException {
             return reader.getNextValuesReader();
         }
 
-        public GeneralValuesReader getValuesReader() {
-            return valuesReader;
-        }
-
         public void setReader(ParquetColumnReader reader) {
             this.reader = reader;
-        }
-
-        public void setValuesReader(GeneralValuesReader valuesReader) {
-            this.valuesReader = valuesReader;
         }
     }
 }

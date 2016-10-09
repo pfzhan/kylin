@@ -66,9 +66,15 @@ public class ParquetRawReader {
     protected int pagesPerGroup = 0;
     protected Map<String, String> indexMap;
 
-    public ParquetRawReader(Configuration configuration, Path path, Path indexPath, long fileOffset) throws IOException {
+    public ParquetRawReader(Configuration configuration, Path path, ParquetMetadata metadata, long fileOffset) throws IOException {
         config = configuration;
-        parquetMetadata = ParquetFileReader.readFooter(config, path, ParquetMetadataConverter.NO_FILTER);
+
+        if (metadata == null) {
+            parquetMetadata = ParquetFileReader.readFooter(config, path, ParquetMetadataConverter.NO_FILTER);
+        } else {
+            parquetMetadata = metadata;
+        }
+
         FileSystem fileSystem = FileSystem.get(config);
         inputStream = fileSystem.open(path);
 

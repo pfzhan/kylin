@@ -30,12 +30,13 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 
 public class ParquetTarballReader extends ParquetRawReader {
     private long skipLength = 0;
 
-    public ParquetTarballReader(Configuration config, Path path, Path indexPath) throws IOException {
-        super(config, path, indexPath, 0);
+    public ParquetTarballReader(Configuration config, ParquetMetadata metadata, Path path) throws IOException {
+        super(config, path, metadata, 0);
         skipLength = getSkipOffset(config, path);
     }
 

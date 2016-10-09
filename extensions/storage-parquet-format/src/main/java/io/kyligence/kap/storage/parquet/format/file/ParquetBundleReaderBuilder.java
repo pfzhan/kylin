@@ -35,10 +35,8 @@ import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
 public class ParquetBundleReaderBuilder {
-    private String indexPathSuffix = "index";
     private Configuration conf;
     private Path path;
-    private Path indexPath;
     private ImmutableRoaringBitmap columnBitset = null;
     private ImmutableRoaringBitmap pageBitset = null;
     private long fileOffset = 0;
@@ -50,11 +48,6 @@ public class ParquetBundleReaderBuilder {
 
     public ParquetBundleReaderBuilder setPath(Path path) {
         this.path = path;
-        return this;
-    }
-
-    public ParquetBundleReaderBuilder setIndexPath(Path indexPath) {
-        this.indexPath = indexPath;
         return this;
     }
 
@@ -81,17 +74,14 @@ public class ParquetBundleReaderBuilder {
         if (path == null) {
             throw new IllegalStateException("Output file path should be set");
         }
-
-        if (indexPath == null) {
-            indexPath = new Path(path.toString() + indexPathSuffix);
-        }
-
         if (columnBitset == null) {
-            int columnCnt = new ParquetRawReaderBuilder().setConf(conf).setPath(path).setIndexPath(indexPath).build().getColumnCount();
+            int columnCnt = new ParquetRawReaderBuilder().setConf(conf).setPath(path).build().getColumnCount();
             columnBitset = createBitset(columnCnt);
         }
 
-        return new ParquetBundleReader(conf, path, indexPath, columnBitset, pageBitset, fileOffset);
+        ParquetBundleReader result = new ParquetBundleReader(conf, path, columnBitset, pageBitset, fileOffset);
+
+        return result;
     }
 
     private static ImmutableRoaringBitmap createBitset(int total) throws IOException {
@@ -108,5 +98,31 @@ public class ParquetBundleReaderBuilder {
         }
 
         return iBitmap;
+    }
+
+    /* This function is for test */
+    public static void main(String[] args) {
+        if (args.length < 1) {
+            System.out.println("Need a file name");
+            return;
+        }
+
+        System.out.println("Read file " + args[0]);
+
+        long t = System.currentTimeMillis();
+        try {
+            int i = 0;
+            ParquetBundleReader reader = new ParquetBundleReaderBuilder().setPath(new Path(args[0])).setConf(new Configuration()).build();
+            long t2 = System.currentTimeMillis() - t;
+            System.out.println("Create reader takes " + t2 + " ms");
+            while (reader.read() != null) {
+                i++;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        t = System.currentTimeMillis() - t;
+
+        System.out.println("Read file takes " + t + " ms");
     }
 }

@@ -28,31 +28,26 @@ import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 
 public class ParquetRawReaderBuilder {
-    private String indexPathSuffix = "index";
     private Configuration conf = null;
+    private ParquetMetadata metadata = null;
     private Path path = null;
-    private Path indexPath = null;
     private int fileOffset = 0;//if it's a tarball fileoffset is not 0
-
-    public ParquetRawReaderBuilder setIndexPathSuffix(String indexPathSuffix) {
-        this.indexPathSuffix = indexPathSuffix;
-        return this;
-    }
 
     public ParquetRawReaderBuilder setConf(Configuration conf) {
         this.conf = conf;
         return this;
     }
 
-    public ParquetRawReaderBuilder setPath(Path path) {
-        this.path = path;
+    public ParquetRawReaderBuilder setMetadata(ParquetMetadata metadata) {
+        this.metadata = metadata;
         return this;
     }
 
-    public ParquetRawReaderBuilder setIndexPath(Path indexPath) {
-        this.indexPath = indexPath;
+    public ParquetRawReaderBuilder setPath(Path path) {
+        this.path = path;
         return this;
     }
 
@@ -74,10 +69,6 @@ public class ParquetRawReaderBuilder {
             throw new IllegalStateException("File offset is " + fileOffset);
         }
 
-        if (indexPath == null) {
-            indexPath = new Path(path.toString() + indexPathSuffix);
-        }
-
-        return new ParquetRawReader(conf, path, indexPath, fileOffset);
+        return new ParquetRawReader(conf, path, metadata, fileOffset);
     }
 }
