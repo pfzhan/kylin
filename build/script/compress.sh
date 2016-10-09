@@ -22,6 +22,7 @@ cp -rf commit_SHA1 lib kybot tomcat spark ${package_name}/
 
 # add kap files
 cp -rf conf/kylin.properties ${package_name}/conf/
+cp -rf conf/userctrl.acl ${package_name}/conf/
 cp -rf bin/* ${package_name}/bin/
 
 # update kap plus config files

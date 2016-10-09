@@ -1,0 +1,4 @@
+kylin_sales.user_id kylin_sales.region kylin_sales.price kylin_sales.lstg_format_name
+ADMIN Shanghai yes yes
+ANALYST Beijing no yes
+MODELER Hongkong yes yes
