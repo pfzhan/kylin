@@ -225,7 +225,7 @@ KylinApp.constant('kapChineseConfig', {
     gridSTPartitionType: '分区类型',
     gridSTPartitionDate: '分区列（日期类型）',
     tip_title_gridSTPartitionDate: '用于分区的日期列',
-    tip_gridSTPartitionDate: '<li>分区日期列是可选的；如果需要经常全量构建，请将分区日期列留空</Li><li>分区日期列中应该为日期值（类型可以是Date, Timestamp, String, VARCHAR, Int, BigInt）</li>',
+    tip_gridSTPartitionDate: '<li>分区日期列是可选的；如果需要经常全量构建，请将分区日期列留空</Li><li>分区日期列中应该为日期值（类型可以是Date, Timestamp, String, VARCHAR, Int, Integer, BigInt）</li>',
     gridSTPartitionDateSelect: '--选择分区列--',
     gridSTPartitionDateFormat: '日期格式',
     gridSTPartitionDateFormatSelect: '--选择日期格式--',

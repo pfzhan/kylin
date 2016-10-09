@@ -243,7 +243,7 @@ KylinApp.constant('kapEnglishConfig', {
     gridSTPartition: 'Partition',
     gridSTPartitionType: 'Partition Type',
     gridSTPartitionDate: 'Partition Date Column',
-    tip_gridSTPartitionDate: '<li>Partition date column not required,leave as default if cube always need full build</Li><li>Column should contain date value (type can be Date, Timestamp, String, VARCHAR, Int, BigInt, etc.)</li>',
+    tip_gridSTPartitionDate: '<li>Partition date column not required,leave as default if cube always need full build</Li><li>Column should contain date value (type can be Date, Timestamp, String, VARCHAR, Int, Integer, BigInt, etc.)</li>',
     gridSTPartitionDateSelect: '--Select Partition Column--',
     gridSTPartitionDateFormat: 'Date Format',
     gridSTPartitionDateFormatSelect: '--Select Date Format--',
