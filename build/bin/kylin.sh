@@ -15,13 +15,16 @@ function retrieveDependency() {
     #retrive $hive_dependency and $hbase_dependency
     source ${dir}/find-hive-dependency.sh
     source ${dir}/find-hbase-dependency.sh
+    #source ${dir}/find-kafka-dependency.sh
+
     #retrive $KYLIN_EXTRA_START_OPTS
     if [ -f "${dir}/setenv.sh" ]
         then source ${dir}/setenv.sh
     fi
 
-    export HBASE_CLASSPATH_PREFIX=${KYLIN_HOME}/conf:${KYLIN_HOME}/lib/*:${KYLIN_HOME}/kybot/*:${KYLIN_HOME}/ext/*:${HBASE_CLASSPATH_PREFIX}
+    export HBASE_CLASSPATH_PREFIX=${KYLIN_HOME}/conf:${KYLIN_HOME}/lib/*:${KYLIN_HOME}/kybot/*:${KYLIN_HOME}/tool/*:${KYLIN_HOME}/ext/*:${HBASE_CLASSPATH_PREFIX}
     export HBASE_CLASSPATH=${HBASE_CLASSPATH}:${hive_dependency}
+    #export HBASE_CLASSPATH=${HBASE_CLASSPATH}:${kafka_dependency}
 }
 
 # start command
@@ -95,6 +98,7 @@ then
     -Djava.io.tmpdir=${tomcat_root}/temp  \
     -Dkylin.hive.dependency=${hive_dependency} \
     -Dkylin.hbase.dependency=${hbase_dependency} \
+    -Dkylin.kafka.dependency=${kafka_dependency} \
     -Dkylin.rest.address=${kylin_rest_address} \
     -Dspring.profiles.active=${spring_profile} \
     org.apache.hadoop.util.RunJar ${tomcat_root}/bin/bootstrap.jar  org.apache.catalina.startup.Bootstrap start >> ${KYLIN_HOME}/logs/kylin.out 2>&1 & echo $! > ${KYLIN_HOME}/pid &
@@ -147,67 +151,6 @@ then
         exit 1    
     fi
 
-# streaming command
-elif [ "$1" == "streaming" ]
-then
-    if [ $# -lt 4 ]
-    then
-        echo "invalid input args $@"
-        exit -1
-    fi
-    if [ "$2" == "start" ]
-    then
-        retrieveDependency
-        source ${dir}/find-kafka-dependency.sh
-
-        # KYLIN_EXTRA_START_OPTS is for customized settings, checkout bin/setenv.sh
-        hbase ${KYLIN_EXTRA_START_OPTS} \
-        -Dlog4j.configuration=kylin-log4j.properties\
-        -Dkylin.hive.dependency=${hive_dependency} \
-        -Dkylin.kafka.dependency=${kafka_dependency} \
-        -Dkylin.hbase.dependency=${hbase_dependency} \
-        org.apache.kylin.engine.streaming.cli.StreamingCLI $@ > ${KYLIN_HOME}/logs/streaming_$3_$4.log 2>&1 & echo $! > ${KYLIN_HOME}/logs/$3_$4 &
-        echo "streaming started name: $3 id: $4"
-        exit 0
-    elif [ "$2" == "stop" ]
-    then
-        if [ ! -f "${KYLIN_HOME}/$3_$4" ]
-            then
-                echo "streaming is not running, please check"
-                exit 1
-            fi
-            pid=`cat ${KYLIN_HOME}/$3_$4`
-            if [ "$pid" = "" ]
-            then
-                echo "streaming is not running, please check"
-                exit 1
-            else
-                echo "stopping streaming:$pid"
-                kill $pid
-            fi
-            rm ${KYLIN_HOME}/$3_$4
-            exit 0
-        else
-            echo
-        fi
-
-# monitor command
-elif [ "$1" == "monitor" ]
-then
-    echo "monitor job"
-
-    retrieveDependency
-    source ${dir}/find-kafka-dependency.sh
-
-    # KYLIN_EXTRA_START_OPTS is for customized settings, checkout bin/setenv.sh
-    hbase ${KYLIN_EXTRA_START_OPTS} \
-    -Dlog4j.configuration=kylin-log4j.properties\
-    -Dkylin.kafka.dependency=${kafka_dependency} \
-    -Dkylin.hive.dependency=${hive_dependency} \
-    -Dkylin.hbase.dependency=${hbase_dependency} \
-    org.apache.kylin.engine.streaming.cli.MonitorCLI $@ > ${KYLIN_HOME}/logs/monitor.log 2>&1
-    exit 0
-
 elif [ "$1" = "version" ]
 then
     exec hbase -Dlog4j.configuration=kylin-log4j.properties org.apache.kylin.common.KylinVersion
@@ -223,7 +166,7 @@ elif [[ "$1" = org.apache.kylin.* ]] || [[ "$1" = io.kyligence.* ]]
 then
     retrieveDependency
 
-    #retrive $KYLIN_EXTRA_START_OPTS
+    #retrive $KYLIN_EXTRA_START_OPTS from a separate file called setenv-tool.sh
     unset KYLIN_EXTRA_START_OPTS # unset the global server setenv config first
     if [ -f "${dir}/setenv-tool.sh" ]
         then source ${dir}/setenv-tool.sh

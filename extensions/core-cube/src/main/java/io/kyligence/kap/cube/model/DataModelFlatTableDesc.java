@@ -9,6 +9,7 @@ import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
+import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -162,6 +163,11 @@ public class DataModelFlatTableDesc implements IJoinedFlatTableDesc {
     @Override
     public TblColRef getDistributedBy() {
         return cubeDesc.getDistributedByColumn();
+    }
+
+    @Override
+    public ISegment getSegment() {
+        return cubeSegment;
     }
 
 }

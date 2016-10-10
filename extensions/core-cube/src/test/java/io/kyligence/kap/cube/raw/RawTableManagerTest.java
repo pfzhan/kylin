@@ -141,13 +141,13 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         assertEquals(0, raw.getSegments().size());
 
         // append first
-        CubeSegment seg1 = mgr.appendSegment(cube, 0, 1000, 0, 0);
+        CubeSegment seg1 = mgr.appendSegment(cube, 0, 1000);
         seg1.setStatus(SegmentStatusEnum.READY);
 
         RawTableSegment rawSeg1 = rawMgr.appendSegment(raw, seg1);
         rawSeg1.setStatus(SegmentStatusEnum.READY);
 
-        CubeSegment seg2 = mgr.appendSegment(cube, 0, 2000, 0, 0);
+        CubeSegment seg2 = mgr.appendSegment(cube, 0, 2000);
         seg2.setStatus(SegmentStatusEnum.READY);
 
         RawTableSegment rawSeg2 = rawMgr.appendSegment(raw, seg2);
@@ -203,13 +203,13 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         assertEquals(0, raw.getSegments().size());
 
         // append first
-        CubeSegment seg1 = mgr.appendSegment(cube, 0, 1000, 0, 0);
+        CubeSegment seg1 = mgr.appendSegment(cube, 0, 1000);
         seg1.setStatus(SegmentStatusEnum.READY);
 
         RawTableSegment rawSeg1 = rawMgr.appendSegment(raw, seg1);
         rawSeg1.setStatus(SegmentStatusEnum.READY);
 
-        CubeSegment seg3 = mgr.appendSegment(cube, 2000, 4000, 0, 0);
+        CubeSegment seg3 = mgr.appendSegment(cube, 2000, 4000);
         seg3.setStatus(SegmentStatusEnum.READY);
 
         RawTableSegment rawSeg3 = rawMgr.appendSegment(raw, seg3);
@@ -226,7 +226,7 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
 
         // append a new seg which will be merged
 
-        CubeSegment seg4 = mgr.appendSegment(cube, 4000, 8000, 0, 0);
+        CubeSegment seg4 = mgr.appendSegment(cube, 4000, 8000);
         seg4.setStatus(SegmentStatusEnum.READY);
 
         RawTableSegment rawSeg4 = rawMgr.appendSegment(raw, seg4);
@@ -246,7 +246,7 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
 
         // fill the gap
 
-        CubeSegment seg2 = mgr.appendSegment(cube, 1000, 2000, 0, 0);
+        CubeSegment seg2 = mgr.appendSegment(cube, 1000, 2000);
         seg2.setStatus(SegmentStatusEnum.READY);
 
         RawTableSegment rawSeg2 = rawMgr.appendSegment(raw, seg2);
