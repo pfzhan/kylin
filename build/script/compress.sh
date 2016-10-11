@@ -57,7 +57,7 @@ rm -rf ${package_name}
 cd ../dist
 # package obf tar
 if [ "$SKIP_OBF" != "1" ]; then
-    tar -xzf ${package_name}.tar.gz
+    tar -xzf ${package_name}-orig.tar.gz
 
     mv ../tmp/kylin.war ${package_name}/tomcat/webapps/kylin.war
     mv ../tmp/kylin-coprocessor-kap-${release_version}-obf.jar ${package_name}/lib/kylin-coprocessor-kap-${release_version}.jar
