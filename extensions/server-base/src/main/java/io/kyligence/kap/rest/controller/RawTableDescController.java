@@ -2,6 +2,7 @@ package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
 
+import org.apache.kylin.rest.controller.BasicController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,7 +16,7 @@ import io.kyligence.kap.rest.service.RawTableService;
 
 @Controller
 @RequestMapping(value = "/raw_desc")
-public class RawTableDescController {
+public class RawTableDescController extends BasicController {
 
     @Autowired
     private RawTableService rawService;
