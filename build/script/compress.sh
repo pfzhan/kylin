@@ -7,7 +7,10 @@ source build/script/functions.sh
 exportProjectVersions
 
 # get package name
-current_branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
+current_branch=${branch}
+if [ "${current_branch}" = "" ]; then
+    current_branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
+fi
 target_env="hbase0.98"
 feature="-plus"
 if [[ "${current_branch}" =~ "cdh" ]]; then
@@ -15,7 +18,7 @@ if [[ "${current_branch}" =~ "cdh" ]]; then
 elif [[ "${current_branch}" =~ "hbase" ]]; then
     target_env="hbase1.x"
 fi
-if [ "${PACKAGE_PLUS}" == "0" ]; then
+if [ "${PACKAGE_PLUS}" = "0" ]; then
     feature=""
 fi
 package_name=kap${feature}-${release_version}-${target_env}
