@@ -6,9 +6,22 @@ cd ${dir}/../..
 source build/script/functions.sh
 exportProjectVersions
 
-# Package as *.tar.gz
-echo 'package tar.gz'
-package_name=kylin-kap-${release_version}-bin
+# get package name
+current_branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
+target_env="hbase0.98"
+feature="-plus"
+if [ "${current_branch}" =~ "cdh" ]; then
+    target_env="cdh5.7"
+elif [ "${current_branch}" =~ "hbase" ]; then
+    target_env="hbase1.x"
+fi
+if [ "${PACKAGE_PLUS}" == "0" ]; then
+    feature=""
+fi
+package_name=kap${feature}-${release_version}-${target_env}
+
+# package as *.tar.gz
+echo "package name: ${package_name}"
 cd build/
 rm -rf ${package_name}
 mkdir ${package_name}
@@ -38,7 +51,7 @@ find ${package_name}/spark -type f -exec chmod 755 {} \;
 
 rm -rf ../dist
 mkdir -p ../dist
-tar -cvzf ../dist/${package_name}.tar.gz ${package_name}
+tar -cvzf ../dist/${package_name}-orig.tar.gz ${package_name}
 rm -rf ${package_name}
 
 cd ../dist
@@ -51,7 +64,7 @@ if [ "$SKIP_OBF" != "1" ]; then
     mv ../tmp/kylin-storage-parquet-kap-${release_version}-obf.jar ${package_name}/lib/kylin-storage-parquet-kap-${release_version}.jar
     mv ../tmp/kylin-job-kap-${release_version}-obf.jar ${package_name}/lib/kylin-job-kap-${release_version}.jar
     mv ../tmp/kylin-tool-kap-${release_version}-obf.jar ${package_name}/lib/kylin-tool-kap-${release_version}.jar
-    tar -cvzf ${package_name}-obf.tar.gz ${package_name}
+    tar -cvzf ${package_name}.tar.gz ${package_name}
 
     rm -r ../tmp
     rm -rf ${package_name}
