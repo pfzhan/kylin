@@ -1,5 +1,5 @@
 #!/bin/bash
-pkg_name=`ls dist/*-bin.tar.gz`
+pkg_name=`ls dist/*.tar.gz|grep orig.tar.gz$`
 
 test_home=smoke-test
 mkdir ${test_home}

@@ -1,12 +1,12 @@
 #!/bin/bash
-pkg_name=`ls dist/*-obf.tar.gz`
+pkg_name=`ls dist/*.tar.gz|grep -v orig.tar.gz$`
 echo $pkg_name
 if [ -f test.license ]; then
     tar -zxvf $pkg_name
-    mv -f test.license kylin-kap-*-bin/
+    mv -f test.license kap-*/
     rm -f $pkg_name
-    tar -zcvf $pkg_name kylin-kap-*-bin/
-    rm -rf kylin-kap-*-bin/
+    tar -zcvf $pkg_name kap-*/
+    rm -rf kap-*/
 fi
 
 test_home=smoke-test

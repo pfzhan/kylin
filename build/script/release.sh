@@ -13,12 +13,14 @@ echo "KAP Release Version: ${release_version}"
 sh build/script/package.sh $@
 
 if [ -f *.license ]; then
-    kap_dir=`tar -tf dist/kylin-kap-*-obf.tar.gz|head -1`
+    package_name=`ls dist/kap-*.tar.gz|grep -v orig.tar.gz$`
+    kap_dir=`tar -tf ${package_name}|head -1`
     rm -rf $kap_dir
     mkdir $kap_dir
     cp *.license $kap_dir
-    gzip -d dist/kylin-kap-*-obf.tar.gz
-    tar -uf dist/kylin-kap-*-obf.tar $kap_dir/*.license
-    gzip dist/kylin-kap-*-obf.tar
+    gzip -d ${package_name}
+    tar_name=`ls dist/kap-*.tar|grep -v orig.tar$`
+    tar -uf ${tar_name} $kap_dir/*.license
+    gzip ${tar_name}
     rm -rf $kap_dir
 fi
