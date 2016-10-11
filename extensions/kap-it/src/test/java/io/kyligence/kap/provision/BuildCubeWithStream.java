@@ -34,17 +34,17 @@ public class BuildCubeWithStream extends org.apache.kylin.provision.BuildCubeWit
     private static final Logger logger = LoggerFactory.getLogger(org.apache.kylin.provision.BuildCubeWithStream.class);
 
     public static void main(String[] args) throws Exception {
+        BuildCubeWithStream buildCubeWithStream = null;
         try {
             beforeClass();
-
-            BuildCubeWithStream buildCubeWithStream = new BuildCubeWithStream();
+            buildCubeWithStream = new BuildCubeWithStream();
             buildCubeWithStream.before();
             buildCubeWithStream.build();
             logger.info("Build is done");
             buildCubeWithStream.cleanup();
             logger.info("Going to exit");
             System.exit(0);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             logger.error("error", e);
             System.exit(1);
         }
@@ -55,12 +55,12 @@ public class BuildCubeWithStream extends org.apache.kylin.provision.BuildCubeWit
         KAPDeployUtil.overrideJobJarLocations();
     }
 
-    protected int cleanupOldStorage() throws Exception {
+    @Override
+    protected void cleanupOldStorage() throws Exception {
         String[] args = { "--delete", "true" };
 
         KapStorageCleanupCLI cli = new KapStorageCleanupCLI();
         cli.execute(args);
-        return 0;
     }
 
 }
