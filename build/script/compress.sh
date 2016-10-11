@@ -10,9 +10,9 @@ exportProjectVersions
 current_branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
 target_env="hbase0.98"
 feature="-plus"
-if [ "${current_branch}" =~ "cdh" ]; then
+if [[ "${current_branch}" =~ "cdh" ]]; then
     target_env="cdh5.7"
-elif [ "${current_branch}" =~ "hbase" ]; then
+elif [[ "${current_branch}" =~ "hbase" ]]; then
     target_env="hbase1.x"
 fi
 if [ "${PACKAGE_PLUS}" == "0" ]; then
