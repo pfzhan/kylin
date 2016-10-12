@@ -51,7 +51,7 @@ KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $lo
       $scope.languageType = newValue;
       $cookieStore.put('language',$scope.languageType);
       $scope.dataInit();
-      //$scope.$broadcast("finish",$scope.languageType);
+      $scope.$broadcast("finish",$scope.languageType);
 
     }
 
