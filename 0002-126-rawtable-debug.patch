@@ -1,0 +1,24 @@
+From 69d3db27ff6390757b7eec74021ba4e4bd167e53 Mon Sep 17 00:00:00 2001
+From: luguosheng <550175214@qq.com>
+Date: Fri, 14 Oct 2016 17:27:54 +0800
+Subject: [PATCH 2/2] #126 rawtable debug
+
+---
+ webapp/app/js/controllers/rawTableSettingCtrl.js | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/webapp/app/js/controllers/rawTableSettingCtrl.js b/webapp/app/js/controllers/rawTableSettingCtrl.js
+index 8de0966..738f935 100644
+--- a/webapp/app/js/controllers/rawTableSettingCtrl.js
++++ b/webapp/app/js/controllers/rawTableSettingCtrl.js
+@@ -133,7 +133,6 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
+         }
+         transferRawTableData();
+       },function(){
+-         //$scope.rawTableColumns=[];
+          $scope.wantSetting=false;
+           if($scope.isEdit){
+             $scope.rawTableColumns.needAdd=true;
+-- 
+2.9.2
+

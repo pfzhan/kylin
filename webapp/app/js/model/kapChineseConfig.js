@@ -289,7 +289,7 @@ KylinApp.constant('kapChineseConfig', {
     tip_visit: '点击',
     tip_about_aggregation_group:'查看更多相关聚合组信息',
     actions: '操作',
-    schema: ['Cube信息','维度','度量','更新配置','高级设置','原数据配置','配置覆盖','概览'],
+    schema: ['Cube信息','维度','度量','更新配置','高级设置','RawTable配置(测试版)','配置覆盖','概览'],
     admins: 'Admins',
     storage: '存储',
     streaming: 'Streaming',

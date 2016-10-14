@@ -33,93 +33,110 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
     transferRawTableData();
   }
   // Available tables cache: 1st is the fact table, next are lookup tables.
- $scope.availableTables = [];
- if($scope.state.mode=="edit") {
+  $scope.availableTables = [];
+  if($scope.state.mode=="edit") {
 
-   var factTable = $scope.metaModel.model.fact_table;
+    var factTable = $scope.metaModel.model.fact_table;
 
-   // At first dump the columns of fact table.
+    // At first dump the columns of fact table.
 //        var cols = $scope.getColumnsByTable(factTable);
-   var cols = $scope.getDimColumnsByTable(factTable);
+    var cols = $scope.getDimColumnsByTable(factTable);
 
-   // Initialize selected available.
-   var factSelectAvailable = {};
+    // Initialize selected available.
+    var factSelectAvailable = {};
 
-   for (var i = 0; i < cols.length; i++) {
-     cols[i].table = factTable;
-     cols[i].isLookup = false;
+    for (var i = 0; i < cols.length; i++) {
+      cols[i].table = factTable;
+      cols[i].isLookup = false;
 
-     // Default not selected and not disabled.
-     factSelectAvailable[cols[i].name] = {selected: false, disabled: false};
-   }
+      // Default not selected and not disabled.
+      factSelectAvailable[cols[i].name] = {selected: false, disabled: false};
+    }
 
-   $scope.availableColumns[factTable] = cols;
-   $scope.selectedColumns[factTable] = factSelectAvailable;
-   $scope.availableTables.push(factTable);
+    $scope.availableColumns[factTable] = cols;
+    $scope.selectedColumns[factTable] = factSelectAvailable;
+    $scope.availableTables.push(factTable);
 
-   // Then dump each lookup tables.
-   var lookups = $scope.metaModel.model.lookups;
+    // Then dump each lookup tables.
+    var lookups = $scope.metaModel.model.lookups;
 
-   for (var j = 0; j < lookups.length; j++) {
-     var cols2 = $scope.getDimColumnsByTable(lookups[j].table);
+    for (var j = 0; j < lookups.length; j++) {
+      var cols2 = $scope.getDimColumnsByTable(lookups[j].table);
 
-     // Initialize selected available.
-     var lookupSelectAvailable = {};
+      // Initialize selected available.
+      var lookupSelectAvailable = {};
 
-     for (var k = 0; k < cols2.length; k++) {
-       cols2[k].table = lookups[j].table;
-       cols2[k].isLookup = true;
-
-
-       // Default not selected and not disabled.
-       lookupSelectAvailable[cols2[k].name] = {selected: false, disabled: false};
-     }
-
-     $scope.availableColumns[lookups[j].table] = cols2;
-     $scope.selectedColumns[lookups[j].table] = lookupSelectAvailable;
-     if ($scope.availableTables.indexOf(lookups[j].table) == -1) {
-       $scope.availableTables.push(lookups[j].table);
-     }
-   }
-   var rawTableColumns = [];
-   for (var i in $scope.availableColumns) {
-     rawTableColumns = rawTableColumns.concat($scope.availableColumns[i]);
-   }
+      for (var k = 0; k < cols2.length; k++) {
+        cols2[k].table = lookups[j].table;
+        cols2[k].isLookup = true;
 
 
-   var saveData = {};
-   saveData.columns = [];
-   for (var i = 0; i < rawTableColumns.length; i++) {
-     var columnObj = {};
-     columnObj.index = "discrete";
-     columnObj.encoding = "var";
-     columnObj.table = rawTableColumns[i].table;
-     columnObj.column = rawTableColumns[i].name;
-     if($scope.metaModel.model.partition_desc&&columnObj.table+"."+columnObj.column==$scope.metaModel.model.partition_desc.partition_date_column){
-       columnObj.index="sorted";
-     }
-     saveData.columns.push(columnObj);
-   }
-   $scope.rawTableColumns = saveData;
-   transferRawTableData();
- }
+        // Default not selected and not disabled.
+        lookupSelectAvailable[cols2[k].name] = {selected: false, disabled: false};
+      }
+
+      $scope.availableColumns[lookups[j].table] = cols2;
+      $scope.selectedColumns[lookups[j].table] = lookupSelectAvailable;
+      if ($scope.availableTables.indexOf(lookups[j].table) == -1) {
+        $scope.availableTables.push(lookups[j].table);
+      }
+    }
+    var rawTableColumns = [];
+    for (var i in $scope.availableColumns) {
+      rawTableColumns = rawTableColumns.concat($scope.availableColumns[i]);
+    }
+    var measuresColumns=$scope.metaModel.model.metrics;
+    for(var i=0;i<measuresColumns.length;i++){
+      var measuresColumnsObj={};
+      measuresColumnsObj.table=$scope.metaModel.model.fact_table;
+      measuresColumnsObj.name=measuresColumns[i];
+      rawTableColumns.push(measuresColumnsObj);
+    }
+    var saveData = {};
+    saveData.columns = [];
+
+    var tempObj={};
+    for (var i = 0; i < rawTableColumns.length; i++) {
+      var cur=rawTableColumns[i];
+      if(tempObj[cur.table+cur.name]){
+        continue;
+      }
+      tempObj[cur.table+cur.name]=true;
+      var columnObj = {};
+      columnObj.index = "discrete";
+      columnObj.encoding = "var";
+      columnObj.table = cur.table;
+      columnObj.column = cur.name;
+      if($scope.metaModel.model.partition_desc&&columnObj.table+"."+columnObj.column==$scope.metaModel.model.partition_desc.partition_date_column){
+        columnObj.index="sorted";
+      }
+      saveData.columns.push(columnObj);
+    }
+    $scope.rawTableColumns = saveData;
+    transferRawTableData();
+  }
   $scope.refreshRawTablesIndex = function () {
     transferRawTableData();
   }
   if($scope.isEdit||$scope.state.mode=="view"){
     $scope.loadRawTable = function () {
       RawTablesService.getRawTableInfo({rawTableName: $scope.state.cubeName}, {}, function (request) {
-        if(request){
+        if(request&&request.columns&&request.columns.length){
           $scope.rawTableColumns = request;
-          if($scope.rawTableColumns&&$scope.rawTableColumns.column&&$scope.rawTableColumns.columns.length>0){
-            $scope.wantSetting=true;
+          $scope.wantSetting=true;
+          $scope.hasConfig=true;
+        }else{
+          $scope.wantSetting=false;
+          if($scope.isEdit){
+            $scope.rawTableColumns.needAdd=true;
           }
-          transferRawTableData();
         }
-
+        transferRawTableData();
       },function(){
-         $scope.rawTableColumns=[];
-         $scope.wantSetting=false;
+        $scope.wantSetting=false;
+        if($scope.isEdit){
+          $scope.rawTableColumns.needAdd=true;
+        }
       })
     }
     $scope.loadRawTable();
@@ -129,7 +146,9 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
     if($scope.wantSetting){
       $scope.$emit('RawTableEdited', $scope.rawTableColumns);
     }else{
-      $scope.$emit('RawTableEdited',[]);
+      var data=[];
+      data.needDelete=$scope.hasConfig;
+      $scope.$emit('RawTableEdited',data);
     }
   }
 
