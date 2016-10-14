@@ -7,6 +7,9 @@
 -keepnames class * implements java.io.Serializable
 -keepnames class * extends org.apache.kylin.measure.MeasureTypeFactory
 
+-keepnames class * extends org.apache.kylin.engine.mr.common.AbstractHadoopJob
+-keepnames class * extends org.apache.kylin.job.execution.AbstractExecutable
+
 -keepclassmembers class * implements java.io.Serializable {
 	static final long serialVersionUID;
 	private static final java.io.ObjectStreamField[] serialPersistentFields;
