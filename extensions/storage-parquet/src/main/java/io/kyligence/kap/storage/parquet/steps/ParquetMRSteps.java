@@ -101,7 +101,7 @@ public class ParquetMRSteps extends JobBuilderSupport {
         String outputPath = getRawParquetFolderPath(rawSegment) + "RawTable/";
 
         MapReduceExecutable mergeRawDataStep = new MapReduceExecutable();
-        mergeRawDataStep.setName("Merge RowTable Data");
+        mergeRawDataStep.setName("Merge Raw Table Data");
         StringBuilder cmd = new StringBuilder();
 
         appendMapReduceParameters(cmd);

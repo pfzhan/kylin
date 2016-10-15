@@ -62,7 +62,6 @@ public class MergeSecondaryIndexStep extends AbstractExecutable {
 
         Collections.sort(mergingSegments);
 
-        final int rowKeyNum = newSegment.getCubeDesc().getRowkey().getRowKeyColumns().length;
         final int[] columnsNeedIndex = newSegment.getCubeDesc().getRowkey().getColumnsNeedIndex();
 
         if (columnsNeedIndex.length == 0) {

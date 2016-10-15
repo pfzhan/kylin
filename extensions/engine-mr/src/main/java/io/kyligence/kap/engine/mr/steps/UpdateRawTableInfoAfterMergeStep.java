@@ -25,9 +25,10 @@
 package io.kyligence.kap.engine.mr.steps;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.cube.CubeManager;
+import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.steps.CubingExecutableUtil;
 import org.apache.kylin.job.exception.ExecuteException;
@@ -53,28 +54,23 @@ public class UpdateRawTableInfoAfterMergeStep extends AbstractExecutable {
 
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
-        final RawTableInstance raw = rawManager.getRawTableInstance(CubingExecutableUtil.getCubeName(this.getParams()));
+        final String cubeName = CubingExecutableUtil.getCubeName(this.getParams());
+        final RawTableInstance raw = rawManager.getRawTableInstance(cubeName);
 
-        RawTableSegment mergedSegment = raw.getSegmentById(CubingExecutableUtil.getSegmentId(this.getParams()));
+        String segmentId = CubingExecutableUtil.getSegmentId(this.getParams());
+        RawTableSegment mergedSegment = raw.getSegmentById(segmentId);
         if (mergedSegment == null) {
-            return new ExecuteResult(ExecuteResult.State.FAILED, "there is no segment with id:" + CubingExecutableUtil.getSegmentId(this.getParams()));
+            return new ExecuteResult(ExecuteResult.State.FAILED, "there is no segment with id:" + segmentId);
         }
 
         CubingJob cubingJob = (CubingJob) executableManager.getJob(CubingExecutableUtil.getCubingJobId(this.getParams()));
         long cubeSizeBytes = cubingJob.findCubeSizeBytes();
 
         // collect source statistics
-        List<String> mergingSegmentIds = CubingExecutableUtil.getMergingSegmentIds(this.getParams());
-        if (mergingSegmentIds.isEmpty()) {
-            return new ExecuteResult(ExecuteResult.State.FAILED, "there are no merging segments");
-        }
-        long sourceCount = 0L;
-        long sourceSize = 0L;
-        for (String id : mergingSegmentIds) {
-            RawTableSegment segment = raw.getSegmentById(id);
-            sourceCount += segment.getInputRecords();
-            sourceSize += segment.getInputRecordsSize();
-        }
+        CubeManager cubeMgr = CubeManager.getInstance(rawManager.getConfig());
+        CubeSegment cubeSeg = cubeMgr.getCube(cubeName).getSegmentById(segmentId);
+        long sourceCount = cubeSeg.getInputRecords();
+        long sourceSize = cubeSeg.getInputRecordsSize();
 
         // update segment info
         mergedSegment.setSizeKB(cubeSizeBytes / 1024);

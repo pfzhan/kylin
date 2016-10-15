@@ -155,6 +155,10 @@ public class RawTableManager implements IRealizationProvider {
             }
         }
     }
+    
+    public KylinConfig getConfig() {
+        return config;
+    }
 
     public RawTableInstance getRawTableInstance(String name) {
         return rawTableInstanceMap.get(name);
