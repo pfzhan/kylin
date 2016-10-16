@@ -489,7 +489,7 @@
                                     <value>kylin-log4j.properties</value>
                                 </property>
                             </systemProperties>
-                            <argLine>-Xms1G -Xmx2G -XX:MaxPermSize=512M</argLine>
+                            <argLine>-Xms1G -Xmx2G -XX:MaxPermSize=512M -Duser.timezone=UTC</argLine>
                         </configuration>
                     </plugin>
 
