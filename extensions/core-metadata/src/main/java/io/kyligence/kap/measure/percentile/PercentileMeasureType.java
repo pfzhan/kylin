@@ -34,6 +34,8 @@ import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
+import com.google.common.collect.ImmutableMap;
+
 public class PercentileMeasureType extends MeasureType<PercentileCounter> {
     // compression ratio saved in DataType.precision
     private final DataType dataType;
@@ -70,8 +72,10 @@ public class PercentileMeasureType extends MeasureType<PercentileCounter> {
         return true;
     }
 
+    static final Map<String, Class<?>> UDAF_MAP = ImmutableMap.<String, Class<?>> of(PercentileMeasureTypeFactory.FUNC_PERCENTILE, PercentileAggFunc.class);
+    
     @Override
-    public Class<?> getRewriteCalciteAggrFunctionClass() {
-        return PercentileAggFunc.class;
+    public Map<String, Class<?>> getRewriteCalciteAggrFunctions() {
+        return UDAF_MAP;
     }
 }

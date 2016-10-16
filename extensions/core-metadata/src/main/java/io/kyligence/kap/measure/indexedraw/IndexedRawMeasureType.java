@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.measure.indexedraw;
 
+import java.util.Map;
+
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.common.util.Dictionary;
@@ -34,14 +36,8 @@ import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Map;
 
 public class IndexedRawMeasureType extends MeasureType<ByteArray> {
-
-    private static final Logger logger = LoggerFactory.getLogger(IndexedRawMeasureType.class);
 
     private final DataType dataType;
 
@@ -98,6 +94,7 @@ public class IndexedRawMeasureType extends MeasureType<ByteArray> {
         };
     }
 
+    @SuppressWarnings("serial")
     @Override
     public MeasureAggregator<ByteArray> newAggregator() {
         return new MeasureAggregator<ByteArray>() {
@@ -128,11 +125,6 @@ public class IndexedRawMeasureType extends MeasureType<ByteArray> {
     @Override
     public boolean needRewrite() {
         return false;
-    }
-
-    @Override
-    public Class<?> getRewriteCalciteAggrFunctionClass() {
-        return null;
     }
 
     private TblColRef getRawColumn(FunctionDesc functionDesc) {
