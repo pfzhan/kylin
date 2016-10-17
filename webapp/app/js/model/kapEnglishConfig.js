@@ -577,7 +577,7 @@ KylinApp.constant('kapEnglishConfig', {
     sqlName: 'SQL Name:',
     description: 'Description',
     ac_resubmit: 'Resubmit',
-    ac_remove: 'Resubmit',
+    ac_remove: 'Remove',
     tip_no_query_history: 'No Query History.',
     queriedAt: 'Queried At: ',
     inProject: 'in Project:',
