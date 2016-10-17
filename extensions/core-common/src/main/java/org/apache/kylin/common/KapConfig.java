@@ -163,4 +163,11 @@ public class KapConfig {
     public String getCellLevelSecurityEnable() {
         return config.getOptional("kylin.cell.level.security.enable", "false");
     }
+
+    /**
+     * Massin
+     */
+    public String getMassinResourceIdentiferDir() {
+        return config.getOptional("kap.massin.resource.dir", new StringBuilder().append(config.getHdfsWorkingDirectory()).append("massin/").toString());
+    }
 }
