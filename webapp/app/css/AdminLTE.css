@@ -4068,3 +4068,6 @@ Gradient Background colors
 .users-paging-grid {
   overflow:visible;
 }
+.chosen-container .chosen-drop{
+  z-index: 999999;
+}
