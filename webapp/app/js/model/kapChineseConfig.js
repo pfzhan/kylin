@@ -249,7 +249,7 @@ KylinApp.constant('kapChineseConfig', {
     editDMLookupAdd: '添加',
     editDMLookupAdd: '编辑',//维度表 modal
     editDMLookupTableName: '维度表名称',
-    editDMLookupNewJoin: '新的连接类型',
+    editDMLookupNewJoin: '新的连接条件',
     tip_join_delete: '删除',
     tip_header_lookup_modal: ' <h4 class="box-title">提示</h4>',
     tip_body_lookup_modal: '<ol class="text-info"><li>请选择维度表</li><li>指定事实表和维度表的连接关系.</li><li>连接类型需跟SQL查询时的连接关系相同</li></ol>',
