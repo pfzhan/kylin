@@ -35,8 +35,13 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ParquetWithIndexFileReader extends RecordReader<IntWritable, byte[]> {
+
+    protected static final Logger logger = LoggerFactory.getLogger(ParquetWithIndexFileReader.class);
+
     protected Configuration conf;
 
     private FSDataInputStream shardIS;
@@ -67,15 +72,21 @@ public class ParquetWithIndexFileReader extends RecordReader<IntWritable, byte[]
 
         if (a < 0) {
             a = 0;
+            logger.info("closing shardIndexIS");
             shardIndexIS.close();
             shardIndexIS = null;
         }
 
-        int b = shardIS.read(val, a, val.length - a);
+        int b = 0;
+        if (shardIS != null) {
+            b = shardIS.read(val, a, val.length - a);
+        }
 
         if (b < 0) {
             b = 0;
+            logger.info("closing shardIS");
             shardIS.close();
+            shardIS = null;
         }
         key.set(a + b);
         return key.get() > 0;
