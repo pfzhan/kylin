@@ -45,6 +45,8 @@ public class SystemController extends BasicController {
         result.put("kap.license.statement", System.getProperty("kap.license.statement"));
         result.put("kap.version", System.getProperty("kap.version"));
         result.put("kap.dates", System.getProperty("kap.dates"));
+        result.put("kap.commit", System.getProperty("kap.commit"));
+        result.put("kylin.commit", System.getProperty("kylin.commit"));
         return result;
     }
 
