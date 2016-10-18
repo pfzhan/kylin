@@ -38,6 +38,7 @@ import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.ConstantTupleFilter;
 import io.kyligence.kap.metadata.filter.EvaluatableFunctionTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
+import org.apache.kylin.metadata.filter.UDF.MassInTupleFilter;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 import org.slf4j.Logger;
@@ -296,6 +297,13 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             ByteArray patternBytes = new ByteArray(pattern.getBytes(), 0, pattern.getBytes().length);
 
             return lookColumnIndex(col, likeFunction.getOperator(), Sets.newHashSet(patternBytes));
+        } else if (filter instanceof MassInTupleFilter) {
+            MassInTupleFilter massInTupleFilter = (MassInTupleFilter) filter;
+            int col = massInTupleFilter.getColumn().getColumnDesc().getZeroBasedIndex();
+            Set<ByteArray> conditionValues = (Set<ByteArray>) massInTupleFilter.getValues();
+
+            CompareTupleFilter inFilter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.IN);
+            return lookColumnIndex(col, inFilter.getOperator(), conditionValues);
         }
         throw new RuntimeException("Unrecognized tuple filter: " + filter);
     }

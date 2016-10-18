@@ -80,6 +80,6 @@ public class MassInService {
         filterDesc.setFilterTableType(filterTableType);
         MetadataManager.getInstance(kylinConfig).saveExternalFilter(filterDesc);
 
-        return filterDesc.getResourcePath();
+        return filterName;
     }
 }

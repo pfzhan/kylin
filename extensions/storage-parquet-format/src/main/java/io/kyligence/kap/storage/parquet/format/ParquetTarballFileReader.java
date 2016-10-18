@@ -43,8 +43,11 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.cube.kv.RowConstants;
+import org.apache.kylin.dimension.DimensionEncoding;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.metadata.filter.TupleFilter;
+import org.apache.kylin.metadata.filter.UDF.MassInTupleFilter;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.parquet.io.api.Binary;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.slf4j.Logger;
@@ -56,6 +59,7 @@ import com.google.common.primitives.Shorts;
 
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
+import io.kyligence.kap.storage.parquet.format.filter.MassInValueProviderFactoryImpl;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 
@@ -105,12 +109,19 @@ public class ParquetTarballFileReader extends RecordReader<Text, Text> {
         String scanReqStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES);
         ImmutableRoaringBitmap pageBitmap = null;
         if (scanReqStr != null) {
-            GTScanRequest gtScanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(scanReqStr.getBytes("ISO-8859-1")));
+            final GTScanRequest gtScanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(scanReqStr.getBytes("ISO-8859-1")));
             gtScanRequestThreadLocal.set(gtScanRequest);//for later use convenience
+
+            MassInTupleFilter.VALUE_PROVIDER_FACTORY = new MassInValueProviderFactoryImpl(new MassInValueProviderFactoryImpl.DimEncAware() {
+                @Override
+                public DimensionEncoding getDimEnc(TblColRef col) {
+                    return gtScanRequest.getInfo().getCodeSystem().getDimEnc(col.getColumnDesc().getZeroBasedIndex());
+                }
+            });
 
             if (Boolean.valueOf(conf.get(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX))) {
                 TupleFilter filter = gtScanRequest.getFilterPushDown();
-                
+
                 logger.info("Starting to lookup inverted index");
                 pageBitmap = indexTable.lookup(filter);
                 logger.info("Inverted Index bitmap: " + pageBitmap + ". Time spent is: " + (System.currentTimeMillis() - startTime));
