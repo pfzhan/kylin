@@ -44,17 +44,27 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
     },
     {
       "title":"Cubes",
-      "active":true
+      "active":false
     }
   ]
 
+
+  if($routeParams.tab){
+      for(var i=0;i<$scope.tabs.length;i++){
+        if($scope.tabs[i].title==$routeParams.tab){
+          $scope.tabs[i]["active"]=true;
+          break;
+        }
+      }
+  }else{
+    $scope.tabs[2].active=true;
+  }
   //tracking data loading status in /models page
   $scope.tableModel = TableModel;
 
   $scope.toggleTab = function (showModel) {
     $scope.showModels = showModel;
   }
-
   $scope.modelsManager = modelsManager;
   $scope.cubesManager = cubesManager;
   $scope.modelConfig = modelConfig;
@@ -132,7 +142,7 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
           loadingRequest.hide();
 //                    CubeList.removeCube(cube);
           kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_model_drop_done);
-          location.reload();
+          //location.reload();
         }, function (e) {
           loadingRequest.hide();
           kylinCommon.error_default(e);
@@ -239,7 +249,7 @@ var modelCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServi
         ModelService.clone({modelId: model.name}, $scope.modelRequest, function (result) {
           loadingRequest.hide();
           SweetAlert.swal($scope.dataKylin.alert.success, $scope.dataKylin.alert.success_clone_model, 'success');
-          location.reload();
+          //location.reload();
         }, function (e) {
           loadingRequest.hide();
           kylinCommon.error_default(e);
