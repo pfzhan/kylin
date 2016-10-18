@@ -850,7 +850,9 @@ KylinApp.constant('kapEnglishConfig', {
     aboutkap:"About KAP",
     version:"Version",
     dates:"Valid Period",
-    statement:"License Statement"
+    statement:"License Statement",
+    commit:"Commit",
+    kylincommit:"Kylin Commit"
   }
 
 });

@@ -833,7 +833,9 @@ KylinApp.constant('kapChineseConfig', {
     aboutkap:"关于 KAP",
     version:"版本",
     dates:"使用期限",
-    statement:"许可声明"
+    statement:"许可声明",
+    commit:"Commit",
+    kylincommit:"Kylin Commit"
   }
 
 });

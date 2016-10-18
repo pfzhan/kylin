@@ -242,6 +242,13 @@ var aboutKapCtrl = function($scope,KapSystemService,language){
     if(!data['kap.dates']){
       data['kap.dates'] = 'N/A';
     }
+    if(!data['kap.commit']){
+      data['kap.commit'] = 'N/A';
+    }
+    if(!data['kylin.commit']){
+      data['kylin.commit'] = 'N/A';
+    }
+
     $scope.license = data;
   },function(){
 

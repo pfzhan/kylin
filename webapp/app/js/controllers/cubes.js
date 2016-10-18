@@ -369,10 +369,11 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
             title: '',
             text: $scope.dataKylin.alert.tip_to_start_build,
             type: '',
+            closeOnConfirm: true,
             showCancelButton: true,
             confirmButtonColor: '#DD6B55',
-            confirmButtonText: "Yes",
-            closeOnConfirm: true
+            confirmButtonText: "Yes"
+
           }, function(isConfirm) {
             if(isConfirm){
 
