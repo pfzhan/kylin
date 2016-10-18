@@ -153,10 +153,11 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
   };
 
   $scope.cloneModel = function(model){
-    $modal.open({
+    $scope.hasOpen=$modal.open({
       templateUrl: 'modelClone.html',
       controller: modelCloneCtrl,
       windowClass:"clone-cube-window",
+      scope:$scope,
       resolve: {
         model: function () {
           return model;
@@ -233,7 +234,6 @@ var modelCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServi
       project:$scope.targetObj.targetProject
     }
 
-
     SweetAlert.swal({
       title: '',
       text: $scope.dataKylin.alert.tip_to_clone_model,
@@ -248,8 +248,10 @@ var modelCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServi
         loadingRequest.show();
         ModelService.clone({modelId: model.name}, $scope.modelRequest, function (result) {
           loadingRequest.hide();
-          SweetAlert.swal($scope.dataKylin.alert.success, $scope.dataKylin.alert.success_clone_model, 'success');
-          //location.reload();
+          SweetAlert.swal({title:$scope.dataKylin.alert.success, text:$scope.dataKylin.alert.success_clone_model,type: 'success'},function(){
+             $scope.hasOpen.close();
+          });
+          $scope.list();
         }, function (e) {
           loadingRequest.hide();
           kylinCommon.error_default(e);
