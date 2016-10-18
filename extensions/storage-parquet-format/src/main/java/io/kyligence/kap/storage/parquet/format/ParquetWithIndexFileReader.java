@@ -65,31 +65,34 @@ public class ParquetWithIndexFileReader extends RecordReader<IntWritable, byte[]
 
     @Override
     public boolean nextKeyValue() throws IOException, InterruptedException {
-        int a = 0;
         if (shardIndexIS != null) {
-            a = shardIndexIS.read(val, 0, val.length);
+            int a = shardIndexIS.read(val, 0, val.length);//An attempt is made to read  as many as <code>len</code> bytes, but a smaller number may be read,
+
+            if (a < 0) {
+                logger.info("closing shardIndexIS");
+                shardIndexIS.close();
+                shardIndexIS = null;
+                //go on to shardIS
+            } else {
+                key.set(a);
+                return true;
+            }
         }
 
-        if (a < 0) {
-            a = 0;
-            logger.info("closing shardIndexIS");
-            shardIndexIS.close();
-            shardIndexIS = null;
-        }
-
-        int b = 0;
         if (shardIS != null) {
-            b = shardIS.read(val, a, val.length - a);
+            int b = shardIS.read(val, 0, val.length);
+
+            if (b < 0) {
+                logger.info("closing shardIS");
+                shardIS.close();
+                shardIS = null;
+            } else {
+                key.set(b);
+                return true;
+            }
         }
 
-        if (b < 0) {
-            b = 0;
-            logger.info("closing shardIS");
-            shardIS.close();
-            shardIS = null;
-        }
-        key.set(a + b);
-        return key.get() > 0;
+        return false;
     }
 
     @Override
