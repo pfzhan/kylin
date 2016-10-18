@@ -4071,3 +4071,6 @@ Gradient Background colors
 .chosen-container .chosen-drop{
   z-index: 999999;
 }
+.panel-title.font12{
+  font-size:12px;
+}
