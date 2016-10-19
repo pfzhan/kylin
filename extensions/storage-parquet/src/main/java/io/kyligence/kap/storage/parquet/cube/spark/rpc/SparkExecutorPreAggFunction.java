@@ -117,6 +117,13 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
             baos.write(byteArray.array(), 0, byteArray.length());
 
             counter++;
+
+            //if it's doing storage aggr, then should rely on GTAggregateScanner's limit check
+            if (!gtScanRequest.isDoingStorageAggregation() && counter >= gtScanRequest.getStoragePushDownLimit()) {
+                //read one more record than limit
+                logger.info("The finalScanner aborted because storagePushDownLimit is satisfied");
+                break;
+            }
         }
 
         logger.info("Current task scanned {} raw records", preAggred.getScannedRowCount());
