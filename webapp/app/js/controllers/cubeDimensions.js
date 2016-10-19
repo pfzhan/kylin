@@ -400,9 +400,9 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
                 }
             } else {
                 // Per lookup table, create one derived dimension for all its selected columns;
-                if (cols.length) {
-                    dimList.push(Dimension(table, cols, 'derived'));
-                }
+               for (var i = 0; i < cols.length; i++) {
+                   dimList.push(Dimension(table, [cols[i]], 'derived'));
+               }
             }
         });
     };
