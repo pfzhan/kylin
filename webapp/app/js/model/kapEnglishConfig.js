@@ -304,7 +304,7 @@ KylinApp.constant('kapEnglishConfig', {
       {attr: 'create_time_utc', name: 'Create Time'}
     ],
     actions: 'Actions',
-    schema: ['Cube Info','Dimensions','Measures','Refresh Setting','Advanced Setting','RawTable(Beta)','Configuration Overwrites','Overview'],
+    schema: ['Cube Info','Dimensions','Measures','Refresh Setting','Advanced Setting','Raw Table(Beta)','Configuration Overwrites','Overview'],
     admins: 'Admins',
     storage: 'Storage',
     streaming: 'Streaming',

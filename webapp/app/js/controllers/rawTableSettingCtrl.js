@@ -21,7 +21,7 @@
 
 'use strict';
 
-KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,RawTablesService,cubesManager,modelsManager,SweetAlert) {
+KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,RawTablesService,cubesManager,modelsManager,SweetAlert,kylinConfig) {
   $scope.availableColumns = {};
   $scope.selectedColumns = {};
   $scope.wantSetting=false;
@@ -125,6 +125,7 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
           $scope.rawTableColumns = request;
           $scope.wantSetting=true;
           $scope.hasConfig=true;
+          $scope.isSupportRawTable=(+request.engine_type!=2&&+request.storage_type!=2);
         }else{
           $scope.wantSetting=false;
           if($scope.isEdit){
@@ -140,10 +141,14 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
       })
     }
     $scope.loadRawTable();
+  }else{
+    $scope.isSupportRawTable=(+kylinConfig.getStorageEng()!=2&&+kylinConfig.getCubeEng()!=2);
   }
 
+
+
   function transferRawTableData(){
-    if($scope.wantSetting){
+    if($scope.wantSetting&&$scope.isSupportRawTable){
       $scope.$emit('RawTableEdited', $scope.rawTableColumns);
     }else{
       var data=[];
