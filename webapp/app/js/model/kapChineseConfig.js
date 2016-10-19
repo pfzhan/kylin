@@ -78,8 +78,7 @@ KylinApp.constant('kapChineseConfig', {
   welcome: '欢迎',
   documents: [
     {link:'http://kyligence.io',displayName:'关于我们'},
-    {link:'https://www.gitbook.com/book/kyligence-git/kap-user-manual/details',displayName:'用户手册'},
-    {link:' https://www.gitbook.com/book/kyligence-git/kap-admin-manual/details',displayName:'管理员手册'}
+    {link:'https://www.gitbook.com/book/kyligence-git/kap-manual/details',displayName:'使用手册'}
   ],
   selectLanguage: '请选择语言'
   },
