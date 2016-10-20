@@ -140,25 +140,13 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
   };
 
   $scope.getGroupByColumns = function () {
-    var me_columns = [];
-    var table_columns=[];
     var groupBy_columns=[];
-    var tableColumns = $scope.getColumnsByTable($scope.metaModel.model.fact_table);
-    if($scope.metaModel.model.metrics){
-      angular.forEach($scope.metaModel.model.metrics,function(metric,index){
-        me_columns.push(metric);
-      });
-    }
-    angular.forEach($scope.cubeMetaFrame.dimensions,function(dimension){
-      if(dimension.table==$scope.metaModel.model.fact_table) {
-        table_columns.push(dimension.column);
+
+    angular.forEach($scope.metaModel.model.dimensions,function(dimension,index){
+      if(dimension.columns){
+        groupBy_columns = groupBy_columns.concat(dimension.columns);
       }
-    });
-    angular.forEach(me_columns,function(column){
-      if(table_columns.indexOf(column)==-1) {
-        groupBy_columns.push(column);
-      }
-    });
+    })
 
     return groupBy_columns;
   };
