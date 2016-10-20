@@ -45,6 +45,15 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,MetaModel,cubes
     }
     if($scope.newMeasure.function.expression=="TOP_N"){
       $scope.convertedColumns=[];
+            if($scope.newMeasure.function.configuration==null){
+                var GroupBy = {
+                      name:$scope.newMeasure.function.parameter.next_parameter.value,
+                      encoding:"dict",
+                      valueLength:0,
+                      }
+                $scope.convertedColumns.push(GroupBy);
+              }
+
       for(var configuration in $scope.newMeasure.function.configuration) {
         var _name=configuration.slice(14);
         var item=$scope.newMeasure.function.configuration[configuration];
@@ -275,7 +284,9 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,MetaModel,cubes
   $scope.measureReturnTypeUpdate = function(){
 
     if($scope.newMeasure.function.expression == 'TOP_N'){
-      $scope.newMeasure.function.parameter.type= 'column';
+      if($scope.newMeasure.function.parameter.type==""||!$scope.newMeasure.function.parameter.type){
+        $scope.newMeasure.function.parameter.type= 'column';
+      }
       $scope.newMeasure.function.returntype = "topn(100)";
       $scope.convertedColumns=[];
       return;

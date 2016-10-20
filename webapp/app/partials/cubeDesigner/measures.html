@@ -113,7 +113,7 @@
               </div>
             </div>
             <!--Param Type-->
-            <div class="form-group" ng-if="newMeasure.function.expression !== 'EXTENDED_COLUMN' && newMeasure.function.expression !== 'TOP_N'">
+            <div class="form-group" ng-if="newMeasure.function.expression !== 'EXTENDED_COLUMN'">
               <div class="row">
                 <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default"><b>{{dataKylin.cube.cubeMSParamType}}</b></label>
                 <div class="col-xs-12 col-sm-6">
@@ -167,9 +167,9 @@
             <!--Return Type-->
             <div class="form-group middle-popover">
               <div class="row">
-                <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default">
-                  <label class="col-xs-12 col-sm-3 control-label no-padding-right no-padding-left font-color-default"><b>{{dataKylin.cube.cubeMSReturnType}}</b></label>
-                  <b ng-if="newMeasure.function.expression == 'EXTENDED_COLUMN'">Maximum length of extended column</b>  <i ng-if="newMeasure.function.expression == 'EXTENDED_COLUMN'" title="Maximum Length" class="fa fa-info-circle" kylinpopover placement="right" template="extendedTypeTip.html"></i>
+                <label ng-if="newMeasure.function.expression !== 'EXTENDED_COLUMN'" class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default"><b>{{dataKylin.cube.cubeMSReturnType}}</b></label>
+                <label ng-if="newMeasure.function.expression == 'EXTENDED_COLUMN'" class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default">
+                  <b>Maximum length of extended column</b>  <i ng-if="newMeasure.function.expression == 'EXTENDED_COLUMN'" title="Maximum Length" class="fa fa-info-circle" kylinpopover placement="right" template="extendedTypeTip.html"></i>
                 </label>
                 <div class="col-xs-12 col-sm-6">
                   <select class="form-control"
@@ -344,20 +344,22 @@
 
 <script type="text/ng-template" id="extendedTypeTip.html">
   <p>
-    Kylin won’t save more than this number of bytes for each extended column. If exceeded it will be truncated.
+    {{dataKylin.cube.tip_extendedType}}
   </p>
 </script>
 
 <script type="text/ng-template" id="topnTip.html">
-  <p>Will use this column for SUM and Order by</p>
+  <p>
+    {{dataKylin.cube.tip_topn}}
+  </p>
 </script>
 
 <script type="text/ng-template" id="hostTableTip.html">
-  <p>Host column is the dimension to derive from, e.g. page_id</p>
+  <p>{{dataKylin.cube.tip_hostcolumn}}</p>
 </script>
 <script type="text/ng-template" id="extendedColumnTip.html">
   <p>
-    Extended column is derived from host, e.g. page_url. No filters on extended column!
+  <p>{{dataKylin.cube.tip_extendedcolumn}}</p>
   </p>
 </script>
 
