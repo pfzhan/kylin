@@ -614,6 +614,7 @@ KylinApp.constant('kapEnglishConfig', {
     ac_close: 'Close'
   },
   data_source:{
+    edit: 'Edit',
     data_source: 'Data Source',
     extendInformation: 'Extend Information',
     tables: 'tables',//--table tree begin

@@ -597,6 +597,7 @@ KylinApp.constant('kapChineseConfig', {
     ac_close: '关闭'
   },
   data_source:{
+    edit: '编辑',
     data_source: '数据源',
     extendInformation: '扩展信息',
     tables: '表',//--table tree begin
