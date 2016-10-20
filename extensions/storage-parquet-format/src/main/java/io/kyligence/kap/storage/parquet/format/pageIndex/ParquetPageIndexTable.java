@@ -298,12 +298,14 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
 
             return lookColumnIndex(col, likeFunction.getOperator(), Sets.newHashSet(patternBytes));
         } else if (filter instanceof MassInTupleFilter) {
-            MassInTupleFilter massInTupleFilter = (MassInTupleFilter) filter;
-            int col = massInTupleFilter.getColumn().getColumnDesc().getZeroBasedIndex();
-            Set<ByteArray> conditionValues = (Set<ByteArray>) massInTupleFilter.getValues();
-
-            CompareTupleFilter inFilter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.IN);
-            return lookColumnIndex(col, inFilter.getOperator(), conditionValues);
+//            MassInTupleFilter massInTupleFilter = (MassInTupleFilter) filter;
+//            int col = massInTupleFilter.getColumn().getColumnDesc().getZeroBasedIndex();
+//            Set<ByteArray> conditionValues = (Set<ByteArray>) massInTupleFilter.getValues();
+//
+//            CompareTupleFilter inFilter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.IN);
+//            return lookColumnIndex(col, inFilter.getOperator(), conditionValues);
+            logger.info("full bitmap for massin");
+            return getFullBitmap().toMutableRoaringBitmap();
         }
         throw new RuntimeException("Unrecognized tuple filter: " + filter);
     }
