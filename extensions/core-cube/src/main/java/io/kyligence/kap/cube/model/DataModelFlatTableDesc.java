@@ -30,13 +30,11 @@ import java.util.Map;
 import org.apache.kylin.common.util.BytesSplitter;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.ModelDimensionDesc;
-import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.Lists;
@@ -78,7 +76,7 @@ public class DataModelFlatTableDesc implements IJoinedFlatTableDesc {
         int columnIndex = 0;
         for (ModelDimensionDesc mdDesc : dataModelDesc.getDimensions()) {
             for (String col : mdDesc.getColumns()) {
-                TblColRef tblColRef = getTblByName(col, mdDesc.getTable());
+                TblColRef tblColRef = dataModelDesc.findColumn(mdDesc.getTable(), col);
                 columnIndexMap.put(tblColRef, columnIndex);
                 columnList.add(tblColRef);
                 columnIndex++;
@@ -87,7 +85,7 @@ public class DataModelFlatTableDesc implements IJoinedFlatTableDesc {
 
         // add metrics
         for (String metric : dataModelDesc.getMetrics()) {
-            TblColRef tblColRef = getTblByName(metric, dataModelDesc.getFactTable());
+            TblColRef tblColRef = dataModelDesc.findColumn(metric);
             if (!columnIndexMap.containsKey(tblColRef)) {
                 columnIndexMap.put(tblColRef, columnIndex);
                 columnList.add(tblColRef);
@@ -115,30 +113,6 @@ public class DataModelFlatTableDesc implements IJoinedFlatTableDesc {
             }
         }
         columnCount = columnIndex;
-    }
-
-    private TblColRef getTblByName(String colName, String tableName) {
-        if (isFactTable(tableName)) {
-            for (ColumnDesc col : dataModelDesc.getFactTableDesc().getColumns()) {
-                if (col.getName().equals(colName))
-                    return col.getRef();
-            }
-        } else {
-            for (TableDesc desc : dataModelDesc.getLookupTableDescs()) {
-                if (!(desc.getDatabase() + "." + desc.getName()).equals(tableName))
-                    continue;
-
-                for (ColumnDesc col : desc.getColumns()) {
-                    if (col.getName().equals(colName))
-                        return col.getRef();
-                }
-            }
-        }
-        return null;
-    }
-
-    private boolean isFactTable(String tableName) {
-        return dataModelDesc.getFactTable().equals(tableName);
     }
 
     // sanity check the input record (in bytes) matches what's expected
