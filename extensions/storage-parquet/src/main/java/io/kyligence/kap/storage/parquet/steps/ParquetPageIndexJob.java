@@ -79,7 +79,7 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
             int inputNum = setJobInputFile(job, new Path(getOptionValue(OPTION_INPUT_PATH)));
             if (inputNum == 0) {
                 skipped = true;
-                logger.info("ParquetPageIndexJob is skipped because there's no input file");
+                logger.info("Columnar Page Index Job is skipped because there's no input file");
                 return 0;
             }
 
