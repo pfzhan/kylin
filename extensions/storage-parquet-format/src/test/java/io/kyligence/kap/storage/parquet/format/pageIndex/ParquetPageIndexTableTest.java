@@ -23,7 +23,6 @@ import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.ConstantTupleFilter;
 import org.apache.kylin.metadata.filter.LogicalTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
-import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -74,9 +73,9 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         inputStream.seek(0);
         indexOrderedTable = new ParquetOrderedPageIndexTable(fileSystem, invPath, inputStream, 0, Collections.singleton(0));
 
-        colRef1 = ColumnDesc.mockup(null, 1, columnName[0], null).getRef();
-        colRef2 = ColumnDesc.mockup(null, 2, columnName[1], null).getRef();
-        colRef3 = ColumnDesc.mockup(null, 3, columnName[2], null).getRef();
+        colRef1 = TblColRef.mockup(null, 1, columnName[0], null);
+        colRef2 = TblColRef.mockup(null, 2, columnName[1], null);
+        colRef3 = TblColRef.mockup(null, 3, columnName[2], null);
     }
 
     private static void writeIndexFile(File indexFile) throws IOException {
