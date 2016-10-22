@@ -43,6 +43,7 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
@@ -72,6 +73,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
 
     // computed
     private KylinConfig config;
+    private DataModelDesc model;
     private Map<TblColRef, RawTableColumnDesc> columnMap;
     private HashSet<TblColRef> fuzzyColumnSet;
 
@@ -86,7 +88,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     public TblColRef getOrderedColumn() {
         for (RawTableColumnDesc colDesc : columns) {
             if (INDEX_SORTED.equals(colDesc.getIndex()))
-                return colDesc.getColumn().getRef();
+                return colDesc.getColumn();
         }
         
         DataModelDesc model = getModel();
@@ -101,7 +103,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         for (RawTableColumnDesc colDesc : columns) {
             if (INDEX_SORTED.equals(colDesc.getIndex()))
                 continue;
-            cols.add(colDesc.getColumn().getRef());
+            cols.add(colDesc.getColumn());
         }
         return cols;
     }
@@ -148,17 +150,18 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
 
     void init(KylinConfig config) {
         MetadataManager metaMgr = MetadataManager.getInstance(config);
-        fuzzyColumnSet = new HashSet<>();
 
         this.config = config;
+        this.model = metaMgr.getDataModelDesc(modelName);
         this.columnMap = Maps.newHashMap();
+        this.fuzzyColumnSet = Sets.newHashSet();
 
         for (RawTableColumnDesc colDesc : columns) {
-            colDesc.init(metaMgr);
+            colDesc.init(model);
             if (colDesc.getFuzzyIndex()) {
-                fuzzyColumnSet.add(colDesc.getColumn().getRef());
+                fuzzyColumnSet.add(colDesc.getColumn());
             }
-            columnMap.put(colDesc.getColumn().getRef(), colDesc);
+            columnMap.put(colDesc.getColumn(), colDesc);
         }
     }
 
@@ -169,7 +172,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     }
 
     public DataModelDesc getModel() {
-        return MetadataManager.getInstance(config).getDataModelDesc(modelName);
+        return model;
     }
 
     public String getName() {

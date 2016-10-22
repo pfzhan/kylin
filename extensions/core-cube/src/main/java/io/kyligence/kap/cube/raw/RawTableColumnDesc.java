@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.cube.raw;
 
-import org.apache.kylin.metadata.MetadataManager;
-import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.TblColRef;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -46,36 +46,22 @@ public class RawTableColumnDesc {
     private String encoding;
 
     // computed
-    private ColumnDesc column;
+    private TblColRef column;
 
     // for Jackson
     public RawTableColumnDesc() {
     }
 
-    // for test
-    public RawTableColumnDesc(ColumnDesc col, String index, String encoding) {
-        this.tableName = col.getTable().getIdentity();
-        this.columnName = col.getName();
-        this.index = index;
-        this.encoding = encoding;
-
-        this.column = col;
-    }
-
-    void init(MetadataManager metaMgr) {
+    void init(DataModelDesc model) {
         tableName = tableName.toUpperCase();
         columnName = columnName.toUpperCase();
-        column = metaMgr.getColumnDesc(tableName + "." + columnName);
+        column = model.findColumn(tableName, columnName);
     }
 
     // ============================================================================
 
-    public ColumnDesc getColumn() {
+    public TblColRef getColumn() {
         return column;
-    }
-
-    void setColumn(ColumnDesc column) {
-        this.column = column;
     }
 
     public String getTableName() {
