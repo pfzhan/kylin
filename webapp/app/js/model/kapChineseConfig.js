@@ -348,7 +348,8 @@ KylinApp.constant('kapChineseConfig', {
     tip_body_cubeDS: ' <li>在输入框中输入，系统会自动提示</li><li>请先从星型模型中选择事实表</li><li>数据类型需要与Hive表中的类型相一致</li><li>连接类型需跟SQL查询时的连接关系相同</li><li>对于ID,Name这种一一对应的列, 请添加维度时选择可推导(Derived)类型的维度</li>',
     ac_ok_cube: '确定',
     ac_cancel_cube: '取消',
-    cubeDSAutoGenerate: '自动生成维度 <small>这个工具会帮助您批量生成维度.</small> ',//Auto Generate Dimensions begin
+    cubeDSAutoGenerate_part_one: '自动生成维度 ',//Auto Generate Dimensions
+    cubeDSAutoGenerate_part_two: '这个工具会帮助您批量生成维度. ',
     cubeDSColumns: 'Columns',
     cubeDSFactTable: '[事实表]',
     cubeDSLookupTable: '[维度表]',
@@ -832,7 +833,8 @@ KylinApp.constant('kapChineseConfig', {
     warning_measures_part_one:'名为 [',
     warning_measures_part_two: '] 的列已经存在.',
     duplicate_measures_part_one:'名为 [',
-    duplicate_measures_part_two: '] 的度量已经存在.'
+    duplicate_measures_part_two: '] 的度量已经存在.',
+    warning_dimensions_name:"名称不能为空"
   },
   license:{
     aboutkap:"关于 KAP",

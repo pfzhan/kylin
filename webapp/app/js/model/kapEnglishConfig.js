@@ -364,8 +364,8 @@ KylinApp.constant('kapEnglishConfig', {
     tip_body_cubeDS: ' <li>Type in any input box for auto suggestion</li><li>Pick up Fact Table from Star Schema Tables first</li><li>Data Type should match with Hive Table\'s Data Type</li><li>Join Type have to be same as will be used in query</li><li>Using Derived for One-One relationship between columns, like ID and Name</li>',
     ac_ok_cube: 'OK',
     ac_cancel_cube: 'Cancel',
-    cubeDSAutoGenerate: 'Auto Generate Dimensions <small>This is a helper for you to batch generate dimensions.</small> ',//Auto Generate Dimensions begin
-    cubeDSColumns: 'Columns',
+    cubeDSAutoGenerate_part_one: 'Auto Generate Dimensions <small>This is a helper for you to batch generate dimensions.</small>',//Auto Generate Dimensions begin
+    cubeDSAutoGenerate_part_two: 'This is a helper for you to batch generate dimensions.', cubeDSColumns: 'Columns',
     cubeDSFactTable: '[Fact Table]',
     cubeDSLookupTable: '[Lookup Table]',
     tip_title_DSAutoGenerate: 'Auto Generate Rules',
@@ -849,7 +849,8 @@ KylinApp.constant('kapEnglishConfig', {
     warning_measures_part_one:'The column named [',
     warning_measures_part_two: '] already exists!',
     duplicate_measures_part_one:'The measure named [',
-    duplicate_measures_part_two: '] already exists!'
+    duplicate_measures_part_two: '] already exists!',
+    warning_dimensions_name:"The name is required."
 },
   license:{
     aboutkap:"About KAP",
