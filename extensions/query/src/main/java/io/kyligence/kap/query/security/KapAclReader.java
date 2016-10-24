@@ -90,7 +90,7 @@ public class KapAclReader {
             boolean isColumnsInLookups = false;
             for (TblColRef colDesc : dmDesc.getFactTableRef().getColumns()) {
                 String nameInTable = colDesc.getCanonicalName();
-                if (nameInTable.equalsIgnoreCase(colName)) {
+                if (nameInTable.contains(colName.toUpperCase())) {
                     isColumnsInFact = true;
                     break;
                 }
@@ -102,7 +102,7 @@ public class KapAclReader {
             for (TableRef tableRef : dmDesc.getLookupTableRefs()) {
                 for (TblColRef tblColRef : tableRef.getColumns()) {
                     String nameInTable = tblColRef.getCanonicalName();
-                    if (nameInTable.equalsIgnoreCase(colName)) {
+                    if (nameInTable.contains(colName.toUpperCase())) {
                         isColumnsInLookups = true;
                         break;
                     }
