@@ -559,7 +559,7 @@ var cubeCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServic
 }
 
 
-var jobSubmitCtrl = function ($scope,scope, $modalInstance, CubeService, MessageService, $location, cube, metaModel, buildType, SweetAlert, loadingRequest, CubeList,language,kylinCommon) {
+var jobSubmitCtrl = function ($scope,scope, $modalInstance, CubeService, MessageService, $location, cube, metaModel, buildType, SweetAlert, loadingRequest, CubeList,language,kylinCommon,$filter) {
   $scope.dataKylin = language.getDataKylin();
   $scope.cubeList = CubeList;
   $scope.cube = cube;
@@ -570,7 +570,13 @@ var jobSubmitCtrl = function ($scope,scope, $modalInstance, CubeService, Message
     endTime: 0
   };
   $scope.message = "";
-
+  var startTime;
+  if(cube.segments.length == 0){
+    startTime = (!!cube.detail.partition_date_start)?cube.detail.partition_date_start:0;
+  }else{
+    startTime = cube.segments[cube.segments.length-1].date_range_end;
+  }
+  $scope.jobBuildRequest.startTime=startTime;
   $scope.rebuild = function () {
 
     $scope.message = null;
