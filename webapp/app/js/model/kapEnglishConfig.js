@@ -369,7 +369,7 @@ KylinApp.constant('kapEnglishConfig', {
     cubeDSFactTable: '[Fact Table]',
     cubeDSLookupTable: '[Lookup Table]',
     tip_title_DSAutoGenerate: 'Auto Generate Rules',
-    tip_body_DSAutoGenerate: '<li>Column is disabled once there is already a dimension referred this column.</li><li>In fact table: one normal dimension will be auto generated per column.</li><li>In lookup table: one derived dimension will be auto generated for all the selected columns.</li>',
+    tip_body_DSAutoGenerate: '<li>Column is disabled once there is already a dimension referred this column.</li><li>In fact table: one normal dimension will be auto generated per column.</li><li>In lookup table: you can choose to generate a normal dimension or a derived dimension.</li>',
     cubeMSName: 'Name',//measures begin
     cubeMSExpression: 'Expression',
     cubeMSParameters: 'Parameters',
