@@ -123,11 +123,88 @@
 
           </accordion-group>
         </accordion>
+      <hr/>
+      <accordion>
 
+        <accordion-group is-open="state.isParserHeaderOpen=true">
+          <accordion-heading>
+            {{dataKylin.cube.kaParserSetting}}
+            <i class="pull-right glyphicon"
+               ng-class="{'glyphicon-chevron-down': state.isParserHeaderOpen, 'glyphicon-chevron-right': !state.isParserHeaderOpen}"></i>
+          </accordion-heading>
+
+          <div class="form-group middle-popover" ng-class="{'required':state.mode=='edit'}">
+            <div class="row">
+              <label class="col-xs-12 col-sm-3 control-label no-padding-right">
+                <b>{{dataKylin.cube.kaParserName}}</b>
+                <i class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.kaParserName}}" template="ParserName.html"></i>
+              </label>
+
+              <div class="col-xs-12 col-sm-6"
+                   ng-class="{'has-error':form.cube_streaming_form.parserName.$invalid && (form.cube_streaming_form.parserName.$dirty||form.cube_streaming_form.$submitted)}">
+                <input ng-if="state.mode=='edit'" name="parserName" required ng-model="kafkaMeta.parserName" type="text"
+                       placeholder="{{dataKylin.cube.tip_input_kafkaConfig_parserName}}"
+                       class="form-control"/>
+                <small class="help-block"
+                       ng-show="!form.cube_streaming_form.parserName.$error.required && form.cube_streaming_form.parserName.$invalid && (form.cube_streaming_form.parserName.$dirty||form.cube_streaming_form.$submitted)">
+                  {{dataKylin.cube.tip_kafka_parser_name_invalid}}
+                </small>
+                <small class="help-block"
+                       ng-show="form.cube_streaming_form.parserName.$error.required && (form.cube_streaming_form.parserName.$dirty||form.cube_streaming_form.$submitted)">
+                  {{dataKylin.cube.tip_kafka_parser_name_required}}
+                </small>
+                <span ng-if="state.mode=='view'">{{kafkaMeta.parserName}}</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-group middle-popover" ng-if="state.mode=='edit'&&state.target!=='kfkConfig'" ng-class="{'required':state.mode=='edit'}">
+            <div class="row">
+              <label class="col-xs-12 col-sm-3 control-label no-padding-right">
+                <b>{{dataKylin.cube.kaParserTimestampField}}</b>
+                <i class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.kaParserTimestampField}}" template="ParserTimestampFieldsTip.html"></i>
+              </label>
+
+              <div class="col-xs-12 col-sm-6 streamingParserCtr">
+                <select chosen ng-model="streamingCfg.parseTsColumn"
+                        ng-options="column as column for column in streamingCfg.columnOptions "
+                        ng-change="streamingTsColUpdate()"
+                        placeholder="{{dataKylin.cube.kaSelectColumn}}"
+                        class="chosen-select">
+                  <option value=""></option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="form-group middle-popover" ng-class="{'required':state.mode=='edit'}">
+            <div class="row">
+              <label class="col-xs-12 col-sm-3 control-label no-padding-right">
+                <b>{{dataKylin.cube.kaParserProperties}}</b>
+                <i class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.kaParserProperties}}" template="ParserPropertiesTip.html"></i>
+              </label>
+
+              <div class="col-xs-12 col-sm-6"
+                   ng-class="{'has-error':form.cube_streaming_form.parserProperties.$invalid && (form.cube_streaming_form.parserProperties.$dirty||form.cube_streaming_form.$submitted)}">
+                <input ng-if="state.mode=='edit'" name="parserProperties" required ng-model="kafkaMeta.parserProperties" type="text"
+                       placeholder="configA=1;configB=2"
+                       class="form-control"/>
+                <small class="help-block"
+                       ng-show="!form.cube_streaming_form.parserProperties.$error.required && form.cube_streaming_form.parserProperties.$invalid && (form.cube_streaming_form.parserProperties.$dirty||form.cube_streaming_form.$submitted)">
+                  {{dataKylin.cube.tip_parser_properties_invalid}}
+                </small>
+                <small class="help-block"
+                       ng-show="form.cube_streaming_form.parserProperties.$error.required && (form.cube_streaming_form.parserProperties.$dirty||form.cube_streaming_form.$submitted)">
+                  {{dataKylin.cube.tip_parser_properties_required}}
+                </small>
+                <span ng-if="state.mode=='view'">{{kafkaMeta.parserProperties}}</span>
+              </div>
+            </div>
+          </div>
+        </accordion-group>
+      </accordion>
       <hr/>
       <!--Advanced setting-->
       <accordion>
-        <accordion-group is-open="state.isStreamingAdOpen" ng-init="state.isStreamingAdOpen=true">
+        <accordion-group is-open="state.isStreamingAdOpen" ng-init="state.isStreamingAdOpen">
           <accordion-heading>
             {{dataKylin.cube.kaAdvancedSetting}}
             <i class="pull-right glyphicon"
@@ -186,113 +263,10 @@
             </div>
           </div>
 
-          <div class="form-group middle-popover" ng-class="{'required':state.mode=='edit'}">
-            <div class="row">
-              <label class="col-xs-12 col-sm-3 control-label no-padding-right">
-                <b>{{dataKylin.cube.kaMargin}}</b>
-
-                <i class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.kaMargin}}" template="MarginTip.html"></i>
-              </label>
-
-              <div class="col-xs-12 col-sm-6"
-                   ng-class="{'has-error':form.cube_streaming_form.margin.$invalid && (form.cube_streaming_form.margin.$dirty||form.cube_streaming_form.$submitted)}">
-                <input ng-if="state.mode=='edit'" name="margin" required ng-model="kafkaMeta.margin" type="text"
-                       placeholder="{{dataKylin.cube.tip_input_kafkaConfig_margin}}"
-                       ng-pattern="/^\+?[1-9][0-9]*$/"
-                       class="form-control"/>
-                <small class="help-block"
-                       ng-show="!form.cube_streaming_form.margin.$error.required && form.cube_streaming_form.margin.$invalid && (form.cube_streaming_form.margin.$dirty||form.cube_streaming_form.$submitted)">
-                  {{dataKylin.cube.tip_kafka_margin_invalid}}
-                </small>
-                <small class="help-block"
-                       ng-show="form.cube_streaming_form.margin.$error.required && (form.cube_streaming_form.margin.$dirty||form.cube_streaming_form.$submitted)">
-                  {{dataKylin.cube.tip_kafka_margin_required}}
-                </small>
-                <span ng-if="state.mode=='view'">{{kafkaMeta.margin}}</span>
-              </div>
-            </div>
-          </div>
         </accordion-group>
       </accordion>
 
-      <hr/>
-      <accordion>
 
-        <accordion-group is-open="state.isParserHeaderOpen">
-          <accordion-heading>
-            {{dataKylin.cube.kaParserSetting}}
-            <i class="pull-right glyphicon"
-               ng-class="{'glyphicon-chevron-down': state.isParserHeaderOpen, 'glyphicon-chevron-right': !state.isParserHeaderOpen}"></i>
-          </accordion-heading>
-
-          <div class="form-group middle-popover" ng-class="{'required':state.mode=='edit'}">
-            <div class="row">
-              <label class="col-xs-12 col-sm-3 control-label no-padding-right">
-                <b>{{dataKylin.cube.kaParserName}}</b>
-                <i class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.kaParserName}}" template="ParserName.html"></i>
-              </label>
-
-              <div class="col-xs-12 col-sm-6"
-                   ng-class="{'has-error':form.cube_streaming_form.parserName.$invalid && (form.cube_streaming_form.parserName.$dirty||form.cube_streaming_form.$submitted)}">
-                <input ng-if="state.mode=='edit'" name="parserName" required ng-model="kafkaMeta.parserName" type="text"
-                       placeholder="{{dataKylin.cube.tip_input_kafkaConfig_parserName}}"
-                       class="form-control"/>
-                <small class="help-block"
-                       ng-show="!form.cube_streaming_form.parserName.$error.required && form.cube_streaming_form.parserName.$invalid && (form.cube_streaming_form.parserName.$dirty||form.cube_streaming_form.$submitted)">
-                  {{dataKylin.cube.tip_kafka_parser_name_invalid}}
-                </small>
-                <small class="help-block"
-                       ng-show="form.cube_streaming_form.parserName.$error.required && (form.cube_streaming_form.parserName.$dirty||form.cube_streaming_form.$submitted)">
-                  {{dataKylin.cube.tip_kafka_parser_name_required}}
-                </small>
-                <span ng-if="state.mode=='view'">{{kafkaMeta.parserName}}</span>
-              </div>
-            </div>
-          </div>
-          <div class="form-group middle-popover" ng-if="state.mode=='edit'&&state.target!=='kfkConfig'" ng-class="{'required':state.mode=='edit'}">
-            <div class="row">
-              <label class="col-xs-12 col-sm-3 control-label no-padding-right">
-                <b>{{dataKylin.cube.kaParserTimestampField}}</b>
-                <i class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.kaParserTimestampField}}" template="ParserTimestampFieldsTip.html"></i>
-              </label>
-
-              <div class="col-xs-12 col-sm-6 streamingParserCtr">
-                  <select chosen ng-model="streamingCfg.parseTsColumn"
-                           ng-options="column as column for column in streamingCfg.columnOptions "
-                           ng-change="streamingTsColUpdate()"
-                           placeholder="{{dataKylin.cube.kaSelectColumn}}"
-                           class="chosen-select">
-                    <option value=""></option>
-                  </select>
-              </div>
-            </div>
-          </div>
-          <div class="form-group middle-popover" ng-class="{'required':state.mode=='edit'}">
-            <div class="row">
-              <label class="col-xs-12 col-sm-3 control-label no-padding-right">
-                <b>{{dataKylin.cube.kaParserProperties}}</b>
-                <i class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.kaParserProperties}}" template="ParserPropertiesTip.html"></i>
-              </label>
-
-              <div class="col-xs-12 col-sm-6"
-                   ng-class="{'has-error':form.cube_streaming_form.parserProperties.$invalid && (form.cube_streaming_form.parserProperties.$dirty||form.cube_streaming_form.$submitted)}">
-                <input ng-if="state.mode=='edit'" name="parserProperties" required ng-model="kafkaMeta.parserProperties" type="text"
-                       placeholder="configA=1;configB=2"
-                       class="form-control"/>
-                <small class="help-block"
-                       ng-show="!form.cube_streaming_form.parserProperties.$error.required && form.cube_streaming_form.parserProperties.$invalid && (form.cube_streaming_form.parserProperties.$dirty||form.cube_streaming_form.$submitted)">
-                  {{dataKylin.cube.tip_parser_properties_invalid}}
-                </small>
-                <small class="help-block"
-                       ng-show="form.cube_streaming_form.parserProperties.$error.required && (form.cube_streaming_form.parserProperties.$dirty||form.cube_streaming_form.$submitted)">
-                  {{dataKylin.cube.tip_parser_properties_required}}
-                </small>
-                <span ng-if="state.mode=='view'">{{kafkaMeta.parserProperties}}</span>
-              </div>
-            </div>
-          </div>
-        </accordion-group>
-      </accordion>
 
     </div>
   </form>
