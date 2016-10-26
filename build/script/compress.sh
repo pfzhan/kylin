@@ -36,15 +36,37 @@ if [ -f "kybot/diag.sh" ]; then
 fi
 cp -rf commit_SHA1 lib kybot tomcat spark ${package_name}/
 
-# add kap files
-cp -rf conf/kylin.properties ${package_name}/conf/
+# rename kylin files to min
+mv ${package_name}/conf/kylin.properties ${package_name}/conf/kylin.min.properties
+mv ${package_name}/conf/kylin_hive_conf.xml ${package_name}/conf/kylin_hive_conf.min.xml
+mv ${package_name}/conf/kylin_job_conf.xml ${package_name}/conf/kylin_job_conf.min.xml
+mv ${package_name}/conf/kylin_job_conf_inmem.xml ${package_name}/conf/kylin_job_conf_inmem.min.xml
+
+# add kap prod files
+cp -rf conf/kylin.min.properties ${package_name}/conf/
+cp -rf conf/kylin.prod.properties ${package_name}/conf/
+cp -rf conf/kylin_hive_conf.prod.xml ${package_name}/conf/
+cp -rf conf/kylin_job_conf.prod.xml ${package_name}/conf/
+cp -rf conf/kylin_job_conf_inmem.prod.xml ${package_name}/conf/
+
 cp -rf conf/userctrl.acl ${package_name}/conf/
 cp -rf bin/* ${package_name}/bin/
 
 # update kap plus config files
 if [ "${PACKAGE_PLUS}" != "0" ]; then
-    cat conf/plus/kap-plus.properties >> ${package_name}/conf/kylin.properties
+    cat conf/plus/kap-plus.min.properties >> ${package_name}/conf/kylin.min.properties
+    cat conf/plus/kap-plus.prod.properties >> ${package_name}/conf/kylin.prod.properties
 fi
+
+# update symblink
+ln -sf kylin.min.properties kylin.properties
+mv kylin.properties ${package_name}/conf/
+ln -sf kylin_hive_conf.min.xml kylin_hive_conf.xml
+mv kylin_hive_conf.xml ${package_name}/conf/
+ln -sf kylin_job_conf.min.xml kylin_job_conf.xml
+mv kylin_job_conf.xml ${package_name}/conf/
+ln -sf kylin_job_conf_inmem.min.xml kylin_job_conf_inmem.xml
+mv kylin_job_conf_inmem.xml ${package_name}/conf/
 
 rm -rf lib tomcat commit_SHA1 # keep the spark folder on purpose
 find ${package_name} -type d -exec chmod 755 {} \;
