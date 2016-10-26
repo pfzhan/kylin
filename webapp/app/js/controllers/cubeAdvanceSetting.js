@@ -49,7 +49,8 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
       column:item.column,
       encoding:_encoding,
       valueLength:_valueLength,
-      isShardBy:item.isShardBy
+      isShardBy:item.isShardBy,
+      index:'eq'
     }
 
     $scope.convertedRowkeys.push(rowkeyObj);
@@ -64,6 +65,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     var encoding;
     var column = item.column;
     var isShardBy = item.isShardBy;
+    var cube_index = item.index;
     if(item.encoding!=="dict" && item.encoding!=="date"&& item.encoding!=="time"){
       if(item.encoding=="fixed_length" && item.valueLength){
         encoding = "fixed_length:"+item.valueLength;
@@ -82,6 +84,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     $scope.cubeMetaFrame.rowkey.rowkey_columns[index].column = column;
     $scope.cubeMetaFrame.rowkey.rowkey_columns[index].encoding = encoding;
     $scope.cubeMetaFrame.rowkey.rowkey_columns[index].isShardBy = isShardBy;
+    $scope.cubeMetaFrame.rowkey.rowkey_columns[index].index = cube_index;
     if(checkShard == true){
       $scope.checkShardByColumn();
     }
@@ -128,7 +131,8 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     $scope.cubeMetaFrame.rowkey.rowkey_columns.push({
       column:'',
       encoding:'dict',
-      isShardBy:'false'
+      isShardBy:'false',
+      index: 'eq'
     });
 
   };
