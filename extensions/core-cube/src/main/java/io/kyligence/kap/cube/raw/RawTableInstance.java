@@ -25,6 +25,7 @@
 package io.kyligence.kap.cube.raw;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -36,6 +37,7 @@ import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -90,7 +92,8 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
     private long createTimeUTC;
 
     private RawToGridTableMapping mapping;
-    private List<TblColRef> allColumns;
+    private Set<TblColRef> allColumns;
+    private Set<ColumnDesc> allColumnDescs;
     private List<TblColRef> mockupDimensions;
     private List<MeasureDesc> mockupMeasures;
 
@@ -124,9 +127,11 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
     }
 
     private void initAllColumns() {
-        allColumns = new ArrayList<>();
+        allColumns = new HashSet<>();
+        allColumnDescs = new HashSet<>();
         for (TblColRef col : getRawTableDesc().getColumns()) {
             allColumns.add(col);
+            allColumnDescs.add(col.getColumnDesc());
         }
     }
 
@@ -204,10 +209,15 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
     }
 
     @Override
-    public List<TblColRef> getAllColumns() {
+    public Set<TblColRef> getAllColumns() {
         return allColumns;
     }
 
+    @Override
+    public Set<ColumnDesc> getAllColumnDescs() {
+        return allColumnDescs;
+    }
+    
     @Override
     public List<TblColRef> getAllDimensions() {
         return mockupDimensions;
