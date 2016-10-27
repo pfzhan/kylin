@@ -79,18 +79,33 @@ KylinApp.controller('CubeCtrl', function ($scope, AccessService, MessageService,
         })
 
         if (!cube.hbase) {
-            CubeService.getHbaseInfo({cubeId: cube.name, propValue: null, action: null}, function (hbase) {
-                cube.hbase = hbase;
-
-                // Calculate cube total size based on each htable.
-                var totalSize = 0;
-                hbase.forEach(function(t) {
-                    totalSize += t.tableSize;
-                });
-                cube.totalSize = totalSize;
+          if(+cube.detail.storage_type==100&&+cube.detail.engine_type==100){
+            CubeService.getColumnarInfo({cubeId: cube.name, propValue: null, action: null}, function (hbase) {
+              cube.hbase = hbase;
+              cube.type="columnar";
+              // Calculate cube total size based on each htable.
+              var totalSize = 0;
+              hbase.forEach(function(t) {
+                totalSize += t.tableSize;
+              });
+              cube.totalSize = totalSize;
             },function(e){
               kylinCommon.error_default(e);
             });
+          }else{
+            CubeService.getHbaseInfo({cubeId: cube.name, propValue: null, action: null}, function (hbase) {
+              cube.hbase = hbase;
+              cube.type="hbase";
+              // Calculate cube total size based on each htable.
+              var totalSize = 0;
+              hbase.forEach(function(t) {
+                totalSize += t.tableSize;
+              });
+              cube.totalSize = totalSize;
+            },function(e){
+              kylinCommon.error_default(e);
+            });
+          }
         }
     };
 

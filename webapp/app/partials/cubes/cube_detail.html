@@ -95,7 +95,7 @@
 
   <div class="cube-detail" ng-show="cube.visiblePage=='storage'">
         <div style="margin: 15px;">
-            <div ng-repeat="table in cube.hbase">
+            <div ng-if="cube.type=='hbase'" ng-repeat="table in cube.hbase" >
               <h5><b>{{dataKylin.cube.SegmentId}}</b> {{cube.tablemap[table.tableName]}}</h5>
                 <ul>
                   <li>Htable: <span class="red">{{table.tableName}}</span></li>
@@ -110,6 +110,16 @@
                   <li>{{dataKylin.cube.cubeHBEndTime}}<span class="red">{{table.dateRangeEnd | reverseToGMT0}}</span></li>
                 </ul>
             </div>
+          <div ng-if="cube.type=='columnar'" ng-repeat="table in cube.hbase" >
+            <h5><b>{{dataKylin.cube.SegmentId}}</b> {{cube.tablemap[table.tableName]}}</h5>
+            <ul>
+              <li>Htable: <span class="red">{{table.tableName}}</span></li>
+              <li>{{dataKylin.cube.cubeHBRegionCount}}<span class="red">{{table.fileCount}}</span></li>
+              <li>{{dataKylin.cube.cubeHBSize}}<span class="red">{{table.storageSize | bytes}}</span></li>
+              <li>{{dataKylin.cube.cubeHBStartTime}}<span class="red">{{table.dateRangeStart | reverseToGMT0}}</span></li>
+              <li>{{dataKylin.cube.cubeHBEndTime}}<span class="red">{{table.dateRangeEnd | reverseToGMT0}}</span></li>
+            </ul>
+          </div>
             <div ng-if="cube.hbase">
                 <div class="hr hr8 hr-double hr-dotted"></div>
                 <h5><b>{{dataKylin.cube.cubeHBTotalSize}}</b> <span class="red">{{cube.totalSize | bytes}}</span></h5>

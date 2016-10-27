@@ -34,6 +34,7 @@ KylinApp.factory('CubeService', ['$resource', function ($resource, config) {
     drop: {method: 'DELETE', params: {}, isArray: false},
     save: {method: 'POST', params: {}, isArray: false},
     update: {method: 'PUT', params: {}, isArray: false},
-    getHbaseInfo: {method: 'GET', params: {propName: 'hbase'}, isArray: true}
+    getHbaseInfo: {method: 'GET', params: {propName: 'hbase'}, isArray: true},
+    getColumnarInfo: {method: 'GET', params: {propName: 'columnar'}, isArray: true}
   });
 }]);
