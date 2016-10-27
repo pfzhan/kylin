@@ -17,6 +17,12 @@
  */
 
 KylinApp.constant('kapChineseConfig', {
+  kapService:{
+    "statementHeader":"服务声明",
+    "serviceEndTime":"服务截止日期",
+    "evaluationStatement":"您正在使用KAP试用版, 如果您对我们的产品满意, 需要专业的产品、咨询或服务, 请联系我们, 您将获得来自Apache Kylin核心小组的帮助.",
+    "statement":"您已购买专业版KAP产品及服务, 如果您在使用过程中遇到任何问题, 请随时与我们沟通, 我们将持续为您提供优质的产品及服务!"
+  },
   user:{
     setting: '设置',//reset password
     profile: '用户信息',

@@ -17,6 +17,12 @@
  */
 
 KylinApp.constant('kapEnglishConfig', {
+  kapService:{
+    "statementHeader":"Service Statement",
+    "serviceEndTime":"Service End Time",
+    "evaluationStatement":"You are using evaluation version of KAP. If you need the most professional services and products base on Apache Kylin. Please contact us!",
+    "statement":"You are using KAP pro version. If you have any issues about KAP, please contact us. We will continue to provide you with quality products and services from Apache Kylin core team."
+  },
   user:{
     setting: 'Settings',//reset password
     profile: 'Profile',

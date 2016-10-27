@@ -40,19 +40,22 @@ public class LicenseInfoExtractor {
         result.put("kap.dates", System.getProperty("kap.dates"));
         result.put("kap.commit", System.getProperty("kap.commit"));
         result.put("kylin.commit", System.getProperty("kylin.commit"));
-        
+
         try {
-            BufferedReader reader = new BufferedReader(new StringReader(lic));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.startsWith("License for KAP Evaluation")) {
-                    result.put("kap.license.isEvaluation", "true");
+            if(lic != null) {
+                BufferedReader reader = new BufferedReader(new StringReader(lic));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.startsWith("License for KAP Evaluation")) {
+                        result.put("kap.license.isEvaluation", "true");
+                    }
+                    if (line.startsWith("Service End:")) {
+                        result.put("kap.license.serviceEnd", line.substring("Service End:".length()).trim());
+                    }
                 }
-                if (line.startsWith("Service End:")) {
-                    result.put("kap.license.serviceEnd", line.substring("Service End:".length()).trim());
-                }
+                reader.close();
             }
-            reader.close();
+
         } catch (IOException e) {
             // ignore
         }

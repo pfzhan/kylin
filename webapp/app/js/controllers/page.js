@@ -248,6 +248,16 @@ var aboutKapCtrl = function($scope,KapSystemService,language){
     if(!data['kylin.commit']){
       data['kylin.commit'] = 'N/A';
     }
+    if(!data['kap.license.isEvaluation']){
+      data['kap.license.isEvaluation'] = "false";
+    }
+    if(!data['kap.license.serviceEnd']){
+      data['kap.license.serviceEnd'] = "N/A";
+    }
+    if(!data['kylin.commit']){
+      data['kylin.commit'] = 'N/A';
+    }
+
 
     $scope.license = data;
   },function(){
