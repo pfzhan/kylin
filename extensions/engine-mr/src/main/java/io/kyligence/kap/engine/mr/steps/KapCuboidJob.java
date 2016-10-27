@@ -156,6 +156,7 @@ public class KapCuboidJob extends AbstractHadoopJob {
 
             // set path for output
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_OUTPUT_DIR, getWorkingDir(config, cube, cubeSeg));
+            cubeSeg.setStorageLocationIdentifier(getWorkingDir(config, cube, cubeSeg));
 
             // add metadata to distributed cache
             attachKylinPropsAndMetadata(cube, job.getConfiguration());

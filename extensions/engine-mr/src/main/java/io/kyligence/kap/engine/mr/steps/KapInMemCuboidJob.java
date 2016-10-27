@@ -119,6 +119,7 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
 
             // set path for output
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_OUTPUT_DIR, getWorkingDir(config, cube, cubeSeg));
+            cubeSeg.setStorageLocationIdentifier(getWorkingDir(config, cube, cubeSeg));
             logger.info("Kylin Working directory: " + getWorkingDir(config, cube, cubeSeg));
 
             // set input
