@@ -123,21 +123,21 @@ public class OrderedBytesSerializerTest {
     public void prepare() {
         extTable = TableDesc.mockup("ext");
         columns = Lists.newArrayList();
-        columns.add(ColumnDesc.mockup(extTable, 0, "PK", "char").getRef());
-        columns.add(ColumnDesc.mockup(extTable, 1, "A", "char").getRef());
-        columns.add(ColumnDesc.mockup(extTable, 2, "B1", "decimal").getRef());
-        columns.add(ColumnDesc.mockup(extTable, 3, "B2", "decimal").getRef());
-        columns.add(ColumnDesc.mockup(extTable, 4, "B3", "decimal").getRef());
-        columns.add(ColumnDesc.mockup(extTable, 5, "C", "double").getRef());
-        columns.add(ColumnDesc.mockup(extTable, 6, "D", "float").getRef());
-        columns.add(ColumnDesc.mockup(extTable, 7, "E", "bigint").getRef());
-        columns.add(ColumnDesc.mockup(extTable, 8, "F", "integer").getRef());
-        columns.add(ColumnDesc.mockup(extTable, 9, "G", "smallint").getRef());
-        columns.add(ColumnDesc.mockup(extTable, 10, "H", "tinyint").getRef());
-        columns.add(ColumnDesc.mockup(extTable, 11, "I", "boolean").getRef());
-        columns.add(ColumnDesc.mockup(extTable, 12, "J", "date").getRef());
-        columns.add(ColumnDesc.mockup(extTable, 13, "K", "datetime").getRef());
-        columns.add(ColumnDesc.mockup(extTable, 14, "L", "timestamp").getRef());
+        columns.add(TblColRef.mockup(extTable, 0, "PK", "char"));
+        columns.add(TblColRef.mockup(extTable, 1, "A", "char"));
+        columns.add(TblColRef.mockup(extTable, 2, "B1", "decimal"));
+        columns.add(TblColRef.mockup(extTable, 3, "B2", "decimal"));
+        columns.add(TblColRef.mockup(extTable, 4, "B3", "decimal"));
+        columns.add(TblColRef.mockup(extTable, 5, "C", "double"));
+        columns.add(TblColRef.mockup(extTable, 6, "D", "float"));
+        columns.add(TblColRef.mockup(extTable, 7, "E", "bigint"));
+        columns.add(TblColRef.mockup(extTable, 8, "F", "integer"));
+        columns.add(TblColRef.mockup(extTable, 9, "G", "smallint"));
+        columns.add(TblColRef.mockup(extTable, 10, "H", "tinyint"));
+        columns.add(TblColRef.mockup(extTable, 11, "I", "boolean"));
+        columns.add(TblColRef.mockup(extTable, 12, "J", "date"));
+        columns.add(TblColRef.mockup(extTable, 13, "K", "datetime"));
+        columns.add(TblColRef.mockup(extTable, 14, "L", "timestamp"));
 
         GTInfo.Builder builder = GTInfo.builder();
         builder.setTableName("RawTable ");
