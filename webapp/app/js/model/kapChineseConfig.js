@@ -702,6 +702,8 @@ KylinApp.constant('kapChineseConfig', {
     tip_setConfig: '更新服务器配置',
     diagnosis: '诊断',
     tip_diagnosis: '为当前项目创建并下载诊断包',
+    backup:'备份',
+    tip_backup:'全局备份',
     links: '链接',
     loadHiveTable: '加载Hive表元数据',//modal calCardinality begin
     tableName: '表名:',

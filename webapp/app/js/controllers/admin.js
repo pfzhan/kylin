@@ -211,7 +211,9 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
     $window.open(downloadUrl);
   }
 
+  $scope.backupGlobal=function(){
 
+  }
   $scope.getEnv();
   $scope.getConfig();
 

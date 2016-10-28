@@ -79,8 +79,12 @@
           <a class="btn btn-primary btn-lg btn-block" tooltip="{{dataKylin.system.tip_setConfig}}"  class="btn btn-primary btn-lg"  ng-click="toSetConfig()">{{dataKylin.system.setConfig}}</a>
         </div>
       <div style="padding-top: 10px;width: 260px;">
+        <a ng-click="backupGlobal();" tooltip="{{dataKylin.system.tip_backup}}" class="btn btn-primary btn-lg btn-block"><i class="fa fa-briefcase"></i> {{dataKylin.system.backup}}</a>
+      </div>
+      <div style="padding-top: 10px;width: 260px;">
         <a ng-click="downloadBadQueryFiles();" tooltip="{{dataKylin.system.tip_diagnosis}}" class="btn btn-primary btn-lg btn-block"><i class="fa fa-ambulance"></i> {{dataKylin.system.diagnosis}}</a>
       </div>
+
 
         <div>
             <h3>{{dataKylin.system.links}}</h3>
@@ -136,8 +140,8 @@
         </div>
     </div>
     <div class="modal-footer">
+        <button class="btn btn-default" ng-click="cancel()">{{dataKylin.system.cancel}}</button>
         <button class="btn btn-primary" ng-click="calculate()">{{dataKylin.system.sync}}</button>
-        <button class="btn btn-primary" ng-click="cancel()">{{dataKylin.system.cancel}}</button>
     </div>
 </script>
 
@@ -173,8 +177,8 @@
             </div>
         </div>
         <div class="modal-footer">
+            <button class="btn btn-default" ng-click="cancel()">{{dataKylin.system.cancel}}</button>
             <button class="btn btn-primary" ng-click="update()">{{dataKylin.system.update}}</button>
-            <button class="btn btn-primary" ng-click="cancel()">{{dataKylin.system.cancel}}</button>
         </div>
     </ng-form>
 </script>

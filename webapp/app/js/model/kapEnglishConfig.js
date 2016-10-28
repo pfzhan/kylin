@@ -718,6 +718,8 @@ KylinApp.constant('kapEnglishConfig', {
     tip_setConfig: 'Update Server Config',
     diagnosis: 'Diagnosis',
     tip_diagnosis: 'Download Diagnosis Info For Current Project',
+    backup:'Backup',
+    tip_backup:'Global Backup',
     links: 'Links',
     loadHiveTable: 'Load Hive Table Metadata',//modal calCardinality begin
     tableName: 'Table Name:',
