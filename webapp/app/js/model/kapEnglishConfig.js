@@ -330,6 +330,13 @@ KylinApp.constant('kapEnglishConfig', {
     cubeHBTotalSize:  'Total Size:',
     cubeHBTotalNumber: 'Total Number:',
     cubeHBNoHBaseInfo: 'No HBase Info.',
+
+    fileCount:'File Number:',
+    storageSize:'Storage Size:',
+    dateRangeStart:'Range Start Time:',
+    dateRangeEnd:'Range End Time:',
+    NoStorageInfo: 'No Storage Info.',
+
     cubeCIModelName: 'Model Name',
     cubeCIAddChooseModel: '-- Choose Model --',
     tip_title_cube_name: 'Cube Name',

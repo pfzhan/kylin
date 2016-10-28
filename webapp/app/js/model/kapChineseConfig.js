@@ -314,6 +314,13 @@ KylinApp.constant('kapChineseConfig', {
     cubeHBTotalSize:  '总大小:',
     cubeHBTotalNumber: '总个数:',
     cubeHBNoHBaseInfo: '没有HBase相关信息.',
+
+    fileCount:'索引文件数：',
+    storageSize:'存储空间：',
+    dateRangeStart:'区间起始时间：',
+    dateRangeEnd:'区间终止时间：',
+    NoStorageInfo: '没有Storage相关信息.',
+
     cubeCIModelName: '模型名称',
     cubeCIAddChooseModel: '-- 选择模型 --',
     tip_title_cube_name: 'Cube名称',
