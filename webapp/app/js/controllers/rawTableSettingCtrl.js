@@ -97,7 +97,7 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
     }
   }
   //检测全局配置是否支持rawtable
-  $scope.checkIsSupportRawTable=function(data){
+  $scope.checkIsSupportRawTable=function(){
     return ($scope.cubeMetaFrame&&$scope.cubeMetaFrame.engine_type&&$scope.cubeMetaFrame.engine_type==100);
   }
   $scope.wantSetting=!($scope.RawTables&&$scope.RawTables.needDelete);
@@ -107,7 +107,7 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
       if(request&&request.columns&&request.columns.length){
         $scope.rawTableColumns = request;
         $scope.hasConfig=true;
-        $scope.isSupportRawTable=(+request.engine_type!=2&&+request.storage_type!=2);
+        $scope.isSupportRawTable=$scope.checkIsSupportRawTable();
       }else{
         $scope.wantSetting=false;
         getBaseColumnsData();
@@ -129,7 +129,7 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
   }
   if($scope.RawTables&&$scope.RawTables.columns&&$scope.RawTables.columns.length>=0){
     $scope.rawTableColumns=$scope.RawTables;
-    $scope.isSupportRawTable=$scope.checkIsSupportRawTable($scope.RawTables);
+    $scope.isSupportRawTable=$scope.checkIsSupportRawTable();
   }else{
     if($scope.state.mode=="view"||$scope.isEdit){
       loadRawTable();
