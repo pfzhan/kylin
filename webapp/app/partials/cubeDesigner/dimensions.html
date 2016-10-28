@@ -284,54 +284,57 @@
     <script type="text/ng-template" id="autoGenDimension.html">
         <div class="modal-header large-popover">
           <h4 class="box-title lighter">{{dataKylin.cube.cubeDSAutoGenerate_part_one}} <i kylinpopover placement="right" ng-title="{{dataKylin.cube.tip_title_DSAutoGenerate}}" template="DimensionsTip.html" class="fa fa-info-circle"></i> <small>{{dataKylin.cube.cubeDSAutoGenerate_part_two}}</small></h4>
+          <div class="col-xs-12">
+            {{dataKylin.cube.tip_visit}} <a href="http://kylin.apache.org/docs/howto/howto_optimize_cubes.html" target="_blank">{{dataKylin.cube.cubeDSDerived}}</a> {{dataKylin.cube.tip_about_derived_column}}
+          </div>
         </div>
         <div class="modal-body">
             <div class="row">
                 <div class="col-xs-12">
                     <div class="box box-solid">
-                        <div class="box-header"><h4>{{dataKylin.cube.cubeDSColumns}}</h4></div>
                         <div class="box-body">
                            <ul class="list-unstyled columns-region">
-                              <accordion close-others=false>
-                                 <!--FactTable-->
-                                 <div ng-repeat="table in availableTables track by $index" ng-if="$index == 0" accordion-group class="panel-default " heading="{{table}}{{dataKylin.cube.cubeDSFactTable}}" is-open=true>
-                                    <table class="table table-striped table-hover ng-scope">
-                                       <tr >
-                                          <td class="col-xs-1"></td>
+                              <!--FactTable-->
+                              <div ng-repeat="table in availableTables track by $index" ng-if="$index == 0"  class="panel-default " >
+                                 <h4>{{table}}{{dataKylin.cube.cubeDSFactTable}}</h4>
+                                 <table class="table table-striped table-hover ng-scope" >
+                                       <tr>
+                                          <td class="col-xs-1"><label><input type="checkbox" ng-model="selectedColumns[table].all" ng-change="autoChangeAll(table)">{{dataKylin.cube.cubeDSSelectAll}}</label></td>
                                           <td class="col-xs-4"><label>{{dataKylin.cube.cubeDSName}}</label></td>
                                           <td class="col-xs-3"><label>{{dataKylin.cube.cubeDSColumns}}</label></td>
                                           <td colspan="2" class="col-xs-4"></td>
                                        </tr>
                                        <tr ng-repeat="col in availableColumns[table] track by col.table + '.' + col.name" >
-                                          <td >
+                                          <td>
                                             <label class="dim-checkbox-label">
-                                             <input type="checkbox" ng-model="selectedColumns[table][col.name].selected"
-                                                    ng-disabled="selectedColumns[table][col.name].disabled"  >
+                                              <input type="checkbox" ng-model="selectedColumns[table][col.name].selected" ng-change="autoChange(table,col.name)">
                                             </label>
                                           </td>
-                                          <td >
+                                          <td>
                                              <input type="text"  placeholder={{col.name}} ng-model="selectedColumns[table][col.name].name" ng-disabled="!selectedColumns[table][col.name].selected" style="width:90%;">
                                           </td>
                                           <td>
                                              {{col.name}}
                                           </td>
+                                          <td></td>
+                                          <td></td>
                                        </tr>
                                     </table>
                                  </div>
                                  <!--LookUp Table-->
-                                 <div ng-repeat="table in availableTables track by $index" ng-if="$index > 0" accordion-group class="panel-default" heading="{{table}}{{dataKylin.cube.cubeDSLookupTable}}">
+                                 <div ng-repeat="table in availableTables track by $index" ng-if="$index > 0"  class="panel-default" heading="{{table}}{{dataKylin.cube.cubeDSLookupTable}}">
                                     <table class="table table-striped table-hover ng-scope">
+                                       <h4>{{table}}{{dataKylin.cube.cubeDSLookupTable}}</h4>
                                        <tr class="row" >
-                                          <td class="col-xs-1"></td>
+                                          <td class="col-xs-1"><label><input type="checkbox" ng-model="selectedColumns[table].all" ng-change="autoChangeAll(table)">{{dataKylin.cube.cubeDSSelectAll}}</label></td>
                                           <td class="col-xs-4"><label>{{dataKylin.cube.cubeDSName}}</label></td>
                                           <td class="col-xs-3"><label>{{dataKylin.cube.cubeDSColumns}}</label></td>
                                           <td colspan="2" class="col-xs-4"></td>
                                        </tr>
                                        <tr ng-repeat="col in availableColumns[table] track by col.table + '.' + col.name" class="row">
-                                          <td class=>
+                                          <td>
                                             <label class="dim-checkbox-label">
-                                             <input type="checkbox" ng-model="selectedColumns[table][col.name].selected"
-                                                    ng-disabled="selectedColumns[table][col.name].disabled"  ng-change="autoChange(table,col.name)">
+                                              <input type="checkbox" ng-model="selectedColumns[table][col.name].selected" ng-change="autoChange(table,col.name)">
                                             </label>
                                           </td>
                                           <td >
@@ -340,16 +343,15 @@
                                           <td >
                                              {{col.name}}
                                           </td>
-                                          <td  >
-                                             <label> <input type="radio" ng-model="selectedColumns[table][col.name].normal" value="true" ng-disabled="!selectedColumns[table][col.name].selected"> Normal </label>
+                                          <td>
+                                             <label> <input type="radio" ng-model="selectedColumns[table][col.name].normal" value="true" ng-disabled="!selectedColumns[table][col.name].selected"> {{dataKylin.cube.cubeDSNormal}} </label>
                                           </td>
                                           <td >
-                                            <label> <input type="radio" ng-model="selectedColumns[table][col.name].normal" value="false" ng-disabled="!selectedColumns[table][col.name].selected"> Derived </label>
+                                            <label> <input type="radio" ng-model="selectedColumns[table][col.name].normal" value="false" ng-disabled="!selectedColumns[table][col.name].selected"> {{dataKylin.cube.cubeDSDerived}} </label>
                                           </td>
                                        </tr>
                                     </table>
                                  </div>
-                              </accordion>
                           </ul>
                         </div>
                     </div>

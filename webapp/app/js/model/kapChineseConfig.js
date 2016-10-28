@@ -366,8 +366,10 @@ KylinApp.constant('kapChineseConfig', {
     cubeDSColumns: 'Columns',
     cubeDSFactTable: '[事实表]',
     cubeDSLookupTable: '[维度表]',
+    cubeDSSelectAll: '全选',
+    tip_about_derived_column:'查看更多相关可推导维度信息',
     tip_title_DSAutoGenerate: '自动生成规则',
-    tip_body_DSAutoGenerate: '<li>如果某列已经被创建为维度，将不能再选择此列.</li><li>事实表上的每个选中的列，会自动创建为一个普通维度.</li><li>维度表上选中的列，可以选择定义为从外键可推导的(Derived)维度或普通维度.</li>',
+    tip_body_DSAutoGenerate: '<li>事实表上的每个选中的列，会自动创建为一个普通维度.</li><li>维度表上选中的列，可以选择定义为从外键可推导的(Derived)维度或普通维度.</li>',
     cubeMSName: '名称',//measures begin
     cubeMSExpression: '表达式',
     cubeMSParameters: '参数',

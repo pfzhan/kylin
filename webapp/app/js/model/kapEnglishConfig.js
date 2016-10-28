@@ -381,8 +381,10 @@ KylinApp.constant('kapEnglishConfig', {
     cubeDSAutoGenerate_part_two: 'This is a helper for you to batch generate dimensions.', cubeDSColumns: 'Columns',
     cubeDSFactTable: '[Fact Table]',
     cubeDSLookupTable: '[Lookup Table]',
+    cubeDSSelectAll:'Select All',
+    tip_about_derived_column:'for more about derived column.',
     tip_title_DSAutoGenerate: 'Auto Generate Rules',
-    tip_body_DSAutoGenerate: '<li>Column is disabled once there is already a dimension referred this column.</li><li>In fact table: one normal dimension will be auto generated per column.</li><li>In lookup table: you can choose to generate a normal dimension or a derived dimension.</li>',
+    tip_body_DSAutoGenerate: '<li>In fact table: one normal dimension will be auto generated per column.</li><li>In lookup table: you can choose to generate a normal dimension or a derived dimension.</li>',
     cubeMSName: 'Name',//measures begin
     cubeMSExpression: 'Expression',
     cubeMSParameters: 'Parameters',
