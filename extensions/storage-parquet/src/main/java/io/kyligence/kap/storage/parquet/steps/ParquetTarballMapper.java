@@ -68,7 +68,8 @@ public class ParquetTarballMapper extends KylinMapper<IntWritable, byte[], Text,
         logger.info("Input path: " + inputPath.toString());
         logger.info("Output path: " + outputPath.toString());
 
-        os = fs.create(outputPath);
+        // make tar replicate factor to 3, wish to better query performance
+        os = fs.create(outputPath, (short)3);
         Preconditions.checkState(Longs.BYTES == ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE);
         os.writeLong(Longs.BYTES + invLength);
     }
