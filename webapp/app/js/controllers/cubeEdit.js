@@ -449,7 +449,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
               return;
             }
             updateRawTable();
-          }else if($scope.RawTables.needDelete){
+          }else if($scope.RawTables&&$scope.RawTables.needDelete){
              RawTablesService.delete({rawTableName:$scope.cubeMetaFrame.name},{},function(){
 
              })

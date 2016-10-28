@@ -19,7 +19,7 @@
 <div ng-controller="RawTableSettingCtrl">
   <ng-form name="forms.rawtable_setting_form">
     <h4 style="margin-left:42px" ng-if="!rawTableColumns.columns.length&&state.mode=='view'">{{dataKylin.cube.noConfigRawTableInfo}}</h4>
-    <div ng-if="rawTableColumns.columns.length > 0">
+    <div>
       <h4 style="margin-left:42px" ng-if="state.mode!='view'&&!isSupportRawTable">{{dataKylin.cube.unSupportRawTable}}</h4>
       <div ng-if="state.mode!='view'&&isSupportRawTable"><input type="checkbox" style="margin-left: 40px" ng-model="wantSetting" ng-change="checkNeedSet()"  id="wantSet"><label for="wantSet" style="margin-left:10px;">{{dataKylin.cube.needConfigRawTable}}</label></div>
       <div class="form-group large-popover"  ng-if="rawTableColumns.columns.length > 0&&wantSetting&&isSupportRawTable">
