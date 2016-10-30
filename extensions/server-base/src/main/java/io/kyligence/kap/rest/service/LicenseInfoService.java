@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2016 Kyligence Inc. All rights reserved.
  *
  * http://kyligence.io
@@ -22,7 +22,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.controller;
+package io.kyligence.kap.rest.service;
+
+import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -30,7 +32,8 @@ import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
 
-public class LicenseInfoExtractor {
+@Component("licenseInfoService")
+public class LicenseInfoService {
 
     public Map<String, String> extractLicenseInfo() {
         Map<String, String> result = new HashMap<>();

@@ -26,7 +26,9 @@ package io.kyligence.kap.rest.controller;
 
 import java.util.Map;
 
+import io.kyligence.kap.rest.service.LicenseInfoService;
 import org.apache.kylin.rest.controller.BasicController;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,12 +40,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @RequestMapping(value = "/kap/system")
 public class SystemController extends BasicController {
 
-    private final LicenseInfoExtractor extractor = new LicenseInfoExtractor();
+    @Autowired
+    private LicenseInfoService licenseInfoService;
     
     @RequestMapping(value = "/license", method = { RequestMethod.GET })
     @ResponseBody
     public Map<String, String> listLicense() {
-        return extractor.extractLicenseInfo();
+        return licenseInfoService.extractLicenseInfo();
     }
 
 }
