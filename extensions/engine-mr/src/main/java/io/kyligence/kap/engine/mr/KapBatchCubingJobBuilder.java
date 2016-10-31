@@ -24,9 +24,6 @@
 
 package io.kyligence.kap.engine.mr;
 
-import java.io.IOException;
-
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.RowKeyDesc;
 import org.apache.kylin.engine.mr.BatchCubingJobBuilder2;
@@ -47,12 +44,9 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
-import io.kyligence.kap.cube.raw.RawTableSegment;
-import io.kyligence.kap.cube.raw.kv.RawTableConstants;
 import io.kyligence.kap.engine.mr.steps.KapBaseCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapInMemCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapNDCuboidJob;
-import io.kyligence.kap.engine.mr.steps.KapRawTableJob;
 import io.kyligence.kap.engine.mr.steps.SecondaryIndexJob;
 import io.kyligence.kap.engine.mr.steps.UpdateRawTableInfoAfterBuildStep;
 
@@ -85,15 +79,12 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
         result.addTask(createSaveStatisticsStep(jobId));
         outputSide.addStepPhase2_BuildDictionary(result);
 
-        // Phase 3: build RawTable if needed
-        buildRawTable(result);
-
-        // Phase 4: Build Cube
+        // Phase 3: Build Cube and RawTable
         addLayerCubingSteps(result, jobId, cuboidRootPath); // layer cubing, only selected algorithm will execute
         result.addTask(createInMemCubingStep(jobId, cuboidRootPath));
         outputSide.addStepPhase3_BuildCube(result);
 
-        // Phase 5: Update Metadata & Cleanup
+        // Phase 4: Update Metadata & Cleanup
         result.addTask(createUpdateCubeInfoAfterBuildStep(jobId));
         if (null != detectRawTable())
             result.addTask(createUpdateRawTableInfoAfterBuildStep(jobId));
@@ -198,40 +189,6 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
         return rawInstance;
     }
 
-    private void buildRawTable(CubingJob result) {
-        // build raw table job
-        RawTableInstance rawInstance = detectRawTable();
-        if (null == rawInstance)
-            return;
-
-        try {
-            RawTableSegment rawSeg = RawTableManager.getInstance(seg.getConfig()).appendSegment(rawInstance, seg);
-            String parquentStoragePath = KapConfig.wrap(seg.getConfig()).getParquentStoragePath();
-            String output = parquentStoragePath + rawSeg.getRawTableInstance().getUuid() + "/" + rawSeg.getUuid() + "/";
-            createRawTableStep(result, rawInstance, rawSeg, output);
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
-    }
-
-    private void createRawTableStep(CubingJob result, RawTableInstance instance, RawTableSegment rawSeg, String outPut) {
-        MapReduceExecutable rawTableStep = new MapReduceExecutable();
-        StringBuilder cmd = new StringBuilder();
-        appendMapReduceParameters(cmd);
-        rawTableStep.setName(RawTableConstants.BUILD_RAWTABLE);
-
-        appendExecCmdParameters(cmd, BatchConstants.ARG_CUBE_NAME, instance.getName());
-        appendExecCmdParameters(cmd, BatchConstants.ARG_SEGMENT_ID, rawSeg.getUuid());
-        appendExecCmdParameters(cmd, BatchConstants.ARG_INPUT, "FLAT_TABLE"); // marks flat table input
-        appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, outPut);
-        appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_Raw_Table_Builder_" + instance.getName());
-
-        rawTableStep.setMapReduceParams(cmd.toString());
-        rawTableStep.setMapReduceJobClass(getRawTableJob());
-        rawTableStep.setCounterSaveAs(CubingJob.SOURCE_RECORD_COUNT + "," + CubingJob.SOURCE_SIZE_BYTES);
-        result.addTask(rawTableStep);
-    }
-
     public UpdateRawTableInfoAfterBuildStep createUpdateRawTableInfoAfterBuildStep(String jobId) {
         final UpdateRawTableInfoAfterBuildStep result = new UpdateRawTableInfoAfterBuildStep();
         result.setName("Update RawTable Information");
@@ -268,9 +225,5 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
 
     protected Class<? extends AbstractHadoopJob> getBaseCuboidJob() {
         return KapBaseCuboidJob.class;
-    }
-
-    protected Class<? extends AbstractHadoopJob> getRawTableJob() {
-        return KapRawTableJob.class;
     }
 }

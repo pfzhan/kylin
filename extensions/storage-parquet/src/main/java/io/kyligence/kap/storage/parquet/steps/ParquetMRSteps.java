@@ -49,6 +49,8 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableSegment;
+import io.kyligence.kap.cube.raw.kv.RawTableConstants;
+import io.kyligence.kap.engine.mr.steps.KapRawTableJob;
 
 public class ParquetMRSteps extends JobBuilderSupport {
     private static final Logger logger = LoggerFactory.getLogger(ParquetMRSteps.class);
@@ -80,6 +82,34 @@ public class ParquetMRSteps extends JobBuilderSupport {
         mergeCuboidDataStep.setMapReduceParams(cmd.toString());
         mergeCuboidDataStep.setMapReduceJobClass(clazz);
         return mergeCuboidDataStep;
+    }
+
+    public MapReduceExecutable createRawTableStep() {
+        MapReduceExecutable rawTableStep = new MapReduceExecutable();
+
+        RawTableInstance instance = detectRawTable();
+        RawTableSegment rawSeg = null;
+        try {
+            rawSeg = RawTableManager.getInstance(seg.getConfig()).appendSegment(instance, seg);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        String parquentStoragePath = KapConfig.wrap(seg.getConfig()).getParquentStoragePath();
+        String output = parquentStoragePath + rawSeg.getRawTableInstance().getUuid() + "/" + rawSeg.getUuid() + "/";
+        StringBuilder cmd = new StringBuilder();
+        appendMapReduceParameters(cmd);
+        rawTableStep.setName(RawTableConstants.BUILD_RAWTABLE);
+
+        appendExecCmdParameters(cmd, BatchConstants.ARG_CUBE_NAME, instance.getName());
+        appendExecCmdParameters(cmd, BatchConstants.ARG_SEGMENT_ID, rawSeg.getUuid());
+        appendExecCmdParameters(cmd, BatchConstants.ARG_INPUT, "FLAT_TABLE"); // marks flat table input
+        appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, output);
+        appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_Raw_Table_Builder_" + instance.getName());
+
+        rawTableStep.setMapReduceParams(cmd.toString());
+        rawTableStep.setMapReduceJobClass(getRawTableJob());
+        rawTableStep.setCounterSaveAs(CubingJob.SOURCE_RECORD_COUNT + "," + CubingJob.SOURCE_SIZE_BYTES);
+        return rawTableStep;
     }
 
     public MapReduceExecutable createMergeRawDataStep(CubeSegment seg, String jobID, Class<? extends AbstractHadoopJob> clazz) {
@@ -264,5 +294,15 @@ public class ParquetMRSteps extends JobBuilderSupport {
 
     private String getRawParquetFolderPath(RawTableSegment rawSegment) {
         return new StringBuffer(KapConfig.wrap(config.getConfig()).getParquentStoragePath()).append(rawSegment.getRawTableInstance().getUuid()).append("/").append(rawSegment.getUuid()).append("/").toString();
+    }
+
+    protected Class<? extends AbstractHadoopJob> getRawTableJob() {
+        return KapRawTableJob.class;
+    }
+
+    private RawTableInstance detectRawTable() {
+        RawTableInstance rawInstance = RawTableManager.getInstance(seg.getConfig()).getRawTableInstance(seg.getRealization().getName());
+        logger.info("Raw table is " + (rawInstance == null ? "not " : "") + "specified in this cubing job " + seg);
+        return rawInstance;
     }
 }
