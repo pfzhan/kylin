@@ -202,11 +202,12 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
   };
 
   $scope.downloadBadQueryFiles = function(){
-    var _project = ProjectModel.selectedProject;
-    if (_project == null){
-      SweetAlert.swal('', $scope.dataKylin.alert.tip_no_project_selected, 'info');
-      return;
-    }
+    //var _project = ProjectModel.selectedProject;
+    //if (_project == null){
+    //  SweetAlert.swal('', $scope.dataKylin.alert.tip_no_project_selected, 'info');
+    //  return;
+    //}
+    var  _project="-all";
     var downloadUrl = Config.service.url + 'diag/project/'+_project+'/download';
     $window.open(downloadUrl);
   }
