@@ -4074,3 +4074,12 @@ Gradient Background colors
 .panel-title.font12{
   font-size:12px;
 }
+.scroll{
+  overflow:scroll;
+  max-width:100%;
+  position:relative;
+}
+
+.JCLRgrips{
+  margin-left: 42px;
+}

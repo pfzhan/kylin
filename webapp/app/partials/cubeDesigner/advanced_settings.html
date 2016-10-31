@@ -206,14 +206,14 @@
 
       <div class="form-group large-popover" style="overflow:auto">
         <h3 style="margin-left:42px">{{dataKylin.cube.cubeASRowkeys}}  <i kylinpopover placement="right" ng-title="{{dataKylin.cube.tip_title_cubeASRowkeys.name}}" ng-watch="{{dataKylin.cube.tip_title_cubeASRowkeys.watch}}" template="rowkeyTip.html" class="fa fa-info-circle"></i></h3>
-        <table style="margin-left:42px; width:92%"
+        <table style="margin-left:42px; width:92%" id="resizeRowkeys"
                ng-if="cubeMetaFrame.rowkey.rowkey_columns.length > 0"
                class="table table-hover table-bordered list"
           >
           <thead>
           <tr>
-            <th>{{dataKylin.cube.cubeASID}}</th>
-            <th style="width:200px;">{{dataKylin.cube.cubeASColumn}}</th>
+            <th width="90px">{{dataKylin.cube.cubeASID}}</th>
+            <th style="width:320px;">{{dataKylin.cube.cubeASColumn}}</th>
             <th>{{dataKylin.cube.cubeASEncoding}}</th>
             <th>{{dataKylin.cube.cubeASLength}}</th>
             <th>{{dataKylin.cube.cubeASShardBy}}</th>
@@ -377,7 +377,7 @@
                 <div class="form-group" ng-if="!isReuse" >
                   <div class="row">
                     <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default"><b>{{dataKylin.cube.cubeASBuilderClass}}</b></label>
-                    <div class="col-xs-12 col-sm-6">
+                    <div cgitlass="col-xs-12 col-sm-6">
                       <input type="text" name="builder"  ng-model="newDictionaries.builder" required  style="width:100% " />
                     </div>
                   </div>

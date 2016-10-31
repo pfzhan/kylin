@@ -317,6 +317,15 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
       arr.splice(index, 1);
     }
   };
-
+  setTimeout(function(){
+    if($.prototype.colResizable){
+      $("#resizeRowkeys").colResizable({
+        liveDrag:true,
+        gripInnerHtml:"<div class='grip'></div>",
+        draggingClass:"dragging",
+        resizeMode:'fit'
+      });
+    }
+  },0)
 
 });
