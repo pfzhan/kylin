@@ -99,11 +99,11 @@
               <h5><b>{{dataKylin.cube.SegmentId}}</b> {{cube.tablemap[table.tableName]}}</h5>
                 <ul>
                   <li>Htable: <span class="red">{{table.tableName}}</span></li>
-                  <li ng-if="cube.streaming">Segment Name: <span class="red">{{table.segmentName}}</span></li>
-                  <li ng-if="cube.streaming">Segment Status: <span class="red">{{table.segmentStatus}}</span></li>
-                  <li ng-if="cube.streaming">Source Count: <span class="red">{{table.sourceCount}}</span></li>
-                  <li ng-if="cube.streaming&&table.sourceOffsetStart>0">SourceOffsetStart: <span class="red">{{table.sourceOffsetStart|reverseToGMT0}}</span></li>
-                  <li ng-if="cube.streaming&&table.sourceOffsetEnd>0">SourceOffsetEnd: <span class="red">{{table.sourceOffsetEnd|reverseToGMT0}}</span></li>
+                  <li>Segment Name: <span class="red">{{table.segmentName}}</span></li>
+                  <li>Segment Status: <span class="red">{{table.segmentStatus}}</span></li>
+                  <li>Source Count: <span class="red">{{table.sourceCount}}</span></li>
+                  <li ng-if="table.sourceOffsetStart>0">SourceOffsetStart: <span class="red">{{table.sourceOffsetStart|reverseToGMT0}}</span></li>
+                  <li ng-if="table.sourceOffsetEnd>0">SourceOffsetEnd: <span class="red">{{table.sourceOffsetEnd|reverseToGMT0}}</span></li>
                   <li>{{dataKylin.cube.cubeHBRegionCount}}<span class="red">{{table.regionCount}}</span></li>
                   <li>{{dataKylin.cube.cubeHBSize}}<span class="red">{{table.tableSize | bytes}}</span></li>
                   <li>{{dataKylin.cube.cubeHBStartTime}}<span class="red">{{table.dateRangeStart | reverseToGMT0}}</span></li>
@@ -111,16 +111,18 @@
                 </ul>
             </div>
           <div ng-if="cube.type=='columnar'" ng-repeat="table in cube.hbase" >
+            <h5><b>{{dataKylin.cube.SegmentId}}</b> {{table.segmentUUID}}</h5>
             <ul>
-
+              <li>{{dataKylin.cube.segmentName}}<span class="red">{{table.segmentName}}</span></li>
+              <li>{{dataKylin.cube.segmentPath}}<span class="red">{{table.segmentPath}}</span></li>
               <li>{{dataKylin.cube.fileCount}}<span class="red">{{table.fileCount}}</span></li>
-              <li>{{dataKylin.cube.storageSize}}<span class="red">{{table.storageSize*1024 | bytes}}</span></li>
+              <li>{{dataKylin.cube.storageSize}}<span class="red">{{table.storageSize | bytes}}</span></li>
               <li>{{dataKylin.cube.dateRangeStart}}<span class="red">{{table.dateRangeStart | reverseToGMT0}}</span></li>
               <li>{{dataKylin.cube.dateRangeEnd}}<span class="red">{{table.dateRangeEnd | reverseToGMT0}}</span></li>
             </ul>
             <div class="hr hr8 hr-double hr-dotted"></div>
           </div>
-            <div ng-if="cube.hbase&&cube.type=='hbase'&&cube.hbase.length">
+            <div ng-if="cube.hbase&&cube.hbase.length">
                 <div class="hr hr8 hr-double hr-dotted"></div>
                 <h5><b>{{dataKylin.cube.cubeHBTotalSize}}</b> <span class="red">{{cube.totalSize | bytes}}</span></h5>
                 <h5><b>{{dataKylin.cube.cubeHBTotalNumber}}</b> <span class="red">{{cube.hbase.length}}</span></h5>
