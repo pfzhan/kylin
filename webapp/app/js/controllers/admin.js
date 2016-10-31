@@ -214,7 +214,9 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
 
   $scope.backupGlobal=function(){
     AdminStoreService.globalBackup({},{},function(){
-
+      MessageService.sendMsg($scope.dataKylin.alert.success_back, 'success', {});
+    },function(){
+      kylinCommon.error_default(e);
     })
   }
   $scope.getEnv();
