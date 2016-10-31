@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, TableService, loadingRequest, MessageService, $modal, SweetAlert,kylinConfig,ProjectModel,$window,kylinCommon) {
+KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, TableService, loadingRequest, MessageService, $modal, SweetAlert,kylinConfig,ProjectModel,$window,kylinCommon,AdminStoreService) {
   $scope.configStr = "";
   $scope.envStr = "";
 
@@ -213,7 +213,9 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
   }
 
   $scope.backupGlobal=function(){
+    AdminStoreService.globalBackup({},{},function(){
 
+    })
   }
   $scope.getEnv();
   $scope.getConfig();
