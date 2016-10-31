@@ -331,6 +331,9 @@ KylinApp.constant('kapEnglishConfig', {
     cubeHBTotalNumber: 'Total Number:',
     cubeHBNoHBaseInfo: 'No HBase Info.',
 
+
+    segmentName:'Segment Name:',
+    segmentPath:'Segment Path:',
     fileCount:'File Number:',
     storageSize:'Storage Size:',
     dateRangeStart:'Range Start Time:',

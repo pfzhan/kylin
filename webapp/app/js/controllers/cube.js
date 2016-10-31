@@ -86,7 +86,7 @@ KylinApp.controller('CubeCtrl', function ($scope, AccessService, MessageService,
               // Calculate cube total size based on each htable.
               var totalSize = 0;
               hbase.forEach(function(t) {
-                totalSize += t.tableSize;
+                totalSize += t.storageSize;
               });
               cube.totalSize = totalSize;
             },function(e){

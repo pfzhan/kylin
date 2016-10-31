@@ -315,6 +315,8 @@ KylinApp.constant('kapChineseConfig', {
     cubeHBTotalNumber: '总个数:',
     cubeHBNoHBaseInfo: '没有HBase相关信息.',
 
+    segmentName:'Segment名称：',
+    segmentPath:'Segment路径：',
     fileCount:'索引文件数：',
     storageSize:'存储空间：',
     dateRangeStart:'区间起始时间：',
