@@ -18,12 +18,33 @@
 
 'use strict';
 
-KylinApp.controller('CubeOverWriteCtrl', function ($scope, $modal,cubeConfig,MetaModel,cubesManager,CubeDescModel) {
+KylinApp.controller('CubeOverWriteCtrl', function ($scope, $modal,cubeConfig,MetaModel,cubesManager,CubeDescModel,CubeConfigService) {
   $scope.cubesManager = cubesManager;
 
-
+  $scope.convertedProperties=[];
   //rowkey
-  $scope.convertedProperties = [];
+  if(angular.equals({},$scope.cubeMetaFrame.override_kylin_properties)){
+    $scope.convertedProperties=[
+      {name:"kylin.hbase.default.compression.codec",value:""},
+      {name:"kylin.job.cubing.inmem.sampling.percent",value:""},
+      {name:"kylin.cube.algorithm",value:""},
+      {name:"kylin.cube.aggrgroup.max.combination",value:""}
+    ]
+    for(var i=0;i<$scope.convertedProperties.length;i++){
+      (function(i){
+        CubeConfigService.getDefault({key:$scope.convertedProperties[i].name},function(data){
+          console.log(data);
+          var str="";
+          for(var s in data){
+            if(s&&+s==+s){
+              str+=data[s]
+            }
+          }
+          $scope.convertedProperties[i].value=str;
+        })
+      }(i))
+    }
+  }
 
   for(var key in $scope.cubeMetaFrame.override_kylin_properties){
     $scope.convertedProperties.push({
