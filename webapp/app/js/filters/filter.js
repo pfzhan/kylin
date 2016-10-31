@@ -97,7 +97,7 @@ KylinApp
         precision = 3;
       }
 
-      var units = ['bytes', 'kB', 'MB', 'GB', 'TB', 'PB'],
+      var units = ['bytes', 'KB', 'MB', 'GB', 'TB', 'PB'],
         number = Math.floor(Math.log(bytes) / Math.log(1024));
       switch(number){
         case 0:

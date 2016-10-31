@@ -114,13 +114,13 @@
             <ul>
 
               <li>{{dataKylin.cube.fileCount}}<span class="red">{{table.fileCount}}</span></li>
-              <li>{{dataKylin.cube.storageSize}}<span class="red">{{table.storageSize | bytes}}</span></li>
+              <li>{{dataKylin.cube.storageSize}}<span class="red">{{table.storageSize*1024 | bytes}}</span></li>
               <li>{{dataKylin.cube.dateRangeStart}}<span class="red">{{table.dateRangeStart | reverseToGMT0}}</span></li>
               <li>{{dataKylin.cube.dateRangeEnd}}<span class="red">{{table.dateRangeEnd | reverseToGMT0}}</span></li>
             </ul>
             <div class="hr hr8 hr-double hr-dotted"></div>
           </div>
-            <div ng-if="cube.hbase&&cube.type=='hbase'">
+            <div ng-if="cube.hbase&&cube.type=='hbase'&&cube.hbase.length">
                 <div class="hr hr8 hr-double hr-dotted"></div>
                 <h5><b>{{dataKylin.cube.cubeHBTotalSize}}</b> <span class="red">{{cube.totalSize | bytes}}</span></h5>
                 <h5><b>{{dataKylin.cube.cubeHBTotalNumber}}</b> <span class="red">{{cube.hbase.length}}</span></h5>
