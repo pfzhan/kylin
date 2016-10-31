@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2016 Kyligence Inc. All rights reserved.
  *
  * http://kyligence.io
