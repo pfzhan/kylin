@@ -38,7 +38,7 @@ import org.springframework.stereotype.Component;
 import io.kyligence.kap.rest.response.ColumnarResponse;
 
 @Component("kapCubeService")
-public class KapCubeService extends BasicService{
+public class KapCubeService extends BasicService {
 
     private WeakHashMap<String, ColumnarResponse> columnarInfoCache = new WeakHashMap<>();
 
@@ -53,9 +53,16 @@ public class KapCubeService extends BasicService{
         columnarResp.setDateRangeEnd(segment.getDateRangeEnd());
 
         FileSystem fs = HadoopUtil.getFileSystem(segStoragePath);
-        ContentSummary cs = fs.getContentSummary(new Path(segStoragePath));
-        columnarResp.setFileCount(cs.getFileCount());
-        columnarResp.setStorageSize(segment.getSizeKB());
+        if (fs.exists(new Path(segStoragePath))) {
+            ContentSummary cs = fs.getContentSummary(new Path(segStoragePath));
+            columnarResp.setFileCount(cs.getFileCount());
+        } else {
+            columnarResp.setFileCount(0);
+        }
+        columnarResp.setStorageSize(segment.getSizeKB() * 1024);
+        columnarResp.setSegmentName(segment.getName());
+        columnarResp.setSegmentUUID(segment.getUuid());
+        columnarResp.setSegmentPath(segStoragePath);
 
         columnarInfoCache.put(id, columnarResp);
         return columnarResp;

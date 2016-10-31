@@ -29,10 +29,37 @@ import java.io.Serializable;
 public class ColumnarResponse implements Serializable{
     private static final long serialVersionUID = 7263557115683273492L;
 
+    private String segmentName;
+    private String segmentUUID;
+    private String segmentPath;
     private long fileCount;
     private long storageSize;
     private long dateRangeStart;
     private long dateRangeEnd;
+
+    public String getSegmentName() {
+        return segmentName;
+    }
+
+    public void setSegmentName(String segmentName) {
+        this.segmentName = segmentName;
+    }
+
+    public String getSegmentUUID() {
+        return segmentUUID;
+    }
+
+    public void setSegmentUUID(String segmentUUID) {
+        this.segmentUUID = segmentUUID;
+    }
+
+    public String getSegmentPath() {
+        return segmentPath;
+    }
+
+    public void setSegmentPath(String segmentPath) {
+        this.segmentPath = segmentPath;
+    }
 
     public long getFileCount() {
         return fileCount;
