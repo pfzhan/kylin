@@ -109,5 +109,8 @@ KylinApp.constant('cubeConfig', {
   rawTableIndexOptions:[
     'discrete','fuzzy','sorted'
   ],
-  statusNeedNofity:['ERROR', 'DISCARDED', 'SUCCEED']
+  statusNeedNofity:['ERROR', 'DISCARDED', 'SUCCEED'],
+  buildDictionaries:[
+    {name:"Global Dictionary", value:"org.apache.kylin.dict.GlobalDictionaryBuilder"}
+  ]
 });

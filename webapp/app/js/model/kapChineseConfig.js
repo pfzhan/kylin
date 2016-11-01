@@ -459,6 +459,7 @@ KylinApp.constant('kapChineseConfig', {
     cubeASAdvancedDictionaries:'高级字典',
     cubeASEditDictionaries:'编辑字典',
     cubeASSelectColumn: '选择列',
+    selectBuildClass: '-- 请选一个构造类 --',
     tip_dictionaries:'对于字典的特殊设置.默认为空.',
     cubeASDictionaries:'添加字典',
     cubeASOK: '确定',

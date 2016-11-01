@@ -476,6 +476,7 @@ KylinApp.constant('kapEnglishConfig', {
     cubeASAdvancedDictionaries:'Advanced Dictionaries',
     cubeASEditDictionaries:'Edit Dictionaries',
     cubeASSelectColumn: '-- Select a Column --',
+    selectBuildClass: '-- Select a Builder Class -- ',
     tip_dictionaries:'Special settings for dictionaries. Leave blank by default.',
     cubeASDictionaries:'Dictionaries',
     cubeASOK: 'OK',
