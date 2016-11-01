@@ -73,13 +73,13 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
 
         FileSystem fs = FileSystem.get(conf);
         List<String> allHdfsPathsNeedToBeDeleted = new ArrayList<String>();
-        FileStatus[] cubeFolders = fs.listStatus(new Path(KapConfig.getInstanceFromEnv().getParquentStoragePath()));
+        FileStatus[] realizationParquetFolders = fs.listStatus(new Path(KapConfig.getInstanceFromEnv().getParquentStoragePath()));
 
-        for (FileStatus cubeFolder : cubeFolders) { //folders for cubes
-            FileStatus[] segmentFolders = fs.listStatus(cubeFolder.getPath());
+        for (FileStatus dataFolder : realizationParquetFolders) { //folders for cubes
+            FileStatus[] segmentFolders = fs.listStatus(dataFolder.getPath());
 
             for (FileStatus segmentFolder : segmentFolders) {
-                String folderName = KapConfig.getInstanceFromEnv().getParquentStoragePath() + cubeFolder.getPath().getName() + "/" + segmentFolder.getPath().getName();
+                String folderName = KapConfig.getInstanceFromEnv().getParquentStoragePath() + dataFolder.getPath().getName() + "/" + segmentFolder.getPath().getName();
                 allHdfsPathsNeedToBeDeleted.add(folderName);
             }
         }
@@ -98,13 +98,20 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
                 }
 
                 String segmentId = CubingExecutableUtil.getSegmentId(params);
-                String cubeId = cubeMgr.getCube(cubeName).getId();
-                String cubePath = KapConfig.getInstanceFromEnv().getParquentStoragePath() + cubeId + "/" + segmentId;
-                String rawId = rawMgr.getRawTableInstance(cubeName).getId();
-                String rawPath = KapConfig.getInstanceFromEnv().getParquentStoragePath() + rawId + "/" + segmentId;
-                allHdfsPathsNeedToBeDeleted.remove(cubePath);
-                allHdfsPathsNeedToBeDeleted.remove(rawPath);
-                logger.info("Skip " + cubePath + " from deletion list, as the path belongs to job " + jobId + " with state " + state);
+
+                if (cubeMgr.getCube(cubeName) != null) {
+                    String cubeId = cubeMgr.getCube(cubeName).getId();
+                    String cubePath = KapConfig.getInstanceFromEnv().getParquentStoragePath() + cubeId + "/" + segmentId;
+                    allHdfsPathsNeedToBeDeleted.remove(cubePath);
+                    logger.info("Skip " + cubePath + " from deletion list, as the path belongs to job " + jobId + " with state " + state);
+                }
+
+                if (rawMgr.getRawTableInstance(cubeName) != null) {
+                    String rawId = rawMgr.getRawTableInstance(cubeName).getId();
+                    String rawPath = KapConfig.getInstanceFromEnv().getParquentStoragePath() + rawId + "/" + segmentId;
+                    allHdfsPathsNeedToBeDeleted.remove(rawPath);
+                    logger.info("Skip " + rawPath + " from deletion list, as the path belongs to job " + jobId + " with state " + state);
+                }
             }
         }
 
