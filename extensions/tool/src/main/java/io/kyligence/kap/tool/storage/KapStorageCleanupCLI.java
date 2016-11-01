@@ -91,11 +91,16 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
             if (!state.isFinalState()) {
                 Map<String, String> params = executableManager.getJob(jobId).getParams();
                 String cubeName = CubingExecutableUtil.getCubeName(params);
+
+                if (cubeName == null) {
+                    //skip job like "calculate cardinality"
+                    continue;
+                }
+
                 String segmentId = CubingExecutableUtil.getSegmentId(params);
                 String cubeId = cubeMgr.getCube(cubeName).getId();
                 String cubePath = KapConfig.getInstanceFromEnv().getParquentStoragePath() + cubeId + "/" + segmentId;
                 String rawId = rawMgr.getRawTableInstance(cubeName).getId();
-                // TODO: raw segment should have own uuid
                 String rawPath = KapConfig.getInstanceFromEnv().getParquentStoragePath() + rawId + "/" + segmentId;
                 allHdfsPathsNeedToBeDeleted.remove(cubePath);
                 allHdfsPathsNeedToBeDeleted.remove(rawPath);
