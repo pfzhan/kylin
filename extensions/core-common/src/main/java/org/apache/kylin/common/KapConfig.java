@@ -128,7 +128,7 @@ public class KapConfig {
      * parquet shard size, in MB
      */
     public int getParquetStorageShardSize() {
-        return Integer.valueOf(config.getOptional("kap.storage.columnar.shard.size", "64"));
+        return Integer.valueOf(config.getOptional("kap.storage.columnar.shard.size", "256"));
     }
 
     public int getParquetStorageShardMin() {
@@ -140,7 +140,7 @@ public class KapConfig {
     }
 
     public int getParquetStorageBlockSize() {
-        return Integer.valueOf(config.getOptional("kap.storage.columnar.dfs.blocksize", "134217728"));//default 128M
+        return Integer.valueOf(config.getOptional("kap.storage.columnar.dfs.blocksize", String.valueOf(10 * getParquetStorageShardSize() * 1024 * 1024)));//default (10 * shard_size)
     }
 
     /**
