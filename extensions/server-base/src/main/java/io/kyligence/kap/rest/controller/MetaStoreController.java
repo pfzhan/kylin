@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.rest.controller;
 
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
