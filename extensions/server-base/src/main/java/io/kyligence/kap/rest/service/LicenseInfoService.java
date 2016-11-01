@@ -27,11 +27,26 @@ package io.kyligence.kap.rest.service;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.net.InetAddress;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinVersion;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Component;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.storage.hbase.ToolUtil;
 
 @Component("licenseInfoService")
 public class LicenseInfoService extends BasicService {
@@ -67,4 +82,65 @@ public class LicenseInfoService extends BasicService {
         return result;
     }
 
+    public String requestLicenseInfo() throws IOException {
+        Map<String, String> currentLicenseInfo = extractLicenseInfo();
+        Map<String, String> systemInfo = Maps.newHashMap();
+        systemInfo.put("metastore", ToolUtil.getHBaseMetaStoreId());
+        systemInfo.put("network", getNetworkAddr());
+        systemInfo.put("os.name", System.getProperty("os.name"));
+        systemInfo.put("os.arch", System.getProperty("os.arch"));
+        systemInfo.put("os.version", System.getProperty("os.version"));
+        systemInfo.put("kylin.version", KylinVersion.getCurrentVersion().toString());
+        systemInfo.put("hostname", InetAddress.getLocalHost().getHostName());
+
+        StringBuilder output = new StringBuilder();
+        for (Map.Entry<String, String> entry : currentLicenseInfo.entrySet()) {
+            output.append(entry.getKey() + ":" + entry.getValue() + "\n");
+        }
+        for (Map.Entry<String, String> entry : systemInfo.entrySet()) {
+            output.append(entry.getKey() + ":" + entry.getValue() + "\n");
+        }
+        output.append("signature:" + calculateSignature(output.toString()));
+        return output.toString();
+    }
+
+    private String calculateSignature(String input) {
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("MD5");
+            byte[] signature = md.digest(input.getBytes());
+            return new String(Base64.encodeBase64(signature));
+        } catch (NoSuchAlgorithmException e) {
+            return null;
+        }
+    }
+
+    private String getNetworkAddr() {
+        try {
+            List<String> result = Lists.newArrayList();
+            Enumeration<NetworkInterface> networks = NetworkInterface.getNetworkInterfaces();
+            while (networks.hasMoreElements()) {
+                NetworkInterface network = networks.nextElement();
+                byte[] mac = network.getHardwareAddress();
+
+                StringBuilder sb = new StringBuilder();
+                if (mac != null) {
+                    for (int i = 0; i < mac.length; i++) {
+                        sb.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
+                    }
+                    List<String> inetAddrList = Lists.newArrayList();
+                    for (InterfaceAddress interAddr : network.getInterfaceAddresses()) {
+                        inetAddrList.add(interAddr.getAddress().getHostAddress());
+                    }
+                    sb.append("(" + StringUtils.join(inetAddrList, ",") + ")");
+                }
+                if (sb.length() > 0) {
+                    result.add(sb.toString());
+                }
+            }
+            return StringUtils.join(result, ",");
+        } catch (Exception e) {
+            return StringUtils.EMPTY;
+        }
+    }
 }
