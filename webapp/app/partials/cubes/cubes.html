@@ -35,7 +35,7 @@
       <!--STATUS-->
       <div class="pull-right">
         <!-- + Cubes-->
-        <a class="btn btn-primary btn-sm" href="cubes/add"  ng-if="userService.hasRole('ROLE_MODELER')" id="addCubeButton"><i class="fa fa-plus"></i> {{dataKylin.cube.ac_cube}}</a>
+        <a class="btn btn-primary btn-sm"  ng-click="goToAddPage()"  ng-if="userService.hasRole('ROLE_MODELER')" id="addCubeButton"><i class="fa fa-plus"></i> {{dataKylin.cube.ac_cube}}</a>
       </div>
     </div>
   </div>

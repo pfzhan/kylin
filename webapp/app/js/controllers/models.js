@@ -99,7 +99,6 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
 
   $scope.$watch('projectModel.selectedProject', function (newValue, oldValue) {
     if (newValue != oldValue || newValue == null) {
-      modelsManager.removeAll();
       $scope.list();
     }
 
@@ -208,9 +207,9 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
     };
   };
 
-
+  VdmUtil.storage.set("tsCache",true);
   if($location.path()=="/models/fromadd"){
-      if(VdmUtil.storage.getObject(ProjectModel.getSelectedProject())){
+      if(VdmUtil.storage.getObject(ProjectModel.getSelectedProject())&&VdmUtil.storage.getObject(ProjectModel.getSelectedProject()).name){
         SweetAlert.swal({
           title: '',
           text: $scope.dataKylin.alert.tip_cubadd_cache,
@@ -222,9 +221,11 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
         }, function (isConfirm) {
           if (isConfirm) {
             $location.path("/cubes/add");
+          }else{
+            VdmUtil.storage.remove(ProjectModel.getSelectedProject());
+            VdmUtil.storage.remove(ProjectModel.getSelectedProject(ProjectModel.getSelectedProject()+"_rawtable"));
           }
-        },function(){
-          $location.path("/models");
+          VdmUtil.storage.remove("tsCache");
         });
       }else{
         $location.path("/models");

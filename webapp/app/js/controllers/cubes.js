@@ -18,15 +18,46 @@
 
 'use strict';
 
-KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, $modal, MessageService, CubeDescService,RawTablesService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, cubeConfig, ProjectModel, ModelService, MetaModel, CubeList,modelsManager,cubesManager,TableService,kylinCommon,language) {
+KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, $modal, MessageService, CubeDescService,RawTablesService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, cubeConfig, ProjectModel, ModelService, MetaModel, CubeList,modelsManager,cubesManager,TableService,kylinCommon,language,VdmUtil) {
 
     $scope.cubeConfig = cubeConfig;
     $scope.cubeList = CubeList;
     $scope.modelsManager = modelsManager;
     //$scope.cubesManager = cubesManager;
+    $scope.goToAddPage=function(){
+      var proName=ProjectModel.getSelectedProject();
+      if(VdmUtil.storage.getObject(proName)&&VdmUtil.storage.getObject(proName).name){
+        if(VdmUtil.storage.get("tsCache")){
+          SweetAlert.swal({
+            title: '',
+            text: $scope.dataKylin.alert.tip_cubadd_cache,
+            type: '',
+            showCancelButton: true,
+            confirmButtonColor: '#DD6B55',
+            confirmButtonText: "Yes",
+            closeOnConfirm: true
+          }, function (isConfirm) {
+            if (isConfirm) {
+              $scope.cubeMetaFrame=VdmUtil.storage.getObject(proName);
+              $scope.RawTables=VdmUtil.storage.getObject(proName+"_rawtable")||[];
+            }else{
+              VdmUtil.storage.remove(proName);
+              VdmUtil.storage.remove(ProjectModel.getSelectedProject(proName+"_rawtable"));
+            }
+            $location.path("/cubes/add/");
+            VdmUtil.storage.remove("tsCache");
+          });
+        }else{
+          $scope.cubeMetaFrame=VdmUtil.storage.getObject(proName);
+          $scope.RawTables=VdmUtil.storage.getObject(proName+"_rawtable")||[];
+        }
 
-    $scope.queryFilter=
-    {
+      }else{
+        $location.path("/cubes/add/");
+      }
+
+    }
+    $scope.queryFilter= {
       "model":null
     };
 
@@ -66,8 +97,6 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
       })
       return defer.promise;
     }
-
-
     $scope.list = function (offset, limit) {
       var defer = $q.defer();
       if (!$scope.projectModel.projects.length) {
@@ -83,9 +112,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
       }
       queryParam.projectName = $scope.projectModel.selectedProject;
       queryParam.modelName = $scope.queryFilter.model;
-
       $scope.loading = true;
-
       return CubeList.list(queryParam).then(function (resp) {
           angular.forEach($scope.cubeList.cubes,function(cube,index){
             cube.streaming = false;
@@ -108,9 +135,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
                     }
                   }
                 })
-
                 defer.resolve(cube.detail);
-
               } else {
                 SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.tip_no_cube_detail, 'error');
               }
@@ -208,10 +233,6 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
             loadingRequest.hide();
             kylinCommon.error_default(e);
           });
-
-
-
-
         }
       });
     };

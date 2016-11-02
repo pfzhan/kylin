@@ -905,10 +905,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
       modelsManager.removeAll();
     }
   });
-  if($scope.cubeMetaFrame&&$scope.cubeMetaFrame.name==""&&VdmUtil.storage.getObject(ProjectModel.getSelectedProject()).name){
-    $scope.cubeMetaFrame=VdmUtil.storage.getObject(ProjectModel.getSelectedProject());
-    $scope.RawTables=VdmUtil.storage.getObject(ProjectModel.getSelectedProject()+"_rawtable")||[];
-  }
+
   //RawTables数据变化
   $scope.RawTables;
   $scope.$on('RawTableEdited', function (event,data) {
@@ -921,5 +918,9 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
     }
   },true);
 
-
+  var proName=ProjectModel.getSelectedProject();
+  if($scope.cubeMetaFrame&&$scope.cubeMetaFrame.name==""&&VdmUtil.storage.getObject(ProjectModel.getSelectedProject()).name){
+    $scope.cubeMetaFrame=VdmUtil.storage.getObject(proName);
+    $scope.RawTables=VdmUtil.storage.getObject(proName+"_rawtable")||[];
+   }
 });

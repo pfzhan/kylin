@@ -36,7 +36,7 @@ KylinApp.service('modelsManager',function(ModelService,CubeService,$q,AccessServ
         var cubeDetail = [];
         var modelPermission = [];
         ModelService.list(queryParam, function (_models) {
-            //_this.removeAll();
+            _this.removeAll();
             angular.forEach(_models, function (model, index) {
                 $log.info("Add model permission info");
                 if(model.uuid){
