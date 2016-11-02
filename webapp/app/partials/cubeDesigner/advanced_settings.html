@@ -53,7 +53,7 @@
 
                     <ui-select
                       autofocus="true"
-                      close-on-select="false"
+                      close-on-select="false"    ng-disabled="instance.status=='READY'"
                       on-select="refreshAggregationGroup(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group)"
                       on-remove="refreshAggregationGroup(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group)"
                       ng-if="state.mode=='edit'" style="width: 100%" multiple ng-model="aggregation_group.includes">
@@ -77,7 +77,7 @@
                   <td class="col-xs-8">
                     <ui-select
                       close-on-select="false"
-                      autofocus="true"
+                      autofocus="true"    ng-disabled="instance.status=='READY'"
                       on-select="refreshAggregationGroup(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group)"
                       on-remove="refreshAggregationGroup(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group)"
                       ng-if="state.mode=='edit'" style="width: 100%" multiple ng-model="aggregation_group.select_rule.mandatory_dims">
@@ -106,7 +106,7 @@
                         <td class="col-xs-10">
                           <ui-select
                             close-on-select="false"
-                            autofocus="true"
+                            autofocus="true"    ng-disabled="instance.status=='READY'"
                             on-select="refreshAggregationHierarchy(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group,$index,hierarchyDims)"
                             on-remove="refreshAggregationHierarchy(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group,$index,hierarchyDims)"
                             ng-if="state.mode=='edit'" style="width: 100%" multiple ng-model="hierarchyDims">
@@ -121,7 +121,7 @@
 
                         </td>
                         <td class="col-xs-2">
-                          <button class="btn btn-sm btn-info"
+                          <button class="btn btn-sm btn-info"  ng-disabled="instance.status=='READY'"
                                   ng-click="removeHierarchy(aggregation_group,hierarchyDims)"
                                   ng-show="state.mode=='edit'"><i class="fa fa-minus"></i>
                           </button>
@@ -130,7 +130,7 @@
 
                       <tr class="row">
                         <td class="col-xs-12">
-                          <button class="btn btn-sm btn-info"
+                          <button class="btn btn-sm btn-info"    ng-disabled="instance.status=='READY'"
                                   ng-click="addNewHierarchy(aggregation_group)" ng-show="state.mode=='edit'">{{dataKylin.cube.cubeASNewHierarchy}}<i class="fa fa-plus"></i>
                           </button>
                         </td>
@@ -152,7 +152,7 @@
                           <!-- Dimensions -->
                           <ui-select
                             close-on-select="false"
-                            autofocus="true"
+                            autofocus="true"   ng-disabled="instance.status=='READY'"
                             on-select="refreshAggregationJoint(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group,$index,jointDims)"
                             on-remove="refreshAggregationJoint(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group,$index,jointDims)"
                             ng-if="state.mode=='edit'" style="width: 100%" multiple ng-model="jointDims">
@@ -166,7 +166,7 @@
                             {{jointDims}}</p>
                         </td>
                         <td class="col-xs-2">
-                          <button class="btn btn-sm btn-info"
+                          <button class="btn btn-sm btn-info"   ng-disabled="instance.status=='READY'"
                                   ng-click="removeJointDims(aggregation_group,jointDims)"
                                   ng-show="state.mode=='edit'"><i class="fa fa-minus"></i>
                           </button>
@@ -175,7 +175,7 @@
 
                       <tr class="row">
                         <td class="col-xs-12">
-                          <button class="btn btn-sm btn-info"
+                          <button class="btn btn-sm btn-info"   ng-disabled="instance.status=='READY'"
                                   ng-click="addNewJoint(aggregation_group)" ng-show="state.mode=='edit'">{{dataKylin.cube.cubeASNewJoint}}<i class="fa fa-plus"></i>
                           </button>
                         </td>
@@ -188,7 +188,7 @@
 
             </td>
             <td ng-if="state.mode=='edit'" class="col-xs-1">
-              <button class="btn btn-xs btn-info"
+              <button class="btn btn-xs btn-info"   ng-disabled="instance.status=='READY'"
                       ng-click="removeElement(cubeMetaFrame.aggregation_groups, aggregation_group)"><i
                 class="fa fa-minus"></i>
               </button>
@@ -196,7 +196,7 @@
           </tr>
         </table>
 
-        <button class="btn btn-sm btn-info" style="margin-left:42px" ng-click="addNewAggregationGroup()"
+        <button class="btn btn-sm btn-info" style="margin-left:42px" ng-click="addNewAggregationGroup()"   ng-disabled="instance.status=='READY'"
                 ng-show="state.mode=='edit'">{{dataKylin.cube.cubeASNewAggregationGroup}}<i class="fa fa-plus"></i>
         </button>
 
@@ -233,7 +233,7 @@
             <td>
               <!--Column Name -->
               <input type="text" class="form-control" placeholder="{{dataKylin.cube.tip_Column_Name}}" ng-if="state.mode=='edit'"
-                     ng-change="refreshRowKey(convertedRowkeys,$index,rowkey_column)"
+                     ng-change="refreshRowKey(convertedRowkeys,$index,rowkey_column)"   ng-disabled="instance.status=='READY'"
                      tooltip="{{dataKylin.cube.tip_rowkey_column_name}}" tooltip-trigger="focus"
                      ng-model="rowkey_column.column" class="form-control">
 
@@ -241,7 +241,7 @@
             </td>
             <td>
               <select ng-if="state.mode=='edit'" style="width:180px;"
-                      chosen ng-model="rowkey_column.encoding"
+                      chosen ng-model="rowkey_column.encoding" ng-disabled="instance.status=='READY'"
                       ng-change="refreshRowKey(convertedRowkeys,$index,rowkey_column);"
                       ng-options="dt.value as dt.name for dt in getEncodings(rowkey_column.column)">
                 <option value=""></option>
@@ -253,7 +253,7 @@
               <!--Column Length -->
               <input type="text" class="form-control" placeholder="Column Length.." ng-if="state.mode=='edit'"
                      tooltip="{{dataKylin.cube.rowkey_column_length}}" tooltip-trigger="focus"
-                     ng-disabled="rowkey_column.encoding=='dict'||rowkey_column.encoding=='date'||rowkey_column.encoding=='time'"
+                     ng-disabled="rowkey_column.encoding=='dict'||rowkey_column.encoding=='date'||rowkey_column.encoding=='time'||instance.status=='READY'"
                      ng-change="refreshRowKey(convertedRowkeys,$index,rowkey_column);"
                      ng-model="rowkey_column.valueLength" class="form-control">
 
@@ -263,7 +263,7 @@
 
             <td>
               <select ng-if="state.mode=='edit'" style="width:180px;"
-                      chosen ng-model="rowkey_column.isShardBy"
+                      chosen ng-model="rowkey_column.isShardBy"  ng-disabled="instance.status=='READY'"
                       tooltip="{{dataKylin.cube.tip_false_by_default}}"
                       data-placeholder="false by default"
                       ng-change="refreshRowKey(convertedRowkeys,$index,rowkey_column,true)"
@@ -274,7 +274,7 @@
               <span ng-if="state.mode=='view'">{{rowkey_column.isShardBy}}</span>
             </td>
             <td ng-if="state.mode=='edit'">
-              <button class="btn btn-xs btn-info"
+              <button class="btn btn-xs btn-info"  ng-disabled="instance.status=='READY'"
                       ng-click="removeRowkey(convertedRowkeys, $index,rowkey_column)"><i
                 class="fa fa-minus"></i>
               </button>
@@ -283,7 +283,7 @@
           </tbody>
         </table>
 
-        <button class="btn btn-sm btn-info" style="margin-left:42px"
+        <button class="btn btn-sm btn-info" style="margin-left:42px"  ng-disabled="instance.status=='READY'"
                 ng-click="addNewRowkeyColumn()" ng-show="state.mode=='edit'">{{dataKylin.cube.cubeASNewRowkeyColumn}}<i class="fa fa-plus"></i>
         </button>
       </div>
@@ -318,11 +318,11 @@
                 </td>
                 <td ng-if="state.mode=='edit'">
                   <!--Edit Button -->
-                  <button class="btn btn-xs btn-info" ng-click="addNewDictionaries(dictionaries, $index)" >
+                  <button class="btn btn-xs btn-info" ng-click="addNewDictionaries(dictionaries, $index)" ng-disabled="instance.status=='READY'">
                     <i class="fa fa-pencil"></i>
                   </button>
                   <!--Remove Button -->
-                  <button class="btn btn-xs  btn-danger" ng-click="removeDictionaries(cubeMetaFrame.dictionaries, dictionaries)">
+                  <button class="btn btn-xs  btn-danger" ng-click="removeDictionaries(cubeMetaFrame.dictionaries, dictionaries)" ng-disabled="instance.status=='READY'">
                     <i class="fa fa-trash-o"></i>
                   </button>
                 </td>
@@ -336,7 +336,7 @@
       <!--Add Dictionaries Button-->
 
       <div class="form-group" style="margin-left:42px;">
-        <button class="btn btn-sm btn-info" ng-click="addNewDictionaries()" ng-show="state.mode=='edit' && !addNew">
+        <button class="btn btn-sm btn-info" ng-click="addNewDictionaries()" ng-show="state.mode=='edit' && !addNew" ng-disabled="instance.status=='READY'">
           {{dataKylin.cube.cubeASDictionaries}}<i class="fa fa-plus"></i>
         </button>
       </div>
