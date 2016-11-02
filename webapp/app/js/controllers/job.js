@@ -125,9 +125,12 @@ KylinApp
               JobService.list(newJobPara,function(data){
                   for(var job in $scope.jobList.jobs){
                     for(var i =0;i<data.length;i++){
-                      var curObj=$scope.jobList.jobs[job];
-                      if(data[i].uuid==job&&(data[i].job_status!=curObj.job_status||data[i].progress!=curObj.progress||data[i].last_modified!=curObj.last_modified||data[i].duration!=curObj.duration)){
+                      //var curObj=$scope.jobList.jobs[job];
+                      if(data[i].uuid==job){
                         $scope.jobList.jobs[job]=data[i];
+                        if($scope.state.selectedJob&&$scope.state.selectedJob.uuid==data[i].uuid){
+                          $scope.state.selectedJob=data[i];
+                        }
                         break;
                       }
                     }
@@ -138,7 +141,7 @@ KylinApp
          if(location.pathname=="/kylin/jobs"){
            asynProgress();
          }
-        },2000);
+        },5000);
         $scope.$watch('projectModel.selectedProject', function (newValue, oldValue) {
             if(newValue!=oldValue||newValue==null){
                 JobList.removeAll();
