@@ -29,6 +29,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -36,7 +37,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ImmutableBitSet;
@@ -107,7 +107,7 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
         rawTableDesc = rawTableInstance.getRawTableDesc();
         GTInfo gtInfo = RawTableGridTable.newGTInfo(rawTableInstance);
         rawColumnCodec = new BufferedRawColumnCodec((RawTableCodeSystem) gtInfo.getCodeSystem());
-        codecBuffer = new String[rawColumnCodec.getColumnsCount()];//a little bit waste 
+        codecBuffer = new String[rawColumnCodec.getColumnsCount()];//a little bit waste
 
         logger.info("Input path: " + inputPath.toUri().toString());
         logger.info("Output path: " + outputPath.toString());
@@ -119,13 +119,11 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
         fuzzyIndexWriterMap = new HashMap<>();
         fuzzyIndexEncodingMap = new HashMap<>();
         List<TblColRef> columns = rawTableDesc.getColumns();
-        //        Path tmpDir = FileOutputFormat.getWorkOutputPath(context);
         for (int i = 0; i < columns.size(); i++) {
             TblColRef column = columns.get(i);
             if (rawTableDesc.isNeedFuzzyIndex(column)) {
                 Path outputPath = new Path(inputPath.getParent(), shardId + "." + i + ".parquet.fuzzy");
-                Path tmpPath = new Path(FileOutputFormat.getUniqueFile(context, String.valueOf(shardId) + "-" + String.valueOf(i), ""));
-                //                Path tmpPath = new Path(tmpDir, i + "fuzzy");
+                Path tmpPath = new Path(outputPath.getParent(), String.valueOf(shardId) + "-" + String.valueOf(i) + "-" + RandomStringUtils.random(10) + ".tmp");
                 pathMap.put(outputPath, tmpPath);
 
                 FSDataOutputStream output = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(tmpPath);

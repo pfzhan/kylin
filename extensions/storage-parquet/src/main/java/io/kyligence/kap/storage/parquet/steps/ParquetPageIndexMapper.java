@@ -26,6 +26,7 @@ package io.kyligence.kap.storage.parquet.steps;
 
 import java.io.IOException;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -33,7 +34,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.cube.CubeInstance;
@@ -141,9 +141,8 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
             logger.debug("Column Length:" + columnName[col] + "=" + columnLength[col]);
         }
 
-        tmpPath = new Path(FileOutputFormat.getUniqueFile(context, String.valueOf(cuboid) + "-" + String.valueOf(shardId), ""));
-//        Path tmpDir = FileOutputFormat.getWorkOutputPath(context);
-//        tmpPath = new Path(tmpDir, "index");
+        //        tmpPath = new Path(FileOutputFormat.getUniqueFile(context, String.valueOf(cuboid) + "-" + String.valueOf(shardId), ""));
+        tmpPath = new Path(outputPath.getParent(), String.valueOf(cuboid) + "-" + String.valueOf(shardId) + "-" + RandomStringUtils.random(10) + ".tmp");
 
         FSDataOutputStream outputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(tmpPath);
         indexBundleWriter = new ParquetPageIndexWriter(columnName, columnLength, cardinality, onlyEQIndex, outputStream);

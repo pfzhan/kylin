@@ -27,6 +27,7 @@ package io.kyligence.kap.storage.parquet.steps;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -34,7 +35,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.MemoryBudgetController;
@@ -109,9 +109,7 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
             columnSpecs[i].setValueEncodingIdentifier('s');
         }
 
-        tmpPath = new Path(FileOutputFormat.getUniqueFile(context, String.valueOf(shardId), ""));
-//        Path tmpDir = FileOutputFormat.getWorkOutputPath(context);
-//        tmpPath = new Path(tmpDir, "index");
+        tmpPath = new Path(outputPath.getParent(), String.valueOf(shardId) + "-" + RandomStringUtils.random(10) + ".tmp");
 
         FSDataOutputStream outputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(tmpPath);
         indexBundleWriter = new ParquetPageIndexWriter(columnSpecs, outputStream);
