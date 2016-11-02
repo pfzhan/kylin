@@ -15,6 +15,7 @@ function quit {
 
 source $dir/find-hive-dependency.sh
 
-java -cp ${hive_dependency}:${KYLIN_HOME}/lib/*job*.jar  org.apache.kylin.common.util.ClasspathScanner  HCatInputFormat.class  >/dev/null 2>&1
+jobjar=`find ${KYLIN_HOME}/lib -name '*job*.jar'`
+java -cp ${hive_dependency}:${jobjar}  org.apache.kylin.common.util.ClasspathScanner  HCatInputFormat.class  >/dev/null 2>&1
 [[ $? == 0 ]]         || quit "ERROR: Class HCatInputFormat is not found on hive dependency. Please check bin/find-hive-dependency.sh is setup correctly."
 
