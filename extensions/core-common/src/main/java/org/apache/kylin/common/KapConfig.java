@@ -112,8 +112,7 @@ public class KapConfig {
     }
 
     public long getSparkVisitTimeout() {
-        long value = Long.valueOf(config.getOptional("kap.storage.columnar.spark.visit.timeout", "300000"));
-        return (long) (value * config.getCubeVisitTimeoutTimes());
+        return Long.valueOf(config.getOptional("kap.storage.columnar.spark.visit.timeout", "300000"));
     }
 
     /**
