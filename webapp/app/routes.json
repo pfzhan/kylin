@@ -81,6 +81,14 @@
         }
     },
     {
+      "url": "/models/:action",
+      "params": {
+        "templateUrl": "partials/models/models.html",
+        "tab": "models",
+        "controller": "ModelsCtrl"
+      }
+    },
+    {
         "url": "/models/add",
         "params": {
             "templateUrl": "partials/models/model_edit.html",

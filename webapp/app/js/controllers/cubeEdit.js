@@ -19,7 +19,7 @@
 'use strict';
 
 
-KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $location, $templateCache, $interpolate, MessageService, TableService, CubeDescService, CubeService,RawTablesService, loadingRequest, SweetAlert, $log, cubeConfig, CubeDescModel, MetaModel, TableModel, ModelDescService, modelsManager, cubesManager, ProjectModel, StreamingModel, StreamingService,kylinCommon) {
+KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParams, $location, $templateCache, $interpolate, MessageService, TableService, CubeDescService, CubeService,RawTablesService, loadingRequest, SweetAlert, $log, cubeConfig, CubeDescModel, MetaModel, TableModel, ModelDescService, modelsManager, cubesManager, ProjectModel, StreamingModel, StreamingService,kylinCommon,VdmUtil) {
   $scope.cubeConfig = cubeConfig;
 
   $scope.metaModel = {};
@@ -415,6 +415,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
             project: $scope.state.project
           }, function (request) {
             if (request.successful) {
+              VdmUtil.storage.remove($scope.state.project);
               $scope.state.cubeSchema = request.cubeDescData;
               kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_updated_cube);
               $location.path("/models");
@@ -470,6 +471,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
             project: $scope.state.project
           }, function (request) {
             if (request.successful) {
+              VdmUtil.storage.remove($scope.state.project);
               $scope.state.cubeSchema = request.cubeDescData;
               kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_created_cube);
               $location.path("/models");
@@ -520,6 +522,41 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
       }
     });
   };
+
+
+
+  //保存rawTable
+  function saveRawTable(){
+    if($scope.RawTables&&$scope.RawTables.columns){
+
+      $scope.RawTables.name=$scope.cubeMetaFrame.name;
+      $scope.RawTables.model_name=$scope.cubeMetaFrame.model_name;
+      $scope.RawTables.engine_type=$scope.cubeMetaFrame.engine_type;
+      $scope.RawTables.storage_type=$scope.cubeMetaFrame.storage_type;
+      RawTablesService.save({},{
+        rawTableDescData:angular.toJson($scope.RawTables, true),
+        project: $scope.state.project
+      },function(request){
+        VdmUtil.storage.remove($scope.state.project+"_rawtable");
+      },function(request){
+
+      })
+    }
+  }
+
+  //更新rawTable
+  function updateRawTable(){
+    RawTablesService.update({},{
+      rawTableDescData:angular.toJson($scope.RawTables, true),
+      project: $scope.state.project,
+      rawTableName:$scope.RawTables.name
+
+    },function(request){
+      VdmUtil.storage.remove($scope.state.project+"_rawtable");
+    },function(request){
+
+    })
+  }
 
 
 
@@ -858,12 +895,31 @@ KylinApp.controller('CubeEditCtrl', function ($scope, $q, $routeParams, $locatio
       reGenerateRowKey();
     }
   });
+
+
+  if(!ProjectModel.getSelectedProject()&&!$scope.isEdit){
+    $location.path("/models/fromadd");
+  }
+  $scope.$watch('projectModel.selectedProject', function (newValue, oldValue) {
+    if (newValue != oldValue || newValue == null) {
+      modelsManager.removeAll();
+    }
+  });
+  if($scope.cubeMetaFrame&&$scope.cubeMetaFrame.name==""&&VdmUtil.storage.getObject(ProjectModel.getSelectedProject()).name){
+    $scope.cubeMetaFrame=VdmUtil.storage.getObject(ProjectModel.getSelectedProject());
+    $scope.RawTables=VdmUtil.storage.getObject(ProjectModel.getSelectedProject()+"_rawtable")||[];
+  }
   //RawTables数据变化
   $scope.RawTables;
   $scope.$on('RawTableEdited', function (event,data) {
     $scope.RawTables=data;
-    //console.log(data);
+    VdmUtil.storage.setObject(ProjectModel.getSelectedProject()+"_rawtable",data);
   });
+  $scope.$watch("cubeMetaFrame",function(){
+    if(ProjectModel.getSelectedProject()&&$scope.cubeMetaFrame!=""){
+      VdmUtil.storage.setObject(ProjectModel.getSelectedProject(),$scope.cubeMetaFrame);
+    }
+  },true);
 
 
 });

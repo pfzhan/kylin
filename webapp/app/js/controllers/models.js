@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location, $window, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, modelConfig, ProjectModel, ModelService, MetaModel, modelsManager, cubesManager, TableModel, $animate,language,kylinCommon) {
+KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location, $window, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, modelConfig, ProjectModel, ModelService, MetaModel, modelsManager, cubesManager, TableModel, $animate,language,kylinCommon,VdmUtil) {
 
   //tree data
 
@@ -207,6 +207,30 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
       $modalInstance.dismiss('cancel');
     };
   };
+
+
+  if($location.path()=="/models/fromadd"){
+      if(VdmUtil.storage.getObject(ProjectModel.getSelectedProject())){
+        SweetAlert.swal({
+          title: '',
+          text: $scope.dataKylin.alert.tip_cubadd_cache,
+          type: '',
+          showCancelButton: true,
+          confirmButtonColor: '#DD6B55',
+          confirmButtonText: "Yes",
+          closeOnConfirm: true
+        }, function (isConfirm) {
+          if (isConfirm) {
+            $location.path("/cubes/add");
+          }
+        },function(){
+          $location.path("/models");
+        });
+      }else{
+        $location.path("/models");
+      }
+
+  }
 
 });
 

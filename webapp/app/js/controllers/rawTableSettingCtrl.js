@@ -149,6 +149,7 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
       $scope.$emit('RawTableEdited',data);
     }
   }
+  $scope.$watch("rawTableColumns",transferRawTableData,true)
 
 
 });

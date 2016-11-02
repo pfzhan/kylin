@@ -872,7 +872,8 @@ KylinApp.constant('kapEnglishConfig', {
     duplicate_measures_part_one:'The measure named [',
     duplicate_measures_part_two: '] already exists!',
     warning_dimensions_name:"The name is required.",
-    success_back:"Backup success!"
+    success_back:"Backup success!",
+    tip_cubadd_cache:"Detect that you have not saved the cube build information, whether to continue to build?"
 },
   license:{
     aboutkap:"About KAP",

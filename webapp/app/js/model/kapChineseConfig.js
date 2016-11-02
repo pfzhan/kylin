@@ -855,7 +855,8 @@ KylinApp.constant('kapChineseConfig', {
     duplicate_measures_part_one:'名为 [',
     duplicate_measures_part_two: '] 的度量已经存在.',
     warning_dimensions_name:"名称不能为空",
-    success_back:"备份成功!"
+    success_back:"备份成功!",
+    tip_cubadd_cache:"检测到您有未保存的cube构建信息，是否继续构建?"
   },
   license:{
     aboutkap:"关于 KAP",
