@@ -72,7 +72,15 @@ then
     driverPort=${driverPort:-7071}
     echo "The driver port is $driverPort"
     export driverPort
-    
+
+    nc -z -w 5 localhost ${driverPort} 1>/dev/null 2>&1; nc_result=$?
+    if [ $nc_result -eq 0 ]; then
+        echo "port ${driverPort} is not available, could not start Spark Driver"
+        exit 1
+    else
+        echo "port ${driverPort} is available"
+    fi
+
     # spark envs
     sparkEnvPrefix="kap.storage.columnar.env."
     realStart=$((${#sparkEnvPrefix} + 1))
