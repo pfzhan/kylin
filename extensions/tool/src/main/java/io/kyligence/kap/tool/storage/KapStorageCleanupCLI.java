@@ -154,6 +154,14 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
                     logger.info("Hdfs path " + hdfsPath + "does not exist");
                 }
             }
+
+            for (FileStatus dataFolder : realizationParquetFolders) { //folders for cubes
+                FileStatus[] segmentFolders = fs.listStatus(dataFolder.getPath());
+                if (segmentFolders == null || segmentFolders.length == 0) {
+                    logger.info("Cleaning empty realization folder: " + dataFolder.getPath());
+                    fs.delete(dataFolder.getPath(), true);
+                }
+            }
         } else {
             System.out.println("--------------- HDFS Path To Be Deleted ---------------");
             for (String hdfsPath : allHdfsPathsNeedToBeDeleted) {
