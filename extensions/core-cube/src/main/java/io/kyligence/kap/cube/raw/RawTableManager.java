@@ -101,7 +101,7 @@ public class RawTableManager implements IRealizationProvider {
     private CaseInsensitiveStringCache<RawTableInstance> rawTableInstanceMap;
 
     private RawTableManager(KylinConfig config) throws IOException {
-        logger.info("Initializing RawTableDescManager with config " + config);
+        logger.info("Initializing RawTableManager with config " + config);
         this.config = config;
         this.rawTableInstanceMap = new CaseInsensitiveStringCache<RawTableInstance>(config, "raw_table");
 
@@ -194,7 +194,7 @@ public class RawTableManager implements IRealizationProvider {
 
         instance.init(config);
         if (StringUtils.isBlank(instance.getName())) {
-            throw new IllegalStateException("RawTableDesc name must not be blank");
+            throw new IllegalStateException("RawTable name must not be blank");
         }
 
         return instance;
