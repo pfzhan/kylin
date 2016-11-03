@@ -727,7 +727,7 @@ KylinApp.constant('kapChineseConfig', {
     tip_no_project_selected: '没有项目被选中',
     tip_select_project: '请先选中项目',
     tip_select_table: '请选择表',
-    sampleData:'抽样数据',
+    sampleData:'采样数据',
     cardinality:'基数'
   },
   system:{
