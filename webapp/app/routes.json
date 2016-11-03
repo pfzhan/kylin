@@ -81,7 +81,7 @@
         }
     },
     {
-      "url": "/models/:action",
+      "url": "/models/fromadd",
       "params": {
         "templateUrl": "partials/models/models.html",
         "tab": "models",
