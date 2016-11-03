@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -42,27 +43,51 @@ public class MetaStoreService extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(MetaStoreService.class);
 
+    /**
+     *
+     * @param project not in use right now, will enable in the next version
+     * @param timestamp the timestamp will be used as directory name
+     * @throws Exception
+     */
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public void backup(String timestampStr) throws Exception {
+    public String backup(String project, String timestamp, String[] includes, String[] excludes) throws Exception {
         String kylinHome = KylinConfig.getKylinHome();
-        if(kylinHome==null){
+        if (kylinHome == null) {
             throw new RuntimeException("KYLIN_HOME undefined");
         }
         File backupRootDir = new File(KylinConfig.getKylinHome() + "/meta_backups");
         FileUtils.forceMkdir(backupRootDir);
 
-        File backupDir = new File(backupRootDir.getAbsolutePath() + "/meta_" + timestampStr);
+        File backupDir = new File(backupRootDir.getAbsolutePath() + "/meta_" + timestamp);
         logger.info("Starting backup to " + backupDir.getAbsolutePath());
         FileUtils.forceMkdir(backupDir);
 
         KylinConfig kylinConfig = KylinConfig.createInstanceFromUri(backupDir.getAbsolutePath());
-        ResourceTool.copy(KylinConfig.getInstanceFromEnv(), kylinConfig);
-
+        if (includes != null) {
+            logger.info("metadata backup with includes filter: " + Arrays.toString(includes));
+            ResourceTool.setIncludes(includes);
+        }
+        if (excludes != null) {
+            logger.info("metadata backup with excludes filter: " + Arrays.toString(excludes));
+            ResourceTool.setExcludes(excludes);
+        }
+        try {
+            ResourceTool.copy(KylinConfig.getInstanceFromEnv(), kylinConfig);
+        } finally {
+            ResourceTool.setIncludes(null);
+            ResourceTool.setExcludes(null);
+        }
         logger.info("metadata store backed up to " + backupDir.getAbsolutePath());
+        return backupDir.getAbsolutePath();
     }
 
+    /**
+     *
+     * @param project not in use right now, will enable in the next version
+     * @throws IOException
+     */
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public void reset() throws IOException {
+    public void reset(String project) throws IOException {
         ResourceTool.reset(KylinConfig.getInstanceFromEnv());
     }
 

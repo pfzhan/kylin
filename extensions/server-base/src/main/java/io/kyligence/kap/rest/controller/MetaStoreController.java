@@ -33,6 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.rest.service.MetaStoreService;
@@ -49,22 +50,24 @@ public class MetaStoreController extends BasicController {
      */
     @RequestMapping(value = "backup", method = RequestMethod.POST)
     @ResponseBody
-    public void backup() {
+    public String backup(@RequestParam(value = "project", required = false) String project, @RequestParam(value = "includes", required = false) String[] includes, @RequestParam(value = "excludes", required = false) String[] excludes) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("YYYY_MM_dd_hh_mm_ss");
         String now = dateFormat.format(new Date());
+        String resultPath = null;
         try {
-            metaStoreService.backup(now);
+            resultPath = metaStoreService.backup(project, now, includes, excludes);
         } catch (Exception e) {
             throw new InternalErrorException(e);
         }
+        return resultPath;
     }
 
     @RequestMapping(value = "reset", method = RequestMethod.POST)
     @ResponseBody
-    public void reset() {
-        try{
-        metaStoreService.reset();
-        } catch(Exception e){
+    public void reset(@RequestParam(value = "project", required = false) String project) {
+        try {
+            metaStoreService.reset(project);
+        } catch (Exception e) {
             throw new InternalErrorException(e);
         }
     }
