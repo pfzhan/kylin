@@ -84,7 +84,8 @@ KylinApp.constant('kapChineseConfig', {
   welcome: '欢迎',
   documents: [
     {link:'http://kyligence.io',displayName:'关于我们'},
-    {link:'https://www.gitbook.com/book/kyligence/kap-manual/details',displayName:'KAP手册'}
+    {link:'https://www.gitbook.com/book/kyligence/kap-manual/details',displayName:'KAP手册'},
+    {link:'api/kap/system/requestLicense',displayName:'申请License'}
   ],
   selectLanguage: '请选择语言'
   },
@@ -859,12 +860,12 @@ KylinApp.constant('kapChineseConfig', {
     tip_cubadd_cache:"检测到您有未保存的cube构建信息，是否继续构建?"
   },
   license:{
-    aboutkap:"关于 KAP",
-    version:"版本",
-    dates:"使用期限",
-    statement:"许可声明",
-    commit:"Commit",
-    kylincommit:"Kylin Commit"
+    aboutkap:'关于 KAP',
+    version:'版本',
+    dates:'使用期限',
+    statement:'许可声明',
+    commit:'Commit',
+    kylincommit:'Kylin Commit'
   }
 
 });

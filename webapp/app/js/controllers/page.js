@@ -30,7 +30,7 @@ KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $lo
   $rootScope.userAction={
    'islogout':false
   }
-
+  $scope.requestLink='api/kap/system/requestLicense';
   $scope.dataEnglish = kapEnglishConfig;
 
   $scope.dataChina = kapChineseConfig;
