@@ -900,11 +900,11 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
   if(!ProjectModel.getSelectedProject()&&!$scope.isEdit){
     $location.path("/models/fromadd");
   }
-  $scope.$watch('projectModel.selectedProject', function (newValue, oldValue) {
-    if (newValue != oldValue || newValue == null) {
-      modelsManager.removeAll();
-    }
-  });
+  //$scope.$watch('projectModel.selectedProject', function (newValue, oldValue) {
+  //  if (newValue != oldValue || newValue == null) {
+  //    modelsManager.removeAll();
+  //  }
+  //});
 
   //RawTables数据变化
   $scope.RawTables;
