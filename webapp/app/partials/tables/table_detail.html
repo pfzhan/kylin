@@ -31,6 +31,12 @@
         <li>
           <a data-toggle="tab" ng-if="tableModel.selectedSrcTable.source_type==1" href="#streaming">{{dataKylin.data_source.streamingCluster}}</a>
         </li>
+        <li>
+          <a data-toggle="tab" href="#cardinality">{{dataKylin.data_source.cardinality}}</a>
+        </li>
+        <li>
+          <a data-toggle="tab"  href="#sampleData">{{dataKylin.data_source.sampleData}}</a>
+        </li>
       </ul>
       <div class="tab-content">
         <!--Schema-->
@@ -150,7 +156,14 @@
             </div>
           </div>
         </div>
+        <!--cardinality-->
+        <div id="cardinality" class="tab-pane">
 
+        </div>
+        <!--sampleData-->
+        <div id="sampleData" class="tab-pane">
+
+        </div>
         <!--streaming-->
         <div id="streaming" ng-show="tableModel.selectedSrcTable.source_type==1" class="tab-pane">
           <div class="col-xs-12 pdb-12 pdt-12" ng-if="userService.hasRole('ROLE_ADMIN')">

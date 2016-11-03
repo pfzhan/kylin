@@ -726,7 +726,9 @@ KylinApp.constant('kapChineseConfig', {
     tip_load_hive_table: '点击加载Hive中的表',
     tip_no_project_selected: '没有项目被选中',
     tip_select_project: '请先选中项目',
-    tip_select_table: '请选择表'
+    tip_select_table: '请选择表',
+    sampleData:'抽样数据',
+    cardinality:'基数'
   },
   system:{
     system: '系统',

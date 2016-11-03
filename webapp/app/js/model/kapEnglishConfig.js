@@ -743,7 +743,9 @@ KylinApp.constant('kapEnglishConfig', {
     tip_load_hive_table: 'Click here to load your hive table',
     tip_no_project_selected: 'No project selected',
     tip_select_project: 'Please select your project first',
-    tip_select_table: 'Select your table'
+    tip_select_table: 'Select your table',
+    sampleData:'Sample Data',
+    cardinality:'Cardinality'
   },
   system:{
     system: 'System',
