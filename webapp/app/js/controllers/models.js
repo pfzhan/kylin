@@ -213,7 +213,7 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
         SweetAlert.swal({
           title: '',
           text: $scope.dataKylin.alert.tip_cubadd_cache,
-          type: '',
+          type: 'info',
           showCancelButton: true,
           confirmButtonColor: '#DD6B55',
           confirmButtonText: "Yes",
@@ -230,7 +230,6 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
       }else{
         $location.path("/models");
       }
-
   }
 
 });
