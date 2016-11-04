@@ -526,7 +526,8 @@ KylinApp.constant('kapEnglishConfig', {
     tip_body_margin:'When the messages in kafka is not strictly sorted on timestamp, read more data (expressed in ts) before and after the specified interval to avoid data loss.',
     tip_body_parser_name:'Set the parser to parse source data messages. The default parser works for json messages with a timestamp field.',
     tip_body_parser_timestamp_field:'Provide the name of the timestamp field to the default parser.',
-    tip_body_parser_properties:'Provide a list of KV properties to the parser, delimited by semicolon.'
+    tip_body_parser_properties:'Provide a list of KV properties to the parser, delimited by semicolon.',
+    backup_cube:'Backup Cube'
   },
   monitor:{
     monitor: 'Monitor',
@@ -874,7 +875,8 @@ KylinApp.constant('kapEnglishConfig', {
     duplicate_measures_part_two: '] already exists!',
     warning_dimensions_name:"The name is required.",
     success_back:"Backup success!",
-    tip_cubadd_cache:"Detect that you have not saved the cube build information, whether to continue to build?"
+    tip_cubadd_cache:"Detect that you have not saved the cube build information, whether to continue to build?",
+    tip_store_callback:'Backup Success！Path：'
 },
   license:{
     aboutkap:"About KAP",

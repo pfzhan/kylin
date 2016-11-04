@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, TableService, loadingRequest, MessageService, $modal, SweetAlert,kylinConfig,ProjectModel,$window,kylinCommon,AdminStoreService) {
+KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, TableService, loadingRequest, MessageService, $modal, SweetAlert,kylinConfig,ProjectModel,$window,kylinCommon,AdminStoreService,VdmUtil) {
   $scope.configStr = "";
   $scope.envStr = "";
 
@@ -213,10 +213,20 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
   }
 
   $scope.backupGlobal=function(){
-    AdminStoreService.globalBackup({},{},function(){
-      MessageService.sendMsg($scope.dataKylin.alert.success_back, 'success', {});
+    loadingRequest.show();
+    AdminStoreService.globalBackup({},{},function(data){
+      loadingRequest.hide();
+      SweetAlert.swal({
+        title: '',
+        text: $scope.dataKylin.alert.tip_store_callback+" "+VdmUtil.linkArrObjectToString(data),
+        type: 'success',
+        confirmButtonColor: '#DD6B55',
+        confirmButtonText: "Yes",
+        closeOnConfirm: true
+      });
     },function(e){
       kylinCommon.error_default(e);
+      loadingRequest.hide();
     })
   }
   $scope.getEnv();

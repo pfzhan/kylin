@@ -106,3 +106,5 @@ server_mapping.txt
 cp.txt
 tmp.pro
 spark_client_pid
+
+meta_backups

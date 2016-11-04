@@ -86,6 +86,15 @@ KylinApp.factory('VdmUtil', function ($modal, $timeout, $location, $anchorScroll
           $window.localStorage.removeItem(key);
         }
       }
+    },
+    linkArrObjectToString:function(obj){
+      var str='';
+      for(var i in obj){
+        if(/\d+/.test(i)){
+          str+=obj[i];
+        }
+      }
+      return str;
     }
   }
 });

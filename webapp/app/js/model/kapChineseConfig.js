@@ -509,7 +509,8 @@ KylinApp.constant('kapChineseConfig', {
     tip_body_margin:'当kafka中的数据不严格排序时，在指定区间的前后额外读取一定时间（单位为毫秒）的源数据以避免数据丢失.',
     tip_body_parser_name:'设置用来解析源数据消息的解析器，默认的解析器适用于带时间戳字段的json消息.',
     tip_body_parser_timestamp_field:'向默认的解析器提供时间戳字段的名称.',
-    tip_body_parser_properties:'向解析器提供KV形式的属性列表，以分号间隔.'
+    tip_body_parser_properties:'向解析器提供KV形式的属性列表，以分号间隔.',
+    backup_cube:'备份cube'
   },
   monitor:{
     monitor: '监控',
@@ -857,7 +858,8 @@ KylinApp.constant('kapChineseConfig', {
     duplicate_measures_part_two: '] 的度量已经存在.',
     warning_dimensions_name:"名称不能为空",
     success_back:"备份成功!",
-    tip_cubadd_cache:"检测到您有未保存的cube构建信息，是否继续构建?"
+    tip_cubadd_cache:"检测到您有未保存的cube构建信息，是否继续构建?",
+    tip_store_callback:'备份成功！路径为：'
   },
   license:{
     aboutkap:'关于 KAP',

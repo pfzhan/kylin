@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, $modal, MessageService, CubeDescService,RawTablesService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, cubeConfig, ProjectModel, ModelService, MetaModel, CubeList,modelsManager,cubesManager,TableService,kylinCommon,language,VdmUtil) {
+KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, $modal, MessageService, CubeDescService,RawTablesService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, cubeConfig, ProjectModel, ModelService, MetaModel, CubeList,modelsManager,cubesManager,TableService,kylinCommon,language,VdmUtil,AdminStoreService) {
 
     $scope.cubeConfig = cubeConfig;
     $scope.cubeList = CubeList;
@@ -31,7 +31,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
           SweetAlert.swal({
             title: '',
             text: $scope.dataKylin.alert.tip_cubadd_cache,
-            type: '',
+            type: 'info',
             showCancelButton: true,
             confirmButtonColor: '#DD6B55',
             confirmButtonText: "Yes",
@@ -55,7 +55,24 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
       }else{
         $location.path("/cubes/add/");
       }
-
+    }
+    $scope.backUpCube=function(cubeName){
+      loadingRequest.show();
+      AdminStoreService.globalBackup({},{
+        includes:['/cube/'+cubeName,'/cube_desc/'+cubeName]
+      },function(data){
+        loadingRequest.hide();
+        SweetAlert.swal({
+          title: '',
+          text: $scope.dataKylin.alert.tip_store_callback+" "+VdmUtil.linkArrObjectToString(data),
+          type: 'success',
+          confirmButtonColor: '#DD6B55',
+          confirmButtonText: "Yes",
+          closeOnConfirm: true
+        });
+      },function(){
+        loadingRequest.hide();
+      })
     }
     $scope.queryFilter= {
       "model":null
@@ -682,6 +699,8 @@ var jobSubmitCtrl = function ($scope,scope, $modalInstance, CubeService, Message
   $scope.cancel = function () {
     $modalInstance.dismiss('cancel');
   };
+
+
 };
 
 

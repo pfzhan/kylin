@@ -121,6 +121,7 @@
                     <ul class="dropdown-menu" role="menu">
                       <li ng-if="cube.status=='DISABLED'"><a href="cubes/edit/{{cube.name}}/descriptionjson">{{dataKylin.cube.edit}} CubeDesc</a></li>
                       <li><a href="cubes/view/{{cube.name}}/instancejson">{{dataKylin.cube.view}} Cube</a></li>
+                      <li><a ng-click='backUpCube(cube.name)'>{{dataKylin.cube.backup_cube}}</a></li>
                     </ul>
                 </div>
             </td>
