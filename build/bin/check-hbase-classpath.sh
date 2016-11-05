@@ -1,12 +1,7 @@
 #!/bin/bash
 # Kyligence Inc. License
 
-dir=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
-
-function quit {
-	echo "$@" Please check your hbase shell.
-	exit 1
-}
+source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
 oCP=${HBASE_CLASSPATH}
 oCPP=${HBASE_CLASSPATH_PREFIX}

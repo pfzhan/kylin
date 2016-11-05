@@ -1,12 +1,7 @@
 #!/bin/bash
 # Kyligence Inc. License
 
-dir=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
-
-function quit {
-	echo "$@"
-	exit 1
-}
+source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
 TESTTABLE=__test__table__
 

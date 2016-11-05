@@ -1,17 +1,7 @@
 #!/bin/bash
 # Kyligence Inc. License
 
-dir=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
-
-# set KYLIN_HOME with consideration for multiple instances that are on the same node
-KYLIN_HOME=${KYLIN_HOME:-"${dir}/../"}
-export KYLIN_HOME=`cd "$KYLIN_HOME"; pwd`
-dir="$KYLIN_HOME/bin"
-
-function quit {
-	echo "$@"
-	exit 1
-}
+source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
 source $dir/find-hive-dependency.sh
 
@@ -24,5 +14,5 @@ need_snappy_lib=`sh $KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.page.
 if [[ ${need_snappy_lib} == "SNAPPY" ]]
 then
     snappy_lib_count=`echo ${hive_dependency} | grep -o "snappy-java" | wc -l`
-    [[ ${snappy_lib_count} != 0 ]]  || quit "ERROR: Snappy lib is not found. Please add it to classpath"
+    [[ ${snappy_lib_count} != 0 ]]  || quit "ERROR: Snappy lib is not found. Please double check Snappy is installed, or disable Snappy compression."
 fi

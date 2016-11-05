@@ -1,17 +1,20 @@
 #!/bin/bash
 # Kyligence Inc. License
 
-dir=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
+# set verbose=true to print more logs during start up
+verbose=${verbose:-""}
+
+source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
 if [[ $CI_MODE == 'true' ]]
 then
-    echo 'in ci mode'
+    verbose 'in ci mode'
     export KYLIN_HOME=${dir}/../../
     export CONF_DIR=${KYLIN_HOME}/extensions/examples/test_case_data/sandbox
     export SPARK_DIR=${KYLIN_HOME}/build/spark/
     export KYLIN_SPARK_JAR_PATH=`ls $KYLIN_HOME/extensions/storage-parquet/target/kap-storage-parquet-*-spark.jar`
 else
-    echo 'in normal mode'
+    verbose 'in normal mode'
     export KYLIN_HOME=${KYLIN_HOME:-"${dir}/../"}
     export CONF_DIR=${KYLIN_HOME}/conf
     export SPARK_DIR=${KYLIN_HOME}/spark/
@@ -19,15 +22,14 @@ else
     
     if [ ! -f ${KYLIN_HOME}/commit_SHA1 ]
     then
-        echo "Seems you're not in binary package, did you forget to set CI_MODE=true?"
-        exit 1
+        quit "Seems you're not in binary package, did you forget to set CI_MODE=true?"
     fi
 fi
 
-echo "KYLIN_HOME is set to ${KYLIN_HOME}"
-echo "CONF_DIR is set to ${CONF_DIR}"
-echo "SPARK_DIR is set to ${SPARK_DIR}"
-echo "KYLIN_SPARK_JAR_PATH is set to ${KYLIN_SPARK_JAR_PATH}"
+verbose "KYLIN_HOME is set to ${KYLIN_HOME}"
+verbose "CONF_DIR is set to ${CONF_DIR}"
+verbose "SPARK_DIR is set to ${SPARK_DIR}"
+verbose "KYLIN_SPARK_JAR_PATH is set to ${KYLIN_SPARK_JAR_PATH}"
 
 mkdir -p ${KYLIN_HOME}/logs
 
@@ -37,30 +39,27 @@ then
     if [ -d ${SPARK_DIR} ]
     then
         export SPARK_HOME=${SPARK_DIR}
-        echo "SPARK_HOME is set to ${SPARK_HOME}"
     else
-        echo 'please make sure SPARK_HOME has been set(export as environment variable first)'
-        exit 1
+        quit 'Please make sure SPARK_HOME has been set (export as environment variable first)'
     fi
-else
-    echo "SPARK_HOME is set to ${SPARK_HOME}"
 fi
+echo "SPARK_HOME is set to ${SPARK_HOME}"
 
 # start command
 if [ "$1" == "start" ] # ./spark_client.sh start [port]
 then
-    echo "Starting the spark driver"
+    echo "Starting Spark Client..."
+
     if [ -f "${KYLIN_HOME}/spark_client_pid" ]
     then
         PID=`cat $KYLIN_HOME/spark_client_pid`
         if ps -p $PID > /dev/null
         then
-          echo "Spark Client is running, stop it first"
-          exit 1
+          quit "Spark Client is running, stop it first"
         fi
     fi
     
-    #spark driver client port
+    #Spark Client port
     driverPortPrefix="kap.storage.columnar.spark.driver.port="
     realStart=$((${#driverPortPrefix} + 1))
     driverPort=
@@ -70,15 +69,12 @@ then
     done
     
     driverPort=${driverPort:-7071}
-    echo "The driver port is $driverPort"
+    verbose "The driver port is $driverPort"
     export driverPort
 
     nc -z -w 5 localhost ${driverPort} 1>/dev/null 2>&1; nc_result=$?
     if [ $nc_result -eq 0 ]; then
-        echo "port ${driverPort} is not available, could not start Spark Driver"
-        exit 1
-    else
-        echo "port ${driverPort} is available"
+        quit "Port ${driverPort} is not available, could not start Spark Client"
     fi
 
     # spark envs
@@ -90,10 +86,10 @@ then
         existingValue=`printenv ${key}`
         if [ -z "$existingValue" ] 
         then
-            echo "$key is not set, running: export $kv"
+            verbose "$key is not set, running: export $kv"
             export $kv
         else
-            echo "$key already has value: $existingValue, use it"
+            verbose "$key already has value: $existingValue, use it"
         fi
     done
     
@@ -101,16 +97,16 @@ then
     sparkConfPrefix="kap.storage.columnar.conf."
     realStart=$((${#sparkConfPrefix} + 1))
     confStr=`cat ${CONF_DIR}/*.properties | grep "^${sparkConfPrefix}" | cut -c ${realStart}- |  awk '{ print "--conf " "\"" $0 "\""}' | tr '\n' ' ' `
-    echo "additional confs spark-submit: $confStr"
+    verbose "additional confs spark-submit: $confStr"
 
     submitCommand='$SPARK_HOME/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry --master yarn --deploy-mode client --verbose '
     submitCommand=${submitCommand}${confStr}
     submitCommand=${submitCommand}' ${KYLIN_SPARK_JAR_PATH} -className io.kyligence.kap.storage.parquet.cube.spark.SparkQueryDriver --port ${driverPort} >> ${KYLIN_HOME}/logs/spark_client.out 2>&1 & echo $! > ${KYLIN_HOME}/spark_client_pid &'
-    #echo "The submit command is: $submitCommand"
+    verbose "The submit command is: $submitCommand"
     eval $submitCommand 
     
-    echo "A new spark client instance is started by $USER, stop it using \"spark_client.sh stop\""
-    echo "You can check the log at ${KYLIN_HOME}/logs/spark_client.out"
+    echo "A new Spark Client instance is started by $USER. To stop it, run 'spark_client.sh stop'"
+    echo "Check the log at ${KYLIN_HOME}/logs/spark_client.out"
     
     if [[ $CI_MODE == 'true' ]]
     then
@@ -123,26 +119,22 @@ then
 # stop command
 elif [ "$1" == "stop" ]
 then
-    echo "Stopping the spark driver"
     if [ -f "${KYLIN_HOME}/spark_client_pid" ]
     then
         PID=`cat $KYLIN_HOME/spark_client_pid`
         if ps -p $PID > /dev/null
         then
-           echo "stopping Spark client:$PID"
+           echo "Stopping Spark Client: $PID"
            kill $PID
            rm ${KYLIN_HOME}/spark_client_pid
            exit 0
         else
-           echo "Spark Client is not running, please check"
-           exit 1
+           quit "Spark Client is not running"
         fi
         
     else
-        echo "Spark Client is not running, please check"
-        exit 1    
+        quit "Spark Client is not running"
     fi
 else
-    echo "usage: spark_client.sh start or spark_clint.sh stop"
-    exit 1
+    quit "Usage: 'spark_client.sh start' or 'spark_clint.sh stop'"
 fi
