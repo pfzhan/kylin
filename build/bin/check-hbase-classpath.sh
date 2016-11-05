@@ -3,6 +3,8 @@
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
+echo "Checking HBase classpath..."
+
 oCP=${HBASE_CLASSPATH}
 oCPP=${HBASE_CLASSPATH_PREFIX}
 

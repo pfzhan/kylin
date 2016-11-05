@@ -1,22 +1,26 @@
 #!/bin/bash
 # Kyligence Inc. License
 
-# set verbose=true to print more logs during start up
+# set verbose=true to print more logs in scripts
 verbose=${verbose:-""}
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
 echo "KYLIN_HOME is set to ${KYLIN_HOME}"
-source ${dir}/check-env.sh
+source ${dir}/check-env.sh "if-not-yet"
 mkdir -p ${KYLIN_HOME}/logs
 mkdir -p ${KYLIN_HOME}/ext
 
 function retrieveDependency() {
     #retrive $hive_dependency and $hbase_dependency
-    source ${dir}/find-hive-dependency.sh
-    source ${dir}/find-hbase-dependency.sh
+    if [ -z "${hive_dependency}" ]; then
+	    source ${dir}/find-hive-dependency.sh
+    fi
+    if [ -z "${hbase_dependency}" ]; then
+	    source ${dir}/find-hbase-dependency.sh
+    fi
     #source ${dir}/find-kafka-dependency.sh
-
+    
     #retrive $KYLIN_EXTRA_START_OPTS
     if [ -f "${dir}/setenv.sh" ]; then
         source ${dir}/setenv.sh

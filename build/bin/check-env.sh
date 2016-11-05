@@ -3,12 +3,33 @@
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
-a=`lsb_release -a`                      || quit "ERROR: Command 'lsb_release -a' does not work. Please run on Linux OS."
-[[ $a == *Mac* ]]                       && quit "ERROR: Mac is not supported."
-[[ $a == *Ubuntu* ]]                    && echo "WARN: Ubuntu is not officially supported. Use at your own risk."
+mkdir -p ${KYLIN_HOME}/logs
+LOG=${KYLIN_HOME}/logs/check-env.out
+BYPASS=${dir}/check-env-bypass
 
-command -v hadoop  >/dev/null 2>&1      || quit "ERROR: Command 'hadoop' is not accessible. Please check permissions."
-command -v hdfs    >/dev/null 2>&1      || quit "ERROR: Command 'hdfs' is not accessible. Please check permissions."
-command -v yarn    >/dev/null 2>&1      || quit "ERROR: Command 'yarn' is not accessible. Please check permissions."
-command -v hive    >/dev/null 2>&1      || quit "ERROR: Command 'hive' is not accessible. Please check permissions."
-command -v hbase   >/dev/null 2>&1      || quit "ERROR: Command 'hbase' is not accessible. Please check permissions."
+if [[ "$1" != "if-not-yet" || ! -f ${BYPASS} ]]; then
+
+    echo "Checking environment, log is at ${LOG}"
+    rm -f ${LOG}
+
+    for f in ${dir}/check-*.sh
+    do
+        if [[ ! $f == *check-env.sh ]]; then
+            echo "Running $(basename $f)"
+            echo ""                                                                             >>${LOG}
+            echo "============================================================================" >>${LOG}
+            echo "Running $(basename $f)"                                                       >>${LOG}
+            echo "----------------------------------------------------------------------------" >>${LOG}
+            sh $f >>${LOG} 2>&1
+            if [[ $? != 0 ]]; then
+                echo "----------------------------------------------------------------------------"
+                echo "Tail of ${LOG} is"
+                tail ${LOG}
+                quit "ERROR: $(basename $f) failed, full log is at ${LOG}"
+            fi
+        fi
+    done
+    
+    touch ${BYPASS}
+    echo "Checking environment was successful and is now suppressed. To check again, run 'bin/check-env.sh' manually."
+fi
