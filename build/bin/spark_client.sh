@@ -9,7 +9,7 @@ source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 if [[ $CI_MODE == 'true' ]]
 then
     verbose 'in ci mode'
-    export KYLIN_HOME=${dir}/../../
+    export KYLIN_HOME=`cd "${KYLIN_HOME}/.."; pwd`
     export CONF_DIR=${KYLIN_HOME}/extensions/examples/test_case_data/sandbox
     export SPARK_DIR=${KYLIN_HOME}/build/spark/
     export KYLIN_SPARK_JAR_PATH=`ls $KYLIN_HOME/extensions/storage-parquet/target/kap-storage-parquet-*-spark.jar`
