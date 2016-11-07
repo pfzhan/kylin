@@ -3,7 +3,37 @@
 # ============================================================================
 
 kapbase=master
-kylinbase=yang21
+kylinbase=master
+kap_remote=origin
+kylin_remote=apache
+push_remote=true
+
+# ============================================================================
+
+while [[ $# -gt 1 ]]
+do
+    key="$1"
+    case $key in
+        -l|--local)
+            push_remote=false
+            echo "turn off remote push"
+            ;;
+        -a|--kap_remote)
+            kap_remote="$2"
+            echo "kap remote name: ${kap_remote}"
+            shift
+            ;;
+        -k|--kylin_remote)
+            kylin_remote="$2"
+            echo "kylin remote name: ${kylin_remote}"
+            shift
+            ;;
+        *)
+            ;;
+
+    esac
+    shift
+done
 
 # ============================================================================
 
@@ -21,27 +51,27 @@ trap 'error ${LINENO} ${?}' ERR
 # ============================================================================
 
 # get patches
-git fetch origin
-git checkout origin/$kapbase-hbase1.x
+git fetch ${kap_remote}
+git checkout ${kap_remote}/$kapbase-hbase1.x
 git format-patch -1
-git checkout origin/$kapbase-cdh5.7
+git checkout ${kap_remote}/$kapbase-cdh5.7
 git format-patch -1
 cd kylin
-git fetch apache
-git checkout apache/$kylinbase-hbase1.x
+git fetch ${kylin_remote}
+git checkout ${kylin_remote}/$kylinbase-hbase1.x
 git format-patch -1
-git checkout apache/$kylinbase-cdh5.7
+git checkout ${kylin_remote}/$kylinbase-cdh5.7
 git format-patch -1
 cd ..
 
 # switch to base branches
-git checkout origin/$kapbase
+git checkout ${kap_remote}/$kapbase
 git checkout -b tmp
-git reset origin/$kapbase --hard
+git reset ${kap_remote}/$kapbase --hard
 cd kylin
-git checkout apache/$kylinbase
+git checkout ${kylin_remote}/$kylinbase
 git checkout -b tmp
-git reset apache/$kylinbase --hard
+git reset ${kylin_remote}/$kylinbase --hard
 cd ..
 
 # apply hbase patch
@@ -56,9 +86,15 @@ fi
 mvn clean compile -DskipTests
 git add kylin
 git commit --amend --no-edit
-git push origin tmp:$kapbase-hbase1.x -f
+if [[ ${push_remote} == false ]]
+do
+    git push ${kap_remote} tmp:$kapbase-hbase1.x -f
+done
 cd kylin
-git push apache tmp:$kylinbase-hbase1.x -f
+if [[ ${push_remote} == false ]]
+do
+    git push ${kylin_remote} tmp:$kylinbase-hbase1.x -f
+done
 cd ..
 rm 0001-Support-HBase-1.x.patch
 rm kylin/0001-KYLIN-1528-Create-a-branch-for-v1.5-with-HBase-1.x-A.patch
@@ -75,19 +111,25 @@ fi
 mvn clean compile -DskipTests
 git add kylin
 git commit --amend --no-edit
-git push origin tmp:$kapbase-cdh5.7 -f
+if [[ ${push_remote} == false ]]
+do
+    git push ${kap_remote} tmp:$kapbase-cdh5.7 -f
+done
 cd kylin
-git push apache tmp:$kylinbase-cdh5.7 -f
+if [[ ${push_remote} == false ]]
+do
+    git push ${kylin_remote} tmp:$kylinbase-cdh5.7 -f
+done
 cd ..
 rm 0001-Support-CDH-5.7.patch
 rm kylin/0001-KYLIN-1672-support-kylin-on-cdh-5.7.patch
 
 # clean up
 git checkout $kapbase
-git reset origin/$kapbase --hard
+git reset ${kap_remote}/$kapbase --hard
 git branch -D tmp
 cd kylin
 git checkout $kylinbase
-git reset apache/$kylinbase --hard
+git reset ${kylin_remote}/$kylinbase --hard
 git branch -D tmp
 cd ..
