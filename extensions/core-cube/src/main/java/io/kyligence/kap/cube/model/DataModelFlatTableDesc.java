@@ -36,11 +36,14 @@ import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class DataModelFlatTableDesc implements IJoinedFlatTableDesc {
+    private static final Logger logger = LoggerFactory.getLogger(DataModelFlatTableDesc.class);
 
     private String tableName;
     private final CubeDesc cubeDesc;
@@ -77,6 +80,9 @@ public class DataModelFlatTableDesc implements IJoinedFlatTableDesc {
         for (ModelDimensionDesc mdDesc : dataModelDesc.getDimensions()) {
             for (String col : mdDesc.getColumns()) {
                 TblColRef tblColRef = dataModelDesc.findColumn(mdDesc.getTable(), col);
+                if (tblColRef == null) {
+                    logger.error("Dimension: table name: {}; col name: {}", mdDesc.getTable(), col);
+                }
                 columnIndexMap.put(tblColRef, columnIndex);
                 columnList.add(tblColRef);
                 columnIndex++;
@@ -86,6 +92,9 @@ public class DataModelFlatTableDesc implements IJoinedFlatTableDesc {
         // add metrics
         for (String metric : dataModelDesc.getMetrics()) {
             TblColRef tblColRef = dataModelDesc.findColumn(metric);
+            if (tblColRef == null) {
+                logger.error("Measure: table name: {}; col name: {}", dataModelDesc.getFactTable(), metric);
+            }
             if (!columnIndexMap.containsKey(tblColRef)) {
                 columnIndexMap.put(tblColRef, columnIndex);
                 columnList.add(tblColRef);
@@ -97,6 +106,9 @@ public class DataModelFlatTableDesc implements IJoinedFlatTableDesc {
         for (int i = 0; i < lookupLength; i++) {
             JoinDesc join = dataModelDesc.getLookups()[i].getJoin();
             for (TblColRef primary : join.getPrimaryKeyColumns()) {
+                if (primary == null) {
+                    logger.error("Primary key: table name: {}; col name: {}", dataModelDesc.getFactTable(), primary);
+                }
                 if (!columnIndexMap.containsKey(primary)) {
                     columnIndexMap.put(primary, columnIndex);
                     columnList.add(primary);
@@ -105,6 +117,9 @@ public class DataModelFlatTableDesc implements IJoinedFlatTableDesc {
             }
 
             for (TblColRef foreign : join.getForeignKeyColumns()) {
+                if (foreign== null) {
+                    logger.error("Foreign key: table name: {}; col name: {}", dataModelDesc.getFactTable(), foreign);
+                }
                 if (!columnIndexMap.containsKey(foreign)) {
                     columnIndexMap.put(foreign, columnIndex);
                     columnList.add(foreign);
