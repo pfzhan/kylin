@@ -86,15 +86,13 @@ fi
 mvn clean compile -DskipTests
 git add kylin
 git commit --amend --no-edit
-if [[ ${push_remote} == false ]]
-do
+if [[ "${push_remote}" == "true" ]]; then
     git push ${kap_remote} tmp:$kapbase-hbase1.x -f
-done
+fi
 cd kylin
-if [[ ${push_remote} == false ]]
-do
+if [[ "${push_remote}" == "true" ]]; then
     git push ${kylin_remote} tmp:$kylinbase-hbase1.x -f
-done
+fi
 cd ..
 rm 0001-Support-HBase-1.x.patch
 rm kylin/0001-KYLIN-1528-Create-a-branch-for-v1.5-with-HBase-1.x-A.patch
@@ -111,15 +109,13 @@ fi
 mvn clean compile -DskipTests
 git add kylin
 git commit --amend --no-edit
-if [[ ${push_remote} == false ]]
-do
+if [[ "${push_remote}" == "true" ]]; then
     git push ${kap_remote} tmp:$kapbase-cdh5.7 -f
-done
+fi
 cd kylin
-if [[ ${push_remote} == false ]]
-do
+if [[ "${push_remote}" == "true" ]]; then
     git push ${kylin_remote} tmp:$kylinbase-cdh5.7 -f
-done
+fi
 cd ..
 rm 0001-Support-CDH-5.7.patch
 rm kylin/0001-KYLIN-1672-support-kylin-on-cdh-5.7.patch
