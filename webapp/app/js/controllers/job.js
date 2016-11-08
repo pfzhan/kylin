@@ -220,6 +220,7 @@ KylinApp
 
 
         $scope.openModal = function () {
+          $scope.selectStepDetail={};
             if (angular.isDefined($scope.state.selectedStep)) {
                 if ($scope.state.stepAttrToShow == "output") {
                     $scope.state.selectedStep.loadingOp = true;
@@ -230,11 +231,15 @@ KylinApp
                             var tjob = JobList.jobs[result['jobId']];
                             tjob.steps[stepId].cmd_output = result['cmd_output'];
                             tjob.steps[stepId].loadingOp = false;
+                          $scope.selectStepDetail.cmd_output=result['cmd_output'];
+                          $scope.selectStepDetail.loadingOp=false;
+
                         }
                     },function(e){
                       SweetAlert.swal($scope.dataKylin.alert.oops,$scope.dataKylin.alert.error_failed_to_load_job, 'error');
                     });
                 } else {
+                   $scope.selectStepDetail.exec_cmd=$scope.state.selectedStep.exec_cmd;
                     internalOpenModal();
                 }
             }
@@ -246,7 +251,8 @@ KylinApp
                 controller: jobStepDetail,
                 resolve: {
                     step: function () {
-                        return $scope.state.selectedStep;
+                      return $scope.selectStepDetail;
+                      //return $scope.state.selectedStep;
                     },
                     attr: function () {
                         return $scope.state.stepAttrToShow;
