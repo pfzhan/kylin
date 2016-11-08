@@ -132,13 +132,17 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
 
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
-        indexBundleWriter.spill();
-        indexBundleWriter.close();
-
-        FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
-        fs.mkdirs(outputPath.getParent());
-        fs.rename(tmpPath, outputPath);
-        logger.info("move file {} to {}", tmpPath, outputPath);
+        try {
+            indexBundleWriter.spill();
+            indexBundleWriter.close();
+    
+            FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
+            fs.mkdirs(outputPath.getParent());
+            fs.rename(tmpPath, outputPath);
+            logger.info("move file {} to {}", tmpPath, outputPath);
+        } catch (Throwable ex) {
+            logger.error("", ex);
+        }
     }
 
     private void spillIfNeeded() {

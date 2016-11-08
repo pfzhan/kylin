@@ -159,11 +159,15 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
 
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
-        indexBundleWriter.close();
-
-        FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
-        fs.mkdirs(outputPath.getParent());
-        fs.rename(tmpPath, outputPath);
-        logger.info("move file {} to {}", tmpPath, outputPath);
+        try {
+            indexBundleWriter.close();
+    
+            FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
+            fs.mkdirs(outputPath.getParent());
+            fs.rename(tmpPath, outputPath);
+            logger.info("move file {} to {}", tmpPath, outputPath);
+        } catch (Throwable ex) {
+            logger.error("", ex);
+        }
     }
 }

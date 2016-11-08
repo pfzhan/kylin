@@ -86,6 +86,10 @@ public class ParquetTarballMapper extends KylinMapper<IntWritable, byte[], Text,
 
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
-        os.close();
+        try {
+            os.close();
+        } catch (Throwable ex) {
+            logger.error("", ex);
+        }
     }
 }

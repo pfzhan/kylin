@@ -169,16 +169,20 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
 
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
-        for (ParquetPageIndexWriter writer : fuzzyIndexWriterMap.values()) {
-            writer.spill();
-            writer.close();
-        }
-
-        FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
-        for (Path outputPath : pathMap.keySet()) {
-            fs.mkdirs(outputPath.getParent());
-            fs.rename(pathMap.get(outputPath), outputPath);
-            logger.info("move file {} to {}", pathMap.get(outputPath), outputPath);
+        try {
+            for (ParquetPageIndexWriter writer : fuzzyIndexWriterMap.values()) {
+                writer.spill();
+                writer.close();
+            }
+    
+            FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
+            for (Path outputPath : pathMap.keySet()) {
+                fs.mkdirs(outputPath.getParent());
+                fs.rename(pathMap.get(outputPath), outputPath);
+                logger.info("move file {} to {}", pathMap.get(outputPath), outputPath);
+            }
+        } catch (Throwable ex) {
+            logger.error("", ex);
         }
     }
 

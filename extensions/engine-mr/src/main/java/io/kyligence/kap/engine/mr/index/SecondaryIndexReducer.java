@@ -106,17 +106,21 @@ public class SecondaryIndexReducer extends KylinReducer<Text, Text, NullWritable
 
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
-        columnIndexWriter.close();
-
-        // upload to hdfs
-        FileSystem fs = FileSystem.get(context.getConfiguration());
-        Path path = new Path(outputPath);
-        fs.mkdirs(path);
-        fs.copyFromLocalFile(true, new Path(forwardIndexFile.toURI()), new Path(path, col.getName() + ".fwd"));
-        fs.copyFromLocalFile(true, new Path(invertedIndexFile.toURI()), new Path(path, col.getName() + ".inv"));
-
-        forwardIndexFile.delete();
-        invertedIndexFile.delete();
+        try {
+            columnIndexWriter.close();
+    
+            // upload to hdfs
+            FileSystem fs = FileSystem.get(context.getConfiguration());
+            Path path = new Path(outputPath);
+            fs.mkdirs(path);
+            fs.copyFromLocalFile(true, new Path(forwardIndexFile.toURI()), new Path(path, col.getName() + ".fwd"));
+            fs.copyFromLocalFile(true, new Path(invertedIndexFile.toURI()), new Path(path, col.getName() + ".inv"));
+    
+            forwardIndexFile.delete();
+            invertedIndexFile.delete();
+        } catch (Throwable ex) {
+            logger.error("", ex);
+        }
     }
 
 }
