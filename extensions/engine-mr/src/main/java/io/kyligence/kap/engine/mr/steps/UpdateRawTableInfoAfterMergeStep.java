@@ -63,7 +63,7 @@ public class UpdateRawTableInfoAfterMergeStep extends AbstractExecutable {
             return new ExecuteResult(ExecuteResult.State.FAILED, "there is no segment with id:" + segmentId);
         }
 
-        CubingJob cubingJob = (CubingJob) executableManager.getJob(CubingExecutableUtil.getCubingJobId(this.getParams()));
+        CubingJob cubingJob = (CubingJob) getManager().getJob(CubingExecutableUtil.getCubingJobId(this.getParams()));
         long cubeSizeBytes = cubingJob.findCubeSizeBytes();
 
         // collect source statistics

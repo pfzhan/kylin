@@ -96,7 +96,7 @@ public class RawShardSizingStep extends AbstractExecutable {
     }
 
     private double caculateEstimateStorageSize(RawTableSegment seg) throws IOException {
-        CubingJob cubingJob = (CubingJob) executableManager.getJob(CubingExecutableUtil.getCubingJobId(this.getParams()));
+        CubingJob cubingJob = (CubingJob) getManager().getJob(CubingExecutableUtil.getCubingJobId(this.getParams()));
         long sourceSizeBytes = cubingJob.findSourceSizeBytes();
         return (1.0 * sourceSizeBytes) / (1024L * 1024L);
 
