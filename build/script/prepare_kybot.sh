@@ -13,6 +13,7 @@ cp kybot/core/target/kybot-client-core-*-assembly.jar build/kybot/kybot-client-l
 cp kybot/build/bin/kybot.sh build/kybot/kybot.sh
 cp kybot/build/conf/kybot-client.properties build/kybot/kybot-client.properties
 cp kybot/build/kap/diag.sh build/kybot/diag.sh
+cp build/bin/header.sh build/kybot/header.sh
 
 # Copied file becomes 000 for some env (e.g. Cygwin)
 chmod 644 build/kybot/kybot-client-lib.jar
