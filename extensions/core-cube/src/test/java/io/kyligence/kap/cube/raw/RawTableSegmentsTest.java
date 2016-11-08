@@ -131,7 +131,7 @@ public class RawTableSegmentsTest extends LocalFileMetadataTestCase {
         rawSeg1.setStatus(SegmentStatusEnum.READY);
 
         // append second
-        CubeSegment seg2 = mgr.appendSegment(cube, 0, 2000);
+        CubeSegment seg2 = mgr.appendSegment(cube, 1000, 2000);
         RawTableSegment rawSeg2 = rawMgr.appendSegment(raw, seg2);
 
         assertEquals(2, cube.getSegments().size());
