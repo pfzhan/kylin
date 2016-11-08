@@ -43,6 +43,8 @@ then
         fi
     fi
     
+    retrieveDependency
+
     columnarEnabled=`sh ${dir}/get-properties.sh kap.storage.columnar.enabled`
     if [ "${columnarEnabled}" == "true" ]
     then
@@ -68,8 +70,6 @@ then
     else
         verbose "kylin.security.profile is set to $spring_profile"
     fi
-
-    retrieveDependency
 
     #additionally add tomcat libs to HBASE_CLASSPATH_PREFIX
     export HBASE_CLASSPATH_PREFIX=${tomcat_root}/bin/bootstrap.jar:${tomcat_root}/bin/tomcat-juli.jar:${tomcat_root}/lib/*:${HBASE_CLASSPATH_PREFIX}
