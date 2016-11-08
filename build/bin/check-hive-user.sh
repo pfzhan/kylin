@@ -8,6 +8,7 @@ echo "Checking Hive write permission..."
 # test hive or beeline has write permission
 HIVE_CLIENT_TYPE=`sh $KYLIN_HOME/bin/get-properties.sh kylin.hive.client`
 HIVE_TEST_DB=`sh $KYLIN_HOME/bin/get-properties.sh kylin.job.hive.database.for.intermediatetable`
+WORKING_DIR=`sh $KYLIN_HOME/bin/get-properties.sh kylin.hdfs.working.dir`
 if [ -z "${HIVE_TEST_DB}" ]
 then
     HIVE_TEST_DB=default
