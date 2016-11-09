@@ -84,9 +84,9 @@ KylinApp.constant('kapChineseConfig', {
   welcome: '欢迎',
   documents: [
     {link:'http://kyligence.io',displayName:'关于我们'},
-    {link:'https://www.gitbook.com/book/kyligence/kap-manual/details',displayName:'KAP手册'},
-    {link:'api/kap/system/requestLicense',displayName:'申请License'}
+    {link:'https://www.gitbook.com/book/kyligence/kap-manual/details',displayName:'KAP手册'}
   ],
+  requestLicense:'申请License',
   selectLanguage: '请选择语言'
   },
   /*
