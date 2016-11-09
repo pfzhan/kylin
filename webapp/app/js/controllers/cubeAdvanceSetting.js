@@ -62,7 +62,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
         liveDrag:true,
         gripInnerHtml:"<div class='grip'></div>",
         draggingClass:"dragging",
-        resizeMode:'fit',
+        resizeMode:'flex',
         partialRefresh:true
       });
     }
