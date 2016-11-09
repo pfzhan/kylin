@@ -139,7 +139,8 @@ public class KapConfig {
     }
 
     public int getParquetStorageBlockSize() {
-        return Integer.valueOf(config.getOptional("kap.storage.columnar.dfs.blocksize", String.valueOf(5 * getParquetStorageShardSize() * 1024 * 1024)));//default (10 * shard_size)
+        int defaultBlockSize = 5 * getParquetStorageShardSize() * 1024 * 1024; //default (5 * shard_size)
+        return Integer.valueOf(config.getOptional("kap.storage.columnar.dfs.blocksize", String.valueOf(defaultBlockSize < 0 ? Integer.MAX_VALUE : defaultBlockSize)));
     }
 
     /**
