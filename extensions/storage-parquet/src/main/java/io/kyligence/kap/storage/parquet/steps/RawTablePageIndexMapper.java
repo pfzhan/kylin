@@ -116,7 +116,7 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
     }
 
     @Override
-    public void map(ByteArrayListWritable key, IntWritable value, Context context) throws IOException, InterruptedException {
+    public void doMap(ByteArrayListWritable key, IntWritable value, Context context) throws IOException, InterruptedException {
         counter++;
         if (counter % BatchConstants.NORMAL_RECORD_LOG_THRESHOLD == 0) {
             logger.info("Handled " + counter + " records!");
@@ -131,18 +131,14 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
     }
 
     @Override
-    protected void cleanup(Context context) throws IOException, InterruptedException {
-        try {
-            indexBundleWriter.spill();
-            indexBundleWriter.close();
-    
-            FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
-            fs.mkdirs(outputPath.getParent());
-            fs.rename(tmpPath, outputPath);
-            logger.info("move file {} to {}", tmpPath, outputPath);
-        } catch (Throwable ex) {
-            logger.error("", ex);
-        }
+    protected void doCleanup(Context context) throws IOException, InterruptedException {
+        indexBundleWriter.spill();
+        indexBundleWriter.close();
+
+        FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
+        fs.mkdirs(outputPath.getParent());
+        fs.rename(tmpPath, outputPath);
+        logger.info("move file {} to {}", tmpPath, outputPath);
     }
 
     private void spillIfNeeded() {

@@ -62,7 +62,7 @@ import io.kyligence.kap.cube.raw.RawValueIngester;
 import io.kyligence.kap.cube.raw.gridtable.RawTableCodeSystem;
 import io.kyligence.kap.cube.raw.gridtable.RawTableGridTable;
 
-public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUEIN, Text, Text> {
+abstract public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUEIN, Text, Text> {
     protected static final Logger logger = LoggerFactory.getLogger(RawTableMapperBase.class);
     public static final byte[] HIVE_NULL = Bytes.toBytes("\\N");
     public static final byte[] ONE = Bytes.toBytes("1");

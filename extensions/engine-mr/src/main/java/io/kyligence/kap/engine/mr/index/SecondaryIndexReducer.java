@@ -44,15 +44,13 @@ import org.apache.kylin.engine.mr.KylinReducer;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.index.ColumnIndexWriter;
 
 /**
  */
 public class SecondaryIndexReducer extends KylinReducer<Text, Text, NullWritable, Text> {
-    private static final Logger logger = LoggerFactory.getLogger(SecondaryIndexReducer.class);
+    
     protected CubeDesc cubeDesc;
     protected CubeSegment cubeSegment;
     private TblColRef col = null;
@@ -100,27 +98,23 @@ public class SecondaryIndexReducer extends KylinReducer<Text, Text, NullWritable
     }
 
     @Override
-    public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+    public void doReduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
         columnIndexWriter.write(key.getBytes());
     }
 
     @Override
-    protected void cleanup(Context context) throws IOException, InterruptedException {
-        try {
-            columnIndexWriter.close();
-    
-            // upload to hdfs
-            FileSystem fs = FileSystem.get(context.getConfiguration());
-            Path path = new Path(outputPath);
-            fs.mkdirs(path);
-            fs.copyFromLocalFile(true, new Path(forwardIndexFile.toURI()), new Path(path, col.getName() + ".fwd"));
-            fs.copyFromLocalFile(true, new Path(invertedIndexFile.toURI()), new Path(path, col.getName() + ".inv"));
-    
-            forwardIndexFile.delete();
-            invertedIndexFile.delete();
-        } catch (Throwable ex) {
-            logger.error("", ex);
-        }
+    protected void doCleanup(Context context) throws IOException, InterruptedException {
+        columnIndexWriter.close();
+
+        // upload to hdfs
+        FileSystem fs = FileSystem.get(context.getConfiguration());
+        Path path = new Path(outputPath);
+        fs.mkdirs(path);
+        fs.copyFromLocalFile(true, new Path(forwardIndexFile.toURI()), new Path(path, col.getName() + ".fwd"));
+        fs.copyFromLocalFile(true, new Path(invertedIndexFile.toURI()), new Path(path, col.getName() + ".inv"));
+
+        forwardIndexFile.delete();
+        invertedIndexFile.delete();
     }
 
 }

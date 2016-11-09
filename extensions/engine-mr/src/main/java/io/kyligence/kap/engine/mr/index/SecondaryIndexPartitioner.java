@@ -30,6 +30,7 @@ import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.kylin.common.util.BytesUtil;
 
 public class SecondaryIndexPartitioner extends Partitioner<Text, Text> {
+    @SuppressWarnings("unused")
     private Configuration conf;
 
     @Override

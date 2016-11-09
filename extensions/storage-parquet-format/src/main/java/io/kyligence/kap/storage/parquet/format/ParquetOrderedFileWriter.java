@@ -85,7 +85,18 @@ public abstract class ParquetOrderedFileWriter extends RecordWriter<Text, Text> 
 
     @Override
     public void close(TaskAttemptContext context) throws IOException, InterruptedException {
-        cleanWriter();
+        try {
+            cleanWriter();
+        } catch (IOException ex) { // KYLIN-2170
+            logger.error("", ex);
+            throw ex;
+        } catch (RuntimeException ex) { // KYLIN-2170
+            logger.error("", ex);
+            throw ex;
+        } catch (Error ex) { // KYLIN-2170
+            logger.error("", ex);
+            throw ex;
+        }
     }
 
     abstract protected Path getDestPath();

@@ -149,7 +149,7 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
     }
 
     @Override
-    public void map(Text key, IntWritable value, Context context) throws IOException, InterruptedException {
+    public void doMap(Text key, IntWritable value, Context context) throws IOException, InterruptedException {
         counter++;
         if (counter % BatchConstants.NORMAL_RECORD_LOG_THRESHOLD == 0) {
             logger.info("Handled " + counter + " records!");
@@ -158,16 +158,12 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
     }
 
     @Override
-    protected void cleanup(Context context) throws IOException, InterruptedException {
-        try {
-            indexBundleWriter.close();
-    
-            FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
-            fs.mkdirs(outputPath.getParent());
-            fs.rename(tmpPath, outputPath);
-            logger.info("move file {} to {}", tmpPath, outputPath);
-        } catch (Throwable ex) {
-            logger.error("", ex);
-        }
+    protected void doCleanup(Context context) throws IOException, InterruptedException {
+        indexBundleWriter.close();
+
+        FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
+        fs.mkdirs(outputPath.getParent());
+        fs.rename(tmpPath, outputPath);
+        logger.info("move file {} to {}", tmpPath, outputPath);
     }
 }

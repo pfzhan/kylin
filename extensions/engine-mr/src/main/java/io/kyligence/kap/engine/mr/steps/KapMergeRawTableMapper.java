@@ -58,7 +58,7 @@ public class KapMergeRawTableMapper extends KylinMapper<Text, Text, Text, Text> 
     }
 
     @Override
-    public void map(Text key, Text value, Context context) throws IOException, InterruptedException {
+    public void doMap(Text key, Text value, Context context) throws IOException, InterruptedException {
 
         counter++;
         int shardNum = rawInstance.getShardNumber() == 0 ? 10 : rawInstance.getShardNumber();

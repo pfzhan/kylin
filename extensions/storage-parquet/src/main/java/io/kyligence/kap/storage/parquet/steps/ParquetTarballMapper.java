@@ -75,7 +75,7 @@ public class ParquetTarballMapper extends KylinMapper<IntWritable, byte[], Text,
     }
 
     @Override
-    public void map(IntWritable key, byte[] value, Context context) throws IOException, InterruptedException {
+    public void doMap(IntWritable key, byte[] value, Context context) throws IOException, InterruptedException {
         counter++;
         if (counter % BatchConstants.NORMAL_RECORD_LOG_THRESHOLD == 0) {
             logger.info("Handled " + counter + " records!");
@@ -85,11 +85,7 @@ public class ParquetTarballMapper extends KylinMapper<IntWritable, byte[], Text,
     }
 
     @Override
-    protected void cleanup(Context context) throws IOException, InterruptedException {
-        try {
-            os.close();
-        } catch (Throwable ex) {
-            logger.error("", ex);
-        }
+    protected void doCleanup(Context context) throws IOException, InterruptedException {
+        os.close();
     }
 }
