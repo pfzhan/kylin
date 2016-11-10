@@ -268,15 +268,6 @@ var aboutKapCtrl = function($scope,KapSystemService,language,$modalInstance){
     $modalInstance.dismiss('cancel');
   };
 
-  $scope.setHover = function(){
-    var ele = document.getElementById('aboutKAP-close');
-    ele.src='./image/close_hover.png';
-  };
-
-  $scope.setLeave = function(){
-    var ele = document.getElementById('aboutKAP-close');
-    ele.src='./image/close.png';
-  };
 }
 
 var projCtrl = function ($scope, $location, $modalInstance, ProjectService, MessageService, projects, project, SweetAlert, ProjectModel, $cookieStore, $route,language,kylinCommon) {
