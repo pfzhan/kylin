@@ -70,6 +70,9 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
           confirmButtonText: "Yes",
           closeOnConfirm: true
         });
+        setTimeout(function(){
+          $('.showSweetAlert.visible').removeClass('visible');
+        },1000);
       },function(){
         loadingRequest.hide();
       })
