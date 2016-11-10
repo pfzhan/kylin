@@ -229,7 +229,7 @@ KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $lo
 
 });
 
-var aboutKapCtrl = function($scope,KapSystemService,language){
+var aboutKapCtrl = function($scope,KapSystemService,language,$modalInstance){
   $scope.dataKylin = language.getDataKylin();
   $scope.license = {};
   KapSystemService.license({},function(data){
@@ -263,6 +263,20 @@ var aboutKapCtrl = function($scope,KapSystemService,language){
   },function(){
 
   })
+
+  $scope.cancel = function () {
+    $modalInstance.dismiss('cancel');
+  };
+
+  $scope.setHover = function(){
+    var ele = document.getElementById('aboutKAP-close');
+    ele.src='./image/close_hover.png';
+  };
+
+  $scope.setLeave = function(){
+    var ele = document.getElementById('aboutKAP-close');
+    ele.src='./image/close.png';
+  };
 }
 
 var projCtrl = function ($scope, $location, $modalInstance, ProjectService, MessageService, projects, project, SweetAlert, ProjectModel, $cookieStore, $route,language,kylinCommon) {

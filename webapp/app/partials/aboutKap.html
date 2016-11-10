@@ -17,56 +17,58 @@
 -->
 
 <script type="text/ng-template" id="aboutKap.html">
-  <div class="modal-body panel panel-default license-dialog" style="background-color: white">
+  <LINK REL=STYLESHEET TYPE="text/css" HREF="./css/aboutKap.css">
+  <div  id="aboutKAP-background">
+        <div  id="aboutKAP-title">
+          <b >{{dataKylin.license.aboutkap}}</b>
 
-        <div class="panel-heading">
-          <h3 class="panel-title font12">{{dataKylin.license.version}}</h3>
-        </div>
-        <div class="panel-body">{{license['kap.version']}}</div>
+          <input id="aboutKAP-close" type="image" src="./image/close.png" ng-click="cancel()" ng-mouseover="setHover()" ng-mouseleave="setLeave()">
 
-        <div class="panel-heading">
-          <h3 class="panel-title font12">{{dataKylin.license.dates}}</h3>
         </div>
-        <div class="panel-body">{{license['kap.dates']}}</div>
+        <img id="aboutKAP-favicon" src="./image/about-logo.png" >
+        <div id="aboutKAP-version" class="aboutKAP-row">
+          <b>{{dataKylin.license.version}}: {{license['kap.version']}}</b>
+        </div>
 
-        <div class="panel-heading">
-          <h3 class="panel-title font12">{{dataKylin.license.statement}}</h3>
+        <div id="aboutKAP-period" class="aboutKAP-row">
+          <b>{{dataKylin.license.dates}}: {{license['kap.dates']}}</b>
         </div>
-        <div class="panel-body">
-          <p>{{license['kap.license.statement']}}</p>
+
+        <div id="aboutKAP-license-statement" class="aboutKAP-row">
+          <b>{{dataKylin.license.statement}}: {{license['kap.license.statement']}}</b>
         </div>
-        <div class="panel-heading">
-          <h3 class="panel-title font12">{{dataKylin.kapService.statementHeader}}</h3>
+
+        <div class="aboutKAP-split"></div>
+
+        <div id="aboutKAP-kapService" class="aboutKAP-row">
+          <b >{{dataKylin.kapService.statementHeader}}</b>
         </div>
-        <div class="panel-body">
+        <div id="aboutKAP-kapService-content" class="aboutKAP-row">
           <p ng-if="license['kap.license.isEvaluation']=='true'">{{dataKylin.kapService.evaluationStatement}}</p>
           <p ng-if="license['kap.license.isEvaluation']!=='true'">{{dataKylin.kapService.statement}}</p>
         </div>
-        <div ng-if="license['kap.license.isEvaluation']!=='true'" class="panel-heading">
-          <h3 class="panel-title font12">{{dataKylin.kapService.serviceEndTime}}</h3>
-        </div>
-        <div ng-if="license['kap.license.isEvaluation']!=='true'" class="panel-body">
-          <p>{{license['kap.license.serviceEnd']}}</p>
+
+
+        <div ng-if="license['kap.license.isEvaluation']!=='true'" id="endtime" class="aboutKAP-row">
+          <b>{{dataKylin.kapService.serviceEndTime}}: {{license['kap.license.serviceEnd']}}</b>
         </div>
 
-        <div class="panel-heading">
-          <h3 class="panel-title font12">{{dataKylin.license.commit}}</h3>
-        </div>
-        <div class="panel-body">
-          <p>{{license['kap.commit']}}</p>
+
+        <div id="aboutKAP-commit" class="aboutKAP-row">
+          <b>{{dataKylin.license.commit}}: {{license['kap.commit']}}</b>
         </div>
 
-        <div class="panel-heading ">
-          <h3 class="panel-title font12">{{dataKylin.license.kylincommit}}</h3>
-        </div>
-        <div class="panel-body">
-          <p>{{license['kylin.commit']}}</p>
+
+        <div id="aboutKAP-kylin-commit" class="aboutKAP-row">
+          <b>{{dataKylin.license.kylincommit}}: {{license['kylin.commit']}}</b>
         </div>
 
-    <button id="nextButton" class="btn btn-success">
+
+    <button id="aboutKAP-nextButton" class="btn">
      <a href="api/kap/system/requestLicense" target="_bank" style="color:#fff">{{dataKylin.header.requestLicense}}</a>
     </button>
 
-        <p class="panel-title" style="text-align: center;color:#808080">All Rights Reserved. Kyligence Inc.</p>
+        <p id="aboutKAP-copyright" class="panel-title">All Rights Reserved. Kyligence Inc.</p>
+    </div>
 
 </script>
