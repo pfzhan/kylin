@@ -82,7 +82,7 @@ then
     fi
     verbose "kylin.rest.address is set to ${kylin_rest_address}"
 
-    kylin_rest_address_arr=(${kylin_rest_address//;/ })
+    kylin_rest_address_arr=(${kylin_rest_address//:/ })
     nc -z -w 5 ${kylin_rest_address_arr[0]} ${kylin_rest_address_arr[1]} 1>/dev/null 2>&1; nc_result=$?
     if [ $nc_result -eq 0 ]; then
         quit "Port ${kylin_rest_address} is not available, could not start Kylin"
