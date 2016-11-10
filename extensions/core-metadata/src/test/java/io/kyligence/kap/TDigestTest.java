@@ -35,7 +35,7 @@ public class TDigestTest {
 
             double actualResult = tDigest.quantile(0.5);
             double expectedResult = MathUtil.findMedianInSortedList(dataset);
-            assertEquals(expectedResult, actualResult, 0.001);
+            assertEquals(expectedResult, actualResult, 0.01);
         }
     }
 }
