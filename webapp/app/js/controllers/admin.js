@@ -222,8 +222,11 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
         type: 'success',
         confirmButtonColor: '#DD6B55',
         confirmButtonText: "Yes",
-        closeOnConfirm: true
+        closeOnConfirm: true,
       });
+      setTimeout(function(){
+        $('.showSweetAlert.visible').removeClass('visible');
+      },1000);
     },function(e){
       kylinCommon.error_default(e);
       loadingRequest.hide();
