@@ -35,38 +35,35 @@ import java.util.TimeZone;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.HadoopUtil;
-import org.apache.kylin.engine.mr.common.HadoopShellExecutable;
 import org.apache.kylin.engine.mr.common.MapReduceExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.manager.ExecutableManager;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectManager;
-import org.apache.kylin.source.hive.cardinality.HiveColumnCardinalityJob;
-import org.apache.kylin.source.hive.cardinality.HiveColumnCardinalityUpdateJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DataSourceStatisticJob extends CubingJob {
-    private static final Logger logger = LoggerFactory.getLogger(DataSourceStatisticJob.class);
+public class DataSourceSampleJob extends CubingJob {
+    private static final Logger logger = LoggerFactory.getLogger(DataSourceSampleJob.class);
     private static final String DEPLOY_ENV_NAME = "envName";
     private static final String PROJECT_INSTANCE_NAME = "projectName";
     private static final String STATISTIC_JOB_ID = "jobId";
 
-    public static void createStatisticJob(String project, String submitter, String table) throws IOException {
-        initStatJob(project, submitter, table);
+    public static void createSampleJob(String project, String submitter, String table) throws IOException {
+        initSampleJob(project, submitter, table);
     }
 
-    public static void initStatJob(String project, String submitter, String table) throws IOException {
+    public static void initSampleJob(String project, String submitter, String table) throws IOException {
         List<String> tables = null;
         String JobName;
         if (null == table) {
             tables = getTableFromProject(project);
-            JobName = "Build Multi-Table Statistics-";
+            JobName = "Build Multi-Table Samples-";
         } else {
             tables = new ArrayList<>();
             tables.add(table);
-            JobName = "Build Single-Table Statistics-";
+            JobName = "Build Single-Table Samples-";
         }
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -74,7 +71,7 @@ public class DataSourceStatisticJob extends CubingJob {
         if (isAlreadyRuning(config, project, tables))
             return;
 
-        DataSourceStatisticJob result = new DataSourceStatisticJob();
+        DataSourceSampleJob result = new DataSourceSampleJob();
         SimpleDateFormat format = new SimpleDateFormat("z yyyy-MM-dd HH:mm:ss");
         format.setTimeZone(TimeZone.getTimeZone(config.getTimeZone()));
         result.setDeployEnvName(config.getDeployEnv());
@@ -85,18 +82,18 @@ public class DataSourceStatisticJob extends CubingJob {
         MetadataManager metaMgr = MetadataManager.getInstance(config);
         for (String tableName : tables) {
             Map<String, String> exdMap = metaMgr.getTableDescExd(tableName);
-            if (!exdMap.containsKey(DataSourceStatisticJob.STATISTIC_JOB_ID)) {
-                exdMap.put(DataSourceStatisticJob.STATISTIC_JOB_ID, result.getId());
+            if (!exdMap.containsKey(DataSourceSampleJob.STATISTIC_JOB_ID)) {
+                exdMap.put(DataSourceSampleJob.STATISTIC_JOB_ID, result.getId());
                 String[] dbTableName = HadoopUtil.parseHiveTableName(tableName);
                 tableName = dbTableName[0] + "." + dbTableName[1];
                 metaMgr.saveTableExd(tableName.toUpperCase(), exdMap);
             }
-            calculateCardinality(result, tableName, submitter, config);
+            calculateSamples(result, tableName, submitter, config);
         }
         ExecutableManager.getInstance(config).addJob(result);
     }
 
-    public static void calculateCardinality(DataSourceStatisticJob result, String tableName, String submitter, KylinConfig config) {
+    public static void calculateSamples(DataSourceSampleJob result, String tableName, String submitter, KylinConfig config) {
         MetadataManager metaMgr = MetadataManager.getInstance(config);
         String[] dbTableName = HadoopUtil.parseHiveTableName(tableName);
         tableName = dbTableName[0] + "." + dbTableName[1];
@@ -108,23 +105,24 @@ public class DataSourceStatisticJob extends CubingJob {
             throw e;
         }
 
-        String outPath = HiveColumnCardinalityJob.OUTPUT_PATH + "/" + tableName;
+        String outPath = HiveTableSampleJob.OUTPUT_PATH + "/" + tableName;
         String param = "-table " + tableName + " -output " + outPath;
 
         MapReduceExecutable step1 = new MapReduceExecutable();
 
-        step1.setName("Extract Cardinality from Table-" + tableName);
-        step1.setMapReduceJobClass(HiveColumnCardinalityJob.class);
+        step1.setName("Extract Max/Min/MaxLength/MinLength from Table-" + tableName);
+        step1.setMapReduceJobClass(HiveTableSampleJob.class);
         step1.setMapReduceParams(param);
 
         result.addTask(step1);
-
+        /*
         HadoopShellExecutable step2 = new HadoopShellExecutable();
-
+        
         step2.setName("Update Table-" + tableName + "' Cardinality to MetaData");
         step2.setJobClass(HiveColumnCardinalityUpdateJob.class);
         step2.setJobParams(param);
         result.addTask(step2);
+        */
     }
 
     private static boolean isAlreadyRuning(KylinConfig config, String project, List<String> tables) {
@@ -132,10 +130,10 @@ public class DataSourceStatisticJob extends CubingJob {
         MetadataManager metaMgr = MetadataManager.getInstance(config);
         for (String table : tables) {
             Map<String, String> exdMap = metaMgr.getTableDescExd(table);
-            if (!exdMap.containsKey(DataSourceStatisticJob.STATISTIC_JOB_ID)) {
+            if (!exdMap.containsKey(DataSourceSampleJob.STATISTIC_JOB_ID)) {
                 continue;
             } else {
-                String jobId = exdMap.get(DataSourceStatisticJob.STATISTIC_JOB_ID);
+                String jobId = exdMap.get(DataSourceSampleJob.STATISTIC_JOB_ID);
                 ExecutableManager exeMgt = ExecutableManager.getInstance(config);
                 if (ExecutableState.RUNNING == exeMgt.getOutput(jobId).getState()) {
                     isRunning = true;
