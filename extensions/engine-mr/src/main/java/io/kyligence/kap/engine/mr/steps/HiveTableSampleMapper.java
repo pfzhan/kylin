@@ -71,7 +71,7 @@ public class HiveTableSampleMapper<T> extends KylinMapper<T, Object, IntWritable
     }
 
     @Override
-    public void map(T key, Object value, Context context) throws IOException, InterruptedException {
+    public void doMap(T key, Object value, Context context) throws IOException, InterruptedException {
         ColumnDesc[] columns = tableDesc.getColumns();
         String[] values = tableInputFormat.parseMapperInput(value);
         for (int m = 0; m < columns.length; m++) {
@@ -94,7 +94,7 @@ public class HiveTableSampleMapper<T> extends KylinMapper<T, Object, IntWritable
     }
 
     @Override
-    protected void cleanup(Context context) throws IOException, InterruptedException {
+    protected void doCleanup(Context context) throws IOException, InterruptedException {
         Iterator<Integer> it = samplerMap.keySet().iterator();
         while (it.hasNext()) {
             int key = it.next();

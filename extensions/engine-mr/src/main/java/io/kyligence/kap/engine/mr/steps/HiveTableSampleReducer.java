@@ -49,7 +49,7 @@ public class HiveTableSampleReducer extends KylinReducer<IntWritable, Text, IntW
     }
 
     @Override
-    public void reduce(IntWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+    public void doReduce(IntWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
         int skey = key.get();
         for (Text v : values) {
             ByteBuffer buffer = ByteBuffer.wrap(v.getBytes());
@@ -66,7 +66,7 @@ public class HiveTableSampleReducer extends KylinReducer<IntWritable, Text, IntW
     }
 
     @Override
-    protected void cleanup(Context context) throws IOException, InterruptedException {
+    protected void doCleanup(Context context) throws IOException, InterruptedException {
         List<Integer> keys = new ArrayList<Integer>();
         Iterator<Integer> it = sampleMap.keySet().iterator();
         while (it.hasNext()) {
