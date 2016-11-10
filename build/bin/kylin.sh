@@ -2,11 +2,11 @@
 # Kyligence Inc. License
 
 # set verbose=true to print more logs in scripts
-verbose=${verbose:-""}
+source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh $@
+if [ "$verbose" = true ]; then
+    shift
+fi
 
-source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
-
-echo "KYLIN_HOME is set to ${KYLIN_HOME}"
 source ${dir}/check-env.sh "if-not-yet"
 mkdir -p ${KYLIN_HOME}/logs
 mkdir -p ${KYLIN_HOME}/ext
@@ -179,5 +179,5 @@ then
     exec hbase ${KYLIN_EXTRA_START_OPTS} -Dkylin.hive.dependency=${hive_dependency} -Dkylin.hbase.dependency=${hbase_dependency} -Dlog4j.configuration=kylin-log4j.properties "$@"
 
 else
-    quit "Usage: 'kylin.sh start' or 'kylin.sh stop'"
+    quit "Usage: 'kylin.sh [-v] start' or 'kylin.sh [-v] stop'"
 fi

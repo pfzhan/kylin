@@ -1,10 +1,11 @@
 #!/bin/bash
 # Kyligence Inc. License
 
-# set verbose=true to print more logs in scripts
-verbose=${verbose:-""}
+source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh $@
 
-source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
+if [ "$verbose" = true ]; then
+    shift
+fi
 
 if [[ $CI_MODE == 'true' ]]
 then
@@ -136,5 +137,5 @@ then
         quit "Spark Client is not running"
     fi
 else
-    quit "Usage: 'spark_client.sh start' or 'spark_clint.sh stop'"
+    quit "Usage: 'spark_client.sh [-v] start' or 'spark_clint.sh [-v] stop'"
 fi
