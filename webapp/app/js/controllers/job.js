@@ -125,12 +125,8 @@ KylinApp
               JobService.list(newJobPara,function(data){
                   for(var job in $scope.jobList.jobs){
                     for(var i =0;i<data.length;i++){
-                      //var curObj=$scope.jobList.jobs[job];
                       if(data[i].uuid==job){
-                        $scope.jobList.jobs[job]=data[i];
-                        if($scope.state.selectedJob&&$scope.state.selectedJob.uuid==data[i].uuid){
-                          $scope.state.selectedJob=data[i];
-                        }
+                        $scope.jobList.jobs[job]= angular.extend($scope.jobList.jobs[job],data[i]);
                         break;
                       }
                     }
