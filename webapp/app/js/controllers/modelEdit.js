@@ -119,10 +119,6 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
         ModelDescService.query({model_name: modelName}, function (model) {
                     if (model) {
                         modelsManager.selectedModel = model;
-                        if($scope.modelsManager.selectedModel.partition_desc.partition_date_column){
-                          judgeFormatVisible($scope.modelsManager.selectedModel.partition_desc.partition_date_column);
-
-                        }
                         if($scope.modelsManager.selectedModel.partition_desc.partition_time_column){
                           $scope.partitionColumn.hasSeparateTimeColumn = true;
                         }
@@ -130,7 +126,13 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
 
                         if(!ProjectModel.getSelectedProject()){
                             ProjectModel.setSelectedProject(modelsManager.selectedModel.project);
-                            TableModel.aceSrcTbLoaded();
+                            TableModel.aceSrcTbLoaded().then(function(){
+                              judgeFormatVisible($scope.modelsManager.selectedModel.partition_desc.partition_date_column);
+                            });
+                        }else{
+                          if($scope.modelsManager.selectedModel.partition_desc.partition_date_column){
+                            judgeFormatVisible($scope.modelsManager.selectedModel.partition_desc.partition_date_column);
+                          }
                         }
                     }
                 });
