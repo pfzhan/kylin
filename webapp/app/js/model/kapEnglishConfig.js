@@ -450,6 +450,7 @@ KylinApp.constant('kapEnglishConfig', {
     rawtableASColumn:'Column',
     rawtableASEncoding:'Encoding',
     rawtableASIndex:'Index',
+    rawtableMustSetSorted:'You must set the index value of a column to sorted!',
     tip_title_cubeASRowkeys: {name:'Rowkey',watch:true},
     tip_body_cubeASRowkeys: '<h4>Shard By this column?</h4><p>If specified as "true", cube data will be sharded according to its value.</p><h4>RowKey Encoding</h4><ol><li>"dict" encoding will try to build a dictionary for the dimension</li><li>"fixed_length" encoding will encode the dimension vlaues by fixed length bytes with padding</li><li>"int" encoding uses variable integer to encode integers </li></ol>',
     tip_body_cubeRawTable: '<h4>Shard By this column?</h4><p>If specified as "true", cube data will be sharded according to its value.</p><h4>RowKey Encoding</h4><ol><li>"dict" encoding will try to build a dictionary for the dimension</li><li>"fixed_length" encoding will encode the dimension vlaues by fixed length bytes with padding</li><li>"int" encoding uses variable integer to encode integers </li></ol>',
@@ -883,7 +884,8 @@ KylinApp.constant('kapEnglishConfig', {
     warning_dimensions_name:"The name is required.",
     success_back:"Backup success!",
     tip_cubadd_cache:"Detect that you have not saved the cube build information, whether to continue to build?",
-    tip_store_callback:'Backup Success！Path：'
+    tip_store_callback:'Backup Success！Path：',
+    rawTableSaveError:'Failed to save the raw table setting!'
 },
   license:{
     aboutkap:"About KAP",

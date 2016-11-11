@@ -205,6 +205,8 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
             return $scope.check_cube_setting();
           case 'cube_overwrite_prop_form':
             return $scope.cube_overwrite_prop_check();
+          case 'rawtable_setting_form':
+            return $scope.rawtable_data_right_check();
           default:
             return true;
             break;
@@ -326,7 +328,20 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
     }
   }
 
-
+   $scope.rawtable_data_right_check=function(){
+     var test=$scope.RawTables;
+     if(!$scope.RawTables||!$scope.RawTables.columns||$scope.RawTables.columns&&$scope.RawTables.columns.length<=0){
+        return true;
+     }
+     for(var i=0;i<$scope.RawTables.columns.length;i++){
+       if($scope.RawTables.columns[i].index=='sorted'){
+         return true;
+       }
+     }
+     var errorInfo=$scope.dataKylin.cube.rawtableMustSetSorted;
+     SweetAlert.swal('', errorInfo, 'warning');
+     return false;
+   }
   // ~ private methods
   function initProject() {
     ProjectService.listReadable({}, function (projects) {

@@ -544,8 +544,8 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
         project: $scope.state.project
       },function(request){
         VdmUtil.storage.remove($scope.state.project+"_rawtable");
-      },function(request){
-
+      },function(e){
+        rawTableSaveError(e)
       })
     }
   }
@@ -556,12 +556,21 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
       rawTableDescData:angular.toJson($scope.RawTables, true),
       project: $scope.state.project,
       rawTableName:$scope.RawTables.name
-
     },function(request){
       VdmUtil.storage.remove($scope.state.project+"_rawtable");
-    },function(request){
-
+    },function(e){
+      rawTableSaveError(e)
     })
+  }
+
+  function rawTableSaveError(e){
+    if (e&&e.data && e.data.exception) {
+      var message = e.data.exception;
+      var msg = !!(message) ? message : $scope.dataKylin.alert.rawTableSaveError;
+      MessageService.sendMsg(msg, 'error', {});
+    } else {
+      MessageService.sendMsg($scope.dataKylin.alert.rawTableSaveError, 'error',{});
+    }
   }
 
 
