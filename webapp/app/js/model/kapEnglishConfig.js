@@ -21,8 +21,8 @@ KylinApp.constant('kapEnglishConfig', {
     "statementHeader":"Service Statement",
     "serviceEndTime":"Service End Time",
     "evaluationStatement":"You are using evaluation version of KAP. If you need the most professional services and products base on Apache Kylin. Please contact us!",
-    "statement":"You are using KAP pro version. If you have any issues about KAP, please contact us. We will continue to provide you with quality products and services from Apache Kylin core team.",
-    "requestTip":""
+    "statement":"You are using KAP enterprise product and service. If you have any issues about KAP, please contact us. We will continue to provide you with quality products and services from Apache Kylin core team.",
+    "requestTip":"To request license, please contact with Kyligence sales support channel with the License Request file."
   },
   user:{
     setting: 'Settings',//reset password
@@ -87,7 +87,7 @@ KylinApp.constant('kapEnglishConfig', {
     {link:'http://kyligence.io',displayName:'About Us'},
     {link:'https://kyligence.gitbooks.io/kap-manual/content/en/',displayName:'KAP Manual'}
   ],
-  requestLicense:'Request License',
+  requestLicense:'Generate License Request File',
   selectLanguage: 'select language'
   },
   /*
