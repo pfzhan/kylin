@@ -14,10 +14,10 @@
   color: #333;
 }
 
-.modal-content
+.about-kap-window .modal-content
 {
-  width: 450px !important;
-  height: 565px !important;
+  width: 450px;
+  height: 565px;
 }
 
 #aboutKAP-background
