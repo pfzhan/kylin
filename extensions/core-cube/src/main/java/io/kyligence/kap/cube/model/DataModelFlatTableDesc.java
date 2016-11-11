@@ -28,8 +28,8 @@ import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeJoinedFlatTableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
-import io.kyligence.kap.cube.raw.RawTableDesc;
-import io.kyligence.kap.cube.raw.RawTableDescManager;
+import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.cube.raw.RawTableManager;
 
 public class DataModelFlatTableDesc extends CubeJoinedFlatTableDesc {
 
@@ -40,14 +40,18 @@ public class DataModelFlatTableDesc extends CubeJoinedFlatTableDesc {
     protected void initParseCubeDesc() {
         // add cube columns
         super.initParseCubeDesc();
+
+        if (cubeSegment == null)
+            return;
         
         // add raw table columns
-        RawTableDescManager rawTableDescManager = RawTableDescManager.getInstance(cubeDesc.getConfig());
-        RawTableDesc rawTableDesc = rawTableDescManager.getRawTableDesc(cubeDesc.getName());
-        if (rawTableDesc != null) {
-            for (TblColRef col : rawTableDesc.getColumns()) {
-                initAddColumn(col);
-            }
+        RawTableManager rawTableManager = RawTableManager.getInstance(cubeSegment.getConfig());
+        RawTableInstance rawTable = rawTableManager.getAccompanyRawTable(cubeSegment.getCubeInstance());
+        if (rawTable == null)
+            return;
+        
+        for (TblColRef col : rawTable.getRawTableDesc().getColumns()) {
+            initAddColumn(col);
         }
     }
 

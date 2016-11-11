@@ -42,7 +42,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.StringSplitter;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
-import org.apache.kylin.engine.mr.KylinReducer;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.metadata.MetadataManager;
@@ -56,7 +55,6 @@ import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableMergeInputFormat;
-import io.kyligence.kap.storage.parquet.format.ParquetRawTableOutputFormat;
 
 public class KapMergeRawTableJob extends AbstractHadoopJob {
 
@@ -115,13 +113,10 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
             job.setMapperClass(KapMergeRawTableMapper.class);
             job.setMapOutputKeyClass(Text.class);
             job.setMapOutputValueClass(Text.class);
-            job.setCombinerClass(KylinReducer.class);
             job.setPartitionerClass(ShardPartitioner.class);
 
-            job.setReducerClass(KylinReducer.class);
-            job.setOutputFormatClass(ParquetRawTableOutputFormat.class);
-            job.setOutputKeyClass(Text.class);
-            job.setOutputValueClass(Text.class);
+            // Reducer
+            job.setNumReduceTasks(0); // no reducer, map only
 
             // set job configuration
             job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, cubeName);

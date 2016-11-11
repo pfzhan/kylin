@@ -103,19 +103,9 @@ public class KapBatchMergeJobBuilder extends JobBuilderSupport {
     }
 
     private RawTableInstance detectRawTable() {
-        RawTableInstance rawInstance = RawTableManager.getInstance(seg.getConfig()).getRawTableInstance(seg.getRealization().getName());
+        RawTableInstance rawInstance = RawTableManager.getInstance(seg.getConfig()).getAccompanyRawTable(seg.getCubeInstance());
         logger.info("Raw table is " + (rawInstance == null ? "not " : "") + "specified in this cubing job " + seg);
         return rawInstance;
-    }
-
-    private MergeSecondaryIndexStep createMergeSecondaryIndexStep(CubingJob cubingJob) {
-        MergeSecondaryIndexStep result = new MergeSecondaryIndexStep();
-        result.setName("Merge Secondary Index");
-
-        CubingExecutableUtil.setCubeName(seg.getRealization().getName(), result.getParams());
-        CubingExecutableUtil.setSegmentId(seg.getUuid(), result.getParams());
-        CubingExecutableUtil.setIndexPath(this.getSecondaryIndexPath(cubingJob.getId()), result.getParams());
-        return result;
     }
 
     public UpdateRawTableInfoAfterMergeStep createUpdateRawTableInfoAfterMergeStep(List<String> mergingSegmentIds, String jobId) {

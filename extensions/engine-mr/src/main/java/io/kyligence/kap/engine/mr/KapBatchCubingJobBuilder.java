@@ -184,7 +184,7 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
     }
 
     private RawTableInstance detectRawTable() {
-        RawTableInstance rawInstance = RawTableManager.getInstance(seg.getConfig()).getRawTableInstance(seg.getRealization().getName());
+        RawTableInstance rawInstance = RawTableManager.getInstance(seg.getConfig()).getAccompanyRawTable(seg.getCubeInstance());
         logger.info("Raw table is " + (rawInstance == null ? "not " : "") + "specified in this cubing job " + seg);
         return rawInstance;
     }

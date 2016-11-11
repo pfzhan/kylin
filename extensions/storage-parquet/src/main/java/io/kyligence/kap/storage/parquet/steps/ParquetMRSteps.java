@@ -107,7 +107,7 @@ public class ParquetMRSteps extends JobBuilderSupport {
         appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_Raw_Table_Builder_" + instance.getName());
 
         rawTableStep.setMapReduceParams(cmd.toString());
-        rawTableStep.setMapReduceJobClass(getRawTableJob());
+        rawTableStep.setMapReduceJobClass(KapRawTableJob.class);
         rawTableStep.setCounterSaveAs(CubingJob.SOURCE_RECORD_COUNT + "," + CubingJob.SOURCE_SIZE_BYTES);
         return rawTableStep;
     }
@@ -309,10 +309,6 @@ public class ParquetMRSteps extends JobBuilderSupport {
 
     private String getRawParquetFolderPath(RawTableSegment rawSegment) {
         return new StringBuffer(KapConfig.wrap(config.getConfig()).getParquentStoragePath()).append(rawSegment.getRawTableInstance().getUuid()).append("/").append(rawSegment.getUuid()).append("/").toString();
-    }
-
-    protected Class<? extends AbstractHadoopJob> getRawTableJob() {
-        return KapRawTableJob.class;
     }
 
     private RawTableInstance detectRawTable() {

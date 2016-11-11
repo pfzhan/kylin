@@ -39,7 +39,6 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.engine.mr.IMRInput;
-import org.apache.kylin.engine.mr.KylinReducer;
 import org.apache.kylin.engine.mr.MRUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
@@ -53,7 +52,6 @@ import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
-import io.kyligence.kap.storage.parquet.format.ParquetRawTableOutputFormat;
 
 public class KapRawTableJob extends AbstractHadoopJob {
     protected static final Logger logger = LoggerFactory.getLogger(KapRawTableJob.class);
@@ -115,18 +113,13 @@ public class KapRawTableJob extends AbstractHadoopJob {
             job.setMapperClass(this.mapperClass);
             job.setMapOutputKeyClass(Text.class);
             job.setMapOutputValueClass(Text.class);
-            job.setCombinerClass(KylinReducer.class); // for base cuboid shuffle skew, some rowkey aggregates far more records than others
-
-            // Reducer
-            job.setReducerClass(KylinReducer.class);
-            job.setOutputFormatClass(ParquetRawTableOutputFormat.class);
-            job.setOutputKeyClass(Text.class);
-            job.setOutputValueClass(Text.class);
-
-            FileOutputFormat.setOutputPath(job, output);
-            // Partitioner
             job.setPartitionerClass(ShardPartitioner.class);
 
+            // Reducer
+            job.setNumReduceTasks(0); // no reducer, map only
+            
+            FileOutputFormat.setOutputPath(job, output);
+            
             // set job configuration
             job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, rawTableName);
             job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_ID, segmentID);

@@ -40,6 +40,7 @@ import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
@@ -158,6 +159,10 @@ public class RawTableManager implements IRealizationProvider {
     
     public KylinConfig getConfig() {
         return config;
+    }
+    
+    public RawTableInstance getAccompanyRawTable(CubeInstance cube) {
+        return getRawTableInstance(cube.getName());
     }
 
     public RawTableInstance getRawTableInstance(String name) {
