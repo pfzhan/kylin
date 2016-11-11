@@ -434,7 +434,7 @@ KylinApp.constant('kapChineseConfig', {
     rawtableASColumn:'列',
     rawtableASEncoding:'编码',
     rawtableASIndex:'索引',
-    rawtableMustSetSorted:'必须设置一个列的index为sorted属性',
+    rawtableMustSetSorted:'必须设置至少一个列的index的值为sorted！',
     tip_title_cubeASRowkeys: {name:'Rowkey'},
     tip_body_cubeASRowkeys: '<h4>是否按该列分散存储?</h4><p>若设为"true"，Cube数据将按该列值分散存储</p><h4>Rowkey编码</h4><ol><li>选用"dict"编码将该维度构建字典保存</li><li>选用"fixed_length"编码将该维度保存为等长字节块</li><li>选用"int"编码将该维度以整数编码保存</li></ol>',
     cubeASID: 'ID',
