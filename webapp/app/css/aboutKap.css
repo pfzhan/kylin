@@ -118,10 +118,11 @@
 
 #aboutKAP-copyright
 {
-  margin-top: 20px;
-  text-align: center;
+  bottom: 15px;
+  left:140px;
   color:#808080;
   font-size: 10px;
+  position:absolute;
 }
 
 #aboutKAP-nextButton {
@@ -138,10 +139,13 @@
   border-color: #3f80d0;
 }
 #aboutKAP-background .tips{
-  margin-top: 20px;
+  margin-top: 15px;
 }
 #aboutKAP-background .tips p{
   text-align: center;
   font-size: 12px;
   color:#a2a2a2;
+  padding: 0 20px;
+  word-break: break-all;
+  word-spacing: inherit;
 }
