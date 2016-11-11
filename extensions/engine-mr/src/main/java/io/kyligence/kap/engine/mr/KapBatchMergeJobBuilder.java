@@ -45,7 +45,6 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.engine.mr.steps.KapMergeCuboidJob;
-import io.kyligence.kap.engine.mr.steps.MergeSecondaryIndexStep;
 import io.kyligence.kap.engine.mr.steps.UpdateRawTableInfoAfterMergeStep;
 
 public class KapBatchMergeJobBuilder extends JobBuilderSupport {
