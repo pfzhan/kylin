@@ -24,163 +24,31 @@
 
 package io.kyligence.kap.cube.model;
 
-import java.util.List;
-import java.util.Map;
-
-import org.apache.kylin.common.util.BytesSplitter;
 import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.metadata.model.DataModelDesc;
-import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
-import org.apache.kylin.metadata.model.ISegment;
-import org.apache.kylin.metadata.model.JoinDesc;
-import org.apache.kylin.metadata.model.ModelDimensionDesc;
+import org.apache.kylin.cube.model.CubeJoinedFlatTableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import io.kyligence.kap.cube.raw.RawTableDesc;
+import io.kyligence.kap.cube.raw.RawTableDescManager;
 
-public class DataModelFlatTableDesc implements IJoinedFlatTableDesc {
-    private static final Logger logger = LoggerFactory.getLogger(DataModelFlatTableDesc.class);
-
-    private String tableName;
-    private final CubeDesc cubeDesc;
-    private final DataModelDesc dataModelDesc;
-    private final CubeSegment cubeSegment;
-
-    private int columnCount;
-
-    private List<TblColRef> columnList = Lists.newArrayList();
-    private Map<TblColRef, Integer> columnIndexMap;
+public class DataModelFlatTableDesc extends CubeJoinedFlatTableDesc {
 
     public DataModelFlatTableDesc(CubeSegment cubeSegment) {
-        this(cubeSegment.getCubeDesc(), cubeSegment);
+        super(cubeSegment);
     }
 
-    private DataModelFlatTableDesc(CubeDesc cubeDesc, CubeSegment cubeSegment /* can be null */) {
-        this.cubeDesc = cubeDesc;
-        this.cubeSegment = cubeSegment;
-        this.columnIndexMap = Maps.newHashMap();
-        this.dataModelDesc = cubeDesc.getModel();
-        parseCubeDesc();
-    }
-
-    // check what columns from hive tables are required, and index them
-    private void parseCubeDesc() {
-        if (cubeSegment == null) {
-            this.tableName = "kylin_intermediate_" + dataModelDesc.getName();
-        } else {
-            this.tableName = "kylin_intermediate_" + dataModelDesc.getName() + "_" + cubeSegment.getUuid().replaceAll("-", "_");
-        }
-
-        // add dimensions
-        int columnIndex = 0;
-        for (ModelDimensionDesc mdDesc : dataModelDesc.getDimensions()) {
-            for (String col : mdDesc.getColumns()) {
-                TblColRef tblColRef = dataModelDesc.findColumn(mdDesc.getTable(), col);
-                if (tblColRef == null) {
-                    logger.error("Dimension: table name: {}; col name: {}", mdDesc.getTable(), col);
-                }
-                columnIndexMap.put(tblColRef, columnIndex);
-                columnList.add(tblColRef);
-                columnIndex++;
+    protected void initParseCubeDesc() {
+        // add cube columns
+        super.initParseCubeDesc();
+        
+        // add raw table columns
+        RawTableDescManager rawTableDescManager = RawTableDescManager.getInstance(cubeDesc.getConfig());
+        RawTableDesc rawTableDesc = rawTableDescManager.getRawTableDesc(cubeDesc.getName());
+        if (rawTableDesc != null) {
+            for (TblColRef col : rawTableDesc.getColumns()) {
+                initAddColumn(col);
             }
         }
-
-        // add metrics
-        for (String metric : dataModelDesc.getMetrics()) {
-            TblColRef tblColRef = dataModelDesc.findColumn(metric);
-            if (tblColRef == null) {
-                logger.error("Measure: table name: {}; col name: {}", dataModelDesc.getFactTable(), metric);
-            }
-            if (!columnIndexMap.containsKey(tblColRef)) {
-                columnIndexMap.put(tblColRef, columnIndex);
-                columnList.add(tblColRef);
-                columnIndex++;
-            }
-        }
-
-        int lookupLength = dataModelDesc.getLookups().length;
-        for (int i = 0; i < lookupLength; i++) {
-            JoinDesc join = dataModelDesc.getLookups()[i].getJoin();
-            for (TblColRef primary : join.getPrimaryKeyColumns()) {
-                if (primary == null) {
-                    logger.error("Primary key: table name: {}; col name: {}", dataModelDesc.getFactTable(), primary);
-                }
-                if (!columnIndexMap.containsKey(primary)) {
-                    columnIndexMap.put(primary, columnIndex);
-                    columnList.add(primary);
-                    columnIndex++;
-                }
-            }
-
-            for (TblColRef foreign : join.getForeignKeyColumns()) {
-                if (foreign== null) {
-                    logger.error("Foreign key: table name: {}; col name: {}", dataModelDesc.getFactTable(), foreign);
-                }
-                if (!columnIndexMap.containsKey(foreign)) {
-                    columnIndexMap.put(foreign, columnIndex);
-                    columnList.add(foreign);
-                    columnIndex++;
-                }
-            }
-        }
-        columnCount = columnIndex;
-    }
-
-    // sanity check the input record (in bytes) matches what's expected
-    public void sanityCheck(BytesSplitter bytesSplitter) {
-        if (columnCount != bytesSplitter.getBufferSize()) {
-            throw new IllegalArgumentException("Expect " + columnCount + " columns, but see " + bytesSplitter.getBufferSize() + " -- " + bytesSplitter);
-        }
-
-        // TODO: check data types here
-    }
-
-    @Override
-    public String getTableName() {
-        return tableName;
-    }
-
-    @Override
-    public List<TblColRef> getAllColumns() {
-        return columnList;
-    }
-
-    @Override
-    public DataModelDesc getDataModel() {
-        return this.dataModelDesc;
-    }
-
-    @Override
-    public int getColumnIndex(TblColRef colRef) {
-        Integer index = columnIndexMap.get(colRef);
-        if (index == null)
-            throw new IllegalArgumentException("Column " + colRef.toString() + " wasn't found on flat table.");
-
-        return index.intValue();
-    }
-
-    @Override
-    public long getSourceOffsetStart() {
-        return cubeSegment.getSourceOffsetStart();
-    }
-
-    @Override
-    public long getSourceOffsetEnd() {
-        return cubeSegment.getSourceOffsetEnd();
-    }
-
-    @Override
-    public TblColRef getDistributedBy() {
-        return cubeDesc.getDistributedByColumn();
-    }
-
-    @Override
-    public ISegment getSegment() {
-        return cubeSegment;
     }
 
 }
