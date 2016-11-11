@@ -16,7 +16,7 @@
  * limitations under the License.
 */
 
-KylinApp.service('modelsManager',function(ModelService,CubeService,$q,AccessService,ProjectModel,$log){
+KylinApp.service('modelsEdit',function(ModelService,CubeService,$q,AccessService,ProjectModel,$log){
     var _this = this;
     this.models=[];
     this.modelNameList = [];
@@ -39,6 +39,7 @@ KylinApp.service('modelsManager',function(ModelService,CubeService,$q,AccessServ
             //_this.removeAll();
             _this.modelNameList=[];
             angular.forEach(_models, function (model, index) {
+                $log.info("Add model permission info");
                 if(model.uuid){
                   modelPermission.push(
                   AccessService.list({type: "DataModelDesc", uuid: model.uuid}, function (accessEntities) {
@@ -54,6 +55,8 @@ KylinApp.service('modelsManager',function(ModelService,CubeService,$q,AccessServ
                   }).$promise
                   )
                 }
+
+                $log.info("Add cube info to model ,not detail info");
                 cubeDetail.push(
                     CubeService.list({modelName:model.name}, function (_cubes) {
                     model.cubes = _cubes;
@@ -98,8 +101,9 @@ KylinApp.service('modelsManager',function(ModelService,CubeService,$q,AccessServ
     }
 
     this.setSelectedModel = function(value){
-            this.selectedModel = value;
-        }
+        this.selectedModel = value;
+    }
+
 
     this.getModelByCube = function(cubeName){
         return  _.find(_this.models,function(model){

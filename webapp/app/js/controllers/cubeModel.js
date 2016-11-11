@@ -18,10 +18,10 @@
 
 'use strict';
 
-KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConfig,MetaModel,SweetAlert,ModelGraphService,$log,TableModel,ModelService,loadingRequest,modelsManager,kylinCommon) {
+KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConfig,MetaModel,SweetAlert,ModelGraphService,$log,TableModel,ModelService,loadingRequest,modelsManager,kylinCommon, modelsEdit) {
 
     $scope.modelsManager = modelsManager;
-
+    $scope.selectedTables = {};
     $scope.buildGraph = function (model) {
 //        var newModel = jQuery.extend(true, {}, model);
         var newModel = angular.copy(model);
@@ -68,6 +68,13 @@ KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConf
         };
     };
 
+    $scope.initUsedLookup = function(){
+        angular.forEach($scope.usedDimensions,function(table,tableName){
+            $scope.selectedTables[tableName]=true;
+        });
+
+    }
+
     // Initialize params.
     $scope.lookupState = {
         editing: false,
@@ -78,7 +85,7 @@ KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConf
     $scope.newLookup = Lookup();
 
     var lookupList = modelsManager.selectedModel.lookups;
-
+    $scope.initUsedLookup();
     $scope.openLookupModal = function () {
         var modalInstance = $modal.open({
             templateUrl: 'dataModelLookupTable.html',

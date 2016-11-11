@@ -45,6 +45,7 @@ KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $lo
   $scope.dataKylin = {};
   $scope.dataInit = function () {
     $scope.dataKylin = $scope.languageType == 0?$scope.dataEnglish:$scope.dataChina;
+    $scope.test = 1111111;
     language.setLanguageType($scope.languageType);
     language.setDataKylin($scope.dataKylin);
   };

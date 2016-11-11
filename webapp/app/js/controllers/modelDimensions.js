@@ -18,40 +18,83 @@
 
 'use strict';
 
-KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal,MetaModel,modelsManager) {
+KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, modelsManager, modelsEdit, CubeDescService) {
     $scope.modelsManager = modelsManager;
 
-    // Available columns list derived from cube data model.
-    $scope.availableColumns = {};
-
-    // Columns selected and disabled status bound to UI, group by table.
     $scope.selectedColumns = {};
 
     // Available tables cache: 1st is the fact table, next are lookup tables.
     $scope.availableTables = [];
-    $scope.dimensions=[];
 
     // Dump available columns plus column table name, whether is from lookup table.
     $scope.initColumns = function () {
-
         $scope.availableTables.push(modelsManager.selectedModel.fact_table);
         var lookups = modelsManager.selectedModel.lookups;
         for (var j = 0; j < lookups.length; j++) {
             $scope.availableTables.push(lookups[j].table);
         }
-
+        angular.forEach(modelsManager.selectedModel.dimensions,function(dim){
+            if($scope.availableTables.indexOf(dim.table)==-1){
+                modelsManager.selectedModel.dimensions = modelsManager.selectedModel.dimensions==null?[]:modelsManager.selectedModel.dimensions;
+                modelsManager.selectedModel.dimensions.splice(modelsManager.selectedModel.dimensions.indexOf(dim),1);
+            }
+        });
         for(var i = 0;i<$scope.availableTables.length;i++){
             var tableInUse = _.some(modelsManager.selectedModel.dimensions,function(item){
                 return item.table == $scope.availableTables[i];
             });
-
             if(!tableInUse){
                 modelsManager.selectedModel.dimensions = modelsManager.selectedModel.dimensions==null?[]:modelsManager.selectedModel.dimensions;
                 modelsManager.selectedModel.dimensions.push(new Dimension($scope.availableTables[i]));
             }
         }
-
+        for (var j = 0; j < $scope.availableTables.length; j++) {
+            var cols2 = $scope.getColumnsByTable($scope.availableTables[j]);
+            // Initialize selected available.
+            var SelectAvailable = {};
+            for (var k = 0; k < cols2.length; k++) {
+            // Default not selected and not disabled.
+                SelectAvailable[cols2[k].name] = {name:cols2[k].name,selected: false,disabled:false};
+            }
+            SelectAvailable.all=false;
+            SelectAvailable.disabled=false;
+            SelectAvailable.open=false;
+            SelectAvailable.sortFlag = ''
+            SelectAvailable.sortIcon = 'fa fa-unsorted';
+            $scope.selectedColumns[$scope.availableTables[j]] = SelectAvailable;
+        }
+        angular.forEach(modelsManager.selectedModel.dimensions, function (dim) {
+            angular.forEach(dim.columns, function (column) {
+                $scope.selectedColumns[dim.table][column].selected=true;
+            });
+        });
+        angular.forEach($scope.usedDimensions, function (dim,dimension) {
+            angular.forEach(dim, function (col,column) {
+                 $scope.selectedColumns[dimension][column].disabled=true;
+            });
+        });
+        angular.forEach($scope.selectedColumns,function(value,table){
+            var all=true;
+            var disabled=true;
+            var open=false;
+            angular.forEach(value,function(col){
+                if(typeof col=="object"){
+                    if(col.selected==false){
+                        all=false;
+                    }else{
+                         open=true;
+                    }
+                    if(col.disabled==false){
+                         disabled=false;
+                    }
+                }
+            });
+             $scope.selectedColumns[table].disabled=disabled;
+            $scope.selectedColumns[table].all=all;
+            $scope.selectedColumns[table].open=open;
+        });
     };
+
 
     var Dimension = function(table){
         this.table = table;
@@ -59,8 +102,62 @@ KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal,MetaModel,mo
     }
 
 
-  // Initialize data for columns widget in auto-gen when add/edit cube.
+   // Initialize data for columns widget in auto-gen when add/edit cube.
     if ($scope.state.mode == 'edit') {
         $scope.initColumns();
     };
+
+    $scope.sort = function(table){
+        if($scope.selectedColumns[table].sortFlag === ''){$scope.selectedColumns[table].sortFlag = 'name';$scope.selectedColumns[table].sortIcon='fa fa-sort-asc';return;}
+        if($scope.selectedColumns[table].sortFlag === 'name'){$scope.selectedColumns[table].sortFlag = '-name';$scope.selectedColumns[table].sortIcon='fa fa-sort-desc';return;}
+        if($scope.selectedColumns[table].sortFlag === '-name'){$scope.selectedColumns[table].sortFlag = '';$scope.selectedColumns[table].sortIcon='fa fa-unsorted';return;}
+    }
+
+    $scope.Change= function(table,name,index){
+       if($scope.selectedColumns[table][name].selected==false){
+          $scope.selectedColumns[table].all=false;
+          modelsManager.selectedModel.dimensions[index].columns.splice(modelsManager.selectedModel.dimensions[index].columns.indexOf(name),1);
+       }else{
+          var all=true;
+          angular.forEach($scope.selectedColumns[table],function(col){
+             if(col.selected==false&&typeof col=="object"){
+                 all=false;
+             }
+          });
+          $scope.selectedColumns[table].all=all;
+          modelsManager.selectedModel.dimensions[index].columns.push(name);
+       }
+    }
+
+    $scope.ChangeAll= function(table,index){
+        angular.forEach($scope.selectedColumns[table],function(col){
+            if($scope.cubesLength>0){
+                if(typeof col==="object"&&col.disabled==false){
+                    var local=modelsManager.selectedModel.dimensions[index].columns.indexOf(col.name);
+                    if($scope.selectedColumns[table].all==true&&col.selected==false){
+                        col.selected=true;
+                        modelsManager.selectedModel.dimensions[index].columns.push(col.name);
+                    }
+                    if($scope.selectedColumns[table].all==false&&col.selected==true){
+                        col.selected=false;
+                        modelsManager.selectedModel.dimensions[index].columns.splice(local,1);
+                    }
+                }
+            }else{
+                if(typeof col==="object"){
+                    if($scope.selectedColumns[table].all==true){
+                        if(col.selected == false){
+                           col.selected=true;
+                           modelsManager.selectedModel.dimensions[index].columns.push(col.name);
+                        }
+                    }else{
+                        col.selected=false;
+                        modelsManager.selectedModel.dimensions[index].columns.splice(0,1);
+                    }
+                }
+            }
+        });
+    }
+
+
 });

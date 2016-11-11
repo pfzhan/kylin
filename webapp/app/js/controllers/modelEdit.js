@@ -19,7 +19,7 @@
 'use strict';
 
 
-KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $location, $templateCache, $interpolate, MessageService, TableService, CubeDescService, ModelService, loadingRequest, SweetAlert,$log,cubeConfig,CubeDescModel,ModelDescService,MetaModel,TableModel,ProjectService,ProjectModel,modelsManager,kylinCommon,VdmUtil) {
+KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $location, $templateCache, $interpolate, MessageService, TableService, CubeDescService, ModelService, loadingRequest, SweetAlert,$log,cubeConfig,CubeDescModel,ModelDescService,MetaModel,TableModel,ProjectService,ProjectModel,modelsManager,kylinCommon,VdmUtil,CubeService,modelsEdit) {
     //add or edit ?
     var absUrl = $location.absUrl();
     $scope.modelMode = absUrl.indexOf("/models/add")!=-1?'addNewModel':absUrl.indexOf("/models/edit")!=-1?'editExistModel':'default';
@@ -30,7 +30,8 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
     }
 
     $scope.modelsManager = modelsManager;
-
+    $scope.usedDimensions = {};
+    $scope.usedMeasures = [];
     $scope.cubeConfig = cubeConfig;
 
     $scope.getPartitonColumns = function(tableName){
@@ -57,7 +58,14 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
         return temp;
     };
 
-
+    $scope.iteration =function (arr,object){
+        arr.push(object.value);
+        if(object.next_parameter==null){
+            return;
+        }else{
+            $scope.iteration(arr,object.next_parameter);
+        }
+     };
 
     $scope.getColumnType = function (_column,table){
         var columns = $scope.getColumnsByTable(table);
@@ -118,21 +126,62 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
 
         var modelName = $routeParams.modelName;
         ModelDescService.query({model_name: modelName}, function (model) {
-                    if (model) {
-                        modelsManager.selectedModel = model;
-                        if($scope.modelsManager.selectedModel.partition_desc.partition_time_column){
-                          $scope.partitionColumn.hasSeparateTimeColumn = true;
-                        }
-                        modelsManager.selectedModel.project = ProjectModel.getProjectByCubeModel(modelName);
-
-                        if(!ProjectModel.getSelectedProject()){
-                            ProjectModel.setSelectedProject(modelsManager.selectedModel.project);
-                        }
-                        TableModel.aceSrcTbLoaded().then(function(){
-                          judgeFormatEditable($scope.modelsManager.selectedModel.partition_desc.partition_date_column);
-                        });
+          if (model) {
+            $scope.modelCopy = angular.copy(model);
+            modelsManager.setSelectedModel($scope.modelCopy);
+            modelsEdit.setSelectedModel(model);
+            $scope.lookupLength=modelsEdit.selectedModel.lookups.length;
+            CubeService.list({modelName:model.name}, function (_cubes) {
+              $scope.cubesLength = _cubes.length;
+              angular.forEach(_cubes,function(cube){
+                CubeDescService.query({cube_name:cube.name},{},function(each){
+                  for(var k=0;k<each[0].dimensions.length;k++){
+                    if(typeof $scope.usedDimensions[each[0].dimensions[k].table]!='object'){
+                      $scope.usedDimensions[each[0].dimensions[k].table]={};
                     }
+                  }
+                  for(var j=0;j<each[0].dimensions.length;j++){
+                    angular.forEach($scope.usedDimensions,function(table,tableName){
+                      if(each[0].dimensions[j].table==tableName){
+                        if(each[0].dimensions[j].column==null){
+                          angular.forEach(each[0].dimensions[j].derived,function(derived){
+                            $scope.usedDimensions[tableName][derived]=$scope.usedDimensions[tableName][derived]||[];
+                            $scope.usedDimensions[tableName][derived].push(cube.name);
+
+                          });
+                        }
+                        else{
+                          $scope.usedDimensions[tableName][each[0].dimensions[j].column]= $scope.usedDimensions[tableName][each[0].dimensions[j].column]||[];
+                          $scope.usedDimensions[tableName][each[0].dimensions[j].column].push(cube.name);
+                        }
+                      }
+                    });
+                  }
+                  for(var i=0;i<each[0].measures.length;i++){
+                    if(each[0].measures[i].function.parameter.type=="column"){
+                      $scope.iteration($scope.usedMeasures,each[0].measures[i].function.parameter);
+                    }
+                  }
                 });
+              });
+            }).$promise
+            if(!$scope.modelsManager.selectedModel.partition_desc.partition_data_format){
+              $scope.isBigInt = true;
+            }
+            if($scope.modelsManager.selectedModel.partition_desc.partition_time_column){
+              $scope.partitionColumn.hasSeparateTimeColumn = true;
+            }
+            modelsManager.selectedModel.project = ProjectModel.getProjectByCubeModel(modelName);
+            if(!ProjectModel.getSelectedProject()){
+              ProjectModel.setSelectedProject(modelsManager.selectedModel.project);
+            }
+
+            TableModel.aceSrcTbLoaded().then(function(){
+              judgeFormatEditable($scope.modelsManager.selectedModel.partition_desc.partition_date_column);
+            });
+
+          }
+        });
         //init project
 
     } else {
@@ -266,7 +315,6 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
     $scope.removeTableDimensions = function(tableIndex){
         modelsManager.selectedModel.dimensions.splice(tableIndex,1);
     }
-
     $scope.$watch('projectModel.selectedProject', function (newValue, oldValue) {
       if(!$scope.projectModel.getSelectedProject()) {
         return;

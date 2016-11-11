@@ -371,7 +371,11 @@ KylinApp.directive('kylinPagination', function ($parse, $q, language) {
 }).directive('kylinpopover', function ($compile,$templateCache,language) {
   return {
     restrict: "EA",
-    scope:{title:'@ngTitle'},
+    scope:{
+        title:'@ngTitle',
+        table: '@ngTable',
+        col: '@ngCol'
+    },
     link: function (scope, element, attrs) {
       scope.$watch(function() {
         if(!!attrs.ngWatch){
@@ -400,7 +404,36 @@ KylinApp.directive('kylinPagination', function ($parse, $q, language) {
 
     }
   };
-}).directive("extendedcolumntree", function($compile) {
+}).directive('inuse', function ($compile,$templateCache,language) {
+    return {
+      restrict: "EA",
+      scope:true,
+      link: function (scope, element, attrs) {
+        scope.$watch(function() {
+            return scope.dataKylin.model.gridInUseTip;
+        },function(newTitle,oldTitle){
+        alert(1);
+          var popOverContent;
+          scope.dataKylin = language.getDataKylin();
+          var dOptions = {
+            placement : 'right'
+          }
+          popOverContent = $compile($templateCache.get(attrs.template))(scope);
+          var placement = attrs.placement? attrs.placement : dOptions.placement;
+          //var title = attrs.title;
+          var options = {
+            content: popOverContent,
+            placement: placement,
+            trigger: "hover",
+            title: attrs.ngTitle,
+            html: true
+          };
+          $(element).popover('destroy').popover(options);
+        });
+
+      }
+    };
+  }).directive("extendedcolumntree", function($compile) {
   return {
     restrict: "E",
     transclude: true,

@@ -15,8 +15,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 -->
-
-<div class="row">
+<div ng-controller="ModelSettingsCtrl">
+  <div class="row">
     <div class="col-xs-12">
       <ng-form name="forms.model_setting_form" novalidate>
         <h3>{{dataKylin.model.gridSTPartition}}</h3>
@@ -28,7 +28,7 @@
                   <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default"><b>{{dataKylin.model.gridSTPartitionType}}</b></label>
                   <div class="col-xs-12 col-sm-6">
                       <select class="form-control"
-                          ng-if="state.mode=='edit'"
+                          ng-if="state.mode=='edit'"    ng-disabled="cubesLength>0"
                           chosen ng-model="modelsManager.selectedModel.partition_desc.partition_type"
                           ng-options="ddt as ddt for ddt in cubeConfig.cubePartitionTypes">
                           <option value=""></option>
@@ -47,7 +47,7 @@
                               ng-model="modelsManager.selectedModel.partition_desc.partition_date_column"
                               ng-if="state.mode=='edit'"
                               ng-change="partitionChange(modelsManager.selectedModel.partition_desc.partition_date_column)"
-                              data-placement=""
+                              data-placement="" ng-disabled="cubesLength>0"
                               ng-options="modelsManager.selectedModel.fact_table+'.'+columns.name as modelsManager.selectedModel.fact_table+'.'+columns.name for columns in getPartitonColumns(modelsManager.selectedModel.fact_table)" >
                           <option value="">{{dataKylin.model.gridSTPartitionDateSelect}}</option>
                       </select>
@@ -68,8 +68,7 @@
                         ng-required="modelsManager.selectedModel.partition_desc.partition_date_format"
                         ng-model="modelsManager.selectedModel.partition_desc.partition_date_format"
                         ng-if="state.mode=='edit'"
-                        ng-disabled="isFormatEditable!==true"
-                        data-placement=""
+                        data-placement="" ng-disabled="isFormatEditable!==true||cubesLength>0"
                         ng-options="ddt as ddt for ddt in cubeConfig.partitionDateFormatOpt">
                   <option value="">{{dataKylin.model.gridSTPartitionDateFormatSelect}}</option>
                 </select>
@@ -82,7 +81,7 @@
             <div class="row">
               <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default"><b>{{dataKylin.model.gridSTSetSeparate}}</b>  <i kylinpopover placement="right" ng-title="{{dataKylin.model.tip_tile_gridHasSepTimeColumn}}" template="separateTimeColumnTip.html" class="fa fa-info-circle"></i></label>
               <div class="col-xs-12 col-sm-6">
-                <toggle-switch on-label="Yes" off-label="No" ng-disabled="state.mode!=='edit'" ng-click="toggleHasSeparateColumn(partitionColumn.hasSeparateTimeColumn)" ng-model="partitionColumn.hasSeparateTimeColumn"></toggle-switch>
+                <toggle-switch on-label="Yes" off-label="No" ng-disabled="state.mode!=='edit'||cubesLength>0" ng-click="toggleHasSeparateColumn(partitionColumn.hasSeparateTimeColumn)" ng-model="partitionColumn.hasSeparateTimeColumn"></toggle-switch>
               </div>
             </div>
           </div>
@@ -96,7 +95,7 @@
                 <select style="width: 100%" chosen data-placeholder="e.g. DEFAULT.TEST_KYLIN_FACT.CAL_DT"
                         ng-model="modelsManager.selectedModel.partition_desc.partition_time_column"
                         ng-if="state.mode=='edit'"
-                        data-placement=""
+                        data-placement=""      ng-disabled="cubesLength>0"
                         ng-options="modelsManager.selectedModel.fact_table+'.'+columns.name as modelsManager.selectedModel.fact_table+'.'+columns.name for columns in getPartitonTimeColumns(modelsManager.selectedModel.fact_table)" >
                   <option value="">{{dataKylin.model.gridHasSepTimeColumnSelect}}</option>
                 </select>
@@ -116,7 +115,8 @@
                         ng-model="modelsManager.selectedModel.partition_desc.partition_time_format"
                         ng-if="state.mode=='edit'"
                         data-placement=""
-                        ng-options="ddt as ddt for ddt in cubeConfig.partitionTimeFormatOpt">
+                        ng-options="ddt as ddt for ddt in cubeConfig.partitionTimeFormatOpt"
+                        ng-disabled="cubesLength>0">
                   <option value="">{{dataKylin.model.gridHasSepTimeColumnTFSelect}}</option>
                 </select>
                 <span ng-if="state.mode=='view'&&model.partition_desc.partition_time_column">{{(model.partition_desc.partition_time_format)}}</span>
@@ -137,9 +137,9 @@
                     <div class="form-group" ng-if="state.mode=='edit'"
                          style="font-family:'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro'">
                         <label for="filter_condition"
-                               style="color: #930f80;"><b>{{dataKylin.model.gridSTFilter}}</b></label>
+                               style="color: #930f80;"><b>{{dataKylin.model.gridSTFilter}} </b>{{cubesLength}}</label>
                         <textarea id="filter_condition" type="text"
-                                  style="height:150px"
+                                  style="height:150px"     ng-disabled="cubesLength>0"
                                   class="form-control box-default"
                                   placeholder="{{dataKylin.model.plac_gridSTFilter}}"
                                   ng-model="modelsManager.selectedModel.filter_condition">
@@ -160,7 +160,7 @@
         </div>
        </ng-form>
     </div>
-
+  </div>
 </div>
 <script type="text/ng-template" id="partitionTip.html">
   <ol ng-bind-html="dataKylin.model.tip_gridSTPartitionDate">

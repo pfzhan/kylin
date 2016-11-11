@@ -28,7 +28,7 @@
             <div class="col-xs-12 col-sm-6" ng-class="{'has-error':forms.data_model_form.table_name.$invalid && (forms.data_model_form.table_name.$dirty||forms.data_model_form.$submitted)}">
               <select chosen ng-model="modelsManager.selectedModel.fact_table" ng-if="state.mode=='edit'"
                       ng-options="table.name as table.name for table in tableModel.selectProjectTables"
-                      style="width:100%;"
+                      style="width:100%;"   ng-disabled="cubesLength>0"
                       name="table_name"
                       ng-required="true"
                       data-placeholder="Fact Table Name"
@@ -64,11 +64,11 @@
         <table ng-if="state.mode=='edit' && modelsManager.selectedModel.lookups.length" class="table table-striped table-hover">
             <thead>
             <tr>
-                <th>{{dataKylin.model.gridDMID}}</th>
-                <th>{{dataKylin.model.gridDMTableName}}</th>
-                <th>{{dataKylin.model.gridDMJoinType}}</th>
-                <th>{{dataKylin.model.gridDMJoinCondition}}</th>
-                <th ng-if="state.mode=='edit'">{{dataKylin.model.editDMActions}}</th>
+                <th class="col-xs-1">{{dataKylin.model.gridDMID}}</th>
+                <th class="col-xs-4">{{dataKylin.model.gridDMTableName}}</th>
+                <th class="col-xs-1">{{dataKylin.model.gridDMJoinType}}</th>
+                <th class="col-xs-4">{{dataKylin.model.gridDMJoinCondition}}</th>
+                <th ng-if="state.mode=='edit'" class="col-xs-2">{{dataKylin.model.editDMActions}}</th>
             </tr>
             </thead>
             <tbody>
@@ -94,13 +94,14 @@
                 </td>
                 <td ng-if="state.mode=='edit'">
                     <!-- edit button -->
-                    <button class="btn btn-xs btn-info" ng-disabled="lookupState.editing"
+                    <button class="btn btn-xs btn-info" ng-disabled="lookupState.editing||selectedTables[lookup.table]"
                             ng-click="editLookup(lookup)" tooltip="Edit Lookup"><i class="fa fa-pencil"></i>
                     </button>
                     <!-- remove button -->
-                    <button class="btn btn-xs btn-danger" ng-disabled="lookupState.editing"
+                    <button class="btn btn-xs btn-danger" ng-disabled="lookupState.editing||selectedTables[lookup.table]"
                             ng-click="removeLookup(lookup)" tooltip="Remove Lookup"><i class="fa fa-trash-o"></i>
                     </button>
+                    <i class="fa fa-info-circle" ng-if="selectedTables[lookup.table]" kylinpopover placement="left" ng-title="{{dataKylin.model.gridInUseTip}}"   template="modelLookups.html" ></i>
                 </td>
             </tr>
             </tbody>
@@ -258,3 +259,9 @@
         </div>
     </script>
 </div>
+<script type="text/ng-template" id="modelLookups.html">
+  <div>
+    {{dataKylin.model.gridTableInUse_part_one}}
+    {{dataKylin.model.gridTableInUse_part_two}}
+  </div>
+</script>
