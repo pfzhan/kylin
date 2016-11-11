@@ -113,31 +113,38 @@ KylinApp
         }
         //定时刷状态
         function asynProgress(){
-              var statusIds = [];
-              angular.forEach($scope.status, function (statusObj, index) {
-                statusIds.push(statusObj.value);
-              });
-              var newJobPara= $.extend({}, {
-                status: statusIds,
-                projectName: $scope.projectModel.selectedProject,
-                timeFilter: $scope.timeFilter.value
-              },{offset:0,limit:$scope.calcObjLen($scope.jobList.jobs)});
-              JobService.list(newJobPara,function(data){
-                  for(var job in $scope.jobList.jobs){
-                    for(var i =0;i<data.length;i++){
-                      if(data[i].uuid==job){
-                        $scope.jobList.jobs[job]= angular.extend($scope.jobList.jobs[job],data[i]);
-                        break;
-                      }
-                    }
+          setTimeout(function(){
+            var statusIds = [];
+            angular.forEach($scope.status, function (statusObj, index) {
+              statusIds.push(statusObj.value);
+            });
+            var newJobPara= $.extend({}, {
+              status: statusIds,
+              projectName: $scope.projectModel.selectedProject,
+              timeFilter: $scope.timeFilter.value
+            },{offset:0,limit:$scope.calcObjLen($scope.jobList.jobs)});
+            JobService.list(newJobPara,function(data){
+              for(var job in $scope.jobList.jobs){
+                for(var i =0;i<data.length;i++){
+                  if(data[i].uuid==job){
+                    $scope.jobList.jobs[job]= angular.extend($scope.jobList.jobs[job],data[i]);
+                    break;
                   }
-              })
-          }
-        $interval(function(){
-         if(location.pathname=="/kylin/jobs"){
+                }
+              }
+              if(location.pathname=="/kylin/jobs"){
+                asynProgress();
+              }
+            },function(){
+              if(location.pathname=="/kylin/jobs"){
+                asynProgress();
+              }
+            })
+          },5000)
+        }
+        if(location.pathname=="/kylin/jobs"){
            asynProgress();
-         }
-        },5000);
+        }
         $scope.$watch('projectModel.selectedProject', function (newValue, oldValue) {
             if(newValue!=oldValue||newValue==null){
                 JobList.removeAll();
