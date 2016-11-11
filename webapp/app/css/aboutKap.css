@@ -128,6 +128,9 @@
   background-color:  #66a8fa;
   border-color:  #66a8fa;
 }
+#aboutKAP-nextButton a{
+  display: block;
+}
 #aboutKAP-nextButton:hover,
 #aboutKAP-nextButton:active,
 #aboutKAP-nextButton.hover {
