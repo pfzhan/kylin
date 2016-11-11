@@ -21,7 +21,8 @@ KylinApp.constant('kapEnglishConfig', {
     "statementHeader":"Service Statement",
     "serviceEndTime":"Service End Time",
     "evaluationStatement":"You are using evaluation version of KAP. If you need the most professional services and products base on Apache Kylin. Please contact us!",
-    "statement":"You are using KAP pro version. If you have any issues about KAP, please contact us. We will continue to provide you with quality products and services from Apache Kylin core team."
+    "statement":"You are using KAP pro version. If you have any issues about KAP, please contact us. We will continue to provide you with quality products and services from Apache Kylin core team.",
+    "requestTip":""
   },
   user:{
     setting: 'Settings',//reset password
@@ -883,7 +884,7 @@ KylinApp.constant('kapEnglishConfig', {
     version:"Version",
     dates:"Valid Period",
     statement:"License Statement",
-    commit:"Commit",
+    commit:"KAP Commit",
     kylincommit:"Kylin Commit"
   }
 
