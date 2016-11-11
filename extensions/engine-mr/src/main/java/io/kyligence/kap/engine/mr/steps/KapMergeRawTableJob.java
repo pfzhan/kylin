@@ -42,6 +42,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.StringSplitter;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
+import org.apache.kylin.engine.mr.KylinReducer;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.metadata.MetadataManager;
@@ -55,14 +56,13 @@ import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableMergeInputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetRawTableOutputFormat;
 
 public class KapMergeRawTableJob extends AbstractHadoopJob {
 
     protected static final Logger logger = LoggerFactory.getLogger(KapMergeRawTableJob.class);
 
     private boolean skipped = false;
-
-    private static final String MAPRED_REDUCE_TASKS = "mapred.reduce.tasks";
 
     @Override
     public boolean isSkipped() {
@@ -113,11 +113,15 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
             job.setMapperClass(KapMergeRawTableMapper.class);
             job.setMapOutputKeyClass(Text.class);
             job.setMapOutputValueClass(Text.class);
+            job.setCombinerClass(KylinReducer.class);
             job.setPartitionerClass(ShardPartitioner.class);
 
             // Reducer
-            job.setNumReduceTasks(0); // no reducer, map only
-
+            job.setReducerClass(KylinReducer.class);
+            job.setOutputFormatClass(ParquetRawTableOutputFormat.class);
+            job.setOutputKeyClass(Text.class);
+            job.setOutputValueClass(Text.class);
+            
             // set job configuration
             job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, cubeName);
             job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_ID, segmentID);
@@ -132,7 +136,7 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, KylinConfig.getInstanceFromEnv().getConfigAsString());
 
             if (raw.getShardNumber() > 0)
-                job.getConfiguration().setInt(MAPRED_REDUCE_TASKS, raw.getShardNumber());
+                job.setNumReduceTasks(raw.getShardNumber());
 
             this.deletePath(job.getConfiguration(), output);
 

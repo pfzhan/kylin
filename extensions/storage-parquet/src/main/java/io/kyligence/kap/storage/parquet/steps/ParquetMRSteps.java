@@ -92,7 +92,7 @@ public class ParquetMRSteps extends JobBuilderSupport {
         try {
             rawSeg = RawTableManager.getInstance(seg.getConfig()).appendSegment(instance, seg);
         } catch (IOException ex) {
-            ex.printStackTrace();
+            throw new RuntimeException(ex);
         }
         String parquentStoragePath = KapConfig.wrap(seg.getConfig()).getParquentStoragePath();
         String output = parquentStoragePath + rawSeg.getRawTableInstance().getUuid() + "/" + rawSeg.getUuid() + "/";
@@ -118,8 +118,8 @@ public class ParquetMRSteps extends JobBuilderSupport {
         RawTableSegment rawSegment = null;
         try {
             rawSegment = RawTableManager.getInstance(rawInstance.getConfig()).appendSegment(rawInstance, seg);
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
         }
         List<RawTableSegment> mergingRawSegments = rawInstance.getMergingSegments(rawSegment);
         Preconditions.checkState(mergingRawSegments.size() > 1, "there should be more than 2 segments to merge, target segment " + rawSegment);

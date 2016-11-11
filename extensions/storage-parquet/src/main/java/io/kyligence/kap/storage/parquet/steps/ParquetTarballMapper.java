@@ -39,10 +39,7 @@ import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
-
-import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 
 public class ParquetTarballMapper extends KylinMapper<IntWritable, byte[], Text, Text> {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetTarballMapper.class);
@@ -70,7 +67,6 @@ public class ParquetTarballMapper extends KylinMapper<IntWritable, byte[], Text,
 
         // make tar replicate factor to 3, wish to better query performance
         os = fs.create(outputPath, (short)3);
-        Preconditions.checkState(Longs.BYTES == ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE);
         os.writeLong(Longs.BYTES + invLength);
     }
 

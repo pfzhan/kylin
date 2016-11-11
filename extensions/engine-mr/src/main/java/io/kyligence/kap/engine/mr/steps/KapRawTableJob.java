@@ -33,12 +33,12 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.engine.mr.IMRInput;
+import org.apache.kylin.engine.mr.KylinReducer;
 import org.apache.kylin.engine.mr.MRUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
@@ -52,17 +52,10 @@ import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
+import io.kyligence.kap.storage.parquet.format.ParquetRawTableOutputFormat;
 
 public class KapRawTableJob extends AbstractHadoopJob {
     protected static final Logger logger = LoggerFactory.getLogger(KapRawTableJob.class);
-    private static final String MAPRED_REDUCE_TASKS = "mapred.reduce.tasks";
-
-    public KapRawTableJob() {
-        this.setMapperClass(HiveToRawTableMapper.class);
-    }
-
-    @SuppressWarnings("rawtypes")
-    private Class<? extends Mapper> mapperClass;
 
     private boolean skipped = false;
 
@@ -73,9 +66,6 @@ public class KapRawTableJob extends AbstractHadoopJob {
 
     @Override
     public int run(String[] args) throws Exception {
-        if (this.mapperClass == null)
-            throw new Exception("Mapper class is not set!");
-
         Options options = new Options();
 
         try {
@@ -110,26 +100,30 @@ public class KapRawTableJob extends AbstractHadoopJob {
                 return 0;
             }
 
-            job.setMapperClass(this.mapperClass);
+            job.setMapperClass(HiveToRawTableMapper.class);
             job.setMapOutputKeyClass(Text.class);
             job.setMapOutputValueClass(Text.class);
+            job.setCombinerClass(KylinReducer.class);
             job.setPartitionerClass(ShardPartitioner.class);
 
             // Reducer
-            job.setNumReduceTasks(0); // no reducer, map only
+            job.setReducerClass(KylinReducer.class);
+            job.setOutputFormatClass(ParquetRawTableOutputFormat.class);
+            job.setOutputKeyClass(Text.class);
+            job.setOutputValueClass(Text.class);
             
             FileOutputFormat.setOutputPath(job, output);
             
             // set job configuration
             job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, rawTableName);
             job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_ID, segmentID);
-
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_OUTPUT_DIR, getWorkingDir(config, rawInstance, rawSeg));
+            
             // add metadata to distributed cache
             attachKylinPropsAndMetadata(rawSeg, job.getConfiguration());
 
             if (rawSeg.getShardNum() > 0)
-                job.getConfiguration().setInt(MAPRED_REDUCE_TASKS, rawSeg.getShardNum());
+                job.setNumReduceTasks(rawSeg.getShardNum());
 
             this.deletePath(job.getConfiguration(), output);
 
@@ -177,12 +171,4 @@ public class KapRawTableJob extends AbstractHadoopJob {
         attachKylinPropsAndMetadata(dumpList, instance.getConfig(), conf);
     }
 
-    /**
-     * @param mapperClass
-     *            the mapperClass to set
-     */
-    @SuppressWarnings("rawtypes")
-    public void setMapperClass(Class<? extends Mapper> mapperClass) {
-        this.mapperClass = mapperClass;
-    }
 }

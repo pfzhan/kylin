@@ -29,11 +29,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.commons.cli.Options;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.lib.map.WrappedMapper.Context;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -64,7 +64,6 @@ import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 public class KapCuboidJob extends AbstractHadoopJob {
 
     protected static final Logger logger = LoggerFactory.getLogger(KapCuboidJob.class);
-    private static final String MAPRED_REDUCE_TASKS = "mapred.reduce.tasks";
 
     @SuppressWarnings("rawtypes")
     private Class<? extends Mapper> mapperClass;
@@ -226,8 +225,6 @@ public class KapCuboidJob extends AbstractHadoopJob {
     }
 
     protected void setReduceTaskNum(Job job, CubeDesc cubeDesc, int level) throws ClassNotFoundException, IOException, InterruptedException, JobException {
-        Configuration jobConf = job.getConfiguration();
-
         KylinConfig kylinConfig = cubeDesc.getConfig();
 
         double perReduceInputMB = kylinConfig.getDefaultHadoopJobReducerInputMB();
@@ -262,12 +259,12 @@ public class KapCuboidJob extends AbstractHadoopJob {
         // no more than 500 reducer by default
         numReduceTasks = Math.min(kylinConfig.getHadoopJobMaxReducerNumber(), numReduceTasks);
 
-        jobConf.setInt(MAPRED_REDUCE_TASKS, numReduceTasks);
+        job.setNumReduceTasks(numReduceTasks);
 
         logger.info("Having total map input MB " + Math.round(totalMapInputMB));
         logger.info("Having level " + level + ", pre-level cuboids " + preLevelCuboids + ", this level cuboids " + thisLevelCuboids);
         logger.info("Having per reduce MB " + perReduceInputMB + ", reduce count ratio " + reduceCountRatio);
-        logger.info("Setting " + MAPRED_REDUCE_TASKS + "=" + numReduceTasks);
+        logger.info("Setting " + Context.NUM_REDUCES + "=" + numReduceTasks);
     }
 
     /**
