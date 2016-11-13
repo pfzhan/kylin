@@ -109,7 +109,7 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
             columnSpecs[i].setValueEncodingIdentifier('s');
         }
 
-        tmpPath = new Path(outputPath.getParent(), String.valueOf(shardId) + "-" + RandomStringUtils.random(10) + ".tmp");
+        tmpPath = new Path(outputPath.getParent(), String.valueOf(shardId) + "-" + RandomStringUtils.randomAlphabetic(10) + ".tmp");
 
         FSDataOutputStream outputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(tmpPath);
         indexBundleWriter = new ParquetPageIndexWriter(columnSpecs, outputStream);
