@@ -67,7 +67,7 @@ public class RawTableSegmentScanner implements IGTScanner {
         //this is where CubeSegmentScanner does BuildInFunctionTransformer
         filter = EvaluatableFunctionTransformer.transform(filter);
 
-        RawTableScanRangePlanner planner = new RawTableScanRangePlanner(rawTableSegment, filter, dimensions, groups, metrics);
+        RawTableScanRangePlanner planner = new RawTableScanRangePlanner(rawTableSegment, filter, dimensions, groups, metrics, context);
         scanRequest = planner.planScanRequest();
 
         //TODO: set allow storage aggregation, set agg cache threshold, set limit, etc.

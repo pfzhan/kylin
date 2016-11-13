@@ -37,6 +37,7 @@ import org.apache.kylin.gridtable.IGTComparator;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.storage.StorageContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,9 +52,11 @@ public class RawTableScanRangePlanner extends ScanRangePlannerBase {
 
     //non-GT
     protected RawTableSegment rawSegment;
+    protected StorageContext context;
 
     public RawTableScanRangePlanner(RawTableSegment rawSegment, TupleFilter filter, Set<TblColRef> dimensions, Set<TblColRef> groupbyDims, //
-            Collection<FunctionDesc> metrics) {
+            Collection<FunctionDesc> metrics, StorageContext contex) {
+        this.context = contex;
 
         this.rawSegment = rawSegment;
 
@@ -94,10 +97,14 @@ public class RawTableScanRangePlanner extends ScanRangePlannerBase {
         GTScanRequest scanRequest;
         boolean shouldSkip = this.shouldSkipSegment();
         if (!shouldSkip) {
-            scanRequest = new GTScanRequestBuilder().setInfo(gtInfo).setRanges(null).setDimensions(gtDimensions).//
+            GTScanRequestBuilder builder = new GTScanRequestBuilder().setInfo(gtInfo).setRanges(null).setDimensions(gtDimensions).//
                     setAggrGroupBy(gtAggrGroups).setAggrMetrics(gtAggrMetrics).setAggrMetricsFuncs(gtAggrFuncs).setFilterPushDown(gtFilter).//
-                    setAllowStorageAggregation(false).//no agg at raw table executors
-                    createGTScanRequest();
+                    setAllowStorageAggregation(false);//no agg at raw table executors
+
+            if (context.getFinalPushDownLimit() != Integer.MAX_VALUE)
+                builder.setStoragePushDownLimit(context.getFinalPushDownLimit());
+
+            scanRequest = builder.createGTScanRequest();
         } else {
             scanRequest = null;
         }
