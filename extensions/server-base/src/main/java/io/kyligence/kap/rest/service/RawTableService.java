@@ -27,7 +27,6 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.WeakHashMap;
 
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.job.exception.JobException;
@@ -40,7 +39,6 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.InternalErrorException;
-import org.apache.kylin.rest.response.HBaseResponse;
 import org.apache.kylin.rest.security.AclPermission;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
@@ -62,8 +60,6 @@ public class RawTableService extends BasicService {
     private static final String DESC_SUFFIX = "_desc";
 
     private static final Logger logger = LoggerFactory.getLogger(RawTableService.class);
-
-    private WeakHashMap<String, HBaseResponse> htableInfoCache = new WeakHashMap<>();
 
     @Autowired
     private AccessService accessService;
@@ -104,7 +100,11 @@ public class RawTableService extends BasicService {
             createdRaw = getRawTableManager().createRawTableInstance(rawName, projectName, createdDesc, owner);
         } catch (Exception e) {
             // if create rawtable instance fails, roll back desc changes
-            getRawTableDescManager().removeRawTableDesc(desc);
+            try {
+                getRawTableDescManager().removeRawTableDesc(desc);
+            } catch (Exception ex) {
+                logger.error("Error when rollback created RawTableDesc", ex);
+            }
             throw e;
         }
         accessService.init(createdRaw, AclPermission.ADMINISTRATION);

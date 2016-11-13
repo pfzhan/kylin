@@ -141,7 +141,6 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
             logger.debug("Column Length:" + columnName[col] + "=" + columnLength[col]);
         }
 
-        //        tmpPath = new Path(FileOutputFormat.getUniqueFile(context, String.valueOf(cuboid) + "-" + String.valueOf(shardId), ""));
         tmpPath = new Path(outputPath.getParent(), String.valueOf(cuboid.getId()) + "-" + String.valueOf(shardId) + "-" + RandomStringUtils.randomAlphabetic(10) + ".tmp");
 
         FSDataOutputStream outputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(tmpPath);
