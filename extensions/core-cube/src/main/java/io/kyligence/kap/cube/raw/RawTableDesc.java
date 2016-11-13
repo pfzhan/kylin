@@ -85,6 +85,11 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         return fuzzyColumnSet;
     }
 
+    // validate there's at least one ordered column
+    public void validate() {
+        getOrderedColumn();
+    }
+
     public TblColRef getOrderedColumn() {
         for (RawTableColumnDesc colDesc : columns) {
             if (INDEX_SORTED.equals(colDesc.getIndex()))
@@ -163,6 +168,8 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
             }
             columnMap.put(colDesc.getColumn(), colDesc);
         }
+
+        this.validate();
     }
 
     // ============================================================================

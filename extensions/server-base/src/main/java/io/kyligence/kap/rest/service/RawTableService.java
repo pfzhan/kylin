@@ -100,7 +100,13 @@ public class RawTableService extends BasicService {
         RawTableInstance createdRaw;
 
         createdDesc = getRawTableDescManager().createRawTableDesc(desc);
-        createdRaw = getRawTableManager().createRawTableInstance(rawName, projectName, createdDesc, owner);
+        try {
+            createdRaw = getRawTableManager().createRawTableInstance(rawName, projectName, createdDesc, owner);
+        } catch (Exception e) {
+            // if create rawtable instance fails, roll back desc changes
+            getRawTableDescManager().removeRawTableDesc(desc);
+            throw e;
+        }
         accessService.init(createdRaw, AclPermission.ADMINISTRATION);
 
         ProjectInstance project = getProjectManager().getProject(projectName);
