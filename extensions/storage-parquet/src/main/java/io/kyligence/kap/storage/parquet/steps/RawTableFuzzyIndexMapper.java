@@ -123,7 +123,7 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
             TblColRef column = columns.get(i);
             if (rawTableDesc.isNeedFuzzyIndex(column)) {
                 Path outputPath = new Path(inputPath.getParent(), shardId + "." + i + ".parquet.fuzzy");
-                Path tmpPath = new Path(outputPath.getParent(), String.valueOf(shardId) + "-" + String.valueOf(i) + "-" + RandomStringUtils.random(10) + ".tmp");
+                Path tmpPath = new Path(outputPath.getParent(), String.valueOf(shardId) + "-" + String.valueOf(i) + "-" + RandomStringUtils.randomAlphabetic(10) + ".tmp");
                 pathMap.put(outputPath, tmpPath);
 
                 FSDataOutputStream output = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(tmpPath);
