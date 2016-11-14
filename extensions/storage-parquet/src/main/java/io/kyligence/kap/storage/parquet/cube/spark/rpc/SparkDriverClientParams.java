@@ -34,8 +34,9 @@ public class SparkDriverClientParams {
     private final String cuboidId;
     private final int maxGTLength;
     private final List<Integer> parquetColumns;
+    private final boolean useII;
 
-    public SparkDriverClientParams(String kylinProperties, String realizationType, String realizationId, String segmentId, String cuboidId, int maxGTLength, List<Integer> parquetColumns) {
+    public SparkDriverClientParams(String kylinProperties, String realizationType, String realizationId, String segmentId, String cuboidId, int maxGTLength, List<Integer> parquetColumns, boolean useII) {
         this.kylinProperties = kylinProperties;
         this.realizationType = realizationType;
         this.realizationId = realizationId;
@@ -43,6 +44,7 @@ public class SparkDriverClientParams {
         this.cuboidId = cuboidId;
         this.maxGTLength = maxGTLength;
         this.parquetColumns = parquetColumns;
+        this.useII = useII;
     }
 
     public String getKylinProperties() {
@@ -71,5 +73,9 @@ public class SparkDriverClientParams {
 
     public String getRealizationType() {
         return realizationType;
+    }
+
+    public boolean isUseII() {
+        return useII;
     }
 }

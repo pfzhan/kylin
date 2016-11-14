@@ -166,6 +166,14 @@ public class KapConfig {
     }
 
     /**
+     * query config
+     */
+
+    public boolean isUsingInvertedIndex() {
+        return Boolean.valueOf(config.getOptional("kap.query.columnar.invertedindex.enabled", "true"));
+    }
+
+    /**
      * Massin
      */
     public String getMassinResourceIdentiferDir() {
