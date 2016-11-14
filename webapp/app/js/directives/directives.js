@@ -373,8 +373,7 @@ KylinApp.directive('kylinPagination', function ($parse, $q, language) {
     restrict: "EA",
     scope:{
         title:'@ngTitle',
-        table: '@ngTable',
-        col: '@ngCol'
+        cube: '@ngCube'
     },
     link: function (scope, element, attrs) {
       scope.$watch(function() {

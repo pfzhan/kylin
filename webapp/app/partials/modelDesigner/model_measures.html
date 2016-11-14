@@ -54,8 +54,8 @@
               <tr ng-repeat="column in getColumnsByTable(modelsManager.selectedModel.fact_table) | orderBy:selectedColumns.sortFlag " class="row">
                 <td><label class="dim-checkbox-label">
                   <input type="checkbox" ng-change="Change(column.name,outindex)" ng-model="selectedColumns[column.name].selected"
-                         ng-disabled="selectedColumns[column.name].disabled&&usedMeasures.length>0" >
-                  <i class="fa fa-info-circle" ng-if="selectedColumns[column.name].disabled&&usedMeasures.length>0" kylinpopover placement="right" ng-title="{{dataKylin.model.gridInUseTip}}"  ng-col="{{usedMeasures[column.name]}}" template="modelMeasures.html" ></i>
+                         ng-disabled="selectedColumns[column.name].disabled&&usedMeasures!=null" >
+                  <i class="fa fa-info-circle" ng-if="selectedColumns[column.name].disabled&&usedMeasures!=null" kylinpopover placement="right" ng-title="{{dataKylin.model.gridInUseTip}}"  ng-cube="{{usedMeasures[column.name]}}" template="modelMeasures.html" ></i>
                   </label>
                 </td>
                 <td>{{column.name}} </td>
@@ -71,6 +71,7 @@
 <script type="text/ng-template" id="modelMeasures.html">
   <div>
     {{dataKylin.model.gridColumnInUse_part_one}}
+    {{cube}}
     {{dataKylin.model.gridColumnInUse_part_two}}
   </div>
 </script>

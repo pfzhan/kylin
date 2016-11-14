@@ -75,9 +75,11 @@
             <tr ng-repeat="lookup in modelsManager.selectedModel.lookups | filter:lookupState.filter track by $index">
                 <td>
                     <b>{{$index + 1}}</b>
+
                 </td>
                 <!-- Table Name -->
                 <td>
+                  <i class="fa fa-info-circle" ng-if="selectedTables[lookup.table]" kylinpopover placement="left" ng-title="{{dataKylin.model.gridInUseTip}}" ng-cube="{{selectedTables[lookup.table]}}"  template="modelLookups.html" ></i>
                     <span tooltip="Lookup Table Name">{{lookup.table}}</span>
                 </td>
                 <!-- Join Type -->
@@ -101,7 +103,7 @@
                     <button class="btn btn-xs btn-danger" ng-disabled="lookupState.editing||selectedTables[lookup.table]"
                             ng-click="removeLookup(lookup)" tooltip="Remove Lookup"><i class="fa fa-trash-o"></i>
                     </button>
-                    <i class="fa fa-info-circle" ng-if="selectedTables[lookup.table]" kylinpopover placement="left" ng-title="{{dataKylin.model.gridInUseTip}}"   template="modelLookups.html" ></i>
+
                 </td>
             </tr>
             </tbody>
@@ -262,6 +264,7 @@
 <script type="text/ng-template" id="modelLookups.html">
   <div>
     {{dataKylin.model.gridTableInUse_part_one}}
+    {{cube}}
     {{dataKylin.model.gridTableInUse_part_two}}
   </div>
 </script>

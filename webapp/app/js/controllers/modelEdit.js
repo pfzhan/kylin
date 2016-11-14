@@ -31,7 +31,7 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
 
     $scope.modelsManager = modelsManager;
     $scope.usedDimensions = {};
-    $scope.usedMeasures = [];
+    $scope.usedMeasures = {};
     $scope.cubeConfig = cubeConfig;
 
     $scope.getPartitonColumns = function(tableName){
@@ -57,13 +57,23 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
         });
         return temp;
     };
+    $scope.unique = function (arr){
+        var n = [];
+        for(var i = 0; i < arr.length; i++) {
+        		if (n.indexOf(arr[i]) == -1) {
+        		    n.push(arr[i]);
+        		}
+        }
+        return n;
+    };
 
-    $scope.iteration =function (arr,object){
-        arr.push(object.value);
-        if(object.next_parameter==null){
+    $scope.iteration =function (object,parameter,cube){
+        object[parameter.value]=object[parameter.value]||[];
+        object[parameter.value].push(cube);
+        if(parameter.next_parameter==null){
             return;
         }else{
-            $scope.iteration(arr,object.next_parameter);
+            $scope.iteration(object,parameter.next_parameter,cube);
         }
      };
 
@@ -159,7 +169,7 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
                   }
                   for(var i=0;i<each[0].measures.length;i++){
                     if(each[0].measures[i].function.parameter.type=="column"){
-                      $scope.iteration($scope.usedMeasures,each[0].measures[i].function.parameter);
+                      $scope.iteration($scope.usedMeasures,each[0].measures[i].function.parameter,cube.name);
                     }
                   }
                 });

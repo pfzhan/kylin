@@ -35,7 +35,6 @@ KylinApp.controller('ModelMeasuresCtrl', function ($scope, $modal,MetaModel,mode
   $scope.initMeasure = function () {
       $scope.availableTables=modelsManager.selectedModel.fact_table
       var cols2 = $scope.getColumnsByTable($scope.availableTables);
-      $scope.usedMeasures=$scope.unique($scope.usedMeasures);
       var SelectAvailable = {};
       for (var k = 0; k < cols2.length; k++) {
           // Default not selected and not disabled.
@@ -50,9 +49,13 @@ KylinApp.controller('ModelMeasuresCtrl', function ($scope, $modal,MetaModel,mode
       angular.forEach(modelsManager.selectedModel.metrics, function (column) {
           $scope.selectedColumns[column].selected=true;
       });
-      angular.forEach($scope.usedMeasures, function (column) {
-          $scope.selectedColumns[column].disabled=true;
+      angular.forEach($scope.usedMeasures, function (column,columnName) {
+          $scope.selectedColumns[columnName].disabled=true;
+          angular.forEach(column,function(cube){
+              $scope.usedMeasures[columnName]=$scope.unique(column);
+          });
       });
+  //    console.log($scope.usedMeasures);
       var all=true;
       var disabled=true;
       var open=false;
@@ -101,7 +104,7 @@ KylinApp.controller('ModelMeasuresCtrl', function ($scope, $modal,MetaModel,mode
 
   $scope.ChangeAll= function(){
       angular.forEach($scope.selectedColumns,function(col){
-          if($scope.usedMeasures.length>0){
+          if($scope.usedMeasures!=null){
               if(typeof col==="object"&&col.disabled==false){
                   var local=modelsManager.selectedModel.metrics.indexOf(col.name);
                   if($scope.selectedColumns.all==true&&col.selected==false){

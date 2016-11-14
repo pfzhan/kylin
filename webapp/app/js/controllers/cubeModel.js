@@ -70,9 +70,16 @@ KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConf
 
     $scope.initUsedLookup = function(){
         angular.forEach($scope.usedDimensions,function(table,tableName){
-            $scope.selectedTables[tableName]=true;
+            $scope.selectedTables[tableName]=$scope.selectedTables[tableName]||[];
+            angular.forEach(table,function(column){
+                angular.forEach(column,function(cube){
+                     $scope.selectedTables[tableName].push(cube);
+                });
+            });
         });
-
+        angular.forEach($scope.selectedTables,function(table,tableName){
+            $scope.selectedTables[tableName]=$scope.unique(table);
+        });
     }
 
     // Initialize params.
