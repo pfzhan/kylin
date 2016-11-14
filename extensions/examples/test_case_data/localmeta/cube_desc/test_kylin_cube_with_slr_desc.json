@@ -152,7 +152,7 @@
       },
       {
         "column": "leaf_categ_id",
-        "encoding": "fixed_length:18",
+        "encoding": "dict",
         "index": "eq"
       },
       {
