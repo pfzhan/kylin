@@ -127,14 +127,10 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
 
                         if(!ProjectModel.getSelectedProject()){
                             ProjectModel.setSelectedProject(modelsManager.selectedModel.project);
-                            TableModel.aceSrcTbLoaded().then(function(){
-                              judgeFormatEditable($scope.modelsManager.selectedModel.partition_desc.partition_date_column);
-                            });
-                        }else{
-                          if($scope.modelsManager.selectedModel.partition_desc.partition_date_column){
-                            judgeFormatEditable($scope.modelsManager.selectedModel.partition_desc.partition_date_column);
-                          }
                         }
+                        TableModel.aceSrcTbLoaded().then(function(){
+                          judgeFormatEditable($scope.modelsManager.selectedModel.partition_desc.partition_date_column);
+                        });
                     }
                 });
         //init project
