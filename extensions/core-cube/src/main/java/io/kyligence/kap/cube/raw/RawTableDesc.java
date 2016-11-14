@@ -56,7 +56,6 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     public static final String INDEX_DISCRETE = "discrete";
     public static final String INDEX_FUZZY = "fuzzy";
     public static final String INDEX_SORTED = "sorted";
-    public static final String ENCODING_VAR = "var";
 
     @JsonProperty("name")
     private String name;
@@ -123,16 +122,6 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
             size += col.getColumn().getType().getStorageBytesEstimate();
         }
         return size;
-    }
-
-    public boolean isNeedIndex(TblColRef col) {
-        RawTableColumnDesc desc = columnMap.get(col);
-        return desc.getIndex() != null;
-    }
-
-    public boolean isVaryLength(TblColRef col) {
-        RawTableColumnDesc desc = columnMap.get(col);
-        return ENCODING_VAR.equals(desc.getEncoding());
     }
 
     public List<TblColRef> getColumns() {
