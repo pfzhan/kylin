@@ -72,10 +72,10 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
     };
 
 
-    $scope.isFormatVisible = false;
-  var judgeFormatVisible = function(dateColumn){
+    $scope.isFormatEditable = false;
+    var judgeFormatEditable = function(dateColumn){
     if(dateColumn == null){
-      $scope.isFormatVisible = false;
+      $scope.isFormatEditable = false;
       return;
     }
     var column = _.filter($scope.getColumnsByTable($scope.modelsManager.selectedModel.fact_table),function(_column){
@@ -87,7 +87,7 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
 
       var data_type = column[0].datatype;
       if(data_type ==="bigint" ||data_type ==="int" ||data_type ==="integer"){
-        $scope.isFormatVisible = false;
+        $scope.isFormatEditable = false;
         $scope.modelsManager.selectedModel.partition_desc.partition_date_format='yyyyMMdd';
         $scope.partitionColumn.hasSeparateTimeColumn=false;
         $scope.modelsManager.selectedModel.partition_desc.partition_time_column=null;
@@ -95,10 +95,10 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
         return;
       }
 
-    $scope.isFormatVisible = true;
+    $scope.isFormatEditable = true;
   };
     $scope.partitionChange = function (dateColumn) {
-      judgeFormatVisible(dateColumn);
+      judgeFormatEditable(dateColumn);
     };
 
 
@@ -128,11 +128,11 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
                         if(!ProjectModel.getSelectedProject()){
                             ProjectModel.setSelectedProject(modelsManager.selectedModel.project);
                             TableModel.aceSrcTbLoaded().then(function(){
-                              judgeFormatVisible($scope.modelsManager.selectedModel.partition_desc.partition_date_column);
+                              judgeFormatEditable($scope.modelsManager.selectedModel.partition_desc.partition_date_column);
                             });
                         }else{
                           if($scope.modelsManager.selectedModel.partition_desc.partition_date_column){
-                            judgeFormatVisible($scope.modelsManager.selectedModel.partition_desc.partition_date_column);
+                            judgeFormatEditable($scope.modelsManager.selectedModel.partition_desc.partition_date_column);
                           }
                         }
                     }
