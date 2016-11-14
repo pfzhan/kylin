@@ -27,7 +27,7 @@ then
     HIVE_BEELINE_PARAM=`sh $KYLIN_HOME/bin/get-properties.sh kylin.hive.beeline.params`
     beeline ${HIVE_BEELINE_PARAM} -e "drop table if exists ${HIVE_TEST_TABLE};"
     [[ $? == 0 ]] || quit "ERROR: Beeline have no permission to create/drop table in Hive database '${HIVE_TEST_DB}'"
-    beeline ${HIVE_BEELINE_PARAM} -e "create external table ${HIVE_TEST_TABLE} (id INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE location '$HIVE_TEST_TABLE_LOCATION'; insert overwrite table ${HIVE_TEST_TABLE} select 1; drop table ${HIVE_TEST_TABLE};"
+    beeline ${HIVE_BEELINE_PARAM} -e "create external table ${HIVE_TEST_TABLE} (id INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE location '$HIVE_TEST_TABLE_LOCATION'; insert overwrite table ${HIVE_TEST_TABLE} values (0); drop table ${HIVE_TEST_TABLE};"
     [[ $? == 0 ]] || quit "ERROR: Beeline have no permission to create table in working directory: ${WORKING_DIR}"
     hadoop fs -rm -R -skipTrash ${HIVE_TEST_TABLE_LOCATION}
 else
