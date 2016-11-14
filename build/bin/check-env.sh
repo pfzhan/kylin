@@ -30,6 +30,8 @@ if [[ "$1" != "if-not-yet" || ! -f ${BYPASS} ]]; then
         fi
     done
     
+    cat ${LOG} | grep "WARN"
+    
     touch ${BYPASS}
     echo "Checking environment was successful and is now suppressed. To check again, run 'bin/check-env.sh' manually."
 fi
