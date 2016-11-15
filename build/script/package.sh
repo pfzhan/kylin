@@ -13,6 +13,9 @@ fi
 if [ "$1" == "-noPlus" ] || [ "$2" == "-noPlus" ]; then
     export PACKAGE_PLUS=0
     echo "Packing for KAP Normal..."
+else
+	export PACKAGE_PLUS=1
+	echo "Packing for KAP Plus..."
 fi
 
 # Make share commands exist in environment
@@ -42,7 +45,9 @@ sh build/script/build.sh $@             || { exit 1; }
 
 echo "BUILD STAGE 3 - Prepare tomcat and spark"
 sh build/script/download-tomcat.sh      || { exit 1; }
-sh build/script/download-spark.sh      || { exit 1; }
+if [ "${PACKAGE_PLUS}" != "0" ]; then
+    sh build/script/download-spark.sh      || { exit 1; }
+fi
 
 echo "BUILD STAGE 4 - Prepare and compress package..."
 sh build/script/prepare.sh              || { exit 1; }
