@@ -35,3 +35,8 @@ then
 else
     quit "ERROR: Only support 'cli' or 'beeline' hive client"
 fi
+
+# safeguard cleanup
+verbose "Safeguard Cleanup..."
+hive -e "use ${HIVE_TEST_DB}; show tables 'chkenv__*';" | xargs -I '{}' hive -e "use ${HIVE_TEST_DB}; drop table {};"
+hadoop fs -rm -R -skipTrash "${WORKING_DIR}/chkenv__*"
