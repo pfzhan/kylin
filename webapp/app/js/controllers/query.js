@@ -192,7 +192,7 @@ KylinApp
 
             var columnDefs = [];
             angular.forEach(result.columnMetas, function (meta, metaIndex) {
-                columnDefs.push({field: meta.name, width: 120});
+                columnDefs.push({field: meta.name, width: 120,cellFilter:'nullValFilter'});
             });
 
             if (oneQuery.result.results) {

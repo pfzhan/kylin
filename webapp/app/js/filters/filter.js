@@ -196,4 +196,8 @@ KylinApp
         return _day +" (Days)";
       }
     }
-  });
+  }).filter('nullValFilter', function($filter) {
+      return function(input) {
+        return input == null ? 'null' : input;
+      };
+});
