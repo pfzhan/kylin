@@ -22,16 +22,6 @@
     <div class="dataTables_wrapper form-inline no-footer">
         <div class="row">
             <div class="col-xs-6" ng-if="state.mode=='edit'">
-                <div class="btn-group">
-                    <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" ng-disabled="instance.status=='READY'">
-                        <i class="fa fa-plus"></i> {{dataKylin.cube.cubeDSAddDS}} <span class="ace-icon fa fa-caret-down icon-on-right"></span>
-                    </button>
-                    <ul class="dropdown-menu" role="menu">
-                        <li><a ng-click="addDim('normal')">{{dataKylin.cube.cubeDSNormal}}</a></li>
-                        <!--<li><a ng-click="addDim('hierarchy')">Hierarchy</a></li>-->
-                        <li><a ng-click="addDim('derived')">{{dataKylin.cube.cubeDSDerived}}</a></li>
-                    </ul>
-                </div>
                 <button type="button" class="btn btn-default" ng-disabled="!metaModel.model.fact_table.length||instance.status=='READY'"
                         ng-click="openAutoGenModal()" >
                     <i class="fa fa-building-o"></i> {{dataKylin.cube.cubeDSAutoGenerator}}

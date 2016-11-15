@@ -27,7 +27,8 @@
 
 KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParams, $location, $templateCache, $interpolate, MessageService, TableService, CubeDescService, CubeService,RawTablesService, loadingRequest, SweetAlert, $log, cubeConfig, CubeDescModel, MetaModel, TableModel, ModelDescService, modelsManager, cubesManager, ProjectModel, StreamingModel, StreamingService,kylinCommon,VdmUtil) {
   $scope.cubeConfig = cubeConfig;
-
+  $scope.initMeasures={statu:false};
+  $scope.cubeName=$routeParams.cubeName;
   $scope.metaModel = {};
   $scope.modelsManager = modelsManager;
   TableModel.aceSrcTbLoaded();
@@ -316,12 +317,12 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
 
 
 } else {
-//        $scope.cubeMetaFrame = CubeDescModel.createNew();
+
     $scope.cubeMetaFrame = CubeDescModel.createNew();
     $scope.metaModel = {
       model: modelsManager.getModel($scope.cubeMetaFrame.model_name)
     }
-    //$scope.cubeMetaFrame.model_name = modelName;
+
     $scope.state.cubeSchema = angular.toJson($scope.cubeMetaFrame, true);
   }
 

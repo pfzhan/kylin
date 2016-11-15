@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-KylinApp.service('CubeDescModel', function (kylinConfig) {
+KylinApp.service('CubeDescModel', function (kylinConfig, modelsManager) {
 
   this.cubeMetaFrame = {};
 
@@ -111,6 +111,23 @@ KylinApp.service('CubeDescModel', function (kylinConfig) {
     return dictionaries;
   }
 
+  this.initMeasures = function(arr,modelName){
+    var model=modelsManager.getModel(modelName);
+    angular.forEach(model.metrics,function(metric){
+      arr.push(
+        {"name": metric,
+         "function": {
+         "expression": "SUM",
+         "parameter": {
+           "type": "column",
+           "value": metric,
+           "next_parameter": null
+           },
+         "returntype": "decimal"
+         }
+       });
+    });
+  }
 
 
 })
