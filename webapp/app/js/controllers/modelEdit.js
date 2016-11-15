@@ -53,6 +53,9 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
         angular.forEach(TableModel.selectProjectTables, function (table) {
             if (table.name == tableName) {
                 temp = table.columns;
+                angular.forEach(temp,function(column){
+                     column.cardinality=table.cardinality[column.name];
+                });
             }
         });
         return temp;

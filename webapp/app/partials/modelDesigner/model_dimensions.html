@@ -60,13 +60,22 @@
               </accordion-heading>
               <table class="table table-striped table-hover">
                 <tr class="row">
-                  <th class="col-xs-2"><label>
+                  <th class="col-xs-3"><label>
                     <input type="checkbox" ng-change="ChangeAll(dimension.table,outindex)" ng-model="selectedColumns[dimension.table].all"
                            ng-disabled="selectedColumns[dimension.table].disabled" >{{dataKylin.model.gridDSSelectAll}}</label>
                   </th>
-                  <th class="col-xs-10" ng-click="sort(dimension.table)">{{dataKylin.model.gridDSColumns}}&nbsp;<i ng-class="selectedColumns[dimension.table].sortIcon"></i></th>
+                  <th ng-repeat="theaditem in dataKylin.model.gridTheadItems" class="col-xs-3"
+                      ng-click="state[dimension.table].filterAttr= theaditem.attr;state[dimension.table].reverseColumn=theaditem.attr;state[dimension.table].filterReverse=!state[dimension.table].filterReverse;">
+                    {{theaditem.name}}
+                    <i ng-if="state[dimension.table].reverseColumn!= theaditem.attr"
+                       class="fa fa-unsorted"></i>
+                    <i ng-if="state[dimension.table].reverseColumn== theaditem.attr && !state[dimension.table].filterReverse"
+                       class="fa fa-sort-asc"></i>
+                    <i ng-if="state[dimension.table].reverseColumn== theaditem.attr && state[dimension.table].filterReverse"
+                       class="fa fa-sort-desc"></i>
+                  </th>
                 </tr>
-                <tr ng-repeat="column in getColumnsByTable(dimension.table) | orderBy:selectedColumns[dimension.table].sortFlag " class="row">
+                <tr ng-repeat="column in getColumnsByTable(dimension.table) | orderObjectBy:state[dimension.table].filterAttr:state[dimension.table].filterReverse " class="row">
                   <td><label class="dim-checkbox-label">
                     <input type="checkbox" ng-change="Change(dimension.table,column.name,outindex)" ng-model="selectedColumns[dimension.table][column.name].selected"
                            ng-disabled="selectedColumns[dimension.table][column.name].disabled&&cubesLength>0" >
@@ -74,13 +83,15 @@
                     </label>
                   </td>
                   <td>{{column.name}}</td>
+                  <td>{{column.datatype}}</td>
+                  <td>{{column.cardinality}}</td>
+
                 </tr>
               </table>
             </div>
           </accordion>
         </div>
       </div>
-
     </div>
   </ng-form>
 </div>

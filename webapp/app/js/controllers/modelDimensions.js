@@ -18,9 +18,8 @@
 
 'use strict';
 
-KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, modelsManager, modelsEdit, CubeDescService) {
+KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, modelsManager, modelsEdit, CubeDescService, TableService) {
     $scope.modelsManager = modelsManager;
-
     $scope.selectedColumns = {};
 
     // Available tables cache: 1st is the fact table, next are lookup tables.
@@ -29,6 +28,7 @@ KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, 
     // Dump available columns plus column table name, whether is from lookup table.
     $scope.initColumns = function () {
         $scope.availableTables.push(modelsManager.selectedModel.fact_table);
+//        var table=modelsManager.getTable();*/
         var lookups = modelsManager.selectedModel.lookups;
         for (var j = 0; j < lookups.length; j++) {
             $scope.availableTables.push(lookups[j].table);
@@ -93,6 +93,7 @@ KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, 
             $scope.selectedColumns[table].all=all;
             $scope.selectedColumns[table].open=open;
         });
+        var column=$scope.getColumnsByTable(modelsManager.selectedModel.fact_table);
     };
 
 
@@ -107,11 +108,6 @@ KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, 
         $scope.initColumns();
     };
 
-    $scope.sort = function(table){
-        if($scope.selectedColumns[table].sortFlag === ''){$scope.selectedColumns[table].sortFlag = 'name';$scope.selectedColumns[table].sortIcon='fa fa-sort-asc';return;}
-        if($scope.selectedColumns[table].sortFlag === 'name'){$scope.selectedColumns[table].sortFlag = '-name';$scope.selectedColumns[table].sortIcon='fa fa-sort-desc';return;}
-        if($scope.selectedColumns[table].sortFlag === '-name'){$scope.selectedColumns[table].sortFlag = '';$scope.selectedColumns[table].sortIcon='fa fa-unsorted';return;}
-    }
 
     $scope.Change= function(table,name,index){
        if($scope.selectedColumns[table][name].selected==false){

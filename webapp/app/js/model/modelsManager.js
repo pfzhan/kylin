@@ -16,7 +16,7 @@
  * limitations under the License.
 */
 
-KylinApp.service('modelsManager',function(ModelService,CubeService,$q,AccessService,ProjectModel,$log){
+KylinApp.service('modelsManager',function(ModelService,CubeService,$q,AccessService,ProjectModel,$log,TableService){
     var _this = this;
     this.models=[];
     this.modelNameList = [];

@@ -228,6 +228,11 @@ KylinApp.constant('kapEnglishConfig', {
     prev: 'Prev',
     save: 'Save',
     grid: 'grid',    //grid of model begin
+    gridTheadItems:[
+        {attr: 'name', name: 'Name'},
+        {attr: 'datatype', name: 'Data Type'},
+        {attr: 'cardinality', name: 'Cardinality'}
+    ],
     gridModelDesign: 'Model Designer',
     gridModelInfo: 'Model Info',
     gridInUseTip:'Tip',
@@ -254,11 +259,15 @@ KylinApp.constant('kapEnglishConfig', {
     gridDSTableName: 'Table Name',
     gridDSColumns: 'Columns',
     gridDSSelectAll: 'Select All',
+    gridDSDataType:'Data Type',
+    gridDSCardinality:'Cardinality',
     gridMeasure: 'Measure',
     gridMSID: 'ID',
     gridMSColumn: 'column',
     gridMSSelectMeasure: 'Select your measures',
     gridMSSelectAll: 'Select All',
+    gridMSDataType:'Data Type',
+    gridMSCardinality:'Cardinality',
     gridSettings: 'Settings',
     gridSTPartition: 'Partition',
     gridSTPartitionType: 'Partition Type',

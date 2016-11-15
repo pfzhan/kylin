@@ -206,6 +206,11 @@ KylinApp.constant('kapChineseConfig', {
     prev: '上一步',
     save: '保存',
     grid: 'grid',    //grid of model begin
+    gridTheadItems: [
+          {attr: 'name', name: '名称'},
+          {attr: 'datatype', name: '数据类型'},
+          {attr: 'cardinality', name: '基数'}
+        ],
     aggregationGroups: 'Aggregation Groups',
     toAggregationGroups: 'Visit aggregation group for more about aggregation group.',
     gridModelDesign: '模型设计',
@@ -235,11 +240,15 @@ KylinApp.constant('kapChineseConfig', {
     gridDSTableName: '表名',
     gridDSColumns: '列',
     gridDSSelectAll: '全选',
+    gridDSDataType:'数据类型',
+    gridDSCardinality:'基数',
     gridMeasure: '度量',
     gridMSID: 'ID',
     gridMSColumn: '列',
     gridMSSelectMeasure: '选择度量列',
     gridMSSelectAll: '全选',
+    gridMSDataType:'数据类型',
+    gridMSCardinality:'基数',
     gridSettings: '设置',
     gridSTPartition: '分区',
     gridSTPartitionType: '分区类型',

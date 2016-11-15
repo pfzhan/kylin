@@ -33,9 +33,13 @@ KylinApp.controller('ModelMeasuresCtrl', function ($scope, $modal,MetaModel,mode
   $scope.selectedColumns={};
 
   $scope.initMeasure = function () {
-      $scope.availableTables=modelsManager.selectedModel.fact_table
+      $scope.availableTables=modelsManager.selectedModel.fact_table;
+
       var cols2 = $scope.getColumnsByTable($scope.availableTables);
       var SelectAvailable = {};
+      if($scope.availableTables!=modelsEdit.selectedModel.fact_table){
+         modelsManager.selectedModel.metrics=[];
+      }
       for (var k = 0; k < cols2.length; k++) {
           // Default not selected and not disabled.
           SelectAvailable[cols2[k].name] = {name:cols2[k].name,selected: false,disabled:false};
@@ -55,7 +59,7 @@ KylinApp.controller('ModelMeasuresCtrl', function ($scope, $modal,MetaModel,mode
               $scope.usedMeasures[columnName]=$scope.unique(column);
           });
       });
-  //    console.log($scope.usedMeasures);
+
       var all=true;
       var disabled=true;
       var open=false;
@@ -78,12 +82,6 @@ KylinApp.controller('ModelMeasuresCtrl', function ($scope, $modal,MetaModel,mode
 
   if ($scope.state.mode == 'edit') {
       $scope.initMeasure();
-  }
-
-  $scope.sort = function(){
-      if($scope.selectedColumns.sortFlag === ''){$scope.selectedColumns.sortFlag = 'name';$scope.selectedColumns.sortIcon='fa fa-sort-asc';return;}
-      if($scope.selectedColumns.sortFlag === 'name'){$scope.selectedColumns.sortFlag = '-name';$scope.selectedColumns.sortIcon='fa fa-sort-desc';return;}
-      if($scope.selectedColumns.sortFlag === '-name'){$scope.selectedColumns.sortFlag = '';$scope.selectedColumns.sortIcon='';return;}
   }
 
   $scope.Change= function(name){
