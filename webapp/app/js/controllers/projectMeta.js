@@ -226,8 +226,7 @@ KylinApp
                           data: _column,
                           icon: columnIcon,
                           onSelect: function (branch) {
-                            // set selected model
-                            $log.info("selected column info:" + _column.name);
+
                           }
                         });
                       });

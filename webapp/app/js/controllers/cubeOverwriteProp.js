@@ -33,7 +33,6 @@ KylinApp.controller('CubeOverWriteCtrl', function ($scope, $modal,cubeConfig,Met
     for(var i=0;i<$scope.convertedProperties.length;i++){
       (function(i){
         CubeConfigService.getDefault({key:$scope.convertedProperties[i].name},function(data){
-          console.log(data);
           var str="";
           for(var s in data){
             if(s&&+s==+s){

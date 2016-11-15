@@ -29,7 +29,6 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
   $scope.envStr = "";
 
   $scope.isCacheEnabled = function(){
-    console.log("cache enabled?:"+kylinConfig.isCacheEnabled());
     return kylinConfig.isCacheEnabled();
   }
 
@@ -55,7 +54,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
   $scope.reloadMeta = function () {
     SweetAlert.swal({
       title: '',
-      text: $scope.dataKylin.alert.tip_to_reload_metadata,
+      text: $scope.dataKylin.alert.tip_to_reload_metadataF,
       type: '',
       showCancelButton: true,
       confirmButtonColor: '#DD6B55',

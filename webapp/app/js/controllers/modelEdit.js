@@ -206,7 +206,7 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
                         if(e.data&& e.data.exception){
                             var message =e.data.exception;
                             var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
-                            $log.log($scope.modelResultTmpl({'text':msg,'schema':$scope.state.modelSchema}));
+
                             MessageService.sendMsg($scope.modelResultTmpl({'text':msg,'schema':$scope.state.modelSchema}), 'error', {}, true, 'top_center');
                         } else {
                             MessageService.sendMsg($scope.modelResultTmpl({'text':$scope.dataKylin.alert.error_info,'schema':$scope.state.modelSchema}), 'error', {}, true, 'top_center');

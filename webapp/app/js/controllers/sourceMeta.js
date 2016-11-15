@@ -635,19 +635,17 @@ KylinApp
       };
 
       $scope.streamingOnLoad = function () {
-        console.log($scope.streaming.sourceSchema);
+
       }
 
       $scope.columnList = [];
 
       $scope.streamingOnChange = function () {
         $scope.table.schemaChecked = true;
-        console.log($scope.streaming.sourceSchema);
         try {
           $scope.streaming.parseResult = JSON.parse($scope.streaming.sourceSchema);
         } catch (error) {
           $scope.table.sourceValid = false;
-          console.log(error);
           return;
         }
         $scope.table.sourceValid = true;

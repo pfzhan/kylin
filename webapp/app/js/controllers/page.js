@@ -28,7 +28,6 @@ KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $lo
 
   //init kylinConfig to get kylin.Propeties
   kylinConfig.init().$promise.then(function (data) {
-    $log.debug(data);
     kylinConfig.initWebConfigInfo();
   });
 
@@ -89,14 +88,10 @@ KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $lo
       UserService.setCurUser({});
       $scope.username = $scope.password = null;
       $location.path('/login');
-
-      console.debug("Logout Completed.");
     }).error(function () {
       UserService.setCurUser({});
       $scope.username = $scope.password = null;
       $location.path('/login');
-
-      console.debug("Logout Completed.");
     });
     ;
   };

@@ -172,7 +172,6 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     if (aggregation_group) {
       list[index] = aggregation_group;
     }
-    console.log($scope.cubeMetaFrame.aggregation_groups);
   };
 
   $scope.refreshAggregationJoint = function (list, index, aggregation_group,joinIndex,jointDim){
@@ -182,7 +181,6 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     if (aggregation_group) {
       list[index] = aggregation_group;
     }
-    console.log($scope.cubeMetaFrame.aggregation_groups);
   };
 
   $scope.refreshIncludes = function (list, index, aggregation_groups) {

@@ -591,8 +591,6 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
   }
 
   function reGenerateRowKey() {
-    $log.log("reGen rowkey & agg group");
-    //var fk_pk = {};
     var tmpRowKeyColumns = [];
     var tmpAggregationItems = [];//put all aggregation item
     //var hierarchyItemArray = [];//put all hierarchy items
