@@ -63,8 +63,8 @@
               <tr ng-repeat="column in getColumnsByTable(modelsManager.selectedModel.fact_table) | orderObjectBy:state.filterAttr:state.filterReverse " class="row">
                 <td><label class="dim-checkbox-label">
                   <input type="checkbox" ng-change="Change(column.name,outindex)" ng-model="selectedColumns[column.name].selected"
-                         ng-disabled="selectedColumns[column.name].disabled&&usedMeasures!=null" >
-                  <i class="fa fa-info-circle" ng-if="selectedColumns[column.name].disabled&&usedMeasures!=null" kylinpopover placement="right" ng-title="{{dataKylin.model.gridInUseTip}}"  ng-cube="{{usedMeasures[column.name]}}" template="modelMeasures.html" ></i>
+                         ng-disabled="selectedColumns[column.name].disabled&&usedMeasuresCubeMap!=null" >
+                  <i class="fa fa-info-circle" ng-if="selectedColumns[column.name].disabled&&usedMeasuresCubeMap!=null" kylinpopover placement="right" ng-title="{{dataKylin.model.gridInUseTip}}"  ng-cube="{{usedMeasuresCubeMap[column.name]}}" template="modelMeasures.html" ></i>
                   </label>
                 </td>
                 <td>{{column.name}} </td>

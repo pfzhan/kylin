@@ -21,7 +21,7 @@
 KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConfig,MetaModel,SweetAlert,ModelGraphService,$log,TableModel,ModelService,loadingRequest,modelsManager,kylinCommon, modelsEdit) {
 
     $scope.modelsManager = modelsManager;
-    $scope.selectedTables = {};
+    $scope.selectedTableCubeMap = {};
     $scope.buildGraph = function (model) {
 //        var newModel = jQuery.extend(true, {}, model);
         var newModel = angular.copy(model);
@@ -69,16 +69,16 @@ KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConf
     };
 
     $scope.initUsedLookup = function(){
-        angular.forEach($scope.usedDimensions,function(table,tableName){
-            $scope.selectedTables[tableName]=$scope.selectedTables[tableName]||[];
+        angular.forEach($scope.usedDimensionsCubeMap,function(table,tableName){
+            $scope.selectedTableCubeMap[tableName]=$scope.selectedTableCubeMap[tableName]||[];
             angular.forEach(table,function(column){
                 angular.forEach(column,function(cube){
-                     $scope.selectedTables[tableName].push(cube);
+                     $scope.selectedTableCubeMap[tableName].push(cube);
                 });
             });
         });
-        angular.forEach($scope.selectedTables,function(table,tableName){
-            $scope.selectedTables[tableName]=$scope.unique(table);
+        angular.forEach($scope.selectedTableCubeMap,function(table,tableName){
+            $scope.selectedTableCubeMap[tableName]=$scope.unique(table);
         });
     }
 

@@ -79,7 +79,7 @@
                   <td><label class="dim-checkbox-label">
                     <input type="checkbox" ng-change="Change(dimension.table,column.name,outindex)" ng-model="selectedColumns[dimension.table][column.name].selected"
                            ng-disabled="selectedColumns[dimension.table][column.name].disabled&&cubesLength>0" >
-                    <i class="fa fa-info-circle" ng-if="selectedColumns[dimension.table][column.name].disabled&&cubesLength>0" kylinpopover placement="right" ng-title="{{dataKylin.model.gridInUseTip}}"  ng-cube="{{usedDimensions[dimension.table][column.name]}}" template="modelDimensions.html" ></i>
+                    <i class="fa fa-info-circle" ng-if="selectedColumns[dimension.table][column.name].disabled&&cubesLength>0" kylinpopover placement="right" ng-title="{{dataKylin.model.gridInUseTip}}"  ng-cube="{{usedDimensionsCubeMap[dimension.table][column.name]}}" template="modelDimensions.html" ></i>
                     </label>
                   </td>
                   <td>{{column.name}}</td>

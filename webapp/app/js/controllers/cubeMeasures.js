@@ -20,11 +20,10 @@
 
 KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,MetaModel,cubesManager,CubeDescModel,SweetAlert,kylinCommon) {
 
-console.log($scope.$parent.initMeasureColumn);
   $scope.num=0;
   $scope.convertedColumns=[];
   $scope.groupby=[];
-  if ($scope.isEdit = !$scope.cubeName&&$scope.$parent.initMeasures.statu==false) {
+  if ($scope.state.mode =="edit"&&($scope.isEdit = !$scope.cubeName)&&$scope.$parent.initMeasures.statu==false) {
     CubeDescModel.initMeasures($scope.cubeMetaFrame.measures,$scope.cubeMetaFrame.model_name);
     $scope.$parent.initMeasures.statu=true;
   }

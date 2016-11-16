@@ -30,8 +30,8 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
     }
 
     $scope.modelsManager = modelsManager;
-    $scope.usedDimensions = {};
-    $scope.usedMeasures = {};
+    $scope.usedDimensionsCubeMap = {};
+    $scope.usedMeasuresCubeMap = {};
     $scope.cubeConfig = cubeConfig;
 
     $scope.getPartitonColumns = function(tableName){
@@ -149,30 +149,30 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
               angular.forEach(_cubes,function(cube){
                 CubeDescService.query({cube_name:cube.name},{},function(each){
                   for(var k=0;k<each[0].dimensions.length;k++){
-                    if(typeof $scope.usedDimensions[each[0].dimensions[k].table]!='object'){
-                      $scope.usedDimensions[each[0].dimensions[k].table]={};
+                    if(typeof $scope.usedDimensionsCubeMap[each[0].dimensions[k].table]!='object'){
+                      $scope.usedDimensionsCubeMap[each[0].dimensions[k].table]={};
                     }
                   }
                   for(var j=0;j<each[0].dimensions.length;j++){
-                    angular.forEach($scope.usedDimensions,function(table,tableName){
+                    angular.forEach($scope.usedDimensionsCubeMap,function(table,tableName){
                       if(each[0].dimensions[j].table==tableName){
                         if(each[0].dimensions[j].column==null){
                           angular.forEach(each[0].dimensions[j].derived,function(derived){
-                            $scope.usedDimensions[tableName][derived]=$scope.usedDimensions[tableName][derived]||[];
-                            $scope.usedDimensions[tableName][derived].push(cube.name);
+                            $scope.usedDimensionsCubeMap[tableName][derived]=$scope.usedDimensionsCubeMap[tableName][derived]||[];
+                            $scope.usedDimensionsCubeMap[tableName][derived].push(cube.name);
 
                           });
                         }
                         else{
-                          $scope.usedDimensions[tableName][each[0].dimensions[j].column]= $scope.usedDimensions[tableName][each[0].dimensions[j].column]||[];
-                          $scope.usedDimensions[tableName][each[0].dimensions[j].column].push(cube.name);
+                          $scope.usedDimensionsCubeMap[tableName][each[0].dimensions[j].column]= $scope.usedDimensionsCubeMap[tableName][each[0].dimensions[j].column]||[];
+                          $scope.usedDimensionsCubeMap[tableName][each[0].dimensions[j].column].push(cube.name);
                         }
                       }
                     });
                   }
                   for(var i=0;i<each[0].measures.length;i++){
                     if(each[0].measures[i].function.parameter.type=="column"){
-                      $scope.iteration($scope.usedMeasures,each[0].measures[i].function.parameter,cube.name);
+                      $scope.iteration($scope.usedMeasuresCubeMap,each[0].measures[i].function.parameter,cube.name);
                     }
                   }
                 });

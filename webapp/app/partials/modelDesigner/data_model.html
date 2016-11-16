@@ -79,7 +79,7 @@
                 </td>
                 <!-- Table Name -->
                 <td>
-                  <i class="fa fa-info-circle" ng-if="selectedTables[lookup.table]" kylinpopover placement="left" ng-title="{{dataKylin.model.gridInUseTip}}" ng-cube="{{selectedTables[lookup.table]}}"  template="modelLookups.html" ></i>
+                  <i class="fa fa-info-circle" ng-if="selectedTableCubeMap[lookup.table]" kylinpopover placement="left" ng-title="{{dataKylin.model.gridInUseTip}}" ng-cube="{{selectedTableCubeMap[lookup.table]}}"  template="modelLookups.html" ></i>
                     <span tooltip="Lookup Table Name">{{lookup.table}}</span>
                 </td>
                 <!-- Join Type -->
@@ -96,11 +96,11 @@
                 </td>
                 <td ng-if="state.mode=='edit'">
                     <!-- edit button -->
-                    <button class="btn btn-xs btn-info" ng-disabled="lookupState.editing||selectedTables[lookup.table]"
+                    <button class="btn btn-xs btn-info" ng-disabled="lookupState.editing||selectedTableCubeMap[lookup.table]"
                             ng-click="editLookup(lookup)" tooltip="Edit Lookup"><i class="fa fa-pencil"></i>
                     </button>
                     <!-- remove button -->
-                    <button class="btn btn-xs btn-danger" ng-disabled="lookupState.editing||selectedTables[lookup.table]"
+                    <button class="btn btn-xs btn-danger" ng-disabled="lookupState.editing||selectedTableCubeMap[lookup.table]"
                             ng-click="removeLookup(lookup)" tooltip="Remove Lookup"><i class="fa fa-trash-o"></i>
                     </button>
 

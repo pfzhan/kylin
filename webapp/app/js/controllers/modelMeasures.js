@@ -53,10 +53,10 @@ KylinApp.controller('ModelMeasuresCtrl', function ($scope, $modal,MetaModel,mode
       angular.forEach(modelsManager.selectedModel.metrics, function (column) {
           $scope.selectedColumns[column].selected=true;
       });
-      angular.forEach($scope.usedMeasures, function (column,columnName) {
+      angular.forEach($scope.usedMeasuresCubeMap, function (column,columnName) {
           $scope.selectedColumns[columnName].disabled=true;
           angular.forEach(column,function(cube){
-              $scope.usedMeasures[columnName]=$scope.unique(column);
+              $scope.usedMeasuresCubeMap[columnName]=$scope.unique(column);
           });
       });
 
@@ -102,7 +102,7 @@ KylinApp.controller('ModelMeasuresCtrl', function ($scope, $modal,MetaModel,mode
 
   $scope.ChangeAll= function(){
       angular.forEach($scope.selectedColumns,function(col){
-          if($scope.usedMeasures!=null){
+          if($scope.usedMeasuresCubeMap!=null){
               if(typeof col==="object"&&col.disabled==false){
                   var local=modelsManager.selectedModel.metrics.indexOf(col.name);
                   if($scope.selectedColumns.all==true&&col.selected==false){
