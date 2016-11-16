@@ -123,21 +123,33 @@ KylinApp.factory('VdmUtil', function ($modal, $timeout, $location, $anchorScroll
       return str;
     },
     //过滤对象中的空值
-    filterNullValInObj:function(obj){
-       for(var i in obj){
-         if(obj[i]===null){
-           if(Object.prototype.toString.call(obj)=='[object Object]'){
-             delete obj[i];
-           }
-           //else if(Object.prototype.toString.call(obj)=='[object Array]'){
-           //  obj.splice(i,1);
-           //}
-         }
-         else if(typeof obj[i]=== 'object'){
-            obj[i]=this.filterNullValInObj(obj[i]);
-         }
-       }
-       return obj;
+    filterNullValInObj:function(needFilterObj){
+      var newFilterObj,newObj;
+      if(typeof needFilterObj=='string'){
+        newObj=angular.fromJson(needFilterObj);
+      }else{
+        newObj=angular.extend({},needFilterObj);
+      }
+      function filterData(data){
+        var obj=data;
+        for(var i in obj){
+          if(obj[i]===null){
+            if(Object.prototype.toString.call(obj)=='[object Object]'){
+              delete obj[i];
+            }
+          }
+          else if(typeof obj[i]=== 'object'){
+            obj[i]=filterData(obj[i]);
+          }
+        }
+        return obj;
+      }
+      if(typeof needFilterObj=='string'){
+        return angular.toJson(filterData(newObj),true);
+      }else{
+        return filterData(newObj)
+      }
+
     }
   }
 });

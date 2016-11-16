@@ -416,7 +416,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
         loadingRequest.show();
         if ($scope.isEdit) {
           CubeService.update({}, {
-            cubeDescData: $scope.state.cubeSchema,
+            cubeDescData:VdmUtil.filterNullValInObj($scope.state.cubeSchema),
             cubeName: $routeParams.cubeName,
             project: $scope.state.project
           }, function (request) {
@@ -473,7 +473,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
         } else {
           //保存cube
           CubeService.save({}, {
-            cubeDescData: $scope.state.cubeSchema,
+            cubeDescData: VdmUtil.filterNullValInObj($scope.state.cubeSchema),
             project: $scope.state.project
           }, function (request) {
             if (request.successful) {
@@ -540,7 +540,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
       $scope.RawTables.engine_type=$scope.cubeMetaFrame.engine_type;
       $scope.RawTables.storage_type=$scope.cubeMetaFrame.storage_type;
       RawTablesService.save({},{
-        rawTableDescData:angular.toJson($scope.RawTables, true),
+        rawTableDescData:VdmUtil.filterNullValInObj($scope.RawTables),
         project: $scope.state.project
       },function(request){
         VdmUtil.storage.remove($scope.state.project+"_rawtable");
@@ -553,7 +553,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
   //更新rawTable
   function updateRawTable(){
     RawTablesService.update({},{
-      rawTableDescData:angular.toJson($scope.RawTables, true),
+      rawTableDescData:VdmUtil.filterNullValInObj($scope.RawTables),
       project: $scope.state.project,
       rawTableName:$scope.RawTables.name
     },function(request){
@@ -936,4 +936,24 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
     $scope.cubeMetaFrame=VdmUtil.storage.getObject(proName);
     $scope.RawTables=VdmUtil.storage.getObject(proName+"_rawtable")||[];
    }
+
+
+  //var testObj={
+  //  d:null,
+  //  e:null,
+  //  f:[1,0,{
+  //    a:null,
+  //    b:null,
+  //    c:3,
+  //    d:{
+  //      s:[1,2,{
+  //        k:null,
+  //        bs:1
+  //      }]
+  //    }
+  //  }]
+  //}
+  //var s=VdmUtil.filterNullValInObj(testObj);
+  //console.log(s);
+
 });
