@@ -61,8 +61,8 @@ public class HiveSampler {
 
     private String min = null;
     private String max = null;
-    private int minLen = 100000;
-    private int maxLen = -1;
+    private String maxLenValue = null;
+    private String minLenValue = null;
     DataTypeImplementor implementor = null;
     private ByteBuffer buf;
     private SamplerCoder samplerCoder;
@@ -72,9 +72,6 @@ public class HiveSampler {
     }
 
     public void setDataType(String dataType) {
-        System.out.println("----------------------- data Type:    " + dataType);
-        System.out.println("----------------------- :    " + implementations.get(dataType).getName());
-        //implementor = (DataTypeImplementor) ClassUtil.newInstance(implementations.get(dataType).getName());
         Class<?> clz = implementations.get(dataType);
         if (clz == null)
             return;
@@ -106,11 +103,23 @@ public class HiveSampler {
         samplerCoder.serializers[0].serialize(objectMax, buf);
         Object objectMin = samplerCoder.serializers[1].valueOf(min);
         samplerCoder.serializers[1].serialize(objectMin, buf);
-        Object objectMaxLen = samplerCoder.serializers[2].valueOf(String.valueOf(maxLen));
+        Object objectMaxLen = samplerCoder.serializers[2].valueOf(maxLenValue);
         samplerCoder.serializers[2].serialize(objectMaxLen, buf);
-        Object objectMinLen = samplerCoder.serializers[3].valueOf(String.valueOf(minLen));
+        Object objectMinLen = samplerCoder.serializers[3].valueOf(minLenValue);
         samplerCoder.serializers[3].serialize(objectMinLen, buf);
-        buf.flip();
+    }
+
+    public static int sizeOfElements() {
+        return sampleDataType.length;
+    }
+
+    @Override
+    public String toString() {
+        return "Max Value: " + max + " Min Value: " + min + " Max Length Value: " + maxLenValue + " Min Length Value: " + minLenValue;
+    }
+
+    public String catValues() {
+        return max + "\t" + min + "\t" + maxLenValue + "\t" + minLenValue;
     }
 
     public void decode(ByteBuffer buffer) {
@@ -118,8 +127,8 @@ public class HiveSampler {
         samplerCoder.decode(buffer, objects);
         max = objects[0].toString();
         min = objects[1].toString();
-        maxLen = Integer.parseInt(objects[2].toString());
-        minLen = Integer.parseInt(objects[3].toString());
+        maxLenValue = objects[2].toString();
+        minLenValue = objects[3].toString();
     }
 
     public void merge(HiveSampler another) {
@@ -131,11 +140,12 @@ public class HiveSampler {
             min = another.getMin();
         }
 
-        if (maxLen == -1 || another.getMaxLen() > maxLen) {
-            maxLen = another.getMaxLen();
+        if (maxLenValue == null || another.getMaxLenValue().length() > maxLenValue.length()) {
+            maxLenValue = another.getMaxLenValue();
         }
-        if (minLen == -1 || another.getMinLen() < minLen) {
-            minLen = another.getMinLen();
+
+        if (minLenValue == null || another.getMinLenValue().length() < minLenValue.length()) {
+            minLenValue = another.getMinLenValue();
         }
     }
 
@@ -155,19 +165,36 @@ public class HiveSampler {
         return this.min;
     }
 
-    public int getMaxLen() {
-        return this.maxLen;
+    public String getMaxLenValue() {
+        return this.maxLenValue;
     }
 
-    public int getMinLen() {
-        return this.minLen;
+    public String getMinLenValue() {
+        return this.minLenValue;
     }
 
     public interface DataTypeImplementor {
         public void samples(String value);
     }
 
-    public class StringImplementor implements DataTypeImplementor {
+    public class BaseImplementor implements DataTypeImplementor {
+
+        @Override
+        public void samples(String value) {
+        }
+
+        public void samplesMinMaxValue(String value) {
+            if (maxLenValue == null || value.length() > maxLenValue.length()) {
+                maxLenValue = value;
+            }
+
+            if (minLenValue == null || value.length() < minLenValue.length()) {
+                minLenValue = value;
+            }
+        }
+    }
+
+    public class StringImplementor extends BaseImplementor {
         public StringImplementor() {
         }
 
@@ -180,17 +207,11 @@ public class HiveSampler {
             if (min == null || value.compareTo(min) < 0) {
                 min = value;
             }
-
-            if (maxLen == 0 || value.length() > maxLen) {
-                maxLen = value.length();
-            }
-            if (minLen == 0 || value.length() < minLen) {
-                minLen = value.length();
-            }
+            samplesMinMaxValue(value);
         }
     }
 
-    public class DoubleImplementor implements DataTypeImplementor {
+    public class DoubleImplementor extends BaseImplementor {
         public DoubleImplementor() {
         }
 
@@ -203,17 +224,11 @@ public class HiveSampler {
             if (min == null || Double.parseDouble(value) < Double.parseDouble(max)) {
                 min = value;
             }
-
-            if (maxLen == 0 || value.length() > maxLen) {
-                maxLen = value.length();
-            }
-            if (minLen == 0 || value.length() < minLen) {
-                minLen = value.length();
-            }
+            samplesMinMaxValue(value);
         }
     }
 
-    public class LongImplementor implements DataTypeImplementor {
+    public class LongImplementor extends BaseImplementor {
         public LongImplementor() {
         }
 
@@ -227,16 +242,11 @@ public class HiveSampler {
                 min = value;
             }
 
-            if (maxLen == 0 || value.length() > maxLen) {
-                maxLen = value.length();
-            }
-            if (minLen == 0 || value.length() < minLen) {
-                minLen = value.length();
-            }
+            samplesMinMaxValue(value);
         }
     }
 
-    public class IntegerImplementor implements DataTypeImplementor {
+    public class IntegerImplementor extends BaseImplementor {
         public IntegerImplementor() {
         }
 
@@ -250,16 +260,11 @@ public class HiveSampler {
                 min = value;
             }
 
-            if (maxLen == 0 || value.length() > maxLen) {
-                maxLen = value.length();
-            }
-            if (minLen == 0 || value.length() < minLen) {
-                minLen = value.length();
-            }
+            samplesMinMaxValue(value);
         }
     }
 
-    public class BigDecimalImplementor implements DataTypeImplementor {
+    public class BigDecimalImplementor extends BaseImplementor {
         public BigDecimalImplementor() {
         }
 
@@ -284,13 +289,7 @@ public class HiveSampler {
                     min = value;
                 }
             }
-
-            if (maxLen == 0 || value.length() > maxLen) {
-                maxLen = value.length();
-            }
-            if (minLen == 0 || value.length() < minLen) {
-                minLen = value.length();
-            }
+            samplesMinMaxValue(value);
         }
     }
 

@@ -29,6 +29,7 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -90,7 +91,7 @@ public class HiveTableSampleJob extends AbstractHadoopJob {
 
         job.setMapperClass(HiveTableSampleMapper.class);
         job.setMapOutputKeyClass(IntWritable.class);
-        job.setMapOutputValueClass(Text.class);
+        job.setMapOutputValueClass(BytesWritable.class);
 
         // Reducer - only one
         job.setReducerClass(HiveTableSampleReducer.class);

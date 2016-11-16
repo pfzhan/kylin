@@ -29,7 +29,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.TimeZone;
 
 import org.apache.kylin.common.KylinConfig;
@@ -41,6 +40,7 @@ import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.source.hive.cardinality.HiveColumnCardinalityJob;
 import org.apache.kylin.source.hive.cardinality.HiveColumnCardinalityUpdateJob;
@@ -71,9 +71,6 @@ public class DataSourceStatisticJob extends CubingJob {
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
 
-        if (isAlreadyRuning(config, project, tables))
-            return;
-
         DataSourceStatisticJob result = new DataSourceStatisticJob();
         SimpleDateFormat format = new SimpleDateFormat("z yyyy-MM-dd HH:mm:ss");
         format.setTimeZone(TimeZone.getTimeZone(config.getTimeZone()));
@@ -82,27 +79,22 @@ public class DataSourceStatisticJob extends CubingJob {
         result.setName(JobName + format.format(new Date(System.currentTimeMillis())));
         result.setSubmitter(submitter);
 
+        if (isAlreadyRuning(config, result.getId(), tables))
+            return;
+
         MetadataManager metaMgr = MetadataManager.getInstance(config);
         for (String tableName : tables) {
-            Map<String, String> exdMap = metaMgr.getTableDescExd(tableName);
-            if (!exdMap.containsKey(DataSourceStatisticJob.STATISTIC_JOB_ID)) {
-                exdMap.put(DataSourceStatisticJob.STATISTIC_JOB_ID, result.getId());
-                String[] dbTableName = HadoopUtil.parseHiveTableName(tableName);
-                tableName = dbTableName[0] + "." + dbTableName[1];
-                metaMgr.saveTableExd(tableName.toUpperCase(), exdMap);
-            }
-            calculateCardinality(result, tableName, submitter, config);
+            calculateCardinality(result, tableName, config);
         }
         ExecutableManager.getInstance(config).addJob(result);
     }
 
-    public static void calculateCardinality(DataSourceStatisticJob result, String tableName, String submitter, KylinConfig config) {
+    public static void calculateCardinality(DataSourceStatisticJob result, String tableName, KylinConfig config) throws IOException {
         MetadataManager metaMgr = MetadataManager.getInstance(config);
         String[] dbTableName = HadoopUtil.parseHiveTableName(tableName);
         tableName = dbTableName[0] + "." + dbTableName[1];
         TableDesc table = metaMgr.getTableDesc(tableName);
-        final Map<String, String> tableExd = metaMgr.getTableDescExd(tableName);
-        if (tableExd == null || table == null) {
+        if (table == null) {
             IllegalArgumentException e = new IllegalArgumentException("Cannot find table descirptor " + tableName);
             logger.error("Cannot find table descirptor " + tableName, e);
             throw e;
@@ -127,17 +119,19 @@ public class DataSourceStatisticJob extends CubingJob {
         result.addTask(step2);
     }
 
-    private static boolean isAlreadyRuning(KylinConfig config, String project, List<String> tables) {
+    private static boolean isAlreadyRuning(KylinConfig config, String newJobID, List<String> tables) throws IOException {
         boolean isRunning = false;
         MetadataManager metaMgr = MetadataManager.getInstance(config);
         for (String table : tables) {
-            Map<String, String> exdMap = metaMgr.getTableDescExd(table);
-            if (!exdMap.containsKey(DataSourceStatisticJob.STATISTIC_JOB_ID)) {
+            TableExtDesc tableExtDesc = metaMgr.getTableExt(table);
+            String jobID = tableExtDesc.getJodID();
+            if (null == jobID || jobID.isEmpty()) {
+                tableExtDesc.setJodID(newJobID);
+                metaMgr.saveTableExt(tableExtDesc);
                 continue;
             } else {
-                String jobId = exdMap.get(DataSourceStatisticJob.STATISTIC_JOB_ID);
                 ExecutableManager exeMgt = ExecutableManager.getInstance(config);
-                if (ExecutableState.RUNNING == exeMgt.getOutput(jobId).getState()) {
+                if (ExecutableState.RUNNING == exeMgt.getOutput(jobID).getState()) {
                     isRunning = true;
                     break;
                 }

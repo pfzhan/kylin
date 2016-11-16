@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.KylinConfig;
@@ -42,7 +43,7 @@ import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 
-public class HiveTableSampleMapper<T> extends KylinMapper<T, Object, IntWritable, Text> {
+public class HiveTableSampleMapper<T> extends KylinMapper<T, Object, IntWritable, BytesWritable> {
 
     private Map<Integer, HiveSampler> samplerMap = new HashMap<Integer, HiveSampler>();
     public static final String DEFAULT_DELIM = ",";
@@ -99,10 +100,10 @@ public class HiveTableSampleMapper<T> extends KylinMapper<T, Object, IntWritable
         while (it.hasNext()) {
             int key = it.next();
             HiveSampler sampler = samplerMap.get(key);
+            System.out.println("sampler: " + sampler.getMaxLenValue() + " " + (sampler.getMaxLenValue().contains("\r\n") ? " yes" : " no"));
             sampler.code();
-            System.out.println("############mapper encode lenght :     " + sampler.getBuffer().limit());
-            outputValue.set(sampler.getBuffer().array(), 0, sampler.getBuffer().position());
-            context.write(new IntWritable(key), outputValue);
+            //outputValue.set(sampler.getBuffer().array(), 0, sampler.getBuffer().position());
+            context.write(new IntWritable(key), new BytesWritable(sampler.getBuffer().array(), sampler.getBuffer().limit()));
         }
     }
 }

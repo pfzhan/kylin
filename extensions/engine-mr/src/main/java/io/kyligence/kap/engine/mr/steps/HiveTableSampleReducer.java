@@ -33,11 +33,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.engine.mr.KylinReducer;
 
-public class HiveTableSampleReducer extends KylinReducer<IntWritable, Text, IntWritable, Text> {
+public class HiveTableSampleReducer extends KylinReducer<IntWritable, BytesWritable, IntWritable, Text> {
 
     public static final int ONE = 1;
     private Map<Integer, HiveSampler> sampleMap = new HashMap<Integer, HiveSampler>();
@@ -49,11 +50,10 @@ public class HiveTableSampleReducer extends KylinReducer<IntWritable, Text, IntW
     }
 
     @Override
-    public void doReduce(IntWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+    public void doReduce(IntWritable key, Iterable<BytesWritable> values, Context context) throws IOException, InterruptedException {
         int skey = key.get();
-        for (Text v : values) {
+        for (BytesWritable v : values) {
             ByteBuffer buffer = ByteBuffer.wrap(v.getBytes());
-            System.out.println("-----------------value length:   " + buffer.limit());
             HiveSampler sampler = new HiveSampler();
             sampler.decode(buffer);
             if (!sampleMap.containsKey(skey))
@@ -77,8 +77,7 @@ public class HiveTableSampleReducer extends KylinReducer<IntWritable, Text, IntW
         while (it.hasNext()) {
             int key = it.next();
             HiveSampler sampler = sampleMap.get(key);
-            sampler.code();
-            outputValue.set(sampler.getBuffer().array(), 0, sampler.getBuffer().position());
+            outputValue.set(sampler.catValues().getBytes(), 0, sampler.catValues().length());
             context.write(new IntWritable(key), outputValue);
         }
     }

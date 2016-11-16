@@ -29,17 +29,17 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.TimeZone;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.mr.CubingJob;
-import org.apache.kylin.engine.mr.HadoopUtil;
+import org.apache.kylin.engine.mr.common.HadoopShellExecutable;
 import org.apache.kylin.engine.mr.common.MapReduceExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,9 +68,6 @@ public class DataSourceSampleJob extends CubingJob {
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
 
-        if (isAlreadyRuning(config, project, tables))
-            return;
-
         DataSourceSampleJob result = new DataSourceSampleJob();
         SimpleDateFormat format = new SimpleDateFormat("z yyyy-MM-dd HH:mm:ss");
         format.setTimeZone(TimeZone.getTimeZone(config.getTimeZone()));
@@ -79,15 +76,10 @@ public class DataSourceSampleJob extends CubingJob {
         result.setName(JobName + format.format(new Date(System.currentTimeMillis())));
         result.setSubmitter(submitter);
 
-        MetadataManager metaMgr = MetadataManager.getInstance(config);
+        if (isAlreadyRuning(config, result.getId(), tables))
+            return;
+
         for (String tableName : tables) {
-            Map<String, String> exdMap = metaMgr.getTableDescExd(tableName);
-            if (!exdMap.containsKey(DataSourceSampleJob.STATISTIC_JOB_ID)) {
-                exdMap.put(DataSourceSampleJob.STATISTIC_JOB_ID, result.getId());
-                String[] dbTableName = HadoopUtil.parseHiveTableName(tableName);
-                tableName = dbTableName[0] + "." + dbTableName[1];
-                metaMgr.saveTableExd(tableName.toUpperCase(), exdMap);
-            }
             calculateSamples(result, tableName, submitter, config);
         }
         ExecutableManager.getInstance(config).addJob(result);
@@ -95,17 +87,14 @@ public class DataSourceSampleJob extends CubingJob {
 
     public static void calculateSamples(DataSourceSampleJob result, String tableName, String submitter, KylinConfig config) {
         MetadataManager metaMgr = MetadataManager.getInstance(config);
-        String[] dbTableName = HadoopUtil.parseHiveTableName(tableName);
-        tableName = dbTableName[0] + "." + dbTableName[1];
         TableDesc table = metaMgr.getTableDesc(tableName);
-        final Map<String, String> tableExd = metaMgr.getTableDescExd(tableName);
-        if (tableExd == null || table == null) {
+        if (table == null) {
             IllegalArgumentException e = new IllegalArgumentException("Cannot find table descirptor " + tableName);
             logger.error("Cannot find table descirptor " + tableName, e);
             throw e;
         }
 
-        String outPath = HiveTableSampleJob.OUTPUT_PATH + "/" + tableName;
+        String outPath = HiveTableSampleJob.OUTPUT_PATH + "/" + table.getIdentity();
         String param = "-table " + tableName + " -output " + outPath;
 
         MapReduceExecutable step1 = new MapReduceExecutable();
@@ -115,27 +104,28 @@ public class DataSourceSampleJob extends CubingJob {
         step1.setMapReduceParams(param);
 
         result.addTask(step1);
-        /*
+
         HadoopShellExecutable step2 = new HadoopShellExecutable();
-        
-        step2.setName("Update Table-" + tableName + "' Cardinality to MetaData");
-        step2.setJobClass(HiveColumnCardinalityUpdateJob.class);
+
+        step2.setName("Update Table-" + tableName + "' Sample to MetaData");
+        step2.setJobClass(HiveTableSampleUpdate.class);
         step2.setJobParams(param);
         result.addTask(step2);
-        */
     }
 
-    private static boolean isAlreadyRuning(KylinConfig config, String project, List<String> tables) {
+    private static boolean isAlreadyRuning(KylinConfig config, String newJobID, List<String> tables) throws IOException {
         boolean isRunning = false;
         MetadataManager metaMgr = MetadataManager.getInstance(config);
         for (String table : tables) {
-            Map<String, String> exdMap = metaMgr.getTableDescExd(table);
-            if (!exdMap.containsKey(DataSourceSampleJob.STATISTIC_JOB_ID)) {
+            TableExtDesc tableExtDesc = metaMgr.getTableExt(table);
+            String jobID = tableExtDesc.getJodID();
+            if (null == jobID || jobID.isEmpty()) {
+                tableExtDesc.setJodID(newJobID);
+                metaMgr.saveTableExt(tableExtDesc);
                 continue;
             } else {
-                String jobId = exdMap.get(DataSourceSampleJob.STATISTIC_JOB_ID);
                 ExecutableManager exeMgt = ExecutableManager.getInstance(config);
-                if (ExecutableState.RUNNING == exeMgt.getOutput(jobId).getState()) {
+                if (ExecutableState.RUNNING == exeMgt.getOutput(jobID).getState()) {
                     isRunning = true;
                     break;
                 }

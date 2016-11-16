@@ -18,10 +18,11 @@ public class HiveStatisticsTest extends TestCase {
         }
 
         sampler.code();
+        sampler.getBuffer().flip();
         sampler.decode(sampler.getBuffer());
 
         assertEquals(sampler.getMax(), "yes, I like it");
-        assertEquals(sampler.getMinLen(), 3);
+        assertEquals(sampler.getMinLenValue().length(), 3);
         sampler.clean();
 
         sampler = new HiveSampler();
@@ -32,12 +33,11 @@ public class HiveStatisticsTest extends TestCase {
         }
 
         sampler.code();
-
-        System.out.println(sampler.getBuffer().limit());
+        sampler.getBuffer().flip();
         sampler.decode(sampler.getBuffer());
 
         assertEquals(sampler.getMax(), "434.223232");
-        assertEquals(sampler.getMinLen(), 7);
+        assertEquals(sampler.getMinLenValue().length(), 7);
         sampler.clean();
     }
 }
