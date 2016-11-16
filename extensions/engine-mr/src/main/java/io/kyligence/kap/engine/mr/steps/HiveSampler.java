@@ -27,6 +27,7 @@ package io.kyligence.kap.engine.mr.steps;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.kylin.metadata.datatype.DataType;
@@ -36,8 +37,10 @@ import com.google.common.collect.Maps;
 
 public class HiveSampler {
 
+    public static final int HASH_SEED = 47;
+    public static final int SAMPLE_COUNTER = 10;
     public static final int DEFAULT_BUFFER_SIZE = 1024 * 1024; // 1 MB
-    private static final String[] sampleDataType = { "String", "String", "String", "String" };
+
     final static Map<String, Class<?>> implementations = Maps.newHashMap();
     static {
         implementations.put("char", StringImplementor.class);
@@ -59,16 +62,27 @@ public class HiveSampler {
         implementations.put("timestamp", StringImplementor.class);
     }
 
-    private String min = null;
-    private String max = null;
-    private String maxLenValue = null;
-    private String minLenValue = null;
+    private Map<String, String> sampleValues = new LinkedHashMap<>();
     DataTypeImplementor implementor = null;
     private ByteBuffer buf;
     private SamplerCoder samplerCoder;
 
     public HiveSampler() {
+        sampleValues.put("max_value", null);
+        sampleValues.put("min_value", null);
+        sampleValues.put("max_length_value", null);
+        sampleValues.put("min_length_value", null);
+        sampleValues.put("counter", "0");
+
+        String[] sampleDataType = new String[sampleValues.size()];
+        for (int i = 0; i < sampleDataType.length; i++)
+            sampleDataType[i] = "String";
+
         samplerCoder = new SamplerCoder(sampleDataType);
+    }
+
+    public int sizeOfElements() {
+        return sampleValues.size();
     }
 
     public void setDataType(String dataType) {
@@ -88,6 +102,14 @@ public class HiveSampler {
         }
     }
 
+    public void setCounter(String counter) {
+        this.sampleValues.put("counter", counter);
+    }
+
+    public String getCounter() {
+        return this.sampleValues.get("counter");
+    }
+
     public void clean() {
         if (buf != null) {
             buf.clear();
@@ -99,78 +121,111 @@ public class HiveSampler {
         buf = null;
         buf = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
         buf.clear();
-        Object objectMax = samplerCoder.serializers[0].valueOf(max);
-        samplerCoder.serializers[0].serialize(objectMax, buf);
-        Object objectMin = samplerCoder.serializers[1].valueOf(min);
-        samplerCoder.serializers[1].serialize(objectMin, buf);
-        Object objectMaxLen = samplerCoder.serializers[2].valueOf(maxLenValue);
-        samplerCoder.serializers[2].serialize(objectMaxLen, buf);
-        Object objectMinLen = samplerCoder.serializers[3].valueOf(minLenValue);
-        samplerCoder.serializers[3].serialize(objectMinLen, buf);
-    }
 
-    public static int sizeOfElements() {
-        return sampleDataType.length;
+        int index = 0;
+        for (Map.Entry<String, String> element : sampleValues.entrySet()) {
+            Object object = samplerCoder.serializers[index].valueOf(element.getValue());
+            samplerCoder.serializers[index].serialize(object, buf);
+            index++;
+        }
     }
 
     @Override
     public String toString() {
-        return "Max Value: " + max + " Min Value: " + min + " Max Length Value: " + maxLenValue + " Min Length Value: " + minLenValue;
+        String output = "";
+        for (Map.Entry<String, String> values : sampleValues.entrySet()) {
+            output += values.getKey();
+            output += " : ";
+            output += values.getValue();
+            output += " ";
+        }
+        return output;
     }
 
     public String catValues() {
-        return max + "\t" + min + "\t" + maxLenValue + "\t" + minLenValue;
+        String output = "";
+        for (Map.Entry<String, String> values : sampleValues.entrySet()) {
+            output += values.getValue();
+            output += "\t";
+        }
+        return output;
     }
 
     public void decode(ByteBuffer buffer) {
         Object[] objects = new Object[4];
         samplerCoder.decode(buffer, objects);
-        max = objects[0].toString();
-        min = objects[1].toString();
-        maxLenValue = objects[2].toString();
-        minLenValue = objects[3].toString();
+        int index = 0;
+        for (Map.Entry<String, String> element : sampleValues.entrySet()) {
+            element.setValue(objects[index].toString());
+            index++;
+        }
     }
 
     public void merge(HiveSampler another) {
-        if (max == null || another.getMax().compareTo(max) > 0) {
-            max = another.getMax();
+        if (getMax() == null || another.getMax().compareTo(getMax()) > 0) {
+            setMax(another.getMax());
         }
 
-        if (min == null || another.getMin().compareTo(min) < 0) {
-            min = another.getMin();
+        if (getMin() == null || another.getMin().compareTo(getMin()) < 0) {
+            setMin(another.getMin());
         }
 
-        if (maxLenValue == null || another.getMaxLenValue().length() > maxLenValue.length()) {
-            maxLenValue = another.getMaxLenValue();
+        if (getMaxLenValue() == null || another.getMaxLenValue().length() > getMaxLenValue().length()) {
+            setMaxLenValue(another.getMaxLenValue());
         }
 
-        if (minLenValue == null || another.getMinLenValue().length() < minLenValue.length()) {
-            minLenValue = another.getMinLenValue();
+        if (getMinLenValue() == null || another.getMinLenValue().length() < getMinLenValue().length()) {
+            setMinLenValue(another.getMinLenValue());
         }
+
+        long cnt1 = Long.parseLong(getCounter());
+        long cnt2 = Long.parseLong(another.getCounter());
+        setCounter(String.valueOf(cnt1 + cnt2));
     }
 
     public ByteBuffer getBuffer() {
         return buf;
     }
 
-    public void samples(String next) {
+    public void samples(String next, long counter) {
+
         implementor.samples(next);
+
+        if (counter % HASH_SEED == 0 && sampleValues.size() < SAMPLE_COUNTER) {
+            return;
+        }
     }
 
     public String getMax() {
-        return this.max;
+        return this.sampleValues.get("max_value");
     }
 
     public String getMin() {
-        return this.min;
+        return this.sampleValues.get("min_value");
     }
 
     public String getMaxLenValue() {
-        return this.maxLenValue;
+        return this.sampleValues.get("max_length_value");
     }
 
     public String getMinLenValue() {
-        return this.minLenValue;
+        return this.sampleValues.get("min_length_value");
+    }
+
+    public void setMax(String max) {
+        this.sampleValues.put("max_value", max);
+    }
+
+    public void setMin(String min) {
+        this.sampleValues.put("min_value", min);
+    }
+
+    public void setMaxLenValue(String maxLenValue) {
+        this.sampleValues.put("max_length_value", maxLenValue);
+    }
+
+    public void setMinLenValue(String minLenValue) {
+        this.sampleValues.put("min_length_value", minLenValue);
     }
 
     public interface DataTypeImplementor {
@@ -184,12 +239,12 @@ public class HiveSampler {
         }
 
         public void samplesMinMaxValue(String value) {
-            if (maxLenValue == null || value.length() > maxLenValue.length()) {
-                maxLenValue = value;
+            if (getMaxLenValue() == null || value.length() > getMaxLenValue().length()) {
+                setMaxLenValue(value);
             }
 
-            if (minLenValue == null || value.length() < minLenValue.length()) {
-                minLenValue = value;
+            if (getMinLenValue() == null || value.length() < getMinLenValue().length()) {
+                setMaxLenValue(value);
             }
         }
     }
@@ -200,12 +255,12 @@ public class HiveSampler {
 
         @Override
         public void samples(String value) {
-            if (max == null || value.compareTo(max) > 0) {
-                max = value;
+            if (getMax() == null || value.compareTo(getMax()) > 0) {
+                setMax(value);
             }
 
-            if (min == null || value.compareTo(min) < 0) {
-                min = value;
+            if (getMin() == null || value.compareTo(getMin()) < 0) {
+                setMin(value);
             }
             samplesMinMaxValue(value);
         }
@@ -217,12 +272,12 @@ public class HiveSampler {
 
         @Override
         public void samples(String value) {
-            if (max == null || Double.parseDouble(value) > Double.parseDouble(max)) {
-                max = value;
+            if (getMax() == null || Double.parseDouble(value) > Double.parseDouble(getMax())) {
+                setMax(value);
             }
 
-            if (min == null || Double.parseDouble(value) < Double.parseDouble(max)) {
-                min = value;
+            if (getMin() == null || Double.parseDouble(value) < Double.parseDouble(getMin())) {
+                setMin(value);
             }
             samplesMinMaxValue(value);
         }
@@ -234,12 +289,12 @@ public class HiveSampler {
 
         @Override
         public void samples(String value) {
-            if (max == null || Long.parseLong(value) > Long.parseLong(max)) {
-                max = value;
+            if (getMax() == null || Long.parseLong(value) > Long.parseLong(getMax())) {
+                setMax(value);
             }
 
-            if (min == null || Long.parseLong(value) < Long.parseLong(max)) {
-                min = value;
+            if (getMin() == null || Long.parseLong(value) < Long.parseLong(getMin())) {
+                setMin(value);
             }
 
             samplesMinMaxValue(value);
@@ -252,12 +307,12 @@ public class HiveSampler {
 
         @Override
         public void samples(String value) {
-            if (max == null || Integer.parseInt(value) > Integer.parseInt(max)) {
-                max = value;
+            if (getMax() == null || Integer.parseInt(value) > Integer.parseInt(getMax())) {
+                setMax(value);
             }
 
-            if (min == null || Integer.parseInt(value) < Integer.parseInt(max)) {
-                min = value;
+            if (getMin() == null || Integer.parseInt(value) < Integer.parseInt(getMin())) {
+                setMin(value);
             }
 
             samplesMinMaxValue(value);
@@ -270,23 +325,23 @@ public class HiveSampler {
 
         @Override
         public void samples(String value) {
-            if (max == null) {
-                max = value;
+            if (getMax() == null) {
+                setMax(value);
             } else {
                 BigDecimal bValue = new BigDecimal(value);
-                BigDecimal bMax = new BigDecimal(max);
+                BigDecimal bMax = new BigDecimal(getMax());
                 if (bValue.compareTo(bMax) > 0) {
-                    max = value;
+                    setMax(value);
                 }
             }
 
-            if (min == null) {
-                min = value;
+            if (getMin() == null) {
+                setMin(value);
             } else {
                 BigDecimal bValue = new BigDecimal(value);
-                BigDecimal bMax = new BigDecimal(min);
-                if (bValue.compareTo(bMax) < 0) {
-                    min = value;
+                BigDecimal bMin = new BigDecimal(getMin());
+                if (bValue.compareTo(bMin) < 0) {
+                    setMin(value);
                 }
             }
             samplesMinMaxValue(value);

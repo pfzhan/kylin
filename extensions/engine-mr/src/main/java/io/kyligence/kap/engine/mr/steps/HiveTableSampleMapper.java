@@ -32,7 +32,6 @@ import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.mr.IMRInput;
 import org.apache.kylin.engine.mr.KylinMapper;
@@ -52,7 +51,6 @@ public class HiveTableSampleMapper<T> extends KylinMapper<T, Object, IntWritable
 
     private TableDesc tableDesc;
     private IMRInput.IMRTableInputFormat tableInputFormat;
-    protected Text outputValue = new Text();
 
     @Override
     protected void setup(Context context) throws IOException {
@@ -83,14 +81,9 @@ public class HiveTableSampleMapper<T> extends KylinMapper<T, Object, IntWritable
             if (fieldValue == null)
                 fieldValue = "NULL";
 
-            if (counter < 5 && m < 10) {
-                System.out.println("Get row " + counter + " column '" + field + "'  value: " + fieldValue);
-            }
-
             if (fieldValue != null)
-                samplerMap.get(m).samples(fieldValue);
+                samplerMap.get(m).samples(fieldValue, counter);
         }
-
         counter++;
     }
 
@@ -100,9 +93,8 @@ public class HiveTableSampleMapper<T> extends KylinMapper<T, Object, IntWritable
         while (it.hasNext()) {
             int key = it.next();
             HiveSampler sampler = samplerMap.get(key);
-            System.out.println("sampler: " + sampler.getMaxLenValue() + " " + (sampler.getMaxLenValue().contains("\r\n") ? " yes" : " no"));
+            sampler.setCounter(String.valueOf(counter));
             sampler.code();
-            //outputValue.set(sampler.getBuffer().array(), 0, sampler.getBuffer().position());
             context.write(new IntWritable(key), new BytesWritable(sampler.getBuffer().array(), sampler.getBuffer().limit()));
         }
     }

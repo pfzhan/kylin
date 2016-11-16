@@ -103,11 +103,12 @@ public class HiveTableSampleUpdate extends AbstractHadoopJob {
         TableExtDesc tableSample = metaMgr.getTableExt(tableName);
         List<TableExtDesc.ColumnStats> columnStatsList = new ArrayList<>();
         Iterator<String> it = columns.iterator();
+        HiveSampler sampler = new HiveSampler();
         while (it.hasNext()) {
             String string = (String) it.next();
             String[] ss = StringUtils.split(string, "\t");
 
-            if (ss.length != HiveSampler.sizeOfElements() + 1) {
+            if (ss.length != sampler.sizeOfElements() + 1) {
                 logger.error("The hadoop sample value is not valid " + string);
                 continue;
             }

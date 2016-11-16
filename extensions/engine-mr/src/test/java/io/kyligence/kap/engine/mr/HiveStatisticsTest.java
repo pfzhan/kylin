@@ -14,7 +14,7 @@ public class HiveStatisticsTest extends TestCase {
         sampler.setDataType("varchar");
 
         for (int i = 0; i < stringValues.length; i++) {
-            sampler.samples(stringValues[i]);
+            sampler.samples(stringValues[i], 0);
         }
 
         sampler.code();
@@ -29,7 +29,7 @@ public class HiveStatisticsTest extends TestCase {
         sampler.setDataType("decimal");
 
         for (int i = 0; i < decimalValues.length; i++) {
-            sampler.samples(decimalValues[i]);
+            sampler.samples(decimalValues[i], 0);
         }
 
         sampler.code();
