@@ -60,9 +60,9 @@ import io.kyligence.kap.rest.request.UserRequest;
 @Controller
 @Component("kapUserController")
 @RequestMapping(value = "/kap/user")
-public class UserController extends BasicController implements UserDetailsService {
+public class KapUserController extends BasicController implements UserDetailsService {
 
-    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+    private static final Logger logger = LoggerFactory.getLogger(KapUserController.class);
 
     @Autowired
     private UserService userService;
