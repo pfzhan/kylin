@@ -42,7 +42,6 @@
 
     <modules>
         <module>kylin</module>
-        <module>extensions/sample</module>
         <module>extensions/core-common</module>
         <module>extensions/core-metadata</module>
         <module>extensions/core-cube</module>
