@@ -44,12 +44,15 @@ public class OrderedBytesNumberSerializer extends OrderedBytesSerializer<Number>
 
     @Override
     public int maxLength() {
+        //org.apache.hadoop.hbase.types.OrderedNumeric#encodedLength shows the max is 100
         return 100;
     }
 
     @Override
     public int getStorageBytesEstimate() {
-        return 10;
+        // org.apache.hadoop.hbase.types.OrderedNumeric.encodedLength() did not give a simple formula, we have to guess by sample data
+        //io.kyligence.kap.metadata.datatype.OrderedNumericSizeEstimator#estimate output is 4 , use 8 for a little more
+        return 8;
     }
 
     public Number valueOf(String str) {

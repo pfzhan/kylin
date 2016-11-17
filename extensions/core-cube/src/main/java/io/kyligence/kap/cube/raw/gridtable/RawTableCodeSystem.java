@@ -74,11 +74,11 @@ public class RawTableCodeSystem implements IGTCodeSystem {
         this.serializers = new DataTypeSerializer[info.getColumnCount()];
         for (int i = 0; i < serializers.length; i++) {
             if (dimensionEncodings != null && dimensionEncodings[i] != null) {
+                logger.info("column {} type {} type name {} will use dimension encoding", i, info.getColumnType(i), info.getColumnType(i).getName());
                 serializers[i] = this.dimensionEncodings[i].asDataTypeSerializer();
             } else {
-                logger.info("info column type {} {} {}", i, info.getColumnType(i), info.getColumnType(i).getName());
+                logger.info("column {} type {} type name {} will use ordered bytes encoding", i, info.getColumnType(i), info.getColumnType(i).getName());
                 serializers[i] = OrderedBytesSerializer.createOrdered(info.getColumnType(i));
-                //serializers[i] = DataTypeSerializer.create(info.getColumnType(i));
             }
         }
     }

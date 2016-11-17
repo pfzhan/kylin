@@ -31,8 +31,11 @@ import org.apache.kylin.metadata.datatype.DataType;
 
 public class OrderedBytesStringSerializer extends OrderedBytesSerializer<String> {
 
+    int maxLength;
+
     public OrderedBytesStringSerializer(DataType type) {
         super(type);
+        maxLength = this.type.getPrecision() + 2;
         orderedBytesBase = OrderedString.ASCENDING;
     }
 
@@ -43,12 +46,12 @@ public class OrderedBytesStringSerializer extends OrderedBytesSerializer<String>
 
     @Override
     public int maxLength() {
-        return 1000;
+        return maxLength;
     }
 
     @Override
     public int getStorageBytesEstimate() {
-        return 10;
+        return maxLength;
     }
 
     public String valueOf(String str) {

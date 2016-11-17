@@ -38,6 +38,8 @@ import com.google.common.collect.Maps;
 public abstract class OrderedBytesSerializer<T> extends DataTypeSerializer<T> {
 
     final static Map<String, Class<?>> orderedImplementations = Maps.newHashMap();
+    final DataType type;
+
     static {
         orderedImplementations.put("char", OrderedBytesStringSerializer.class);
         orderedImplementations.put("varchar", OrderedBytesStringSerializer.class);
@@ -82,6 +84,7 @@ public abstract class OrderedBytesSerializer<T> extends DataTypeSerializer<T> {
     protected OrderedBytesBase<T> orderedBytesBase;
 
     public OrderedBytesSerializer(DataType type) {
+        this.type = type;
     }
 
     protected PositionedByteRange createEncodeBuffer() {
