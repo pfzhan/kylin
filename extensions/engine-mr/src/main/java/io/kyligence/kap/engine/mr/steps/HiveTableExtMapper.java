@@ -42,10 +42,9 @@ import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 
-public class HiveTableSampleMapper<T> extends KylinMapper<T, Object, IntWritable, BytesWritable> {
+public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, BytesWritable> {
 
     private Map<Integer, HiveSampler> samplerMap = new HashMap<Integer, HiveSampler>();
-    public static final String DEFAULT_DELIM = ",";
 
     private int counter = 0;
 

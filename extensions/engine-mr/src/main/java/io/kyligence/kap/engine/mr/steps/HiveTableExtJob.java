@@ -44,7 +44,7 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
 
-public class HiveTableSampleJob extends AbstractHadoopJob {
+public class HiveTableExtJob extends AbstractHadoopJob {
     public static final String JOB_TITLE = "Kylin Hive Column Sample Job";
 
     @SuppressWarnings("static-access")
@@ -52,7 +52,7 @@ public class HiveTableSampleJob extends AbstractHadoopJob {
 
     public static final String OUTPUT_PATH = BatchConstants.CFG_KYLIN_HDFS_TEMP_DIR + "samples";
 
-    public HiveTableSampleJob() {
+    public HiveTableExtJob() {
     }
 
     @Override
@@ -89,7 +89,7 @@ public class HiveTableSampleJob extends AbstractHadoopJob {
         IMRInput.IMRTableInputFormat tableInputFormat = MRUtil.getTableInputFormat(table);
         tableInputFormat.configureJob(job);
 
-        job.setMapperClass(HiveTableSampleMapper.class);
+        job.setMapperClass(HiveTableExtMapper.class);
         job.setMapOutputKeyClass(IntWritable.class);
         job.setMapOutputValueClass(BytesWritable.class);
 

@@ -41,11 +41,13 @@ import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectManager;
+import org.apache.kylin.source.hive.cardinality.HiveColumnCardinalityJob;
+import org.apache.kylin.source.hive.cardinality.HiveColumnCardinalityUpdateJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DataSourceSampleJob extends CubingJob {
-    private static final Logger logger = LoggerFactory.getLogger(DataSourceSampleJob.class);
+public class HiveTableExtSampleJob extends CubingJob {
+    private static final Logger logger = LoggerFactory.getLogger(HiveTableExtSampleJob.class);
     private static final String DEPLOY_ENV_NAME = "envName";
     private static final String PROJECT_INSTANCE_NAME = "projectName";
     private static final String STATISTIC_JOB_ID = "jobId";
@@ -68,7 +70,7 @@ public class DataSourceSampleJob extends CubingJob {
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
 
-        DataSourceSampleJob result = new DataSourceSampleJob();
+        HiveTableExtSampleJob result = new HiveTableExtSampleJob();
         SimpleDateFormat format = new SimpleDateFormat("z yyyy-MM-dd HH:mm:ss");
         format.setTimeZone(TimeZone.getTimeZone(config.getTimeZone()));
         result.setDeployEnvName(config.getDeployEnv());
@@ -85,7 +87,7 @@ public class DataSourceSampleJob extends CubingJob {
         ExecutableManager.getInstance(config).addJob(result);
     }
 
-    public static void calculateSamples(DataSourceSampleJob result, String tableName, String submitter, KylinConfig config) {
+    public static void calculateSamples(HiveTableExtSampleJob result, String tableName, String submitter, KylinConfig config) {
         MetadataManager metaMgr = MetadataManager.getInstance(config);
         TableDesc table = metaMgr.getTableDesc(tableName);
         if (table == null) {
@@ -94,13 +96,13 @@ public class DataSourceSampleJob extends CubingJob {
             throw e;
         }
 
-        String outPath = HiveTableSampleJob.OUTPUT_PATH + "/" + table.getIdentity();
+        String outPath = HiveTableExtJob.OUTPUT_PATH + "/" + table.getIdentity();
         String param = "-table " + tableName + " -output " + outPath;
 
         MapReduceExecutable step1 = new MapReduceExecutable();
 
         step1.setName("Extract Max/Min/MaxLength/MinLength from Table-" + tableName);
-        step1.setMapReduceJobClass(HiveTableSampleJob.class);
+        step1.setMapReduceJobClass(HiveTableExtJob.class);
         step1.setMapReduceParams(param);
 
         result.addTask(step1);
@@ -108,9 +110,27 @@ public class DataSourceSampleJob extends CubingJob {
         HadoopShellExecutable step2 = new HadoopShellExecutable();
 
         step2.setName("Update Table-" + tableName + "' Sample to MetaData");
-        step2.setJobClass(HiveTableSampleUpdate.class);
+        step2.setJobClass(HiveTableExtUpdate.class);
         step2.setJobParams(param);
         result.addTask(step2);
+
+        String outPath1 = HiveColumnCardinalityJob.OUTPUT_PATH + "/" + table.getIdentity();
+        String param1 = "-table " + tableName + " -output " + outPath1;
+
+        MapReduceExecutable step3 = new MapReduceExecutable();
+
+        step3.setName("Extract Cardinality from Table-" + tableName);
+        step3.setMapReduceJobClass(HiveColumnCardinalityJob.class);
+        step3.setMapReduceParams(param1);
+
+        result.addTask(step3);
+
+        HadoopShellExecutable step4 = new HadoopShellExecutable();
+
+        step4.setName("Update Table-" + tableName + "' Cardinality to MetaData");
+        step4.setJobClass(HiveColumnCardinalityUpdateJob.class);
+        step4.setJobParams(param1);
+        result.addTask(step4);
     }
 
     private static boolean isAlreadyRuning(KylinConfig config, String newJobID, List<String> tables) throws IOException {

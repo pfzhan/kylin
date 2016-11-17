@@ -35,7 +35,6 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -49,7 +48,7 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class HiveTableSampleUpdate extends AbstractHadoopJob {
+public class HiveTableExtUpdate extends AbstractHadoopJob {
     public static final String JOB_TITLE = "Hive Sample Update Job";
 
     @SuppressWarnings("static-access")
@@ -57,9 +56,9 @@ public class HiveTableSampleUpdate extends AbstractHadoopJob {
 
     private String table;
 
-    private static final Logger logger = LoggerFactory.getLogger(HiveTableSampleUpdate.class);
+    private static final Logger logger = LoggerFactory.getLogger(HiveTableExtUpdate.class);
 
-    public HiveTableSampleUpdate() {
+    public HiveTableExtUpdate() {
 
     }
 
@@ -102,21 +101,22 @@ public class HiveTableSampleUpdate extends AbstractHadoopJob {
         MetadataManager metaMgr = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv());
         TableExtDesc tableSample = metaMgr.getTableExt(tableName);
         List<TableExtDesc.ColumnStats> columnStatsList = new ArrayList<>();
+        List<String[]> sampleRows = new ArrayList<>();
         Iterator<String> it = columns.iterator();
         HiveSampler sampler = new HiveSampler();
+        String counter = "0";
         while (it.hasNext()) {
             String string = (String) it.next();
-            String[] ss = StringUtils.split(string, "\t");
-
-            if (ss.length != sampler.sizeOfElements() + 1) {
-                logger.error("The hadoop sample value is not valid " + string);
-                continue;
-            }
+            sampler.parseHdfsToSamples(string);
             TableExtDesc.ColumnStats columnStats = new TableExtDesc.ColumnStats();
-            columnStats.setColumnSamples(ss[1], ss[2], ss[3], ss[4]);
+            columnStats.setColumnSamples(sampler.getMax(), sampler.getMin(), sampler.getMaxLenValue(), sampler.getMinLenValue());
+            sampleRows.add(sampler.getRawSampleValues());
             columnStatsList.add(columnStats);
+            counter = sampler.getCounter();
         }
         tableSample.setColumnStats(columnStatsList);
+        tableSample.setSampleRows(sampleRows);
+        tableSample.setTotalRows(counter);
         metaMgr.saveTableExt(tableSample);
     }
 

@@ -38,7 +38,7 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.engine.mr.KylinReducer;
 
-public class HiveTableSampleReducer extends KylinReducer<IntWritable, BytesWritable, IntWritable, Text> {
+public class HiveTableExtReducer extends KylinReducer<IntWritable, BytesWritable, IntWritable, Text> {
 
     public static final int ONE = 1;
     private Map<Integer, HiveSampler> sampleMap = new HashMap<Integer, HiveSampler>();
@@ -57,7 +57,7 @@ public class HiveTableSampleReducer extends KylinReducer<IntWritable, BytesWrita
             HiveSampler sampler = new HiveSampler();
             sampler.decode(buffer);
             if (!sampleMap.containsKey(skey))
-                sampleMap.put(skey, new HiveSampler());
+                sampleMap.put(skey, sampler);
             else {
                 sampleMap.get(skey);
             }
@@ -77,7 +77,7 @@ public class HiveTableSampleReducer extends KylinReducer<IntWritable, BytesWrita
         while (it.hasNext()) {
             int key = it.next();
             HiveSampler sampler = sampleMap.get(key);
-            outputValue.set(sampler.catValues().getBytes(), 0, sampler.catValues().length());
+            outputValue.set(sampler.outPutSamplesWithSplit().getBytes(), 0, sampler.outPutSamplesWithSplit().length());
             context.write(new IntWritable(key), outputValue);
         }
     }
