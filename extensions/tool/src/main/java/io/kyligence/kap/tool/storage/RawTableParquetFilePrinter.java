@@ -30,7 +30,7 @@ import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.kylin.dimension.IntegerDimEnc;
+import org.apache.kylin.dimension.IntegerDimEncV2;
 import org.apache.kylin.metadata.datatype.BigDecimalSerializer;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.datatype.DataTypeSerializer;
@@ -59,7 +59,7 @@ public class RawTableParquetFilePrinter {
         DateTimeSerializer dateSe = new DateTimeSerializer(null);
         StringSerializer stringSe = new StringSerializer(new DataType("A", 1, 1));
         LongSerializer longSe = new LongSerializer(null);
-        IntegerDimEnc.IntegerSerializer intSe = (IntegerDimEnc.IntegerSerializer) new IntegerDimEnc().asDataTypeSerializer();
+        IntegerDimEncV2.IntegerSerializer intSe = (IntegerDimEncV2.IntegerSerializer) new IntegerDimEncV2().asDataTypeSerializer();
         BigDecimalSerializer bigdecSe = new BigDecimalSerializer(new DataType("B", 1, 1));
 
         //DataTypeSerializer[] ses = new DataTypeSerializer[] { dateSe, dateSe, dateSe, stringSe, stringSe, stringSe, stringSe, stringSe, stringSe, stringSe, stringSe, longSe, bigdecSe, longSe, longSe, intSe, longSe, intSe };
