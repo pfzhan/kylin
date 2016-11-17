@@ -29,6 +29,7 @@ import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Random;
 
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.datatype.DataTypeSerializer;
@@ -38,7 +39,8 @@ import com.google.common.collect.Maps;
 public class HiveSampler {
 
     public static final int HASH_SEED = 47;
-    public static final int SAMPLE_COUNTER = 10;
+    public static final int SAMPLE_RAW_VALUE_NUMBER = 10;
+    public static final String DEFAULT_SAMPLE_RAW_VALUE = "KAP_DEFAULT_SAMPLE_VALUE";
     public static final int DEFAULT_BUFFER_SIZE = 1024 * 1024; // 1 MB
 
     final static Map<String, Class<?>> implementations = Maps.newHashMap();
@@ -66,16 +68,24 @@ public class HiveSampler {
     DataTypeImplementor implementor = null;
     private ByteBuffer buf;
     private SamplerCoder samplerCoder;
+    private int rawSampleIndex = 0;
 
     public HiveSampler() {
+        //special samples
         sampleValues.put("max_value", null);
         sampleValues.put("min_value", null);
         sampleValues.put("max_length_value", null);
         sampleValues.put("min_length_value", null);
         sampleValues.put("counter", "0");
 
-        String[] sampleDataType = new String[sampleValues.size()];
-        for (int i = 0; i < sampleDataType.length; i++)
+        //raw value samples
+        for (int i = 0; i < SAMPLE_RAW_VALUE_NUMBER; i++) {
+            sampleValues.put(String.valueOf(i), DEFAULT_SAMPLE_RAW_VALUE);
+        }
+
+        String[] sampleDataType = new String[sizeOfElements()];
+
+        for (int i = 0; i < sizeOfElements(); i++)
             sampleDataType[i] = "String";
 
         samplerCoder = new SamplerCoder(sampleDataType);
@@ -117,6 +127,27 @@ public class HiveSampler {
         }
     }
 
+    @Override
+    public String toString() {
+        String output = "";
+        for (Map.Entry<String, String> values : sampleValues.entrySet()) {
+            output += values.getKey();
+            output += " : ";
+            output += values.getValue();
+            output += " ";
+        }
+        return output;
+    }
+
+    public String outPutSamplesWithSplit() {
+        String output = "";
+        for (Map.Entry<String, String> values : sampleValues.entrySet()) {
+            output += values.getValue();
+            output += "\t";
+        }
+        return output;
+    }
+
     public void code() {
         buf = null;
         buf = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
@@ -130,29 +161,8 @@ public class HiveSampler {
         }
     }
 
-    @Override
-    public String toString() {
-        String output = "";
-        for (Map.Entry<String, String> values : sampleValues.entrySet()) {
-            output += values.getKey();
-            output += " : ";
-            output += values.getValue();
-            output += " ";
-        }
-        return output;
-    }
-
-    public String catValues() {
-        String output = "";
-        for (Map.Entry<String, String> values : sampleValues.entrySet()) {
-            output += values.getValue();
-            output += "\t";
-        }
-        return output;
-    }
-
     public void decode(ByteBuffer buffer) {
-        Object[] objects = new Object[4];
+        Object[] objects = new Object[sizeOfElements()];
         samplerCoder.decode(buffer, objects);
         int index = 0;
         for (Map.Entry<String, String> element : sampleValues.entrySet()) {
@@ -161,7 +171,35 @@ public class HiveSampler {
         }
     }
 
+    public void parseHdfsToSamples(String line) {
+        String[] values = line.split("\t");
+        assert (values.length == sizeOfElements() + 1);
+        int index = 1;
+        for (Map.Entry<String, String> element : sampleValues.entrySet()) {
+            element.setValue(values[index]);
+            index++;
+        }
+    }
+
+    public ByteBuffer getBuffer() {
+        return buf;
+    }
+
+    public void samples(String next, long counter) {
+
+        implementor.samples(next);
+
+        if (counter % HASH_SEED == 0 && rawSampleIndex < SAMPLE_RAW_VALUE_NUMBER) {
+            sampleValues.put(String.valueOf(rawSampleIndex), next);
+            rawSampleIndex++;
+        }
+    }
+
     public void merge(HiveSampler another) {
+
+        if (this == another)
+            return;
+
         if (getMax() == null || another.getMax().compareTo(getMax()) > 0) {
             setMax(another.getMax());
         }
@@ -181,19 +219,28 @@ public class HiveSampler {
         long cnt1 = Long.parseLong(getCounter());
         long cnt2 = Long.parseLong(another.getCounter());
         setCounter(String.valueOf(cnt1 + cnt2));
-    }
 
-    public ByteBuffer getBuffer() {
-        return buf;
-    }
-
-    public void samples(String next, long counter) {
-
-        implementor.samples(next);
-
-        if (counter % HASH_SEED == 0 && sampleValues.size() < SAMPLE_COUNTER) {
-            return;
+        Random rand = new Random();
+        for (int i = 0; i < SAMPLE_RAW_VALUE_NUMBER; i++) {
+            if (rand.nextBoolean())
+                setRawSampleValue(String.valueOf(i), another.getRawSampleValue(String.valueOf(i)));
         }
+    }
+
+    public String[] getRawSampleValues() {
+        String[] values = new String[SAMPLE_RAW_VALUE_NUMBER];
+        for (int i = 0; i < SAMPLE_RAW_VALUE_NUMBER; i++) {
+            values[i] = sampleValues.get(String.valueOf(i));
+        }
+        return values;
+    }
+
+    public String getRawSampleValue(String index) {
+        return sampleValues.get(index);
+    }
+
+    public void setRawSampleValue(String index, String value) {
+        sampleValues.put(index, value);
     }
 
     public String getMax() {
@@ -244,7 +291,7 @@ public class HiveSampler {
             }
 
             if (getMinLenValue() == null || value.length() < getMinLenValue().length()) {
-                setMaxLenValue(value);
+                setMinLenValue(value);
             }
         }
     }

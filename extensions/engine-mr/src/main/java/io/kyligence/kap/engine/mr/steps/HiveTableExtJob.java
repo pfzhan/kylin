@@ -94,7 +94,7 @@ public class HiveTableExtJob extends AbstractHadoopJob {
         job.setMapOutputValueClass(BytesWritable.class);
 
         // Reducer - only one
-        job.setReducerClass(HiveTableSampleReducer.class);
+        job.setReducerClass(HiveTableExtReducer.class);
         job.setOutputFormatClass(TextOutputFormat.class);
         job.setOutputKeyClass(IntWritable.class);
         job.setOutputValueClass(Text.class);
