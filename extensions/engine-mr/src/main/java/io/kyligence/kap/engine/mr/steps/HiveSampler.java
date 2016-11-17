@@ -286,11 +286,11 @@ public class HiveSampler {
         }
 
         public void samplesMinMaxValue(String value) {
-            if (getMaxLenValue() == null || value.length() > getMaxLenValue().length()) {
+            if (getMaxLenValue() == null || value.getBytes().length > getMaxLenValue().getBytes().length) {
                 setMaxLenValue(value);
             }
 
-            if (getMinLenValue() == null || value.length() < getMinLenValue().length()) {
+            if (getMinLenValue() == null || value.getBytes().length < getMinLenValue().getBytes().length) {
                 setMinLenValue(value);
             }
         }

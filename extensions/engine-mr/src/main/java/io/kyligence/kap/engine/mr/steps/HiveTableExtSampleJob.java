@@ -52,11 +52,11 @@ public class HiveTableExtSampleJob extends CubingJob {
     private static final String PROJECT_INSTANCE_NAME = "projectName";
     private static final String STATISTIC_JOB_ID = "jobId";
 
-    public static void createSampleJob(String project, String submitter, String table) throws IOException {
-        initSampleJob(project, submitter, table);
+    public static String createSampleJob(String project, String submitter, String table) throws IOException {
+        return initSampleJob(project, submitter, table);
     }
 
-    public static void initSampleJob(String project, String submitter, String table) throws IOException {
+    public static String initSampleJob(String project, String submitter, String table) throws IOException {
         List<String> tables = null;
         String JobName;
         if (null == table) {
@@ -79,12 +79,13 @@ public class HiveTableExtSampleJob extends CubingJob {
         result.setSubmitter(submitter);
 
         if (isAlreadyRuning(config, result.getId(), tables))
-            return;
+            return null ;
 
         for (String tableName : tables) {
             calculateSamples(result, tableName, submitter, config);
         }
         ExecutableManager.getInstance(config).addJob(result);
+        return result.getId();
     }
 
     public static void calculateSamples(HiveTableExtSampleJob result, String tableName, String submitter, KylinConfig config) {
