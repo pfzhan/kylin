@@ -56,17 +56,17 @@ public class HiveTableExtSampleJob extends CubingJob {
         return initSampleJob(project, submitter, table);
     }
 
-    public static String initSampleJob(String project, String submitter, String table) throws IOException {
-        List<String> tables = null;
-        String JobName;
-        if (null == table) {
-            tables = getTableFromProject(project);
-            JobName = "Build Multi-TableExt-";
-        } else {
-            tables = new ArrayList<>();
-            tables.add(table);
-            JobName = "Build Single-TableExt-";
+    public static List<String> createSampleJob(String project, String submitter) throws IOException {
+        String[] tables = getTableFromProject(project);
+        List<String> jobIDs = new ArrayList<>();
+        for (String table : tables) {
+            String jobID = initSampleJob(project, submitter, table);
+            jobIDs.add(jobID);
         }
+        return jobIDs;
+    }
+
+    public static String initSampleJob(String project, String submitter, String table) throws IOException {
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
 
@@ -75,28 +75,26 @@ public class HiveTableExtSampleJob extends CubingJob {
         format.setTimeZone(TimeZone.getTimeZone(config.getTimeZone()));
         result.setDeployEnvName(config.getDeployEnv());
         result.setProjectName(project);
-        result.setName(JobName + format.format(new Date(System.currentTimeMillis())));
+        result.setName("Build " + table + " samples " + format.format(new Date(System.currentTimeMillis())));
         result.setSubmitter(submitter);
 
         StringBuffer jobID = new StringBuffer("null");
 
-        if (isAlreadyRuning(config, result.getId(), jobID, tables))
+        if (isJobRuning(config, jobID, table))
             return jobID.toString();
 
-        for (String tableName : tables) {
-            calculateSamples(result, tableName, submitter, config);
-        }
+        calculateSamples(result, table, config);
+
         ExecutableManager.getInstance(config).addJob(result);
         return result.getId();
     }
 
-    public static void calculateSamples(HiveTableExtSampleJob result, String tableName, String submitter, KylinConfig config) {
+    public static void calculateSamples(HiveTableExtSampleJob result, String tableName, KylinConfig config) throws IOException {
         MetadataManager metaMgr = MetadataManager.getInstance(config);
         TableDesc table = metaMgr.getTableDesc(tableName);
+        TableExtDesc table_ext = metaMgr.getTableExt(tableName);
         if (table == null) {
-            IllegalArgumentException e = new IllegalArgumentException("Cannot find table descirptor " + tableName);
-            logger.error("Cannot find table descirptor " + tableName, e);
-            throw e;
+            throw new IllegalArgumentException("Cannot find table descirptor " + tableName);
         }
 
         String outPath = HiveTableExtJob.OUTPUT_PATH + "/" + table.getIdentity();
@@ -104,7 +102,7 @@ public class HiveTableExtSampleJob extends CubingJob {
 
         MapReduceExecutable step1 = new MapReduceExecutable();
 
-        step1.setName("Extract Samples from Table-" + tableName);
+        step1.setName("Extract Samples from " + tableName);
         step1.setMapReduceJobClass(HiveTableExtJob.class);
         step1.setMapReduceParams(param);
 
@@ -112,7 +110,7 @@ public class HiveTableExtSampleJob extends CubingJob {
 
         HadoopShellExecutable step2 = new HadoopShellExecutable();
 
-        step2.setName("Update Table-" + tableName + "' Samples to MetaData");
+        step2.setName("Update " + tableName + " Samples to MetaData");
         step2.setJobClass(HiveTableExtUpdate.class);
         step2.setJobParams(param);
         result.addTask(step2);
@@ -122,7 +120,7 @@ public class HiveTableExtSampleJob extends CubingJob {
 
         MapReduceExecutable step3 = new MapReduceExecutable();
 
-        step3.setName("Extract Cardinality from Table-" + tableName);
+        step3.setName("Extract Cardinality from " + tableName);
         step3.setMapReduceJobClass(HiveColumnCardinalityJob.class);
         step3.setMapReduceParams(param1);
 
@@ -130,53 +128,56 @@ public class HiveTableExtSampleJob extends CubingJob {
 
         HadoopShellExecutable step4 = new HadoopShellExecutable();
 
-        step4.setName("Update Table-" + tableName + "' Cardinality to MetaData");
+        step4.setName("Update " + tableName + "' Cardinality to MetaData");
         step4.setJobClass(HiveColumnCardinalityUpdateJob.class);
         step4.setJobParams(param1);
         result.addTask(step4);
+
+        table_ext.setJodID(result.getId());
+        metaMgr.saveTableExt(table_ext);
     }
 
-    private static boolean isAlreadyRuning(KylinConfig config, String newJobID, StringBuffer runningJobID, List<String> tables) throws IOException {
-        boolean isRunning = false;
+    private static boolean isJobRuning(KylinConfig config, StringBuffer runningJobID, String table) throws IOException {
+
         MetadataManager metaMgr = MetadataManager.getInstance(config);
-        for (String table : tables) {
-            TableExtDesc tableExtDesc = metaMgr.getTableExt(table);
-            String jobID = tableExtDesc.getJodID();
-            if (null == jobID || jobID.isEmpty()) {
-                tableExtDesc.setJodID(newJobID);
-                metaMgr.saveTableExt(tableExtDesc);
-                continue;
-            } else {
-                ExecutableManager exeMgt = ExecutableManager.getInstance(config);
-                if (ExecutableState.RUNNING == exeMgt.getOutput(jobID).getState()) {
-                    isRunning = true;
-                    runningJobID.append(jobID);
-                    break;
-                }
-            }
+
+        TableExtDesc tableExtDesc = metaMgr.getTableExt(table);
+
+        String jobID = tableExtDesc.getJodID();
+
+        if (null == jobID || jobID.isEmpty()) {
+            return false;
         }
-        return isRunning;
+
+        ExecutableManager exeMgt = ExecutableManager.getInstance(config);
+        if (ExecutableState.RUNNING == exeMgt.getOutput(jobID).getState()) {
+            runningJobID.append(jobID);
+            return true;
+        }
+
+        return false;
     }
 
-    public static List<String> getTableFromProject(String project) {
-        List<TableDesc> tables = null;
-        List<String> tableNames = new ArrayList<>();
-        try {
-            tables = ProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listDefinedTables(project);
-            for (TableDesc desc : tables) {
-                tableNames.add(desc.getName());
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+    public static String[] getTableFromProject(String project) throws IOException {
+
+        List<TableDesc> tables = ProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listDefinedTables(project);
+        if (null == tables)
+            return null;
+        String[] tableNames = new String[tables.size()];
+        int index = 0;
+        for (TableDesc desc : tables) {
+            tableNames[index] = desc.getName();
+            index++;
         }
+
         return tableNames;
     }
 
-    void setDeployEnvName(String name) {
+    private void setDeployEnvName(String name) {
         setParam(DEPLOY_ENV_NAME, name);
     }
 
-    void setProjectName(String name) {
+    private void setProjectName(String name) {
         setParam(PROJECT_INSTANCE_NAME, name);
     }
 }
