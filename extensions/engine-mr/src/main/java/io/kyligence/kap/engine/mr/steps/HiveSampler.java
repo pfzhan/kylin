@@ -98,17 +98,17 @@ public class HiveSampler {
     public void setDataType(String dataType) {
         Class<?> clz = implementations.get(dataType);
         if (clz == null)
-            return;
+            throw new RuntimeException("No DataTypeImplementor for type " + dataType);
         try {
             implementor = (DataTypeImplementor) clz.getDeclaredConstructor(HiveSampler.class).newInstance(this);
         } catch (InstantiationException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         } catch (IllegalAccessException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         } catch (InvocationTargetException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         } catch (NoSuchMethodException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 

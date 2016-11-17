@@ -38,8 +38,8 @@ import io.kyligence.kap.engine.mr.steps.HiveTableExtSampleJob;
 public class TableExtService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public void extractTableExt(String project, String submitter, String tableName) throws IOException {
-        HiveTableExtSampleJob.createSampleJob(project, submitter, tableName);
+    public String extractTableExt(String project, String submitter, String tableName) throws IOException {
+        return HiveTableExtSampleJob.createSampleJob(project, submitter, tableName);
     }
 
     public MetadataManager getMetaDataManager() {

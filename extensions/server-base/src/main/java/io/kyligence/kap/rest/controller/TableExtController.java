@@ -26,8 +26,11 @@ package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
 
+import org.apache.kylin.job.JobInstance;
+import org.apache.kylin.job.exception.JobException;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.controller.BasicController;
+import org.apache.kylin.rest.service.JobService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -45,6 +48,9 @@ public class TableExtController extends BasicController {
     @Autowired
     private TableExtService tableExtService;
 
+    @Autowired
+    private JobService jobService;
+
     @RequestMapping(value = "/{tableName}", method = { RequestMethod.GET })
     @ResponseBody
     public TableExtDesc getTableExtDesc(@PathVariable String tableName) throws IOException {
@@ -54,9 +60,9 @@ public class TableExtController extends BasicController {
 
     @RequestMapping(value = "/{project}/{tableName}", method = { RequestMethod.GET })
     @ResponseBody
-    public String sample(@PathVariable String project, @PathVariable String tableName) throws IOException {
+    public JobInstance sample(@PathVariable String project, @PathVariable String tableName) throws IOException, JobException {
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
-        tableExtService.extractTableExt(project, submitter, tableName);
-        return "OK";
+        String jobID = tableExtService.extractTableExt(project, submitter, tableName);
+        return jobService.getJobInstance(jobID);
     }
 }

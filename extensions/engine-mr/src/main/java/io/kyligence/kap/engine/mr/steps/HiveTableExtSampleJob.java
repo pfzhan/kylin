@@ -61,11 +61,11 @@ public class HiveTableExtSampleJob extends CubingJob {
         String JobName;
         if (null == table) {
             tables = getTableFromProject(project);
-            JobName = "Build Multi-Table Samples-";
+            JobName = "Build Multi-TableExt-";
         } else {
             tables = new ArrayList<>();
             tables.add(table);
-            JobName = "Build Single-Table Samples-";
+            JobName = "Build Single-TableExt-";
         }
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -78,8 +78,10 @@ public class HiveTableExtSampleJob extends CubingJob {
         result.setName(JobName + format.format(new Date(System.currentTimeMillis())));
         result.setSubmitter(submitter);
 
-        if (isAlreadyRuning(config, result.getId(), tables))
-            return null ;
+        StringBuffer jobID = new StringBuffer("null");
+
+        if (isAlreadyRuning(config, result.getId(), jobID, tables))
+            return jobID.toString();
 
         for (String tableName : tables) {
             calculateSamples(result, tableName, submitter, config);
@@ -102,7 +104,7 @@ public class HiveTableExtSampleJob extends CubingJob {
 
         MapReduceExecutable step1 = new MapReduceExecutable();
 
-        step1.setName("Extract Max/Min/MaxLength/MinLength from Table-" + tableName);
+        step1.setName("Extract Samples from Table-" + tableName);
         step1.setMapReduceJobClass(HiveTableExtJob.class);
         step1.setMapReduceParams(param);
 
@@ -110,7 +112,7 @@ public class HiveTableExtSampleJob extends CubingJob {
 
         HadoopShellExecutable step2 = new HadoopShellExecutable();
 
-        step2.setName("Update Table-" + tableName + "' Sample to MetaData");
+        step2.setName("Update Table-" + tableName + "' Samples to MetaData");
         step2.setJobClass(HiveTableExtUpdate.class);
         step2.setJobParams(param);
         result.addTask(step2);
@@ -134,7 +136,7 @@ public class HiveTableExtSampleJob extends CubingJob {
         result.addTask(step4);
     }
 
-    private static boolean isAlreadyRuning(KylinConfig config, String newJobID, List<String> tables) throws IOException {
+    private static boolean isAlreadyRuning(KylinConfig config, String newJobID, StringBuffer runningJobID, List<String> tables) throws IOException {
         boolean isRunning = false;
         MetadataManager metaMgr = MetadataManager.getInstance(config);
         for (String table : tables) {
@@ -148,6 +150,7 @@ public class HiveTableExtSampleJob extends CubingJob {
                 ExecutableManager exeMgt = ExecutableManager.getInstance(config);
                 if (ExecutableState.RUNNING == exeMgt.getOutput(jobID).getState()) {
                     isRunning = true;
+                    runningJobID.append(jobID);
                     break;
                 }
             }

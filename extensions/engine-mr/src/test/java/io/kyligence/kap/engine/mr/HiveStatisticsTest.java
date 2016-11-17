@@ -11,7 +11,7 @@ import junit.framework.TestCase;
 public class HiveStatisticsTest extends TestCase {
     @Test
     public void testHiveSample() {
-        String[] stringValues = { "I love China", "USA", "what is your name", "yes, I like it", "true", "Dinner is perfect", "Not very good" };
+        String[] stringValues = { "I love China", "麒麟最牛逼啊", "USA", "what is your name", "yes, I like it", "true", "Dinner is perfect", "Not very good" };
         String[] decimalValues = { "1.232323232434", "3.23232323", "-1.3232", "434.223232", "232.22323" };
         HiveSampler sampler = new HiveSampler();
         sampler.setDataType("varchar");
@@ -25,8 +25,9 @@ public class HiveStatisticsTest extends TestCase {
         sampler.getBuffer().flip();
         sampler.decode(sampler.getBuffer());
 
-        assertEquals(sampler.getMax(), "yes, I like it");
+        assertEquals(sampler.getMax(), "麒麟最牛逼啊");
         assertEquals(sampler.getMinLenValue().length(), 3);
+        assertEquals(sampler.getMaxLenValue(), "麒麟最牛逼啊");
         sampler.clean();
 
         sampler = new HiveSampler();
