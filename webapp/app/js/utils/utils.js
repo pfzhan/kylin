@@ -144,11 +144,11 @@ KylinApp.factory('VdmUtil', function ($modal, $timeout, $location, $anchorScroll
         }
         return obj;
       }
-      if(typeof needFilterObj=='string'){
+      //if(typeof needFilterObj=='string'){
         return angular.toJson(filterData(newObj),true);
-      }else{
-        return filterData(newObj)
-      }
+      //}else{
+      //  return filterData(newObj)
+      //}
 
     }
   }
