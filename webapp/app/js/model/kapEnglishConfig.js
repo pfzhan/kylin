@@ -231,7 +231,8 @@ KylinApp.constant('kapEnglishConfig', {
     gridTheadItems:[
         {attr: 'name', name: 'Name'},
         {attr: 'datatype', name: 'Data Type'},
-        {attr: 'cardinality', name: 'Cardinality'}
+        {attr: 'cardinality', name: 'Cardinality'},
+        {attr: 'comment', name: 'Comment'}
     ],
     gridModelDesign: 'Model Designer',
     gridModelInfo: 'Model Info',
@@ -377,8 +378,11 @@ KylinApp.constant('kapEnglishConfig', {
     cubeDSDerived: 'Derived',
     cubeDSSwitchDer: 'derived',
     cubeDSColumn: 'Column',
+    cubeDSDatatype : 'Datatype',
+    cubeDSCardinality:'Cardinality',
+    cubeDSComment : 'Comment',
     cubeDSSwitchNormal: 'normal',
-    cubeDSAutoGenerator: 'Auto Generator',
+    cubeDSAddDimensions: 'Add Dimensions',
     cubeDSID: 'ID',
     cubeDSName: 'Name',
     tip_cubeDSName: 'Name..',
@@ -723,7 +727,8 @@ KylinApp.constant('kapEnglishConfig', {
       {attr: 'id', name: 'ID'},
       {attr: 'name', name: 'Name'},
       {attr: 'datatype', name: 'Data Type'},
-      {attr: 'cardinality', name: 'Cardinality'}
+      {attr: 'cardinality', name: 'Cardinality'},
+      {attr: 'comment', name: 'Comment'}
     ],
     tip_no_table_selected: 'No Table Selected.',
     noTables: 'No tables',

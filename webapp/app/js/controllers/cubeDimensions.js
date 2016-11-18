@@ -36,7 +36,7 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
     // Available tables cache: 1st is the fact table, next are lookup tables.
     $scope.availableTables = [];
 
-
+    $scope.editDimension={normal:"true"};
     /**
      * Helper func to get columns that dimensions based on, three cases:
      * 1. normal dimension: column array.
@@ -214,12 +214,9 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
         });
 
         modalInstance.result.then(function () {
-            if (!$scope.dimState.editing) {
-                $scope.doneAddDim();
-            } else {
-                $scope.doneEditDim();
+            if ($scope.dimState.editing) {
+                 $scope.doneEditDim();
             }
-
         }, function () {
             $scope.cancelDim();
         });
@@ -239,8 +236,6 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
 
         $scope.checkDimension = function(){
             var errors = [];
-
-
             if($scope.dimType[0]=="derived"){
                 if(!$scope.newDimension.derived.length){
                     errors.push($scope.dataKylin.alert.check_cube_dimensions_derived);
@@ -278,31 +273,28 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
 
     };
 
-    $scope.addDim = function (dimType) {
-        $scope.newDimension = Dimension('', [], dimType);
-
-        $scope.openDimModal(dimType);
-    };
-
     $scope.editDim = function (dim) {
         $scope.dimState.editingIndex = dimList.indexOf(dim);
         $scope.dimState.editing = true;
 
         // Make a copy of model will be editing.
         $scope.newDimension = angular.copy(dim);
-
+        if(dim.column==null){
+            $scope.editDimension.normal="false";
+        }
         $scope.openDimModal($scope.getDimType(dim));
-    };
-
-    $scope.doneAddDim = function () {
-        // Push new dimension which bound user input data.
-        dimList.push(angular.copy($scope.newDimension));
-
-        $scope.resetParams();
     };
 
     $scope.doneEditDim = function () {
         // Copy edited model to destination model.
+        if($scope.editDimension.normal=="true"&&$scope.newDimension.column==null){
+            $scope.newDimension.column=$scope.newDimension.derived[0];
+            $scope.newDimension.derived=null;
+        }
+        if($scope.editDimension.normal=="false"&&$scope.newDimension.derived==null){
+            $scope.newDimension.derived=[$scope.newDimension.column];
+            $scope.newDimension.column=null;
+        }
         angular.copy($scope.newDimension, dimList[$scope.dimState.editingIndex]);
 
         $scope.resetParams();
@@ -328,8 +320,8 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
     $scope.resetParams = function () {
         $scope.dimState.editing = false;
         $scope.dimState.editingIndex = -1;
-
         $scope.newDimension = {};
+        $scope.editDimension.normal="true";
     };
 
     // Open auto-gen dimension modal.
@@ -496,13 +488,6 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
           }else{
               return true;
           }
-    }
-
-    $scope.addNewDimension = function(newDimension){
-       if(newDimension.derived==null){
-         newDimension.derived=[];
-       }
-       newDimension.derived.push('');
     }
 
     // Just reset the selected status of columns.

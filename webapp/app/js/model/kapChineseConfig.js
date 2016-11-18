@@ -209,7 +209,8 @@ KylinApp.constant('kapChineseConfig', {
     gridTheadItems: [
           {attr: 'name', name: '名称'},
           {attr: 'datatype', name: '数据类型'},
-          {attr: 'cardinality', name: '基数'}
+          {attr: 'cardinality', name: '基数'},
+          {attr: 'comment', name: '注释'}
         ],
     aggregationGroups: 'Aggregation Groups',
     toAggregationGroups: 'Visit aggregation group for more about aggregation group.',
@@ -360,8 +361,11 @@ KylinApp.constant('kapChineseConfig', {
     cubeDSDerived: '可推导维度',
     cubeDSSwitchDer: 'derived',
     cubeDSColumn: 'Column',
+    cubeDSDatatype : '数据类型',
+    cubeDSCardinality:'基数',
+    cubeDSComment : '注释',
     cubeDSSwitchNormal: 'normal',
-    cubeDSAutoGenerator: '批量自动生成',
+    cubeDSAddDimensions: '添加维度',
     cubeDSID: 'ID',
     cubeDSName: '名称',
     tip_cubeDSName: '名称..',
@@ -706,7 +710,8 @@ KylinApp.constant('kapChineseConfig', {
       {attr: 'id', name: 'ID'},
       {attr: 'name', name: '名称'},
       {attr: 'datatype', name: '数据类型'},
-      {attr: 'cardinality', name: '基数'}
+      {attr: 'cardinality', name: '基数'},
+      {attr: 'comment', name: '注释'}
     ],
     tip_no_table_selected: '没有表被选中.',
     noTables: '没有表',

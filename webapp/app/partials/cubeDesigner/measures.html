@@ -57,7 +57,7 @@
           </td>
           <td ng-if="state.mode=='edit'">
             <!--Edit Button -->
-            <button class="btn btn-xs btn-info" ng-click="addNewMeasure(measure,$index)" ng-disabled="instance.status=='READY'">
+            <button class="btn btn-xs btn-info" ng-click="editMeasure(measure,$index)" ng-disabled="instance.status=='READY'">
               <i class="fa fa-pencil"></i>
             </button>
             <!--Remove Button -->
@@ -73,14 +73,15 @@
 
   <!--Add Measures Button-->
   <div class="form-group">
-    <button class="btn btn-sm btn-info" ng-click="addNewMeasure()" ng-show="state.mode=='edit' && !newMeasure" ng-disabled="instance.status=='READY'">
+    <button class="btn btn-sm btn-info" ng-click="addMeasure()" ng-show="state.mode=='edit'"  ng-disabled="instance.status=='READY'">
        {{dataKylin.model.Measure}}<i class="fa fa-plus"></i>
     </button>
   </div>
 
   <!--Edit Measure-->
-  <ng-form name="edit_mes_form">
-    <div class="box box-solid" ng-if="newMeasure">
+  <script type="text/ng-template" id="addEditDimension.html">
+   <ng-form name="edit_mes_form" >
+    <div class="box box-solid" style="margin-left:30px;">
       <div class="box-header">
         <h4 class="box-title text-info">{{dataKylin.cube.cubeMSEditMS}}</h4>
       </div>
@@ -331,11 +332,12 @@
       </div>
       <div class="box-footer">
         <button class="btn btn-sm btn-info" ng-disabled="edit_mes_form.$invalid"
-                ng-click="saveNewMeasure()" ng-show="state.mode=='edit'">{{dataKylin.cube.cubeMSOK}}</button>
-        <button class="btn btn-link" ng-click="clearNewMeasure()">{{dataKylin.cube.cubeMSCancel}}</button>
+                ng-click="checkMeasure()?ok():''" ng-show="state.mode=='edit'">{{dataKylin.cube.cubeMSOK}}</button>
+        <button class="btn btn-link" ng-click="cancel()">{{dataKylin.cube.cubeMSCancel}}</button>
       </div>
     </div>
   </ng-form>
+ </script>
 </div>
 
 

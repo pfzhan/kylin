@@ -60,11 +60,11 @@
               </accordion-heading>
               <table class="table table-striped table-hover">
                 <tr class="row">
-                  <th class="col-xs-3"><label>
+                  <th style="width:10%"><label>
                     <input type="checkbox" ng-change="ChangeAll(dimension.table,outindex)" ng-model="selectedColumns[dimension.table].all"
                            ng-disabled="selectedColumns[dimension.table].disabled" >{{dataKylin.model.gridDSSelectAll}}</label>
                   </th>
-                  <th ng-repeat="theaditem in dataKylin.model.gridTheadItems" class="col-xs-3"
+                  <th ng-repeat="theaditem in dataKylin.model.gridTheadItems" style="width:22%"
                       ng-click="state[dimension.table].filterAttr= theaditem.attr;state[dimension.table].reverseColumn=theaditem.attr;state[dimension.table].filterReverse=!state[dimension.table].filterReverse;">
                     {{theaditem.name}}
                     <i ng-if="state[dimension.table].reverseColumn!= theaditem.attr"
@@ -85,7 +85,7 @@
                   <td>{{column.name}}</td>
                   <td>{{column.datatype}}</td>
                   <td>{{column.cardinality}}</td>
-
+                  <td>{{column.comment}}</td>
                 </tr>
               </table>
             </div>

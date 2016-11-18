@@ -25,6 +25,7 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log) {
     var loading = false;
    //for tables in cubeDesigner
     this.selectProjectTables = [];
+    this.tableColumnMap={};
     this.columnNameTypeMap = {};
 
     this.initTables = function(){
@@ -184,6 +185,7 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log) {
             return 1;
         return 0; //default return value (no sorting)
     };
+
 
 });
 

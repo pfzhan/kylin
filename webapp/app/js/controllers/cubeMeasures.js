@@ -79,34 +79,30 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
     }
     return filterEncoding;
   }
-  $scope.addNewMeasure = function (measure,index) {
-    if(measure&&index>=0){
-      $scope.updateMeasureStatus.isEdit = true;
-      $scope.updateMeasureStatus.editIndex = index;
-    }
+  $scope.addEditMeasureEncoding = function (measure,index) {
+
     $scope.nextParameters = [];
-    $scope.newMeasure = (!!measure)? jQuery.extend(true, {},measure):CubeDescModel.createMeasure();
     if(!!measure && measure.function.parameter.next_parameter){
       $scope.nextPara.value = measure.function.parameter.next_parameter.value;
     }
-    if($scope.newMeasure.function.expression=="TOP_N"){
+    if(measure.function.expression=="TOP_N"){
       $scope.convertedColumns=[];
-        if($scope.newMeasure.function.configuration==null){
+        if(measure.function.configuration==null){
           var GroupBy = {
-            name:$scope.newMeasure.function.parameter.next_parameter.value,
+            name:measure.function.parameter.next_parameter.value,
             encoding:"dict",
             valueLength:0,
           }
         $scope.convertedColumns.push(GroupBy);
         }
 
-      for(var configuration in $scope.newMeasure.function.configuration) {
+      for(var configuration in measure.function.configuration) {
         if (/topn\.encoding\./.test(configuration)) {
           var _name = configuration.slice(14);
-          var item = $scope.newMeasure.function.configuration[configuration];
+          var item = measure.function.configuration[configuration];
           var _encoding = item;
           var _valueLength = 0;
-          var version = $scope.newMeasure.function.configuration['topn.encoding_version.' + _name] || 1;
+          var version = measure.function.configuration['topn.encoding_version.' + _name] || 1;
           item = $scope.removeVersion(item);
           var baseKey = item.replace(/:\d+/, '');
           if (needLengthKeyList.indexOf(baseKey) >= -1) {
@@ -125,6 +121,7 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
       }
     }
   };
+
 
   $scope.updateNextParameter = function(){
     //jQuery.extend(true, {},$scope.newMeasure.function.parameter.next_parameter)
@@ -186,70 +183,6 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
     $scope.nextParameterInit();
   };
 
-  $scope.saveNewMeasure = function () {
-    if ($scope.newMeasure.function.expression === 'TOP_N' ) {
-      if($scope.newMeasure.function.parameter.value == ""){
-        SweetAlert.swal('',$scope.dataKylin.alert.warning_column_required , 'warning');
-        return false;
-      }
-      if($scope.convertedColumns.length<1){
-        SweetAlert.swal('', $scope.dataKylin.alert.tip_column_required, 'warning');
-        return false;
-      }
-      var hasExisted = [];
-      for (var column in $scope.convertedColumns){
-        if(hasExisted.indexOf($scope.convertedColumns[column].name)==-1){
-          hasExisted.push($scope.convertedColumns[column].name);
-        }
-        else{
-          SweetAlert.swal('', $scope.dataKylin.alert.warning_measures_part_one+$scope.convertedColumns[column].name+$scope.dataKylin.alert.warning_measures_part_two, 'warning');
-          return false;
-        }
-        if($scope.convertedColumns[column].encoding == 'int' && ($scope.convertedColumns[column].valueLength < 1 || $scope.convertedColumns[column].valueLength > 8)) {
-          SweetAlert.swal('', $scope.dataKylin.alert.check_cube_rowkeys_int, 'warning');
-          return false;
-        }
-      }
-      $scope.nextPara.next_parameter={};
-      $scope.newMeasure.function.configuration={};
-      $scope.groupby($scope.nextPara);
-      angular.forEach($scope.convertedColumns,function(item){
-        var a='topn.encoding.'+item.name;
-        var versionKey='topn.encoding_version.'+item.name;
-        var version=$scope.getTypeVersion(item.encoding);
-        var encoding="";
-        if(needLengthKeyList.indexOf($scope.removeVersion(item.encoding))>=-1){
-          encoding = $scope.removeVersion(item.encoding)+":"+item.valueLength;
-        }else{
-          encoding = $scope.removeVersion(item.encoding);
-          item.valueLength=0;
-        }
-        $scope.newMeasure.function.configuration[a]= encoding;
-        $scope.newMeasure.function.configuration[versionKey]=version;
-
-      });
-    }
-
-    if ($scope.isNameDuplicated($scope.cubeMetaFrame.measures, $scope.newMeasure) == true) {
-      SweetAlert.swal('', $scope.dataKylin.alert.duplicate_measures_part_one + $scope.newMeasure.name + $scope.dataKylin.alert.duplicate_measures_part_two, 'warning');
-      return false;
-    }
-
-    if($scope.nextPara.value!=="" && ($scope.newMeasure.function.expression == 'EXTENDED_COLUMN' || $scope.newMeasure.function.expression == 'TOP_N')){
-      $scope.newMeasure.function.parameter.next_parameter = jQuery.extend(true,{},$scope.nextPara);
-    }
-
-    if($scope.updateMeasureStatus.isEdit == true){
-      $scope.cubeMetaFrame.measures[$scope.updateMeasureStatus.editIndex] = $scope.newMeasure;
-    }
-    else {
-      $scope.cubeMetaFrame.measures.push($scope.newMeasure);
-    }
-    $scope.newMeasure = null;
-    $scope.initUpdateMeasureStatus();
-    $scope.nextParameterInit();
-    return true;
-  };
 
   $scope.isNameDuplicated = function (measures, newMeasure) {
     var names = [];
@@ -324,6 +257,65 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
     }
   }
 
+  $scope.addMeasure = function () {
+     // Make a copy of model will be editing.
+     $scope.newMeasure = CubeDescModel.createMeasure();
+     $scope.openMeasureModal();
+     $scope.addEditMeasureEncoding($scope.newMeasure);
+  };
+
+  $scope.editMeasure = function (measure,index) {
+     $scope.updateMeasureStatus.editIndex = index;
+     $scope.updateMeasureStatus.isEdit = true;
+     // Make a copy of model will be editing.
+     $scope.newMeasure = angular.copy(measure);
+     $scope.addEditMeasureEncoding($scope.newMeasure,$scope.updateMeasureStatus.editIndex);
+     $scope.openMeasureModal();
+  };
+
+  $scope.openMeasureModal = function () {
+     var modalInstance = $modal.open({
+        templateUrl: 'addEditDimension.html',
+        controller: addEditDimensionCtrl,
+        backdrop: 'static',
+        scope: $scope
+     });
+
+     modalInstance.result.then(function () {
+        if (!$scope.updateMeasureStatus.isEdit) {
+           $scope.doneAddMeasure();
+        } else {
+           $scope.doneEditMeasure();
+        }
+     }, function () {
+           $scope.cancelMeasure();
+     });
+  };
+  $scope.doneAddMeasure = function () {
+     // Push new dimension which bound user input data.
+     $scope.cubeMetaFrame.measures.push(angular.copy($scope.newMeasure));
+     $scope.resetParams();
+  };
+
+  $scope.doneEditMeasure = function () {
+     // Copy edited model to destination model.
+     angular.copy($scope.newMeasure, $scope.cubeMetaFrame.measures[$scope.updateMeasureStatus. editIndex]);
+
+     $scope.resetParams();
+  };
+
+  $scope.cancelMeasure = function () {
+     $scope.resetParams();
+  };
+
+  $scope.resetParams = function () {
+     $scope.updateMeasureStatus.isEdit = false;
+     $scope.updateMeasureStatus. editIndex = -1;
+     $scope.newMeasure = null;
+     $scope.initUpdateMeasureStatus();
+     $scope.nextParameterInit();
+  };
+
   //map right return type for param
   $scope.measureReturnTypeUpdate = function(){
 
@@ -396,7 +388,74 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
       }
     }
   }
+var addEditDimensionCtrl = function ($scope, $modalInstance,SweetAlert,language) {
+  $scope.dataKylin = language.getDataKylin();
+  $scope.ok = function () {
+     $modalInstance.close();
 
+  };
+  $scope.cancel = function () {
+     $modalInstance.dismiss('cancel');
+  };
+  $scope.checkMeasure = function () {
+    if ($scope.newMeasure.function.expression === 'TOP_N' ) {
+      if($scope.newMeasure.function.parameter.value == ""){
+        SweetAlert.swal('',$scope.dataKylin.alert.warning_column_required , 'warning');
+        return false;
+      }
+      if($scope.convertedColumns.length<1){
+        SweetAlert.swal('', $scope.dataKylin.alert.tip_column_required, 'warning');
+        return false;
+      }
+      var hasExisted = [];
+      for (var column in $scope.convertedColumns){
+        if(hasExisted.indexOf($scope.convertedColumns[column].name)==-1){
+          hasExisted.push($scope.convertedColumns[column].name);
+        }
+        else{
+          SweetAlert.swal('', $scope.dataKylin.alert.warning_measures_part_one+$scope.convertedColumns[column].name+$scope.dataKylin.alert.warning_measures_part_two, 'warning');
+          return false;
+        }
+        if($scope.convertedColumns[column].encoding == 'int' && ($scope.convertedColumns[column].valueLength < 1 || $scope.convertedColumns[column].valueLength > 8)) {
+          SweetAlert.swal('', $scope.dataKylin.alert.check_cube_rowkeys_int, 'warning');
+          return false;
+        }
+      }
+      $scope.nextPara.next_parameter={};
+      $scope.newMeasure.function.configuration={};
+      $scope.groupby($scope.nextPara);
+      angular.forEach($scope.convertedColumns,function(item){
+        var a='topn.encoding.'+item.name;
+        var encoding="";
+        if(item.encoding!=="dict" && item.encoding!=="date"&& item.encoding!=="time"){
+          if(item.encoding=="fixed_length" && item.valueLength){
+            encoding = "fixed_length:"+item.valueLength;
+          } else if(item.encoding=="integer" && item.valueLength){
+            encoding = "integer:"+item.valueLength;
+          }else if(item.encoding=="int" && item.valueLength){
+            encoding = "int:"+item.valueLength;
+          }else{
+            encoding = item.encoding;
+          }
+        }else{
+          encoding = item.encoding;
+          item.valueLength=0;
+        }
+        $scope.newMeasure.function.configuration[a]=encoding;
+      });
+    }
+
+    if ($scope.isNameDuplicated($scope.cubeMetaFrame.measures, $scope.newMeasure) == true) {
+      SweetAlert.swal('', $scope.dataKylin.alert.duplicate_measures_part_one + $scope.newMeasure.name + $scope.dataKylin.alert.duplicate_measures_part_two, 'warning');
+      return false;
+    }
+
+    if($scope.nextPara.value!=="" && ($scope.newMeasure.function.expression == 'EXTENDED_COLUMN' || $scope.newMeasure.function.expression == 'TOP_N')){
+      $scope.newMeasure.function.parameter.next_parameter = jQuery.extend(true,{},$scope.nextPara);
+    }
+    return true;
+  }
+}
 });
 
 var NextParameterModalCtrl = function ($scope, scope,para,$modalInstance,cubeConfig, CubeService, MessageService, $location, SweetAlert,ProjectModel, loadingRequest,ModelService,language,kylinCommon) {
@@ -438,3 +497,4 @@ var NextParameterModalCtrl = function ($scope, scope,para,$modalInstance,cubeCon
   }
 
 }
+
