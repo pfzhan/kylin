@@ -22,7 +22,7 @@
     <div class="dataTables_wrapper form-inline no-footer">
         <div class="row">
             <div class="col-xs-6" ng-if="state.mode=='edit'">
-                <button type="button" class="btn btn-default" ng-disabled="!metaModel.model.fact_table.length||instance.status=='READY'"
+                <button type="button" class="btn btn-info" ng-disabled="!metaModel.model.fact_table.length||instance.status=='READY'"
                         ng-click="openAutoGenModal()" >
                     <i class="fa fa-building-o"></i> {{dataKylin.cube.cubeDSAddDimensions}}
                 </button>
@@ -213,8 +213,8 @@
             </ng-form>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-warning" ng-click="cancel()">{{dataKylin.cube.ac_cancel_cube}}</button>
-            <button class="btn btn-primary" ng-disabled="edit_dim_form.$invalid" ng-click="checkDimension()?ok():''">{{dataKylin.cube.ac_ok_cube}}</button>
+            <button class="btn btn-default" ng-click="cancel()">{{dataKylin.cube.ac_cancel_cube}}</button>
+            <button class="btn btn-success" ng-disabled="edit_dim_form.$invalid" ng-click="checkDimension()?ok():''">{{dataKylin.cube.ac_ok_cube}}</button>
         </div>
     </script>
 
@@ -299,8 +299,8 @@
             </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-warning" ng-click="cancel()">{{dataKylin.cube.ac_cancel_cube}}</button>
-            <button class="btn btn-primary" ng-disabled="" ng-click="checkAutoDimension()?ok():''">{{dataKylin.cube.ac_ok_cube}}</button>
+          <button class="btn btn-default" ng-click="cancel()">{{dataKylin.cube.ac_cancel_cube}}</button>
+            <button class="btn btn-success" ng-disabled="" ng-click="checkAutoDimension()?ok():''">{{dataKylin.cube.ac_ok_cube}}</button>
 
         </div>
     </script>

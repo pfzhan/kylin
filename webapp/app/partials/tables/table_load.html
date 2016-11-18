@@ -27,7 +27,7 @@
                       placeholder="{{dataKylin.data_source.plac_table_with_comma}}"></textarea>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-primary" ng-click="cancel()">{{dataKylin.data_source.cancel}}</button>
+      <button class="btn btn-default" ng-click="cancel()">{{dataKylin.data_source.cancel}}</button>
       <button class="btn btn-success" ng-click="add()">{{dataKylin.data_source.sync}}</button>
 
     </div>
@@ -64,7 +64,7 @@
             {{dataKylin.data_source.next}}
             <i class="ace-icon fa fa-arrow-right icon-on-right"></i>
           </button>
-          <button class="btn btn-primary" ng-click="syncStreamingSchema()" ng-show="steps.curStep==2">
+          <button class="btn btn-success" ng-click="syncStreamingSchema()" ng-show="steps.curStep==2">
             {{dataKylin.data_source.submit}}
           </button>
         </div>
@@ -94,7 +94,7 @@
         </div>
       </div>
       <div class="col-xs-4">
-        <button class="btn btn-primary" ng-click="updateStreamingSchema()">
+        <button class="btn btn-success" ng-click="updateStreamingSchema()">
           {{dataKylin.data_source.submit}}
         </button>
       </div>

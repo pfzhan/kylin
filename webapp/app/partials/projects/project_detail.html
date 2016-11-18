@@ -92,10 +92,10 @@
                 <td>{{item.filter_resource_identifier}}</td>
                 <td>{{item.description}}</td>
                 <td>
-                  <button class="btn btn-xs btn-info" ng-click="toEditFilter(project.name,extFilters,item)" tooltip="{{dataKylin.project.ac_project_edit}}"
+                  <button class="btn btn-xs btn-default" ng-click="toEditFilter(project.name,extFilters,item)" tooltip="{{dataKylin.project.ac_project_edit}}"
                           ng-disabled="!(userService.hasRole('ROLE_ADMIN') || hasPermission(project, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask))">
                     <i class="fa fa-pencil"></i></button>
-                  <button class="btn btn-xs btn-danger" ng-click="deleteFilter(extFilters,item,project)" tooltip="{{dataKylin.project.ac_project_delete}}"
+                  <button class="btn btn-xs btn-success" ng-click="deleteFilter(extFilters,item,project)" tooltip="{{dataKylin.project.ac_project_delete}}"
                           ng-disabled="!(userService.hasRole('ROLE_ADMIN') || hasPermission(project, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask))"
                   ><i class="fa fa-trash-o"></i></button>
 

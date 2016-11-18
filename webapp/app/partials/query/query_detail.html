@@ -114,7 +114,7 @@
             <div style="width: 100%;padding-top: 5px" ng-if="curQuery.result.hasMore">
                 <div>
                     <div>
-                        <button class="btn btn-default btn-sm" style="float: none;width: 100%"
+                        <button class="btn btn-success btn-sm" style="float: none;width: 100%"
                                 ng-click="loadMore(curQuery)" ng-disabled="curQuery.result.loading">
                             <i class="icon-plus icon-white"></i> <span>{{ curQuery.result.loading ? dataKylin.insight.tip_loading : dataKylin.insight.tip_more}}</span>
                         </button>
@@ -263,8 +263,8 @@
         </form>
     </div>
     <div class="modal-footer">
-        <button class="btn btn-primary" ng-click="cancel()">{{dataKylin.insight.ac_close}}</button>
-        <button class="btn btn-primary" ng-click="saveQuery(curQuery)" ng-disabled="save_query_form.$invalid">{{dataKylin.insight.ac_save}}
+        <button class="btn btn-default" ng-click="cancel()">{{dataKylin.insight.ac_close}}</button>
+        <button class="btn btn-success" ng-click="saveQuery(curQuery)" ng-disabled="save_query_form.$invalid">{{dataKylin.insight.ac_save}}
         </button>
     </div>
 </script>

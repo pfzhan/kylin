@@ -60,14 +60,14 @@
     <loading ng-if="!hiveLoaded" text="{{dataKylin.data_source.tip_loading_databases}}"></loading>
     <treecontrol class="tree-light check" tree-model="treedata" selected-nodes="selectedNodes" filter-expression="predicate" on-selection="showSelected(node)" on-node-toggle="showToggle(node)" options="treeOptions">
       <div ng-if="node.label==''&&node.id==0"><img src="image/ajax-loader.gif">{{dataKylin.data_source.tip_loading_tables}}</div>
-      <button class="btn btn-xs btn-primary" ng-if="node.label==''&&node.id==65535" ng-click="showMoreClicked($parentNode)">{{dataKylin.data_source.ac_show_more}}</button>
-      <button class="btn btn-xs btn-primary" ng-if="node.label==''&&node.id==65535" ng-click="showAllClicked($parentNode)">{{dataKylin.data_source.ac_show_all}}</button>
+      <button class="btn btn-xs btn-default" ng-if="node.label==''&&node.id==65535" ng-click="showMoreClicked($parentNode)">{{dataKylin.data_source.ac_show_more}}</button>
+      <button class="btn btn-xs btn-default" ng-if="node.label==''&&node.id==65535" ng-click="showAllClicked($parentNode)">{{dataKylin.data_source.ac_show_all}}</button>
       {{node.label}}
     </treecontrol>
   </div>
 
   <div class="modal-footer">
-    <button class="btn btn-primary" ng-click="cancel()">{{dataKylin.data_source.cancel}}</button>
+    <button class="btn btn-default" ng-click="cancel()">{{dataKylin.data_source.cancel}}</button>
     <button class="btn btn-success" ng-click="add()">{{dataKylin.data_source.sync}}</button>
   </div>
 
