@@ -43,6 +43,10 @@ public class KapModelService extends BasicService {
         ColumnDesc[] columns = tableDesc.getColumns();
         TableExtDesc tableExt = getMetadataManager().getTableExt(tableName);
         List<TableExtDesc.ColumnStats> columnStats = tableExt.getColumnStats();
+        if (columnStats.size() != columns.length) {
+            // No Stats Data
+            return result;
+        }
         for (int i = 0; i < columns.length; i++) {
             ColumnDesc column = columns[i];
             TableExtDesc.ColumnStats stat = columnStats.get(i);

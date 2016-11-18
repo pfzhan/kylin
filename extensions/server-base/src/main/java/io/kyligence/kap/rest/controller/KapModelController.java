@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -54,7 +55,7 @@ public class KapModelController extends BasicController {
      *
      * @return suggestion map
      */
-    @RequestMapping(value = "/{table}/suggestions", method = { RequestMethod.GET })
+    @RequestMapping(value = "table_suggestions", method = { RequestMethod.GET })
     @ResponseBody
     public Map<ColumnDesc, KapModelService.MODEL_COLUMN_SUGGESTION> getModelSuggestions(@RequestParam(value = "table") String table) throws IOException {
         Map<ColumnDesc, KapModelService.MODEL_COLUMN_SUGGESTION> result = kapModelService.inferSuggestions(table);

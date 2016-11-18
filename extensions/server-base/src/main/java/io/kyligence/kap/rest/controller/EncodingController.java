@@ -24,32 +24,38 @@
 
 package io.kyligence.kap.rest.controller;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.rest.controller.BasicController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import io.kyligence.kap.rest.service.ConfigService;
+import io.kyligence.kap.rest.service.EncodingService;
 
 @Controller
-@Component("configController")
-@RequestMapping(value = "/config")
-public class ConfigController extends BasicController {
+@RequestMapping(value = "/encodings")
+public class EncodingController extends BasicController {
 
-    private static final Logger logger = LoggerFactory.getLogger(ConfigController.class);
+    private static final Logger logger = LoggerFactory.getLogger(EncodingController.class);
 
     @Autowired
-    private ConfigService configService;
+    private EncodingService encodingService;
 
-    @RequestMapping(value = "default", method = { RequestMethod.GET })
+    /**
+     * Get valid encodings for the datatype, if no datatype parameter, return all encodings.
+     *
+     * @return suggestion map
+     */
+    @RequestMapping(value = "valid", method = { RequestMethod.GET })
     @ResponseBody
-    public String getDefaultValue(@RequestParam("key") String key) {
-        return configService.getDefaultValue(key);
+    public String[] getValidEncodings(@RequestParam(value = "datatype", required = false) String datatypeArg) {
+        DataType dataType = DataType.getType(datatypeArg);
+        return encodingService.getValidEncodings(dataType);
     }
 }
