@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.junit.Test;
 
-import io.kyligence.kap.engine.mr.steps.HiveSampler;
+import io.kyligence.kap.engine.mr.tablestats.HiveTableExtSampler;
 import junit.framework.TestCase;
 
 public class HiveStatisticsTest extends TestCase {
@@ -13,7 +13,7 @@ public class HiveStatisticsTest extends TestCase {
     public void testHiveSample() {
         String[] stringValues = { "I love China", "麒麟最牛逼啊", "USA", "what is your name", "yes, I like it", "true", "Dinner is perfect", "Not very good" };
         String[] decimalValues = { "1.232323232434", "3.23232323", "-1.3232", "434.223232", "232.22323" };
-        HiveSampler sampler = new HiveSampler();
+        HiveTableExtSampler sampler = new HiveTableExtSampler();
         sampler.setDataType("varchar");
         sampler.setCounter("12");
 
@@ -30,7 +30,7 @@ public class HiveStatisticsTest extends TestCase {
         assertEquals(sampler.getMaxLenValue(), "麒麟最牛逼啊");
         sampler.clean();
 
-        sampler = new HiveSampler();
+        sampler = new HiveTableExtSampler();
         sampler.setDataType("decimal");
 
         for (int i = 0; i < decimalValues.length; i++) {
@@ -49,7 +49,7 @@ public class HiveStatisticsTest extends TestCase {
     @Test
     public void testSampleRaw() {
 
-        HiveSampler sampler = new HiveSampler();
+        HiveTableExtSampler sampler = new HiveTableExtSampler();
         sampler.setDataType("varchar");
         List<String> rawList = new ArrayList<>();
         for (int i = 0; i < 1000000; i++) {

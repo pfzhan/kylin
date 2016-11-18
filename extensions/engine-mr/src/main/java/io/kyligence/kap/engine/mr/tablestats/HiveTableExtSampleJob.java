@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.mr.steps;
+package io.kyligence.kap.engine.mr.tablestats;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -52,8 +52,13 @@ public class HiveTableExtSampleJob extends CubingJob {
     private static final String PROJECT_INSTANCE_NAME = "projectName";
     private static final String STATISTIC_JOB_ID = "jobId";
 
-    public static String createSampleJob(String project, String submitter, String table) throws IOException {
-        return initSampleJob(project, submitter, table);
+    public static List<String> createSampleJob(String project, String submitter, String... tables) throws IOException {
+        List<String> jobIDs = new ArrayList<>();
+        for (String table : tables) {
+            String jobID = initSampleJob(project, submitter, table);
+            jobIDs.add(jobID);
+        }
+        return jobIDs;
     }
 
     public static List<String> createSampleJob(String project, String submitter) throws IOException {

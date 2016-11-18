@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.mr.steps;
+package io.kyligence.kap.engine.mr.tablestats;
 
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
@@ -36,7 +36,7 @@ import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 
 import com.google.common.collect.Maps;
 
-public class HiveSampler {
+public class HiveTableExtSampler {
 
     public static final int HASH_SEED = 47;
     public static final int SAMPLE_RAW_VALUE_NUMBER = 10;
@@ -70,7 +70,7 @@ public class HiveSampler {
     private SamplerCoder samplerCoder;
     private int rawSampleIndex = 0;
 
-    public HiveSampler() {
+    public HiveTableExtSampler() {
         //special samples
         sampleValues.put("max_value", null);
         sampleValues.put("min_value", null);
@@ -100,7 +100,7 @@ public class HiveSampler {
         if (clz == null)
             throw new RuntimeException("No DataTypeImplementor for type " + dataType);
         try {
-            implementor = (DataTypeImplementor) clz.getDeclaredConstructor(HiveSampler.class).newInstance(this);
+            implementor = (DataTypeImplementor) clz.getDeclaredConstructor(HiveTableExtSampler.class).newInstance(this);
         } catch (InstantiationException e) {
             throw new RuntimeException(e);
         } catch (IllegalAccessException e) {
@@ -195,7 +195,7 @@ public class HiveSampler {
         }
     }
 
-    public void merge(HiveSampler another) {
+    public void merge(HiveTableExtSampler another) {
 
         if (this == another)
             return;

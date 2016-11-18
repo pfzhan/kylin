@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.rest.constant.Constant;
@@ -32,13 +33,13 @@ import org.apache.kylin.rest.service.BasicService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 
-import io.kyligence.kap.engine.mr.steps.HiveTableExtSampleJob;
+import io.kyligence.kap.engine.mr.tablestats.HiveTableExtSampleJob;
 
 @Component("tableExtService")
 public class TableExtService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public String extractTableExt(String project, String submitter, String tableName) throws IOException {
+    public List<String> extractTableExt(String project, String submitter, String tableName) throws IOException {
         return HiveTableExtSampleJob.createSampleJob(project, submitter, tableName);
     }
 

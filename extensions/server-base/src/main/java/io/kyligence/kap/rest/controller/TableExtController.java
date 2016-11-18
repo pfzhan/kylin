@@ -25,6 +25,8 @@
 package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.kylin.job.JobInstance;
 import org.apache.kylin.job.exception.JobException;
@@ -58,11 +60,15 @@ public class TableExtController extends BasicController {
         return tableExtDesc;
     }
 
-    @RequestMapping(value = "/{project}/{tableName}", method = { RequestMethod.GET })
+    @RequestMapping(value = "/{project}/{tableName}/sample_job", method = { RequestMethod.PUT })
     @ResponseBody
-    public JobInstance sample(@PathVariable String project, @PathVariable String tableName) throws IOException, JobException {
+    public List<JobInstance> sample(@PathVariable String project, @PathVariable String tableName) throws IOException, JobException {
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
-        String jobID = tableExtService.extractTableExt(project, submitter, tableName);
-        return jobService.getJobInstance(jobID);
+        List<String> jobIDs = tableExtService.extractTableExt(project, submitter, tableName);
+        List<JobInstance> jobInstanceList = new ArrayList<>();
+        for (String jobID : jobIDs) {
+            jobInstanceList.add(jobService.getJobInstance(jobID));
+        }
+        return jobInstanceList;
     }
 }

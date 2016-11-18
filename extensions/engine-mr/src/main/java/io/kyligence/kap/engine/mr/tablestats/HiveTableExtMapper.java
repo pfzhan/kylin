@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.mr.steps;
+package io.kyligence.kap.engine.mr.tablestats;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -44,7 +44,7 @@ import org.apache.kylin.metadata.model.TableDesc;
 
 public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, BytesWritable> {
 
-    private Map<Integer, HiveSampler> samplerMap = new HashMap<Integer, HiveSampler>();
+    private Map<Integer, HiveTableExtSampler> samplerMap = new HashMap<Integer, HiveTableExtSampler>();
 
     private int counter = 0;
 
@@ -62,7 +62,7 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
         tableInputFormat = MRUtil.getTableInputFormat(tableDesc);
         ColumnDesc[] columns = tableDesc.getColumns();
         for (int i = 0; i < columns.length; i++) {
-            HiveSampler sampler = new HiveSampler();
+            HiveTableExtSampler sampler = new HiveTableExtSampler();
             sampler.setDataType(columns[i].getType().getName());
             samplerMap.put(i, sampler);
         }
@@ -91,7 +91,7 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
         Iterator<Integer> it = samplerMap.keySet().iterator();
         while (it.hasNext()) {
             int key = it.next();
-            HiveSampler sampler = samplerMap.get(key);
+            HiveTableExtSampler sampler = samplerMap.get(key);
             sampler.setCounter(String.valueOf(counter));
             sampler.code();
             context.write(new IntWritable(key), new BytesWritable(sampler.getBuffer().array(), sampler.getBuffer().limit()));

@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
-import io.kyligence.kap.engine.mr.steps.HiveTableExtSampleJob;
+import io.kyligence.kap.engine.mr.tablestats.HiveTableExtSampleJob;
 import io.kyligence.kap.engine.mr.steps.KapBaseCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapInMemCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapNDCuboidJob;
@@ -69,7 +69,6 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
         logger.info("MR_V2 new job to BUILD segment " + seg);
 
         try {
-            //DataSourceStatisticJob.createStatisticJob("learn_kylin",submitter,null);
             HiveTableExtSampleJob.createSampleJob("learn_kylin", submitter, "kylin_sales");
         } catch (IOException e) {
             e.printStackTrace();

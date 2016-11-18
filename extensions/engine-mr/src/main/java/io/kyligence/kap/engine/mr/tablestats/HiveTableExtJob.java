@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.mr.steps;
+package io.kyligence.kap.engine.mr.tablestats;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;

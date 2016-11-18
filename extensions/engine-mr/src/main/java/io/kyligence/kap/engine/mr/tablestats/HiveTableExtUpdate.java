@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.mr.steps;
+package io.kyligence.kap.engine.mr.tablestats;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -103,7 +103,7 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
         List<TableExtDesc.ColumnStats> columnStatsList = new ArrayList<>();
         List<String[]> sampleRows = new ArrayList<>();
         Iterator<String> it = columns.iterator();
-        HiveSampler sampler = new HiveSampler();
+        HiveTableExtSampler sampler = new HiveTableExtSampler();
         String counter = "0";
         while (it.hasNext()) {
             String string = (String) it.next();

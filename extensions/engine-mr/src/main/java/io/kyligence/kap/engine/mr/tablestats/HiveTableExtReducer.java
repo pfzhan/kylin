@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.mr.steps;
+package io.kyligence.kap.engine.mr.tablestats;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -41,7 +41,7 @@ import org.apache.kylin.engine.mr.KylinReducer;
 public class HiveTableExtReducer extends KylinReducer<IntWritable, BytesWritable, IntWritable, Text> {
 
     public static final int ONE = 1;
-    private Map<Integer, HiveSampler> sampleMap = new HashMap<Integer, HiveSampler>();
+    private Map<Integer, HiveTableExtSampler> sampleMap = new HashMap<Integer, HiveTableExtSampler>();
     protected Text outputValue = new Text();
 
     @Override
@@ -54,7 +54,7 @@ public class HiveTableExtReducer extends KylinReducer<IntWritable, BytesWritable
         int skey = key.get();
         for (BytesWritable v : values) {
             ByteBuffer buffer = ByteBuffer.wrap(v.getBytes());
-            HiveSampler sampler = new HiveSampler();
+            HiveTableExtSampler sampler = new HiveTableExtSampler();
             sampler.decode(buffer);
             if (!sampleMap.containsKey(skey))
                 sampleMap.put(skey, sampler);
@@ -76,7 +76,7 @@ public class HiveTableExtReducer extends KylinReducer<IntWritable, BytesWritable
         it = keys.iterator();
         while (it.hasNext()) {
             int key = it.next();
-            HiveSampler sampler = sampleMap.get(key);
+            HiveTableExtSampler sampler = sampleMap.get(key);
             outputValue.set(sampler.outPutSamplesWithSplit().getBytes(), 0, sampler.outPutSamplesWithSplit().length());
             context.write(new IntWritable(key), outputValue);
         }
