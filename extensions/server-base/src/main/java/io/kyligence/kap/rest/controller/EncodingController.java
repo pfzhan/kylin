@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.rest.controller;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.rest.controller.BasicController;
 import org.slf4j.Logger;
