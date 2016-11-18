@@ -50,7 +50,8 @@ public class HiveTableExtSampleJob extends CubingJob {
     private static final Logger logger = LoggerFactory.getLogger(HiveTableExtSampleJob.class);
     private static final String DEPLOY_ENV_NAME = "envName";
     private static final String PROJECT_INSTANCE_NAME = "projectName";
-    private static final String STATISTIC_JOB_ID = "jobId";
+    private static final String CARDINALITY = "cardinality";
+    private static final String SAMPLES = "samples";
 
     public static List<String> createSampleJob(String project, String submitter, String... tables) throws IOException {
         List<String> jobIDs = new ArrayList<>();
@@ -91,6 +92,7 @@ public class HiveTableExtSampleJob extends CubingJob {
         calculateSamples(result, table, config);
 
         ExecutableManager.getInstance(config).addJob(result);
+        logger.info("Start HiveTableExt job: " + result.getId());
         return result.getId();
     }
 
@@ -102,14 +104,14 @@ public class HiveTableExtSampleJob extends CubingJob {
             throw new IllegalArgumentException("Cannot find table descirptor " + tableName);
         }
 
-        String outPath = HiveTableExtJob.OUTPUT_PATH + "/" + table.getIdentity();
-        String param = "-table " + tableName + " -output " + outPath;
+        String samplesOutPath = getOutputPath(config, result.getId(), HiveTableExtSampleJob.SAMPLES) + table.getIdentity();
+        String samplesParam = "-table " + tableName + " -output " + samplesOutPath;
 
         MapReduceExecutable step1 = new MapReduceExecutable();
 
         step1.setName("Extract Samples from " + tableName);
         step1.setMapReduceJobClass(HiveTableExtJob.class);
-        step1.setMapReduceParams(param);
+        step1.setMapReduceParams(samplesParam);
 
         result.addTask(step1);
 
@@ -117,17 +119,17 @@ public class HiveTableExtSampleJob extends CubingJob {
 
         step2.setName("Update " + tableName + " Samples to MetaData");
         step2.setJobClass(HiveTableExtUpdate.class);
-        step2.setJobParams(param);
+        step2.setJobParams(samplesParam);
         result.addTask(step2);
 
-        String outPath1 = HiveColumnCardinalityJob.OUTPUT_PATH + "/" + table.getIdentity();
-        String param1 = "-table " + tableName + " -output " + outPath1;
+        String cardinalityOutPath = getOutputPath(config, result.getId(), HiveTableExtSampleJob.CARDINALITY) + table.getIdentity();
+        String cardinalityParam = "-table " + tableName + " -output " + cardinalityOutPath;
 
         MapReduceExecutable step3 = new MapReduceExecutable();
 
         step3.setName("Extract Cardinality from " + tableName);
         step3.setMapReduceJobClass(HiveColumnCardinalityJob.class);
-        step3.setMapReduceParams(param1);
+        step3.setMapReduceParams(cardinalityParam);
 
         result.addTask(step3);
 
@@ -135,7 +137,7 @@ public class HiveTableExtSampleJob extends CubingJob {
 
         step4.setName("Update " + tableName + "' Cardinality to MetaData");
         step4.setJobClass(HiveColumnCardinalityUpdateJob.class);
-        step4.setJobParams(param1);
+        step4.setJobParams(cardinalityParam);
         result.addTask(step4);
 
         table_ext.setJodID(result.getId());
@@ -163,7 +165,7 @@ public class HiveTableExtSampleJob extends CubingJob {
         return false;
     }
 
-    public static String[] getTableFromProject(String project) throws IOException {
+    private static String[] getTableFromProject(String project) throws IOException {
 
         List<TableDesc> tables = ProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listDefinedTables(project);
         if (null == tables)
@@ -176,6 +178,10 @@ public class HiveTableExtSampleJob extends CubingJob {
         }
 
         return tableNames;
+    }
+
+    private static String getOutputPath(KylinConfig config, String jobID, String tag) {
+        return config.getHdfsWorkingDirectory() + jobID + "/" + tag + "/";
     }
 
     private void setDeployEnvName(String name) {

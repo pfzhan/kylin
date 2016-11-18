@@ -50,8 +50,6 @@ public class HiveTableExtJob extends AbstractHadoopJob {
     @SuppressWarnings("static-access")
     protected static final Option OPTION_TABLE = OptionBuilder.withArgName("table name").hasArg().isRequired(true).withDescription("The hive table name").create("table");
 
-    public static final String OUTPUT_PATH = BatchConstants.CFG_KYLIN_HDFS_TEMP_DIR + "samples";
-
     public HiveTableExtJob() {
     }
 
@@ -74,11 +72,13 @@ public class HiveTableExtJob extends AbstractHadoopJob {
         JobEngineConfig jobEngineConfig = new JobEngineConfig(kylinConfig);
         conf.addResource(new Path(jobEngineConfig.getHadoopJobConfFilePath(null)));
 
+        String table = getOptionValue(OPTION_TABLE);
+        TableDesc tableDesc = MetadataManager.getInstance(kylinConfig).getTableDesc(table);
+
         job = Job.getInstance(conf, jobName);
 
         setJobClasspath(job, kylinConfig);
 
-        String table = getOptionValue(OPTION_TABLE);
         job.getConfiguration().set(BatchConstants.CFG_TABLE_NAME, table);
 
         Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
@@ -98,13 +98,12 @@ public class HiveTableExtJob extends AbstractHadoopJob {
         job.setOutputFormatClass(TextOutputFormat.class);
         job.setOutputKeyClass(IntWritable.class);
         job.setOutputValueClass(Text.class);
-        job.setNumReduceTasks(1);
+        job.setNumReduceTasks(tableDesc.getColumnCount());
 
         this.deletePath(job.getConfiguration(), output);
 
         logger.info("Going to submit Hive Sample Job for table '" + table + "'");
 
-        TableDesc tableDesc = MetadataManager.getInstance(kylinConfig).getTableDesc(table);
         attachKylinPropsAndMetadata(tableDesc, job.getConfiguration());
         int result = waitForCompletion(job);
 

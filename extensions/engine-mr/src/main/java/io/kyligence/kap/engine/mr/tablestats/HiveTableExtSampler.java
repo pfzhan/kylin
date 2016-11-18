@@ -125,6 +125,9 @@ public class HiveTableExtSampler {
             buf.clear();
             buf = null;
         }
+
+        sampleValues.clear();
+        samplerCoder = null;
     }
 
     @Override

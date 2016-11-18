@@ -8,7 +8,7 @@ import org.junit.Test;
 import io.kyligence.kap.engine.mr.tablestats.HiveTableExtSampler;
 import junit.framework.TestCase;
 
-public class HiveStatisticsTest extends TestCase {
+public class HiveTableExtTest extends TestCase {
     @Test
     public void testHiveSample() {
         String[] stringValues = { "I love China", "麒麟最牛逼啊", "USA", "what is your name", "yes, I like it", "true", "Dinner is perfect", "Not very good" };
