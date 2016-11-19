@@ -130,7 +130,9 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
 
         MessageType schema = new MessageType(rawTableDesc.getName(), types);
         tmpPath = new Path(tmpDir, String.valueOf(curShardId));
-        rawWriter = new ParquetRawWriterBuilder().setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage()).setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression()).setConf(config).setType(schema).setPath(tmpPath).build();
+        rawWriter = new ParquetRawWriterBuilder().setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage())//
+                .setPagesPerGroup(KapConfig.getInstanceFromEnv().getParquetPagesPerGroup())//
+                .setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression()).setConf(config).setType(schema).setPath(tmpPath).build();
         return rawWriter;
     }
 

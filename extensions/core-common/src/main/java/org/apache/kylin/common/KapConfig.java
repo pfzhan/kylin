@@ -75,6 +75,10 @@ public class KapConfig {
         return Integer.parseInt(config.getOptional("kap.storage.columnar.rows.per.page", String.valueOf(10000)));
     }
 
+    public int getParquetPagesPerGroup() {
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.pages.per.group", String.valueOf(10)));
+    }
+
     public int getParquetPageIndexStepMax() {
         return Integer.parseInt(config.getOptional("kap.storage.columnar.ii.step.max", String.valueOf(10000)));
     }
