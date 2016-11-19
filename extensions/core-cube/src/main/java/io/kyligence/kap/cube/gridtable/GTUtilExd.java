@@ -31,21 +31,18 @@ import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTUtil;
-import org.apache.kylin.metadata.datatype.DataTypeSerializer;
-import org.apache.kylin.metadata.datatype.DateTimeSerializer;
 import org.apache.kylin.metadata.filter.BuiltInFunctionTupleFilter;
 import org.apache.kylin.metadata.filter.ColumnTupleFilter;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.ConstantTupleFilter;
-import io.kyligence.kap.metadata.filter.EvaluatableFunctionTupleFilter;
 import org.apache.kylin.metadata.filter.IFilterCodeSystem;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.raw.RawColumnCodec;
-import io.kyligence.kap.metadata.filter.TupleFilterSerializerExt;
+import io.kyligence.kap.metadata.filter.EvaluatableFunctionTupleFilter;
+import io.kyligence.kap.metadata.filter.TupleFilterSerializerRawTableExt;
 
 public class GTUtilExd extends GTUtil {
 
@@ -53,25 +50,18 @@ public class GTUtilExd extends GTUtil {
         return cuboid.getColumns().get(mockUpCol.getColumnDesc().getZeroBasedIndex());
     }
 
-    public static TupleFilter kapConvertFilterColumnsAndConstants(TupleFilter rootFilter, GTInfo info, //
-            List<TblColRef> colMapping, Set<TblColRef> unevaluatableColumnCollector) {
-        return kapConvertFilter(rootFilter, info, colMapping, true, unevaluatableColumnCollector);
-    }
-
     // converts TblColRef to GridTable column, encode constants, drop unEvaluatable parts
-    private static TupleFilter kapConvertFilter(TupleFilter rootFilter, final GTInfo info, //
+    public static TupleFilter convertFilterColumnsAndConstantsForRawTable(TupleFilter rootFilter, final GTInfo info, //
             final List<TblColRef> colMapping, final boolean encodeConstants, //
             final Set<TblColRef> unevaluatableColumnCollector) {
 
         IFilterCodeSystem<ByteArray> filterCodeSystem = wrap(info.getCodeSystem().getComparator());
-
-        byte[] bytes = TupleFilterSerializerExt.serialize(rootFilter, new KapGTConvertDecorator(unevaluatableColumnCollector, colMapping, info, encodeConstants), filterCodeSystem);
-
-        return TupleFilterSerializerExt.deserialize(bytes, filterCodeSystem);
+        byte[] bytes = TupleFilterSerializerRawTableExt.serialize(rootFilter, new RawTableGTConvertDecorator(unevaluatableColumnCollector, colMapping, info, encodeConstants), filterCodeSystem);
+        return TupleFilterSerializerRawTableExt.deserialize(bytes, filterCodeSystem);
     }
 
-    private static class KapGTConvertDecorator extends GTConvertDecorator {
-        public KapGTConvertDecorator(Set<TblColRef> unevaluatableColumnCollector, List<TblColRef> colMapping, GTInfo info, boolean encodeConstants) {
+    private static class RawTableGTConvertDecorator extends GTConvertDecorator {
+        public RawTableGTConvertDecorator(Set<TblColRef> unevaluatableColumnCollector, List<TblColRef> colMapping, GTInfo info, boolean encodeConstants) {
             super(unevaluatableColumnCollector, colMapping, info, encodeConstants);
         }
 
@@ -87,7 +77,7 @@ public class GTUtilExd extends GTUtil {
             }
 
             // shortcut for unEvaluatable filter
-            if (!filter.isEvaluable() || !isFilterEvaluatable(filter)) {
+            if (!filter.isEvaluable()) {
                 TupleFilter.collectColumns(filter, unevaluatableColumnCollector);
                 return ConstantTupleFilter.TRUE;
             }
@@ -108,26 +98,6 @@ public class GTUtilExd extends GTUtil {
             }
 
             return filter;
-        }
-
-        private boolean isFilterEvaluatable(TupleFilter filter) {
-            if (!(filter instanceof CompareTupleFilter)) {
-                return true;
-            }
-            CompareTupleFilter compareTupleFilter = (CompareTupleFilter) filter;
-            TupleFilter.FilterOperatorEnum operatorEnum = compareTupleFilter.getOperator();
-            if (operatorEnum == TupleFilter.FilterOperatorEnum.GT || operatorEnum == TupleFilter.FilterOperatorEnum.GTE || //
-                    operatorEnum == TupleFilter.FilterOperatorEnum.LT || operatorEnum == TupleFilter.FilterOperatorEnum.LTE) {
-                //TODO: due to https://github.com/Kyligence/KAP/issues/96, < and > are restricted
-                DataTypeSerializer<?> dataTypeSerializer = RawColumnCodec.createSerializer(compareTupleFilter.getColumn().getType());
-                if (dataTypeSerializer instanceof DateTimeSerializer) {
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-
-            return true;
         }
 
         @SuppressWarnings({ "rawtypes", "unchecked" })

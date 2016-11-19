@@ -52,7 +52,7 @@ import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.metadata.filter.TupleFilterSerializerExt;
+import io.kyligence.kap.metadata.filter.TupleFilterSerializerRawTableExt;
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetOrderedPageIndexTable;
@@ -111,8 +111,8 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
                 //for Rawtable filters, replace all the literals with hash value first
                 TupleFilterLiteralHasher decorator = new TupleFilterLiteralHasher();
                 IFilterCodeSystem<ByteArray> wrap = GTUtil.wrap(gtScanRequest.getInfo().getCodeSystem().getComparator());
-                byte[] serialize = TupleFilterSerializerExt.serialize(filter, decorator, wrap);
-                TupleFilter hashedFilter = TupleFilterSerializerExt.deserialize(serialize, wrap);
+                byte[] serialize = TupleFilterSerializerRawTableExt.serialize(filter, decorator, wrap);
+                TupleFilter hashedFilter = TupleFilterSerializerRawTableExt.deserialize(serialize, wrap);
 
                 logger.info("Starting to lookup inverted index");
                 pageBitmap = indexTable.lookup(hashedFilter);

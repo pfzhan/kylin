@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.cube.raw.gridtable.RawTableScanRangePlanner;
 import io.kyligence.kap.metadata.filter.EvaluatableFunctionTransformer;
-import io.kyligence.kap.metadata.filter.TupleFilterSerializerExt;
+import io.kyligence.kap.metadata.filter.TupleFilterSerializerRawTableExt;
 
 public class RawTableSegmentScanner implements IGTScanner {
 
@@ -61,8 +61,8 @@ public class RawTableSegmentScanner implements IGTScanner {
         //the filter might be changed later in this SegmentScanner (In EvaluatableLikeFunctionTransformer)
         //to avoid issues like in https://issues.apache.org/jira/browse/KYLIN-1954, make sure each SegmentScanner
         //is working on its own copy
-        byte[] serialize = TupleFilterSerializerExt.serialize(originalfilter, StringCodeSystem.INSTANCE);
-        TupleFilter filter = TupleFilterSerializerExt.deserialize(serialize, StringCodeSystem.INSTANCE);
+        byte[] serialize = TupleFilterSerializerRawTableExt.serialize(originalfilter, StringCodeSystem.INSTANCE);
+        TupleFilter filter = TupleFilterSerializerRawTableExt.deserialize(serialize, StringCodeSystem.INSTANCE);
 
         //this is where CubeSegmentScanner does BuildInFunctionTransformer
         filter = EvaluatableFunctionTransformer.transform(filter);

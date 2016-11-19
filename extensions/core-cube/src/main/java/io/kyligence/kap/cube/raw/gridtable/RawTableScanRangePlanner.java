@@ -75,7 +75,7 @@ public class RawTableScanRangePlanner extends ScanRangePlannerBase {
         this.rangeStartEndComparator = RecordComparators.getRangeStartEndComparator(comp);
 
         //replace the constant values in filter to dictionary codes 
-        this.gtFilter = GTUtilExd.kapConvertFilterColumnsAndConstants(filter, gtInfo, mapping.getGtOrderColumns(), groupbyDims);
+        this.gtFilter = GTUtilExd.convertFilterColumnsAndConstantsForRawTable(filter, gtInfo, mapping.getGtOrderColumns(), true, groupbyDims);
 
         this.gtDimensions = mapping.makeGridTableColumns(dimensions);
         this.gtAggrGroups = mapping.makeGridTableColumns(groupbyDims);

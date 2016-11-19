@@ -30,7 +30,7 @@ import org.apache.kylin.metadata.filter.IFilterCodeSystem;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilterSerializer;
 
-public class TupleFilterSerializerExt extends TupleFilterSerializer {
+public class TupleFilterSerializerRawTableExt extends TupleFilterSerializer {
 
     static {
         extendedTupleFilters.put(EVAL_FUNC, EvaluatableFunctionTupleFilter.class);

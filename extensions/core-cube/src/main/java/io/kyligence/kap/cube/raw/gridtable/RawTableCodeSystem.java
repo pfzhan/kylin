@@ -25,10 +25,16 @@
 package io.kyligence.kap.cube.raw.gridtable;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.util.BytesSerializer;
+import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.common.util.ImmutableBitSet;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.dimension.DictionaryDimEnc;
 import org.apache.kylin.dimension.DimensionEncoding;
+import org.apache.kylin.dimension.DimensionEncodingFactory;
 import org.apache.kylin.gridtable.DefaultGTComparator;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.IGTCodeSystem;
@@ -38,6 +44,10 @@ import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.metadata.datatype.OrderedBytesSerializer;
 
 public class RawTableCodeSystem implements IGTCodeSystem {
@@ -46,25 +56,20 @@ public class RawTableCodeSystem implements IGTCodeSystem {
 
     GTInfo info;
 
-    DimensionEncoding[] dimensionEncodings;
+    List<Pair<String, Integer>> encodings;
     DataTypeSerializer[] serializers;
     IGTComparator comparator;
 
     /**
      * 
-     * @param dimensionEncodings is a array whose length equals column number of current GTinfo
-     *                           however each array value is nullable. Null means using OrderedBytes
+     * @param encodings is a array whose length equals column number of current GTinfo
+     *                  var encoding for DataTypeSerializer
+     *                  orderedbytes encoding for OrderedBytesSerializer
+     *                  and other encodings from cube (except for dict)
      */
-    public RawTableCodeSystem(DimensionEncoding[] dimensionEncodings) {
+    public RawTableCodeSystem(List<Pair<String, Integer>> encodings) {
         this.comparator = new DefaultGTComparator();
-        this.dimensionEncodings = dimensionEncodings;
-    }
-
-    /**
-     * temporal , don't use it!
-     */
-    public RawTableCodeSystem() {
-        this.comparator = new DefaultGTComparator();
+        this.encodings = encodings;
     }
 
     @Override
@@ -72,13 +77,38 @@ public class RawTableCodeSystem implements IGTCodeSystem {
         this.info = info;
 
         this.serializers = new DataTypeSerializer[info.getColumnCount()];
+
         for (int i = 0; i < serializers.length; i++) {
-            if (dimensionEncodings != null && dimensionEncodings[i] != null) {
-                logger.info("column {} type {} type name {} will use dimension encoding", i, info.getColumnType(i), info.getColumnType(i).getName());
-                serializers[i] = this.dimensionEncodings[i].asDataTypeSerializer();
+            String encoding;
+            Integer encodingVersion;
+            if (encodings == null || encodings.size() == 0) {
+                encoding = null;
+                encodingVersion = 1;
             } else {
+                encoding = encodings.get(i).getFirst();
+                encodingVersion = encodings.get(i).getSecond();
+            }
+
+            if (encoding == null || RawTableDesc.RAWTABLE_ENCODING_VAR.equals(encoding)) {
+                logger.info("column {} type {} type name {} will use var encoding", i, info.getColumnType(i), info.getColumnType(i).getName());
+                serializers[i] = DataTypeSerializer.create(info.getColumnType(i));
+            } else if (RawTableDesc.RAWTABLE_ENCODING_ORDEREDBYTES.equals(encoding)) {
                 logger.info("column {} type {} type name {} will use ordered bytes encoding", i, info.getColumnType(i), info.getColumnType(i).getName());
                 serializers[i] = OrderedBytesSerializer.createOrdered(info.getColumnType(i));
+            } else {
+                logger.info("column {} type {} type name {} will use dimension encoding", i, info.getColumnType(i), info.getColumnType(i).getName());
+
+                Preconditions.checkState(StringUtils.isNotEmpty(encoding));
+                Object[] encodingConf = DimensionEncoding.parseEncodingConf(encoding);
+                String encodingName = (String) encodingConf[0];
+                String[] encodingArgs = (String[]) encodingConf[1];
+
+                if (DictionaryDimEnc.ENCODING_NAME.equals(encodingName)) {
+                    throw new IllegalArgumentException("Dict encoding is not allowed for raw tables");
+                }
+
+                DimensionEncoding dimensionEncoding = DimensionEncodingFactory.create(encodingName, encodingArgs, encodingVersion);
+                serializers[i] = dimensionEncoding.asDataTypeSerializer();
             }
         }
     }
@@ -140,4 +170,37 @@ public class RawTableCodeSystem implements IGTCodeSystem {
     public int getColumnCount() {
         return serializers.length;
     }
+
+    @SuppressWarnings("unused") //used by reflection
+    public static final BytesSerializer<IGTCodeSystem> serializer = new BytesSerializer<IGTCodeSystem>() {
+        @Override
+        public void serialize(IGTCodeSystem ivalue, ByteBuffer out) {
+            RawTableCodeSystem value = (RawTableCodeSystem) ivalue;
+            if (value.encodings == null) {
+                BytesUtil.writeVInt(-1, out);
+            } else {
+                BytesUtil.writeVInt(value.encodings.size(), out);
+                for (int i = 0; i < value.encodings.size(); i++) {
+                    BytesUtil.writeAsciiString(value.encodings.get(i).getFirst(), out);
+                    BytesUtil.writeVInt(value.encodings.get(i).getSecond(), out);
+                }
+            }
+        }
+
+        @Override
+        public RawTableCodeSystem deserialize(ByteBuffer in) {
+            int length = BytesUtil.readVInt(in);
+            List<Pair<String, Integer>> desEncodings = null;
+            if (length != -1) {
+                desEncodings = Lists.newArrayListWithExpectedSize(length);
+                for (int i = 0; i < length; i++) {
+                    String encodingStr = BytesUtil.readAsciiString(in);
+                    int encodingVersion = BytesUtil.readVInt(in);
+                    desEncodings.add(Pair.newPair(encodingStr, encodingVersion));
+                }
+            }
+            return new RawTableCodeSystem(desEncodings);
+        }
+    };
+
 }

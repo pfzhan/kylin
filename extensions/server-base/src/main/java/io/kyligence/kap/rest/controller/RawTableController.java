@@ -27,7 +27,6 @@ package io.kyligence.kap.rest.controller;
 import java.io.IOException;
 import java.util.UUID;
 
-import io.kyligence.kap.rest.request.RawTableRequest;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -53,6 +52,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 
 import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.rest.request.RawTableRequest;
 import io.kyligence.kap.rest.service.RawTableService;
 
 @Controller

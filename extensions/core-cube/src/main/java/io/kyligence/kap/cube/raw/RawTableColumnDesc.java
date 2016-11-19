@@ -44,6 +44,9 @@ public class RawTableColumnDesc {
     @JsonProperty("encoding")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String encoding;
+    @JsonProperty("encoding_version")
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    private int encodingVersion = 1;
 
     // computed
     private TblColRef column;
@@ -78,6 +81,10 @@ public class RawTableColumnDesc {
 
     public String getEncoding() {
         return encoding;
+    }
+
+    public int getEncodingVersion() {
+        return encodingVersion;
     }
 
     public Boolean getFuzzyIndex() {

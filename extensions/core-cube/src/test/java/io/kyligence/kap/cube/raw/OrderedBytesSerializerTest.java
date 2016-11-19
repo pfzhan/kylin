@@ -27,10 +27,9 @@ import java.util.List;
 
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.kylin.common.util.ImmutableBitSet;
-import org.apache.kylin.dimension.DimensionEncoding;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.metadata.datatype.DataType;
-import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.Before;
@@ -50,7 +49,7 @@ public class OrderedBytesSerializerTest {
     RawTableCodeSystem codeSystem;
     ImmutableBitSet allCols;
 
-    String[] inputs1 = new String[] { null, //
+    String[] inputs1 = new String[]{null, //
             "FFFF", //
             largeBigDecimal.toPlainString(), //
             normalBigDecimal.toPlainString(), //
@@ -66,7 +65,7 @@ public class OrderedBytesSerializerTest {
             "1970-01-01 00:00:00", //
             "1970-01-01 00:00:00", //
     };
-    Object[] expectedOutputs1 = new Object[] { null, //
+    Object[] expectedOutputs1 = new Object[]{null, //
             "FFFF", //
             largeBigDecimal, //
             normalBigDecimal, //
@@ -83,7 +82,7 @@ public class OrderedBytesSerializerTest {
             0L, //
     };
 
-    String[] inputs2 = new String[] { null, //
+    String[] inputs2 = new String[]{null, //
             "FFFF", //
             largeBigDecimal.negate().toPlainString(), //
             normalBigDecimal.negate().toPlainString(), //
@@ -99,7 +98,7 @@ public class OrderedBytesSerializerTest {
             "1970-01-01 00:00:00", //
             "1970-01-01 00:00:00", //
     };
-    Object[] expectedOutputs2 = new Object[] { null, //
+    Object[] expectedOutputs2 = new Object[]{null, //
             "FFFF", //
             largeBigDecimal.negate(), //
             normalBigDecimal.negate(), //
@@ -141,7 +140,12 @@ public class OrderedBytesSerializerTest {
 
         GTInfo.Builder builder = GTInfo.builder();
         builder.setTableName("RawTable ");
-        builder.setCodeSystem(new RawTableCodeSystem(new DimensionEncoding[columns.size()]));
+
+        List<Pair<String, Integer>> encodings = Lists.newArrayList();
+        for (int i = 0; i < columns.size(); i++) {
+            encodings.add(Pair.newPair(RawTableDesc.RAWTABLE_ENCODING_ORDEREDBYTES, 1));
+        }
+        builder.setCodeSystem(new RawTableCodeSystem(encodings));
         List<DataType> types = Lists.newArrayList();
         for (TblColRef col : columns) {
             types.add(col.getType());
