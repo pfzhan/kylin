@@ -47,7 +47,6 @@ import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.engine.mr.steps.KapBaseCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapInMemCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapNDCuboidJob;
-import io.kyligence.kap.engine.mr.steps.SecondaryIndexJob;
 import io.kyligence.kap.engine.mr.steps.UpdateRawTableInfoAfterBuildStep;
 
 public class KapBatchCubingJobBuilder extends JobBuilderSupport {
@@ -196,22 +195,6 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
         CubingExecutableUtil.setCubeName(seg.getRealization().getName(), result.getParams());
         CubingExecutableUtil.setSegmentId(seg.getUuid(), result.getParams());
         CubingExecutableUtil.setCubingJobId(jobId, result.getParams());
-        return result;
-    }
-
-    @SuppressWarnings("unused")
-    private MapReduceExecutable createBuildSecondaryIndexStep(String jobId) {
-        MapReduceExecutable result = new MapReduceExecutable();
-        result.setName("Build Secondary Index");
-        result.setMapReduceJobClass(SecondaryIndexJob.class);
-        StringBuilder cmd = new StringBuilder();
-        appendMapReduceParameters(cmd);
-        appendExecCmdParameters(cmd, BatchConstants.ARG_CUBE_NAME, seg.getRealization().getName());
-        appendExecCmdParameters(cmd, BatchConstants.ARG_SEGMENT_ID, seg.getUuid());
-        appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, getSecondaryIndexPath(jobId));
-        appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_Build_Second_Index_" + seg.getRealization().getName() + "_Step");
-
-        result.setMapReduceParams(cmd.toString());
         return result;
     }
 

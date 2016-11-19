@@ -95,7 +95,7 @@ public class MassInValueProviderImpl implements MassInValueProvider {
 
                         try {
                             ByteArray byteArray = ByteArray.allocate(encoding.getLengthOfEncoding());
-                            encoding.encode(line.getBytes(), line.getBytes().length, byteArray.array(), 0);
+                            encoding.encode(line, byteArray.array(), 0);
                             ret.add(byteArray);
                         } catch (Exception e) {
                             logger.warn("Error when encoding the filter line " + line);
