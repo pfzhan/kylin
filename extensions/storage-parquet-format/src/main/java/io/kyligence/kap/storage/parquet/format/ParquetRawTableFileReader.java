@@ -201,7 +201,12 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
 
     @Override
     public void close() throws IOException {
-        reader.close();
-        indexTable.close();
+        if (reader != null) {
+            reader.close();
+        }
+
+        if (indexTable != null) {
+            indexTable.close();
+        }
     }
 }
