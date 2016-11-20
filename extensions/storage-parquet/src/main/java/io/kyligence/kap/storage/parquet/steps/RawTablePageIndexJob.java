@@ -27,8 +27,9 @@ package io.kyligence.kap.storage.parquet.steps;
 import static io.kyligence.kap.engine.mr.steps.ParquertMRJobUtils.addParquetInputFile;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
@@ -42,8 +43,8 @@ import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,18 +120,17 @@ public class RawTablePageIndexJob extends AbstractHadoopJob {
     }
 
     private void attachKylinPropsAndMetadata(RawTableSegment rawSegment, CubeInstance cube, Configuration conf) throws IOException {
-        MetadataManager metaMgr = MetadataManager.getInstance(rawSegment.getConfig());
         RawTableInstance instance = rawSegment.getRawTableInstance();
         // write raw / model_desc / raw_desc / dict / table
-        ArrayList<String> dumpList = new ArrayList<String>();
+        Set<String> dumpList = new LinkedHashSet<>();
         dumpList.add(instance.getResourcePath());
         dumpList.add(instance.getRawTableDesc().getModel().getResourcePath());
         dumpList.add(instance.getRawTableDesc().getResourcePath());
         dumpList.add(cube.getResourcePath());
         dumpList.add(cube.getDescriptor().getResourcePath());
 
-        for (String tableName : instance.getRawTableDesc().getModel().getAllTables()) {
-            TableDesc table = metaMgr.getTableDesc(tableName);
+        for (TableRef tableRef : instance.getRawTableDesc().getModel().getAllTables()) {
+            TableDesc table = tableRef.getTableDesc();
             dumpList.add(table.getResourcePath());
             List<String> dependentResources = SourceFactory.getMRDependentResources(table);
             dumpList.addAll(dependentResources);

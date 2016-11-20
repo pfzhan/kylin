@@ -38,8 +38,8 @@ public class RawTableSegmentsTest extends LocalFileMetadataTestCase {
         RawTableInstance raw = rawMgr.getRawTableInstance(cubeName);
 
         // override partition desc
-        cube.getDataModelDesc().setPartitionDesc(new PartitionDesc());
-        raw.getDataModelDesc().setPartitionDesc(new PartitionDesc());
+        cube.getModel().setPartitionDesc(new PartitionDesc());
+        raw.getModel().setPartitionDesc(new PartitionDesc());
 
         // first append, creates a new & single segment
         CubeSegment seg = mgr.appendSegment(cube);
@@ -74,8 +74,8 @@ public class RawTableSegmentsTest extends LocalFileMetadataTestCase {
         RawTableInstance raw = rawMgr.getRawTableInstance(cubeName);
 
         // override partition desc
-        cube.getDataModelDesc().setPartitionDesc(new PartitionDesc());
-        raw.getDataModelDesc().setPartitionDesc(new PartitionDesc());
+        cube.getModel().setPartitionDesc(new PartitionDesc());
+        raw.getModel().setPartitionDesc(new PartitionDesc());
 
         // assert one ready segment
         assertEquals(1, cube.getSegments().size());

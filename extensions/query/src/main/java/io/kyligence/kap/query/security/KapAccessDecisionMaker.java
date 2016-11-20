@@ -61,7 +61,7 @@ public class KapAccessDecisionMaker implements OLAPContext.IAccessController {
         if (null == olapAuthentication.getUsername())
             return null;
 
-        aclFile.loadAndValidateACL(realization.getDataModelDesc());
+        aclFile.loadAndValidateACL(realization.getModel());
 
         if (!aclFile.isAvailable(olapAuthentication.getUsername()))
             return null;

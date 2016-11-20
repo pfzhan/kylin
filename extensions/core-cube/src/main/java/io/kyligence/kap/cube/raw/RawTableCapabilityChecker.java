@@ -55,7 +55,7 @@ public class RawTableCapabilityChecker {
         }
 
         //raw table cannot handle lookup queries
-        if (!StringUtils.equals(digest.factTable, rawTable.getFactTable())) {
+        if (!StringUtils.equals(digest.factTable, rawTable.getRootFactTable())) {
             logger.info("Exclude RawTableInstance " + rawTable.getName() + " because the query does not contain fact table");
             return result;
         }

@@ -574,7 +574,7 @@ public class RawTableManager implements IRealizationProvider {
     }
 
     private void checkCubeIsPartitioned(RawTableInstance raw) {
-        if (raw.getDataModelDesc().getPartitionDesc().isPartitioned() == false) {
+        if (raw.getModel().getPartitionDesc().isPartitioned() == false) {
             throw new IllegalStateException("there is no partition date column specified, only full build is supported");
         }
     }

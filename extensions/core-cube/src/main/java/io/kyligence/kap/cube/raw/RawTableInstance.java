@@ -169,6 +169,10 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
         return cube;
     }
 
+    public String getRootFactTable() {
+        return getModel().getRootFactTable().getTableIdentity();
+    }
+
     @Override
     public int getStorageType() {
         // TODO a new storage type
@@ -194,18 +198,13 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
     }
 
     @Override
-    public DataModelDesc getDataModelDesc() {
+    public DataModelDesc getModel() {
         RawTableDesc desc = this.getRawTableDesc();
         if (desc != null) {
             return desc.getModel();
         } else {
             return null;
         }
-    }
-
-    @Override
-    public String getFactTable() {
-        return getRawTableDesc().getModel().getFactTable();
     }
 
     @Override

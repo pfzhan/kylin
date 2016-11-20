@@ -32,11 +32,10 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.DataModelDesc;
-import org.apache.kylin.metadata.model.TableRef;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,70 +80,54 @@ public class KapAclReader {
         return true;
     }
 
-    private void verifyColumns(DataModelDesc dmDesc) {
-        if (null == dmDesc)
+    private void verifyColumns(DataModelDesc model) {
+        if (null == model)
             return;
 
         for (String colName : allAclColumns) {
-            boolean isColumnsInFact = false;
-            boolean isColumnsInLookups = false;
-            for (TblColRef colDesc : dmDesc.getFactTableRef().getColumns()) {
-                String nameInTable = colDesc.getCanonicalName();
-                if (nameInTable.contains(colName.toUpperCase())) {
-                    isColumnsInFact = true;
-                    break;
-                }
+            try {
+                model.findColumn(colName);
+            } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException("The columns name: \"" + colName + "\" in cell-level-security config is incorrect, please revise it", ex);
             }
-
-            if (isColumnsInFact)
-                continue;
-
-            for (TableRef tableRef : dmDesc.getLookupTableRefs()) {
-                for (TblColRef tblColRef : tableRef.getColumns()) {
-                    String nameInTable = tblColRef.getCanonicalName();
-                    if (nameInTable.contains(colName.toUpperCase())) {
-                        isColumnsInLookups = true;
-                        break;
-                    }
-                }
-            }
-            if (!isColumnsInFact && !isColumnsInLookups)
-                throw new IllegalArgumentException("The columns name: \"" + colName + "\" in cell-level-security config is incorrect, please revise it");
         }
     }
 
     public void loadFile() throws IOException {
         BufferedReader reader = new BufferedReader(new FileReader(this.filename));
         String line;
-        while (null != (line = reader.readLine())) {
-            if (!line.trim().startsWith("#") && !line.equals(""))
-                break;
-        }
-        if (null == line) {
-            reader.close();
-            return;
-        }
-        clearAll();
-        String[] cols = line.split(CSV_SPLIT);
-        if (cols.length <= 1) {
-            logger.error("The schema of cell-level-security config file is not correct, it doesn't work!");
-            return;
-        }
-        //since the first column is KAP login user, will be excluded
-        for (int i = 1; i < cols.length; i++)
-            allAclColumns.add(cols[i]);
-        //scan acl table
-        while (null != (line = reader.readLine())) {
-            if (line.trim().startsWith("#") && !line.equals(""))
-                continue;
-            Hashtable<String, String> limitedColumns = new Hashtable<>();
-            String[] values = line.split(CSV_SPLIT);
-            for (int i = 0; i < values.length; i++) {
-                limitedColumns.put(cols[i].toLowerCase(), values[i].trim());
+        try {
+            while (null != (line = reader.readLine())) {
+                if (!line.trim().startsWith("#") && !line.equals(""))
+                    break;
             }
-            accessControlColumnsByUser.put(values[0].toLowerCase(), limitedColumns);
+            if (null == line) {
+                return;
+            }
+
+            clearAll();
+            String[] cols = line.split(CSV_SPLIT);
+            if (cols.length <= 1) {
+                logger.error("The schema of cell-level-security config file is not correct, it doesn't work!");
+                return;
+            }
+            //since the first column is KAP login user, will be excluded
+            for (int i = 1; i < cols.length; i++)
+                allAclColumns.add(cols[i]);
+            //scan acl table
+            while (null != (line = reader.readLine())) {
+                if (line.trim().startsWith("#") && !line.equals(""))
+                    continue;
+                Hashtable<String, String> limitedColumns = new Hashtable<>();
+                String[] values = line.split(CSV_SPLIT);
+                for (int i = 0; i < values.length; i++) {
+                    limitedColumns.put(cols[i].toLowerCase(), values[i].trim());
+                }
+                accessControlColumnsByUser.put(values[0].toLowerCase(), limitedColumns);
+            }
+        } finally {
+            IOUtils.closeQuietly(reader);
         }
-        reader.close();
     }
 
     public boolean isFileChanged() {
