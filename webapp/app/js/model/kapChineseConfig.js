@@ -348,6 +348,10 @@ KylinApp.constant('kapChineseConfig', {
     dateRangeEnd:'区间终止时间：',
     NoStorageInfo: '没有Storage相关信息.',
 
+    rawTableSegmentPath:'Raw Table Segment路径：',
+    rawTableFileCount:'Raw Table索引文件数：',
+    rawTableStorageSize:'Raw Table存储空间：',
+
     cubeCIModelName: '模型名称',
     cubeCIAddChooseModel: '-- 选择模型 --',
     tip_title_cube_name: 'Cube名称',

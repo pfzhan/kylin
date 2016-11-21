@@ -87,6 +87,9 @@ KylinApp.controller('CubeCtrl', function ($scope, AccessService, MessageService,
               var totalSize = 0;
               hbase.forEach(function(t) {
                 totalSize += t.storageSize;
+                if(t.rawTableStorageSize){
+                  totalSize += t.rawTableStorageSize;
+                }
               });
               cube.totalSize = totalSize;
             },function(e){
@@ -100,6 +103,9 @@ KylinApp.controller('CubeCtrl', function ($scope, AccessService, MessageService,
               var totalSize = 0;
               hbase.forEach(function(t) {
                 totalSize += t.tableSize;
+                if(t.rawTableStorageSize){
+                  totalSize += t.rawTableStorageSize;
+                }
               });
               cube.totalSize = totalSize;
             },function(e){

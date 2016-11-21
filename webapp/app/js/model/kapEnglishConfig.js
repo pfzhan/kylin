@@ -365,6 +365,10 @@ KylinApp.constant('kapEnglishConfig', {
     dateRangeEnd:'Range End Time:',
     NoStorageInfo: 'No Storage Info.',
 
+    rawTableSegmentPath:'Raw Table Segment Path:',
+    rawTableFileCount:'Raw Table File Number:',
+    rawTableStorageSize:'Raw Table StorageSize:',
+
     cubeCIModelName: 'Model Name',
     cubeCIAddChooseModel: '-- Choose Model --',
     tip_title_cube_name: 'Cube Name',

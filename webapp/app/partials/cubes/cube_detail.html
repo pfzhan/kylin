@@ -119,6 +119,10 @@
               <li>{{dataKylin.cube.storageSize}}<span class="red">{{table.storageSize | bytes}}</span></li>
               <li>{{dataKylin.cube.dateRangeStart}}<span class="red">{{table.dateRangeStart | reverseToGMT0}}</span></li>
               <li>{{dataKylin.cube.dateRangeEnd}}<span class="red">{{table.dateRangeEnd | reverseToGMT0}}</span></li>
+
+              <li ng-if="table.rawTableSegmentPath">{{dataKylin.cube.rawTableSegmentPath}}<span class="red">{{table.rawTableSegmentPath}}</span></li>
+              <li ng-if="table.rawTableFileCount>=0&&table.rawTableSegmentPath">{{dataKylin.cube.rawTableFileCount}}<span class="red">{{table.rawTableFileCount}}</span></li>
+              <li ng-if="table.rawTableStorageSize>=0&&table.rawTableSegmentPath">{{dataKylin.cube.rawTableStorageSize}}<span class="red">{{table.rawTableStorageSize | bytes}}</span></li>
             </ul>
             <div class="hr hr8 hr-double hr-dotted"></div>
           </div>
