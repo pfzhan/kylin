@@ -68,11 +68,6 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
     public CubingJob build() {
         logger.info("MR_V2 new job to BUILD segment " + seg);
 
-        try {
-            HiveTableExtSampleJob.createSampleJob("learn_kylin", submitter, "kylin_sales");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
         final CubingJob result = CubingJob.createBuildJob((CubeSegment) seg, submitter, config);
         final String jobId = result.getId();
         final String cuboidRootPath = getCuboidRootPath(jobId);

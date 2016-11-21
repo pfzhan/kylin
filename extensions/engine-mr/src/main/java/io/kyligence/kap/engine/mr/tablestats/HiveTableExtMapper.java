@@ -44,7 +44,7 @@ import org.apache.kylin.metadata.model.TableDesc;
 
 public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, BytesWritable> {
 
-    private Map<Integer, HiveTableExtSampler> samplerMap = new HashMap<Integer, HiveTableExtSampler>();
+    private Map<Integer, HiveTableExtSampler> samplerMap = new HashMap<>();
 
     private int counter = 0;
 
