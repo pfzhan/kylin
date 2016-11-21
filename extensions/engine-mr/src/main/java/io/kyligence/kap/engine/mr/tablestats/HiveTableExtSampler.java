@@ -288,7 +288,7 @@ public class HiveTableExtSampler {
         public void samples(String value) {
         }
 
-        public void samplesMinMaxValue(String value) {
+        public void samplesMinMaxLengthValue(String value) {
             if (getMaxLenValue() == null || value.getBytes().length > getMaxLenValue().getBytes().length) {
                 setMaxLenValue(value);
             }
@@ -312,7 +312,7 @@ public class HiveTableExtSampler {
             if (getMin() == null || value.compareTo(getMin()) < 0) {
                 setMin(value);
             }
-            samplesMinMaxValue(value);
+            samplesMinMaxLengthValue(value);
         }
     }
 
@@ -329,7 +329,7 @@ public class HiveTableExtSampler {
             if (getMin() == null || Double.parseDouble(value) < Double.parseDouble(getMin())) {
                 setMin(value);
             }
-            samplesMinMaxValue(value);
+            samplesMinMaxLengthValue(value);
         }
     }
 
@@ -347,7 +347,7 @@ public class HiveTableExtSampler {
                 setMin(value);
             }
 
-            samplesMinMaxValue(value);
+            samplesMinMaxLengthValue(value);
         }
     }
 
@@ -365,7 +365,7 @@ public class HiveTableExtSampler {
                 setMin(value);
             }
 
-            samplesMinMaxValue(value);
+            samplesMinMaxLengthValue(value);
         }
     }
 
@@ -394,7 +394,7 @@ public class HiveTableExtSampler {
                     setMin(value);
                 }
             }
-            samplesMinMaxValue(value);
+            samplesMinMaxLengthValue(value);
         }
     }
 
