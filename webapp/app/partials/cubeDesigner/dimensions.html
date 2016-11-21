@@ -42,6 +42,9 @@
                     <th>{{dataKylin.cube.cubeDSTableName}}</th>
                     <th>{{dataKylin.cube.cubeDSType}}</th>
                     <th>{{dataKylin.cube.cubeDSColumn}}</th>
+                    <th class="wid-100">{{dataKylin.cube.cubeDSDatatype}}</th>
+                    <th>{{dataKylin.cube.cubeDSCardinality}}</th>
+                    <th>{{dataKylin.cube.cubeDSComment }}</th>
                     <th ng-if="state.mode=='edit'">{{dataKylin.cube.cubeDSActions}}</th>
                 </tr>
             </thead>
@@ -72,6 +75,44 @@
                                 </div>
                                 <div class="dl-horizontal" ng-switch-when="normal">
                                     {{dimension.column}}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div ng-repeat="t in getDimType(dimension)">
+                            <div ng-switch="t">
+                                <div class="dl-horizontal" ng-switch-when="derived">
+                                  {{TableModel.tableColumnMap[dimension.table][dimension.derived].datatype}}
+                                </div>
+                                <div class="dl-horizontal" ng-switch-when="normal">
+                                  {{TableModel.tableColumnMap[dimension.table][dimension.column].datatype}}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <!--Cardinality-->
+                    <td>
+                        <div ng-repeat="t in getDimType(dimension)">
+                            <div ng-switch="t">
+                                <div class="dl-horizontal" ng-switch-when="derived">
+                                  {{TableModel.tableColumnMap[dimension.table][dimension.derived].cardinality}}
+                                </div>
+                                <div class="dl-horizontal" ng-switch-when="normal">
+                                  {{TableModel.tableColumnMap[dimension.table][dimension.column].cardinality}}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <!--Comment-->
+                    <td>
+                        <div ng-repeat="t in getDimType(dimension)">
+                            <div ng-switch="t">
+                                <div class="dl-horizontal" ng-switch-when="derived">
+                                    {{TableModel.tableColumnMap[dimension.table][dimension.derived].comment}}
+                                </div>
+                                <div class="dl-horizontal" ng-switch-when="normal">
+                                     {{TableModel.tableColumnMap[dimension.table][dimension.column].comment}}
                                 </div>
                             </div>
                         </div>
@@ -107,7 +148,7 @@
     </div>
 
     <!-- Edit Dimension Form -->
-    <script type="text/ng-template" id="addEditDimension.html">
+    <script type="text/ng-template" id="editDimension.html">
         <div class="modal-header">
             <h4 class="box-title lighter">{{dimState.editing ? dataKylin.cube.cubeDSEditDSEdit : dataKylin.cube.cubeDSEditDSAdd}}
             </h4>
@@ -219,7 +260,7 @@
     </script>
 
 
-    <script type="text/ng-template" id="autoGenDimension.html">
+    <script type="text/ng-template" id="addDimension.html">
         <div class="modal-header large-popover">
           <h4 class="box-title lighter">{{dataKylin.cube.cubeDSAutoGenerate_part_one}} <i kylinpopover placement="right" ng-title="{{dataKylin.cube.tip_title_DSAutoGenerate}}" template="DimensionsTip.html" class="fa fa-info-circle"></i> <small>{{dataKylin.cube.cubeDSAutoGenerate_part_two}}</small></h4>
           <div class="col-xs-12">

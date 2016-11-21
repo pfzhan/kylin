@@ -24,7 +24,8 @@
 
 'use strict';
 
-KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cubesManager,SweetAlert ,kylinCommon) {
+KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cubesManager,SweetAlert ,kylinCommon, TableModel) {
+    $scope.TableModel=TableModel;
 
     $scope.cubeManager = cubesManager;
     // Available columns list derived from cube data model.
@@ -35,14 +36,7 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
 
     // Available tables cache: 1st is the fact table, next are lookup tables.
     $scope.availableTables = [];
-
     $scope.editDimension={normal:"true"};
-    /**
-     * Helper func to get columns that dimensions based on, three cases:
-     * 1. normal dimension: column array.
-     * 2. derived dimension: derived columns array.
-     * TODO new cube schema change
-     */
     var dimCols = function (dim) {
         var referredCols = [];
 
@@ -201,7 +195,7 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
     // Open add/edit dimension modal.
     $scope.openDimModal = function (dimType) {
         var modalInstance = $modal.open({
-            templateUrl: 'addEditDimension.html',
+            templateUrl: 'editDimension.html',
             controller: cubeDimModalCtrl,
             backdrop: 'static',
             scope: $scope,
@@ -330,7 +324,7 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
         $scope.initColumnStatus();
 
         var modalInstance = $modal.open({
-            templateUrl: 'autoGenDimension.html',
+            templateUrl: 'addDimension.html',
             controller: cubeAutoGenDimModalCtrl,
             backdrop: 'static',
             scope: $scope

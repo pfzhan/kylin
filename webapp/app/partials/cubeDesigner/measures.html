@@ -27,6 +27,9 @@
           <th>{{dataKylin.cube.cubeMSName}}</th>
           <th>{{dataKylin.cube.cubeMSExpression}}</th>
           <th>{{dataKylin.cube.cubeMSParameters}}</th>
+          <th>{{dataKylin.cube.cubeDSDatatype}}</th>
+          <th>{{dataKylin.cube.cubeDSCardinality}}</th>
+          <th>{{dataKylin.cube.cubeDSComment }}</th>
           <th>{{dataKylin.cube.cubeMSReturnType}}</th>
           <th ng-if="state.mode=='edit'">{{dataKylin.cube.cubeMSActions}}</th>
         </tr>
@@ -50,6 +53,15 @@
               </ul>
             </div>
             <!--<span ng-if="measure.function.parameter.next_parameter!=null">{{measure.function.parameter.next_parameter |json}}</span>-->
+          </td>
+          <td >
+            {{TableModel.tableColumnMap[metaModel.model.fact_table][measure.function.parameter.value].datatype}}
+          </td>
+          <td >
+            {{TableModel.tableColumnMap[metaModel.model.fact_table][measure.function.parameter.value].cardinality}}
+          </td>
+          <td >
+            {{TableModel.tableColumnMap[metaModel.model.fact_table][measure.function.parameter.value].comment}}
           </td>
           <td>
             <!--Return Type -->

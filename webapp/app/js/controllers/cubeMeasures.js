@@ -19,7 +19,7 @@
 'use strict';
 
 KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,MetaModel,cubesManager,CubeDescModel,SweetAlert,kylinCommon,VdmUtil) {
-
+  $scope.TableModel=TableModel;
   $scope.num=0;
   $scope.convertedColumns=[];
   $scope.groupby=[];

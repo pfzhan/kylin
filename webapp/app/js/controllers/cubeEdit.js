@@ -879,6 +879,15 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
       TableService.list(param, function (tables) {
         angular.forEach(tables, function (table) {
           table.name = table.database + "." + table.name;
+          TableModel.tableColumnMap[table.name]={};
+          angular.forEach(table.columns, function (column) {
+            TableModel.tableColumnMap[table.name][column.name]={
+            name:column.name,
+            datatype:column.datatype,
+            cardinality:table.cardinality[column.name],
+            comment:column.comment};
+          });
+
           TableModel.addTable(table);
         });
       });
