@@ -36,3 +36,9 @@ KylinApp.factory('TableService', ['$resource', function ($resource, config) {
     showHiveTables: {method: 'GET', params: {action:'hive'}, cache: true, isArray: true}
   });
 }]);
+KylinApp.factory('TableExtService', ['$resource', function ($resource, config) {
+  return $resource(Config.service.url + 'table_ext/:projectName/:tableName/:action', {}, {
+    getSampleInfo: {method: 'GET', params: {}, isArray: false},
+    doSample: {method: 'PUT', params: {}, isArray: true}
+  });
+}]);

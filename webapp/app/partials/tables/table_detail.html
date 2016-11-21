@@ -31,11 +31,11 @@
         <li>
           <a data-toggle="tab" ng-if="tableModel.selectedSrcTable.source_type==1" href="#streaming">{{dataKylin.data_source.streamingCluster}}</a>
         </li>
+        <!--<li>-->
+          <!--<a data-toggle="tab" href="#cardinality" ng-click='getCardinatlity()'>{{dataKylin.data_source.cardinality}}</a>-->
+        <!--</li>-->
         <li>
-          <a data-toggle="tab" href="#cardinality">{{dataKylin.data_source.cardinality}}</a>
-        </li>
-        <li>
-          <a data-toggle="tab"  href="#sampleData">{{dataKylin.data_source.sampleData}}</a>
+          <a data-toggle="tab"  href="#sampleData" id='sampleDataTab'>{{dataKylin.data_source.sampleData}}</a>
         </li>
       </ul>
       <div class="tab-content">
@@ -156,13 +156,9 @@
             </div>
           </div>
         </div>
-        <!--cardinality-->
-        <div id="cardinality" class="tab-pane">
-
-        </div>
         <!--sampleData-->
         <div id="sampleData" class="tab-pane">
-
+          <a class="btn btn-primary " tooltip="Calc Cardinality" ng-click="calcSampleData()">CalcCardinality</a>
         </div>
         <!--streaming-->
         <div id="streaming" ng-show="tableModel.selectedSrcTable.source_type==1" class="tab-pane">

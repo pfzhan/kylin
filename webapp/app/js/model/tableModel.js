@@ -138,7 +138,7 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log) {
                                         // set selected model
 //                                        _this.selectedSrcTable = branch.data;
                                         _this.selectedSrcTable.selectedSrcColumn = branch.data;
-                                        $log.info("selected column info:"+_column.name);
+
                                     }
                                 });
                         });

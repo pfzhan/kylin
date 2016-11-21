@@ -25,7 +25,7 @@
 'use strict';
 
 KylinApp
-  .controller('SourceMetaCtrl', function ($scope, $cacheFactory, $q, $window, $routeParams, CubeService, $modal, TableService, $route, loadingRequest, SweetAlert, tableConfig, TableModel,cubeConfig,kylinCommon) {
+  .controller('SourceMetaCtrl', function ($scope, $cacheFactory, $q, $window, $routeParams, CubeService, $modal, TableService, $route, loadingRequest, SweetAlert, tableConfig, TableModel,cubeConfig,kylinCommon,TableExtService) {
     var $httpDefaultCache = $cacheFactory.get('$http');
     $scope.tableModel = TableModel;
     $scope.tableModel.selectedSrcDb = [];
@@ -884,6 +884,23 @@ KylinApp
       }
 
     };
+    $scope.calcSampleData=function(){
+      TableExtService.doSample({projectName:$scope.projectModel.selectedProject,tableName:$scope.tableModel.selectedSrcTable.name,action:'sample_job'},{},function(){
+
+      })
+    }
+    $scope.getSampleData=function(){
+      TableExtService.getSampleInfo({projectName:$scope.tableModel.selectedSrcTable.name},function(){
+
+      })
+    }
+
+    $scope.$watch('tableModel.selectedSrcTable.name',function(){
+      if($scope.tableModel.selectedSrcTable.name){
+        $scope.getSampleData();
+      }
+    })
+
 
   });
 
