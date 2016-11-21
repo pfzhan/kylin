@@ -152,11 +152,11 @@ public class ParquetTarballFileReader extends RecordReader<Text, Text> {
         val = new Text();
         val.set(new byte[gtMaxLength]);
 
-        if (pageBitmap != null && !pageBitmap.isEmpty()) {
+        if (pageBitmap != null && pageBitmap.isEmpty()) {
+            reader = null;
+        } else {
             // init with first shard file
             reader = new ParquetBundleReaderBuilder().setFileOffset(fileOffset).setConf(conf).setPath(shardPath).setPageBitset(pageBitmap).setColumnsBitmap(columnBitmap).build();
-        } else {
-            reader = null;
         }
     }
 

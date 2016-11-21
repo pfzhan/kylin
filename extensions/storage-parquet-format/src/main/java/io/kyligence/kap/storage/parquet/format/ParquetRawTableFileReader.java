@@ -138,11 +138,11 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
         val = new Text();
         val.set(new byte[gtMaxLength]);
 
-        // init with first shard file
-        if (columnBitmap != null && !columnBitmap.isEmpty()) {
-            reader = new ParquetBundleReaderBuilder().setFileOffset(0).setConf(conf).setPath(parquetPath).setPageBitset(pageBitmap).setColumnsBitmap(columnBitmap).build();
-        } else {
+        if (columnBitmap != null && columnBitmap.isEmpty()) {
             reader = null;
+        } else {
+            // init with first shard file
+            reader = new ParquetBundleReaderBuilder().setFileOffset(0).setConf(conf).setPath(parquetPath).setPageBitset(pageBitmap).setColumnsBitmap(columnBitmap).build();
         }
     }
 
