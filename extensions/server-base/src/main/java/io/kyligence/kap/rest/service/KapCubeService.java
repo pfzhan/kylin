@@ -25,11 +25,16 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.WeakHashMap;
 
+import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.cube.raw.RawTableManager;
+import io.kyligence.kap.cube.raw.RawTableSegment;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.rest.service.BasicService;
@@ -48,6 +53,9 @@ public class KapCubeService extends BasicService {
             return columnarInfoCache.get(id);
         }
 
+        RawTableManager rawTableManager = RawTableManager.getInstance(segment.getConfig());
+        RawTableInstance raw = rawTableManager.getAccompanyRawTable(segment.getCubeInstance());
+
         ColumnarResponse columnarResp = new ColumnarResponse();
         columnarResp.setDateRangeStart(segment.getDateRangeStart());
         columnarResp.setDateRangeEnd(segment.getDateRangeEnd());
@@ -64,7 +72,29 @@ public class KapCubeService extends BasicService {
         columnarResp.setSegmentUUID(segment.getUuid());
         columnarResp.setSegmentPath(segStoragePath);
 
+        if (raw != null) {
+            List<RawTableSegment> rawSegs = rawTableManager.getRawtableSegmentByDataRange(raw, segment.getDateRangeStart(), segment.getDateRangeEnd());
+            assert(rawSegs.size() == 1);
+
+            String rawSegmentDir = getRawParquetFolderPath(rawSegs.get(0));
+            columnarResp.setRawTableSegmentPath(rawSegmentDir);
+
+            if (fs.exists(new Path(rawSegmentDir))) {
+                ContentSummary cs = fs.getContentSummary(new Path(rawSegmentDir));
+                columnarResp.setRawTableFileCount(cs.getFileCount());
+                // FIXME: We should store correct size info in segment metadata
+                columnarResp.setRawTableStorageSize(cs.getLength());
+            } else {
+                columnarResp.setRawTableFileCount(0);
+                columnarResp.setRawTableStorageSize(0L);
+            }
+        }
+
         columnarInfoCache.put(id, columnarResp);
         return columnarResp;
+    }
+
+    private String getRawParquetFolderPath(RawTableSegment rawSegment) {
+        return new StringBuffer(KapConfig.wrap(rawSegment.getConfig()).getParquentStoragePath()).append(rawSegment.getRawTableInstance().getUuid()).append("/").append(rawSegment.getUuid()).append("/").append("RawTable/").toString();
     }
 }

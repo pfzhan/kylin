@@ -37,6 +37,10 @@ public class ColumnarResponse implements Serializable{
     private long dateRangeStart;
     private long dateRangeEnd;
 
+    private String rawTableSegmentPath;
+    private long rawTableFileCount;
+    private long rawTableStorageSize;
+
     public String getSegmentName() {
         return segmentName;
     }
@@ -59,6 +63,14 @@ public class ColumnarResponse implements Serializable{
 
     public void setSegmentPath(String segmentPath) {
         this.segmentPath = segmentPath;
+    }
+
+    public String getRawTableSegmentPath() {
+        return rawTableSegmentPath;
+    }
+
+    public void setRawTableSegmentPath(String rawTableSegmentPath) {
+        this.rawTableSegmentPath = rawTableSegmentPath;
     }
 
     public long getFileCount() {
@@ -91,5 +103,21 @@ public class ColumnarResponse implements Serializable{
 
     public void setDateRangeEnd(long dateRangeEnd) {
         this.dateRangeEnd = dateRangeEnd;
+    }
+
+    public long getRawTableStorageSize() {
+        return rawTableStorageSize;
+    }
+
+    public void setRawTableStorageSize(long rawTableStorageSize) {
+        this.rawTableStorageSize = rawTableStorageSize;
+    }
+
+    public long getRawTableFileCount() {
+        return rawTableFileCount;
+    }
+
+    public void setRawTableFileCount(long rawTableFileCount) {
+        this.rawTableFileCount = rawTableFileCount;
     }
 }

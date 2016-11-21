@@ -375,6 +375,16 @@ public class RawTableManager implements IRealizationProvider {
         return null;
     }
 
+    public List<RawTableSegment> getRawtableSegmentByDataRange(RawTableInstance raw, long startDate, long endDate) {
+        LinkedList<RawTableSegment> result = Lists.newLinkedList();
+        for (RawTableSegment seg: raw.getSegments()) {
+            if (startDate <= seg.getDateRangeStart() && seg.getDateRangeEnd() <= endDate) {
+                result.add(seg);
+            }
+        }
+        return result;
+    }
+
     private Pair<RawTableSegment, RawTableSegment> findMergeOffsetsByDateRange(List<RawTableSegment> segments, long startDate, long endDate, long skipSegDateRangeCap) {
         // must be offset cube
         LinkedList<RawTableSegment> result = Lists.newLinkedList();
