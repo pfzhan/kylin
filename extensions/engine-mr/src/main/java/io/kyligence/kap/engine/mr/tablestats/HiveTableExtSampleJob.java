@@ -48,8 +48,6 @@ import org.slf4j.LoggerFactory;
 
 public class HiveTableExtSampleJob extends CubingJob {
     private static final Logger logger = LoggerFactory.getLogger(HiveTableExtSampleJob.class);
-    private static final String DEPLOY_ENV_NAME = "envName";
-    private static final String PROJECT_INSTANCE_NAME = "projectName";
     private static final String CARDINALITY = "cardinality";
     private static final String SAMPLES = "samples";
 
@@ -64,39 +62,34 @@ public class HiveTableExtSampleJob extends CubingJob {
 
     public static List<String> createSampleJob(String project, String submitter) throws IOException {
         String[] tables = getTableFromProject(project);
-        List<String> jobIDs = new ArrayList<>();
-        for (String table : tables) {
-            String jobID = initSampleJob(project, submitter, table);
-            jobIDs.add(jobID);
-        }
-        return jobIDs;
+        return createSampleJob(project, submitter, tables);
     }
 
-    public static String initSampleJob(String project, String submitter, String table) throws IOException {
+    private static String initSampleJob(String project, String submitter, String table) throws IOException {
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
 
-        HiveTableExtSampleJob result = new HiveTableExtSampleJob();
-        SimpleDateFormat format = new SimpleDateFormat("z yyyy-MM-dd HH:mm:ss");
-        format.setTimeZone(TimeZone.getTimeZone(config.getTimeZone()));
-        result.setDeployEnvName(config.getDeployEnv());
-        result.setProjectName(project);
-        result.setName("Build " + table + " samples " + format.format(new Date(System.currentTimeMillis())));
-        result.setSubmitter(submitter);
+        String runningJobID = findRunningJob(table, config);
+        if (runningJobID != null)
+            return runningJobID;
 
-        StringBuffer jobID = new StringBuffer("null");
-
-        if (isJobRuning(config, jobID, table))
-            return jobID.toString();
-
-        calculateSamples(result, table, config);
+        HiveTableExtSampleJob result = createSamplesJob(project, table, submitter, config);
 
         ExecutableManager.getInstance(config).addJob(result);
         logger.info("Start HiveTableExt job: " + result.getId());
         return result.getId();
     }
 
-    public static void calculateSamples(HiveTableExtSampleJob result, String tableName, KylinConfig config) throws IOException {
+    private static HiveTableExtSampleJob createSamplesJob(String project, String tableName, String submitter, KylinConfig config) throws IOException {
+        HiveTableExtSampleJob result = new HiveTableExtSampleJob();
+        
+        SimpleDateFormat format = new SimpleDateFormat("z yyyy-MM-dd HH:mm:ss");
+        format.setTimeZone(TimeZone.getTimeZone(config.getTimeZone()));
+        result.setDeployEnvName(config.getDeployEnv());
+        result.setProjectName(project);
+        result.setName("Build " + tableName + " samples " + format.format(new Date(System.currentTimeMillis())));
+        result.setSubmitter(submitter);
+        
         MetadataManager metaMgr = MetadataManager.getInstance(config);
         TableDesc table = metaMgr.getTableDesc(tableName);
         TableExtDesc table_ext = metaMgr.getTableExt(tableName);
@@ -142,9 +135,11 @@ public class HiveTableExtSampleJob extends CubingJob {
 
         table_ext.setJodID(result.getId());
         metaMgr.saveTableExt(table_ext);
+        
+        return result;
     }
 
-    private static boolean isJobRuning(KylinConfig config, StringBuffer runningJobID, String table) throws IOException {
+    private static String findRunningJob(String table, KylinConfig config) throws IOException {
 
         MetadataManager metaMgr = MetadataManager.getInstance(config);
 
@@ -153,16 +148,15 @@ public class HiveTableExtSampleJob extends CubingJob {
         String jobID = tableExtDesc.getJodID();
 
         if (null == jobID || jobID.isEmpty()) {
-            return false;
+            return null;
         }
 
         ExecutableManager exeMgt = ExecutableManager.getInstance(config);
         if (ExecutableState.RUNNING == exeMgt.getOutput(jobID).getState()) {
-            runningJobID.append(jobID);
-            return true;
+            return jobID;
         }
 
-        return false;
+        return null;
     }
 
     private static String[] getTableFromProject(String project) throws IOException {
@@ -184,11 +178,4 @@ public class HiveTableExtSampleJob extends CubingJob {
         return config.getHdfsWorkingDirectory() + jobID + "/" + tag + "/";
     }
 
-    private void setDeployEnvName(String name) {
-        setParam(DEPLOY_ENV_NAME, name);
-    }
-
-    private void setProjectName(String name) {
-        setParam(PROJECT_INSTANCE_NAME, name);
-    }
 }
