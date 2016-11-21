@@ -175,7 +175,7 @@ public class HiveTableExtSampleJob extends CubingJob {
     }
 
     private static String getOutputPath(KylinConfig config, String jobID, String tag) {
-        return config.getHdfsWorkingDirectory() + jobID + "/" + tag + "/";
+        return config.getHdfsWorkingDirectory() + "tablestats/" + jobID + "/" + tag + "/";
     }
 
 }
