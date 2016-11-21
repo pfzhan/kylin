@@ -140,6 +140,23 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
         $scope.initColumns();
     }
 
+    var dimensions=[];
+    angular.forEach($scope.cubeMetaFrame.dimensions,function(dimension,index){
+        if(dimension.derived&&dimension.derived.length>1){
+            angular.forEach(dimension.derived,function(derived){
+              var dim={
+              column :"{FK}",
+              derived:[derived],
+              name:dimension.name,
+              table:dimension.table}
+              dimensions.push(dim);
+            });
+        }else{
+            dimensions.push(dimension);
+        }
+    });
+    angular.copy(dimensions,$scope.cubeMetaFrame.dimensions);
+
     // Initialize params for add/edit dimension.
     $scope.dimState = {
         editing: false,
