@@ -40,6 +40,7 @@ KylinApp.controller('ModelMeasuresCtrl', function ($scope, $modal,MetaModel,mode
       if($scope.availableTables!=modelsEdit.selectedModel.fact_table){
          modelsManager.selectedModel.metrics=[];
       }
+      modelsEdit.selectedModel.fact_table=modelsManager.selectedModel.fact_table;
       for (var k = 0; k < cols2.length; k++) {
           // Default not selected and not disabled.
           SelectAvailable[cols2[k].name] = {name:cols2[k].name,selected: false,disabled:false};

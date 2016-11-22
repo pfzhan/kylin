@@ -145,7 +145,7 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
         if(dimension.derived&&dimension.derived.length>1){
             angular.forEach(dimension.derived,function(derived){
               var dim={
-              column :"{FK}",
+              column :null,
               derived:[derived],
               name:dimension.name,
               table:dimension.table}

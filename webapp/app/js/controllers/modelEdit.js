@@ -156,7 +156,7 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
                   for(var j=0;j<each[0].dimensions.length;j++){
                     angular.forEach($scope.usedDimensionsCubeMap,function(table,tableName){
                       if(each[0].dimensions[j].table==tableName){
-                        if(each[0].dimensions[j].column==null){
+                        if(each[0].dimensions[j].derived!=null){
                           angular.forEach(each[0].dimensions[j].derived,function(derived){
                             $scope.usedDimensionsCubeMap[tableName][derived]=$scope.usedDimensionsCubeMap[tableName][derived]||[];
                             $scope.usedDimensionsCubeMap[tableName][derived].push(cube.name);
