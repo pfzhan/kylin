@@ -182,6 +182,18 @@ KylinApp.factory('VdmUtil', function ($modal, $timeout, $location, $anchorScroll
         }
       }
       return newArr;
+    },
+    changeDataAxis:function(data){
+      var len=data&&data.length|| 0,newArr=[];
+      var sublen=data&&data.length&&data[0].length||0;
+        for(var i=0;i<sublen;i++){
+          var subArr=[];
+          for(var j=0;j<len;j++){
+            subArr.push(data[j][i]);
+          }
+          newArr.push(subArr);
+        }
+      return newArr;
     }
   }
 });

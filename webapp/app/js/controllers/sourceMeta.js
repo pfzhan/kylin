@@ -891,17 +891,12 @@ KylinApp
     }
     $scope.getSampleData=function(){
       TableExtService.getSampleInfo({tableName:$scope.tableModel.selectedSrcTable.name},function(data){
-         var columnData=[].concat($scope.tableModel.selectedSrcTable.columns);
          var sampleData=[],specialData=[];
-         //if(data.columns_stats&&data.columns_stats.length){
-         //  specialData=specialData.concat(VdmUtil.changeDataAxis(data.columns_stats))
-         //}
          if(data.sample_rows&&data.sample_rows.length){
            sampleData=sampleData.concat(VdmUtil.changeDataAxis(data.sample_rows,true));
          }
          $scope.specialData=data.columns_stats;
          $scope.sampleData=sampleData;
-         $scope.columnData=columnData;
          $scope.getSampleJobStatus($scope.tableModel.selectedSrcTable.name);
       })
     }

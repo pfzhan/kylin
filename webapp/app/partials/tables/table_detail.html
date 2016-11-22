@@ -31,11 +31,11 @@
         <li>
           <a data-toggle="tab" ng-if="tableModel.selectedSrcTable.source_type==1" href="#streaming">{{dataKylin.data_source.streamingCluster}}</a>
         </li>
-        <!--<li>-->
-          <!--<a data-toggle="tab" href="#cardinality" ng-click='getCardinatlity()'>{{dataKylin.data_source.cardinality}}</a>-->
-        <!--</li>-->
         <li>
-          <a data-toggle="tab"  href="#sampleData" id='sampleDataTab'>{{dataKylin.data_source.sampleData}}</a>
+          <a data-toggle="tab" href="#cardinality" >{{dataKylin.data_source.cardinality}}</a>
+        </li>
+        <li>
+          <a data-toggle="tab"  href="#sampleData" >{{dataKylin.data_source.sampleData}}</a>
         </li>
       </ul>
       <div class="tab-content">
@@ -159,6 +159,70 @@
         <!--sampleData-->
         <div id="sampleData" class="tab-pane">
           <a class="btn btn-primary " tooltip="Calc Cardinality" ng-click="calcSampleData()">CalcCardinality</a>
+
+          <table class="table table-hover table-striped list">
+            <thead>
+            <tr >
+              <th ng-repeat="column in tableModel.selectedSrcTable.columns ">{{ column.name}}</th>
+            </tr>
+            </thead>
+
+            <tr
+              ng-repeat="list in sampleData track by $index">
+              <td ng-repeat="sd in sampleData[$index] track by $index">
+                {{sd}}
+              </td>
+            </tr>
+          </table>
+        </div>
+        <!--cardinality-->
+        <div id="cardinality" class="tab-pane">
+
+
+          <table class="table table-hover table-striped list">
+            <thead>
+            <tr >
+              <th>ID</th>
+              <th>{{ tableModel.selectedSrcTable.name}}</th>
+              <th>Cardinality</th>
+              <th>max_length_value</th>
+              <th>max_value</th>
+              <th>min_length_value</th>
+              <th>min_value</th>
+              <th>null_count</th>
+            </tr>
+            </thead>
+
+            <tr
+              ng-repeat="column in tableModel.selectedSrcTable.columns ">
+              <td>
+                {{ column.id}}
+              </td>
+              <td>
+                {{ column.name}}
+              </td>
+              <td>
+                {{ specialData[$index].cardinality }}
+              </td>
+              <td>
+                {{ specialData[$index].max_length_value }}
+              </td>
+              <td>
+                {{ specialData[$index].max_value }}
+              </td>
+              <td>
+                {{ specialData[$index].min_length_value }}
+              </td>
+              <td>
+                {{ specialData[$index].min_value }}
+              </td>
+              <td>
+                {{ specialData[$index].null_count }}
+              </td>
+
+            </tr>
+          </table>
+
         </div>
         <!--streaming-->
         <div id="streaming" ng-show="tableModel.selectedSrcTable.source_type==1" class="tab-pane">
