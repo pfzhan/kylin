@@ -23,21 +23,18 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <!-- Keep same order with dependencyManagment -->
+        <!-- Keep same order with dependencyManagement -->
         <!-- Kylin versions -->
         <kylin.version>1.6.1-SNAPSHOT</kylin.version>
 
-        <cglib.version>2.2.2</cglib.version>
-        <zkclient.version>0.5</zkclient.version>
+        <zkclient.version>0.8</zkclient.version>
         <t-digest.version>3.1</t-digest.version>
-        <super-csv.version>2.1.0</super-csv.version>
         <grpc.version>0.13.1</grpc.version>
         <fastPFOR.version>0.0.13</fastPFOR.version>
         <helix.version>0.7.1</helix.version>
         <parquet.version>1.8.1</parquet.version>
         <tomcat.version>7.0.69</tomcat.version>
         <spark.version>1.6.2</spark.version>
-        <aspectj.version>1.6.11</aspectj.version>
     </properties>
 
     <modules>
@@ -189,11 +186,6 @@
 
             <!-- Sorted by groupId, artifactId; kylin and KAP dependencies first. -->
             <dependency>
-                <groupId>cglib</groupId>
-                <artifactId>cglib</artifactId>
-                <version>${cglib.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>com.101tec</groupId>
                 <artifactId>zkclient</artifactId>
                 <version>${zkclient.version}</version>
@@ -212,11 +204,6 @@
                 <groupId>me.lemire.integercompression</groupId>
                 <artifactId>JavaFastPFOR</artifactId>
                 <version>${fastPFOR.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>net.sf.supercsv</groupId>
-                <artifactId>super-csv</artifactId>
-                <version>${super-csv.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.helix</groupId>
@@ -242,16 +229,6 @@
                 <groupId>org.apache.tomcat</groupId>
                 <artifactId>tomcat-catalina</artifactId>
                 <version>${tomcat.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.aspectj</groupId>
-                <artifactId>aspectjrt</artifactId>
-                <version>${aspectj.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.aspectj</groupId>
-                <artifactId>aspectjweaver</artifactId>
-                <version>${aspectj.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
