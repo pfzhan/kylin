@@ -40,3 +40,4 @@ fi
 verbose "Safeguard Cleanup..."
 hive -e "use ${HIVE_TEST_DB}; show tables 'chkenv__*';" | xargs -I '{}' hive -e "use ${HIVE_TEST_DB}; drop table {};"
 hadoop fs -rm -R -skipTrash "${WORKING_DIR}/chkenv__*"
+exit 0
