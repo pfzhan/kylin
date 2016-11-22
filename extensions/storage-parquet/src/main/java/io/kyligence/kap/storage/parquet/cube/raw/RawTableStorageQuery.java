@@ -98,7 +98,6 @@ public class RawTableStorageQuery implements IStorageQuery {
         enableStorageLimitIfPossible(sqlDigest, sqlDigest.filter, context);
         context.setFinalPushDownLimit(rawTableInstance);
 
-
         List<RawTableSegmentScanner> scanners = Lists.newArrayList();
         for (RawTableSegment rawTableSegment : rawTableInstance.getSegments(SegmentStatusEnum.READY)) {
             RawTableSegmentScanner scanner;
@@ -152,7 +151,7 @@ public class RawTableStorageQuery implements IStorageQuery {
     }
 
     protected boolean skipZeroInputSegment(RawTableSegment segment) {
-        return true;
+        return segment.getConfig().isSkippingEmptySegments();
     }
 
 }

@@ -79,10 +79,10 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         KylinTestBase.setupAll();
 
         //uncomment this to use MockedCubeSparkRPC instead of real spark
-        config.setProperty("kap.storage.columnar.spark.cube.gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
+        //config.setProperty("kap.storage.columnar.spark.cube.gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
 
         //uncomment this to use MockedRawTableTableRPC instead of real spark
-        config.setProperty("kap.storage.columnar.spark.rawtable.gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
+        //config.setProperty("kap.storage.columnar.spark.rawtable.gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
     }
 
     protected static void clean() {
@@ -129,7 +129,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         if (rawTableFirst)
             execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_distinct_precisely", null, true);
     }
-    
+
     @Override
     public void testIntersectCountQuery() throws Exception {
         // skip, has conflict with raw table, and Kylin CI has covered
@@ -255,7 +255,6 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
             PRINT_RESULT = false;
         }
     }
-
 
     @Test
     public void testLikeQuery() throws Exception {
