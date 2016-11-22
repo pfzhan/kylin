@@ -42,10 +42,11 @@ import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.filter.function.Functions;
 import org.apache.kylin.metadata.model.ExternalFilterDesc;
 import org.apache.kylin.rest.response.SQLResponse;
+import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Component;
 
 @Component("massInService")
-public class MassInService {
+public class MassInService extends BasicService{
     public String storeMassIn(SQLResponse response, Functions.FilterTableType filterTableType) throws IOException {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();

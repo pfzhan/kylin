@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.service;
 
+import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
@@ -33,7 +34,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Component("licenseInfoService")
-public class LicenseInfoService {
+public class LicenseInfoService extends BasicService{
 
     public Map<String, String> extractLicenseInfo() {
         Map<String, String> result = new HashMap<>();
