@@ -77,6 +77,24 @@ then
     if [ $nc_result -eq 0 ]; then
         quit "Port ${driverPort} is not available, could not start Spark Client"
     fi
+    
+    if [ ! -f ${SPARK_HOME}/conf/log4j.properties ] ; then
+        echo "${SPARK_HOME}/conf/log4j.properties does not exist, create one:"
+        cat << EOF > ${SPARK_HOME}/conf/log4j.properties 
+log4j.rootLogger=INFO,stdout
+
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern=%d{ISO8601} %-5p [%t %c{1}:%L]: %m%n
+
+#log4j.logger.org.apache.hadoop=ERROR
+log4j.logger.org.apache.kylin=DEBUG
+log4j.logger.io.kyligence=DEBUG
+log4j.logger.org.springframework=WARN
+EOF
+    else
+        echo "${SPARK_HOME}/conf/log4j.properties already exists"
+    fi
 
     # spark envs
     sparkEnvPrefix="kap.storage.columnar.env."
@@ -100,7 +118,7 @@ then
     confStr=`cat ${CONF_DIR}/*.properties | grep "^${sparkConfPrefix}" | cut -c ${realStart}- |  awk '{ print "--conf " "\"" $0 "\""}' | tr '\n' ' ' `
     verbose "additional confs spark-submit: $confStr"
 
-    submitCommand='$SPARK_HOME/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry --master yarn --deploy-mode client --verbose '
+    submitCommand='$SPARK_HOME/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry --master yarn --deploy-mode client --verbose --files ${SPARK_HOME}/conf/log4j.properties '
     submitCommand=${submitCommand}${confStr}
     submitCommand=${submitCommand}' ${KYLIN_SPARK_JAR_PATH} -className io.kyligence.kap.storage.parquet.cube.spark.SparkQueryDriver --port ${driverPort} >> ${KYLIN_HOME}/logs/spark_client.out 2>&1 & echo $! > ${KYLIN_HOME}/spark_client_pid &'
     verbose "The submit command is: $submitCommand"
