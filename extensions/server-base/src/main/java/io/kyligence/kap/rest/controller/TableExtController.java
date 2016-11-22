@@ -71,4 +71,13 @@ public class TableExtController extends BasicController {
         }
         return jobInstanceList;
     }
+
+    @RequestMapping(value = "/{tableName}/job", method = { RequestMethod.GET })
+    @ResponseBody
+    public JobInstance listJob(@PathVariable String tableName) throws IOException, JobException {
+        String jobID = tableExtService.getJobByTableName(tableName);
+        if (jobID == null || jobID.isEmpty())
+            return null;
+        return jobService.getJobInstance(jobID);
+    }
 }

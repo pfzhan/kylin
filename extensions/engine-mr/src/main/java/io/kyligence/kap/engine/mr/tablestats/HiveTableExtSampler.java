@@ -77,6 +77,7 @@ public class HiveTableExtSampler {
         sampleValues.put("max_length_value", null);
         sampleValues.put("min_length_value", null);
         sampleValues.put("counter", "0");
+        sampleValues.put("null_counter", "0");
 
         //raw value samples
         for (int i = 0; i < SAMPLE_RAW_VALUE_NUMBER; i++) {
@@ -118,6 +119,14 @@ public class HiveTableExtSampler {
 
     public String getCounter() {
         return this.sampleValues.get("counter");
+    }
+
+    public void setNullCounter(String counter) {
+        this.sampleValues.put("null_counter", counter);
+    }
+
+    public String getNullCounter() {
+        return this.sampleValues.get("null_counter");
     }
 
     public void clean() {
@@ -288,6 +297,16 @@ public class HiveTableExtSampler {
         public void samples(String value) {
         }
 
+        public boolean isNullValue(String value) {
+            if (value.trim().equals("NULL")) {
+                long null_count = Long.parseLong(getNullCounter());
+                null_count++;
+                setNullCounter(String.valueOf(null_count));
+                return true;
+            }
+            return false;
+        }
+
         public void samplesMinMaxLengthValue(String value) {
             if (getMaxLenValue() == null || value.getBytes().length > getMaxLenValue().getBytes().length) {
                 setMaxLenValue(value);
@@ -305,6 +324,9 @@ public class HiveTableExtSampler {
 
         @Override
         public void samples(String value) {
+
+            isNullValue(value);
+
             if (getMax() == null || value.compareTo(getMax()) > 0) {
                 setMax(value);
             }
@@ -322,6 +344,10 @@ public class HiveTableExtSampler {
 
         @Override
         public void samples(String value) {
+
+            if (isNullValue(value))
+                return;
+
             if (getMax() == null || Double.parseDouble(value) > Double.parseDouble(getMax())) {
                 setMax(value);
             }
@@ -339,6 +365,10 @@ public class HiveTableExtSampler {
 
         @Override
         public void samples(String value) {
+
+            if (isNullValue(value))
+                return;
+
             if (getMax() == null || Long.parseLong(value) > Long.parseLong(getMax())) {
                 setMax(value);
             }
@@ -357,6 +387,10 @@ public class HiveTableExtSampler {
 
         @Override
         public void samples(String value) {
+
+            if (isNullValue(value))
+                return;
+
             if (getMax() == null || Integer.parseInt(value) > Integer.parseInt(getMax())) {
                 setMax(value);
             }
@@ -375,6 +409,10 @@ public class HiveTableExtSampler {
 
         @Override
         public void samples(String value) {
+
+            if (isNullValue(value))
+                return;
+
             if (getMax() == null) {
                 setMax(value);
             } else {

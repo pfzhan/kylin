@@ -98,7 +98,7 @@ public class HiveTableExtJob extends AbstractHadoopJob {
         job.setOutputFormatClass(TextOutputFormat.class);
         job.setOutputKeyClass(IntWritable.class);
         job.setOutputValueClass(Text.class);
-        job.setNumReduceTasks(tableDesc.getColumnCount());
+        job.setNumReduceTasks(decideReduceTasks(tableDesc.getColumnCount()));
 
         this.deletePath(job.getConfiguration(), output);
 
@@ -108,6 +108,13 @@ public class HiveTableExtJob extends AbstractHadoopJob {
         int result = waitForCompletion(job);
 
         return result;
+    }
+
+    private int decideReduceTasks(int columnCount) {
+        if (columnCount > 20) {
+            return (int) Math.sqrt(columnCount);
+        }
+        return columnCount;
     }
 
 }

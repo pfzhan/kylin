@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.engine.mr;
 
-import java.io.IOException;
-
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.RowKeyDesc;
 import org.apache.kylin.engine.mr.BatchCubingJobBuilder2;
@@ -46,7 +44,6 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
-import io.kyligence.kap.engine.mr.tablestats.HiveTableExtSampleJob;
 import io.kyligence.kap.engine.mr.steps.KapBaseCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapInMemCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapNDCuboidJob;

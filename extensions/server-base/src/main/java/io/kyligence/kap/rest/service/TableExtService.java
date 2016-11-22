@@ -43,6 +43,11 @@ public class TableExtService extends BasicService {
         return HiveTableExtSampleJob.createSampleJob(project, submitter, tableName);
     }
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public String getJobByTableName(String tableName){
+        return getMetaDataManager().getTableExt(tableName).getJodID();
+    }
+
     public MetadataManager getMetaDataManager() {
         return org.apache.kylin.metadata.MetadataManager.getInstance(getConfig());
     }
