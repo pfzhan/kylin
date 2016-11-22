@@ -61,7 +61,7 @@ public class RawTableController extends BasicController {
     private static final Logger logger = LoggerFactory.getLogger(RawTableController.class);
 
     @Autowired
-    private RawTableService rawService;
+    private RawTableService rawTableService;
 
     @Autowired
     private JobService jobService;
@@ -84,7 +84,7 @@ public class RawTableController extends BasicController {
         try {
             desc.setUuid(UUID.randomUUID().toString());
             String projectName = (null == rawRequest.getProject()) ? ProjectInstance.DEFAULT_PROJECT_NAME : rawRequest.getProject();
-            rawService.createRawTableInstanceAndDesc(name, projectName, desc);
+            rawTableService.createRawTableInstanceAndDesc(name, projectName, desc);
         } catch (Exception e) {
             logger.error("Failed to deal with the request.", e);
             throw new InternalErrorException(e.getLocalizedMessage(), e);
@@ -124,7 +124,7 @@ public class RawTableController extends BasicController {
 
         String projectName = (null == rawRequest.getProject()) ? ProjectInstance.DEFAULT_PROJECT_NAME : rawRequest.getProject();
         try {
-            RawTableInstance raw = rawService.getRawTableManager().getRawTableInstance(rawRequest.getRawTableName());
+            RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(rawRequest.getRawTableName());
 
             if (raw == null) {
                 String error = "The raw named " + rawRequest.getRawTableName() + " does not exist ";
@@ -139,7 +139,7 @@ public class RawTableController extends BasicController {
                 return rawRequest;
             }
 
-            desc = rawService.updateRawTableInstanceAndDesc(raw, desc, projectName, true);
+            desc = rawTableService.updateRawTableInstanceAndDesc(raw, desc, projectName, true);
 
         } catch (AccessDeniedException accessDeniedException) {
             throw new ForbiddenException("You don't have right to update this cube.");
@@ -157,7 +157,7 @@ public class RawTableController extends BasicController {
     @RequestMapping(value = "/{cubeName}", method = { RequestMethod.GET })
     @ResponseBody
     public RawTableDesc getRawTableDesc(@PathVariable String cubeName) {
-        RawTableInstance raw = rawService.getRawTableManager().getRawTableInstance(cubeName);
+        RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
         if (raw == null) {
             logger.info("raw " + cubeName + " does not exist!");
             return null;
@@ -168,13 +168,13 @@ public class RawTableController extends BasicController {
     @RequestMapping(value = "/{cubeName}", method = { RequestMethod.DELETE })
     @ResponseBody
     public void deleteRaw(@PathVariable String cubeName) {
-        RawTableInstance raw = rawService.getRawTableManager().getRawTableInstance(cubeName);
+        RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
         if (null == raw) {
             logger.info("raw " + cubeName + " does not exist!");
             return;
         }
         try {
-            rawService.deleteRaw(raw);
+            rawTableService.deleteRaw(raw);
         } catch (Exception e) {
             logger.error(e.getLocalizedMessage(), e);
             throw new InternalErrorException("Failed to delete raw. " + " Caused by: " + e.getMessage(), e);
@@ -185,13 +185,13 @@ public class RawTableController extends BasicController {
     @ResponseBody
     public RawTableInstance enableRaw(@PathVariable String cubeName) {
         try {
-            RawTableInstance raw = rawService.getRawTableManager().getRawTableInstance(cubeName);
+            RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
             if (null == raw) {
                 logger.info("raw " + cubeName + " does not exist!");
                 return null;
             }
 
-            return rawService.enableRaw(raw);
+            return rawTableService.enableRaw(raw);
         } catch (Exception e) {
             String message = "Failed to enable raw: " + cubeName;
             logger.error(message, e);
@@ -203,12 +203,12 @@ public class RawTableController extends BasicController {
     @ResponseBody
     public RawTableInstance disableRaw(@PathVariable String cubeName) {
         try {
-            RawTableInstance raw = rawService.getRawTableManager().getRawTableInstance(cubeName);
+            RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
             if (null == raw) {
                 logger.info("raw " + cubeName + " does not exist!");
                 return null;
             }
-            return rawService.disableRaw(raw);
+            return rawTableService.disableRaw(raw);
         } catch (Exception e) {
             String message = "Failed to enable raw: " + cubeName;
             logger.error(message, e);
@@ -222,8 +222,8 @@ public class RawTableController extends BasicController {
         request.setMessage(message);
     }
 
-    public void setCubeService(RawTableService rawService) {
-        this.rawService = rawService;
+    public void setRawTableService(RawTableService rawTableService) {
+        this.rawTableService = rawTableService;
     }
 
     public void setJobService(JobService jobService) {

@@ -30,11 +30,11 @@ public class RawTableControllerTest extends ServiceTestBase {
         super.setup();
 
         rawController = new RawTableController();
-        rawController.setCubeService(rawService);
+        rawController.setRawTableService(rawService);
         rawController.setJobService(jobService);
 
         descController = new RawTableDescController();
-        descController.setRawService(rawService);
+        descController.setRawTableService(rawService);
 
     }
 

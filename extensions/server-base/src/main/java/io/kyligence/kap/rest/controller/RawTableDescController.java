@@ -43,7 +43,7 @@ import io.kyligence.kap.rest.service.RawTableService;
 public class RawTableDescController extends BasicController {
 
     @Autowired
-    private RawTableService rawService;
+    private RawTableService rawTableService;
 
     /**
      * Get detail information of the "Cube ID"
@@ -57,7 +57,7 @@ public class RawTableDescController extends BasicController {
     @RequestMapping(value = "/{rawName}", method = { RequestMethod.GET })
     @ResponseBody
     public RawTableDesc getDesc(@PathVariable String rawName) {
-        RawTableInstance rawInstance = rawService.getRawTableManager().getRawTableInstance(rawName);
+        RawTableInstance rawInstance = rawTableService.getRawTableManager().getRawTableInstance(rawName);
         if (rawInstance == null) {
             return null;
         }
@@ -69,8 +69,8 @@ public class RawTableDescController extends BasicController {
         }
     }
 
-    public void setRawService(RawTableService rawService) {
-        this.rawService = rawService;
+    public void setRawTableService(RawTableService rawTableService) {
+        this.rawTableService = rawTableService;
     }
 
 }

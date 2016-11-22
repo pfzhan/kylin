@@ -56,7 +56,7 @@ import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableUpdate;
 
-@Component("rawMgmtService")
+@Component("rawTableService")
 public class RawTableService extends BasicService {
     private static final String DESC_SUFFIX = "_desc";
 
