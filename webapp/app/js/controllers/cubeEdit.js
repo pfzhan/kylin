@@ -57,12 +57,12 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
           var name = value;
           var typeVersion=+encodings[i];
           if(value=="int"){
-            name = "int(deprecated)";
+            name = "int deprecated";
           }
-          if(/\d+/.test(""+typeVersion)){
+          if(/\d+/.test(""+typeVersion)&&typeVersion>1){
             for(var s=1;s<=typeVersion;s++){
               $scope.store.supportedEncoding.push({
-                "name":name+" (v"+s+")"+(s==typeVersion&&typeVersion>1?"(suggest)":""),
+                "name":name+" (v"+s+","+(s==typeVersion?"suggest)":")"),
                 "value":value+"[v"+s+"]",
                 "version":typeVersion,
                 "baseValue":value,
