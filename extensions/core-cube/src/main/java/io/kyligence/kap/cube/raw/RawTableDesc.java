@@ -133,13 +133,16 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     }
 
     public List<Pair<String, Integer>> getEncodings() {
-        Preconditions.checkNotNull(columnMap);
-        Preconditions.checkArgument(columnMap.size() != 0);
-        return Lists.transform(columns, new Function<RawTableColumnDesc, Pair<String, Integer>>() {
+        List<TblColRef> columnsInOrder = getColumns();
+        Preconditions.checkNotNull(columnsInOrder);
+        Preconditions.checkArgument(columnsInOrder.size() != 0);
+        return Lists.transform(columnsInOrder, new Function<TblColRef, Pair<String, Integer>>() {
             @Nullable
             @Override
-            public Pair<String, Integer> apply(@Nullable RawTableColumnDesc input) {
-                return Pair.newPair(input.getEncoding(), input.getEncodingVersion());
+            public Pair<String, Integer> apply(@Nullable TblColRef input) {
+                RawTableColumnDesc rawTableColumnDesc = columnMap.get(input);
+                Preconditions.checkNotNull(rawTableColumnDesc);
+                return Pair.newPair(rawTableColumnDesc.getEncoding(), rawTableColumnDesc.getEncodingVersion());
             }
         });
     }
