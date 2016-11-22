@@ -18,7 +18,7 @@
 
 <div class="page-header" style="height: 50px;">
     <!--Project-->
-    <form class="navbar-form navbar-left" style="margin-top: 0px !important;" ng-if="userService.isAuthorized()">
+    <form class=" navbar-left" style="margin-top: 0px !important;" ng-if="userService.isAuthorized()">
         <div class="form-group" ng-if="userService.hasRole('ROLE_MODELER')">
             <a class="btn btn-xs btn-info" href="projects" tooltip="{{dataKylin.project.manageProject}}"><i class="fa fa-gears"></i></a>
           <a class="btn btn-xs btn-primary" ng-if="userService.hasRole('ROLE_MODELER')" style="width: 29px" tooltip="{{dataKylin.project.addAdd}}" ng-click="toCreateProj()">
@@ -27,7 +27,7 @@
         </div>
     </form>
 </div>
-<div class="row">
+<div>
     <div class="{{fullsql?'hidden':'col-xs-3'}}">
       <div class="tree-border" ng-controller="ProjectMetaCtrl">
         <div class="row">

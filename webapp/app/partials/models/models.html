@@ -18,7 +18,7 @@
 
 <div class="page-header" style="height: 50px;">
     <!--Project-->
-    <form class="navbar-form navbar-left" style="margin-top: 0px !important;" ng-if="userService.isAuthorized()">
+    <form class=" navbar-left" style="margin-top: 0px !important;" ng-if="userService.isAuthorized()">
         <div class="form-group" ng-if="userService.hasRole('ROLE_MODELER')" >
             <a class="btn btn-xs btn-info" href="projects" tooltip="{{dataKylin.project.manageProject}}"><i class="fa fa-gears"></i></a>
           <a class="btn btn-xs btn-primary" ng-if="userService.hasRole('ROLE_MODELER')" style="width: 29px" tooltip="{{dataKylin.project.addAdd}}" ng-click="toCreateProj()">
@@ -28,7 +28,7 @@
     </form>
 </div>
 
-<div class="row models-main dataTables_wrapper"  style="padding-top:10px;padding-left: 5px;">
+<div class=" models-main dataTables_wrapper"  style="padding-top:10px;">
   <div ng-class="row">
     <tabset>
       <tab heading="{{dataKylin.data_source.data_source}}" select="modelTabSelected('data_source')" active="tabs[0].active">
@@ -38,10 +38,10 @@
         </div>
       </tab>
       <tab heading="{{dataKylin.model.models}}" select="modelTabSelected('models')" active="tabs[1].active">
-        <div class="col-xs-12" ng-include src="'partials/models/models_tree.html'"></div>
+        <div  ng-include src="'partials/models/models_tree.html'"></div>
       </tab>
       <tab heading="Cubes" select="modelTabSelected('cubes')" active="tabs[2].active">
-        <div class="col-xs-12" ng-include src="'partials/cubes/cubes.html'"></div>
+        <div  ng-include src="'partials/cubes/cubes.html'"></div>
       </tab>
     </tabset>
   </div>
