@@ -24,17 +24,17 @@
 
 package io.kyligence.kap.rest.service;
 
-import org.apache.kylin.rest.service.BasicService;
-import org.springframework.stereotype.Component;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.kylin.rest.service.BasicService;
+import org.springframework.stereotype.Component;
+
 @Component("licenseInfoService")
-public class LicenseInfoService extends BasicService{
+public class LicenseInfoService extends BasicService {
 
     public Map<String, String> extractLicenseInfo() {
         Map<String, String> result = new HashMap<>();
@@ -46,7 +46,7 @@ public class LicenseInfoService extends BasicService{
         result.put("kylin.commit", System.getProperty("kylin.commit"));
 
         try {
-            if(lic != null) {
+            if (lic != null) {
                 BufferedReader reader = new BufferedReader(new StringReader(lic));
                 String line;
                 while ((line = reader.readLine()) != null) {
@@ -63,9 +63,8 @@ public class LicenseInfoService extends BasicService{
         } catch (IOException e) {
             // ignore
         }
-        
+
         return result;
     }
-
 
 }

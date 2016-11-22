@@ -46,7 +46,7 @@ import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Component;
 
 @Component("massInService")
-public class MassInService extends BasicService{
+public class MassInService extends BasicService {
     public String storeMassIn(SQLResponse response, Functions.FilterTableType filterTableType) throws IOException {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -55,7 +55,7 @@ public class MassInService extends BasicService{
         List<List<String>> result = response.getResults();
         // Assumption: one column is needed
         List<String> oneColumnResult = new ArrayList<>(result.size());
-        for (List<String> line: result) {
+        for (List<String> line : result) {
             oneColumnResult.add(line.get(0));
         }
 
