@@ -25,7 +25,7 @@
 'use strict';
 
 KylinApp
-  .controller('SourceMetaCtrl', function ($scope, $cacheFactory, $q, $window, $routeParams, CubeService, $modal, TableService, $route, loadingRequest, SweetAlert, tableConfig, TableModel,cubeConfig,kylinCommon,TableExtService) {
+  .controller('SourceMetaCtrl', function ($scope, $cacheFactory, $q, $window, $routeParams, CubeService, $modal, TableService, $route, loadingRequest, SweetAlert, tableConfig, TableModel,cubeConfig,kylinCommon,TableExtService,VdmUtil) {
     var $httpDefaultCache = $cacheFactory.get('$http');
     $scope.tableModel = TableModel;
     $scope.tableModel.selectedSrcDb = [];
@@ -890,8 +890,19 @@ KylinApp
       })
     }
     $scope.getSampleData=function(){
-      TableExtService.getSampleInfo({projectName:$scope.tableModel.selectedSrcTable.name},function(){
-
+      TableExtService.getSampleInfo({tableName:$scope.tableModel.selectedSrcTable.name},function(data){
+         var columnData=[].concat($scope.tableModel.selectedSrcTable.columns);
+         var sampleData=[],specialData=[];
+         //if(data.columns_stats&&data.columns_stats.length){
+         //  specialData=specialData.concat(VdmUtil.changeDataAxis(data.columns_stats))
+         //}
+         if(data.sample_rows&&data.sample_rows.length){
+           sampleData=sampleData.concat(VdmUtil.changeDataAxis(data.sample_rows,true));
+         }
+         $scope.specialData=data.columns_stats;
+         $scope.sampleData=sampleData;
+         $scope.columnData=columnData;
+         $scope.getSampleJobStatus($scope.tableModel.selectedSrcTable.name);
       })
     }
 
@@ -901,6 +912,10 @@ KylinApp
       }
     })
 
-
+    $scope.getSampleJobStatus=function(tableName){
+      TableExtService.getCalcSampleProgress({'tableName':tableName,'action':'job'},function(data){
+       $scope.progress=data.progress;
+      })
+    }
   });
 

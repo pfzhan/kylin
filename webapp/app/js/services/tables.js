@@ -39,6 +39,7 @@ KylinApp.factory('TableService', ['$resource', function ($resource, config) {
 KylinApp.factory('TableExtService', ['$resource', function ($resource, config) {
   return $resource(Config.service.url + 'table_ext/:projectName/:tableName/:action', {}, {
     getSampleInfo: {method: 'GET', params: {}, isArray: false},
-    doSample: {method: 'PUT', params: {}, isArray: true}
+    doSample: {method: 'PUT', params: {}, isArray: true},
+    getCalcSampleProgress:{method:'GET',params: {}, isArray: false}
   });
 }]);
