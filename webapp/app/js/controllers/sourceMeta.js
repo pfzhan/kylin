@@ -886,7 +886,7 @@ KylinApp
     };
     $scope.calcSampleData=function(){
       TableExtService.doSample({projectName:$scope.projectModel.selectedProject,tableName:$scope.tableModel.selectedSrcTable.name,action:'sample_job'},{},function(){
-
+        $scope.getSampleJobStatus($scope.tableModel.selectedSrcTable.name);
       })
     }
     $scope.getSampleData=function(){
@@ -897,19 +897,26 @@ KylinApp
          }
          $scope.specialData=data.columns_stats;
          $scope.sampleData=sampleData;
-         $scope.getSampleJobStatus($scope.tableModel.selectedSrcTable.name);
       })
     }
 
     $scope.$watch('tableModel.selectedSrcTable.name',function(){
       if($scope.tableModel.selectedSrcTable.name){
         $scope.getSampleData();
+        $scope.getSampleJobStatus($scope.tableModel.selectedSrcTable.name);
       }
     })
-
+    $scope.job={progress:0};
     $scope.getSampleJobStatus=function(tableName){
       TableExtService.getCalcSampleProgress({'tableName':tableName,'action':'job'},function(data){
-       $scope.progress=data.progress;
+        if(data.progress&&data.progress!=100){
+          setTimeout(function(){
+            $scope.getSampleJobStatus(tableName);
+          },5000)
+        }
+        if(data.progress==100){
+          $scope.getSampleData();
+        }
       })
     }
   });

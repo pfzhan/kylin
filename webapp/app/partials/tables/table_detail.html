@@ -19,6 +19,7 @@
 <div ng-controller="SourceMetaCtrl" class="nav-tabs-custom">
   <div class="col-xs-12" ng-show="tableModel.selectedSrcDb&&tableModel.selectedSrcTable.name">
     <h3 class="text-info">{{dataKylin.data_source.tableSchema}}{{ tableModel.selectedSrcTable.name}}</h3>
+    <a class="btn btn-primary pull-right"  ng-click="calcSampleData()" ng-if="job.job_status=='FINISHED'||!job.job_status||job.job_status=='ERROR'||job.job_status=='DISCARDED'">CalcCgardinality</a>
 
     <div class="tabbable nav-tabs-custom">
       <ul class="nav nav-tabs">
@@ -32,9 +33,69 @@
           <a data-toggle="tab" ng-if="tableModel.selectedSrcTable.source_type==1" href="#streaming">{{dataKylin.data_source.streamingCluster}}</a>
         </li>
         <li>
+
+          <div  ng-if="job.progress>=0&&job.progress<100" class="loadingData">
+            <div ng-switch on="job.job_status">
+              <div ng-switch-when="ERROR" tooltip="ERROR">
+                <progressbar animate="false" class="progress-striped" value="job.progress" type="danger">
+                  {{job.job_status}}
+                </progressbar>
+              </div>
+              <div ng-switch-when="FINISHED" tooltip="FINISHED">
+                <progressbar animate="false" class="progress-striped" value="job.progress" type="success">
+                  {{job.progress}}%
+                </progressbar>
+              </div>
+              <div ng-switch-when="PENDING" tooltip="PENDING">
+                <progressbar animate="false" class="progress-striped active" value="job.progress"
+                             type="pending">{{job.job_status}}
+                </progressbar>
+              </div>
+              <div ng-switch-when="RUNNING" tooltip="RUNNING">
+                <progressbar animate="false" class="progress-striped active" value="job.progress"
+                             type="info">{{job.progress | number:2}}%
+                </progressbar>
+              </div>
+              <div ng-switch-when="DISCARDED" tooltip="DISCARDED">
+                <progressbar animate="false" class="progress-striped" value="job.progress" type="inverse">
+                  {{job.progress | number:2}}%
+                </progressbar>
+              </div>
+            </div>
+          </div>
           <a data-toggle="tab" href="#cardinality" >{{dataKylin.data_source.cardinality}}</a>
         </li>
         <li>
+
+          <div  ng-if="job.progress>=0&&job.progress<100" class="loadingData">
+            <div ng-switch on="job.job_status">
+              <div ng-switch-when="ERROR" tooltip="ERROR">
+                <progressbar animate="false" class="progress-striped" value="job.progress" type="danger">
+                  {{job.job_status}}
+                </progressbar>
+              </div>
+              <div ng-switch-when="FINISHED" tooltip="FINISHED">
+                <progressbar animate="false" class="progress-striped" value="job.progress" type="success">
+                  {{job.progress}}%
+                </progressbar>
+              </div>
+              <div ng-switch-when="PENDING" tooltip="PENDING">
+                <progressbar animate="false" class="progress-striped active" value="job.progress"
+                             type="pending">{{job.job_status}}
+                </progressbar>
+              </div>
+              <div ng-switch-when="RUNNING" tooltip="RUNNING">
+                <progressbar animate="false" class="progress-striped active" value="job.progress"
+                             type="info">{{job.progress | number:2}}%
+                </progressbar>
+              </div>
+              <div ng-switch-when="DISCARDED" tooltip="DISCARDED">
+                <progressbar animate="false" class="progress-striped" value="job.progress" type="inverse">
+                  {{job.progress | number:2}}%
+                </progressbar>
+              </div>
+            </div>
+          </div>
           <a data-toggle="tab"  href="#sampleData" >{{dataKylin.data_source.sampleData}}</a>
         </li>
       </ul>
@@ -137,11 +198,11 @@
                     style="{{(tableModel.selectedSrcTable.selectedSrcColumn.id == column.id)? 'background-color:#EBF9FE':''}}">
                     {{ column.datatype}}
                   </td>
-                  <td
-                    style="{{(tableModel.selectedSrcTable.selectedSrcColumn.id == column.id)? 'background-color:#EBF9FE':''}}">
-                    <!--{{ tableModel.selectedSrcTable.cardinality[column.name]}}-->
-                    {{column.cardinality}}
-                  </td>
+                  <!--<td-->
+                    <!--style="{{(tableModel.selectedSrcTable.selectedSrcColumn.id == column.id)? 'background-color:#EBF9FE':''}}">-->
+                    <!--&lt;!&ndash;{{ tableModel.selectedSrcTable.cardinality[column.name]}}&ndash;&gt;-->
+                    <!--{{column.cardinality}}-->
+                  <!--</td>-->
                   <td
                     style="{{(tableModel.selectedSrcTable.selectedSrcColumn.id == column.id)? 'background-color:#EBF9FE':''}}">
                     {{ column.comment}}
@@ -158,33 +219,31 @@
         </div>
         <!--sampleData-->
         <div id="sampleData" class="tab-pane">
-          <a class="btn btn-primary " tooltip="Calc Cardinality" ng-click="calcSampleData()">CalcCardinality</a>
-
-          <table class="table table-hover table-striped list">
-            <thead>
-            <tr >
-              <th ng-repeat="column in tableModel.selectedSrcTable.columns ">{{ column.name}}</th>
-            </tr>
-            </thead>
-
-            <tr
-              ng-repeat="list in sampleData track by $index">
-              <td ng-repeat="sd in sampleData[$index] track by $index">
-                {{sd}}
-              </td>
-            </tr>
-          </table>
+          <div style="overflow-x: auto">
+            <table class="table table-hover table-striped list">
+              <thead>
+              <tr >
+                <th ng-repeat="column in tableModel.selectedSrcTable.columns ">{{ column.name}}</th>
+              </tr>
+              </thead>
+              <tr ng-repeat="list in sampleData track by $index">
+                <td ng-repeat="sd in sampleData[$index] track by $index">
+                  {{sd}}
+                </td>
+              </tr>
+            </table>
+            <div ng-if="!sampleData.length">{{dataKylin.data_source.noSampleData}}</div>
+          </div>
         </div>
         <!--cardinality-->
         <div id="cardinality" class="tab-pane">
-
 
           <table class="table table-hover table-striped list">
             <thead>
             <tr >
               <th>ID</th>
-              <th>{{ tableModel.selectedSrcTable.name}}</th>
-              <th>Cardinality</th>
+              <th>{{dataKylin.data_source.name}}</th>
+              <th>{{dataKylin.data_source.cardinality}}</th>
               <th>max_length_value</th>
               <th>max_value</th>
               <th>min_length_value</th>

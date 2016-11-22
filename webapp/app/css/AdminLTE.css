@@ -4086,3 +4086,16 @@ Gradient Background colors
 .JCLRgrips{
   margin-left: 42px;
 }
+.nav-tabs .loadingData{
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.nav-tabs .progress{
+  margin-bottom: 0;
+  height: 40px;
+  width: 110px;
+}
+.nav-tabs .progress.progress-striped{
+  background-color:#fff;
+}

@@ -717,7 +717,7 @@ KylinApp.constant('kapChineseConfig', {
     theaditems: [
       {attr: 'id', name: 'ID'},
       {attr: 'name', name: '名称'},
-      {attr: 'datatype', name: '数据类型'},
+      //{attr: 'datatype', name: '数据类型'},
       {attr: 'cardinality', name: '基数'},
       {attr: 'comment', name: '注释'}
     ],
@@ -728,7 +728,8 @@ KylinApp.constant('kapChineseConfig', {
     tip_select_project: '请先选中项目',
     tip_select_table: '请选择表',
     sampleData:'采样数据',
-    cardinality:'基数'
+    cardinality:'基数',
+    noSampleData:'无采样数据'
   },
   system:{
     system: '系统',

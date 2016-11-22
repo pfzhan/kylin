@@ -735,7 +735,7 @@ KylinApp.constant('kapEnglishConfig', {
       {attr: 'id', name: 'ID'},
       {attr: 'name', name: 'Name'},
       {attr: 'datatype', name: 'Data Type'},
-      {attr: 'cardinality', name: 'Cardinality'},
+      //{attr: 'cardinality', name: 'Cardinality'},
       {attr: 'comment', name: 'Comment'}
     ],
     tip_no_table_selected: 'No Table Selected.',
@@ -745,7 +745,8 @@ KylinApp.constant('kapEnglishConfig', {
     tip_select_project: 'Please select your project first',
     tip_select_table: 'Select your table',
     sampleData:'Sample Data',
-    cardinality:'Cardinality'
+    cardinality:'Cardinality',
+    noSampleData:'No Sample Data'
   },
   system:{
     system: 'System',
