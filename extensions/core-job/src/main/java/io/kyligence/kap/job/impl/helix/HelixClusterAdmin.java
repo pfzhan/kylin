@@ -45,6 +45,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.StringUtil;
 import org.slf4j.Logger;
@@ -78,8 +79,9 @@ public class HelixClusterAdmin {
     private HelixClusterAdmin(KylinConfig kylinConfig) {
         this.kylinConfig = kylinConfig;
 
-        if (kylinConfig.getZookeeperAddress() != null) {
-            this.zkAddress = kylinConfig.getZookeeperAddress();
+        KapConfig kapConfig = KapConfig.wrap(kylinConfig);
+        if (kapConfig.getHelixZookeeperAddress() != null) {
+            this.zkAddress = kapConfig.getHelixZookeeperAddress();
         } else {
             throw new IllegalArgumentException("no 'kylin.zookeeper.address' set in kylin.properties");
         }
@@ -231,7 +233,7 @@ public class HelixClusterAdmin {
     }
 
     public String getCurrentInstanceName() {
-        final String restAddress = kylinConfig.getRestAddress();
+        final String restAddress = KapConfig.wrap(kylinConfig).getHelixRestAddress();
         if (StringUtils.isEmpty(restAddress)) {
             throw new RuntimeException("There is no kylin.rest.address set in System property and kylin.properties;");
         }

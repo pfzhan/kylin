@@ -172,7 +172,6 @@ public class KapConfig {
     /**
      * query config
      */
-
     public boolean isUsingInvertedIndex() {
         return Boolean.valueOf(config.getOptional("kap.query.columnar.invertedindex.enabled", "true"));
     }
@@ -183,4 +182,13 @@ public class KapConfig {
     public String getMassinResourceIdentiferDir() {
         return config.getOptional("kap.massin.resource.dir", new StringBuilder().append(config.getHdfsWorkingDirectory()).append("massin/").toString());
     }
+    
+    public String getHelixZookeeperAddress() {
+        return config.getOptional("kylin.zookeeper.address");
+    }
+
+    public String getHelixRestAddress() {
+        return config.getOptional("kylin.rest.address", "localhost:7070");
+    }
+
 }
