@@ -6,7 +6,7 @@ source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 echo "Checking HDFS working dir..."
 
 RANDNAME=chkenv__${RANDOM}
-WORKING_DIR=`sh $KYLIN_HOME/bin/get-properties.sh kylin.hdfs.working.dir`
+WORKING_DIR=`sh $KYLIN_HOME/bin/get-properties.sh kylin.env.hdfs-working-dir`
 TEST_FILE=${WORKING_DIR}/${RANDNAME}
 
 $(hadoop fs -test -d ${WORKING_DIR}) || quit "ERROR: Please create working directory '${WORKING_DIR}' and grant access permission."

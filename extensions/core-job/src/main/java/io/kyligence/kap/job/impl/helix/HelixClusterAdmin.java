@@ -244,7 +244,7 @@ public class HelixClusterAdmin {
     }
 
     /**
-     * Listen to the cluster's event, update "kylin.rest.servers" to the live instances.
+     * Listen to the cluster's event, update "kylin.server.cluster-servers" to the live instances.
      */
     class KylinClusterLiveInstanceChangeListener implements LiveInstanceChangeListener {
         @Override
@@ -258,12 +258,12 @@ public class HelixClusterAdmin {
             if (instanceRestAddresses.size() > 0) {
                 String restServersInCluster = StringUtil.join(instanceRestAddresses, ",");
                 String serverMode = isLeaderRole(HelixClusterAdmin.RESOURCE_NAME_JOB_ENGINE) ? "all" : "query";
-                logger.info("kylin.rest.servers update to " + restServersInCluster);
+                logger.info("kylin.server.cluster-servers update to " + restServersInCluster);
                 logger.info("kylin.server.mode update to " + serverMode);
 
-                kylinConfig.setProperty("kylin.rest.servers", restServersInCluster);
+                kylinConfig.setProperty("kylin.server.cluster-servers", restServersInCluster);
                 kylinConfig.setProperty("kylin.server.mode", serverMode);
-                System.setProperty("kylin.rest.servers", restServersInCluster);
+                System.setProperty("kylin.server.cluster-servers", restServersInCluster);
             }
         }
     }

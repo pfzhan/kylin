@@ -48,7 +48,7 @@ public class DebugTomcat {
             overrideDevJobJarLocations();
 
             System.setProperty("spring.profiles.active", "testing");
-            System.setProperty("kylin.query.cache.enabled", "false");
+            System.setProperty("kylin.query.cache-enabled", "false");
 
             //avoid log permission issue
             if (System.getProperty("catalina.home") == null)

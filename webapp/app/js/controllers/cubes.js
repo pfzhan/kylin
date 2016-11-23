@@ -715,7 +715,7 @@ var jobSubmitCtrl = function ($scope,scope, $modalInstance, CubeService, Message
 
 var streamingBuildCtrl = function ($scope, $modalInstance,kylinConfig,kylinCommon) {
   $scope.kylinConfig = kylinConfig;
-  var streamingGuildeUrl = kylinConfig.getProperty("kylin.web.streaming.guide");
+  var streamingGuildeUrl = kylinConfig.getProperty("kylin.web.link-streaming-guide");
   $scope.streamingBuildUrl = streamingGuildeUrl?streamingGuildeUrl:"http://kylin.apache.org/";
 
   $scope.cancel = function () {

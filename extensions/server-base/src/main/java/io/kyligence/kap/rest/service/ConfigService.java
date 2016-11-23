@@ -37,22 +37,22 @@ public class ConfigService extends BasicService {
 
     /**
      * Only support the following keys currently:
-     * kylin.hbase.default.compression.codec
-     * kylin.job.cubing.inmem.sampling.percent
+     * kylin.storage.hbase.compression-codec
+     * kylin.job.sampling-percentage
      * kylin.cube.algorithm
-     * kylin.cube.aggrgroup.max.combination
+     * kylin.cube.aggrgroup.max-combination
      * @param key
      * @return
      */
     public String getDefaultValue(String key) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        if ("kylin.hbase.default.compression.codec".equals(key)) {
+        if ("kylin.storage.hbase.compression-codec".equals(key)) {
             return kylinConfig.getHbaseDefaultCompressionCodec();
-        } else if ("kylin.job.cubing.inmem.sampling.percent".equals(key)) {
+        } else if ("kylin.job.sampling-percentage".equals(key)) {
             return String.valueOf(kylinConfig.getCubingInMemSamplingPercent());
         } else if ("kylin.cube.algorithm".equals(key)) {
             return kylinConfig.getCubeAlgorithm();
-        } else if ("kylin.cube.aggrgroup.max.combination".equals(key)) {
+        } else if ("kylin.cube.aggrgroup.max-combination".equals(key)) {
             return String.valueOf(kylinConfig.getCubeAggrGroupMaxCombination());
         } else
             return "";

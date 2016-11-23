@@ -118,7 +118,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
       closeOnConfirm: true
     }, function (isConfirm) {
       if (isConfirm) {
-        AdminService.updateConfig({}, {key: 'kylin.query.cache.enabled', value: false}, function () {
+        AdminService.updateConfig({}, {key: 'kylin.query.cache-enabled', value: false}, function () {
           kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_cache_disabled);
           location.reload();
         }, function (e) {
@@ -141,7 +141,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
       closeOnConfirm: true
     }, function (isConfirm) {
       if (isConfirm) {
-        AdminService.updateConfig({}, {key: 'kylin.query.cache.enabled', value: true}, function () {
+        AdminService.updateConfig({}, {key: 'kylin.query.cache-enabled', value: true}, function () {
           kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_cache_enabled);
           location.reload();
         }, function (e) {

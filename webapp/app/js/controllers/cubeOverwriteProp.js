@@ -25,10 +25,10 @@ KylinApp.controller('CubeOverWriteCtrl', function ($scope, $modal,cubeConfig,Met
   //rowkey
   if(angular.equals({},$scope.cubeMetaFrame.override_kylin_properties)&&$scope.state.mode!="view"){
     $scope.convertedProperties=[
-      {name:"kylin.hbase.default.compression.codec",value:""},
-      {name:"kylin.job.cubing.inmem.sampling.percent",value:""},
+      {name:"kylin.storage.hbase.compression-codec",value:""},
+      {name:"kylin.job.sampling-percentage",value:""},
       {name:"kylin.cube.algorithm",value:""},
-      {name:"kylin.cube.aggrgroup.max.combination",value:""}
+      {name:"kylin.cube.aggrgroup.max-combination",value:""}
     ]
     for(var i=0;i<$scope.convertedProperties.length;i++){
       (function(i){
