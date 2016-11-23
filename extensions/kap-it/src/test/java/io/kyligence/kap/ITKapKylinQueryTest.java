@@ -172,7 +172,12 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     @Test
     @Override
     public void testTimeoutQuery() throws Exception {
-        super.testTimeoutQuery();
+        try {
+            KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark.visit.timeout", "3000");//set timeout to 3s
+            super.testTimeoutQuery();
+        } finally {
+            KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark.visit.timeout", "300000");//set timeout to default
+        }
     }
 
     //raw query will be preceded by RawTable all the times
@@ -185,7 +190,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
             toggles.put(BackdoorToggles.DEBUG_TOGGLE_COPROCESSOR_BEHAVIOR, StorageSideBehavior.SCAN_FILTER_AGGR_CHECKMEM_WITHDELAY.toString());//delay 10ms for every scan
             BackdoorToggles.setToggles(toggles);
 
-            KylinConfig.getInstanceFromEnv().setProperty("kylin.query.coprocessor.timeout.seconds", "3");//set timeout to 3s
+            KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark.visit.timeout", "3000");//set timeout to 3s
 
             RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=test_kylin_cube_with_slr_empty]");
             RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=test_kylin_cube_without_slr_empty]");
@@ -196,7 +201,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
             RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=test_kylin_cube_with_slr_empty]");
             RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=test_kylin_cube_without_slr_empty]");
 
-            KylinConfig.getInstanceFromEnv().setProperty("kylin.query.coprocessor.timeout.seconds", "0");//set timeout to 9s 
+            KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark.visit.timeout", "300000");//set timeout to default
             BackdoorToggles.cleanToggles();
         }
     }
