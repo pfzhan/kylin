@@ -35,7 +35,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
   $scope.getEnv = function () {
     AdminService.env({}, function (env) {
       $scope.envStr = env.env;
-      MessageService.sendMsg($scope.dataKylin.alert.success_server_environment, 'success', {});
+      MessageService.sendMsg($scope.dataKylin.alert.success_server_environment, 'success', {}, 3);
 
     }, function (e) {
       kylinCommon.error_default(e);
@@ -45,7 +45,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
   $scope.getConfig = function () {
     AdminService.config({}, function (config) {
       $scope.configStr = config.config;
-      MessageService.sendMsg($scope.dataKylin.alert.success_server_config, 'success', {});
+      MessageService.sendMsg($scope.dataKylin.alert.success_server_config, 'success', {}, 3);
     }, function (e) {
       kylinCommon.error_default(e);
     });

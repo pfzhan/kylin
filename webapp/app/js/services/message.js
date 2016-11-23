@@ -35,12 +35,13 @@ KylinApp.service('MessageService', ['config_ui_messenger', function (config_ui_m
       actions: actions,
       showCloseButton: true
     };
-
     // Whether sticky the message, otherwise it will hide after a period.
     if (angular.isDefined(sticky) && sticky === true) {
       data.hideAfter = false;
     }
-
+    if (angular.isDefined(sticky) && typeof(sticky) =="number") {
+       data.hideAfter = sticky;
+    }
     // Specify the position, otherwise it will be default 'bottom_right'.
     if (angular.isDefined(position) && config_ui_messenger.location.hasOwnProperty(position)) {
       options.extraClasses = config_ui_messenger.location[position];
