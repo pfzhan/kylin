@@ -26,7 +26,10 @@ package io.kyligence.kap.storage.parquet.format;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.nio.ByteBuffer;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
 
@@ -83,12 +86,26 @@ public class ParquetTarballFileReader extends RecordReader<Text, Text> {
     private long cuboidId;
     private short shardId;
 
+    long profileStartTime = 0;
+
     @Override
     public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
 
         FileSplit fileSplit = (FileSplit) split;
         conf = context.getConfiguration();
         Path shardPath = fileSplit.getPath();
+
+        logger.info("tarball file: {}", shardPath);
+        // determine the running node
+        Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces();
+        while (e.hasMoreElements()) {
+            NetworkInterface n = e.nextElement();
+            Enumeration<InetAddress> ee = n.getInetAddresses();
+            while (ee.hasMoreElements()) {
+                InetAddress ia = ee.nextElement();
+                logger.info("Hostname: {}", ia.getHostName());
+            }
+        }
 
         long startTime = System.currentTimeMillis();
         String kylinPropsStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, "");
@@ -124,7 +141,8 @@ public class ParquetTarballFileReader extends RecordReader<Text, Text> {
 
                 logger.info("Starting to lookup inverted index");
                 pageBitmap = indexTable.lookup(filter);
-                logger.info("Inverted Index bitmap: " + pageBitmap + ". Time spent is: " + (System.currentTimeMillis() - startTime));
+                logger.info("Inverted Index bitmap: {}", pageBitmap);
+                logger.info("read index takes: {} ms",  (System.currentTimeMillis() - startTime));
             } else {
                 logger.info("Told not to use II, read all pages");
             }
@@ -158,6 +176,9 @@ public class ParquetTarballFileReader extends RecordReader<Text, Text> {
             // init with first shard file
             reader = new ParquetBundleReaderBuilder().setFileOffset(fileOffset).setConf(conf).setPath(shardPath).setPageBitset(pageBitmap).setColumnsBitmap(columnBitmap).build();
         }
+
+        // finish initialization
+        profileStartTime = System.currentTimeMillis();
     }
 
     @Override
@@ -238,6 +259,7 @@ public class ParquetTarballFileReader extends RecordReader<Text, Text> {
 
     @Override
     public void close() throws IOException {
+        logger.info("read file takes {} ms", System.currentTimeMillis() - profileStartTime);
         if (reader != null) {
             reader.close();
         }

@@ -26,8 +26,11 @@ package io.kyligence.kap.storage.parquet.format;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
 
@@ -76,12 +79,28 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
     private Text key = null; //key will be fixed length,
     private Text val = null; //reusing the val bytes, the returned bytes might contain useless tail, but user will use it as bytebuffer, so it's okay
 
+    long profileStartTime = 0;
+
     @Override
     public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
         FileSplit fileSplit = (FileSplit) split;
         conf = context.getConfiguration();
-        Path parquetPath = fileSplit.getPath();
-        Path indexPath = new Path(parquetPath.toString() + ".inv");
+        Path indexPath = fileSplit.getPath();
+        Path parquetPath = new Path(indexPath.toString().substring(0, indexPath.toString().length() - 4));
+
+        logger.info("data file: {}", parquetPath);
+        logger.info("index file: {}", indexPath);
+
+        // determine the running node
+        Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces();
+        while (e.hasMoreElements()) {
+            NetworkInterface n = e.nextElement();
+            Enumeration<InetAddress> ee = n.getInetAddresses();
+            while (ee.hasMoreElements()) {
+                InetAddress ia = ee.nextElement();
+                logger.info("Hostname: {}", ia.getHostName());
+            }
+        }
 
         long startTime = System.currentTimeMillis();
         String kylinPropsStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, "");
@@ -116,7 +135,8 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
 
                 logger.info("Starting to lookup inverted index");
                 pageBitmap = indexTable.lookup(hashedFilter);
-                logger.info("Inverted Index bitmap: " + pageBitmap + ". Time spent is: " + (System.currentTimeMillis() - startTime));
+                logger.info("Inverted Index bitmap: {}", pageBitmap);
+                logger.info("read index takes: {} ms",  (System.currentTimeMillis() - startTime));
             } else {
                 logger.info("Told not to use II, read all pages");
             }
@@ -144,6 +164,9 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
             // init with first shard file
             reader = new ParquetBundleReaderBuilder().setFileOffset(0).setConf(conf).setPath(parquetPath).setPageBitset(pageBitmap).setColumnsBitmap(columnBitmap).build();
         }
+
+        // finish initialization
+        profileStartTime = System.currentTimeMillis();
     }
 
     @Override
@@ -201,6 +224,7 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
 
     @Override
     public void close() throws IOException {
+        logger.info("read file takes {} ms", System.currentTimeMillis() - profileStartTime);
         if (reader != null) {
             reader.close();
         }
