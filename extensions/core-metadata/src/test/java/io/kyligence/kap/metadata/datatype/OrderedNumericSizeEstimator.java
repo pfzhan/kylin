@@ -20,7 +20,7 @@ package io.kyligence.kap.metadata.datatype;
 
 import java.util.List;
 
-import org.apache.hadoop.hbase.types.OrderedNumeric;
+import io.kyligence.kap.hbase.orderedbytes.OrderedNumeric;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;

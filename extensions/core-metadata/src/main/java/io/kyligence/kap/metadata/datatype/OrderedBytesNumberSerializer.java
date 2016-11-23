@@ -27,7 +27,7 @@ package io.kyligence.kap.metadata.datatype;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 
-import org.apache.hadoop.hbase.types.OrderedNumeric;
+import io.kyligence.kap.hbase.orderedbytes.OrderedNumeric;
 import org.apache.kylin.metadata.datatype.DataType;
 
 public class OrderedBytesNumberSerializer extends OrderedBytesSerializer<Number> {

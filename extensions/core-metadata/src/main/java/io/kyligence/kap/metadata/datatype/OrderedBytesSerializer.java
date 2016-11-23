@@ -27,9 +27,9 @@ package io.kyligence.kap.metadata.datatype;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
-import org.apache.hadoop.hbase.types.OrderedBytesBase;
-import org.apache.hadoop.hbase.util.PositionedByteRange;
-import org.apache.hadoop.hbase.util.SimplePositionedByteRange;
+import io.kyligence.kap.hbase.orderedbytes.OrderedBytesBase;
+import io.kyligence.kap.hbase.orderedbytes.util.PositionedByteRange;
+import io.kyligence.kap.hbase.orderedbytes.util.SimplePositionedByteRange;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 

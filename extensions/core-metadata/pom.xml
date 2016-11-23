@@ -28,11 +28,6 @@
             <artifactId>kap-core-common</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.hbase</groupId>
-            <artifactId>hbase-common</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>com.tdunning</groupId>
             <artifactId>t-digest</artifactId>
         </dependency>

@@ -22,40 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.datatype;
-
-import java.nio.ByteBuffer;
-
-import io.kyligence.kap.hbase.orderedbytes.OrderedFloat32;
-import org.apache.kylin.metadata.datatype.DataType;
-
-public class OrderedBytesFloat32Serializer extends OrderedBytesSerializer<Float> {
-
-    public OrderedBytesFloat32Serializer(DataType type) {
-        super(type);
-        orderedBytesBase = OrderedFloat32.ASCENDING;
-    }
-
-    @Override
-    public int peekLength(ByteBuffer in) {
-        return 5;
-    }
-
-    @Override
-    public int maxLength() {
-        return 5;
-    }
-
-    @Override
-    public int getStorageBytesEstimate() {
-        return 5;
-    }
-
-    public Float valueOf(String str) {
-        if (str == null)
-            return 0f;
-        else
-            return Float.parseFloat(str);
-    }
-
-}
+/**
+ * the whole package is Copied from org.apache.hadoop.hbase
+ */
+package io.kyligence.kap.hbase.orderedbytes;

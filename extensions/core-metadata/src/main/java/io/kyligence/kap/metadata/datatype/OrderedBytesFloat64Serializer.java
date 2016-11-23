@@ -26,7 +26,7 @@ package io.kyligence.kap.metadata.datatype;
 
 import java.nio.ByteBuffer;
 
-import org.apache.hadoop.hbase.types.OrderedFloat64;
+import io.kyligence.kap.hbase.orderedbytes.OrderedFloat64;
 import org.apache.kylin.metadata.datatype.DataType;
 
 public class OrderedBytesFloat64Serializer extends OrderedBytesSerializer<Double> {
