@@ -729,7 +729,16 @@ KylinApp.constant('kapChineseConfig', {
     tip_select_table: '请选择表',
     sampleData:'采样数据',
     cardinality:'基数',
-    noSampleData:'无采样数据'
+    noSampleData:'无采样数据',
+    collectStatistics:'收集统计信息',
+    statistics:'统计信息',
+    lastModifiedTime:'上次更新时间',
+    totalRows:'表总行数',
+    maxLengthValue:'最长值',
+    maxValue:'最大值',
+    minLengthValue:'最短值',
+    minValue:'最小值',
+    nullCount:'空值计数'
   },
   system:{
     system: '系统',
@@ -901,7 +910,10 @@ KylinApp.constant('kapChineseConfig', {
     success_back:"备份成功!",
     tip_cubadd_cache:"检测到您有未保存的cube构建信息，是否继续构建?",
     tip_store_callback:'备份成功！路径为：',
-    rawTableSaveError:'Raw Table设置内容保存失败!'
+    rawTableSaveError:'Raw Table设置内容保存失败!',
+    collectStaticsSuccess:'收集作业已经开始，您可以去Monitor页面查看进度!',
+    hasCollectJob: '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!',
+
   },
   license:{
     aboutkap:'关于 KAP',

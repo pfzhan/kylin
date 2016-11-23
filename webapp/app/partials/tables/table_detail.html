@@ -19,8 +19,9 @@
 <div ng-controller="SourceMetaCtrl" class="nav-tabs-custom">
   <div class="col-xs-12" ng-show="tableModel.selectedSrcDb&&tableModel.selectedSrcTable.name">
     <h3 class="text-info">{{dataKylin.data_source.tableSchema}}{{ tableModel.selectedSrcTable.name}}</h3>
-    <a class="btn btn-primary pull-right"  ng-click="calcSampleData()" ng-if="job.job_status=='FINISHED'||!job.job_status||job.job_status=='ERROR'||job.job_status=='DISCARDED'">CalcCgardinality</a>
-
+    <a class="btn btn-primary pull-right"  ng-click="calcSampleData()" >{{dataKylin.data_source.collectStatistics}}</a>
+    <div style="clear:both"></div>
+    <span ng-if="last_modified" class="pull-right" style="margin-top: 10px;font-size: 12px;">{{dataKylin.data_source.lastModifiedTime}}：{{last_modified|utcToConfigTimeZone}}</span>
     <div class="tabbable nav-tabs-custom">
       <ul class="nav nav-tabs">
         <li class="active">
@@ -33,69 +34,9 @@
           <a data-toggle="tab" ng-if="tableModel.selectedSrcTable.source_type==1" href="#streaming">{{dataKylin.data_source.streamingCluster}}</a>
         </li>
         <li>
-
-          <div  ng-if="job.progress>=0&&job.progress<100" class="loadingData">
-            <div ng-switch on="job.job_status">
-              <div ng-switch-when="ERROR" tooltip="ERROR">
-                <progressbar animate="false" class="progress-striped" value="job.progress" type="danger">
-                  {{job.job_status}}
-                </progressbar>
-              </div>
-              <div ng-switch-when="FINISHED" tooltip="FINISHED">
-                <progressbar animate="false" class="progress-striped" value="job.progress" type="success">
-                  {{job.progress}}%
-                </progressbar>
-              </div>
-              <div ng-switch-when="PENDING" tooltip="PENDING">
-                <progressbar animate="false" class="progress-striped active" value="job.progress"
-                             type="pending">{{job.job_status}}
-                </progressbar>
-              </div>
-              <div ng-switch-when="RUNNING" tooltip="RUNNING">
-                <progressbar animate="false" class="progress-striped active" value="job.progress"
-                             type="info">{{job.progress | number:2}}%
-                </progressbar>
-              </div>
-              <div ng-switch-when="DISCARDED" tooltip="DISCARDED">
-                <progressbar animate="false" class="progress-striped" value="job.progress" type="inverse">
-                  {{job.progress | number:2}}%
-                </progressbar>
-              </div>
-            </div>
-          </div>
-          <a data-toggle="tab" href="#cardinality" >{{dataKylin.data_source.cardinality}}</a>
+          <a data-toggle="tab" href="#statistics" >{{dataKylin.data_source.statistics}}</a>
         </li>
         <li>
-
-          <div  ng-if="job.progress>=0&&job.progress<100" class="loadingData">
-            <div ng-switch on="job.job_status">
-              <div ng-switch-when="ERROR" tooltip="ERROR">
-                <progressbar animate="false" class="progress-striped" value="job.progress" type="danger">
-                  {{job.job_status}}
-                </progressbar>
-              </div>
-              <div ng-switch-when="FINISHED" tooltip="FINISHED">
-                <progressbar animate="false" class="progress-striped" value="job.progress" type="success">
-                  {{job.progress}}%
-                </progressbar>
-              </div>
-              <div ng-switch-when="PENDING" tooltip="PENDING">
-                <progressbar animate="false" class="progress-striped active" value="job.progress"
-                             type="pending">{{job.job_status}}
-                </progressbar>
-              </div>
-              <div ng-switch-when="RUNNING" tooltip="RUNNING">
-                <progressbar animate="false" class="progress-striped active" value="job.progress"
-                             type="info">{{job.progress | number:2}}%
-                </progressbar>
-              </div>
-              <div ng-switch-when="DISCARDED" tooltip="DISCARDED">
-                <progressbar animate="false" class="progress-striped" value="job.progress" type="inverse">
-                  {{job.progress | number:2}}%
-                </progressbar>
-              </div>
-            </div>
-          </div>
           <a data-toggle="tab"  href="#sampleData" >{{dataKylin.data_source.sampleData}}</a>
         </li>
       </ul>
@@ -115,7 +56,7 @@
               </tr>
               <tr>
                 <th>{{dataKylin.data_source.snapshotTime}}</th>
-                <td>{{tableModel.selectedSrcTable.exd.lastUpdateTime | utcToConfigTimeZone}}</td>
+                <td>{{tableModel.selectedSrcTable.exd.last_access_time | utcToConfigTimeZone}}</td>
               </tr>
               <tr>
                 <th>{{dataKylin.data_source.location}}</th>
@@ -123,11 +64,11 @@
               </tr>
               <tr>
                 <th>{{dataKylin.data_source.inputFormat}}</th>
-                <td>{{tableModel.selectedSrcTable.exd.inputformat}}</td>
+                <td>{{tableModel.selectedSrcTable.exd.hive_inputFormat}}</td>
               </tr>
               <tr>
                 <th>{{dataKylin.data_source.outputFormat}}</th>
-                <td>{{tableModel.selectedSrcTable.exd.outputformat}}</td>
+                <td>{{tableModel.selectedSrcTable.exd.hive_outputFormat}}</td>
               </tr>
               <tr>
                 <th>{{dataKylin.data_source.owner}}</th>
@@ -137,19 +78,19 @@
               </tr>
               <tr>
                 <th>{{dataKylin.data_source.totalFileNumber}}</th>
-                <td>{{tableModel.selectedSrcTable.exd.totalNumberFiles}}</td>
+                <td>{{tableModel.selectedSrcTable.exd.total_file_number}}</td>
               </tr>
               <tr>
                 <th>{{dataKylin.data_source.totalFileSize}}</th>
-                <td>{{tableModel.selectedSrcTable.exd.totalFileSize}}</td>
+                <td>{{tableModel.selectedSrcTable.exd.total_file_size}}</td>
               </tr>
               <tr>
                 <th>{{dataKylin.data_source.partitioned}}</th>
-                <td>{{tableModel.selectedSrcTable.exd.partitioned}}</td>
+                <td>{{tableModel.selectedSrcTable.exd.partition_column?'yes':''}}</td>
               </tr>
               <tr>
                 <th>{{dataKylin.data_source.partitionColumns}}</th>
-                <td>{{tableModel.selectedSrcTable.exd.partitionColumns}}</td>
+                <td>{{tableModel.selectedSrcTable.exd.partition_column}}</td>
               </tr>
               </tbody>
             </table>
@@ -236,7 +177,7 @@
           </div>
         </div>
         <!--cardinality-->
-        <div id="cardinality" class="tab-pane">
+        <div id="statistics" class="tab-pane">
 
           <table class="table table-hover table-striped list">
             <thead>
@@ -244,11 +185,11 @@
               <th>ID</th>
               <th>{{dataKylin.data_source.name}}</th>
               <th>{{dataKylin.data_source.cardinality}}</th>
-              <th>max_length_value</th>
-              <th>max_value</th>
-              <th>min_length_value</th>
-              <th>min_value</th>
-              <th>null_count</th>
+              <th>{{dataKylin.data_source.maxLengthValue}}</th>
+              <th>{{dataKylin.data_source.maxValue}}</th>
+              <th>{{dataKylin.data_source.minLengthValue}}</th>
+              <th>{{dataKylin.data_source.minValue}}</th>
+              <th>{{dataKylin.data_source.nullCount}}</th>
             </tr>
             </thead>
 
@@ -292,7 +233,7 @@
           </div>
           <div  ng-include="'partials/cubeDesigner/streamingConfig.html'" ng-init="state.mode='view'"></div>
         </div>
-
+        <span class="pull-right" style="margin-top: 10px;font-size: 12px;">{{dataKylin.data_source.totalRows}}：{{total_rows}}</span>
       </div>
 
       </div>

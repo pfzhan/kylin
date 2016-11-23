@@ -746,7 +746,17 @@ KylinApp.constant('kapEnglishConfig', {
     tip_select_table: 'Select your table',
     sampleData:'Sample Data',
     cardinality:'Cardinality',
-    noSampleData:'No Sample Data'
+    noSampleData:'No Sample Data',
+    collectStatistics:'Collect Statistics',
+    statistics:'Statistics',
+    lastModifiedTime:'Last Modified Time',
+    totalRows:'Total Rows',
+    maxLengthValue:'MaxLengthValue',
+    maxValue:'MaxValue',
+    minLengthValue:'MinLengthValue',
+    minValue:'MinValue',
+    nullCount:'NullCount'
+
   },
   system:{
     system: 'System',
@@ -918,7 +928,9 @@ KylinApp.constant('kapEnglishConfig', {
     success_back:"Backup success!",
     tip_cubadd_cache:"Detect that you have not saved the cube build information, whether to continue to build?",
     tip_store_callback:'Backup Success！Path：',
-    rawTableSaveError:'Failed to save the raw table setting!'
+    rawTableSaveError:'Failed to save the raw table setting!',
+    collectStaticsSuccess:'Collect job start running!You can go to Monitor page to watch the progress!',
+    hasCollectJob: 'There has been a running collect job!You can go to Monitor page to watch the progress!',
 },
   license:{
     aboutkap:"About KAP",

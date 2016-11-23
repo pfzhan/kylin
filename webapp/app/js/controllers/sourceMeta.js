@@ -885,8 +885,22 @@ KylinApp
 
     };
     $scope.calcSampleData=function(){
+      loadingRequest.show();
       TableExtService.doSample({projectName:$scope.projectModel.selectedProject,tableName:$scope.tableModel.selectedSrcTable.name,action:'sample_job'},{},function(){
         $scope.getSampleJobStatus($scope.tableModel.selectedSrcTable.name);
+        loadingRequest.hide();
+        $scope.getSampleJobStatus($scope.tableModel.selectedSrcTable.name,function(){
+          SweetAlert.swal('', $scope.dataKylin.alert.collectStaticsSuccess, 'success');
+        })
+      },function(e){
+        var message;
+        if (e.data && e.data.exception) {
+           message = e.data.exception;
+        }else{
+           message=$scope.dataKylin.alert.error_info;
+        }
+        loadingRequest.hide();
+        SweetAlert.swal('', message, 'error');
       })
     }
     $scope.getSampleData=function(){
@@ -897,26 +911,23 @@ KylinApp
          }
          $scope.specialData=data.columns_stats;
          $scope.sampleData=sampleData;
+         $scope.last_modified=data.last_modified_time;
+         $scope.total_rows=data.total_rows;
       })
     }
 
     $scope.$watch('tableModel.selectedSrcTable.name',function(){
       if($scope.tableModel.selectedSrcTable.name){
         $scope.getSampleData();
-        $scope.getSampleJobStatus($scope.tableModel.selectedSrcTable.name);
       }
     })
-    $scope.job={progress:0};
-    $scope.getSampleJobStatus=function(tableName){
+    $scope.getSampleJobStatus=function(tableName,callback){
       TableExtService.getCalcSampleProgress({'tableName':tableName,'action':'job'},function(data){
-        if(data.progress!=100){
-          setTimeout(function(){
-            $scope.getSampleJobStatus(tableName);
-          },5000)
-        }
-        if(data.progress==100){
-          $scope.getSampleData();
-        }
+          if((data.job_status=='RUNNING'||data.job_status=='PENDING')&&data.progress!=100){
+            SweetAlert.swal('', $scope.dataKylin.alert.hasCollectJob, 'info');
+          }else if(typeof  callback=='function'){
+              callback()
+          }
       })
     }
   });
