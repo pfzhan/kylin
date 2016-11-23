@@ -45,11 +45,9 @@ public class KAPEhcacheTest {
 
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         URL resource = classLoader.getResource("ehcache-test.xml");
-        URL resource2 = classLoader.getResource("kylin-log4j.properties");
 
         String x = FileUtils.readFileToString(new File(resource.toURI()), Charset.defaultCharset());
         System.out.println(resource);
-        System.out.println(resource2);
         System.out.println(x);
 
         Configuration conf = ConfigurationFactory.parseConfiguration(resource);
