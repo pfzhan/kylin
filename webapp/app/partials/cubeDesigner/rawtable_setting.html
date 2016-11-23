@@ -53,9 +53,10 @@
             <td>
               <select ng-if="state.mode=='edit'" style="width:180px;"
                       chosen
-
+                      ng-model="col.encoding"
+                      ng-options="dt.value as dt.name for dt in getEncodings(col.column)"
                 >
-                <option value="var">default</option>
+                <!--<option value="var">default</option>-->
               </select>
               <span ng-if="state.mode=='view'">{{col.encoding}}</span>
 

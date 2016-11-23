@@ -122,6 +122,8 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
   }
 
 
+
+
   $scope.getColumnsByTable = function (tableName) {
     var temp = [];
     angular.forEach(TableModel.selectProjectTables, function (table) {
@@ -925,7 +927,14 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
   //    modelsManager.removeAll();
   //  }
   //});
-
+  $scope.hisRawTableData;
+  if($scope.isEdit) {
+    RawTablesService.getRawTableInfo({rawTableName: $routeParams.cubeName}, {}, function (request) {
+      if (request && request.columns && request.columns.length) {
+        $scope.hisRawTableData = request.columns;
+      }
+    })
+  }
   //RawTables数据变化
   $scope.RawTables;
   $scope.$on('RawTableEdited', function (event,data) {
@@ -943,24 +952,4 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
     $scope.cubeMetaFrame=VdmUtil.storage.getObject(proName);
     $scope.RawTables=VdmUtil.storage.getObject(proName+"_rawtable")||[];
    }
-
-
-  //var testObj={
-  //  d:null,
-  //  e:null,
-  //  f:[1,0,{
-  //    a:null,
-  //    b:null,
-  //    c:3,
-  //    d:{
-  //      s:[1,2,{
-  //        k:null,
-  //        bs:1
-  //      }]
-  //    }
-  //  }]
-  //}
-  //var s=VdmUtil.filterNullValInObj(testObj);
-  //console.log(s);
-
 });

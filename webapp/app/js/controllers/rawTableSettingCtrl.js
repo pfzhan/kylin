@@ -27,7 +27,7 @@
 
 'use strict';
 
-KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,RawTablesService,cubesManager,modelsManager,SweetAlert,kylinConfig) {
+KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,RawTablesService,cubesManager,modelsManager,SweetAlert,kylinConfig,VdmUtil,TableModel) {
   $scope.availableColumns = {};
   $scope.selectedColumns = {};
   $scope.wantSetting=false;
@@ -107,11 +107,13 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
     return ($scope.cubeMetaFrame&&$scope.cubeMetaFrame.engine_type&&$scope.cubeMetaFrame.engine_type==100);
   }
   $scope.wantSetting=!($scope.RawTables&&$scope.RawTables.needDelete);
+  $scope.hisRawTableData=[];
   //加载后台数据
-  var loadRawTable = function () {
+  var loadRawTable = function (callback) {
     RawTablesService.getRawTableInfo({rawTableName: $scope.state.cubeName}, {}, function (request) {
       if(request&&request.columns&&request.columns.length){
         $scope.rawTableColumns = request;
+        $scope.hisRawTableData=request.columns;
         $scope.hasConfig=true;
         $scope.isSupportRawTable=$scope.checkIsSupportRawTable();
       }else{
@@ -122,6 +124,9 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
           $scope.rawTableColumns.needAdd=true;
         }
         $scope.isSupportRawTable=$scope.checkIsSupportRawTable();
+      }
+      if(typeof callback=='function'){
+        callback(request.columns)
       }
       transferRawTableData();
     },function(){
@@ -156,4 +161,44 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
     }
   }
   $scope.$watch("rawTableColumns",transferRawTableData,true)
+
+
+
+  $scope.getEncodings =function (name){
+    var filterName=name;
+    var type = TableModel.columnNameTypeMap[filterName]||'';
+    var encodings =[].concat($scope.store.supportedEncoding),filterEncoding;
+    encodings.push({
+      'name': 'var',
+      'value': 'var[v1]',
+      'version': 1,
+      'baseValue':'var',
+      'suggest':true
+    },{
+      'name': 'orderedbytes',
+      'value': 'orderedbytes[v1]',
+      'version': 1,
+      'baseValue':'var',
+      'suggest':true
+    })
+    var filerList=$scope.createFilter(type);
+    if($scope.isEdit&&name){
+      if($scope.hisRawTableData){
+        for(var s=0;s<$scope.hisRawTableData.length;s++){
+          if(filterName==$scope.hisRawTableData[s].column){
+            var version=$scope.hisRawTableData[s].encoding_version||1;
+            filterEncoding=VdmUtil.getFilterObjectListByOrFilterVal(encodings,'value',$scope.hisRawTableData[s].encoding.replace(/:\d+/,"")+(version?"[v"+version+"]":"[v1]"),'suggest',true)
+          }
+        }
+      }
+      filterEncoding=VdmUtil.getFilterObjectListByOrFilterVal(encodings,'suggest',true);
+    }else{
+      filterEncoding=VdmUtil.getFilterObjectListByOrFilterVal(encodings,'suggest',true);
+    }
+    for(var f=0;f<filerList.length;f++){
+      filterEncoding=VdmUtil.removeFilterObjectList(filterEncoding,'baseValue',filerList[f]);
+    }
+    return filterEncoding;
+  }
+
 });
