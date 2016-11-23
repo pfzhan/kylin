@@ -909,7 +909,7 @@ KylinApp
     $scope.job={progress:0};
     $scope.getSampleJobStatus=function(tableName){
       TableExtService.getCalcSampleProgress({'tableName':tableName,'action':'job'},function(data){
-        if(data.progress&&data.progress!=100){
+        if(data.progress!=100){
           setTimeout(function(){
             $scope.getSampleJobStatus(tableName);
           },5000)
