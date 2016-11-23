@@ -61,7 +61,7 @@ then
     fi
     
     #Spark Client port
-    driverPortPrefix="kap.storage.columnar.spark.driver.port="
+    driverPortPrefix="kap.storage.columnar.spark-driver-port="
     realStart=$((${#driverPortPrefix} + 1))
     driverPort=
     for x in `cat ${CONF_DIR}/*.properties | grep "^$driverPortPrefix" | cut -c ${realStart}-   `
@@ -86,7 +86,7 @@ then
     fi
 
     # spark envs
-    sparkEnvPrefix="kap.storage.columnar.env."
+    sparkEnvPrefix="kap.storage.columnar.spark-env."
     realStart=$((${#sparkEnvPrefix} + 1))
     for kv in `cat ${CONF_DIR}/*.properties | grep "^${sparkEnvPrefix}" | cut -c ${realStart}-   `
     do  
@@ -102,7 +102,7 @@ then
     done
     
     # spark conf
-    sparkConfPrefix="kap.storage.columnar.conf."
+    sparkConfPrefix="kap.storage.columnar.spark-conf."
     realStart=$((${#sparkConfPrefix} + 1))
     confStr=`cat ${CONF_DIR}/*.properties | grep "^${sparkConfPrefix}" | cut -c ${realStart}- |  awk '{ print "--conf " "\"" $0 "\""}' | tr '\n' ' ' `
     verbose "additional confs spark-submit: $confStr"

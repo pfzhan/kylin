@@ -60,63 +60,63 @@ public class KapConfig {
     }
 
     public int getParquetFuzzyIndexLength() {
-        return Integer.parseInt(config.getOptional("kap.storage.columnar.ii.fuzzy.length", String.valueOf(6)));
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.ii-fuzzy-length", String.valueOf(6)));
     }
 
     public int getParquetFuzzyIndexHashLength() {
-        return Integer.parseInt(config.getOptional("kap.storage.columnar.ii.fuzzy.hash.length", String.valueOf(32)));
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.ii-fuzzy-hash-length", String.valueOf(32)));
     }
 
     public int getParquetIndexHashLength() {
-        return Integer.parseInt(config.getOptional("kap.storage.columnar.ii.hash.length", String.valueOf(8)));
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.ii-hash-length", String.valueOf(8)));
     }
 
     public int getParquetRowsPerPage() {
-        return Integer.parseInt(config.getOptional("kap.storage.columnar.rows.per.page", String.valueOf(10000)));
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.rows-per-page", String.valueOf(10000)));
     }
 
     public int getParquetPagesPerGroup() {
-        return Integer.parseInt(config.getOptional("kap.storage.columnar.pages.per.group", String.valueOf(10)));
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.pages-per-group", String.valueOf(10)));
     }
 
     public int getParquetPageIndexStepMax() {
-        return Integer.parseInt(config.getOptional("kap.storage.columnar.ii.step.max", String.valueOf(10000)));
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.ii-max-step", String.valueOf(10000)));
     }
 
     public int getParquetPageIndexStepMin() {
-        return Integer.parseInt(config.getOptional("kap.storage.columnar.ii.step.min", String.valueOf(1000)));
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.ii-min-step", String.valueOf(1000)));
     }
 
     public int getParquetPageIndexIOBufSize() {
-        return Integer.parseInt(config.getOptional("kap.storage.columnar.ii.io.buffer", String.valueOf(1024 * 1024)));
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.ii-io-buffer-bytes", String.valueOf(1024 * 1024)));
     }
 
     public String getParquetPageCompression() {
-        return config.getOptional("kap.storage.columnar.page.compression", "");
+        return config.getOptional("kap.storage.columnar.page-compression", "");
     }
 
     public double getParquetPageIndexSpillThresholdMB() {
-        return Double.parseDouble(config.getOptional("kap.storage.columnar.ii.spill.threshold.mb", "128"));
+        return Double.parseDouble(config.getOptional("kap.storage.columnar.ii-spill-threshold-mb", "128"));
     }
 
     public String getSparkClientHost() {
-        return config.getOptional("kap.storage.columnar.spark.driver.host", "localhost");
+        return config.getOptional("kap.storage.columnar.spark-driver-host", "localhost");
     }
 
     public int getSparkClientPort() {
-        return Integer.parseInt(config.getOptional("kap.storage.columnar.spark.driver.port", "7071"));
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.spark-driver-port", "7071"));
     }
 
     public String getSparkCubeGTStorage() {
-        return config.getOptional("kap.storage.columnar.spark.cube.gtstorage", "io.kyligence.kap.storage.parquet.cube.CubeSparkRPC");
+        return config.getOptional("kap.storage.columnar.spark-cube-gtstorage", "io.kyligence.kap.storage.parquet.cube.CubeSparkRPC");
     }
 
     public String getSparkRawTableGTStorage() {
-        return config.getOptional("kap.storage.columnar.spark.rawtable.gtstorage", "io.kyligence.kap.storage.parquet.cube.raw.RawTableSparkRPC");
+        return config.getOptional("kap.storage.columnar.spark-rawtable-gtstorage", "io.kyligence.kap.storage.parquet.cube.raw.RawTableSparkRPC");
     }
 
     public long getSparkVisitTimeout() {
-        return Long.valueOf(config.getOptional("kap.storage.columnar.spark.visit.timeout", "300000"));
+        return Long.valueOf(config.getOptional("kap.storage.columnar.spark-visit-timeout-ms", "300000"));
     }
 
     /**
@@ -124,71 +124,71 @@ public class KapConfig {
      */
     public String getParquentStoragePath() {
         String defaultPath = config.getHdfsWorkingDirectory() + "parquet/";
-        return config.getOptional("kap.storage.columnar.hdfs.dir", defaultPath);
+        return config.getOptional("kap.storage.columnar.hdfs-dir", defaultPath);
     }
 
     /**
      * parquet shard size, in MB
      */
     public int getParquetStorageShardSize() {
-        return Integer.valueOf(config.getOptional("kap.storage.columnar.shard.size", "256"));
+        return Integer.valueOf(config.getOptional("kap.storage.columnar.shard-size-mb", "256"));
     }
 
     public int getParquetStorageShardMin() {
-        return Integer.valueOf(config.getOptional("kap.storage.columnar.shard.min", "1"));
+        return Integer.valueOf(config.getOptional("kap.storage.columnar.shard-min", "1"));
     }
 
     public int getParquetStorageShardMax() {
-        return Integer.valueOf(config.getOptional("kap.storage.columnar.shard.max", "1000"));
+        return Integer.valueOf(config.getOptional("kap.storage.columnar.shard-max", "1000"));
     }
 
     public int getParquetStorageBlockSize() {
         int defaultBlockSize = 5 * getParquetStorageShardSize() * 1024 * 1024; //default (5 * shard_size)
-        return Integer.valueOf(config.getOptional("kap.storage.columnar.dfs.blocksize", String.valueOf(defaultBlockSize < 0 ? Integer.MAX_VALUE : defaultBlockSize)));
+        return Integer.valueOf(config.getOptional("kap.storage.columnar.hdfs-blocksize-bytes", String.valueOf(defaultBlockSize < 0 ? Integer.MAX_VALUE : defaultBlockSize)));
     }
 
     /**
      * Rawtable column
      */
     public int getRawTableColumnCountMax() {
-        return Integer.valueOf(config.getOptional("kap.storage.columnar.rawtable.column.count.max", "3000"));
+        return Integer.valueOf(config.getOptional("kap.storage.columnar.rawtable-max-column-count", "3000"));
     }
 
     public int getRawTableColumnLengthMax() {
-        return Integer.valueOf(config.getOptional("kap.storage.columnar.rawtable.column.length.max", "16384"));
+        return Integer.valueOf(config.getOptional("kap.storage.columnar.rawtable-max-column-length", "16384"));
     }
 
     /*
      * Cell level security config file
      */
     public String getCellLevelSecurityConfig() {
-        return config.getOptional("kylin.cell.level.security.acl.config", "userctrl.acl");
+        return config.getOptional("kap.security.cell-level-acl-config", "userctrl.acl");
     }
 
     public String getCellLevelSecurityEnable() {
-        return config.getOptional("kylin.cell.level.security.enable", "false");
+        return config.getOptional("kap.security.cell-level-acl-enabled", "false");
     }
 
     /**
      * query config
      */
     public boolean isUsingInvertedIndex() {
-        return Boolean.valueOf(config.getOptional("kap.query.columnar.invertedindex.enabled", "true"));
+        return Boolean.valueOf(config.getOptional("kap.storage.columnar.ii-query-enabled", "true"));
     }
 
     /**
      * Massin
      */
     public String getMassinResourceIdentiferDir() {
-        return config.getOptional("kap.massin.resource.dir", new StringBuilder().append(config.getHdfsWorkingDirectory()).append("massin/").toString());
+        return config.getOptional("kap.server.massin-resource-dir", new StringBuilder().append(config.getHdfsWorkingDirectory()).append("massin/").toString());
     }
     
     public String getHelixZookeeperAddress() {
-        return config.getOptional("kylin.zookeeper.address");
+        return config.getOptional("kap.job.helix.zookeeper-address");
     }
 
     public String getHelixRestAddress() {
-        return config.getOptional("kylin.rest.address", "localhost:7070");
+        return config.getOptional("kap.job.helix.host-address", "localhost:7070");
     }
 
 }

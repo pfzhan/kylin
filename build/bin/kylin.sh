@@ -80,7 +80,7 @@ then
     else
         kylin_rest_address=$KYLIN_REST_ADDRESS
     fi
-    verbose "kylin.rest.address is set to ${kylin_rest_address}"
+    verbose "kap.job.helix.host-address is set to ${kylin_rest_address}"
 
     kylin_rest_address_arr=(${kylin_rest_address//:/ })
     nc -z -w 5 ${kylin_rest_address_arr[0]} ${kylin_rest_address_arr[1]} 1>/dev/null 2>&1; nc_result=$?
@@ -104,7 +104,7 @@ then
     -Dkylin.hive.dependency=${hive_dependency} \
     -Dkylin.hbase.dependency=${hbase_dependency} \
     -Dkylin.kafka.dependency=${kafka_dependency} \
-    -Dkylin.rest.address=${kylin_rest_address} \
+    -Dkap.job.helix.host-address=${kylin_rest_address} \
     -Dspring.profiles.active=${spring_profile} \
     org.apache.hadoop.util.RunJar ${tomcat_root}/bin/bootstrap.jar  org.apache.catalina.startup.Bootstrap start >> ${KYLIN_HOME}/logs/kylin.out 2>&1 & echo $! > ${KYLIN_HOME}/pid &
 

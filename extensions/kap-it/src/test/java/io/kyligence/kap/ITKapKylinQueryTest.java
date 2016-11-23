@@ -79,10 +79,10 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         KylinTestBase.setupAll();
 
         //uncomment this to use MockedCubeSparkRPC instead of real spark
-        //config.setProperty("kap.storage.columnar.spark.cube.gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
+        //config.setProperty("kap.storage.columnar.spark-cube-gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
 
         //uncomment this to use MockedRawTableTableRPC instead of real spark
-        //config.setProperty("kap.storage.columnar.spark.rawtable.gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
+        //config.setProperty("kap.storage.columnar.spark-rawtable-gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
     }
 
     protected static void clean() {
@@ -173,10 +173,10 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     @Override
     public void testTimeoutQuery() throws Exception {
         try {
-            KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark.visit.timeout", "3000");//set timeout to 3s
+            KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark-visit-timeout-ms", "3000");//set timeout to 3s
             super.testTimeoutQuery();
         } finally {
-            KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark.visit.timeout", "300000");//set timeout to default
+            KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark-visit-timeout-ms", "300000");//set timeout to default
         }
     }
 
@@ -190,7 +190,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
             toggles.put(BackdoorToggles.DEBUG_TOGGLE_COPROCESSOR_BEHAVIOR, StorageSideBehavior.SCAN_FILTER_AGGR_CHECKMEM_WITHDELAY.toString());//delay 10ms for every scan
             BackdoorToggles.setToggles(toggles);
 
-            KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark.visit.timeout", "3000");//set timeout to 3s
+            KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark-visit-timeout-ms", "3000");//set timeout to 3s
 
             RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=test_kylin_cube_with_slr_empty]");
             RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=test_kylin_cube_without_slr_empty]");
@@ -201,7 +201,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
             RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=test_kylin_cube_with_slr_empty]");
             RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=test_kylin_cube_without_slr_empty]");
 
-            KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark.visit.timeout", "300000");//set timeout to default
+            KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark-visit-timeout-ms", "300000");//set timeout to default
             BackdoorToggles.cleanToggles();
         }
     }
