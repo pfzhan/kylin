@@ -79,19 +79,8 @@ then
     fi
     
     if [ ! -f ${SPARK_HOME}/conf/log4j.properties ] ; then
-        echo "${SPARK_HOME}/conf/log4j.properties does not exist, create one:"
-        cat << EOF > ${SPARK_HOME}/conf/log4j.properties 
-log4j.rootLogger=INFO,stdout
-
-log4j.appender.stdout=org.apache.log4j.ConsoleAppender
-log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
-log4j.appender.stdout.layout.ConversionPattern=%d{ISO8601} %-5p [%t %c{1}:%L]: %m%n
-
-#log4j.logger.org.apache.hadoop=ERROR
-log4j.logger.org.apache.kylin=DEBUG
-log4j.logger.io.kyligence=DEBUG
-log4j.logger.org.springframework=WARN
-EOF
+        echo "${SPARK_HOME}/conf/log4j.properties does not exist, copy from ${KYLIN_HOME}/conf/kylin-tools-log4j.properties:"
+        cp ${KYLIN_HOME}/conf/kylin-tools-log4j.properties ${SPARK_HOME}/conf/log4j.properties 
     else
         echo "${SPARK_HOME}/conf/log4j.properties already exists"
     fi
