@@ -24,19 +24,21 @@
 
 package io.kyligence.kap.rest.service;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceTool;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.tool.CubeMetaExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 @Component("metaStoreService")
 public class MetaStoreService extends BasicService {
@@ -44,13 +46,12 @@ public class MetaStoreService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(MetaStoreService.class);
 
     /**
-     *
-     * @param project not in use right now, will enable in the next version
-     * @param timestamp the timestamp will be used as directory name
+     * @param project the project to backup
+     * @param cube    the cube to backup
      * @throws Exception
      */
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public String backup(String project, String timestamp, String[] includes, String[] excludes) throws Exception {
+    public String backup(String project, String cube) throws Exception {
         String kylinHome = KylinConfig.getKylinHome();
         if (kylinHome == null) {
             throw new RuntimeException("KYLIN_HOME undefined");
@@ -58,37 +59,25 @@ public class MetaStoreService extends BasicService {
         File backupRootDir = new File(KylinConfig.getKylinHome() + "/meta_backups");
         FileUtils.forceMkdir(backupRootDir);
 
-        File backupDir = new File(backupRootDir.getAbsolutePath() + "/meta_" + timestamp);
-        logger.info("Starting backup to " + backupDir.getAbsolutePath());
-        FileUtils.forceMkdir(backupDir);
+        List<String> args = new ArrayList<String>();
+        args.add("-destDir");
+        args.add(backupRootDir.getAbsolutePath());
+        if (!StringUtils.isEmpty(project)) {
+            args.add("-project");
+            args.add(project);
+        }
+        if (!StringUtils.isEmpty(cube)) {
+            args.add("-cube");
+            args.add(cube);
+        }
 
-        KylinConfig kylinConfig = KylinConfig.createInstanceFromUri(backupDir.getAbsolutePath());
-        if (includes != null) {
-            logger.info("metadata backup with includes filter: " + Arrays.toString(includes));
-            ResourceTool.setIncludes(includes);
-        }
-        if (excludes != null) {
-            logger.info("metadata backup with excludes filter: " + Arrays.toString(excludes));
-            ResourceTool.setExcludes(excludes);
-        }
-        try {
-            ResourceTool.copy(KylinConfig.getInstanceFromEnv(), kylinConfig);
-        } finally {
-            ResourceTool.setIncludes(null);
-            ResourceTool.setExcludes(null);
-        }
-        logger.info("metadata store backed up to " + backupDir.getAbsolutePath());
-        return backupDir.getAbsolutePath();
-    }
-
-    /**
-     *
-     * @param project not in use right now, will enable in the next version
-     * @throws IOException
-     */
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public void reset(String project) throws IOException {
-        ResourceTool.reset(KylinConfig.getInstanceFromEnv());
+        String[] cubeMetaArgs = new String[args.size()];
+        args.toArray(cubeMetaArgs);
+        CubeMetaExtractor cubeMetaExtractor = new CubeMetaExtractor();
+        logger.info("CubeMetaExtractor args: " + Arrays.toString(cubeMetaArgs));
+        cubeMetaExtractor.execute(cubeMetaArgs);
+        logger.info("metadata store backed up to " + backupRootDir.getAbsolutePath());
+        return backupRootDir.getAbsolutePath();
     }
 
 }

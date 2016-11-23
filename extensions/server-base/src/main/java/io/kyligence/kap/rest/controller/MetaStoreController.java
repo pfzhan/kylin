@@ -24,10 +24,10 @@
 
 package io.kyligence.kap.rest.controller;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
+import io.kyligence.kap.rest.service.MetaStoreService;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.rest.controller.BasicController;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -35,8 +35,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-
-import io.kyligence.kap.rest.service.MetaStoreService;
 
 @Controller
 @RequestMapping(value = "/metastore")
@@ -46,30 +44,22 @@ public class MetaStoreController extends BasicController {
     private MetaStoreService metaStoreService;
 
     /**
-     * Backup the metastore to the current webserver node
+     * Backup the metastore to the current webserver node, for one project or one cube
      */
     @RequestMapping(value = "backup", method = RequestMethod.POST)
     @ResponseBody
-    public String backup(@RequestParam(value = "project", required = false) String project, @RequestParam(value = "includes", required = false) String[] includes, @RequestParam(value = "excludes", required = false) String[] excludes) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("YYYY_MM_dd_hh_mm_ss");
-        String now = dateFormat.format(new Date());
+    public String backup(@RequestParam(value = "project", required = false) String project, @RequestParam(value = "cube", required = false) String cube) {
+        if (StringUtils.isEmpty(project) && StringUtils.isEmpty(cube)) {
+            throw new BadRequestException("at least one project or cube is needed");
+        }
+
         String resultPath = null;
         try {
-            resultPath = metaStoreService.backup(project, now, includes, excludes);
+            resultPath = metaStoreService.backup(project, cube);
         } catch (Exception e) {
             throw new InternalErrorException(e);
         }
         return resultPath;
-    }
-
-    @RequestMapping(value = "reset", method = RequestMethod.POST)
-    @ResponseBody
-    public void reset(@RequestParam(value = "project", required = false) String project) {
-        try {
-            metaStoreService.reset(project);
-        } catch (Exception e) {
-            throw new InternalErrorException(e);
-        }
     }
 
 }

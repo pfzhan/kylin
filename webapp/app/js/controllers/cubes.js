@@ -65,7 +65,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
     $scope.backUpCube=function(cubeName){
       loadingRequest.show();
       AdminStoreService.globalBackup({},{
-        includes:['/cube/'+cubeName,'/cube_desc/'+cubeName]
+        cube:cubeName
       },function(data){
         loadingRequest.hide();
         SweetAlert.swal({
