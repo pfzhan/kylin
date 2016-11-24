@@ -82,14 +82,14 @@ public class HiveTableExtSampleJob extends CubingJob {
 
     private static HiveTableExtSampleJob createSamplesJob(String project, String tableName, String submitter, KylinConfig config) throws IOException {
         HiveTableExtSampleJob result = new HiveTableExtSampleJob();
-        
+
         SimpleDateFormat format = new SimpleDateFormat("z yyyy-MM-dd HH:mm:ss");
         format.setTimeZone(TimeZone.getTimeZone(config.getTimeZone()));
         result.setDeployEnvName(config.getDeployEnv());
         result.setProjectName(project);
-        result.setName("Build " + tableName + " samples " + format.format(new Date(System.currentTimeMillis())));
+        result.setName("Collect " + tableName + " statistics " + format.format(new Date(System.currentTimeMillis())));
         result.setSubmitter(submitter);
-        
+
         MetadataManager metaMgr = MetadataManager.getInstance(config);
         TableDesc table = metaMgr.getTableDesc(tableName);
         TableExtDesc table_ext = metaMgr.getTableExt(tableName);
@@ -110,7 +110,7 @@ public class HiveTableExtSampleJob extends CubingJob {
 
         HadoopShellExecutable step2 = new HadoopShellExecutable();
 
-        step2.setName("Update " + tableName + " Samples to MetaData");
+        step2.setName("Move " + tableName + " Samples to MetaData");
         step2.setJobClass(HiveTableExtUpdate.class);
         step2.setJobParams(samplesParam);
         result.addTask(step2);
@@ -128,14 +128,14 @@ public class HiveTableExtSampleJob extends CubingJob {
 
         HadoopShellExecutable step4 = new HadoopShellExecutable();
 
-        step4.setName("Update " + tableName + "' Cardinality to MetaData");
+        step4.setName("Move " + tableName + " Cardinality to MetaData");
         step4.setJobClass(HiveColumnCardinalityUpdateJob.class);
         step4.setJobParams(cardinalityParam);
         result.addTask(step4);
 
         table_ext.setJodID(result.getId());
         metaMgr.saveTableExt(table_ext);
-        
+
         return result;
     }
 
@@ -152,7 +152,8 @@ public class HiveTableExtSampleJob extends CubingJob {
         }
 
         ExecutableManager exeMgt = ExecutableManager.getInstance(config);
-        if (ExecutableState.RUNNING == exeMgt.getOutput(jobID).getState()) {
+        ExecutableState state = exeMgt.getOutput(jobID).getState();
+        if (ExecutableState.RUNNING == state || ExecutableState.READY == state) {
             return jobID;
         }
 
