@@ -35,6 +35,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Bytes;
@@ -69,20 +70,21 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
     private RawTableInstance rawTableInstance;
     private RawTableDesc rawTableDesc;
     private BufferedRawColumnCodec rawColumnsCodec;
-    private String outputDir = null;
+    private Path outputDir = null;
 
     @Override
     public void write(Text key, Text value) throws IOException, InterruptedException {
         super.write(key, value);
     }
 
-    public ParquetRawTableFileWriter(Path workingPath, TaskAttemptContext context, Class<?> keyClass, Class<?> valueClass) throws IOException {
+    public ParquetRawTableFileWriter(FileOutputCommitter committer, TaskAttemptContext context, Class<?> keyClass, Class<?> valueClass) throws IOException, InterruptedException {
         this.config = context.getConfiguration();
-        this.tmpDir = workingPath;
+        this.outputDir = committer.getTaskAttemptPath(context);
+
+        logger.info("tmp output dir: {}", outputDir);
 
         kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
 
-        outputDir = config.get(ParquetFormatConstants.KYLIN_OUTPUT_DIR);
         String rawName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
         String segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
         logger.info("RawTableName is " + rawName + " and segmentID is " + segmentID);
@@ -129,10 +131,9 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
         }
 
         MessageType schema = new MessageType(rawTableDesc.getName(), types);
-        tmpPath = new Path(tmpDir, String.valueOf(curShardId));
         rawWriter = new ParquetRawWriterBuilder().setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage())//
                 .setPagesPerGroup(KapConfig.getInstanceFromEnv().getParquetPagesPerGroup())//
-                .setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression()).setConf(config).setType(schema).setPath(tmpPath).build();
+                .setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression()).setConf(config).setType(schema).setPath(getOutputPath()).build();
         return rawWriter;
     }
 
@@ -149,8 +150,8 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
     }
 
     @Override
-    protected Path getDestPath() {
-        Path path = new Path(new StringBuffer().append(outputDir).append(RawTableConstants.RawTableDir).append("/").append(curShardId).append(".parquet").toString());
+    protected Path getOutputPath() {
+        Path path = new Path(outputDir, new StringBuffer().append(RawTableConstants.RawTableDir).append("/").append(curShardId).append(".parquet").toString());
         return path;
     }
 }

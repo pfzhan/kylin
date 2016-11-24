@@ -26,12 +26,10 @@ package io.kyligence.kap.storage.parquet.format;
 
 import java.io.IOException;
 
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.kylin.engine.mr.HadoopUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,8 +39,6 @@ public abstract class ParquetOrderedFileWriter extends RecordWriter<Text, Text> 
     private static final Logger logger = LoggerFactory.getLogger(ParquetOrderedFileWriter.class);
 
     protected ParquetRawWriter writer = null;
-    protected Path tmpDir = null;
-    protected Path tmpPath = null;
 
     /**
      * create parquet file writer
@@ -52,13 +48,8 @@ public abstract class ParquetOrderedFileWriter extends RecordWriter<Text, Text> 
 
     protected void cleanWriter() throws IOException {
         if (writer != null) {
-            Path dest = getDestPath();
             writer.close();
             writer = null;
-            FileSystem fs = HadoopUtil.getFileSystem(tmpPath.toString());
-            logger.info("move {} to {}", tmpPath, dest);
-            fs.mkdirs(dest.getParent());
-            fs.rename(tmpPath, dest);
         }
     }
 
@@ -99,5 +90,5 @@ public abstract class ParquetOrderedFileWriter extends RecordWriter<Text, Text> 
         }
     }
 
-    abstract protected Path getDestPath();
+    abstract protected Path getOutputPath();
 }

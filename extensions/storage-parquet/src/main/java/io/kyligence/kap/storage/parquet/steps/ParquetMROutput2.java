@@ -68,9 +68,6 @@ public class ParquetMROutput2 implements IMROutput2 {
             @Override
             public void addStepPhase4_Cleanup(DefaultChainedExecutable jobFlow) {
                 steps.addCubingGarbageCollectionSteps(jobFlow);
-                if (isRawTableEnable) {
-                    steps.addRawTableCubingGarbageCollectionSteps(jobFlow);
-                }
             }
         };
     }

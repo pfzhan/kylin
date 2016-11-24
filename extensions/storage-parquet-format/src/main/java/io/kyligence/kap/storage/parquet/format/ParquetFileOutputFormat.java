@@ -29,14 +29,18 @@ import java.io.IOException;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * cube build output format
  */
 public class ParquetFileOutputFormat extends FileOutputFormat<Text, Text> {
+    private static final Logger logger = LoggerFactory.getLogger(ParquetFileOutputFormat.class);
     @Override
     public RecordWriter<Text, Text> getRecordWriter(TaskAttemptContext job) throws IOException, InterruptedException {
-        return new ParquetCubeFileWriter(this.getDefaultWorkFile(job, "cube").getParent(), job, job.getOutputKeyClass(), job.getOutputValueClass());
+        return new ParquetCubeFileWriter((FileOutputCommitter) this.getOutputCommitter(job), job, job.getOutputKeyClass(), job.getOutputValueClass());
     }
 }

@@ -25,8 +25,6 @@
 package io.kyligence.kap.engine.mr.steps;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
@@ -40,9 +38,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.cube.cuboid.CuboidCLI;
-import org.apache.kylin.cube.cuboid.CuboidScheduler;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.IMRInput;
@@ -54,8 +50,6 @@ import org.apache.kylin.job.exception.JobException;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.storage.parquet.format.ParquetFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetFileOutputFormat;
@@ -175,32 +169,6 @@ public class KapCuboidJob extends AbstractHadoopJob {
         return new StringBuffer(KapConfig.wrap(config).getParquentStoragePath()).append(cube.getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
     }
 
-    private int setInputFiles(KylinConfig config, int level, CubeInstance cube, CubeSegment cubeSegment, CubeDesc desc) throws IOException {
-        // base cuboid should not enter this method
-        Preconditions.checkState(level > 0);
-
-        Set<Long> parentSet = new HashSet<Long>();
-        Set<Long> childSet = null;
-        parentSet.add(Cuboid.getBaseCuboidId(desc));
-        CuboidScheduler scheduler = new CuboidScheduler(desc);
-        for (int i = 0; i < (level - 1); ++i) {
-            childSet = new HashSet<Long>();
-            for (long parent : parentSet) {
-                childSet.addAll(scheduler.getSpanningCuboid(parent));
-            }
-            parentSet = childSet;
-        }
-
-        int numFiles = 0;
-        for (long parent : parentSet) {
-            Path path = new Path(getWorkingDir(config, cube, cubeSegment) + parent);
-            //FileInputFormat.setInputPathFilter(job, ParquetFilter.class);
-            numFiles += ParquertMRJobUtils.addParquetInputFile(job, path);
-        }
-        return numFiles;
-
-    }
-
     private int configureMapperInputFormat(KylinConfig config, int level, CubeInstance cube, CubeSegment cubeSeg, CubeDesc desc) throws IOException {
         String input = getOptionValue(OPTION_INPUT_PATH);
 
@@ -212,12 +180,10 @@ public class KapCuboidJob extends AbstractHadoopJob {
         } else {
             // n-dimension cuboid case
             if (hasOption(OPTION_INPUT_FORMAT) && ("textinputformat".equalsIgnoreCase(getOptionValue(OPTION_INPUT_FORMAT)))) {
-                //                FileInputFormat.setInputPaths(job, new Path(input));
-                //                job.setInputFormatClass(TextInputFormat.class);
                 throw new IllegalStateException();
             } else {
                 // default intput is parquet file
-                int numFiles = setInputFiles(config, level, cube, cubeSeg, desc);
+                int numFiles = ParquertMRJobUtils.addParquetInputFile(job, new Path(input));
                 job.setInputFormatClass(ParquetFileInputFormat.class);
                 return numFiles;
             }

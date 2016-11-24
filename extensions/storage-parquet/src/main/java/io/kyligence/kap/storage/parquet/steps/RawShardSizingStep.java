@@ -99,23 +99,5 @@ public class RawShardSizingStep extends AbstractExecutable {
         CubingJob cubingJob = (CubingJob) getManager().getJob(CubingExecutableUtil.getCubingJobId(this.getParams()));
         long sourceSizeBytes = cubingJob.findSourceSizeBytes();
         return (1.0 * sourceSizeBytes) / (1024L * 1024L);
-
-        //        JobEngineConfig conf = new JobEngineConfig(KylinConfig.getInstanceFromEnv());
-        //        String jobID = CubingExecutableUtil.getCubingJobId(getParams());
-        //        final String rowCountOutputDir = JobBuilderSupport.getJobWorkingDir(conf, jobID) + "/row_count";
-        //        Path rowCountFile = new Path(rowCountOutputDir, "000000_0");
-        //
-        //        Long nRow = 0L;
-        //        FileSystem fs = FileSystem.get(rowCountFile.toUri(), HadoopUtil.getCurrentConfiguration());
-        //        InputStream in = fs.open(rowCountFile);
-        //        try {
-        //            String content = IOUtils.toString(in, Charset.defaultCharset());
-        //            nRow = Long.valueOf(content.trim()); // strip the '\n' character
-        //
-        //        } finally {
-        //            IOUtils.closeQuietly(in);
-        //        }
-        //        double ret = 1.0 * seg.getRawTableInstance().getRawTableDesc().getEstimateRowSize() * nRow / (1024L * 1024L);
-        //        return ret;
     }
 }

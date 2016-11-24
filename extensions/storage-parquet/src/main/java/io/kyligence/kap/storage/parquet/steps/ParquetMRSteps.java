@@ -270,21 +270,6 @@ public class ParquetMRSteps extends JobBuilderSupport {
         jobFlow.addTask(step);
     }
 
-    public void addRawTableCubingGarbageCollectionSteps(DefaultChainedExecutable jobFlow) {
-        RawTableInstance rawInstance = RawTableManager.getInstance(seg.getConfig()).getRawTableInstance(seg.getRealization().getName());
-        RawTableSegment rawSeg = rawInstance.getSegmentById(seg.getUuid());
-
-        List<String> toCleanFolders = Lists.newArrayList(getRawParquetFolderPath(rawSeg));
-        List<String> toCleanFileSuffixs = Lists.newArrayList(".tmp");
-
-        ParquetStorageCleanupStep step = new ParquetStorageCleanupStep();
-        step.setName("Raw Table Garbage Collection");
-        step.setToCleanFolders(toCleanFolders);
-        step.setToCleanFileSuffix(toCleanFileSuffixs);
-
-        jobFlow.addTask(step);
-    }
-
     public ParquetShardSizingStep createParquetShardSizingStep(String jobId) {
         ParquetShardSizingStep result = new ParquetShardSizingStep();
         result.setName("Sizing Columnar Shards");
