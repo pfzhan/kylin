@@ -12,12 +12,14 @@ then
     verbose 'in ci mode'
     export KYLIN_HOME=`cd "${KYLIN_HOME}/.."; pwd`
     export CONF_DIR=${KYLIN_HOME}/extensions/examples/test_case_data/sandbox
+    export LOG4J_DIR=${KYLIN_HOME}/build/conf
     export SPARK_DIR=${KYLIN_HOME}/build/spark/
     export KYLIN_SPARK_JAR_PATH=`ls $KYLIN_HOME/extensions/storage-parquet/target/kap-storage-parquet-*-spark.jar`
 else
     verbose 'in normal mode'
     export KYLIN_HOME=${KYLIN_HOME:-"${dir}/../"}
     export CONF_DIR=${KYLIN_HOME}/conf
+    export LOG4J_DIR=${KYLIN_HOME}/conf
     export SPARK_DIR=${KYLIN_HOME}/spark/
     export KYLIN_SPARK_JAR_PATH=`ls $KYLIN_HOME/lib/kylin-storage-parquet-kap-*.jar`
     
@@ -79,8 +81,8 @@ then
     fi
     
     if [ ! -f ${SPARK_HOME}/conf/log4j.properties ] ; then
-        echo "${SPARK_HOME}/conf/log4j.properties does not exist, copy from ${KYLIN_HOME}/conf/kylin-tools-log4j.properties:"
-        cp ${KYLIN_HOME}/conf/kylin-tools-log4j.properties ${SPARK_HOME}/conf/log4j.properties 
+        echo "${SPARK_HOME}/conf/log4j.properties does not exist, copy from ${LOG4J_DIR}/kylin-tools-log4j.properties:"
+        cp ${LOG4J_DIR}/kylin-tools-log4j.properties ${SPARK_HOME}/conf/log4j.properties 
     else
         echo "${SPARK_HOME}/conf/log4j.properties already exists"
     fi
