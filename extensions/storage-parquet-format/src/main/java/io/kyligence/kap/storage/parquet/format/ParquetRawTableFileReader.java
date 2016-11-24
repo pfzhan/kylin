@@ -85,8 +85,8 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
     public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
         FileSplit fileSplit = (FileSplit) split;
         conf = context.getConfiguration();
-        Path indexPath = fileSplit.getPath();
-        Path parquetPath = new Path(indexPath.toString().substring(0, indexPath.toString().length() - 4));
+        Path parquetPath = fileSplit.getPath();
+        Path indexPath = new Path(parquetPath.toString() + ".inv");
 
         logger.info("data file: {}", parquetPath);
         logger.info("index file: {}", indexPath);
@@ -136,7 +136,7 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
                 logger.info("Starting to lookup inverted index");
                 pageBitmap = indexTable.lookup(hashedFilter);
                 logger.info("Inverted Index bitmap: {}", pageBitmap);
-                logger.info("read index takes: {} ms",  (System.currentTimeMillis() - startTime));
+                logger.info("read index takes: {} ms", (System.currentTimeMillis() - startTime));
             } else {
                 logger.info("Told not to use II, read all pages");
             }
