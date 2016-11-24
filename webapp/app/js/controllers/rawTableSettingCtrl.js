@@ -192,7 +192,7 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
 
 
   var encodings =[];
-  if($scope.isEdit){
+  if($scope.state.mode!="view"){
     encodings =[].concat($scope.store.supportedEncoding);
     encodings.push({
       'name': 'var',
