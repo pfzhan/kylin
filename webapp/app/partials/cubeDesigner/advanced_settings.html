@@ -25,6 +25,7 @@
           <div class="box-body">
             <div class="col-xs-12">
               {{dataKylin.cube.tip_visit}} <a href="http://kylin.apache.org/blog/2016/02/18/new-aggregation-group" target="_blank">{{dataKylin.cube.aggregationGroups}}</a> {{dataKylin.cube.tip_about_aggregation_group}}
+              <div class="pull-right">Cuboid Number:<span style="color:#3c8dbc">{{cuboidCount}}</span></div>
             </div>
           </div>
         </div>
@@ -50,7 +51,6 @@
                   </td>
                   <td class="col-xs-8">
                     <!-- Dimensions -->
-
                     <ui-select
                       autofocus="true"
                       close-on-select="false"    ng-disabled="instance.status=='READY'"
@@ -59,7 +59,7 @@
                       ng-if="state.mode=='edit'" style="width: 100%" multiple ng-model="aggregation_group.includes">
                      <ui-select-match placeholder="{{dataKylin.cube.plac_cubeAS}}">{{$item.column}}</ui-select-match>
                       <ui-select-choices
-                      repeat="rowkey_column.column as rowkey_column in cubeMetaFrame.rowkey.rowkey_columns | filter:$select.search">
+                      repeat="rowkey_column.column as rowkey_column in cubeMetaFrame.rowkey.rowkey_columns | filter:$select.search|filterArr:seletedInclues:'column'">
                     {{rowkey_column.column}}
                       </ui-select-choices>
                     </ui-select>
@@ -83,7 +83,7 @@
                       ng-if="state.mode=='edit'" style="width: 100%" multiple ng-model="aggregation_group.select_rule.mandatory_dims">
                       <ui-select-match placeholder="{{dataKylin.cube.plac_cubeAS}}">{{$item}}</ui-select-match>
                       <ui-select-choices
-                        repeat="column in aggregation_group.includes | filter:$select.search">
+                        repeat="column in aggregation_group.includes | filter:$select.search|filterArr:seletedColumns">
                         {{column}}
                       </ui-select-choices>
                     </ui-select>
@@ -112,7 +112,7 @@
                             ng-if="state.mode=='edit'" style="width: 100%" multiple ng-model="hierarchyDims">
                             <ui-select-match placeholder="{{dataKylin.cube.plac_cubeAS}}">{{$item}}</ui-select-match>
                             <ui-select-choices
-                              repeat="column in aggregation_group.includes | filter:$select.search">
+                              repeat="column in aggregation_group.includes | filter:$select.search|filterArr:seletedColumns">
                               {{column}}
                             </ui-select-choices>
                           </ui-select>
@@ -158,7 +158,7 @@
                             ng-if="state.mode=='edit'" style="width: 100%" multiple ng-model="jointDims">
                             <ui-select-match placeholder="{{dataKylin.cube.plac_cubeAS}}">{{$item}}</ui-select-match>
                             <ui-select-choices
-                              repeat="column in aggregation_group.includes | filter:$select.search">
+                              repeat="column in aggregation_group.includes | filter:$select.search|filterArr:seletedColumns">
                               {{column}}
                             </ui-select-choices>
                           </ui-select>

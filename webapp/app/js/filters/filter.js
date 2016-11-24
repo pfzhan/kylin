@@ -208,4 +208,20 @@ KylinApp
         return '';
       }
     };
+  }).filter('filterArr',function(){
+    return function(arr,filterArr,key) {
+      var newArr=[];
+      for(var k=0;k<arr.length;k++){
+        var match;
+        if(key){
+          match=arr[k][key];
+        }else{
+          match=arr[k];
+        }
+        if(match&&filterArr.indexOf(match)<0){
+          newArr.push(arr[k]);
+        }
+      }
+      return newArr;
+    };
   });
