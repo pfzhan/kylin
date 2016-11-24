@@ -546,7 +546,7 @@ a:focus {
  */
 /*Dropdowns in general*/
 .dropdown-menu {
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+  /*box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);*/
   border-color: #eee;
 }
 .dropdown-menu > li > a {
@@ -563,6 +563,9 @@ a:focus {
 }
 .dropdown-menu > .divider {
   background-color: #eee;
+}
+.ui-select-choices-row-inner{
+  margin-left: 10px;
 }
 /*
     Navbar custom dropdown menu
