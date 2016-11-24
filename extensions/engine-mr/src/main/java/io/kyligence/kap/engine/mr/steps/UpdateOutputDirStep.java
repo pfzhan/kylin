@@ -39,17 +39,28 @@ import org.apache.kylin.job.execution.ExecuteResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UpdateCubeOutputDirStep extends AbstractExecutable {
-    private static final Logger logger = LoggerFactory.getLogger(UpdateCubeOutputDirStep.class);
-    private final String CUBE_DIR="cube_output_dir";
-    private final String JOB_ID="cube_job_id";
+public class UpdateOutputDirStep extends AbstractExecutable {
+    private static final Logger logger = LoggerFactory.getLogger(UpdateOutputDirStep.class);
+    private final String OUTPUT_DIR = "output_dir";
+    private final String SUBDIR_FILTER = "subdir_filter";
+    private final String JOB_ID = "cube_job_id";
+    private final String CHECK_SKIP = "check_skip";
+    private final String CHECK_AlGORITHM = "check_algorithm";
 
-    public String getCubeOutputDir() {
-        return getParam(CUBE_DIR);
+    public String getOutputDir() {
+        return getParam(OUTPUT_DIR);
     }
 
-    public void setCubeOutputDir(String cubeOutputDir) {
-        setParam(CUBE_DIR, cubeOutputDir);
+    public void setOutputDir(String cubeOutputDir) {
+        setParam(OUTPUT_DIR, cubeOutputDir);
+    }
+
+    public String getSubdirFilter() {
+        return getParam(SUBDIR_FILTER);
+    }
+
+    public void setSubdirFilter(String subdir) {
+        setParam(SUBDIR_FILTER, subdir);
     }
 
     public String getJobId() {
@@ -60,29 +71,53 @@ public class UpdateCubeOutputDirStep extends AbstractExecutable {
         setParam(JOB_ID, jobId);
     }
 
+    public void setCheckSkip(boolean check) {
+        setParam(CHECK_SKIP, String.valueOf(check));
+    }
+
+    public void setCheckAlgorithm(String alg) {
+        setParam(CHECK_AlGORITHM, alg);
+    }
+
+    public CubingJob.AlgorithmEnum getCheckAlgorithm() {
+        String alg = getParam(CHECK_AlGORITHM);
+        return CubingJob.AlgorithmEnum.valueOf(alg);
+    }
+
+    public boolean getCheckSkip() {
+        String checkSkip = getParam(CHECK_SKIP);
+        if (checkSkip == null) {
+            return false;
+        }
+
+        return Boolean.valueOf(checkSkip);
+    }
+
     private boolean checkSkip(String cubingJobId) {
         if (cubingJobId == null)
             return false;
 
         ExecutableManager execMgr = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv());
         CubingJob cubingJob = (CubingJob) execMgr.getJob(cubingJobId);
-        return cubingJob.isLayerCubing() == false;
+        return cubingJob.getAlgorithm() != getCheckAlgorithm();
     }
 
     @Override
     protected ExecuteResult doWork(ExecutableContext context) {
-        if (checkSkip(getJobId())) {
+        if (getCheckSkip() && checkSkip(getJobId())) {
             return new ExecuteResult(ExecuteResult.State.SUCCEED);
         }
         try {
-            FileSystem fs = HadoopUtil.getFileSystem(getCubeOutputDir());
-            Path cubeOutputPath = new Path(getCubeOutputDir());
+            FileSystem fs = HadoopUtil.getFileSystem(getOutputDir());
+            Path cubeOutputPath = new Path(getOutputDir());
             FileStatus outputDirStatus = fs.getFileStatus(cubeOutputPath);
             assert (outputDirStatus.isDirectory());
             FileStatus[] childFileStatus = fs.listStatus(cubeOutputPath);
-            for (FileStatus status: childFileStatus) {
-                copyMergeDirs(fs, status.getPath(), cubeOutputPath);
-                fs.delete(status.getPath(), true);
+            for (FileStatus status : childFileStatus) {
+                if (status.getPath().getName().startsWith(getSubdirFilter())) {
+                    copyMergeDirs(fs, status.getPath(), cubeOutputPath);
+                    fs.delete(status.getPath(), true);
+                }
             }
         } catch (IOException e) {
             logger.error("{}", e);
@@ -92,14 +127,15 @@ public class UpdateCubeOutputDirStep extends AbstractExecutable {
     }
 
     private void copyMergeDirs(FileSystem fs, Path src, Path dest) throws IOException {
-        FileStatus srcFileStatus = fs.getFileStatus(src);
-        FileStatus destFileStatus = fs.getFileStatus(dest);
-        assert(srcFileStatus.isDirectory());
-        assert(destFileStatus.isDirectory());
         FileStatus[] childFileStatus = fs.listStatus(src);
-        for (FileStatus status: childFileStatus) {
+        for (FileStatus status : childFileStatus) {
             String name = status.getPath().getName();
-            fs.rename(status.getPath(), new Path(dest, name));
+            Path destChild = new Path(dest, name);
+            if (fs.exists(destChild) && fs.isDirectory(status.getPath()) && fs.isDirectory(destChild)) {
+                copyMergeDirs(fs, status.getPath(), destChild);
+            } else {
+                fs.rename(status.getPath(), destChild);
+            }
         }
     }
 }

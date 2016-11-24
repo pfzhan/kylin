@@ -56,10 +56,13 @@ public class ParquetMROutput2 implements IMROutput2 {
             @Override
             public void addStepPhase3_BuildCube(DefaultChainedExecutable jobFlow) {
                 jobFlow.addTask(steps.createParquetPageIndex(jobFlow.getId()));
+                jobFlow.addTask(steps.createParquetPageIndexClenup(jobFlow.getId()));
                 jobFlow.addTask(steps.createParquetTarballJob(jobFlow.getId()));
+                jobFlow.addTask(steps.createParquetTarballCleaupJob(jobFlow.getId()));
                 if (isRawTableEnable) {
                     jobFlow.addTask(steps.createRawShardSizingStep(jobFlow.getId()));
                     jobFlow.addTask(steps.createRawTableStep());
+                    jobFlow.addTask(steps.createRawTableCleanupStep(jobFlow.getId()));
                     jobFlow.addTask(steps.createRawTableParquetPageIndex(jobFlow.getId()));
                     jobFlow.addTask(steps.createRawTableParquetPageFuzzyIndex(jobFlow.getId()));
                 }

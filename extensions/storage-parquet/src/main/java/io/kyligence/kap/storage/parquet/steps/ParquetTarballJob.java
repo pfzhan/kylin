@@ -33,15 +33,17 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
+import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.storage.parquet.format.EmptyOutputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetWithIndexFileInputFormat;
 
 public class ParquetTarballJob extends AbstractHadoopJob {
@@ -69,6 +71,7 @@ public class ParquetTarballJob extends AbstractHadoopJob {
 
             CubeManager cubeMgr = CubeManager.getInstance(KylinConfig.getInstanceFromEnv());
             CubeInstance cube = cubeMgr.getCube(cubeName);
+            Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
 
             job = Job.getInstance(getConf(), getOptionValue(OPTION_JOB_NAME));
             setJobClasspath(job, cube.getConfig());
@@ -82,10 +85,12 @@ public class ParquetTarballJob extends AbstractHadoopJob {
 
             job.getConfiguration().setInt("dfs.blocksize", KapConfig.getInstanceFromEnv().getParquetStorageBlockSize());
             job.setInputFormatClass(ParquetWithIndexFileInputFormat.class);
-            job.setOutputFormatClass(NullOutputFormat.class);
+            job.setOutputFormatClass(EmptyOutputFormat.class);
             job.setMapperClass(ParquetTarballMapper.class);
             job.setNumReduceTasks(0);
+            FileOutputFormat.setOutputPath(job, output);
 
+            HadoopUtil.deletePath(job.getConfiguration(), output);
             return waitForCompletion(job);
         } finally {
             if (job != null) {

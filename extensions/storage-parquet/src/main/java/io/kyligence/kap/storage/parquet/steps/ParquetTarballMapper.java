@@ -33,6 +33,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.engine.mr.KylinMapper;
 import org.apache.kylin.engine.mr.common.BatchConstants;
@@ -48,19 +49,20 @@ public class ParquetTarballMapper extends KylinMapper<IntWritable, byte[], Text,
     private FSDataOutputStream os;
 
     @Override
-    protected void setup(Context context) throws IOException {
+    protected void setup(Context context) throws IOException, InterruptedException {
         Configuration conf = context.getConfiguration();
         Path inputPath = ((FileSplit) context.getInputSplit()).getPath();
         super.bindCurrentConfiguration(conf);
         FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
 
         String shardId = inputPath.getName().substring(0, inputPath.getName().indexOf('.'));
+        String cuboidId = inputPath.getParent().getName();
 
         Path invPath = new Path(inputPath.getParent(), shardId + ".parquet.inv");
         long invLength = fs.getFileStatus(invPath).getLen();
 
         // write to same dir with input
-        Path outputPath = new Path(inputPath.getParent(), shardId + ".parquettar");
+        Path outputPath = new Path(FileOutputFormat.getWorkOutputPath(context), cuboidId + "/" + shardId + ".parquettar");
 
         logger.info("Input path: " + inputPath.toString());
         logger.info("Output path: " + outputPath.toString());

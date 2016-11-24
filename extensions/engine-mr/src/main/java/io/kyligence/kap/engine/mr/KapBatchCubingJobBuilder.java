@@ -50,13 +50,15 @@ import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.engine.mr.steps.KapBaseCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapInMemCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapNDCuboidJob;
-import io.kyligence.kap.engine.mr.steps.UpdateCubeOutputDirStep;
+import io.kyligence.kap.engine.mr.steps.UpdateOutputDirStep;
 import io.kyligence.kap.engine.mr.steps.UpdateRawTableInfoAfterBuildStep;
 
 public class KapBatchCubingJobBuilder extends JobBuilderSupport {
 
     private static final Logger logger = LoggerFactory.getLogger(BatchCubingJobBuilder2.class);
 
+    private final String LayeredCubeTmpFolderPrefix = "level-";
+    private final String InmemCubeTmpFolderPrefix = "inmem";
     private final IMRInput.IMRBatchCubingInputSide inputSide;
     private final IMROutput2.IMRBatchCubingOutputSide2 outputSide;
 
@@ -84,7 +86,7 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
 
         // Phase 3: Build Cube and RawTable
         addLayerCubingSteps(result, jobId, cubeRootPath); // layer cubing, only selected algorithm will execute
-        result.addTask(createInMemCubingStep(jobId, cubeRootPath));
+        addInmemCubingSteps(result, jobId, cubeRootPath); // inmem cubing, only selected algorithm will execute
         outputSide.addStepPhase3_BuildCube(result);
 
         // Phase 4: Update Metadata & Cleanup
@@ -118,21 +120,40 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
         final int groupRowkeyColumnsCount = seg.getCubeDesc().getBuildLevel();
         final int totalRowkeyColumnsCount = rowKeyDesc.getRowKeyColumns().length;
         // base cuboid step
-        result.addTask(createBaseCuboidStep(cubeRootPath + "/level-" + totalRowkeyColumnsCount, jobId));
+        result.addTask(createBaseCuboidStep(cubeRootPath + "/" + LayeredCubeTmpFolderPrefix + totalRowkeyColumnsCount, jobId));
         // n dim cuboid steps
         for (int i = 1; i <= groupRowkeyColumnsCount; i++) {
             int dimNum = totalRowkeyColumnsCount - i;
             result.addTask(createNDimensionCuboidStep(cubeRootPath, dimNum, totalRowkeyColumnsCount, jobId));
         }
 
-        result.addTask(createUpdateOutputDirStep(cubeRootPath, jobId));
+        result.addTask(createUpdateLayerOutputDirStep(cubeRootPath, jobId));
     }
 
-    private UpdateCubeOutputDirStep createUpdateOutputDirStep(final String cubeRootPath, final String jobId) {
-        UpdateCubeOutputDirStep updateDirStep = new UpdateCubeOutputDirStep();
-        updateDirStep.setCubeOutputDir(cubeRootPath);
+    private void addInmemCubingSteps(final CubingJob result, final String jobId, final String cubeRootPath) {
+        result.addTask(createInMemCubingStep(jobId, cubeRootPath));
+        result.addTask(createUpdateInmemOutputDirStep(cubeRootPath, jobId));
+    }
+
+    private UpdateOutputDirStep createUpdateLayerOutputDirStep(final String cubeRootPath, final String jobId) {
+        UpdateOutputDirStep updateDirStep = new UpdateOutputDirStep();
+        updateDirStep.setOutputDir(cubeRootPath);
+        updateDirStep.setSubdirFilter(LayeredCubeTmpFolderPrefix);
         updateDirStep.setJobId(jobId);
-        updateDirStep.setName("Clean Cube Output Directory");
+        updateDirStep.setCheckSkip(true);
+        updateDirStep.setCheckAlgorithm("LAYER");
+        updateDirStep.setName("Clean Cube Output");
+        return updateDirStep;
+    }
+
+    private UpdateOutputDirStep createUpdateInmemOutputDirStep(final String cubeRootPath, final String jobId) {
+        UpdateOutputDirStep updateDirStep = new UpdateOutputDirStep();
+        updateDirStep.setOutputDir(cubeRootPath);
+        updateDirStep.setSubdirFilter(InmemCubeTmpFolderPrefix);
+        updateDirStep.setJobId(jobId);
+        updateDirStep.setCheckSkip(true);
+        updateDirStep.setCheckAlgorithm("INMEM");
+        updateDirStep.setName("Clean Cube Output");
         return updateDirStep;
     }
 
@@ -146,8 +167,8 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
         appendMapReduceParameters(cmd);
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBE_NAME, seg.getRealization().getName());
         appendExecCmdParameters(cmd, BatchConstants.ARG_SEGMENT_ID, seg.getUuid());
-        appendExecCmdParameters(cmd, BatchConstants.ARG_INPUT, cubeOutputPath + "/level-" + (dimNum + 1));
-        appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, cubeOutputPath + "/level-" + dimNum);
+        appendExecCmdParameters(cmd, BatchConstants.ARG_INPUT, cubeOutputPath + "/" + LayeredCubeTmpFolderPrefix + (dimNum + 1));
+        appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, cubeOutputPath + "/" + LayeredCubeTmpFolderPrefix + dimNum);
         appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_ND-Cuboid_Builder_" + seg.getRealization().getName() + "_Step");
         appendExecCmdParameters(cmd, BatchConstants.ARG_LEVEL, "" + (totalRowkeyColumnCount - dimNum));
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBING_JOB_ID, jobId);
@@ -168,7 +189,7 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
 
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBE_NAME, seg.getRealization().getName());
         appendExecCmdParameters(cmd, BatchConstants.ARG_SEGMENT_ID, seg.getUuid());
-        appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, cuboidRootPath);
+        appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, cuboidRootPath + "/" + InmemCubeTmpFolderPrefix);
         appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_Cube_Builder_" + seg.getRealization().getName());
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBING_JOB_ID, jobId);
 

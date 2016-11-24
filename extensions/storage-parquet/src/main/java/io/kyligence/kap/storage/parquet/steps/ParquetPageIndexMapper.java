@@ -26,7 +26,6 @@ package io.kyligence.kap.storage.parquet.steps;
 
 import java.io.IOException;
 
-import org.apache.commons.lang.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -34,6 +33,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.cube.CubeInstance;
@@ -54,7 +54,7 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexWriter;
 
-public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text, Text> {
+public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text, IntWritable> {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetPageIndexMapper.class);
 
     protected String cubeName;
@@ -69,7 +69,6 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
     private ParquetPageIndexWriter indexBundleWriter;
     private int counter = 0;
     private Path outputPath;
-    private Path tmpPath;
 
     private int[] columnLength;
     private int[] cardinality;
@@ -92,8 +91,8 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
             cuboidId = Long.parseLong(inputPath.getParent().getName());
         shardId = inputPath.getName().substring(0, inputPath.getName().indexOf('.'));
 
-        // write to same dir with input
-        outputPath = new Path(inputPath.getParent(), shardId + ".parquet.inv");
+        outputPath = new Path(FileOutputFormat.getWorkOutputPath(context), cuboidId + "/" + shardId + ".parquet.inv");
+
         cube = CubeManager.getInstance(config).getCube(cubeName);
         cubeDesc = cube.getDescriptor();
         cuboid = Cuboid.findById(cubeDesc, cuboidId);
@@ -141,9 +140,7 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
             logger.debug("Column Length:" + columnName[col] + "=" + columnLength[col]);
         }
 
-        tmpPath = new Path(outputPath.getParent(), String.valueOf(cuboid.getId()) + "-" + String.valueOf(shardId) + "-" + RandomStringUtils.randomAlphabetic(10) + ".tmp");
-
-        FSDataOutputStream outputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(tmpPath);
+        FSDataOutputStream outputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(outputPath);
         indexBundleWriter = new ParquetPageIndexWriter(columnName, columnLength, cardinality, onlyEQIndex, outputStream);
     }
 
@@ -159,10 +156,5 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
     @Override
     protected void doCleanup(Context context) throws IOException, InterruptedException {
         indexBundleWriter.close();
-
-        FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
-        fs.mkdirs(outputPath.getParent());
-        fs.rename(tmpPath, outputPath);
-        logger.info("move file {} to {}", tmpPath, outputPath);
     }
 }

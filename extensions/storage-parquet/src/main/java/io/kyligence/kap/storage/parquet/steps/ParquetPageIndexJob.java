@@ -33,15 +33,17 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
+import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.storage.parquet.format.EmptyOutputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetPageInputFormat;
 
 public class ParquetPageIndexJob extends AbstractHadoopJob {
@@ -73,6 +75,7 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
             CubeManager cubeMgr = CubeManager.getInstance(KylinConfig.getInstanceFromEnv());
             CubeInstance cube = cubeMgr.getCube(cubeName);
 
+            Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
             job = Job.getInstance(getConf(), getOptionValue(OPTION_JOB_NAME));
             setJobClasspath(job, cube.getConfig());
 
@@ -84,7 +87,8 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
             }
 
             setInputFormatClass(job);
-            job.setOutputFormatClass(NullOutputFormat.class);
+            job.setOutputFormatClass(EmptyOutputFormat.class);
+            FileOutputFormat.setOutputPath(job, output);
             setMapperClass(job);
             job.setNumReduceTasks(0);
 
@@ -94,6 +98,8 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
 
             // add metadata to distributed cache
             attachKylinPropsAndMetadata(cube, job.getConfiguration());
+
+            HadoopUtil.deletePath(job.getConfiguration(), output);
             return waitForCompletion(job);
         } finally {
             if (job != null) {
