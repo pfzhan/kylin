@@ -80,13 +80,6 @@ then
         quit "Port ${driverPort} is not available, could not start Spark Client"
     fi
     
-    if [ ! -f ${SPARK_HOME}/conf/log4j.properties ] ; then
-        echo "${SPARK_HOME}/conf/log4j.properties does not exist, copy from ${LOG4J_DIR}/kylin-tools-log4j.properties:"
-        cp ${LOG4J_DIR}/kylin-tools-log4j.properties ${SPARK_HOME}/conf/log4j.properties 
-    else
-        echo "${SPARK_HOME}/conf/log4j.properties already exists"
-    fi
-
     # spark envs
     sparkEnvPrefix="kap.storage.columnar.spark-env."
     realStart=$((${#sparkEnvPrefix} + 1))
@@ -109,14 +102,14 @@ then
     confStr=`cat ${CONF_DIR}/*.properties | grep "^${sparkConfPrefix}" | cut -c ${realStart}- |  awk '{ print "--conf " "\"" $0 "\""}' | tr '\n' ' ' `
     verbose "additional confs spark-submit: $confStr"
 
-    submitCommand='$SPARK_HOME/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry --master yarn --deploy-mode client --verbose --files ${SPARK_HOME}/conf/log4j.properties '
+    submitCommand='$SPARK_HOME/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry --master yarn --deploy-mode client --verbose --files ${LOG4J_DIR}/kylin-tools-log4j.properties '
     submitCommand=${submitCommand}${confStr}
-    submitCommand=${submitCommand}' ${KYLIN_SPARK_JAR_PATH} -className io.kyligence.kap.storage.parquet.cube.spark.SparkQueryDriver --port ${driverPort} >> ${KYLIN_HOME}/logs/spark_client.out 2>&1 & echo $! > ${KYLIN_HOME}/spark_client_pid &'
+    submitCommand=${submitCommand}' ${KYLIN_SPARK_JAR_PATH} -className io.kyligence.kap.storage.parquet.cube.spark.SparkQueryDriver --port ${driverPort} > ${KYLIN_HOME}/logs/spark-driver.out 2>&1 & echo $! > ${KYLIN_HOME}/spark_client_pid &'
     verbose "The submit command is: $submitCommand"
     eval $submitCommand 
     
     echo "A new Spark Client instance is started by $USER. To stop it, run 'spark_client.sh stop'"
-    echo "Check the log at ${KYLIN_HOME}/logs/spark_client.out"
+    echo "Check the log at ${KYLIN_HOME}/logs/spark-driver.log"
     
     if [[ $CI_MODE == 'true' ]]
     then
