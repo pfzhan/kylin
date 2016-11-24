@@ -39,6 +39,30 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
     transferRawTableData();
   }
   $scope.availableTables = [];
+  $scope.changeRawTableDataFromServer=function(rawtableData){
+    var data=[].concat(rawtableData);
+    var len=data&&data.length|| 0;
+    for(var i=0;i<len;i++){
+      var result = /:(\d+)/.exec(data[i].encoding);
+      data[i].valueLength = result ? result[1] : 0;
+      data[i].encoding=$scope.removeVersion(data[i].encoding).replace(/:\d+/,'')+'[v'+(data[i].encoding_version||1)+']';
+    }
+    return data;
+  }
+  $scope.getTypeVersion=function(typename){
+    var searchResult=/\[v(\d+)\]/.exec(typename);
+    if(searchResult&&searchResult.length){
+      return searchResult.length&&searchResult[1]||1;
+    }else{
+      return 1;
+    }
+  }
+  $scope.removeVersion=function(typename){
+    if(typename){
+      return typename.replace(/\[v\d+\]/g,"");
+    }
+    return "";
+  }
   //无后台数据的时候获取基础信息
   var getBaseColumnsData=function(){
     if($scope.getDimColumnsByTable){
@@ -90,14 +114,16 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
         tempObj[cur.table+cur.name]=true;
         var columnObj = {};
         columnObj.index = "discrete";
-        columnObj.encoding = "var";
+        columnObj.encoding = "orderedbytes[v1]";
         columnObj.table = cur.table;
         columnObj.column = cur.name;
+        columnObj.valueLength=0;
         if($scope.metaModel.model.partition_desc&&columnObj.table+"."+columnObj.column==$scope.metaModel.model.partition_desc.partition_date_column){
           columnObj.index="sorted";
         }
         saveData.columns.push(columnObj);
       }
+      saveData.columns= $scope.changeRawTableDataFromServer(saveData.columns)
       $scope.rawTableColumns = saveData;
       transferRawTableData();
     }
@@ -112,6 +138,7 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
   var loadRawTable = function (callback) {
     RawTablesService.getRawTableInfo({rawTableName: $scope.state.cubeName}, {}, function (request) {
       if(request&&request.columns&&request.columns.length){
+        request.columns= $scope.changeRawTableDataFromServer(request.columns);
         $scope.rawTableColumns = request;
         $scope.hisRawTableData=request.columns;
         $scope.hasConfig=true;
@@ -139,7 +166,8 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
     })
   }
   if($scope.RawTables&&$scope.RawTables.columns&&$scope.RawTables.columns.length>=0){
-    $scope.rawTableColumns=$scope.RawTables;
+    $scope.rawTableColumns={};
+    $scope.rawTableColumns.columns=$scope.changeRawTableDataFromServer($scope.RawTables.columns);
     $scope.isSupportRawTable=$scope.checkIsSupportRawTable();
   }else{
     if($scope.state.mode=="view"||$scope.isEdit){
@@ -163,24 +191,30 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
   $scope.$watch("rawTableColumns",transferRawTableData,true)
 
 
-
-  $scope.getEncodings =function (name){
-    var filterName=name;
-    var type = TableModel.columnNameTypeMap[filterName]||'';
-    var encodings =[].concat($scope.store.supportedEncoding),filterEncoding;
+  var encodings =[];
+  if($scope.isEdit){
+    encodings =[].concat($scope.store.supportedEncoding);
     encodings.push({
       'name': 'var',
       'value': 'var[v1]',
       'version': 1,
       'baseValue':'var',
       'suggest':true
-    },{
+    })
+    encodings.push({
       'name': 'orderedbytes',
       'value': 'orderedbytes[v1]',
       'version': 1,
       'baseValue':'var',
       'suggest':true
     })
+  }
+
+  $scope.getRawTableEncodings =function (name){
+    var filterName=name;
+    var type = TableModel.columnNameTypeMap[filterName]||'';
+    var filterEncoding;
+    encodings=VdmUtil.removeFilterObjectList(encodings,'baseValue','dict');
     var filerList=$scope.createFilter(type);
     if($scope.isEdit&&name){
       if($scope.hisRawTableData){
@@ -200,5 +234,8 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
     }
     return filterEncoding;
   }
+
+
+
 
 });

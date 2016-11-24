@@ -200,4 +200,12 @@ KylinApp
       return function(input) {
         return input == null ? 'null' : input;
       };
-});
+}).filter('encodingVersionShow',function(){
+    return function(input) {
+      if(input){
+        return input.replace(/\[v1\]/,'').replace(/\[v(\d+)\]/,' (v$1)');
+      }else{
+        return '';
+      }
+    };
+  });

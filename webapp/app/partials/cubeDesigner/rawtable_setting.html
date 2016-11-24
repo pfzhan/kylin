@@ -32,7 +32,8 @@
           <tr>
             <th>{{dataKylin.cube.cubeASID}}</th>
             <th style="width:30%;">{{dataKylin.cube.rawtableASColumn}}</th>
-            <th style="width:30%;">{{dataKylin.cube.rawtableASEncoding}}</th>
+            <th style="width:15%;">{{dataKylin.cube.rawtableASEncoding}}</th>
+            <th style="width:15%;">{{dataKylin.cube.cubeASLength}}</th>
             <th style="width:30%;">{{dataKylin.cube.rawtableASIndex}}</th>
           </tr>
           </thead>
@@ -53,13 +54,25 @@
             <td>
               <select ng-if="state.mode=='edit'" style="width:180px;"
                       chosen
+                      ng-change=""
                       ng-model="col.encoding"
-                      ng-options="dt.value as dt.name for dt in getEncodings(col.column)"
+                      ng-options="dt.value as dt.name for dt in getRawTableEncodings(col.column)"
                 >
                 <!--<option value="var">default</option>-->
               </select>
-              <span ng-if="state.mode=='view'">{{col.encoding}}</span>
+              <span ng-if="state.mode=='view'">{{col.encoding|encodingVersionShow}}</span>
 
+            </td>
+            <td>
+              <!--Column Length -->
+              <input type="text" class="form-control" placeholder="Column Length.." ng-if="state.mode=='edit'"
+                     tooltip="{{dataKylin.cube.rowkey_column_length}}" tooltip-trigger="focus"
+                     ng-disabled="col.encoding.indexOf('dict')>=0||col.encoding.indexOf('date')>=0||col.encoding.indexOf('time')>=0||col.encoding.indexOf('var')>=0||col.encoding.indexOf('orderedbytes')>=0"
+
+                     ng-model="col.valueLength" class="form-control">
+
+              <small class="help-block red" ng-show="state.mode=='edit' && col.encoding=='int' && (col.valueLength>8 || col.valueLength<1)">int encoding column length should between 1 and 8</small>
+              <span ng-if="state.mode=='view'">{{col.valueLength}}</span>
             </td>
             <td>
               <!--Column Length -->

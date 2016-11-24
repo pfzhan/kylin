@@ -507,7 +507,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
                 'schema': $scope.state.cubeSchema
               }), 'error', {}, true, 'top_center');
             } else {
-              MessageService.sendMsg($scope.cubeResultTmpl({
+              MessageService.sendMsg($scope.cubeResultTmpl  ({
                 'text': $scope.dataKylin.alert.error_info,
                 'schema': $scope.state.cubeSchema
               }), 'error', {}, true, 'top_center');
@@ -528,19 +528,50 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
       }
     });
   };
+  $scope.getTypeVersion=function(typename){
+    var searchResult=/\[v(\d+)\]/.exec(typename);
+    if(searchResult&&searchResult.length){
+      return searchResult.length&&searchResult[1]||1;
+    }else{
+      return 1;
+    }
+  }
+  $scope.removeVersion=function(typename){
+    if(typename){
+      return typename.replace(/\[v\d+\]/g,"");
+    }
+    return "";
+  }
 
-
+  $scope.changeRawTableDataFromClient=function(rawtableData){
+    var data=[].concat(rawtableData);
+    var needLengthKeyList=['fixed_length','fixed_length_hex','int','integer'];
+    var len=data&&data.length|| 0;
+    for(var i=0;i<len;i++){
+      var version= $scope.getTypeVersion(data[i].encoding);
+      var baseKey = $scope.removeVersion(data[i].encoding).replace(/:\[\d+\]/,'');
+      if(needLengthKeyList.indexOf(baseKey)>=0){
+        data[i].encoding=baseKey+':'+data[i].valueLength;
+      }else{
+        data[i].encoding=baseKey;
+      }
+      data[i].encoding_version=version;
+    }
+    return data;
+  }
 
   //保存rawTable
   function saveRawTable(){
     if($scope.RawTables&&$scope.RawTables.columns){
+      var rawTableConfig={};
+      rawTableConfig.name=$scope.cubeMetaFrame.name;
+      rawTableConfig.model_name=$scope.cubeMetaFrame.model_name;
+      rawTableConfig.engine_type=$scope.cubeMetaFrame.engine_type;
+      rawTableConfig.storage_type=$scope.cubeMetaFrame.storage_type;
 
-      $scope.RawTables.name=$scope.cubeMetaFrame.name;
-      $scope.RawTables.model_name=$scope.cubeMetaFrame.model_name;
-      $scope.RawTables.engine_type=$scope.cubeMetaFrame.engine_type;
-      $scope.RawTables.storage_type=$scope.cubeMetaFrame.storage_type;
+      rawTableConfig.columns=$scope.changeRawTableDataFromClient($scope.RawTables.columns)
       RawTablesService.save({},{
-        rawTableDescData:VdmUtil.filterNullValInObj($scope.RawTables),
+        rawTableDescData:VdmUtil.filterNullValInObj(rawTableConfig),
         project: $scope.state.project
       },function(request){
         VdmUtil.storage.remove($scope.state.project+"_rawtable");
@@ -552,8 +583,15 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
 
   //更新rawTable
   function updateRawTable(){
+    var rawTableConfig={};
+    rawTableConfig.name=$scope.RawTables.name;
+    rawTableConfig.model_name=$scope.RawTables.model_name;
+    rawTableConfig.engine_type=$scope.RawTables.engine_type;
+    rawTableConfig.storage_type=$scope.RawTables.storage_type;
+    rawTableConfig.columns=$scope.changeRawTableDataFromClient($scope.RawTables.columns)
+    //rawTableConfig.column=$scope.changeRawTableDataFromClient($scope.RawTables.columns)
     RawTablesService.update({},{
-      rawTableDescData:VdmUtil.filterNullValInObj($scope.RawTables),
+      rawTableDescData:VdmUtil.filterNullValInObj(rawTableConfig),
       project: $scope.state.project,
       rawTableName:$scope.RawTables.name
     },function(request){

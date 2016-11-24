@@ -174,7 +174,7 @@ KylinApp.factory('VdmUtil', function ($modal, $timeout, $location, $anchorScroll
       }
       return newArr;
     },
-    removeFilterObjectList:function(objList,key,val,orKey,orVal){
+    removeFilterObjectList:function(objList,key,val){
       var len=objList&&objList.length|| 0,newArr=[];
       for(var i=0;i<len;i++){
         if(key&&val!=objList[i][key]){
