@@ -100,7 +100,7 @@
                           <a ng-click="cubeEdit(cube);">{{dataKylin.cube.cubeActions[1]}}</a></li>
                       <li ng-if="cube.streaming && cube.status=='DISABLED' && (userService.hasRole('ROLE_ADMIN') || hasPermission(cube, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask))">
                       <li><a ng-click="startJobSubmit(cube, $index);">{{dataKylin.cube.cubeActions[2]}}</a></li>
-                      <li><a ng-click="startRefresh(cube, $index)">{{dataKylin.cube.cubeActions[3]}}</a></li>
+                      <li ng-if="cube.status!='DISABLED'"><a ng-click="startRefresh(cube, $index)">{{dataKylin.cube.cubeActions[3]}}</a></li>
                       <li><a ng-click="startMerge(cube, $index)">{{dataKylin.cube.cubeActions[4]}}</a></li>
                       <li ng-if="cube.status!='DISABLED'"><a ng-click="disable(cube, $index)">{{dataKylin.cube.cubeActions[5]}}</a></li>
                       <li ng-if="cube.status=='DISABLED'"><a ng-click="enable(cube, $index)">{{dataKylin.cube.cubeActions[6]}}</a></li>

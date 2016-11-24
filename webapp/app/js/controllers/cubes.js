@@ -104,6 +104,35 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
       dimensionFilter: '', measureFilter: ''
     };
 
+    $scope.refreshCubeModel = function (cube){
+      cube.streaming = false;
+      CubeDescService.query({cube_name: cube.name}, {}, function (detail) {
+        if (detail.length > 0 && detail[0].hasOwnProperty("name")) {
+          cube.detail = detail[0];
+          ModelService.list({projectName:$scope.projectModel.selectedProject,modelName:cube.detail.model_name}, function (_models) {
+            if(_models && _models.length){
+              for(var i=0;i<=_models.length;i++){
+                if(_models[i].name == cube.detail.model_name){
+                  cube.model = _models[i];
+                  var factTable = cube.model.fact_table;
+                  TableService.get({tableName:factTable},function(table){
+                    if(table && table.source_type == 1){
+                      cube.streaming = true;
+                    }
+                  })
+                break;
+                }
+              }
+            }
+          })
+        } else {
+          SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.tip_no_cube_detail, 'error');
+        }
+      }, function (e) {
+        kylinCommon.error_default(e);
+      });
+    };
+
     $scope.refreshCube = function(cube){
       var queryParam = {
         cubeName: cube.name,
@@ -141,34 +170,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
       $scope.loading = true;
       return CubeList.list(queryParam).then(function (resp) {
           angular.forEach($scope.cubeList.cubes,function(cube,index){
-            cube.streaming = false;
-            CubeDescService.query({cube_name: cube.name}, {}, function (detail) {
-              if (detail.length > 0 && detail[0].hasOwnProperty("name")) {
-                cube.detail = detail[0];
-                ModelService.list({projectName:$scope.projectModel.selectedProject,modelName:cube.detail.model_name}, function (_models) {
-                  if(_models && _models.length){
-                    for(var i=0;i<=_models.length;i++){
-                      if(_models[i].name == cube.detail.model_name){
-                        cube.model = _models[i];
-                        var factTable = cube.model.fact_table;
-                        TableService.get({tableName:factTable},function(table){
-                          if(table && table.source_type == 1){
-                            cube.streaming = true;
-                          }
-                        })
-                        break;
-                      }
-                    }
-                  }
-                })
-                defer.resolve(cube.detail);
-              } else {
-                SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.tip_no_cube_detail, 'error');
-              }
-            }, function (e) {
-              kylinCommon.error_default(e);
-            });
-
+              $scope.refreshCubeModel(cube);
           })
         $scope.loading = false;
         defer.resolve(resp);
@@ -246,6 +248,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
             loadingRequest.hide();
             $scope.refreshCube(cube).then(function(_cube){
               if(_cube && _cube.name){
+                $scope.refreshCubeModel(_cube);
                 $scope.cubeList.cubes[$scope.cubeList.cubes.indexOf(cube)] = _cube;
               }
             });
@@ -281,6 +284,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
             kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_purge_job);
             $scope.refreshCube(cube).then(function(_cube){
               if(_cube && _cube.name){
+                $scope.refreshCubeModel(_cube);
                 $scope.cubeList.cubes[$scope.cubeList.cubes.indexOf(cube)] = _cube;
               }
             });
@@ -310,6 +314,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
             loadingRequest.hide();
             $scope.refreshCube(cube).then(function(_cube){
               if(_cube && _cube.name){
+                $scope.refreshCubeModel(_cube);
                 $scope.cubeList.cubes[$scope.cubeList.cubes.indexOf(cube)] = _cube;
               }
             });
@@ -323,8 +328,6 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
             loadingRequest.hide();
             kylinCommon.error_default(e);
           });
-
-
         }
 
       });
@@ -364,9 +367,6 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
             loadingRequest.hide();
             kylinCommon.error_default(e);
           })
-
-
-
 
         }
 
