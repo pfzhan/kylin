@@ -49,7 +49,7 @@ KylinApp.service('modelsManager',function(ModelService,CubeService,$q,AccessServ
                         model.owner = accessEntities[0].sid.principal;
                       }
                     } catch(error){
-                      $log.error("No acl info. Model: %s",model.name);
+                      //$log.error("No acl info. Model: %s",model.name);
                     }
                   }).$promise
                   )

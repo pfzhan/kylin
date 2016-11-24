@@ -50,13 +50,13 @@ KylinApp.service('modelsEdit',function(ModelService,CubeService,$q,AccessService
                         model.owner = accessEntities[0].sid.principal;
                       }
                     } catch(error){
-                      $log.error("No acl info. Model: %s",model.name);
+                      //$log.error("No acl info. Model: %s",model.name);
                     }
                   }).$promise
                   )
                 }
 
-                $log.info("Add cube info to model ,not detail info");
+                //$log.info("Add cube info to model ,not detail info");
                 cubeDetail.push(
                     CubeService.list({modelName:model.name}, function (_cubes) {
                     model.cubes = _cubes;
