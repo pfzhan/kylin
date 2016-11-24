@@ -246,14 +246,14 @@
                       ng-options="dt.value as dt.name for dt in getEncodings(rowkey_column.column)">
                 <option value=""></option>
               </select>
-              <span ng-if="state.mode=='view'">{{rowkey_column.encoding}}</span>
+              <span ng-if="state.mode=='view'">{{rowkey_column.encoding|encodingVersionShow}}</span>
 
             </td>
             <td>
               <!--Column Length -->
               <input type="text" class="form-control" placeholder="Column Length.." ng-if="state.mode=='edit'"
                      tooltip="{{dataKylin.cube.rowkey_column_length}}" tooltip-trigger="focus"
-                     ng-disabled="rowkey_column.encoding=='dict'||rowkey_column.encoding=='date'||rowkey_column.encoding=='time'||instance.status=='READY'"
+                     ng-disabled="rowkey_column.encoding.indexOf('dict')>=0||rowkey_column.encoding.indexOf('date')>=0||rowkey_column.encoding.indexOf('time')>=0||instance.status=='READY'"
                      ng-change="refreshRowKey(convertedRowkeys,$index,rowkey_column);"
                      ng-model="rowkey_column.valueLength" class="form-control">
 
