@@ -148,6 +148,7 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
 //                    CubeList.removeCube(cube);
           kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_model_drop_done);
           //location.reload();
+          modelsManager.models.splice(modelsManager.models.indexOf(model),1);
         }, function (e) {
           loadingRequest.hide();
           kylinCommon.error_default(e);
