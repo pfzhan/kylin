@@ -24,37 +24,56 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.lang.reflect.Method;
+import java.util.Map;
+import java.util.Properties;
+
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.rest.service.BasicService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import kap.google.api.client.util.Maps;
+
 @Component("configService")
 public class ConfigService extends BasicService {
 
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(ConfigService.class);
 
-    /**
-     * Only support the following keys currently:
-     * kylin.storage.hbase.compression-codec
-     * kylin.job.sampling-percentage
-     * kylin.cube.algorithm
-     * kylin.cube.aggrgroup.max-combination
-     * @param key
-     * @return
-     */
-    public String getDefaultValue(String key) {
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        if ("kylin.storage.hbase.compression-codec".equals(key)) {
-            return kylinConfig.getHbaseDefaultCompressionCodec();
-        } else if ("kylin.job.sampling-percentage".equals(key)) {
-            return String.valueOf(kylinConfig.getCubingInMemSamplingPercent());
-        } else if ("kylin.cube.algorithm".equals(key)) {
-            return kylinConfig.getCubeAlgorithm();
-        } else if ("kylin.cube.aggrgroup.max-combination".equals(key)) {
-            return String.valueOf(kylinConfig.getCubeAggrGroupMaxCombination());
-        } else
-            return "";
+    private static final String[] cubeLevelExposedKeys = new String[] { //
+            "kylin.cube.algorithm", //
+            "kylin.cube.aggrgroup.max-combination", //
+            "kylin.job.sampling-percentage", //
+            "kylin.source.hive.redistribute-flat-table", //
+            "kylin.storage.hbase.max-region-count", //
+            "kylin.storage.hbase.region-cut-gb", //
+            "kylin.storage.hbase.hfile-size-gb", //
+            "kylin.storage.hbase.compression-codec", //
+            "kylin.engine.mr.reduce-input-mb", //
+            "kylin.engine.mr.max-reducer-number", //
+            "kylin.engine.mr.mapper-input-rows", //
+    };
+
+    public Map<String, String> getDefaultConfigMap() {
+        // hack to get all config properties 
+        Properties allProps = null;
+        try {
+            KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+            Method getAllMethod = KylinConfigBase.class.getDeclaredMethod("getAllProperties");
+            getAllMethod.setAccessible(true);
+            allProps = (Properties) getAllMethod.invoke(kylinConfig);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        Map<String, String> result = Maps.newLinkedHashMap();
+        for (String key : cubeLevelExposedKeys) {
+            result.put(key, allProps.getProperty(key));
+        }
+        
+        return result;
     }
 }

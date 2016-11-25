@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.rest.controller;
 
+import java.util.Map;
+
 import org.apache.kylin.rest.controller.BasicController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +44,7 @@ import io.kyligence.kap.rest.service.ConfigService;
 @RequestMapping(value = "/config")
 public class ConfigController extends BasicController {
 
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(ConfigController.class);
 
     @Autowired
@@ -50,6 +53,12 @@ public class ConfigController extends BasicController {
     @RequestMapping(value = "default", method = { RequestMethod.GET })
     @ResponseBody
     public String getDefaultValue(@RequestParam("key") String key) {
-        return configService.getDefaultValue(key);
+        return configService.getDefaultConfigMap().get(key);
+    }
+    
+    @RequestMapping(value = "defaults", method = { RequestMethod.GET })
+    @ResponseBody
+    public Map<String, String> getDefaultConfigs() {
+        return configService.getDefaultConfigMap();
     }
 }
