@@ -179,7 +179,35 @@ KylinApp
               }
             });
         }
+        $scope.pause = function (job) {
+              SweetAlert.swal({
+                  title: '',
+                  text: 'Are you sure to pause the job?',
+                  type: '',
+                  showCancelButton: true,
+                  confirmButtonColor: '#DD6B55',
+                  confirmButtonText: "Yes",
+                  closeOnConfirm: true
+              }, function(isConfirm) {
+                if(isConfirm) {
+                    loadingRequest.show();
+                    JobService.pause({jobId: job.uuid}, {}, function (job) {
+                        loadingRequest.hide();
+                        $scope.safeApply(function() {
+                            JobList.jobs[job.uuid] = job;
+                           if (angular.isDefined($scope.state.selectedJob)) {
+                                $scope.state.selectedJob = JobList.jobs[ $scope.state.selectedJob.uuid];
+                              }
 
+                            });
+                        kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_Job_been_paused);
+                      },function(e){
+                        loadingRequest.hide();
+                        kylinCommon.error_default(e);
+                      });
+                  }
+              });
+          }
 
         $scope.cancel = function (job) {
             SweetAlert.swal({

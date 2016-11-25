@@ -576,6 +576,7 @@ KylinApp.constant('kapEnglishConfig', {
     tip_loading_jobs: 'Loading Jobs ...',
     jobResume: 'Resume',
     jobDiscard: 'Discard',
+    jobPause:'Pause',
     jobDiagnosis: 'Diagnosis',
     tip_jobDiagnosis: 'Download Diagnosis Info For This Job',
     jobsDetailInfo: 'Detail Information',//job detail begin
@@ -843,6 +844,7 @@ KylinApp.constant('kapEnglishConfig', {
     success_job_been_resumed: 'Job has been resumed successfully!',
     tip_to_discard_job: 'Are you sure to discard the job?',
     success_Job_been_discarded: 'Job has been discarded successfully!',
+    success_Job_been_paused:'Job has been paused successfully!',
     tip_no_job_selected: 'No job selected.',
     error_failed_to_load_job: 'Failed to load job info, please check system log for details.',
     tip_invalid_model_json: 'Invalid model json format..',//alert of ModelEditCtrl

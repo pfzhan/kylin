@@ -559,6 +559,7 @@ KylinApp.constant('kapChineseConfig', {
     tip_loading_jobs: '加载任务...',
     jobResume: '恢复',
     jobDiscard: '终止',
+    jobPause:'暂停',
     jobDiagnosis: '诊断',
     tip_jobDiagnosis: '下载Job诊断包',
     jobsDetailInfo: '详细信息',//job detail begin
@@ -825,6 +826,7 @@ KylinApp.constant('kapChineseConfig', {
     success_job_been_resumed: '任务已恢复',
     tip_to_discard_job: '确认要抛弃任务?',
     success_Job_been_discarded: '任务已抛弃',
+    success_Job_been_paused:'任务已暂停',
     tip_no_job_selected: '没有选择任务.',
     error_failed_to_load_job: '加载任务信息失败，请检查系统日志.',
     tip_invalid_model_json: '非法的模型json格式..',//alert of ModelEditCtrl

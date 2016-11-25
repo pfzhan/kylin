@@ -112,7 +112,8 @@
                 Action <span class="ace-icon fa fa-caret-down icon-on-right"></span>
               </button>
               <ul class="dropdown-menu" role="menu">
-                <li ng-if="job.job_status=='ERROR'"><a ng-click="resume(job)">{{dataKylin.monitor.jobResume}}</a></li>
+                <li ng-if="job.job_status=='ERROR'|| job.job_status=='STOPPED'"><a ng-click="resume(job)">{{dataKylin.monitor.jobResume}}</a></li>
+                <li ng-if="job.job_status=='RUNNING' || job.job_status=='NEW' || job.job_status=='PENDING'"><a ng-click="pause(job)">{{dataKylin.monitor.jobPause}}</a></li>
                 <li ng-if="job.job_status=='RUNNING' || job.job_status=='NEW' || job.job_status=='PENDING' || job.job_status=='ERROR'">
                   <a ng-click="cancel(job)">{{dataKylin.monitor.jobDiscard}}</a>
                 </li>
