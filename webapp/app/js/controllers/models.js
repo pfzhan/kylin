@@ -246,9 +246,9 @@ var modelCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServi
   $scope.dataKylin = language.getDataKylin();
   $scope.targetObj={
     modelName:model.name+"_clone",
-    targetProject:$scope.projectModel.selectedProject
+    targetProject:model.project
   }
-
+  console.log(model);
   $scope.cancel = function () {
     $modalInstance.dismiss('cancel');
   };
