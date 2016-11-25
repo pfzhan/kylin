@@ -456,7 +456,7 @@
                                 </property>
                                 <property>
                                     <name>log4j.configuration</name>
-                                    <value>file:${pom.parent.basedir}/build/conf/kylin-tools-log4j.properties</value>
+                                    <value>file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties</value>
                                 </property>
                             </systemProperties>
                             <argLine>-Xms1G -Xmx2G -XX:MaxPermSize=512M -Duser.timezone=UTC</argLine>

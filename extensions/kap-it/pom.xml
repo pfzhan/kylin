@@ -326,7 +326,7 @@
                                 </property>
                                 <property>
                                     <name>log4j.configuration</name>
-                                    <value>file:${pom.parent.basedir}/build/conf/kylin-tools-log4j.properties</value>
+                                    <value>file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties</value>
                                 </property>
                             </systemProperties>
                             <argLine>-Xms1G -Xmx2G -XX:PermSize=128M -XX:MaxPermSize=512M</argLine>
@@ -352,7 +352,7 @@
                                         <argument>-Dhdp.version=${hdp.version}</argument>
                                         <argument>-DfastBuildMode=${fastBuildMode}</argument>
                                         <argument>
-                                            -Dlog4j.configuration=file:${pom.parent.basedir}/build/conf/kylin-tools-log4j.properties
+                                            -Dlog4j.configuration=file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties
                                         </argument>
                                         <argument>-classpath</argument>
                                         <classpath/>
@@ -376,7 +376,7 @@
                                         <argument>-Dhdp.version=${hdp.version}</argument>
                                         <argument>-DfastBuildMode=${fastBuildMode}</argument>
                                         <argument>
-                                            -Dlog4j.configuration=file:${pom.parent.basedir}/build/conf/kylin-tools-log4j.properties
+                                            -Dlog4j.configuration=file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties
                                         </argument>
                                         <argument>-classpath</argument>
                                         <classpath/>
