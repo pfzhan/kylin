@@ -757,7 +757,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
         for (var j = 0; j < group.includes.length; j++) {
           var elemStillExist = false;
           for (var k = 0; k < tmpAggregationItems.length; k++) {
-            if (group.includes[j].toUpperCase() == tmpAggregationItems[k].toUpperCase()) {
+            if (group.includes[j].toUpperCase().replace(/\S+?\./,'') == tmpAggregationItems[k].toUpperCase()) {
               elemStillExist = true;
               break;
             }
