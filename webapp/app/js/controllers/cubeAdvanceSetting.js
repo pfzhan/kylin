@@ -18,9 +18,9 @@
 
 'use strict';
 
-KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,cubesManager,CubeDescModel,SweetAlert) {
-    $scope.cubesManager = cubesManager;
-
+KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,cubesManager,CubeDescModel,SweetAlert, TableModel) {
+  $scope.cubesManager = cubesManager;
+  $scope.TableModel=TableModel;
   $scope.getTypeVersion=function(typename){
     var searchResult=/\[v(\d+)\]/.exec(typename);
     if(searchResult&&searchResult.length){
@@ -43,18 +43,33 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     item.encoding=$scope.removeVersion(item.encoding);
     var _encoding = item.encoding;
     var _valueLength ;
+    var tableName='';
     var baseKey=item.encoding.replace(/:\d+/,'');
     if(needLengthKeyList.indexOf(baseKey)>=-1){
       var result=/:(\d+)/.exec(item.encoding);
       _valueLength=result?result[1]:0;
     }
     _encoding=baseKey;
+    angular.forEach($scope.cubeMetaFrame.dimensions,function(dimension){
+      if(dimension.derived==null){
+        if(dimension.column==item.column){
+          tableName=dimension.table;
+        }
+      }else{
+        angular.forEach(dimension.derived,function(derived){
+          if(derived==item.column){
+            tableName=dimension.table;
+          }
+        });
+      }
+    });
     var rowkeyObj = {
       column:item.column,
       encoding:_encoding+(item.encoding_version?"[v"+item.encoding_version+"]":"[v1]"),
       valueLength:_valueLength,
       isShardBy:item.isShardBy,
-      encoding_version:item.encoding_version||1
+      encoding_version:item.encoding_version||1,
+      table:tableName
     }
     $scope.convertedRowkeys.push(rowkeyObj);
 
@@ -78,15 +93,29 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     var encoding;
     var column = item.column;
     var isShardBy = item.isShardBy;
+    var tableName='';
     var version=$scope.getTypeVersion(item.encoding);
     var encodingType=$scope.removeVersion(item.encoding);
-
+    angular.forEach($scope.cubeMetaFrame.dimensions,function(dimension){
+      if(dimension.derived==null){
+        if(dimension.column==item.column){
+          tableName=dimension.table;
+        }
+      }else{
+        angular.forEach(dimension.derived,function(derived){
+          if(derived==item.column){
+            tableName=dimension.table;
+          }
+        });
+      }
+    });
     if(needLengthKeyList.indexOf(encodingType)>=-1){
       encoding = encodingType+":"+item.valueLength;
     }else{
       encoding = encodingType;
       item.valueLength=0;
     }
+    $scope.convertedRowkeys[[index]].table=tableName;
     $scope.cubeMetaFrame.rowkey.rowkey_columns[index].column = column;
     $scope.cubeMetaFrame.rowkey.rowkey_columns[index].encoding = encoding;
     $scope.cubeMetaFrame.rowkey.rowkey_columns[index].encoding_version =version;
@@ -130,7 +159,8 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
       column:"",
       encoding:"dict",
       valueLength:0,
-      isShardBy:"false"
+      isShardBy:"false",
+      table:""
     }
 
     $scope.convertedRowkeys.push(rowkeyObj);

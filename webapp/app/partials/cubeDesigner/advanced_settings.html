@@ -217,6 +217,8 @@
             <th>{{dataKylin.cube.cubeASEncoding}}</th>
             <th>{{dataKylin.cube.cubeASLength}}</th>
             <th>{{dataKylin.cube.cubeASShardBy}}</th>
+            <th>{{dataKylin.cube.cubeASDatatype}}</th>
+            <th>{{dataKylin.cube.cubeASCardinality}}</th>
             <th width="90px" ng-if="state.mode=='edit'"></th>
           </tr>
           </thead>
@@ -272,6 +274,12 @@
               </select>
               <small class="help-block red" ng-show="state.mode=='edit' && rule.shardColumnAvailable==false && rowkey_column.isShardBy == true">at most one 'shard by' column is allowed.</small>
               <span ng-if="state.mode=='view'">{{rowkey_column.isShardBy}}</span>
+            </td>
+            <td>
+              {{TableModel.tableColumnMap[rowkey_column.table][rowkey_column.column].datatype}}
+            </td>
+            <td>
+              {{TableModel.tableColumnMap[rowkey_column.table][rowkey_column.column].cardinality}}
             </td>
             <td ng-if="state.mode=='edit'">
               <button class="btn btn-xs btn-info"  ng-disabled="instance.status=='READY'"

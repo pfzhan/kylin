@@ -486,6 +486,8 @@ KylinApp.constant('kapEnglishConfig', {
     cubeASEncoding: 'Encoding',
     cubeASLength: 'Length',
     cubeASShardBy: 'Shard By',
+    cubeASDatatype:'Data Type',
+    cubeASCardinality:'Cardinality',
     tip_rowkey_column_name: 'rowkey column name..',
     tip_rowkey_column_length: 'rowkey column length..',
     tip_false_by_default: 'false by default',

@@ -278,10 +278,12 @@
                                  <h4>{{table}}{{dataKylin.cube.cubeDSFactTable}}</h4>
                                  <table class="table table-striped table-hover ng-scope" >
                                        <tr>
-                                          <td class="col-xs-2"><label><input type="checkbox" ng-model="selectedColumns[table].all" ng-change="autoChangeAll(table)">&nbsp;&nbsp;{{dataKylin.cube.cubeDSSelectAll}}</label></td>
-                                          <td class="col-xs-4"><label>{{dataKylin.cube.cubeDSName}}</label></td>
-                                          <td class="col-xs-3"><label>{{dataKylin.cube.cubeDSColumns}}</label></td>
-                                          <td colspan="2" class="col-xs-3"></td>
+                                          <td style="width:10%"><label><input type="checkbox" ng-model="selectedColumns[table].all" ng-change="autoChangeAll(table)">&nbsp;&nbsp;{{dataKylin.cube.cubeDSSelectAll}}</label></td>
+                                          <td style="width:22%"><label>{{dataKylin.cube.cubeDSName}}</label></td>
+                                          <td style="width:18%"><label>{{dataKylin.cube.cubeDSColumns}}</label></td>
+                                          <td style="width:15%"><label>{{dataKylin.cube.cubeDSDatatype}}</label></td>
+                                          <td style="width:15%"><label>{{dataKylin.cube.cubeDSCardinality}}</label></td>
+                                          <td colspan="2" style="width:20%"></td>
                                        </tr>
                                        <tr ng-repeat="col in availableColumns[table] track by col.table + '.' + col.name" >
                                           <td>
@@ -295,8 +297,13 @@
                                           <td>
                                              {{col.name}}
                                           </td>
-                                          <td></td>
-                                          <td></td>
+                                          <td>
+                                             {{TableModel.tableColumnMap[table][col.name].datatype}}
+                                          </td>
+                                          <td>
+                                             {{TableModel.tableColumnMap[table][col.name].cardinality}}
+                                          </td>
+                                          <td colspan="2"></td>
                                        </tr>
                                     </table>
                                  </div>
@@ -305,10 +312,12 @@
                                     <table class="table table-striped table-hover ng-scope">
                                        <h4>{{table}}{{dataKylin.cube.cubeDSLookupTable}}</h4>
                                        <tr class="row" >
-                                          <td class="col-xs-2"><label><input type="checkbox" ng-model="selectedColumns[table].all" ng-change="autoChangeAll(table)">&nbsp;&nbsp;{{dataKylin.cube.cubeDSSelectAll}}</label></td>
-                                          <td class="col-xs-4"><label>{{dataKylin.cube.cubeDSName}}</label></td>
-                                          <td class="col-xs-3"><label>{{dataKylin.cube.cubeDSColumns}}</label></td>
-                                          <td colspan="2" class="col-xs-3"></td>
+                                         <td style="width:10%"><label><input type="checkbox" ng-model="selectedColumns[table].all" ng-change="autoChangeAll(table)">&nbsp;&nbsp;{{dataKylin.cube.cubeDSSelectAll}}</label></td>
+                                         <td style="width:22%"><label>{{dataKylin.cube.cubeDSName}}</label></td>
+                                         <td style="width:18%"><label>{{dataKylin.cube.cubeDSColumns}}</label></td>
+                                         <td style="width:15%"><label>{{dataKylin.cube.cubeDSDatatype}}</label></td>
+                                         <td style="width:15%"><label>{{dataKylin.cube.cubeDSCardinality}}</label></td>
+                                         <td colspan="2" style="width:20%;align-context:center;">{{dataKylin.cube.cubeDSType}}</td>
                                        </tr>
                                        <tr ng-repeat="col in availableColumns[table] track by col.table + '.' + col.name" class="row">
                                           <td>
@@ -321,6 +330,12 @@
                                           </td>
                                           <td >
                                              {{col.name}}
+                                          </td>
+                                          <td>
+                                           {{TableModel.tableColumnMap[table][col.name].datatype}}
+                                          </td>
+                                          <td>
+                                            {{TableModel.tableColumnMap[table][col.name].cardinality}}
                                           </td>
                                           <td>
                                              <label> <input type="radio" ng-model="selectedColumns[table][col.name].normal" value="true" ng-disabled="!selectedColumns[table][col.name].selected"> {{dataKylin.cube.cubeDSNormal}} </label>

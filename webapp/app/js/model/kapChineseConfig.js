@@ -469,6 +469,8 @@ KylinApp.constant('kapChineseConfig', {
     cubeASEncoding: '编码',
     cubeASLength: '长度',
     cubeASShardBy: 'Shard By',
+    cubeASDatatype:'数据类型',
+    cubeASCardinality:'基数',
     tip_rowkey_column_name: 'rowkey列名..',
     tip_rowkey_column_length: 'rowkey列长度..',
     tip_false_by_default: '默认为false',
