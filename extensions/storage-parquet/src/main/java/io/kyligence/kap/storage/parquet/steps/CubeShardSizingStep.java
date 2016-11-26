@@ -49,11 +49,11 @@ import com.google.common.collect.Maps;
 /**
  * Save the cube segment statistic to Kylin metadata store
  */
-public class ParquetShardSizingStep extends AbstractExecutable {
+public class CubeShardSizingStep extends AbstractExecutable {
 
-    private static final Logger logger = LoggerFactory.getLogger(ParquetShardSizingStep.class);
+    private static final Logger logger = LoggerFactory.getLogger(CubeShardSizingStep.class);
 
-    public ParquetShardSizingStep() {
+    public CubeShardSizingStep() {
         super();
     }
 

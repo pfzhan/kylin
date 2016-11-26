@@ -42,11 +42,11 @@ import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.cube.raw.RawTableUpdate;
 
-public class RawShardSizingStep extends AbstractExecutable {
+public class RawtableShardSizingStep extends AbstractExecutable {
 
-    private static final Logger logger = LoggerFactory.getLogger(RawShardSizingStep.class);
+    private static final Logger logger = LoggerFactory.getLogger(RawtableShardSizingStep.class);
 
-    public RawShardSizingStep() {
+    public RawtableShardSizingStep() {
         super();
     }
 

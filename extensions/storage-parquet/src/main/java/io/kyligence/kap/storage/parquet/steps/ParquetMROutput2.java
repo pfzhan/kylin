@@ -50,27 +50,29 @@ public class ParquetMROutput2 implements IMROutput2 {
 
             @Override
             public void addStepPhase2_BuildDictionary(DefaultChainedExecutable jobFlow) {
-                jobFlow.addTask(steps.createParquetShardSizingStep(jobFlow.getId()));
+                jobFlow.addTask(steps.createCubeShardSizingStep(jobFlow.getId()));
             }
 
             @Override
             public void addStepPhase3_BuildCube(DefaultChainedExecutable jobFlow) {
-                jobFlow.addTask(steps.createParquetPageIndex(jobFlow.getId()));
-                jobFlow.addTask(steps.createParquetPageIndexClenup(jobFlow.getId()));
-                jobFlow.addTask(steps.createParquetTarballJob(jobFlow.getId()));
-                jobFlow.addTask(steps.createParquetTarballCleaupJob(jobFlow.getId()));
+                jobFlow.addTask(steps.createCubePageIndexStep(jobFlow.getId()));
+                jobFlow.addTask(steps.createCubePageIndexCleanupStep(jobFlow.getId()));
+                jobFlow.addTask(steps.createCubeTarballStep(jobFlow.getId()));
+                jobFlow.addTask(steps.createCubeTarballCleaupStep(jobFlow.getId()));
                 if (isRawTableEnable) {
-                    jobFlow.addTask(steps.createRawShardSizingStep(jobFlow.getId()));
-                    jobFlow.addTask(steps.createRawTableStep());
-                    jobFlow.addTask(steps.createRawTableCleanupStep(jobFlow.getId()));
-                    jobFlow.addTask(steps.createRawTableParquetPageIndex(jobFlow.getId()));
-                    jobFlow.addTask(steps.createRawTableParquetPageFuzzyIndex(jobFlow.getId()));
+                    jobFlow.addTask(steps.createRawtableShardSizingStep(jobFlow.getId()));
+                    jobFlow.addTask(steps.createRawtableStep());
+                    jobFlow.addTask(steps.createRawtableCleanupStep(jobFlow.getId()));
+                    jobFlow.addTask(steps.createRawtablePageIndexStep(jobFlow.getId()));
+                    jobFlow.addTask(steps.createRawtablePageIndexCleanupStep(jobFlow.getId()));
+                    jobFlow.addTask(steps.createRawtableFuzzyIndexStep(jobFlow.getId()));
+                    jobFlow.addTask(steps.createRawtableFuzzyIndexCleanupStep(jobFlow.getId()));
                 }
             }
 
             @Override
             public void addStepPhase4_Cleanup(DefaultChainedExecutable jobFlow) {
-                steps.addCubingGarbageCollectionSteps(jobFlow);
+                steps.addCubeGarbageCollectionSteps(jobFlow);
             }
         };
     }
@@ -84,25 +86,31 @@ public class ParquetMROutput2 implements IMROutput2 {
 
             @Override
             public void addStepPhase1_MergeDictionary(DefaultChainedExecutable jobFlow) {
-                jobFlow.addTask(steps.createParquetShardSizingStep(jobFlow.getId()));
+                jobFlow.addTask(steps.createCubeShardSizingStep(jobFlow.getId()));
             }
 
             @Override
             public void addStepPhase2_BuildCube(CubeSegment seg, List<CubeSegment> mergingSegments, DefaultChainedExecutable jobFlow) {
-                jobFlow.addTask(steps.createMergeCuboidDataStep(seg, mergingSegments, jobFlow.getId(), KapMergeCuboidJob.class));
-                jobFlow.addTask(steps.createParquetPageIndex(jobFlow.getId()));
-                jobFlow.addTask(steps.createParquetTarballJob(jobFlow.getId()));
+                jobFlow.addTask(steps.createCubeMergeStep(seg, mergingSegments, jobFlow.getId(), KapMergeCuboidJob.class));
+                jobFlow.addTask(steps.createCubeMergeCleanupStep(jobFlow.getId(), seg));
+                jobFlow.addTask(steps.createCubePageIndexStep(jobFlow.getId()));
+                jobFlow.addTask(steps.createCubePageIndexCleanupStep(jobFlow.getId()));
+                jobFlow.addTask(steps.createCubeTarballStep(jobFlow.getId()));
+                jobFlow.addTask(steps.createCubeTarballCleaupStep(jobFlow.getId()));
                 if (isRawTableEnable) {
-                    jobFlow.addTask(steps.createMergeRawDataStep(seg, jobFlow.getId(), KapMergeRawTableJob.class));
-                    jobFlow.addTask(steps.createRawTableParquetPageIndex(jobFlow.getId()));
-                    jobFlow.addTask(steps.createRawTableParquetPageFuzzyIndex(jobFlow.getId()));
+                    jobFlow.addTask(steps.createRawtableMergeStep(seg, jobFlow.getId(), KapMergeRawTableJob.class));
+                    jobFlow.addTask(steps.createRawtableMergeCleanupStep(jobFlow.getId(), seg));
+                    jobFlow.addTask(steps.createRawtablePageIndexStep(jobFlow.getId()));
+                    jobFlow.addTask(steps.createRawtablePageIndexCleanupStep(jobFlow.getId()));
+                    jobFlow.addTask(steps.createRawtableFuzzyIndexStep(jobFlow.getId()));
+                    jobFlow.addTask(steps.createRawtableFuzzyIndexCleanupStep(jobFlow.getId()));
                 }
             }
 
             @Override
             public void addStepPhase3_Cleanup(DefaultChainedExecutable jobFlow) {
-                steps.addCubingGarbageCollectionSteps(jobFlow);
-                steps.addMergingGarbageCollectionSteps(jobFlow);
+                steps.addCubeGarbageCollectionSteps(jobFlow);
+                steps.addMergeGarbageCollectionSteps(jobFlow);
             }
         };
     }
