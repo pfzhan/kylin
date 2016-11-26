@@ -26,7 +26,7 @@
  */
 
 KylinApp.factory('CubeConfigService', ['$resource', function ($resource, config) {
-  return $resource(Config.service.url + 'config/default', {}, {
-    getDefault: {method: 'GET', params: {}, isArray: false}
+  return $resource(Config.service.url + 'config/defaults', {}, {
+    getDefaults: {method: 'GET', params: {}, isArray: false}
   });
 }]);

@@ -24,36 +24,30 @@ KylinApp.controller('CubeOverWriteCtrl', function ($scope, $modal,cubeConfig,Met
   $scope.convertedProperties=[];
   //rowkey
   if(angular.equals({},$scope.cubeMetaFrame.override_kylin_properties)&&$scope.state.mode!="view"){
-    $scope.convertedProperties=[
-      {name:"kylin.storage.hbase.compression-codec",value:""},
-      {name:"kylin.job.sampling-percentage",value:""},
-      {name:"kylin.cube.algorithm",value:""},
-      {name:"kylin.cube.aggrgroup.max-combination",value:""}
-    ]
-    for(var i=0;i<$scope.convertedProperties.length;i++){
-      (function(i){
-        CubeConfigService.getDefault({key:$scope.convertedProperties[i].name},function(data){
-          var str="";
-          for(var s in data){
-            if(s&&+s==+s){
-              str+=data[s]
-            }
+    $scope.convertedProperties=[];
+    CubeConfigService.getDefaults({},function(data){
+      delete data.$promise;
+      delete data.$resolved;
+        for(var s in data){
+          if(data.hasOwnProperty(s)){
+            $scope.cubeMetaFrame.override_kylin_properties[s]=data[s];
           }
-          $scope.convertedProperties[i].value=str;
-          $scope.cubeMetaFrame.override_kylin_properties[$scope.convertedProperties[i].name]=str;
-        })
-      }(i))
+        }
+        for(var key in $scope.cubeMetaFrame.override_kylin_properties){
+          $scope.convertedProperties.push({
+            name:key,
+            value:$scope.cubeMetaFrame.override_kylin_properties[key]
+          });
+        }
+    })
+  }else{
+    for(var key in $scope.cubeMetaFrame.override_kylin_properties){
+      $scope.convertedProperties.push({
+        name:key,
+        value:$scope.cubeMetaFrame.override_kylin_properties[key]
+      });
     }
   }
-
-  for(var key in $scope.cubeMetaFrame.override_kylin_properties){
-    $scope.convertedProperties.push({
-      name:key,
-      value:$scope.cubeMetaFrame.override_kylin_properties[key]
-    });
-  }
-
-
   $scope.addNewProperty = function () {
     if($scope.cubeMetaFrame.override_kylin_properties.hasOwnProperty('')){
       return;
