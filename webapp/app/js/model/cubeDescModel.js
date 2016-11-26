@@ -114,18 +114,21 @@ KylinApp.service('CubeDescModel', function (kylinConfig, modelsManager) {
   this.initMeasures = function(arr,modelName){
     var model=modelsManager.getModel(modelName);
     angular.forEach(model.metrics,function(metric){
-      arr.push(
-        {"name": metric,
-         "function": {
-         "expression": "SUM",
-         "parameter": {
-           "type": "column",
-           "value": metric,
-           "next_parameter": null
-           },
-         "returntype": "decimal"
-         }
-       });
+      if(!arr.filter(function(element,pos){return element.name==metric}).length){
+        arr.push(
+          {"name": metric,
+            "function": {
+              "expression": "SUM",
+              "parameter": {
+                "type": "column",
+                "value": metric,
+                "next_parameter": null
+              },
+              "returntype": "decimal"
+            }
+          });
+      }
+
     });
   }
 

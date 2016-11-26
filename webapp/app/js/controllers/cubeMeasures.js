@@ -24,8 +24,10 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
   $scope.convertedColumns=[];
   $scope.groupby=[];
   if ($scope.state.mode =="edit"&&($scope.isEdit = !$scope.cubeName)&&$scope.$parent.initMeasures.statu==false) {
-    CubeDescModel.initMeasures($scope.cubeMetaFrame.measures,$scope.cubeMetaFrame.model_name);
-    $scope.$parent.initMeasures.statu=true;
+    if(!$scope.cubeMetaFrame.measures||$scope.cubeMetaFrame.measures&&$scope.cubeMetaFrame.measures.length<=1){
+      CubeDescModel.initMeasures($scope.cubeMetaFrame.measures,$scope.cubeMetaFrame.model_name);
+      $scope.$parent.initMeasures.statu=true;
+    }
   }
   $scope.initUpdateMeasureStatus = function(){
     $scope.updateMeasureStatus = {
