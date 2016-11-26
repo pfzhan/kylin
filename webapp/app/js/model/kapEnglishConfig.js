@@ -735,7 +735,7 @@ KylinApp.constant('kapEnglishConfig', {
       {attr: 'id', name: 'ID'},
       {attr: 'name', name: 'Name'},
       {attr: 'datatype', name: 'Data Type'},
-      //{attr: 'cardinality', name: 'Cardinality'},
+      {attr: 'cardinality', name: 'Cardinality'},
       {attr: 'comment', name: 'Comment'}
     ],
     tip_no_table_selected: 'No Table Selected.',
@@ -930,7 +930,7 @@ KylinApp.constant('kapEnglishConfig', {
     tip_store_callback:'Backup Success！Path：',
     rawTableSaveError:'Failed to save the raw table setting!',
     collectStaticsSuccess:'Collect job start running!You can go to Monitor page to watch the progress!',
-    hasCollectJob: 'There has been a running collect job!You can go to Monitor page to watch the progress!',
+    hasCollectJob: 'Collect job start running!You can go to Monitor page to watch the progress!',
 },
   license:{
     aboutkap:"About KAP",

@@ -139,11 +139,11 @@
                     style="{{(tableModel.selectedSrcTable.selectedSrcColumn.id == column.id)? 'background-color:#EBF9FE':''}}">
                     {{ column.datatype}}
                   </td>
-                  <!--<td-->
-                    <!--style="{{(tableModel.selectedSrcTable.selectedSrcColumn.id == column.id)? 'background-color:#EBF9FE':''}}">-->
-                    <!--&lt;!&ndash;{{ tableModel.selectedSrcTable.cardinality[column.name]}}&ndash;&gt;-->
-                    <!--{{column.cardinality}}-->
-                  <!--</td>-->
+                  <td
+                    style="{{(tableModel.selectedSrcTable.selectedSrcColumn.id == column.id)? 'background-color:#EBF9FE':''}}">
+                    <!--{{ tableModel.selectedSrcTable.cardinality[column.name]}}-->
+                    {{column.cardinality}}
+                  </td>
                   <td
                     style="{{(tableModel.selectedSrcTable.selectedSrcColumn.id == column.id)? 'background-color:#EBF9FE':''}}">
                     {{ column.comment}}
@@ -164,10 +164,12 @@
             <table class="table table-hover table-striped list">
               <thead>
               <tr >
+                <th>Row</th>
                 <th ng-repeat="column in tableModel.selectedSrcTable.columns ">{{ column.name}}</th>
               </tr>
               </thead>
               <tr ng-repeat="list in sampleData track by $index">
+                <td>{{$index+1}}</td>
                 <td ng-repeat="sd in sampleData[$index] track by $index">
                   {{sd}}
                 </td>
@@ -185,10 +187,10 @@
               <th>ID</th>
               <th>{{dataKylin.data_source.name}}</th>
               <th>{{dataKylin.data_source.cardinality}}</th>
-              <th>{{dataKylin.data_source.maxLengthValue}}</th>
               <th>{{dataKylin.data_source.maxValue}}</th>
-              <th>{{dataKylin.data_source.minLengthValue}}</th>
               <th>{{dataKylin.data_source.minValue}}</th>
+              <th>{{dataKylin.data_source.maxLengthValue}}</th>
+              <th>{{dataKylin.data_source.minLengthValue}}</th>
               <th>{{dataKylin.data_source.nullCount}}</th>
             </tr>
             </thead>
@@ -205,16 +207,16 @@
                 {{ specialData[$index].cardinality }}
               </td>
               <td>
-                {{ specialData[$index].max_length_value }}
-              </td>
-              <td>
                 {{ specialData[$index].max_value }}
               </td>
               <td>
-                {{ specialData[$index].min_length_value }}
+                {{ specialData[$index].min_value }}
               </td>
               <td>
-                {{ specialData[$index].min_value }}
+                {{ specialData[$index].max_length_value }}
+              </td>
+              <td>
+                {{ specialData[$index].min_length_value }}
               </td>
               <td>
                 {{ specialData[$index].null_count }}
@@ -233,7 +235,7 @@
           </div>
           <div  ng-include="'partials/cubeDesigner/streamingConfig.html'" ng-init="state.mode='view'"></div>
         </div>
-        <span class="pull-right" style="margin-top: 10px;font-size: 12px;">{{dataKylin.data_source.totalRows}}：{{total_rows}}</span>
+        <span class="pull-right" style="margin-top: 10px;font-size: 12px;" ng-show="total_rows">{{dataKylin.data_source.totalRows}}：{{total_rows}}</span>
       </div>
 
       </div>

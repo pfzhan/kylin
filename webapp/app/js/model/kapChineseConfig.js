@@ -717,7 +717,7 @@ KylinApp.constant('kapChineseConfig', {
     theaditems: [
       {attr: 'id', name: 'ID'},
       {attr: 'name', name: '名称'},
-      //{attr: 'datatype', name: '数据类型'},
+      {attr: 'datatype', name: '数据类型'},
       {attr: 'cardinality', name: '基数'},
       {attr: 'comment', name: '注释'}
     ],
