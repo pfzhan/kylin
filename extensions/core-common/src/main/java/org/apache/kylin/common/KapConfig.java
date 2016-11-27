@@ -151,7 +151,7 @@ public class KapConfig {
      * Rawtable column
      */
     public int getRawTableColumnCountMax() {
-        return Integer.valueOf(config.getOptional("kap.storage.columnar.rawtable-max-column-count", "3000"));
+        return Integer.valueOf(config.getOptional("kap.storage.columnar.rawtable-max-column-count", "30"));
     }
 
     public int getRawTableColumnLengthMax() {

@@ -26,11 +26,15 @@ package io.kyligence.kap.engine.mr.steps;
 
 import java.io.IOException;
 
+import org.apache.kylin.common.util.BytesSplitter;
 import org.apache.kylin.engine.mr.IMRInput;
 import org.apache.kylin.engine.mr.MRUtil;
 import org.apache.kylin.engine.mr.common.BatchConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HiveToRawTableMapper<KEYIN> extends RawTableMapperBase<KEYIN, Object> {
+    protected static final Logger logger = LoggerFactory.getLogger(HiveToRawTableMapper.class);
     private IMRInput.IMRTableInputFormat flatTableInputFormat;
 
     @Override
@@ -49,6 +53,12 @@ public class HiveToRawTableMapper<KEYIN> extends RawTableMapperBase<KEYIN, Objec
         try {
             //put a record into the shared bytesSplitter
             String[] row = flatTableInputFormat.parseMapperInput(value);
+
+            // If split size is not enough
+            if (row.length > bytesSplitter.getSplitBuffers().length) {
+                logger.info("byteSplitter is not enough, expand to {} columns", row.length);
+                bytesSplitter = new BytesSplitter(row.length, bytesSplitter.getSplitBuffers()[0].length);
+            }
             bytesSplitter.setBuffers(convertUTF8Bytes(row));
             //take care of the data in bytesSplitter
             outputKV(context);
