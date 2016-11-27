@@ -37,7 +37,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
@@ -52,6 +52,7 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableSegment;
+import io.kyligence.kap.storage.parquet.format.EmptyOutputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTablePageInputFormat;
 
 public class RawTablePageIndexJob extends AbstractHadoopJob {
@@ -86,6 +87,8 @@ public class RawTablePageIndexJob extends AbstractHadoopJob {
             CubeManager cubeManager = CubeManager.getInstance(KylinConfig.getInstanceFromEnv());
             CubeInstance cube = cubeManager.getCube(cubeName);
 
+            Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
+
             job = Job.getInstance(getConf(), getOptionValue(OPTION_JOB_NAME));
             setJobClasspath(job, raw.getConfig());
 
@@ -97,9 +100,10 @@ public class RawTablePageIndexJob extends AbstractHadoopJob {
             }
 
             setMapperClass(job);
-            job.setOutputFormatClass(NullOutputFormat.class);
+            job.setOutputFormatClass(EmptyOutputFormat.class);
             job.setInputFormatClass(ParquetRawTablePageInputFormat.class);
             job.setNumReduceTasks(0);
+            FileOutputFormat.setOutputPath(job, output);
 
             // set job configuration
             job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, cubeName);
@@ -107,6 +111,8 @@ public class RawTablePageIndexJob extends AbstractHadoopJob {
 
             // add metadata to distributed cache
             attachKylinPropsAndMetadata(raw.getSegmentById(segmentID), cube, job.getConfiguration());
+
+            this.deletePath(job.getConfiguration(), output);
             return waitForCompletion(job);
         } finally {
             if (job != null) {

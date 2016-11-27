@@ -29,7 +29,6 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 
-import org.apache.commons.lang.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -37,6 +36,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ImmutableBitSet;
@@ -56,6 +56,7 @@ import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.gridtable.RawTableCodeSystem;
 import io.kyligence.kap.cube.raw.gridtable.RawTableGridTable;
+import io.kyligence.kap.cube.raw.kv.RawTableConstants;
 import io.kyligence.kap.storage.parquet.format.datatype.ByteArrayListWritable;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexWriter;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnSpec;
@@ -77,7 +78,6 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
     private int counter = 0;
     private int fuzzyLength = 0;
     private int fuzzyHashLength = 0;
-    private Path outputPath;
 
     private HashMap<Path, Path> pathMap;
 
@@ -100,9 +100,6 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
         cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME).toUpperCase();
         shardId = inputPath.getName().substring(0, inputPath.getName().indexOf('.'));
 
-        // write to same dir with input
-        outputPath = new Path(inputPath.getParent(), shardId + ".parquet.inv");
-
         rawTableInstance = RawTableManager.getInstance(kylinConfig).getRawTableInstance(cubeName);
         rawTableDesc = rawTableInstance.getRawTableDesc();
         GTInfo gtInfo = RawTableGridTable.newGTInfo(rawTableInstance);
@@ -110,8 +107,6 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
         codecBuffer = new String[rawColumnCodec.getColumnsCount()];//a little bit waste
 
         logger.info("Input path: " + inputPath.toUri().toString());
-        logger.info("Output path: " + outputPath.toString());
-
         initIndexWriters(context);
     }
 
@@ -122,11 +117,8 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
         for (int i = 0; i < columns.size(); i++) {
             TblColRef column = columns.get(i);
             if (rawTableDesc.isNeedFuzzyIndex(column)) {
-                Path outputPath = new Path(inputPath.getParent(), shardId + "." + i + ".parquet.fuzzy");
-                Path tmpPath = new Path(outputPath.getParent(), String.valueOf(shardId) + "-" + String.valueOf(i) + "-" + RandomStringUtils.randomAlphabetic(10) + ".tmp");
-                pathMap.put(outputPath, tmpPath);
-
-                FSDataOutputStream output = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(tmpPath);
+                Path outputPath = new Path(FileOutputFormat.getWorkOutputPath(context), RawTableConstants.RawTableDir + "/" + shardId + "." + i + ".parquet.fuzzy");
+                FSDataOutputStream output = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(outputPath);
                 ColumnSpec columnSpec = new ColumnSpec(column.getName(), RawTableUtils.roundToByte(fuzzyHashLength), 10000, true, i);
                 columnSpec.setValueEncodingIdentifier('s');
                 fuzzyIndexWriterMap.put(i, new ParquetPageIndexWriter(new ColumnSpec[] { columnSpec }, output));
@@ -172,13 +164,6 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
         for (ParquetPageIndexWriter writer : fuzzyIndexWriterMap.values()) {
             writer.spill();
             writer.close();
-        }
-
-        FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
-        for (Path outputPath : pathMap.keySet()) {
-            fs.mkdirs(outputPath.getParent());
-            fs.rename(pathMap.get(outputPath), outputPath);
-            logger.info("move file {} to {}", pathMap.get(outputPath), outputPath);
         }
     }
 
