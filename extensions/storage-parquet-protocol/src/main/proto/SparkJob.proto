@@ -36,12 +36,14 @@ message SparkJobRequest {
     required int32 maxRecordLength = 7;
     repeated int32 parquetColumns = 8;
     required bool useII = 9;
+    required string queryId = 10;
 }
 
 message SparkJobResponse {
     required bool succeed = 1;
     repeated ShardBlob shardBlobs = 2;
     optional string errorMsg = 3;
+    required string sparkInstanceIdentifier = 4;
 
     message ShardBlob {
         required bytes blob = 1;

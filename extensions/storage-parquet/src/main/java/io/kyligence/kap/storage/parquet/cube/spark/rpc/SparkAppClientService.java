@@ -86,6 +86,7 @@ public class SparkAppClientService implements JobServiceGrpc.JobService {
                     return ShardBlob.newBuilder().setBlob(ByteString.copyFrom(concat(bytes))).build();
                 }
             }));
+            builder.setSparkInstanceIdentifier(System.getProperty("spark.instance.identifier"));
             SparkJobResponse response = builder.build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();

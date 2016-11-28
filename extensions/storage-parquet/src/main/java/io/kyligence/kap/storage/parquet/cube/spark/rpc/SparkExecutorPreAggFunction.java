@@ -59,8 +59,10 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
     private final Accumulator<Long> scannedRecords;
     private final Accumulator<Long> collectedRecords;
     private final String realizationType;
+    private final String queryId;
 
-    public SparkExecutorPreAggFunction(String realizationType, Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords) {
+    public SparkExecutorPreAggFunction(String queryId, String realizationType, Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords) {
+        this.queryId = queryId;
         this.realizationType = realizationType;
         this.scannedRecords = scannedRecords;
         this.collectedRecords = collectedRecords;
@@ -69,6 +71,7 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
     @Override
     public Iterable<byte[]> call(Iterator<Tuple2<Text, Text>> tuple2Iterator) throws Exception {
 
+        logger.info("Working for query with id {}", queryId);
         long localStartTime = System.currentTimeMillis();
 
         Iterator<ByteBuffer> iterator = Iterators.transform(tuple2Iterator, new Function<Tuple2<Text, Text>, ByteBuffer>() {

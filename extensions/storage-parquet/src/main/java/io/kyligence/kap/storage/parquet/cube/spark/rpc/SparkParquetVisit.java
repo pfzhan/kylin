@@ -94,6 +94,7 @@ public class SparkParquetVisit implements Serializable {
         logger.info("Columnar path is " + parquetPath);
         logger.info("Required Measures: " + StringUtils.join(request.getParquetColumnsList(), ","));
         logger.info("Max GT length: " + request.getMaxRecordLength());
+        logger.info("Current queryId: " + request.getQueryId());
         logger.info("Start to visit cube data with Spark <<<<<<");
 
         final Accumulator<Long> scannedRecords = sc.accumulator(0L, "Scanned Records", LongAccumulableParam.INSTANCE);
@@ -103,7 +104,7 @@ public class SparkParquetVisit implements Serializable {
         Class inputFormatClass = RealizationType.CUBE.toString().equals(this.realizationType) ? ParquetTarballFileInputFormat.class : ParquetRawTableFileInputFormat.class;
         JavaPairRDD<Text, Text> seed = sc.newAPIHadoopFile(parquetPath, inputFormatClass, Text.class, Text.class, conf);
 
-        List<List<byte[]>> collect = seed.mapPartitions(new SparkExecutorPreAggFunction(realizationType, scannedRecords, collectedRecords)).glom().collect();
+        List<List<byte[]>> collect = seed.mapPartitions(new SparkExecutorPreAggFunction(request.getQueryId(), realizationType, scannedRecords, collectedRecords)).glom().collect();
         logger.info(">>>>>> End of visiting cube data with Spark");
         logger.info("The result blob count is {}, the scanned count is {} and the collected count is {}", count(collect), scannedRecords.value(), collectedRecords.value());
         return collect;

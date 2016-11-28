@@ -31,6 +31,7 @@ import javax.annotation.Nullable;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.gridtable.GTInfo;
@@ -95,13 +96,14 @@ public class RawTableSparkRPC implements IGTStorage {
         long startTime = System.currentTimeMillis();
         SparkDriverClientParams sparkDriverClientParams = new SparkDriverClientParams(KylinConfig.getInstanceFromEnv().getConfigAsString(), //
                 RealizationType.INVERTED_INDEX.toString(), rawTableSegment.getRawTableInstance().getUuid(), rawTableSegment.getUuid(), "RawTable", // 
-                scanRequest.getInfo().getMaxLength(), getRequiredParquetColumns(scanRequest), KapConfig.getInstanceFromEnv().isUsingInvertedIndex() //
-        );
+                scanRequest.getInfo().getMaxLength(), getRequiredParquetColumns(scanRequest), KapConfig.getInstanceFromEnv().isUsingInvertedIndex(), //
+                BackdoorToggles.getQueryId());
         logger.info("Filter: {}" + scanRequest.getFilterPushDown());
 
         SparkJobProtos.SparkJobResponse jobResponse = client.submit(//
                 scanRequest.toByteArray(), sparkDriverClientParams);
-        logger.info("Time for the gRPC visit is " + (System.currentTimeMillis() - startTime));
+        logger.info("Time for the gRPC from spark instance {} visit is {}", (System.currentTimeMillis() - startTime), jobResponse.getSparkInstanceIdentifier());
+
         if (jobResponse.getSucceed()) {
             Iterable<byte[]> shardBytes = Iterables.transform(jobResponse.getShardBlobsList(), new Function<SparkJobProtos.SparkJobResponse.ShardBlob, byte[]>() {
                 @Nullable

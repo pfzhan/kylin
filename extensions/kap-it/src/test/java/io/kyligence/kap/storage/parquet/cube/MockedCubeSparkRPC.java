@@ -35,12 +35,12 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.task.MapContextImpl;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
+import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.storage.gtrecord.StorageResponseGTScatter;
 import org.slf4j.Logger;
@@ -102,7 +102,7 @@ public class MockedCubeSparkRPC extends CubeSparkRPC {
 
             for (int i = 0; i < splits.size(); i++) {
                 ParquetRecordIterator iterator = new ParquetRecordIterator(job, inputFormat, splits.get(i));
-                SparkExecutorPreAggFunction function = new SparkExecutorPreAggFunction(RealizationType.CUBE.toString(), null, null);
+                SparkExecutorPreAggFunction function = new SparkExecutorPreAggFunction("queryonmockedrpc", RealizationType.CUBE.toString(), null, null);
                 Iterable<byte[]> ret = function.call(iterator);
                 shardRecords.add(ret);
                 parquetRecordIterators.add(iterator);

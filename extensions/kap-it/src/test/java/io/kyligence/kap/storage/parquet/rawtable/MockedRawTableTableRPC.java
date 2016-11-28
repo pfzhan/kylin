@@ -101,7 +101,7 @@ public class MockedRawTableTableRPC extends RawTableSparkRPC {
 
             for (int i = 0; i < splits.size(); i++) {
                 ParquetRecordIterator iterator = new ParquetRecordIterator(job, inputFormat, splits.get(i));
-                SparkExecutorPreAggFunction function = new SparkExecutorPreAggFunction(RealizationType.INVERTED_INDEX.toString(), null, null);
+                SparkExecutorPreAggFunction function = new SparkExecutorPreAggFunction("queryonmockedrpc",RealizationType.INVERTED_INDEX.toString(), null, null);
                 Iterable<byte[]> ret = function.call(iterator);
                 shardRecords.add(ret);
                 parquetRecordIterators.add(iterator);
