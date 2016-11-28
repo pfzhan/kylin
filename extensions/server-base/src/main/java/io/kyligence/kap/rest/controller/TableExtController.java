@@ -63,6 +63,10 @@ public class TableExtController extends BasicController {
     @RequestMapping(value = "/{project}/{tableName}/sample_job", method = { RequestMethod.PUT })
     @ResponseBody
     public List<JobInstance> sample(@PathVariable String project, @PathVariable String tableName) throws IOException, JobException {
+
+        if (tableExtService.isView(tableName)) {
+            return null;
+        }
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
         List<String> jobIDs = tableExtService.extractTableExt(project, submitter, tableName);
         List<JobInstance> jobInstanceList = new ArrayList<>();

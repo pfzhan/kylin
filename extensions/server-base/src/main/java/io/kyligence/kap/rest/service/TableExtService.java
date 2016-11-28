@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -44,11 +45,21 @@ public class TableExtService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public String getJobByTableName(String tableName){
+    public String getJobByTableName(String tableName) {
         return getMetaDataManager().getTableExt(tableName).getJodID();
     }
 
     public MetadataManager getMetaDataManager() {
         return org.apache.kylin.metadata.MetadataManager.getInstance(getConfig());
+    }
+
+    public boolean isView(String table) {
+
+        MetadataManager metaMgr = MetadataManager.getInstance(getConfig());
+        TableDesc tableDesc = metaMgr.getTableDesc(table);
+        if (tableDesc.getTableType().equals(TableDesc.TABLE_TYPE_VIRTUAL_VIEW)) {
+            return true;
+        }
+        return false;
     }
 }
