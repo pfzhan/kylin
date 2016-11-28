@@ -24,10 +24,7 @@
 
 package io.kyligence.kap.rest.controller;
 
-import io.kyligence.kap.rest.service.MetaStoreService;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.rest.controller.BasicController;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -35,6 +32,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+
+import io.kyligence.kap.rest.service.MetaStoreService;
 
 @Controller
 @RequestMapping(value = "/metastore")
@@ -44,15 +43,11 @@ public class MetaStoreController extends BasicController {
     private MetaStoreService metaStoreService;
 
     /**
-     * Backup the metastore to the current webserver node, for one project or one cube
+     * Backup the metastore to the current webserver node, for one project or one cube, or global
      */
     @RequestMapping(value = "backup", method = RequestMethod.POST)
     @ResponseBody
     public String backup(@RequestParam(value = "project", required = false) String project, @RequestParam(value = "cube", required = false) String cube) {
-        if (StringUtils.isEmpty(project) && StringUtils.isEmpty(cube)) {
-            throw new BadRequestException("at least one project or cube is needed");
-        }
-
         String resultPath = null;
         try {
             resultPath = metaStoreService.backup(project, cube);

@@ -24,9 +24,17 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceTool;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.tool.CubeMetaExtractor;
@@ -34,11 +42,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 @Component("metaStoreService")
 public class MetaStoreService extends BasicService {
@@ -59,23 +62,35 @@ public class MetaStoreService extends BasicService {
         File backupRootDir = new File(KylinConfig.getKylinHome() + "/meta_backups");
         FileUtils.forceMkdir(backupRootDir);
 
-        List<String> args = new ArrayList<String>();
-        args.add("-destDir");
-        args.add(backupRootDir.getAbsolutePath());
-        if (!StringUtils.isEmpty(project)) {
-            args.add("-project");
-            args.add(project);
-        }
-        if (!StringUtils.isEmpty(cube)) {
-            args.add("-cube");
-            args.add(cube);
-        }
+        // Global backup
+        if (StringUtils.isEmpty(project) && StringUtils.isEmpty(cube)) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("YYYY_MM_dd_hh_mm_ss");
+            String now = dateFormat.format(new Date());
+            File backupDir = new File(backupRootDir.getAbsolutePath() + "/meta_" + now);
+            logger.info("Starting backup to " + backupDir.getAbsolutePath());
+            FileUtils.forceMkdir(backupDir);
 
-        String[] cubeMetaArgs = new String[args.size()];
-        args.toArray(cubeMetaArgs);
-        CubeMetaExtractor cubeMetaExtractor = new CubeMetaExtractor();
-        logger.info("CubeMetaExtractor args: " + Arrays.toString(cubeMetaArgs));
-        cubeMetaExtractor.execute(cubeMetaArgs);
+            KylinConfig kylinConfig = KylinConfig.createInstanceFromUri(backupDir.getAbsolutePath());
+            ResourceTool.copy(KylinConfig.getInstanceFromEnv(), kylinConfig);
+        } else {
+            List<String> args = new ArrayList<String>();
+            args.add("-destDir");
+            args.add(backupRootDir.getAbsolutePath());
+            if (!StringUtils.isEmpty(project)) {
+                args.add("-project");
+                args.add(project);
+            }
+            if (!StringUtils.isEmpty(cube)) {
+                args.add("-cube");
+                args.add(cube);
+            }
+
+            String[] cubeMetaArgs = new String[args.size()];
+            args.toArray(cubeMetaArgs);
+            CubeMetaExtractor cubeMetaExtractor = new CubeMetaExtractor();
+            logger.info("CubeMetaExtractor args: " + Arrays.toString(cubeMetaArgs));
+            cubeMetaExtractor.execute(cubeMetaArgs);
+        }
         logger.info("metadata store backed up to " + backupRootDir.getAbsolutePath());
         return backupRootDir.getAbsolutePath();
     }
