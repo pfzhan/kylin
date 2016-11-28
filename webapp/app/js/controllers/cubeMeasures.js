@@ -25,7 +25,7 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
   $scope.groupby=[];
   if ($scope.state.mode =="edit"&&($scope.isEdit = !$scope.cubeName)&&$scope.$parent.initMeasures.statu==false) {
     if(!$scope.cubeMetaFrame.measures||$scope.cubeMetaFrame.measures&&$scope.cubeMetaFrame.measures.length<=1){
-      CubeDescModel.initMeasures($scope.cubeMetaFrame.measures,$scope.cubeMetaFrame.model_name);
+      CubeDescModel.initMeasures($scope.cubeMetaFrame.measures,$scope.cubeMetaFrame.model_name,$scope.metaModel.model.fact_table);
       $scope.$parent.initMeasures.statu=true;
     }
   }

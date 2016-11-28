@@ -247,6 +247,7 @@ KylinApp.constant('kapChineseConfig', {
     gridMSID: 'ID',
     gridMSColumn: '列',
     gridMSSelectMeasure: '选择度量列',
+    gridMSFactTable: '事实表',
     gridMSSelectAll: '全选',
     gridMSDataType:'数据类型',
     gridMSCardinality:'基数',

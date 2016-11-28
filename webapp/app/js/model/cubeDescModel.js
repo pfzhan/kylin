@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-KylinApp.service('CubeDescModel', function (kylinConfig, modelsManager) {
+KylinApp.service('CubeDescModel', function (kylinConfig, modelsManager, TableModel) {
 
   this.cubeMetaFrame = {};
 
@@ -111,24 +111,39 @@ KylinApp.service('CubeDescModel', function (kylinConfig, modelsManager) {
     return dictionaries;
   }
 
-  this.initMeasures = function(arr,modelName){
+  this.initMeasures = function(arr,modelName,factTable){
     var model=modelsManager.getModel(modelName);
+    var numbertype=["int","integer","smallint","bigint","tinyint","float","double","long"];
     angular.forEach(model.metrics,function(metric){
       if(!arr.filter(function(element,pos){return element.name==metric}).length){
-        arr.push(
-          {"name": metric,
-            "function": {
-              "expression": "SUM",
-              "parameter": {
-                "type": "column",
-                "value": metric,
-                "next_parameter": null
-              },
-              "returntype": "decimal"
-            }
-          });
+        if((numbertype.indexOf(TableModel.tableColumnMap[factTable][metric].datatype)!=-1)||(TableModel.tableColumnMap[factTable][metric].datatype.substring(0,7)==="decimal")){
+          arr.push(
+            {"name": metric,
+             "function": {
+             "expression": "SUM" ,
+             "parameter": {
+               "type": "column",
+               "value": metric,
+               "next_parameter": null
+             },
+             "returntype": "decimal"
+             },
+           });
+        }else{
+          arr.push(
+            {"name": metric,
+             "function": {
+               "expression": "COUNT_DISTINCT",
+               "parameter": {
+                 "type": "column",
+                 "value": metric,
+                 "next_parameter": null
+               },
+               "returntype": "hllc(10)"
+             }
+           });
+        }
       }
-
     });
   }
 

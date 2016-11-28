@@ -58,7 +58,7 @@ KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, 
             }
             SelectAvailable.all=false;
             SelectAvailable.disabled=false;
-            SelectAvailable.open=false;
+            SelectAvailable.open=true;
             SelectAvailable.sortFlag = ''
             SelectAvailable.sortIcon = 'fa fa-unsorted';
             $scope.selectedColumns[$scope.availableTables[j]] = SelectAvailable;
@@ -76,22 +76,19 @@ KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, 
         angular.forEach($scope.selectedColumns,function(value,table){
             var all=true;
             var disabled=true;
-            var open=false;
+
             angular.forEach(value,function(col){
                 if(typeof col=="object"){
                     if(col.selected==false){
                         all=false;
-                    }else{
-                         open=true;
                     }
                     if(col.disabled==false){
                          disabled=false;
                     }
                 }
             });
-             $scope.selectedColumns[table].disabled=disabled;
+            $scope.selectedColumns[table].disabled=disabled;
             $scope.selectedColumns[table].all=all;
-            $scope.selectedColumns[table].open=open;
         });
         var column=$scope.getColumnsByTable(modelsManager.selectedModel.fact_table);
     };

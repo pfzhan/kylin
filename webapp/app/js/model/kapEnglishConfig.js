@@ -266,6 +266,7 @@ KylinApp.constant('kapEnglishConfig', {
     gridMSID: 'ID',
     gridMSColumn: 'column',
     gridMSSelectMeasure: 'Select your measures',
+    gridMSFactTable: 'Fact Table',
     gridMSSelectAll: 'Select All',
     gridMSDataType:'Data Type',
     gridMSCardinality:'Cardinality',
