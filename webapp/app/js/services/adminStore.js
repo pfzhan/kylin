@@ -23,8 +23,8 @@
  */
 
 
-KylinApp.factory('AdminStoreService', ['$resource', function ($resource, config) {
+KylinApp.factory('AdminStoreService', ['$resource', function ($resource,  config) {
   return $resource(Config.service.url + 'metastore/:action', {}, {
-    globalBackup: {method: 'POST', params: {action: 'backup'}, isArray: false}
+    globalBackup: {method: 'POST', params: {action: 'backup'}, isArray: false, headers: {'Content-Type': 'application/x-www-form-urlencoded'}, transformRequest : function(obj){ var str = [];for(var p in obj){str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]));}return str.join("&");}}
   });
 }]);

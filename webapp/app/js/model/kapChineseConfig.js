@@ -116,6 +116,7 @@ KylinApp.constant('kapChineseConfig', {
     manageProject: '项目管理',
     ac_project_edit: '编辑',
     ac_project_delete: '删除',
+    ac_project_backup: '备份',
     cubes: 'Cube',   //project-cubes begin
     cubeName: 'Cube名称',
     cubeActions: '操作',
@@ -860,8 +861,11 @@ KylinApp.constant('kapChineseConfig', {
     success_project_update: '项目更新成功',//alert of PageCtrl
     tip_new_project_created: '项目创建成功',
     tip_sure_to_delete: '确定删除?', //alert of ProjectContrl
+    tip_sure_to_backup: '确定备份?',
     tip_project_delete_part_one: '项目 [',
     tip_project_delete_part_two: '] 删除成功',
+    tip_project_backup_part_one: '项目 [',
+    tip_project_backup_part_two: '] 备份成功',
     success_new_query_saved: '查询已保存',
     tip_to_leave_page: '正在此页面执行查询，确定要离开?',
     tip_select_project: '请选择项目.',//alert of SourceMetaCtrl

@@ -116,6 +116,7 @@ KylinApp.constant('kapEnglishConfig', {
     manageProject: 'Manage project',
     ac_project_edit: 'Edit',
     ac_project_delete: 'Delete',
+    ac_project_backup: 'Backup',
     cubes: 'Cubes',   //project-cubes begin
     cubeName: 'Cube Name',
     cubeActions: 'Actions',
@@ -878,8 +879,11 @@ KylinApp.constant('kapEnglishConfig', {
     success_project_update: 'Project update successfully!',//alert of PageCtrl
     tip_new_project_created: 'New project created successfully!',
     tip_sure_to_delete: 'Are you sure to delete ?', //alert of ProjectContrl
+    tip_sure_to_backup: 'Are you sure to backup ?',
     tip_project_delete_part_one: 'Project [',
     tip_project_delete_part_two: '] has been deleted successfully!',
+    tip_project_backup_part_one: 'Project [',
+    tip_project_backup_part_two: '] has been backuped successfully!',
     success_new_query_saved: 'New query saved..',
     tip_to_leave_page: 'You\'ve executing query in current page, are you sure to leave this page?',
     tip_select_project: 'Please select a project.',//alert of SourceMetaCtrl

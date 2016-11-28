@@ -63,6 +63,9 @@
                     <button class="btn btn-xs btn-danger" ng-click="delete(project)" tooltip="{{dataKylin.project.ac_project_delete}}"
                             ng-disabled="!(userService.hasRole('ROLE_ADMIN') || hasPermission(project, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask))"
                             ><i class="fa fa-trash-o"></i></button>
+                    <button class="btn btn-xs btn-success" ng-click="backup(project)" tooltip="{{dataKylin.project.ac_project_backup}}"
+                            ng-disabled="!(userService.hasRole('ROLE_ADMIN') || hasPermission(project, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask))"
+                            ><i class="fa fa-wrench"></i></button>
                 </td>
             </tr>
         <tr ng-show="project.showDetail">
