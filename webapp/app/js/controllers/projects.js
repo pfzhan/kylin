@@ -19,7 +19,7 @@
 'use strict';
 
 KylinApp
-    .controller('ProjectCtrl', function ($scope,ExtFilterService, $modal, $q, ProjectService, MessageService,SweetAlert,$log,kylinConfig,projectConfig,ProjectModel,kylinCommon, AdminStoreService, VdmUtil) {
+    .controller('ProjectCtrl', function ($scope,ExtFilterService, $modal, $q, ProjectService, MessageService,SweetAlert,$log,kylinConfig,projectConfig,ProjectModel,kylinCommon, AdminStoreService, VdmUtil,loadingRequest) {
 
         $scope.projects = [];
         $scope.loading = false;
@@ -87,10 +87,16 @@ KylinApp
         }
 
         $scope.backup = function(_project){
+          loadingRequest.show();
             AdminStoreService.globalBackup({}, {project:_project.name} , function(data){
                 kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.tip_store_callback+" "+VdmUtil.linkArrObjectToString(data));
+                setTimeout(function(){
+                  $('.showSweetAlert.visible').removeClass('visible');
+                },1000);
+                loadingRequest.hide();
             },function(e){
                 kylinCommon.error_default(e);
+              loadingRequest.hide();
             });
         }
 
