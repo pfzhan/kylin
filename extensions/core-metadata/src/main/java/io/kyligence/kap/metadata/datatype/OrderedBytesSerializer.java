@@ -27,15 +27,20 @@ package io.kyligence.kap.metadata.datatype;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
-import io.kyligence.kap.hbase.orderedbytes.OrderedBytesBase;
-import io.kyligence.kap.hbase.orderedbytes.util.PositionedByteRange;
-import io.kyligence.kap.hbase.orderedbytes.util.SimplePositionedByteRange;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.datatype.DataTypeSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.hbase.orderedbytes.OrderedBytesBase;
+import io.kyligence.kap.hbase.orderedbytes.util.PositionedByteRange;
+import io.kyligence.kap.hbase.orderedbytes.util.SimplePositionedByteRange;
+
 public abstract class OrderedBytesSerializer<T> extends DataTypeSerializer<T> {
+
+    private static final Logger logger = LoggerFactory.getLogger(OrderedBytesSerializer.class);
 
     final static Map<String, Class<?>> orderedImplementations = Maps.newHashMap();
     final DataType type;
@@ -83,12 +88,15 @@ public abstract class OrderedBytesSerializer<T> extends DataTypeSerializer<T> {
 
     protected OrderedBytesBase<T> orderedBytesBase;
 
+    private final static int DEFAULT_ENCODE_BUFFER_SIZE = 128;
+    private final static int MAX_ENCODE_BUFFER_SIZE = 64 << 10;
+
     public OrderedBytesSerializer(DataType type) {
         this.type = type;
     }
 
     protected PositionedByteRange createEncodeBuffer() {
-        return new SimplePositionedByteRange(100);
+        return new SimplePositionedByteRange(DEFAULT_ENCODE_BUFFER_SIZE);
     }
 
     protected PositionedByteRange getEncodeBuffer() {
@@ -98,6 +106,24 @@ public abstract class OrderedBytesSerializer<T> extends DataTypeSerializer<T> {
             encodeBuffer.set(positionedByteRange);
         }
         positionedByteRange.setPosition(0);
+        return positionedByteRange;
+    }
+
+    protected PositionedByteRange getBiggerEncodeBuffer() {
+        PositionedByteRange positionedByteRange = encodeBuffer.get();
+        if (positionedByteRange == null) {
+            throw new IllegalStateException("Should call getBiggerEncodeBuffer after getEncodeBuffer.");
+        }
+
+        int length = positionedByteRange.getLength() * 2;
+        if (length > MAX_ENCODE_BUFFER_SIZE) {
+            throw new IllegalStateException("Cannot provide buffer larger than " + MAX_ENCODE_BUFFER_SIZE);
+        }
+
+        byte[] newBuffer = new byte[length];
+        logger.debug("Increase current encode buffer size to " + length);
+        positionedByteRange.set(newBuffer);
+
         return positionedByteRange;
     }
 
@@ -114,7 +140,14 @@ public abstract class OrderedBytesSerializer<T> extends DataTypeSerializer<T> {
     @Override
     public void serialize(T value, ByteBuffer out) {
         PositionedByteRange positionedByteRange = getEncodeBuffer();
-        orderedBytesBase.encode(positionedByteRange, value);
+        while (true) {
+            try {
+                orderedBytesBase.encode(positionedByteRange, value);
+                break;
+            } catch (ArrayIndexOutOfBoundsException e) {
+                positionedByteRange = getBiggerEncodeBuffer();
+            }
+        }
         out.put(positionedByteRange.getBytes(), 0, positionedByteRange.getPosition());
     }
 
