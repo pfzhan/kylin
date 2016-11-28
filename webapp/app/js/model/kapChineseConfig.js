@@ -460,6 +460,7 @@ KylinApp.constant('kapChineseConfig', {
     cubeOfRawTable: 'Raw Table',
     rawtableASColumn:'列',
     rawtableASEncoding:'编码',
+    rawtableASTableName:'表名',
     rawtableASIndex:'索引',
     rawtableMustSetSorted:'必须设置至少一个列的index的值为sorted！',
     tip_title_cubeASRowkeys: {name:'Rowkey'},

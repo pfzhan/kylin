@@ -475,6 +475,7 @@ KylinApp.constant('kapEnglishConfig', {
     needConfigRawTable:'Config Raw Table',
     cubeOfRawTable: 'Raw Table',
     rawtableASColumn:'Column',
+    rawtableASTableName:'Table Name',
     rawtableASEncoding:'Encoding',
     rawtableASIndex:'Index',
     rawtableMustSetSorted:'You must set at least one column with an index value of sorted!',
