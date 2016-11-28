@@ -4099,3 +4099,10 @@ Gradient Background colors
 .nav-tabs .progress.progress-striped{
   background-color:#fff;
 }
+
+.my-progressbar{
+    position:absolute;
+    width:100%;
+    text-align:center;
+    color:white;
+  }

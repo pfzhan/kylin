@@ -75,35 +75,40 @@
           </td>
           <td>{{ job.related_cube}}</td>
           <td>
-            <div ng-switch on="job.job_status">
+            <div ng-switch on="job.job_status"  style="position:relative;">
+              <span class="my-progressbar">{{job.job_status}} </span>
               <div ng-switch-when="ERROR" tooltip="ERROR">
                 <progressbar animate="false" class="progress-striped" value="job.progress" type="danger">
-                  {{job.job_status}}
                 </progressbar>
               </div>
               <div ng-switch-when="FINISHED" tooltip="FINISHED">
+                <span class="my-progressbar">{{job.progress}}% </span>
                 <progressbar animate="false" class="progress-striped" value="job.progress" type="success">
-                  {{job.progress}}%
+
                 </progressbar>
               </div>
               <div ng-switch-when="PENDING" tooltip="PENDING">
+                <span class="my-progressbar">{{job.job_status}} </span>
                 <progressbar animate="false" class="progress-striped active" value="job.progress"
-                             type="pending">{{job.job_status}}
+                             type="pending">
                 </progressbar>
               </div>
               <div ng-switch-when="RUNNING" tooltip="RUNNING">
+                <span class="my-progressbar">{{job.progress | number:2}}% </span>
                 <progressbar animate="false" class="progress-striped active" value="job.progress"
-                             type="info">{{job.progress | number:2}}%
+                             type="info">
                 </progressbar>
               </div>
               <div ng-switch-when="DISCARDED" tooltip="DISCARDED">
+                <span class="my-progressbar"> {{job.progress | number:2}}%</span>
                 <progressbar animate="false" class="progress-striped" value="job.progress" type="inverse">
-                  {{job.progress | number:2}}%
+
                 </progressbar>
               </div>
               <div ng-switch-when="STOPPED" tooltip="STOPPED">
+                <span class="my-progressbar"> {{job.job_status}}</span>
                 <progressbar animate="false" class="progress-striped" value="job.progress" type="inverse">
-                  {{job.job_status}}
+
                 </progressbar>
               </div>
             </div>
