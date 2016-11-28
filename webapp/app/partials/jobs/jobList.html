@@ -101,6 +101,11 @@
                   {{job.progress | number:2}}%
                 </progressbar>
               </div>
+              <div ng-switch-when="STOPPED" tooltip="STOPPED">
+                <progressbar animate="false" class="progress-striped" value="job.progress" type="inverse">
+                  {{job.job_status}}
+                </progressbar>
+              </div>
             </div>
           </td>
           <td>{{ job.last_modified == 0 ? '' : (job.last_modified |utcToConfigTimeZone)}}</td>
