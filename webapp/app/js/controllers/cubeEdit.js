@@ -692,13 +692,13 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
         });
         angular.forEach(lookup.join.foreign_key, function (fk, index) {
           for (var i = 0; i < tmpRowKeyColumns.length; i++) {
-            if (tmpRowKeyColumns[i].column == fk)
+            if (VdmUtil.removeNameSpace(tmpRowKeyColumns[i].column) == VdmUtil.removeNameSpace(fk))
               break;
           }
           // push to array if no duplicate value
           if (i == tmpRowKeyColumns.length) {
             tmpRowKeyColumns.push({
-              "column": fk,
+              "column": VdmUtil.removeNameSpace(tableName)+'.'+VdmUtil.removeNameSpace(fk),
               "encoding": "dict",
               "isShardBy": "false"
             });
@@ -721,12 +721,12 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
 
 
         for (var i = 0; i < tmpRowKeyColumns.length; i++) {
-          if (tmpRowKeyColumns[i].column == rowkeyColumn)
+          if (VdmUtil.removeNameSpace(tmpRowKeyColumns[i].column) == VdmUtil.removeNameSpace(rowkeyColumn))
             break;
         }
         if (i == tmpRowKeyColumns.length) {
           tmpRowKeyColumns.push({
-            "column": rowkeyColumn,
+            "column": VdmUtil.removeNameSpace(tableName)+'.'+VdmUtil.removeNameSpace(rowkeyColumn),
             "encoding": "dict",
             "isShardBy": "false"
           });
@@ -792,7 +792,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
         for (var j = 0; j < group.includes.length; j++) {
           var elemStillExist = false;
           for (var k = 0; k < tmpAggregationItems.length; k++) {
-            if (group.includes[j].toUpperCase().replace(/\S+?\./,'') == tmpAggregationItems[k].toUpperCase()) {
+            if (VdmUtil.removeNameSpace(group.includes[j].toUpperCase()) == VdmUtil.removeNameSpace(tmpAggregationItems[k].toUpperCase())) {
               elemStillExist = true;
               break;
             }

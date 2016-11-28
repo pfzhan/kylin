@@ -194,6 +194,14 @@ KylinApp.factory('VdmUtil', function ($modal, $timeout, $location, $anchorScroll
           newArr.push(subArr);
         }
       return newArr;
+    },
+    removeNameSpace:function(str){
+      if(str){
+         return str.replace(/([^.\s]+\.)+/,'');
+      }else{
+        return '';
+      }
+
     }
   }
 });
