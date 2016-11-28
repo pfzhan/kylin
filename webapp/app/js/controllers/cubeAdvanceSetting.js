@@ -45,7 +45,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     var _valueLength ;
     var tableName='';
     var baseKey=item.encoding.replace(/:\d+/,'');
-    if(needLengthKeyList.indexOf(baseKey)>=-1){
+    if(needLengthKeyList.indexOf(baseKey)>-1){
       var result=/:(\d+)/.exec(item.encoding);
       _valueLength=result?result[1]:0;
     }
@@ -109,7 +109,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
         });
       }
     });
-    if(needLengthKeyList.indexOf(encodingType)>=-1){
+    if(needLengthKeyList.indexOf(encodingType)>-1){
       encoding = encodingType+":"+item.valueLength;
     }else{
       encoding = encodingType;

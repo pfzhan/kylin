@@ -107,7 +107,7 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
           var version = measure.function.configuration['topn.encoding_version.' + _name] || 1;
           item = $scope.removeVersion(item);
           var baseKey = item.replace(/:\d+/, '');
-          if (needLengthKeyList.indexOf(baseKey) >= -1) {
+          if (needLengthKeyList.indexOf(baseKey) > -1) {
             var result = /:(\d+)/.exec(item);
             _valueLength = result ? result[1] : 0;
           }
