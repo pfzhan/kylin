@@ -24,13 +24,24 @@ then
     hadoop fs -rm -R -skipTrash ${HIVE_TEST_TABLE_LOCATION}
 elif [ ${HIVE_CLIENT_TYPE} = "beeline" ]
 then
+    HQL_TMP_FILE=hql_tmp__${RANDOM}
     HIVE_BEELINE_PARAM=`sh $KYLIN_HOME/bin/get-properties.sh kylin.source.hive.beeline-params`
-    beeline ${HIVE_BEELINE_PARAM} -e "set;" >/dev/null
-    [[ $? == 0 ]] || quit "ERROR: Beeline cannot connect with parameter \"${HIVE_BEELINE_PARAM}\". Please configure \"kylin.source.hive.beeline-params\" in conf/kylin.properties"
-    beeline ${HIVE_BEELINE_PARAM} -e "drop table if exists ${HIVE_TEST_TABLE};"
-    [[ $? == 0 ]] || quit "ERROR: Beeline have no permission to create/drop table in Hive database '${HIVE_TEST_DB}'"
-    beeline ${HIVE_BEELINE_PARAM} -e "create external table ${HIVE_TEST_TABLE} (id INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE location '$HIVE_TEST_TABLE_LOCATION'; insert overwrite table ${HIVE_TEST_TABLE} values (0); drop table ${HIVE_TEST_TABLE};"
-    [[ $? == 0 ]] || quit "ERROR: Beeline have no permission to create table in working directory: ${WORKING_DIR}"
+
+    echo "set;" > ${HQL_TMP_FILE}
+    beeline ${HIVE_BEELINE_PARAM} -f ${HQL_TMP_FILE} >/dev/null
+    [[ $? == 0 ]] || { rm -f ${HQL_TMP_FILE}; quit "ERROR: Beeline cannot connect with parameter \"${HIVE_BEELINE_PARAM}\". Please configure \"kylin.source.hive.beeline-params\" in conf/kylin.properties"; }
+
+    echo "drop table if exists ${HIVE_TEST_TABLE};" > ${HQL_TMP_FILE}
+    beeline ${HIVE_BEELINE_PARAM} -f ${HQL_TMP_FILE}
+    [[ $? == 0 ]] || { rm -f ${HQL_TMP_FILE}; quit "ERROR: Beeline have no permission to create/drop table in Hive database '${HIVE_TEST_DB}'"; }
+
+    echo "create external table ${HIVE_TEST_TABLE} (id INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE location '$HIVE_TEST_TABLE_LOCATION';" > ${HQL_TMP_FILE}
+    echo "insert overwrite table ${HIVE_TEST_TABLE} values (0);" >> ${HQL_TMP_FILE}
+    echo "drop table ${HIVE_TEST_TABLE};" >> ${HQL_TMP_FILE}
+    beeline ${HIVE_BEELINE_PARAM} -f ${HQL_TMP_FILE}
+    [[ $? == 0 ]] || { rm -f ${HQL_TMP_FILE}; quit "ERROR: Beeline have no permission to create table in working directory: ${WORKING_DIR}"; }
+
+    rm -f ${HQL_TMP_FILE}
     hadoop fs -rm -R -skipTrash ${HIVE_TEST_TABLE_LOCATION}
 else
     quit "ERROR: Only support 'cli' or 'beeline' hive client"
