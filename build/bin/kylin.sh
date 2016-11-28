@@ -45,7 +45,7 @@ then
     
     retrieveDependency
 
-    columnarEnabled=`sh ${dir}/get-properties.sh kap.storage.columnar.enabled`
+    columnarEnabled=`sh ${dir}/get-properties.sh kap.storage.columnar.start-own-spark`
     if [ "${columnarEnabled}" == "true" ]
     then
         sh ${dir}/spark_client.sh start
@@ -118,7 +118,7 @@ then
 elif [ "$1" == "stop" ]
 then
 
-    columnarEnabled=`sh $KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.enabled`
+    columnarEnabled=`sh $KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.start-own-spark`
     if [ "${columnarEnabled}" == "true" ]
     then
         sh ${dir}/spark_client.sh stop
