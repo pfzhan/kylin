@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.controller;
 
 import java.util.Map;
 
+import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.rest.controller.BasicController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +37,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.rest.service.ConfigService;
 
@@ -55,10 +58,31 @@ public class ConfigController extends BasicController {
     public String getDefaultValue(@RequestParam("key") String key) {
         return configService.getDefaultConfigMap().get(key);
     }
-    
+
     @RequestMapping(value = "defaults", method = { RequestMethod.GET })
     @ResponseBody
     public Map<String, String> getDefaultConfigs() {
         return configService.getDefaultConfigMap();
+    }
+
+    @RequestMapping(value = "spark_status", method = { RequestMethod.GET })
+    @ResponseBody
+    public Map<String, String> getSparkExec() {
+        int execNum = Integer.parseInt(configService.getSparkDriverConf("spark.executor.instances"));
+        Map<String, String> ret = Maps.newHashMap();
+
+        byte[] bytes = new byte[4];
+        BytesUtil.writeUnsigned(execNum, bytes, 0, bytes.length);
+
+        byte tmp = bytes[0];
+        bytes[0] = bytes[2];
+        bytes[2] = tmp;
+        tmp = bytes[1];
+        bytes[1] = bytes[3];
+        bytes[3] = tmp;
+        execNum = Integer.reverse(BytesUtil.readUnsigned(bytes, 0, bytes.length));
+
+        ret.put("v", Integer.toString(execNum));
+        return ret;
     }
 }

@@ -22,31 +22,23 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.controller;
+package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
-import java.util.Map;
+import org.apache.spark.SparkConf;
 
-import org.apache.kylin.rest.controller.BasicController;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
+import io.grpc.stub.StreamObserver;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.ConfServiceGrpc;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkConfRequest;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkConfResponse;
 
-import io.kyligence.kap.rest.service.LicenseInfoService;
+public class SparkConfService implements ConfServiceGrpc.ConfService {
 
-@Controller
-@Component("kapSystemController")
-@RequestMapping(value = "/kap/system")
-public class SystemController extends BasicController {
-
-    @Autowired
-    private LicenseInfoService licenseInfoService;
-
-    @RequestMapping(value = "/license", method = { RequestMethod.GET })
-    @ResponseBody
-    public Map<String, String> listLicense() {
-        return licenseInfoService.extractLicenseInfo();
+    @Override
+    public void getConf(SparkConfRequest sparkConfRequest, StreamObserver<SparkConfResponse> streamObserver) {
+        SparkConf sparkConf = new SparkConf();
+        String value = sparkConf.get(sparkConfRequest.getName());
+        SparkConfResponse response = SparkConfResponse.newBuilder().setValue(value).build();
+        streamObserver.onNext(response);
+        streamObserver.onCompleted();
     }
 }

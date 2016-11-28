@@ -50,6 +50,18 @@ message SparkJobResponse {
     }
 }
 
+message SparkConfRequest {
+    required string name = 1;
+}
+
+message SparkConfResponse {
+    required string value = 1;
+}
+
 service JobService {
     rpc submitJob (SparkJobRequest) returns (SparkJobResponse);
+}
+
+service ConfService {
+    rpc getConf (SparkConfRequest) returns (SparkConfResponse);
 }

@@ -32,7 +32,9 @@ import org.slf4j.LoggerFactory;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Status;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.ConfServiceGrpc;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.JobServiceGrpc;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkConfRequest;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobRequest;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobResponse;
 import kap.google.protobuf.ByteString;
@@ -41,14 +43,16 @@ public class SparkDriverClient {
     private static final Logger logger = LoggerFactory.getLogger(SparkDriverClient.class);
 
     private final ManagedChannel channel;
-    private final JobServiceGrpc.JobServiceBlockingStub blockingStub;
+    private final JobServiceGrpc.JobServiceBlockingStub jobBlockingStub;
+    private final ConfServiceGrpc.ConfServiceBlockingStub confBlockingStub;
 
     public SparkDriverClient(String host, int port) {
         logger.info("SparkDriverClient host:" + host);
         logger.info("SparkDriverClient port:" + port);
 
         channel = ManagedChannelBuilder.forAddress(host, port).usePlaintext(true).build();
-        blockingStub = JobServiceGrpc.newBlockingStub(channel);
+        jobBlockingStub = JobServiceGrpc.newBlockingStub(channel);
+        confBlockingStub = ConfServiceGrpc.newBlockingStub(channel);
 
         logger.info("finish ctor");
     }
@@ -62,12 +66,17 @@ public class SparkDriverClient {
                 build();
 
         try {
-            return blockingStub.submitJob(request);
+            return jobBlockingStub.submitJob(request);
         } catch (Exception e) {
             Status status = Status.fromThrowable(e);
             logger.error("error description:" + status.getDescription());
             throw new RuntimeException("RPC failed", e);
         }
+    }
+
+    public String getSparkConf(String confName) {
+        SparkConfRequest request = SparkConfRequest.newBuilder().setName(confName).build();
+        return confBlockingStub.getConf(request).getValue();
     }
 
     public void shutdown() throws InterruptedException {

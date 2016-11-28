@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.client;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -33,6 +34,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
 import org.apache.kylin.common.restclient.RestClient;
+import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,6 +141,36 @@ public class KAPRESTClient extends RestClient {
 
         } catch (Exception ex) {
             throw new IOException(ex);
+        } finally {
+            get.releaseConnection();
+        }
+    }
+
+    public int retrieveSparkExecutorNum() {
+        String url = baseUrl + "/config/spark_status";
+        HttpGet get = new HttpGet(url);
+        try {
+            HttpResponse response = client.execute(get);
+            String msg = EntityUtils.toString(response.getEntity());
+            if (response.getStatusLine().getStatusCode() != 200)
+                throw new IOException("Invalid response " + response.getStatusLine().getStatusCode() + " when collecting results from  " + url + "\n" + msg);
+            Map<String, String> sparkResponse = JsonUtil.readValueAsMap(msg);
+
+            byte[] bytes = new byte[4];
+            int execNum = Integer.parseInt(sparkResponse.get("v"));
+
+            BytesUtil.writeUnsigned(execNum, bytes, 0, bytes.length);
+            byte tmp = bytes[0];
+            bytes[0] = bytes[2];
+            bytes[2] = tmp;
+            tmp = bytes[1];
+            bytes[1] = bytes[3];
+            bytes[3] = tmp;
+            execNum = Integer.reverse(BytesUtil.readUnsigned(bytes, 0, bytes.length));
+
+            return execNum;
+        } catch (Exception ex) {
+            return 0;
         } finally {
             get.releaseConnection();
         }

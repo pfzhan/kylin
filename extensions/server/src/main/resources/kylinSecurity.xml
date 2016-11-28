@@ -178,6 +178,7 @@
 			<scr:intercept-url pattern="/api/kap/user/**" method="DELETE" access="hasRole('ROLE_ADMIN')" />
 			<scr:intercept-url pattern="/api/kap/user/users" access="hasRole('ROLE_ADMIN')" />
 			<scr:intercept-url pattern="/api/kap/user/**" access="isAuthenticated()" />
+			<scr:intercept-url pattern="/api/config/spark_status" access="permitAll" />
 
 
 			<!--Apache Kylin API-->
@@ -229,6 +230,7 @@
 			<scr:intercept-url pattern="/api/kap/user/**" method="DELETE" access="hasRole('ROLE_ADMIN')" />
 			<scr:intercept-url pattern="/api/kap/user/users" access="hasRole('ROLE_ADMIN')" />
 			<scr:intercept-url pattern="/api/kap/user/**" access="isAuthenticated()" />
+			<scr:intercept-url pattern="/api/config/spark_status" access="permitAll" />
 
 
 			<!--Apache Kylin API-->

@@ -30,6 +30,9 @@ import java.io.FileInputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletContextEvent;
 
@@ -70,6 +73,7 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
         gatherLicense(kylinHome);
         gatherCommits(kylinHome);
         gatherEnv();
+        checkParallelScale();
     }
 
     private void gatherEnv() {
@@ -106,7 +110,7 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
 
                         String version = in.readLine();
                         System.setProperty("kap.version", version);
-                        
+
                         String dates = in.readLine();
                         System.setProperty("kap.dates", dates);
 
@@ -147,6 +151,29 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
             } catch (IOException ex) {
                 licenseLog.error("", ex);
             }
+        }
+    }
+
+    private void checkParallelScale() {
+        String lic = System.getProperty("kap.license.statement");
+        int parallel = -1;
+        try {
+            if (lic != null) {
+                BufferedReader reader = new BufferedReader(new StringReader(lic));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.startsWith("kap.parallel.scale:")) {
+                        parallel = Integer.parseInt(line.substring("kap.parallel.scale:".length()).trim());
+                    }
+                }
+                reader.close();
+            }
+        } catch (IOException e) {
+            // ignore
+        }
+
+        if (parallel > 0) {
+            Executors.newScheduledThreadPool(1).scheduleAtFixedRate(new ParallelScaleChecker(parallel), 0, 10, TimeUnit.MINUTES);
         }
     }
 

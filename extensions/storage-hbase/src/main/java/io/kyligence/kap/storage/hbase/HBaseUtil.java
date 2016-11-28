@@ -22,31 +22,22 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.controller;
+package io.kyligence.kap.storage.hbase;
 
-import java.util.Map;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
 
-import org.apache.kylin.rest.controller.BasicController;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
-
-import io.kyligence.kap.rest.service.LicenseInfoService;
-
-@Controller
-@Component("kapSystemController")
-@RequestMapping(value = "/kap/system")
-public class SystemController extends BasicController {
-
-    @Autowired
-    private LicenseInfoService licenseInfoService;
-
-    @RequestMapping(value = "/license", method = { RequestMethod.GET })
-    @ResponseBody
-    public Map<String, String> listLicense() {
-        return licenseInfoService.extractLicenseInfo();
+public class HBaseUtil {
+    public static int getRegionServerNum() {
+        int num = 0;
+        try {
+            Configuration conf = HBaseConfiguration.create();
+            HBaseAdmin admin = new HBaseAdmin(conf);
+            num = admin.getClusterStatus().getServersSize();
+        } catch (Exception e) {
+            // ignore
+        }
+        return num;
     }
 }

@@ -28,6 +28,7 @@ import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.rest.service.BasicService;
@@ -35,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
 import kap.google.api.client.util.Maps;
 
 @Component("configService")
@@ -58,7 +60,7 @@ public class ConfigService extends BasicService {
     };
 
     public Map<String, String> getDefaultConfigMap() {
-        // hack to get all config properties 
+        // hack to get all config properties
         Properties allProps = null;
         try {
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -73,7 +75,13 @@ public class ConfigService extends BasicService {
         for (String key : cubeLevelExposedKeys) {
             result.put(key, allProps.getProperty(key));
         }
-        
+
         return result;
+    }
+
+    public String getSparkDriverConf(String confName) {
+        KapConfig kapConfig = KapConfig.getInstanceFromEnv();
+        SparkDriverClient driverClient = new SparkDriverClient(kapConfig.getSparkClientHost(), kapConfig.getSparkClientPort());
+        return driverClient.getSparkConf(confName);
     }
 }
