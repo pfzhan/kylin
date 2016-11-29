@@ -76,8 +76,9 @@
           <td>{{ job.related_cube}}</td>
           <td>
             <div ng-switch on="job.job_status"  style="position:relative;">
-              <span class="my-progressbar">{{job.job_status}} </span>
+
               <div ng-switch-when="ERROR" tooltip="ERROR">
+                <span class="my-progressbar">{{job.job_status}} </span>
                 <progressbar animate="false" class="progress-striped" value="job.progress" type="danger">
                 </progressbar>
               </div>
