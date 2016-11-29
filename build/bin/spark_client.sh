@@ -12,9 +12,12 @@ then
     verbose 'in ci mode'
     export KYLIN_HOME=`cd "${KYLIN_HOME}/.."; pwd`
     export CONF_DIR=${KYLIN_HOME}/extensions/examples/test_case_data/sandbox
+    export KYLIN_CONF=$CONF_DIR
     export LOG4J_DIR=${KYLIN_HOME}/build/conf
     export SPARK_DIR=${KYLIN_HOME}/build/spark/
     export KYLIN_SPARK_JAR_PATH=`ls $KYLIN_HOME/extensions/storage-parquet/target/kap-storage-parquet-*-spark.jar`
+    export KAP_HDFS_WORKING_DIR=`sh $KYLIN_HOME/build/bin/get-properties.sh kylin.env.hdfs-working-dir`
+    export KAP_METADATA_URL=`sh $KYLIN_HOME/build/bin/get-properties.sh kylin.metadata.url`
 else
     verbose 'in normal mode'
     export KYLIN_HOME=${KYLIN_HOME:-"${dir}/../"}
@@ -22,6 +25,8 @@ else
     export LOG4J_DIR=${KYLIN_HOME}/conf
     export SPARK_DIR=${KYLIN_HOME}/spark/
     export KYLIN_SPARK_JAR_PATH=`ls $KYLIN_HOME/lib/kylin-storage-parquet-kap-*.jar`
+    export KAP_HDFS_WORKING_DIR=`sh $KYLIN_HOME/bin/get-properties.sh kylin.env.hdfs-working-dir`
+    export KAP_METADATA_URL=`sh $KYLIN_HOME/bin/get-properties.sh kylin.metadata.url`
     
     if [ ! -f ${KYLIN_HOME}/commit_SHA1 ]
     then
@@ -29,7 +34,8 @@ else
     fi
 fi
 
-export SPARK_INSTANCE_IDENTIFIER=$RANDOM
+export KAP_SPARK_IDENTIFIER=$RANDOM
+export KAP_HDFS_APPENDER_JAR=`basename ${KYLIN_SPARK_JAR_PATH}`
 
 verbose "KYLIN_HOME is set to ${KYLIN_HOME}"
 verbose "CONF_DIR is set to ${CONF_DIR}"
@@ -104,7 +110,7 @@ then
     confStr=`cat ${CONF_DIR}/*.properties | grep "^${sparkConfPrefix}" | cut -c ${realStart}- |  awk '{ print "--conf " "\"" $0 "\""}' | tr '\n' ' ' `
     verbose "additional confs spark-submit: $confStr"
 
-    submitCommand='$SPARK_HOME/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry --master yarn --deploy-mode client --verbose --files "${LOG4J_DIR}/spark-executor-log4j.properties,${KYLIN_HOME}/extensions/storage-parquet/target/kap-storage-parquet-1.6.1-SNAPSHOT-spark.jar" '
+    submitCommand='$SPARK_HOME/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry --master yarn --deploy-mode client --verbose --files "${LOG4J_DIR}/spark-executor-log4j.properties,${KYLIN_SPARK_JAR_PATH}" '
     submitCommand=${submitCommand}${confStr}
     submitCommand=${submitCommand}' ${KYLIN_SPARK_JAR_PATH} -className io.kyligence.kap.storage.parquet.cube.spark.SparkQueryDriver --port ${driverPort} > ${KYLIN_HOME}/logs/spark-driver.out 2>&1 & echo $! > ${KYLIN_HOME}/spark_client_pid &'
     verbose "The submit command is: $submitCommand"

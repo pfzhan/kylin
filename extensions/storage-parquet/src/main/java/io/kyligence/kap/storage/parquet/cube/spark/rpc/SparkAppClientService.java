@@ -70,7 +70,7 @@ public class SparkAppClientService implements JobServiceGrpc.JobService {
     @Override
     public void submitJob(SparkJobRequest request, StreamObserver<SparkJobResponse> responseObserver) {
 
-        String sparkInstanceIdentifer = System.getProperty("spark.instance.identifier");
+        String sparkInstanceIdentifer = System.getProperty("kap.spark.identifier");
         if (sparkInstanceIdentifer == null)
             sparkInstanceIdentifer = "";
 

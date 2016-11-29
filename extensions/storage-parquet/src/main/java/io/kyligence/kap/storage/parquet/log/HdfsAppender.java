@@ -27,6 +27,7 @@ package io.kyligence.kap.storage.parquet.log;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.UUID;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -37,7 +38,6 @@ import org.apache.log4j.spi.LoggingEvent;
 
 public class HdfsAppender extends AppenderSkeleton {
 
-    private static String DEFAULT_OUTPUT_DIR = "/kylin/kylin_default_instance/spark_logs";
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     private StringBuffer buf = new StringBuffer();
     FSDataOutputStream outStream = null;
@@ -45,10 +45,12 @@ public class HdfsAppender extends AppenderSkeleton {
     private String outPutPath = "";
 
     //configurable
-    private String application_ID = "0";
-    private String executor_ID = "0";
+    private String applicationId = "0";
+    private String executorId = "0";
     private int doFlushCount = 10;
     private boolean enableDailyRolling = true;
+    private String hdfsWorkingDir;
+    private String metadataUrl;
 
     @Override
     public void activateOptions() {
@@ -126,29 +128,45 @@ public class HdfsAppender extends AppenderSkeleton {
     }
 
     private void init() {
-        if (this.executor_ID.equals("-1"))
-            this.executor_ID = String.valueOf((int) (Math.random() * 10000));
+        if (this.executorId.equals("-1"))
+            this.executorId = UUID.randomUUID().toString();
 
-        if (this.application_ID.trim().isEmpty())
-            this.application_ID = "default_app_id";
+        if (null == this.applicationId || this.applicationId.trim().isEmpty())
+            this.applicationId = "default";
 
-        System.out.println("HdfsAppender Start with App ID: " + application_ID);
+        System.out.println("HdfsAppender Start with App ID: " + applicationId);
     }
 
-    public void setApplication_ID(String application_ID) {
-        this.application_ID = application_ID;
+    public void setApplicationId(String applicationId) {
+        this.applicationId = applicationId;
     }
 
-    public String getApplication_ID() {
-        return this.application_ID;
+    public String getApplicationId() {
+        return this.applicationId;
     }
 
-    public void setExecutor_ID(String executor_ID) {
-        this.executor_ID = executor_ID;
+    public void setExecutorId(String executorId) {
+        this.executorId = executorId;
     }
 
-    public String getExecutor_ID() {
-        return this.executor_ID;
+    public String getExecutorId() {
+        return this.executorId;
+    }
+
+    public void setHdfsWorkingDir(String hdfsWorkingDir) {
+        this.hdfsWorkingDir = hdfsWorkingDir;
+    }
+
+    public String getHdfsWorkingDir() {
+        return this.hdfsWorkingDir;
+    }
+
+    public void setMetadataUrl(String metadataUrl) {
+        this.metadataUrl = metadataUrl;
+    }
+
+    public String getMetadataUrl() {
+        return this.metadataUrl;
     }
 
     public void setEnableDailyRolling(boolean enableDailyRolling) {
@@ -164,12 +182,16 @@ public class HdfsAppender extends AppenderSkeleton {
     }
 
     private boolean updateOutPutDir(LoggingEvent event) {
-        String tempOutput = DEFAULT_OUTPUT_DIR + "/" + (enableDailyRolling ? dateFormat.format(new Date(event.getTimeStamp())) : "") + "/" + getApplication_ID() + "/" + getExecutor_ID();
+        String tempOutput = getHdfsWorkingDir() + "/" + parseMetadataUrl() + "/" + "spark_logs" + "/" + (enableDailyRolling ? dateFormat.format(new Date(event.getTimeStamp())) : "") + "/" + "application-" + getApplicationId() + "/" + "executor-" + getExecutorId() + ".log";
 
         if (outPutPath.equals(tempOutput))
             return false;
 
         outPutPath = tempOutput;
         return true;
+    }
+
+    private String parseMetadataUrl() {
+        return this.metadataUrl.substring(0, this.metadataUrl.indexOf("@"));
     }
 }

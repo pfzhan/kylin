@@ -53,9 +53,9 @@ public class TableExtController extends BasicController {
     @Autowired
     private JobService jobService;
 
-    @RequestMapping(value = "/{tableName}", method = { RequestMethod.GET })
+    @RequestMapping(value = "/{database}.{tableName}", method = { RequestMethod.GET })
     @ResponseBody
-    public TableExtDesc getTableExtDesc(@PathVariable String tableName) throws IOException {
+    public TableExtDesc getTableExtDesc(@PathVariable String database, @PathVariable String tableName) throws IOException {
         TableExtDesc tableExtDesc = tableExtService.getMetaDataManager().getTableExt(tableName);
         return tableExtDesc;
     }
