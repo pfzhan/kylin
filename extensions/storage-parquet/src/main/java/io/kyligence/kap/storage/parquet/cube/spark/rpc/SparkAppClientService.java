@@ -34,6 +34,7 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.JobServiceGrpc;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobRequest;
@@ -73,6 +74,13 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase {
         String sparkInstanceIdentifer = System.getProperty("kap.spark.identifier");
         if (sparkInstanceIdentifer == null)
             sparkInstanceIdentifer = "";
+
+        if (responseObserver instanceof ServerCallStreamObserver) {
+            logger.info("Setting response compression to gzip");
+            ((ServerCallStreamObserver) responseObserver).setCompression("gzip");
+        } else {
+            logger.warn("responseObserver is not ServerCallStreamObserver");
+        }
 
         try {
             long startTime = System.currentTimeMillis();
