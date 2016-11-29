@@ -28,8 +28,8 @@ fi
 
 if [[ $CI_MODE == 'true' ]]; then
     cd $dir
-    job_jar=$(ls ../../assembly/target/kylin-*-job.jar)
-    tool_jar=$(ls ../../tool/target/kylin-tool-*.jar|grep -v assembly)
+    job_jar=$(ls ../../kylin/assembly/target/kylin-*-job.jar)
+    tool_jar=$(ls ../../kylin/tool/target/kylin-tool-*.jar|grep -v assembly)
 else
     job_jar=$(ls $KYLIN_HOME/lib/kylin-job-*.jar)
     tool_jar=$(ls $KYLIN_HOME/lib/kylin-tool-*.jar)
