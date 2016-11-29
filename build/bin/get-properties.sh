@@ -19,6 +19,7 @@
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
+dir=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
 
 if [ $# != 1 ]
 then
@@ -29,11 +30,15 @@ fi
 if [[ $CI_MODE == 'true' ]]; then
     cd $dir
     job_jar=$(ls ../../kylin/assembly/target/kylin-*-job.jar)
-    tool_jar=$(ls ../../kylin/tool/target/kylin-tool-*.jar|grep -v assembly)
+    tool_jar=$(ls ../../kylin/tool/target/kylin-tool-*.jar|grep -v assembly|grep -v tests)
 else
     job_jar=$(ls $KYLIN_HOME/lib/kylin-job-*.jar)
     tool_jar=$(ls $KYLIN_HOME/lib/kylin-tool-*.jar)
 fi
 
-result=`java -cp $job_jar:$tool_jar org.apache.kylin.tool.KylinConfigCLI $1 2>/dev/null`
+kylin_conf_opts=
+if [ ! -z "$KYLIN_CONF" ]; then
+    kylin_conf_opts="-DKYLIN_CONF=$KYLIN_CONF"
+fi
+result=`java $kylin_conf_opts -cp $job_jar:$tool_jar org.apache.kylin.tool.KylinConfigCLI $1 2>/dev/null`
 echo "$result"
