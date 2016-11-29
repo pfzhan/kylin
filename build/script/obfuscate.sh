@@ -115,3 +115,15 @@ mv $BUILD_LIB_DIR/kylin-storage-parquet-kap-${release_version}-obf.jar tmp/
 # obfuscate tool jar
 obfuscate extensions/tool/ $BUILD_LIB_DIR 1 1 kylin-tool-kap-${release_version}-obf kylin-tool-kap-${release_version}.jar
 mv $BUILD_LIB_DIR/kylin-tool-kap-${release_version}-obf.jar tmp/
+
+# compare whether rest api signature changed in obf stage
+java -jar thirdparty/pathfinder/pathfinder-1.0-SNAPSHOT.jar tmp/kylin.war > tmp/war_obf.txt
+java -jar thirdparty/pathfinder/pathfinder-1.0-SNAPSHOT.jar extensions/server/target/kap-server-${kap_version}.war > tmp/war_orig.txt
+
+diff tmp/war_obf.txt tmp/war_orig.txt
+if [ "$?" -ne "0" ]; then
+    echo "Rest API changed in Obfuscation. Please have a check."
+    exit 1
+else
+    echo "Obfuscation passed."
+fi
