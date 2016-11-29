@@ -730,7 +730,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
             "encoding": "dict",
             "isShardBy": "false"
           });
-          tmpAggregationItems.push(rowkeyColumn);
+          tmpAggregationItems.push(VdmUtil.removeNameSpace(tableName)+'.'+VdmUtil.removeNameSpace(rowkeyColumn));
         }
       }
 
