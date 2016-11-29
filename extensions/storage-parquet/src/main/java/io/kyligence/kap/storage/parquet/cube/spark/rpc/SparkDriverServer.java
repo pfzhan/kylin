@@ -31,8 +31,6 @@ import org.slf4j.LoggerFactory;
 
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.ConfServiceGrpc;
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.JobServiceGrpc;
 
 public class SparkDriverServer {
     private static final Logger logger = LoggerFactory.getLogger(SparkDriverServer.class);
@@ -51,8 +49,9 @@ public class SparkDriverServer {
     }
 
     public void start() throws IOException {
-        server = ServerBuilder.forPort(port).addService(JobServiceGrpc.bindService(new SparkAppClientService())).addService(ConfServiceGrpc.bindService(new SparkConfService())).build().start();
+        server = ServerBuilder.forPort(port).addService(new SparkAppClientService()).addService(new SparkConfService()).build().start();
         logger.info("Server started, listening on " + port + " with spark instance identifier: " + System.getProperty("kap.spark.identifier"));
+
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {

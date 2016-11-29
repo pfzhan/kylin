@@ -45,7 +45,7 @@ import kap.google.common.collect.Iterables;
 import kap.google.protobuf.ByteString;
 
 //TODO: not thread safe now
-public class SparkAppClientService implements JobServiceGrpc.JobService {
+public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase {
 
     public static final Logger logger = LoggerFactory.getLogger(SparkAppClientService.class);
 

@@ -31,7 +31,7 @@ import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.ConfServiceGrpc
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkConfRequest;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkConfResponse;
 
-public class SparkConfService implements ConfServiceGrpc.ConfService {
+public class SparkConfService extends ConfServiceGrpc.ConfServiceImplBase {
 
     @Override
     public void getConf(SparkConfRequest sparkConfRequest, StreamObserver<SparkConfResponse> streamObserver) {

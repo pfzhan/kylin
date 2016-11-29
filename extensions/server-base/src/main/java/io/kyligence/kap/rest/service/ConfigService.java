@@ -36,8 +36,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import com.google.common.collect.Maps;
+
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
-import kap.google.api.client.util.Maps;
 
 @Component("configService")
 public class ConfigService extends BasicService {
@@ -71,7 +72,7 @@ public class ConfigService extends BasicService {
             throw new RuntimeException(e);
         }
 
-        Map<String, String> result = Maps.newLinkedHashMap();
+        Map<String, String> result = Maps.newHashMap();
         for (String key : cubeLevelExposedKeys) {
             result.put(key, allProps.getProperty(key));
         }

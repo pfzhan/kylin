@@ -43,11 +43,10 @@ public class SparkDriverClient {
     private static ManagedChannel channel;
 
     public SparkDriverClient(String host, int port) {
-        logger.info("SparkDriverClient host:" + host);
-        logger.info("SparkDriverClient port:" + port);
 
         if (channel == null) {
             synchronized (SparkDriverClient.class) {
+                logger.info("SparkDriverClient host {}, port {}", host, port);
                 channel = ManagedChannelBuilder.forAddress(host, port).usePlaintext(true).build();
             }
         }
