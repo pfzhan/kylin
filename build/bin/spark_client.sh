@@ -29,6 +29,8 @@ else
     fi
 fi
 
+export SPARK_INSTANCE_IDENTIFIER=$RANDOM
+
 verbose "KYLIN_HOME is set to ${KYLIN_HOME}"
 verbose "CONF_DIR is set to ${CONF_DIR}"
 verbose "SPARK_DIR is set to ${SPARK_DIR}"
@@ -102,7 +104,7 @@ then
     confStr=`cat ${CONF_DIR}/*.properties | grep "^${sparkConfPrefix}" | cut -c ${realStart}- |  awk '{ print "--conf " "\"" $0 "\""}' | tr '\n' ' ' `
     verbose "additional confs spark-submit: $confStr"
 
-    submitCommand='$SPARK_HOME/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry --master yarn --deploy-mode client --verbose --files ${LOG4J_DIR}/kylin-tools-log4j.properties '
+    submitCommand='$SPARK_HOME/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry --master yarn --deploy-mode client --verbose --files "${LOG4J_DIR}/spark-executor-log4j.properties,${KYLIN_HOME}/extensions/storage-parquet/target/kap-storage-parquet-1.6.1-SNAPSHOT-spark.jar" '
     submitCommand=${submitCommand}${confStr}
     submitCommand=${submitCommand}' ${KYLIN_SPARK_JAR_PATH} -className io.kyligence.kap.storage.parquet.cube.spark.SparkQueryDriver --port ${driverPort} > ${KYLIN_HOME}/logs/spark-driver.out 2>&1 & echo $! > ${KYLIN_HOME}/spark_client_pid &'
     verbose "The submit command is: $submitCommand"

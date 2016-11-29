@@ -52,7 +52,7 @@ public class SparkDriverServer {
 
     public void start() throws IOException {
         server = ServerBuilder.forPort(port).addService(JobServiceGrpc.bindService(new SparkAppClientService())).addService(ConfServiceGrpc.bindService(new SparkConfService())).build().start();
-        logger.info("Server started, listening on " + port);
+        logger.info("Server started, listening on " + port + " with promised id: " + System.getenv("SPARK_INSTANCE_IDENTIFIER"));
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {
