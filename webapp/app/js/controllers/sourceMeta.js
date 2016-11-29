@@ -337,7 +337,7 @@ KylinApp
 
         $scope.cancel();
         loadingRequest.show();
-        TableService.loadHiveTable({tableName: $scope.tableNames, action: projectName}, {}, function (result) {
+        TableExtService.loadHiveTable({tableName: $scope.tableNames, action: projectName}, {}, function (result) {
           var loadTableInfo = "";
           angular.forEach(result['result.loaded'], function (table) {
             loadTableInfo += "\n" + table;
