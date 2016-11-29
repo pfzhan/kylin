@@ -54,6 +54,8 @@ cp -rf conf/kylin_job_conf_inmem.prod.xml ${package_name}/conf/
 cp -rf conf/kylin-tools-log4j.properties ${package_name}/conf/
 cp -rf conf/kylin-server-log4j.properties ${package_name}/conf/
 cp -rf conf/spark-driver-log4j.properties ${package_name}/conf/
+cp -rf conf/spark-executor-log4j.properties ${package_name}/conf/
+
 cp -rf conf/userctrl.acl ${package_name}/conf/
 cp -rf bin/* ${package_name}/bin/
 
