@@ -46,7 +46,7 @@ public class SparkDriverClientParams {
         this.maxGTLength = maxGTLength;
         this.parquetColumns = parquetColumns;
         this.useII = useII;
-        this.queryId = queryId;
+        this.queryId = queryId == null ? "" : queryId;
     }
 
     public String getKylinProperties() {

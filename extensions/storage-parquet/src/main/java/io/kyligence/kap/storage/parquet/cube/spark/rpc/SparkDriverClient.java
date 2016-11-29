@@ -63,6 +63,7 @@ public class SparkDriverClient {
                 setSegmentId(sparkDriverClientParams.getSegmentId()).setDataFolderName(sparkDriverClientParams.getCuboidId()).//
                 setMaxRecordLength(sparkDriverClientParams.getMaxGTLength()).addAllParquetColumns(sparkDriverClientParams.getParquetColumns()).//
                 setUseII(sparkDriverClientParams.isUseII()).setRealizationType(sparkDriverClientParams.getRealizationType()).//
+                setQueryId(sparkDriverClientParams.getQueryId()).//
                 build();
 
         try {

@@ -70,6 +70,10 @@ public class SparkAppClientService implements JobServiceGrpc.JobService {
     @Override
     public void submitJob(SparkJobRequest request, StreamObserver<SparkJobResponse> responseObserver) {
 
+        String sparkInstanceIdentifer = System.getProperty("spark.instance.identifier");
+        if (sparkInstanceIdentifer == null)
+            sparkInstanceIdentifer = "";
+
         try {
             long startTime = System.currentTimeMillis();
 
@@ -86,7 +90,7 @@ public class SparkAppClientService implements JobServiceGrpc.JobService {
                     return ShardBlob.newBuilder().setBlob(ByteString.copyFrom(concat(bytes))).build();
                 }
             }));
-            builder.setSparkInstanceIdentifier(System.getProperty("spark.instance.identifier"));
+            builder.setSparkInstanceIdentifier(sparkInstanceIdentifer);
             SparkJobResponse response = builder.build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
@@ -94,7 +98,7 @@ public class SparkAppClientService implements JobServiceGrpc.JobService {
             String msg = Throwables.getStackTraceAsString(e);
             logger.error("error stacktrace: " + msg);
 
-            SparkJobResponse response = SparkJobResponse.newBuilder().setSucceed(false).setErrorMsg(msg).build();
+            SparkJobResponse response = SparkJobResponse.newBuilder().setSucceed(false).setErrorMsg(msg).setSparkInstanceIdentifier(sparkInstanceIdentifer).build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
         }
