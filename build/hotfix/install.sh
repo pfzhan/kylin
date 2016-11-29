@@ -19,6 +19,13 @@ fi
 
 cd ${dir}
 
+# validate commit
+cat $KYLIN_HOME/commit_SHA1 | grep $(cat base_commit)
+if [ "$?" -ne "0" ]; then
+    echo "Your KAP version is not compatible with this hotfix."
+    exit 1
+fi
+
 hotfix_name=`cat name`
 backup_dir=backup/${hotfix_name}
 patch_dir=patch

@@ -19,6 +19,7 @@ cd ${working_dir}
 kap_dir=`ls|grep "kap-*"`
 mv ${kap_dir} lib
 echo ${kap_dir} > name
+echo ${base_commit}@KAP > base_commit
 cd lib
 
 # remove spark files
