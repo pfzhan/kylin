@@ -843,7 +843,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
     for (var j = 0; j < oldArray.length; j++) {
       var unit = oldArray[j];
       for (var k = 0; k < tmpArr.length; k++) {
-        if (VdmUtil.removeNameSpace(unit.column)==VdmUtil.removeNameSpace(tmpArr[k].column)) {
+        if (unit.column == tmpArr[k].column) {
           newArr.push(unit);
         }
       }
