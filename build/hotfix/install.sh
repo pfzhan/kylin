@@ -43,7 +43,11 @@ if [ "$copy_conf_flag" == "1" ]; then
         if [ -f "$KYLIN_HOME/conf/$f" ]; then
             diff -Na ${dir}/base/conf/$f $KYLIN_HOME/conf/$f > $patch_dir/conf/$f.patch
             if [ -s "$patch_dir/conf/$f.patch" ]; then
-                patch -sfl $copy_dir/conf/$f $patch_dir/conf/$f.patch || echo "Cannot auto-merge conf and bin files. Please run following command to install without copying conf and bin files, and then manually merge them: install.sh -noConf "
+                patch -sfl $copy_dir/conf/$f $patch_dir/conf/$f.patch
+                if [ "$?" -ne "0" ]; then
+                    echo "Cannot auto-merge conf and bin files. Please run following command to install without copying conf and bin files, and then manually merge them: install.sh -noConf "
+                    exit 1
+                fi
             else
                 rm $patch_dir/conf/$f.patch;
             fi
@@ -53,7 +57,11 @@ if [ "$copy_conf_flag" == "1" ]; then
         if [ -f "$KYLIN_HOME/bin/$f" ]; then
             diff -Na ${dir}/base/bin/$f $KYLIN_HOME/bin/$f > $patch_dir/bin/$f.patch
             if [ -s "$patch_dir/bin/$f.patch" ]; then
-                patch -sfl $copy_dir/bin/$f $patch_dir/bin/$f.patch  || echo "Cannot auto-merge conf and bin files. Please run following command to install without copying conf and bin files, and then manually merge them: install.sh -noConf "
+                patch -sfl $copy_dir/bin/$f $patch_dir/bin/$f.patch
+                if [ "$?" -ne "0" ]; then
+                    echo "Cannot auto-merge conf and bin files. Please run following command to install without copying conf and bin files, and then manually merge them: install.sh -noConf "
+                    exit 1
+                fi
             else
                 rm $patch_dir/bin/$f.patch;
             fi
@@ -65,7 +73,7 @@ fi
 if [ -d ${backup_dir} ]; then
     rm -rf ${backup_dir}
 fi
-mkdir ${backup_dir}
+mkdir -p ${backup_dir}
 
 if [ "$copy_conf_flag" == "1" ]; then
     mv $KYLIN_HOME/bin ${backup_dir}/
@@ -89,3 +97,5 @@ if [ "$copy_conf_flag" == "1" ]; then
     cp -r $copy_dir/conf $KYLIN_HOME/
     cp -r $copy_dir/bin $KYLIN_HOME/
 fi
+
+echo "Hotfix installed successfully!"
