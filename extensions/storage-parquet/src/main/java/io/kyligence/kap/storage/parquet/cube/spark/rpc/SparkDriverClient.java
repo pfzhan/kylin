@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
-import java.util.concurrent.TimeUnit;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,19 +40,29 @@ import kap.google.protobuf.ByteString;
 public class SparkDriverClient {
     private static final Logger logger = LoggerFactory.getLogger(SparkDriverClient.class);
 
-    private final ManagedChannel channel;
-    private final JobServiceGrpc.JobServiceBlockingStub jobBlockingStub;
-    private final ConfServiceGrpc.ConfServiceBlockingStub confBlockingStub;
+    private static ManagedChannel channel;
 
     public SparkDriverClient(String host, int port) {
         logger.info("SparkDriverClient host:" + host);
         logger.info("SparkDriverClient port:" + port);
 
-        channel = ManagedChannelBuilder.forAddress(host, port).usePlaintext(true).build();
-        jobBlockingStub = JobServiceGrpc.newBlockingStub(channel);
-        confBlockingStub = ConfServiceGrpc.newBlockingStub(channel);
+        if (channel == null) {
+            synchronized (SparkDriverClient.class) {
+                channel = ManagedChannelBuilder.forAddress(host, port).usePlaintext(true).build();
+            }
+        }
 
-        logger.info("finish ctor");
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                // Use stderr here since the logger may have been reset by its JVM shutdown hook.
+                System.err.println("*** shutting down gRPC channle since JVM is shutting down");
+                SparkDriverClient.this.shutdown();
+                System.err.println("*** server shut down");
+            }
+        });
+
+        logger.info("Finish creating channel. ");
     }
 
     public SparkJobResponse submit(byte[] gtScanReq, SparkDriverClientParams sparkDriverClientParams) {
@@ -67,7 +75,7 @@ public class SparkDriverClient {
                 build();
 
         try {
-            return jobBlockingStub.submitJob(request);
+            return JobServiceGrpc.newBlockingStub(channel).submitJob(request);
         } catch (Exception e) {
             Status status = Status.fromThrowable(e);
             logger.error("error description:" + status.getDescription());
@@ -77,11 +85,13 @@ public class SparkDriverClient {
 
     public String getSparkConf(String confName) {
         SparkConfRequest request = SparkConfRequest.newBuilder().setName(confName).build();
-        return confBlockingStub.getConf(request).getValue();
+        return ConfServiceGrpc.newBlockingStub(channel).getConf(request).getValue();
     }
 
-    public void shutdown() throws InterruptedException {
-        channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+    public void shutdown() {
+        if (channel != null) {
+            channel.shutdownNow();
+        }
     }
 
 }

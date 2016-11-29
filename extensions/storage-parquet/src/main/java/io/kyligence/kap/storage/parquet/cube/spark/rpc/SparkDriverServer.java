@@ -66,7 +66,7 @@ public class SparkDriverServer {
 
     private void stop() {
         if (server != null) {
-            server.shutdown();
+            server.shutdownNow();
         }
     }
 
