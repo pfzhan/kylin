@@ -40,8 +40,8 @@ import io.kyligence.kap.engine.mr.tablestats.HiveTableExtSampleJob;
 public class TableExtService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public List<String> extractTableExt(String project, String submitter, String tableName) throws IOException {
-        return HiveTableExtSampleJob.createSampleJob(project, submitter, tableName);
+    public List<String> extractTableExt(String project, String submitter, String... tables) throws IOException {
+        return HiveTableExtSampleJob.createSampleJob(project, submitter, tables);
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -54,7 +54,6 @@ public class TableExtService extends BasicService {
     }
 
     public boolean isView(String table) {
-
         MetadataManager metaMgr = MetadataManager.getInstance(getConfig());
         TableDesc tableDesc = metaMgr.getTableDesc(table);
         if (tableDesc.getTableType().equals(TableDesc.TABLE_TYPE_VIRTUAL_VIEW)) {

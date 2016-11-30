@@ -26,17 +26,22 @@ package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.kylin.job.JobInstance;
 import org.apache.kylin.job.exception.JobException;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.controller.BasicController;
+import org.apache.kylin.rest.request.HiveTableRequest;
+import org.apache.kylin.rest.service.CubeService;
 import org.apache.kylin.rest.service.JobService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -53,10 +58,13 @@ public class TableExtController extends BasicController {
     @Autowired
     private JobService jobService;
 
+    @Autowired
+    private CubeService cubeMgmtService;
+
     @RequestMapping(value = "/{database}.{tableName}", method = { RequestMethod.GET })
     @ResponseBody
     public TableExtDesc getTableExtDesc(@PathVariable String database, @PathVariable String tableName) throws IOException {
-        TableExtDesc tableExtDesc = tableExtService.getMetaDataManager().getTableExt(tableName);
+        TableExtDesc tableExtDesc = tableExtService.getMetaDataManager().getTableExt(database + "." + tableName);
         return tableExtDesc;
     }
 
@@ -83,5 +91,19 @@ public class TableExtController extends BasicController {
         if (jobID == null || jobID.isEmpty())
             return null;
         return jobService.getJobInstance(jobID);
+    }
+
+    @RequestMapping(value = "/{tables}/{project}", method = { RequestMethod.POST })
+    @ResponseBody
+    public Map<String, JobInstance> loadHiveTable(@PathVariable String tables, @PathVariable String project, @RequestBody HiveTableRequest request) throws IOException, JobException {
+        String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
+        String[] loadedTables = cubeMgmtService.reloadHiveTable(tables);
+        List<String> jobIDs = tableExtService.extractTableExt(project, submitter, loadedTables);
+        cubeMgmtService.syncTableToProject(loadedTables, project);
+        Map<String, JobInstance> result = new HashMap<>();
+        for (int i = 0; i < loadedTables.length; i++) {
+            result.put(loadedTables[i], jobService.getJobInstance(jobIDs.get(i)));
+        }
+        return result;
     }
 }
