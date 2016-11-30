@@ -94,6 +94,7 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
             name:measure.function.parameter.next_parameter.value,
             encoding:"dict",
             valueLength:0,
+            encodingName:"dict"
           }
         $scope.convertedColumns.push(GroupBy);
         }
@@ -115,6 +116,7 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
           $scope.GroupBy = {
             name: _name,
             encoding: _encoding + (version ? "[v" + version + "]" : "[v1]"),
+            encodingName:_encoding,
             valueLength: _valueLength,
             encoding_version: version || 1
           }
@@ -214,6 +216,7 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
       name:null,
       encoding:"dict",
       valueLength:0,
+      encodingName:"dict"
     }
     $scope.convertedColumns.push($scope.nextGroupBy);
 

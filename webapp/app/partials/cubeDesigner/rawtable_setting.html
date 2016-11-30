@@ -54,24 +54,29 @@
             </td>
             <td>{{col.table}}</td>
             <td>
-              <select ng-if="state.mode=='edit'" style="width:180px;"
-                      chosen
-                      ng-change=""
-                      ng-model="col.encoding"
-                      ng-options="dt.value as dt.name for dt in getRawTableEncodings(col.column)"
-                >
-                <!--<option value="var">default</option>-->
-              </select>
+              <div  style="width:100%;" class="chosen-container chosen-container-single " ng-if="state.mode=='edit'">
+                <button style="width:100%;" type="button" class="chosen-single dropdown-toggle" data-toggle="dropdown">
+                  <span style="float:left;" >{{col.encodingName}}</span>
+                </button>
+                <ul class="dropdown-menu my-dropdown" role="menu"  style="width:100%;" >
+                  <li>
+                    <a middle-popover ng-repeat="encoding in getRawTableEncodings(col.column)" ng-click="col.encoding=encoding.value;col.encodingName=encoding.name;"
+                       kylinpopover placement="left" ng-title="{{(encoding.value=='dict[v1]'||encoding.value=='fixed_length[v1]'||encoding.value=='int[v1]'||encoding.value=='integer[v1]'||encoding.value=='integer[v2]'||encoding.value=='fixed_length_hex[v1]'||encoding.value=='date[v1]'||encoding.value=='time[v1]')?'Tip':''}}" ng-value="{{encoding.value}}" ng-watch="{{dataKylin.cube.tip_encoding}}" template="encodingTip.html">
+                      {{encoding.name}}
+                    </a>
+                  </li>
+                </ul>
+              </div>
               <span ng-if="state.mode=='view'">{{col.encoding|encodingVersionShow}}</span>
 
             </td>
             <td>
               <!--Column Length -->
               <input type="text" class="form-control" placeholder="Column Length.." ng-if="state.mode=='edit'"
-                     tooltip="{{dataKylin.cube.rowkey_column_length}}" tooltip-trigger="focus"
                      ng-disabled="col.encoding.indexOf('dict')>=0||col.encoding.indexOf('date')>=0||col.encoding.indexOf('time')>=0||col.encoding.indexOf('var')>=0||col.encoding.indexOf('orderedbytes')>=0"
-
-                     ng-model="col.valueLength" class="form-control">
+                     ng-model="col.valueLength" class="form-control"
+                     placement="top" ng-name="{{col.encoding}}"  ng-value="{{col.valueLength}}" ng-watch="{{dataKylin.cube.tip_length}}" template="lengthTip.html"
+                     kylinpopover  ng-title="{{(col.encoding=='fixed_length[v1]'||col.encoding=='integer[v2]'||col.encoding=='fixed_length_hex[v1]')?'Tip':''}}" >
 
               <small class="help-block red" ng-show="state.mode=='edit' && col.encoding=='int' && (col.valueLength>8 || col.valueLength<1)">int encoding column length should between 1 and 8</small>
               <span ng-if="state.mode=='view'">{{col.valueLength}}</span>
@@ -102,5 +107,51 @@
 </div>
 <script type="text/ng-template" id="rawtableTip.html">
   <div ng-bind-html="dataKylin.cube.tip_body_cubeRawTable">
+  </div>
+</script>
+<script type="text/ng-template" id="encodingTip.html" >
+  <div >
+    <div ng-if="value=='dict[v1]'">
+      {{dataKylin.cube.tip_encoding_dict}}
+    </div>
+    <div ng-if="value=='fixed_length[v1]'">
+      {{dataKylin.cube.tip_encoding_fixed_length}}
+    </div>
+    <div ng-if="value=='int[v1]'">
+      {{dataKylin.cube.tip_encoding_int}}
+    </div>
+    <div ng-if="value=='integer[v1]'">
+      {{dataKylin.cube.tip_encoding_integer_v1}}
+    </div>
+    <div ng-if="value=='integer[v2]'">
+      {{dataKylin.cube.tip_encoding_integer_v2}}
+    </div>
+    <div ng-if="value=='fixed_length_hex[v1]'">
+      {{dataKylin.cube.tip_encoding_fixed_length_hex}}
+    </div>
+    <div ng-if="value=='date[v1]'">
+      {{dataKylin.cube.tip_encoding_date}}
+    </div>
+    <div ng-if="value=='time[v1]'">
+      {{dataKylin.cube.tip_encoding_time}}
+    </div>
+  </div>
+</script>
+<script type="text/ng-template" id="lengthTip.html">
+  <div >
+    <div ng-if="name=='fixed_length[v1]'">
+      {{dataKylin.cube.tip_length_fixed_length_part_one}}
+      {{value}}
+      {{dataKylin.cube.tip_length_fixed_length_part_two}}
+    </div>
+    <div ng-if="name=='integer[v2]'">
+      {{dataKylin.cube.tip_length_integer_v2}}
+      [{{-Math.pow(2,(8*value-1))}},{{Math.pow(2,(8*value-1))}}]
+    </div>
+    <div ng-if="name=='fixed_length_hex[v1]'">
+      {{dataKylin.cube.tip_length_fixed_length_hex_part_one}}
+      {{value*2}}
+      {{dataKylin.cube.tip_length_fixed_length_hex_part_two}}
+    </div>
   </div>
 </script>

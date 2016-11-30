@@ -4106,7 +4106,10 @@ Gradient Background colors
     text-align:center;
     color:white;
   }
-
+.my-dropdown > li > a:hover {
+      background-color: #306BC8;
+      color: #eee
+ }
 #advancedSettingInfoBox span{
   color:#333;
   font-size: 12px;

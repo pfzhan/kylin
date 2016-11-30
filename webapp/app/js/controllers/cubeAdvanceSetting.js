@@ -66,6 +66,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     var rowkeyObj = {
       column:item.column,
       encoding:_encoding+(item.encoding_version?"[v"+item.encoding_version+"]":"[v1]"),
+      encodingName:_encoding,
       valueLength:_valueLength,
       isShardBy:item.isShardBy,
       encoding_version:item.encoding_version||1,
@@ -424,7 +425,6 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
   }
   $scope.seletedColumns=$scope.calcSelectedColums($scope.cubeMetaFrame.aggregation_groups);
   $scope.cuboidCount=$scope.calcCuboidNumber($scope.cubeMetaFrame.aggregation_groups);
-  //$scope.seletedInclues=$scope.calcSelectedIncludes($scope.cubeMetaFrame.aggregation_groups);
 
 
   var container=$("#advancedSettingInfoBox table").eq(1).parent();

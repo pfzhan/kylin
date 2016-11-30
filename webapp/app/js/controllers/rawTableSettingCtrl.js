@@ -46,6 +46,7 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
       var result = /:(\d+)/.exec(data[i].encoding);
       data[i].valueLength = result ? result[1] : 0;
       data[i].encoding=$scope.removeVersion(data[i].encoding).replace(/:\d+/,'')+'[v'+(data[i].encoding_version||1)+']';
+      data[i].encodingName=$scope.removeVersion(data[i].encoding).replace(/:\d+/,'');
     }
     return data;
   }
@@ -168,6 +169,10 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
   if($scope.RawTables&&$scope.RawTables.columns&&$scope.RawTables.columns.length>=0){
     $scope.rawTableColumns={};
     $scope.rawTableColumns.columns=$scope.changeRawTableDataFromServer($scope.RawTables.columns);
+/*    angular.forEach($scope.rawTableColumns.columns,function(column){
+      column
+
+    });*/
     $scope.isSupportRawTable=$scope.checkIsSupportRawTable();
   }else{
     if($scope.state.mode=="view"||$scope.isEdit){

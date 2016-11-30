@@ -373,7 +373,9 @@ KylinApp.directive('kylinPagination', function ($parse, $q, language) {
     restrict: "EA",
     scope:{
         title:'@ngTitle',
-        cube: '@ngCube'
+        cube: '@ngCube',
+        value:'@ngValue',
+        name: '@ngName'
     },
     link: function (scope, element, attrs) {
       scope.$watch(function() {
@@ -384,6 +386,7 @@ KylinApp.directive('kylinPagination', function ($parse, $q, language) {
         }
       },function(newTitle,oldTitle){
         var popOverContent;
+        scope.Math = window.Math;
         scope.dataKylin = language.getDataKylin();
         var dOptions = {
           placement : 'right'
@@ -398,41 +401,15 @@ KylinApp.directive('kylinPagination', function ($parse, $q, language) {
           title: attrs.ngTitle,
           html: true
         };
-        $(element).popover('destroy').popover(options);
+        $(element).popover('destroy');
+        if(options.title!=""&&options.content!=""){
+          $(element).popover(options);
+        }
       });
 
     }
   };
-}).directive('inuse', function ($compile,$templateCache,language) {
-    return {
-      restrict: "EA",
-      scope:true,
-      link: function (scope, element, attrs) {
-        scope.$watch(function() {
-            return scope.dataKylin.model.gridInUseTip;
-        },function(newTitle,oldTitle){
-        alert(1);
-          var popOverContent;
-          scope.dataKylin = language.getDataKylin();
-          var dOptions = {
-            placement : 'right'
-          }
-          popOverContent = $compile($templateCache.get(attrs.template))(scope);
-          var placement = attrs.placement? attrs.placement : dOptions.placement;
-          //var title = attrs.title;
-          var options = {
-            content: popOverContent,
-            placement: placement,
-            trigger: "hover",
-            title: attrs.ngTitle,
-            html: true
-          };
-          $(element).popover('destroy').popover(options);
-        });
-
-      }
-    };
-  }).directive("extendedcolumntree", function($compile) {
+}).directive("extendedcolumntree", function($compile) {
   return {
     restrict: "E",
     transclude: true,
