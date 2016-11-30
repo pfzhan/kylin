@@ -85,7 +85,7 @@ public class HdfsAppender extends AppenderSkeleton {
 
     private long write(StringBuilder buf) throws IOException {
         long size = buf.toString().length();
-        outStream.writeChars(buf.toString());
+        outStream.writeUTF(buf.toString());
         outStream.hflush();
         return size;
     }
