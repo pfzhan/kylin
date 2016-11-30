@@ -27,7 +27,11 @@ package io.kyligence.kap.storage.parquet.log;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -43,13 +47,15 @@ public class HdfsAppender extends AppenderSkeleton {
     public static final Logger logger = LoggerFactory.getLogger(HdfsAppender.class);
 
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-    private StringBuffer buf = new StringBuffer();
+    private StringBuilder buf = new StringBuilder();
     FSDataOutputStream outStream = null;
     private int logCount = 0;
-    private String outPutPath = "";
-    private String executorId = "";
+    private String outPutPath;
+    private String executorId;
+    private Queue<LoggingEvent> logBuffer = null;
+    private ExecutorService appendHdfsService = null;
     //configurable
-    private String applicationId = "0";
+    private String applicationId;
     private int doFlushCount = 10;
     private boolean enableDailyRolling = true;
     private String hdfsWorkingDir;
@@ -61,32 +67,13 @@ public class HdfsAppender extends AppenderSkeleton {
 
     @Override
     protected void append(LoggingEvent loggingEvent) {
-        if (updateOutPutDir(loggingEvent)) {
-            Path file = new Path(outPutPath);
-            try {
-                initWriter(file);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        buf.append(layout.format(loggingEvent));
-        logCount++;
-
-        if (logCount >= getDoFlushCount()) {
-
-            try {
-                write(buf);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            buf.delete(0, buf.length());
-            logCount = 0;
-        }
+        logBuffer.offer(loggingEvent);
     }
 
     @Override
     public void close() {
+        if (appendHdfsService != null)
+            appendHdfsService.shutdownNow();
         closeWriter();
         this.closed = true;
     }
@@ -96,16 +83,7 @@ public class HdfsAppender extends AppenderSkeleton {
         return true;
     }
 
-    private void initWriter(Path outPath) throws IOException {
-        closeWriter();
-        Configuration conf = new Configuration();
-        FileSystem fs = FileSystem.get(conf);
-        if (fs.exists(outPath))
-            fs.delete(outPath, true);
-        outStream = fs.create(outPath);
-    }
-
-    private long write(StringBuffer buf) throws IOException {
+    private long write(StringBuilder buf) throws IOException {
         long size = buf.toString().length();
         outStream.writeChars(buf.toString());
         outStream.hflush();
@@ -117,6 +95,46 @@ public class HdfsAppender extends AppenderSkeleton {
         if (null == this.applicationId || this.applicationId.trim().isEmpty())
             this.applicationId = "default";
         logger.info("HdfsAppender Start with App ID: " + applicationId);
+
+        logBuffer = new ConcurrentLinkedDeque<>();
+
+        appendHdfsService = Executors.newSingleThreadExecutor();
+        appendHdfsService.execute(new Thread() {
+            @Override
+            public void run() {
+                setName("SparkExecutorLogAppender");
+                while (true) {
+                    try {
+                        if (logBuffer.isEmpty())
+                            Thread.sleep(1000L);
+                        else
+                            flushLog();
+                    } catch (IOException | InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            private void flushLog() throws IOException {
+                while (!logBuffer.isEmpty()) {
+                    LoggingEvent loggingEvent = logBuffer.poll();
+                    if (updateOutPutDir(loggingEvent)) {
+                        Path file = new Path(outPutPath);
+                        initWriter(file);
+                    }
+
+                    buf.append(layout.format(loggingEvent));
+                    logCount++;
+
+                    if (logCount >= doFlushCount) {
+
+                        write(buf);
+                        buf.delete(0, buf.length());
+                        logCount = 0;
+                    }
+                }
+            }
+        });
     }
 
     public void setApplicationId(String applicationId) {
@@ -147,14 +165,13 @@ public class HdfsAppender extends AppenderSkeleton {
         return this.doFlushCount;
     }
 
-    private boolean updateOutPutDir(LoggingEvent event) {
-        String tempOutput = parseHdfsWordingDir() + "/" + "spark_logs" + "/" + (enableDailyRolling ? dateFormat.format(new Date(event.getTimeStamp())) : "") + "/" + "application-" + getApplicationId() + "/" + "executor-" + this.executorId + ".log";
-
-        if (outPutPath.equals(tempOutput))
-            return false;
-
-        outPutPath = tempOutput;
-        return true;
+    private void initWriter(Path outPath) throws IOException {
+        closeWriter();
+        Configuration conf = new Configuration();
+        FileSystem fs = FileSystem.get(conf);
+        if (fs.exists(outPath))
+            fs.delete(outPath, true);
+        outStream = fs.create(outPath);
     }
 
     private void closeWriter() {
@@ -173,6 +190,16 @@ public class HdfsAppender extends AppenderSkeleton {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private boolean updateOutPutDir(LoggingEvent event) {
+        String tempOutput = parseHdfsWordingDir() + "/" + "spark_logs" + "/" + (enableDailyRolling ? dateFormat.format(new Date(event.getTimeStamp())) : "") + "/" + "application-" + getApplicationId() + "/" + "executor-" + this.executorId + ".log";
+
+        if (outPutPath != null && outPutPath.equals(tempOutput))
+            return false;
+
+        outPutPath = tempOutput;
+        return true;
     }
 
     private String parseHdfsWordingDir() {
