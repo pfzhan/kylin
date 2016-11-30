@@ -370,7 +370,7 @@ KylinApp
 
         $scope.cancel();
         loadingRequest.show();
-        TableService.unLoadHiveTable({tableName: $scope.tableNames, action: projectName}, {}, function (result) {
+        TableExtService.unLoadHiveTable({tableName: $scope.tableNames, action: projectName}, {}, function (result) {
           var removedTableInfo = "";
           angular.forEach(result['result.unload.success'], function (table) {
             removedTableInfo += "\n" + table;

@@ -428,22 +428,18 @@ var addEditDimensionCtrl = function ($scope, $modalInstance,SweetAlert,language)
       $scope.groupby($scope.nextPara);
       angular.forEach($scope.convertedColumns,function(item){
         var a='topn.encoding.'+item.name;
+        var versionKey='topn.encoding_version.'+item.name;
+        var version=$scope.getTypeVersion(item.encoding);
         var encoding="";
-        if(item.encoding!=="dict" && item.encoding!=="date"&& item.encoding!=="time"){
-          if(item.encoding=="fixed_length" && item.valueLength){
-            encoding = "fixed_length:"+item.valueLength;
-          } else if(item.encoding=="integer" && item.valueLength){
-            encoding = "integer:"+item.valueLength;
-          }else if(item.encoding=="int" && item.valueLength){
-            encoding = "int:"+item.valueLength;
-          }else{
-            encoding = item.encoding;
-          }
+        if(needLengthKeyList.indexOf($scope.removeVersion(item.encoding))>=-1){
+          encoding = $scope.removeVersion(item.encoding)+":"+item.valueLength;
         }else{
-          encoding = item.encoding;
+          encoding = $scope.removeVersion(item.encoding);
           item.valueLength=0;
         }
-        $scope.newMeasure.function.configuration[a]=encoding;
+        $scope.newMeasure.function.configuration[a]= encoding;
+        $scope.newMeasure.function.configuration[versionKey]=version;
+
       });
     }
 
