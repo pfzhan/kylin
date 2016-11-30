@@ -54,7 +54,7 @@
                     <ui-select
                       autofocus="true"
                       close-on-select="false"    ng-disabled="instance.status=='READY'"
-                      on-select="refreshAggregationGroup(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group)"
+                      on-select="refreshAggregationGroup(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group);showColumnInfo(aggregation_group.includes.length-1,aggregation_group.includes)"
                       on-remove="refreshAggregationGroup(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group)"
                       ng-click="showColumnInfo($selectMultiple.activeMatchIndex,aggregation_group.includes)"
                       ng-if="state.mode=='edit'" style="width: 100%" multiple ng-model="aggregation_group.includes">
@@ -79,7 +79,7 @@
                     <ui-select
                       close-on-select="false"
                       autofocus="true"    ng-disabled="instance.status=='READY'"
-                      on-select="refreshAggregationGroup(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group)"
+                      on-select="refreshAggregationGroup(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group);showColumnInfo(aggregation_group.select_rule.mandatory_dims.length-1,aggregation_group.select_rule.mandatory_dims)"
                       on-remove="refreshAggregationGroup(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group)"
                       ng-click="showColumnInfo($selectMultiple.activeMatchIndex,aggregation_group.select_rule.mandatory_dims)"
                       ng-if="state.mode=='edit'" style="width: 100%" multiple ng-model="aggregation_group.select_rule.mandatory_dims">
@@ -109,7 +109,7 @@
                           <ui-select
                             close-on-select="false"
                             autofocus="true"    ng-disabled="instance.status=='READY'"
-                            on-select="refreshAggregationHierarchy(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group,$index,hierarchyDims)"
+                            on-select="refreshAggregationHierarchy(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group,$index,hierarchyDims);showColumnInfo(hierarchyDims.length-1,hierarchyDims)"
                             on-remove="refreshAggregationHierarchy(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group,$index,hierarchyDims)"
                             ng-click="showColumnInfo($selectMultiple.activeMatchIndex,hierarchyDims)"
                             ng-if="state.mode=='edit'" style="width: 100%" multiple ng-model="hierarchyDims">
