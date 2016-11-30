@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,cubesManager,CubeDescModel,SweetAlert, TableModel) {
+KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,cubesManager,CubeDescModel,SweetAlert, TableModel,TableExtService,VdmUtil) {
   $scope.cubesManager = cubesManager;
   $scope.TableModel=TableModel;
   $scope.getTypeVersion=function(typename){
@@ -425,4 +425,53 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
   $scope.seletedColumns=$scope.calcSelectedColums($scope.cubeMetaFrame.aggregation_groups);
   $scope.cuboidCount=$scope.calcCuboidNumber($scope.cubeMetaFrame.aggregation_groups);
   //$scope.seletedInclues=$scope.calcSelectedIncludes($scope.cubeMetaFrame.aggregation_groups);
+
+
+  var container=$("#advancedSettingInfoBox table").eq(1).parent();
+  //show column info
+  $scope.showColumnInfo=function(selectIndex,dataArr){
+     var columnName=dataArr[selectIndex];
+     var tableName=$scope.getFullTaleNameByColumnName(columnName);
+     $scope.getSampleDataByTableName(tableName);
+     $scope.columnList=TableModel.getColumnsByTable(tableName);
+     var thColumn=$("#"+VdmUtil.removeNameSpace(columnName));
+     if(thColumn&&thColumn.length){
+        autoScroll(container,thColumn);
+     }else{
+       setTimeout(function(){
+         container=$("#advancedSettingInfoBox table").eq(1).parent();
+         autoScroll(container,$("#"+VdmUtil.removeNameSpace(columnName)));
+       },10)
+     }
+  }
+  $scope.getSampleDataByTableName=function(tableName){
+    TableExtService.getSampleInfo({tableName:tableName},function(data){
+      var sampleData=[],specialData=[];
+      if(data.sample_rows&&data.sample_rows.length){
+        sampleData=sampleData.concat(VdmUtil.changeDataAxis(data.sample_rows,true));
+      }
+      $scope.specialData=data.columns_stats;
+      $scope.sampleData=sampleData;
+    })
+  }
+  $scope.getFullTaleNameByColumnName=function(columnName){
+    for(var i= 0,len=$scope.cubeMetaFrame.dimensions.length||0;i<len;i++){
+      if($scope.cubeMetaFrame.dimensions[i].name.indexOf(columnName)){
+         return $scope.cubeMetaFrame.dimensions[i].table;
+      }
+    }
+    return "";
+  }
+
+  function autoScroll(container,scrollTo){
+    if(scrollTo&&scrollTo.length){
+      console.log(scrollTo.offset().top - container.offset().top + container.scrollTop());
+      container.animate({
+        scrollLeft: scrollTo.offset().left - container.offset().left + container.scrollLeft()
+      });
+      $("#advancedSettingInfoBox table th").css('color','#000');
+      scrollTo.css('color','#3276b1');
+    }
+  }
+
 });

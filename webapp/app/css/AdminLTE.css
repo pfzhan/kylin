@@ -4106,3 +4106,16 @@ Gradient Background colors
     text-align:center;
     color:white;
   }
+
+#advancedSettingInfoBox span{
+  color:#333;
+  font-size: 12px;
+}
+
+#advancedSettingInfoBox span.bigtitle {
+  color:#3276b1;
+  font-size: 14px;
+}
+#advancedSettingInfoBox table{
+  margin-top: 20px;
+}

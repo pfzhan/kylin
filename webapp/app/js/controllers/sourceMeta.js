@@ -886,33 +886,35 @@ KylinApp
     };
     $scope.calcSampleData=function(){
       loadingRequest.show();
-      TableExtService.doSample({projectName:$scope.projectModel.selectedProject,tableName:$scope.tableModel.selectedSrcTable.database+'.'+$scope.tableModel.selectedSrcTable.name,action:'sample_job'},{},function(){
-        $scope.getSampleJobStatus($scope.tableModel.selectedSrcTable.name);
-        loadingRequest.hide();
-        $scope.getSampleJobStatus($scope.tableModel.selectedSrcTable.name,function(){
+      var tableName=$scope.tableModel.selectedSrcTable.database+'.'+$scope.tableModel.selectedSrcTable.name;
+
+      $scope.getSampleJobStatus(tableName,function(){
+        TableExtService.doSample({projectName:$scope.projectModel.selectedProject,tableName:tableName,action:'sample_job'},{},function(){
+          loadingRequest.hide();
           SweetAlert.swal('', $scope.dataKylin.alert.collectStaticsSuccess, 'success');
+        },function(e){
+          var message;
+          if (e.data && e.data.exception) {
+            message = e.data.exception;
+          }else{
+            message=$scope.dataKylin.alert.error_info;
+          }
+          loadingRequest.hide();
+          SweetAlert.swal('', message, 'error');
         })
-      },function(e){
-        var message;
-        if (e.data && e.data.exception) {
-           message = e.data.exception;
-        }else{
-           message=$scope.dataKylin.alert.error_info;
-        }
-        loadingRequest.hide();
-        SweetAlert.swal('', message, 'error');
       })
+
     }
     $scope.getSampleData=function(){
       TableExtService.getSampleInfo({tableName:$scope.tableModel.selectedSrcTable.database+'.'+$scope.tableModel.selectedSrcTable.name},function(data){
-         var sampleData=[],specialData=[];
-         if(data.sample_rows&&data.sample_rows.length){
-           sampleData=sampleData.concat(VdmUtil.changeDataAxis(data.sample_rows,true));
-         }
-         $scope.specialData=data.columns_stats;
-         $scope.sampleData=sampleData;
-         $scope.last_modified=data.last_modified_time;
-         $scope.total_rows=data.total_rows;
+        var sampleData=[],specialData=[];
+        if(data.sample_rows&&data.sample_rows.length){
+          sampleData=sampleData.concat(VdmUtil.changeDataAxis(data.sample_rows,true));
+        }
+        $scope.specialData=data.columns_stats;
+        $scope.sampleData=sampleData;
+        $scope.last_modified=data.last_modified_time;
+        $scope.total_rows=data.total_rows;
       })
     }
 
@@ -925,9 +927,13 @@ KylinApp
       TableExtService.getCalcSampleProgress({'tableName':tableName,'action':'job'},function(data){
           if((data.job_status=='RUNNING'||data.job_status=='PENDING')&&data.progress!=100){
             SweetAlert.swal('', $scope.dataKylin.alert.hasCollectJob, 'info');
+            loadingRequest.hide();
           }else if(typeof  callback=='function'){
               callback()
           }
+      },function(e){
+        kylinCommon.error_default(e);
+        loadingRequest.hide();
       })
     }
   });

@@ -18,7 +18,7 @@
 
 <div ng-controller="CubeAdvanceSettingCtrl">
   <ng-form name="forms.cube_setting_form">
-    <div>
+    <div style="width:{{state.mode!='view'?80:100}}%;float:left">
       <div class="form-group">
         <h3 style="margin-left:42px;">{{dataKylin.cube.aggregationGroups}} </h3>
         <div style="margin-left:22px;">
@@ -56,6 +56,7 @@
                       close-on-select="false"    ng-disabled="instance.status=='READY'"
                       on-select="refreshAggregationGroup(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group)"
                       on-remove="refreshAggregationGroup(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group)"
+                      ng-click="showColumnInfo($selectMultiple.activeMatchIndex,aggregation_group.includes)"
                       ng-if="state.mode=='edit'" style="width: 100%" multiple ng-model="aggregation_group.includes">
                      <ui-select-match placeholder="{{dataKylin.cube.plac_cubeAS}}">{{$item.column}}</ui-select-match>
                       <ui-select-choices
@@ -80,6 +81,7 @@
                       autofocus="true"    ng-disabled="instance.status=='READY'"
                       on-select="refreshAggregationGroup(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group)"
                       on-remove="refreshAggregationGroup(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group)"
+                      ng-click="showColumnInfo($selectMultiple.activeMatchIndex,aggregation_group.select_rule.mandatory_dims)"
                       ng-if="state.mode=='edit'" style="width: 100%" multiple ng-model="aggregation_group.select_rule.mandatory_dims">
                       <ui-select-match placeholder="{{dataKylin.cube.plac_cubeAS}}">{{$item}}</ui-select-match>
                       <ui-select-choices
@@ -109,6 +111,7 @@
                             autofocus="true"    ng-disabled="instance.status=='READY'"
                             on-select="refreshAggregationHierarchy(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group,$index,hierarchyDims)"
                             on-remove="refreshAggregationHierarchy(cubeMetaFrame.aggregation_groups, rowIndex, aggregation_group,$index,hierarchyDims)"
+                            ng-click="showColumnInfo($selectMultiple.activeMatchIndex,hierarchyDims)"
                             ng-if="state.mode=='edit'" style="width: 100%" multiple ng-model="hierarchyDims">
                             <ui-select-match placeholder="{{dataKylin.cube.plac_cubeAS}}">{{$item}}</ui-select-match>
                             <ui-select-choices
@@ -445,7 +448,51 @@
       </ng-form>
 
     </div>
-
+    <div style="width:20%;float:right" id="advancedSettingInfoBox" ng-if="state.mode!='view'">
+      <span class="bigtitle">Column</span><span> MetaData</span>
+      <table class="table table-hover table-bordered table-striped list">
+        <tr>
+          <td>{{dataKylin.data_source.cardinality}}</td>
+          <td>{{ specialData[0].cardinality }}</td>
+        </tr>
+        <tr>
+          <td>{{dataKylin.data_source.maxValue}}</td>
+          <td>{{ specialData[0].max_value }}</td>
+        </tr>
+        <tr>
+          <td>{{dataKylin.data_source.minValue}}</td>
+          <td>{{ specialData[0].min_value }}</td>
+        </tr>
+        <tr>
+          <td>{{dataKylin.data_source.maxLengthValue}}</td>
+          <td>{{ specialData[0].max_length_value }}</td>
+        </tr>
+        <tr>
+          <td>{{dataKylin.data_source.minLengthValue}}</td>
+          <td>{{ specialData[0].min_length_value }}</td>
+        </tr>
+        <tr>
+          <td>{{dataKylin.data_source.nullCount}}</td>
+          <td>{{ specialData[0].null_count }}</td>
+        </tr>
+      </table>
+      <span class="bigtitle">TableName</span><span> SampleData</span>
+      <div style="overflow-y: auto">
+        <table class="table table-hover table-bordered table-striped list">
+          <thead>
+          <tr >
+            <th ng-repeat="column in columnList " id="{{column.name}}">{{column.name}}</th>
+          </tr>
+          </thead>
+          <tr ng-repeat="list in sampleData track by $index">
+            <td>{{$index+1}}</td>
+            <td ng-repeat="sd in sampleData[$index] track by $index">
+              {{sd}}
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
   </ng-form>
 </div>
 <script type="text/ng-template" id="rowkeyTip.html">
