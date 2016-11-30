@@ -18,7 +18,7 @@
 
 <div ng-controller="CubeAdvanceSettingCtrl">
   <ng-form name="forms.cube_setting_form">
-    <div style="width:{{state.mode!='view'?80:100}}%;float:left">
+    <div style="width:{{state.mode!='view'?75:100}}%;float:left;padding-right:10px">
       <div class="form-group">
         <h3 style="margin-left:42px;">{{dataKylin.cube.aggregationGroups}} </h3>
         <div style="margin-left:22px;">
@@ -105,7 +105,7 @@
                   <td class="col-xs-9">
                     <table class="table">
                       <tr class="row" ng-repeat="hierarchyDims in aggregation_group.select_rule.hierarchy_dims ">
-                        <td class="col-xs-10">
+                        <td class="col-xs-10" style="border-top:none">
                           <ui-select
                             close-on-select="false"
                             autofocus="true"    ng-disabled="instance.status=='READY'"
@@ -123,7 +123,7 @@
                             {{hierarchyDims}}</p>
 
                         </td>
-                        <td class="col-xs-2">
+                        <td class="col-xs-2" style="border-top:none">
                           <button class="btn btn-sm btn-info"  ng-disabled="instance.status=='READY'"
                                   ng-click="removeHierarchy(aggregation_group,hierarchyDims)"
                                   ng-show="state.mode=='edit'"><i class="fa fa-minus"></i>
@@ -132,7 +132,7 @@
                       </tr>
 
                       <tr class="row">
-                        <td class="col-xs-12">
+                        <td class="col-xs-12" style="border-top:none">
                           <button class="btn btn-sm btn-info"    ng-disabled="instance.status=='READY'"
                                   ng-click="addNewHierarchy(aggregation_group)" ng-show="state.mode=='edit'">{{dataKylin.cube.cubeASNewHierarchy}}<i class="fa fa-plus"></i>
                           </button>
@@ -151,7 +151,7 @@
                   <td class="col-xs-9">
                     <table class="table">
                       <tr class="row" ng-repeat="jointDims in aggregation_group.select_rule.joint_dims ">
-                        <td class="col-xs-10">
+                        <td class="col-xs-10" style="border-top:none">
                           <!-- Dimensions -->
                           <ui-select
                             close-on-select="false"
@@ -168,7 +168,7 @@
                           <p ng-if="state.mode=='view'">
                             {{jointDims}}</p>
                         </td>
-                        <td class="col-xs-2">
+                        <td class="col-xs-2" style="border-top:none">
                           <button class="btn btn-sm btn-info"   ng-disabled="instance.status=='READY'"
                                   ng-click="removeJointDims(aggregation_group,jointDims)"
                                   ng-show="state.mode=='edit'"><i class="fa fa-minus"></i>
@@ -177,7 +177,7 @@
                       </tr>
 
                       <tr class="row">
-                        <td class="col-xs-12">
+                        <td class="col-xs-12" style="border-top:none">
                           <button class="btn btn-sm btn-info"   ng-disabled="instance.status=='READY'"
                                   ng-click="addNewJoint(aggregation_group)" ng-show="state.mode=='edit'">{{dataKylin.cube.cubeASNewJoint}}<i class="fa fa-plus"></i>
                           </button>
@@ -455,11 +455,11 @@
       </ng-form>
 
     </div>
-    <div style="width:20%;float:right" id="advancedSettingInfoBox" ng-if="state.mode!='view'">
+    <div style="" id="advancedSettingInfoBox" ng-if="state.mode!='view'">
       <span class="bigtitle">Column</span><span> MetaData</span>
       <table class="table table-hover table-bordered table-striped list">
         <tr>
-          <td>{{dataKylin.data_source.cardinality}}</td>
+          <td style="width:130px">{{dataKylin.data_source.cardinality}}</td>
           <td>{{ specialData[0].cardinality }}</td>
         </tr>
         <tr>

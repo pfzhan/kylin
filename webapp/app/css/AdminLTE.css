@@ -4110,6 +4110,14 @@ Gradient Background colors
       background-color: #306BC8;
       color: #eee
  }
+#advancedSettingInfoBox{
+  padding-top: 20px;
+  width:25%;
+  float:right;
+  padding-left: 10px;
+  border-left:solid 1px #eee;
+  margin-top: -20px
+}
 #advancedSettingInfoBox span{
   color:#333;
   font-size: 12px;
@@ -4118,6 +4126,7 @@ Gradient Background colors
 #advancedSettingInfoBox span.bigtitle {
   color:#3276b1;
   font-size: 14px;
+
 }
 #advancedSettingInfoBox table{
   margin-top: 20px;
