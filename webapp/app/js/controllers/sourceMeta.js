@@ -339,22 +339,13 @@ KylinApp
         loadingRequest.show();
         TableExtService.loadHiveTable({tableName: $scope.tableNames, action: projectName}, {}, function (result) {
           var loadTableInfo = "";
-          angular.forEach(result['result.loaded'], function (table) {
-            loadTableInfo += "\n" + table;
-          })
-          var unloadedTableInfo = "";
-          angular.forEach(result['result.unloaded'], function (table) {
-            unloadedTableInfo += "\n" + table;
-          })
-
-          if (result['result.unloaded'].length != 0 && result['result.loaded'].length == 0) {
-            SweetAlert.swal($scope.dataKylin.alert.tip_result_unload_title, $scope.dataKylin.alert.tip_result_unload_body + unloadedTableInfo, 'error');
+          for(var i in result){
+            if(i!="$promise"&&i!='$resolved'){
+              loadTableInfo += "\n" + table;
+            }
           }
-          if (result['result.loaded'].length != 0 && result['result.unloaded'].length == 0) {
+          if(loadTableInfo){
             kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_table_been_synchronized+loadTableInfo);
-          }
-          if (result['result.loaded'].length != 0 && result['result.unloaded'].length != 0) {
-            SweetAlert.swal($scope.dataKylin.alert.tip_partial_loaded_title, $scope.dataKylin.alert.tip_partial_loaded_body_part_one + loadTableInfo + $scope.dataKylin.alert.tip_partial_loaded_body_part_two + unloadedTableInfo, 'warning');
           }
           loadingRequest.hide();
           scope.aceSrcTbLoaded(true);
