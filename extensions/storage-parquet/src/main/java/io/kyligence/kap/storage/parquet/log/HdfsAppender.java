@@ -35,22 +35,24 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.spi.LoggingEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HdfsAppender extends AppenderSkeleton {
+
+    public static final Logger logger = LoggerFactory.getLogger(HdfsAppender.class);
 
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     private StringBuffer buf = new StringBuffer();
     FSDataOutputStream outStream = null;
     private int logCount = 0;
     private String outPutPath = "";
-
+    private String executorId = "";
     //configurable
     private String applicationId = "0";
-    private String executorId = "0";
     private int doFlushCount = 10;
     private boolean enableDailyRolling = true;
     private String hdfsWorkingDir;
-    private String metadataUrl;
 
     @Override
     public void activateOptions() {
@@ -68,8 +70,7 @@ public class HdfsAppender extends AppenderSkeleton {
             }
         }
 
-        buf.append(loggingEvent.getMessage());
-        buf.append("\n");
+        buf.append(layout.format(loggingEvent));
         logCount++;
 
         if (logCount >= getDoFlushCount()) {
@@ -86,18 +87,8 @@ public class HdfsAppender extends AppenderSkeleton {
 
     @Override
     public void close() {
-        if (buf.length() > 0) {
-            try {
-                write(buf);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        try {
-            outStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        closeWriter();
+        this.closed = true;
     }
 
     @Override
@@ -106,14 +97,8 @@ public class HdfsAppender extends AppenderSkeleton {
     }
 
     private void initWriter(Path outPath) throws IOException {
-
-        if (null != outStream) {
-            outStream.close();
-            outStream = null;
-        }
+        closeWriter();
         Configuration conf = new Configuration();
-
-        //conf.set("fs.defaultFS", "hdfs://sandbox.hortonworks.com:8020");
         FileSystem fs = FileSystem.get(conf);
         if (fs.exists(outPath))
             fs.delete(outPath, true);
@@ -128,13 +113,10 @@ public class HdfsAppender extends AppenderSkeleton {
     }
 
     private void init() {
-        if (this.executorId.equals("-1"))
-            this.executorId = UUID.randomUUID().toString();
-
+        this.executorId = UUID.randomUUID().toString();
         if (null == this.applicationId || this.applicationId.trim().isEmpty())
             this.applicationId = "default";
-
-        System.out.println("HdfsAppender Start with App ID: " + applicationId);
+        logger.info("HdfsAppender Start with App ID: " + applicationId);
     }
 
     public void setApplicationId(String applicationId) {
@@ -145,28 +127,12 @@ public class HdfsAppender extends AppenderSkeleton {
         return this.applicationId;
     }
 
-    public void setExecutorId(String executorId) {
-        this.executorId = executorId;
-    }
-
-    public String getExecutorId() {
-        return this.executorId;
-    }
-
     public void setHdfsWorkingDir(String hdfsWorkingDir) {
         this.hdfsWorkingDir = hdfsWorkingDir;
     }
 
     public String getHdfsWorkingDir() {
         return this.hdfsWorkingDir;
-    }
-
-    public void setMetadataUrl(String metadataUrl) {
-        this.metadataUrl = metadataUrl;
-    }
-
-    public String getMetadataUrl() {
-        return this.metadataUrl;
     }
 
     public void setEnableDailyRolling(boolean enableDailyRolling) {
@@ -182,7 +148,7 @@ public class HdfsAppender extends AppenderSkeleton {
     }
 
     private boolean updateOutPutDir(LoggingEvent event) {
-        String tempOutput = getHdfsWorkingDir() + "/" + parseMetadataUrl() + "/" + "spark_logs" + "/" + (enableDailyRolling ? dateFormat.format(new Date(event.getTimeStamp())) : "") + "/" + "application-" + getApplicationId() + "/" + "executor-" + getExecutorId() + ".log";
+        String tempOutput = parseHdfsWordingDir() + "/" + "spark_logs" + "/" + (enableDailyRolling ? dateFormat.format(new Date(event.getTimeStamp())) : "") + "/" + "application-" + getApplicationId() + "/" + "executor-" + this.executorId + ".log";
 
         if (outPutPath.equals(tempOutput))
             return false;
@@ -191,7 +157,27 @@ public class HdfsAppender extends AppenderSkeleton {
         return true;
     }
 
-    private String parseMetadataUrl() {
-        return this.metadataUrl.substring(0, this.metadataUrl.indexOf("@"));
+    private void closeWriter() {
+        if (null == outStream)
+            return;
+
+        if (buf.length() > 0) {
+            try {
+                write(buf);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        try {
+            outStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String parseHdfsWordingDir() {
+        if (this.hdfsWorkingDir.contains("@"))
+            return this.hdfsWorkingDir.substring(0, this.hdfsWorkingDir.indexOf("@"));
+        return hdfsWorkingDir;
     }
 }

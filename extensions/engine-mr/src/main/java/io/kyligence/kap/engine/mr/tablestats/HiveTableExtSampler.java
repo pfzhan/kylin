@@ -38,7 +38,7 @@ import com.google.common.collect.Maps;
 
 public class HiveTableExtSampler {
 
-    public static final int HASH_SEED = 47;
+    public static final int HASH_SEED = 2;
     public static final int SAMPLE_RAW_VALUE_NUMBER = 10;
     public static final String DEFAULT_SAMPLE_RAW_VALUE = "KAP_DEFAULT_SAMPLE_VALUE";
     public static final int DEFAULT_BUFFER_SIZE = 1024 * 1024; // 1 MB
