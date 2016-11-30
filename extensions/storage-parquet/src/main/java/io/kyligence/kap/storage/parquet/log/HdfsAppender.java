@@ -24,7 +24,9 @@
 
 package io.kyligence.kap.storage.parquet.log;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Queue;
@@ -45,6 +47,8 @@ public class HdfsAppender extends AppenderSkeleton {
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     private StringBuilder buf = new StringBuilder();
     FSDataOutputStream outStream = null;
+    BufferedWriter bufferedWriter = null;
+    FileSystem fileSystem = null;
     private int logCount = 0;
     private String outPutPath;
     private String executorId;
@@ -70,7 +74,11 @@ public class HdfsAppender extends AppenderSkeleton {
     public void close() {
         if (appendHdfsService != null)
             appendHdfsService.shutdownNow();
-        closeWriter();
+        try {
+            closeWriter();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         this.closed = true;
     }
 
@@ -79,12 +87,11 @@ public class HdfsAppender extends AppenderSkeleton {
         return true;
     }
 
-    private long write(StringBuilder buf) throws IOException {
-        long size = buf.toString().length();
-        System.out.println(buf.toString());
-        outStream.writeChars(buf.toString());
+    private void write(StringBuilder buf) throws IOException {
+        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(outStream));
+        bw.write(buf.toString());
+        bw.flush();
         outStream.hflush();
-        return size;
     }
 
     private void init() {
@@ -163,28 +170,23 @@ public class HdfsAppender extends AppenderSkeleton {
     private void initWriter(Path outPath) throws IOException {
         closeWriter();
         Configuration conf = new Configuration();
-        FileSystem fs = FileSystem.get(conf);
-        if (fs.exists(outPath))
-            fs.delete(outPath, true);
-        outStream = fs.create(outPath);
+        fileSystem = FileSystem.get(conf);
+        if (fileSystem.exists(outPath))
+            fileSystem.delete(outPath, true);
+        outStream = fileSystem.create(outPath);
+        bufferedWriter = new BufferedWriter(new OutputStreamWriter(outStream));
     }
 
-    private void closeWriter() {
-        if (null == outStream)
+    private void closeWriter() throws IOException {
+        if (null == outStream || null == fileSystem || null == bufferedWriter)
             return;
 
         if (buf.length() > 0) {
-            try {
-                write(buf);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            write(buf);
         }
-        try {
-            outStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        bufferedWriter.close();
+        outStream.close();
+        fileSystem.close();
     }
 
     private boolean updateOutPutDir(LoggingEvent event) {
