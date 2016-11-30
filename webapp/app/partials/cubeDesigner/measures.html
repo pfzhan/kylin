@@ -285,7 +285,7 @@
                             <input type="text" class="form-control" placeholder="Column Length.." ng-if="state.mode=='edit'"
                                    tooltip="group by column length.." tooltip-trigger="focus"
                                    ng-change="refreshGroupBy(convertedColumns,$index,groupby_column);"
-                                   ng-disabled="groupby_column.encoding=='dict'||groupby_column.encoding=='date'||groupby_column.encoding=='time'"
+                                   ng-disabled="groupby_column.encoding.indexOf('dict')>=0||groupby_column.encoding.indexOf('date')>=0||groupby_column.encoding.indexOf('time')>=0"
                                    ng-model="groupby_column.valueLength" class="form-control">
                             <small class="help-block red" ng-show="state.mode=='edit' && groupby_column.encoding=='int' && (groupby_column.valueLength>8 || groupby_column.valueLength<1)">{{dataKylin.alert.check_cube_rowkeys_int}}</small>
                             <span ng-if="state.mode=='view'">{{groupby_column.valueLength}}</span>
