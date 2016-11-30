@@ -36,6 +36,7 @@ import org.apache.http.util.EntityUtils;
 import org.apache.kylin.common.restclient.RestClient;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.common.util.JsonUtil;
+import io.kyligence.kap.rest.request.QueryRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +56,22 @@ public class KAPRESTClient extends RestClient {
     public KAPRESTClient(String uri, String basicAuthentication) {
         super(uri);
         this.basicAuthentication = basicAuthentication;
+    }
+
+    public String massinRequest(String SQL) throws IOException {
+        String url = baseUrl + "/massin/query";
+        HttpPost post = new HttpPost(url);
+        post.addHeader("Authorization", basicAuthentication);
+
+        QueryRequest body = new QueryRequest();
+        body.setProject("DEFAULT");
+        body.setSql(SQL);
+        String requestString = JsonUtil.writeValueAsString(body);
+        post.setEntity(new StringEntity(requestString, ContentType.create("application/json", "UTF-8")));
+        HttpResponse response = client.execute(post);
+        String filterName = EntityUtils.toString(response.getEntity());
+        logger.info("filter name is {}", filterName);
+        return filterName;
     }
 
     public SequenceSQLResponse dispatchSequenceSQLExecutionToWorker(int totalWorkers, int workerID, SequenceSQLRequest originalRequest) throws IOException {

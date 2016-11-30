@@ -108,7 +108,7 @@ public class MassinFilterManager {
         }
     }
 
-    public static String getResourceIdentifer(KapConfig kapConfig, String filterName) {
+    public static String getResourceIdentifier(KapConfig kapConfig, String filterName) {
         return kapConfig.getMassinResourceIdentiferDir() + filterName;
     }
 
@@ -119,7 +119,7 @@ public class MassinFilterManager {
 
         if (filterTableType == Functions.FilterTableType.HDFS) {
             KapConfig kapConfig = KapConfig.wrap(this.kylinConfig);
-            resourcePath = getResourceIdentifer(kapConfig, filterName);
+            resourcePath = getResourceIdentifier(kapConfig, filterName);
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             BufferedOutputStream bos = IOUtils.buffer(baos);

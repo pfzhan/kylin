@@ -58,6 +58,11 @@
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-tool</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-server-base</artifactId>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.kylin</groupId>

@@ -1,0 +1,2 @@
+select LSTG_FORMAT_NAME from test_kylin_fact where massin(LSTG_FORMAT_NAME, '%filter1%') and massin(LSTG_FORMAT_NAME, '%filter2%') group by LSTG_FORMAT_NAME
+select LSTG_FORMAT_NAME from test_kylin_fact where LSTG_FORMAT_NAME in ('Others') group by LSTG_FORMAT_NAME

@@ -1,0 +1,2 @@
+select LSTG_FORMAT_NAME from test_kylin_fact where not massin(LSTG_FORMAT_NAME, '%filter1%') group by LSTG_FORMAT_NAME
+select LSTG_FORMAT_NAME from test_kylin_fact where LSTG_FORMAT_NAME not in ('Others', 'Others_A') group by LSTG_FORMAT_NAME

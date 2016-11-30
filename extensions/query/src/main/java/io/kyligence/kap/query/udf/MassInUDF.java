@@ -48,7 +48,7 @@ public class MassInUDF {
             KapConfig kapConfig = KapConfig.wrap(kylinConfig);
             MassinFilterManager manager = MassinFilterManager.getInstance(kylinConfig);
             try {
-                set = manager.load(Functions.FilterTableType.HDFS, MassinFilterManager.getResourceIdentifer(kapConfig, filterTable));
+                set = manager.load(Functions.FilterTableType.HDFS, MassinFilterManager.getResourceIdentifier(kapConfig, filterTable));
             } catch (IOException e) {
                 logger.error("{}", e);
             }
