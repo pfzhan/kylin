@@ -22,46 +22,37 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.storage.parquet.format.filter;
+package io.kyligence.kap.query.udf;
 
-import org.apache.kylin.dimension.DimensionEncoding;
-import org.apache.kylin.metadata.filter.UDF.MassInValueProvider;
-import org.apache.kylin.metadata.filter.UDF.MassInValueProviderFactory;
+import java.io.IOException;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+import io.kyligence.kap.metadata.filter.MassinFilterManager;
+import org.apache.calcite.linq4j.function.Parameter;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.metadata.filter.function.Functions;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
+public class MassInUDF {
+    private static final Logger logger = LoggerFactory.getLogger(MassInUDF.class);
+    private static final ConcurrentHashMap<String, Set<ByteArray>> FILTER_RESULT_CACHE = new ConcurrentHashMap<>();
 
-public class MassInValueProviderFactoryImpl implements MassInValueProviderFactory {
-    public static final Logger logger = LoggerFactory.getLogger(MassInValueProviderFactoryImpl.class);
-
-    public interface DimEncAware {
-        DimensionEncoding getDimEnc(TblColRef col);
-    }
-
-    private DimEncAware dimEncAware = null;
-
-    public MassInValueProviderFactoryImpl(DimEncAware dimEncAware) {
-        this.dimEncAware = dimEncAware;
-    }
-
-    @Override
-    public MassInValueProvider getProvider(Functions.FilterTableType filterTableType, String filterResourceIdentifier, TblColRef col) {
-        if (dimEncAware != null) {
+    public boolean eval(@Parameter(name = "col") Object col, @Parameter(name = "filterTable") String filterTable) {
+        Set<ByteArray> set = FILTER_RESULT_CACHE.get(filterTable);
+        if (set == null) {
+            KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+            KapConfig kapConfig = KapConfig.wrap(kylinConfig);
+            MassinFilterManager manager = MassinFilterManager.getInstance(kylinConfig);
             try {
-                return new MassInValueProviderImpl(filterTableType, filterResourceIdentifier, dimEncAware.getDimEnc(col));
-            } catch (IOException e) {
-                logger.error("{}", e);
-            }
-        } else {
-            try {
-                return new MassInValueProviderImpl(filterTableType, filterResourceIdentifier, null);
+                set = manager.load(Functions.FilterTableType.HDFS, MassinFilterManager.getResourceIdentifer(kapConfig, filterTable));
             } catch (IOException e) {
                 logger.error("{}", e);
             }
         }
-        return null;
+        return set == null ? false : set.contains(new ByteArray(col.toString().getBytes()));
     }
 }

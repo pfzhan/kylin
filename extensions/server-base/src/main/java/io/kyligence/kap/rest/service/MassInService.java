@@ -24,62 +24,26 @@
 
 package io.kyligence.kap.rest.service;
 
-import java.io.BufferedOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.RandomStringUtils;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.engine.mr.HadoopUtil;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.filter.function.Functions;
-import org.apache.kylin.metadata.model.ExternalFilterDesc;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Component;
+
+import io.kyligence.kap.metadata.filter.MassinFilterManager;
 
 @Component("massInService")
 public class MassInService extends BasicService {
     public String storeMassIn(SQLResponse response, Functions.FilterTableType filterTableType) throws IOException {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        KapConfig kapConfig = KapConfig.wrap(kylinConfig);
-
         List<List<String>> result = response.getResults();
-        // Assumption: one column is needed
-        List<String> oneColumnResult = new ArrayList<>(result.size());
-        for (List<String> line : result) {
-            oneColumnResult.add(line.get(0));
-        }
 
-        String resourcePath = "";
-        String filterName = RandomStringUtils.randomAlphabetic(20);
-
-        if (filterTableType == Functions.FilterTableType.HDFS) {
-            resourcePath = kapConfig.getMassinResourceIdentiferDir() + filterName;
-            FileSystem fs = HadoopUtil.getFileSystem(resourcePath);
-
-            FSDataOutputStream os = fs.create(new Path(resourcePath), false);
-            BufferedOutputStream bos = IOUtils.buffer(os);
-            IOUtils.writeLines(oneColumnResult, "\n", bos, "UTF-8");
-            bos.close();
-        } else {
-            throw new RuntimeException("HBASE_TABLE FilterTableType Not supported yet");
-        }
-
-        ExternalFilterDesc filterDesc = new ExternalFilterDesc();
-        filterDesc.setName(filterName);
-        filterDesc.setUuid(UUID.randomUUID().toString());
-        filterDesc.setFilterResourceIdentifier(resourcePath);
-        filterDesc.setFilterTableType(filterTableType);
-        MetadataManager.getInstance(kylinConfig).saveExternalFilter(filterDesc);
+        MassinFilterManager massinFilterManager = MassinFilterManager.getInstance(kylinConfig);
+        String filterName = massinFilterManager.save(filterTableType, result);
 
         return filterName;
     }
