@@ -39,12 +39,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.spi.LoggingEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class HdfsAppender extends AppenderSkeleton {
-
-    public static final Logger logger = LoggerFactory.getLogger(HdfsAppender.class);
 
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     private StringBuilder buf = new StringBuilder();
@@ -85,7 +81,8 @@ public class HdfsAppender extends AppenderSkeleton {
 
     private long write(StringBuilder buf) throws IOException {
         long size = buf.toString().length();
-        outStream.writeUTF(buf.toString());
+        System.out.println(buf.toString());
+        outStream.writeChars(buf.toString());
         outStream.hflush();
         return size;
     }
@@ -94,7 +91,7 @@ public class HdfsAppender extends AppenderSkeleton {
         this.executorId = UUID.randomUUID().toString();
         if (null == this.applicationId || this.applicationId.trim().isEmpty())
             this.applicationId = "default";
-        logger.info("HdfsAppender Start with App ID: " + applicationId);
+        System.out.println("HdfsAppender Start with App ID: " + applicationId);
 
         logBuffer = new ConcurrentLinkedDeque<>();
 
@@ -122,14 +119,12 @@ public class HdfsAppender extends AppenderSkeleton {
                         Path file = new Path(outPutPath);
                         initWriter(file);
                     }
-
                     buf.append(layout.format(loggingEvent));
                     logCount++;
-
                     if (logCount >= doFlushCount) {
 
                         write(buf);
-                        buf.delete(0, buf.length());
+                        buf = new StringBuilder();
                         logCount = 0;
                     }
                 }
