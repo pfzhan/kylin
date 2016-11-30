@@ -465,7 +465,6 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
 
   function autoScroll(container,scrollTo){
     if(scrollTo&&scrollTo.length){
-      console.log(scrollTo.offset().top - container.offset().top + container.scrollTop());
       container.animate({
         scrollLeft: scrollTo.offset().left - container.offset().left + container.scrollLeft()
       });
