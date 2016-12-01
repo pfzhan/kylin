@@ -43,6 +43,7 @@ mkdir ${working_dir}/base
 current_branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p'| grep -v "detached")
 
 echo "current_branch:$current_branch"
+base_dir=$(cd ${dir}/../../;pwd)
 
 git checkout $base_commit           || exit 1
 git submodule update --init
@@ -52,14 +53,14 @@ if [ "$?" == "1" ]; then
     exit 1
 fi
 
-cp -rf ${dir}/../../kylin/build/bin ${working_dir}/base/                || exit 1
-cp -rf ${dir}/../../kylin/build/conf ${working_dir}/base/               || exit 1
-cp -rf ${dir}/../bin/* ${working_dir}/base/bin/                         || exit 1
-cp -rf ${dir}/../conf/* ${working_dir}/base/conf/                       || exit 1
-cp -rf ${dir}/../../kybot/build/kap/diag.sh ${working_dir}/base/bin/    || exit 1
+cp -rf ${base_dir}/kylin/build/bin ${working_dir}/base/                || exit 1
+cp -rf ${base_dir}/kylin/build/conf ${working_dir}/base/               || exit 1
+cp -rf ${base_dir}/build/bin/* ${working_dir}/base/bin/                         || exit 1
+cp -rf ${base_dir}/build/conf/* ${working_dir}/base/conf/                       || exit 1
+cp -rf ${base_dir}/kybot/build/kap/diag.sh ${working_dir}/base/bin/    || exit 1
 if [[ ${kap_dir} =~ "plus" ]]; then
-    cat ${working_dir}/base/conf/plus/kap-plus.min.properties >> ${working_dir}/base/conf/kap-plus.min.properties       || exit 1
-    cat ${working_dir}/base/conf/plus/kap-plus.prod.properties >> ${working_dir}/base/conf/kap-plus.prod.properties     || exit 1
+    cat ${working_dir}/base/conf/plus/kap-plus.min.properties >> ${working_dir}/base/conf/kap-plus.min.properties
+    cat ${working_dir}/base/conf/plus/kap-plus.prod.properties >> ${working_dir}/base/conf/kap-plus.prod.properties
 fi
 rm -rf ${working_dir}/base/conf/plus
 
