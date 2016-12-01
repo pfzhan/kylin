@@ -106,4 +106,13 @@ public class TableExtController extends BasicController {
         }
         return result;
     }
+
+    @RequestMapping(value = "/{tables}/{project}", method = { RequestMethod.DELETE })
+    @ResponseBody
+    public String unLoadHiveTables(@PathVariable String tables, @PathVariable String project) throws IOException {
+        for (String tableName : tables.split(",")) {
+            tableExtService.getMetaDataManager().removeTableExt(tableName);
+        }
+        return "OK";
+    }
 }
