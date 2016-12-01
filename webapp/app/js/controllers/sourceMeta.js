@@ -168,10 +168,10 @@ KylinApp
 
       $scope.treeOptions = {multiSelection: true};
       $scope.selectedNodes = [];
-      $scope.hiveLimit =  kylinConfig.getHiveLimit();
+      $scope.hiveLimit = kylinConfig.getHiveLimit();
 
       $scope.loadHive = function () {
-        if($scope.hiveLoaded)
+        if ($scope.hiveLoaded)
           return;
         TableService.showHiveDatabases({}, function (databases) {
           $scope.dbNum = databases.length;
@@ -179,7 +179,7 @@ KylinApp
             $scope.hiveMap = {};
             for (var i = 0; i < databases.length; i++) {
               var dbName = databases[i];
-              var hiveData = {"dbname":dbName,"tables":[],"expanded":false};
+              var hiveData = {"dbname": dbName, "tables": [], "expanded": false};
               $scope.hive.push(hiveData);
               $scope.hiveMap[dbName] = i;
             }
@@ -189,123 +189,133 @@ KylinApp
         });
       }
 
-      $scope.showMoreTables = function(hiveTables, node){
+      $scope.showMoreTables = function (hiveTables, node) {
         var shownTimes = parseInt(node.children.length / $scope.hiveLimit);
         var from = $scope.hiveLimit * shownTimes;
         var to = 0;
         var hasMore = false;
-        if(from + $scope.hiveLimit > hiveTables.length) {
+        if (from + $scope.hiveLimit > hiveTables.length) {
           to = hiveTables.length - 1;
         } else {
           to = from + $scope.hiveLimit - 1;
           hasMore = true;
         }
-        if(!angular.isUndefined(node.children[from])){
+        if (!angular.isUndefined(node.children[from])) {
           node.children.pop();
         }
 
-        for(var idx = from; idx <= to; idx++){
-          node.children.push({"label":node.label+'.'+hiveTables[idx],"id":idx-from+1,"children":[]});
+        for (var idx = from; idx <= to; idx++) {
+          node.children.push({"label": node.label + '.' + hiveTables[idx], "id": idx - from + 1, "children": []});
         }
 
-        if(hasMore){
-          var loading = {"label":"","id":65535,"children":[]};
+        if (hasMore) {
+          var loading = {"label": "", "id": 65535, "children": []};
           node.children.push(loading);
         }
       }
 
-      $scope.showAllTables = function(hiveTables, node){
+      $scope.showAllTables = function (hiveTables, node) {
         var shownTimes = parseInt(node.children.length / $scope.hiveLimit);
         var from = $scope.hiveLimit * shownTimes;
         var to = hiveTables.length - 1;
-        if(!angular.isUndefined(node.children[from])){
+        if (!angular.isUndefined(node.children[from])) {
           node.children.pop();
         }
-        for(var idx = from; idx <= to; idx++){
-          node.children.push({"label":node.label+'.'+hiveTables[idx],"id":idx-from+1,"children":[]});
+        for (var idx = from; idx <= to; idx++) {
+          node.children.push({"label": node.label + '.' + hiveTables[idx], "id": idx - from + 1, "children": []});
         }
       }
 
-      $scope.showMoreDatabases = function(){
+      $scope.showMoreDatabases = function () {
         var shownTimes = parseInt($scope.treedata.length / $scope.hiveLimit);
         var from = $scope.hiveLimit * shownTimes;
         var to = 0;
         var hasMore = false;
-        if(from + $scope.hiveLimit > $scope.hive.length) {
+        if (from + $scope.hiveLimit > $scope.hive.length) {
           to = $scope.hive.length - 1;
         } else {
           to = from + $scope.hiveLimit - 1;
           hasMore = true;
         }
-        if(!angular.isUndefined($scope.treedata[from])){
+        if (!angular.isUndefined($scope.treedata[from])) {
           $scope.treedata.pop();
         }
 
-        for(var idx = from; idx <= to; idx++){
+        for (var idx = from; idx <= to; idx++) {
           var children = [];
-          var loading = {"label":"","id":0,"children":[]};
+          var loading = {"label": "", "id": 0, "children": []};
           children.push(loading);
-          $scope.treedata.push({"label":$scope.hive[idx].dbname,"id":idx+1,"children":children,"expanded":false});
+          $scope.treedata.push({
+            "label": $scope.hive[idx].dbname,
+            "id": idx + 1,
+            "children": children,
+            "expanded": false
+          });
         }
 
-        if(hasMore){
-          var loading = {"label":"","id":65535,"children":[0]};
+        if (hasMore) {
+          var loading = {"label": "", "id": 65535, "children": [0]};
           $scope.treedata.push(loading);
         }
       }
 
-      $scope.showAllDatabases = function(){
+      $scope.showAllDatabases = function () {
         var shownTimes = parseInt($scope.treedata.length / $scope.hiveLimit);
         var from = $scope.hiveLimit * shownTimes;
         var to = $scope.hive.length - 1;
 
-        if(!angular.isUndefined($scope.treedata[from])){
+        if (!angular.isUndefined($scope.treedata[from])) {
           $scope.treedata.pop();
         }
 
-        for(var idx = from; idx <= to; idx++){
+        for (var idx = from; idx <= to; idx++) {
           var children = [];
-          var loading = {"label":"","id":0,"children":[]};
+          var loading = {"label": "", "id": 0, "children": []};
           children.push(loading);
-          $scope.treedata.push({"label":$scope.hive[idx].dbname,"id":idx+1,"children":children,"expanded":false});
+          $scope.treedata.push({
+            "label": $scope.hive[idx].dbname,
+            "id": idx + 1,
+            "children": children,
+            "expanded": false
+          });
         }
       }
 
-      $scope.showMoreClicked = function($parentNode){
-        if($parentNode == null){
+      $scope.showMoreClicked = function ($parentNode) {
+        if ($parentNode == null) {
           $scope.showMoreDatabases();
         } else {
-          $scope.showMoreTables($scope.hive[$scope.hiveMap[$parentNode.label]].tables,$parentNode);
+          $scope.showMoreTables($scope.hive[$scope.hiveMap[$parentNode.label]].tables, $parentNode);
         }
       }
 
-      $scope.showAllClicked = function($parentNode){
-        if($parentNode == null){
+      $scope.showAllClicked = function ($parentNode) {
+        if ($parentNode == null) {
           $scope.showAllDatabases();
         } else {
-          $scope.showAllTables($scope.hive[$scope.hiveMap[$parentNode.label]].tables,$parentNode);
+          $scope.showAllTables($scope.hive[$scope.hiveMap[$parentNode.label]].tables, $parentNode);
         }
       }
 
-      $scope.showToggle = function(node) {
-        if(node.expanded == false){
-          TableService.showHiveTables({"database": node.label},function (hive_tables){
+      $scope.showToggle = function (node) {
+        if (node.expanded == false) {
+          TableService.showHiveTables({"database": node.label}, function (hive_tables) {
             var tables = [];
             for (var i = 0; i < hive_tables.length; i++) {
               tables.push(hive_tables[i]);
             }
             $scope.hive[$scope.hiveMap[node.label]].tables = tables;
-            $scope.showMoreTables(tables,node);
+            $scope.showMoreTables(tables, node);
             node.expanded = true;
           });
         }
       }
 
-      $scope.showSelected = function(node) {
+      $scope.showSelected = function (node) {
 
       }
 
-      if(angular.isUndefined($scope.hive) || angular.isUndefined($scope.hiveLoaded) || angular.isUndefined($scope.treedata) ){
+      if (angular.isUndefined($scope.hive) || angular.isUndefined($scope.hiveLoaded) || angular.isUndefined($scope.treedata)) {
         $scope.hive = [];
         $scope.hiveLoaded = false;
         $scope.treedata = [];
@@ -313,13 +323,11 @@ KylinApp
       }
 
 
-
-
       $scope.add = function () {
 
-        if($scope.tableNames.length === 0 && $scope.selectedNodes.length > 0) {
-          for(var i = 0; i <  $scope.selectedNodes.length; i++){
-            if($scope.selectedNodes[i].label.indexOf(".") >= 0){
+        if ($scope.tableNames.length === 0 && $scope.selectedNodes.length > 0) {
+          for (var i = 0; i < $scope.selectedNodes.length; i++) {
+            if ($scope.selectedNodes[i].label.indexOf(".") >= 0) {
               $scope.tableNames += ($scope.selectedNodes[i].label) += ',';
             }
           }
@@ -339,13 +347,13 @@ KylinApp
         loadingRequest.show();
         TableExtService.loadHiveTable({tableName: $scope.tableNames, action: projectName}, {}, function (result) {
           var loadTableInfo = "";
-          for(var tableName in result){
-            if(VdmUtil.isNotExtraKey(result,tableName)){
+          for (var tableName in result) {
+            if (VdmUtil.isNotExtraKey(result, tableName)) {
               loadTableInfo += "\n" + tableName;
             }
           }
-          if(loadTableInfo){
-            kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_table_been_synchronized+loadTableInfo);
+          if (loadTableInfo) {
+            kylinCommon.success_alert($scope.dataKylin.alert.success, $scope.dataKylin.alert.success_table_been_synchronized + loadTableInfo);
           }
           loadingRequest.hide();
           scope.aceSrcTbLoaded(true);
@@ -357,8 +365,13 @@ KylinApp
       }
 
 
-    $scope.remove = function () {
-        if ($scope.tableNames.trim() === "") {
+      $scope.removeList = function () {
+        $scope.cancel();
+        removeTablesByNameList($scope.tableNames);
+      };
+
+      function removeTablesByNameList(tableNames) {
+        if (tableNames && tableNames.trim() === "") {
           SweetAlert.swal('', $scope.dataKylin.alert.tip_to_synchronize, 'info');
           return;
         }
@@ -367,23 +380,21 @@ KylinApp
           SweetAlert.swal('', $scope.dataKylin.alert.tip_choose_project, 'info');
           return;
         }
-
-        $scope.cancel();
         loadingRequest.show();
-        TableService.unLoadHiveTable({tableName: $scope.tableNames, action: projectName}, {}, function (result) {
-          var removedTableInfo = '';
+        TableService.unLoadHiveTable({tableName: tableNames, action: projectName}, {}, function (result) {
+          var removedTables = '';
           angular.forEach(result['result.unload.success'], function (table) {
-            removedTableInfo +=  table+',';
+            removedTables += table + ',';
           })
-          TableExtService.unLoadHiveTable({tableName: removedTableInfo, action: projectName}, {}, function (data) {
-            var removedTableInfo ='';
+          TableExtService.unLoadHiveTable({tableName: removedTables, action: projectName}, {}, function (data) {
+            var removedTableInfo = '';
             angular.forEach(result['result.unload.success'], function (table) {
-              removedTableInfo += '\n'+table;
+              removedTableInfo += '\n' + table;
             })
-            kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.tip_partial_loaded_body_part_one+removedTableInfo);
+            kylinCommon.success_alert($scope.dataKylin.alert.success, $scope.dataKylin.alert.tip_partial_loaded_body_part_one + removedTableInfo);
             loadingRequest.hide();
             scope.aceSrcTbLoaded(true);
-          },function(e){
+          }, function (e) {
             kylinCommon.error_default(e);
             loadingRequest.hide();
           })
@@ -392,535 +403,539 @@ KylinApp
           loadingRequest.hide();
         })
       }
-    };
 
 
-    //streaming model
-    $scope.openStreamingSourceModal = function () {
-      if(!$scope.projectModel.selectedProject){
-        SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.tip_select_project, 'info');
-        return;
-      }
-      $modal.open({
-        templateUrl: 'addStreamingSource.html',
-        controller: StreamingSourceCtrl,
-        backdrop : 'static',
-        resolve: {
-          tableNames: function () {
-            return $scope.tableNames;
-          },
-          projectName: function () {
-            return $scope.projectModel.selectedProject;
-          },
-          scope: function () {
-            return $scope;
-          }
-        }
-      });
-    };
-
-    $scope.editStreamingConfig = function(tableName){
-      var modalInstance = $modal.open({
-        templateUrl: 'editStreamingSource.html',
-        controller: EditStreamingSourceCtrl,
-        backdrop : 'static',
-        resolve: {
-          tableNames: function () {
-            return $scope.tableNames;
-          },
-          projectName: function () {
-            return $scope.projectModel.selectedProject;
-          },
-          tableName: function(){
-            return tableName;
-          },
-          scope: function () {
-            return $scope;
-          }
-        }
-      });
-
-      modalInstance.result.then(function () {
-        $scope.$broadcast('StreamingConfigEdited');
-      }, function () {
-        $scope.$broadcast('StreamingConfigEdited');
-      });
-
-
-    }
-
-
-    var EditStreamingSourceCtrl = function ($scope, language, $interpolate, $templateCache, tableName, $modalInstance, tableNames, MessageService, projectName, scope, tableConfig,cubeConfig,StreamingModel,StreamingService) {
-
-
-      $scope.dataKylin = language.getDataKylin();
-
-      $scope.state = {
-        tableName : tableName,
-        mode: "edit",
-        target:"kfkConfig"
-      }
-
-      $scope.cancel = function () {
-        $modalInstance.dismiss('cancel');
-      };
-
-      $scope.projectName = projectName;
-      $scope.streamingMeta = StreamingModel.createStreamingConfig();
-      $scope.kafkaMeta = StreamingModel.createKafkaConfig();
-      $scope.updateStreamingMeta = function(val){
-        $scope.streamingMeta = val;
-      }
-      $scope.updateKafkaMeta = function(val){
-        $scope.kafkaMeta = val;
-      }
-
-      $scope.streamingResultTmpl = function (notification) {
-        // Get the static notification template.
-        var tmpl = notification.type == 'success' ? 'streamingResultSuccess.html' : 'streamingResultError.html';
-        return $interpolate($templateCache.get(tmpl))(notification);
-      };
-
-      $scope.updateStreamingSchema = function(){
-        StreamingService.update({}, {
-          project: $scope.projectName,
-          tableData:angular.toJson(""),
-          streamingConfig: angular.toJson($scope.streamingMeta),
-          kafkaConfig: angular.toJson($scope.kafkaMeta)
-        }, function (request) {
-          if (request.successful) {
-            SweetAlert.swal('', 'Updated the streaming successfully.', 'success');
-            $scope.cancel();
-          } else {
-            var message = request.message;
-            var msg = !!(message) ? message : 'Failed to take action.';
-            MessageService.sendMsg($scope.streamingResultTmpl({
-              'text': msg,
-              'streamingSchema': angular.toJson($scope.streamingMeta,true),
-              'kfkSchema': angular.toJson($scope.kafkaMeta,true)
-            }), 'error', {}, true, 'top_center');
-          }
-          loadingRequest.hide();
-        }, function (e) {
-          if (e.data && e.data.exception) {
-            var message = e.data.exception;
-            var msg = !!(message) ? message : 'Failed to take action.';
-            MessageService.sendMsg($scope.streamingResultTmpl({
-              'text': msg,
-              'streamingSchema': angular.toJson($scope.streamingMeta,true),
-              'kfkSchema': angular.toJson($scope.kafkaMeta,true)
-            }), 'error', {}, true, 'top_center');
-          } else {
-            MessageService.sendMsg($scope.streamingResultTmpl({
-              'text': msg,
-              'streamingSchema': angular.toJson($scope.streamingMeta,true),
-              'kfkSchema': angular.toJson($scope.kafkaMeta,true)
-            }), 'error', {}, true, 'top_center');
-          }
-          //end loading
-          loadingRequest.hide();
-
-        })
-      }
-
-    }
-
-
-
-
-    var StreamingSourceCtrl = function ($scope, $location,$interpolate,$templateCache, $modalInstance, tableNames, MessageService, projectName, scope, tableConfig,cubeConfig,StreamingModel,StreamingService,language,kylinCommon) {
-      $scope.dataKylin = language.getDataKylin();
-      $scope.cubeState={
-        "isStreaming": false
-      }
-      $scope.state={
-        'mode':'edit'
-      }
-
-      $scope.streamingMeta = StreamingModel.createStreamingConfig();
-      $scope.kafkaMeta = StreamingModel.createKafkaConfig();
-
-
-      $scope.steps = {
-        curStep:1
-      };
-
-      $scope.streamingCfg = {
-        parseTsColumn:"{{}}",
-        columnOptions:[]
-      }
-
-      $scope.previewStep = function(){
-        $scope.steps.curStep--;
-      }
-
-      $scope.nextStep = function(){
-
-        $scope.checkFailed = false;
-
-        //check form
-        $scope.form['setStreamingSchema'].$submitted = true;
-        if(!$scope.streaming.sourceSchema||$scope.streaming.sourceSchema===""){
-          $scope.checkFailed = true;
-        }
-
-        if(!$scope.table.name||$scope.table.name===""){
-          $scope.checkFailed = true;
-        }
-
-        $scope.prepareNextStep();
-
-        if(!$scope.rule.timestampColumnExist){
-          $scope.checkFailed = true;
-        }
-
-        if($scope.checkFailed){
+      //streaming model
+      $scope.openStreamingSourceModal = function () {
+        if (!$scope.projectModel.selectedProject) {
+          SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.tip_select_project, 'info');
           return;
         }
-
-        $scope.steps.curStep++;
-      }
-
-      $scope.prepareNextStep = function(){
-        $scope.streamingCfg.columnOptions = [];
-        $scope.rule.timestampColumnExist = false;
-        angular.forEach($scope.columnList,function(column,$index){
-          if (column.checked == "Y" && column.fromSource=="Y" && column.type == "timestamp") {
-            $scope.streamingCfg.columnOptions.push(column.name);
-            $scope.rule.timestampColumnExist = true;
-          }
-        })
-
-        if($scope.streamingCfg.columnOptions.length==1){
-          $scope.streamingCfg.parseTsColumn = $scope.streamingCfg.columnOptions[0];
-          $scope.kafkaMeta.parserProperties = "tsColName="+$scope.streamingCfg.parseTsColumn;
-        }
-        if($scope.kafkaMeta.parserProperties!==''){
-          $scope.state.isParserHeaderOpen = false;
-        }else{
-          $scope.state.isParserHeaderOpen = true;
-        }
-      }
-
-      $scope.projectName = projectName;
-      $scope.tableConfig = tableConfig;
-      $scope.cubeConfig = cubeConfig;
-      $scope.streaming = {
-        sourceSchema: '',
-        'parseResult': {}
-      }
-
-      $scope.table = {
-        name: '',
-        sourceValid:false,
-        schemaChecked:false
-      }
-
-      $scope.cancel = function () {
-        $modalInstance.dismiss('cancel');
-      };
-
-      $scope.streamingOnLoad = function () {
-
-      }
-
-      $scope.columnList = [];
-
-      $scope.streamingOnChange = function () {
-        $scope.table.schemaChecked = true;
-        try {
-          $scope.streaming.parseResult = JSON.parse($scope.streaming.sourceSchema);
-        } catch (error) {
-          $scope.table.sourceValid = false;
-          return;
-        }
-        $scope.table.sourceValid = true;
-        //streaming table data change structure
-        var columnList=[]
-        function changeObjTree(obj,base){
-          base=base?base+"_":"";
-          for(var i in obj){
-            if(Object.prototype.toString.call(obj[i])=="[object Object]"){
-              changeObjTree(obj[i],base+i);
-              continue;
+        $modal.open({
+          templateUrl: 'addStreamingSource.html',
+          controller: StreamingSourceCtrl,
+          backdrop: 'static',
+          resolve: {
+            tableNames: function () {
+              return $scope.tableNames;
+            },
+            projectName: function () {
+              return $scope.projectModel.selectedProject;
+            },
+            scope: function () {
+              return $scope;
             }
-            columnList.push(createNewObj(base+i,obj[i]));
+          }
+        });
+      };
+
+      $scope.editStreamingConfig = function (tableName) {
+        var modalInstance = $modal.open({
+          templateUrl: 'editStreamingSource.html',
+          controller: EditStreamingSourceCtrl,
+          backdrop: 'static',
+          resolve: {
+            tableNames: function () {
+              return $scope.tableNames;
+            },
+            projectName: function () {
+              return $scope.projectModel.selectedProject;
+            },
+            tableName: function () {
+              return tableName;
+            },
+            scope: function () {
+              return $scope;
+            }
+          }
+        });
+
+        modalInstance.result.then(function () {
+          $scope.$broadcast('StreamingConfigEdited');
+        }, function () {
+          $scope.$broadcast('StreamingConfigEdited');
+        });
+
+
+      }
+
+
+      var EditStreamingSourceCtrl = function ($scope, language, $interpolate, $templateCache, tableName, $modalInstance, tableNames, MessageService, projectName, scope, tableConfig, cubeConfig, StreamingModel, StreamingService) {
+
+
+        $scope.dataKylin = language.getDataKylin();
+
+        $scope.state = {
+          tableName: tableName,
+          mode: "edit",
+          target: "kfkConfig"
+        }
+
+        $scope.cancel = function () {
+          $modalInstance.dismiss('cancel');
+        };
+
+        $scope.projectName = projectName;
+        $scope.streamingMeta = StreamingModel.createStreamingConfig();
+        $scope.kafkaMeta = StreamingModel.createKafkaConfig();
+        $scope.updateStreamingMeta = function (val) {
+          $scope.streamingMeta = val;
+        }
+        $scope.updateKafkaMeta = function (val) {
+          $scope.kafkaMeta = val;
+        }
+
+        $scope.streamingResultTmpl = function (notification) {
+          // Get the static notification template.
+          var tmpl = notification.type == 'success' ? 'streamingResultSuccess.html' : 'streamingResultError.html';
+          return $interpolate($templateCache.get(tmpl))(notification);
+        };
+
+        $scope.updateStreamingSchema = function () {
+          StreamingService.update({}, {
+            project: $scope.projectName,
+            tableData: angular.toJson(""),
+            streamingConfig: angular.toJson($scope.streamingMeta),
+            kafkaConfig: angular.toJson($scope.kafkaMeta)
+          }, function (request) {
+            if (request.successful) {
+              SweetAlert.swal('', 'Updated the streaming successfully.', 'success');
+              $scope.cancel();
+            } else {
+              var message = request.message;
+              var msg = !!(message) ? message : 'Failed to take action.';
+              MessageService.sendMsg($scope.streamingResultTmpl({
+                'text': msg,
+                'streamingSchema': angular.toJson($scope.streamingMeta, true),
+                'kfkSchema': angular.toJson($scope.kafkaMeta, true)
+              }), 'error', {}, true, 'top_center');
+            }
+            loadingRequest.hide();
+          }, function (e) {
+            if (e.data && e.data.exception) {
+              var message = e.data.exception;
+              var msg = !!(message) ? message : 'Failed to take action.';
+              MessageService.sendMsg($scope.streamingResultTmpl({
+                'text': msg,
+                'streamingSchema': angular.toJson($scope.streamingMeta, true),
+                'kfkSchema': angular.toJson($scope.kafkaMeta, true)
+              }), 'error', {}, true, 'top_center');
+            } else {
+              MessageService.sendMsg($scope.streamingResultTmpl({
+                'text': msg,
+                'streamingSchema': angular.toJson($scope.streamingMeta, true),
+                'kfkSchema': angular.toJson($scope.kafkaMeta, true)
+              }), 'error', {}, true, 'top_center');
+            }
+            //end loading
+            loadingRequest.hide();
+
+          })
+        }
+
+      }
+
+
+      var StreamingSourceCtrl = function ($scope, $location, $interpolate, $templateCache, $modalInstance, tableNames, MessageService, projectName, scope, tableConfig, cubeConfig, StreamingModel, StreamingService, language, kylinCommon) {
+        $scope.dataKylin = language.getDataKylin();
+        $scope.cubeState = {
+          "isStreaming": false
+        }
+        $scope.state = {
+          'mode': 'edit'
+        }
+
+        $scope.streamingMeta = StreamingModel.createStreamingConfig();
+        $scope.kafkaMeta = StreamingModel.createKafkaConfig();
+
+
+        $scope.steps = {
+          curStep: 1
+        };
+
+        $scope.streamingCfg = {
+          parseTsColumn: "{{}}",
+          columnOptions: []
+        }
+
+        $scope.previewStep = function () {
+          $scope.steps.curStep--;
+        }
+
+        $scope.nextStep = function () {
+
+          $scope.checkFailed = false;
+
+          //check form
+          $scope.form['setStreamingSchema'].$submitted = true;
+          if (!$scope.streaming.sourceSchema || $scope.streaming.sourceSchema === "") {
+            $scope.checkFailed = true;
+          }
+
+          if (!$scope.table.name || $scope.table.name === "") {
+            $scope.checkFailed = true;
+          }
+
+          $scope.prepareNextStep();
+
+          if (!$scope.rule.timestampColumnExist) {
+            $scope.checkFailed = true;
+          }
+
+          if ($scope.checkFailed) {
+            return;
+          }
+
+          $scope.steps.curStep++;
+        }
+
+        $scope.prepareNextStep = function () {
+          $scope.streamingCfg.columnOptions = [];
+          $scope.rule.timestampColumnExist = false;
+          angular.forEach($scope.columnList, function (column, $index) {
+            if (column.checked == "Y" && column.fromSource == "Y" && column.type == "timestamp") {
+              $scope.streamingCfg.columnOptions.push(column.name);
+              $scope.rule.timestampColumnExist = true;
+            }
+          })
+
+          if ($scope.streamingCfg.columnOptions.length == 1) {
+            $scope.streamingCfg.parseTsColumn = $scope.streamingCfg.columnOptions[0];
+            $scope.kafkaMeta.parserProperties = "tsColName=" + $scope.streamingCfg.parseTsColumn;
+          }
+          if ($scope.kafkaMeta.parserProperties !== '') {
+            $scope.state.isParserHeaderOpen = false;
+          } else {
+            $scope.state.isParserHeaderOpen = true;
           }
         }
 
-        function checkValType(val,key){
-          var defaultType;
-          if(typeof val ==="number"){
-            if(/id/i.test(key)&&val.toString().indexOf(".")==-1){
-              defaultType="int";
-            }else if(val <= 2147483647){
-              if(val.toString().indexOf(".")!=-1){
-                defaultType="decimal";
-              }else{
-                defaultType="int";
+        $scope.projectName = projectName;
+        $scope.tableConfig = tableConfig;
+        $scope.cubeConfig = cubeConfig;
+        $scope.streaming = {
+          sourceSchema: '',
+          'parseResult': {}
+        }
+
+        $scope.table = {
+          name: '',
+          sourceValid: false,
+          schemaChecked: false
+        }
+
+        $scope.cancel = function () {
+          $modalInstance.dismiss('cancel');
+        };
+
+        $scope.streamingOnLoad = function () {
+
+        }
+
+        $scope.columnList = [];
+
+        $scope.streamingOnChange = function () {
+          $scope.table.schemaChecked = true;
+          try {
+            $scope.streaming.parseResult = JSON.parse($scope.streaming.sourceSchema);
+          } catch (error) {
+            $scope.table.sourceValid = false;
+            return;
+          }
+          $scope.table.sourceValid = true;
+          //streaming table data change structure
+          var columnList = []
+
+          function changeObjTree(obj, base) {
+            base = base ? base + "_" : "";
+            for (var i in obj) {
+              if (Object.prototype.toString.call(obj[i]) == "[object Object]") {
+                changeObjTree(obj[i], base + i);
+                continue;
               }
-            }else{
-              defaultType="timestamp";
+              columnList.push(createNewObj(base + i, obj[i]));
             }
-          }else if(typeof val ==="string"){
-            if(!isNaN((new Date(val)).getFullYear())&&typeof ((new Date(val)).getFullYear())==="number"){
-              defaultType="date";
-            }else{
-              defaultType="varchar(256)";
-            }
-          }else if(Object.prototype.toString.call(val)=="[object Array]"){
-            defaultType="varchar(256)";
-          }else if (typeof val ==="boolean"){
-            defaultType="boolean";
           }
-          return defaultType;
-        }
 
-        function createNewObj(key,val){
-          var obj={};
-          obj.name=key;
-          obj.type=checkValType(val,key);
-          obj.fromSource="Y";
-          obj.checked="Y";
-          if(Object.prototype.toString.call(val)=="[object Array]"){
-            obj.checked="N";
+          function checkValType(val, key) {
+            var defaultType;
+            if (typeof val === "number") {
+              if (/id/i.test(key) && val.toString().indexOf(".") == -1) {
+                defaultType = "int";
+              } else if (val <= 2147483647) {
+                if (val.toString().indexOf(".") != -1) {
+                  defaultType = "decimal";
+                } else {
+                  defaultType = "int";
+                }
+              } else {
+                defaultType = "timestamp";
+              }
+            } else if (typeof val === "string") {
+              if (!isNaN((new Date(val)).getFullYear()) && typeof ((new Date(val)).getFullYear()) === "number") {
+                defaultType = "date";
+              } else {
+                defaultType = "varchar(256)";
+              }
+            } else if (Object.prototype.toString.call(val) == "[object Array]") {
+              defaultType = "varchar(256)";
+            } else if (typeof val === "boolean") {
+              defaultType = "boolean";
+            }
+            return defaultType;
           }
-          return obj;
-        }
-        changeObjTree($scope.streaming.parseResult);
+
+          function createNewObj(key, val) {
+            var obj = {};
+            obj.name = key;
+            obj.type = checkValType(val, key);
+            obj.fromSource = "Y";
+            obj.checked = "Y";
+            if (Object.prototype.toString.call(val) == "[object Array]") {
+              obj.checked = "N";
+            }
+            return obj;
+          }
+
+          changeObjTree($scope.streaming.parseResult);
 
           var timeMeasure = $scope.cubeConfig.streamingAutoGenerateMeasure;
-          for(var i = 0;i<timeMeasure.length;i++){
+          for (var i = 0; i < timeMeasure.length; i++) {
             var defaultCheck = 'Y';
             columnList.push({
               'name': timeMeasure[i].name,
               'checked': defaultCheck,
               'type': timeMeasure[i].type,
-              'fromSource':'N'
+              'fromSource': 'N'
             });
           }
 
-        var firstCommit = false;
-        if($scope.columnList.length==0){
-          firstCommit = true;
+          var firstCommit = false;
+          if ($scope.columnList.length == 0) {
+            firstCommit = true;
+          }
+
+          if (!firstCommit) {
+            angular.forEach(columnList, function (item) {
+              for (var i = 0; i < $scope.columnList.length; i++) {
+                if ($scope.columnList[i].name == item.name) {
+                  item.checked = $scope.columnList[i].checked;
+                  item.type = $scope.columnList[i].type;
+                  item.fromSource = $scope.columnList[i].fromSource;
+                  break;
+                }
+              }
+            })
+          }
+          $scope.columnList = columnList;
         }
 
-        if(!firstCommit){
-          angular.forEach(columnList,function(item){
-            for(var i=0;i<$scope.columnList.length;i++){
-              if($scope.columnList[i].name==item.name){
-                item.checked = $scope.columnList[i].checked;
-                item.type = $scope.columnList[i].type;
-                item.fromSource = $scope.columnList[i].fromSource;
-                break;
+
+        $scope.streamingResultTmpl = function (notification) {
+          // Get the static notification template.
+          var tmpl = notification.type == 'success' ? 'streamingResultSuccess.html' : 'streamingResultError.html';
+          return $interpolate($templateCache.get(tmpl))(notification);
+        };
+
+
+        $scope.form = {};
+        $scope.rule = {
+          'timestampColumnExist': false
+        }
+
+        $scope.modelMode == "addStreaming";
+
+        $scope.syncStreamingSchema = function () {
+
+          $scope.form['cube_streaming_form'].$submitted = true;
+
+          if ($scope.form['cube_streaming_form'].parserName.$invalid || $scope.form['cube_streaming_form'].parserProperties.$invalid) {
+            $scope.state.isParserHeaderOpen = true;
+          }
+
+          if ($scope.form['cube_streaming_form'].$invalid) {
+            return;
+          }
+
+          var columns = [];
+          angular.forEach($scope.columnList, function (column, $index) {
+            if (column.checked == "Y") {
+              var columnInstance = {
+                "id": ++$index,
+                "name": column.name,
+                "datatype": column.type
               }
+              columns.push(columnInstance);
             }
           })
+
+
+          $scope.tableData = {
+            "name": $scope.table.name,
+            "source_type": 1,
+            "columns": columns,
+            'database': 'Default'
+          }
+
+
+          $scope.kafkaMeta.name = $scope.table.name
+          $scope.streamingMeta.name = $scope.table.name;
+
+          SweetAlert.swal({
+            title: "",
+            text: $scope.dataKylin.alert.tip_save_streaming_table,
+            showCancelButton: true,
+            confirmButtonColor: '#DD6B55',
+            confirmButtonText: "Yes",
+            closeOnConfirm: true
+          }, function (isConfirm) {
+            if (isConfirm) {
+              loadingRequest.show();
+
+              if ($scope.modelMode == "editExistStreaming") {
+                StreamingService.update({}, {
+                  project: $scope.projectName,
+                  tableData: angular.toJson($scope.tableData),
+                  streamingConfig: angular.toJson($scope.streamingMeta),
+                  kafkaConfig: angular.toJson($scope.kafkaMeta)
+                }, function (request) {
+                  if (request.successful) {
+                    SweetAlert.swal('', $scope.dataKylin.alert.success_updated_streaming, 'success');
+                    $location.path("/models");
+                  } else {
+                    var message = request.message;
+                    var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
+                    MessageService.sendMsg($scope.streamingResultTmpl({
+                      'text': msg,
+                      'streamingSchema': angular.toJson($scope.streamingMeta, true),
+                      'kfkSchema': angular.toJson($scope.kafkaMeta, true)
+                    }), 'error', {}, true, 'top_center');
+                  }
+                  loadingRequest.hide();
+                }, function (e) {
+                  if (e.data && e.data.exception) {
+                    var message = e.data.exception;
+                    var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
+                    MessageService.sendMsg($scope.streamingResultTmpl({
+                      'text': msg,
+                      'streamingSchema': angular.toJson($scope.streamingMeta, true),
+                      'kfkSchema': angular.toJson($scope.kafkaMeta, true)
+                    }), 'error', {}, true, 'top_center');
+                  } else {
+                    MessageService.sendMsg($scope.streamingResultTmpl({
+                      'text': msg,
+                      'streamingSchema': angular.toJson($scope.streamingMeta, true),
+                      'kfkSchema': angular.toJson($scope.kafkaMeta, true)
+                    }), 'error', {}, true, 'top_center');
+                  }
+                  //end loading
+                  loadingRequest.hide();
+
+                })
+              } else {
+                StreamingService.save({}, {
+                  project: $scope.projectName,
+                  tableData: angular.toJson($scope.tableData),
+                  streamingConfig: angular.toJson($scope.streamingMeta),
+                  kafkaConfig: angular.toJson($scope.kafkaMeta)
+                }, function (request) {
+                  if (request.successful) {
+                    SweetAlert.swal('', $scope.dataKylin.alert.tip_created_streaming, 'success');
+                    $scope.cancel();
+                    scope.aceSrcTbLoaded(true);
+                  } else {
+                    var message = request.message;
+                    var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
+                    MessageService.sendMsg($scope.streamingResultTmpl({
+                      'text': msg,
+                      'streamingSchema': angular.toJson($scope.streamingMeta, true),
+                      'kfkSchema': angular.toJson($scope.kafkaMeta, true)
+                    }), 'error', {}, true, 'top_center');
+                  }
+                  loadingRequest.hide();
+                }, function (e) {
+                  if (e.data && e.data.exception) {
+                    var message = e.data.exception;
+                    var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
+
+                    MessageService.sendMsg($scope.streamingResultTmpl({
+                      'text': msg,
+                      'streamingSchema': angular.toJson($scope.streamingMeta, true),
+                      'kfkSchema': angular.toJson($scope.kafkaMeta, true)
+                    }), 'error', {}, true, 'top_center');
+                  } else {
+                    MessageService.sendMsg($scope.streamingResultTmpl({
+                      'text': msg,
+                      'streamingSchema': angular.toJson($scope.streamingMeta, true),
+                      'kfkSchema': angular.toJson($scope.kafkaMeta, true)
+                    }), 'error', {}, true, 'top_center');
+                  }
+                  //end loading
+                  loadingRequest.hide();
+                })
+              }
+
+            }
+          });
         }
-        $scope.columnList = columnList;
-      }
 
-
-      $scope.streamingResultTmpl = function (notification) {
-        // Get the static notification template.
-        var tmpl = notification.type == 'success' ? 'streamingResultSuccess.html' : 'streamingResultError.html';
-        return $interpolate($templateCache.get(tmpl))(notification);
       };
+      $scope.calcSampleData = function () {
+        loadingRequest.show();
+        var tableName = $scope.tableModel.selectedSrcTable.database + '.' + $scope.tableModel.selectedSrcTable.name;
 
-
-      $scope.form={};
-      $scope.rule={
-        'timestampColumnExist':false
-      }
-
-      $scope.modelMode == "addStreaming";
-
-      $scope.syncStreamingSchema = function () {
-
-        $scope.form['cube_streaming_form'].$submitted = true;
-
-        if($scope.form['cube_streaming_form'].parserName.$invalid || $scope.form['cube_streaming_form'].parserProperties.$invalid) {
-          $scope.state.isParserHeaderOpen = true;
-        }
-
-        if($scope.form['cube_streaming_form'].$invalid){
-            return;
-        }
-
-        var columns = [];
-        angular.forEach($scope.columnList,function(column,$index){
-          if (column.checked == "Y") {
-            var columnInstance = {
-              "id": ++$index,
-              "name": column.name,
-              "datatype": column.type
-            }
-            columns.push(columnInstance);
-          }
-        })
-
-
-        $scope.tableData = {
-          "name": $scope.table.name,
-          "source_type":1,
-          "columns": columns,
-          'database':'Default'
-        }
-
-
-        $scope.kafkaMeta.name = $scope.table.name
-        $scope.streamingMeta.name = $scope.table.name;
-
-        SweetAlert.swal({
-          title:"",
-          text: $scope.dataKylin.alert.tip_save_streaming_table,
-          showCancelButton: true,
-          confirmButtonColor: '#DD6B55',
-          confirmButtonText: "Yes",
-          closeOnConfirm: true
-        }, function (isConfirm) {
-          if (isConfirm) {
-            loadingRequest.show();
-
-            if ($scope.modelMode == "editExistStreaming") {
-              StreamingService.update({}, {
-                project: $scope.projectName,
-                tableData:angular.toJson($scope.tableData),
-                streamingConfig: angular.toJson($scope.streamingMeta),
-                kafkaConfig: angular.toJson($scope.kafkaMeta)
-              }, function (request) {
-                if (request.successful) {
-                  SweetAlert.swal('', $scope.dataKylin.alert.success_updated_streaming, 'success');
-                  $location.path("/models");
-                } else {
-                  var message = request.message;
-                  var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
-                  MessageService.sendMsg($scope.streamingResultTmpl({
-                    'text': msg,
-                    'streamingSchema': angular.toJson($scope.streamingMeta,true),
-                    'kfkSchema': angular.toJson($scope.kafkaMeta,true)
-                  }), 'error', {}, true, 'top_center');
-                }
-                loadingRequest.hide();
-              }, function (e) {
-                if (e.data && e.data.exception) {
-                  var message = e.data.exception;
-                  var msg = !!(message) ? message :  $scope.dataKylin.alert.error_info;
-                  MessageService.sendMsg($scope.streamingResultTmpl({
-                    'text': msg,
-                    'streamingSchema': angular.toJson($scope.streamingMeta,true),
-                    'kfkSchema': angular.toJson($scope.kafkaMeta,true)
-                  }), 'error', {}, true, 'top_center');
-                } else {
-                  MessageService.sendMsg($scope.streamingResultTmpl({
-                    'text': msg,
-                    'streamingSchema': angular.toJson($scope.streamingMeta,true),
-                    'kfkSchema': angular.toJson($scope.kafkaMeta,true)
-                  }), 'error', {}, true, 'top_center');
-                }
-                //end loading
-                loadingRequest.hide();
-
-              })
+        $scope.getSampleJobStatus(tableName, function () {
+          TableExtService.doSample({
+            projectName: $scope.projectModel.selectedProject,
+            tableName: tableName,
+            action: 'sample_job'
+          }, {}, function () {
+            loadingRequest.hide();
+            SweetAlert.swal('', $scope.dataKylin.alert.collectStaticsSuccess, 'success');
+          }, function (e) {
+            var message;
+            if (e.data && e.data.exception) {
+              message = e.data.exception;
             } else {
-              StreamingService.save({}, {
-                project: $scope.projectName,
-                tableData:angular.toJson($scope.tableData),
-                streamingConfig: angular.toJson($scope.streamingMeta),
-                kafkaConfig: angular.toJson($scope.kafkaMeta)
-              }, function (request) {
-                if (request.successful) {
-                  SweetAlert.swal('', $scope.dataKylin.alert.tip_created_streaming, 'success');
-                  $scope.cancel();
-                  scope.aceSrcTbLoaded(true);
-                } else {
-                  var message = request.message;
-                  var msg = !!(message) ? message :  $scope.dataKylin.alert.error_info;
-                  MessageService.sendMsg($scope.streamingResultTmpl({
-                    'text': msg,
-                    'streamingSchema': angular.toJson($scope.streamingMeta,true),
-                    'kfkSchema': angular.toJson($scope.kafkaMeta,true)
-                  }), 'error', {}, true, 'top_center');
-                }
-                loadingRequest.hide();
-              }, function (e) {
-                if (e.data && e.data.exception) {
-                  var message = e.data.exception;
-                  var msg = !!(message) ? message :  $scope.dataKylin.alert.error_info;
-
-                  MessageService.sendMsg($scope.streamingResultTmpl({
-                    'text': msg,
-                    'streamingSchema':angular.toJson( $scope.streamingMeta,true),
-                    'kfkSchema': angular.toJson($scope.kafkaMeta,true)
-                  }), 'error', {}, true, 'top_center');
-                } else {
-                  MessageService.sendMsg($scope.streamingResultTmpl({
-                    'text': msg,
-                    'streamingSchema': angular.toJson($scope.streamingMeta,true),
-                    'kfkSchema': angular.toJson($scope.kafkaMeta,true)
-                  }), 'error', {}, true, 'top_center');
-                }
-                //end loading
-                loadingRequest.hide();
-              })
+              message = $scope.dataKylin.alert.error_info;
             }
-
-          }
-        });
-      }
-
-    };
-    $scope.calcSampleData=function(){
-      loadingRequest.show();
-      var tableName=$scope.tableModel.selectedSrcTable.database+'.'+$scope.tableModel.selectedSrcTable.name;
-
-      $scope.getSampleJobStatus(tableName,function(){
-        TableExtService.doSample({projectName:$scope.projectModel.selectedProject,tableName:tableName,action:'sample_job'},{},function(){
-          loadingRequest.hide();
-          SweetAlert.swal('', $scope.dataKylin.alert.collectStaticsSuccess, 'success');
-        },function(e){
-          var message;
-          if (e.data && e.data.exception) {
-            message = e.data.exception;
-          }else{
-            message=$scope.dataKylin.alert.error_info;
-          }
-          loadingRequest.hide();
-          SweetAlert.swal('', message, 'error');
+            loadingRequest.hide();
+            SweetAlert.swal('', message, 'error');
+          })
         })
-      })
 
-    }
-    $scope.getSampleData=function(){
-      TableExtService.getSampleInfo({tableName:$scope.tableModel.selectedSrcTable.database+'.'+$scope.tableModel.selectedSrcTable.name},function(data){
-        var sampleData=[],specialData=[];
-        if(data.sample_rows&&data.sample_rows.length){
-          sampleData=sampleData.concat(VdmUtil.changeDataAxis(data.sample_rows,true));
-        }
-        $scope.specialData=data.columns_stats;
-        $scope.sampleData=sampleData;
-        $scope.last_modified=data.last_modified_time;
-        $scope.total_rows=data.total_rows;
-      })
-    }
-
-    $scope.$watch('tableModel.selectedSrcTable.name',function(){
-      if($scope.tableModel.selectedSrcTable.name){
-        $scope.getSampleData();
       }
-    })
-    $scope.getSampleJobStatus=function(tableName,callback){
-      TableExtService.getCalcSampleProgress({'tableName':tableName,'action':'job'},function(data){
-          if((data.job_status=='RUNNING'||data.job_status=='PENDING')&&data.progress!=100){
+      $scope.getSampleData = function () {
+        TableExtService.getSampleInfo({tableName: $scope.tableModel.selectedSrcTable.database + '.' + $scope.tableModel.selectedSrcTable.name}, function (data) {
+          var sampleData = [], specialData = [];
+          if (data.sample_rows && data.sample_rows.length) {
+            sampleData = sampleData.concat(VdmUtil.changeDataAxis(data.sample_rows, true));
+          }
+          $scope.specialData = data.columns_stats;
+          $scope.sampleData = sampleData;
+          $scope.last_modified = data.last_modified_time;
+          $scope.total_rows = data.total_rows;
+        })
+      }
+
+      $scope.$watch('tableModel.selectedSrcTable.name', function () {
+        if ($scope.tableModel&&$scope.tableModel.selectedSrcTable.name) {
+          $scope.getSampleData();
+        }
+      })
+      $scope.getSampleJobStatus = function (tableName, callback) {
+        TableExtService.getCalcSampleProgress({'tableName': tableName, 'action': 'job'}, function (data) {
+          if ((data.job_status == 'RUNNING' || data.job_status == 'PENDING') && data.progress != 100) {
             SweetAlert.swal('', $scope.dataKylin.alert.hasCollectJob, 'info');
             loadingRequest.hide();
-          }else if(typeof  callback=='function'){
-              callback()
+          } else if (typeof  callback == 'function') {
+            callback()
           }
-      },function(e){
-        kylinCommon.error_default(e);
-        loadingRequest.hide();
-      })
+        }, function (e) {
+          kylinCommon.error_default(e);
+          loadingRequest.hide();
+        })
+      }
     }
   });
 
