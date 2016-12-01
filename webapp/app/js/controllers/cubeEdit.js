@@ -569,7 +569,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
     for(var i=0;i<len;i++){
       var version= $scope.getTypeVersion(data[i].encoding);
       var baseKey = $scope.removeVersion(data[i].encoding).replace(/:\[\d+\]/,'');
-      if(needLengthKeyList.indexOf(baseKey)>0){
+      if(needLengthKeyList.indexOf(baseKey)>=0){
         data[i].encoding=baseKey+':'+data[i].valueLength;
       }else{
         data[i].encoding=baseKey;
