@@ -83,10 +83,10 @@
                         <div ng-repeat="t in getDimType(dimension)">
                             <div ng-switch="t">
                                 <div class="dl-horizontal" ng-switch-when="derived">
-                                  {{TableModel.tableColumnMap[dimension.table][dimension.derived].datatype}}
+                                  {{TableModel.tableColumnMap[dimension.table][dimension.table+"."+dimension.derived].datatype}}
                                 </div>
                                 <div class="dl-horizontal" ng-switch-when="normal">
-                                  {{TableModel.tableColumnMap[dimension.table][dimension.column].datatype}}
+                                  {{TableModel.tableColumnMap[dimension.table][dimension.table+"."+dimension.column].datatype}}
                                 </div>
                             </div>
                         </div>
@@ -96,10 +96,10 @@
                         <div ng-repeat="t in getDimType(dimension)">
                             <div ng-switch="t">
                                 <div class="dl-horizontal" ng-switch-when="derived">
-                                  {{TableModel.tableColumnMap[dimension.table][dimension.derived].cardinality}}
+                                  {{TableModel.tableColumnMap[dimension.table][dimension.table+"."+dimension.derived].cardinality}}
                                 </div>
                                 <div class="dl-horizontal" ng-switch-when="normal">
-                                  {{TableModel.tableColumnMap[dimension.table][dimension.column].cardinality}}
+                                  {{TableModel.tableColumnMap[dimension.table][dimension.table+"."+dimension.column].cardinality}}
                                 </div>
                             </div>
                         </div>
@@ -109,10 +109,10 @@
                         <div ng-repeat="t in getDimType(dimension)">
                             <div ng-switch="t">
                                 <div class="dl-horizontal" ng-switch-when="derived">
-                                    {{TableModel.tableColumnMap[dimension.table][dimension.derived].comment}}
+                                    {{TableModel.tableColumnMap[dimension.table][dimension.table+"."+dimension.derived].comment}}
                                 </div>
                                 <div class="dl-horizontal" ng-switch-when="normal">
-                                     {{TableModel.tableColumnMap[dimension.table][dimension.column].comment}}
+                                     {{TableModel.tableColumnMap[dimension.table][dimension.table+"."+dimension.column].comment}}
                                 </div>
                             </div>
                         </div>
@@ -298,10 +298,10 @@
                                              {{col.name}}
                                           </td>
                                           <td>
-                                             {{TableModel.tableColumnMap[table][col.name].datatype}}
+                                             {{TableModel.tableColumnMap[table][table+"."+col.name].datatype}}
                                           </td>
                                           <td>
-                                             {{TableModel.tableColumnMap[table][col.name].cardinality}}
+                                             {{TableModel.tableColumnMap[table][table+"."+col.name].cardinality}}
                                           </td>
                                           <td colspan="2"></td>
                                        </tr>
@@ -332,10 +332,10 @@
                                              {{col.name}}
                                           </td>
                                           <td>
-                                           {{TableModel.tableColumnMap[table][col.name].datatype}}
+                                           {{TableModel.tableColumnMap[table][table+"."+col.name].datatype}}
                                           </td>
                                           <td>
-                                            {{TableModel.tableColumnMap[table][col.name].cardinality}}
+                                            {{TableModel.tableColumnMap[table][table+"."+col.name].cardinality}}
                                           </td>
                                           <td>
                                              <label> <input type="radio" ng-model="selectedColumns[table][col.name].normal" value="true" ng-disabled="!selectedColumns[table][col.name].selected"> {{dataKylin.cube.cubeDSNormal}} </label>

@@ -953,10 +953,11 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
       TableModel.initTables();
       TableService.list(param, function (tables) {
         angular.forEach(tables, function (table) {
-          table.name = table.database + "." + table.name;
-          TableModel.tableColumnMap[table.name]={};
+          var  tableName = table.database + "." + table.name;
+          TableModel.tableColumnMap[tableName]={};
           angular.forEach(table.columns, function (column) {
-            TableModel.tableColumnMap[table.name][column.name]={
+            var columnName=tableName+"."+column.name;
+            TableModel.tableColumnMap[tableName][columnName]={
             name:column.name,
             datatype:column.datatype,
             cardinality:table.cardinality[column.name],

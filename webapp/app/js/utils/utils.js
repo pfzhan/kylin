@@ -202,6 +202,13 @@ KylinApp.factory('VdmUtil', function ($modal, $timeout, $location, $anchorScroll
         return '';
       }
 
+    },
+    getNameSpaceTopName:function(str){
+      if(str){
+         return str.replace(/(\.[^.]+)+/,'');
+      }else{
+        return '';
+      }
     }
   }
 });

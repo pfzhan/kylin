@@ -44,6 +44,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     var _encoding = item.encoding;
     var _valueLength ;
     var tableName='';
+    var databaseName='';
     var baseKey=item.encoding.replace(/:\d+/,'');
     if(needLengthKeyList.indexOf(baseKey)>-1){
       var result=/:(\d+)/.exec(item.encoding);
@@ -52,13 +53,15 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     _encoding=baseKey;
     angular.forEach($scope.cubeMetaFrame.dimensions,function(dimension){
       if(dimension.derived==null){
-        if(dimension.column==item.column){
+        if(dimension.column==VdmUtil.removeNameSpace(item.column)){
           tableName=dimension.table;
+          databaseName=VdmUtil.getNameSpaceTopName(tableName);
         }
       }else{
         angular.forEach(dimension.derived,function(derived){
-          if(derived==item.column){
+          if(derived==VdmUtil.removeNameSpace(item.column)){
             tableName=dimension.table;
+            databaseName=VdmUtil.getNameSpaceTopName(tableName);
           }
         });
       }
@@ -70,7 +73,8 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
       valueLength:_valueLength,
       isShardBy:item.isShardBy,
       encoding_version:item.encoding_version||1,
-      table:tableName
+      table:tableName,
+      database:databaseName
     }
     $scope.convertedRowkeys.push(rowkeyObj);
 
@@ -95,17 +99,20 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     var column = item.column;
     var isShardBy = item.isShardBy;
     var tableName='';
+    var databaseName='';
     var version=$scope.getTypeVersion(item.encoding);
     var encodingType=$scope.removeVersion(item.encoding);
     angular.forEach($scope.cubeMetaFrame.dimensions,function(dimension){
       if(dimension.derived==null){
-        if(dimension.column==item.column){
+        if(dimension.column==VdmUtil.removeNameSpace(item.column)){
           tableName=dimension.table;
+          databaseName=VdmUtil.getNameSpaceTopName(tableName);
         }
       }else{
         angular.forEach(dimension.derived,function(derived){
-          if(derived==item.column){
+          if(derived==VdmUtil.removeNameSpace(item.column)){
             tableName=dimension.table;
+            databaseName=VdmUtil.getNameSpaceTopName(tableName);
           }
         });
       }
@@ -117,6 +124,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
       item.valueLength=0;
     }
     $scope.convertedRowkeys[[index]].table=tableName;
+    $scope.convertedRowkeys[[index]].database=databaseName;
     $scope.cubeMetaFrame.rowkey.rowkey_columns[index].column = column;
     $scope.cubeMetaFrame.rowkey.rowkey_columns[index].encoding = encoding;
     $scope.cubeMetaFrame.rowkey.rowkey_columns[index].encoding_version =version;
