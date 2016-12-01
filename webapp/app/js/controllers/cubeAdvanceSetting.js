@@ -410,15 +410,14 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
       //计算hierarchy 组合情况
       for(var m=0;m<lenOfHierarchy;m++){
         var count= 0,childHierachyLen=curObj.hierarchy_dims[m].length||0;
-        while(childHierachyLen--){
-          count+=childHierachyLen;
-        }
-        count+=1;
+        count=childHierachyLen+1;
         needCountNumber.push(count);
       }
       //计算Joint 组合情况
       for(var n=0;n<lenOfJoint;n++){
-        needCountNumber.push(2);
+        if(curObj.joint_dims[n]&&curObj.joint_dims[n].length){
+          needCountNumber.push(2);
+        }
       }
     }
     var lenOfCountNumber=needCountNumber.length,result=1;
