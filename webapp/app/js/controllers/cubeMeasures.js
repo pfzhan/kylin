@@ -52,7 +52,7 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
     }
   }
   $scope.createFilter=function(type){
-    if(type.indexOf("varchar")<=0){
+    if(type.indexOf("varchar")<0){
       return ['fixed_length_hex'];
     }else if(type!="date"){
       return ['date'];
@@ -67,7 +67,7 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
     var encodings =$scope.store.supportedEncoding,filterEncoding=[];
     var filerList=$scope.createFilter(type);
     if($scope.isEdit) {
-      if (name && $scope.newMeasure.function.configuration) {
+      if (name && $scope.newMeasure.function.configuration&&$scope.newMeasure.function.configuration['topn.encoding.' + name]) {
         var version = $scope.newMeasure.function.configuration['topn.encoding_version.' + name] || 1;
         filterEncoding = VdmUtil.getFilterObjectListByOrFilterVal(encodings, 'value', $scope.newMeasure.function.configuration['topn.encoding.' + name].replace(/:\d+/, "") + (version ? "[v" + version + "]" : "[v1]"), 'suggest', true);
       }else{
@@ -434,7 +434,7 @@ var addEditDimensionCtrl = function ($scope, $modalInstance,SweetAlert,language)
         var versionKey='topn.encoding_version.'+item.name;
         var version=$scope.getTypeVersion(item.encoding);
         var encoding="";
-        if(needLengthKeyList.indexOf($scope.removeVersion(item.encoding))>=-1){
+        if(needLengthKeyList.indexOf($scope.removeVersion(item.encoding))>-1){
           encoding = $scope.removeVersion(item.encoding)+":"+item.valueLength;
         }else{
           encoding = $scope.removeVersion(item.encoding);
