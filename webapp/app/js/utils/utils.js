@@ -209,6 +209,9 @@ KylinApp.factory('VdmUtil', function ($modal, $timeout, $location, $anchorScroll
       }else{
         return '';
       }
+    },
+    isNotExtraKey:function(obj,key){
+      return obj&&key&&key!="$promise"&&key!='$resolved'&&obj.hasOwnProperty(key);
     }
   }
 });

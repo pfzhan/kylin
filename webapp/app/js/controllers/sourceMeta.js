@@ -339,9 +339,9 @@ KylinApp
         loadingRequest.show();
         TableExtService.loadHiveTable({tableName: $scope.tableNames, action: projectName}, {}, function (result) {
           var loadTableInfo = "";
-          for(var i in result){
-            if(i!="$promise"&&i!='$resolved'){
-              loadTableInfo += "\n" + table;
+          for(var tableName in result){
+            if(VdmUtil.isNotExtraKey(result,tableName)){
+              loadTableInfo += "\n" + tableName;
             }
           }
           if(loadTableInfo){
@@ -370,28 +370,23 @@ KylinApp
 
         $scope.cancel();
         loadingRequest.show();
-        TableExtService.unLoadHiveTable({tableName: $scope.tableNames, action: projectName}, {}, function (result) {
-          var removedTableInfo = "";
+        TableService.unLoadHiveTable({tableName: $scope.tableNames, action: projectName}, {}, function (result) {
+          var removedTableInfo = '';
           angular.forEach(result['result.unload.success'], function (table) {
-            removedTableInfo += "\n" + table;
+            removedTableInfo +=  table+',';
           })
-          var unRemovedTableInfo = "";
-          angular.forEach(result['result.unload.fail'], function (table) {
-            unRemovedTableInfo += "\n" + table;
+          TableExtService.unLoadHiveTable({tableName: removedTableInfo, action: projectName}, {}, function (data) {
+            var removedTableInfo ='';
+            angular.forEach(result['result.unload.success'], function (table) {
+              removedTableInfo += '\n'+table;
+            })
+            kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.tip_partial_loaded_body_part_one+removedTableInfo);
+            loadingRequest.hide();
+            scope.aceSrcTbLoaded(true);
+          },function(e){
+            kylinCommon.error_default(e);
+            loadingRequest.hide();
           })
-
-          if (result['result.unload.fail'].length != 0 && result['result.unload.success'].length == 0) {
-            SweetAlert.swal($scope.dataKylin.alert.tip_result_unload_title, $scope.dataKylin.alert.tip_result_unload_body + unRemovedTableInfo, 'error');
-          }
-          if (result['result.unload.success'].length != 0 && result['result.unload.fail'].length == 0) {
-            kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_table_been_synchronized);
-          }
-          if (result['result.unload.success'].length != 0 && result['result.unload.fail'].length != 0) {
-            SweetAlert.swal($scope.dataKylin.alert.tip_partial_loaded_title, $scope.dataKylin.alert.tip_partial_loaded_body_part_one + loadTableInfo + $scope.dataKylin.alert.tip_partial_loaded_body_part_two + unloadedTableInfo, 'warning');
-          }
-          loadingRequest.hide();
-          scope.aceSrcTbLoaded(true);
-
         }, function (e) {
           kylinCommon.error_default(e);
           loadingRequest.hide();
