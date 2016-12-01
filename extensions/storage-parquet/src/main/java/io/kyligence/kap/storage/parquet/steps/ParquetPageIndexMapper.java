@@ -67,7 +67,6 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
     protected Cuboid cuboid;
 
     private ParquetPageIndexWriter indexBundleWriter;
-    private int counter = 0;
     private Path outputPath;
 
     private int[] columnLength;
@@ -146,10 +145,6 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
 
     @Override
     public void doMap(Text key, IntWritable value, Context context) throws IOException, InterruptedException {
-        counter++;
-        if (counter % BatchConstants.NORMAL_RECORD_LOG_THRESHOLD == 0) {
-            logger.info("Handled " + counter + " records!");
-        }
         indexBundleWriter.write(key.getBytes(), value.get());
     }
 

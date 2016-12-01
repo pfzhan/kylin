@@ -36,7 +36,6 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.engine.mr.KylinMapper;
-import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +44,6 @@ import com.google.common.primitives.Longs;
 public class ParquetTarballMapper extends KylinMapper<IntWritable, byte[], Text, Text> {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetTarballMapper.class);
 
-    private int counter;
     private FSDataOutputStream os;
 
     @Override
@@ -68,17 +66,12 @@ public class ParquetTarballMapper extends KylinMapper<IntWritable, byte[], Text,
         logger.info("Output path: " + outputPath.toString());
 
         // make tar replicate factor to 3, wish to better query performance
-        os = fs.create(outputPath, (short)3);
+        os = fs.create(outputPath, (short) 3);
         os.writeLong(Longs.BYTES + invLength);
     }
 
     @Override
     public void doMap(IntWritable key, byte[] value, Context context) throws IOException, InterruptedException {
-        counter++;
-        if (counter % BatchConstants.NORMAL_RECORD_LOG_THRESHOLD == 0) {
-            logger.info("Handled " + counter + " records!");
-        }
-
         os.write(value, 0, key.get());
     }
 

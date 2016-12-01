@@ -75,7 +75,6 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
     private Path inputPath;
     private HashMap<Integer, ParquetPageIndexWriter> fuzzyIndexWriterMap;
     private HashMap<Integer, ImmutableBitSet> fuzzyIndexEncodingMap;
-    private int counter = 0;
     private int fuzzyLength = 0;
     private int fuzzyHashLength = 0;
 
@@ -129,10 +128,6 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
 
     @Override
     public void doMap(ByteArrayListWritable key, IntWritable value, Context context) throws IOException, InterruptedException {
-        counter++;
-        if (counter % BatchConstants.NORMAL_RECORD_LOG_THRESHOLD == 0) {
-            logger.info("Handled " + counter + " records!");
-        }
 
         List<byte[]> originValue = key.get();
 

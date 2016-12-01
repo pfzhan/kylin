@@ -29,7 +29,6 @@ import java.io.IOException;
 import org.apache.kylin.common.util.BytesSplitter;
 import org.apache.kylin.engine.mr.IMRInput;
 import org.apache.kylin.engine.mr.MRUtil;
-import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,10 +44,6 @@ public class HiveToRawTableMapper<KEYIN> extends RawTableMapperBase<KEYIN, Objec
 
     @Override
     public void doMap(KEYIN key, Object value, Context context) throws IOException, InterruptedException {
-        counter++;
-        if (counter % BatchConstants.NORMAL_RECORD_LOG_THRESHOLD == 0) {
-            logger.info("Handled " + counter + " records!");
-        }
 
         try {
             //put a record into the shared bytesSplitter

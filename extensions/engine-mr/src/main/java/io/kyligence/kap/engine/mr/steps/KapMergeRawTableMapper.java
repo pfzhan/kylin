@@ -44,7 +44,6 @@ public class KapMergeRawTableMapper extends KylinMapper<Text, Text, Text, Text> 
 
     protected static final Logger logger = LoggerFactory.getLogger(KapMergeRawTableMapper.class);
     protected Text outputKey = new Text();
-    protected long counter = 0;
     protected String rawTableName;
     protected RawTableInstance rawInstance;
 
@@ -59,12 +58,7 @@ public class KapMergeRawTableMapper extends KylinMapper<Text, Text, Text, Text> 
 
     @Override
     public void doMap(Text key, Text value, Context context) throws IOException, InterruptedException {
-
-        counter++;
         int shardNum = rawInstance.getShardNumber() == 0 ? 10 : rawInstance.getShardNumber();
-        if (counter % BatchConstants.NORMAL_RECORD_LOG_THRESHOLD == 0) {
-            logger.info("Handled " + counter + " records!");
-        }
         byte[] k = key.getBytes();
         short shardId = ShardingHash.getShard(k, 0, k.length, shardNum);
         byte[] newKey = new byte[k.length + RowConstants.ROWKEY_SHARDID_LEN];

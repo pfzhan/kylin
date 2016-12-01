@@ -82,7 +82,6 @@ abstract public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEY
     private int orderColIdxInRawTable;
     private int[] nonOrderColInxInSource;// array index=> IdxInRawTable, array value=> IdxInSource
 
-    protected int counter;
     protected Text outputKey = new Text();
     protected Text outputValue = new Text();
 

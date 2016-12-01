@@ -66,7 +66,6 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
     private KapConfig kapConfig;
     private Path inputPath;
     private ParquetPageIndexWriter indexBundleWriter;
-    private int counter = 0;
     private Path outputPath;
 
     private ColumnSpec[] columnSpecs;
@@ -115,11 +114,6 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
 
     @Override
     public void doMap(ByteArrayListWritable key, IntWritable value, Context context) throws IOException, InterruptedException {
-        counter++;
-        if (counter % BatchConstants.NORMAL_RECORD_LOG_THRESHOLD == 0) {
-            logger.info("Handled " + counter + " records!");
-        }
-
         List<byte[]> originValue = key.get();
         List<byte[]> hashedValue = RawTableUtils.hash(originValue);
 
