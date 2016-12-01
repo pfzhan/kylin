@@ -29,6 +29,6 @@ import org.apache.kylin.cube.kv.RowConstants;
 
 public class ShardPartitioner extends ShardCuboidPartitioner {
     public int getPartition(Text key, Text value, int numReduceTasks) {
-        return hash(key.getBytes(), 0, RowConstants.ROWKEY_SHARDID_LEN, numReduceTasks);
+        return mod(key.getBytes(), 0, RowConstants.ROWKEY_SHARDID_LEN, numReduceTasks);
     }
 }
