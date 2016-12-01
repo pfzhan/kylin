@@ -45,7 +45,7 @@ current_branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p'| grep -v "detached")
 echo "current_branch:$current_branch"
 
 git checkout $base_commit           || exit 1
-git submodule update                || exit 1
+git submodule update
 
 if [ "$?" == "1" ]; then
     echo "Failed to checkout base commit. Please have a check."
