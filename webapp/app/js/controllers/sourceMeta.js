@@ -878,7 +878,7 @@ KylinApp
             }
           });
         }
-
+      }
       };
       $scope.calcSampleData = function () {
         loadingRequest.show();
@@ -936,6 +936,6 @@ KylinApp
           loadingRequest.hide();
         })
       }
-    }
+
   });
 
