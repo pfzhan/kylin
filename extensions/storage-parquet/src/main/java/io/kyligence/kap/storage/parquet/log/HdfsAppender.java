@@ -29,11 +29,11 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Queue;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingDeque;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -44,19 +44,20 @@ import org.apache.log4j.spi.LoggingEvent;
 
 public class HdfsAppender extends AppenderSkeleton {
 
+    private static long A_DAY_MILLIS = 24 * 60 * 60 * 1000;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-    private StringBuilder buf = new StringBuilder();
     FSDataOutputStream outStream = null;
     BufferedWriter bufferedWriter = null;
     FileSystem fileSystem = null;
-    private int logCount = 0;
     private String outPutPath;
     private String executorId;
-    private Queue<LoggingEvent> logBuffer = null;
+    private BlockingDeque<LoggingEvent> logBufferQue = null;
     private ExecutorService appendHdfsService = null;
+    private long startTime = 0;
     //configurable
     private String applicationId;
-    private int doFlushCount = 10;
+    private int doFlushCount = 1000;
+    private int flushPeriod = 5;
     private boolean enableDailyRolling = true;
     private String hdfsWorkingDir;
 
@@ -67,7 +68,11 @@ public class HdfsAppender extends AppenderSkeleton {
 
     @Override
     protected void append(LoggingEvent loggingEvent) {
-        logBuffer.offer(loggingEvent);
+        try {
+            logBufferQue.put(loggingEvent);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -87,11 +92,13 @@ public class HdfsAppender extends AppenderSkeleton {
         return true;
     }
 
-    private void write(StringBuilder buf) throws IOException {
-        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(outStream));
-        bw.write(buf.toString());
-        bw.flush();
-        outStream.hflush();
+    private void write(String buf) throws IOException {
+        bufferedWriter.write(buf.toString());
+    }
+
+    private void flush() throws IOException {
+        bufferedWriter.flush();
+        outStream.hsync();
     }
 
     private void init() {
@@ -100,41 +107,50 @@ public class HdfsAppender extends AppenderSkeleton {
             this.applicationId = "default";
         System.out.println("HdfsAppender Start with App ID: " + applicationId);
 
-        logBuffer = new ConcurrentLinkedDeque<>();
+        logBufferQue = new LinkedBlockingDeque<>(5000);
 
         appendHdfsService = Executors.newSingleThreadExecutor();
         appendHdfsService.execute(new Thread() {
             @Override
             public void run() {
                 setName("SparkExecutorLogAppender");
-                while (true) {
-                    try {
-                        if (logBuffer.isEmpty())
-                            Thread.sleep(1000L);
-                        else
-                            flushLog();
-                    } catch (IOException | InterruptedException e) {
-                        e.printStackTrace();
+                long start = System.currentTimeMillis();
+                try {
+                    while (true) {
+                        //Small chunk will be flushed each 5 seconds
+                        int curSize = logBufferQue.size();
+                        if (curSize < doFlushCount) {
+                            Thread.sleep(50L);
+                            long end = System.currentTimeMillis();
+                            if (end - start > flushPeriod * 1000L) {
+                                flushLog(curSize);
+                                start = System.currentTimeMillis();
+                            }
+                        } else {
+                            //Big chunk will be flushed immediately
+                            flushLog(curSize);
+                        }
                     }
+                } catch (IOException | InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
 
-            private void flushLog() throws IOException {
-                while (!logBuffer.isEmpty()) {
-                    LoggingEvent loggingEvent = logBuffer.poll();
-                    if (updateOutPutDir(loggingEvent)) {
+            private void flushLog(int size) throws IOException, InterruptedException {
+                if (size == 0)
+                    return;
+
+                while (size > 0) {
+                    LoggingEvent loggingEvent = logBufferQue.take();
+                    if (isDayChanged(loggingEvent)) {
+                        updateOutPutDir(loggingEvent);
                         Path file = new Path(outPutPath);
                         initWriter(file);
                     }
-                    buf.append(layout.format(loggingEvent));
-                    logCount++;
-                    if (logCount >= doFlushCount) {
-
-                        write(buf);
-                        buf = new StringBuilder();
-                        logCount = 0;
-                    }
+                    write(layout.format(loggingEvent));
+                    size--;
                 }
+                flush();
             }
         });
     }
@@ -167,36 +183,40 @@ public class HdfsAppender extends AppenderSkeleton {
         return this.doFlushCount;
     }
 
+    public void setFlushPeriod(int flushPeriod) {
+        this.flushPeriod = flushPeriod;
+    }
+
+    public int getFlushPeriod() {
+        return this.flushPeriod;
+    }
+
     private void initWriter(Path outPath) throws IOException {
         closeWriter();
         Configuration conf = new Configuration();
         fileSystem = FileSystem.get(conf);
-        if (fileSystem.exists(outPath))
-            fileSystem.delete(outPath, true);
-        outStream = fileSystem.create(outPath);
+        outStream = fileSystem.create(outPath, true);
         bufferedWriter = new BufferedWriter(new OutputStreamWriter(outStream));
     }
 
     private void closeWriter() throws IOException {
         if (null == outStream || null == fileSystem || null == bufferedWriter)
             return;
-
-        if (buf.length() > 0) {
-            write(buf);
-        }
         bufferedWriter.close();
         outStream.close();
         fileSystem.close();
     }
 
-    private boolean updateOutPutDir(LoggingEvent event) {
-        String tempOutput = parseHdfsWordingDir() + "/" + "spark_logs" + "/" + (enableDailyRolling ? dateFormat.format(new Date(event.getTimeStamp())) : "") + "/" + "application-" + getApplicationId() + "/" + "executor-" + this.executorId + ".log";
+    private void updateOutPutDir(LoggingEvent event) {
+        outPutPath = parseHdfsWordingDir() + "/" + "spark_logs" + "/" + dateFormat.format(new Date(event.getTimeStamp())) + "/" + "application-" + getApplicationId() + "/" + "executor-" + this.executorId + ".log";
+    }
 
-        if (outPutPath != null && outPutPath.equals(tempOutput))
-            return false;
-
-        outPutPath = tempOutput;
-        return true;
+    private boolean isDayChanged(LoggingEvent event) {
+        if (0 == startTime || ((event.getTimeStamp() / A_DAY_MILLIS) - (startTime / A_DAY_MILLIS)) > 0) {
+            startTime = event.getTimeStamp();
+            return true;
+        }
+        return false;
     }
 
     private String parseHdfsWordingDir() {
