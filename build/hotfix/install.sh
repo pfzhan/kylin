@@ -89,7 +89,7 @@ mv $KYLIN_HOME/tomcat/webapps ${backup_dir}/tomcat/
 
 # copy
 cp -r lib/lib $KYLIN_HOME/
-cp -r lib/commit_sha1 $KYLIN_HOME/
+cp -r lib/commit_SHA1 $KYLIN_HOME/
 cp -r lib/sample_cube $KYLIN_HOME/
 cp -r lib/*.license $KYLIN_HOME/
 cp -r lib/tomcat/webapps $KYLIN_HOME/tomcat
