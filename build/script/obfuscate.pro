@@ -9,7 +9,7 @@
 
 -keepnames class * extends org.apache.kylin.engine.mr.common.AbstractHadoopJob
 -keepnames class * extends org.apache.kylin.job.execution.AbstractExecutable
--keepnames class * org.apache.log4j.AppenderSkeleton
+-keepnames class * extends org.apache.log4j.AppenderSkeleton
 
 -keepclassmembers class * implements java.io.Serializable {
 	static final long serialVersionUID;
