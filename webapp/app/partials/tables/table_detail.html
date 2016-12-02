@@ -19,7 +19,7 @@
 <div ng-controller="SourceMetaCtrl" class="nav-tabs-custom">
   <div class="col-xs-12" ng-show="tableModel.selectedSrcDb&&tableModel.selectedSrcTable.name">
     <h3 class="text-info">{{dataKylin.data_source.tableSchema}}{{ tableModel.selectedSrcTable.name}}<span ng-if="tableModel.selectedSrcTable.table_type">({{tableModel.selectedSrcTable.table_type}})</span></h3>
-    <a class="btn btn-primary pull-right"  ng-click="calcSampleData()" ng-if="!tableModel.selectedSrcTable.table_type" >{{dataKylin.data_source.collectStatistics}}</a>
+    <a class="btn btn-primary pull-right"  ng-click="calcSampleData()" ng-if="!tableModel.selectedSrcTable.table_type" ><span class="fa fa-eyedropper"></span> {{dataKylin.data_source.collectStatistics}}</a>
     <div style="clear:both"></div>
     <span ng-if="last_modified" class="pull-right" style="margin-top: 10px;font-size: 12px;">{{dataKylin.data_source.lastModifiedTime}}：{{last_modified|utcToConfigTimeZone}}</span>
     <div class="tabbable nav-tabs-custom">
@@ -44,52 +44,52 @@
         <!--Schema-->
         <div id="schema" class="tab-pane">
           <div ng-if="tableModel.selectedSrcTable.uuid" class="table-responsive">
-            <table class="table table-hover table-bordered table-striped">
+            <table class="table table-hover  table-striped">
               <tbody>
               <tr>
-                <th style="width:20%">{{dataKylin.data_source.name}}</th>
+                <th style="text-align:right" style="width:20%">{{dataKylin.data_source.name}} :</th>
                 <td>{{ tableModel.selectedSrcTable.name}}</td>
               </tr>
               <tr>
-                <th>{{dataKylin.data_source.hiveDatabase}}</th>
+                <th style="text-align:right">{{dataKylin.data_source.hiveDatabase}} :</th>
                 <td>{{tableModel.selectedSrcTable.database}}</td>
               </tr>
               <tr>
-                <th>{{dataKylin.data_source.snapshotTime}}</th>
+                <th style="text-align:right">{{dataKylin.data_source.snapshotTime}} :</th>
                 <td>{{tableModel.selectedSrcTable.exd.last_access_time | utcToConfigTimeZone}}</td>
               </tr>
               <tr>
-                <th>{{dataKylin.data_source.location}}</th>
+                <th style="text-align:right">{{dataKylin.data_source.location}} :</th>
                 <td>{{tableModel.selectedSrcTable.exd.location}}</td>
               </tr>
               <tr>
-                <th>{{dataKylin.data_source.inputFormat}}</th>
+                <th style="text-align:right">{{dataKylin.data_source.inputFormat}} :</th>
                 <td>{{tableModel.selectedSrcTable.exd.hive_inputFormat}}</td>
               </tr>
               <tr>
-                <th>{{dataKylin.data_source.outputFormat}}</th>
+                <th style="text-align:right">{{dataKylin.data_source.outputFormat}} :</th>
                 <td>{{tableModel.selectedSrcTable.exd.hive_outputFormat}}</td>
               </tr>
               <tr>
-                <th>{{dataKylin.data_source.owner}}</th>
+                <th style="text-align:right">{{dataKylin.data_source.owner}} :</th>
                 <td><a
                   href="mailto:{{tableModel.selectedSrcTable.exd.owner}}">{{tableModel.selectedSrcTable.exd.owner}}</a>
                 </td>
               </tr>
               <tr>
-                <th>{{dataKylin.data_source.totalFileNumber}}</th>
+                <th style="text-align:right">{{dataKylin.data_source.totalFileNumber}} :</th>
                 <td>{{tableModel.selectedSrcTable.exd.total_file_number}}</td>
               </tr>
               <tr>
-                <th>{{dataKylin.data_source.totalFileSize}}</th>
+                <th style="text-align:right">{{dataKylin.data_source.totalFileSize}} :</th>
                 <td>{{tableModel.selectedSrcTable.exd.total_file_size}}</td>
               </tr>
               <tr>
-                <th>{{dataKylin.data_source.partitioned}}</th>
+                <th style="text-align:right">{{dataKylin.data_source.partitioned}} :</th>
                 <td>{{tableModel.selectedSrcTable.exd.partition_column?'yes':''}}</td>
               </tr>
               <tr>
-                <th>{{dataKylin.data_source.partitionColumns}}</th>
+                <th style="text-align:right">{{dataKylin.data_source.partitionColumns}} :</th>
                 <td>{{tableModel.selectedSrcTable.exd.partition_column}}</td>
               </tr>
               </tbody>
@@ -101,7 +101,7 @@
           <div class="profile-user-info">
             <div>
               <!--<label class="table-header-text">{{dataKylin.data_source.columns}}</label>-->
-                            <span class="input-icon form-search nav-search pull-right" style="margin-bottom:10px">
+                            <span class="input-icon form-search nav-search" >
                                 <input type="text" placeholder="{{dataKylin.data_source.plac_column}}" class="nav-search-input"
                                        ng-model="columnName"/>
                                 <i class="ace-icon fa fa-search nav-search-icon"></i>

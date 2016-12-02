@@ -133,7 +133,7 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log) {
                         var _column_node_list = [];
                         angular.forEach(_table.columns,function(_column){
                             _column_node_list.push({
-                                    label:_column.name+"("+_column.datatype+")",
+                                    label:_column.name+"  ("+_column.datatype+")",
                                     data:_column,
                                     onSelect:function(branch){
                                         // set selected model
