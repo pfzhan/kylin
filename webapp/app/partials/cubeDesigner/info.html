@@ -21,9 +21,9 @@
         <ng-form name="forms.cube_info_form" novalidate>
             <!--Project-->
             <div class="form-group" ng-class="{'required':state.mode=='edit'}">
-                <div class="row">
-                  <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default">
-                    <b>{{dataKylin.cube.cubeCIModelName}}</b>
+                <div class="row lineh34" >
+                  <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default align-right">
+                    <b>{{dataKylin.cube.cubeCIModelName}} :</b>
                   </label>
                   <div class="col-xs-12 col-sm-6"   ng-class="{'has-error':forms.cube_info_form.model_name.$invalid && (forms.cube_info_form.model_name.$dirty||forms.cube_info_form.model_name.$submitted)}">
                     <select chosen ng-model="cubeMetaFrame.model_name" ng-if="cubeMode=='addNewCube'"
@@ -50,9 +50,9 @@
 
             <!--Cube Name-->
             <div class="form-group middle-popover" ng-class="{'required':state.mode=='edit'}">
-                <div class="row">
-                    <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default">
-                      <b>{{dataKylin.cube.cubeName}}</b> <i class="fa fa-info-circle" ng-if="language" kylinpopover placement="right" ng-title=" {{dataKylin.cube.tip_title_cube_name}} " template="cubeNameTip.html"></i>
+                <div class="row lineh34">
+                    <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default align-right">
+                      <i class="fa fa-info-circle" ng-if="language" kylinpopover placement="right" ng-title=" {{dataKylin.cube.tip_title_cube_name}} " template="cubeNameTip.html"></i> <b>{{dataKylin.cube.cubeName}} :</b>
                     </label>
                     <div class="col-xs-12 col-sm-6" ng-class="{'has-error':forms.cube_info_form.cube_name.$invalid && (forms.cube_info_form.cube_name.$dirty||forms.cube_info_form.cube_name.$submitted)}">
                         <input ng-if="state.mode=='edit'" ng-disabled="{{isEdit}}"  name="cube_name" type="text" class="form-control"
@@ -69,9 +69,9 @@
 
             <!--Notification-->
             <div class="form-group">
-                <div class="row">
-                    <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default">
-                        <b>{{dataKylin.cube.cubeCINotifiEmail}}</b>
+                <div class="row lineh34">
+                    <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default align-right">
+                        <b>{{dataKylin.cube.cubeCINotifiEmail}} :</b>
                     </label>
                     <div class="col-xs-12 col-sm-6">
                         <input type="text" class="form-control" placeholder="Comma Separated"
@@ -82,9 +82,9 @@
             </div>
 
           <div class="form-group middle-popover">
-            <div class="row">
-              <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default">
-                <b>{{dataKylin.cube.cubeCINotifiEvents}}</b> <i class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.cubeCINotifiEvents}}" template="notificationEventsTip.html"></i>
+            <div class="row lineh34">
+              <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default align-right">
+                <i class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.cubeCINotifiEvents}}" template="notificationEventsTip.html"></i> <b>{{dataKylin.cube.cubeCINotifiEvents}} :</b>
               </label>
               <div class="col-xs-12 col-sm-6">
 
@@ -107,9 +107,9 @@
 
             <!--Description-->
             <div class="form-group">
-                <div class="row">
-                    <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default">
-                        <b>{{dataKylin.cube.cubeCIDescription}}</b>
+                <div class="row lineh34">
+                    <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default align-right">
+                        <b>{{dataKylin.cube.cubeCIDescription}} :</b>
                     </label>
                     <div class="col-xs-12 col-sm-6">
                         <textarea ng-if="state.mode=='edit'" class="form-control box-default" ng-disabled="instance.status=='READY'"
