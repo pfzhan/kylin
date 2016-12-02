@@ -116,7 +116,7 @@ KylinApp.service('CubeDescModel', function (kylinConfig, modelsManager, TableMod
     var numbertype=["int","integer","smallint","bigint","tinyint","float","double","long"];
     angular.forEach(model.metrics,function(metric){
       if(!arr.filter(function(element,pos){return element.name==metric}).length){
-        if((numbertype.indexOf(TableModel.tableColumnMap[factTable][metric].datatype)!=-1)||(TableModel.tableColumnMap[factTable][metric].datatype.substring(0,7)==="decimal")){
+        if((numbertype.indexOf(TableModel.tableColumnMap[factTable][factTable+"."+metric].datatype)!=-1)||(TableModel.tableColumnMap[factTable][factTable+"."+metric].datatype.substring(0,7)==="decimal")){
           arr.push(
             {"name": metric,
              "function": {
