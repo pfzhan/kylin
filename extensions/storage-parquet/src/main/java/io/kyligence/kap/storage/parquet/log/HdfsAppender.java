@@ -56,9 +56,8 @@ public class HdfsAppender extends AppenderSkeleton {
     private long startTime = 0;
     //configurable
     private String applicationId;
-    private int doFlushCount = 1000;
-    private int flushPeriod = 5;
-    private boolean enableDailyRolling = true;
+    private int logQueueCapacity = 5000;
+    private int flushInterval = 5000;
     private String hdfsWorkingDir;
 
     @Override
@@ -107,7 +106,7 @@ public class HdfsAppender extends AppenderSkeleton {
             this.applicationId = "default";
         System.out.println("HdfsAppender Start with App ID: " + applicationId);
 
-        logBufferQue = new LinkedBlockingDeque<>(5000);
+        logBufferQue = new LinkedBlockingDeque<>(logQueueCapacity);
 
         appendHdfsService = Executors.newSingleThreadExecutor();
         appendHdfsService.execute(new Thread() {
@@ -119,10 +118,10 @@ public class HdfsAppender extends AppenderSkeleton {
                     while (true) {
                         //Small chunk will be flushed each 5 seconds
                         int curSize = logBufferQue.size();
-                        if (curSize < doFlushCount) {
-                            Thread.sleep(50L);
+                        if (curSize < logQueueCapacity * 0.2) {
+                            Thread.sleep(flushInterval / 100);
                             long end = System.currentTimeMillis();
-                            if (end - start > flushPeriod * 1000L) {
+                            if (end - start > flushInterval) {
                                 flushLog(curSize);
                                 start = System.currentTimeMillis();
                             }
@@ -171,24 +170,20 @@ public class HdfsAppender extends AppenderSkeleton {
         return this.hdfsWorkingDir;
     }
 
-    public void setEnableDailyRolling(boolean enableDailyRolling) {
-        this.enableDailyRolling = enableDailyRolling;
+    public void setLogQueueCapacity(int logQueueCapacity) {
+        this.logQueueCapacity = logQueueCapacity;
     }
 
-    public void setDoFlushCount(int doFlushCount) {
-        this.doFlushCount = doFlushCount;
+    public int getLogQueueCapacity() {
+        return this.logQueueCapacity;
     }
 
-    public int getDoFlushCount() {
-        return this.doFlushCount;
+    public void setFlushInterval(int flushInterval) {
+        this.flushInterval = flushInterval;
     }
 
-    public void setFlushPeriod(int flushPeriod) {
-        this.flushPeriod = flushPeriod;
-    }
-
-    public int getFlushPeriod() {
-        return this.flushPeriod;
+    public int getFlushInterval() {
+        return this.flushInterval;
     }
 
     private void initWriter(Path outPath) throws IOException {
