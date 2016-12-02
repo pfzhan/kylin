@@ -4135,3 +4135,8 @@ Gradient Background colors
 .dynamicNumberColor{
   color:#3c8dbc;
 }
+
+.tableFromTree .modal-dialog {
+   width: 700px;
+   padding-bottom: 30px;
+ }

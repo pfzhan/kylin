@@ -118,6 +118,7 @@ KylinApp
       $modal.open({
         templateUrl: 'addHiveTableFromTree.html',
         controller: ModalInstanceCtrl,
+        windowClass:"tableFromTree",
         resolve: {
           tableNames: function () {
             return $scope.tableNames;
