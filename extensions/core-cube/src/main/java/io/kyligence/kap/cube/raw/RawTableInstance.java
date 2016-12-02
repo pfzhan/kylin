@@ -27,7 +27,6 @@ package io.kyligence.kap.cube.raw;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -41,6 +40,7 @@ import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.IRealization;
@@ -87,7 +87,7 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
     private int cost = 50;
     @JsonManagedReference
     @JsonProperty("segments")
-    private List<RawTableSegment> segments = new ArrayList<RawTableSegment>();
+    private Segments<RawTableSegment> segments = new Segments<>();
     @JsonProperty("create_time_utc")
     private long createTimeUTC;
 
@@ -107,7 +107,7 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
         rawInstance.setName(name);
         rawInstance.setDescName(desc.getName());
         rawInstance.setCreateTimeUTC(System.currentTimeMillis());
-        rawInstance.setSegments(new ArrayList<RawTableSegment>());
+        rawInstance.setSegments(new Segments<RawTableSegment>());
         rawInstance.setStatus(RealizationStatusEnum.DISABLED);
         rawInstance.updateRandomUuid();
         return rawInstance;
@@ -216,7 +216,7 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
     public Set<ColumnDesc> getAllColumnDescs() {
         return allColumnDescs;
     }
-    
+
     @Override
     public List<TblColRef> getAllDimensions() {
         return mockupDimensions;
@@ -241,33 +241,19 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
     public String getCanonicalName() {
         return getType() + "[name=" + getName() + "]";
     }
-    
+
     public String getDescName() {
         return descName;
     }
 
     @Override
     public long getDateRangeStart() {
-        List<RawTableSegment> readySegs = getSegments(SegmentStatusEnum.READY);
-
-        long startTime = Long.MAX_VALUE;
-        for (RawTableSegment seg : readySegs) {
-            startTime = Math.min(startTime, seg.getDateRangeStart());
-        }
-
-        return startTime;
+        return segments.getDateRangeStart();
     }
 
     @Override
     public long getDateRangeEnd() {
-        List<RawTableSegment> readySegs = getSegments(SegmentStatusEnum.READY);
-
-        long endTime = Long.MIN_VALUE;
-        for (RawTableSegment seg : readySegs) {
-            endTime = Math.max(endTime, seg.getDateRangeEnd());
-        }
-
-        return endTime;
+        return segments.getDateRangeEnd();
     }
 
     @Override
@@ -275,11 +261,11 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
         return true;
     }
 
-    public void setSegments(List<RawTableSegment> segments) {
+    public void setSegments(Segments<RawTableSegment> segments) {
         this.segments = segments;
     }
 
-    public List<RawTableSegment> getSegments() {
+    public Segments<RawTableSegment> getSegments() {
         return segments;
     }
 
@@ -301,49 +287,15 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
     }
 
     public List<RawTableSegment> getBuildingSegments() {
-        List<RawTableSegment> buildingSegments = new ArrayList<RawTableSegment>();
-        if (null != segments) {
-            for (RawTableSegment segment : getSegments()) {
-                if (SegmentStatusEnum.NEW == segment.getStatus() || SegmentStatusEnum.READY_PENDING == segment.getStatus()) {
-                    buildingSegments.add(segment);
-                }
-            }
-        }
-        return buildingSegments;
+        return segments.getBuildingSegments();
     }
 
     public List<RawTableSegment> getMergingSegments(RawTableSegment mergedSegment) {
-        LinkedList<RawTableSegment> result = new LinkedList<RawTableSegment>();
-        if (mergedSegment == null)
-            return result;
-
-        for (RawTableSegment seg : getSegments()) {
-            if (seg.getStatus() != SegmentStatusEnum.READY && seg.getStatus() != SegmentStatusEnum.READY_PENDING)
-                continue;
-
-            if (seg == mergedSegment)
-                continue;
-
-            if (mergedSegment.sourceOffsetContains(seg)) {
-                // make sure no holes
-                if (result.size() > 0 && result.getLast().getSourceOffsetEnd() != seg.getSourceOffsetStart())
-                    throw new IllegalStateException("Merging segments must not have holes between " + result.getLast() + " and " + seg);
-
-                result.add(seg);
-            }
-        }
-        return result;
+        return segments.getMergingSegments(mergedSegment);
     }
 
     public List<RawTableSegment> getSegments(SegmentStatusEnum status) {
-        List<RawTableSegment> result = new ArrayList<RawTableSegment>();
-
-        for (RawTableSegment segment : getSegments()) {
-            if (segment.getStatus() == status) {
-                result.add(segment);
-            }
-        }
-        return result;
+        return segments.getSegments(status);
     }
 
     public RawTableSegment getSegmentById(String segmentId) {

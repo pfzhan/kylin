@@ -47,6 +47,7 @@ import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.Broadcaster.Event;
 import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.realization.IRealization;
@@ -156,11 +157,11 @@ public class RawTableManager implements IRealizationProvider {
             }
         }
     }
-    
+
     public KylinConfig getConfig() {
         return config;
     }
-    
+
     public RawTableInstance getAccompanyRawTable(CubeInstance cube) {
         return getRawTableInstance(cube.getName());
     }
@@ -377,7 +378,7 @@ public class RawTableManager implements IRealizationProvider {
 
     public List<RawTableSegment> getRawtableSegmentByDataRange(RawTableInstance raw, long startDate, long endDate) {
         LinkedList<RawTableSegment> result = Lists.newLinkedList();
-        for (RawTableSegment seg: raw.getSegments()) {
+        for (RawTableSegment seg : raw.getSegments()) {
             if (startDate <= seg.getDateRangeStart() && seg.getDateRangeEnd() <= endDate) {
                 result.add(seg);
             }
@@ -629,7 +630,7 @@ public class RawTableManager implements IRealizationProvider {
         RawTableInstance raw = update.getRawTableInstance();
         logger.info("Updating rawtable instance '" + raw.getName() + "'");
 
-        List<RawTableSegment> newSegs = Lists.newArrayList(raw.getSegments());
+        Segments<RawTableSegment> newSegs = (Segments) (raw.getSegments().clone());
 
         if (update.getToAddSegs() != null)
             newSegs.addAll(Arrays.asList(update.getToAddSegs()));

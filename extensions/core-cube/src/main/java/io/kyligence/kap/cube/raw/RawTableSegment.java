@@ -29,9 +29,9 @@ import java.util.TimeZone;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IBuildable;
+import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -174,11 +174,12 @@ public class RawTableSegment implements Comparable<RawTableSegment>, IBuildable,
     }
 
     // date range is used in place of source offsets when offsets are missing
-    public boolean sourceOffsetContains(RawTableSegment seg) {
+    @Override
+    public boolean sourceOffsetContains(ISegment seg) {
         if (isSourceOffsetsOn())
-            return sourceOffsetStart <= seg.sourceOffsetStart && seg.sourceOffsetEnd <= sourceOffsetEnd;
+            return sourceOffsetStart <= ((RawTableSegment) seg).sourceOffsetStart && ((RawTableSegment) seg).sourceOffsetEnd <= sourceOffsetEnd;
         else
-            return dateRangeContains(seg);
+            return dateRangeContains(((RawTableSegment) seg));
     }
 
     public boolean dateRangeContains(RawTableSegment seg) {
