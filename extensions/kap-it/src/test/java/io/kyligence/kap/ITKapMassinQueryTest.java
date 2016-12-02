@@ -24,37 +24,71 @@
 
 package io.kyligence.kap;
 
-import io.kyligence.kap.rest.client.KAPRESTClient;
+import static org.apache.kylin.common.util.AbstractKylinTestCase.staticCleanupTestMetadata;
+import static org.apache.kylin.common.util.HBaseMetadataTestCase.staticCreateTestMetadata;
+
+import java.io.File;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.metadata.filter.function.Functions;
 import org.apache.kylin.query.ITMassInQueryTest;
 import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
+import org.apache.kylin.rest.response.SQLResponse;
 import org.dbunit.Assertion;
 import org.dbunit.database.DatabaseConfig;
 import org.dbunit.database.DatabaseConnection;
 import org.dbunit.database.IDatabaseConnection;
 import org.dbunit.dataset.ITable;
 import org.dbunit.ext.h2.H2Connection;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.Set;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.rest.service.MassInService;
 
 public class ITKapMassinQueryTest extends ITMassInQueryTest{
     private static String filterName1;
     private static String filterName2;
-    @BeforeClass
-    public static void setupAll() throws IOException {
-        KAPRESTClient client = new KAPRESTClient("ADMIN:KYLIN@localhost:7070", "Basic QURNSU46S1lMSU4=");
+    private static List<List<String>> testData1;
+    private static List<List<String>> testData2;
+
+    public static String SANDBOX_TEST_DATA = "../examples/test_case_data/sandbox";
+
+    static {
         try {
-            RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=test_kylin_cube_with_slr_left_join_empty]");
-            filterName1 = client.massinRequest(getTextFromFile(new File("src/test/resources/query/massin/filter1")));
-            filterName2 = client.massinRequest(getTextFromFile(new File("src/test/resources/query/massin/filter2")));
-        } finally {
-            RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=test_kylin_cube_with_slr_left_join_empty]");
+            ClassUtil.addClasspath(new File(SANDBOX_TEST_DATA).getAbsolutePath());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+    }
+
+    @BeforeClass
+    public static void setupAll() throws Exception {
+        staticCreateTestMetadata();
+        SQLResponse fakeResponse = new SQLResponse();
+        MassInService service = new MassInService();
+
+        testData1 = Lists.newArrayList();
+        testData1.add(Lists.newArrayList("Others"));
+        testData1.add(Lists.newArrayList("Others_A"));
+        fakeResponse.setResults(testData1);
+        filterName1 = service.storeMassIn(fakeResponse, Functions.FilterTableType.HDFS);
+
+        testData2 = Lists.newArrayList();
+        testData2.add(Lists.newArrayList("Others"));
+        testData2.add(Lists.newArrayList("Others_B"));
+        fakeResponse.setResults(testData2);
+        filterName2 = service.storeMassIn(fakeResponse, Functions.FilterTableType.HDFS);
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        staticCleanupTestMetadata();
     }
 
     @Test
