@@ -55,7 +55,7 @@
   <div class="modal-body">
     <span><strong>{{dataKylin.data_source.project}} </strong>{{ $parent.projectName!=null?$parent.projectName:'NULL'}}</span>
     <div class="form-group searchBox" style="margin-top:15px;">
-      <input type="text" placeholder="{{dataKylin.data_source.plac_filter}}" class="nav-search-input" ng-model="predicate" style="width:250px;"/>
+      <input type="text" placeholder="{{dataKylin.data_source.plac_filter}}" class="nav-search-input form-control" ng-model="predicate" />
     </div>
     <loading ng-if="!hiveLoaded" text="{{dataKylin.data_source.tip_loading_databases}}"></loading>
     <treecontrol class="tree-light check" tree-model="treedata" selected-nodes="selectedNodes" filter-expression="predicate" on-selection="showSelected(node)" on-node-toggle="showToggle(node)" options="treeOptions">

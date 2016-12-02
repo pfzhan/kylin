@@ -25,7 +25,7 @@
           <!--Cube Partition Type-->
           <div class="form-group" ng-hide="true">
               <div class="row">
-                  <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default"><b>{{dataKylin.model.gridSTPartitionType}}</b></label>
+                  <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default align-right"><b>{{dataKylin.model.gridSTPartitionType}} :</b></label>
                   <div class="col-xs-12 col-sm-6">
                       <select class="form-control"
                           ng-if="state.mode=='edit'"    ng-disabled="cubesLength>0"
@@ -41,7 +41,7 @@
           <!--Partition Column-->
           <div class="form-group">
               <div class="row middle-popover">
-                <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default"><b>{{dataKylin.model.gridSTPartitionDate}}</b> <i kylinpopover placement="right" ng-title="{{dataKylin.model.gridSTPartitionDate}}" template="partitionTip.html" class="fa fa-info-circle"></i></label>
+                <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default align-right"><i kylinpopover placement="right" ng-title="{{dataKylin.model.gridSTPartitionDate}}" template="partitionTip.html" class="fa fa-info-circle"></i> <b>{{dataKylin.model.gridSTPartitionDate}} :</b> </label>
                   <div class="col-xs-12 col-sm-6">
                       <select style="width: 100%" chosen data-placeholder="e.g. DEFAULT.TEST_KYLIN_FACT.CAL_DT"
                               ng-model="modelsManager.selectedModel.partition_desc.partition_date_column"
@@ -62,7 +62,7 @@
           <!--Date Format  -->
           <div class="form-group" ng-if="(state.mode=='edit') || (state.mode=='view')" >
             <div class="row">
-              <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default"><b>{{dataKylin.model.gridSTPartitionDateFormat}}</b></label>
+              <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default align-right"><b>{{dataKylin.model.gridSTPartitionDateFormat}} :</b></label>
               <div class="col-xs-12 col-sm-6">
                 <select style="width: 100%" chosen
                         ng-required="modelsManager.selectedModel.partition_desc.partition_date_format"
@@ -79,7 +79,7 @@
 
           <div class="form-group middle-popover"  ng-if="isFormatEditable==true">
             <div class="row">
-              <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default"><b>{{dataKylin.model.gridSTSetSeparate}}</b>  <i kylinpopover placement="right" ng-title="{{dataKylin.model.tip_tile_gridHasSepTimeColumn}}" template="separateTimeColumnTip.html" class="fa fa-info-circle"></i></label>
+              <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default align-right"> <i kylinpopover placement="right" ng-title="{{dataKylin.model.tip_tile_gridHasSepTimeColumn}}" template="separateTimeColumnTip.html" class="fa fa-info-circle"></i> <b>{{dataKylin.model.gridSTSetSeparate}} :</b> </label>
               <div class="col-xs-12 col-sm-6">
                 <toggle-switch on-label="Yes" off-label="No" ng-disabled="state.mode!=='edit'||cubesLength>0" ng-click="toggleHasSeparateColumn(partitionColumn.hasSeparateTimeColumn)" ng-model="partitionColumn.hasSeparateTimeColumn"></toggle-switch>
               </div>
@@ -89,7 +89,7 @@
           <!--Partition Time Column-->
           <div class="form-group" ng-if="partitionColumn.hasSeparateTimeColumn == true">
             <div class="row middle-popover">
-              <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default"><b>{{dataKylin.model.gridHasParTimeColumn}}</b>  <i kylinpopover placement="right" ng-title="{{dataKylin.model.gridHasParTimeColumn}}" template="partitionTimeTip.html" class="fa fa-info-circle"></i></label>
+              <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default align-right"><i kylinpopover placement="right" ng-title="{{dataKylin.model.gridHasParTimeColumn}}" template="partitionTimeTip.html" class="fa fa-info-circle"></i> <b>{{dataKylin.model.gridHasParTimeColumn}} :</b>  </label>
               <div class="col-xs-12 col-sm-6">
 
                 <select style="width: 100%" chosen data-placeholder="e.g. DEFAULT.TEST_KYLIN_FACT.CAL_DT"
@@ -108,7 +108,7 @@
           <!--Time Format-->
           <div class="form-group" ng-if="partitionColumn.hasSeparateTimeColumn == true">
             <div class="row">
-              <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default"><b>{{dataKylin.model.gridHasSepTimeColumnTF}}</b></label>
+              <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default align-right"><b>{{dataKylin.model.gridHasSepTimeColumnTF}} :</b></label>
               <div class="col-xs-12 col-sm-6">
                 <select style="width: 100%" chosen
                         ng-required="modelsManager.selectedModel.partition_desc.partition_time_format"
@@ -130,14 +130,12 @@
 
         <div class="form-group box-body middle-popover">
             <div class="row">
-                <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default"><b>{{dataKylin.model.gridSTFilter}}</b></label>
+                <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default align-right"><b>{{dataKylin.model.gridSTFilter}} :</b></label>
                 <div class="col-xs-12 col-sm-6">
 
                     <!--edit mode-->
                     <div class="form-group" ng-if="state.mode=='edit'"
                          style="font-family:'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro'">
-                        <label for="filter_condition"
-                               style="color: #930f80;"><b>{{dataKylin.model.gridSTFilter}} </b></label>
                         <textarea id="filter_condition" type="text"
                                   style="height:150px"     ng-disabled="cubesLength>0"
                                   class="form-control box-default"
