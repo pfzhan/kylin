@@ -50,8 +50,8 @@
         </table>
       </div>
       <div  ng-if="state.mode=='edit'" class="form-group model-dimension-edit" style="width: 100%">
-        <h4 style="margin-left:42px">{{dataKylin.model.gridDimensions}}</h4>
-        <div ng-repeat="dimension in modelsManager.selectedModel.dimensions track by $index" ng-init="outindex=$index" class="row" style="margin-left:42px">
+        <h3 >{{dataKylin.model.gridDimensions}}</h3>
+        <div ng-repeat="dimension in modelsManager.selectedModel.dimensions track by $index" ng-init="outindex=$index" class="row" style="margin-left:0px">
           <accordion>
             <div accordion-group class="panel-default "  is-open="selectedColumns[dimension.table].open" >
               <accordion-heading>
