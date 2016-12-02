@@ -62,7 +62,7 @@
                 <tr class="row">
                   <th style="width:10%"><label>
                     <input type="checkbox" ng-change="ChangeAll(dimension.table,outindex)" ng-model="selectedColumns[dimension.table].all"
-                           ng-disabled="selectedColumns[dimension.table].disabled" >{{dataKylin.model.gridDSSelectAll}}</label>
+                           ng-disabled="selectedColumns[dimension.table].disabled" >&nbsp;&nbsp;{{dataKylin.model.gridDSSelectAll}}</label>
                   </th>
                   <th ng-repeat="theaditem in dataKylin.model.gridTheadItems" style="width:22%"
                       ng-click="state[dimension.table].filterAttr= theaditem.attr;state[dimension.table].reverseColumn=theaditem.attr;state[dimension.table].filterReverse=!state[dimension.table].filterReverse;">

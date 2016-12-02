@@ -61,7 +61,7 @@
                 <ul class="dropdown-menu my-dropdown" role="menu"  style="width:100%;" >
                   <li>
                     <a middle-popover ng-repeat="encoding in getRawTableEncodings(col.column)" ng-click="col.encoding=encoding.value;col.encodingName=encoding.name;"
-                       kylinpopover placement="left" ng-title="{{(encoding.value=='dict[v1]'||encoding.value=='fixed_length[v1]'||encoding.value=='int[v1]'||encoding.value=='integer[v1]'||encoding.value=='integer[v2]'||encoding.value=='fixed_length_hex[v1]'||encoding.value=='date[v1]'||encoding.value=='time[v1]')?'Tip':''}}" ng-value="{{encoding.value}}" ng-watch="{{dataKylin.cube.tip_encoding}}" template="encodingTip.html">
+                       kylinpopover placement="left" ng-title="{{(encoding.value=='dict[v1]'||encoding.value=='fixed_length[v1]'||encoding.value=='int[v1]'||encoding.value=='integer[v1]'||encoding.value=='integer[v2]'||encoding.value=='fixed_length_hex[v1]'||encoding.value=='date[v1]'||encoding.value=='time[v1]')?encoding.name:''}}" ng-value="{{encoding.value}}" ng-watch="{{dataKylin.cube.tip_encoding}}" template="encodingTip.html">
                       {{encoding.name}}
                     </a>
                   </li>
@@ -76,7 +76,7 @@
                      ng-disabled="col.encoding.indexOf('dict')>=0||col.encoding.indexOf('date')>=0||col.encoding.indexOf('time')>=0||col.encoding.indexOf('var')>=0||col.encoding.indexOf('orderedbytes')>=0"
                      ng-model="col.valueLength" class="form-control"
                      placement="top" ng-name="{{col.encoding}}"  ng-value="{{col.valueLength}}" ng-watch="{{dataKylin.cube.tip_length}}" template="lengthTip.html"
-                     kylinpopover  ng-title="{{(col.encoding=='fixed_length[v1]'||col.encoding=='integer[v2]'||col.encoding=='fixed_length_hex[v1]')?'Tip':''}}" >
+                     kylinpopover  ng-title="{{(col.encoding=='fixed_length[v1]'||col.encoding=='integer[v2]'||col.encoding=='fixed_length_hex[v1]')?col.encodingName:''}}" >
 
               <small class="help-block red" ng-show="state.mode=='edit' && col.encoding=='int' && (col.valueLength>8 || col.valueLength<1)">int encoding column length should between 1 and 8</small>
               <span ng-if="state.mode=='view'">{{col.valueLength}}</span>

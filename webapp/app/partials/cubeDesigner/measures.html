@@ -273,18 +273,18 @@
                           <!--Column Encoding -->
                           <td>
                             <div  style="width:100%;" class="chosen-container chosen-container-single ">
-                                                            <button style="width:100%;" type="button" class="chosen-single dropdown-toggle" data-toggle="dropdown">
-                                                              <span style="float:left;" >{{groupby_column.encodingName}}</span>
-                                                            </button>
-                                                            <ul class="dropdown-menu my-dropdown" role="menu"  style="width:100%;" >
-                                                              <li>
-                                                                <a middle-popover ng-repeat="encoding in getEncodings(groupby_column.name)" ng-click="groupby_column.encoding=encoding.value;groupby_column.encodingName=encoding.name;"
-                                                                                                        kylinpopover placement="right" ng-title="{{(encoding.value=='dict[v1]'||encoding.value=='fixed_length[v1]'||encoding.value=='int[v1]'||encoding.value=='integer[v1]'||encoding.value=='integer[v2]'||encoding.value=='fixed_length_hex[v1]'||encoding.value=='date[v1]'||encoding.value=='time[v1]')?'Tip':''}}" ng-value="{{encoding.value}}" ng-watch="{{dataKylin.cube.tip_encoding}}" template="encodingTip.html">
-                                                                  {{encoding.name}}
-                                                                </a>
-                                                              </li>
-                                                            </ul>
-                                                          </div>
+                              <button style="width:100%;" type="button" class="chosen-single dropdown-toggle" data-toggle="dropdown">
+                                <span style="float:left;" >{{groupby_column.encodingName}}</span>
+                              </button>
+                              <ul class="dropdown-menu my-dropdown" role="menu"  style="width:100%;" >
+                                <li>
+                                  <a middle-popover ng-repeat="encoding in getEncodings(groupby_column.name)" ng-click="groupby_column.encoding=encoding.value;groupby_column.encodingName=encoding.name;"
+                                     kylinpopover placement="right" ng-title="{{(encoding.value=='dict[v1]'||encoding.value=='fixed_length[v1]'||encoding.value=='int[v1]'||encoding.value=='integer[v1]'||encoding.value=='integer[v2]'||encoding.value=='fixed_length_hex[v1]'||encoding.value=='date[v1]'||encoding.value=='time[v1]')?encoding.name:''}}" ng-value="{{encoding.value}}" ng-watch="{{dataKylin.cube.tip_encoding}}" template="encodingTip.html">
+                                    {{encoding.name}}
+                                  </a>
+                                </li>
+                              </ul>
+                            </div>
                             <span ng-if="state.mode=='view'">{{groupby_column.encoding}}</span>
                           </td>
                           <td>
@@ -294,7 +294,7 @@
                                    ng-disabled="groupby_column.encoding.indexOf('dict')>=0||groupby_column.encoding.indexOf('date')>=0||groupby_column.encoding.indexOf('time')>=0"
                                    ng-model="groupby_column.valueLength" class="form-control"
                                    placement="top" ng-name="{{groupby_column.encoding}}"  ng-value="{{groupby_column.valueLength}}" ng-watch="{{dataKylin.cube.tip_length}}" template="lengthTip.html"
-                                   kylinpopover  ng-title="{{(groupby_column.encoding=='fixed_length[v1]'||groupby_column.encoding=='integer[v2]'||groupby_column.value=='fixed_length_hex[v1]')?'Tip':''}}" >
+                                   kylinpopover  ng-title="{{(groupby_column.encoding=='fixed_length[v1]'||groupby_column.encoding=='integer[v2]'||groupby_column.value=='fixed_length_hex[v1]')?groupby_column.encodingName:''}}" >
                             <small class="help-block red" ng-show="state.mode=='edit' && groupby_column.encoding=='int' && (groupby_column.valueLength>8 || groupby_column.valueLength<1)">{{dataKylin.alert.check_cube_rowkeys_int}}</small>
                             <span ng-if="state.mode=='view'">{{groupby_column.valueLength}}</span>
                           </td>
