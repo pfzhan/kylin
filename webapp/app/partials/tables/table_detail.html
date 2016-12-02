@@ -44,7 +44,7 @@
         <!--Schema-->
         <div id="schema" class="tab-pane">
           <div ng-if="tableModel.selectedSrcTable.uuid" class="table-responsive">
-            <table class="table">
+            <table class="table table-hover table-bordered table-striped">
               <tbody>
               <tr>
                 <th style="width:20%">{{dataKylin.data_source.name}}</th>
@@ -101,7 +101,7 @@
           <div class="profile-user-info">
             <div>
               <!--<label class="table-header-text">{{dataKylin.data_source.columns}}</label>-->
-                            <span class="input-icon form-search nav-search pull-right">
+                            <span class="input-icon form-search nav-search pull-right" style="margin-bottom:10px">
                                 <input type="text" placeholder="{{dataKylin.data_source.plac_column}}" class="nav-search-input"
                                        ng-model="columnName"/>
                                 <i class="ace-icon fa fa-search nav-search-icon"></i>
@@ -109,7 +109,7 @@
             </div>
             <div class="space-6"></div>
             <div ng-if="(tableModel.selectedSrcTable.columns | filter: columnName).length>0">
-              <table class="table table-hover table-striped list">
+              <table class="table table-hover table-bordered table-striped list">
                 <thead>
                 <tr style="cursor: pointer">
                   <th ng-repeat="theaditem in dataKylin.data_source.theaditems"
@@ -161,7 +161,7 @@
         <!--sampleData-->
         <div id="sampleData" class="tab-pane">
           <div style="overflow-x: auto">
-            <table class="table table-hover table-striped list">
+            <table class="table table-hover table-bordered table-striped list">
               <thead>
               <tr >
                 <th>Row</th>
@@ -181,7 +181,7 @@
         <!--cardinality-->
         <div id="statistics" class="tab-pane">
 
-          <table class="table table-hover table-striped list">
+          <table class="table table-hover table-bordered table-striped list">
             <thead>
             <tr >
               <th>ID</th>
@@ -235,7 +235,7 @@
           </div>
           <div  ng-include="'partials/cubeDesigner/streamingConfig.html'" ng-init="state.mode='view'"></div>
         </div>
-        <span class="pull-right" style="margin-top: 10px;font-size: 12px;" ng-show="total_rows">{{dataKylin.data_source.totalRows}}：{{total_rows}}</span>
+        <span class="pull-right" style="margin-top: 10px;" ng-show="total_rows">{{dataKylin.data_source.totalRows}}：<span class="dynamicNumberColor">{{total_rows}}</span></span>
       </div>
 
       </div>
@@ -279,7 +279,7 @@
   </div>
 
   <!--show load hive table tip when no models list-->
-  <div ng-show="tableModel.selectedSrcDb.length&&!tableModel.selectedSrcTable.name" style="margin-top:40px;">
+  <div ng-show="tableModel.selectedSrcDb.length&&!tableModel.selectedSrcTable.name" style="margin-top:5px;">
     <div class="box box-primary">
       <div class="box-header with-border">
         <i class="fa fa-bullhorn"></i>

@@ -925,7 +925,7 @@ KylinApp
       })
       $scope.getSampleJobStatus = function (tableName, callback) {
         TableExtService.getCalcSampleProgress({'tableName': tableName, 'action': 'job'}, function (data) {
-          if ((data.job_status == 'RUNNING' || data.job_status == 'PENDING') && data.progress != 100) {
+          if (data.job_status == 'RUNNING' || data.job_status == 'PENDING') {
             SweetAlert.swal('', $scope.dataKylin.alert.hasCollectJob, 'info');
             loadingRequest.hide();
           } else if (typeof  callback == 'function') {
