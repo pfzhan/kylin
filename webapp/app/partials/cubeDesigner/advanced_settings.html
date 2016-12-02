@@ -456,7 +456,7 @@
 
     </div>
     <div style="" id="advancedSettingInfoBox" ng-if="state.mode!='view'">
-      <span class="bigtitle">Column</span><span> MetaData</span>
+      <span class="bigtitle">{{columnName}}</span><span> {{dataKylin.data_source.statistics}}</span>
       <table class="table table-hover table-bordered table-striped list">
         <tr>
           <td style="width:130px">{{dataKylin.data_source.cardinality}}</td>
@@ -483,7 +483,7 @@
           <td>{{ specialData[0].null_count }}</td>
         </tr>
       </table>
-      <span class="bigtitle" ng-if="columnList&&columnList.length">TableName</span><span ng-if="columnList&&columnList.length"> SampleData</span>
+      <span class="bigtitle" ng-if="columnList&&columnList.length">{{tableName}}</span><span ng-if="columnList&&columnList.length"> {{dataKylin.data_source.sampleData}}</span>
       <div style="overflow-y: auto" ng-if="columnList&&columnList.length">
         <table class="table table-hover table-bordered table-striped list">
           <thead>
