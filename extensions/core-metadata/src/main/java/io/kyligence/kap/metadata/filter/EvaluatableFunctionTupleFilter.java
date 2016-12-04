@@ -93,7 +93,8 @@ public class EvaluatableFunctionTupleFilter extends BuiltInFunctionTupleFilter {
 
         try {
             if (isLikeFunction()) {
-                return (Boolean) invokeFunction(value);
+                boolean ret = (Boolean) invokeFunction(value);
+                return this.isReversed ? !ret : ret;
             } else {
                 this.tupleValue = invokeFunction(value);
                 //convert back to ByteArray format because the outer EvaluatableFunctionTupleFilter assumes input as ByteArray
@@ -120,11 +121,13 @@ public class EvaluatableFunctionTupleFilter extends BuiltInFunctionTupleFilter {
             throw new IllegalStateException("must be valid");
         }
         BytesUtil.writeUTFString(name, buffer);
+        buffer.put((byte) (isReversed ? 1 : 0));
     }
 
     @Override
     public void deserialize(IFilterCodeSystem<?> cs, ByteBuffer buffer) {
         this.name = BytesUtil.readUTFString(buffer);
+        this.isReversed = buffer.get() != 0;
         this.initMethod();
     }
 
@@ -161,6 +164,10 @@ public class EvaluatableFunctionTupleFilter extends BuiltInFunctionTupleFilter {
     //even for "tolower(s)/toupper(s)/substring(like) like pattern", the like pattern can be used for index searching
     public String getLikePattern() {
         if (!isLikeFunction()) {
+            return null;
+        }
+
+        if (isReversed) {
             return null;
         }
 

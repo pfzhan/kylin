@@ -284,7 +284,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             int col = likeFunction.getColumn().getColumnDesc().getZeroBasedIndex();
             String pattern = likeFunction.getLikePattern();
             if (pattern == null) {
-                logger.info("lookupChildFilter returning full bitmap because it's not a like function");
+                logger.info("lookupChildFilter returning full bitmap because it's not a like function or it's NOT LIKE");
                 return getFullBitmap().toMutableRoaringBitmap();
             }
 
