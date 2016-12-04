@@ -11,7 +11,7 @@ import junit.framework.TestCase;
 public class HiveTableExtTest extends TestCase {
     @Test
     public void testHiveSample() {
-        String[] stringValues = { "I love China", "麒麟最牛逼啊", "USA", "what is your name", "yes, I like it", "true", "Dinner is perfect", "Not very good" };
+        String[] stringValues = { "I love China", "", "麒麟最牛逼啊", "USA", "what is your name", "yes, I like it", "true", "Dinner is perfect", "Not very good" };
         String[] decimalValues = { "1.232323232434", "NULL", "3.23232323", "NULL", "-1.3232", "434.223232", "232.22323" };
         HiveTableExtSampler sampler = new HiveTableExtSampler();
         sampler.setDataType("varchar");
@@ -26,7 +26,7 @@ public class HiveTableExtTest extends TestCase {
         sampler.decode(sampler.getBuffer());
 
         assertEquals(sampler.getMax(), "麒麟最牛逼啊");
-        assertEquals(sampler.getMinLenValue().length(), 3);
+        assertEquals(sampler.getMinLenValue().length(), 0);
         assertEquals(sampler.getMaxLenValue(), "麒麟最牛逼啊");
         sampler.clean();
 
@@ -43,7 +43,7 @@ public class HiveTableExtTest extends TestCase {
 
         assertEquals(sampler.getMax(), "434.223232");
         assertEquals(sampler.getMinLenValue().length(), 7);
-        assertEquals(sampler.getNullCounter(),"2");
+        assertEquals(sampler.getNullCounter(), "2");
         sampler.clean();
     }
 

@@ -154,7 +154,7 @@ public class HiveTableExtSampler {
     public String outPutSamplesWithSplit() {
         String output = "";
         for (Map.Entry<String, String> values : sampleValues.entrySet()) {
-            output += values.getValue();
+            output += values.getValue().isEmpty() ? " " : values.getValue();
             output += "\t";
         }
         return output;
@@ -298,7 +298,8 @@ public class HiveTableExtSampler {
         }
 
         public boolean isNullValue(String value) {
-            if (value.trim().equals("NULL")) {
+            value = value.trim();
+            if (value.equals("NULL")) {
                 long null_count = Long.parseLong(getNullCounter());
                 null_count++;
                 setNullCounter(String.valueOf(null_count));
@@ -325,7 +326,8 @@ public class HiveTableExtSampler {
         @Override
         public void samples(String value) {
 
-            isNullValue(value);
+            if (isNullValue(value))
+                return;
 
             if (getMax() == null || value.compareTo(getMax()) > 0) {
                 setMax(value);
