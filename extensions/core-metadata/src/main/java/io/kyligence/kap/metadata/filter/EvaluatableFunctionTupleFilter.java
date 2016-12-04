@@ -44,6 +44,10 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.datatype.OrderedBytesStringSerializer;
 
+/**
+ * EvaluatableFunctionTupleFilter is a hacky way to support better performance
+ * like function evaluation in Raw Table
+ */
 public class EvaluatableFunctionTupleFilter extends BuiltInFunctionTupleFilter {
 
     private boolean constantsInitted = false;

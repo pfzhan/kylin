@@ -266,4 +266,9 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_like", null, true);
     }
 
+    @Test
+    public void testRawQuery() throws Exception {
+        this.execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_raw", null, true);
+    }
+
 }

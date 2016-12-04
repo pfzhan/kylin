@@ -98,7 +98,7 @@ public class RawTableSparkRPC implements IGTStorage {
                 RealizationType.INVERTED_INDEX.toString(), rawTableSegment.getRawTableInstance().getUuid(), rawTableSegment.getUuid(), "RawTable", // 
                 scanRequest.getInfo().getMaxLength(), getRequiredParquetColumns(scanRequest), KapConfig.getInstanceFromEnv().isUsingInvertedIndex(), //
                 BackdoorToggles.getQueryId());
-        logger.info("Filter: {}" + scanRequest.getFilterPushDown());
+        logger.info("Filter: {}", scanRequest.getFilterPushDown());
 
         SparkJobProtos.SparkJobResponse jobResponse = client.submit(//
                 scanRequest.toByteArray(), sparkDriverClientParams);
