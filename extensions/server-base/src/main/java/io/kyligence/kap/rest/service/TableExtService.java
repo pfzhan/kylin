@@ -56,7 +56,7 @@ public class TableExtService extends BasicService {
     public boolean isView(String table) {
         MetadataManager metaMgr = MetadataManager.getInstance(getConfig());
         TableDesc tableDesc = metaMgr.getTableDesc(table);
-        if (tableDesc.getTableType().equals(TableDesc.TABLE_TYPE_VIRTUAL_VIEW)) {
+        if (null != tableDesc.getTableType() && tableDesc.getTableType().equals(TableDesc.TABLE_TYPE_VIRTUAL_VIEW)) {
             return true;
         }
         return false;
