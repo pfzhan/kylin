@@ -26,6 +26,8 @@ package io.kyligence.kap.metadata.filter;
 
 import static org.apache.kylin.metadata.filter.TupleFilter.FilterOperatorEnum.EVAL_FUNC;
 
+import java.util.Map;
+
 import org.apache.kylin.metadata.filter.IFilterCodeSystem;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilterSerializer;
@@ -38,5 +40,9 @@ public class TupleFilterSerializerRawTableExt extends TupleFilterSerializer {
 
     public static TupleFilter deserialize(byte[] bytes, IFilterCodeSystem<?> cs) {
         return TupleFilterSerializer.deserialize(bytes, cs);
+    }
+
+    public static Map<TupleFilter.FilterOperatorEnum, Class> getExtendedTupleFilters() {
+        return extendedTupleFilters;
     }
 }

@@ -121,6 +121,8 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
         String scanReqStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES);
         ImmutableRoaringBitmap pageBitmap = null;
         if (scanReqStr != null) {
+            TupleFilterSerializerRawTableExt.getExtendedTupleFilters();//touch static initialization
+
             GTScanRequest gtScanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(scanReqStr.getBytes("ISO-8859-1")));
             gtScanRequestThreadLocal.set(gtScanRequest);//for later use convenience
 
