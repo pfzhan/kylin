@@ -31,14 +31,12 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.lib.map.WrappedMapper.Context;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.cube.cuboid.CuboidCLI;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.IMRInput;
@@ -46,7 +44,7 @@ import org.apache.kylin.engine.mr.MRUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.steps.CuboidReducer;
-import org.apache.kylin.job.exception.JobException;
+import org.apache.kylin.engine.mr.steps.LayerReduerNumSizing;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -154,7 +152,7 @@ public class KapCuboidJob extends AbstractHadoopJob {
             // add metadata to distributed cache
             attachKylinPropsAndMetadata(cube, job.getConfiguration());
 
-            setReduceTaskNum(job, cube.getDescriptor(), nCuboidLevel);
+            LayerReduerNumSizing.setReduceTaskNum(job, cubeSeg, getTotalMapInputMB(), nCuboidLevel);
 
             this.deletePath(job.getConfiguration(), output);
 
@@ -188,49 +186,6 @@ public class KapCuboidJob extends AbstractHadoopJob {
                 return numFiles;
             }
         }
-    }
-
-    protected void setReduceTaskNum(Job job, CubeDesc cubeDesc, int level) throws ClassNotFoundException, IOException, InterruptedException, JobException {
-        KylinConfig kylinConfig = cubeDesc.getConfig();
-
-        double perReduceInputMB = kylinConfig.getDefaultHadoopJobReducerInputMB();
-        double reduceCountRatio = kylinConfig.getDefaultHadoopJobReducerCountRatio();
-
-        // total map input MB
-        double totalMapInputMB = this.getTotalMapInputMB();
-
-        // output / input ratio
-        int preLevelCuboids, thisLevelCuboids;
-        if (level == 0) { // base cuboid
-            preLevelCuboids = thisLevelCuboids = 1;
-        } else { // n-cuboid
-            int[] allLevelCount = CuboidCLI.calculateAllLevelCount(cubeDesc);
-            preLevelCuboids = allLevelCount[level - 1];
-            thisLevelCuboids = allLevelCount[level];
-        }
-
-        // total reduce input MB
-        double totalReduceInputMB = totalMapInputMB * thisLevelCuboids / preLevelCuboids;
-
-        // number of reduce tasks
-        int numReduceTasks = (int) Math.round(totalReduceInputMB / perReduceInputMB * reduceCountRatio);
-
-        // adjust reducer number for cube which has DISTINCT_COUNT measures for better performance
-        if (cubeDesc.hasMemoryHungryMeasures()) {
-            numReduceTasks = numReduceTasks * 4;
-        }
-
-        // at least 1 reducer by default
-        numReduceTasks = Math.max(kylinConfig.getHadoopJobMinReducerNumber(), numReduceTasks);
-        // no more than 500 reducer by default
-        numReduceTasks = Math.min(kylinConfig.getHadoopJobMaxReducerNumber(), numReduceTasks);
-
-        job.setNumReduceTasks(numReduceTasks);
-
-        logger.info("Having total map input MB " + Math.round(totalMapInputMB));
-        logger.info("Having level " + level + ", pre-level cuboids " + preLevelCuboids + ", this level cuboids " + thisLevelCuboids);
-        logger.info("Having per reduce MB " + perReduceInputMB + ", reduce count ratio " + reduceCountRatio);
-        logger.info("Setting " + Context.NUM_REDUCES + "=" + numReduceTasks);
     }
 
     /**

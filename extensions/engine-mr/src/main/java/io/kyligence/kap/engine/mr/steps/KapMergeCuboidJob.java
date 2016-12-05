@@ -37,6 +37,7 @@ import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.steps.CuboidReducer;
+import org.apache.kylin.engine.mr.steps.LayerReduerNumSizing;
 
 import io.kyligence.kap.storage.parquet.format.ParquetFileOutputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
@@ -115,7 +116,7 @@ public class KapMergeCuboidJob extends KapCuboidJob {
             //push down kylin config
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, KylinConfig.getInstanceFromEnv().getConfigAsString());
 
-            setReduceTaskNum(job, cube.getDescriptor(), 0);
+            LayerReduerNumSizing.setReduceTaskNum(job, cube.getSegmentById(segmentID), getTotalMapInputMB(), -1);
 
             this.deletePath(job.getConfiguration(), output);
 
