@@ -25,6 +25,7 @@
 package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,16 +58,16 @@ public class SparkDriverServer {
             public void run() {
                 // Use stderr here since the logger may have been reset by its JVM shutdown hook.
                 System.err.println("*** shutting down gRPC server since JVM is shutting down");
-                SparkDriverServer.this.stop();
+                if (server != null) {
+                    try {
+                        server.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        System.err.println("error when shutting down channel" + e.getMessage());
+                    }
+                }
                 System.err.println("*** server shut down");
             }
         });
-    }
-
-    private void stop() {
-        if (server != null) {
-            server.shutdownNow();
-        }
     }
 
     /**

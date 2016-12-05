@@ -67,6 +67,8 @@ public class EvaluatableFunctionTransformer {
             TupleFilter transformed = transform(child);
             translated.addChild(transformed);
         }
+        translated.setReversed(functionTupleFilter.isReversed());
+        
         return translated;
     }
 

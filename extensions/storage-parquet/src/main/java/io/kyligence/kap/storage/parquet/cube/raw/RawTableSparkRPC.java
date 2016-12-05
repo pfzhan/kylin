@@ -115,7 +115,7 @@ public class RawTableSparkRPC implements IGTStorage {
             return new StorageResponseGTScatter(info, shardBytes.iterator(), scanRequest.getColumns(), 0, scanRequest.getStoragePushDownLimit());
         } else {
             logger.error(jobResponse.getErrorMsg());
-            throw new RuntimeException("RPC failed due to above reason");
+            throw new RuntimeException("RPC failed due to UNKNOWN reason, check logs/spark-driver.log for more details");
         }
     }
 }

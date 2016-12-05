@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,18 +50,24 @@ public class SparkDriverClient {
             synchronized (SparkDriverClient.class) {
                 logger.info("SparkDriverClient host {}, port {}", host, port);
                 channel = ManagedChannelBuilder.forAddress(host, port).usePlaintext(true).build();
+
+                Runtime.getRuntime().addShutdownHook(new Thread() {
+                    @Override
+                    public void run() {
+                        // Use stderr here since the logger may have been reset by its JVM shutdown hook.
+                        System.err.println("*** shutting down gRPC channle since JVM is shutting down");
+                        if (channel != null) {
+                            try {
+                                channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+                            } catch (InterruptedException e) {
+                                System.err.println("error when shutting down channel" + e.getMessage());
+                            }
+                        }
+                        System.err.println("*** client shut down");
+                    }
+                });
             }
         }
-
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            @Override
-            public void run() {
-                // Use stderr here since the logger may have been reset by its JVM shutdown hook.
-                System.err.println("*** shutting down gRPC channle since JVM is shutting down");
-                SparkDriverClient.this.shutdown();
-                System.err.println("*** server shut down");
-            }
-        });
 
         logger.info("Finish creating channel. ");
     }
@@ -86,11 +94,4 @@ public class SparkDriverClient {
         SparkConfRequest request = SparkConfRequest.newBuilder().setName(confName).build();
         return ConfServiceGrpc.newBlockingStub(channel).getConf(request).getValue();
     }
-
-    public void shutdown() {
-        if (channel != null) {
-            channel.shutdownNow();
-        }
-    }
-
 }

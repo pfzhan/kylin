@@ -115,6 +115,7 @@ public class GTUtilExd extends GTUtil {
             BuiltInFunctionTupleFilter newFuncFilter;
             newFuncFilter = new EvaluatableFunctionTupleFilter(funcFilter.getName());
             newFuncFilter.addChild(funcFilter.getColumnContainerFilter());
+            newFuncFilter.setReversed(funcFilter.isReversed());
 
             TblColRef externalCol = funcFilter.getColumn();
             int col = colMapping == null ? externalCol.getColumnDesc().getZeroBasedIndex() : colMapping.indexOf(externalCol);
