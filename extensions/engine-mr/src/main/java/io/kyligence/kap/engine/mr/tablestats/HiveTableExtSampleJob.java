@@ -99,9 +99,8 @@ public class HiveTableExtSampleJob extends CubingJob {
             throw new IllegalArgumentException("Cannot find table descirptor " + tableName);
         }
 
-        boolean isView = isView(tableName, config);
-        if (isView) {
-            result.addTask(materializedView(table, "limit 100"));
+        if (table.isView()) {
+            result.addTask(materializedView(table, "limit 50000"));
         }
 
         String samplesOutPath = getOutputPath(config, result.getId(), HiveTableExtSampleJob.SAMPLES) + table.getIdentity();
@@ -140,7 +139,7 @@ public class HiveTableExtSampleJob extends CubingJob {
         step4.setJobParams(cardinalityParam);
         result.addTask(step4);
 
-        if (isView)
+        if (table.isView())
             result.addTask(deleteMaterializedView(table));
 
         table_ext.setJodID(result.getId());
@@ -212,15 +211,6 @@ public class HiveTableExtSampleJob extends CubingJob {
         hiveCmdBuilder.addStatement(createIntermediateTableHql.toString());
         step.setCmd(hiveCmdBuilder.build());
         return step;
-    }
-
-    public static boolean isView(String table, KylinConfig config) {
-        MetadataManager metaMgr = MetadataManager.getInstance(config);
-        TableDesc tableDesc = metaMgr.getTableDesc(table);
-        if (null != tableDesc.getTableType() && tableDesc.getTableType().equals(TableDesc.TABLE_TYPE_VIRTUAL_VIEW)) {
-            return true;
-        }
-        return false;
     }
 
     private static String getOutputPath(KylinConfig config, String jobID, String tag) {
