@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.kylin.metadata.MetadataManager;
-import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -51,14 +50,5 @@ public class TableExtService extends BasicService {
 
     public MetadataManager getMetaDataManager() {
         return org.apache.kylin.metadata.MetadataManager.getInstance(getConfig());
-    }
-
-    public boolean isView(String table) {
-        MetadataManager metaMgr = MetadataManager.getInstance(getConfig());
-        TableDesc tableDesc = metaMgr.getTableDesc(table);
-        if (null != tableDesc.getTableType() && tableDesc.getTableType().equals(TableDesc.TABLE_TYPE_VIRTUAL_VIEW)) {
-            return true;
-        }
-        return false;
     }
 }

@@ -163,7 +163,7 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         assertEquals(2, raw.getSegments().size());
 
         Pair<Long, Long> mergedSeg = mgr.autoMergeCubeSegments(cube);
-        Pair<Long, Long> mergedRawSeg = rawMgr.autoMergeRawTableSegments(raw);
+        Pair<Long, Long> mergedRawSeg = raw.autoMergeCubeSegments();
 
         assertTrue(mergedSeg != null);
         assertTrue(mergedRawSeg != null);
@@ -219,7 +219,7 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         assertEquals(2, raw.getSegments().size());
 
         Pair<Long, Long> mergedSeg = mgr.autoMergeCubeSegments(cube);
-        Pair<Long, Long> mergedRawSeg = rawMgr.autoMergeRawTableSegments(raw);
+        Pair<Long, Long> mergedRawSeg = raw.autoMergeCubeSegments();
 
         assertTrue(mergedSeg == null);
         assertTrue(mergedRawSeg == null);
@@ -236,7 +236,7 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         assertEquals(3, raw.getSegments().size());
 
         mergedSeg = mgr.autoMergeCubeSegments(cube);
-        mergedRawSeg = rawMgr.autoMergeRawTableSegments(raw);
+        mergedRawSeg = raw.autoMergeCubeSegments();
 
         assertTrue(mergedSeg != null);
         assertTrue(mergedSeg.getFirst() == 2000 && mergedSeg.getSecond() == 8000);
@@ -256,7 +256,7 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         assertEquals(4, raw.getSegments().size());
 
         mergedSeg = mgr.autoMergeCubeSegments(cube);
-        mergedRawSeg = rawMgr.autoMergeRawTableSegments(raw);
+        mergedRawSeg = raw.autoMergeCubeSegments();
 
         assertTrue(mergedSeg != null);
         assertTrue(mergedSeg.getFirst() == 0 && mergedSeg.getSecond() == 8000);

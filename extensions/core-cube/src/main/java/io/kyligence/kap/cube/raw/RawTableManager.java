@@ -298,23 +298,20 @@ public class RawTableManager implements IRealizationProvider {
         return segment;
     }
 
-    public void promoteNewlyBuiltSegments(RawTableInstance raw, RawTableSegment... newSegments) throws IOException {
-        List<RawTableSegment> tobe = calculateToBeSegments(raw);
+    public void promoteNewlyBuiltSegments(RawTableInstance raw, RawTableSegment newSegment) throws IOException {
+        if (StringUtils.isBlank(newSegment.getLastBuildJobID()))
+            throw new IllegalStateException("For raw " + raw + ", segment " + newSegment + " missing LastBuildJobID");
 
-        for (RawTableSegment seg : newSegments) {
-            if (tobe.contains(seg) == false)
-                throw new IllegalStateException("For rawtable " + raw + ", segment " + seg + " is expected but not in the tobe " + tobe);
-
-            if (StringUtils.isBlank(seg.getLastBuildJobID()))
-                throw new IllegalStateException("For rawtable " + raw + ", segment " + seg + " missing LastBuildJobID");
-
-            seg.setStatus(SegmentStatusEnum.READY);
+        if (isReady(newSegment) == true) {
+            logger.warn("For raw " + raw + ", segment " + newSegment + " state should be NEW but is READY");
         }
 
-        for (RawTableSegment seg : tobe) {
-            if (isReady(seg) == false)
-                throw new IllegalStateException("For rawtable " + raw + ", segment " + seg + " should be READY but is not");
-        }
+        List<RawTableSegment> tobe = raw.calculateToBeSegments(newSegment);
+
+        if (tobe.contains(newSegment) == false)
+            throw new IllegalStateException("For raw " + raw + ", segment " + newSegment + " is expected but not in the tobe " + tobe);
+
+        newSegment.setStatus(SegmentStatusEnum.READY);
 
         List<RawTableSegment> toRemoveSegs = Lists.newArrayList();
         for (RawTableSegment segment : raw.getSegments()) {
@@ -322,58 +319,11 @@ public class RawTableManager implements IRealizationProvider {
                 toRemoveSegs.add(segment);
         }
 
-        logger.info("Promoting rawtable " + raw + ", new segments " + Arrays.toString(newSegments) + ", to remove segments " + toRemoveSegs);
+        logger.info("Promoting rawtable " + raw + ", new segments " + newSegment + ", to remove segments " + toRemoveSegs);
 
         RawTableUpdate rawBuilder = new RawTableUpdate(raw);
-        rawBuilder.setToRemoveSegs(toRemoveSegs.toArray(new RawTableSegment[toRemoveSegs.size()])).setToUpdateSegs(newSegments).setStatus(RealizationStatusEnum.READY);
+        rawBuilder.setToRemoveSegs(toRemoveSegs.toArray(new RawTableSegment[toRemoveSegs.size()])).setToUpdateSegs(newSegment).setStatus(RealizationStatusEnum.READY);
         updateRawTable(rawBuilder);
-    }
-
-    public Pair<Long, Long> autoMergeRawTableSegments(RawTableInstance raw) throws IOException {
-        if (!raw.needAutoMerge()) {
-            logger.debug("RawTable " + raw.getName() + " doesn't need auto merge");
-            return null;
-        }
-
-        List<RawTableSegment> buildingSegs = raw.getBuildingSegments();
-        if (buildingSegs.size() > 0) {
-            logger.debug("RawTable " + raw.getName() + " has " + buildingSegs.size() + " building segments");
-        }
-
-        List<RawTableSegment> readySegs = raw.getSegments(SegmentStatusEnum.READY);
-
-        List<RawTableSegment> mergingSegs = Lists.newArrayList();
-        if (buildingSegs.size() > 0) {
-
-            for (RawTableSegment building : buildingSegs) {
-                // exclude those under-merging segs
-                for (RawTableSegment ready : readySegs) {
-                    if (ready.getSourceOffsetStart() >= building.getSourceOffsetStart() && ready.getSourceOffsetEnd() <= building.getSourceOffsetEnd()) {
-                        mergingSegs.add(ready);
-                    }
-                }
-            }
-        }
-
-        // exclude those already under merging segments
-        readySegs.removeAll(mergingSegs);
-
-        long[] timeRanges = raw.getRawTableDesc().getAutoMergeTimeRanges();
-        Arrays.sort(timeRanges);
-
-        for (int i = timeRanges.length - 1; i >= 0; i--) {
-            long toMergeRange = timeRanges[i];
-
-            for (int s = 0; s < readySegs.size(); s++) {
-                RawTableSegment seg = readySegs.get(s);
-                Pair<RawTableSegment, RawTableSegment> p = findMergeOffsetsByDateRange(readySegs.subList(s, readySegs.size()), //
-                        seg.getDateRangeStart(), seg.getDateRangeStart() + toMergeRange, toMergeRange);
-                if (p != null && p.getSecond().getDateRangeEnd() - p.getFirst().getDateRangeStart() >= toMergeRange)
-                    return Pair.newPair(p.getFirst().getSourceOffsetStart(), p.getSecond().getSourceOffsetEnd());
-            }
-        }
-
-        return null;
     }
 
     public List<RawTableSegment> getRawtableSegmentByDataRange(RawTableInstance raw, long startDate, long endDate) {
@@ -386,101 +336,8 @@ public class RawTableManager implements IRealizationProvider {
         return result;
     }
 
-    private Pair<RawTableSegment, RawTableSegment> findMergeOffsetsByDateRange(List<RawTableSegment> segments, long startDate, long endDate, long skipSegDateRangeCap) {
-        // must be offset cube
-        LinkedList<RawTableSegment> result = Lists.newLinkedList();
-        for (RawTableSegment seg : segments) {
-
-            // include if date range overlaps
-            if (startDate < seg.getDateRangeEnd() && seg.getDateRangeStart() < endDate) {
-
-                // reject too big segment
-                if (seg.getDateRangeEnd() - seg.getDateRangeStart() > skipSegDateRangeCap)
-                    break;
-
-                // reject holes
-                if (result.size() > 0 && result.getLast().getSourceOffsetEnd() != seg.getSourceOffsetStart())
-                    break;
-
-                result.add(seg);
-            }
-        }
-
-        if (result.size() <= 1)
-            return null;
-        else
-            return Pair.newPair(result.getFirst(), result.getLast());
-    }
-
-    private List<RawTableSegment> calculateToBeSegments(RawTableInstance raw, RawTableSegment... newSegments) {
-
-        List<RawTableSegment> tobe = Lists.newArrayList(raw.getSegments());
-        if (newSegments != null)
-            tobe.addAll(Arrays.asList(newSegments));
-        if (tobe.size() == 0)
-            return tobe;
-
-        // sort by source offset
-        Collections.sort(tobe);
-
-        RawTableSegment firstSeg = tobe.get(0);
-        firstSeg.validate();
-
-        for (int i = 0, j = 1; j < tobe.size();) {
-            RawTableSegment is = tobe.get(i);
-            RawTableSegment js = tobe.get(j);
-            js.validate();
-
-            // check i is either ready or new
-            if (!isNew(is) && !isReady(is)) {
-                tobe.remove(i);
-                continue;
-            }
-
-            // check j is either ready or new
-            if (!isNew(js) && !isReady(js)) {
-                tobe.remove(j);
-                continue;
-            }
-
-            if (is.getSourceOffsetStart() == js.getSourceOffsetStart()) {
-                // if i, j competes
-                if (isReady(is) && isReady(js) || isNew(is) && isNew(js)) {
-                    // if both new or ready, favor the bigger segment
-                    if (is.getSourceOffsetEnd() <= js.getSourceOffsetEnd()) {
-                        tobe.remove(i);
-                    } else {
-                        tobe.remove(j);
-                    }
-                } else if (isNew(is)) {
-                    // otherwise, favor the new segment
-                    tobe.remove(j);
-                } else {
-                    tobe.remove(i);
-                }
-                continue;
-            }
-
-            // if i, j in sequence
-            if (is.getSourceOffsetEnd() <= js.getSourceOffsetStart()) {
-                i++;
-                j++;
-                continue;
-            }
-
-            // seems j not fitting
-            tobe.remove(j);
-        }
-
-        return tobe;
-    }
-
     private boolean isReady(RawTableSegment seg) {
         return seg.getStatus() == SegmentStatusEnum.READY;
-    }
-
-    private boolean isNew(RawTableSegment seg) {
-        return seg.getStatus() == SegmentStatusEnum.NEW || seg.getStatus() == SegmentStatusEnum.READY_PENDING;
     }
 
     public RawTableSegment mergeSegments(RawTableInstance raw, String cubeSegUuid, long startDate, long endDate, long startOffset, long endOffset, boolean force) throws IOException {
@@ -497,7 +354,7 @@ public class RawTableManager implements IRealizationProvider {
         if (isOffsetsOn) {
             // offset cube, merge by date range?
             if (startOffset == endOffset) {
-                Pair<RawTableSegment, RawTableSegment> pair = findMergeOffsetsByDateRange(raw.getSegments(SegmentStatusEnum.READY), startDate, endDate, Long.MAX_VALUE);
+                Pair<RawTableSegment, RawTableSegment> pair = raw.getSegments(SegmentStatusEnum.READY).findMergeOffsetsByDateRange(startDate, endDate, Long.MAX_VALUE);
                 if (pair == null)
                     throw new IllegalArgumentException("Find no segments to merge by date range " + startDate + "-" + endDate + " for rawtable " + raw);
                 startOffset = pair.getFirst().getSourceOffsetStart();
@@ -570,9 +427,9 @@ public class RawTableManager implements IRealizationProvider {
         return segment;
     }
 
-    public void validateNewSegments(RawTableInstance raw, RawTableSegment... newSegments) {
-        List<RawTableSegment> tobe = calculateToBeSegments(raw, newSegments);
-        List<RawTableSegment> newList = Arrays.asList(newSegments);
+    public void validateNewSegments(RawTableInstance raw, RawTableSegment newSegment) {
+        List<RawTableSegment> tobe = raw.calculateToBeSegments(newSegment);
+        List<RawTableSegment> newList = Arrays.asList(newSegment);
         if (tobe.containsAll(newList) == false) {
             throw new IllegalStateException("For rawtable " + raw + ", the new segments " + newList + " do not fit in its current " + raw.getSegments() + "; the resulted tobe is " + tobe);
         }

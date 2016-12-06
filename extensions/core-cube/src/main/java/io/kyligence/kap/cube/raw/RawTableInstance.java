@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.cube.raw;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -32,6 +33,7 @@ import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
@@ -286,15 +288,15 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
         }
     }
 
-    public List<RawTableSegment> getBuildingSegments() {
+    public Segments<RawTableSegment> getBuildingSegments() {
         return segments.getBuildingSegments();
     }
 
-    public List<RawTableSegment> getMergingSegments(RawTableSegment mergedSegment) {
+    public Segments<RawTableSegment> getMergingSegments(RawTableSegment mergedSegment) {
         return segments.getMergingSegments(mergedSegment);
     }
 
-    public List<RawTableSegment> getSegments(SegmentStatusEnum status) {
+    public Segments<RawTableSegment> getSegments(SegmentStatusEnum status) {
         return segments.getSegments(status);
     }
 
@@ -352,6 +354,14 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
             return false;
 
         return this.getRawTableDesc().getAutoMergeTimeRanges() != null && this.getRawTableDesc().getAutoMergeTimeRanges().length > 0;
+    }
+
+    public Pair<Long, Long> autoMergeCubeSegments() throws IOException {
+        return segments.autoMergeCubeSegments(needAutoMerge(), getName(), getRawTableDesc().getAutoMergeTimeRanges());
+    }
+
+    public Segments calculateToBeSegments(RawTableSegment newSegment) {
+        return segments.calculateToBeSegments(newSegment);
     }
 
     public RawToGridTableMapping getRawToGridTableMapping() {

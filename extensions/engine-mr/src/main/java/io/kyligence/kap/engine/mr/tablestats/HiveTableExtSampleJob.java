@@ -32,9 +32,11 @@ import java.util.List;
 import java.util.TimeZone;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.HiveCmdBuilder;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.common.HadoopShellExecutable;
 import org.apache.kylin.engine.mr.common.MapReduceExecutable;
+import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.MetadataManager;
@@ -97,6 +99,11 @@ public class HiveTableExtSampleJob extends CubingJob {
             throw new IllegalArgumentException("Cannot find table descirptor " + tableName);
         }
 
+        boolean isView = isView(tableName, config);
+        if (isView) {
+            result.addTask(materializedView(table, "limit 100"));
+        }
+
         String samplesOutPath = getOutputPath(config, result.getId(), HiveTableExtSampleJob.SAMPLES) + table.getIdentity();
         String samplesParam = "-table " + tableName + " -output " + samplesOutPath;
 
@@ -132,6 +139,9 @@ public class HiveTableExtSampleJob extends CubingJob {
         step4.setJobClass(HiveColumnCardinalityUpdateJob.class);
         step4.setJobParams(cardinalityParam);
         result.addTask(step4);
+
+        if (isView)
+            result.addTask(deleteMaterializedView(table));
 
         table_ext.setJodID(result.getId());
         metaMgr.saveTableExt(table_ext);
@@ -173,6 +183,44 @@ public class HiveTableExtSampleJob extends CubingJob {
         }
 
         return tableNames;
+    }
+
+    private static ShellExecutable materializedView(TableDesc desc, String condition) throws IOException {
+
+        ShellExecutable step = new ShellExecutable();
+        step.setName("Materialized View " + desc.getName());
+        HiveCmdBuilder hiveCmdBuilder = new HiveCmdBuilder();
+
+        StringBuilder createIntermediateTableHql = new StringBuilder();
+        createIntermediateTableHql.append("DROP TABLE IF EXISTS " + desc.getMaterializedName() + ";\n");
+        createIntermediateTableHql.append("CREATE TABLE IF NOT EXISTS " + desc.getMaterializedName() + "\n");
+        createIntermediateTableHql.append("AS SELECT * FROM " + desc.getIdentity() + " " + condition + ";\n");
+        hiveCmdBuilder.addStatement(createIntermediateTableHql.toString());
+
+        step.setCmd(hiveCmdBuilder.build());
+        return step;
+    }
+
+    private static ShellExecutable deleteMaterializedView(TableDesc desc) throws IOException {
+
+        ShellExecutable step = new ShellExecutable();
+        step.setName("Drop Intermediate Table " + desc.getMaterializedName());
+        HiveCmdBuilder hiveCmdBuilder = new HiveCmdBuilder();
+
+        StringBuilder createIntermediateTableHql = new StringBuilder();
+        createIntermediateTableHql.append("DROP TABLE IF EXISTS " + desc.getMaterializedName() + ";\n");
+        hiveCmdBuilder.addStatement(createIntermediateTableHql.toString());
+        step.setCmd(hiveCmdBuilder.build());
+        return step;
+    }
+
+    public static boolean isView(String table, KylinConfig config) {
+        MetadataManager metaMgr = MetadataManager.getInstance(config);
+        TableDesc tableDesc = metaMgr.getTableDesc(table);
+        if (null != tableDesc.getTableType() && tableDesc.getTableType().equals(TableDesc.TABLE_TYPE_VIRTUAL_VIEW)) {
+            return true;
+        }
+        return false;
     }
 
     private static String getOutputPath(KylinConfig config, String jobID, String tag) {
