@@ -60,7 +60,7 @@
                       ng-if="state.mode=='edit'" style="width: 100%" multiple ng-model="aggregation_group.includes">
                      <ui-select-match placeholder="{{dataKylin.cube.plac_cubeAS}}">{{$item.column}}</ui-select-match>
                       <ui-select-choices
-                      repeat="rowkey_column.column as rowkey_column in cubeMetaFrame.rowkey.rowkey_columns | filter:$select.search|filterArr:seletedInclues:'column'">
+                      repeat="rowkey_column.column as rowkey_column in cubeMetaFrame.rowkey.rowkey_columns | filter:$select.search">
                     {{rowkey_column.column}}
                       </ui-select-choices>
                     </ui-select>
@@ -161,7 +161,7 @@
                             ng-if="state.mode=='edit'" style="width: 100%" multiple ng-model="jointDims">
                             <ui-select-match placeholder="{{dataKylin.cube.plac_cubeAS}}">{{$item}}</ui-select-match>
                             <ui-select-choices
-                              repeat="column in aggregation_group.includes | filter:$select.search|filterArr:seletedColumns">
+                              repeat="column in aggregation_group.includes | filter:$select.search">
                               {{column}}
                             </ui-select-choices>
                           </ui-select>

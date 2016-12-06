@@ -698,7 +698,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
           // push to array if no duplicate value
           if (i == tmpRowKeyColumns.length) {
             tmpRowKeyColumns.push({
-              "column": VdmUtil.removeNameSpace(tableName)+'.'+VdmUtil.removeNameSpace(fk),
+              "column": VdmUtil.removeNameSpace($scope.metaModel.model.fact_table)+'.'+VdmUtil.removeNameSpace(fk),
               "encoding": "dict",
               "isShardBy": "false"
             });
