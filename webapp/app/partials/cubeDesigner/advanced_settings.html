@@ -460,27 +460,27 @@
       <table class="table table-hover table-bordered table-striped list">
         <tr>
           <td style="width:130px">{{dataKylin.data_source.cardinality}}</td>
-          <td>{{ specialData[0].cardinality }}</td>
+          <td>{{ specialData[columnIndex].cardinality }}</td>
         </tr>
         <tr>
           <td>{{dataKylin.data_source.maxValue}}</td>
-          <td>{{ specialData[0].max_value }}</td>
+          <td>{{ specialData[columnIndex].max_value }}</td>
         </tr>
         <tr>
           <td>{{dataKylin.data_source.minValue}}</td>
-          <td>{{ specialData[0].min_value }}</td>
+          <td>{{ specialData[columnIndex].min_value }}</td>
         </tr>
         <tr>
           <td>{{dataKylin.data_source.maxLengthValue}}</td>
-          <td>{{ specialData[0].max_length_value }}</td>
+          <td>{{ specialData[columnIndex].max_length_value }}</td>
         </tr>
         <tr>
           <td>{{dataKylin.data_source.minLengthValue}}</td>
-          <td>{{ specialData[0].min_length_value }}</td>
+          <td>{{ specialData[columnIndex].min_length_value }}</td>
         </tr>
         <tr>
           <td>{{dataKylin.data_source.nullCount}}</td>
-          <td>{{ specialData[0].null_count }}</td>
+          <td>{{ specialData[columnIndex].null_count }}</td>
         </tr>
       </table>
       <span class="bigtitle" ng-if="columnList&&columnList.length">{{tableName}}</span><span ng-if="columnList&&columnList.length"> {{dataKylin.data_source.sampleData}}</span>

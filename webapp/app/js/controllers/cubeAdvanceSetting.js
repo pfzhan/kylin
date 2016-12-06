@@ -439,21 +439,28 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
   $scope.showColumnInfo=function(selectIndex,dataArr){
      var columnName=dataArr[selectIndex];
      var tableName=$scope.getFullTaleNameByColumnName(columnName);
-     $scope.getSampleDataByTableName(tableName);
-     $scope.tableName=tableName;
-     $scope.columnName=columnName;
-     $scope.columnList=TableModel.getColumnsByTable(VdmUtil.removeNameSpace(tableName));
-     var thColumn=$("#"+VdmUtil.removeNameSpace(columnName));
-     if(thColumn&&thColumn.length){
-        autoScroll(container,thColumn);
-     }else{
-       setTimeout(function(){
-         container=$("#advancedSettingInfoBox table").eq(1).parent();
-         autoScroll(container,$("#"+VdmUtil.removeNameSpace(columnName)));
-       },10)
-     }
+     $scope.getSampleDataByTableName(tableName,function(){
+       $scope.tableName=tableName;
+       $scope.columnName=columnName;
+       $scope.columnList=TableModel.getColumnsByTable(VdmUtil.removeNameSpace(tableName));
+       $scope.columnList.map(function(obj,k){
+         if(VdmUtil.removeNameSpace(tableName)+'.'+obj.name==columnName){
+           $scope.columnIndex=k;
+           return false;
+         }
+       });
+       var thColumn=$("#"+VdmUtil.removeNameSpace(columnName));
+       if(thColumn&&thColumn.length){
+         autoScroll(container,thColumn);
+       }else{
+         setTimeout(function(){
+           container=$("#advancedSettingInfoBox table").eq(1).parent();
+           autoScroll(container,$("#"+VdmUtil.removeNameSpace(columnName)));
+         },10)
+       }
+     });
   }
-  $scope.getSampleDataByTableName=function(tableName){
+  $scope.getSampleDataByTableName=function(tableName,callback){
     TableExtService.getSampleInfo({tableName:tableName},function(data){
       var sampleData=[],specialData=[];
       if(data.sample_rows&&data.sample_rows.length){
@@ -461,6 +468,9 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
       }
       $scope.specialData=data.columns_stats;
       $scope.sampleData=sampleData;
+      if(typeof callback=='function'){
+        callback();
+      }
     })
   }
   $scope.getFullTaleNameByColumnName=function(columnName){
