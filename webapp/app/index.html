@@ -69,7 +69,7 @@
 <div id="main" class="main-container">
     <div class="main-content">
         <div class="language-select">
-          <label for="languageSelect"> {{dataKylin.header.selectLanguage}}:  </label>
+          <label for="languageSelect" ng-bind="dataKylin.header.selectLanguage"></label>
           <select id="languageSelect" name="languageSelect" ng-model="languageType">
             <option value="0">english</option>
             <option value="1">中文</option>
