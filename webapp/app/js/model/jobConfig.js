@@ -62,6 +62,7 @@ KylinApp.constant('jobConfig', {
       {name: '新建', value: 0},
       {name: '等待', value: 1},
       {name: '运行', value: 2},
+      {name: '暂停', value: 32},
       {name: '完成', value: 4},
       {name: '错误', value: 8},
       {name: '无效', value: 16}
