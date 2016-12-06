@@ -215,14 +215,14 @@
           >
           <thead>
             <tr>
-              <th width="90px">{{dataKylin.cube.cubeASID}}</th>
-              <th>{{dataKylin.cube.cubeASColumn}}</th>
-              <th>{{dataKylin.cube.cubeASEncoding}}</th>
-              <th>{{dataKylin.cube.cubeASLength}}</th>
-              <th>{{dataKylin.cube.cubeASShardBy}}</th>
-              <th>{{dataKylin.cube.cubeASDatatype}}</th>
-              <th>{{dataKylin.cube.cubeASCardinality}}</th>
-              <th width="90px" ng-if="state.mode=='edit'"></th>
+              <th width="40px">{{dataKylin.cube.cubeASID}}</th>
+              <th >{{dataKylin.cube.cubeASColumn}}</th>
+              <th width="80px">{{dataKylin.cube.cubeASEncoding}}</th>
+              <th width="80px">{{dataKylin.cube.cubeASLength}}</th>
+              <th width="100px">{{dataKylin.cube.cubeASShardBy}}</th>
+              <th width="120px">{{dataKylin.cube.cubeASDatatype}}</th>
+              <th width="60px">{{dataKylin.cube.cubeASCardinality}}</th>
+              <th width="40px" ng-if="state.mode=='edit'"></th>
             </tr>
           </thead>
           <!--   state.mode=='edit'-->
@@ -269,7 +269,7 @@
               </td>
 
               <td>
-                <select  style="width:180px;"
+                <select style="width:100px"
                       chosen ng-model="rowkey_column.isShardBy"  ng-disabled="instance.status=='READY'"
                       tooltip="{{dataKylin.cube.tip_false_by_default}}"
                       data-placeholder="false by default"
