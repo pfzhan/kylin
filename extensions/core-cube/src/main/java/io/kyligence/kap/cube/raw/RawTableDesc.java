@@ -147,6 +147,14 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         });
     }
 
+    public void setAllColumns(List<RawTableColumnDesc> columns) {
+        this.columns = columns;
+    }
+
+    public List<RawTableColumnDesc> getAllColumns() {
+        return this.columns;
+    }
+
     public List<TblColRef> getColumns() {
         List<TblColRef> result = Lists.newArrayList();
         TblColRef ordered = getOrderedColumn();
@@ -264,4 +272,18 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     public void setModelName(String modelName) {
         this.modelName = modelName;
     }
+
+    public static RawTableDesc getCopyOf(RawTableDesc desc) {
+        RawTableDesc rawTableDesc = new RawTableDesc();
+        rawTableDesc.setName(desc.getName());
+        rawTableDesc.setModelName(desc.getModelName());
+        rawTableDesc.setAllColumns(desc.getAllColumns());
+        rawTableDesc.setAutoMergeTimeRanges(desc.getAutoMergeTimeRanges());
+        rawTableDesc.setEngineType(desc.getEngineType());
+        rawTableDesc.setStorageType(desc.getStorageType());
+        rawTableDesc.updateRandomUuid();
+        rawTableDesc.init(desc.getConfig());
+        return rawTableDesc;
+    }
+
 }

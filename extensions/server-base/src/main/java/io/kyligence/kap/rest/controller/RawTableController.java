@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.UUID;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.controller.BasicController;
@@ -214,6 +215,39 @@ public class RawTableController extends BasicController {
             logger.error(message, e);
             throw new InternalErrorException(message + " Caused by: " + e.getMessage(), e);
         }
+    }
+
+    @RequestMapping(value = "/{cubeName}/clone", method = { RequestMethod.PUT })
+    @ResponseBody
+    public RawTableInstance rawCube(@PathVariable String cubeName, @RequestBody RawTableRequest rawRequest) {
+        String newRawName = rawRequest.getRawTableName();
+        String project = rawRequest.getProject();
+
+        RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
+        if (raw == null) {
+            return null;
+        }
+
+        RawTableDesc rawDesc = raw.getRawTableDesc();
+        RawTableDesc newRawDesc = rawDesc.getCopyOf(rawDesc);
+
+        KylinConfig config = rawTableService.getConfig();
+        newRawDesc.setName(newRawName);
+        newRawDesc.setEngineType(config.getDefaultCubeEngine());
+        newRawDesc.setStorageType(config.getDefaultStorageEngine());
+
+        RawTableInstance newRaw;
+        try {
+            newRaw = rawTableService.createRawTableInstanceAndDesc(newRawName, project, newRawDesc);
+
+            //reload to avoid shallow clone
+            rawTableService.getCubeDescManager().reloadCubeDescLocal(newRawName);
+        } catch (IOException e) {
+            throw new InternalErrorException("Failed to clone cube ", e);
+        }
+
+        return newRaw;
+
     }
 
     private void updateRequest(RawTableRequest request, boolean success, String message) {
