@@ -27,8 +27,8 @@
 
 -keepclassmembers class io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkExecutorPreAggFunction {*;}
 -keepclassmembers class io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkAppClientService {*;}
--keepclassmembers class * extends org.apache.log4j.AppenderSkeleton {*;}
 
+-keep class * extends org.apache.log4j.AppenderSkeleton {*;}
 -keep class * extends org.apache.kylin.rest.controller.BasicController {*;}
 -keep class * extends org.apache.kylin.rest.service.BasicService {*;}
 -keep class !io.kyligence.** {*;}
