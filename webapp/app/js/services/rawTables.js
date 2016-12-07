@@ -45,6 +45,7 @@ KylinApp.factory('RawTablesService', ['$resource', function ($resource, config) 
     delete:{method:'DELETE',params:{},isArray:false},
     enable:{method:'PUT',params:{action:'enable'},isArray:false},
     disable:{method:'PUT',params:{action:'disable'},isArray:false},
+    clone:{method:'PUT',params:{action:'clone'},isArray:false},
     getRawTableInfo: {method: 'GET', params:{},isArray:false}
   });
 }]);

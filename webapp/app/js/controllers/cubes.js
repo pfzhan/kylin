@@ -552,7 +552,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
     }
   });
 
-var cubeCloneCtrl = function ($scope, $modalInstance, CubeService, MessageService, $location, cube, MetaModel, SweetAlert,ProjectModel, loadingRequest,language,kylinCommon) {
+var cubeCloneCtrl = function ($scope, $modalInstance, CubeService, MessageService, $location, cube, MetaModel, SweetAlert,ProjectModel, loadingRequest,language,kylinCommon,RawTablesService) {
 
   $scope.projectModel = ProjectModel;
 
@@ -589,12 +589,21 @@ var cubeCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServic
       closeOnConfirm: true
     }, function (isConfirm) {
       if (isConfirm) {
-
         loadingRequest.show();
         CubeService.clone({cubeId: cube.name}, $scope.cubeRequest, function (result) {
-          loadingRequest.hide();
-          kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_clone_cube);
-          location.reload();
+          var cloneEndCallBack=function() {
+            loadingRequest.hide();
+            kylinCommon.success_alert($scope.dataKylin.alert.success, $scope.dataKylin.alert.success_clone_cube);
+            location.reload();
+          }
+          var cloneRawTableErrorFunc=function(){
+          }
+          RawTablesService.clone({rawTableName:cube.name},$scope.cubeRequest,function(result){
+            cloneEndCallBack();
+          },function(){
+            cloneRawTableErrorFunc();
+            cloneEndCallBack();
+          })
         }, function (e) {
           loadingRequest.hide();
           kylinCommon.error_default(e);
