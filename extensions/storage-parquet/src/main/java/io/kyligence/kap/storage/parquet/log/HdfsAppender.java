@@ -190,7 +190,22 @@ public class HdfsAppender extends AppenderSkeleton {
         closeWriter();
         Configuration conf = new Configuration();
         fileSystem = FileSystem.get(conf);
-        outStream = fileSystem.create(outPath, true);
+
+        int retry = 10;
+        for (int i = 0; i < retry; i++) {
+            try {
+                outStream = fileSystem.create(outPath, true);
+                break;
+            } catch (Exception e) {
+                System.err.println("fail to create stream for path: " + outPath);
+            }
+
+            try {
+                Thread.sleep(1000);//waiting for acl to turn to current user
+            } catch (InterruptedException e) {
+                System.err.println("InterruptedException");
+            }
+        }
         bufferedWriter = new BufferedWriter(new OutputStreamWriter(outStream));
     }
 
