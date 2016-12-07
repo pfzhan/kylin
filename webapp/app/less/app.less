@@ -514,7 +514,6 @@ treecontrol.tree-light li.tree-leaf i {
 }
 
 .table > tbody {
-  word-break: break-all;
   word-wrap: break-word;
 }
 
@@ -807,7 +806,7 @@ input:-moz-placeholder {
 
 //tree-grid-directive
 table.tree-grid td{
-  word-break: break-word !important;
+  word-break: break-all !important;
 }
 .tree-grid .level-3 .indented.cube-dimension:after{
     content:'D';
@@ -1019,10 +1018,6 @@ pre {
   background: antiquewhite;
 }
 
-.cube-dimension td{
-  word-break:break-word;
-}
-
 .align-left{
   text-align: left;
 }
@@ -1031,4 +1026,7 @@ pre {
 }
 .align-center{
   text-align: center;
+}
+.inline-block{
+  display: inline-block;
 }
