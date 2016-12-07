@@ -74,7 +74,7 @@ public class SparkParquetVisit implements Serializable {
                         append(request.getRealizationId()).append("/").//
                         append(request.getSegmentId()).append("/").//
                         append(request.getDataFolderName()).//
-                        append("/*.parquet").toString();
+                        append("/*.parquet.inv").toString();
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
