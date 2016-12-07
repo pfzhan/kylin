@@ -49,7 +49,29 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log) {
       this.selectedSrcDb = [];
       this.selectedSrcTable = {};
     };
+    this.getcolumnNameTypeMap=function(callback){
+      var param = {
+        ext: true,
+        project:ProjectModel.selectedProject
+      };
+      if(angular.equals({}, _this.columnNameTypeMap)) {
+        TableService.list(param, function (tables) {
 
+          angular.forEach(tables, function (table) {
+            angular.forEach(table.columns, function (column) {
+              _this.columnNameTypeMap[column.name] = column.datatype;
+            });
+          });
+          if(typeof  callback=='function'){
+            callback(_this.columnNameTypeMap);
+          }
+        });
+      }else{
+        if(typeof  callback=='function'){
+          callback(_this.columnNameTypeMap);
+        }
+      }
+    }
     this.aceSrcTbLoaded = function (forceLoad) {
         _this.selectedSrcDb = [];
         _this.loading = true;

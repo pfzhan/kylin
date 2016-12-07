@@ -96,29 +96,30 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
       return [];
     }
   }
+
   $scope.getEncodings =function (name){
     var filterName=name;
-    var type = TableModel.columnNameTypeMap[filterName]||'';
-    var encodings =$scope.store.supportedEncoding,filterEncoding;
-    var filerList=$scope.createFilter(type);
-    if($scope.isEdit){
-      if($scope.cubeMetaFrame.rowkey.rowkey_columns&&name){
-        for(var s=0;s<$scope.cubeMetaFrame.rowkey.rowkey_columns.length;s++){
-          if(filterName==$scope.cubeMetaFrame.rowkey.rowkey_columns[s].column){
-            var version=$scope.cubeMetaFrame.rowkey.rowkey_columns[s].encoding_version;
-            filterEncoding=VdmUtil.getFilterObjectListByOrFilterVal(encodings,'value',$scope.cubeMetaFrame.rowkey.rowkey_columns[s].encoding.replace(/:\d+/,"")+(version?"[v"+version+"]":"[v1]"),'suggest',true)
+    var type= TableModel.columnNameTypeMap[VdmUtil.removeNameSpace(filterName)]||'';
+        var encodings =$scope.store.supportedEncoding,filterEncoding;
+        var filerList=$scope.createFilter(type);
+        if($scope.isEdit){
+          if($scope.cubeMetaFrame.rowkey.rowkey_columns&&name){
+            for(var s=0;s<$scope.cubeMetaFrame.rowkey.rowkey_columns.length;s++){
+              if(filterName==$scope.cubeMetaFrame.rowkey.rowkey_columns[s].column){
+                var version=$scope.cubeMetaFrame.rowkey.rowkey_columns[s].encoding_version;
+                filterEncoding=VdmUtil.getFilterObjectListByOrFilterVal(encodings,'value',$scope.cubeMetaFrame.rowkey.rowkey_columns[s].encoding.replace(/:\d+/,"")+(version?"[v"+version+"]":"[v1]"),'suggest',true)
+              }
+            }
+          }else{
+            filterEncoding=VdmUtil.getFilterObjectListByOrFilterVal(encodings,'suggest',true);
           }
+        }else{
+          filterEncoding=VdmUtil.getFilterObjectListByOrFilterVal(encodings,'suggest',true);
         }
-      }else{
-        filterEncoding=VdmUtil.getFilterObjectListByOrFilterVal(encodings,'suggest',true);
-      }
-    }else{
-      filterEncoding=VdmUtil.getFilterObjectListByOrFilterVal(encodings,'suggest',true);
-    }
-    for(var f=0;f<filerList.length;f++){
-      filterEncoding=VdmUtil.removeFilterObjectList(filterEncoding,'baseValue',filerList[f]);
-    }
-    return filterEncoding;
+        for(var f=0;f<filerList.length;f++){
+          filterEncoding=VdmUtil.removeFilterObjectList(filterEncoding,'baseValue',filerList[f]);
+        }
+        return filterEncoding;
   }
 
 
@@ -951,6 +952,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
     };
     if (newValue) {
       TableModel.initTables();
+      TableModel.getcolumnNameTypeMap();
       TableService.list(param, function (tables) {
         angular.forEach(tables, function (table) {
           var  tableName = table.database + "." + table.name;
