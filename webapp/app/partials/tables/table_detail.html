@@ -19,7 +19,7 @@
 <div ng-controller="SourceMetaCtrl" class="nav-tabs-custom">
   <div class="col-xs-12" ng-show="tableModel.selectedSrcDb&&tableModel.selectedSrcTable.name">
     <h3 class="text-info">{{dataKylin.data_source.tableSchema}}{{ tableModel.selectedSrcTable.name}}<span ng-if="tableModel.selectedSrcTable.table_type">({{tableModel.selectedSrcTable.table_type}})</span></h3>
-    <a class="btn btn-primary pull-right"  ng-click="calcSampleData()" ng-if="!tableModel.selectedSrcTable.table_type" ><span class="fa fa-eyedropper"></span> {{dataKylin.data_source.collectStatistics}}</a>
+    <a class="btn btn-primary pull-right"  ng-click="calcSampleData()"  ><span class="fa fa-eyedropper"></span> {{dataKylin.data_source.collectStatistics}}</a>
     <div style="clear:both"></div>
     <span ng-if="last_modified" class="pull-right" style="margin-top: 10px;font-size: 12px;">{{dataKylin.data_source.lastModifiedTime}}：{{last_modified|utcToConfigTimeZone}}</span>
     <div class="tabbable nav-tabs-custom">
