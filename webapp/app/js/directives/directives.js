@@ -375,7 +375,8 @@ KylinApp.directive('kylinPagination', function ($parse, $q, language) {
         title:'@ngTitle',
         cube: '@ngCube',
         value:'@ngValue',
-        name: '@ngName'
+        name: '@ngName',
+        version:'@ngVersion'
     },
     link: function (scope, element, attrs) {
       scope.$watch(function() {

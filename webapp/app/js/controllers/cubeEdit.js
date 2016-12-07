@@ -32,6 +32,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
   $scope.metaModel = {};
   $scope.modelsManager = modelsManager;
   TableModel.aceSrcTbLoaded();
+  $scope.integerVersion={version:1}
 
   //add or edit ?
   var absUrl = $location.absUrl();
@@ -58,6 +59,9 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
           var typeVersion=+encodings[i];
           if(value=="int"){
             name = "int (deprecated)";
+          }
+          if(value=="integer"){
+            $scope.integerVersion.version=encodings[i];
           }
           if(/\d+/.test(""+typeVersion)&&typeVersion>1){
             for(var s=1;s<=typeVersion;s++){

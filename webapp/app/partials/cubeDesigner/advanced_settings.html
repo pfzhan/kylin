@@ -254,7 +254,8 @@
                   <ul class="dropdown-menu my-dropdown" role="menu"  style="width:100%;" >
                     <li>
                       <a middle-popover ng-repeat="encoding in getEncodings(rowkey_column.column)" ng-click="rowkey_column.encoding=encoding.value;rowkey_column.encodingName=encoding.name;"
-                         kylinpopover placement="right" ng-title="{{(encoding.value=='dict[v1]'||encoding.value=='fixed_length[v1]'||encoding.value=='int[v1]'||encoding.value=='integer[v1]'||encoding.value=='integer[v2]'||encoding.value=='fixed_length_hex[v1]'||encoding.value=='date[v1]'||encoding.value=='time[v1]')?encoding.name:''}}" ng-value="{{encoding.value}}" ng-watch="{{dataKylin.cube.tip_encoding}}" template="encodingTip.html">
+                         kylinpopover placement="right" ng-version="{{integerVersion.version}}"
+                         ng-title="{{(encoding.value=='dict[v1]'||encoding.value=='fixed_length[v1]'||encoding.value=='int[v1]'||encoding.value=='integer[v1]'||encoding.value=='integer[v2]'||encoding.value=='fixed_length_hex[v1]'||encoding.value=='date[v1]'||encoding.value=='time[v1]')?encoding.name:''}}" ng-value="{{encoding.value}}" ng-watch="{{dataKylin.cube.tip_encoding}}" template="encodingTip.html">
                         {{encoding.name}}
                       </a>
                     </li>
@@ -266,8 +267,9 @@
                 <input type="text" class="form-control" placeholder="Column Length.." middle-popover
                      ng-disabled="rowkey_column.encoding.indexOf('dict')>=0||rowkey_column.encoding.indexOf('date')>=0||rowkey_column.encoding.indexOf('time')>=0||instance.status=='READY'"
                      ng-change="refreshRowKey(convertedRowkeys,$index,rowkey_column);"
-                     ng-model="rowkey_column.valueLength" class="form-control"  placement="top" ng-name="{{rowkey_column.encoding}}"  ng-value="{{rowkey_column.valueLength}}" ng-watch="{{dataKylin.cube.tip_length}}" template="lengthTip.html"
-                       kylinpopover  ng-title="{{(rowkey_column.encoding=='fixed_length[v1]'||rowkey_column.encoding=='integer[v2]'||rowkey_column.value=='fixed_length_hex[v1]')?rowkey_column.encodingName:''}}" >
+                     ng-model="rowkey_column.valueLength" class="form-control"  placement="top" ng-name="{{rowkey_column.encoding}}"  ng-value="{{rowkey_column.valueLength}}"
+                       ng-watch="{{dataKylin.cube.tip_length}}" template="lengthTip.html" ng-version="{{integerVersion.version}}"
+                       kylinpopover  ng-title="{{(rowkey_column.encoding=='fixed_length[v1]'||rowkey_column.encoding=='integer[v1]'||rowkey_column.value=='fixed_length_hex[v1]')?rowkey_column.encodingName:''}}" >
 
                 <small class="help-block red" ng-show=" rowkey_column.encoding=='int[v2]' && (rowkey_column.valueLength>8 || rowkey_column.valueLength<1)">int encoding column length should between 1 and 8</small>
               </td>
@@ -536,8 +538,11 @@
     <div ng-if="value=='int[v1]'">
       {{dataKylin.cube.tip_encoding_int}}
     </div>
-    <div ng-if="value=='integer[v1]'">
+    <div ng-if="value=='integer[v1]'&&version>value.substring(9,10)">
       {{dataKylin.cube.tip_encoding_integer_v1}}
+    </div>
+    <div ng-if="value=='integer[v1]'&&version==value.substring(9,10)">
+      {{dataKylin.cube.tip_encoding_integer_v2}}
     </div>
     <div ng-if="value=='integer[v2]'">
       {{dataKylin.cube.tip_encoding_integer_v2}}
@@ -560,7 +565,7 @@
       {{value}}
       {{dataKylin.cube.tip_length_fixed_length_part_two}}
     </div>
-    <div ng-if="name=='integer[v2]'">
+    <div ng-if="name=='integer[v1]'">
       {{dataKylin.cube.tip_length_integer_v2}}
       [{{-Math.pow(2,(8*value-1))}},{{Math.pow(2,(8*value-1))}}]
     </div>
