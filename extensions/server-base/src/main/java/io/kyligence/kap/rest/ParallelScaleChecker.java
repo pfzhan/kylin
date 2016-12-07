@@ -33,7 +33,7 @@ import io.kyligence.kap.storage.hbase.HBaseUtil;
 
 class ParallelScaleChecker implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(ParallelScaleChecker.class);
-    private static final double PARALLEL_CHECK_MAG_MAGNIFICATION = 1.5;
+    private static final int SPARK_EXECUTOR_EST_NUM_PER_NODE = 5;
 
     private int parallelLimit = -1;
     private KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -52,25 +52,26 @@ class ParallelScaleChecker implements Runnable {
     }
 
     private void checkInKap() {
-        int queryParallel = kylinConfig.getRestServers().length;
-        int storageParallel = HBaseUtil.getRegionServerNum();
+        int queryNodeNum = kylinConfig.getRestServers().length;
+        int hbaseRegionServerNum = HBaseUtil.getRegionServerNum();
 
-        if (storageParallel + queryParallel > parallelLimit * PARALLEL_CHECK_MAG_MAGNIFICATION) {
-            warning(queryParallel, storageParallel);
+        if (hbaseRegionServerNum + queryNodeNum > parallelLimit) {
+            warning(queryNodeNum, hbaseRegionServerNum);
         }
     }
 
     private void checkInKapPlus() {
         String[] servers = kylinConfig.getRestServers();
-        int queryParallel = servers.length;
-        int storageParallel = 0;
+        int queryNodeNum = servers.length;
+        int sparkExecNum = 0;
         for (String server : servers) {
             KAPRESTClient restClient = new KAPRESTClient(server, null);
-            storageParallel += restClient.retrieveSparkExecutorNum();
+            sparkExecNum += restClient.retrieveSparkExecutorNum();
         }
 
-        if (storageParallel + queryParallel > parallelLimit * PARALLEL_CHECK_MAG_MAGNIFICATION) {
-            warning(queryParallel, storageParallel);
+        double sparkNodeEstNum = Math.ceil(sparkExecNum / SPARK_EXECUTOR_EST_NUM_PER_NODE);
+        if (sparkNodeEstNum + queryNodeNum > parallelLimit) {
+            warning(queryNodeNum, sparkExecNum);
         }
     }
 
