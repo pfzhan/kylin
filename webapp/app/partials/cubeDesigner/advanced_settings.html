@@ -221,12 +221,12 @@
             <tr>
               <th width="40px">{{dataKylin.cube.cubeASID}}</th>
               <th >{{dataKylin.cube.cubeASColumn}}</th>
-              <th width="80px">{{dataKylin.cube.cubeASEncoding}}</th>
+              <th width="140px">{{dataKylin.cube.cubeASEncoding}}</th>
               <th width="80px">{{dataKylin.cube.cubeASLength}}</th>
               <th width="100px">{{dataKylin.cube.cubeASShardBy}}</th>
               <th width="120px">{{dataKylin.cube.cubeASDatatype}}</th>
               <th width="60px">{{dataKylin.cube.cubeASCardinality}}</th>
-              <th width="40px" ng-if="state.mode=='edit'"></th>
+              <!--<th width="40px" ng-if="state.mode=='edit'"></th>-->
             </tr>
           </thead>
           <!--   state.mode=='edit'-->
@@ -289,12 +289,12 @@
               <td>
                 <span>{{TableModel.tableColumnMap[rowkey_column.database+"."+rowkey_column.table][rowkey_column.database+"."+rowkey_column.column].cardinality}}</span>
               </td>
-              <td >
-                <button class="btn btn-xs btn-info"  ng-disabled="instance.status=='READY'"
-                      ng-click="removeRowkey(convertedRowkeys, $index,rowkey_column)"><i
-                  class="fa fa-minus"></i>
-                </button>
-              </td>
+              <!--<td >-->
+                <!--<button class="btn btn-xs btn-info"  ng-disabled="instance.status=='READY'"-->
+                      <!--ng-click="removeRowkey(convertedRowkeys, $index,rowkey_column)"><i-->
+                  <!--class="fa fa-minus"></i>-->
+                <!--</button>-->
+              <!--</td>-->
             </tr>
           </tbody>
           <!--   state.mode=='view'-->
@@ -329,9 +329,9 @@
 
         </table>
 
-        <button class="btn btn-sm btn-info" style="margin-left:42px"  ng-disabled="instance.status=='READY'"
-                ng-click="addNewRowkeyColumn()" ng-show="state.mode=='edit'">{{dataKylin.cube.cubeASNewRowkeyColumn}}<i class="fa fa-plus"></i>
-        </button>
+        <!--<button class="btn btn-sm btn-info" style="margin-left:42px"  ng-disabled="instance.status=='READY'"-->
+                <!--ng-click="addNewRowkeyColumn()" ng-show="state.mode=='edit'">{{dataKylin.cube.cubeASNewRowkeyColumn}}<i class="fa fa-plus"></i>-->
+        <!--</button>-->
       </div>
 
       <div class="form-group large-popover" >
