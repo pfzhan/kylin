@@ -404,6 +404,7 @@ KylinApp
           loadingRequest.hide();
         })
       }
+    };
 
 
       //streaming model
@@ -880,7 +881,7 @@ KylinApp
           });
         }
       }
-      };
+
       $scope.calcSampleData = function () {
         loadingRequest.show();
         var tableName = $scope.tableModel.selectedSrcTable.database + '.' + $scope.tableModel.selectedSrcTable.name;
