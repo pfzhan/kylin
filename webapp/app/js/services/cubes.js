@@ -41,6 +41,7 @@ KylinApp.factory('CubeService', ['$resource', function ($resource, config) {
     save: {method: 'POST', params: {}, isArray: false},
     update: {method: 'PUT', params: {}, isArray: false},
     getHbaseInfo: {method: 'GET', params: {propName: 'hbase'}, isArray: true},
-    getColumnarInfo: {method: 'GET', params: {propName: 'columnar'}, isArray: true}
+    getColumnarInfo: {method: 'GET', params: {propName: 'columnar'}, isArray: true},
+    calcCuboid:{method:'POST',isArray:false}
   });
 }]);

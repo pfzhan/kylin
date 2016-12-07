@@ -18,9 +18,43 @@
 
 'use strict';
 
-KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,cubesManager,CubeDescModel,SweetAlert, TableModel,TableExtService,VdmUtil) {
+KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,cubesManager,CubeDescModel,SweetAlert, TableModel,TableExtService,VdmUtil,CubeService) {
   $scope.cubesManager = cubesManager;
   $scope.TableModel=TableModel;
+  $scope.cuboidList=[];
+  $scope.calcCuboidNumber=function(aggregation_group,index){
+    //var needCountNumber=[];
+    //var len=metadata.length;
+    //for(var i=0;i<len;i++){
+    //  var curObj=metadata[i].select_rule;
+    //  var lenOfHierarchy=curObj.hierarchy_dims&&curObj.hierarchy_dims.length||0;
+    //  var lenOfJoint=curObj.joint_dims&&curObj.joint_dims.length||0;
+    //  //计算hierarchy 组合情况
+    //  for(var m=0;m<lenOfHierarchy;m++){
+    //    var count= 0,childHierachyLen=curObj.hierarchy_dims[m].length||0;
+    //    count=childHierachyLen+1;
+    //    needCountNumber.push(count);
+    //  }
+    //  //计算Joint 组合情况
+    //  for(var n=0;n<lenOfJoint;n++){
+    //    if(curObj.joint_dims[n]&&curObj.joint_dims[n].length){
+    //      needCountNumber.push(2);
+    //    }
+    //  }
+    //}
+    //var lenOfCountNumber=needCountNumber.length,result=1;
+    //while(--lenOfCountNumber>=0){
+    //  result=result*needCountNumber[lenOfCountNumber];
+    //}
+    //var noGroupColumnLen=$scope.cubeMetaFrame.rowkey.rowkey_columns.length-$scope.seletedColumns.length;
+    //while(--noGroupColumnLen>=0){
+    //  result=result*2;
+    //}
+    //return result;
+    CubeService.calcCuboid({propValue:'aggregationgroups',action:'cuboid'},angular.toJson(aggregation_group,true),function(data){
+      $scope.cuboidList[index]=VdmUtil.linkArrObjectToString(data);
+    })
+  }
   $scope.getTypeVersion=function(typename){
     var searchResult=/\[v(\d+)\]/.exec(typename);
     if(searchResult&&searchResult.length){
@@ -196,7 +230,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     $scope.cubeMetaFrame.aggregation_groups.push(CubeDescModel.createAggGroup());
     $scope.seletedColumns=$scope.calcSelectedColums($scope.cubeMetaFrame.aggregation_groups);
     $scope.seletedInclues=$scope.calcSelectedIncludes($scope.cubeMetaFrame.aggregation_groups);
-    $scope.cuboidCount=$scope.calcCuboidNumber($scope.cubeMetaFrame.aggregation_groups);
+    //$scope.cuboidCount=$scope.calcCuboidNumber($scope.cubeMetaFrame.aggregation_groups);
   };
 
   $scope.refreshAggregationGroup = function (list, index, aggregation_groups) {
@@ -205,7 +239,8 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     }
     $scope.seletedColumns=$scope.calcSelectedColums(list);
     $scope.seletedInclues=$scope.calcSelectedIncludes(list);
-    $scope.cuboidCount=$scope.calcCuboidNumber(list);
+    //$scope.cuboidCount=$scope.calcCuboidNumber(list);
+    $scope.calcCuboidNumber(aggregation_groups,index);
   };
 
   $scope.refreshAggregationHierarchy = function (list, index, aggregation_group,hieIndex,hierarchy) {
@@ -217,7 +252,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     }
     $scope.seletedColumns=$scope.calcSelectedColums(list);
     $scope.seletedInclues=$scope.calcSelectedIncludes(list);
-    $scope.cuboidCount=$scope.calcCuboidNumber(list);
+    $scope.calcCuboidNumber(aggregation_group,index)
   };
 
   $scope.refreshAggregationJoint = function (list, index, aggregation_group,joinIndex,jointDim){
@@ -229,7 +264,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     }
     $scope.seletedColumns=$scope.calcSelectedColums(list);
     $scope.seletedInclues=$scope.calcSelectedIncludes(list);
-    $scope.cuboidCount=$scope.calcCuboidNumber(list);
+    $scope.calcCuboidNumber(aggregation_group,index)
   };
 
   $scope.refreshIncludes = function (list, index, aggregation_groups) {
@@ -400,38 +435,9 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     }
     return arr;
   }
-  $scope.calcCuboidNumber=function(metadata){
-    var needCountNumber=[];
-    var len=metadata.length;
-    for(var i=0;i<len;i++){
-      var curObj=metadata[i].select_rule;
-      var lenOfHierarchy=curObj.hierarchy_dims&&curObj.hierarchy_dims.length||0;
-      var lenOfJoint=curObj.joint_dims&&curObj.joint_dims.length||0;
-      //计算hierarchy 组合情况
-      for(var m=0;m<lenOfHierarchy;m++){
-        var count= 0,childHierachyLen=curObj.hierarchy_dims[m].length||0;
-        count=childHierachyLen+1;
-        needCountNumber.push(count);
-      }
-      //计算Joint 组合情况
-      for(var n=0;n<lenOfJoint;n++){
-        if(curObj.joint_dims[n]&&curObj.joint_dims[n].length){
-          needCountNumber.push(2);
-        }
-      }
-    }
-    var lenOfCountNumber=needCountNumber.length,result=1;
-    while(--lenOfCountNumber>=0){
-      result=result*needCountNumber[lenOfCountNumber];
-    }
-    var noGroupColumnLen=$scope.cubeMetaFrame.rowkey.rowkey_columns.length-$scope.seletedColumns.length;
-    while(--noGroupColumnLen>=0){
-      result=result*2;
-    }
-    return result;
-  }
+
   $scope.seletedColumns=$scope.calcSelectedColums($scope.cubeMetaFrame.aggregation_groups);
-  $scope.cuboidCount=$scope.calcCuboidNumber($scope.cubeMetaFrame.aggregation_groups);
+  //$scope.cuboidCount=$scope.calcCuboidNumber($scope.cubeMetaFrame.aggregation_groups);
 
 
   var container=$("#advancedSettingInfoBox table").eq(1).parent();
