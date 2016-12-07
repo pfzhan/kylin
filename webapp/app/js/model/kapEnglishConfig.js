@@ -769,6 +769,7 @@ KylinApp.constant('kapEnglishConfig', {
     noSampleData:'No Sample Data',
     collectStatistics:'Collect Statistics',
     statistics:'Statistics',
+    metaData:'Meta Data',
     lastModifiedTime:'Last Modified Time',
     totalRows:'Total Rows',
     maxLengthValue:'MaxLengthValue',

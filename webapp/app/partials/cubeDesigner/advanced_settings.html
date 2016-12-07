@@ -460,8 +460,16 @@
 
     </div>
     <div style="" id="advancedSettingInfoBox" ng-if="state.mode!='view'">
-      <span class="bigtitle">{{columnName}}</span><span> {{dataKylin.data_source.statistics}}</span>
+      <span class="bigtitle">{{columnName}}</span><span> {{dataKylin.data_source.metaData}}</span>
       <table class="table table-hover table-bordered table-striped list">
+          <tr>
+          <th style="width:130px">Name</th>
+          <th>Value</th>
+        </tr>
+        <tr>
+          <td style="width:130px">{{dataKylin.cube.cubeASDatatype}}</td>
+          <td>{{columnType}}</td>
+        </tr>
         <tr>
           <td style="width:130px">{{dataKylin.data_source.cardinality}}</td>
           <td>{{ specialData[columnIndex].cardinality }}</td>
@@ -487,6 +495,7 @@
           <td>{{ specialData[columnIndex].null_count }}</td>
         </tr>
       </table>
+      <hr/>
       <span class="bigtitle" ng-if="columnList&&columnList.length">{{tableName}}</span><span ng-if="columnList&&columnList.length"> {{dataKylin.data_source.sampleData}}</span>
       <div style="overflow-y: auto" ng-if="columnList&&columnList.length">
         <table class="table table-hover table-bordered table-striped list">

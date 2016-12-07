@@ -752,6 +752,7 @@ KylinApp.constant('kapChineseConfig', {
     noSampleData:'无采样数据',
     collectStatistics:'收集统计信息',
     statistics:'统计信息',
+    metaData:'元数据',
     lastModifiedTime:'上次更新时间',
     totalRows:'表总行数',
     maxLengthValue:'最长值',
