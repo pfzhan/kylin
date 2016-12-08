@@ -63,15 +63,15 @@ class ParallelScaleChecker implements Runnable {
     private void checkInKapPlus() {
         String[] servers = kylinConfig.getRestServers();
         int queryNodeNum = servers.length;
-        int sparkExecNum = 0;
+        double sparkExecNum = 0;
         for (String server : servers) {
             KAPRESTClient restClient = new KAPRESTClient(server, null);
             sparkExecNum += restClient.retrieveSparkExecutorNum();
         }
 
-        double sparkNodeEstNum = Math.ceil(sparkExecNum / SPARK_EXECUTOR_EST_NUM_PER_NODE);
+        int sparkNodeEstNum = (int) Math.ceil(sparkExecNum / SPARK_EXECUTOR_EST_NUM_PER_NODE);
         if (sparkNodeEstNum + queryNodeNum > parallelLimit) {
-            warning(queryNodeNum, sparkExecNum);
+            warning(queryNodeNum, sparkNodeEstNum);
         }
     }
 
