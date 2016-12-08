@@ -261,7 +261,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     }
     $scope.seletedColumns=$scope.calcSelectedColums(list);
     $scope.seletedInclues=$scope.calcSelectedIncludes(list);
-    $scope.calcCuboidNumber(aggregation_group,index)
+    $scope.calcCuboidNumber(aggregation_group,index);
   };
 
   $scope.refreshIncludes = function (list, index, aggregation_groups) {
@@ -494,6 +494,10 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
       $("#advancedSettingInfoBox table th").css('color','#000');
       scrollTo.css('color','#3276b1');
     }
+  }
+  //初始化已有分组的cuboid
+  for(var i=0;i<$scope.cubeMetaFrame.aggregation_groups.length;i++){
+    $scope.calcCuboidNumber($scope.cubeMetaFrame.aggregation_groups[i],i);
   }
 
 });
