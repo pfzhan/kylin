@@ -37,7 +37,6 @@ import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.Candidate;
 import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
-import org.apache.kylin.storage.hbase.cube.v1.coprocessor.observer.ObserverEnabler;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -91,7 +90,6 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         if (h2Connection != null)
             closeConnection(h2Connection);
 
-        ObserverEnabler.forceCoprocessorUnset();
         HBaseMetadataTestCase.staticCleanupTestMetadata();
     }
 
