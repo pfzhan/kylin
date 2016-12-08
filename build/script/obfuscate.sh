@@ -17,7 +17,7 @@ keepParam=`grep -hro --include="*.xml" --exclude={pom.xml,workspace.xml,checksty
 # keep all class name in double quote
 keepParam+=`grep -hro --include="*.java" "\"io\.kyligence\.kap\.[^\"\\]*" . | cut -c 2- | sort -u | awk '{print "-keep class " $0 " {*;}"}'`' '
 # keep classes in kylin.properties
-keepParam+=`grep -hro --include="kylin.properties" "io\.kyligence\.kap\.[^\"\\]*" . | sort -u | awk '{print "-keep class " $0 " {*;}"}'`' '
+keepParam+=`grep -hro --include="kylin*.properties" "io\.kyligence\.kap\.[^\"\\]*" . | sort -u | awk '{print "-keep class " $0 " {*;}"}'`' '
 # keep classes in *.sh
 keepParam+=`grep -hro --include="*.sh" "io\.kyligence\.kap\.[^\*\.]*\.[^ ]*" . | sort -u | awk '{print "-keep class " $0 " {*;}"}'`' '
 
