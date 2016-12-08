@@ -162,8 +162,8 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
                 BufferedReader reader = new BufferedReader(new StringReader(lic));
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    if (line.startsWith("kap.parallel.scale:")) {
-                        parallel = Integer.parseInt(line.substring("kap.parallel.scale:".length()).trim());
+                    if (line.startsWith("Parallel Scale:")) {
+                        parallel = Integer.parseInt(line.substring("Parallel Scale:".length()).trim());
                     }
                 }
                 reader.close();
