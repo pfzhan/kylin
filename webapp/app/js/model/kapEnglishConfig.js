@@ -235,6 +235,8 @@ KylinApp.constant('kapEnglishConfig', {
         {attr: 'cardinality', name: 'Cardinality'},
         {attr: 'comment', name: 'Comment'}
     ],
+    aggregationGroups: 'Aggregation Groups',
+    toAggregationGroups: 'Visit aggregation group for more about aggregation group.',
     gridModelDesign: 'Model Designer',
     gridModelInfo: 'Model Info',
     gridInUseTip:'Tip',
@@ -243,6 +245,7 @@ KylinApp.constant('kapEnglishConfig', {
     gridTableInUse_part_one: 'This table is in use in Cube',
     gridTableInUse_part_two: '',
     gridMIModelName: 'Model Name',
+    tip_title: 'gridMIModelName',
     tip_body_model_name: '<li>Model name is unique name of entire system.</li><li>Can not edit model name after created.</li>',
     check_info_required_model_name: 'Model name is required.',
     check_info_invalid_model_name: 'Model name is invalid.',
@@ -275,11 +278,13 @@ KylinApp.constant('kapEnglishConfig', {
     gridSTPartition: 'Partition',
     gridSTPartitionType: 'Partition Type',
     gridSTPartitionDate: 'Partition Date Column',
+    tip_title_gridSTPartitionDate: '用于分区的日期列',
     tip_gridSTPartitionDate: '<li>Partition date column not required,leave as default if cube always need full build</Li><li>Column should contain date value (type can be Date, Timestamp, String, VARCHAR, Int, Integer, BigInt, etc.)</li>',
     gridSTPartitionDateSelect: '--Select Partition Column--',
     gridSTPartitionDateFormat: 'Date Format',
     gridSTPartitionDateFormatSelect: '--Select Date Format--',
     gridSTSetSeparate: 'Has a separate "time of the day" column ?',
+    tip_tile_gridSTSetSeparate: '单独的时间列',
     tip_tile_gridHasSepTimeColumn: 'Separate Time Column',
     tip_gridSTSetSeparate: 'For cases where fact table saves date and hour at two columns (KYLIN-1427)',
     gridHasParTimeColumn: 'Partition Time Column',
@@ -288,7 +293,8 @@ KylinApp.constant('kapEnglishConfig', {
     gridHasSepTimeColumnTF: 'Time Format',
     gridHasSepTimeColumnTFSelect: '--Select Time Format--',
     gridSTFilter: 'Filter',
-    gridSTWhere: 'Where',
+    plac_gridSTFilter: '请输入WHERE条件，不需要输入\'WHERE\'',
+    //gridSTWhere: 'Where',
     edit: 'Edit',  //edit of model begin
     editDMSelectFact: '-- Select Fact Table --',
     editDMAddLookupTable: 'Add Lookup Table',
@@ -336,6 +342,9 @@ KylinApp.constant('kapEnglishConfig', {
       {attr: 'owner', name: 'Owner'},
       {attr: 'create_time_utc', name: 'Create Time'}
     ],
+    aggregationGroups: '聚合组',
+    tip_visit: '点击',
+    tip_about_aggregation_group:'查看更多相关聚合组信息',
     actions: 'Actions',
     schema: ['Cube Info','Dimensions','Measures','Refresh Setting','Advanced Setting','Raw Table(Beta)','Configuration Overwrites','Overview'],
     admins: 'Admins',
@@ -357,7 +366,6 @@ KylinApp.constant('kapEnglishConfig', {
     cubeHBTotalSize:  'Total Size:',
     cubeHBTotalNumber: 'Total Number:',
     cubeHBNoHBaseInfo: 'No HBase Info.',
-
 
     segmentName:'Segment Name:',
     segmentPath:'Segment Path:',
@@ -416,6 +424,7 @@ KylinApp.constant('kapEnglishConfig', {
     ac_cancel_cube: 'Cancel',
     cubeDSAutoGenerate_part_one: 'Auto Generate Dimensions',//Auto Generate Dimensions begin
     cubeDSAutoGenerate_part_two: 'This is a helper for you to batch generate dimensions.', cubeDSColumns: 'Columns',
+    cubeDSColumns: 'Columns',
     cubeDSFactTable: '[Fact Table]',
     cubeDSLookupTable: '[Lookup Table]',
     cubeDSSelectAll:'Select All',
@@ -434,6 +443,7 @@ KylinApp.constant('kapEnglishConfig', {
     cubeMSActions: 'Actions',
     cubeMSEditMS: 'Edit Measure',
     cubeMSMeasureName: 'measure name..',
+    cubeMSType: '类型',
     cubeMSDatatype:'Data Type',
     cubeMSCardinality:'Cardinality',
     cubeMSComment:'Comment',
@@ -497,7 +507,7 @@ KylinApp.constant('kapEnglishConfig', {
     rawtableASIndex:'Index',
     rawtableMustSetSorted:'You must set at least one column with an index value of sorted!',
     tip_title_cubeASRowkeys: {name:'Rowkey',watch:true},
-    tip_body_cubeASRowkeys: '<h4>Shard By this column?</h4><p>If specified as "true", cube data will be sharded according to its value.</p><h4>RowKey Encoding</h4><ol><li>"dict" encoding will try to build a dictionary for the dimension</li><li>"fixed_length" encoding will encode the dimension vlaues by fixed length bytes with padding</li><li>"int" encoding uses variable integer to encode integers </li><li>"dict" Use dictionary to encode dimension values. dict encoding is very compact but vulnerable for ultra high cardinality dimensions.</li><li>"fix_length" Use a fixed-length("length" parameter) byte array to encode integer dimension values, with potention value truncations. </li><li>"integer" Use N bytes to encode integer values, where N equals the length parameter and ranges from 1 to 8. [-2^(8*N-1),2^(8*N-1)) is supported for integer encoding with length of N.</li><li>"int" Deprecated, use latest integer encoding intead.</li><li>"fixed_length_hex" Use a fixed-length("length" parameter) byte array to encode the hex string dimension values, like 1A2BFF or FF00FF, with potention value truncations. Assign one length parameter for every two hex codes. </li><li>"date" Use 3 bytes to encode date dimension values. </li><li>"time" Use 4 bytes to encode timestamps, supporting from 1970-01-01 00:00:00 to 2038/01/19 03:14:07. Millisecond is ignored. </li><li>fixed_length_hex编码只适用于varchar或nvarchar类型。</li><li>date编码只适用于date类型。</li><li>time编码只适用于time，datetime，timestamp类型。</li></ol>',
+    tip_body_cubeASRowkeys: '<h4>Shard By this column?</h4><p>If specified as "true", cube data will be sharded according to its value.</p><h4>RowKey Encoding</h4><ol><li>"dict" Use dictionary to encode dimension values. dict encoding is very compact but vulnerable for ultra high cardinality dimensions.</li><li>"integer" Use N bytes to encode integer values, where N equals the length parameter and ranges from 1 to 8. [-2^(8*N-1),2^(8*N-1)) is supported for integer encoding with length of N.</li><li>"int" Deprecated, use latest integer encoding instead.</li><li>"date" Use 3 bytes to encode date dimension values. </li><li>"time" Use 4 bytes to encode timestamps, supporting from 1970-01-01 00:00:00 to 2038/01/19 03:14:07. Millisecond is ignored. </li><li>"fix_length" Use a fixed-length("length" parameter) byte array to encode integer dimension values, with potential value truncations. </li><li>"fixed_length_hex" Use a fixed-length("length" parameter) byte array to encode the hex string dimension values, like 1A2BFF or FF00FF, with potential value truncations. Assign one length parameter for every two hex codes.</li></ol>',
     tip_body_cubeRawTable: '<h4>Shard By this column?</h4><p>If specified as "true", cube data will be sharded according to its value.</p><h4>RowKey Encoding</h4><ol><li>"dict" encoding will try to build a dictionary for the dimension</li><li>"fixed_length" encoding will encode the dimension vlaues by fixed length bytes with padding</li><li>"int" encoding uses variable integer to encode integers </li></ol>',
     cubeASID: 'ID',
     cubeASColumn: 'Column',
@@ -777,7 +787,6 @@ KylinApp.constant('kapEnglishConfig', {
     minLengthValue:'MinLengthValue',
     minValue:'MinValue',
     nullCount:'NullCount'
-
   },
   system:{
     system: 'System',
@@ -891,6 +900,7 @@ KylinApp.constant('kapEnglishConfig', {
     success_model_drop_done: 'Model drop is done successfully',
     tip_select_target_project: 'Please select target project.',
     tip_to_clone_model: 'Are you sure to clone the model? ',
+    tip_for_clone_project: '当前仅支持在同一个项目下克隆Cube.',
     success_clone_model: 'Clone model successfully',
     success_project_update: 'Project update successfully!',//alert of PageCtrl
     tip_new_project_created: 'New project created successfully!',
@@ -964,5 +974,4 @@ KylinApp.constant('kapEnglishConfig', {
     commit:"KAP Commit",
     kylincommit:"Kylin Commit"
   }
-
 });

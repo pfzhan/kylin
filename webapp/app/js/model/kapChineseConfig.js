@@ -201,6 +201,28 @@ KylinApp.constant('kapChineseConfig', {
       {attr: 'last_modified', name: '最后修改时间'}
     ],
     actions: '操作',
+    wizardSteps: [
+      {title: 'Model Info', src: 'partials/modelDesigner/model_info.html', isComplete: false, form: 'model_info_form'},
+      {title: 'Data Model', src: 'partials/modelDesigner/data_model.html', isComplete: false, form: 'data_model_form'},
+      {
+        title: 'Dimensions',
+        src: 'partials/modelDesigner/model_dimensions.html',
+        isComplete: false,
+        form: 'model_dimensions_form'
+      },
+      {
+        title: 'Measures',
+        src: 'partials/modelDesigner/model_measures.html',
+        isComplete: false,
+        form: 'model_measure_form'
+      },
+      {
+        title: 'Settings',
+        src: 'partials/modelDesigner/conditions_settings.html',
+        isComplete: false,
+        form: 'model_setting_form'
+      }
+    ],
     info_no_model: '没有相关模型',
     info_create_model: '点击创建模型',
     next: '下一步',
@@ -307,6 +329,9 @@ KylinApp.constant('kapChineseConfig', {
     cubePrev: '上一步',
     cubesIn: '-- 所有 --',
     ac_cube: 'Cube',
+    aggregationGroups: 'Aggregation Groups',
+    tip_visit: 'visit',
+    tip_about_aggregation_group:'for more about aggregation group.',
     theaditems: [
       {attr: 'name', name: '名称'},
       {attr: 'detail.model_name', name: '模型'},
@@ -427,6 +452,7 @@ KylinApp.constant('kapChineseConfig', {
     tip_topn: '使用这个列作为TopN 的SUM和ORDER BY部分. 如果是常量(constant) 1, 将使用SUM(1)',
     tip_hostcolumn: '通过Host column推导其他维度, 这里指事实表上维度之间的推导.',
     tip_extendedcolumn: 'Extended column是指可通过Host column推导出的列. 该列将不能作为过滤条件!',
+    cubeMSType: 'Type',
     cubeMSValue: '值',
     cubeMSGB: 'Group By列',
     cubeMSOK: '确定',
@@ -440,8 +466,8 @@ KylinApp.constant('kapChineseConfig', {
     cubeMSNewColumn:'新加列',
     cubeRSAutoMerge: '触发自动合并的时间阀值',//refresh_settings begin
     tip_cubeRSAutoMerge: '系统会自动检查您设置的时间阀值,例如设置了时间阀值为[7天,30天],则系统会每隔7天合并一次segment,并且每隔30天再合并一次已合并的segment',
-    cubeRSNewThresholds: '新建阀值',
-    cubeRSRetentionThreshold: '保留时间阀值',
+    cubeRSNewThresholds: '新建阈值',
+    cubeRSRetentionThreshold: '保留时间阈值',
     tip_cubeRSRetentionThreshold: '该值默认值为0, 系统会保留所有的历史Cube Segment, 当用户设置值为n时,系统会保留对应最近n天的历史',
     cubeRSPartitionStart: '起始日期',
     tip_cubePartitionDate: '选择起始日期（如果此模型是按日期分区的）',
@@ -456,7 +482,7 @@ KylinApp.constant('kapChineseConfig', {
     cubeASNewJoint: '新的组合',
     cubeASNewAggregationGroup: '新建聚合组',
     cubeASRowkeys: 'Rowkeys',
-    tip_encoding:'false',
+    tip_encoding:'true',
     tip_encoding_dict:'适用于大部分字段，默认推荐使用，但在超高基情况下，可能引起内存不足的问题。',
     tip_encoding_fixed_length:'适用于超高基场景，将选取字段的前N个字节作为编码值，当N小于字段长度，会造成字段截断，当N较大时，造成RowKey过长，查询性能下降。',
     tip_encoding_int:'已弃用，请使用最新的integer编码。',
@@ -465,7 +491,7 @@ KylinApp.constant('kapChineseConfig', {
     tip_encoding_fixed_length_hex:'适用于字段值为十六进制字符，比如1A2BFF或者FF00FF，每两个字符需要一个字节。',
     tip_encoding_date:'适用于字段值为日期字符，支持的格式包括yyyyMMdd、yyyy-MM-dd、yyyy-MM-dd HH:mm:ss、yyyy-MM-dd HH:mm:ss.SSS，其中如果包含时间戳部分会被截断。',
     tip_encoding_time:'适用于字段值为时间戳字符，支持范围为[1970-01-01 00:00:00, 2038/01/19 03:14:07]，毫秒部分会被忽略。',
-    tip_length:'false',
+    tip_length:'true',
     tip_length_fixed_length_part_one:'将选取字段的前',
     tip_length_fixed_length_part_two:'个字节作为编码值。',
     tip_length_fixed_length_hex_part_one:'支持',
@@ -480,8 +506,9 @@ KylinApp.constant('kapChineseConfig', {
     rawtableASTableName:'表名',
     rawtableASIndex:'索引',
     rawtableMustSetSorted:'必须设置至少一个列的index的值为sorted！',
-    tip_title_cubeASRowkeys: {name:'Rowkey'},
-    tip_body_cubeASRowkeys: '<h4>是否按该列分散存储?</h4><p>若设为"true"，Cube数据将按该列值分散存储</p><h4>Rowkey编码</h4><ol><li>选用"dict"编码将该维度构建字典保存</li><li>选用"fixed_length"编码将该维度保存为等长字节块</li><li>选用"int"编码将该维度以整数编码保存</li><li>"dict" 适用于大部分字段，默认推荐使用，但在超高基情况下，可能引起内存不足的问题。</li><li>"fix_length" 适用于超高基场景，将选取字段的前N个字节作为编码值，当N小于字段长度，会造成字段截断，当N较大时，造成RowKey过长，查询性能下降。 </li><li>"integer" 适用于字段值为整数字符，支持的整数区间为[-2^(8*N-1),2^(8*N-1)]。 </li><li>"int" 已弃用，请使用最新的integer编码。 </li><li>"fixed_length_hex" 适用于字段值为十六进制字符，比如1A2BFF或者FF00FF，每两个字符需要一个字节。</li><li>"date" 适用于字段值为日期字符，支持的格式包括yyyyMMdd、yyyy-MM-dd、yyyy-MM-dd HH:mm:ss、yyyy-MM-dd HH:mm:ss.SSS，其中如果包含时间戳部分会被截断。</li><li>"time" 适用于字段值为时间戳字符，支持范围为[1970-01-01 00:00:00, 2038/01/19 03:14:07]，毫秒部分会被忽略。</li><li>fixed_length_hex编码只适用于varchar或nvarchar类型。</li><li>date编码只适用于date类型。</li><li>time编码只适用于time，datetime，timestamp类型。</li></ol>',
+    tip_title_cubeASRowkeys: {name:'Rowkey',watch:true},
+    tip_body_cubeASRowkeys: '<h4>是否按该列分散存储?</h4><p>若设为"true"，Cube数据将按该列值分散存储</p><h4>Rowkey编码</h4><ol><li>"dict" 适用于大部分字段，默认推荐使用，但在超高基情况下，可能引起内存不足的问题。</li><li>"integer" 适用于字段值为整数字符，支持的整数区间为[-2^(8*N-1),2^(8*N-1)]。 </li><li>"int" 已弃用，请使用最新的integer编码。 </li><li>"date" 适用于字段值为日期字符，支持的格式包括yyyyMMdd、yyyy-MM-dd、yyyy-MM-dd HH:mm:ss、yyyy-MM-dd HH:mm:ss.SSS，其中如果包含时间戳部分会被截断。</li><li>"time" 适用于字段值为时间戳字符，支持范围为[1970-01-01 00:00:00, 2038/01/19 03:14:07]，毫秒部分会被忽略。time编码适用于time，datetime，timestamp等类型。</li><li>"fix_length" 适用于超高基场景，将选取字段的前N个字节作为编码值，当N小于字段长度，会造成字段截断，当N较大时，造成RowKey过长，查询性能下降。只适用于varchar或nvarchar类型。</li><li>"fixed_length_hex” 适用于字段值为十六进制字符，比如1A2BFF或者FF00FF，每两个字符需要一个字节。只适用于varchar或nvarchar类型。</li></ol>',     cubeASID: 'ID',
+    tip_body_cubeRawTable: '<h4>Shard By this column?</h4><p>If specified as "true", cube data will be sharded according to its value.</p><h4>RowKey Encoding</h4><ol><li>"dict" encoding will try to build a dictionary for the dimension</li><li>"fixed_length" encoding will encode the dimension vlaues by fixed length bytes with padding</li><li>"int" encoding uses variable integer to encode integers </li></ol>',
     cubeASID: 'ID',
     cubeASColumn: '列',
     cubeASEncoding: '编码',
@@ -844,6 +871,7 @@ KylinApp.constant('kapChineseConfig', {
     success_rebuild_job: '构建任务已提交',
     tip_select_target_project: '选择项目.',
     tip_to_clone_cube: '确定要克隆Cube? ',
+    tip_for_clone_project: 'Cross project clone is not allowed now,  cube will be cloned into current project.',
     success_clone_cube: 'Cube已克隆',
     success_rebuild_job: '构建任务已提交',
     tip_rebuild_part_one: '发现空的Segment',
@@ -937,7 +965,6 @@ KylinApp.constant('kapChineseConfig', {
     rawTableSaveError:'Raw Table设置内容保存失败!',
     collectStaticsSuccess:'收集作业已经开始，您可以去Monitor页面查看进度!',
     hasCollectJob: '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!',
-
   },
   license:{
     aboutkap:'关于 KAP',
@@ -947,5 +974,4 @@ KylinApp.constant('kapChineseConfig', {
     commit:'KAP Commit',
     kylincommit:'Kylin Commit'
   }
-
 });
