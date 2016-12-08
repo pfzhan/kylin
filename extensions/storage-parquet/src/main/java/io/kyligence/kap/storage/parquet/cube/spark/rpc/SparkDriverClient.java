@@ -26,12 +26,13 @@ package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.kylin.common.KapConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import io.grpc.Status;
+import io.grpc.netty.NettyChannelBuilder;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.ConfServiceGrpc;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.JobServiceGrpc;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkConfRequest;
@@ -44,12 +45,16 @@ public class SparkDriverClient {
 
     private static ManagedChannel channel;
 
-    public SparkDriverClient(String host, int port) {
+    public SparkDriverClient(KapConfig kapConfig) {
+
+        String host = kapConfig.getSparkClientHost();
+        int port = kapConfig.getSparkClientPort();
+        int maxMessageSize = kapConfig.getGrpcMaxResponseSize();
 
         if (channel == null) {
             synchronized (SparkDriverClient.class) {
                 logger.info("SparkDriverClient host {}, port {}", host, port);
-                channel = ManagedChannelBuilder.forAddress(host, port).usePlaintext(true).build();
+                channel = NettyChannelBuilder.forAddress(host, port).usePlaintext(true).maxMessageSize(maxMessageSize).build();
 
                 Runtime.getRuntime().addShutdownHook(new Thread() {
                     @Override

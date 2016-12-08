@@ -72,7 +72,7 @@ public class CubeSparkRPC implements IGTStorage {
 
     protected void init() {
         try {
-            client = new SparkDriverClient(KapConfig.getInstanceFromEnv().getSparkClientHost(), KapConfig.getInstanceFromEnv().getSparkClientPort());
+            client = new SparkDriverClient(KapConfig.getInstanceFromEnv());
         } catch (Exception e) {
             logger.error("error is " + e.getLocalizedMessage());
             throw e;

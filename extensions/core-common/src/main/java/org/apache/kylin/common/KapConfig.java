@@ -107,6 +107,10 @@ public class KapConfig {
         return Integer.parseInt(config.getOptional("kap.storage.columnar.spark-driver-port", "7071"));
     }
 
+    public int getGrpcMaxResponseSize() {
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.grpc-max-response-size", String.valueOf(128 * 1024 * 1024)));
+    }
+
     public String getSparkCubeGTStorage() {
         return config.getOptional("kap.storage.columnar.spark-cube-gtstorage", "io.kyligence.kap.storage.parquet.cube.CubeSparkRPC");
     }
@@ -182,7 +186,7 @@ public class KapConfig {
     public String getMassinResourceIdentiferDir() {
         return config.getOptional("kap.server.massin-resource-dir", new StringBuilder().append(config.getHdfsWorkingDirectory()).append("massin/").toString());
     }
-    
+
     public String getHelixZookeeperAddress() {
         return config.getOptional("kap.job.helix.zookeeper-address");
     }

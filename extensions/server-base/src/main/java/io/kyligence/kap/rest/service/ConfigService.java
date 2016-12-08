@@ -82,7 +82,7 @@ public class ConfigService extends BasicService {
 
     public String getSparkDriverConf(String confName) {
         KapConfig kapConfig = KapConfig.getInstanceFromEnv();
-        SparkDriverClient driverClient = new SparkDriverClient(kapConfig.getSparkClientHost(), kapConfig.getSparkClientPort());
+        SparkDriverClient driverClient = new SparkDriverClient(kapConfig);
         return driverClient.getSparkConf(confName);
     }
 }
