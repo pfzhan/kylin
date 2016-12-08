@@ -35,6 +35,7 @@ import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.InternalErrorException;
+import org.apache.kylin.rest.request.CubeRequest;
 import org.apache.kylin.rest.service.JobService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -219,9 +220,9 @@ public class RawTableController extends BasicController {
 
     @RequestMapping(value = "/{cubeName}/clone", method = { RequestMethod.PUT })
     @ResponseBody
-    public RawTableInstance rawCube(@PathVariable String cubeName, @RequestBody RawTableRequest rawRequest) {
-        String newRawName = rawRequest.getRawTableName();
-        String project = rawRequest.getProject();
+    public RawTableInstance rawCube(@PathVariable String cubeName, @RequestBody CubeRequest cubeRequest) {
+        String newRawName = cubeRequest.getCubeName();
+        String project = cubeRequest.getProject();
 
         RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
         if (raw == null) {
