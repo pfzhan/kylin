@@ -954,7 +954,7 @@ KylinApp.constant('kapEnglishConfig', {
     tip_store_callback:'Backup Success！Path：',
     rawTableSaveError:'Failed to save the raw table setting!',
     collectStaticsSuccess:'Collect job start running!You can go to Monitor page to watch the progress!',
-    hasCollectJob: 'Collect job start running!You can go to Monitor page to watch the progress!',
+    hasCollectJob: 'There has been a running collect job!You can go to Monitor page to watch the progress!',
 },
   license:{
     aboutkap:"About KAP",
