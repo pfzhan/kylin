@@ -90,15 +90,17 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
     $scope.store.supportedEncoding = $scope.cubeConfig.encodings;
   })
   $scope.createFilter=function(type){
+    var matchlist=[];
     if(type.indexOf("varchar")<0){
-      return ['fixed_length_hex'];
-    }else if(type!="date"){
-      return ['date'];
-    }else if(type!="time"&&type!="datetime"&&type!="timestamp"){
-      return ['time'];
-    }else{
-      return [];
+      matchlist.push('fixed_length_hex');
     }
+    if(type!="date"){
+      matchlist.push('date');
+    }
+    if(type!="time"&&type!="datetime"&&type!="timestamp"){
+      matchlist.push('time');
+    }
+    return matchlist;
   }
 
   $scope.getEncodings =function (name){
