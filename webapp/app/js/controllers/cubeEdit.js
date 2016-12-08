@@ -93,12 +93,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
     var matchlist=[];
     if(type.indexOf("varchar")<0){
       matchlist.push('fixed_length_hex');
-    }
-    if(type!="date"){
-      matchlist.push('date');
-    }
-    if(type!="time"&&type!="datetime"&&type!="timestamp"){
-      matchlist.push('time');
+      matchlist.push('fixed_length');
     }
     return matchlist;
   }
