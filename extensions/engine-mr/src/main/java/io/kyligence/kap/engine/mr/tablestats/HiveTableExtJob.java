@@ -31,10 +31,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.mr.IMRInput;
 import org.apache.kylin.engine.mr.MRUtil;
@@ -95,9 +94,9 @@ public class HiveTableExtJob extends AbstractHadoopJob {
 
         // Reducer - only one
         job.setReducerClass(HiveTableExtReducer.class);
-        job.setOutputFormatClass(TextOutputFormat.class);
+        job.setOutputFormatClass(SequenceFileOutputFormat.class);
         job.setOutputKeyClass(IntWritable.class);
-        job.setOutputValueClass(Text.class);
+        job.setOutputValueClass(BytesWritable.class);
         job.setNumReduceTasks(decideReduceTasks(tableDesc.getColumnCount()));
 
         this.deletePath(job.getConfiguration(), output);
@@ -111,13 +110,11 @@ public class HiveTableExtJob extends AbstractHadoopJob {
     }
 
     private int decideReduceTasks(int columnCount) {
-        return 1;
-        /*
-        if (columnCount > 20) {
-            return (int) Math.sqrt(columnCount);
+        if (columnCount > 30) {
+            return 30;
+            //return (int) Math.sqrt(columnCount);
         }
         return columnCount;
-        */
     }
 
 }

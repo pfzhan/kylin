@@ -38,15 +38,17 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.engine.mr.KylinReducer;
 
-public class HiveTableExtReducer extends KylinReducer<IntWritable, BytesWritable, IntWritable, Text> {
+public class HiveTableExtReducer extends KylinReducer<IntWritable, BytesWritable, IntWritable, BytesWritable> {
 
     public static final int ONE = 1;
     private Map<Integer, HiveTableExtSampler> sampleMap = new HashMap<Integer, HiveTableExtSampler>();
     protected Text outputValue = new Text();
+    //SequenceFile.Writer writer = null;
 
     @Override
     protected void setup(Context context) throws IOException {
         super.bindCurrentConfiguration(context.getConfiguration());
+        //writer = SequenceFile.createWriter(context.getConfiguration(), SequenceFile.Writer.keyClass(LongWritable.class), SequenceFile.Writer.valueClass(BytesWritable.class));
     }
 
     @Override
@@ -77,8 +79,8 @@ public class HiveTableExtReducer extends KylinReducer<IntWritable, BytesWritable
         while (it.hasNext()) {
             int key = it.next();
             HiveTableExtSampler sampler = sampleMap.get(key);
-            outputValue.set(sampler.outPutSamplesWithSplit().getBytes(), 0, sampler.outPutSamplesWithSplit().length());
-            context.write(new IntWritable(key), outputValue);
+            sampler.code();
+            context.write(new IntWritable(key), new BytesWritable(sampler.getBuffer().array(), sampler.getBuffer().limit()));
         }
     }
 }

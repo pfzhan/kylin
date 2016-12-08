@@ -25,22 +25,22 @@
 package io.kyligence.kap.engine.mr.tablestats;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringWriter;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
+import java.util.TreeMap;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
-import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.CompressionCodecFactory;
+import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.metadata.MetadataManager;
@@ -89,9 +89,9 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
     }
 
     public void updateTableSample(String tableName, String outPath, Configuration config) throws IOException {
-        List<String> columns = null;
+        TreeMap<Integer, HiveTableExtSampler> samplers = null;
         try {
-            columns = readLines(new Path(outPath), config);
+            samplers = read(new Path(outPath), config);
         } catch (Exception e) {
             e.printStackTrace();
             logger.info("Failed to resolve samples for " + tableName + " from " + outPath);
@@ -102,12 +102,8 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
         TableExtDesc tableSample = metaMgr.getTableExt(tableName);
         List<TableExtDesc.ColumnStats> columnStatsList = new ArrayList<>();
         List<String[]> sampleRows = new ArrayList<>();
-        Iterator<String> it = columns.iterator();
-        HiveTableExtSampler sampler = new HiveTableExtSampler();
         String counter = "0";
-        while (it.hasNext()) {
-            String string = it.next();
-            sampler.parseHdfsToSamples(string);
+        for (HiveTableExtSampler sampler : samplers.values()) {
             TableExtDesc.ColumnStats columnStats = new TableExtDesc.ColumnStats();
             columnStats.setColumnSamples(sampler.getMax(), sampler.getMin(), sampler.getMaxLenValue(), sampler.getMinLenValue());
             columnStats.setNullCount(Integer.parseInt(sampler.getNullCounter()));
@@ -121,36 +117,38 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
         metaMgr.saveTableExt(tableSample);
     }
 
-    private static List<String> readLines(Path location, Configuration conf) throws Exception {
-        FileSystem fileSystem = FileSystem.get(location.toUri(), conf);
-        CompressionCodecFactory factory = new CompressionCodecFactory(conf);
-        FileStatus[] items = fileSystem.listStatus(location);
+    private static TreeMap<Integer, HiveTableExtSampler> read(Path path, Configuration conf) throws IOException {
+        TreeMap<Integer, HiveTableExtSampler> samplers = new TreeMap<>();
+        for (Path p : getAllPaths(path, conf)) {
+            SequenceFile.Reader.Option seqInput = SequenceFile.Reader.file(p);
+            SequenceFile.Reader reader = new SequenceFile.Reader(conf, seqInput);
+
+            IntWritable key = (IntWritable) ReflectionUtils.newInstance(reader.getKeyClass(), conf);
+            BytesWritable value = (BytesWritable) ReflectionUtils.newInstance(reader.getValueClass(), conf);
+            while (reader.next(key, value)) {
+                HiveTableExtSampler sampler = new HiveTableExtSampler();
+                sampler.decode(ByteBuffer.wrap(value.getBytes()));
+                samplers.put(key.get(), sampler);
+            }
+        }
+        return samplers;
+    }
+
+    private static List<Path> getAllPaths(Path root, Configuration conf) throws IOException {
+        FileSystem fileSystem = FileSystem.get(root.toUri(), conf);
+        FileStatus[] items = fileSystem.listStatus(root);
         if (items == null)
-            return new ArrayList<String>();
-        List<String> results = new ArrayList<String>();
+            return new ArrayList<>();
+
+        List<Path> results = new ArrayList<>();
+
         for (FileStatus item : items) {
 
             // ignoring files like _SUCCESS
             if (item.getPath().getName().startsWith("_")) {
                 continue;
             }
-
-            CompressionCodec codec = factory.getCodec(item.getPath());
-            InputStream stream = null;
-
-            // check if we have a compression codec we need to use
-            if (codec != null) {
-                stream = codec.createInputStream(fileSystem.open(item.getPath()));
-            } else {
-                stream = fileSystem.open(item.getPath());
-            }
-
-            StringWriter writer = new StringWriter();
-            IOUtils.copy(stream, writer, "UTF-8");
-            String raw = writer.toString();
-            for (String str : raw.split("\n")) {
-                results.add(str);
-            }
+            results.add(item.getPath());
         }
         return results;
     }

@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.engine.mr.tablestats;
 
+import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -36,7 +37,7 @@ import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 
 import com.google.common.collect.Maps;
 
-public class HiveTableExtSampler {
+public class HiveTableExtSampler implements Serializable {
 
     public static final int HASH_SEED = 2;
     public static final int SAMPLE_RAW_VALUE_NUMBER = 10;
@@ -151,15 +152,6 @@ public class HiveTableExtSampler {
         return output;
     }
 
-    public String outPutSamplesWithSplit() {
-        String output = "";
-        for (Map.Entry<String, String> values : sampleValues.entrySet()) {
-            output += values.getValue().isEmpty() ? " " : values.getValue();
-            output += "\t";
-        }
-        return output;
-    }
-
     public void code() {
         buf = null;
         buf = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
@@ -179,16 +171,6 @@ public class HiveTableExtSampler {
         int index = 0;
         for (Map.Entry<String, String> element : sampleValues.entrySet()) {
             element.setValue(objects[index].toString());
-            index++;
-        }
-    }
-
-    public void parseHdfsToSamples(String line) {
-        String[] values = line.split("\t");
-        assert (values.length == sizeOfElements() + 1);
-        int index = 1;
-        for (Map.Entry<String, String> element : sampleValues.entrySet()) {
-            element.setValue(values[index]);
             index++;
         }
     }
@@ -467,36 +449,11 @@ public class HiveTableExtSampler {
             return DataTypeSerializer.create(dataType);
         }
 
-        public DataTypeSerializer getSerializer(int idx) {
-            return serializers[idx];
-        }
-
-        public int[] getPeekLength(ByteBuffer buf) {
-            int[] length = new int[nSampleType];
-            int offset = 0;
-            for (int i = 0; i < nSampleType; i++) {
-                length[i] = serializers[i].peekLength(buf);
-                offset += length[i];
-                buf.position(offset);
-            }
-            return length;
-        }
-
         public void decode(ByteBuffer buf, Object[] result) {
             assert result.length == nSampleType;
             for (int i = 0; i < nSampleType; i++) {
                 result[i] = serializers[i].deserialize(buf);
             }
-        }
-
-        public int[] peekLength(ByteBuffer buf) {
-            int[] result = new int[nSampleType];
-            for (int i = 0; i < nSampleType; i++) {
-                result[i] = serializers[i].peekLength(buf);
-                buf.position(buf.position() + result[i]);
-            }
-
-            return result;
         }
     }
 }
