@@ -210,6 +210,13 @@ KylinApp.factory('VdmUtil', function ($modal, $timeout, $location, $anchorScroll
         return '';
       }
     },
+    getNameSpace:function(str){
+      if(str){
+        return str.replace(/(\.[^.]+)$/,'');
+      }else{
+        return '';
+      }
+    },
     isNotExtraKey:function(obj,key){
       return obj&&key&&key!="$promise"&&key!='$resolved'&&obj.hasOwnProperty(key);
     }
