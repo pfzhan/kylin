@@ -479,7 +479,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
   }
   $scope.getFullTaleNameByColumnName=function(columnName){
     for(var i= 0,len=$scope.cubeMetaFrame.dimensions.length||0;i<len;i++){
-      if($scope.cubeMetaFrame.dimensions[i].name.indexOf(columnName)){
+      if(($scope.cubeMetaFrame.dimensions[i].table+'.'+$scope.cubeMetaFrame.dimensions[i].column).indexOf(columnName)>=0){
          return $scope.cubeMetaFrame.dimensions[i].table;
       }
     }
