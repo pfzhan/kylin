@@ -249,6 +249,8 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
             $scope.refreshCube(cube).then(function(_cube){
               if(_cube && _cube.name){
                 $scope.refreshCubeModel(_cube);
+                var lastSegments=_cube.segments.length-1;
+                _cube.last_build_time=_cube.segments[lastSegments].last_build_time;
                 $scope.cubeList.cubes[$scope.cubeList.cubes.indexOf(cube)] = _cube;
               }
             });
@@ -315,6 +317,8 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
             $scope.refreshCube(cube).then(function(_cube){
               if(_cube && _cube.name){
                 $scope.refreshCubeModel(_cube);
+                var lastSegments=_cube.segments.length-1;
+                _cube.last_build_time=_cube.segments[lastSegments].last_build_time;
                 $scope.cubeList.cubes[$scope.cubeList.cubes.indexOf(cube)] = _cube;
               }
             });
