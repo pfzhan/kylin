@@ -81,6 +81,7 @@ public class HiveTableExtReducer extends KylinReducer<IntWritable, BytesWritable
             HiveTableExtSampler sampler = sampleMap.get(key);
             sampler.code();
             context.write(new IntWritable(key), new BytesWritable(sampler.getBuffer().array(), sampler.getBuffer().limit()));
+            sampler.clean();
         }
     }
 }

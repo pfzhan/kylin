@@ -32,6 +32,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Random;
 
+import org.apache.kylin.measure.hllc.HLLCSerializer;
+import org.apache.kylin.measure.hllc.HyperLogLogPlusCounter;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 
@@ -43,6 +45,7 @@ public class HiveTableExtSampler implements Serializable {
     public static final int SAMPLE_RAW_VALUE_NUMBER = 10;
     public static final String DEFAULT_SAMPLE_RAW_VALUE = "KAP_DEFAULT_SAMPLE_VALUE";
     public static final int DEFAULT_BUFFER_SIZE = 1024 * 1024; // 1 MB
+    public static final String HLLC_DATATYPE = "hllc";
 
     final static Map<String, Class<?>> implementations = Maps.newHashMap();
     static {
@@ -70,6 +73,7 @@ public class HiveTableExtSampler implements Serializable {
     private ByteBuffer buf;
     private SamplerCoder samplerCoder;
     private int rawSampleIndex = 0;
+    private HyperLogLogPlusCounter hyperLogLogPlusCounter = null;
 
     public HiveTableExtSampler() {
         //special samples
@@ -85,12 +89,16 @@ public class HiveTableExtSampler implements Serializable {
             sampleValues.put(String.valueOf(i), DEFAULT_SAMPLE_RAW_VALUE);
         }
 
-        String[] sampleDataType = new String[sizeOfElements()];
+        String[] sampleDataType = new String[sizeOfElements() + 1];
 
         for (int i = 0; i < sizeOfElements(); i++)
             sampleDataType[i] = "String";
 
-        samplerCoder = new SamplerCoder(sampleDataType);
+        sampleDataType[sizeOfElements()] = HLLC_DATATYPE;
+
+        hyperLogLogPlusCounter = new HyperLogLogPlusCounter();
+
+        samplerCoder = new SamplerCoder(true, sampleDataType);
     }
 
     public int sizeOfElements() {
@@ -114,6 +122,14 @@ public class HiveTableExtSampler implements Serializable {
         }
     }
 
+    public HyperLogLogPlusCounter getHyperLogLogPlusCounter() {
+        return this.hyperLogLogPlusCounter;
+    }
+
+    public long getCardinality() {
+        return hyperLogLogPlusCounter.getCountEstimate();
+    }
+
     public void setCounter(String counter) {
         this.sampleValues.put("counter", counter);
     }
@@ -135,6 +151,9 @@ public class HiveTableExtSampler implements Serializable {
             buf.clear();
             buf = null;
         }
+
+        if (hyperLogLogPlusCounter != null)
+            hyperLogLogPlusCounter.clear();
 
         sampleValues.clear();
         samplerCoder = null;
@@ -163,16 +182,18 @@ public class HiveTableExtSampler implements Serializable {
             samplerCoder.serializers[index].serialize(object, buf);
             index++;
         }
+        samplerCoder.serializers[index].serialize(hyperLogLogPlusCounter, buf);
     }
 
     public void decode(ByteBuffer buffer) {
-        Object[] objects = new Object[sizeOfElements()];
+        Object[] objects = new Object[sizeOfElements() + 1];
         samplerCoder.decode(buffer, objects);
         int index = 0;
         for (Map.Entry<String, String> element : sampleValues.entrySet()) {
             element.setValue(objects[index].toString());
             index++;
         }
+        hyperLogLogPlusCounter = (HyperLogLogPlusCounter) objects[sizeOfElements()];
     }
 
     public ByteBuffer getBuffer() {
@@ -219,6 +240,9 @@ public class HiveTableExtSampler implements Serializable {
             if (rand.nextBoolean())
                 setRawSampleValue(String.valueOf(i), another.getRawSampleValue(String.valueOf(i)));
         }
+
+        hyperLogLogPlusCounter.merge(another.getHyperLogLogPlusCounter());
+        another.getHyperLogLogPlusCounter().clear();
     }
 
     public String[] getRawSampleValues() {
@@ -298,6 +322,7 @@ public class HiveTableExtSampler implements Serializable {
             if (getMinLenValue() == null || value.getBytes().length < getMinLenValue().getBytes().length) {
                 setMinLenValue(value);
             }
+            hyperLogLogPlusCounter.add(value);
         }
     }
 
@@ -424,15 +449,24 @@ public class HiveTableExtSampler implements Serializable {
         int nSampleType;
         DataTypeSerializer[] serializers;
 
-        public SamplerCoder(String... dataTypes) {
+        public SamplerCoder(boolean hllc, String... dataTypes) {
+            if (hllc) {
+                DataType.register("hllc");
+                DataTypeSerializer.register("hllc", HLLCSerializer.class);
+            }
             init(dataTypes);
         }
 
         private void init(String[] dataTypes) {
             DataType[] typeInstances = new DataType[dataTypes.length];
             for (int i = 0; i < dataTypes.length; i++) {
+                if (HLLC_DATATYPE.equals(dataTypes[i])) {
+                    typeInstances[i] = new DataType(HLLC_DATATYPE, 10, 1);
+                    continue;
+                }
                 typeInstances[i] = DataType.getType(dataTypes[i]);
             }
+
             init(typeInstances);
         }
 
