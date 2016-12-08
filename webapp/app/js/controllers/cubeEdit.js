@@ -707,7 +707,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
             tmpRowKeyColumns.push({
               "column": VdmUtil.removeNameSpace($scope.metaModel.model.fact_table)+'.'+VdmUtil.removeNameSpace(fk),
               "encoding": "dict",
-              "isShardBy": "false"
+              "isShardBy": false
             });
 
             tmpAggregationItems.push(fk);
@@ -735,7 +735,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
           tmpRowKeyColumns.push({
             "column": VdmUtil.removeNameSpace(tableName)+'.'+VdmUtil.removeNameSpace(rowkeyColumn),
             "encoding": "dict",
-            "isShardBy": "false"
+            "isShardBy": false
           });
           tmpAggregationItems.push(VdmUtil.removeNameSpace(tableName)+'.'+VdmUtil.removeNameSpace(rowkeyColumn));
         }

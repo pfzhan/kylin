@@ -198,7 +198,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
       column:"",
       encoding:"dict",
       valueLength:0,
-      isShardBy:"false",
+      isShardBy:false,
       table:"",
       database:VdmUtil.getNameSpaceTopName($scope.metaModel.model.fact_table)
     }
@@ -207,7 +207,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     $scope.cubeMetaFrame.rowkey.rowkey_columns.push({
       column:'',
       encoding:'dict',
-      isShardBy:'false',
+      isShardBy:false,
       index: 'eq'
     });
 
