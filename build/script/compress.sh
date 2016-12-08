@@ -39,17 +39,20 @@ fi
 cp -rf commit_SHA1 lib kybot tomcat spark ${package_name}/
 
 # rename kylin files to min
-mv ${package_name}/conf/kylin.properties ${package_name}/conf/kylin.min.properties
-mv ${package_name}/conf/kylin_hive_conf.xml ${package_name}/conf/kylin_hive_conf.min.xml
-mv ${package_name}/conf/kylin_job_conf.xml ${package_name}/conf/kylin_job_conf.min.xml
-mv ${package_name}/conf/kylin_job_conf_inmem.xml ${package_name}/conf/kylin_job_conf_inmem.min.xml
+mkdir ${package_name}/conf/profile_min
+mv ${package_name}/conf/kylin.properties ${package_name}/conf/profile_min/kylin.properties
+mv ${package_name}/conf/kylin_hive_conf.xml ${package_name}/conf/profile_min/kylin_hive_conf.xml
+mv ${package_name}/conf/kylin_job_conf.xml ${package_name}/conf/profile_min/kylin_job_conf.xml
+mv ${package_name}/conf/kylin_job_conf_inmem.xml ${package_name}/conf/profile_min/kylin_job_conf_inmem.xml
+
+cp -rf conf/kylin.min.properties ${package_name}/conf/profile_min/kylin.properties
 
 # add kap prod files
-cp -rf conf/kylin.min.properties ${package_name}/conf/
-cp -rf conf/kylin.prod.properties ${package_name}/conf/
-cp -rf conf/kylin_hive_conf.prod.xml ${package_name}/conf/
-cp -rf conf/kylin_job_conf.prod.xml ${package_name}/conf/
-cp -rf conf/kylin_job_conf_inmem.prod.xml ${package_name}/conf/
+mkdir ${package_name}/conf/profile_prod
+cp -rf conf/kylin.prod.properties ${package_name}/conf/profile_prod/kylin.properties
+cp -rf conf/kylin_hive_conf.prod.xml ${package_name}/conf/profile_prod/kylin_hive_conf.xml
+cp -rf conf/kylin_job_conf.prod.xml ${package_name}/conf/profile_prod/kylin_job_conf.xml
+cp -rf conf/kylin_job_conf_inmem.prod.xml ${package_name}/conf/profile_prod/kylin_job_conf_inmem.xml
 
 cp -rf conf/kylin-tools-log4j.properties ${package_name}/conf/
 cp -rf conf/kylin-server-log4j.properties ${package_name}/conf/
@@ -61,18 +64,20 @@ cp -rf bin/* ${package_name}/bin/
 
 # update kap plus config files
 if [ "${PACKAGE_PLUS}" != "0" ]; then
-    cat conf/plus/kap-plus.min.properties >> ${package_name}/conf/kylin.min.properties
-    cat conf/plus/kap-plus.prod.properties >> ${package_name}/conf/kylin.prod.properties
+    cat conf/plus/kap-plus.min.properties >> ${package_name}/conf/profile_min/kylin.properties
+    cat conf/plus/kap-plus.prod.properties >> ${package_name}/conf/profile_prod /kylin.properties
 fi
 
-# update symblink
-ln -sf kylin.min.properties kylin.properties
+# update symblink, use minimum profile as default
+ln -sf profile_min profile
+mv profile ${package_name}/conf/
+ln -sf profile/kylin.properties kylin.properties
 mv kylin.properties ${package_name}/conf/
-ln -sf kylin_hive_conf.min.xml kylin_hive_conf.xml
+ln -sf profile/kylin_hive_conf.xml kylin_hive_conf.xml
 mv kylin_hive_conf.xml ${package_name}/conf/
-ln -sf kylin_job_conf.min.xml kylin_job_conf.xml
+ln -sf profile/kylin_job_conf.xml kylin_job_conf.xml
 mv kylin_job_conf.xml ${package_name}/conf/
-ln -sf kylin_job_conf_inmem.min.xml kylin_job_conf_inmem.xml
+ln -sf profile/kylin_job_conf_inmem.xml kylin_job_conf_inmem.xml
 mv kylin_job_conf_inmem.xml ${package_name}/conf/
 
 rm -rf lib tomcat commit_SHA1 # keep the spark folder on purpose
