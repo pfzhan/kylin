@@ -27,6 +27,7 @@ package io.kyligence.kap.storage.parquet.format.file;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
@@ -141,7 +142,7 @@ public class ParquetRawReader {
             offset = skipLevels(numValues, columnDescriptor, dataPageHeader.getRepetition_level_encoding(), dataPageHeader.getDefinition_level_encoding(), decompressedDataBytes, 0);
 
             ValuesReader dataReader = getValuesReader(dataPageHeader.getEncoding(), columnDescriptor, ValuesType.VALUES);
-            dataReader.initFromPage(numValues, decompressedDataBytes, (int) offset);
+            dataReader.initFromPage(numValues, ByteBuffer.wrap(decompressedDataBytes), (int) offset);
             return new GeneralValuesReaderBuilder().setLength(numValues).setReader(dataReader).setType(columnChunkMetaData.getType()).build();
         } else if (pageHeader.getType() == PageType.DATA_PAGE_V2) {
             DataPageHeaderV2 dataPageHeader = pageHeader.getData_page_header_v2();
@@ -159,7 +160,7 @@ public class ParquetRawReader {
             }
             byte[] decompressedDataBytes = decompressedData.toByteArray();
             ValuesReader dataReader = getValuesReader(dataPageHeader.getEncoding(), columnDescriptor, ValuesType.VALUES);
-            dataReader.initFromPage(numValues, decompressedDataBytes, 0);
+            dataReader.initFromPage(numValues, ByteBuffer.wrap(decompressedDataBytes), 0);
             return new GeneralValuesReaderBuilder().setLength(numValues).setReader(dataReader).setType(columnChunkMetaData.getType()).build();
         }
         return null;
@@ -181,7 +182,7 @@ public class ParquetRawReader {
 
     private ValuesReader skipLevel(int numValues, ColumnDescriptor descriptor, Encoding encoding, ValuesType type, byte[] in, int offset) throws IOException {
         ValuesReader reader = getValuesReader(encoding, descriptor, type);
-        reader.initFromPage(numValues, in, offset);
+        reader.initFromPage(numValues, ByteBuffer.wrap(in), offset);
         return reader;
     }
 

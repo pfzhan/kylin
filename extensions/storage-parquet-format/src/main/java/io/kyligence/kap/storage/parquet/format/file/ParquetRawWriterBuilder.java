@@ -40,7 +40,6 @@ import org.slf4j.LoggerFactory;
 public class ParquetRawWriterBuilder {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetRawWriterBuilder.class);
 
-    private String indexPathSuffix = "index";
     private Configuration conf = null;
     private MessageType type = null;
     private Path path = null;
@@ -48,14 +47,8 @@ public class ParquetRawWriterBuilder {
     private Encoding dlEncodings = Encoding.RLE;
     private List<Encoding> dataEncodings = null;
     private CompressionCodecName codecName = CompressionCodecName.UNCOMPRESSED;
-    private Path indexPath = null;
     private int rowsPerPage = 10000;
     private int pagesPerGroup = 100;
-
-    public ParquetRawWriterBuilder setIndexPathSuffix(String indexPathSuffix) {
-        this.indexPathSuffix = indexPathSuffix;
-        return this;
-    }
 
     public ParquetRawWriterBuilder setConf(Configuration conf) {
         this.conf = conf;
@@ -104,11 +97,6 @@ public class ParquetRawWriterBuilder {
         return this;
     }
 
-    public ParquetRawWriterBuilder setIndexPath(Path indexPath) {
-        this.indexPath = indexPath;
-        return this;
-    }
-
     public ParquetRawWriterBuilder setRowsPerPage(int rowsPerPage) {
         this.rowsPerPage = rowsPerPage;
         return this;
@@ -138,26 +126,29 @@ public class ParquetRawWriterBuilder {
             for (int i = 0; i < type.getColumns().size(); ++i) {
                 switch (type.getColumns().get(i).getType()) {
                 case BOOLEAN:
-                case INT32:
                     dataEncodings.add(Encoding.RLE);
+                    break;
+                case INT32:
+                case INT64:
+                    dataEncodings.add(Encoding.DELTA_BINARY_PACKED);
+                    break;
+                case INT96:
+                case FLOAT:
+                case DOUBLE:
+                    dataEncodings.add(Encoding.PLAIN);
                     break;
                 case FIXED_LEN_BYTE_ARRAY:
                 case BINARY:
                     dataEncodings.add(Encoding.DELTA_BYTE_ARRAY);
                     break;
                 default:
-                    dataEncodings.add(Encoding.PLAIN);
-                    break;
+                    throw new IllegalArgumentException("Unknown type " + type.getColumns().get(i).getType());
                 }
             }
         }
 
-        if (indexPath == null) {
-            indexPath = new Path(path.toString() + indexPathSuffix);
-        }
-
         logger.info("ParquetRawWriterBuilder: rowsPerPage={}", rowsPerPage);
         logger.info("write file: {}", path.toString());
-        return new ParquetRawWriter(conf, type, path, rlEncodings, dlEncodings, dataEncodings, codecName, indexPath, rowsPerPage, pagesPerGroup);
+        return new ParquetRawWriter(conf, type, path, rlEncodings, dlEncodings, dataEncodings, codecName, rowsPerPage, pagesPerGroup);
     }
 }

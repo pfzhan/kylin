@@ -32,7 +32,7 @@
         <grpc.version>1.0.1</grpc.version>
         <fastPFOR.version>0.0.13</fastPFOR.version>
         <helix.version>0.7.1</helix.version>
-        <parquet.version>1.8.1</parquet.version>
+        <parquet.version>1.9.0</parquet.version>
         <tomcat.version>7.0.69</tomcat.version>
         <spark.version>1.6.2</spark.version>
     </properties>
