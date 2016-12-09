@@ -16,7 +16,7 @@
  * limitations under the License.
 */
 
-KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log) {
+KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,StringHelper) {
 
 
     var _this = this;
@@ -215,5 +215,70 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log) {
     };
 
 
+
+
+    //new tableModel for snow======
+
+   //table detail load install
+   this.tableDetails;
+   this.tableOriginalData;
+   this.initTableData=function(callback){
+      var that=this;
+      if(!that.tableDetails){
+        that.tableDetails=[];
+        TableService.list(param, function (tables) {
+          this.tableOriginalData=tables;
+          angular.forEach(tables, function (table) {
+             var columnsLen=table.columns&&table.columns.length||0;
+             for(var i=0;i<columnsLen;i++){
+               var columnsObj={};
+               columnsObj.database=table.database;
+               columnsObj.table=StringHelper.removeNameSpace(table.name);
+               columnsObj.fullTable=columnsObj.database+'.'+columnsObj.table;
+               columnsObj.columnName=StringHelper.removeNameSpace(table.columns[i].name);
+               columnsObj.columnType=table.columns[i].datatype;
+               columnsObj.fullColumnName=columnsObj.table+'.'+columnsObj.columnName;
+               that.tableDetails.push(columnsObj);
+             }
+          })
+          if(typeof callback=='function'){
+            callback(that.tableDetails)
+          }
+        })
+      }else{
+        if(typeof callback=='function'){
+          callback(that.tableDetails)
+        }
+      }
+   }
+   /*
+   *filterName exaple
+   * database.tablename.columnname
+   * tablename.columnname
+   * columnname
+   * */
+   this.getColumnDetail=function(filterName){
+      if(!filterName){
+        return null;
+      }
+      var len=this.tableDetails&&this.tableDetails.length||0;
+      for(var i=0;i<len;i++){
+        var splitList=filterName.split('.');
+        if(splitList.length==1){
+          if(this.tableDetails[i].columnName==splitList[0]){
+            return this.tableDetails[i];
+          }
+        }else if(splitList.length==2){
+          if(this.tableDetails[i].table==splitList[0]&&this.tableDetails[i].columnName==splitList[1]){
+            return this.tableDetails[i];
+          }
+        }else if(splitList.length==3){
+          if(this.tableDetails[i].database==splitList[1]&&this.tableDetails[i].table==splitList[2]&&this.tableDetails[i].columnName==splitList[3]){
+            return this.tableDetails[i];
+          }
+        }
+      }
+      return null;
+   }
 });
 
