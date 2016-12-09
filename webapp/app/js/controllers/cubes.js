@@ -600,7 +600,14 @@ var cubeCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServic
             kylinCommon.success_alert($scope.dataKylin.alert.success, $scope.dataKylin.alert.success_clone_cube);
             location.reload();
           }
-          var cloneRawTableErrorFunc=function(){
+          var cloneRawTableErrorFunc=function(e){
+              if (e&&e.data && e.data.exception) {
+                var message = e.data.exception;
+                var msg = !!(message) ? message : $scope.dataKylin.alert.rawTableSaveError;
+                MessageService.sendMsg(msg, 'error', {});
+              } else {
+                MessageService.sendMsg($scope.dataKylin.alert.rawTableSaveError, 'error',{});
+              }
           }
           RawTablesService.clone({rawTableName:cube.name},$scope.cubeRequest,function(result){
             cloneEndCallBack();
