@@ -442,6 +442,9 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
   $scope.showColumnInfo=function(selectIndex,dataArr){
      var columnName=dataArr[selectIndex];
      var tableName=$scope.getFullTaleNameByColumnName(columnName);
+      if(!tableName){
+         return;
+      }
      $scope.getSampleDataByTableName(tableName,function(){
        $scope.tableName=tableName;
        $scope.columnName=columnName;
