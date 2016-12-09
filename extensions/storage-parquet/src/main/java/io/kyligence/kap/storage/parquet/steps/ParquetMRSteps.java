@@ -103,7 +103,7 @@ public class ParquetMRSteps extends JobBuilderSupport {
             throw new RuntimeException(ex);
         }
         StringBuilder cmd = new StringBuilder();
-        appendMapReduceParameters(cmd);
+        appendMapReduceParameters(cmd, JobEngineConfig.IN_MEM_JOB_CONF_SUFFIX);
         rawTableStep.setName(RawTableConstants.BUILD_RAWTABLE);
 
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBE_NAME, instance.getName());
