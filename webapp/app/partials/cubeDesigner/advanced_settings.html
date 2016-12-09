@@ -29,27 +29,26 @@
             </div>
           </div>
         </div>
-        <table style="margin-left:42px; width:92%"
+        <table
                ng-if="cubeMetaFrame.aggregation_groups.length > 0"
                class="table table-hover list">
           <tr class="row">
             <th class="col-xs-1">{{dataKylin.cubeASID}}</th>
-            <th class="col-xs-11">{{dataKylin.cubeASAggregationGroups}}</th>
+            <th ng-class="(state.mode=='edit')?'col-xs-10':'col-xs-11'">{{dataKylin.cubeASAggregationGroups}}</th>
             <th ng-if="state.mode=='edit'" class="col-xs-1"></th>
           </tr>
 
           <tr ng-repeat="aggregation_group in cubeMetaFrame.aggregation_groups track by $index" ng-init="rowIndex = $index" class="row">
             <td class="col-xs-1">
-              <!-- ID -->
               <b>{{($index + 1)}}</b>
-              </td>
-            <td class="col-xs-11">
+            </td>
+            <td ng-class="(state.mode=='edit')?'col-xs-10':'col-xs-11'">
               <table class="table">
                 <tr class="row">
-                  <td class="col-xs-3" style="min-width:130px;">
+                  <td class="col-xs-3">
                     {{dataKylin.cube.cubeASIncludes}}
                   </td>
-                  <td class="col-xs-8">
+                  <td class="col-xs-9">
                     <!-- Dimensions -->
                     <ui-select
                       autofocus="true"
@@ -65,17 +64,18 @@
                       </ui-select-choices>
                     </ui-select>
 
-                    <p ng-if="state.mode=='view'">
-                      {{aggregation_group.includes}}</p>
-                  </td>
-                  <td class="col-xs-1">
+                    <div ng-if="state.mode=='view'" class="p8">
+                      <span ng-repeat="item in aggregation_group.includes">
+                       <label  class="label label-info">{{item}}</label>
+                      </span>
+                    </div>
                   </td>
                 </tr>
                 <tr class="row">
                   <td class="col-xs-3">
                     {{dataKylin.cube.cubeASMandatoryDimensions}}
                   </td>
-                  <td class="col-xs-8">
+                  <td class="col-xs-9">
                     <ui-select
                       close-on-select="false"
                       autofocus="true"    ng-disabled="instance.status=='READY'"
@@ -90,10 +90,11 @@
                       </ui-select-choices>
                     </ui-select>
 
-                    <p ng-if="state.mode=='view'">
-                      {{aggregation_group.select_rule.mandatory_dims}}</p>
-                  </td>
-                  <td class="col-xs-1">
+                    <div ng-if="state.mode=='view'" class="p8">
+                      <span ng-repeat="item in aggregation_group.select_rule.mandatory_dims">
+                       <label  class="label label-info">{{item}}</label>
+                      </span>
+                    </div>
                   </td>
                 </tr>
 
@@ -119,8 +120,12 @@
                               {{column}}
                             </ui-select-choices>
                           </ui-select>
-                          <p ng-if="state.mode=='view'">
-                            {{hierarchyDims}}</p>
+
+                          <div ng-if="state.mode=='view'">
+                            <span ng-repeat="item in hierarchyDims">
+                             <label  class="label label-info">{{item}}</label>
+                            </span>
+                          </div>
 
                         </td>
                         <td class="col-xs-2" style="border-top:none">
@@ -165,8 +170,12 @@
                               {{column}}
                             </ui-select-choices>
                           </ui-select>
-                          <p ng-if="state.mode=='view'">
-                            {{jointDims}}</p>
+                          <div ng-if="state.mode=='view'">
+                            <span ng-repeat="item in jointDims">
+                             <label  class="label label-info">{{item}}</label>
+                            </span>
+                          </div>
+
                         </td>
                         <td class="col-xs-2" style="border-top:none">
                           <button class="btn btn-sm btn-info"   ng-disabled="instance.status=='READY'"
@@ -291,12 +300,6 @@
               <td>
                 <span>{{TableModel.tableColumnMap[rowkey_column.database+"."+rowkey_column.table][rowkey_column.database+"."+rowkey_column.column].cardinality}}</span>
               </td>
-              <!--<td >-->
-                <!--<button class="btn btn-xs btn-info"  ng-disabled="instance.status=='READY'"-->
-                      <!--ng-click="removeRowkey(convertedRowkeys, $index,rowkey_column)"><i-->
-                  <!--class="fa fa-minus"></i>-->
-                <!--</button>-->
-              <!--</td>-->
             </tr>
           </tbody>
           <!--   state.mode=='view'-->
@@ -331,9 +334,6 @@
 
         </table>
 
-        <!--<button class="btn btn-sm btn-info" style="margin-left:42px"  ng-disabled="instance.status=='READY'"-->
-                <!--ng-click="addNewRowkeyColumn()" ng-show="state.mode=='edit'">{{dataKylin.cube.cubeASNewRowkeyColumn}}<i class="fa fa-plus"></i>-->
-        <!--</button>-->
       </div>
 
       <div class="form-group large-popover" >
