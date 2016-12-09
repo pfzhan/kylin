@@ -72,7 +72,8 @@ public class ConfigService extends BasicService {
             throw new RuntimeException(e);
         }
 
-        Map<String, String> result = Maps.newHashMap();
+        // Keep same order with key
+        Map<String, String> result = Maps.newLinkedHashMap();
         for (String key : cubeLevelExposedKeys) {
             result.put(key, allProps.getProperty(key));
         }
