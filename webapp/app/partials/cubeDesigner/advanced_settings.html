@@ -264,7 +264,7 @@
                     <li>
                       <a middle-popover ng-repeat="encoding in getEncodings(rowkey_column.column)" ng-click="rowkey_column.encoding=encoding.value;rowkey_column.encodingName=encoding.name;"
                          kylinpopover placement="right" ng-version="{{integerVersion.version}}"
-                         ng-title="{{(encoding.value=='dict[v1]'||encoding.value=='fixed_length[v1]'||encoding.value=='int[v1]'||encoding.value=='integer[v1]'||encoding.value=='integer[v2]'||encoding.value=='fixed_length_hex[v1]'||encoding.value=='date[v1]'||encoding.value=='time[v1]')?encoding.name:''}}" ng-value="{{encoding.value}}" ng-watch="{{dataKylin.cube.tip_encoding}}" template="encodingTip.html">
+                         ng-title="{{(encoding.value=='dict[v1]'||encoding.value=='fixed_length[v1]'||encoding.value=='int[v1]'||encoding.value=='integer[v1]'||encoding.value=='integer[v2]'||encoding.value=='fixed_length_hex[v1]'||encoding.value=='date[v1]'||encoding.value=='time[v1]'||encoding.value=='boolean[v1]')?encoding.name:''}}" ng-value="{{encoding.value}}" ng-watch="{{dataKylin.cube.tip_encoding}}" template="encodingTip.html">
                         {{encoding.name}}
                       </a>
                     </li>
@@ -279,10 +279,7 @@
                      ng-model="rowkey_column.valueLength" class="form-control"  placement="top" ng-name="{{rowkey_column.encoding}}"  ng-value="{{rowkey_column.valueLength}}"
                        ng-watch="{{dataKylin.cube.tip_length}}" template="lengthTip.html" ng-version="{{integerVersion.version}}"
                        kylinpopover  ng-title="{{(rowkey_column.encoding=='fixed_length[v1]'||rowkey_column.encoding=='integer[v1]'||rowkey_column.value=='fixed_length_hex[v1]')?rowkey_column.encodingName:''}}" >
-
-                <small class="help-block red" ng-show=" rowkey_column.encoding=='int[v2]' && (rowkey_column.valueLength>8 || rowkey_column.valueLength<1)">int encoding column length should between 1 and 8</small>
               </td>
-
               <td>
                 <select style="width:100px"
                       chosen ng-model="rowkey_column.isShardBy"  ng-disabled="instance.status=='READY'"
@@ -538,6 +535,9 @@
     <div ng-if="value=='int[v1]'">
       {{dataKylin.cube.tip_encoding_int}}
     </div>
+    <div ng-if="value=='boolean[v1]'">
+      {{dataKylin.cube.tip_encoding_bool}}
+    </div>
     <div ng-if="value=='integer[v1]'&&version>value.substring(9,10)">
       {{dataKylin.cube.tip_encoding_integer_v1}}
     </div>
@@ -568,6 +568,7 @@
     <div ng-if="name=='integer[v1]'">
       {{dataKylin.cube.tip_length_integer_v2}}
       [{{-Math.pow(2,(8*value-1))}},{{Math.pow(2,(8*value-1))}}]
+      <small class="help-block red" ng-show="value>8||value<1">{{dataKylin.alert.check_cube_rowkeys_int}}</small>
     </div>
     <div ng-if="name=='fixed_length_hex[v1]'">
       {{dataKylin.cube.tip_length_fixed_length_hex_part_one}}

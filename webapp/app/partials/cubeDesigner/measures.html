@@ -280,7 +280,7 @@
                                 <li>
                                   <a middle-popover ng-repeat="encoding in getEncodings(groupby_column.name)" ng-click="groupby_column.encoding=encoding.value;groupby_column.encodingName=encoding.name;"
                                      kylinpopover placement="right" ng-version="{{integerVersion.version}}"
-                                     ng-title="{{(encoding.value=='dict[v1]'||encoding.value=='fixed_length[v1]'||encoding.value=='int[v1]'||encoding.value=='integer[v1]'||encoding.value=='integer[v2]'||encoding.value=='fixed_length_hex[v1]'||encoding.value=='date[v1]'||encoding.value=='time[v1]')?encoding.name:''}}" ng-value="{{encoding.value}}" ng-watch="{{dataKylin.cube.tip_encoding}}" template="encodingTip.html">
+                                     ng-title="{{(encoding.value=='dict[v1]'||encoding.value=='fixed_length[v1]'||encoding.value=='int[v1]'||encoding.value=='integer[v1]'||encoding.value=='integer[v2]'||encoding.value=='fixed_length_hex[v1]'||encoding.value=='date[v1]'||encoding.value=='time[v1]'||encoding.value=='boolean[v1]')?encoding.name:''}}" ng-value="{{encoding.value}}" ng-watch="{{dataKylin.cube.tip_encoding}}" template="encodingTip.html">
                                     {{encoding.name}}
                                   </a>
                                 </li>
@@ -297,7 +297,6 @@
                                    placement="top" ng-name="{{groupby_column.encoding}}"  ng-value="{{groupby_column.valueLength}}"
                                    ng-watch="{{dataKylin.cube.tip_length}}" template="lengthTip.html" ng-version="{{integerVersion.version}}"
                                    kylinpopover  ng-title="{{(groupby_column.encoding=='fixed_length[v1]'||groupby_column.encoding=='integer[v1]'||groupby_column.encoding=='fixed_length_hex[v1]')?groupby_column.encodingName:''}}" >
-                            <small class="help-block red" ng-show="state.mode=='edit' && groupby_column.encoding=='int' && (groupby_column.valueLength>8 || groupby_column.valueLength<1)">{{dataKylin.alert.check_cube_rowkeys_int}}</small>
                             <span ng-if="state.mode=='view'">{{groupby_column.valueLength}}</span>
                           </td>
                           <td ng-if="state.mode=='edit'">
@@ -397,6 +396,9 @@
     <div ng-if="value=='fixed_length[v1]'">
       {{dataKylin.cube.tip_encoding_fixed_length}}
     </div>
+    <div ng-if="value=='boolean[v1]'">
+      {{dataKylin.cube.tip_encoding_bool}}
+    </div>
     <div ng-if="value=='int[v1]'">
       {{dataKylin.cube.tip_encoding_int}}
     </div>
@@ -430,6 +432,7 @@
     <div ng-if="name=='integer[v1]'">
       {{dataKylin.cube.tip_length_integer_v2}}
       [{{-Math.pow(2,(8*value-1))}},{{Math.pow(2,(8*value-1))}}]
+      <small class="help-block red" ng-show="value>8||value<1">{{dataKylin.alert.check_cube_rowkeys_int}}</small>
     </div>
     <div ng-if="name=='fixed_length_hex[v1]'">
       {{dataKylin.cube.tip_length_fixed_length_hex_part_one}}

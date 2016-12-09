@@ -942,7 +942,7 @@ KylinApp.constant('kapEnglishConfig', {
     check_cube_measure_define:"Please define your metrics.",
     check_cube_measure_metric:"[COUNT] metric is required.",
     check_cube_aggregation_groups:"Each aggregation group can't be empty.",
-    check_cube_rowkeys_int:"int encoding column length should between 1 and 8.",
+    check_cube_rowkeys_int:"integer encoding column length should between 1 and 8.",
     check_cube_rowkeys_shard:"At most one 'shard by' column is allowed.",
     check_model_dimension:"No dimensions defined.",
     check_model_measure_define:"Please define your metrics.",
