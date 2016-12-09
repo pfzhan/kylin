@@ -19,7 +19,6 @@ function retrieveDependency() {
     if [ -z "${hbase_dependency}" ]; then
 	    source ${dir}/find-hbase-dependency.sh
     fi
-    source ${dir}/find-kafka-dependency.sh
     
     #retrive $KYLIN_EXTRA_START_OPTS
     if [ -f "${dir}/setenv.sh" ]; then
@@ -28,8 +27,7 @@ function retrieveDependency() {
 
     export HBASE_CLASSPATH_PREFIX=${KYLIN_HOME}/conf:${KYLIN_HOME}/lib/*:${KYLIN_HOME}/kybot/*:${KYLIN_HOME}/tool/*:${KYLIN_HOME}/ext/*:${HBASE_CLASSPATH_PREFIX}
     export HBASE_CLASSPATH=${HBASE_CLASSPATH}:${hive_dependency}
-    if [ -n "$KAFKA_HOME" ]
-    then
+    if [ -n "${KAFKA_HOME}" ]; then
         source ${dir}/find-kafka-dependency.sh
         export HBASE_CLASSPATH=${HBASE_CLASSPATH}:${kafka_dependency}
     fi
