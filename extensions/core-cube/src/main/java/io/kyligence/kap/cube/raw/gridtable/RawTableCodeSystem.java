@@ -78,6 +78,7 @@ public class RawTableCodeSystem implements IGTCodeSystem {
 
         this.serializers = new DataTypeSerializer[info.getColumnCount()];
 
+        StringBuilder logBuffer = new StringBuilder();
         for (int i = 0; i < serializers.length; i++) {
             String encoding;
             Integer encodingVersion;
@@ -90,13 +91,13 @@ public class RawTableCodeSystem implements IGTCodeSystem {
             }
 
             if (encoding == null || RawTableDesc.RAWTABLE_ENCODING_VAR.equals(encoding)) {
-                logger.info("column {} type {} type name {} will use var encoding", i, info.getColumnType(i), info.getColumnType(i).getName());
+                logBuffer.append("(" + i + ") type: " + info.getColumnType(i) + " enc: var, ");
                 serializers[i] = DataTypeSerializer.create(info.getColumnType(i));
             } else if (RawTableDesc.RAWTABLE_ENCODING_ORDEREDBYTES.equals(encoding)) {
-                logger.info("column {} type {} type name {} will use ordered bytes encoding", i, info.getColumnType(i), info.getColumnType(i).getName());
+                logBuffer.append("(" + i + ") type: " + info.getColumnType(i) + " enc: orderedbytes, ");
                 serializers[i] = OrderedBytesSerializer.createOrdered(info.getColumnType(i));
             } else {
-                logger.info("column {} type {} type name {} will use dimension encoding", i, info.getColumnType(i), info.getColumnType(i).getName());
+                logBuffer.append("(" + i + ") type: " + info.getColumnType(i) + " enc: " + encoding + ", ");
 
                 Preconditions.checkState(StringUtils.isNotEmpty(encoding));
                 Object[] encodingConf = DimensionEncoding.parseEncodingConf(encoding);
@@ -111,6 +112,8 @@ public class RawTableCodeSystem implements IGTCodeSystem {
                 serializers[i] = dimensionEncoding.asDataTypeSerializer();
             }
         }
+
+        logger.info("Summary from RawTableCodeSystem init: " + logBuffer.toString());
     }
 
     @Override

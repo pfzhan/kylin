@@ -70,7 +70,7 @@ public class RawTableStorageQuery implements IStorageQuery {
 
         // If it's select * from ...,
         // We need to retrieve cube to manually add columns into sqlDigest, so that we have full-columns results as output.
-        boolean isSelectAll = sqlDigest.allColumns.isEmpty() || sqlDigest.allColumns.equals(sqlDigest.filterColumns);
+        boolean isSelectAll = sqlDigest.allColumns.isEmpty();
 
         if (!isSelectAll)
             return;

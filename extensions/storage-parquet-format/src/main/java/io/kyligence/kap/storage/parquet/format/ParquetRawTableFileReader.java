@@ -90,8 +90,7 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
 //        Path parquetPath = fileSplit.getPath();
 //        Path indexPath = new Path(parquetPath.toString() + ".inv");
 
-        logger.info("data file: {}", parquetPath);
-        logger.info("index file: {}", indexPath);
+        logger.info("data file: {}, index file: {}", parquetPath, indexPath);
 
         // determine the running node
         Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces();
