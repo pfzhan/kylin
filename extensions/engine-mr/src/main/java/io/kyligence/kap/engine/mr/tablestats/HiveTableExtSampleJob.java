@@ -98,7 +98,7 @@ public class HiveTableExtSampleJob extends CubingJob {
         }
 
         if (table.isView()) {
-            result.addTask(materializedView(table, "limit 50000"));
+            result.addTask(materializedView(table, "limit 1000000"));
         }
 
         String samplesOutPath = getOutputPath(config, result.getId(), HiveTableExtSampleJob.SAMPLES) + table.getIdentity();
@@ -119,24 +119,6 @@ public class HiveTableExtSampleJob extends CubingJob {
         step2.setJobParams(samplesParam);
         result.addTask(step2);
 
-        String cardinalityOutPath = getOutputPath(config, result.getId(), HiveTableExtSampleJob.CARDINALITY) + table.getIdentity();
-        String cardinalityParam = "-table " + tableName + " -output " + cardinalityOutPath;
-        /*
-        MapReduceExecutable step3 = new MapReduceExecutable();
-        
-        step3.setName("Extract Cardinality from " + tableName);
-        step3.setMapReduceJobClass(HiveColumnCardinalityJob.class);
-        step3.setMapReduceParams(cardinalityParam);
-        
-        result.addTask(step3);
-        
-        HadoopShellExecutable step4 = new HadoopShellExecutable();
-        
-        step4.setName("Move " + tableName + " Cardinality to MetaData");
-        step4.setJobClass(HiveColumnCardinalityUpdateJob.class);
-        step4.setJobParams(cardinalityParam);
-        result.addTask(step4);
-        */
         if (table.isView())
             result.addTask(deleteMaterializedView(table));
 
