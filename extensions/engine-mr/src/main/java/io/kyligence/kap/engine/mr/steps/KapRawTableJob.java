@@ -118,6 +118,7 @@ public class KapRawTableJob extends AbstractHadoopJob {
             FileOutputFormat.setOutputPath(job, output);
             
             // set job configuration
+            job.getConfiguration().setInt("dfs.blocksize", KapConfig.getInstanceFromEnv().getParquetStorageBlockSize());
             job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, rawTableName);
             job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_ID, segmentID);
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_OUTPUT_DIR, getWorkingDir(config, rawInstance, rawSeg));
