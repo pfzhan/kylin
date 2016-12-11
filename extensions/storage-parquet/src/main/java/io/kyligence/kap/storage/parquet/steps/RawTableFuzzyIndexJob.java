@@ -24,11 +24,27 @@
 
 package io.kyligence.kap.storage.parquet.steps;
 
+import io.kyligence.kap.cube.raw.RawTableColumnDesc;
 import org.apache.hadoop.mapreduce.Job;
 
 public class RawTableFuzzyIndexJob extends RawTablePageIndexJob {
     @Override
     protected void setMapperClass(Job job) {
         job.setMapperClass(RawTableFuzzyIndexMapper.class);
+    }
+
+    @Override
+    public boolean isSkipped() {
+        if (desc == null) {
+            return false;
+        }
+
+        for (RawTableColumnDesc columnDesc : desc.getAllColumns()) {
+            if (columnDesc.getFuzzyIndex()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

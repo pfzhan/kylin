@@ -31,6 +31,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.cube.raw.RawTableDesc;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -59,6 +60,7 @@ public class RawTablePageIndexJob extends AbstractHadoopJob {
     protected static final Logger logger = LoggerFactory.getLogger(RawTablePageIndexJob.class);
 
     protected boolean skipped = false;
+    protected RawTableDesc desc = null;
 
     @Override
     public boolean isSkipped() {
@@ -83,6 +85,12 @@ public class RawTablePageIndexJob extends AbstractHadoopJob {
 
             RawTableManager rawMgr = RawTableManager.getInstance(KylinConfig.getInstanceFromEnv());
             RawTableInstance raw = rawMgr.getRawTableInstance(cubeName);
+
+            desc = raw.getRawTableDesc();
+            if (isSkipped()) {
+                logger.info("Skip job " + getOptionValue(OPTION_JOB_NAME) + " for " + raw.getSegmentById(segmentID));
+                return 0;
+            }
 
             CubeManager cubeManager = CubeManager.getInstance(KylinConfig.getInstanceFromEnv());
             CubeInstance cube = cubeManager.getCube(cubeName);
