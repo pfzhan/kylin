@@ -108,7 +108,7 @@ public class CubeSegmentIndexTableTest extends LocalFileMetadataTestCase {
             buildColumnIndex(dictCol);
         }
 
-        TblColRef tblColRef = cubeInstance.getAllDimensions().get(18);
+        TblColRef tblColRef = cubeInstance.getDescriptor().getRowkey().getRowKeyColumns()[2].getColRef();
         GTScanRanges ranges = lookupColumn(tblColRef);
         assert ranges.getRangeSet().size() > 0;
     }
