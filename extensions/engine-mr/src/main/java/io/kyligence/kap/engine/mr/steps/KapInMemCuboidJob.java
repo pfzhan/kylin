@@ -107,6 +107,7 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
             }
 
             job = Job.getInstance(getConf(), getOptionValue(OPTION_JOB_NAME));
+            job.getConfiguration().set(BatchConstants.ARG_CUBING_JOB_ID, cubingJobId);
             logger.info("Starting: " + job.getJobName());
 
             setJobClasspath(job, cube.getConfig());
