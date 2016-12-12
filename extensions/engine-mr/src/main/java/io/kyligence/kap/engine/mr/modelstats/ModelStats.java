@@ -27,7 +27,6 @@ package io.kyligence.kap.engine.mr.modelstats;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.MetadataConstants;
 
@@ -114,6 +113,6 @@ public class ModelStats extends RootPersistentEntity {
     }
 
     public String getResourcePath() {
-        return ResourceStore.MODEL_STATISTICS_ROOT + "/" + modelName + MetadataConstants.FILE_SURFIX;
+        return ModelStatsManager.MODEL_STATISTICS_ROOT + "/" + modelName + MetadataConstants.FILE_SURFIX;
     }
 }

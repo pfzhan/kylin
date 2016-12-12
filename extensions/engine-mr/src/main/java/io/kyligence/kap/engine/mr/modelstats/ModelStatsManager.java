@@ -42,6 +42,8 @@ public class ModelStatsManager {
     private static final ConcurrentHashMap<KylinConfig, ModelStatsManager> CACHE = new ConcurrentHashMap<>();
     private KylinConfig kylinConfig;
 
+    public static final String MODEL_STATISTICS_ROOT = "/model_stats";
+
     private ModelStatsManager(KylinConfig config) throws IOException {
         logger.info("Initializing ModelStatsManager with config " + config);
         this.kylinConfig = config;
@@ -98,7 +100,7 @@ public class ModelStatsManager {
     }
 
     public String getResourcePath(String modelName) {
-        return ResourceStore.MODEL_STATISTICS_ROOT + "/" + modelName + MetadataConstants.FILE_SURFIX;
+        return MODEL_STATISTICS_ROOT + "/" + modelName + MetadataConstants.FILE_SURFIX;
     }
 
     public static void clearCache() {
