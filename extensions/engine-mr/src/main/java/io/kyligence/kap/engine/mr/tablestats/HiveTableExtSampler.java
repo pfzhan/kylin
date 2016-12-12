@@ -28,7 +28,9 @@ import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -74,8 +76,18 @@ public class HiveTableExtSampler implements Serializable {
     private SamplerCoder samplerCoder;
     private int rawSampleIndex = 0;
     private HyperLogLogPlusCounter hyperLogLogPlusCounter = null;
+    private int lastIndex = 0;
+    private int curIndex = 0;
+    private List<HyperLogLogPlusCounter> hllList = new ArrayList<>();
 
     public HiveTableExtSampler() {
+        this(0, 0);
+    }
+
+    public HiveTableExtSampler(int curIndex, int allColumns) {
+
+        this.curIndex = curIndex;
+        this.lastIndex = allColumns - 1;
         //special samples
         sampleValues.put("max_value", null);
         sampleValues.put("min_value", null);
@@ -89,16 +101,28 @@ public class HiveTableExtSampler implements Serializable {
             sampleValues.put(String.valueOf(i), DEFAULT_SAMPLE_RAW_VALUE);
         }
 
-        String[] sampleDataType = new String[sizeOfElements() + 1];
+        //hll(current) samples
+        hyperLogLogPlusCounter = new HyperLogLogPlusCounter();
+
+        //hll(a,b) samples
+        int nHllc = this.lastIndex - this.curIndex;
+        while (nHllc > 0) {
+            hllList.add(new HyperLogLogPlusCounter());
+            nHllc--;
+        }
+
+        //serialize
+        int serializedSize = sizeOfElements() + (this.lastIndex - this.curIndex) + 1;
+
+        String[] sampleDataType = new String[serializedSize];
 
         for (int i = 0; i < sizeOfElements(); i++)
             sampleDataType[i] = "String";
 
-        sampleDataType[sizeOfElements()] = HLLC_DATATYPE;
+        for (int j = sizeOfElements(); j < serializedSize; j++)
+            sampleDataType[j] = HLLC_DATATYPE;
 
-        hyperLogLogPlusCounter = new HyperLogLogPlusCounter();
-
-        samplerCoder = new SamplerCoder(true, sampleDataType);
+        samplerCoder = new SamplerCoder(sampleDataType);
     }
 
     public int sizeOfElements() {
@@ -126,8 +150,23 @@ public class HiveTableExtSampler implements Serializable {
         return this.hyperLogLogPlusCounter;
     }
 
+    public List<HyperLogLogPlusCounter> getHllList() {
+        return this.hllList;
+    }
+
     public long getCardinality() {
         return hyperLogLogPlusCounter.getCountEstimate();
+    }
+
+    public Map<String, Long> getCombinationCardinality() {
+        Map<String, Long> ccMap = new LinkedHashMap<>();
+        int i = 1;
+        for (HyperLogLogPlusCounter hllc : hllList) {
+            String key = String.valueOf(curIndex + 1) + "," + String.valueOf(curIndex + 1 + i);
+            ccMap.put(key, hllc.getCountEstimate());
+            i++;
+        }
+        return ccMap;
     }
 
     public void setCounter(String counter) {
@@ -155,6 +194,10 @@ public class HiveTableExtSampler implements Serializable {
         if (hyperLogLogPlusCounter != null)
             hyperLogLogPlusCounter.clear();
 
+        for (HyperLogLogPlusCounter hllc : this.hllList) {
+            hllc.clear();
+        }
+
         sampleValues.clear();
         samplerCoder = null;
     }
@@ -176,24 +219,39 @@ public class HiveTableExtSampler implements Serializable {
         buf = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
         buf.clear();
 
+        int allSize = sizeOfElements() + this.lastIndex - this.curIndex + 1;
+
         int index = 0;
         for (Map.Entry<String, String> element : sampleValues.entrySet()) {
             Object object = samplerCoder.serializers[index].valueOf(element.getValue());
             samplerCoder.serializers[index].serialize(object, buf);
             index++;
         }
+
         samplerCoder.serializers[index].serialize(hyperLogLogPlusCounter, buf);
+
+        for (int i = index + 1, j = 0; i < allSize; i++, j++) {
+            samplerCoder.serializers[i].serialize(hllList.get(j), buf);
+        }
     }
 
     public void decode(ByteBuffer buffer) {
-        Object[] objects = new Object[sizeOfElements() + 1];
+
+        int allSize = sizeOfElements() + this.lastIndex - this.curIndex + 1;
+        Object[] objects = new Object[allSize];
         samplerCoder.decode(buffer, objects);
         int index = 0;
         for (Map.Entry<String, String> element : sampleValues.entrySet()) {
             element.setValue(objects[index].toString());
             index++;
         }
-        hyperLogLogPlusCounter = (HyperLogLogPlusCounter) objects[sizeOfElements()];
+        hyperLogLogPlusCounter = (HyperLogLogPlusCounter) objects[index];
+
+        hllList.clear();
+
+        for (int i = index + 1; i < allSize; i++) {
+            hllList.add((HyperLogLogPlusCounter) objects[i]);
+        }
     }
 
     public ByteBuffer getBuffer() {
@@ -207,6 +265,22 @@ public class HiveTableExtSampler implements Serializable {
         if (counter % HASH_SEED == 0 && rawSampleIndex < SAMPLE_RAW_VALUE_NUMBER) {
             sampleValues.put(String.valueOf(rawSampleIndex), next);
             rawSampleIndex++;
+        }
+
+        hyperLogLogPlusCounter.add(next);
+    }
+
+    public void samples(String[] values, long counter) {
+
+        String curValue = values[this.curIndex];
+
+        samples(curValue, counter);
+
+        int i = 1;
+
+        for (HyperLogLogPlusCounter hllc : hllList) {
+            hllc.add(values[curIndex] + "|" + values[curIndex + i]);
+            i++;
         }
     }
 
@@ -242,7 +316,12 @@ public class HiveTableExtSampler implements Serializable {
         }
 
         hyperLogLogPlusCounter.merge(another.getHyperLogLogPlusCounter());
-        another.getHyperLogLogPlusCounter().clear();
+
+        for (int i = 0; i < hllList.size(); i++) {
+            hllList.get(i).merge(another.getHllList().get(i));
+        }
+
+        another.clean();
     }
 
     public String[] getRawSampleValues() {
@@ -322,7 +401,6 @@ public class HiveTableExtSampler implements Serializable {
             if (getMinLenValue() == null || value.getBytes().length < getMinLenValue().getBytes().length) {
                 setMinLenValue(value);
             }
-            hyperLogLogPlusCounter.add(value);
         }
     }
 
@@ -449,11 +527,9 @@ public class HiveTableExtSampler implements Serializable {
         int nSampleType;
         DataTypeSerializer[] serializers;
 
-        public SamplerCoder(boolean hllc, String... dataTypes) {
-            if (hllc) {
-                DataType.register("hllc");
-                DataTypeSerializer.register("hllc", HLLCSerializer.class);
-            }
+        public SamplerCoder(String... dataTypes) {
+            DataType.register("hllc");
+            DataTypeSerializer.register("hllc", HLLCSerializer.class);
             init(dataTypes);
         }
 

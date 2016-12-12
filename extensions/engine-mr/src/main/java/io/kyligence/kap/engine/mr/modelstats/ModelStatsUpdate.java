@@ -22,12 +22,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.mr.tablestats;
+package io.kyligence.kap.engine.mr.modelstats;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.commons.cli.Option;
@@ -43,22 +45,22 @@ import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
-import org.apache.kylin.metadata.MetadataManager;
-import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class HiveTableExtUpdate extends AbstractHadoopJob {
-    public static final String JOB_TITLE = "Hive Sample Update Job";
+import io.kyligence.kap.engine.mr.tablestats.HiveTableExtSampler;
+
+public class ModelStatsUpdate extends AbstractHadoopJob {
+    public static final String JOB_TITLE = "Model Update Job";
 
     @SuppressWarnings("static-access")
     protected static final Option OPTION_TABLE = OptionBuilder.withArgName("table name").hasArg().isRequired(true).withDescription("The hive table name").create("table");
 
     private String table;
 
-    private static final Logger logger = LoggerFactory.getLogger(HiveTableExtUpdate.class);
+    private static final Logger logger = LoggerFactory.getLogger(ModelStatsUpdate.class);
 
-    public HiveTableExtUpdate() {
+    public ModelStatsUpdate() {
 
     }
 
@@ -98,25 +100,17 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
             return;
         }
 
-        MetadataManager metaMgr = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv());
-        TableExtDesc tableSample = metaMgr.getTableExt(tableName);
-        List<TableExtDesc.ColumnStats> columnStatsList = new ArrayList<>();
-        List<String[]> sampleRows = new ArrayList<>();
-        String counter = "0";
-        for (HiveTableExtSampler sampler : samplers.values()) {
-            TableExtDesc.ColumnStats columnStats = new TableExtDesc.ColumnStats();
-            columnStats.setColumnSamples(sampler.getMax(), sampler.getMin(), sampler.getMaxLenValue(), sampler.getMinLenValue());
-            columnStats.setNullCount(Integer.parseInt(sampler.getNullCounter()));
-            columnStats.setCardinality(sampler.getCardinality());
-            sampleRows.add(sampler.getRawSampleValues());
-            columnStatsList.add(columnStats);
-            counter = sampler.getCounter();
-            sampler.clean();
+        ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(KylinConfig.getInstanceFromEnv());
+        ModelStats modelStats = modelStatsManager.getModelStats(tableName);
+        Map<Integer, Long> singleCardMap = new HashMap<>();
+
+        for (Map.Entry<Integer, HiveTableExtSampler> sampler : samplers.entrySet()) {
+            singleCardMap.put(sampler.getKey(), sampler.getValue().getCardinality());
+            modelStats.appendDoubleColumnCardinality(sampler.getValue().getCombinationCardinality());
+            sampler.getValue().clean();
         }
-        tableSample.setColumnStats(columnStatsList);
-        tableSample.setSampleRows(sampleRows);
-        tableSample.setTotalRows(counter);
-        metaMgr.saveTableExt(tableSample);
+        modelStats.setSingleColumnCardinality(singleCardMap);
+        modelStatsManager.saveModelStats(modelStats);
     }
 
     private static TreeMap<Integer, HiveTableExtSampler> read(Path path, Configuration conf) throws IOException {
@@ -154,5 +148,4 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
         }
         return results;
     }
-
 }

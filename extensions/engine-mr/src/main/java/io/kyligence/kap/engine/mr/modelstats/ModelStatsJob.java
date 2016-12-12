@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.mr.tablestats;
+package io.kyligence.kap.engine.mr.modelstats;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
@@ -43,13 +43,16 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
 
-public class HiveTableExtJob extends AbstractHadoopJob {
-    public static final String JOB_TITLE = "Kylin Hive Column Sample Job";
+import io.kyligence.kap.engine.mr.tablestats.HiveTableExtMapper;
+import io.kyligence.kap.engine.mr.tablestats.HiveTableExtReducer;
+
+public class ModelStatsJob extends AbstractHadoopJob {
+    public static final String JOB_TITLE = "KAP DataModel stats job";
 
     @SuppressWarnings("static-access")
     protected static final Option OPTION_TABLE = OptionBuilder.withArgName("table name").hasArg().isRequired(true).withDescription("The hive table name").create("table");
 
-    public HiveTableExtJob() {
+    public ModelStatsJob() {
     }
 
     @Override

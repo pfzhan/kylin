@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.mr.tablestats;
+package io.kyligence.kap.engine.mr.modelstats;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -33,17 +33,32 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.mr.KylinReducer;
+import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
+import org.apache.kylin.engine.mr.common.BatchConstants;
+import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.model.TableDesc;
 
-public class HiveTableExtReducer extends KylinReducer<IntWritable, BytesWritable, IntWritable, BytesWritable> {
+import io.kyligence.kap.engine.mr.tablestats.HiveTableExtSampler;
+
+public class ModelStatsReducer extends KylinReducer<IntWritable, BytesWritable, IntWritable, BytesWritable> {
 
     private Map<Integer, HiveTableExtSampler> sampleMap = new HashMap<Integer, HiveTableExtSampler>();
+
+    private TableDesc tableDesc;
 
     @Override
     protected void setup(Context context) throws IOException {
         super.bindCurrentConfiguration(context.getConfiguration());
+        Configuration conf = context.getConfiguration();
+        bindCurrentConfiguration(conf);
+        KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
+        String tableName = conf.get(BatchConstants.CFG_TABLE_NAME);
+        tableDesc = MetadataManager.getInstance(config).getTableDesc(tableName);
     }
 
     @Override
@@ -51,7 +66,7 @@ public class HiveTableExtReducer extends KylinReducer<IntWritable, BytesWritable
         int skey = key.get();
         for (BytesWritable v : values) {
             ByteBuffer buffer = ByteBuffer.wrap(v.getBytes());
-            HiveTableExtSampler sampler = new HiveTableExtSampler();
+            HiveTableExtSampler sampler = new HiveTableExtSampler(key.get(), tableDesc.getColumns().length);
             sampler.decode(buffer);
             if (!sampleMap.containsKey(skey))
                 sampleMap.put(skey, sampler);

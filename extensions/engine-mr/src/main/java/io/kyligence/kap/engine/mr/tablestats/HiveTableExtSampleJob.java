@@ -48,7 +48,6 @@ import org.slf4j.LoggerFactory;
 
 public class HiveTableExtSampleJob extends CubingJob {
     private static final Logger logger = LoggerFactory.getLogger(HiveTableExtSampleJob.class);
-    private static final String CARDINALITY = "cardinality";
     private static final String SAMPLES = "samples";
 
     public static List<String> createSampleJob(String project, String submitter, String... tables) throws IOException {
