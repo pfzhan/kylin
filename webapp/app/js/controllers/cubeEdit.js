@@ -794,7 +794,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
         for (var j = 0; j < group.includes.length; j++) {
           var elemStillExist = false;
           for (var k = 0; k < tmpAggregationItems.length; k++) {
-            if (VdmUtil.removeNameSpace(group.includes[j].toUpperCase()) == VdmUtil.removeNameSpace(tmpAggregationItems[k].toUpperCase())) {
+            if (group.includes[j].toUpperCase() == tmpAggregationItems[k].toUpperCase()) {
               elemStillExist = true;
               break;
             }
@@ -809,14 +809,18 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
             var mandatory = group.select_rule.mandatory_dims;
             if(mandatory && mandatory.length){
               var columnIndex = mandatory.indexOf(deprecatedItem);
-              group.select_rule.mandatory_dims.splice(columnIndex,1);
+              if(columnIndex>=0) {
+                group.select_rule.mandatory_dims.splice(columnIndex,1);
+              }
             }
 
             var hierarchys =  group.select_rule.hierarchy_dims;
             if(hierarchys && hierarchys.length){
               for(var i=0;i<hierarchys.length;i++){
                 var hierarchysIndex = hierarchys[i].indexOf(deprecatedItem);
-                group.select_rule.hierarchy_dims[i].splice(hierarchysIndex,1);
+                if(hierarchysIndex>=0){
+                  group.select_rule.hierarchy_dims[i].splice(hierarchysIndex,1);
+                }
               }
 
             }
@@ -825,7 +829,9 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
             if(joints && joints.length){
               for(var i=0;i<joints.length;i++){
                 var jointIndex = joints[i].indexOf(deprecatedItem);
-                group.select_rule.joint_dims[i].splice(jointIndex,1);
+                if(jointIndex>=0) {
+                  group.select_rule.joint_dims[i].splice(jointIndex, 1);
+                }
               }
 
             }
@@ -902,14 +908,14 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
       return [];
     }
     var groups = [];
-    var j = -1;
-    for (var i = 0; i < groupItems.length; i++) {
-      if (i % 11 == 0) {
-        j++;
-        groups[j] = [];
-      }
-      groups[j].push(groupItems[i]);
-    }
+    //var j = -1;
+    //for (var i = 0; i < groupItems.length; i++) {
+    //  if (i % 11 == 0) {
+    //    j++;
+    //    groups[j] = [];
+    //  }
+    //  groups[j].push(groupItems[i]);
+    //}
     return groups;
   }
 
