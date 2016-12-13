@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>kap-query</artifactId>
     <packaging>jar</packaging>
-    <name>KAP:Query</name>
+    <name>KAP - Query</name>
     <url>http://kyligence.io</url>
     <description>Kyligence Query Engine</description>
 

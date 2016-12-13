@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>kap-storage-parquet</artifactId>
     <packaging>jar</packaging>
-    <name>KAP:StorageParquet</name>
+    <name>KAP - Storage Parquet</name>
     <url>http://kyligence.io</url>
     <description>Kyligence Storage Engine on Parquet</description>
 

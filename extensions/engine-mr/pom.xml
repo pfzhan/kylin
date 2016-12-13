@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>kap-engine-mr</artifactId>
     <packaging>jar</packaging>
-    <name>KAP:Engine-MR</name>
+    <name>KAP - MapReduce Engine</name>
     <url>http://kyligence.io</url>
     <description>Kyligence Job Engine - MR</description>
 

@@ -22,7 +22,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>kap-storage-parquet-protocol</artifactId>
     <packaging>jar</packaging>
-    <name>KAP:StorageParquetProtocol</name>
+    <name>KAP - Storage Parquet Protocol</name>
     <url>http://kyligence.io</url>
     <description>Protobuf protocol for Kyligence Storage Engine on Parquet</description>
 

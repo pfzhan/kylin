@@ -5,7 +5,7 @@
 
     <modelVersion>4.0.0</modelVersion>
     <artifactId>kap-it</artifactId>
-    <name>KAP:IT</name>
+    <name>KAP - Integration Test</name>
     <url>http://kyligence.io</url>
     <description>Kyligence IT</description>
 

@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>kap-core-storage</artifactId>
     <packaging>jar</packaging>
-    <name>KAP:Engine-Storage</name>
+    <name>KAP - Core Storage</name>
     <url>http://kyligence.io</url>
     <description>Kyligence Core Storage</description>
 

@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>kap-core-job</artifactId>
     <packaging>jar</packaging>
-    <name>KAP:Core-Job</name>
+    <name>KAP - Core Job</name>
     <url>http://kyligence.io</url>
     <description>Kyligence Core Job</description>
 

@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>kap-core-metadata</artifactId>
     <packaging>jar</packaging>
-    <name>KAP:Core-Metadata</name>
+    <name>KAP - Core Metadata</name>
     <url>http://kyligence.io</url>
     <description>Kyligence Core Metadata</description>
 

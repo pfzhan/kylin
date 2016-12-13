@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>kap-assembly</artifactId>
     <packaging>jar</packaging>
-    <name>KAP:Assembly</name>
+    <name>KAP - Assembly</name>
     <url>http://kyligence.io</url>
     <description>Kyligence Assembly</description>
 

@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>kap-storage-hbase</artifactId>
     <packaging>jar</packaging>
-    <name>KAP:StorageHbase</name>
+    <name>KAP - Storage Hbase</name>
     <url>http://kyligence.io</url>
     <description>Kyligence Storage Engine on HBase</description>
 

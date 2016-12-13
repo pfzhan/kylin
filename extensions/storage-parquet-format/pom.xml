@@ -7,7 +7,7 @@
     <groupId>io.kyligence.kap</groupId>
     <artifactId>kap-storage-parquet-format</artifactId>
     <packaging>jar</packaging>
-    <name>KAP:StorageParquetFormat</name>
+    <name>KAP - Storage Parquet Format</name>
     <url>http://kyligence.io</url>
     <description>Kyligence Storage Parquet Format</description>
 

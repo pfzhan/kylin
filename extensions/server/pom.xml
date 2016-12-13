@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>kap-server</artifactId>
     <packaging>war</packaging>
-    <name>KAP:Server</name>
+    <name>KAP - REST Server</name>
     <url>http://kyligence.io</url>
     <description>Kyligence Analytics Platform REST Service and RPC Server.</description>
 
