@@ -27,7 +27,6 @@ package io.kyligence.kap.storage.parquet.log;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.security.PrivilegedExceptionAction;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.UUID;
@@ -40,7 +39,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.spi.LoggingEvent;
 
@@ -145,24 +143,8 @@ public class HdfsAppender extends AppenderSkeleton {
                     LoggingEvent loggingEvent = logBufferQue.take();
                     if (isDayChanged(loggingEvent)) {
                         updateOutPutDir(loggingEvent);
-
-                        final Path file = new Path(outPutPath);
-
-                        if (!UserGroupInformation.isSecurityEnabled()) {
-                            String username = System.getenv("SPARK_USER");
-                            System.out.println("login user is " + UserGroupInformation.getLoginUser() + " proxy user is " + username);
-
-                            UserGroupInformation ugi = UserGroupInformation.createProxyUser(username, UserGroupInformation.getLoginUser());
-                            ugi.doAs(new PrivilegedExceptionAction<Void>() {
-                                public Void run() throws Exception {
-                                    initWriter(file);
-                                    return null;
-                                }
-                            });
-                        } else {
-                            System.out.println("security hadoop is enabled, won't use proxy");
-                            initWriter(file);
-                        }
+                        Path file = new Path(outPutPath);
+                        initWriter(file);
                     }
                     write(layout.format(loggingEvent));
                     size--;
