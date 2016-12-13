@@ -87,8 +87,10 @@ public class KapRawTableJob extends AbstractHadoopJob {
             RawTableManager rawMgr = RawTableManager.getInstance(config);
             RawTableInstance rawInstance = rawMgr.getRawTableInstance(rawTableName);
             RawTableSegment rawSeg = rawInstance.getSegmentById(segmentID);
+            String cubingJobId = getOptionValue(OPTION_CUBING_JOB_ID);
 
             job = Job.getInstance(getConf(), getOptionValue(OPTION_JOB_NAME));
+            job.getConfiguration().set(BatchConstants.ARG_CUBING_JOB_ID, cubingJobId);
             logger.info("Starting: " + job.getJobName());
 
             setJobClasspath(job, rawInstance.getConfig());
