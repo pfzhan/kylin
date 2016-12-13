@@ -24,6 +24,11 @@
 
 package io.kyligence.kap.engine.mr.modelstats;
 
+import java.io.IOException;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
@@ -36,21 +41,24 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.mr.IMRInput;
-import org.apache.kylin.engine.mr.MRUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.source.SourceFactory;
+import org.apache.kylin.source.hive.HiveMRInput;
 
-import io.kyligence.kap.engine.mr.tablestats.HiveTableExtMapper;
-import io.kyligence.kap.engine.mr.tablestats.HiveTableExtReducer;
+import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
 
 public class ModelStatsJob extends AbstractHadoopJob {
     public static final String JOB_TITLE = "KAP DataModel stats job";
 
     @SuppressWarnings("static-access")
-    protected static final Option OPTION_TABLE = OptionBuilder.withArgName("table name").hasArg().isRequired(true).withDescription("The hive table name").create("table");
+    protected static final Option OPTION_MODEL = OptionBuilder.withArgName("model name").hasArg().isRequired(true).withDescription("data model name").create("model");
 
     public ModelStatsJob() {
     }
@@ -60,7 +68,7 @@ public class ModelStatsJob extends AbstractHadoopJob {
 
         Options options = new Options();
 
-        options.addOption(OPTION_TABLE);
+        options.addOption(OPTION_MODEL);
         options.addOption(OPTION_OUTPUT_PATH);
 
         parseOptions(options, args);
@@ -74,47 +82,64 @@ public class ModelStatsJob extends AbstractHadoopJob {
         JobEngineConfig jobEngineConfig = new JobEngineConfig(kylinConfig);
         conf.addResource(new Path(jobEngineConfig.getHadoopJobConfFilePath(null)));
 
-        String table = getOptionValue(OPTION_TABLE);
-        TableDesc tableDesc = MetadataManager.getInstance(kylinConfig).getTableDesc(table);
+        String model = getOptionValue(OPTION_MODEL);
+        DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc(model);
+
+        IJoinedFlatTableDesc flatTableDesc = new DataModelStatsFlatTableDesc(modelDesc);
 
         job = Job.getInstance(conf, jobName);
 
         setJobClasspath(job, kylinConfig);
 
-        job.getConfiguration().set(BatchConstants.CFG_TABLE_NAME, table);
+        job.getConfiguration().set(BatchConstants.CFG_TABLE_NAME, model);
 
         Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
         FileOutputFormat.setOutputPath(job, output);
         job.getConfiguration().set("dfs.block.size", "67108864");
 
         // Mapper
-        IMRInput.IMRTableInputFormat tableInputFormat = MRUtil.getTableInputFormat(table);
+        String fullTableName = kylinConfig.getHiveDatabaseForIntermediateTable() + "." + flatTableDesc.getTableName();
+        IMRInput.IMRTableInputFormat tableInputFormat = new HiveMRInput.HiveTableInputFormat(fullTableName);
+        //IMRInput.IMRTableInputFormat tableInputFormat = MRUtil.getTableInputFormat(table);
         tableInputFormat.configureJob(job);
 
-        job.setMapperClass(HiveTableExtMapper.class);
+        job.setMapperClass(ModelStatsMapper.class);
         job.setMapOutputKeyClass(IntWritable.class);
         job.setMapOutputValueClass(BytesWritable.class);
 
-        job.setReducerClass(HiveTableExtReducer.class);
+        job.setReducerClass(ModelStatsReducer.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         job.setOutputKeyClass(IntWritable.class);
         job.setOutputValueClass(BytesWritable.class);
-        job.setNumReduceTasks(decideReduceTasks(tableDesc.getColumnCount()));
+        job.setNumReduceTasks(decideReduceTasks(flatTableDesc.getAllColumns().size()));
 
         this.deletePath(job.getConfiguration(), output);
 
-        logger.info("Going to submit Hive Sample Job for table '" + table + "'");
+        logger.info("Going to submit Model stats Job for model '" + model + "'");
 
-        attachKylinPropsAndMetadata(tableDesc, job.getConfiguration());
+        attachKylinPropsAndMetadata(modelDesc, job.getConfiguration());
         int result = waitForCompletion(job);
 
         return result;
     }
 
+    protected void attachKylinPropsAndMetadata(DataModelDesc desc, Configuration conf) throws IOException {
+        Set<String> dumpList = new LinkedHashSet<>();
+        dumpList.add(desc.getResourcePath());
+
+        for (TableRef tableRef : desc.getAllTables()) {
+            TableDesc table = tableRef.getTableDesc();
+            dumpList.add(table.getResourcePath());
+            List<String> dependentResources = SourceFactory.getMRDependentResources(table);
+            dumpList.addAll(dependentResources);
+        }
+
+        attachKylinPropsAndMetadata(dumpList, KylinConfig.getInstanceFromEnv(), conf);
+    }
+
     private int decideReduceTasks(int columnCount) {
         if (columnCount > 30) {
             return 30;
-            //return (int) Math.sqrt(columnCount);
         }
         return columnCount;
     }

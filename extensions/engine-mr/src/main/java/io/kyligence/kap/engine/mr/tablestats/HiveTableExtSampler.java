@@ -81,7 +81,7 @@ public class HiveTableExtSampler implements Serializable {
     private List<HyperLogLogPlusCounter> hllList = new ArrayList<>();
 
     public HiveTableExtSampler() {
-        this(0, 0);
+        this(0, 1);
     }
 
     public HiveTableExtSampler(int curIndex, int allColumns) {
@@ -89,6 +89,7 @@ public class HiveTableExtSampler implements Serializable {
         this.curIndex = curIndex;
         this.lastIndex = allColumns - 1;
         //special samples
+        sampleValues.put("column_name", "");
         sampleValues.put("max_value", null);
         sampleValues.put("min_value", null);
         sampleValues.put("max_length_value", null);
@@ -167,6 +168,14 @@ public class HiveTableExtSampler implements Serializable {
             i++;
         }
         return ccMap;
+    }
+
+    public void setColumnName(String columnName) {
+        this.sampleValues.put("column_name", columnName);
+    }
+
+    public String getColumnName() {
+        return this.sampleValues.get("column_name");
     }
 
     public void setCounter(String counter) {

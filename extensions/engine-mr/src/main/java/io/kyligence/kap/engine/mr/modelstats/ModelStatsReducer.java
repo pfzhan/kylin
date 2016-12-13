@@ -41,24 +41,28 @@ import org.apache.kylin.engine.mr.KylinReducer;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.metadata.MetadataManager;
-import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 
+import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
 import io.kyligence.kap.engine.mr.tablestats.HiveTableExtSampler;
 
 public class ModelStatsReducer extends KylinReducer<IntWritable, BytesWritable, IntWritable, BytesWritable> {
 
-    private Map<Integer, HiveTableExtSampler> sampleMap = new HashMap<Integer, HiveTableExtSampler>();
+    private Map<Integer, HiveTableExtSampler> samplerMap = new HashMap<Integer, HiveTableExtSampler>();
 
-    private TableDesc tableDesc;
+    private int columnSize = 0;
 
     @Override
     protected void setup(Context context) throws IOException {
         super.bindCurrentConfiguration(context.getConfiguration());
-        Configuration conf = context.getConfiguration();
-        bindCurrentConfiguration(conf);
         KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
-        String tableName = conf.get(BatchConstants.CFG_TABLE_NAME);
-        tableDesc = MetadataManager.getInstance(config).getTableDesc(tableName);
+
+        Configuration conf = context.getConfiguration();
+        String model = conf.get(BatchConstants.CFG_TABLE_NAME);
+        DataModelDesc dataModelDesc = MetadataManager.getInstance(config).getDataModelDesc(model);
+        IJoinedFlatTableDesc flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc);
+        columnSize = flatTableDesc.getAllColumns().size();
     }
 
     @Override
@@ -66,21 +70,21 @@ public class ModelStatsReducer extends KylinReducer<IntWritable, BytesWritable, 
         int skey = key.get();
         for (BytesWritable v : values) {
             ByteBuffer buffer = ByteBuffer.wrap(v.getBytes());
-            HiveTableExtSampler sampler = new HiveTableExtSampler(key.get(), tableDesc.getColumns().length);
+            HiveTableExtSampler sampler = new HiveTableExtSampler(key.get(), columnSize);
             sampler.decode(buffer);
-            if (!sampleMap.containsKey(skey))
-                sampleMap.put(skey, sampler);
+            if (!samplerMap.containsKey(skey))
+                samplerMap.put(skey, sampler);
             else {
-                sampleMap.get(skey);
+                samplerMap.get(skey);
             }
-            sampleMap.get(skey).merge(sampler);
+            samplerMap.get(skey).merge(sampler);
         }
     }
 
     @Override
     protected void doCleanup(Context context) throws IOException, InterruptedException {
         List<Integer> keys = new ArrayList<Integer>();
-        Iterator<Integer> it = sampleMap.keySet().iterator();
+        Iterator<Integer> it = samplerMap.keySet().iterator();
         while (it.hasNext()) {
             keys.add(it.next());
         }
@@ -88,7 +92,7 @@ public class ModelStatsReducer extends KylinReducer<IntWritable, BytesWritable, 
         it = keys.iterator();
         while (it.hasNext()) {
             int key = it.next();
-            HiveTableExtSampler sampler = sampleMap.get(key);
+            HiveTableExtSampler sampler = samplerMap.get(key);
             sampler.code();
             context.write(new IntWritable(key), new BytesWritable(sampler.getBuffer().array(), sampler.getBuffer().limit()));
             sampler.clean();

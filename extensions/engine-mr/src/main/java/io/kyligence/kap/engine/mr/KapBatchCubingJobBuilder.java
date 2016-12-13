@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.engine.mr;
 
+import java.io.IOException;
+
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
@@ -47,6 +49,7 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
+import io.kyligence.kap.engine.mr.modelstats.CollectModelStats;
 import io.kyligence.kap.engine.mr.steps.KapBaseCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapInMemCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapNDCuboidJob;
@@ -71,6 +74,11 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
     public CubingJob build() {
         logger.info("MR_V2 new job to BUILD segment " + seg);
 
+        try {
+            CollectModelStats.createCollectJob("learn_kylin", "admin", "kylin_sales_model");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         final CubingJob result = CubingJob.createBuildJob((CubeSegment) seg, submitter, config);
         final String jobId = result.getId();
         final String cubeRootPath = getCubeRootPath(seg);

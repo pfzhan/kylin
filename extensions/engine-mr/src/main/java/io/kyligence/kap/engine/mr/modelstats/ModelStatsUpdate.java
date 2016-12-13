@@ -45,18 +45,24 @@ import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
+import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
 import io.kyligence.kap.engine.mr.tablestats.HiveTableExtSampler;
 
 public class ModelStatsUpdate extends AbstractHadoopJob {
     public static final String JOB_TITLE = "Model Update Job";
 
     @SuppressWarnings("static-access")
-    protected static final Option OPTION_TABLE = OptionBuilder.withArgName("table name").hasArg().isRequired(true).withDescription("The hive table name").create("table");
+    protected static final Option OPTION_MODEL = OptionBuilder.withArgName("model name").hasArg().isRequired(true).withDescription("data model name").create("model");
 
-    private String table;
+    private String model;
+
+    private IJoinedFlatTableDesc flatTableDesc;
 
     private static final Logger logger = LoggerFactory.getLogger(ModelStatsUpdate.class);
 
@@ -70,19 +76,24 @@ public class ModelStatsUpdate extends AbstractHadoopJob {
         Options options = new Options();
 
         try {
-            options.addOption(OPTION_TABLE);
+            options.addOption(OPTION_MODEL);
             options.addOption(OPTION_OUTPUT_PATH);
 
             parseOptions(options, args);
 
-            this.table = getOptionValue(OPTION_TABLE).toUpperCase();
+            this.model = getOptionValue(OPTION_MODEL).toUpperCase();
+
+            DataModelDesc dataModelDesc = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv()).getDataModelDesc(model);
+
+            flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc);
+
             // start job
             String jobName = JOB_TITLE + getOptionsAsString();
             logger.info("Starting: " + jobName);
             Configuration conf = getConf();
             Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
 
-            updateTableSample(table.toUpperCase(), output.toString(), conf);
+            updateModelStats(model, output.toString(), conf);
             return 0;
         } catch (Exception e) {
             printUsage(options);
@@ -90,30 +101,32 @@ public class ModelStatsUpdate extends AbstractHadoopJob {
         }
     }
 
-    public void updateTableSample(String tableName, String outPath, Configuration config) throws IOException {
+    public void updateModelStats(String model, String outPath, Configuration config) throws IOException {
         TreeMap<Integer, HiveTableExtSampler> samplers = null;
         try {
             samplers = read(new Path(outPath), config);
         } catch (Exception e) {
             e.printStackTrace();
-            logger.info("Failed to resolve samples for " + tableName + " from " + outPath);
+            logger.info("Failed to resolve stats for " + model + " from " + outPath);
             return;
         }
 
         ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(KylinConfig.getInstanceFromEnv());
-        ModelStats modelStats = modelStatsManager.getModelStats(tableName);
+        ModelStats modelStats = modelStatsManager.getModelStats(model);
         Map<Integer, Long> singleCardMap = new HashMap<>();
-
+        Map<Integer, String> columnIndexMap = new HashMap<>();
         for (Map.Entry<Integer, HiveTableExtSampler> sampler : samplers.entrySet()) {
+            columnIndexMap.put(sampler.getKey(), sampler.getValue().getColumnName());
             singleCardMap.put(sampler.getKey(), sampler.getValue().getCardinality());
             modelStats.appendDoubleColumnCardinality(sampler.getValue().getCombinationCardinality());
             sampler.getValue().clean();
         }
+        modelStats.setColumnIndexMap(columnIndexMap);
         modelStats.setSingleColumnCardinality(singleCardMap);
         modelStatsManager.saveModelStats(modelStats);
     }
 
-    private static TreeMap<Integer, HiveTableExtSampler> read(Path path, Configuration conf) throws IOException {
+    private TreeMap<Integer, HiveTableExtSampler> read(Path path, Configuration conf) throws IOException {
         TreeMap<Integer, HiveTableExtSampler> samplers = new TreeMap<>();
         for (Path p : getAllPaths(path, conf)) {
             SequenceFile.Reader.Option seqInput = SequenceFile.Reader.file(p);
@@ -122,7 +135,7 @@ public class ModelStatsUpdate extends AbstractHadoopJob {
             IntWritable key = (IntWritable) ReflectionUtils.newInstance(reader.getKeyClass(), conf);
             BytesWritable value = (BytesWritable) ReflectionUtils.newInstance(reader.getValueClass(), conf);
             while (reader.next(key, value)) {
-                HiveTableExtSampler sampler = new HiveTableExtSampler();
+                HiveTableExtSampler sampler = new HiveTableExtSampler(key.get(), flatTableDesc.getAllColumns().size());
                 sampler.decode(ByteBuffer.wrap(value.getBytes()));
                 samplers.put(key.get(), sampler);
             }

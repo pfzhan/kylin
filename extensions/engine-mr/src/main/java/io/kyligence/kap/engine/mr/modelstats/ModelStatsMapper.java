@@ -27,6 +27,7 @@ package io.kyligence.kap.engine.mr.modelstats;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
@@ -35,13 +36,15 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.mr.IMRInput;
 import org.apache.kylin.engine.mr.KylinMapper;
-import org.apache.kylin.engine.mr.MRUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.metadata.MetadataManager;
-import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
+import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.source.hive.HiveMRInput;
 
+import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
 import io.kyligence.kap.engine.mr.tablestats.HiveTableExtSampler;
 
 public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, BytesWritable> {
@@ -50,8 +53,9 @@ public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, Byt
 
     private int counter = 0;
 
-    private TableDesc tableDesc;
+    private DataModelDesc dataModelDesc;
     private IMRInput.IMRTableInputFormat tableInputFormat;
+    private IJoinedFlatTableDesc flatTableDesc;
 
     @Override
     protected void setup(Context context) throws IOException {
@@ -59,22 +63,25 @@ public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, Byt
         bindCurrentConfiguration(conf);
         KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
 
-        String tableName = conf.get(BatchConstants.CFG_TABLE_NAME);
-        tableDesc = MetadataManager.getInstance(config).getTableDesc(tableName);
-        tableInputFormat = MRUtil.getTableInputFormat(tableDesc);
-        ColumnDesc[] columns = tableDesc.getColumns();
-        for (int i = 0; i < columns.length; i++) {
-            HiveTableExtSampler sampler = new HiveTableExtSampler(i, columns.length);
-            sampler.setDataType(columns[i].getType().getName());
+        String model = conf.get(BatchConstants.CFG_TABLE_NAME);
+        dataModelDesc = MetadataManager.getInstance(config).getDataModelDesc(model);
+        flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc);
+        String fullTableName = config.getHiveDatabaseForIntermediateTable() + "." + flatTableDesc.getTableName();
+        tableInputFormat = new HiveMRInput.HiveTableInputFormat(fullTableName);
+
+        List<TblColRef> columns = flatTableDesc.getAllColumns();
+        for (int i = 0; i < columns.size(); i++) {
+            HiveTableExtSampler sampler = new HiveTableExtSampler(i, columns.size());
+            sampler.setDataType(columns.get(i).getType().getName());
+            sampler.setColumnName(columns.get(i).getName());
             samplerMap.put(i, sampler);
         }
     }
 
     @Override
     public void doMap(T key, Object value, Context context) throws IOException, InterruptedException {
-        ColumnDesc[] columns = tableDesc.getColumns();
         String[] values = tableInputFormat.parseMapperInput(value);
-        for (int m = 0; m < columns.length; m++) {
+        for (int m = 0; m < flatTableDesc.getAllColumns().size(); m++) {
             String fieldValue = values[m];
             if (fieldValue != null)
                 samplerMap.get(m).samples(values, counter);

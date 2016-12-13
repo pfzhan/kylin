@@ -41,10 +41,10 @@ public class ModelStats extends RootPersistentEntity {
     private String modelName;
     @JsonProperty("last_build_job_id")
     private String jodID;
-
+    @JsonProperty("column_index_map")
+    private Map<Integer, String> columnIndexMap = new HashMap<>();
     @JsonProperty("single_column_cardinality")
     private Map<Integer, Long> singleColumnCardinality = new HashMap<>();
-
     @JsonProperty("double_columns_cardinality")
     private Map<String, Long> doubleColumnCardinality = new HashMap<>();
 
@@ -65,6 +65,14 @@ public class ModelStats extends RootPersistentEntity {
 
     public String getJodID() {
         return this.jodID;
+    }
+
+    public void setColumnIndexMap(Map<Integer, String> columnIndexMap) {
+        this.columnIndexMap = columnIndexMap;
+    }
+
+    public Map<Integer, String> getColumnIndexMap() {
+        return this.columnIndexMap;
     }
 
     public void setSingleColumnCardinality(Map<Integer, Long> sCardinality) {
@@ -100,15 +108,9 @@ public class ModelStats extends RootPersistentEntity {
             return singleColumnCardinality.get(index1);
 
         StringBuilder key = new StringBuilder();
-        if (index1 < index2) {
-            key.append(index1);
-            key.append(",");
-            key.append(index2);
-        } else {
-            key.append(index2);
-            key.append(",");
-            key.append(index1);
-        }
+        key.append(Math.min(index1, index2));
+        key.append(",");
+        key.append(Math.max(index1, index2));
         return this.doubleColumnCardinality.get(key.toString());
     }
 

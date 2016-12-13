@@ -27,71 +27,85 @@ package io.kyligence.kap.engine.mr.modelstats;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Map;
 import java.util.TimeZone;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.mr.CubingJob;
+import org.apache.kylin.engine.mr.JobBuilderSupport;
 import org.apache.kylin.engine.mr.common.HadoopShellExecutable;
 import org.apache.kylin.engine.mr.common.MapReduceExecutable;
+import org.apache.kylin.job.JoinedFlatTable;
+import org.apache.kylin.job.constant.ExecutableConstants;
+import org.apache.kylin.job.engine.JobEngineConfig;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.engine.mr.tablestats.HiveTableExtJob;
-import io.kyligence.kap.engine.mr.tablestats.HiveTableExtUpdate;
+import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
 
 public class CollectModelStats extends CubingJob {
     private static final Logger logger = LoggerFactory.getLogger(CollectModelStats.class);
 
-    public static String createCollectJob(String project, String submitter, String modelFlatTable) throws IOException {
-        return initCollectJob(project, submitter, modelFlatTable);
+    public static String createCollectJob(String project, String submitter, String modelName) throws IOException {
+        return initCollectJob(project, submitter, modelName);
     }
 
-    private static String initCollectJob(String project, String submitter, String modelFlatTable) throws IOException {
+    private static String initCollectJob(String project, String submitter, String modelName) throws IOException {
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
 
-        String runningJobID = findRunningJob(modelFlatTable, config);
+        String runningJobID = findRunningJob(modelName, config);
         if (runningJobID != null)
             return runningJobID;
 
-        CollectModelStats result = createCollectJob(project, modelFlatTable, submitter, config);
+        CollectModelStats result = createCollectJob(project, modelName, submitter, config);
 
         ExecutableManager.getInstance(config).addJob(result);
         logger.info("Start ModelStats job: " + result.getId());
         return result.getId();
     }
 
-    private static CollectModelStats createCollectJob(String project, String tableName, String submitter, KylinConfig config) throws IOException {
+    private static CollectModelStats createCollectJob(String project, String modelName, String submitter, KylinConfig config) throws IOException {
         CollectModelStats result = new CollectModelStats();
 
         SimpleDateFormat format = new SimpleDateFormat("z yyyy-MM-dd HH:mm:ss");
         format.setTimeZone(TimeZone.getTimeZone(config.getTimeZone()));
         result.setDeployEnvName(config.getDeployEnv());
         result.setProjectName(project);
-        result.setName("Collect " + tableName + " statistics " + format.format(new Date(System.currentTimeMillis())));
+        result.setName("Collect " + modelName + " statistics " + format.format(new Date(System.currentTimeMillis())));
         result.setSubmitter(submitter);
 
         ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(config);
-        ModelStats modelStats = modelStatsManager.getModelStats(tableName);
+        ModelStats modelStats = modelStatsManager.getModelStats(modelName.toUpperCase());
 
-        String samplesOutPath = getOutputPath(config, result.getId()) + tableName;
+        DataModelDesc dataModelDesc = MetadataManager.getInstance(config).getDataModelDesc(modelName);
+        IJoinedFlatTableDesc flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc);
+        JobEngineConfig jobConf = new JobEngineConfig(config);
+        result.addTask(createStatsFlatTableStep(jobConf, flatTableDesc, result.getId()));
 
-        String samplesParam = "-table " + tableName + " -output " + samplesOutPath;
+        String samplesOutPath = getOutputPath(config, result.getId()) + modelName;
+
+        String samplesParam = "-model " + modelName + " -output " + samplesOutPath;
 
         MapReduceExecutable step1 = new MapReduceExecutable();
 
-        step1.setName("Extract Samples from " + tableName);
-        step1.setMapReduceJobClass(HiveTableExtJob.class);
+        step1.setName("Extract stats from model " + modelName);
+        step1.setMapReduceJobClass(ModelStatsJob.class);
         step1.setMapReduceParams(samplesParam);
 
         result.addTask(step1);
 
         HadoopShellExecutable step2 = new HadoopShellExecutable();
 
-        step2.setName("Move " + tableName + " Samples to MetaData");
-        step2.setJobClass(HiveTableExtUpdate.class);
+        //String updateParam = "-table " + flatTableDesc.getTableName() + " -output " + samplesOutPath + " -columnsize " + flatTableDesc.getAllColumns().size();
+        step2.setName("Move " + modelName + " stats to MetaData");
+        step2.setJobClass(ModelStatsUpdate.class);
         step2.setJobParams(samplesParam);
         result.addTask(step2);
 
@@ -118,6 +132,32 @@ public class CollectModelStats extends CubingJob {
         }
 
         return null;
+    }
+
+    public static AbstractExecutable createStatsFlatTableStep(JobEngineConfig conf, IJoinedFlatTableDesc flatTableDesc, String jobId) {
+        StringBuilder hiveInitBuf = new StringBuilder();
+        hiveInitBuf.append(JoinedFlatTable.generateHiveSetStatements(conf));
+        final KylinConfig kylinConfig = conf.getConfig();
+        appendHiveOverrideProperties(kylinConfig, hiveInitBuf);
+        final String useDatabaseHql = "USE " + conf.getConfig().getHiveDatabaseForIntermediateTable() + ";\n";
+        final String dropTableHql = JoinedFlatTable.generateDropTableStatement(flatTableDesc);
+        final String createTableHql = JoinedFlatTable.generateCreateTableStatement(flatTableDesc, JobBuilderSupport.getJobWorkingDir(conf, jobId));
+        String insertDataHqls = JoinedFlatTable.generateInsertDataStatement(flatTableDesc, conf);
+
+        ModelStatsFlatTableStep step = new ModelStatsFlatTableStep();
+        step.setInitStatement(hiveInitBuf.toString());
+        step.setCreateTableStatement(useDatabaseHql + dropTableHql + createTableHql + insertDataHqls);
+        step.setName(ExecutableConstants.STEP_NAME_CREATE_FLAT_HIVE_TABLE);
+        return step;
+    }
+
+    private static void appendHiveOverrideProperties(final KylinConfig kylinConfig, StringBuilder hiveCmd) {
+        final Map<String, String> hiveConfOverride = kylinConfig.getHiveConfigOverride();
+        if (hiveConfOverride.isEmpty() == false) {
+            for (String key : hiveConfOverride.keySet()) {
+                hiveCmd.append("SET ").append(key).append("=").append(hiveConfOverride.get(key)).append(";\n");
+            }
+        }
     }
 
     private static String getOutputPath(KylinConfig config, String jobID) {
