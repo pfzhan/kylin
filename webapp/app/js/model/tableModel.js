@@ -128,6 +128,7 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,String
                 var tables = tableMap[key];
                 var _db_node = {
                     label:key,
+                    fullName:key,
                     data:tables,
                     onSelect:function(branch){
                         $log.info("db "+key +"selected");
@@ -145,6 +146,7 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,String
                         var _table_node = {
                             label:_table.name,
                             data:_table,
+                            fullName:key+'.'+_table.name,
                             icon:table_icon,
                             onSelect:function(branch){
                                 // set selected model
@@ -226,8 +228,12 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,String
       var that=this;
       if(!that.tableDetails){
         that.tableDetails=[];
+        var param = {
+          ext: true,
+          project:ProjectModel.selectedProject
+        };
         TableService.list(param, function (tables) {
-          this.tableOriginalData=tables;
+          that.tableOriginalData=tables;
           angular.forEach(tables, function (table) {
              var columnsLen=table.columns&&table.columns.length||0;
              for(var i=0;i<columnsLen;i++){
@@ -252,7 +258,7 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,String
       }
    }
    /*
-   *filterName exaple
+   *filterName example
    * database.tablename.columnname
    * tablename.columnname
    * columnname
@@ -279,6 +285,24 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,String
         }
       }
       return null;
+   },
+   /*
+    *filterName example
+    * database.tablename
+    * database
+    * */
+   this.getTableDatas=function(filterName){
+      var filterList=filterName.split('.'),result=[];
+      for(var i= 0,len=this.tableOriginalData.length||0;i<len;i++){
+        if(filterList){
+          if(filterList.length==1&&this.tableOriginalData[i].database==filterList[0]){
+            result.push(this.tableOriginalData[i]);
+          }else if(filterList.length==2&&this.tableOriginalData[i].database==filterList[0]&&this.tableOriginalData[i].name==filterList[1]){
+            result.push(this.tableOriginalData[i]);
+          }
+        }
+      }
+     return result;
    }
 });
 

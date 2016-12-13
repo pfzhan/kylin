@@ -85,7 +85,7 @@ KylinApp
       $scope.tableModel.selectedSrcTable = {};
       $scope.aceSrcTbLoaded(true);
     };
-
+    //$( ".selector" ).sortable({ disabled: false });
 
     $scope.openModal = function () {
       if(!$scope.projectModel.selectedProject){

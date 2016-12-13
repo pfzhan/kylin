@@ -1,0 +1,43 @@
+.classUml{
+  width:300px;
+  border:solid 1px #eee;
+  position: absolute;
+  left: 120px;
+  top:50px;
+  background-color: #fff;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.classUml .title{
+  text-align: left;
+  background-color:#46b8da;
+  height: 40px;
+  color:#000;
+  padding-left: 5px;
+}
+.classUml  .alias{
+  font-style: italic;
+  font-size: 12px;
+}
+.classUml p{
+  padding-left: 20px;
+  border-bottom: dashed 1px #eee;
+  height: 20px;
+  line-height: 20px;
+  font-size: 12px;
+  margin: 0;
+  font-weight:bold;
+}
+#snowBox{
+  width: 100%;
+  height: 1000px;
+  background: #000;
+  position: relative;
+  margin-top: 10px;;
+}
+#snowBox .more{
+  display: inline-block;
+  width: 20px;
+  height: 6px;
+  background: url();
+}

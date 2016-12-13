@@ -24,7 +24,7 @@
 
 'use strict';
 
-KylinApp.controller('ModelSchemaCtrl', function ($scope, QueryService, UserService, ProjectService, $q, AuthenticationService, $filter, ModelService, MetaModel, CubeDescModel, CubeList, TableModel, ProjectModel, $log, SweetAlert, modelsManager,language, modelsEdit) {
+KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, UserService, ProjectService, $q, AuthenticationService, $filter, ModelService, MetaModel, CubeDescModel, CubeList, TableModel, ProjectModel, $log, SweetAlert, modelsManager,language, modelsEdit,DrawHelper) {
 
   $scope.modelsManager = modelsManager;
   $scope.projectModel = ProjectModel;
@@ -77,6 +77,131 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope, QueryService, UserServi
       $scope.wizardSteps[i].title = $scope.dataKylin.model.schema[i];
     }
   });
+
+
+
+
+
+
+  //snow
+
+//snow part
+  jsPlumb.ready(function() {
+
+    //action=============================================
+    //$(".showBox").on("dblclick",function(e){
+    //  kylinPlumb.addTable(tableData,1);
+    //  kylinPlumb.addTable(tableData1,1);
+    //  kylinPlumb.connect('DefaultKylinid','DefaultKylin1id');
+    //})
+
+    //data===============================================
+    var tableData={
+      database:'Default',
+      name:"Kylin1",
+      columns:[{
+        columnName:'id',
+        datatype:'int'
+      },{
+        columnName:'userAge',
+        datatype:'int'
+      },{
+        columnName:'userAge',
+        datatype:'int'
+      },{
+        columnName:'userAge',
+        datatype:'int'
+      },{
+        columnName:'userAge',
+        datatype:'int'
+      },{
+        columnName:'userAge',
+        datatype:'int'
+      },{
+        columnName:'userAge',
+        datatype:'int'
+      }]
+    }
+    var tableData1={
+      database:'Default',
+      name:"Kylin",
+      columns:[{
+        columnName:'id',
+        datatype:'int'
+      },{
+        columnName:'userName',
+        datatype:'int'
+      },{
+        columnName:'userPwd',
+        datatype:'int'
+      },{
+        columnName:'userSex',
+        datatype:'int'
+      },{
+        columnName:'userAge',
+        datatype:'int'
+      }]
+    }
+    var bData=[{
+      'table':'Default.Kylin',
+      'alias':'kylin',
+      'kind':'fact',
+      'join':{
+        'type':'inner',
+        'primary_key':['kylin.id'],
+        'foreign_key':['kylin.userName']
+      }
+    }];
+    //data======================================
+
+    //画线对象===================================
+    $timeout(function(){
+      var treeDom=$('ul.abn-tree');
+      treeDom.sortable({
+        helper:'clone',
+        connectWith:'#snowBox',
+        delay: 150,
+        items: '.level-1,.level-2',
+        stop:function(event,ui){
+          treeDom.sortable( 'cancel' );
+        }}).disableSelection();
+
+
+      $("#snowBox").sortable({
+        receive:function(event,ui){
+          treeDom.sortable('cancel') ;
+          var database=$(ui.item).attr("data");
+          TableModel.initTableData(function(){
+            var tableDataList=TableModel.getTableDatas(database);
+            DrawHelper.addTables(tableDataList);
+          })
+        }
+      })
+      DrawHelper.init();
+      $('#jia').click(function(){
+        DrawHelper.setZoom(DrawHelper.zoom);
+        DrawHelper.zoom=DrawHelper.zoom+0.1;
+      })
+      $('#jian').click(function(){
+        DrawHelper.setZoom(DrawHelper.zoom);
+        DrawHelper.zoom=DrawHelper.zoom-0.1;
+      })
+
+
+      //DrawHelper.addTable(tableData,1);
+      //DrawHelper.addTable(tableData1,1);
+      //DrawHelper.connect('DefaultKylinid','DefaultKylin1id');
+    },1000)
+
+  });
+  //snow part
+
+  //snow
+
+
+
+
+
 
   //init modelsManager
   if ($scope.state.mode == "edit") {
@@ -313,4 +438,15 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope, QueryService, UserServi
   function initProject() {
 
   }
+
+
+
+
+
+
+
+
+
+
+
 });

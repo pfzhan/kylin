@@ -64,6 +64,7 @@
                 "app/components/nvd3/nv.d3.min.css",
                 "app/css/AdminLTE.css",
                 "app/css/aboutKap.css",
+                "app/css/snowModel.css",
                 "app/css/messenger-theme-ice.css",
                 "app/css/skins/_all-skins.min.css",
                 "app/components/bootstrap-sweetalert/lib/sweet-alert.css",
