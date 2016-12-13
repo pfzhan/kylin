@@ -380,7 +380,7 @@ KylinApp.constant('kapEnglishConfig', {
     tip_body_cube_name: '<li>Cube name is unique name of entire system.</li><li>Can not edit cube name after created.</li>',
     cubeCINotifiEmail: 'Notification Email List',
     cubeCINotifiEvents: 'Notification Events',
-    tip_body_cubeCINotifiEvents: 'ERROR status will trigger a notification anyway.',
+    tip_body_cubeCINotifiEvents: 'These statuses will trigger an email notification.',
     cubeCIDescription: 'Description',
     cubeDSAddDS: 'Add Dimension',
     cubeDSNormal: 'Normal',

@@ -380,7 +380,7 @@ KylinApp.constant('kapChineseConfig', {
     tip_body_cube_name: '<li>Cube名称需要是全系统唯一的</li><li>创建后不能修改Cube名称</li>',
     cubeCINotifiEmail: '通知邮件列表',
     cubeCINotifiEvents: '需通知的事件',
-    tip_body_cubeCINotifiEvents: 'ERROR状态总是会触发一条通知',
+    tip_body_cubeCINotifiEvents: '这些状态下总是会触发一条通知',
     cubeCIDescription: '描述',
     cubeDSAddDS: '添加维度',
     cubeDSNormal: '普通维度',
