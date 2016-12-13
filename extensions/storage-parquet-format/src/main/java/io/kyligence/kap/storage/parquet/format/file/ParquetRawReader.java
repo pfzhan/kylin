@@ -143,7 +143,7 @@ public class ParquetRawReader {
 
             ValuesReader dataReader = getValuesReader(dataPageHeader.getEncoding(), columnDescriptor, ValuesType.VALUES);
             dataReader.initFromPage(numValues, ByteBuffer.wrap(decompressedDataBytes), (int) offset);
-            return new GeneralValuesReaderBuilder().setLength(numValues).setReader(dataReader).setType(columnChunkMetaData.getType()).build();
+            return new GeneralValuesReader.Builder().setLength(numValues).setReader(dataReader).setType(columnChunkMetaData.getType()).build();
         } else if (pageHeader.getType() == PageType.DATA_PAGE_V2) {
             DataPageHeaderV2 dataPageHeader = pageHeader.getData_page_header_v2();
             int numValues = dataPageHeader.getNum_values();
@@ -161,7 +161,7 @@ public class ParquetRawReader {
             byte[] decompressedDataBytes = decompressedData.toByteArray();
             ValuesReader dataReader = getValuesReader(dataPageHeader.getEncoding(), columnDescriptor, ValuesType.VALUES);
             dataReader.initFromPage(numValues, ByteBuffer.wrap(decompressedDataBytes), 0);
-            return new GeneralValuesReaderBuilder().setLength(numValues).setReader(dataReader).setType(columnChunkMetaData.getType()).build();
+            return new GeneralValuesReader.Builder().setLength(numValues).setReader(dataReader).setType(columnChunkMetaData.getType()).build();
         }
         return null;
     }
@@ -242,5 +242,48 @@ public class ParquetRawReader {
         inputStream.seek(pageOffset);
 
         return pageOffset;
+    }
+
+    public static class Builder {
+        private Configuration conf = null;
+        private ParquetMetadata metadata = null;
+        private Path path = null;
+        private int fileOffset = 0;//if it's a tarball fileoffset is not 0
+
+        public Builder setConf(Configuration conf) {
+            this.conf = conf;
+            return this;
+        }
+
+        public Builder setMetadata(ParquetMetadata metadata) {
+            this.metadata = metadata;
+            return this;
+        }
+
+        public Builder setPath(Path path) {
+            this.path = path;
+            return this;
+        }
+
+        public Builder setFileOffset(int fileOffset) {
+            this.fileOffset = fileOffset;
+            return this;
+        }
+
+        public ParquetRawReader build() throws IOException {
+            if (conf == null) {
+                throw new IllegalStateException("Configuration should be set");
+            }
+
+            if (path == null) {
+                throw new IllegalStateException("Output file path should be set");
+            }
+
+            if (fileOffset < 0) {
+                throw new IllegalStateException("File offset is " + fileOffset);
+            }
+
+            return new ParquetRawReader(conf, path, metadata, fileOffset);
+        }
     }
 }

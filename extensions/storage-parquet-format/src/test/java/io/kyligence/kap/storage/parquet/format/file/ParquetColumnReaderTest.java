@@ -16,7 +16,7 @@ public class ParquetColumnReaderTest extends AbstractParquetFormatTest {
     public void TestGetNextValuesReader() throws Exception {
         writeRows(ParquetConfig.RowsPerPage);
 
-        ParquetColumnReader reader = new ParquetColumnReaderBuilder().setPath(path).setConf(new Configuration()).setColumn(0).build();
+        ParquetColumnReader reader = new ParquetColumnReader.Builder().setPath(path).setConf(new Configuration()).setColumn(0).build();
         GeneralValuesReader valuesReader = reader.getNextValuesReader();
         Assert.assertArrayEquals(valuesReader.readBytes().getBytes(), new byte[] { 2, 3 });
         Assert.assertNull(reader.getNextValuesReader());

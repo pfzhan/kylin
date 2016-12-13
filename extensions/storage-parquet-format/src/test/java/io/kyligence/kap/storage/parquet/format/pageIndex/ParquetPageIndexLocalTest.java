@@ -20,7 +20,6 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
-import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnSpec;
 import io.kyligence.kap.storage.parquet.format.raw.RawTableUtils;
 
@@ -44,7 +43,7 @@ public class ParquetPageIndexLocalTest extends LocalFileMetadataTestCase {
     @Test
     public void BuildIndex() throws Exception {
         //        writeRows(ParquetConfig.RowsPerPage);
-        ParquetBundleReader reader = new ParquetBundleReaderBuilder().setPath(new Path("/Users/dong/Documents/9.parquet")).setConf(new Configuration()).build();
+        ParquetBundleReader reader = new ParquetBundleReader.Builder().setPath(new Path("/Users/dong/Documents/9.parquet")).setConf(new Configuration()).build();
         String[] name = { "puttime", "key", "uid", "tbl", "fsize", "hash", "md5", "ip", "mimetype" };
         int[] length = { 8, 8, 8, 8, 8, 8, 8, 8, 8 };
         int[] card = { 1, 1, 1, 1, 1, 1, 1, 1, 1 };

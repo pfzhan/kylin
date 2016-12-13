@@ -50,7 +50,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
-import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
 
 public class ParquetFileReader extends RecordReader<Text, Text> {
     public static final Logger logger = LoggerFactory.getLogger(ParquetFileReader.class);
@@ -161,7 +160,7 @@ public class ParquetFileReader extends RecordReader<Text, Text> {
             if (reader != null) {
                 reader.close();
             }
-            reader = new ParquetBundleReaderBuilder().setConf(conf).setPath(shardPath.get(shardIndex)).build();
+            reader = new ParquetBundleReader.Builder().setConf(conf).setPath(shardPath.get(shardIndex)).build();
 
             setCurrentCuboidShard(shardPath.get(shardIndex));
             rowKeyEncoder = new RowKeyEncoder(cubeSegment, Cuboid.findById(cubeInstance.getDescriptor(), curCuboidId));

@@ -40,7 +40,6 @@ import org.apache.kylin.metadata.datatype.StringSerializer;
 import org.apache.parquet.io.api.Binary;
 
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
-import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
 
 /**
  * This tool is used to print raw table parquet file
@@ -64,7 +63,7 @@ public class RawTableParquetFilePrinter {
 
         //DataTypeSerializer[] ses = new DataTypeSerializer[] { dateSe, dateSe, dateSe, stringSe, stringSe, stringSe, stringSe, stringSe, stringSe, stringSe, stringSe, longSe, bigdecSe, longSe, longSe, intSe, longSe, intSe };
         DataTypeSerializer[] ses = new DataTypeSerializer[] { dateSe, intSe, intSe, stringSe, intSe, intSe, stringSe, intSe, bigdecSe, intSe };
-        ParquetBundleReader bundleReader = new ParquetBundleReaderBuilder().setPath(new Path(path)).setConf(new Configuration()).build();
+        ParquetBundleReader bundleReader = new ParquetBundleReader.Builder().setPath(new Path(path)).setConf(new Configuration()).build();
         int count = 0;
         while (true) {
             List<Object> data = bundleReader.read();

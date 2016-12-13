@@ -44,7 +44,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
-import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
 
 public class ParquetRawTableMergeReader extends RecordReader<Text, Text> {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetRawTableMergeReader.class);
@@ -79,7 +78,7 @@ public class ParquetRawTableMergeReader extends RecordReader<Text, Text> {
 
         // init with first shard file
 
-        reader = new ParquetBundleReaderBuilder().setConf(conf).setPath(shardPath).build();
+        reader = new ParquetBundleReader.Builder().setConf(conf).setPath(shardPath).build();
     }
 
     @Override

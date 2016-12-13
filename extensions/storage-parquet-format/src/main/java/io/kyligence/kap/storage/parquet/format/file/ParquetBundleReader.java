@@ -24,7 +24,10 @@
 
 package io.kyligence.kap.storage.parquet.format.file;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +39,7 @@ import org.apache.parquet.format.converter.ParquetMetadataConverter;
 import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
+import org.roaringbitmap.buffer.MutableRoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +53,7 @@ public class ParquetBundleReader {
 
         ParquetMetadata metadata = ParquetFileReader.readFooter(configuration, path, ParquetMetadataConverter.NO_FILTER);
         for (int column : columns) {
-            readerStates.add(new ParquetReaderState(new ParquetColumnReaderBuilder().setFileOffset(fileOffset).setConf(configuration).setPath(path).setColumn(column).setPageBitset(pageBitset).setMetadata(metadata).build()));
+            readerStates.add(new ParquetReaderState(new ParquetColumnReader.Builder().setFileOffset(fileOffset).setConf(configuration).setPath(path).setColumn(column).setPageBitset(pageBitset).setMetadata(metadata).build()));
             logger.info("Read Column: " + column);
         }
     }
@@ -106,6 +110,99 @@ public class ParquetBundleReader {
 
         public void setReader(ParquetColumnReader reader) {
             this.reader = reader;
+        }
+    }
+
+    public static class Builder {
+        private Configuration conf;
+        private Path path;
+        private ImmutableRoaringBitmap columnBitset = null;
+        private ImmutableRoaringBitmap pageBitset = null;
+        private long fileOffset = 0;
+
+        public Builder setConf(Configuration conf) {
+            this.conf = conf;
+            return this;
+        }
+
+        public Builder setPath(Path path) {
+            this.path = path;
+            return this;
+        }
+
+        public Builder setColumnsBitmap(ImmutableRoaringBitmap columns) {
+            this.columnBitset = columns;
+            return this;
+        }
+
+        public Builder setPageBitset(ImmutableRoaringBitmap bitset) {
+            this.pageBitset = bitset;
+            return this;
+        }
+
+        public Builder setFileOffset(long fileOffset) {
+            this.fileOffset = fileOffset;
+            return this;
+        }
+
+        public ParquetBundleReader build() throws IOException {
+            if (conf == null) {
+                throw new IllegalStateException("Configuration should be set");
+            }
+
+            if (path == null) {
+                throw new IllegalStateException("Output file path should be set");
+            }
+            if (columnBitset == null) {
+                int columnCnt = new ParquetRawReader.Builder().setConf(conf).setPath(path).build().getColumnCount();
+                columnBitset = createBitset(columnCnt);
+            }
+
+            ParquetBundleReader result = new ParquetBundleReader(conf, path, columnBitset, pageBitset, fileOffset);
+
+            return result;
+        }
+
+        private static ImmutableRoaringBitmap createBitset(int total) throws IOException {
+            MutableRoaringBitmap mBitmap = new MutableRoaringBitmap();
+            for (int i = 0; i < total; ++i) {
+                mBitmap.add(i);
+            }
+
+            ImmutableRoaringBitmap iBitmap = null;
+            try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); DataOutputStream dos = new DataOutputStream(baos);) {
+                mBitmap.serialize(dos);
+                dos.flush();
+                iBitmap = new ImmutableRoaringBitmap(ByteBuffer.wrap(baos.toByteArray()));
+            }
+
+            return iBitmap;
+        }
+
+        /* This function is for test */
+        public static void main(String[] args) {
+            if (args.length < 1) {
+                System.out.println("Need a file name");
+                return;
+            }
+
+            System.out.println("Read file " + args[0]);
+
+            long t = System.currentTimeMillis();
+            try {
+                int i = 0;
+                ParquetBundleReader reader = new Builder().setPath(new Path(args[0])).setConf(new Configuration()).build();
+                long t2 = System.currentTimeMillis() - t;
+                System.out.println("Create reader takes " + t2 + " ms");
+                while (reader.read() != null) {
+                    i++;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            t = System.currentTimeMillis() - t;
+
+            System.out.println("Read file takes " + t + " ms");
         }
     }
 }

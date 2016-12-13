@@ -58,7 +58,6 @@ import io.kyligence.kap.cube.raw.gridtable.RawTableCodeSystem;
 import io.kyligence.kap.cube.raw.gridtable.RawTableGridTable;
 import io.kyligence.kap.cube.raw.kv.RawTableConstants;
 import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
-import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriterBuilder;
 
 public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
     private static final Logger logger = LoggerFactory.getLogger(ParquetRawTableFileWriter.class);
@@ -131,7 +130,7 @@ public class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
         }
 
         MessageType schema = new MessageType(rawTableDesc.getName(), types);
-        rawWriter = new ParquetRawWriterBuilder().setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage())//
+        rawWriter = new ParquetRawWriter.Builder().setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage())//
                 .setPagesPerGroup(KapConfig.getInstanceFromEnv().getParquetPagesPerGroup())//
                 .setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression()).setConf(config).setType(schema).setPath(getOutputPath()).build();
         return rawWriter;

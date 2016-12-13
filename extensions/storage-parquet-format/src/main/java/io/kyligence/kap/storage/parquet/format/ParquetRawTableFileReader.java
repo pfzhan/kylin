@@ -57,7 +57,6 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.metadata.filter.TupleFilterSerializerRawTableExt;
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
-import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetOrderedPageIndexTable;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
@@ -165,7 +164,7 @@ public class ParquetRawTableFileReader extends RecordReader<Text, Text> {
             reader = null;
         } else {
             // init with first shard file
-            reader = new ParquetBundleReaderBuilder().setFileOffset(0).setConf(conf).setPath(parquetPath).setPageBitset(pageBitmap).setColumnsBitmap(columnBitmap).build();
+            reader = new ParquetBundleReader.Builder().setFileOffset(0).setConf(conf).setPath(parquetPath).setPageBitset(pageBitmap).setColumnsBitmap(columnBitmap).build();
         }
 
         // finish initialization

@@ -38,7 +38,6 @@ import org.apache.parquet.io.api.Binary;
 
 import io.kyligence.kap.storage.parquet.format.file.GeneralValuesReader;
 import io.kyligence.kap.storage.parquet.format.file.ParquetColumnReader;
-import io.kyligence.kap.storage.parquet.format.file.ParquetColumnReaderBuilder;
 
 public class ParquetPageReader<K, V> extends RecordReader<K, V> {
     protected Configuration conf;
@@ -58,7 +57,7 @@ public class ParquetPageReader<K, V> extends RecordReader<K, V> {
         shardPath = path;
 
         // init with first shard file
-        reader = new ParquetColumnReaderBuilder().setConf(conf).setPath(shardPath).build();
+        reader = new ParquetColumnReader.Builder().setConf(conf).setPath(shardPath).build();
         valuesReader = reader.getNextValuesReader();
     }
 

@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -132,7 +133,6 @@ public class ParquetRawWriter {
     }
 
     public void close() throws IOException {
-        // close parquet file
         flush();
         writer.end(indexMap);
     }
@@ -174,7 +174,7 @@ public class ParquetRawWriter {
      * Write in-mem pages into groups.
      * @throws IOException
      */
-    private void flush() throws IOException {
+    public void flush() throws IOException {
         if (currentRowCntInPage != 0) {
             encodingPage();
         }
@@ -273,6 +273,122 @@ public class ParquetRawWriter {
 
         public int getCount() {
             return count;
+        }
+    }
+
+    public static class Builder {
+        protected static final Logger logger = LoggerFactory.getLogger(Builder.class);
+
+        private Configuration conf = null;
+        private MessageType type = null;
+        private Path path = null;
+        private Encoding rlEncodings = Encoding.RLE;
+        private Encoding dlEncodings = Encoding.RLE;
+        private List<Encoding> dataEncodings = null;
+        private CompressionCodecName codecName = CompressionCodecName.UNCOMPRESSED;
+        private int rowsPerPage = 10000;
+        private int pagesPerGroup = 100;
+
+        public Builder setConf(Configuration conf) {
+            this.conf = conf;
+            return this;
+        }
+
+        public Builder setType(MessageType type) {
+            this.type = type;
+            return this;
+        }
+
+        public Builder setPath(Path path) {
+            this.path = path;
+            return this;
+        }
+
+        public Builder setRlEncodings(Encoding rlEncodings) {
+            this.rlEncodings = rlEncodings;
+            return this;
+        }
+
+        public Builder setDlEncodings(Encoding dlEncodings) {
+            this.dlEncodings = dlEncodings;
+            return this;
+        }
+
+        public Builder setDataEncodings(List<Encoding> dataEncodings) {
+            this.dataEncodings = dataEncodings;
+            return this;
+        }
+
+        public Builder setCodecName(String codecName) {
+            if (StringUtils.isEmpty(codecName)) {
+                this.codecName = CompressionCodecName.UNCOMPRESSED;
+            }
+
+            CompressionCodecName compressionCodecName;
+            try {
+                compressionCodecName = CompressionCodecName.valueOf(codecName.toUpperCase());
+            } catch (Exception e) {
+                compressionCodecName = CompressionCodecName.UNCOMPRESSED;
+            }
+
+            logger.info("The chosen CompressionCodecName is " + this.codecName);
+            this.codecName = compressionCodecName;
+            return this;
+        }
+
+        public Builder setRowsPerPage(int rowsPerPage) {
+            this.rowsPerPage = rowsPerPage;
+            return this;
+        }
+
+        public Builder setPagesPerGroup(int pagesPerGroup) {
+            this.pagesPerGroup = pagesPerGroup;
+            return this;
+        }
+
+        public Builder() {
+        }
+
+        public ParquetRawWriter build() throws IOException {
+            if (conf == null) {
+                throw new IllegalStateException("Configuration should be set");
+            }
+            if (type == null) {
+                throw new IllegalStateException("Schema should be set");
+            }
+            if (path == null) {
+                throw new IllegalStateException("Output file path should be set");
+            }
+
+            if (dataEncodings == null) {
+                dataEncodings = new ArrayList<Encoding>();
+                for (int i = 0; i < type.getColumns().size(); ++i) {
+                    switch (type.getColumns().get(i).getType()) {
+                    case BOOLEAN:
+                        dataEncodings.add(Encoding.RLE);
+                        break;
+                    case INT32:
+                    case INT64:
+                        dataEncodings.add(Encoding.DELTA_BINARY_PACKED);
+                        break;
+                    case INT96:
+                    case FLOAT:
+                    case DOUBLE:
+                        dataEncodings.add(Encoding.PLAIN);
+                        break;
+                    case FIXED_LEN_BYTE_ARRAY:
+                    case BINARY:
+                        dataEncodings.add(Encoding.DELTA_BYTE_ARRAY);
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Unknown type " + type.getColumns().get(i).getType());
+                    }
+                }
+            }
+
+            logger.info("Builder: rowsPerPage={}", rowsPerPage);
+            logger.info("write file: {}", path.toString());
+            return new ParquetRawWriter(conf, type, path, rlEncodings, dlEncodings, dataEncodings, codecName, rowsPerPage, pagesPerGroup);
         }
     }
 }

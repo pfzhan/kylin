@@ -26,6 +26,9 @@ package io.kyligence.kap.storage.parquet.format.file;
 
 import java.io.IOException;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.roaringbitmap.PeekableIntIterator;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
@@ -63,5 +66,56 @@ public class ParquetColumnReader {
 
     public void close() throws IOException {
         reader.close();
+    }
+
+    public static class Builder {
+        private Configuration conf = null;
+        private ParquetMetadata metadata = null;
+        private Path path = null;
+        private int column = 0;
+        private ImmutableRoaringBitmap pageBitset = null;
+        private long fileOffset;
+
+        public Builder setConf(Configuration conf) {
+            this.conf = conf;
+            return this;
+        }
+
+        public Builder setMetadata(ParquetMetadata metadata) {
+            this.metadata = metadata;
+            return this;
+        }
+
+        public Builder setPath(Path path) {
+            this.path = path;
+            return this;
+        }
+
+        public Builder setColumn(int column) {
+            this.column = column;
+            return this;
+        }
+
+        public Builder setPageBitset(ImmutableRoaringBitmap bitset) {
+            this.pageBitset = bitset;
+            return this;
+        }
+
+        public Builder setFileOffset(long fileOffset) {
+            this.fileOffset = fileOffset;
+            return this;
+        }
+
+        public ParquetColumnReader build() throws IOException {
+            if (conf == null) {
+                throw new IllegalStateException("Configuration should be set");
+            }
+
+            if (path == null) {
+                throw new IllegalStateException("Output file path should be set");
+            }
+
+            return new ParquetColumnReader(new ParquetRawReader(conf, path, metadata, fileOffset), column, pageBitset);
+        }
     }
 }

@@ -56,7 +56,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
-import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriterBuilder;
 
 public class ParquetCubeFileWriter extends ParquetOrderedFileWriter {
     private static final Logger logger = LoggerFactory.getLogger(ParquetCubeFileWriter.class);
@@ -126,7 +125,7 @@ public class ParquetCubeFileWriter extends ParquetOrderedFileWriter {
         }
 
         MessageType schema = new MessageType(cubeSegment.getName(), types);
-        rawWriter = new ParquetRawWriterBuilder().setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage())//
+        rawWriter = new ParquetRawWriter.Builder().setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage())//
                 .setPagesPerGroup(KapConfig.getInstanceFromEnv().getParquetPagesPerGroup()).setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression()).setConf(config).setType(schema).setPath(getOutputPath()).build();
         return rawWriter;
     }

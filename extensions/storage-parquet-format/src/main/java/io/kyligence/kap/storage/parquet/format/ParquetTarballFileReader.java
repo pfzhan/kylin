@@ -61,7 +61,6 @@ import com.google.common.primitives.Longs;
 import com.google.common.primitives.Shorts;
 
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
-import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReaderBuilder;
 import io.kyligence.kap.storage.parquet.format.filter.MassInValueProviderFactoryImpl;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
@@ -174,7 +173,7 @@ public class ParquetTarballFileReader extends RecordReader<Text, Text> {
             reader = null;
         } else {
             // init with first shard file
-            reader = new ParquetBundleReaderBuilder().setFileOffset(fileOffset).setConf(conf).setPath(shardPath).setPageBitset(pageBitmap).setColumnsBitmap(columnBitmap).build();
+            reader = new ParquetBundleReader.Builder().setFileOffset(fileOffset).setConf(conf).setPath(shardPath).setPageBitset(pageBitmap).setColumnsBitmap(columnBitmap).build();
         }
 
         // finish initialization

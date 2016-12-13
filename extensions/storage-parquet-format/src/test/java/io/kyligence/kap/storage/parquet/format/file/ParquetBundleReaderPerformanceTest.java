@@ -6,7 +6,6 @@ import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.parquet.column.values.ValuesReader;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
@@ -20,7 +19,7 @@ public class ParquetBundleReaderPerformanceTest extends AbstractParquetFormatTes
     }
 
     protected void writeRows(int rowCnt) throws Exception {
-        ParquetRawWriter writer = new ParquetRawWriterBuilder().setConf(new Configuration()).setPath(path).setType(type).build();
+        ParquetRawWriter writer = new ParquetRawWriter.Builder().setConf(new Configuration()).setPath(path).setType(type).build();
         byte[] key = "abcdefghijklmnopqrstuvwxyz".getBytes();
         byte[] m = "aaaabbbbccccddddaaaabbbbccccddddaaaabbbbccccdddd".getBytes();
         long t = System.currentTimeMillis();
@@ -38,7 +37,7 @@ public class ParquetBundleReaderPerformanceTest extends AbstractParquetFormatTes
         writeRows(groupSize);
 
         long t = System.currentTimeMillis();
-        ParquetBundleReader bundleReader = new ParquetBundleReaderBuilder().setPath(new Path("/Users/roger/0.parquet")).setConf(new Configuration()).build();
+        ParquetBundleReader bundleReader = new ParquetBundleReader.Builder().setPath(new Path("/Users/roger/0.parquet")).setConf(new Configuration()).build();
 
         long t2 = System.currentTimeMillis() - t;
         System.out.println("Create takes " + t2 + " ms");
@@ -57,7 +56,7 @@ public class ParquetBundleReaderPerformanceTest extends AbstractParquetFormatTes
         writeRows(groupSize);
 
         long t = System.currentTimeMillis();
-        ParquetBundleReader bundleReader = new ParquetBundleReaderBuilder().setPath(new Path("/Users/roger/0.parquet")).setConf(new Configuration()).build();
+        ParquetBundleReader bundleReader = new ParquetBundleReader.Builder().setPath(new Path("/Users/roger/0.parquet")).setConf(new Configuration()).build();
 
         long t2 = System.currentTimeMillis() - t;
         System.out.println("Create takes " + t2 + " ms");
@@ -79,7 +78,7 @@ public class ParquetBundleReaderPerformanceTest extends AbstractParquetFormatTes
         Path p = new Path("/Users/roger/0.parquet");
         Configuration c = new Configuration();
         for (int i = 0; i < 300; i++) {
-            ParquetColumnReader columnReader = new ParquetColumnReaderBuilder().setColumn(i).setConf(c).setPath(p).build();
+            ParquetColumnReader columnReader = new ParquetColumnReader.Builder().setColumn(i).setConf(c).setPath(p).build();
             readerList.add(columnReader);
         }
 
