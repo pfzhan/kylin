@@ -40,7 +40,9 @@ cp -rf commit_SHA1 lib kybot tomcat spark ${package_name}/
 
 # Add min/prod profiles
 cp -rf conf/profile_min ${package_name}/conf
+rm -rf ${package_name}/conf/profile_min/kap-plus.properties
 cp -rf conf/profile_prod ${package_name}/conf
+rm -rf ${package_name}/conf/profile_prod/kap-plus.properties
 
 cp -rf conf/kylin-tools-log4j.properties ${package_name}/conf/
 cp -rf conf/kylin-server-log4j.properties ${package_name}/conf/
@@ -52,8 +54,8 @@ cp -rf bin/* ${package_name}/bin/
 
 # update kap plus config files
 if [ "${PACKAGE_PLUS}" != "0" ]; then
-    cat conf/plus/kap-plus.min.properties >> ${package_name}/conf/profile_min/kylin.properties
-    cat conf/plus/kap-plus.prod.properties >> ${package_name}/conf/profile_prod/kylin.properties
+    cat conf/profile_min/kap-plus.properties >> ${package_name}/conf/profile_min/kylin.properties
+    cat conf/profile_prod/kap-plus.properties >> ${package_name}/conf/profile_prod/kylin.properties
 fi
 
 # update symblink, use minimum profile as default
