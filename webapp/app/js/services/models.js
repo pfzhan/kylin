@@ -23,6 +23,7 @@ KylinApp.factory('ModelService', ['$resource', function ($resource, config) {
         drop: {method: 'DELETE', params: {}, isArray: false},
         clone: {method: 'PUT', params: {action: 'clone'}, isArray: false},
         save: {method: 'POST', params: {}, isArray: false},
-        update: {method: 'PUT', params: {}, isArray: false}
+        update: {method: 'PUT', params: {}, isArray: false},
+        stats:{method:'GET',params:{},isArray:false}
     });
 }]);

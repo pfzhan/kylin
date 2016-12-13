@@ -158,6 +158,15 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
     });
   };
 
+  $scope.statsModel=function(model){
+    ModelService.stats({propName: model.project,propValue:model.name}, {}, function (result) {
+      loadingRequest.hide();
+      kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.collectStaticsSuccess);
+    }, function (e) {
+      loadingRequest.hide();
+      kylinCommon.error_default(e);
+    });
+  }
   $scope.cloneModel = function(model){
     $scope.hasOpen=$modal.open({
       templateUrl: 'modelClone.html',

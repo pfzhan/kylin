@@ -307,6 +307,7 @@ KylinApp.constant('kapEnglishConfig', {
     ac_lookup_cancel: 'Cancel',
     clone: 'Clone',
     drop: 'Drop',
+    stats:'Stats',
     visualization: 'Visualization'
   },
   cube:{

@@ -307,6 +307,7 @@ KylinApp.constant('kapChineseConfig', {
     ac_lookup_cancel: '取消',
     clone: '克隆',
     drop: '删除',
+    stats:'统计',
     visualization: '可视化'
   },
   cube:{
