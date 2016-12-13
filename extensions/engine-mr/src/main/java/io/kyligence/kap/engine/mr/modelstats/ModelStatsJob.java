@@ -100,7 +100,6 @@ public class ModelStatsJob extends AbstractHadoopJob {
         // Mapper
         String fullTableName = kylinConfig.getHiveDatabaseForIntermediateTable() + "." + flatTableDesc.getTableName();
         IMRInput.IMRTableInputFormat tableInputFormat = new HiveMRInput.HiveTableInputFormat(fullTableName);
-        //IMRInput.IMRTableInputFormat tableInputFormat = MRUtil.getTableInputFormat(table);
         tableInputFormat.configureJob(job);
 
         job.setMapperClass(ModelStatsMapper.class);

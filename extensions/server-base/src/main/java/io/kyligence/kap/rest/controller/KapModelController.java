@@ -27,17 +27,23 @@ package io.kyligence.kap.rest.controller;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.kylin.job.JobInstance;
+import org.apache.kylin.job.exception.JobException;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.rest.controller.BasicController;
+import org.apache.kylin.rest.service.JobService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import io.kyligence.kap.engine.mr.modelstats.CollectModelStats;
 import io.kyligence.kap.rest.service.KapModelService;
 
 @Controller
@@ -49,6 +55,9 @@ public class KapModelController extends BasicController {
     @Autowired
     private KapModelService kapModelService;
 
+    @Autowired
+    private JobService jobService;
+
     /**
      * Get modeling suggestions for the table
      *
@@ -59,5 +68,13 @@ public class KapModelController extends BasicController {
     public Map<ColumnDesc, KapModelService.MODEL_COLUMN_SUGGESTION> getModelSuggestions(@RequestParam(value = "table") String table) throws IOException {
         Map<ColumnDesc, KapModelService.MODEL_COLUMN_SUGGESTION> result = kapModelService.inferSuggestions(table);
         return result;
+    }
+
+    @RequestMapping(value = "{project}/{modelName}/stats", method = { RequestMethod.GET })
+    @ResponseBody
+    public JobInstance getModelStats(@PathVariable("project") String project, @PathVariable("modelName") String modelName) throws IOException, JobException {
+        String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
+        String jobId = CollectModelStats.createCollectJob(project, submitter, modelName);
+        return jobService.getJobInstance(jobId);
     }
 }
