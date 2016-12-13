@@ -88,19 +88,19 @@
     <!--Additional config for in-mem cubing, giving mapper more memory -->
     <property>
         <name>mapreduce.map.memory.mb</name>
-        <value>3072</value>
+        <value>1024</value>
         <description></description>
     </property>
 
     <property>
         <name>mapreduce.map.java.opts</name>
-        <value>-Xmx2700m -XX:OnOutOfMemoryError='kill -9 %p'</value>
+        <value>-Xmx700m -XX:OnOutOfMemoryError='kill -9 %p'</value>
         <description></description>
     </property>
 
     <property>
         <name>mapreduce.task.io.sort.mb</name>
-        <value>200</value>
+        <value>100</value>
         <description></description>
     </property>
 
