@@ -92,7 +92,7 @@ public class ParquetMRSteps extends JobBuilderSupport {
         return mergeCuboidDataStep;
     }
 
-    public MapReduceExecutable createRawtableStep() {
+    public MapReduceExecutable createRawtableStep(String jobId) {
         MapReduceExecutable rawTableStep = new MapReduceExecutable();
 
         RawTableInstance instance = detectRawTable(seg);
@@ -111,6 +111,7 @@ public class ParquetMRSteps extends JobBuilderSupport {
         appendExecCmdParameters(cmd, BatchConstants.ARG_INPUT, "FLAT_TABLE"); // marks flat table input
         appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, getRawtableTmpFolderPath(seg));
         appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_Raw_Table_Builder_" + instance.getName());
+        appendExecCmdParameters(cmd, BatchConstants.ARG_CUBING_JOB_ID, jobId);
 
         rawTableStep.setMapReduceParams(cmd.toString());
         rawTableStep.setMapReduceJobClass(KapRawTableJob.class);

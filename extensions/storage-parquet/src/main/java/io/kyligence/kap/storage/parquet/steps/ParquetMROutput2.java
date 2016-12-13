@@ -61,7 +61,7 @@ public class ParquetMROutput2 implements IMROutput2 {
                 jobFlow.addTask(steps.createCubeTarballCleaupStep(jobFlow.getId()));
                 if (isRawTableEnable) {
                     jobFlow.addTask(steps.createRawtableShardSizingStep(jobFlow.getId()));
-                    jobFlow.addTask(steps.createRawtableStep());
+                    jobFlow.addTask(steps.createRawtableStep(jobFlow.getId()));
                     jobFlow.addTask(steps.createRawtableCleanupStep(jobFlow.getId()));
                     jobFlow.addTask(steps.createRawtablePageIndexStep(jobFlow.getId()));
                     jobFlow.addTask(steps.createRawtablePageIndexCleanupStep(jobFlow.getId()));
