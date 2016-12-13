@@ -42,7 +42,7 @@ public class ModelStats extends RootPersistentEntity {
     @JsonProperty("last_build_job_id")
     private String jodID;
     @JsonProperty("column_index_map")
-    private Map<Integer, String> columnIndexMap = new HashMap<>();
+    private Map<String, Integer> columnIndexMap = new HashMap<>();
     @JsonProperty("single_column_cardinality")
     private Map<Integer, Long> singleColumnCardinality = new HashMap<>();
     @JsonProperty("double_columns_cardinality")
@@ -67,11 +67,11 @@ public class ModelStats extends RootPersistentEntity {
         return this.jodID;
     }
 
-    public void setColumnIndexMap(Map<Integer, String> columnIndexMap) {
+    public void setColumnIndexMap(Map<String, Integer> columnIndexMap) {
         this.columnIndexMap = columnIndexMap;
     }
 
-    public Map<Integer, String> getColumnIndexMap() {
+    public Map<String, Integer> getColumnIndexMap() {
         return this.columnIndexMap;
     }
 
@@ -112,6 +112,16 @@ public class ModelStats extends RootPersistentEntity {
         key.append(",");
         key.append(Math.max(index1, index2));
         return this.doubleColumnCardinality.get(key.toString());
+    }
+
+    public Long getSingleCardByColumnName(String columnName) {
+        return this.singleColumnCardinality.get(columnIndexMap.get(columnName));
+    }
+
+    public Long getDoubleCardByColumnName(String columnName1, String columnName2) {
+        int index1 = columnIndexMap.get(columnName1);
+        int index2 = columnIndexMap.get(columnName2);
+        return getDoubleCardByIndex(index1, index2);
     }
 
     public String getResourcePath() {

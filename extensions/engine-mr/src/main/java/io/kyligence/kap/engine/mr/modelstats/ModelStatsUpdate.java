@@ -114,9 +114,9 @@ public class ModelStatsUpdate extends AbstractHadoopJob {
         ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(KylinConfig.getInstanceFromEnv());
         ModelStats modelStats = modelStatsManager.getModelStats(model);
         Map<Integer, Long> singleCardMap = new HashMap<>();
-        Map<Integer, String> columnIndexMap = new HashMap<>();
+        Map<String, Integer> columnIndexMap = new HashMap<>();
         for (Map.Entry<Integer, HiveTableExtSampler> sampler : samplers.entrySet()) {
-            columnIndexMap.put(sampler.getKey(), sampler.getValue().getColumnName());
+            columnIndexMap.put(sampler.getValue().getColumnName(), sampler.getKey());
             singleCardMap.put(sampler.getKey(), sampler.getValue().getCardinality());
             modelStats.appendDoubleColumnCardinality(sampler.getValue().getCombinationCardinality());
             sampler.getValue().clean();

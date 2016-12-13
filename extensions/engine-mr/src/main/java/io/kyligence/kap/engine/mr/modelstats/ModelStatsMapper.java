@@ -73,7 +73,7 @@ public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, Byt
         for (int i = 0; i < columns.size(); i++) {
             HiveTableExtSampler sampler = new HiveTableExtSampler(i, columns.size());
             sampler.setDataType(columns.get(i).getType().getName());
-            sampler.setColumnName(columns.get(i).getName());
+            sampler.setColumnName(columns.get(i).getCanonicalName());
             samplerMap.put(i, sampler);
         }
     }
