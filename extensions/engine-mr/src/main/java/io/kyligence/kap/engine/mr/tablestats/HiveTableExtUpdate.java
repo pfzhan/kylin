@@ -132,6 +132,7 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
                 sampler.decode(ByteBuffer.wrap(value.getBytes()));
                 samplers.put(key.get(), sampler);
             }
+            reader.close();
         }
         return samplers;
     }
