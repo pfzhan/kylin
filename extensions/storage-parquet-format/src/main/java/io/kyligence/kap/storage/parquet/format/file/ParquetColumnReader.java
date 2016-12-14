@@ -57,7 +57,8 @@ public class ParquetColumnReader {
     public GeneralValuesReader getNextValuesReader() throws IOException {
         if (iter != null) {
             if (iter.hasNext()) {
-                return reader.getValuesReader(iter.next(), column);
+                curPage = iter.next();
+                return reader.getValuesReader(curPage, column);
             }
             return null;
         }

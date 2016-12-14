@@ -59,6 +59,7 @@ import org.slf4j.LoggerFactory;
 public class ParquetRawReader {
     public static final Logger logger = LoggerFactory.getLogger(ParquetRawReader.class);
 
+    private static final String INDEX_PREFIX = "IndexV2-";
     private ParquetMetadata parquetMetadata;
     private FSDataInputStream inputStream;
     private Configuration config;
@@ -85,6 +86,11 @@ public class ParquetRawReader {
         logger.info("The file offset is " + this.fileOffset);
     }
 
+    // This function is used for test, package visible
+    ParquetMetadata getParquetMetadata() {
+        return parquetMetadata;
+    }
+
     public MessageType getSchema() {
         return parquetMetadata.getFileMetaData().getSchema();
     }
@@ -101,12 +107,23 @@ public class ParquetRawReader {
      * @return values reader, if returns null, there's no such page
      */
     public GeneralValuesReader getValuesReader(int globalPageIndex, int column) throws IOException {
-        int group = globalPageIndex / pagesPerGroup;
-        int page = globalPageIndex % pagesPerGroup;
-        if (!indexMap.containsKey(group + "," + column + "," + page)) {
-            return null;
+        long offset = 0L;
+        int group = 0;
+
+        if(indexMap.containsKey(INDEX_PREFIX + globalPageIndex + "," + column)) {
+            // index version 2
+            String[] index = indexMap.get(INDEX_PREFIX + globalPageIndex + "," + column).split(",");
+            group = Integer.valueOf(index[0]);
+            offset = Long.valueOf(index[1]);
+        } else {
+            // index version 1
+            group = globalPageIndex / pagesPerGroup;
+            int page = globalPageIndex % pagesPerGroup;
+            if (!indexMap.containsKey(group + "," + column + "," + page)) {
+                return null;
+            }
+            offset = Long.parseLong(indexMap.get(group + "," + column + "," + page));
         }
-        long offset = Long.parseLong(indexMap.get(group + "," + column + "," + page));
         return getValuesReaderFromOffset(group, column, offset + fileOffset);
     }
 

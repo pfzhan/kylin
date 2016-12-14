@@ -57,7 +57,7 @@ public class ParquetBundleReaderPerformanceTest extends AbstractParquetFormatTes
 
     @Test
     @Ignore
-    public void ReadInBundleCache() throws Exception {
+    public void testReadInBundleCache() throws Exception {
         writeRows(groupSize);
 
         long t = System.currentTimeMillis();
@@ -77,7 +77,7 @@ public class ParquetBundleReaderPerformanceTest extends AbstractParquetFormatTes
 
     @Test
     @Ignore
-    public void ReadInBundle() throws Exception {
+    public void testReadInBundle() throws Exception {
         writeRows(groupSize);
 
         long t = System.currentTimeMillis();
@@ -96,7 +96,7 @@ public class ParquetBundleReaderPerformanceTest extends AbstractParquetFormatTes
 
     @Test
     @Ignore
-    public void ReadInBundleColumn() throws Exception {
+    public void testReadInBundleColumn() throws Exception {
         writeRows(groupSize);
 
         long t = System.currentTimeMillis();

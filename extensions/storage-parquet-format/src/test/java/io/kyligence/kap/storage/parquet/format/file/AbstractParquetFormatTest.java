@@ -24,16 +24,25 @@
 
 package io.kyligence.kap.storage.parquet.format.file;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.List;
 
+import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.util.BytesUtil;
+import org.apache.parquet.io.api.Binary;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
 import org.junit.After;
 import org.junit.Before;
+import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
+import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 
@@ -47,7 +56,7 @@ public abstract class AbstractParquetFormatTest extends LocalFileMetadataTestCas
         path = new Path("./a.parquet");
         indexPath = new Path("./a.parquetindex");
         cleanTestFile(path);
-        type = new MessageType("test", new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 2, "key1"), new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "m1"), new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "m2"));
+        type = new MessageType("test", new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, "key1"), new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "m1"), new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "m2"));
     }
 
     @After
@@ -69,6 +78,18 @@ public abstract class AbstractParquetFormatTest extends LocalFileMetadataTestCas
         writer.close();
     }
 
+    protected void writeRows(int rowCnt, boolean onIndexV2) throws Exception {
+        ParquetRawWriter writer = new ParquetRawWriter.Builder().setConf(new Configuration()).setPath(path).setType(type).setOnIndexV2(onIndexV2).build();
+        for (int i = 0; i < rowCnt; ++i) {
+            List<Object> row = Lists.newArrayList();
+            row.add(Binary.fromConstantByteArray(new Integer(i).toString().getBytes()));
+            row.add(Binary.fromConstantByteArray(new byte[] {1}));
+            row.add(Binary.fromConstantByteArray(new byte[] {2}));
+            writer.writeRow(row);
+        }
+        writer.close();
+    }
+
     protected void cleanTestFile(Path path) throws IOException {
         FileSystem fs = FileSystem.get(new Configuration());
         if (fs.exists(path)) {
@@ -78,5 +99,25 @@ public abstract class AbstractParquetFormatTest extends LocalFileMetadataTestCas
         if (fs.exists(indexPath)) {
             fs.delete(indexPath, true);
         }
+    }
+
+    protected static ImmutableRoaringBitmap createBitset(int begin, int end) throws IOException {
+        MutableRoaringBitmap mBitmap = new MutableRoaringBitmap();
+        for (int i = begin; i < end; ++i) {
+            mBitmap.add(i);
+        }
+
+        ImmutableRoaringBitmap iBitmap;
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); DataOutputStream dos = new DataOutputStream(baos);) {
+            mBitmap.serialize(dos);
+            dos.flush();
+            iBitmap = new ImmutableRoaringBitmap(ByteBuffer.wrap(baos.toByteArray()));
+        }
+
+        return iBitmap;
+    }
+
+    protected static ImmutableRoaringBitmap createBitset(int total) throws IOException {
+        return createBitset(0, total);
     }
 }

@@ -24,11 +24,11 @@
 
 package io.kyligence.kap.storage.parquet.format.file;
 
+import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BINARY;
+
 import org.apache.parquet.column.values.ValuesReader;
 import org.apache.parquet.io.api.Binary;
 import org.apache.parquet.schema.PrimitiveType;
-
-import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BINARY;
 
 public abstract class GeneralValuesReader {
     private ValuesReader valuesReader;

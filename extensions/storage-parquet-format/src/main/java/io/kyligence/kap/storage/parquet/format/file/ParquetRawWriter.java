@@ -64,6 +64,8 @@ import io.kyligence.kap.storage.parquet.format.file.typedwriter.TypeValuesWriter
 public class ParquetRawWriter {
     private static final Logger logger = LoggerFactory.getLogger(ParquetRawWriter.class);
 
+    private static final String INDEX_PREFIX = "Index-";
+
     private int rowsPerPage = ParquetConfig.RowsPerPage;
     private int pagesPerGroup = ParquetConfig.PagesPerGroup;
 
@@ -76,6 +78,8 @@ public class ParquetRawWriter {
     private int currentPageCntInGroup = 0; // Current page number in buffered group
     private int currentRowCntInGroup = 0; // Current row number in buffered rows
     private int currentRowGroup = 0; // Current total group number
+    private int totalPageCnt = 0; // Total page count by now (consider data written by callee)
+    private int totalPageCntToFile = 0; // Total page count by now (consider data written to file), may < totalPageCnt due to local cache
 
     private Object[][] rowBuffer; // Buffered rows in current page
     private PageBuffer[][] pageBuffer; // Buffered pages in current group
@@ -87,6 +91,7 @@ public class ParquetRawWriter {
     private ParquetProperties parquetProperties;
 
     private Map<String, String> indexMap;
+    private boolean onIndexV2;
 
     public ParquetRawWriter(Configuration conf, // hadoop configuration
             MessageType schema, // parquet file row schema
@@ -96,7 +101,8 @@ public class ParquetRawWriter {
             List<Encoding> dataEncodings, // data encoding
             CompressionCodecName codecName, // compression algorithm
             int rowsPerPage, // the number of rows in one page
-            int pagesPerGroup // the number of pages in one row group
+            int pagesPerGroup, // the number of pages in one row group
+            boolean onIndexV2 // if turn on index version 2
     ) throws IOException {
         writer = new ParquetFileWriter(conf, schema, path);
         this.conf = conf;
@@ -107,6 +113,7 @@ public class ParquetRawWriter {
         this.dataEncodings = dataEncodings;
         this.rowsPerPage = rowsPerPage;
         this.pagesPerGroup = pagesPerGroup;
+        this.onIndexV2 = onIndexV2;
         columnCnt = schema.getColumns().size();
         indexMap = new HashMap<>();
         indexMap.put("pagesPerGroup", String.valueOf(pagesPerGroup));
@@ -125,6 +132,10 @@ public class ParquetRawWriter {
         }
     }
 
+    public int getPageCntSoFar() {
+        return totalPageCnt;
+    }
+
     private void initPageBuffer() {
         pageBuffer = new PageBuffer[columnCnt][];
         for (int i = 0; i < columnCnt; ++i) {
@@ -132,9 +143,16 @@ public class ParquetRawWriter {
         }
     }
 
-    public void close() throws IOException {
+    public void close(Map<String, String> addition) throws IOException {
         flush();
+        if (addition != null) {
+            indexMap.putAll(addition);
+        }
         writer.end(indexMap);
+    }
+
+    public void close() throws IOException {
+        close(null);
     }
 
     // TODO: this writeRow is not pure, should be refactored
@@ -219,6 +237,7 @@ public class ParquetRawWriter {
         }
         currentPageCntInGroup++;
         currentRowCntInPage = 0;
+        totalPageCnt++;
     }
 
     /**
@@ -231,6 +250,9 @@ public class ParquetRawWriter {
             writer.startColumn(schema.getColumns().get(i), currentRowCntInGroup, codecName);
             for (int j = 0; j < currentPageCntInGroup; ++j) {
                 addIndex(currentRowGroup, i, j, writer.getPos());
+                if (onIndexV2) {
+                    addGlobalPageIndex(currentRowGroup, i, totalPageCntToFile + j, writer.getPos());
+                }
                 BytesInput bi = pageBuffer[i][j].getBi();
                 CompressionCodec compressionCodec = CodecFactory.getCodec(codecName, conf);
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -249,13 +271,33 @@ public class ParquetRawWriter {
         }
         writer.endBlock();
 
+        totalPageCntToFile += currentPageCntInGroup;
         currentRowGroup++;
         currentPageCntInGroup = 0;
         currentRowCntInGroup = 0;
     }
 
+    /**
+     * Version 1 index
+     * Add index to map, make key as "group,column,page"
+     * @param group group index
+     * @param column column index
+     * @param page page index in group
+     * @param pos file offset
+     */
     private void addIndex(int group, int column, int page, long pos) {
         indexMap.put(group + "," + column + "," + page, String.valueOf(pos));
+    }
+
+    /**
+     * Version 2 index
+     * Add index to map, make key as "IndexPrefix-page,column"
+     * @param page global page index
+     * @param column column index
+     * @param pos file offset
+     */
+    private void addGlobalPageIndex(int group, int column, int page, long pos) {
+        indexMap.put(INDEX_PREFIX + page + "," + column , group + "," + String.valueOf(pos));
     }
 
     private class PageBuffer {
@@ -286,8 +328,9 @@ public class ParquetRawWriter {
         private Encoding dlEncodings = Encoding.RLE;
         private List<Encoding> dataEncodings = null;
         private CompressionCodecName codecName = CompressionCodecName.UNCOMPRESSED;
-        private int rowsPerPage = 10000;
-        private int pagesPerGroup = 100;
+        private int rowsPerPage = ParquetConfig.RowsPerPage;
+        private int pagesPerGroup = ParquetConfig.PagesPerGroup;
+        private boolean onIndexV2 = true;
 
         public Builder setConf(Configuration conf) {
             this.conf = conf;
@@ -316,6 +359,11 @@ public class ParquetRawWriter {
 
         public Builder setDataEncodings(List<Encoding> dataEncodings) {
             this.dataEncodings = dataEncodings;
+            return this;
+        }
+
+        public Builder setOnIndexV2(boolean on) {
+            this.onIndexV2 = on;
             return this;
         }
 
@@ -388,7 +436,7 @@ public class ParquetRawWriter {
 
             logger.info("Builder: rowsPerPage={}", rowsPerPage);
             logger.info("write file: {}", path.toString());
-            return new ParquetRawWriter(conf, type, path, rlEncodings, dlEncodings, dataEncodings, codecName, rowsPerPage, pagesPerGroup);
+            return new ParquetRawWriter(conf, type, path, rlEncodings, dlEncodings, dataEncodings, codecName, rowsPerPage, pagesPerGroup, onIndexV2);
         }
     }
 }

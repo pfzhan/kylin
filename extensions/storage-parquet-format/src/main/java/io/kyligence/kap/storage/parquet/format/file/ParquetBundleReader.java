@@ -46,12 +46,15 @@ import org.slf4j.LoggerFactory;
 public class ParquetBundleReader {
     public static final Logger logger = LoggerFactory.getLogger(ParquetBundleReader.class);
 
-    List<ParquetReaderState> readerStates;
+    private List<ParquetReaderState> readerStates;
 
-    public ParquetBundleReader(Configuration configuration, Path path, ImmutableRoaringBitmap columns, ImmutableRoaringBitmap pageBitset, long fileOffset) throws IOException {
+
+    public ParquetBundleReader(Configuration configuration, Path path, ImmutableRoaringBitmap columns, ImmutableRoaringBitmap pageBitset, long fileOffset, ParquetMetadata metadata) throws IOException {
         readerStates = new ArrayList<>(columns.getCardinality());
 
-        ParquetMetadata metadata = ParquetFileReader.readFooter(configuration, path, ParquetMetadataConverter.NO_FILTER);
+        if (metadata == null) {
+            metadata = ParquetFileReader.readFooter(configuration, path, ParquetMetadataConverter.NO_FILTER);
+        }
         for (int column : columns) {
             readerStates.add(new ParquetReaderState(new ParquetColumnReader.Builder().setFileOffset(fileOffset).setConf(configuration).setPath(path).setColumn(column).setPageBitset(pageBitset).setMetadata(metadata).build()));
             logger.info("Read Column: " + column);
@@ -158,7 +161,7 @@ public class ParquetBundleReader {
                 columnBitset = createBitset(columnCnt);
             }
 
-            ParquetBundleReader result = new ParquetBundleReader(conf, path, columnBitset, pageBitset, fileOffset);
+            ParquetBundleReader result = new ParquetBundleReader(conf, path, columnBitset, pageBitset, fileOffset, null);
 
             return result;
         }

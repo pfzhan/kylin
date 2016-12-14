@@ -35,7 +35,6 @@ import org.apache.parquet.io.api.Binary;
 import org.junit.Assert;
 import org.junit.Test;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
-import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
 public class ParquetBundleReaderTest extends AbstractParquetFormatTest {
     public ParquetBundleReaderTest() throws IOException {
@@ -43,7 +42,7 @@ public class ParquetBundleReaderTest extends AbstractParquetFormatTest {
     }
 
     @Test
-    public void ReadInBundle() throws Exception {
+    public void testReadInBundle() throws Exception {
         writeRows(groupSize - 1);
 
         ImmutableRoaringBitmap bitset = createBitset(10);
@@ -60,22 +59,6 @@ public class ParquetBundleReaderTest extends AbstractParquetFormatTest {
 
         Assert.assertNull(bundleReader.read());
         bundleReader.close();
-    }
-
-    private static ImmutableRoaringBitmap createBitset(int total) throws IOException {
-        MutableRoaringBitmap mBitmap = new MutableRoaringBitmap();
-        for (int i = 0; i < total; ++i) {
-            mBitmap.add(i);
-        }
-
-        ImmutableRoaringBitmap iBitmap = null;
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); DataOutputStream dos = new DataOutputStream(baos);) {
-            mBitmap.serialize(dos);
-            dos.flush();
-            iBitmap = new ImmutableRoaringBitmap(ByteBuffer.wrap(baos.toByteArray()));
-        }
-
-        return iBitmap;
     }
 
     private String serialize(ImmutableRoaringBitmap bitset) throws IOException {

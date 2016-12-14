@@ -37,7 +37,7 @@ public class ParquetRawReaderTest extends AbstractParquetFormatTest {
     }
 
     @Test
-    public void TestColumnCount() throws Exception {
+    public void testColumnCount() throws Exception {
         writeRows(ParquetConfig.RowsPerPage);
 
         ParquetRawReader reader = new ParquetRawReader.Builder().setPath(path).setConf(new Configuration()).build();
@@ -46,21 +46,33 @@ public class ParquetRawReaderTest extends AbstractParquetFormatTest {
     }
 
     @Test
-    public void TestReadPageByGlobalPageIndex() throws Exception {
-        writeRows(groupSize);
+    public void testReadPageByGlobalPageIndex() throws Exception {
+        writeRows(groupSize, false);
 
         ParquetRawReader reader = new ParquetRawReader.Builder().setPath(path).setConf(new Configuration()).build();
         GeneralValuesReader valuesReader = reader.getValuesReader(ParquetConfig.PagesPerGroup - 1, 0);
-        Assert.assertArrayEquals(valuesReader.readBytes().getBytes(), new byte[] { 2, 3 });
-        for (int i = 0; i < (ParquetConfig.RowsPerPage - 1); ++i) {
-            Assert.assertNotNull(valuesReader.readBytes());
+        for (int i = 0; i < ParquetConfig.RowsPerPage; ++i) {
+            Assert.assertArrayEquals(valuesReader.readBytes().getBytes(), new Integer(i + (ParquetConfig.PagesPerGroup - 1) * ParquetConfig.RowsPerPage).toString().getBytes());
         }
         Assert.assertNull(valuesReader.readBytes());
         reader.close();
     }
 
     @Test
-    public void TestReadPageByGroupAndPageIndex() throws Exception {
+    public void testReadPageByGlobalPageIndexV2() throws Exception {
+        writeRows(groupSize, true);
+
+        ParquetRawReader reader = new ParquetRawReader.Builder().setPath(path).setConf(new Configuration()).build();
+        GeneralValuesReader valuesReader = reader.getValuesReader(ParquetConfig.PagesPerGroup - 1, 0);
+        for (int i = 0; i < ParquetConfig.RowsPerPage; ++i) {
+            Assert.assertArrayEquals(valuesReader.readBytes().getBytes(), new Integer(i + (ParquetConfig.PagesPerGroup - 1) * ParquetConfig.RowsPerPage).toString().getBytes());
+        }
+        Assert.assertNull(valuesReader.readBytes());
+        reader.close();
+    }
+
+    @Test
+    public void testReadPageByGroupAndPageIndex() throws Exception {
         writeRows(groupSize);
         ParquetRawReader reader = new ParquetRawReader.Builder().setPath(path).setConf(new Configuration()).build();
         GeneralValuesReader valuesReader = reader.getValuesReader(0, 0, 1);

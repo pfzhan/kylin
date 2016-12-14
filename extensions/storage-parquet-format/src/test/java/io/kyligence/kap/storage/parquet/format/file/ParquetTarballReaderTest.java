@@ -54,7 +54,7 @@ public class ParquetTarballReaderTest extends AbstractParquetFormatTest {
     }
 
     @Test
-    public void TestTarballReader() throws Exception {
+    public void testTarballReader() throws Exception {
         writeRows(groupSize);
         appendFile(100);
 
