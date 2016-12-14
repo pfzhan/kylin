@@ -91,7 +91,8 @@ KylinApp.constant('kapEnglishConfig', {
   welcome: 'Welcome',
   documents: [
     {link:'http://kyligence.io',displayName:'About Us'},
-    {link:'https://kyligence.gitbooks.io/kap-manual/content/en/',displayName:'KAP Manual'}
+    {link:'https://kyligence.gitbooks.io/kap-manual/content/en/',displayName:'KAP Manual'},
+    {link:'https://kybot.io',displayName:'KyBot Service'}
   ],
   requestLicense:'Generate License Request File',
   selectLanguage: 'select language'
