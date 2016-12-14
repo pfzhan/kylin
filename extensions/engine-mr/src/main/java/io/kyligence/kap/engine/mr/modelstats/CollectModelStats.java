@@ -120,10 +120,10 @@ public class CollectModelStats extends CubingJob {
         return result;
     }
 
-    private static String findRunningJob(String table, KylinConfig config) throws IOException {
+    public static String findRunningJob(String model, KylinConfig config) throws IOException {
 
         ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(config);
-        ModelStats modelStats = modelStatsManager.getModelStats(table);
+        ModelStats modelStats = modelStatsManager.getModelStats(model.toUpperCase());
         String jobID = modelStats.getJodID();
 
         if (null == jobID || jobID.isEmpty()) {

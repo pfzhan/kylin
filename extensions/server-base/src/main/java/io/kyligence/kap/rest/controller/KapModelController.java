@@ -74,7 +74,9 @@ public class KapModelController extends BasicController {
     @ResponseBody
     public JobInstance getModelStats(@PathVariable("project") String project, @PathVariable("modelName") String modelName) throws IOException, JobException {
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
-        String jobId = CollectModelStats.createCollectJob(project, submitter, modelName);
+        String jobId = CollectModelStats.findRunningJob(modelName, kapModelService.getConfig());
+        if (jobId == null)
+            jobId = CollectModelStats.createCollectJob(project, submitter, modelName);
         return jobService.getJobInstance(jobId);
     }
 }
