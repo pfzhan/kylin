@@ -24,7 +24,7 @@
 
 'use strict';
 
-KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, UserService, ProjectService, $q, AuthenticationService, $filter, ModelService, MetaModel, CubeDescModel, CubeList, TableModel, ProjectModel, $log, SweetAlert, modelsManager,language, modelsEdit,DrawHelper) {
+KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, UserService, ProjectService, $q, AuthenticationService, $filter, ModelService, MetaModel, CubeDescModel, CubeList, TableModel, ProjectModel, $log, SweetAlert, modelsManager,language, modelsEdit,DrawHelper,$modal) {
 
   $scope.modelsManager = modelsManager;
   $scope.projectModel = ProjectModel;
@@ -89,59 +89,9 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
   jsPlumb.ready(function() {
 
     //action=============================================
-    //$(".showBox").on("dblclick",function(e){
-    //  kylinPlumb.addTable(tableData,1);
-    //  kylinPlumb.addTable(tableData1,1);
-    //  kylinPlumb.connect('DefaultKylinid','DefaultKylin1id');
-    //})
+
 
     //data===============================================
-    var tableData={
-      database:'Default',
-      name:"Kylin1",
-      columns:[{
-        columnName:'id',
-        datatype:'int'
-      },{
-        columnName:'userAge',
-        datatype:'int'
-      },{
-        columnName:'userAge',
-        datatype:'int'
-      },{
-        columnName:'userAge',
-        datatype:'int'
-      },{
-        columnName:'userAge',
-        datatype:'int'
-      },{
-        columnName:'userAge',
-        datatype:'int'
-      },{
-        columnName:'userAge',
-        datatype:'int'
-      }]
-    }
-    var tableData1={
-      database:'Default',
-      name:"Kylin",
-      columns:[{
-        columnName:'id',
-        datatype:'int'
-      },{
-        columnName:'userName',
-        datatype:'int'
-      },{
-        columnName:'userPwd',
-        datatype:'int'
-      },{
-        columnName:'userSex',
-        datatype:'int'
-      },{
-        columnName:'userAge',
-        datatype:'int'
-      }]
-    }
     var bData=[{
       'table':'Default.Kylin',
       'alias':'kylin',
@@ -173,11 +123,45 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
           var database=$(ui.item).attr("data");
           TableModel.initTableData(function(){
             var tableDataList=TableModel.getTableDatas(database);
-            DrawHelper.addTables(tableDataList);
+            if(tableDataList&&tableDataList.length<2){
+              openSnowTableInfoDialog(tableDataList[0])
+
+            }
           })
         }
       })
-      DrawHelper.init();
+      //修改snowTable信息弹窗
+      function openSnowTableInfoDialog(table){
+        var snowTableInfoCtrl=function($scope, $modalInstance,table){
+          $scope.table=table;
+          $scope.cancel = function () {
+            $modalInstance.dismiss('cancel');
+          }
+          $scope.editTableInfo=function(){
+            console.log(table);
+            DrawHelper.tableList.update('table',table.table,{
+              alias:table.alias,
+              kind:table.kind
+            });
+            DrawHelper.refreshAlias(table.table,table.alias);
+            DrawHelper.addTable(table);
+            $modalInstance.dismiss('cancel');
+          }
+        }
+        var modalInstance = $modal.open({
+          templateUrl: 'partials/models/snowmodel_info.html',
+          controller: snowTableInfoCtrl,
+          backdrop: 'static',
+          resolve:{
+            table:function() {
+              return table;
+            }
+          }
+        });
+      }
+      DrawHelper.init({
+        changeTableInfo:openSnowTableInfoDialog
+      });
       $('#jia').click(function(){
         DrawHelper.setZoom(DrawHelper.zoom);
         DrawHelper.zoom=DrawHelper.zoom+0.1;

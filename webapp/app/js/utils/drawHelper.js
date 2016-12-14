@@ -1,6 +1,7 @@
+//snow model design
 KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScroll, $window) {
   return {
-    titleHeight:40,
+    titleHeight:60,
     itemHeight:20,
     itemWidth:200,
     boxWidth:800,
@@ -10,30 +11,37 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
     containerId:'snowBox',
     tableCount:1,
     instance:null,
+    lastLink:[],
+    connects:{},
     zoom:1,
+    changeTableInfo:null,
     init:function(para){
       $.extend(this,para);
       this.boxWidth=$("#"+this.containerId).width();
       this.boxHeight=$("#"+this.containerId).height();
       var that=this;
       this.instance = jsPlumb.getInstance({
-        DragOptions: { cursor: 'pointer', zIndex: 2000 },
-        PaintStyle: { strokeStyle: '#66a8fa' },
-        EndpointHoverStyle: { fillStyle: "yellow" },
-        HoverPaintStyle: { strokeStyle: "yellow" },
-        EndpointStyle: { width: 20, height: 16, strokeStyle: '#66a8fa' },
-        Endpoint: "Rectangle",
-        Anchors: ["TopCenter", "TopCenter"],
-        Container: that.containerId,
-        ConnectionOverlays: [
-          [ "Arrow", { location: 1 } ],
-          [ "Label", {location: 0.1,id: "label",cssClass: "aLabel"}]
-        ]
+          DragOptions: { cursor: 'pointer', zIndex: 2000},
+          PaintStyle: { strokeStyle: '#66a8fa' },
+          EndpointHoverStyle: { fillStyle: "yellow" },
+          HoverPaintStyle: { strokeStyle: "yellow" },
+          EndpointStyle: { width: 20, height: 16, strokeStyle: '#66a8fa' },
+          Endpoint: "Rectangle",
+          Anchors: ["TopCenter", "TopCenter"],
+          Container: that.containerId,
+          ConnectionOverlays: [
+            [ "Arrow", { location: 1 } ],
+            [ "Label", {location: 0.1,id: "label",cssClass: "aLabel"}]
+          ]
       });
       var that=this;
       this.instance.bind("connection", function (info, originalEvent) {
         that.lastLink.push(info.connection.getParameters().data);
-        // alert(that.lastLink);
+        that.connects[info.connection.id]=that.lastLink;
+        info.connection.bind('dblclick',function(conn){
+          that.instance.detach(conn);
+          delete that.connects[conn.id];
+        })
       });
       var $panzoom=$("#"+this.containerId).panzoom({
         cursor: "default",
@@ -43,29 +51,109 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       });
       return this;
     },
-    addTable:function(tableData,count){
-      var pos=this.calcPosition();
-      var str=' <div id="umlobj_'+tableData.database+tableData.name+'" class="classUml" style="left:'+pos.left+'px;top:'+pos.top+'px">';
-      str+=' <div 	class="title"><div><i class="fa fa-table"></i> '+tableData.database+'.'+tableData.name+'</div><div class="alias">Alias:'+tableData.database+'.'+tableData.name+'</div></div>';
-      for (var i =0; i <tableData.columns.length; i++) {
-        str+='<p>+'+tableData.columns[i].name+'('+tableData.columns[i].datatype+')</p>'
+    tableList:{
+      data:[],
+      add:function(obj,errcallback){
+        for(var i=0;i<this.data.length;i++){
+          if(this.data[i].alias==obj.alias){
+            if(typeof  errcallback=='function'){
+              errcallback();
+              return;
+            }
+          }
+        }
+        this.data.push(obj);
+      },
+      remove:function(key,val){
+        for(var i=0;i<this.data.length;i++){
+          if(this.data[i][key]==val){
+            delete this.data[i];
+            break;
+          }
+        }
+      },
+      update:function(key,val,obj){
+        for(var i=0;i<this.data.length;i++){
+          if(this.data[i][key]==val){
+            $.extend(this.data[i],obj);
+            break;
+          }
+        }
       }
-      str+='</div>';
+    },
+    refreshAlias:function(tableName,newVal){
+      this.getTableDom(tableName).find('.alias').html('Alias:'+newVal);
+      return this;
+    },
+    getTableDom:function(tableName){
+       return  $('#umlobj_'+tableName);
+    },
+    addTable:function(tableData,count){
+      var tableBaseObject={
+        table:tableData.database+'.'+tableData.name,
+        alias:tableData.name,
+        kind:tableData.kind||'lookup',
+        isRoot:tableData.isRoot||false,
+        pos:[10,10]
+      };
+      var that=this;
+      this.tableList.add(tableBaseObject);
+      var str=' <div id="umlobj_'+tableData.database+tableData.name+'" class="classUml" style="left:'+tableBaseObject.pos[0]+'px;top:'+tableBaseObject.pos[1]+'px">';
+          str+=' <div 	class="title" style="height:'+this.titleHeight+'px">';
+          if(tableBaseObject.kind=='fact'){
+            if(tableBaseObject.isRoot){
+                str+='<span class="snowFont snowFont1">RF</span>'
+            }else{
+               str+='<span class="snowFont snowFont2">F</span>'
+            }
+          }else{
+              str+='<span class="snowFont snowFont3">L</span>'
+          }
+          str+='<a title="'+tableBaseObject.table+'"><i class="fa fa-table"></i> '+tableBaseObject.table+'<span class="more" ></span></a>' +
+                    '<a class="alias" title="'+tableBaseObject.table+'">Alias:'+tableBaseObject.alias+'</a></div>';
+          for (var i =0; i <tableData.columns.length; i++) {
+            if(tableData.columns[i].type=='dimension'){
+              str+='<span class="snowFont snowFont2">D</span><p>&nbsp;&nbsp;'+tableData.columns[i].name+'('+tableData.columns[i].datatype+')</p>';
+            }else if(tableData.columns[i].type=='measure') {
+              str+='<span class="snowFont snowFont3">M</span><p>&nbsp;&nbsp;'+tableData.columns[i].name+'('+tableData.columns[i].datatype+')</p>';
+            }else if(tableData.columns[i].type=='disable'){
+              str+='<span class="snowFont snowFont4">-</span><p class="snowFont4">&nbsp;&nbsp;'+tableData.columns[i].name+'('+tableData.columns[i].datatype+')</p>';
+            }else{
+              str+='<span class="snowFont snowFont2">D</span><p>&nbsp;&nbsp;'+tableData.columns[i].name+'('+tableData.columns[i].datatype+')</p>';
+            }
+
+          }
+          str+='</div>';
       $("#"+this.containerId).append($(str));
       var len=tableData.columns.length;
       var totalHeight=this.titleHeight+this.itemHeight*len;
       var totalPer=this.titleHeight/totalHeight;
       for (var i =0; i <len; i++) {
         var h=this.numDiv((this.titleHeight+this.itemHeight*i+this.numDiv(this.itemHeight,2)),totalHeight);
-        this.instance.addEndpoint('umlobj_'+tableData.database+tableData.name, {anchor:[[1.0,h, 1.5, 0],[0, h, -1, 0]]}, this.createPoint({
+        this.instance.addEndpoint('umlobj_'+tableData.database+tableData.name, {anchor:[[0, h, -1, 0]]}, this.createPoint({
             parameters:{
-              data:tableData.columns[i].columnName
+              data:tableData.alias+'.'+tableData.columns[i].name
+            },
+            uuid:tableData.database+tableData.name+tableData.columns[i].columnName
+          }
+        ));
+        this.instance.addEndpoint('umlobj_'+tableData.database+tableData.name, {anchor:[[1.0,h, 1.5, 0]]}, this.createPoint({
+            parameters:{
+              data:tableData.alias+'.'+tableData.columns[i].name
             },
             uuid:tableData.database+tableData.name+tableData.columns[i].columnName
           }
         ));
       }
-      this.instance.draggable($("#umlobj_"+tableData.database+tableData.name));
+      this.instance.draggable($("#umlobj_"+tableData.database+tableData.name),{
+        drag:function(e){
+        },stop:function(e){
+          this.tableList.data.update('table',tableData.database+'.'+tableData.name,{'pos':e.pos})
+        }
+      });
+      $('#umlobj_'+tableData.database+tableData.name).find('.more').on('click',function(){
+        that.changeTableInfo(tableData);
+      })
       return this;
     },
     addTables:function(tableDatas){
@@ -88,27 +176,25 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         left:10,
       }
     },
-    lastLink:[],
+
     createPoint:function(para){
       var that=this;
       var pointObj = {
-        endpoint:["Dot", { radius:5 }],//设置连接点的形状为圆形
-        paintStyle:{ fillStyle:'#46b8da' },//设置连接点的颜色
+        endpoint:"Rectangle",//设置连接点的形状为圆形
+        paintStyle:{ fillStyle:'#46b8da',width: 10, height: 10 },//设置连接点的颜色
         isSource:true,	//是否可以拖动（作为连线起点）
         scope:"green dot",//连接点的标识符，只有标识符相同的连接点才能连接
-        connectorStyle:{ strokeStyle:'#46b8da', lineWidth:3 },//连线颜色、粗细
+        connectorStyle:{ strokeStyle:'#46b8da', lineWidth:5 },//连线颜色、粗细
         connector: ["Bezier", { curviness:63 } ],//设置连线为贝塞尔曲线
-        maxConnections:1,//设置连接点最多可以连接几条线
+        maxConnections:100,//设置连接点最多可以连接几条线
         isTarget:true,	//是否可以放置（作为连线终点）
-        overlays: [
-          "Arrow"
-        ],
+        overlays: ["Arrow"],
         dropOptions:{
           hoverClass:"dropHover",//释放时指定鼠标停留在该元素上使用的css class
           activeClass:"dragActive",//设置放置相关的css
         },
         beforeDetach:function(conn) {	//绑定一个函数，在连线前弹出确认框
-          return confirm("Detach connection?");
+           delete that.connects[info.connection.id];
         },
         reattachConnections:function(){
           // alert(1);
@@ -126,13 +212,17 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           that.lastLink=[];
           that.lastLink.push(params.connection.getParameters().data);
           return true;
+        },dropOptions:{
+          drop:function(e, ui) {
+            alert('drop!');
+          }
         }
 
       };
       return $.extend(pointObj,para);
     },
     connect:function(p1,p2){
-      this.instance.connect({uuids: [p1,p2], editable: true});
+       this.instance.connect({uuids: [p1,p2], editable: true});
     },
     setZoom:function(zoom, transformOrigin, el) {
       transformOrigin = transformOrigin || [ 0.5, 0.5 ];
