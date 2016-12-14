@@ -27,6 +27,7 @@ package io.kyligence.kap.storage.parquet.log;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.security.PrivilegedExceptionAction;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.UUID;
@@ -39,6 +40,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.spi.LoggingEvent;
 
@@ -143,8 +148,29 @@ public class HdfsAppender extends AppenderSkeleton {
                     LoggingEvent loggingEvent = logBufferQue.take();
                     if (isDayChanged(loggingEvent)) {
                         updateOutPutDir(loggingEvent);
-                        Path file = new Path(outPutPath);
-                        initWriter(file);
+
+                        final Path file = new Path(outPutPath);
+
+                        // Security framework already loaded the tokens into current ugi
+                        Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
+                        System.out.println("Executing with tokens:");
+                        for (Token<?> token : credentials.getAllTokens()) {
+                            System.out.println(token);
+                        }
+
+                        String sparkuser = System.getenv("SPARK_USER");
+                        String user = System.getenv(ApplicationConstants.Environment.USER.toString());
+                        System.out.println("login user is " + UserGroupInformation.getLoginUser() + " SPARK_USER is " + sparkuser + " USER is " + user);
+                        UserGroupInformation childUGI = UserGroupInformation.createRemoteUser(user);
+                        // Add tokens to new user so that it may execute its task correctly.
+                        childUGI.addCredentials(credentials);
+
+                        childUGI.doAs(new PrivilegedExceptionAction<Void>() {
+                            public Void run() throws Exception {
+                                initWriter(file);
+                                return null;
+                            }
+                        });
                     }
                     write(layout.format(loggingEvent));
                     size--;
