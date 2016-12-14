@@ -128,12 +128,10 @@ public class HiveTableExtSampleJob extends CubingJob {
         return result;
     }
 
-    private static String findRunningJob(String table, KylinConfig config) throws IOException {
+    public static String findRunningJob(String table, KylinConfig config) throws IOException {
 
         MetadataManager metaMgr = MetadataManager.getInstance(config);
-
         TableExtDesc tableExtDesc = metaMgr.getTableExt(table);
-
         String jobID = tableExtDesc.getJodID();
 
         if (null == jobID || jobID.isEmpty()) {

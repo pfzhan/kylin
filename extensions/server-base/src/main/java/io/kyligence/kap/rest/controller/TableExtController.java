@@ -46,6 +46,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import io.kyligence.kap.engine.mr.tablestats.HiveTableExtSampleJob;
 import io.kyligence.kap.rest.service.TableExtService;
 
 @Controller
@@ -105,8 +106,12 @@ public class TableExtController extends BasicController {
 
     @RequestMapping(value = "/{tables}/{project}", method = { RequestMethod.DELETE })
     @ResponseBody
-    public String unLoadHiveTables(@PathVariable String tables, @PathVariable String project) throws IOException {
+    public String unLoadHiveTables(@PathVariable String tables, @PathVariable String project) throws Exception {
+        String jobID;
         for (String tableName : tables.split(",")) {
+            if ((jobID = HiveTableExtSampleJob.findRunningJob(tableName, tableExtService.getConfig())) != null) {
+                jobService.cancelJob(jobService.getJobInstance(jobID));
+            }
             tableExtService.getMetaDataManager().removeTableExt(tableName);
         }
         return "OK";
