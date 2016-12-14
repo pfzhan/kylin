@@ -98,6 +98,7 @@ public class HiveTableExtSampleJob extends CubingJob {
 
         if (table.isView()) {
             result.addTask(materializedView(table, "limit 1000000"));
+            logger.info("The View: " + tableName + " will be materialized in maximum 1000000 lines!");
         }
 
         String samplesOutPath = getOutputPath(config, result.getId(), HiveTableExtSampleJob.SAMPLES) + table.getIdentity();
@@ -119,7 +120,7 @@ public class HiveTableExtSampleJob extends CubingJob {
         result.addTask(step2);
 
         if (table.isView())
-            result.addTask(deleteMaterializedView(table));
+            result.addTask(deleteMaterializedView(table, config));
 
         table_ext.setJodID(result.getId());
         metaMgr.saveTableExt(table_ext);
@@ -179,13 +180,14 @@ public class HiveTableExtSampleJob extends CubingJob {
         return step;
     }
 
-    private static ShellExecutable deleteMaterializedView(TableDesc desc) throws IOException {
+    private static ShellExecutable deleteMaterializedView(TableDesc desc, KylinConfig config) throws IOException {
 
         ShellExecutable step = new ShellExecutable();
         step.setName("Drop Intermediate Table " + desc.getMaterializedName());
         HiveCmdBuilder hiveCmdBuilder = new HiveCmdBuilder();
 
         StringBuilder createIntermediateTableHql = new StringBuilder();
+        createIntermediateTableHql.append("USE " + config.getHiveDatabaseForIntermediateTable() + ";\n");
         createIntermediateTableHql.append("DROP TABLE IF EXISTS " + desc.getMaterializedName() + ";\n");
         hiveCmdBuilder.addStatement(createIntermediateTableHql.toString());
         step.setCmd(hiveCmdBuilder.build());

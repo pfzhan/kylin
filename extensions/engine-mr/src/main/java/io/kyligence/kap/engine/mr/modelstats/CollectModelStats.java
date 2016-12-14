@@ -31,11 +31,13 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.HiveCmdBuilder;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.JobBuilderSupport;
 import org.apache.kylin.engine.mr.common.HadoopShellExecutable;
 import org.apache.kylin.engine.mr.common.MapReduceExecutable;
 import org.apache.kylin.job.JoinedFlatTable;
+import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -87,18 +89,18 @@ public class CollectModelStats extends CubingJob {
         DataModelDesc dataModelDesc = MetadataManager.getInstance(config).getDataModelDesc(modelName);
         IJoinedFlatTableDesc flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc);
         JobEngineConfig jobConf = new JobEngineConfig(config);
+
+        //Step1 Create Flat Table
         result.addTask(createStatsFlatTableStep(jobConf, flatTableDesc, result.getId()));
 
         String samplesOutPath = getOutputPath(config, result.getId()) + modelName;
-
         String samplesParam = "-model " + modelName + " -output " + samplesOutPath;
-
         MapReduceExecutable step1 = new MapReduceExecutable();
-
         step1.setName("Extract stats from model " + modelName);
         step1.setMapReduceJobClass(ModelStatsJob.class);
         step1.setMapReduceParams(samplesParam);
 
+        //Step2 Collect Stats
         result.addTask(step1);
 
         HadoopShellExecutable step2 = new HadoopShellExecutable();
@@ -108,6 +110,9 @@ public class CollectModelStats extends CubingJob {
         step2.setJobClass(ModelStatsUpdate.class);
         step2.setJobParams(samplesParam);
         result.addTask(step2);
+
+        //Step3 Delete Flat Table
+        result.addTask(deleteFlatTable(flatTableDesc.getTableName(), config));
 
         modelStats.setJodID(result.getId());
         modelStatsManager.saveModelStats(modelStats);
@@ -148,6 +153,20 @@ public class CollectModelStats extends CubingJob {
         step.setInitStatement(hiveInitBuf.toString());
         step.setCreateTableStatement(useDatabaseHql + dropTableHql + createTableHql + insertDataHqls);
         step.setName(ExecutableConstants.STEP_NAME_CREATE_FLAT_HIVE_TABLE);
+        return step;
+    }
+
+    private static ShellExecutable deleteFlatTable(String flatTableName, KylinConfig config) throws IOException {
+
+        ShellExecutable step = new ShellExecutable();
+        step.setName("Drop Intermediate Flat Table " + flatTableName);
+        HiveCmdBuilder hiveCmdBuilder = new HiveCmdBuilder();
+
+        StringBuilder createIntermediateTableHql = new StringBuilder();
+        createIntermediateTableHql.append("USE " + config.getHiveDatabaseForIntermediateTable() + ";\n");
+        createIntermediateTableHql.append("DROP TABLE IF EXISTS " + flatTableName + ";\n");
+        hiveCmdBuilder.addStatement(createIntermediateTableHql.toString());
+        step.setCmd(hiveCmdBuilder.build());
         return step;
     }
 
