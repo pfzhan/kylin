@@ -55,6 +55,8 @@ public class ParquetPageIndexWriter implements Closeable {
     private KapConfig kapConfig = KapConfig.getInstanceFromEnv();
     private final double spillThresholdMB = kapConfig.getParquetPageIndexSpillThresholdMB();
 
+    private long curOffset = 0;
+
     public ParquetPageIndexWriter(String[] columnNames, int[] columnLength, int[] cardinality, boolean[] onlyEQIndex, DataOutputStream outputStream) throws IOException {
         this(columnNames, columnLength, cardinality, onlyEQIndex, outputStream, true);
     }
@@ -83,6 +85,10 @@ public class ParquetPageIndexWriter implements Closeable {
         indexWriter = new ColumnIndexBundleWriter(columnSpecs, tempLocalDir);
     }
 
+    public long getCurOffset() {
+        return curOffset;
+    }
+
     public void write(byte[] rowKey, int pageId) {
         indexWriter.write(rowKey, 0, pageId);
         spillIfNeeded();
@@ -100,26 +106,33 @@ public class ParquetPageIndexWriter implements Closeable {
 
     @Override
     public void close() throws IOException {
+        closeWithoutStream();
+        outputStream.close();
+    }
+
+    public void closeWithoutStream() throws IOException {
         indexWriter.close();
         flush();
-        outputStream.close();
     }
 
     private void flush() throws IOException {
         try {
             // write offsets of each column
             outputStream.writeInt(columnNum);
+            curOffset += 4;
             long columnIndexOffset = 4 /* Int size */ + columnNum * 8 /* Long size */;
             outputStream.writeLong(columnIndexOffset);
+            curOffset += 8;
             for (int i = 0; i < columnNum - 1; i++) {
                 columnIndexOffset += indexWriter.getIndexSizeInBytes(i);
                 outputStream.writeLong(columnIndexOffset);
+                curOffset += 8;
             }
 
             // write index to output
             for (int i = 0; i < columnNum; i++) {
                 File indexFile = indexWriter.getColumnIndexFile(i);
-                IOUtils.copy(new FileInputStream(indexFile), outputStream);
+                curOffset += IOUtils.copy(new FileInputStream(indexFile), outputStream);
             }
         } finally {
             FileUtils.forceDelete(tempLocalDir);

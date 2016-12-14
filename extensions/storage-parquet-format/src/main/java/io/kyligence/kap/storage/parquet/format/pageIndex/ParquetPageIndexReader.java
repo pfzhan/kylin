@@ -39,8 +39,9 @@ public class ParquetPageIndexReader implements Closeable {
 
     private int lastestUsedColumn = -1;
 
-    public ParquetPageIndexReader(FSDataInputStream inputStream, int startOffset) throws IOException {
+    public ParquetPageIndexReader(FSDataInputStream inputStream, long startOffset) throws IOException {
         this.inputStream = inputStream;
+        inputStream.seek(startOffset);
         this.columnNum = inputStream.readInt();
         this.columnIndexReaders = new ColumnIndexReader[columnNum];
         this.startOffsets = new long[columnNum];
@@ -56,11 +57,14 @@ public class ParquetPageIndexReader implements Closeable {
 
     @Override
     public void close() throws IOException {
+        closeWithoutStream();
+        inputStream.close();
+    }
+
+    public void closeWithoutStream() throws IOException {
         for (ColumnIndexReader columnIndexReader : columnIndexReaders) {
             columnIndexReader.close();
         }
-
-        inputStream.close();
     }
 
     public ColumnIndexReader readColumnIndex(int col) {
