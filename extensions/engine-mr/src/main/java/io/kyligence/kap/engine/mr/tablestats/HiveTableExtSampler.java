@@ -44,11 +44,10 @@ import com.google.common.collect.Maps;
 public class HiveTableExtSampler implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    
+
     public static final int HASH_SEED = 2;
     public static final int SAMPLE_RAW_VALUE_NUMBER = 10;
-    public static final String DEFAULT_SAMPLE_RAW_VALUE = "KAP_DEFAULT_SAMPLE_VALUE";
-    public static final int DEFAULT_BUFFER_SIZE = 1024 * 1024; // 1 MB
+    public static final int DEFAULT_BUFFER_SIZE = 1024 * 1024 * 2; // 1 MB
     public static final String HLLC_DATATYPE = "hllc";
 
     final static Map<String, Class<?>> implementations = Maps.newHashMap();
@@ -101,7 +100,7 @@ public class HiveTableExtSampler implements Serializable {
 
         //raw value samples
         for (int i = 0; i < SAMPLE_RAW_VALUE_NUMBER; i++) {
-            sampleValues.put(String.valueOf(i), DEFAULT_SAMPLE_RAW_VALUE);
+            sampleValues.put(String.valueOf(i), "");
         }
 
         //hll(current) samples
@@ -253,7 +252,8 @@ public class HiveTableExtSampler implements Serializable {
         samplerCoder.decode(buffer, objects);
         int index = 0;
         for (Map.Entry<String, String> element : sampleValues.entrySet()) {
-            element.setValue(objects[index].toString());
+            if (null != objects[index])
+                element.setValue(objects[index].toString());
             index++;
         }
         HLLCounter = (HLLCounter) objects[index];
@@ -269,30 +269,55 @@ public class HiveTableExtSampler implements Serializable {
         return buf;
     }
 
+    public boolean isNullValue(String value) {
+        if (null == value || value.trim().equals("NULL")) {
+
+            long null_count = Long.parseLong(getNullCounter());
+            null_count++;
+            setNullCounter(String.valueOf(null_count));
+
+            return true;
+        }
+        return false;
+    }
+
+    public void sampleMaxLength(String value) {
+        if (getMaxLenValue() == null || value.getBytes().length > getMaxLenValue().getBytes().length) {
+            setMaxLenValue(value);
+        }
+    }
+
+    public void sampleMinLength(String value) {
+        if (getMinLenValue() == null || value.getBytes().length < getMinLenValue().getBytes().length) {
+            setMinLenValue(value);
+        }
+    }
+
     public void samples(String next, long counter) {
-
-        implementor.samples(next);
-
         if (counter % HASH_SEED == 0 && rawSampleIndex < SAMPLE_RAW_VALUE_NUMBER) {
             sampleValues.put(String.valueOf(rawSampleIndex), next);
             rawSampleIndex++;
         }
 
+        if (isNullValue(next))
+            return;
+
+        implementor.sampleMax(next);
+        implementor.sampleMin(next);
+
+        sampleMaxLength(next);
+        sampleMinLength(next);
+
         HLLCounter.add(next);
     }
 
-    public void samples(String[] values, long counter) {
-
-        String curValue = values[this.curIndex];
-
-        samples(curValue, counter);
-
+    public void samples(String[] values) {
         int i = 1;
-
         for (HLLCounter hllc : hllList) {
             hllc.add(values[curIndex] + "|" + values[curIndex + i]);
             i++;
         }
+        HLLCounter.add(values[curIndex]);
     }
 
     public void merge(HiveTableExtSampler another) {
@@ -300,21 +325,17 @@ public class HiveTableExtSampler implements Serializable {
         if (this == another)
             return;
 
-        if (getMax() == null || another.getMax().compareTo(getMax()) > 0) {
-            setMax(another.getMax());
-        }
+        if (another.getMax() != null)
+            implementor.sampleMax(another.getMax());
 
-        if (getMin() == null || another.getMin().compareTo(getMin()) < 0) {
-            setMin(another.getMin());
-        }
+        if (another.getMin() != null)
+            implementor.sampleMin(another.getMin());
 
-        if (getMaxLenValue() == null || another.getMaxLenValue().length() > getMaxLenValue().length()) {
-            setMaxLenValue(another.getMaxLenValue());
-        }
+        if (another.getMaxLenValue() != null)
+            sampleMaxLength(another.getMaxLenValue());
 
-        if (getMinLenValue() == null || another.getMinLenValue().length() < getMinLenValue().length()) {
-            setMinLenValue(another.getMinLenValue());
-        }
+        if (another.getMinLenValue() != null)
+            sampleMinLength(another.getMinLenValue());
 
         long cnt1 = Long.parseLong(getCounter());
         long cnt2 = Long.parseLong(another.getCounter());
@@ -384,133 +405,99 @@ public class HiveTableExtSampler implements Serializable {
     }
 
     public interface DataTypeImplementor {
-        public void samples(String value);
+        public void sampleMax(String value);
+
+        public void sampleMin(String value);
     }
 
-    public class BaseImplementor implements DataTypeImplementor {
-
-        @Override
-        public void samples(String value) {
-        }
-
-        public boolean isNullValue(String value) {
-            value = value.trim();
-            if (value.equals("NULL")) {
-                long null_count = Long.parseLong(getNullCounter());
-                null_count++;
-                setNullCounter(String.valueOf(null_count));
-                return true;
-            }
-            return false;
-        }
-
-        public void samplesMinMaxLengthValue(String value) {
-            if (getMaxLenValue() == null || value.getBytes().length > getMaxLenValue().getBytes().length) {
-                setMaxLenValue(value);
-            }
-
-            if (getMinLenValue() == null || value.getBytes().length < getMinLenValue().getBytes().length) {
-                setMinLenValue(value);
-            }
-        }
-    }
-
-    public class StringImplementor extends BaseImplementor {
+    public class StringImplementor implements DataTypeImplementor {
         public StringImplementor() {
         }
 
         @Override
-        public void samples(String value) {
-
-            if (isNullValue(value))
-                return;
-
+        public void sampleMax(String value) {
             if (getMax() == null || value.compareTo(getMax()) > 0) {
                 setMax(value);
             }
 
+        }
+
+        @Override
+        public void sampleMin(String value) {
             if (getMin() == null || value.compareTo(getMin()) < 0) {
                 setMin(value);
             }
-            samplesMinMaxLengthValue(value);
         }
     }
 
-    public class DoubleImplementor extends BaseImplementor {
+    public class DoubleImplementor implements DataTypeImplementor {
         public DoubleImplementor() {
         }
 
         @Override
-        public void samples(String value) {
-
-            if (isNullValue(value))
-                return;
+        public void sampleMax(String value) {
 
             if (getMax() == null || Double.parseDouble(value) > Double.parseDouble(getMax())) {
                 setMax(value);
             }
 
+        }
+
+        @Override
+        public void sampleMin(String value) {
             if (getMin() == null || Double.parseDouble(value) < Double.parseDouble(getMin())) {
                 setMin(value);
             }
-            samplesMinMaxLengthValue(value);
         }
     }
 
-    public class LongImplementor extends BaseImplementor {
+    public class LongImplementor implements DataTypeImplementor {
         public LongImplementor() {
         }
 
         @Override
-        public void samples(String value) {
-
-            if (isNullValue(value))
-                return;
-
+        public void sampleMax(String value) {
             if (getMax() == null || Long.parseLong(value) > Long.parseLong(getMax())) {
                 setMax(value);
             }
 
+        }
+
+        @Override
+        public void sampleMin(String value) {
             if (getMin() == null || Long.parseLong(value) < Long.parseLong(getMin())) {
                 setMin(value);
             }
-
-            samplesMinMaxLengthValue(value);
         }
     }
 
-    public class IntegerImplementor extends BaseImplementor {
+    public class IntegerImplementor implements DataTypeImplementor {
         public IntegerImplementor() {
         }
 
         @Override
-        public void samples(String value) {
-
-            if (isNullValue(value))
-                return;
-
+        public void sampleMax(String value) {
             if (getMax() == null || Integer.parseInt(value) > Integer.parseInt(getMax())) {
                 setMax(value);
             }
+        }
 
+        @Override
+
+        public void sampleMin(String value) {
             if (getMin() == null || Integer.parseInt(value) < Integer.parseInt(getMin())) {
                 setMin(value);
             }
 
-            samplesMinMaxLengthValue(value);
         }
     }
 
-    public class BigDecimalImplementor extends BaseImplementor {
+    public class BigDecimalImplementor implements DataTypeImplementor {
         public BigDecimalImplementor() {
         }
 
         @Override
-        public void samples(String value) {
-
-            if (isNullValue(value))
-                return;
-
+        public void sampleMax(String value) {
             if (getMax() == null) {
                 setMax(value);
             } else {
@@ -520,7 +507,10 @@ public class HiveTableExtSampler implements Serializable {
                     setMax(value);
                 }
             }
+        }
 
+        @Override
+        public void sampleMin(String value) {
             if (getMin() == null) {
                 setMin(value);
             } else {
@@ -530,7 +520,6 @@ public class HiveTableExtSampler implements Serializable {
                     setMin(value);
                 }
             }
-            samplesMinMaxLengthValue(value);
         }
     }
 
@@ -553,7 +542,6 @@ public class HiveTableExtSampler implements Serializable {
                 }
                 typeInstances[i] = DataType.getType(dataTypes[i]);
             }
-
             init(typeInstances);
         }
 

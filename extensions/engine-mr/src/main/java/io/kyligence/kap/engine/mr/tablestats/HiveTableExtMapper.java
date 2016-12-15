@@ -43,11 +43,9 @@ import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 
 public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, BytesWritable> {
-
     private Map<Integer, HiveTableExtSampler> samplerMap = new HashMap<>();
 
-    private int counter = 0;
-
+    private long counter = 0;
     private TableDesc tableDesc;
     private IMRInput.IMRTableInputFormat tableInputFormat;
 
@@ -75,8 +73,7 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
         String[] values = tableInputFormat.parseMapperInput(value);
         for (int m = 0; m < columns.length; m++) {
             String fieldValue = values[m];
-            if (fieldValue != null)
-                samplerMap.get(m).samples(fieldValue, counter);
+            samplerMap.get(m).samples(fieldValue, counter);
         }
         counter++;
     }

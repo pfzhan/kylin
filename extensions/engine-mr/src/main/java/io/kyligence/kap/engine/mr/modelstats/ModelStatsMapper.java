@@ -84,7 +84,7 @@ public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, Byt
         for (int m = 0; m < flatTableDesc.getAllColumns().size(); m++) {
             String fieldValue = values[m];
             if (fieldValue != null)
-                samplerMap.get(m).samples(values, counter);
+                samplerMap.get(m).samples(values);
         }
         counter++;
     }

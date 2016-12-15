@@ -111,7 +111,6 @@ public class HiveTableExtJob extends AbstractHadoopJob {
     private int decideReduceTasks(int columnCount) {
         if (columnCount > 30) {
             return 30;
-            //return (int) Math.sqrt(columnCount);
         }
         return columnCount;
     }

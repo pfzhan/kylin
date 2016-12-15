@@ -35,15 +35,31 @@ import java.util.Map;
 
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.mr.KylinReducer;
+import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
+import org.apache.kylin.engine.mr.common.BatchConstants;
+import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.TableDesc;
 
 public class HiveTableExtReducer extends KylinReducer<IntWritable, BytesWritable, IntWritable, BytesWritable> {
 
     private Map<Integer, HiveTableExtSampler> sampleMap = new HashMap<Integer, HiveTableExtSampler>();
+    private TableDesc tableDesc;
+    private Map<Integer, String> dataTypeMap = new HashMap<>();
 
     @Override
     protected void setup(Context context) throws IOException {
         super.bindCurrentConfiguration(context.getConfiguration());
+        KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
+
+        String tableName = context.getConfiguration().get(BatchConstants.CFG_TABLE_NAME);
+        tableDesc = MetadataManager.getInstance(config).getTableDesc(tableName);
+        ColumnDesc[] columns = tableDesc.getColumns();
+        for (int i = 0; i < columns.length; i++) {
+            dataTypeMap.put(i, columns[i].getType().getName());
+        }
     }
 
     @Override
@@ -52,6 +68,7 @@ public class HiveTableExtReducer extends KylinReducer<IntWritable, BytesWritable
         for (BytesWritable v : values) {
             ByteBuffer buffer = ByteBuffer.wrap(v.getBytes());
             HiveTableExtSampler sampler = new HiveTableExtSampler();
+            sampler.setDataType(dataTypeMap.get(skey));
             sampler.decode(buffer);
             if (!sampleMap.containsKey(skey))
                 sampleMap.put(skey, sampler);
