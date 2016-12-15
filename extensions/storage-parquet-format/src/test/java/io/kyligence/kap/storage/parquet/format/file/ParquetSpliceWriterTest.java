@@ -50,7 +50,7 @@ public class ParquetSpliceWriterTest extends AbstractParquetFormatTest {
         ParquetRawReader reader = new ParquetRawReader.Builder().setConf(conf).setPath(path).build();
         Map<String,String> keyValueMetadata = reader.getParquetMetadata().getFileMetaData().getKeyValueMetaData();
         for (int i = 0; i < ParquetConfig.PagesPerGroup; ++i) {
-            Assert.assertEquals("" + i + "," + (i + 1), keyValueMetadata.get(DivisionUtils.DivisionNamePrefix + i));
+            Assert.assertEquals("" + i + "," + (i + 1), keyValueMetadata.get(Utils.DivisionNamePrefix + i));
         }
         reader.close();
     }

@@ -64,7 +64,7 @@ import io.kyligence.kap.storage.parquet.format.file.typedwriter.TypeValuesWriter
 public class ParquetRawWriter {
     private static final Logger logger = LoggerFactory.getLogger(ParquetRawWriter.class);
 
-    private static final String INDEX_PREFIX = "Index-";
+    private static final String INDEX_PREFIX = "IndexV2-";
 
     private int rowsPerPage = ParquetConfig.RowsPerPage;
     private int pagesPerGroup = ParquetConfig.PagesPerGroup;
@@ -297,7 +297,7 @@ public class ParquetRawWriter {
      * @param pos file offset
      */
     private void addGlobalPageIndex(int group, int column, int page, long pos) {
-        indexMap.put(INDEX_PREFIX + page + "," + column , group + "," + String.valueOf(pos));
+        indexMap.put(INDEX_PREFIX + page + "," + column, group + "," + String.valueOf(pos));
     }
 
     private class PageBuffer {

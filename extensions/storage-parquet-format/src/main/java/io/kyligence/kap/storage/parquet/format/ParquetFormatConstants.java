@@ -35,6 +35,7 @@ public interface ParquetFormatConstants {
     String KYLIN_GT_MAX_LENGTH = "io.kylin.storage.parquet.scan.gtrecord.maxlength";
     String KYLIN_USE_INVERTED_INDEX = "io.kylin.storage.parquet.scan.useii";
     String KYLIN_TARBALL_READ_STRATEGY = "io.kylin.storage.parquet.read.strategy";
+    String KYLIN_REQUIRED_CUBOIDS = "io.kylin.storage.parquet.read.required-cuboids";
 
     int KYLIN_PARQUET_TARBALL_HEADER_SIZE = Longs.BYTES;
 }

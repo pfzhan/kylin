@@ -38,6 +38,9 @@ import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
 public abstract class ParquetOrderedFileWriter extends RecordWriter<Text, Text> {
     private static final Logger logger = LoggerFactory.getLogger(ParquetOrderedFileWriter.class);
 
+    /**
+     * Init writer is always null, init it before use
+     */
     protected ParquetRawWriter writer = null;
 
     /**

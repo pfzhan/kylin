@@ -24,10 +24,7 @@
 
 package io.kyligence.kap.storage.parquet.format.file;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +36,6 @@ import org.apache.parquet.format.converter.ParquetMetadataConverter;
 import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
-import org.roaringbitmap.buffer.MutableRoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +43,6 @@ public class ParquetBundleReader {
     public static final Logger logger = LoggerFactory.getLogger(ParquetBundleReader.class);
 
     private List<ParquetReaderState> readerStates;
-
 
     public ParquetBundleReader(Configuration configuration, Path path, ImmutableRoaringBitmap columns, ImmutableRoaringBitmap pageBitset, long fileOffset, ParquetMetadata metadata) throws IOException {
         readerStates = new ArrayList<>(columns.getCardinality());
@@ -158,28 +153,12 @@ public class ParquetBundleReader {
             }
             if (columnBitset == null) {
                 int columnCnt = new ParquetRawReader.Builder().setConf(conf).setPath(path).build().getColumnCount();
-                columnBitset = createBitset(columnCnt);
+                columnBitset = Utils.createBitset(columnCnt);
             }
 
             ParquetBundleReader result = new ParquetBundleReader(conf, path, columnBitset, pageBitset, fileOffset, null);
 
             return result;
-        }
-
-        private static ImmutableRoaringBitmap createBitset(int total) throws IOException {
-            MutableRoaringBitmap mBitmap = new MutableRoaringBitmap();
-            for (int i = 0; i < total; ++i) {
-                mBitmap.add(i);
-            }
-
-            ImmutableRoaringBitmap iBitmap = null;
-            try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); DataOutputStream dos = new DataOutputStream(baos);) {
-                mBitmap.serialize(dos);
-                dos.flush();
-                iBitmap = new ImmutableRoaringBitmap(ByteBuffer.wrap(baos.toByteArray()));
-            }
-
-            return iBitmap;
         }
 
         /* This function is for test */

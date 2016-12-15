@@ -41,7 +41,7 @@ public class ByteArrayListWritable implements WritableComparable<ByteArrayListWr
         this.value = value;
     }
 
-    public ByteArrayListWritable(byte[][] value) {
+    public ByteArrayListWritable(byte[]... value) {
         int len = value.length;
         this.value = new ArrayList<>(len);
         for (int i = 0; i < len; ++i) {

@@ -25,11 +25,11 @@
 package io.kyligence.kap.storage.parquet.format;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
@@ -38,16 +38,20 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.parquet.io.api.Binary;
 
-import io.kyligence.kap.storage.parquet.format.file.GeneralValuesReader;
-import io.kyligence.kap.storage.parquet.format.file.ParquetColumnReader;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.storage.parquet.format.datatype.ByteArrayListWritable;
+import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
+import io.kyligence.kap.storage.parquet.format.file.ParquetSpliceReader;
+import io.kyligence.kap.storage.parquet.format.file.Utils;
 
 /**
  * Used to build parquet inverted index
  * @param <K> Dimension values
  * @param <V> Page Id
  */
-public class ParquetCubePageInputFormat<K, V> extends FileInputFormat<K, V> {
-    public org.apache.hadoop.mapreduce.RecordReader<K, V> createRecordReader(org.apache.hadoop.mapreduce.InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
+public class ParquetCubeSplicePageInputFormat<K, V> extends FileInputFormat<K, V> {
+    public RecordReader<K, V> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
         return new ParquetCubePageReader<>();
     }
 
@@ -59,9 +63,12 @@ public class ParquetCubePageInputFormat<K, V> extends FileInputFormat<K, V> {
     public static class ParquetCubePageReader<K, V> extends RecordReader<K, V> {
         protected Configuration conf;
 
-        private Path shardPath;
-        private ParquetColumnReader reader = null;
-        private GeneralValuesReader valuesReader = null;
+        private Path path;
+        private ParquetSpliceReader spliceReader = null;
+        private ParquetBundleReader reader = null;
+        private List<String> divs;
+        private int divIndex = 0;
+        private String curDiv;
 
         private K key;
         private V val;
@@ -70,30 +77,43 @@ public class ParquetCubePageInputFormat<K, V> extends FileInputFormat<K, V> {
         public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
             FileSplit fileSplit = (FileSplit) split;
             conf = context.getConfiguration();
-            shardPath = fileSplit.getPath();
+            path = fileSplit.getPath();
 
             // init with first shard file
-            reader = new ParquetColumnReader.Builder().setConf(conf).setPath(shardPath).build();
-            valuesReader = reader.getNextValuesReader();
+            spliceReader = new ParquetSpliceReader.Builder().setConf(conf).setPath(path).setColumnsBitmap(Utils.createBitset(1)).build();
+            divs = Lists.newArrayList(spliceReader.getDivs());
         }
 
         @Override
         public boolean nextKeyValue() throws IOException, InterruptedException {
-            Binary keyBytes = valuesReader.readBytes();
-            if (keyBytes == null) {
-                valuesReader = reader.getNextValuesReader();
-                if (valuesReader == null) {
-                    return false;
-                }
-                keyBytes = valuesReader.readBytes();
-                if (keyBytes == null) {
-                    return false;
-                }
+            if (null == reader && !getNextReader()) {
+                return false;
             }
 
-            key = (K) new Text(keyBytes.getBytes());
+            Binary keyBytes = (Binary) reader.read().get(0);
+            if (keyBytes == null) {
+                if (!getNextReader()) {
+                    return false;
+                }
+                return nextKeyValue();
+            }
+
+            // Key = curDiv + origin key
+            key = (K) new ByteArrayListWritable(curDiv.getBytes(), keyBytes.getBytes());
             val = (V) new IntWritable(reader.getPageIndex());
             return true;
+        }
+
+        private boolean getNextReader() throws IOException {
+            if (divIndex < divs.size()) {
+                if (reader != null) {
+                    reader.close();
+                }
+                curDiv = divs.get(divIndex++);
+                reader = spliceReader.getDivReader(curDiv);
+                return true;
+            }
+            return false;
         }
 
         @Override

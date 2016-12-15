@@ -24,25 +24,20 @@
 
 package io.kyligence.kap.storage.parquet.format.file;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.List;
 
-import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.util.BytesUtil;
 import org.apache.parquet.io.api.Binary;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
 import org.junit.After;
 import org.junit.Before;
-import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
-import org.roaringbitmap.buffer.MutableRoaringBitmap;
+
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 
@@ -83,8 +78,8 @@ public abstract class AbstractParquetFormatTest extends LocalFileMetadataTestCas
         for (int i = 0; i < rowCnt; ++i) {
             List<Object> row = Lists.newArrayList();
             row.add(Binary.fromConstantByteArray(new Integer(i).toString().getBytes()));
-            row.add(Binary.fromConstantByteArray(new byte[] {1}));
-            row.add(Binary.fromConstantByteArray(new byte[] {2}));
+            row.add(Binary.fromConstantByteArray(new byte[] { 1 }));
+            row.add(Binary.fromConstantByteArray(new byte[] { 2 }));
             writer.writeRow(row);
         }
         writer.close();
@@ -101,23 +96,4 @@ public abstract class AbstractParquetFormatTest extends LocalFileMetadataTestCas
         }
     }
 
-    protected static ImmutableRoaringBitmap createBitset(int begin, int end) throws IOException {
-        MutableRoaringBitmap mBitmap = new MutableRoaringBitmap();
-        for (int i = begin; i < end; ++i) {
-            mBitmap.add(i);
-        }
-
-        ImmutableRoaringBitmap iBitmap;
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); DataOutputStream dos = new DataOutputStream(baos);) {
-            mBitmap.serialize(dos);
-            dos.flush();
-            iBitmap = new ImmutableRoaringBitmap(ByteBuffer.wrap(baos.toByteArray()));
-        }
-
-        return iBitmap;
-    }
-
-    protected static ImmutableRoaringBitmap createBitset(int total) throws IOException {
-        return createBitset(0, total);
-    }
 }

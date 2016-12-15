@@ -47,6 +47,7 @@ public class ParquetSpliceWriter {
     private String curDiv;
     private int curDivPageOffset;
     private Map<String, Pair<Integer, Integer>> divCache;
+    private boolean startedDiv = false;
 
     public ParquetSpliceWriter(Configuration conf, // hadoop configuration
             MessageType schema, // parquet file row schema
@@ -71,11 +72,16 @@ public class ParquetSpliceWriter {
     }
 
     public void startDiv(String div) {
+        startedDiv = true;
         curDiv = div;
         curDivPageOffset = writer.getPageCntSoFar();
     }
 
     public void endDiv() throws IOException {
+        if (!startedDiv) {
+            return;
+        }
+        startedDiv = false;
         writer.flush();
         divCache.put(curDiv, new ImmutablePair<>(curDivPageOffset, writer.getPageCntSoFar()));
     }
@@ -83,7 +89,7 @@ public class ParquetSpliceWriter {
     public void close() throws IOException {
         // always end the latest div on close
         endDiv();
-        writer.close(DivisionUtils.transferDivision(divCache));
+        writer.close(Utils.transferDivision(divCache));
     }
 
     public static class Builder {

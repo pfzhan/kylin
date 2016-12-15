@@ -24,14 +24,20 @@
 
 package io.kyligence.kap.storage.parquet.format.file;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Map;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
+import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
 import com.google.common.collect.Maps;
 
-public class DivisionUtils {
+public class Utils {
     public static final String DivisionNamePrefix = "div-";
 
     public static Map<String, String> transferDivision(Map<String, Pair<Integer, Integer>> divCache) {
@@ -53,5 +59,25 @@ public class DivisionUtils {
         }
 
         return result;
+    }
+
+    public static ImmutableRoaringBitmap createBitset(int begin, int end) throws IOException {
+        MutableRoaringBitmap mBitmap = new MutableRoaringBitmap();
+        for (int i = begin; i < end; ++i) {
+            mBitmap.add(i);
+        }
+
+        ImmutableRoaringBitmap iBitmap;
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); DataOutputStream dos = new DataOutputStream(baos);) {
+            mBitmap.serialize(dos);
+            dos.flush();
+            iBitmap = new ImmutableRoaringBitmap(ByteBuffer.wrap(baos.toByteArray()));
+        }
+
+        return iBitmap;
+    }
+
+    public static ImmutableRoaringBitmap createBitset(int total) throws IOException {
+        return createBitset(0, total);
     }
 }

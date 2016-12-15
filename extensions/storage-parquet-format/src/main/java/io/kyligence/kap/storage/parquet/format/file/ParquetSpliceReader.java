@@ -24,10 +24,7 @@
 
 package io.kyligence.kap.storage.parquet.format.file;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Set;
 
@@ -38,7 +35,6 @@ import org.apache.parquet.format.converter.ParquetMetadataConverter;
 import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
-import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
 public class ParquetSpliceReader {
     private long fileOffset;
@@ -55,7 +51,7 @@ public class ParquetSpliceReader {
         this.columns = columns;
         this.fileOffset = fileOffset;
         metadata = ParquetFileReader.readFooter(configuration, path, ParquetMetadataConverter.NO_FILTER);
-        divCache = DivisionUtils.filterDivision(metadata.getFileMetaData().getKeyValueMetaData());
+        divCache = Utils.filterDivision(metadata.getFileMetaData().getKeyValueMetaData());
     }
 
     public Set<String> getDivs() {
@@ -74,7 +70,7 @@ public class ParquetSpliceReader {
         Pair<Integer, Integer> range = divCache.get(div);
         range.getLeft();
         range.getRight();
-        return new ParquetBundleReader(configuration, path, columns, Builder.createBitset(range.getLeft(), range.getRight()), fileOffset, metadata);
+        return new ParquetBundleReader(configuration, path, columns, Utils.createBitset(range.getLeft(), range.getRight()), fileOffset, metadata);
     }
 
     public static class Builder {
@@ -119,31 +115,11 @@ public class ParquetSpliceReader {
             }
             if (columnBitset == null) {
                 int columnCnt = new ParquetRawReader.Builder().setConf(conf).setPath(path).build().getColumnCount();
-                columnBitset = createBitset(columnCnt);
+                columnBitset = Utils.createBitset(columnCnt);
             }
 
             return new ParquetSpliceReader(conf, path, columnBitset, fileOffset);
 
-        }
-
-        private static ImmutableRoaringBitmap createBitset(int begin, int end) throws IOException {
-            MutableRoaringBitmap mBitmap = new MutableRoaringBitmap();
-            for (int i = begin; i < end; ++i) {
-                mBitmap.add(i);
-            }
-
-            ImmutableRoaringBitmap iBitmap;
-            try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); DataOutputStream dos = new DataOutputStream(baos)) {
-                mBitmap.serialize(dos);
-                dos.flush();
-                iBitmap = new ImmutableRoaringBitmap(ByteBuffer.wrap(baos.toByteArray()));
-            }
-
-            return iBitmap;
-        }
-
-        private static ImmutableRoaringBitmap createBitset(int total) throws IOException {
-            return createBitset(0, total);
         }
     }
 }

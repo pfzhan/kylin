@@ -45,7 +45,7 @@ public class ParquetBundleReaderTest extends AbstractParquetFormatTest {
     public void testReadInBundle() throws Exception {
         writeRows(groupSize - 1);
 
-        ImmutableRoaringBitmap bitset = createBitset(10);
+        ImmutableRoaringBitmap bitset = Utils.createBitset(10);
         bitset = deserialize(serialize(bitset));
 
         ParquetBundleReader bundleReader = new ParquetBundleReader.Builder().setPath(path).setConf(new Configuration()).setPageBitset(bitset).build();
