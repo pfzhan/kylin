@@ -53,7 +53,7 @@ import org.apache.kylin.job.execution.ExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.storage.parquet.format.ParquetFileOutputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetCubeOutputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 
 public class KapInMemCuboidJob extends AbstractHadoopJob {
@@ -142,7 +142,7 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
             job.setNumReduceTasks(reduceNum);
 
             // the cuboid file and KV class must be compatible with 0.7 version for smooth upgrade
-            job.setOutputFormatClass(ParquetFileOutputFormat.class);
+            job.setOutputFormatClass(ParquetCubeOutputFormat.class);
             job.setOutputKeyClass(Text.class);
             job.setOutputValueClass(Text.class);
 

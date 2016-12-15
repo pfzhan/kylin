@@ -43,7 +43,6 @@ import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
-import io.kyligence.kap.storage.parquet.format.ParquetTarballFileReader;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 
 public class SparkParquetVisit implements Serializable {
@@ -89,7 +88,7 @@ public class SparkParquetVisit implements Serializable {
         conf.set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, request.getKylinProperties()); //push down kylin config
         conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES, new String(this.request.getGtScanRequest().toByteArray(), "ISO-8859-1")); //so that ParquetRawInputFormat can use the scan request
         conf.set(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX, String.valueOf(request.getUseII())); //whether to use II
-        conf.set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileReader.ReadStrategy.COMPACT.toString()); //read fashion
+        conf.set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileInputFormat.ParquetTarballFileReader.ReadStrategy.COMPACT.toString()); //read fashion
 
         logger.info("Columnar path is " + parquetPath);
         logger.info("Required Measures: " + StringUtils.join(request.getParquetColumnsList(), ","));

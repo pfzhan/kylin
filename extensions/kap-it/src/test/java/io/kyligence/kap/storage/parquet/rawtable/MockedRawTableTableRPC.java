@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
+import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -52,7 +53,6 @@ import io.kyligence.kap.storage.parquet.cube.raw.RawTableSparkRPC;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkExecutorPreAggFunction;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableFileInputFormat;
-import io.kyligence.kap.storage.parquet.format.ParquetTarballFileReader;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 import scala.Tuple2;
 
@@ -87,7 +87,7 @@ public class MockedRawTableTableRPC extends RawTableSparkRPC {
         conf.set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, kylinConfig.getConfigAsString()); //push down kylin config
         conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES, new String(scanRequest.toByteArray(), "ISO-8859-1")); //so that ParquetRawInputFormat can use the scan request
         conf.set(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX, String.valueOf(true)); //whether to use II
-        conf.set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileReader.ReadStrategy.COMPACT.toString()); //read fashion
+        conf.set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileInputFormat.ParquetTarballFileReader.ReadStrategy.COMPACT.toString()); //read fashion
 
         Job job = Job.getInstance(conf);
         FileInputFormat.setInputPaths(job, dataFolder);

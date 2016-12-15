@@ -56,7 +56,7 @@ import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
-import io.kyligence.kap.storage.parquet.format.ParquetRawTableMergeInputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetRawTableInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableOutputFormat;
 
 public class KapMergeRawTableJob extends AbstractHadoopJob {
@@ -110,7 +110,7 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
             FileOutputFormat.setOutputPath(job, output);
 
             // Mapper
-            job.setInputFormatClass(ParquetRawTableMergeInputFormat.class);
+            job.setInputFormatClass(ParquetRawTableInputFormat.class);
             job.setMapperClass(KapMergeRawTableMapper.class);
             job.setMapOutputKeyClass(Text.class);
             job.setMapOutputValueClass(Text.class);

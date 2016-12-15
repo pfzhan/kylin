@@ -26,27 +26,28 @@ package io.kyligence.kap.storage.parquet.format;
 
 import java.io.IOException;
 
+import io.kyligence.kap.storage.parquet.format.file.GeneralValuesReader;
+import io.kyligence.kap.storage.parquet.format.file.ParquetColumnReader;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.parquet.io.api.Binary;
 
 /**
- * used to tarball parquet file and index file
+ * Used to build parquet inverted index
+ * @param <K> Dimension values
+ * @param <V> Page Id
  */
-public class ParquetWithIndexFileInputFormat extends FileInputFormat<IntWritable, byte[]> {
-    @Override
-    public RecordReader createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
-        return new ParquetWithIndexFileReader();
+public class ParquetCubePageInputFormat<K, V> extends FileInputFormat<K, V> {
+    public org.apache.hadoop.mapreduce.RecordReader<K, V> createRecordReader(org.apache.hadoop.mapreduce.InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
+        return new ParquetCubePageReader<>();
     }
 
     @Override
@@ -54,70 +55,54 @@ public class ParquetWithIndexFileInputFormat extends FileInputFormat<IntWritable
         return false;
     }
 
-    public static class ParquetWithIndexFileReader extends RecordReader<IntWritable, byte[]> {
-
-        protected static final Logger logger = LoggerFactory.getLogger(ParquetWithIndexFileReader.class);
-
+    public static class ParquetCubePageReader<K, V> extends RecordReader<K, V> {
         protected Configuration conf;
 
-        private FSDataInputStream shardIS;
-        private FSDataInputStream shardIndexIS;
+        private Path shardPath;
+        private ParquetColumnReader reader = null;
+        private GeneralValuesReader valuesReader = null;
 
-        private IntWritable key = new IntWritable(0);
-        private byte[] val;
+        private K key;
+        private V val;
 
         @Override
         public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
             FileSplit fileSplit = (FileSplit) split;
             conf = context.getConfiguration();
-            Path shardPath = fileSplit.getPath();
-            String shardIndexPathString = shardPath.toString().replace(".parquet", ".parquet.inv");
-            Path shardIndexPath = new Path(shardIndexPathString);
-            val = new byte[128 << 10];
+            Path path = fileSplit.getPath();
+            shardPath = path;
 
-            shardIS = FileSystem.get(conf).open(shardPath);
-            shardIndexIS = FileSystem.get(conf).open(shardIndexPath);
+            // init with first shard file
+            reader = new ParquetColumnReader.Builder().setConf(conf).setPath(shardPath).build();
+            valuesReader = reader.getNextValuesReader();
         }
 
         @Override
         public boolean nextKeyValue() throws IOException, InterruptedException {
-            if (shardIndexIS != null) {
-                int a = shardIndexIS.read(val, 0, val.length);//An attempt is made to read  as many as <code>len</code> bytes, but a smaller number may be read,
-
-                if (a < 0) {
-                    logger.info("closing shardIndexIS");
-                    shardIndexIS.close();
-                    shardIndexIS = null;
-                    //go on to shardIS
-                } else {
-                    key.set(a);
-                    return true;
+            Binary keyBytes = valuesReader.readBytes();
+            if (keyBytes == null) {
+                valuesReader = reader.getNextValuesReader();
+                if (valuesReader == null) {
+                    return false;
+                }
+                keyBytes = valuesReader.readBytes();
+                if (keyBytes == null) {
+                    return false;
                 }
             }
 
-            if (shardIS != null) {
-                int b = shardIS.read(val, 0, val.length);
-
-                if (b < 0) {
-                    logger.info("closing shardIS");
-                    shardIS.close();
-                    shardIS = null;
-                } else {
-                    key.set(b);
-                    return true;
-                }
-            }
-
-            return false;
+            key = (K) new Text(keyBytes.getBytes());
+            val = (V) new IntWritable(reader.getPageIndex());
+            return true;
         }
 
         @Override
-        public IntWritable getCurrentKey() throws IOException, InterruptedException {
+        public K getCurrentKey() throws IOException, InterruptedException {
             return key;
         }
 
         @Override
-        public byte[] getCurrentValue() throws IOException, InterruptedException {
+        public V getCurrentValue() throws IOException, InterruptedException {
             return val;
         }
 
@@ -128,6 +113,7 @@ public class ParquetWithIndexFileInputFormat extends FileInputFormat<IntWritable
 
         @Override
         public void close() throws IOException {
+            reader.close();
         }
     }
 }

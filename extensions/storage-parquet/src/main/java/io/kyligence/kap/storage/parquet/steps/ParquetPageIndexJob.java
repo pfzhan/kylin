@@ -44,7 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.storage.parquet.format.EmptyOutputFormat;
-import io.kyligence.kap.storage.parquet.format.ParquetPageInputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetCubePageInputFormat;
 
 public class ParquetPageIndexJob extends AbstractHadoopJob {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetPageIndexJob.class);
@@ -131,6 +131,6 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
     }
 
     protected void setInputFormatClass(Job job) {
-        job.setInputFormatClass(ParquetPageInputFormat.class);
+        job.setInputFormatClass(ParquetCubePageInputFormat.class);
     }
 }

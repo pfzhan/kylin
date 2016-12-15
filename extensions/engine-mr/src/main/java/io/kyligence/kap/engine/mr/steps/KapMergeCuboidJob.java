@@ -39,10 +39,9 @@ import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.steps.CuboidReducer;
 import org.apache.kylin.engine.mr.steps.LayerReduerNumSizing;
 
-import io.kyligence.kap.storage.parquet.format.ParquetFileOutputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetCubeOutputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
-import io.kyligence.kap.storage.parquet.format.ParquetTarballFileReader;
 
 public class KapMergeCuboidJob extends KapCuboidJob {
     private boolean skipped = false;
@@ -92,14 +91,14 @@ public class KapMergeCuboidJob extends KapCuboidJob {
 
             // Mapper
             job.setInputFormatClass(ParquetTarballFileInputFormat.class);
-            job.getConfiguration().set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileReader.ReadStrategy.KV.toString());
+            job.getConfiguration().set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileInputFormat.ParquetTarballFileReader.ReadStrategy.KV.toString());
             job.setMapperClass(KapMergeCuboidMapper.class);
             job.setMapOutputKeyClass(Text.class);
             job.setMapOutputValueClass(Text.class);
             job.setPartitionerClass(ShardCuboidPartitioner.class);
 
             job.setReducerClass(CuboidReducer.class);
-            job.setOutputFormatClass(ParquetFileOutputFormat.class);
+            job.setOutputFormatClass(ParquetCubeOutputFormat.class);
             job.setOutputKeyClass(Text.class);
             job.setOutputValueClass(Text.class);
 

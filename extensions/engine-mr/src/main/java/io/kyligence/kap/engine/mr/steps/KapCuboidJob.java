@@ -49,8 +49,8 @@ import org.apache.kylin.job.execution.ExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.storage.parquet.format.ParquetFileInputFormat;
-import io.kyligence.kap.storage.parquet.format.ParquetFileOutputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetCubeInputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetCubeOutputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 
 public class KapCuboidJob extends AbstractHadoopJob {
@@ -132,7 +132,7 @@ public class KapCuboidJob extends AbstractHadoopJob {
 
             // Reducer
             job.setReducerClass(CuboidReducer.class);
-            job.setOutputFormatClass(ParquetFileOutputFormat.class);
+            job.setOutputFormatClass(ParquetCubeOutputFormat.class);
             job.setOutputKeyClass(Text.class);
             job.setOutputValueClass(Text.class);
 
@@ -183,7 +183,7 @@ public class KapCuboidJob extends AbstractHadoopJob {
             } else {
                 // default intput is parquet file
                 int numFiles = ParquertMRJobUtils.addParquetInputFile(job, new Path(input));
-                job.setInputFormatClass(ParquetFileInputFormat.class);
+                job.setInputFormatClass(ParquetCubeInputFormat.class);
                 return numFiles;
             }
         }

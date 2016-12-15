@@ -30,6 +30,7 @@ import java.util.Iterator;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.util.ByteArray;
@@ -49,8 +50,7 @@ import com.google.common.collect.Iterators;
 
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner4Cube;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner4Raw;
-import io.kyligence.kap.storage.parquet.format.ParquetRawTableFileReader;
-import io.kyligence.kap.storage.parquet.format.ParquetTarballFileReader;
+import io.kyligence.kap.storage.parquet.format.ParquetRawTableFileInputFormat;
 import scala.Tuple2;
 
 public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tuple2<Text, Text>>, byte[]> {
@@ -87,11 +87,11 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
 
         IGTScanner scanner;
         if (RealizationType.CUBE.toString().equals(realizationType)) {
-            gtScanRequest = ParquetTarballFileReader.gtScanRequestThreadLocal.get();
+            gtScanRequest = ParquetTarballFileInputFormat.ParquetTarballFileReader.gtScanRequestThreadLocal.get();
             behavior = StorageSideBehavior.valueOf(gtScanRequest.getStorageBehavior());
             scanner = new ParquetBytesGTScanner4Cube(gtScanRequest.getInfo(), iterator, gtScanRequest, behavior.delayToggledOn());//in
         } else if (RealizationType.INVERTED_INDEX.toString().equals(realizationType)) {
-            gtScanRequest = ParquetRawTableFileReader.gtScanRequestThreadLocal.get();
+            gtScanRequest = ParquetRawTableFileInputFormat.ParquetRawTableFileReader.gtScanRequestThreadLocal.get();
             behavior = StorageSideBehavior.valueOf(gtScanRequest.getStorageBehavior());
             scanner = new ParquetBytesGTScanner4Raw(gtScanRequest.getInfo(), iterator, gtScanRequest, behavior.delayToggledOn());//in
         } else {
