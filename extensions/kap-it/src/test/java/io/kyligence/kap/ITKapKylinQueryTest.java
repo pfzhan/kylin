@@ -46,7 +46,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.raw.RawTableInstance;
 
-//@Ignore("KAPITKylinQueryTest is contained by KAPITCombinationTest")
+@Ignore("KAPITKylinQueryTest is contained by KAPITCombinationTest")
 public class ITKapKylinQueryTest extends ITKylinQueryTest {
 
     protected static boolean rawTableFirst = false;
@@ -248,7 +248,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         }
     }
 
-    //don't try to ignore this test, try to clean your "temp" folder
+    // don't try to ignore this test, try to clean your "temp" folder
     @Test
     public void testTempQuery() throws Exception {
         try {
@@ -269,4 +269,10 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         this.execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_raw", null, true);
     }
 
+    @Test
+    public void testSelectStarColumnCount() throws Exception {
+        // raw table contains 12 columns
+        execAndCompColumnCount("select * from test_kylin_fact limit 10", 12);
+        execAndCompColumnCount("select * from test_kylin_fact", 12);
+    }
 }
