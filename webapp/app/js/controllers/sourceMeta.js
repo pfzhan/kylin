@@ -382,12 +382,8 @@ KylinApp
           return;
         }
         loadingRequest.show();
-        TableService.unLoadHiveTable({tableName: tableNames, action: projectName}, {}, function (result) {
-          var removedTables = '';
-          angular.forEach(result['result.unload.success'], function (table) {
-            removedTables += table + ',';
-          })
-          TableExtService.unLoadHiveTable({tableName: removedTables, action: projectName}, {}, function (data) {
+        TableExtService.unLoadHiveTable({tableName: tableNames, action: projectName}, {}, function (result) {
+          TableService.unLoadHiveTable({tableName: tableNames, action: projectName}, {}, function (result) {
             var removedTableInfo = '';
             angular.forEach(result['result.unload.success'], function (table) {
               removedTableInfo += '\n' + table;
