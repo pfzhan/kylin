@@ -97,14 +97,10 @@ public class RawTableScanRangePlanner extends ScanRangePlannerBase {
         GTScanRequest scanRequest;
         boolean shouldSkip = this.shouldSkipSegment();
         if (!shouldSkip) {
-            GTScanRequestBuilder builder = new GTScanRequestBuilder().setInfo(gtInfo).setRanges(null).setDimensions(gtDimensions).//
+            scanRequest = new GTScanRequestBuilder().setInfo(gtInfo).setRanges(null).setDimensions(gtDimensions).//
                     setAggrGroupBy(gtAggrGroups).setAggrMetrics(gtAggrMetrics).setAggrMetricsFuncs(gtAggrFuncs).setFilterPushDown(gtFilter).//
-                    setAllowStorageAggregation(false);//no agg at raw table executors
-
-            if (context.getFinalPushDownLimit() != Integer.MAX_VALUE)
-                builder.setStoragePushDownLimit(context.getFinalPushDownLimit());
-
-            scanRequest = builder.createGTScanRequest();
+                    setAllowStorageAggregation(false).setAggCacheMemThreshold(rawSegment.getCubeSegment().getConfig().getQueryCoprocessorMemGB()).//
+                    setStoragePushDownLimit(context.getFinalPushDownLimit()).setStorageScanRowNumThreshold(context.getThreshold()).createGTScanRequest();
         } else {
             scanRequest = null;
         }

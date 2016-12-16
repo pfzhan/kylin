@@ -33,6 +33,7 @@ import javax.annotation.Nullable;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTRecord;
+import org.apache.kylin.gridtable.GTScanExceedThresholdException;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
 
@@ -44,6 +45,7 @@ public abstract class ParquetBytesGTScanner implements IGTScanner {
     private GTInfo info;
     private GTRecord temp;
     private ImmutableBitSet columns;
+    private int maxScanCount = Integer.MAX_VALUE;
     private boolean withDelay;
     private long counter = 0L;
 
@@ -52,6 +54,7 @@ public abstract class ParquetBytesGTScanner implements IGTScanner {
         this.info = info;
         this.temp = new GTRecord(info);
         this.columns = getParquetCoveredColumns(scanRequest);
+        this.maxScanCount = scanRequest.getStorageScanRowNumThreshold();
         this.withDelay = withDelay;
     }
 
@@ -75,7 +78,7 @@ public abstract class ParquetBytesGTScanner implements IGTScanner {
             @Nullable
             @Override
             public GTRecord apply(@Nullable ByteBuffer input) {
-                
+
                 //for test use
                 if (withDelay) {
                     try {
@@ -84,8 +87,11 @@ public abstract class ParquetBytesGTScanner implements IGTScanner {
                         e.printStackTrace();
                     }
                 }
-                
-                counter++;
+
+                if (++counter > maxScanCount) {
+                    throw new GTScanExceedThresholdException("Exceed scan threshold at " + counter + ", consider increasing kylin.query.memory-budget-bytes and kylin.query.scan-threshold");
+                }
+
                 temp.loadColumns(ParquetBytesGTScanner.this.columns, input);
                 return temp;
             }

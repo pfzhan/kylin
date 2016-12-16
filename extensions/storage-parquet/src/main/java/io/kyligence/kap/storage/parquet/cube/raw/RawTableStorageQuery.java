@@ -96,7 +96,6 @@ public class RawTableStorageQuery implements IStorageQuery {
         buildDimensionsAndMetrics(sqlDigest, dimensions, metrics);
 
         enableStorageLimitIfPossible(sqlDigest, sqlDigest.filter, context);
-        context.setFinalPushDownLimit(rawTableInstance);
 
         List<RawTableSegmentScanner> scanners = Lists.newArrayList();
         for (RawTableSegment rawTableSegment : rawTableInstance.getSegments(SegmentStatusEnum.READY)) {
@@ -121,9 +120,9 @@ public class RawTableStorageQuery implements IStorageQuery {
         boolean possible = true;
 
         boolean isRaw = sqlDigest.isRawQuery;
-        if (!isRaw) {
+        if (!isRaw && !sqlDigest.limitPrecedesAggr) {
             possible = false;
-            logger.info("Storage limit push down it's a non-raw query");
+            logger.info("Storage limit push down it's after aggregation");
         }
 
         boolean goodFilter = filter == null || TupleFilter.isEvaluableRecursively(filter);
@@ -139,8 +138,7 @@ public class RawTableStorageQuery implements IStorageQuery {
         }
 
         if (possible) {
-            logger.info("Enable limit " + context.getLimit());
-            context.enableLimit();
+            context.setFinalPushDownLimit(rawTableInstance);
         }
     }
 

@@ -59,25 +59,33 @@ public class ITKapLimitEnabledTest extends KylinTestBase {
             RemoveBlackoutRealizationsRule.whiteList.add("INVERTED_INDEX[name=test_kylin_cube_with_slr_empty]");
 
             runSQL(new File(getQueryFolderPrefix() + "src/test/resources/query/sql_limit/query01.sql"), false, false);
-            assertTrue(checkLimitEnabled());
             assertTrue(checkFinalPushDownLimit());
 
             runSQL(new File(getQueryFolderPrefix() + "src/test/resources/query/sql_limit/query02.sql"), false, false);
             //raw table cannot not enable limit for aggregated queries
-            assertFalse(checkLimitEnabled());
             assertFalse(checkFinalPushDownLimit());
+
+            //sql limit in kap query folder
+            runSQL(new File("src/test/resources/query/sql_limit/query01.sql"), false, false);
+            assertTrue(checkFinalPushDownLimit());
 
             RemoveBlackoutRealizationsRule.whiteList.remove("INVERTED_INDEX[name=test_kylin_cube_with_slr_empty]");
 
             RemoveBlackoutRealizationsRule.whiteList.add("CUBE[name=test_kylin_cube_with_slr_empty]");
 
             runSQL(new File(getQueryFolderPrefix() + "src/test/resources/query/sql_limit/query01.sql"), false, false);
-            assertTrue(checkLimitEnabled());
             assertTrue(checkFinalPushDownLimit());
 
             runSQL(new File(getQueryFolderPrefix() + "src/test/resources/query/sql_limit/query02.sql"), false, false);
-            assertTrue(checkLimitEnabled());
             assertTrue(checkFinalPushDownLimit());
+
+            try {
+                //sql limit in kap query folder
+                runSQL(new File("src/test/resources/query/sql_limit/query01.sql"), false, false);
+                assertTrue(false);
+            } catch (Exception exception) {
+                //expected
+            }
 
             RemoveBlackoutRealizationsRule.whiteList.remove("CUBE[name=test_kylin_cube_with_slr_empty]");
 
