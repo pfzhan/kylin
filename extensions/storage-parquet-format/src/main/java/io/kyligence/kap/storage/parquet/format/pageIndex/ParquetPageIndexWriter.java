@@ -109,10 +109,9 @@ public class ParquetPageIndexWriter implements Closeable {
         try {
             // write offsets of each column
             outputStream.writeInt(columnNum);
-            int columnIndexOffset = 4 /* Int size */ + columnNum * 8 /* Long size */;
+            long columnIndexOffset = 4 /* Int size */ + columnNum * 8 /* Long size */;
             outputStream.writeLong(columnIndexOffset);
             for (int i = 0; i < columnNum - 1; i++) {
-                long o1 = indexWriter.getIndexSizeInBytes(i);
                 columnIndexOffset += indexWriter.getIndexSizeInBytes(i);
                 outputStream.writeLong(columnIndexOffset);
             }
