@@ -31,6 +31,7 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.Reducer.Context;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.ToolRunner;
@@ -134,7 +135,7 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
             job.setMapOutputValueClass(ByteArrayWritable.class);
 
             // set partitioner
-            job.setPartitionerClass(ByteArrayShardCuboidPartitioner.class);
+            job.setPartitionerClass(getPartitioner());
 
             // set output
             job.setReducerClass(InMemCuboidReducer.class);
@@ -142,7 +143,7 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
             job.setNumReduceTasks(reduceNum);
 
             // the cuboid file and KV class must be compatible with 0.7 version for smooth upgrade
-            job.setOutputFormatClass(ParquetCubeOutputFormat.class);
+            job.setOutputFormatClass(getOutputFormat());
             job.setOutputKeyClass(Text.class);
             job.setOutputValueClass(Text.class);
 
@@ -158,7 +159,7 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
         }
     }
 
-    private String getWorkingDir(KylinConfig config, CubeInstance cube, CubeSegment cubeSegment) {
+    protected String getWorkingDir(KylinConfig config, CubeInstance cube, CubeSegment cubeSegment) {
         logger.info("get Hdfs Working Directory: " + config.getHdfsWorkingDirectory());
         return new StringBuffer(config.getHdfsWorkingDirectory()).append("parquet/").append(cube.getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
     }
@@ -186,6 +187,14 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
         logger.info("Having per reduce MB " + perReduceInputMB);
         logger.info("Setting " + Context.NUM_REDUCES + "=" + numReduceTasks);
         return numReduceTasks;
+    }
+
+    protected Class<? extends FileOutputFormat> getOutputFormat() {
+        return ParquetCubeOutputFormat.class;
+    }
+
+    protected Class<? extends Partitioner> getPartitioner() {
+        return ByteArrayShardCuboidPartitioner.class;
     }
 
     public static void main(String[] args) throws Exception {

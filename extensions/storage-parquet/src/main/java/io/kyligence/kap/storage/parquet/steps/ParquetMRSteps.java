@@ -357,49 +357,49 @@ public class ParquetMRSteps extends JobBuilderSupport {
         return result;
     }
 
-    private String getRawtableFuzzyIndexTmpFolderPath(CubeSegment cubeSegment) {
+    protected String getRawtableFuzzyIndexTmpFolderPath(CubeSegment cubeSegment) {
         return getRawTableFolderPath(cubeSegment) + "/" + RawtableFuzzyIndexTmpFolderPrefix;
     }
 
-    private String getRawtablePageIndexTmpFolderPath(CubeSegment cubeSegment) {
+    protected String getRawtablePageIndexTmpFolderPath(CubeSegment cubeSegment) {
         return getRawTableFolderPath(cubeSegment) + "/" + RawtablePageIndexTmpFolderPrefix;
     }
 
-    private String getRawtableTmpFolderPath(CubeSegment cubeSegment) {
+    protected String getRawtableTmpFolderPath(CubeSegment cubeSegment) {
         return getRawTableFolderPath(cubeSegment) + "/" + RawtableTmpFolderPrefix;
     }
 
-    private String getRawtableMergeTmpFolderPath(CubeSegment cubeSegment) {
+    protected String getRawtableMergeTmpFolderPath(CubeSegment cubeSegment) {
         return getRawTableFolderPath(cubeSegment) + "/" + RawtableMergeTmpFolderPrefix;
     }
 
-    private String getCubePageIndexTmpFolderPath(CubeSegment cubeSegment) {
+    protected String getCubePageIndexTmpFolderPath(CubeSegment cubeSegment) {
         return getCubeFolderPath(cubeSegment) + "/" + CubePageIndexTmpFolderPrefix;
     }
 
-    private String getCubeTarballTmpFolderPath(CubeSegment cubeSegment) {
+    protected String getCubeTarballTmpFolderPath(CubeSegment cubeSegment) {
         return getCubeFolderPath(cubeSegment) + "/" + CubeTarballTmpFolderPrefix;
     }
 
-    private String getCubeMergeTmpFolderPath(CubeSegment cubeSegment) {
+    protected String getCubeMergeTmpFolderPath(CubeSegment cubeSegment) {
         return getCubeFolderPath(cubeSegment) + "/" + CubeMergeTmpFolderPrefix;
     }
 
-    private String getRawTableFolderPath(CubeSegment cubeSegment) {
+    protected String getRawTableFolderPath(CubeSegment cubeSegment) {
         RawTableInstance instance = detectRawTable(cubeSegment);
         RawTableSegment rawSeg = instance.getSegmentById(cubeSegment.getUuid());
         return getRawTableFolderPath(rawSeg);
     }
 
-    private String getRawTableFolderPath(RawTableSegment rawSegment) {
+    protected String getRawTableFolderPath(RawTableSegment rawSegment) {
         return new StringBuffer(KapConfig.wrap(config.getConfig()).getParquetStoragePath()).append(rawSegment.getRawTableInstance().getUuid()).append("/").append(rawSegment.getUuid()).append("/").toString();
     }
 
-    private String getCubeFolderPath(CubeSegment cubeSegment) {
+    protected String getCubeFolderPath(CubeSegment cubeSegment) {
         return new StringBuffer(KapConfig.wrap(config.getConfig()).getParquetStoragePath()).append(cubeSegment.getCubeInstance().getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
     }
 
-    private RawTableInstance detectRawTable(CubeSegment cubeSegment) {
+    protected RawTableInstance detectRawTable(CubeSegment cubeSegment) {
         RawTableInstance rawInstance = RawTableManager.getInstance(cubeSegment.getConfig()).getRawTableInstance(cubeSegment.getRealization().getName());
         logger.info("Raw table is " + (rawInstance == null ? "not " : "") + "specified in this cubing job " + cubeSegment);
         return rawInstance;

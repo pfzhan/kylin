@@ -27,7 +27,6 @@ package io.kyligence.kap.engine.mr;
 import java.util.List;
 
 import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.engine.mr.BatchMergeJobBuilder2;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.IMROutput2;
 import org.apache.kylin.engine.mr.JobBuilderSupport;
@@ -49,7 +48,7 @@ import io.kyligence.kap.engine.mr.steps.UpdateRawTableInfoAfterMergeStep;
 
 public class KapBatchMergeJobBuilder extends JobBuilderSupport {
 
-    private static final Logger logger = LoggerFactory.getLogger(BatchMergeJobBuilder2.class);
+    private static final Logger logger = LoggerFactory.getLogger(KapBatchMergeJobBuilder.class);
 
     private final IMROutput2.IMRBatchMergeOutputSide2 outputSide;
 

@@ -29,7 +29,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.RowKeyDesc;
-import org.apache.kylin.engine.mr.BatchCubingJobBuilder2;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.IMRInput;
 import org.apache.kylin.engine.mr.IMROutput2;
@@ -55,17 +54,17 @@ import io.kyligence.kap.engine.mr.steps.UpdateRawTableInfoAfterBuildStep;
 
 public class KapBatchCubingJobBuilder extends JobBuilderSupport {
 
-    private static final Logger logger = LoggerFactory.getLogger(BatchCubingJobBuilder2.class);
+    private static final Logger logger = LoggerFactory.getLogger(KapBatchCubingJobBuilder.class);
 
     private final String LayeredCubeTmpFolderPrefix = "level-";
     private final String InmemCubeTmpFolderPrefix = "inmem";
-    private final IMRInput.IMRBatchCubingInputSide inputSide;
-    private final IMROutput2.IMRBatchCubingOutputSide2 outputSide;
+    protected final IMRInput.IMRBatchCubingInputSide inputSide;
+    protected final IMROutput2.IMRBatchCubingOutputSide2 outputSide;
 
     public KapBatchCubingJobBuilder(CubeSegment newSegment, String submitter) {
         super(newSegment, submitter);
         this.inputSide = MRUtil.getBatchCubingInputSide(seg);
-        this.outputSide = MRUtil.getBatchCubingOutputSide2((CubeSegment) seg);
+        this.outputSide = MRUtil.getBatchCubingOutputSide2(seg);
     }
 
     public CubingJob build() {

@@ -99,7 +99,15 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
 
             String cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
             String segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
-            String[] requiredCuboids = context.getConfiguration().get(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS).split(",");
+            String[] requiredCuboids;
+
+            // "All" for all divs
+            if (context.getConfiguration().get(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS).equals("All")) {
+                requiredCuboids = getAllCuboidsFromFile();
+            } else {
+                // <cuboid-id1>,<cuboid-id2>,...,<cuboid-idn>
+                requiredCuboids = context.getConfiguration().get(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS).split(",");
+            }
             logger.info("cubeName is " + cubeName + " and segmentID is " + segmentID);
             cubeInstance = CubeManager.getInstance(kylinConfig).getCube(cubeName);
             cubeSegment = cubeInstance.getSegmentById(segmentID);
@@ -109,8 +117,11 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
             filterDivs(requiredCuboids);
         }
 
-        private void filterDivs(String[] requiredCuboids) {
-            divs = Lists.newArrayList();
+        private String[] getAllCuboidsFromFile() {
+            return (String[]) Lists.newArrayList(getAllCuboidsMapFromFile().keySet()).toArray();
+        }
+
+        private Map<String, List<String>> getAllCuboidsMapFromFile() {
             Map<String, List<String>> cuboidDivMap = Maps.newHashMap();
             for (String d : spliceReader.getDivs()) {
                 String cuboid = String.valueOf(getCuboididFromDivgetCuboididFromDiv(d));
@@ -119,7 +130,12 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
                 }
                 cuboidDivMap.get(cuboid).add(d);
             }
+            return cuboidDivMap;
+        }
 
+        private void filterDivs(String[] requiredCuboids) {
+            divs = Lists.newArrayList();
+            Map<String, List<String>> cuboidDivMap = getAllCuboidsMapFromFile();
             for (String cuboid : requiredCuboids) {
                 if (cuboidDivMap.containsKey(cuboid)) {
                     divs.addAll(cuboidDivMap.get(cuboid));

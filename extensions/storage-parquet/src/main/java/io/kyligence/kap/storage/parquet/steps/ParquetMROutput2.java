@@ -41,10 +41,14 @@ public class ParquetMROutput2 implements IMROutput2 {
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(ParquetMROutput2.class);
 
+    protected ParquetMRSteps createParquetMRSteps(CubeSegment seg) {
+        return new ParquetMRSteps(seg);
+    }
+
     @Override
     public IMROutput2.IMRBatchCubingOutputSide2 getBatchCubingOutputSide(final CubeSegment seg) {
         return new IMROutput2.IMRBatchCubingOutputSide2() {
-            ParquetMRSteps steps = new ParquetMRSteps(seg);
+            ParquetMRSteps steps = createParquetMRSteps(seg);
             RawTableInstance raw = RawTableManager.getInstance(seg.getConfig()).getAccompanyRawTable(seg.getCubeInstance());
             boolean isRawTableEnable = (null != raw);
 
@@ -80,7 +84,7 @@ public class ParquetMROutput2 implements IMROutput2 {
     @Override
     public IMROutput2.IMRBatchMergeOutputSide2 getBatchMergeOutputSide(final CubeSegment seg) {
         return new IMROutput2.IMRBatchMergeOutputSide2() {
-            ParquetMRSteps steps = new ParquetMRSteps(seg);
+            ParquetMRSteps steps = createParquetMRSteps(seg);
             RawTableInstance raw = RawTableManager.getInstance(seg.getConfig()).getAccompanyRawTable(seg.getCubeInstance());
             boolean isRawTableEnable = (null != raw);
 
