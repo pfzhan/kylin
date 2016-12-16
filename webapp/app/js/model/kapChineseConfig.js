@@ -493,7 +493,7 @@ KylinApp.constant('kapChineseConfig', {
     tip_length_integer_v2:'支持范围区间为',
     needConfigRawTable:'配置Raw Table',
     noConfigRawTableInfo:'无Raw Table配置信息',
-    unSupportRawTable:'当前Cub配置符不支持Raw Table功能',
+    unSupportRawTable:'当前Cube配置符不支持Raw Table功能',
     cubeOfRawTable: 'Raw Table',
     rawtableASColumn:'列',
     rawtableASEncoding:'编码',
