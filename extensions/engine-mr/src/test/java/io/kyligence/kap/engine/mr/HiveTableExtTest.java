@@ -12,7 +12,7 @@ public class HiveTableExtTest extends TestCase {
     @Test
     public void testHiveSample() {
         String[] stringValues = { "I love China", "", "麒麟最牛逼啊", "USA", "what is your name", "yes, I like it", "true", "Dinner is perfect", "Not very good" };
-        String[] decimalValues = { "1.232323232434", "NULL", "3.23232323", "NULL", "-1.3232", "434.223232", "232.22323" };
+        String[] decimalValues = { "1.232323232434", "3.23232323", "-1.3232", "434.223232", "232.22323" };
         HiveTableExtSampler sampler = new HiveTableExtSampler();
         sampler.setDataType("varchar");
         sampler.setCounter("12");
@@ -43,7 +43,7 @@ public class HiveTableExtTest extends TestCase {
 
         assertEquals(sampler.getMax(), "434.223232");
         assertEquals(sampler.getMinLenValue().length(), 7);
-        assertEquals(sampler.getNullCounter(), "2");
+        assertEquals(sampler.getNullCounter(), "0");
         sampler.clean();
     }
 
