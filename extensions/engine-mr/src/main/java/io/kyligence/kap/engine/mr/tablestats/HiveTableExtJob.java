@@ -42,6 +42,7 @@ import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
 
 public class HiveTableExtJob extends AbstractHadoopJob {
     public static final String JOB_TITLE = "Kylin Hive Column Sample Job";
@@ -73,12 +74,17 @@ public class HiveTableExtJob extends AbstractHadoopJob {
 
         String table = getOptionValue(OPTION_TABLE);
         TableDesc tableDesc = MetadataManager.getInstance(kylinConfig).getTableDesc(table);
+        TableExtDesc tableExtDesc = MetadataManager.getInstance(kylinConfig).getTableExt(table);
+        String skipHeaderLineCount = tableExtDesc.getDataSourceProp().get("skip_header_line_count");
 
         job = Job.getInstance(conf, jobName);
 
         setJobClasspath(job, kylinConfig);
 
         job.getConfiguration().set(BatchConstants.CFG_TABLE_NAME, table);
+
+        if (null != skipHeaderLineCount)
+            job.getConfiguration().set("skip.header.line.count", skipHeaderLineCount);
 
         Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
         FileOutputFormat.setOutputPath(job, output);

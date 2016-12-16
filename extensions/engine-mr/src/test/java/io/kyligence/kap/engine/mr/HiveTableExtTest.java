@@ -15,12 +15,11 @@ public class HiveTableExtTest extends TestCase {
         String[] decimalValues = { "1.232323232434", "3.23232323", "-1.3232", "434.223232", "232.22323" };
         HiveTableExtSampler sampler = new HiveTableExtSampler();
         sampler.setDataType("varchar");
-        sampler.setCounter("12");
 
         for (int i = 0; i < stringValues.length; i++) {
             sampler.samples(stringValues[i], 1);
         }
-
+        sampler.sync(0);
         sampler.code();
         sampler.getBuffer().flip();
         sampler.decode(sampler.getBuffer());
@@ -37,6 +36,7 @@ public class HiveTableExtTest extends TestCase {
             sampler.samples(decimalValues[i], 0);
         }
 
+        sampler.sync(0);
         sampler.code();
         sampler.getBuffer().flip();
         sampler.decode(sampler.getBuffer());

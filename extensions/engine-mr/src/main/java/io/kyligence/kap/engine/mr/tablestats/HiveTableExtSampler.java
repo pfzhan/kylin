@@ -197,8 +197,9 @@ public class HiveTableExtSampler implements Serializable {
     }
 
     public void sync(long counter) {
+        implementor.sync();
         setNullCounter(String.valueOf(null_count));
-        this.sampleValues.put("counter", String.valueOf(counter));
+        setCounter(String.valueOf(counter));
     }
 
     public void clean() {
@@ -295,7 +296,7 @@ public class HiveTableExtSampler implements Serializable {
     }
 
     public void samples(String next, long counter) {
-        if (counter % HASH_SEED == 0 && rawSampleIndex < SAMPLE_RAW_VALUE_NUMBER) {
+        if (rawSampleIndex < SAMPLE_RAW_VALUE_NUMBER && counter % HASH_SEED == 0) {
             sampleValues.put(String.valueOf(rawSampleIndex), next);
             rawSampleIndex++;
         }
@@ -303,8 +304,9 @@ public class HiveTableExtSampler implements Serializable {
         if (isNullValue(next))
             return;
 
-        implementor.sampleMax(next);
-        implementor.sampleMin(next);
+        implementor.accept(next);
+        implementor.sampleMax();
+        implementor.sampleMin();
 
         sampleMaxLength(next);
         sampleMinLength(next);
@@ -326,11 +328,17 @@ public class HiveTableExtSampler implements Serializable {
         if (this == another)
             return;
 
-        if (another.getMax() != null)
-            implementor.sampleMax(another.getMax());
+        if (another.getMax() != null) {
+            implementor.accept(another.getMax());
+            implementor.sampleMax();
+        }
 
-        if (another.getMin() != null)
-            implementor.sampleMin(another.getMin());
+        if (another.getMin() != null) {
+            implementor.accept(another.getMin());
+            implementor.sampleMin();
+        }
+
+        implementor.sync();
 
         if (another.getMaxLenValue() != null)
             sampleMaxLength(another.getMaxLenValue());
@@ -338,14 +346,14 @@ public class HiveTableExtSampler implements Serializable {
         if (another.getMinLenValue() != null)
             sampleMinLength(another.getMinLenValue());
 
-        long cnt1 = Long.parseLong(getCounter());
-        long cnt2 = Long.parseLong(another.getCounter());
-        setCounter(String.valueOf(cnt1 + cnt2));
+        setCounter(String.valueOf(Long.parseLong(getCounter()) + Long.parseLong(another.getCounter())));
+        setNullCounter(String.valueOf(Long.parseLong(getNullCounter()) + Long.parseLong(another.getNullCounter())));
 
         Random rand = new Random();
-        for (int i = 0; i < SAMPLE_RAW_VALUE_NUMBER; i++) {
-            if (rand.nextBoolean())
+        if (rand.nextBoolean()) {
+            for (int i = 0; i < SAMPLE_RAW_VALUE_NUMBER; i++) {
                 setRawSampleValue(String.valueOf(i), another.getRawSampleValue(String.valueOf(i)));
+            }
         }
 
         HLLCounter.merge(another.getHLLCounter());
@@ -406,117 +414,201 @@ public class HiveTableExtSampler implements Serializable {
     }
 
     public interface DataTypeImplementor {
-        void sampleMax(String value);
-        void sampleMin(String value);
+
+        public void accept(String value);
+
+        public void sampleMax();
+
+        public void sampleMin();
+
+        public void sync();
     }
 
     public class StringImplementor implements DataTypeImplementor {
+        private String max = null;
+        private String min = null;
+        private String current;
+
         public StringImplementor() {
         }
 
         @Override
-        public void sampleMax(String value) {
-            if (getMax() == null || value.compareTo(getMax()) > 0) {
-                setMax(value);
+        public void accept(String value) {
+            this.current = value;
+        }
+
+        @Override
+        public void sampleMax() {
+            if (max == null || current.compareTo(max) > 0) {
+                max = current;
             }
         }
 
         @Override
-        public void sampleMin(String value) {
-            if (getMin() == null || value.compareTo(getMin()) < 0) {
-                setMin(value);
+        public void sampleMin() {
+            if (min == null || current.compareTo(min) < 0) {
+                min = current;
             }
+        }
+
+        @Override
+        public void sync() {
+            setMax(max);
+            setMin(min);
         }
     }
 
     public class DoubleImplementor implements DataTypeImplementor {
+        private Double max = null;
+        private Double min = null;
+        private Double current;
+
         public DoubleImplementor() {
         }
 
         @Override
-        public void sampleMax(String value) {
+        public void accept(String value) {
+            current = Double.parseDouble(value);
+        }
 
-            if (getMax() == null || Double.parseDouble(value) > Double.parseDouble(getMax())) {
-                setMax(value);
+        @Override
+        public void sampleMax() {
+
+            if (max == null || current > max) {
+                max = current;
             }
 
         }
 
         @Override
-        public void sampleMin(String value) {
-            if (getMin() == null || Double.parseDouble(value) < Double.parseDouble(getMin())) {
-                setMin(value);
+        public void sampleMin() {
+            if (min == null || current < min) {
+                min = current;
             }
+        }
+
+        @Override
+        public void sync() {
+            if (max != null)
+                setMax(String.valueOf(max));
+            if (min != null)
+                setMin(String.valueOf(min));
         }
     }
 
     public class LongImplementor implements DataTypeImplementor {
+        private Long max = null;
+        private Long min = null;
+        private Long current;
+
         public LongImplementor() {
         }
 
         @Override
-        public void sampleMax(String value) {
-            if (getMax() == null || Long.parseLong(value) > Long.parseLong(getMax())) {
-                setMax(value);
+        public void accept(String value) {
+            current = Long.parseLong(value);
+        }
+
+        @Override
+        public void sampleMax() {
+            if (max == null || current > max) {
+                max = current;
             }
         }
 
         @Override
-        public void sampleMin(String value) {
-            if (getMin() == null || Long.parseLong(value) < Long.parseLong(getMin())) {
-                setMin(value);
+        public void sampleMin() {
+            if (min == null || current < min) {
+                min = current;
             }
+        }
+
+        @Override
+        public void sync() {
+            if (max != null)
+                setMax(String.valueOf(max));
+            if (min != null)
+                setMin(String.valueOf(min));
         }
     }
 
     public class IntegerImplementor implements DataTypeImplementor {
+        private Integer max = null;
+        private Integer min = null;
+        private Integer current;
+
         public IntegerImplementor() {
         }
 
         @Override
-        public void sampleMax(String value) {
-            if (getMax() == null || Integer.parseInt(value) > Integer.parseInt(getMax())) {
-                setMax(value);
+        public void accept(String value) {
+            current = Integer.parseInt(value);
+        }
+
+        @Override
+        public void sampleMax() {
+            if (max == null || current > max) {
+                max = current;
             }
         }
 
         @Override
-
-        public void sampleMin(String value) {
-            if (getMin() == null || Integer.parseInt(value) < Integer.parseInt(getMin())) {
-                setMin(value);
+        public void sampleMin() {
+            if (min == null || current < min) {
+                min = current;
             }
+        }
+
+        @Override
+        public void sync() {
+            if (max != null)
+                setMax(String.valueOf(max));
+            if (min != null)
+                setMin(String.valueOf(min));
         }
     }
 
     public class BigDecimalImplementor implements DataTypeImplementor {
+        private BigDecimal max = null;
+        private BigDecimal min = null;
+        private BigDecimal current;
+
         public BigDecimalImplementor() {
         }
 
         @Override
-        public void sampleMax(String value) {
-            if (getMax() == null) {
-                setMax(value);
+        public void accept(String value) {
+            current = new BigDecimal(value);
+        }
+
+        @Override
+        public void sampleMax() {
+            if (max == null) {
+                max = current;
             } else {
-                BigDecimal bValue = new BigDecimal(value);
-                BigDecimal bMax = new BigDecimal(getMax());
-                if (bValue.compareTo(bMax) > 0) {
-                    setMax(value);
+                if (current.compareTo(max) > 0) {
+                    max = current;
                 }
             }
         }
 
         @Override
-        public void sampleMin(String value) {
-            if (getMin() == null) {
-                setMin(value);
+        public void sampleMin() {
+            if (min == null) {
+                min = current;
             } else {
-                BigDecimal bValue = new BigDecimal(value);
-                BigDecimal bMin = new BigDecimal(getMin());
-                if (bValue.compareTo(bMin) < 0) {
-                    setMin(value);
+                if (current.compareTo(min) < 0) {
+                    min = current;
                 }
             }
+        }
+
+        @Override
+        public void sync() {
+            if (max != null)
+                setMax(max.toString());
+            if (min != null)
+                setMin(min.toString());
         }
     }
 

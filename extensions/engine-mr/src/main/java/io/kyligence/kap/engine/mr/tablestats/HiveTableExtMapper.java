@@ -32,6 +32,8 @@ import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.mapred.FileSplit;
+import org.apache.hive.hcatalog.mapreduce.HCatSplit;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.mr.IMRInput;
 import org.apache.kylin.engine.mr.KylinMapper;
@@ -45,6 +47,8 @@ import org.apache.kylin.metadata.model.TableDesc;
 public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, BytesWritable> {
     private Map<Integer, HiveTableExtSampler> samplerMap = new HashMap<>();
 
+    private boolean isOffsetZero = false;
+    private int skipHeaderLineCount = 0;
     private long counter = 0;
     private TableDesc tableDesc;
     private IMRInput.IMRTableInputFormat tableInputFormat;
@@ -52,6 +56,14 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
     @Override
     protected void setup(Context context) throws IOException {
         Configuration conf = context.getConfiguration();
+
+        HCatSplit hCatSplit = (HCatSplit) context.getInputSplit();
+        FileSplit fileSplit = (FileSplit) hCatSplit.getBaseSplit();
+        isOffsetZero = (fileSplit.getStart() == 0);
+        String skipCount = conf.get("skip.header.line.count");
+        if (null != skipCount)
+            skipHeaderLineCount = Integer.parseInt(skipCount);
+
         bindCurrentConfiguration(conf);
         KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
 
@@ -69,6 +81,8 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
 
     @Override
     public void doMap(T key, Object value, Context context) throws IOException, InterruptedException {
+        if (isOffsetZero && counter < skipHeaderLineCount)
+            return;
         ColumnDesc[] columns = tableDesc.getColumns();
         String[] values = tableInputFormat.parseMapperInput(value);
         for (int m = 0; m < columns.length; m++) {
@@ -84,7 +98,7 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
         while (it.hasNext()) {
             int key = it.next();
             HiveTableExtSampler sampler = samplerMap.get(key);
-            sampler.sync(counter);
+            sampler.sync(counter - skipHeaderLineCount);
             sampler.code();
             context.write(new IntWritable(key), new BytesWritable(sampler.getBuffer().array(), sampler.getBuffer().limit()));
         }
