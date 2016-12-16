@@ -79,6 +79,7 @@ public class HiveTableExtSampler implements Serializable {
     private HLLCounter HLLCounter = null;
     private int lastIndex = 0;
     private int curIndex = 0;
+    private long null_count = 0;
     private List<HLLCounter> hllList = new ArrayList<>();
 
     public HiveTableExtSampler() {
@@ -195,6 +196,11 @@ public class HiveTableExtSampler implements Serializable {
         return this.sampleValues.get("null_counter");
     }
 
+    public void sync(long counter) {
+        setNullCounter(String.valueOf(null_count));
+        this.sampleValues.put("counter", String.valueOf(counter));
+    }
+
     public void clean() {
         if (buf != null) {
             buf.clear();
@@ -230,7 +236,6 @@ public class HiveTableExtSampler implements Serializable {
         buf.clear();
 
         int allSize = sizeOfElements() + this.lastIndex - this.curIndex + 1;
-
         int index = 0;
         for (Map.Entry<String, String> element : sampleValues.entrySet()) {
             Object object = samplerCoder.serializers[index].valueOf(element.getValue());
@@ -270,12 +275,8 @@ public class HiveTableExtSampler implements Serializable {
     }
 
     public boolean isNullValue(String value) {
-        if (null == value || value.trim().equals("NULL")) {
-
-            long null_count = Long.parseLong(getNullCounter());
+        if (null == value) {
             null_count++;
-            setNullCounter(String.valueOf(null_count));
-
             return true;
         }
         return false;
@@ -405,9 +406,8 @@ public class HiveTableExtSampler implements Serializable {
     }
 
     public interface DataTypeImplementor {
-        public void sampleMax(String value);
-
-        public void sampleMin(String value);
+        void sampleMax(String value);
+        void sampleMin(String value);
     }
 
     public class StringImplementor implements DataTypeImplementor {
@@ -419,7 +419,6 @@ public class HiveTableExtSampler implements Serializable {
             if (getMax() == null || value.compareTo(getMax()) > 0) {
                 setMax(value);
             }
-
         }
 
         @Override
@@ -460,7 +459,6 @@ public class HiveTableExtSampler implements Serializable {
             if (getMax() == null || Long.parseLong(value) > Long.parseLong(getMax())) {
                 setMax(value);
             }
-
         }
 
         @Override
@@ -488,7 +486,6 @@ public class HiveTableExtSampler implements Serializable {
             if (getMin() == null || Integer.parseInt(value) < Integer.parseInt(getMin())) {
                 setMin(value);
             }
-
         }
     }
 

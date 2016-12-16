@@ -84,7 +84,7 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
         while (it.hasNext()) {
             int key = it.next();
             HiveTableExtSampler sampler = samplerMap.get(key);
-            sampler.setCounter(String.valueOf(counter));
+            sampler.sync(counter);
             sampler.code();
             context.write(new IntWritable(key), new BytesWritable(sampler.getBuffer().array(), sampler.getBuffer().limit()));
         }

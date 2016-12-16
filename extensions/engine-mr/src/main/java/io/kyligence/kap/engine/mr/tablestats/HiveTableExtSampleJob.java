@@ -169,6 +169,7 @@ public class HiveTableExtSampleJob extends CubingJob {
         HiveCmdBuilder hiveCmdBuilder = new HiveCmdBuilder();
 
         StringBuilder createIntermediateTableHql = new StringBuilder();
+        createIntermediateTableHql.append("USE " + desc.getDatabase() + ";").append("\n");
         createIntermediateTableHql.append("DROP TABLE IF EXISTS " + desc.getMaterializedName() + ";\n");
         createIntermediateTableHql.append("CREATE TABLE IF NOT EXISTS " + desc.getMaterializedName() + "\n");
         createIntermediateTableHql.append("AS SELECT * FROM " + desc.getIdentity() + " " + condition + ";\n");
@@ -185,7 +186,7 @@ public class HiveTableExtSampleJob extends CubingJob {
         HiveCmdBuilder hiveCmdBuilder = new HiveCmdBuilder();
 
         StringBuilder createIntermediateTableHql = new StringBuilder();
-        createIntermediateTableHql.append("USE " + config.getHiveDatabaseForIntermediateTable() + ";\n");
+        createIntermediateTableHql.append("USE " + desc.getDatabase() + ";\n");
         createIntermediateTableHql.append("DROP TABLE IF EXISTS " + desc.getMaterializedName() + ";\n");
         hiveCmdBuilder.addStatement(createIntermediateTableHql.toString());
         step.setCmd(hiveCmdBuilder.build());
