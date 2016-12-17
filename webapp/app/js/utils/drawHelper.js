@@ -14,10 +14,16 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
     instance:null,
     lastLink:[],
     connects:{},
+    partitionDate:{},
+    partitionTime:{},
     zoom:1,
     zoomRate:0.01,
     changeTableInfo:null,
     changeConnectType:null,
+    addColumnToPartitionDate:null,
+    addColumnToPartitionTime:null,
+    instanceName:'',
+    filterStr:'',
     init:function(para){
       $.extend(this,para);
       this.boxWidth=$('#'+this.containerId).width();
@@ -43,6 +49,7 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         that.lastLink.push(info.connection.getParameters().data);
         that.connects[info.connection.id]=that.lastLink;
         that.changeConnectType(info.connection);
+        that.plumbDataToKylinData();
         info.connection.unbind('click').bind('click',function(conn){
           if(conn.id!='label'){
             that.changeConnectType(conn);
@@ -58,6 +65,90 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       this.showToolbar();
       this.showMapControl();
       return this;
+    },
+    kylinDataToJsPlumbData:function(){
+
+    },
+    //操作台数据转换为kylin接受数据
+    plumbDataToKylinData:function(){
+       var kylinData={
+         lookups:[],
+         partition_desc:{},
+         dimensions:[],
+         metrics:[],
+         filter_condition:this.filterStr,
+         name:this.instanceName
+       };
+      //采集rootfacttable信息
+       var rootFactTable=this.tableList.getTable('kind','rootfact');
+       if(!rootFactTable){
+         return 'lose root fact';
+       }
+       kylinData.fact_table=rootFactTable.table;
+      //采集jontable的信息
+       var lookups={},linkTables={};
+       for(var i in this.connects){
+         var joinTableGuid=this.connects[i][0].split('.')[0];
+         if(!lookups[joinTableGuid]){
+           lookups[joinTableGuid]={foreigns:[],primarys:[], type:''}
+         }
+         lookups[joinTableGuid].primarys.push(this.connects[i][0]);
+         lookups[joinTableGuid].foreigns.push(this.connects[i][1]);
+         linkTables[this.connects[i][0].split('.')[0]]=true;
+         linkTables[this.connects[i][1].split('.')[0]]=true;
+         lookups[joinTableGuid].type=this.connects[i][2];
+       }
+       for(var i in lookups){
+          var tableObj={};
+          var tableBase=this.tableList.getTable('guid', i);
+          tableObj.table=tableBase.table;
+          tableObj.kind=tableBase.kind;
+          tableObj.alias=tableBase.alias;
+          tableObj.join={type:lookups[i].type,primary_key:[],foreign_key:[]};
+          for(var s=0;s<lookups[i].foreigns.length;s++){
+            var pTableBase=this.tableList.getTable('guid', lookups[i].primarys[s].split('.')[0]);
+            tableObj.join.primary_key.push(pTableBase.alias+'.'+lookups[i].primarys[s].split('.')[1]);
+            var fTableBase=this.tableList.getTable('guid', lookups[i].foreigns[s].split('.')[0]);
+            tableObj.join.foreign_key.push( fTableBase.alias+'.'+lookups[i].foreigns[s].split('.')[1]);
+          }
+          kylinData.lookups.push(tableObj);
+       }
+      //采集partition 信息
+      if(!this.isNullObj(this.partitionDate)){
+        for(var i in this.partitionDate){
+          var pTableBase=this.tableList.getTable('guid', i);
+          kylinData.partition_desc.partition_date_column=pTableBase.alias+'.'+this.partitionDate[i].columnName;
+          kylinData.partition_desc.partition_date_start=null;
+          kylinData.partition_desc.partition_type='APPEND';
+          kylinData.partition_desc.partition_date_format=this.partitionDate[i].dateType;
+
+        }
+      }
+      if(!this.isNullObj(this.partitionTime)){
+        for(var i in this.partitionTime){
+          var pTableBase=this.tableList.getTable('guid', i);
+          kylinData.partition_desc.partition_time_column=pTableBase.alias+'.'+this.partitionTime[i].columnName;
+          kylinData.partition_desc.partition_time_start=null;
+          kylinData.partition_desc.partition_time_format=this.partitionTime[i].dateType;
+        }
+      }
+      //采集dimensions和measure信息
+      for(var i in linkTables){
+        var tableBase=this.tableList.getTable('guid', i);
+        var tableObj={columns:[]};
+        tableObj.table=tableBase.alias;
+        for(var m=0;m<tableBase.columns.length;m++){
+           if('dimension'==tableBase.columns[m].kind){
+             tableObj.columns.push(tableBase.alias+'.'+tableBase.columns[m].name)
+           }else if('measure'==tableBase.columns[m].kind){
+             kylinData.metrics.push(tableBase.alias+'.'+tableBase.columns[m].name);
+           }
+        }
+        if(tableObj.columns.length>0){
+          kylinData.dimensions.push(tableObj);
+        }
+      }
+      console.log(kylinData);
     },
     showToolbar:function(){
        var toolBarHtml='<div id="tipToolbar"><span class="snowFont snowFont1 relative">RF</span><span>Root Fact Table</span><span class="snowFont snowFont2 relative">F</span><span>Fact Table</span><span class="snowFont snowFont3 relative">L</span><span>Lookup Table</span><span class="snowFont snowFont5 relative">D</span><span>Dimension</span><span class="snowFont snowFont6 relative">M</span><span>Measure</span><span class="snowFont snowFont4 relative">-</span><span>Disable</span></div>';
@@ -146,7 +237,7 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         }
         this.data.push(obj);
       },
-      getTableByGuid:function(key,val){
+      getTable:function(key,val){
         for(var i=0;i<this.data.length;i++){
           if(this.data[i][key]==val){
             return this.data[i];
@@ -169,9 +260,9 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           }
         }
       },
-      updateColumnKind:function(tablename,columnName,kind){
+      updateColumnKind:function(guid,columnName,kind){
         for(var i=0;i<this.data.length;i++){
-          if(this.data[i]['table']==tablename){
+          if(this.data[i]['guid']==guid){
             for(var k=0;k<this.data[i].columns.length;k++){
               if(this.data[i].columns[k].name==columnName){
                 this.data[i].columns[k].kind=kind;
@@ -189,9 +280,9 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
     },
     //刷新页面表类型显示
     refreshTableKind:function(tableName,kind){
-      this.getTableDom(tableName).find('.tableKind').replaceWith(this.renderTableKind(kind)).removeClass('isfact').removeClass('islookup');
+      this.getTableDom(tableName).find('.tableKind').replaceWith(this.renderTableKind(kind)).end().removeClass('isfact').removeClass('islookup');
 
-      if(kind=='fact'&&kind=='rootfact'){
+      if(kind=='fact'||kind=='rootfact'){
         this.getTableDom(tableName).addClass('isfact');
       }else{
         this.getTableDom(tableName).addClass('islookup');
@@ -199,19 +290,19 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       return this;
     },
     //刷新页面表中列的类型显示
-    refreshTableColumnKind:function(tableName,columnName,kind){
-      $('#column_'+tableName.replace('.','')+columnName).find('.columnKind').replaceWith(this.renderTableColumnKind(kind));
+    refreshTableColumnKind:function(guid,columnName,kind){
+      $('#column_'+guid+columnName).find('.columnKind').replaceWith(this.renderTableColumnKind(kind));
     },
     //页面表中列绑定点击改变事件
-    bindColumnChangeTypeEvent:function(box){
+    bindColumnChangeTypeEvent:function(box,guid){
       var that=this;
       $(box).on('click','.columnKind',function(){
         var columnName=$(this).parent().attr('data');
         var tableName=$(box).attr('data');
         var columnType=$(this).attr('data');
         var nextTypeIndex=that.columnTypes.indexOf(columnType)+1<=that.columnTypes.length-1?that.columnTypes.indexOf(columnType)+1:0;
-        that.refreshTableColumnKind(tableName,columnName,that.columnTypes[nextTypeIndex]);
-        that.tableList.updateColumnKind(tableName,columnName,that.columnTypes[nextTypeIndex]);
+        that.refreshTableColumnKind(guid,columnName,that.columnTypes[nextTypeIndex]);
+        that.tableList.updateColumnKind(guid,columnName,that.columnTypes[nextTypeIndex]);
       })
     },
     getTableDom:function(guid){
@@ -240,7 +331,7 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         table:tableData.database+'.'+tableData.name,
         alias:tableData.alias||tableData.name,
         kind:tableData.kind||'lookup',
-        columns:tableData.columns,
+        columns: [].concat(tableData.columns),
         pos:[10,10],
         guid:tableData.guid||this.guid()
       };
@@ -251,7 +342,7 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           str+='<a title="'+tableBaseObject.table+'"><i class="fa fa-table"></i> '+tableBaseObject.table+'</a><span class="more" ></span>' +
                     '<a class="alias" title="'+tableBaseObject.table+'">Alias:'+tableBaseObject.alias+'</a></div>';
           for (var i =0; i <tableData.columns.length; i++) {
-            str+='<p id="column_'+tableData.database+tableData.name+tableData.columns[i].name+'" data="'+tableData.columns[i].name+'">'+this.renderTableColumnKind(tableData.columns[i].type)+'&nbsp;&nbsp;'+tableData.columns[i].name+'('+tableData.columns[i].datatype+')'+this.renderPartionColumn(tableData.columns[i].datatype)+'</p>';
+            str+='<p id="column_'+tableBaseObject.guid+tableData.columns[i].name+'" data="'+tableData.columns[i].name+'">'+this.renderTableColumnKind(tableData.columns[i].type)+'&nbsp;&nbsp;'+tableData.columns[i].name+'('+tableData.columns[i].datatype+')'+this.renderPartionColumn(tableData.columns[i].datatype)+'</p>';
           }
           str+='</div>';
       $("#"+this.containerId).append($(str));
@@ -264,7 +355,7 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         var h=this.numDiv((this.titleHeight+this.itemHeight*i+this.numDiv(this.itemHeight,2)),totalHeight);
         this.instance.addEndpoint(boxIdName, {anchor:[[0, h, -1, 0]]}, this.createPoint({
             parameters:{
-              data:tableBaseObject.alias+'.'+tableBaseObject.columns[i].name
+              data:tableBaseObject.guid+'.'+tableBaseObject.columns[i].name
             },
             uuid:tableBaseObject.guid
           }
@@ -277,7 +368,7 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           }
         ));
       }
-      this.bindColumnChangeTypeEvent(boxDom);
+      this.bindColumnChangeTypeEvent(boxDom,tableBaseObject.guid);
       this.instance.draggable(boxDom,{
         drag:function(e){
         },stop:function(e){
@@ -285,8 +376,51 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         }
       });
       boxDom.find('.more').on('click',function(){
-        var tableObj=that.tableList.getTableByGuid(tableBaseObject.guid);
+        var tableObj=that.tableList.getTable('guid',tableBaseObject.guid);
         that.changeTableInfo(tableBaseObject);
+      })
+      boxDom.on('click','.snowDate',function(){
+        var columnName=$(this).parent().attr('data');
+        var guid=tableBaseObject.guid;
+        if($(this).hasClass('notFormat')){
+          that.partitionDate={}
+          that.partitionDate[guid]={
+            columnName:columnName,
+            dateType:'yyyyMMdd'
+          }
+        }else{
+          that.addColumnToPartitionDate(function(type){
+            that.partitionDate={}
+            that.partitionDate[guid]={
+              columnName:columnName,
+              dateType:type
+            }
+          },{type:'date'})
+        }
+        $('.snowDate').removeClass('active');
+        $(this).addClass('active');
+      })
+      boxDom.on('click','.snowTime',function(){
+
+        var columnName=$(this).parent().attr('data');
+        var guid=tableBaseObject.guid;
+        if($(this).hasClass('notFormat')){
+          that.partitionTime={}
+          that.partitionTime[guid]={
+            columnName:columnName,
+            dateType:'yyyyMMdd'
+          }
+        }else{
+          that.addColumnToPartitionTime(function(type){
+            that.partitionTime={}
+            that.partitionTime[guid]={
+              columnName:columnName,
+              dateType:type
+            }
+          },{type:'time'})
+        }
+        $('.snowTime').removeClass('active');
+        $(this).addClass('active');
       })
       return this;
     },
@@ -415,6 +549,12 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
       }
       return guid();
+    },
+    isNullObj:function(obj){
+       for(var i in obj){
+         return false;
+       }
+       return true;
     }
   }
 });

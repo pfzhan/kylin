@@ -24,7 +24,7 @@
 
 'use strict';
 
-KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, UserService, ProjectService, $q, AuthenticationService, $filter, ModelService, MetaModel, CubeDescModel, CubeList, TableModel, ProjectModel, $log, SweetAlert, modelsManager,language, modelsEdit,DrawHelper,$modal) {
+KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, UserService, ProjectService, $q, AuthenticationService, $filter, ModelService, MetaModel, CubeDescModel, CubeList, TableModel, ProjectModel, $log, SweetAlert, modelsManager,language, modelsEdit,DrawHelper,$modal,cubeConfig) {
 
   $scope.modelsManager = modelsManager;
   $scope.projectModel = ProjectModel;
@@ -210,10 +210,51 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
       }
 
 
+      //选择date类型弹窗
+      function openDateFormatTypeDialog(callback,whatDate){
+        var dateFormatTypeCtrl=function($scope,$modalInstance,callback,cubeConfig,whatDate){
+          $scope.callback=callback;
+          $scope.formatDateType='yyyyMMdd';
+          $scope.formatTimeType='HH:mm:ss'
+          $scope.cancel = function () {
+            $modalInstance.dismiss('cancel');
+          }
+          $scope.editDateFormatType=function(){
+            if(whatDate=='date'){
+              $scope.callback($scope.formatDateType);
+            }else{
+              $scope.callback($scope.formatTimeType);
+            }
+
+            $modalInstance.dismiss('cancel');
+          }
+          $scope.cubeConfig=cubeConfig;
+          $scope.whatDate=whatDate;
+        }
+        var modalInstance = $modal.open({
+          templateUrl: 'partials/models/snowmodel_dateformat.html',
+          controller: dateFormatTypeCtrl,
+          backdrop: 'static',
+          resolve:{
+            callback:function(){
+              return callback;
+            },
+            cubeConfig:function(){
+              return cubeConfig;
+            },
+            whatDate:function(){
+              return whatDate;
+            }
+          }
+        });
+      }
+
       //拖拽建模（雪花）初始化入口
       DrawHelper.init({
         changeTableInfo:openSnowTableInfoDialog,
-        changeConnectType:openSelectJoinTypeDialog
+        changeConnectType:openSelectJoinTypeDialog,
+        addColumnToPartitionDate:openDateFormatTypeDialog,
+        addColumnToPartitionTime:openDateFormatTypeDialog
       });
     },1000)
 
