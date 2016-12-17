@@ -37,11 +37,13 @@ public class RawTableFuzzyIndexJob extends RawTablePageIndexJob {
     protected void setSkipped() {
         if (desc == null) {
             skipped = false;
+            return;
         }
 
         for (RawTableColumnDesc columnDesc : desc.getAllColumns()) {
             if (columnDesc.getFuzzyIndex()) {
                 skipped = false;
+                return;
             }
         }
 
