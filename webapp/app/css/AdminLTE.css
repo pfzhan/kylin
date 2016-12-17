@@ -4162,3 +4162,6 @@ Gradient Background colors
    width: 700px;
    padding-bottom: 30px;
  }
+.ace-chrome div.ace_print-margin{
+  background: none;
+}

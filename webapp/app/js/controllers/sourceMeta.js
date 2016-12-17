@@ -30,7 +30,7 @@ KylinApp
     $scope.tableModel = TableModel;
     $scope.tableModel.selectedSrcDb = [];
     $scope.tableModel.selectedSrcTable = {};
-    $scope.window = 0.68 * $window.innerHeight;
+    $scope.window = 0.58 * $window.innerHeight;
     $scope.tableConfig = tableConfig;
 
 
