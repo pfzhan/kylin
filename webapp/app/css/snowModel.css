@@ -40,6 +40,9 @@
   line-height: 20px;
   font-size: 12px;
   margin: 0;
+  text-overflow:ellipsis;
+  word-break: break-all;
+  overflow: hidden;
   /*font-weight:bold;*/
 }
 .classUml p:hover{
@@ -48,48 +51,58 @@
 #snowBox{
   width: 100%;
   height: 1000px;
-  background: #000;
+  background: #383838;
   position: relative;
   margin-top: 10px;;
 }
 
 #snowBox .more{
   display: inline-block;
-  width: 20px;
-  height: 20px;
+  width: 10px;
+  height: 10px;
   background: url('../image/more_normal.png') no-repeat;
   position: absolute;
   right: 5px;
   top: 10px;
   cursor: pointer;
+  background-size:contain;
 }
 #snowBox .more:hover{
   background: url('../image/more_hover.png') no-repeat;
+  background-size:contain;
 }
 
 .plusHandle{
-   width: 32px;
-   height: 32px;
+   width: 16px;
+   height: 16px;
    display: block;
    position: fixed;
    background:url('../image/plus.png');
    right:25px;
-   top:150px;
+   bottom:50px;
+   z-index:999;
+   background-size: cover;
+   cursor: pointer;
  }
 .plusHandle:hover{
   background:url('../image/plus_hover.png');
+  background-size: cover;
 }
 .minusHandle{
-  width: 32px;
-  height: 32px;
+  width: 16px;
+  height: 16px;
   display: block;
   position:fixed;
   background:url('../image/minus.png');
-  right:25px;
-  top:190px;
+  right:50px;
+  bottom:50px;
+  z-index:999;
+  background-size:cover;
+  cursor: pointer;
 }
 .minusHandle:hover{
   background:url('../image/minus_hover.png');
+  background-size: cover;
 }
 .snowFont{
   width: 20px;
@@ -141,6 +154,8 @@
 #tipToolbar span{
   display: inline-block;
   margin-left: 5px;
+  font-size: 12px;
+  font-style: italic;
 }
 .aLabel{
   color:red;
@@ -173,4 +188,26 @@
 }
 .snowclock:hover{
   color:green;
+}
+.modal_snowtableInfo>div.modal-dialog{
+  width: 800px;
+}
+.modal_jointype>div.modal-dialog{
+  width: 400px;
+}
+.modal_dateformat>div.modal-dialog{
+  width: 400px;
+}
+#bar_action{
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  color: #ccc;
+  border: solid 1px #ccc;
+  padding: 4px;
+  cursor: pointer;
+}
+#bar_action:hover{
+  color: #fff;
+  border-color: #fff;
 }

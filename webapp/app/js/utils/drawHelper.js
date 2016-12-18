@@ -3,7 +3,7 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
   return {
     titleHeight:60,
     itemHeight:20,
-    itemWidth:200,
+    itemWidth:300,
     boxWidth:800,
     boxHeight:1000,
     baseTop:10,
@@ -22,14 +22,22 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
     changeConnectType:null,
     addColumnToPartitionDate:null,
     addColumnToPartitionTime:null,
+    saveModel:null,
     instanceName:'',
+    instanceDiscribe:'',
     filterStr:'',
+    containerSize:{
+      width:100000,
+      height:100000
+    },
     init:function(para){
       $.extend(this,para);
       this.boxWidth=$('#'+this.containerId).width();
       this.boxHeight=$('#'+this.containerId).height();
       var that=this;
       this.container=$('#'+this.containerId);
+      this.container.css({width:this.containerSize.width+'px',height:this.containerSize.height+'px',left:(-this.containerSize.width+this.container.parent().width())/2+'px',top:(-this.containerSize.height+this.container.parent().height())/2+'px'})
+      this.container.parent().css({'height':this.boxHeight+'px','overflow':'hidden'});
       this.instance = jsPlumb.getInstance({
           DragOptions: { cursor: 'pointer', zIndex: 2000},
           PaintStyle: {width: 25, height: 21, strokeStyle: '#66a8fa' },
@@ -46,6 +54,17 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       });
       var that=this;
       this.instance.bind("connection", function (info, originalEvent) {
+        //自己不能连自己
+        if(info.sourceId==info.targetId){
+          that.instance.detach(info.connection);
+          return;
+        }
+        //rootFact不能连别人
+        var rootFactTable=that.tableList.getRootFact();
+        if(that.lastLink[0]&&rootFactTable&&rootFactTable.guid==that.lastLink[0].split('.')[0]){
+          that.instance.detach(info.connection);
+          return;
+        }
         that.lastLink.push(info.connection.getParameters().data);
         that.connects[info.connection.id]=that.lastLink;
         that.changeConnectType(info.connection);
@@ -64,6 +83,7 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       });
       this.showToolbar();
       this.showMapControl();
+      this.showSaveBtn();
       return this;
     },
     kylinDataToJsPlumbData:function(){
@@ -149,19 +169,52 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         }
       }
       console.log(kylinData);
+      return kylinData;
+    },
+    getForeignKeyCount:function(guid){
+      var count=0;
+      for(var i in this.connects){
+        if(this.connects[i][0].indexOf(guid+'.')>=0){
+          count+=1;
+        }
+      }
+      return count;
+    },
+    getTableLinksCount:function(guid){
+      var count=0;
+      for(var i in this.connects){
+        if(this.connects[i][0].indexOf(guid+'.')>=0||this.connects[i][1].indexOf(guid+'.')>=0){
+          count+=1;
+        }
+      }
+      return count;
     },
     showToolbar:function(){
        var toolBarHtml='<div id="tipToolbar"><span class="snowFont snowFont1 relative">RF</span><span>Root Fact Table</span><span class="snowFont snowFont2 relative">F</span><span>Fact Table</span><span class="snowFont snowFont3 relative">L</span><span>Lookup Table</span><span class="snowFont snowFont5 relative">D</span><span>Dimension</span><span class="snowFont snowFont6 relative">M</span><span>Measure</span><span class="snowFont snowFont4 relative">-</span><span>Disable</span></div>';
        $(toolBarHtml).insertAfter(this.container);
+    },
+    showSaveBtn:function(){
+      var that=this;
+      var actionBar='<div id="bar_action"><span>Save</span></div>';
+      $(actionBar).insertAfter(this.container);
+      $('#bar_action').click(function(){
+        that.saveModel();
+      })
     },
     showMapControl:function(){
       var that=this;
       var mapControlHtml='<span class="plusHandle"></span><span class="minusHandle"></span>';
       $(mapControlHtml).insertAfter(this.container);
       this.container.parent().find('.plusHandle').click(function(){
-        that.setZoom(that.zoom+=that.zoomRate);
+        if(that.zoom<1.2){
+          that.setZoom(that.zoom+=that.zoomRate);
+        }
+
       }).end().find('.minusHandle').click(function(){
-        that.setZoom(that.zoom-=that.zoomRate);
+        if(that.zoom>0.43){
+          that.setZoom(that.zoom-=that.zoomRate);
+        }
+
       })
 
     },
@@ -187,16 +240,13 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         return '<span class="snowFont snowFont5 columnKind" data="dimension">D</span>';
       }
     },
-    partionColumn:{
-
-    },
     renderPartionColumn:function(columnType){
       var canSetDatePartion=['date','timestamp','string','bigint','int','integer'];
       var canSetTimePartion=['time','timestamp','string'];
       var needNotSetDateFormat=['bigint','int','integer'];
       var domHtml='';
       if(canSetDatePartion.indexOf(columnType)>=0&&canSetTimePartion.indexOf(columnType)>=0||columnType.indexOf('varchar')>=0){
-        if(needNotSetDateFormat.indexOf(columnType)){
+        if(needNotSetDateFormat.indexOf(columnType)>=0){
           domHtml+= '<i class="fa fa-calendar snowclock noFormat snowDate" ></i>';
           domHtml+= '<i class="fa fa-clock-o snowclock  noFormat snowTime" ></i>';
         }else{
@@ -204,7 +254,7 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           domHtml+= '<i class="fa fa-clock-o snowclock  snowTime" ></i>';
         }
       }else if(canSetDatePartion.indexOf(columnType)>=0||columnType.indexOf('varchar')>=0){
-        if(needNotSetDateFormat.indexOf(columnType)){
+        if(needNotSetDateFormat.indexOf(columnType)>=0){
           domHtml+= '<i class="fa fa-calendar snowclock noFormat snowDate" ></i>';
           domHtml+= '<i class="fa fa-clock-o snowclock noshow noFormat snowTime" ></i>';
         }else{
@@ -212,7 +262,7 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           domHtml+= '<i class="fa fa-clock-o snowclock noshow snowTime" ></i>';
         }
       }else if(canSetTimePartion.indexOf(columnType)>=0||columnType.indexOf('varchar')>=0){
-        if(needNotSetDateFormat.indexOf(columnType)){
+        if(needNotSetDateFormat.indexOf(columnType)>=0){
           domHtml+= '<i class="fa fa-clock-o snowclock noFormat snowTime"></i>';
           domHtml+= '<i class="fa fa-calendar snowclock noshow noFormat snowDate" ></i>';
         }else{
@@ -247,8 +297,8 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       remove:function(key,val){
         for(var i=0;i<this.data.length;i++){
           if(this.data[i][key]==val){
-            delete this.data[i];
-            break;
+             this.data.splice(i,1);
+             break;
           }
         }
       },
@@ -269,6 +319,13 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
                 return this;
               }
             }
+          }
+        }
+      },
+      getRootFact:function(){
+        for(var i=0;i<this.data.length;i++){
+          if(this.data[i]['kind']=='rootfact'){
+            return this.data[i];
           }
         }
       }
@@ -332,7 +389,7 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         alias:tableData.alias||tableData.name,
         kind:tableData.kind||'lookup',
         columns: [].concat(tableData.columns),
-        pos:[10,10],
+        pos:that.calcPosition(),
         guid:tableData.guid||this.guid()
       };
       this.tableList.add(tableBaseObject);
@@ -342,7 +399,7 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           str+='<a title="'+tableBaseObject.table+'"><i class="fa fa-table"></i> '+tableBaseObject.table+'</a><span class="more" ></span>' +
                     '<a class="alias" title="'+tableBaseObject.table+'">Alias:'+tableBaseObject.alias+'</a></div>';
           for (var i =0; i <tableData.columns.length; i++) {
-            str+='<p id="column_'+tableBaseObject.guid+tableData.columns[i].name+'" data="'+tableData.columns[i].name+'">'+this.renderTableColumnKind(tableData.columns[i].type)+'&nbsp;&nbsp;'+tableData.columns[i].name+'('+tableData.columns[i].datatype+')'+this.renderPartionColumn(tableData.columns[i].datatype)+'</p>';
+            str+='<p id="column_'+tableBaseObject.guid+tableData.columns[i].name+'" style="width:'+that.itemWidth+'px" data="'+tableData.columns[i].name+'">'+this.renderTableColumnKind(tableData.columns[i].type)+'&nbsp;&nbsp;'+tableData.columns[i].name+'('+tableData.columns[i].datatype+')'+this.renderPartionColumn(tableData.columns[i].datatype)+'</p>';
           }
           str+='</div>';
       $("#"+this.containerId).append($(str));
@@ -353,14 +410,14 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       var boxDom=$("#"+boxIdName);
       for (var i =0; i <len; i++) {
         var h=this.numDiv((this.titleHeight+this.itemHeight*i+this.numDiv(this.itemHeight,2)),totalHeight);
-        this.instance.addEndpoint(boxIdName, {anchor:[[0, h, -1, 0]]}, this.createPoint({
+        this.instance.addEndpoint(boxIdName, {anchor:[[1.0,h, 1.5, 0],[0, h, -1, 0]]}, this.createPoint({
             parameters:{
               data:tableBaseObject.guid+'.'+tableBaseObject.columns[i].name
             },
             uuid:tableBaseObject.guid
           }
         ));
-        this.instance.addEndpoint(boxIdName, {anchor:[[1.0,h, 1.5, 0]]}, this.createPoint({
+        this.instance.addEndpoint(boxIdName, {anchor:[[0,h, -1, 0],[1, h, 1.5, 0]]}, this.createPoint({
             parameters:{
               data:tableBaseObject.guid+'.'+tableBaseObject.columns[i].name
             },
@@ -372,7 +429,7 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       this.instance.draggable(boxDom,{
         drag:function(e){
         },stop:function(e){
-          this.tableList.data.update('guid',tableBaseObject.guid,{'pos':e.pos})
+          that.tableList.update('guid',tableBaseObject.guid,{'pos':e.pos})
         }
       });
       boxDom.find('.more').on('click',function(){
@@ -380,47 +437,65 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         that.changeTableInfo(tableBaseObject);
       })
       boxDom.on('click','.snowDate',function(){
+        var snowDateDomList=that.container.find('.snowDate');
         var columnName=$(this).parent().attr('data');
         var guid=tableBaseObject.guid;
-        if($(this).hasClass('notFormat')){
+        var currentDom=$(this);
+        if(currentDom.hasClass('noFormat')){
           that.partitionDate={}
           that.partitionDate[guid]={
             columnName:columnName,
             dateType:'yyyyMMdd'
           }
+          snowDateDomList.removeClass('active');
+          currentDom.addClass('active');
         }else{
           that.addColumnToPartitionDate(function(type){
+            if(type=='del'){
+              that.partitionDate={};
+              currentDom.removeClass('active');
+              return;
+            }
             that.partitionDate={}
             that.partitionDate[guid]={
               columnName:columnName,
               dateType:type
             }
+            snowDateDomList.removeClass('active');
+            currentDom.addClass('active');
           },{type:'date'})
         }
-        $('.snowDate').removeClass('active');
-        $(this).addClass('active');
       })
       boxDom.on('click','.snowTime',function(){
-
+        var snowTimeDomList=that.container.find('.snowTime');
         var columnName=$(this).parent().attr('data');
         var guid=tableBaseObject.guid;
-        if($(this).hasClass('notFormat')){
+        var currentDom=$(this);
+        if(currentDom.hasClass('noFormat')){
           that.partitionTime={}
           that.partitionTime[guid]={
             columnName:columnName,
             dateType:'yyyyMMdd'
           }
+          snowTimeDomList.removeClass('active');
+          currentDom.addClass('active');
         }else{
           that.addColumnToPartitionTime(function(type){
+            if(type=='del'){
+              that.partitionDate={};
+              currentDom.removeClass('active');
+              return;
+            }
             that.partitionTime={}
             that.partitionTime[guid]={
               columnName:columnName,
               dateType:type
             }
+            snowTimeDomList.removeClass('active');
+            currentDom.addClass('active');
           },{type:'time'})
         }
-        $('.snowTime').removeClass('active');
-        $(this).addClass('active');
+
       })
       return this;
     },
@@ -430,19 +505,18 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         this.addTable(tableDatas[i],i);
       }
     },
+    removeTable:function(guid){
+      $("#umlobj_"+guid).remove();
+      this.tableList.remove('guid',guid);
+      this.instance.removeAllEndpoints("umlobj_"+guid)
+    },
     calcPosition:function(){
       var per=this.boxWidth/(this.itemWidth*1.5);
       var that=this;
-      if(this.tableCount==1){
-        return {
-          top:that.baseTop,
-          left:(that.boxWidth-that.itemWidth)/2,
-        }
-      }
-      return {
-        top:10,
-        left:10,
-      }
+        return [
+          -parseInt(that.container.css('left'))+100,
+          -parseInt(that.container.css('top'))+100,
+        ]
     },
     //创建连接点
     createPoint:function(para){

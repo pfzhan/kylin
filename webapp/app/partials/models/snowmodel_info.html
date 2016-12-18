@@ -18,10 +18,16 @@
       <input type="radio" name="tabletype" id="rft" ng-model="table.kind" value="rootfact" ng-checked="table.kind=='rootfact'"/> <label for="rft">Root Fact Table</label>
       <input type="radio" name="tabletype" id="ft" ng-model="table.kind" value="fact" ng-checked="table.kind=='fact'"/> <label for="ft">Fact Table</label>
       <input type="radio" name="tabletype" id="lt" ng-model="table.kind" value="lookup" ng-checked="table.kind=='lookup'"/> <label for="lt">LookUp Table</label>
+      <span style="color:red" ng-show="hasRootfactError">已经有一个rootFact table了！</span>
+      <span style="color:red" ng-show="hasForeignKeysError">该表已经有外键，不能设置为rootFact table,请先删除外键！</span>
+      <span style="color:red" ng-show="hasUnRemoveLink">该表有未删除的关联，无法删除！</span>
+
     </div>
+
   </div>
 </div>
 <div class="modal-footer">
   <button class="btn btn-default" ng-click="cancel()">cancle</button>
+  <button class="btn btn-warn" ng-click="remove()" ng-show="showRemoveBtn">remove</button>
   <button class="btn btn-success" ng-click="editTableInfo();">save</button>
 </div>

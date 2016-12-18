@@ -134,16 +134,43 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
       //修改snowTable信息弹窗
       function openSnowTableInfoDialog(table,callback){
         var snowTableInfoCtrl=function($scope, $modalInstance,table){
+          if(typeof callback=='function'){
+            table.alias='';
+          }
           $scope.table=table;
           $scope.cancel = function () {
             $modalInstance.dismiss('cancel');
           }
+          //移除table
+          $scope.remove=function(){
+            if(DrawHelper.getTableLinksCount(table.guid)>0){
+              $scope.hasUnRemoveLink=true;
+            }else{
+              DrawHelper.removeTable(table.guid);
+              $modalInstance.dismiss('cancel');
+            }
+
+          }
           var oldAlias=table.alias;
+          if(DrawHelper.tableList.getTable('guid',table.guid)){
+            $scope.showRemoveBtn=true;
+          }
           $scope.editTableInfo=function(){
             //监测是否有重复的别名
             if(oldAlias!=table.alias&&DrawHelper.checkHasThisAlias(table.alias)){
               $scope.sameError=true;
               return;
+            }
+            var rootFactTable=DrawHelper.tableList.getRootFact();
+            if(table.kind=='rootfact'&&rootFactTable&&rootFactTable.guid!=table.guid){
+              $scope.hasRootfactError=true;
+              return;
+            }
+            if(table.kind=='rootfact'){
+              if(DrawHelper.getForeignKeyCount(table.guid)>0){
+                $scope.hasForeignKeysError=true;
+                return;
+              }
             }
             //更新 数据仓库里的别名和表类型
             DrawHelper.tableList.update('table',table.guid,{
@@ -163,6 +190,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
           }
         }
         var modalInstance = $modal.open({
+          windowClass:'modal_snowtableInfo',
           templateUrl: 'partials/models/snowmodel_info.html',
           controller: snowTableInfoCtrl,
           backdrop: 'static',
@@ -186,18 +214,19 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
           $scope.cancel = function () {
             $modalInstance.dismiss('cancel');
           }
+          $scope.remove=function(){
+            DrawHelper.instance.detach(conn);
+            delete DrawHelper.connects[conn.id];
+            $modalInstance.dismiss('cancel');
+          }
           $scope.editJoinType=function(){
-            if($scope.link.type=='remove'){
-              DrawHelper.instance.detach(conn);
-              delete DrawHelper.connects[conn.id];
-            }else{
-              conn.getOverlay("label").setLabel($scope.link.type);
-              DrawHelper.connects[conn.id][2]=$scope.link.type;
-            }
+            conn.getOverlay("label").setLabel($scope.link.type);
+            DrawHelper.connects[conn.id][2]=$scope.link.type;
             $modalInstance.dismiss('cancel');
           }
         }
         var modalInstance = $modal.open({
+          windowClass:'modal_jointype',
           templateUrl: 'partials/models/snowmodel_jointype.html',
           controller: snowTableJoinTypeCtrl,
           backdrop: 'static',
@@ -216,22 +245,29 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
           $scope.callback=callback;
           $scope.formatDateType='yyyyMMdd';
           $scope.formatTimeType='HH:mm:ss'
+          if(whatDate.type=='date'&&!DrawHelper.isNullObj(DrawHelper.partitionDate)||whatDate.type=='time'&&!DrawHelper.isNullObj(DrawHelper.partitionTime)){
+            $scope.showRemoveBtn=true;
+          }
           $scope.cancel = function () {
             $modalInstance.dismiss('cancel');
           }
+          $scope.remove=function(){
+               $scope.callback('del');
+               $modalInstance.dismiss('cancel');
+          }
           $scope.editDateFormatType=function(){
-            if(whatDate=='date'){
+            if(whatDate.type=='date'){
               $scope.callback($scope.formatDateType);
             }else{
               $scope.callback($scope.formatTimeType);
             }
-
             $modalInstance.dismiss('cancel');
           }
           $scope.cubeConfig=cubeConfig;
           $scope.whatDate=whatDate;
         }
         var modalInstance = $modal.open({
+          windowClass:'modal_dateformat',
           templateUrl: 'partials/models/snowmodel_dateformat.html',
           controller: dateFormatTypeCtrl,
           backdrop: 'static',
@@ -248,13 +284,77 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
           }
         });
       }
+//model 保存弹窗
+      function openModelSaveDialog(conn){
+        var snowModelSaveCtrl=function($scope,$modalInstance,SweetAlert,VdmUtil,scope,MessageService){
+          $scope.model={name:DrawHelper.instanceName, description:DrawHelper.instanceDiscribe, filter:DrawHelper.filterStr};
+          $scope.cancel = function () {
+            $modalInstance.dismiss('cancel');
+          }
+          $scope.saveModel=function(){
+            DrawHelper.instanceName=$scope.model.name;
+            DrawHelper.instanceDiscribe=$scope.model.description;
+            DrawHelper.filterStr=$scope.model.filter;
+            var saveData;
+            try {
+              saveData=angular.fromJson(DrawHelper.plumbDataToKylinData());
+            } catch (e) {
+              SweetAlert.swal(scope.dataKylin.alert.oops, scope.dataKylin.alert.tip_invalid_model_json, 'error');
+              return;
+            }
+            ModelService.save({}, {
+              modelDescData:VdmUtil.filterNullValInObj(saveData),
+              project: scope.state.project
+            }, function (request) {
+              if(request.successful) {
 
+
+                SweetAlert.swal('', scope.dataKylin.alert.success_created_model, 'success');
+                $location.path("/models");
+                //location.reload();
+              } else {
+                var message =request.message;
+                var msg = !!(message) ? message : scope.dataKylin.alert.error_info;
+                MessageService.sendMsg(scope.modelResultTmpl({'text':msg,'schema':''}), 'error', {}, true, 'top_center');
+              }
+
+              //end loading
+              loadingRequest.hide();
+            }, function (e) {
+              if (e.data && e.data.exception) {
+                var message =e.data.exception;
+                var msg = !!(message) ? message : scope.dataKylin.alert.error_info;
+                MessageService.sendMsg(scope.modelResultTmpl({'text':msg,'schema':scope.state.modelSchema}), 'error', {}, true, 'top_center');
+              } else {
+                MessageService.sendMsg(scope.modelResultTmpl({'text':scope.dataKylin.alert.error_info,'schema':''}), 'error', {}, true, 'top_center');
+              }
+              //end loading
+              loadingRequest.hide();
+
+            });
+
+
+          }
+        }
+        var modalInstance = $modal.open({
+          windowClass:'modal_modelsave',
+          templateUrl: 'partials/models/snowmodel_saveinfo.html',
+          controller: snowModelSaveCtrl,
+          backdrop: 'static',
+          resolve:{
+            scope: function () {
+              return $scope;
+            }
+          }
+        });
+      }
       //拖拽建模（雪花）初始化入口
       DrawHelper.init({
         changeTableInfo:openSnowTableInfoDialog,
         changeConnectType:openSelectJoinTypeDialog,
         addColumnToPartitionDate:openDateFormatTypeDialog,
-        addColumnToPartitionTime:openDateFormatTypeDialog
+        addColumnToPartitionTime:openDateFormatTypeDialog,
+        saveModel:openModelSaveDialog
       });
     },1000)
 
