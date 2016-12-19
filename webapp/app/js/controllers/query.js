@@ -231,9 +231,10 @@ KylinApp
         $scope.refreshUi = function () {
             $scope.ui.fullScreen = !$scope.ui.fullScreen;
             $timeout(function () {
-                if ($scope.curQuery.result.gridOptions) {
+                if ($scope.curQuery.result.gridOptions&&$scope.curQuery.result.gridOptions.$gridScope) {
                     $domUtilityService.RebuildGrid($scope.curQuery.result.gridOptions.$gridScope, $scope.curQuery.result.gridOptions.ngGrid);
                 }
+                $("#grid-query-results").find(".ui-grid-contents-wrapper").trigger("resize");
             });
         }
 

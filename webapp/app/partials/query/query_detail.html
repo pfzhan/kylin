@@ -94,7 +94,7 @@
     </div>
 
     <div ng-if="!curQuery.graph.show">
-        <div class="query-results">
+        <div class="query-results" id="grid-query-results">
             <div ng-if="curQuery.status=='success'">
                 <div class="gridStyle" ui-grid="curQuery.result.gridOptions" ui-grid-resize-columns  ui-grid-grouping
                      ng-if="curQuery.result.results.length > 0" id="data_grid"
