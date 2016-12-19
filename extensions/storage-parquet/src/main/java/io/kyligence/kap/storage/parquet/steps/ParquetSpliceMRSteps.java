@@ -24,7 +24,8 @@
 
 package io.kyligence.kap.storage.parquet.steps;
 
-import com.google.common.collect.Lists;
+import java.util.List;
+
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
@@ -33,7 +34,7 @@ import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 
-import java.util.List;
+import com.google.common.collect.Lists;
 
 public class ParquetSpliceMRSteps extends ParquetMRSteps {
     public ParquetSpliceMRSteps(CubeSegment seg) {
@@ -89,5 +90,10 @@ public class ParquetSpliceMRSteps extends ParquetMRSteps {
         step.setToCleanFileSuffix(toCleanFileSuffixs);
 
         jobFlow.addTask(step);
+
+        ParquetCubeInfoCollectionStep step2 = new ParquetCubeInfoCollectionStep();
+        step2.setParam(ParquetCubeInfoCollectionStep.INPUT_PATH, getCubeFolderPath(seg));
+        step2.setParam(ParquetCubeInfoCollectionStep.OUTPUT_PATH, getCubeFolderPath(seg) + "/CubeInfo");
+        jobFlow.addTask(step2);
     }
 }
