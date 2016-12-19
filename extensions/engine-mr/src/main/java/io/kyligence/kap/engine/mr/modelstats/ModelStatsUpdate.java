@@ -64,6 +64,8 @@ public class ModelStatsUpdate extends AbstractHadoopJob {
 
     private IJoinedFlatTableDesc flatTableDesc;
 
+    private Map<Integer, String> columnIndexMap = new HashMap<>();
+
     private static final Logger logger = LoggerFactory.getLogger(ModelStatsUpdate.class);
 
     public ModelStatsUpdate() {
@@ -113,17 +115,31 @@ public class ModelStatsUpdate extends AbstractHadoopJob {
 
         ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(KylinConfig.getInstanceFromEnv());
         ModelStats modelStats = modelStatsManager.getModelStats(model);
-        Map<Integer, Long> singleCardMap = new HashMap<>();
-        Map<String, Integer> columnIndexMap = new HashMap<>();
+        Map<String, Long> singleCardMap = new HashMap<>();
+        Map<String, Long> combinationCardMap = new HashMap<>();
         for (Map.Entry<Integer, HiveTableExtSampler> sampler : samplers.entrySet()) {
-            columnIndexMap.put(sampler.getValue().getColumnName(), sampler.getKey());
-            singleCardMap.put(sampler.getKey(), sampler.getValue().getCardinality());
-            modelStats.appendDoubleColumnCardinality(sampler.getValue().getCombinationCardinality());
+            singleCardMap.put(columnIndexMap.get(sampler.getKey()), sampler.getValue().getCardinality());
+            combinationCardMap.putAll(convertCombinationCardMap(sampler.getValue().getCombinationCardinality()));
             sampler.getValue().clean();
         }
-        modelStats.setColumnIndexMap(columnIndexMap);
+        modelStats.setDoubleColumnCardinality(combinationCardMap);
         modelStats.setSingleColumnCardinality(singleCardMap);
         modelStatsManager.saveModelStats(modelStats);
+    }
+
+    private Map<String, Long> convertCombinationCardMap(Map<String, Long> combinationCardMap) {
+        Map<String, Long> convertedComCardMap = new HashMap<>();
+        for (Map.Entry<String, Long> combinationCard : combinationCardMap.entrySet()) {
+            String[] keys = combinationCard.getKey().split(",");
+            if (keys.length != 2)
+                throw new IllegalArgumentException("Illegal combination key in Model stats" + model);
+            StringBuilder keyBuilder = new StringBuilder();
+            keyBuilder.append(columnIndexMap.get(Integer.parseInt(keys[0])));
+            keyBuilder.append(",");
+            keyBuilder.append(columnIndexMap.get(Integer.parseInt(keys[1])));
+            convertedComCardMap.put(keyBuilder.toString(), combinationCard.getValue());
+        }
+        return convertedComCardMap;
     }
 
     private TreeMap<Integer, HiveTableExtSampler> read(Path path, Configuration conf) throws IOException {
@@ -137,6 +153,7 @@ public class ModelStatsUpdate extends AbstractHadoopJob {
             while (reader.next(key, value)) {
                 HiveTableExtSampler sampler = new HiveTableExtSampler(key.get(), flatTableDesc.getAllColumns().size());
                 sampler.decode(ByteBuffer.wrap(value.getBytes()));
+                columnIndexMap.put(key.get(), sampler.getColumnName());
                 samplers.put(key.get(), sampler);
             }
         }

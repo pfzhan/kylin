@@ -41,10 +41,8 @@ public class ModelStats extends RootPersistentEntity {
     private String modelName;
     @JsonProperty("last_build_job_id")
     private String jodID;
-    @JsonProperty("column_index_map")
-    private Map<String, Integer> columnIndexMap = new HashMap<>();
     @JsonProperty("single_column_cardinality")
-    private Map<Integer, Long> singleColumnCardinality = new HashMap<>();
+    private Map<String, Long> singleColumnCardinality = new HashMap<>();
     @JsonProperty("double_columns_cardinality")
     private Map<String, Long> doubleColumnCardinality = new HashMap<>();
 
@@ -67,23 +65,11 @@ public class ModelStats extends RootPersistentEntity {
         return this.jodID;
     }
 
-    public void setColumnIndexMap(Map<String, Integer> columnIndexMap) {
-        this.columnIndexMap = columnIndexMap;
-    }
-
-    public Map<String, Integer> getColumnIndexMap() {
-        return this.columnIndexMap;
-    }
-
-    public void setSingleColumnCardinality(Map<Integer, Long> sCardinality) {
+    public void setSingleColumnCardinality(Map<String, Long> sCardinality) {
         this.singleColumnCardinality = sCardinality;
     }
 
-    public void appendSingleColumnCardinality(Map<Integer, Long> sCardinality) {
-        this.singleColumnCardinality.putAll(sCardinality);
-    }
-
-    public Map<Integer, Long> getSingleColumnCardinality() {
+    public Map<String, Long> getSingleColumnCardinality() {
         return this.singleColumnCardinality;
     }
 
@@ -91,37 +77,8 @@ public class ModelStats extends RootPersistentEntity {
         this.doubleColumnCardinality = dCardinality;
     }
 
-    public void appendDoubleColumnCardinality(Map<String, Long> dCardinality) {
-        this.doubleColumnCardinality.putAll(dCardinality);
-    }
-
     public Map<String, Long> getDoubleColumnCardinality() {
         return this.doubleColumnCardinality;
-    }
-
-    public Long getSingleCardByIndex(int index) {
-        return this.singleColumnCardinality.get(index);
-    }
-
-    public Long getDoubleCardByIndex(int index1, int index2) {
-        if (index1 == index2)
-            return singleColumnCardinality.get(index1);
-
-        StringBuilder key = new StringBuilder();
-        key.append(Math.min(index1, index2));
-        key.append(",");
-        key.append(Math.max(index1, index2));
-        return this.doubleColumnCardinality.get(key.toString());
-    }
-
-    public Long getSingleCardByColumnName(String columnName) {
-        return this.singleColumnCardinality.get(columnIndexMap.get(columnName));
-    }
-
-    public Long getDoubleCardByColumnName(String columnName1, String columnName2) {
-        int index1 = columnIndexMap.get(columnName1);
-        int index2 = columnIndexMap.get(columnName2);
-        return getDoubleCardByIndex(index1, index2);
     }
 
     public String getResourcePath() {

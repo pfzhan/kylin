@@ -165,7 +165,7 @@ public class HiveTableExtSampler implements Serializable {
         Map<String, Long> ccMap = new LinkedHashMap<>();
         int i = 1;
         for (HLLCounter hllc : hllList) {
-            String key = String.valueOf(curIndex + 1) + "," + String.valueOf(curIndex + 1 + i);
+            String key = String.valueOf(curIndex) + "," + String.valueOf(curIndex + i);
             ccMap.put(key, hllc.getCountEstimate());
             i++;
         }
