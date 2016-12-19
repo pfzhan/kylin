@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.storage.parquet.format.pageIndex.column;
 
+import java.io.Closeable;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
@@ -36,13 +37,12 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.cube.index.IColumnInvertedIndex;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.key.IKeyEncoding;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.key.KeyEncodingFactory;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.value.IValueSetEncoding;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.value.ValueSetEncodingFactory;
 
-public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray> {
+public class ColumnIndexWriter implements Closeable {
     protected static final Logger logger = LoggerFactory.getLogger(ColumnIndexWriter.class);
 
     private DataOutputStream outputStream;
@@ -179,24 +179,20 @@ public class ColumnIndexWriter implements IColumnInvertedIndex.Builder<ByteArray
         outputStream.close();
     }
 
-    @Override
     public void putNextRow(ByteArray value) {
         throw new NotImplementedException();
     }
 
-    @Override
     public void putNextRow(ByteArray[] value) {
         throw new NotImplementedException();
     }
 
-    @Override
     public void appendToRow(ByteArray value, int docId) {
         Preconditions.checkState(columnSpec.getColumnLength() == value.length());
         indexMapCache.put(value, docId);
         totalPageNum = Math.max(totalPageNum, docId + 1);
     }
 
-    @Override
     public void appendToRow(ByteArray[] values, int docId) {
         if (values != null && values.length > 0) {
             for (ByteArray value : values) {

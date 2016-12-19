@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.storage.parquet.format.pageIndex.column;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,13 +43,12 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.index.IColumnInvertedIndex;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.key.IKeyEncoding;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.key.KeyEncodingFactory;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.value.IValueSetEncoding;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.value.ValueSetEncodingFactory;
 
-public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray> {
+public class ColumnIndexReader implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(ColumnIndexReader.class);
 
     private FSDataInputStream inputStream;
@@ -209,12 +209,10 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
         gtIndex = null;
     }
 
-    @Override
     public ImmutableRoaringBitmap getRows(ByteArray v) {
         return lookupEqIndex(v);
     }
 
-    @Override
     public int getNumberOfRows() {
         if (eqIndex == null) {
             initFromInput();
@@ -227,6 +225,23 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
             initFromInput();
         }
         return pageNum;
+    }
+
+    private ImmutableRoaringBitmap roundWrap(ImmutableRoaringBitmap bitmap, RoundDirectType roundType) {
+        MutableRoaringBitmap tmpBitmap = new MutableRoaringBitmap();
+        if (roundType == RoundDirectType.LTE) {
+            int least = bitmap.getIntIterator().next();
+            tmpBitmap.add((long) 0, (long) least);
+        } else if (roundType == RoundDirectType.GTE) {
+            int highest = bitmap.getReverseIntIterator().next();
+            int end = getPageNum();
+            tmpBitmap.add((long) highest, (long) end);
+        } else {
+            throw new RuntimeException();
+        }
+
+        tmpBitmap.or(bitmap);
+        return tmpBitmap.toImmutableRoaringBitmap();
     }
 
     private enum IndexBlockType {
@@ -402,22 +417,5 @@ public class ColumnIndexReader implements IColumnInvertedIndex.Reader<ByteArray>
 
             return MutableRoaringBitmap.bitmapOf();
         }
-    }
-
-    private ImmutableRoaringBitmap roundWrap(ImmutableRoaringBitmap bitmap, RoundDirectType roundType) {
-        MutableRoaringBitmap tmpBitmap = new MutableRoaringBitmap();
-        if (roundType == RoundDirectType.LTE) {
-            int least = bitmap.getIntIterator().next();
-            tmpBitmap.add((long) 0, (long) least);
-        } else if (roundType == RoundDirectType.GTE) {
-            int highest = bitmap.getReverseIntIterator().next();
-            int end = getPageNum();
-            tmpBitmap.add((long) highest, (long) end);
-        } else {
-            throw new RuntimeException();
-        }
-
-        tmpBitmap.or(bitmap);
-        return tmpBitmap.toImmutableRoaringBitmap();
     }
 }
