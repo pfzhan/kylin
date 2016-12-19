@@ -234,7 +234,7 @@ KylinApp
                 if ($scope.curQuery.result.gridOptions&&$scope.curQuery.result.gridOptions.$gridScope) {
                     $domUtilityService.RebuildGrid($scope.curQuery.result.gridOptions.$gridScope, $scope.curQuery.result.gridOptions.ngGrid);
                 }
-                $("#grid-query-results").find(".ui-grid-contents-wrapper").trigger("resize");
+                $("#grid-query-results").find(".ui-grid-contents-wrapper").trigger("resize").end().find(".ui-grid-render-container").trigger("resize");
             });
         }
 
