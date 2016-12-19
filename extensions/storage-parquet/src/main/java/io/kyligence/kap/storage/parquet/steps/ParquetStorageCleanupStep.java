@@ -110,7 +110,7 @@ public class ParquetStorageCleanupStep extends AbstractExecutable {
         }
     }
 
-    private void dropCuboidPath(FileSystem fs, Path path, List<String> fileSuffixs) throws IOException {
+    protected void dropCuboidPath(FileSystem fs, Path path, List<String> fileSuffixs) throws IOException {
         if (!fs.exists(path)) {
             logger.warn("path {} does not exist", path.toString());
         } else if (fs.isDirectory(path)) {
@@ -125,7 +125,7 @@ public class ParquetStorageCleanupStep extends AbstractExecutable {
         }
     }
 
-    private void dropPath(FileSystem fs, Path path, List<String> fileSuffixs) throws IOException {
+    protected void dropPath(FileSystem fs, Path path, List<String> fileSuffixs) throws IOException {
         if (!fs.exists(path)) {
             logger.warn("path {} does not exist", path.toString());
         } else if (fs.isDirectory(path)) {

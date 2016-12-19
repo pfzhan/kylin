@@ -33,6 +33,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -86,7 +87,7 @@ public class ParquetTarballJob extends AbstractHadoopJob {
             job.getConfiguration().setInt("dfs.blocksize", KapConfig.getInstanceFromEnv().getParquetStorageBlockSize());
             job.setInputFormatClass(ParquetWithIndexFileInputFormat.class);
             job.setOutputFormatClass(EmptyOutputFormat.class);
-            job.setMapperClass(ParquetTarballMapper.class);
+            job.setMapperClass(getMapperClass());
             job.setNumReduceTasks(0);
             FileOutputFormat.setOutputPath(job, output);
 
@@ -115,5 +116,9 @@ public class ParquetTarballJob extends AbstractHadoopJob {
             logger.warn("Input Path: {} should be directory", path);
         }
         return ret;
+    }
+
+    protected Class<? extends Mapper> getMapperClass() {
+        return ParquetTarballMapper.class;
     }
 }

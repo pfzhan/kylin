@@ -24,10 +24,16 @@
 
 package io.kyligence.kap.storage.parquet.steps;
 
+import com.google.common.collect.Lists;
 import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.common.MapReduceExecutable;
+import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.engine.JobEngineConfig;
+import org.apache.kylin.job.execution.DefaultChainedExecutable;
+
+import java.util.List;
 
 public class ParquetSpliceMRSteps extends ParquetMRSteps {
     public ParquetSpliceMRSteps(CubeSegment seg) {
@@ -51,5 +57,37 @@ public class ParquetSpliceMRSteps extends ParquetMRSteps {
 
         result.setMapReduceParams(cmd.toString());
         return result;
+    }
+
+    @Override
+    public MapReduceExecutable createCubeTarballStep(String jobId) {
+        MapReduceExecutable result = new MapReduceExecutable();
+        result.setName("Tarball Columnar Files");
+        result.setMapReduceJobClass(ParquetSpliceTarballJob.class);
+        result.setCounterSaveAs(",," + CubingJob.CUBE_SIZE_BYTES);
+
+        StringBuilder cmd = new StringBuilder();
+        appendMapReduceParameters(cmd);
+
+        appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_Parquet_Tarball_" + seg.getRealization().getName() + "_Step");
+        appendExecCmdParameters(cmd, BatchConstants.ARG_CUBE_NAME, seg.getRealization().getName());
+        appendExecCmdParameters(cmd, BatchConstants.ARG_INPUT, getCubeFolderPath(seg));
+        appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, getCubeTarballTmpFolderPath(seg));
+
+        result.setMapReduceParams(cmd.toString());
+        return result;
+    }
+
+    @Override
+    public void addCubeGarbageCollectionSteps(DefaultChainedExecutable jobFlow) {
+        List<String> toCleanFolders = Lists.newArrayList(getCubeFolderPath(seg));
+        List<String> toCleanFileSuffixs = Lists.newArrayList(".parquet", ".parquet.inv", ".tmp");
+
+        ParquetStorageSpliceCleanupStep step = new ParquetStorageSpliceCleanupStep();
+        step.setName(ExecutableConstants.STEP_NAME_GARBAGE_COLLECTION);
+        step.setToCleanFolders(toCleanFolders);
+        step.setToCleanFileSuffix(toCleanFileSuffixs);
+
+        jobFlow.addTask(step);
     }
 }

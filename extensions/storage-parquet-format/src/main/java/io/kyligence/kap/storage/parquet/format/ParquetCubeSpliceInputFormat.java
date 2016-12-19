@@ -119,7 +119,7 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
         }
 
         private String[] getAllCuboidsFromFile() {
-            return (String[]) Lists.newArrayList(getCuboid2DivMap().keySet()).toArray();
+            return Lists.newArrayList(getCuboid2DivMap().keySet()).toArray(new String[0]);
         }
 
         private Map<String, List<String>> getCuboid2DivMap() {

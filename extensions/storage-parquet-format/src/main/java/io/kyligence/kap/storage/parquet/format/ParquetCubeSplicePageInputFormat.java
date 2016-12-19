@@ -90,8 +90,8 @@ public class ParquetCubeSplicePageInputFormat<K, V> extends FileInputFormat<K, V
                 return false;
             }
 
-            Binary keyBytes = (Binary) reader.read().get(0);
-            if (keyBytes == null) {
+            List<Object> keys = reader.read();
+            if (keys == null) {
                 if (!getNextReader()) {
                     return false;
                 }
@@ -99,7 +99,7 @@ public class ParquetCubeSplicePageInputFormat<K, V> extends FileInputFormat<K, V
             }
 
             // Key = curDiv + origin key
-            key = (K) new ByteArrayListWritable(curDiv.getBytes(), keyBytes.getBytes());
+            key = (K) new ByteArrayListWritable(curDiv.getBytes(), ((Binary) keys.get(0)).getBytes());
             val = (V) new IntWritable(reader.getPageIndex());
             return true;
         }
@@ -133,7 +133,9 @@ public class ParquetCubeSplicePageInputFormat<K, V> extends FileInputFormat<K, V
 
         @Override
         public void close() throws IOException {
-            reader.close();
+            if (reader != null) {
+                reader.close();
+            }
         }
     }
 }

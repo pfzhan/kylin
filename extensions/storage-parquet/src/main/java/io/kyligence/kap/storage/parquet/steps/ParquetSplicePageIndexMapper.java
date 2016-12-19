@@ -27,7 +27,6 @@ package io.kyligence.kap.storage.parquet.steps;
 import java.io.IOException;
 import java.util.List;
 
-import io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceOutputFormat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -54,6 +53,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceOutputFormat;
 import io.kyligence.kap.storage.parquet.format.datatype.ByteArrayListWritable;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexSpliceWriter;
 
@@ -89,7 +89,7 @@ public class ParquetSplicePageIndexMapper extends KylinMapper<ByteArrayListWrita
         cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME).toUpperCase();
         segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
 
-        outputPath = new Path(FileOutputFormat.getWorkOutputPath(context), inputPath.getName().replace("parquet", ".parquet.inv"));
+        outputPath = new Path(FileOutputFormat.getWorkOutputPath(context), inputPath.getName().replace("parquet", "parquet.inv"));
         FSDataOutputStream outputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(outputPath);
         indexSpliceWriter = new ParquetPageIndexSpliceWriter(outputStream);
 
@@ -105,7 +105,7 @@ public class ParquetSplicePageIndexMapper extends KylinMapper<ByteArrayListWrita
     @Override
     public void doMap(ByteArrayListWritable key, IntWritable value, Context context) throws IOException {
         List<byte[]> keys = key.get();
-        String div = String.valueOf(keys.get(0));
+        String div = new String(keys.get(0));
         long cuboidId = ParquetCubeSpliceOutputFormat.ParquetCubeSpliceWriter.getCuboididFromDiv(div);
         short shardId = ParquetCubeSpliceOutputFormat.ParquetCubeSpliceWriter.getShardidFromDiv(div);
         if (cuboidId != curCuboidId || shardId != curShardId) {
