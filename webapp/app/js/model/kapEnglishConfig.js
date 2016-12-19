@@ -492,7 +492,7 @@ KylinApp.constant('kapEnglishConfig', {
     tip_length_fixed_length_hex_part_two:'characters',
     tip_length_integer_v2:'Support range is',
     noConfigRawTableInfo:'No Raw Table Configuration Information',
-    unSupportRawTable:'Only KAP PLUS provides Raw Table',
+    unSupportRawTable:'Only KAP PLUS Provides Raw Table',
     needConfigRawTable:'Config Raw Table',
     cubeOfRawTable: 'Raw Table',
     rawtableASColumn:'Column',
