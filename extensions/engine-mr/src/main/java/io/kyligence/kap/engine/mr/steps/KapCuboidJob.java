@@ -133,7 +133,7 @@ public class KapCuboidJob extends AbstractHadoopJob {
 
             // Reducer
             job.setReducerClass(CuboidReducer.class);
-            job.setOutputFormatClass(ParquetCubeOutputFormat.class);
+            job.setOutputFormatClass(getCubeOutputFormat());
             job.setOutputKeyClass(Text.class);
             job.setOutputValueClass(Text.class);
 
@@ -146,6 +146,7 @@ public class KapCuboidJob extends AbstractHadoopJob {
             job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, cubeName);
             job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_ID, segmentID);
             job.getConfiguration().setInt(BatchConstants.CFG_CUBE_CUBOID_LEVEL, nCuboidLevel);
+            job.getConfiguration().set(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS, "All");
 
             // set path for output
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_OUTPUT_DIR, getWorkingDir(config, cube, cubeSeg));
@@ -205,5 +206,9 @@ public class KapCuboidJob extends AbstractHadoopJob {
 
     protected Class<? extends FileInputFormat> getCubeInputFormat() {
         return ParquetCubeSpliceInputFormat.class;
+    }
+
+    protected Class<? extends FileOutputFormat> getCubeOutputFormat() {
+        return ParquetCubeOutputFormat.class;
     }
 }

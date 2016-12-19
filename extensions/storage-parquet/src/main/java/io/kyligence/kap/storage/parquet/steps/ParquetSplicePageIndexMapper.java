@@ -27,6 +27,7 @@ package io.kyligence.kap.storage.parquet.steps;
 import java.io.IOException;
 import java.util.List;
 
+import io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceOutputFormat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -104,10 +105,12 @@ public class ParquetSplicePageIndexMapper extends KylinMapper<ByteArrayListWrita
     @Override
     public void doMap(ByteArrayListWritable key, IntWritable value, Context context) throws IOException {
         List<byte[]> keys = key.get();
-        String[] div = String.valueOf(keys.get(0)).split("-");
-        if (Long.valueOf(div[0]) != curCuboidId || Short.valueOf(div[1]) != curShardId) {
-            curCuboidId = Long.valueOf(div[0]);
-            curShardId = Short.valueOf(div[1]);
+        String div = String.valueOf(keys.get(0));
+        long cuboidId = ParquetCubeSpliceOutputFormat.ParquetCubeSpliceWriter.getCuboididFromDiv(div);
+        short shardId = ParquetCubeSpliceOutputFormat.ParquetCubeSpliceWriter.getShardidFromDiv(div);
+        if (cuboidId != curCuboidId || shardId != curShardId) {
+            curCuboidId = cuboidId;
+            curShardId = shardId;
             refreshWriter();
         }
 
@@ -116,9 +119,7 @@ public class ParquetSplicePageIndexMapper extends KylinMapper<ByteArrayListWrita
     }
 
     private void refreshWriter() throws IOException {
-        if (indexSpliceWriter.isDivStarted()) {
-            indexSpliceWriter.endDiv();
-        }
+        indexSpliceWriter.endDiv();
 
         cuboid = Cuboid.findById(cubeDesc, curCuboidId);
         RowKeyEncoder rowKeyEncoder = (RowKeyEncoder) AbstractRowKeyEncoder.createInstance(cubeSegment, cuboid);

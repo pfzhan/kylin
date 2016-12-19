@@ -68,7 +68,7 @@ public class ParquetCubeSplicePageInputFormat<K, V> extends FileInputFormat<K, V
         private ParquetBundleReader reader = null;
         private List<String> divs;
         private int divIndex = 0;
-        private String curDiv;
+        private String curDiv = null;
 
         private K key;
         private V val;

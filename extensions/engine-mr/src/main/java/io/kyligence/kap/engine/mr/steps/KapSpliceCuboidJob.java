@@ -24,8 +24,10 @@
 
 package io.kyligence.kap.engine.mr.steps;
 
+import io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceOutputFormat;
 import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,4 +47,8 @@ public class KapSpliceCuboidJob extends KapCuboidJob {
         return ParquetCubeSpliceInputFormat.class;
     }
 
+    @Override
+    protected Class<? extends FileOutputFormat> getCubeOutputFormat() {
+        return ParquetCubeSpliceOutputFormat.class;
+    }
 }

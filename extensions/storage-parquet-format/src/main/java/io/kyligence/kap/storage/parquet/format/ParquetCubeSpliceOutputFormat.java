@@ -64,8 +64,6 @@ import io.kyligence.kap.storage.parquet.format.file.ParquetSpliceWriter;
  * cube splice build output format
  */
 public class ParquetCubeSpliceOutputFormat extends FileOutputFormat<Text, Text> {
-    private static final Logger logger = LoggerFactory.getLogger(ParquetCubeSpliceOutputFormat.class);
-
     @Override
     public RecordWriter<Text, Text> getRecordWriter(TaskAttemptContext job) throws IOException, InterruptedException {
         return new ParquetCubeSpliceWriter((FileOutputCommitter) this.getOutputCommitter(job), job, job.getOutputKeyClass(), job.getOutputValueClass());
@@ -129,8 +127,12 @@ public class ParquetCubeSpliceOutputFormat extends FileOutputFormat<Text, Text> 
             return cuboidId + "-" + shardId;
         }
 
-        public static long getCuboididFromDivgetCuboididFromDiv(String div) {
+        public static long getCuboididFromDiv(String div) {
             return Long.valueOf(div.split("-")[0]);
+        }
+
+        public static short getShardidFromDiv(String div) {
+            return Short.valueOf(div.split("-")[1]);
         }
 
         @Override

@@ -24,11 +24,35 @@
 
 package io.kyligence.kap.storage.parquet.steps;
 
+import static io.kyligence.kap.engine.mr.steps.ParquertMRJobUtils.addParquetInputFile;
+
+import java.io.IOException;
+
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 
 import io.kyligence.kap.storage.parquet.format.ParquetCubeSplicePageInputFormat;
 
 public class ParuqetSplicePageIndexJob extends ParquetPageIndexJob {
+    @Override
+    protected int setJobInputFile(Job job, Path path) throws IOException {
+        int ret = 0;
+        FileSystem fs = FileSystem.get(job.getConfiguration());
+        if (!fs.exists(path)) {
+            logger.warn("Input {} does not exist.", path.toString());
+        } else if (fs.isDirectory(path)) {
+            for (FileStatus fileStatus : fs.listStatus(path)) {
+                // build index for only cuboid file
+                ret += addParquetInputFile(job, fileStatus.getPath());
+            }
+        } else {
+            logger.warn("Input Path: {} should be directory", path);
+        }
+        return ret;
+    }
+
     @Override
     protected void setMapperClass(Job job) {
         job.setMapperClass(ParquetSplicePageIndexMapper.class);

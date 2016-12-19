@@ -57,6 +57,9 @@ public class ParquetPageIndexSpliceWriter implements Closeable {
     }
 
     public void endDiv() throws IOException {
+        if (!divStarted) {
+            return;
+        }
         divStarted = false;
         writer.closeWithoutStream();
         divisionCache.put(curDivision, size);

@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.storage.parquet.format;
 
-import static io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceOutputFormat.ParquetCubeSpliceWriter.getCuboididFromDivgetCuboididFromDiv;
+import static io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceOutputFormat.ParquetCubeSpliceWriter.getCuboididFromDiv;
 
 import java.io.IOException;
 import java.util.List;
@@ -101,30 +101,31 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
             String segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
             String[] requiredCuboids;
 
-            // "All" for all divs
+            logger.info("cubeName is " + cubeName + " and segmentID is " + segmentID);
+            cubeInstance = CubeManager.getInstance(kylinConfig).getCube(cubeName);
+            cubeSegment = cubeInstance.getSegmentById(segmentID);
+            // init with first shard file
+            spliceReader = new ParquetSpliceReader.Builder().setConf(conf).setPath(path).build();
+
             if (context.getConfiguration().get(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS).equals("All")) {
+                // "All" for all divs
                 requiredCuboids = getAllCuboidsFromFile();
             } else {
                 // <cuboid-id1>,<cuboid-id2>,...,<cuboid-idn>
                 requiredCuboids = context.getConfiguration().get(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS).split(",");
             }
-            logger.info("cubeName is " + cubeName + " and segmentID is " + segmentID);
-            cubeInstance = CubeManager.getInstance(kylinConfig).getCube(cubeName);
-            cubeSegment = cubeInstance.getSegmentById(segmentID);
 
-            // init with first shard file
-            spliceReader = new ParquetSpliceReader.Builder().setConf(conf).setPath(path).build();
             filterDivs(requiredCuboids);
         }
 
         private String[] getAllCuboidsFromFile() {
-            return (String[]) Lists.newArrayList(getAllCuboidsMapFromFile().keySet()).toArray();
+            return (String[]) Lists.newArrayList(getCuboid2DivMap().keySet()).toArray();
         }
 
-        private Map<String, List<String>> getAllCuboidsMapFromFile() {
+        private Map<String, List<String>> getCuboid2DivMap() {
             Map<String, List<String>> cuboidDivMap = Maps.newHashMap();
             for (String d : spliceReader.getDivs()) {
-                String cuboid = String.valueOf(getCuboididFromDivgetCuboididFromDiv(d));
+                String cuboid = String.valueOf(getCuboididFromDiv(d));
                 if (!cuboidDivMap.containsKey(cuboid)) {
                     cuboidDivMap.put(cuboid, Lists.<String> newArrayList());
                 }
@@ -135,7 +136,7 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
 
         private void filterDivs(String[] requiredCuboids) {
             divs = Lists.newArrayList();
-            Map<String, List<String>> cuboidDivMap = getAllCuboidsMapFromFile();
+            Map<String, List<String>> cuboidDivMap = getCuboid2DivMap();
             for (String cuboid : requiredCuboids) {
                 if (cuboidDivMap.containsKey(cuboid)) {
                     divs.addAll(cuboidDivMap.get(cuboid));
@@ -177,7 +178,7 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
                 }
                 String div = divs.get(divIndex++);
                 reader = spliceReader.getDivReader(div);
-                rowKeyEncoder = new RowKeyEncoder(cubeSegment, Cuboid.findById(cubeInstance.getDescriptor(), getCuboididFromDivgetCuboididFromDiv(div)));
+                rowKeyEncoder = new RowKeyEncoder(cubeSegment, Cuboid.findById(cubeInstance.getDescriptor(), getCuboididFromDiv(div)));
                 return true;
             }
             return false;
