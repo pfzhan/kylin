@@ -61,7 +61,7 @@ public class HiveTableExtTest extends TestCase {
             sampler.samples(element, counter);
             counter++;
         }
-        String value = sampler.getRawSampleValue("102");
-        assertNotSame(value, "KAP_DEFAULT_SAMPLE_VALUE");
+        String value = sampler.getRawSampleValue("1");
+        assertNotSame(value, "");
     }
 }

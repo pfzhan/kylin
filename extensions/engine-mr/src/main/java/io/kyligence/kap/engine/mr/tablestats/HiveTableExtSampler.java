@@ -47,7 +47,7 @@ public class HiveTableExtSampler implements Serializable {
 
     public static final int HASH_SEED = 2;
     public static final int SAMPLE_RAW_VALUE_NUMBER = 10;
-    public static final int DEFAULT_BUFFER_SIZE = 1024 * 1024 * 2; // 1 MB
+    public static final int DEFAULT_BUFFER_SIZE = 1024 * 1024; // 1M
     public static final String HLLC_DATATYPE = "hllc";
 
     final static Map<String, Class<?>> implementations = Maps.newHashMap();
