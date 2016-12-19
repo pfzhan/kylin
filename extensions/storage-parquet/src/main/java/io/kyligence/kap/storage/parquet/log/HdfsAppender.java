@@ -24,6 +24,16 @@
 
 package io.kyligence.kap.storage.parquet.log;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
+import org.apache.log4j.AppenderSkeleton;
+import org.apache.log4j.spi.LoggingEvent;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -35,17 +45,6 @@ import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
-import org.apache.log4j.AppenderSkeleton;
-import org.apache.log4j.spi.LoggingEvent;
 
 public class HdfsAppender extends AppenderSkeleton {
 
@@ -159,7 +158,7 @@ public class HdfsAppender extends AppenderSkeleton {
                         }
 
                         String sparkuser = System.getenv("SPARK_USER");
-                        String user = System.getenv(ApplicationConstants.Environment.USER.toString());
+                        String user = System.getenv("USER");
                         System.out.println("login user is " + UserGroupInformation.getLoginUser() + " SPARK_USER is " + sparkuser + " USER is " + user);
                         UserGroupInformation childUGI = UserGroupInformation.createRemoteUser(user);
                         // Add tokens to new user so that it may execute its task correctly.
