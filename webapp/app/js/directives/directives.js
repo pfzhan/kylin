@@ -282,17 +282,18 @@ KylinApp.directive('kylinPagination', function ($parse, $q, language) {
 
         var hour = newDate.getHours()<10?'0'+newDate.getHours():newDate.getHours();
         var mins = newDate.getMinutes()<10?'0'+newDate.getMinutes():newDate.getMinutes();
-        var seconds = newDate.getSeconds()<10?'0'+newDate.getSeconds():getSeconds();
+        var seconds = newDate.getSeconds()<10?'0'+newDate.getSeconds():newDate.getSeconds();
 
         var viewVal = year+"-"+month+"-"+date+" "+hour+":"+mins+":"+seconds;
         return viewVal;
       });
 
       ctrl.$parsers.push(function (value) {
-        if (isNaN(value)||value==null) {
+        if(/\d{4}-\d{1,2}-\d{1,2}\s+(\d{1,2}:\d{1,2}:\d{1,2})/.test(value)) {
+          value=new Date(value);
+        }else{
           return value;
         }
-        //value = new Date(value.getFullYear(), value.getMonth(), value.getDate(), 0, 0, 0, 0);
         return value.getTime()-(60000 * value.getTimezoneOffset());
       });
     }
