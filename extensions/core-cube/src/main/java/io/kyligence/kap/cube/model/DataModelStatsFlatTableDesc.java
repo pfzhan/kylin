@@ -98,6 +98,10 @@ public class DataModelStatsFlatTableDesc implements IJoinedFlatTableDesc {
         return null;
     }
 
+    @Override public TblColRef getClusterBy() {
+        return null;
+    }
+
     @Override
     public ISegment getSegment() {
         return null;
