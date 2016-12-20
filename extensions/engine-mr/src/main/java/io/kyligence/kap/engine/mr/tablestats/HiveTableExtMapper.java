@@ -81,8 +81,10 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
 
     @Override
     public void doMap(T key, Object value, Context context) throws IOException, InterruptedException {
-        if (isOffsetZero && counter < skipHeaderLineCount)
+        if (skipHeaderLineCount > 0 && isOffsetZero) {
+            skipHeaderLineCount--;
             return;
+        }
         ColumnDesc[] columns = tableDesc.getColumns();
         String[] values = tableInputFormat.parseMapperInput(value);
         for (int m = 0; m < columns.length; m++) {
