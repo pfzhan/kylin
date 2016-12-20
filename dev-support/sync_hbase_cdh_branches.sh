@@ -54,11 +54,15 @@ trap 'error ${LINENO} ${?}' ERR
 git fetch ${kap_remote}
 git checkout ${kap_remote}/$kapbase-hbase1.x
 git format-patch -1
+git checkout ${kap_remote}/$kapbase-hbase102
+git format-patch -1
 git checkout ${kap_remote}/$kapbase-cdh5.7
 git format-patch -1
 cd kylin
 git fetch ${kylin_remote}
 git checkout ${kylin_remote}/$kylinbase-hbase1.x
+git format-patch -1
+git checkout ${kylin_remote}/$kylinbase-hbase102
 git format-patch -1
 git checkout ${kylin_remote}/$kylinbase-cdh5.7
 git format-patch -1
@@ -74,7 +78,7 @@ git checkout -b tmp
 git reset ${kylin_remote}/$kylinbase --hard
 cd ..
 
-# apply hbase patch
+# HBase-1.x patch
 cd kylin
 git am -3 --ignore-whitespace 0001-KYLIN-1528-Create-a-branch-for-v1.5-with-HBase-1.x-A.patch
 cd ..
@@ -88,16 +92,14 @@ git add kylin
 git commit --amend --no-edit
 if [[ "${push_remote}" == "true" ]]; then
     git push ${kap_remote} tmp:$kapbase-hbase1.x -f
-fi
-cd kylin
-if [[ "${push_remote}" == "true" ]]; then
+    cd kylin
     git push ${kylin_remote} tmp:$kylinbase-hbase1.x -f
+    cd ..
 fi
-cd ..
 rm 0001-Support-HBase-1.x.patch
 rm kylin/0001-KYLIN-1528-Create-a-branch-for-v1.5-with-HBase-1.x-A.patch
 
-# apply cdh patch
+# CDH-5.7 patch
 cd kylin
 git am -3 --ignore-whitespace 0001-KYLIN-1672-support-kylin-on-cdh-5.7.patch
 cd ..
@@ -111,14 +113,38 @@ git add kylin
 git commit --amend --no-edit
 if [[ "${push_remote}" == "true" ]]; then
     git push ${kap_remote} tmp:$kapbase-cdh5.7 -f
-fi
-cd kylin
-if [[ "${push_remote}" == "true" ]]; then
+    cd kylin
     git push ${kylin_remote} tmp:$kylinbase-cdh5.7 -f
+    cd ..
 fi
-cd ..
 rm 0001-Support-CDH-5.7.patch
 rm kylin/0001-KYLIN-1672-support-kylin-on-cdh-5.7.patch
+
+# HBASE-1.0.2 patch
+cd kylin
+git reset ${kylin_remote}/$kylinbase-hbase1.x --hard
+cd ..
+git reset ${kap_remote}/$kapbase-hbase1.x --hard
+
+cd kylin
+git am -3 --ignore-whitespace 0001-KYLIN-2233-Support-HBase-1.0.2.patch
+cd ..
+if git am -3 --ignore-whitespace 0001-Support-HBase-1.0.2.patch; then
+    echo git am 0001-Support-HBase-1.0.2.patch was successful
+else
+    git add kylin && git am --continue
+fi
+mvn clean compile -DskipTests
+git add kylin
+git commit --amend --no-edit
+if [[ "${push_remote}" == "true" ]]; then
+    git push ${kap_remote} tmp:$kapbase-hbase102 -f
+    cd kylin
+    git push ${kylin_remote} tmp:$kylinbase-hbase102 -f
+    cd ..
+fi
+rm 0001-Support-HBase-1.0.2.patch
+rm kylin/0001-KYLIN-2233-Support-HBase-1.0.2.patch
 
 # clean up
 git checkout $kapbase
