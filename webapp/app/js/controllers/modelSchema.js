@@ -24,7 +24,7 @@
 
 'use strict';
 
-KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, UserService, ProjectService, $q, AuthenticationService, $filter, ModelService, MetaModel, CubeDescModel, CubeList, TableModel, ProjectModel, $log, SweetAlert, modelsManager,language, modelsEdit,DrawHelper,$modal,cubeConfig) {
+KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, UserService, ProjectService, $q, AuthenticationService, $filter, ModelService, MetaModel, CubeDescModel, CubeList, TableModel, ProjectModel, $log, SweetAlert, modelsManager,language, modelsEdit,DrawHelper,$modal,cubeConfig,loadingRequest,$location) {
 
   $scope.modelsManager = modelsManager;
   $scope.projectModel = ProjectModel;
@@ -33,7 +33,13 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
   $scope.newMeasure = null;
 
   $scope.forms = {};
-
+  $scope.$watch('projectModel.selectedProject', function (newValue, oldValue) {
+    if(!$scope.projectModel.getSelectedProject()) {
+      return;
+    }else{
+      $scope.state.project=newValue;
+    }
+  })
   // ~ init
   if (!$scope.state) {
     $scope.state = {mode: "view"};
@@ -287,7 +293,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
       }
 //model 保存弹窗
       function openModelSaveDialog(conn){
-        var snowModelSaveCtrl=function($scope,$modalInstance,SweetAlert,VdmUtil,scope,MessageService){
+        var snowModelSaveCtrl=function($scope,$modalInstance,SweetAlert,VdmUtil,scope,MessageService,loadingRequest,$location){
           $scope.model={name:DrawHelper.instanceName, description:DrawHelper.instanceDiscribe, filter:DrawHelper.filterStr};
           $scope.cancel = function () {
             $modalInstance.dismiss('cancel');
@@ -308,9 +314,8 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
               project: scope.state.project
             }, function (request) {
               if(request.successful) {
-
-
                 SweetAlert.swal('', scope.dataKylin.alert.success_created_model, 'success');
+                $modalInstance.dismiss('cancel');
                 $location.path("/models");
                 //location.reload();
               } else {

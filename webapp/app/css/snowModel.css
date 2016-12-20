@@ -38,6 +38,10 @@
 }
 .classUml .title .tableKind{
   vertical-align: top;
+  box-shadow: none;
+  -o-box-shadow: none;
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
 }
 .classUml p{
   padding-left: 10px;
@@ -86,10 +90,10 @@
    width: 16px;
    height: 16px;
    display: block;
-   position: fixed;
+   position: absolute;
    background:url('../image/plus.png');
    right:25px;
-   bottom:50px;
+   bottom:20px;
    z-index:999;
    background-size: cover;
    cursor: pointer;
@@ -102,10 +106,10 @@
   width: 16px;
   height: 16px;
   display: block;
-  position:fixed;
+  position:absolute;
   background:url('../image/minus.png');
   right:50px;
-  bottom:50px;
+  bottom:20px;
   z-index:999;
   background-size:cover;
   cursor: pointer;
@@ -196,6 +200,8 @@
 }
 .isfact .snowclock{
   display: inline-block;
+  font-size: 12px;
+  top: 3px;
 }
 .islookup .snowclock{
   display: none;
@@ -208,6 +214,7 @@
 }
 .snowclock.snowDate{
   right: 25px;
+
 }
 .snowclock:hover{
   color:green;

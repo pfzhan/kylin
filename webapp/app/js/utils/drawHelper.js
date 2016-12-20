@@ -1,6 +1,6 @@
 //snow model design
 KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScroll, $window) {
-  return {
+   return {
     titleHeight:60,
     itemHeight:20,
     itemWidth:300,
@@ -165,7 +165,7 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         tableObj.table=tableBase.alias;
         for(var m=0;m<tableBase.columns.length;m++){
            if('dimension'==tableBase.columns[m].kind){
-             tableObj.columns.push(tableBase.alias+'.'+tableBase.columns[m].name)
+             tableObj.columns.push(tableBase.columns[m].name)
            }else if('measure'==tableBase.columns[m].kind){
              kylinData.metrics.push(tableBase.alias+'.'+tableBase.columns[m].name);
            }
