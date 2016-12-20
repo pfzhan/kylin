@@ -63,25 +63,38 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
           if(value=="integer"){
             $scope.integerVersion.version=encodings[i];
           }
+          var suggest=false;
+
           if(/\d+/.test(""+typeVersion)&&typeVersion>1){
             for(var s=1;s<=typeVersion;s++){
+              if(s==typeVersion){
+                suggest=true;
+              }
+              if(value=='int'){
+                suggest=false;
+              }
               $scope.store.supportedEncoding.push({
                 "name":name+" (v"+s+","+(s==typeVersion?"suggest)":")"),
                 "value":value+"[v"+s+"]",
                 "version":typeVersion,
                 "baseValue":value,
-                "suggest":s==typeVersion
+                "suggest":suggest
 
               });
             }
           }else {
+            if(value=='int'){
+              suggest=false;
+            }else{
+              suggest=true;
+            }
             $scope.store.supportedEncoding.push({
               "name": name,
               "value": value+"[v1]",
               "encoding_version":1,
               "version":typeVersion,
               "baseValue":value,
-              "suggest":true
+              "suggest":suggest
             });
           }
         }
