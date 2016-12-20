@@ -1,12 +1,17 @@
 .classUml{
   width:300px;
-  border:solid 1px #eee;
+  border:solid 1px #000;
   position: absolute;
   left: 120px;
   top:50px;
   background-color: #fff;
   border-radius: 5px;
-  overflow: hidden;
+  /*overflow: hidden;*/
+  box-shadow: 2px 2px 19px #aaa;
+  -o-box-shadow: 2px 2px 19px #aaa;
+  -webkit-box-shadow: 2px 2px 19px #000;
+  -moz-box-shadow: 2px 2px 19px #000;
+  -moz-border-radius:0.5em;
 }
 .classUml .title{
   text-align: left;
@@ -23,6 +28,7 @@
   margin-left:10px;
   display: inline-block;
   width: 250px;
+  color: #000;
 }
 .classUml .title .alias{
   font-style: italic;
@@ -35,18 +41,22 @@
 }
 .classUml p{
   padding-left: 10px;
-  border-bottom: solid 1px #eee;
+  border-bottom: solid 1px #000;
   height: 20px;
   line-height: 20px;
   font-size: 12px;
   margin: 0;
   text-overflow:ellipsis;
   word-break: break-all;
-  overflow: hidden;
-  /*font-weight:bold;*/
+  /*overflow: hidden;*/
+  position: relative;
+  cursor: pointer;
+  background-color: #333;
+  color: #fff;
+  font-weight:bold;
 }
 .classUml p:hover{
-  background-color:#eee;
+  /*background-color:#eee;*/
 }
 #snowBox{
   width: 100%;
@@ -105,15 +115,20 @@
   background-size: cover;
 }
 .snowFont{
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   display: inline-block;
   background-color: #00c0ef;
   color: #fff;
   text-align: center;
-  line-height: 20px;
+  line-height: 18px;
   border-radius: 10px;
   font-weight: bold;
+  box-shadow: 2px 2px 19px #111;
+  -o-box-shadow: 2px 2px 19px #111;
+  -webkit-box-shadow: 2px 2px 19px #111;
+  -moz-box-shadow: 2px 2px 19px #111;
+
 }
 .columnKind{
   cursor: pointer;
@@ -158,15 +173,23 @@
   font-style: italic;
 }
 .aLabel{
-  color:red;
+  color:#fff;
   font-size: 14px;
   font-weight: bold;
+  box-shadow: 2px 2px 19px #aaa;
+  -o-box-shadow: 2px 2px 19px #aaa;
+  -webkit-box-shadow: 2px 2px 19px #000;
+  -moz-box-shadow: 2px 2px 19px #000;
 }
 .snowclock{
   color:#ccc;
   font-size: 16px;
   position: absolute;
   right: 10px;
+  box-shadow: 2px 2px 19px #aaa;
+  -o-box-shadow: 2px 2px 19px #aaa;
+  -webkit-box-shadow: 2px 2px 19px #000;
+  -moz-box-shadow: 2px 2px 19px #000;
 }
 .snowclock.active{
   color:green;
@@ -202,12 +225,46 @@
   position: absolute;
   left: 10px;
   top: 10px;
+
+}
+#bar_action span{
   color: #ccc;
   border: solid 1px #ccc;
   padding: 4px;
   cursor: pointer;
+  margin-left: 10px;
 }
-#bar_action:hover{
+#bar_action span:hover{
   color: #fff;
   border-color: #fff;
 }
+.jsplumb-tips{
+  position: absolute;
+  display: none;
+  background-color: #000;
+  left: 35px;
+  top: -35px;
+  color: #fff;
+  border-radius: 2px;
+  padding: 5px;
+  z-index: 1;
+  word-break: normal;
+  box-shadow: 2px 2px 19px #aaa;
+  -o-box-shadow: 2px 2px 19px #aaa;
+  -webkit-box-shadow: 2px 2px 19px #000;
+  -moz-box-shadow: 2px 2px 19px #000;
+}
+.jsplumb-tips:after{
+  content: "";
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  width: 0px;
+  height: 0px;
+  border: 6px solid transparent;
+  border-top-color: #000;
+}
+p:hover .jsplumb-tips{
+  display: block;
+}
+

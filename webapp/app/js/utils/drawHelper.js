@@ -54,6 +54,7 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       });
       var that=this;
       this.instance.bind("connection", function (info, originalEvent) {
+        that.lastLink.push(info.connection.getParameters().data);
         //自己不能连自己
         if(info.sourceId==info.targetId){
           that.instance.detach(info.connection);
@@ -61,12 +62,16 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         }
         //rootFact不能连别人
         var rootFactTable=that.tableList.getRootFact();
-        if(that.lastLink[0]&&rootFactTable&&rootFactTable.guid==that.lastLink[0].split('.')[0]){
+        if(that.lastLink[0]&&rootFactTable&&rootFactTable.guid==that.lastLink[0].column.split('.')[0]){
           that.instance.detach(info.connection);
           return;
         }
-        that.lastLink.push(info.connection.getParameters().data);
-        that.connects[info.connection.id]=that.lastLink;
+        //不同类型的主外键关联预警
+        if(that.lastLink[0].type!=that.lastLink[1].type){
+
+        }
+
+        that.connects[info.connection.id]=[that.lastLink[0].column,that.lastLink[1].column];
         that.changeConnectType(info.connection);
         that.plumbDataToKylinData();
         info.connection.unbind('click').bind('click',function(conn){
@@ -83,7 +88,7 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       });
       this.showToolbar();
       this.showMapControl();
-      this.showSaveBtn();
+      this.showActionBtn();
       return this;
     },
     kylinDataToJsPlumbData:function(){
@@ -97,10 +102,11 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
          dimensions:[],
          metrics:[],
          filter_condition:this.filterStr,
-         name:this.instanceName
+         name:this.instanceName,
+         description:this.instanceDiscribe
        };
       //采集rootfacttable信息
-       var rootFactTable=this.tableList.getTable('kind','rootfact');
+       var rootFactTable=this.tableList.getRootFact();
        if(!rootFactTable){
          return 'lose root fact';
        }
@@ -193,9 +199,9 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
        var toolBarHtml='<div id="tipToolbar"><span class="snowFont snowFont1 relative">RF</span><span>Root Fact Table</span><span class="snowFont snowFont2 relative">F</span><span>Fact Table</span><span class="snowFont snowFont3 relative">L</span><span>Lookup Table</span><span class="snowFont snowFont5 relative">D</span><span>Dimension</span><span class="snowFont snowFont6 relative">M</span><span>Measure</span><span class="snowFont snowFont4 relative">-</span><span>Disable</span></div>';
        $(toolBarHtml).insertAfter(this.container);
     },
-    showSaveBtn:function(){
+    showActionBtn:function(){
       var that=this;
-      var actionBar='<div id="bar_action"><span>Save</span></div>';
+      var actionBar='<div id="bar_action"><span>Save</span><span>JSON</span></div>';
       $(actionBar).insertAfter(this.container);
       $('#bar_action').click(function(){
         that.saveModel();
@@ -220,9 +226,9 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
     },
     //提供table类型的dom结构
     renderTableKind:function(kind){
-        if(kind=='rootfact'){
+        if(kind=='ROOTFACT'){
            return '<span class="snowFont snowFont1 tableKind">RF</span>'
-        }else if(kind=='fact'){
+        }else if(kind=='FACT'){
           return '<span class="snowFont snowFont2 tableKind" >F</span>'
         }else{
          return '<span class="snowFont snowFont3 tableKind" >L</span>'
@@ -324,7 +330,7 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       },
       getRootFact:function(){
         for(var i=0;i<this.data.length;i++){
-          if(this.data[i]['kind']=='rootfact'){
+          if(this.data[i]['kind']=='ROOTFACT'){
             return this.data[i];
           }
         }
@@ -387,19 +393,19 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       var tableBaseObject={
         table:tableData.database+'.'+tableData.name,
         alias:tableData.alias||tableData.name,
-        kind:tableData.kind||'lookup',
-        columns: [].concat(tableData.columns),
+        kind:tableData.kind||'LOOKUP',
+        columns: $.extend(true,[],tableData.columns),
         pos:that.calcPosition(),
         guid:tableData.guid||this.guid()
       };
       this.tableList.add(tableBaseObject);
-      var str=' <div data="'+tableData.database+'.'+tableData.name+'" id="umlobj_'+tableBaseObject.guid+'" class="classUml '+(tableBaseObject.kind!='lookup'?'isfact':'islookup')+'" style="left:'+tableBaseObject.pos[0]+'px;top:'+tableBaseObject.pos[1]+'px">';
+      var str=' <div data="'+tableData.database+'.'+tableData.name+'" id="umlobj_'+tableBaseObject.guid+'" class="classUml '+(tableBaseObject.kind!='LOOKUP'?'isfact':'islookup')+'" style="left:'+tableBaseObject.pos[0]+'px;top:'+tableBaseObject.pos[1]+'px">';
           str+=' <div 	class="title" style="height:'+this.titleHeight+'px">';
           str+=this.renderTableKind(tableBaseObject.kind);
           str+='<a title="'+tableBaseObject.table+'"><i class="fa fa-table"></i> '+tableBaseObject.table+'</a><span class="more" ></span>' +
                     '<a class="alias" title="'+tableBaseObject.table+'">Alias:'+tableBaseObject.alias+'</a></div>';
           for (var i =0; i <tableData.columns.length; i++) {
-            str+='<p id="column_'+tableBaseObject.guid+tableData.columns[i].name+'" style="width:'+that.itemWidth+'px" data="'+tableData.columns[i].name+'">'+this.renderTableColumnKind(tableData.columns[i].type)+'&nbsp;&nbsp;'+tableData.columns[i].name+'('+tableData.columns[i].datatype+')'+this.renderPartionColumn(tableData.columns[i].datatype)+'</p>';
+            str+='<p  id="column_'+tableBaseObject.guid+tableData.columns[i].name+'" style="width:'+that.itemWidth+'px" data="'+tableData.columns[i].name+'">'+this.renderTableColumnKind(tableData.columns[i].type)+'&nbsp;&nbsp;'+tableData.columns[i].name+'('+tableData.columns[i].datatype+')'+this.renderPartionColumn(tableData.columns[i].datatype)+'<span class="jsplumb-tips">'+tableData.columns[i].name+'('+tableData.columns[i].datatype+')</span></p>';
           }
           str+='</div>';
       $("#"+this.containerId).append($(str));
@@ -412,14 +418,14 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         var h=this.numDiv((this.titleHeight+this.itemHeight*i+this.numDiv(this.itemHeight,2)),totalHeight);
         this.instance.addEndpoint(boxIdName, {anchor:[[1.0,h, 1.5, 0],[0, h, -1, 0]]}, this.createPoint({
             parameters:{
-              data:tableBaseObject.guid+'.'+tableBaseObject.columns[i].name
+              data:{column:tableBaseObject.guid+'.'+tableBaseObject.columns[i].name,type:tableData.columns[i].type}
             },
             uuid:tableBaseObject.guid
           }
         ));
         this.instance.addEndpoint(boxIdName, {anchor:[[0,h, -1, 0],[1, h, 1.5, 0]]}, this.createPoint({
             parameters:{
-              data:tableBaseObject.guid+'.'+tableBaseObject.columns[i].name
+              data:{column:tableBaseObject.guid+'.'+tableBaseObject.columns[i].name,type:tableData.columns[i].type}
             },
             uuid:tableBaseObject.guid
           }

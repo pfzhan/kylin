@@ -162,15 +162,16 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
               return;
             }
             var rootFactTable=DrawHelper.tableList.getRootFact();
-            if(table.kind=='rootfact'&&rootFactTable&&rootFactTable.guid!=table.guid){
+            if(table.kind=='ROOTFACT'&&rootFactTable&&rootFactTable.guid!=table.guid){
               $scope.hasRootfactError=true;
               return;
             }
-            if(table.kind=='rootfact'){
+            if(table.kind=='ROOTFACT'){
               if(DrawHelper.getForeignKeyCount(table.guid)>0){
                 $scope.hasForeignKeysError=true;
                 return;
               }
+              table.alias=table.name;
             }
             //更新 数据仓库里的别名和表类型
             DrawHelper.tableList.update('table',table.guid,{
