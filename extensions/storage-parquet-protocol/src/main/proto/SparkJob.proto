@@ -26,7 +26,15 @@ option java_generate_equals_and_hash = true;
 
 option optimize_for = SPEED;
 
-message SparkJobRequest {
+
+//either provided a payload to start new request,
+//or streaming fetch next part of result by providing fetchNextKey
+message SparkJobRequest { 
+    optional SparkJobRequestPayload payload = 1;
+    optional string streamIdentifier = 2;
+}
+
+message SparkJobRequestPayload {
     required bytes gtScanRequest = 1;
     required string kylinProperties = 2;
     required string realizationType = 3;
@@ -40,10 +48,9 @@ message SparkJobRequest {
 }
 
 message SparkJobResponse {
-    required bool succeed = 1;
-    repeated ShardBlob shardBlobs = 2;
-    optional string errorMsg = 3;
-    required string sparkInstanceIdentifier = 4;
+    repeated ShardBlob shardBlobs = 1;
+    required string sparkInstanceIdentifier = 2;
+    required string streamIdentifier = 3;
 
     message ShardBlob {
         required bytes blob = 1;
@@ -59,7 +66,7 @@ message SparkConfResponse {
 }
 
 service JobService {
-    rpc submitJob (SparkJobRequest) returns (SparkJobResponse);
+    rpc submitJob (stream SparkJobRequest) returns (stream SparkJobResponse);
 }
 
 service ConfService {

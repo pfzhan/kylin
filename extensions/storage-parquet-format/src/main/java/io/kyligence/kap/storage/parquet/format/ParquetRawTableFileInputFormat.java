@@ -26,20 +26,11 @@ package io.kyligence.kap.storage.parquet.format;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
 import java.nio.ByteBuffer;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
 
-import io.kyligence.kap.metadata.filter.TupleFilterSerializerRawTableExt;
-import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
-import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetOrderedPageIndexTable;
-import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
-import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
-import io.kyligence.kap.storage.parquet.format.serialize.TupleFilterLiteralHasher;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -63,8 +54,15 @@ import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.metadata.filter.TupleFilterSerializerRawTableExt;
+import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
+import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetOrderedPageIndexTable;
+import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
+import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
+import io.kyligence.kap.storage.parquet.format.serialize.TupleFilterLiteralHasher;
+
 /**
- * spark rdd input 
+ * spark rdd input
  */
 public class ParquetRawTableFileInputFormat extends FileInputFormat<Text, Text> {
 
@@ -91,7 +89,8 @@ public class ParquetRawTableFileInputFormat extends FileInputFormat<Text, Text> 
         private ParquetBundleReader reader = null;
         ParquetPageIndexTable indexTable = null;
         private Text key = null; //key will be fixed length,
-        private Text val = null; //reusing the val bytes, the returned bytes might contain useless tail, but user will use it as bytebuffer, so it's okay
+        private Text val = null;
+        //reusing the val bytes, the returned bytes might contain useless tail, but user will use it as bytebuffer, so it's okay
 
         long profileStartTime = 0;
 
@@ -101,21 +100,21 @@ public class ParquetRawTableFileInputFormat extends FileInputFormat<Text, Text> 
             conf = context.getConfiguration();
             Path indexPath = fileSplit.getPath();
             Path parquetPath = new Path(indexPath.getParent(), indexPath.getName().substring(0, indexPath.getName().length() - 4));
-    //        Path parquetPath = fileSplit.getPath();
-    //        Path indexPath = new Path(parquetPath.toString() + ".inv");
+            //        Path parquetPath = fileSplit.getPath();
+            //        Path indexPath = new Path(parquetPath.toString() + ".inv");
 
             logger.info("data file: {}, index file: {}", parquetPath, indexPath);
 
-            // determine the running node
-            Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces();
-            while (e.hasMoreElements()) {
-                NetworkInterface n = e.nextElement();
-                Enumeration<InetAddress> ee = n.getInetAddresses();
-                while (ee.hasMoreElements()) {
-                    InetAddress ia = ee.nextElement();
-                    logger.info("Hostname: {}", ia.getHostName());
-                }
-            }
+            //            // determine the running node
+            //            Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces();
+            //            while (e.hasMoreElements()) {
+            //                NetworkInterface n = e.nextElement();
+            //                Enumeration<InetAddress> ee = n.getInetAddresses();
+            //                while (ee.hasMoreElements()) {
+            //                    InetAddress ia = ee.nextElement();
+            //                    logger.info("Hostname: {}", ia.getHostName());
+            //                }
+            //            }
 
             long startTime = System.currentTimeMillis();
             String kylinPropsStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, "");

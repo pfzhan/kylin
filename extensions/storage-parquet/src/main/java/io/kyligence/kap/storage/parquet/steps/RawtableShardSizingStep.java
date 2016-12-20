@@ -75,7 +75,7 @@ public class RawtableShardSizingStep extends AbstractExecutable {
 
         double estimatedSize = caculateEstimateStorageSize(seg);
         logger.info("raw table estimated size {} MB", estimatedSize);
-        int shardNum = (int) (estimatedSize / mbPerShard);
+        int shardNum = (int) (1.0 * estimatedSize / mbPerShard + 0.99);
 
         if (shardNum > shardMax) {
             logger.info(String.format("RawTable's estimated size %.2f MB will generate %d regions, reduce to %d", estimatedSize, shardNum, shardMax));

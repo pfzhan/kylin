@@ -43,6 +43,7 @@ import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.kylin.metadata.realization.RealizationType;
+import org.apache.kylin.storage.gtrecord.DummyPartitionStreamer;
 import org.apache.kylin.storage.gtrecord.StorageResponseGTScatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,7 +119,7 @@ public class MockedRawTableTableRPC extends RawTableSparkRPC {
                 closeable.close();
             }
 
-            return new StorageResponseGTScatter(info, mockedShardBlobs.iterator(), scanRequest.getColumns(), 0, scanRequest.getStoragePushDownLimit());
+            return new StorageResponseGTScatter(info, new DummyPartitionStreamer(mockedShardBlobs.iterator()), scanRequest.getColumns(), 0, scanRequest.getStoragePushDownLimit());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

@@ -27,8 +27,7 @@ package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.Nullable;
-
+import org.apache.kylin.common.util.DateFormat;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
@@ -39,19 +38,13 @@ import io.grpc.stub.StreamObserver;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.JobServiceGrpc;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobRequest;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobResponse;
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobResponse.ShardBlob;
-import kap.google.common.base.Function;
-import kap.google.common.base.Throwables;
-import kap.google.common.collect.Iterables;
-import kap.google.protobuf.ByteString;
 
-//TODO: not thread safe now
 public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase {
 
     public static final Logger logger = LoggerFactory.getLogger(SparkAppClientService.class);
 
-    SparkConf conf;
-    JavaSparkContext sc;
+    private SparkConf conf;
+    private JavaSparkContext sc;
 
     public SparkAppClientService() {
         conf = new SparkConf().setAppName("Kyligence Columnar Storage Query Driver");
@@ -69,11 +62,11 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase {
     }
 
     @Override
-    public void submitJob(SparkJobRequest request, StreamObserver<SparkJobResponse> responseObserver) {
-
-        String sparkInstanceIdentifer = System.getProperty("kap.spark.identifier");
-        if (sparkInstanceIdentifer == null)
-            sparkInstanceIdentifer = "";
+    public StreamObserver<SparkJobRequest> submitJob(final StreamObserver<SparkJobResponse> responseObserver) {
+        if (sc.sc().isStopped()) {
+            logger.warn("Current JavaSparkContext(started at {} GMT) is found to be stopped, creating a new one", DateFormat.formatToTimeStr(sc.startTime()));
+            sc = new JavaSparkContext(conf);
+        }
 
         if (responseObserver instanceof ServerCallStreamObserver) {
             logger.info("Setting response compression to gzip");
@@ -82,52 +75,7 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase {
             logger.warn("responseObserver is not ServerCallStreamObserver");
         }
 
-        try {
-            long startTime = System.currentTimeMillis();
-
-            SparkParquetVisit submit = new SparkParquetVisit(sc, request);
-            List<List<byte[]>> collected = submit.executeTask();
-
-            logger.info("Time for spark parquet visit is " + (System.currentTimeMillis() - startTime));
-
-            SparkJobResponse.Builder builder = SparkJobResponse.newBuilder().setSucceed(true);
-            builder.addAllShardBlobs(Iterables.transform(collected, new Function<List<byte[]>, ShardBlob>() {
-                @Nullable
-                @Override
-                public ShardBlob apply(@Nullable List<byte[]> bytes) {
-                    return ShardBlob.newBuilder().setBlob(ByteString.copyFrom(concat(bytes))).build();
-                }
-            }));
-            builder.setSparkInstanceIdentifier(sparkInstanceIdentifer);
-            SparkJobResponse response = builder.build();
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
-        } catch (Exception e) {
-            String msg = Throwables.getStackTraceAsString(e);
-            logger.error("error stacktrace: " + msg);
-
-            SparkJobResponse response = SparkJobResponse.newBuilder().setSucceed(false).setErrorMsg(msg).setSparkInstanceIdentifier(sparkInstanceIdentifer).build();
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
-        }
+        return new ServerStreamObserver(responseObserver, sc);
     }
 
-    public static byte[] concat(List<byte[]> rows) {
-        if (rows.size() == 1) {
-            return rows.get(0);
-        }
-
-        int length = 0;
-        for (byte[] row : rows) {
-            length += row.length;
-        }
-
-        byte[] ret = new byte[length];
-        int offset = 0;
-        for (byte[] row : rows) {
-            System.arraycopy(row, 0, ret, offset, row.length);
-            offset += row.length;
-        }
-        return ret;
-    }
 }

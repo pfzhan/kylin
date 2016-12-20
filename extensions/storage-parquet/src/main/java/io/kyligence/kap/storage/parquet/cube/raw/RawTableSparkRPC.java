@@ -27,8 +27,6 @@ package io.kyligence.kap.storage.parquet.cube.raw;
 import java.io.IOException;
 import java.util.List;
 
-import javax.annotation.Nullable;
-
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
@@ -44,14 +42,12 @@ import org.apache.kylin.storage.gtrecord.StorageResponseGTScatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.raw.RawTableSegment;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.IStorageVisitResponseStreamer;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClientParams;
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 
 public class RawTableSparkRPC implements IGTStorage {
 
@@ -93,29 +89,14 @@ public class RawTableSparkRPC implements IGTStorage {
         scanRequest.setTimeout(KapConfig.getInstanceFromEnv().getSparkVisitTimeout());
         logger.info("Spark visit timeout is set to " + scanRequest.getTimeout());
 
-        long startTime = System.currentTimeMillis();
+        final long startTime = System.currentTimeMillis();
         SparkDriverClientParams sparkDriverClientParams = new SparkDriverClientParams(KylinConfig.getInstanceFromEnv().getConfigAsString(), //
                 RealizationType.INVERTED_INDEX.toString(), rawTableSegment.getRawTableInstance().getUuid(), rawTableSegment.getUuid(), "RawTable", // 
                 scanRequest.getInfo().getMaxLength(), getRequiredParquetColumns(scanRequest), KapConfig.getInstanceFromEnv().isUsingInvertedIndex(), //
                 BackdoorToggles.getQueryId());
         logger.info("Filter: {}", scanRequest.getFilterPushDown());
 
-        SparkJobProtos.SparkJobResponse jobResponse = client.submit(//
-                scanRequest.toByteArray(), sparkDriverClientParams);
-        logger.info("Time for the gRPC from spark instance {} visit is {}", (System.currentTimeMillis() - startTime), jobResponse.getSparkInstanceIdentifier());
-
-        if (jobResponse.getSucceed()) {
-            Iterable<byte[]> shardBytes = Iterables.transform(jobResponse.getShardBlobsList(), new Function<SparkJobProtos.SparkJobResponse.ShardBlob, byte[]>() {
-                @Nullable
-                @Override
-                public byte[] apply(@Nullable SparkJobProtos.SparkJobResponse.ShardBlob x) {
-                    return x.getBlob().toByteArray();
-                }
-            });
-            return new StorageResponseGTScatter(info, shardBytes.iterator(), scanRequest.getColumns(), 0, scanRequest.getStoragePushDownLimit());
-        } else {
-            logger.error(jobResponse.getErrorMsg());
-            throw new RuntimeException("RPC failed due to UNKNOWN reason, check logs/spark-driver.log for more details");
-        }
+        final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest.toByteArray(), sparkDriverClientParams);
+        return new StorageResponseGTScatter(info, storageVisitResponseStreamer, scanRequest.getColumns(), 0, scanRequest.getStoragePushDownLimit());
     }
 }

@@ -26,20 +26,10 @@ package io.kyligence.kap.storage.parquet.format;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
 import java.nio.ByteBuffer;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
 
-import com.google.common.base.Preconditions;
-import com.google.common.primitives.Longs;
-import com.google.common.primitives.Shorts;
-import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
-import io.kyligence.kap.storage.parquet.format.filter.MassInValueProviderFactoryImpl;
-import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
-import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -64,6 +54,15 @@ import org.apache.parquet.io.api.Binary;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
+import com.google.common.primitives.Longs;
+import com.google.common.primitives.Shorts;
+
+import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
+import io.kyligence.kap.storage.parquet.format.filter.MassInValueProviderFactoryImpl;
+import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
+import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 
 /**
  * spark rdd input 
@@ -110,15 +109,15 @@ public class ParquetTarballFileInputFormat extends FileInputFormat<Text, Text> {
 
             logger.info("tarball file: {}", shardPath);
             // determine the running node
-            Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces();
-            while (e.hasMoreElements()) {
-                NetworkInterface n = e.nextElement();
-                Enumeration<InetAddress> ee = n.getInetAddresses();
-                while (ee.hasMoreElements()) {
-                    InetAddress ia = ee.nextElement();
-                    logger.info("Hostname: {}", ia.getHostName());
-                }
-            }
+            //            Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces();
+            //            while (e.hasMoreElements()) {
+            //                NetworkInterface n = e.nextElement();
+            //                Enumeration<InetAddress> ee = n.getInetAddresses();
+            //                while (ee.hasMoreElements()) {
+            //                    InetAddress ia = ee.nextElement();
+            //                    logger.info("Hostname: {}", ia.getHostName());
+            //                }
+            //            }
 
             long startTime = System.currentTimeMillis();
             String kylinPropsStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, "");
