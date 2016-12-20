@@ -34,9 +34,11 @@ import java.util.TimeZone;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HiveCmdBuilder;
 import org.apache.kylin.engine.mr.CubingJob;
+import org.apache.kylin.engine.mr.JobBuilderSupport;
 import org.apache.kylin.engine.mr.common.HadoopShellExecutable;
 import org.apache.kylin.engine.mr.common.MapReduceExecutable;
 import org.apache.kylin.job.common.ShellExecutable;
+import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.MetadataManager;
@@ -97,7 +99,14 @@ public class HiveTableExtSampleJob extends CubingJob {
         }
 
         if (table.isView()) {
-            result.addTask(materializedView(table, "limit 1000000"));
+            JobEngineConfig jobConf = new JobEngineConfig(config);
+            String checkParam = "-output " + getViewPath(jobConf, result.getId(), table);
+            HadoopShellExecutable prestep = new HadoopShellExecutable();
+            prestep.setName("Check Hdfs Path");
+            prestep.setJobClass(CheckHdfsPath.class);
+            prestep.setJobParams(checkParam);
+            result.addTask(prestep);
+            result.addTask(materializedView(table, result.getId(), jobConf, "limit 1000000"));
             logger.info("The View: " + tableName + " will be materialized in maximum 1000000 lines!");
         }
 
@@ -162,7 +171,7 @@ public class HiveTableExtSampleJob extends CubingJob {
         return tableNames;
     }
 
-    private static ShellExecutable materializedView(TableDesc desc, String condition) throws IOException {
+    private static ShellExecutable materializedView(TableDesc desc, String jobId, JobEngineConfig conf, String condition) throws IOException {
 
         ShellExecutable step = new ShellExecutable();
         step.setName("Materialized View " + desc.getName());
@@ -172,11 +181,16 @@ public class HiveTableExtSampleJob extends CubingJob {
         createIntermediateTableHql.append("USE " + desc.getDatabase() + ";").append("\n");
         createIntermediateTableHql.append("DROP TABLE IF EXISTS " + desc.getMaterializedName() + ";\n");
         createIntermediateTableHql.append("CREATE TABLE IF NOT EXISTS " + desc.getMaterializedName() + "\n");
+        createIntermediateTableHql.append("LOCATION '" + getViewPath(conf, jobId, desc) + "'\n");
         createIntermediateTableHql.append("AS SELECT * FROM " + desc.getIdentity() + " " + condition + ";\n");
         hiveCmdBuilder.addStatement(createIntermediateTableHql.toString());
 
         step.setCmd(hiveCmdBuilder.build());
         return step;
+    }
+
+    private static String getViewPath(JobEngineConfig conf, String jobId, TableDesc desc) {
+        return JobBuilderSupport.getJobWorkingDir(conf, jobId) + "/" + desc.getMaterializedName();
     }
 
     private static ShellExecutable deleteMaterializedView(TableDesc desc, KylinConfig config) throws IOException {
