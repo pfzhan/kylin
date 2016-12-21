@@ -43,13 +43,16 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 echo "BUILD STAGE 2 - Build binaries..."
 sh build/script/build.sh $@             || { exit 1; }
 
-echo "BUILD STAGE 3 - Prepare tomcat and spark"
+echo "BUILD STAGE 3 - Prepare tomcat..."
 sh build/script/download-tomcat.sh      || { exit 1; }
 if [ "${PACKAGE_PLUS}" != "0" ]; then
+    echo "BUILD STAGE 4 - Prepare spark..."
     sh build/script/download-spark.sh      || { exit 1; }
+else
+    echo "BUILD STAGE 4 - Skip spark for KAP Normal"
 fi
 
-echo "BUILD STAGE 4 - Prepare and compress package..."
+echo "BUILD STAGE 5 - Prepare and compress package..."
 sh build/script/prepare.sh              || { exit 1; }
 sh build/script/compress.sh             || { exit 1; }
 
