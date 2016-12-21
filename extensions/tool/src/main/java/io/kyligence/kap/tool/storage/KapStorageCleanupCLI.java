@@ -73,14 +73,19 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
 
         FileSystem fs = FileSystem.get(conf);
         List<String> allHdfsPathsNeedToBeDeleted = new ArrayList<String>();
-        FileStatus[] realizationParquetFolders = fs.listStatus(new Path(KapConfig.getInstanceFromEnv().getParquentStoragePath()));
+        Path parquentStoragePath = new Path(KapConfig.getInstanceFromEnv().getParquetStoragePath());
+        FileStatus[] realizationParquetFolders = null;
+        if (fs.exists(parquentStoragePath)) {
+            realizationParquetFolders = fs.listStatus(parquentStoragePath);
+            if (realizationParquetFolders != null) {
+                for (FileStatus dataFolder : realizationParquetFolders) { //folders for cubes
+                    FileStatus[] segmentFolders = fs.listStatus(dataFolder.getPath());
 
-        for (FileStatus dataFolder : realizationParquetFolders) { //folders for cubes
-            FileStatus[] segmentFolders = fs.listStatus(dataFolder.getPath());
-
-            for (FileStatus segmentFolder : segmentFolders) {
-                String folderName = KapConfig.getInstanceFromEnv().getParquentStoragePath() + dataFolder.getPath().getName() + "/" + segmentFolder.getPath().getName();
-                allHdfsPathsNeedToBeDeleted.add(folderName);
+                    for (FileStatus segmentFolder : segmentFolders) {
+                        String folderName = KapConfig.getInstanceFromEnv().getParquetStoragePath() + dataFolder.getPath().getName() + "/" + segmentFolder.getPath().getName();
+                        allHdfsPathsNeedToBeDeleted.add(folderName);
+                    }
+                }
             }
         }
 
@@ -101,14 +106,14 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
 
                 if (cubeMgr.getCube(cubeName) != null) {
                     String cubeId = cubeMgr.getCube(cubeName).getId();
-                    String cubePath = KapConfig.getInstanceFromEnv().getParquentStoragePath() + cubeId + "/" + segmentId;
+                    String cubePath = KapConfig.getInstanceFromEnv().getParquetStoragePath() + cubeId + "/" + segmentId;
                     allHdfsPathsNeedToBeDeleted.remove(cubePath);
                     logger.info("Skip " + cubePath + " from deletion list, as the path belongs to job " + jobId + " with state " + state);
                 }
 
                 if (rawMgr.getRawTableInstance(cubeName) != null) {
                     String rawId = rawMgr.getRawTableInstance(cubeName).getId();
-                    String rawPath = KapConfig.getInstanceFromEnv().getParquentStoragePath() + rawId + "/" + segmentId;
+                    String rawPath = KapConfig.getInstanceFromEnv().getParquetStoragePath() + rawId + "/" + segmentId;
                     allHdfsPathsNeedToBeDeleted.remove(rawPath);
                     logger.info("Skip " + rawPath + " from deletion list, as the path belongs to job " + jobId + " with state " + state);
                 }
@@ -122,7 +127,7 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
 
                 String jobUuid = seg.getLastBuildJobID();
                 if (jobUuid != null && jobUuid.equals("") == false) {
-                    String exclude = KapConfig.getInstanceFromEnv().getParquentStoragePath() + cube.getId() + "/" + seg.getUuid();
+                    String exclude = KapConfig.getInstanceFromEnv().getParquetStoragePath() + cube.getId() + "/" + seg.getUuid();
                     allHdfsPathsNeedToBeDeleted.remove(exclude);
                     logger.info("Skip " + exclude + " from deletion list, as the path belongs to segment " + seg + " of cube " + cube.getName() + ", with status " + status);
                 }
@@ -135,7 +140,7 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
                 SegmentStatusEnum status = seg.getStatus();
                 String jobUuid = seg.getLastBuildJobID();
                 if (jobUuid != null && jobUuid.equals("") == false) {
-                    String exclude = KapConfig.getInstanceFromEnv().getParquentStoragePath() + raw.getId() + "/" + seg.getUuid();
+                    String exclude = KapConfig.getInstanceFromEnv().getParquetStoragePath() + raw.getId() + "/" + seg.getUuid();
                     allHdfsPathsNeedToBeDeleted.remove(exclude);
                     logger.info("Skip " + exclude + " from deletion list, as the path belongs to segment " + seg + " of rawtable " + raw.getName() + ", with status " + status);
                 }
@@ -155,11 +160,13 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
                 }
             }
 
-            for (FileStatus dataFolder : realizationParquetFolders) { //folders for cubes
-                FileStatus[] segmentFolders = fs.listStatus(dataFolder.getPath());
-                if (segmentFolders == null || segmentFolders.length == 0) {
-                    logger.info("Cleaning empty realization folder: " + dataFolder.getPath());
-                    fs.delete(dataFolder.getPath(), true);
+            if (realizationParquetFolders != null) {
+                for (FileStatus dataFolder : realizationParquetFolders) { //folders for cubes
+                    FileStatus[] segmentFolders = fs.listStatus(dataFolder.getPath());
+                    if (segmentFolders == null || segmentFolders.length == 0) {
+                        logger.info("Cleaning empty realization folder: " + dataFolder.getPath());
+                        fs.delete(dataFolder.getPath(), true);
+                    }
                 }
             }
         } else {

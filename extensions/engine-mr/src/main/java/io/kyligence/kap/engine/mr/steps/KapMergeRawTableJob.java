@@ -168,7 +168,7 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
     }
 
     public static String getWorkingDir(KylinConfig config, RawTableInstance raw, RawTableSegment rawSegment) {
-        return new StringBuffer(KapConfig.wrap(config).getParquentStoragePath()).append(raw.getUuid()).append("/").append(rawSegment.getUuid()).append("/").toString();
+        return new StringBuffer(KapConfig.wrap(config).getParquetStoragePath()).append(raw.getUuid()).append("/").append(rawSegment.getUuid()).append("/").toString();
     }
 
     public int addRawInputDirs(String input, Job job) throws IOException {

@@ -392,11 +392,11 @@ public class ParquetMRSteps extends JobBuilderSupport {
     }
 
     private String getRawTableFolderPath(RawTableSegment rawSegment) {
-        return new StringBuffer(KapConfig.wrap(config.getConfig()).getParquentStoragePath()).append(rawSegment.getRawTableInstance().getUuid()).append("/").append(rawSegment.getUuid()).append("/").toString();
+        return new StringBuffer(KapConfig.wrap(config.getConfig()).getParquetStoragePath()).append(rawSegment.getRawTableInstance().getUuid()).append("/").append(rawSegment.getUuid()).append("/").toString();
     }
 
     private String getCubeFolderPath(CubeSegment cubeSegment) {
-        return new StringBuffer(KapConfig.wrap(config.getConfig()).getParquentStoragePath()).append(cubeSegment.getCubeInstance().getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
+        return new StringBuffer(KapConfig.wrap(config.getConfig()).getParquetStoragePath()).append(cubeSegment.getCubeInstance().getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
     }
 
     private RawTableInstance detectRawTable(CubeSegment cubeSegment) {

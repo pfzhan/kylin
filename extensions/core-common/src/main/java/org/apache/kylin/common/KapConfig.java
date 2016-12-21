@@ -126,7 +126,7 @@ public class KapConfig {
     /**
      * where is parquet fles stored in hdfs , end with /
      */
-    public String getParquentStoragePath() {
+    public String getParquetStoragePath() {
         String defaultPath = config.getHdfsWorkingDirectory() + "parquet/";
         return config.getOptional("kap.storage.columnar.hdfs-dir", defaultPath);
     }
