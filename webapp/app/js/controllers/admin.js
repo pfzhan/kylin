@@ -72,21 +72,6 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
     });
   }
 
-  $scope.calCardinality = function (tableName) {
-    $modal.open({
-      templateUrl: 'calCardinality.html',
-      controller: CardinalityGenCtrl,
-      resolve: {
-        tableName: function () {
-          return tableName;
-        },
-        scope: function () {
-          return $scope;
-        }
-      }
-    });
-  }
-
   $scope.cleanStorage = function () {
     SweetAlert.swal({
       title: '',
@@ -160,30 +145,6 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
       resolve: {}
     });
   }
-
-  var CardinalityGenCtrl = function ($scope, $modalInstance, tableName, MessageService,language,kylinCommon) {
-    $scope.dataKylin = language.getDataKylin();
-    $scope.tableName = tableName;
-    $scope.delimiter = 0;
-    $scope.format = 0;
-    $scope.cancel = function () {
-      $modalInstance.dismiss('cancel');
-    };
-    $scope.calculate = function () {
-      $modalInstance.dismiss();
-      loadingRequest.show();
-      TableService.genCardinality({tableName: $scope.tableName}, {
-        delimiter: $scope.delimiter,
-        format: $scope.format
-      }, function (result) {
-        loadingRequest.hide();
-        kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_cardinality_job);
-      }, function (e) {
-        loadingRequest.hide();
-        kylinCommon.error_default(e);
-      });
-    }
-  };
 
   var updateConfigCtrl = function ($scope, $modalInstance, AdminService, MessageService,language,kylinCommon) {
     $scope.dataKylin = language.getDataKylin();

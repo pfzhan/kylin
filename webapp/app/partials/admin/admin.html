@@ -46,14 +46,6 @@
             <!--</button>-->
           <a  class="btn btn-primary btn-lg btn-block" tooltip="{{dataKylin.system.tip_reloadMetadata}}" ng-click="reloadMeta()">{{dataKylin.system.reloadMetadata}}</a>
         </div>
-        <div style="padding-top: 10px;width: 260px;">
-          <a ng-click="calCardinality();" tooltip="{{dataKylin.system.tip_calculateCardinality}}" class="btn btn-primary btn-lg btn-block">{{dataKylin.system.calculateCardinality}}</a>
-
-          <!--<button class="btn btn-primary btn-lg btn-block" ng-click="calCardinality()">-->
-                <!--<label tooltip="Calculate cardinality of tables" style="cursor: pointer;">Calculate Cardinality</label>-->
-
-            <!--</button>-->
-        </div>
         <div style="padding-top: 10px;width: 260px;" ng-if="false">
             <!--<button class="btn btn-success btn-lg btn-block" ng-click="cleanStorage()">-->
                 <!--<label tooltip="Clean unused HDFS and HBASE space" style="cursor: pointer;">Clean Up Storage</label>-->
@@ -97,53 +89,6 @@
     </td>
     </tr>
   </table>
-<script type="text/ng-template" id="calCardinality.html">
-    <div class="modal-header">
-      <h4>{{dataKylin.system.loadHiveTable}}</h4>
-    </div>
-    <div class="modal-body load-hive-metawrapper">
-      <label for="table">{{dataKylin.system.tableName}}</label>
-      <input ng-model="$parent.tableName" class="form-control" id="table" placeholder="{{dataKylin.system.plac_tableName}}"/>
-      <label>{{dataKylin.system.delimiter}}</label>
-
-        <div class="radio">
-            <label>
-              <input type="radio" name="deliRadios" data-ng-model="$parent.delimiter" ng-value="0">{{dataKylin.system.valueDeliRadios}}
-            </label>
-        </div>
-        <div class="radio">
-            <label>
-                <input type="radio" name="deliRadios" data-ng-model="$parent.delimiter" ng-value="1">\177
-            </label>
-        </div>
-        <div class="radio">
-            <label>
-                <input type="radio" name="deliRadios" data-ng-model="$parent.delimiter" ng-value="2">tab
-            </label>
-        </div>
-        <label>Format:</label>
-
-        <div class="radio">
-            <label>
-                <input type="radio" name="formatRadios" data-ng-model="$parent.format" ng-value="0">{{dataKylin.system.formatRadios}}
-            </label>
-        </div>
-        <div class="radio">
-            <label>
-                <input type="radio" name="formatRadios" data-ng-model="$parent.format" ng-value="1">{{dataKylin.system.text}}
-            </label>
-        </div>
-        <div class="radio">
-            <label>
-                <input type="radio" name="formatRadios" data-ng-model="$parent.format" ng-value="2">{{dataKylin.system.sequence}}
-            </label>
-        </div>
-    </div>
-    <div class="modal-footer">
-        <button class="btn btn-default" ng-click="cancel()">{{dataKylin.system.cancel}}</button>
-        <button class="btn btn-success" ng-click="calculate()">{{dataKylin.system.sync}}</button>
-    </div>
-</script>
 
 <script type="text/ng-template" id="updateConfig.html">
     <ng-form name="config_update_form">
