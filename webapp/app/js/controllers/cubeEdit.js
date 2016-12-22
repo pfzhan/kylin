@@ -334,6 +334,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
         $scope.state.cubeSchema = angular.toJson($scope.cubeMetaFrame, true);
 
 
+
       }
     });
 
@@ -502,6 +503,11 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
 
         } else {
           //保存cube
+          //rowkey add index  hardcode config
+          for(var i=0;i<$scope.cubeMetaFrame.rowkey.rowkey_columns.length;i++){
+            $scope.cubeMetaFrame.rowkey.rowkey_columns[i].index='eq';
+          }
+          $scope.state.cubeSchema = angular.toJson($scope.cubeMetaFrame, true);
           CubeService.save({}, {
             cubeDescData: VdmUtil.filterNullValInObj($scope.state.cubeSchema),
             project: $scope.state.project
