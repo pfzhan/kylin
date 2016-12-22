@@ -301,3 +301,13 @@ p:hover .jsplumb-tips{
   text-align: center;
  cursor: pointer;
 }
+.tips_snow{
+  width: 20px;
+  height: auto;
+  position: absolute;
+  background: #000;
+  z-index: 999;
+  top:40%;
+  left: 50%;
+  display: none;
+}

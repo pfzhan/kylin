@@ -294,6 +294,14 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       })
 
     },
+    showTips:function(msg){
+        if($('#tipsBox').length){
+          this.container.parent().append('<div class="tips_snow" id="tipsBox">'+msg+'</div>').show();
+        }else{
+
+        }
+
+    },
     showMapControl:function(){
       var that=this;
       var mapControlHtml='<span class="plusHandle"></span><span class="minusHandle"></span>';
@@ -624,7 +632,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       boxDom.on('dblclick','.alias',function(){
           var rootFact=that.tableList.getRootFact();
           if(rootFact&&rootFact.guid==tableBaseObject.guid){
-            console.log('ROOTFACT Table Cant not change alias!');
+            that.showTips('ROOTFACT Table Cant not change alias!');
             return;
           }
           $(this).next().show().focus().val($(this).html().replace(aliasLabel,'')).select().next().show();

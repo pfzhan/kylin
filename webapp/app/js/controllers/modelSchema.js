@@ -380,13 +380,14 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
               }, function (request) {
                 if (request.successful) {
                   //$scope.state.modelSchema = request.modelSchema;
-                  SweetAlert.swal('', $scope.dataKylin.alert.success_updated_model, 'success');
+                  $modalInstance.dismiss('cancel');
+                  SweetAlert.swal('', scope.dataKylin.alert.success_updated_model, 'success');
                   $location.path("/models");
                   //location.reload();
                 } else {
                   //$scope.saveModelRollBack();
                   var message =request.message;
-                  var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
+                  var msg = !!(message) ? message : scope.dataKylin.alert.error_info;
                   MessageService.sendMsg($scope.modelResultTmpl({'text':msg,'schema':''}), 'error', {}, true, 'top_center');
                 }
                 //end loading
