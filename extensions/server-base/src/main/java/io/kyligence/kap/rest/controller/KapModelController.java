@@ -29,7 +29,6 @@ import java.util.Map;
 
 import org.apache.kylin.job.JobInstance;
 import org.apache.kylin.job.exception.JobException;
-import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.service.JobService;
 import org.slf4j.Logger;
@@ -65,8 +64,8 @@ public class KapModelController extends BasicController {
      */
     @RequestMapping(value = "table_suggestions", method = { RequestMethod.GET })
     @ResponseBody
-    public Map<ColumnDesc, KapModelService.MODEL_COLUMN_SUGGESTION> getModelSuggestions(@RequestParam(value = "table") String table) throws IOException {
-        Map<ColumnDesc, KapModelService.MODEL_COLUMN_SUGGESTION> result = kapModelService.inferSuggestions(table);
+    public Map<String, KapModelService.MODEL_COLUMN_SUGGESTION> getModelSuggestions(@RequestParam(value = "table") String table) throws IOException {
+        Map<String, KapModelService.MODEL_COLUMN_SUGGESTION> result = kapModelService.inferSuggestions(table);
         return result;
     }
 

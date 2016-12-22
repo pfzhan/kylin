@@ -37,8 +37,8 @@ import org.springframework.stereotype.Component;
 @Component("kapModelService")
 public class KapModelService extends BasicService {
 
-    public Map<ColumnDesc, MODEL_COLUMN_SUGGESTION> inferSuggestions(String tableName) {
-        Map<ColumnDesc, MODEL_COLUMN_SUGGESTION> result = new HashMap<ColumnDesc, MODEL_COLUMN_SUGGESTION>();
+    public Map<String, MODEL_COLUMN_SUGGESTION> inferSuggestions(String tableName) {
+        Map<String, MODEL_COLUMN_SUGGESTION> result = new HashMap<String, MODEL_COLUMN_SUGGESTION>();
         TableDesc tableDesc = getMetadataManager().getTableDesc(tableName);
         ColumnDesc[] columns = tableDesc.getColumns();
         TableExtDesc tableExt = getMetadataManager().getTableExt(tableName);
@@ -51,7 +51,7 @@ public class KapModelService extends BasicService {
             ColumnDesc column = columns[i];
             TableExtDesc.ColumnStats stat = columnStats.get(i);
             MODEL_COLUMN_SUGGESTION suggestion = inferSuggestion(column, stat);
-            result.put(column, suggestion);
+            result.put(column.getName(), suggestion);
         }
 
         return result;
