@@ -327,6 +327,24 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
           }
         });
       }
+      //弹出json内容
+      function openJsonDialog(){
+        var snowJsonCtr=function($scope,$modalInstance){
+            $scope.snowModelJson=angular.toJson(DrawHelper.plumbDataToKylinData(),true);
+            $scope.cancel = function () {
+              $modalInstance.dismiss('cancel');
+            }
+        }
+        var modalInstance = $modal.open({
+          windowClass:'modal_snowmodeljson',
+          templateUrl: 'partials/models/snowmodel_json.html',
+          controller: snowJsonCtr,
+          backdrop: 'static',
+          resolve:{
+
+          }
+        });
+      }
 //model 保存弹窗
       function openModelSaveDialog(conn){
         var snowModelSaveCtrl=function($scope,$modalInstance,SweetAlert,VdmUtil,scope,MessageService,loadingRequest,$location){
@@ -452,7 +470,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
               addColumnToPartitionTime:openDateFormatTypeDialog,
               saveModel:openModelSaveDialog,
               kylinData:$scope.modelCopy,
-              containerId: $scope.model_jsplumb_name
+              openJsonDialog:openJsonDialog
             });
             DrawHelper.kylinDataToJsPlumbData();
 
@@ -466,7 +484,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
           addColumnToPartitionDate:openDateFormatTypeDialog,
           addColumnToPartitionTime:openDateFormatTypeDialog,
           saveModel:openModelSaveDialog,
-          containerId: $scope.model_jsplumb_name
+          openJsonDialog:openJsonDialog
         });
       }
 

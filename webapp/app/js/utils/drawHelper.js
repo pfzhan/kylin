@@ -22,6 +22,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
     changeConnectType:null,
     addColumnToPartitionDate:null,
     addColumnToPartitionTime:null,
+    openJsonDialog:null,
     saveModel:null,
     instanceName:'',
     instanceDiscribe:'',
@@ -285,9 +286,13 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       var that=this;
       var actionBar='<div class="bar_action"><span>Save</span><span>JSON</span></div>';
       $(actionBar).insertAfter(this.container);
-      this.container.nextAll('.bar_action').click(function(){
+      this.container.nextAll('.bar_action').find('span').eq(0).click(function(){
         that.saveModel();
       })
+      this.container.nextAll('.bar_action').find('span').eq(1).click(function(){
+        that.openJsonDialog();
+      })
+
     },
     showMapControl:function(){
       var that=this;
@@ -608,7 +613,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           kind:that.tableKind[index]
         });
         if(willKind=='ROOTFACT'){
-          that.changeAliasList($(this).parent().find('.alias').html().replace(aliasLabel,''),tableBaseObject.name);
+          that.changeAliasList(boxDom.find('.alias').html().replace(aliasLabel,''),tableBaseObject.name);
           that.tableList.update('guid',tableBaseObject.guid,{
             alias:tableBaseObject.name
           });
@@ -633,7 +638,8 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         $(this).focus();
       });
       $("body").on('blur','.input_alias',function(){
-        $(this).hide().next().hide();
+         $(this).hide().next().hide();
+         $(this).prev().html(aliasLabel+$(this).val())
       });
       boxDom.on('click','.input_alias_save',function(){
         var aliasInputVal=$(this).prev().val();
@@ -650,10 +656,16 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
        }
       })
       boxDom.on('dbclick','.input_alias',function(){
-        $(this).focus().select;
+        $(this).focus().select();
       })
       boxDom.find('.input_alias').mousemove(function(e){
         e.stopPropagation();
+      })
+      boxDom.find('.input_alias,p').mousedown(function(e){
+        e.stopPropagation();
+      })
+      this.container.mouseup(function(){
+        boxDom.find('p').eq(0).click();
       })
       return this;
     },

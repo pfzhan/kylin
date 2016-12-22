@@ -225,6 +225,9 @@
 .modal_snowtableInfo>div.modal-dialog{
   width: 800px;
 }
+.modal_snowmodeljson>div.modal-dialog{
+  width: 500px;
+}
 .modal_jointype>div.modal-dialog{
   width: 400px;
 }
