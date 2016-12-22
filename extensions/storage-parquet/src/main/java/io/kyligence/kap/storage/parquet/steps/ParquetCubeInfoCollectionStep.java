@@ -28,8 +28,8 @@ import static io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceOutputFor
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -42,39 +42,42 @@ import org.apache.kylin.job.execution.ExecuteResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.storage.parquet.format.file.ParquetSpliceReader;
 import io.kyligence.kap.storage.parquet.format.file.Utils;
 
-public class ParquetCubeInfoCollectionStep extends AbstractExecutable{
+public class ParquetCubeInfoCollectionStep extends AbstractExecutable {
     protected static final Logger logger = LoggerFactory.getLogger(ParquetCubeInfoCollectionStep.class);
     public static final String INPUT_PATH = "input_path";
     public static final String OUTPUT_PATH = "output_path";
+    public static final String CUBE_INFO_NAME = "CUBE_INFO";
 
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         String inputPath = getParam(INPUT_PATH);
         String outputPath = getParam(OUTPUT_PATH);
-        Map<Long, List<String>> cuboid2FileMap = Maps.newHashMap();
+        Map<Long, Set<String>> cuboid2FileMap = Maps.newHashMap();
 
+        /**
+         * Map cuboid --> file path
+         */
         try {
             FileSystem fs = HadoopUtil.getFileSystem(inputPath);
             FileStatus fileStatus = fs.getFileStatus(new Path(inputPath));
             ObjectOutputStream oos = new ObjectOutputStream(fs.create(new Path(outputPath), true));
             if (fileStatus.isDirectory()) {
-                for (FileStatus child: fs.listStatus(new Path(inputPath))) {
+                for (FileStatus child : fs.listStatus(new Path(inputPath))) {
                     if (isParquetFile(child.getPath())) {
                         ParquetSpliceReader reader = new ParquetSpliceReader.Builder().setConf(HadoopUtil.getCurrentConfiguration()).setPath(child.getPath()).setColumnsBitmap(Utils.createBitset(1)).build();
-                        for (String div: reader.getDivs()) {
+                        for (String div : reader.getDivs()) {
                             long cuboid = getCuboididFromDiv(div);
                             if (!cuboid2FileMap.containsKey(cuboid)) {
-                                cuboid2FileMap.put(cuboid, Lists.<String>newArrayList());
+                                cuboid2FileMap.put(cuboid, Sets.<String> newHashSet());
                             }
 
-                            // Only store the file name without surfix
-                            cuboid2FileMap.get(cuboid).add(child.getPath().getName().split("\\.")[0]);
+                            cuboid2FileMap.get(cuboid).add(child.getPath().toString());
                         }
                     }
                 }

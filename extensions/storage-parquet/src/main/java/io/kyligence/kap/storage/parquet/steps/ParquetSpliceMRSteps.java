@@ -93,7 +93,7 @@ public class ParquetSpliceMRSteps extends ParquetMRSteps {
 
         ParquetCubeInfoCollectionStep step2 = new ParquetCubeInfoCollectionStep();
         step2.setParam(ParquetCubeInfoCollectionStep.INPUT_PATH, getCubeFolderPath(seg));
-        step2.setParam(ParquetCubeInfoCollectionStep.OUTPUT_PATH, getCubeFolderPath(seg) + "/CubeInfo");
+        step2.setParam(ParquetCubeInfoCollectionStep.OUTPUT_PATH, getCubeFolderPath(seg) + ParquetCubeInfoCollectionStep.CUBE_INFO_NAME);
         jobFlow.addTask(step2);
     }
 }

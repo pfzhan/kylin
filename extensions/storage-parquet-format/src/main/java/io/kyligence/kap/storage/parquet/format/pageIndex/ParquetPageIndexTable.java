@@ -65,6 +65,12 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
         this.indexReader = new ParquetPageIndexReader(inputStream, startOffset);
     }
 
+    public ParquetPageIndexTable(FileSystem fileSystem, Path parquetIndexPath, ParquetPageIndexReader indexReader) {
+        this.fileSystem = fileSystem;
+        this.parquetIndexPath = parquetIndexPath;
+        this.indexReader = indexReader;
+    }
+
     // TODO: should use batch lookup
     MutableRoaringBitmap lookColumnIndex(int column, TupleFilter.FilterOperatorEnum compareOp, Set<ByteArray> vals) {
         logger.info("lookColumnIndex: column: {}, op: {}, vals: {} - {}", column, compareOp, vals.size(), Iterables.getFirst(vals, null));
@@ -415,6 +421,13 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
     @Override
     public void close() throws IOException {
         indexReader.close();
+        for (ParquetPageIndexReader likeIndexReader : likeIndexReaders.values()) {
+            likeIndexReader.close();
+        }
+    }
+
+    public void closeWithoutStream() throws IOException {
+        indexReader.closeWithoutStream();
         for (ParquetPageIndexReader likeIndexReader : likeIndexReaders.values()) {
             likeIndexReader.close();
         }

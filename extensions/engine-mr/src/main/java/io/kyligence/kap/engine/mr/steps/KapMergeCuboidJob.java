@@ -90,7 +90,7 @@ public class KapMergeCuboidJob extends KapCuboidJob {
             FileOutputFormat.setOutputPath(job, output);
 
             // Mapper
-            job.setInputFormatClass(ParquetTarballFileInputFormat.class);
+            job.setInputFormatClass(getInputFormat());
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileInputFormat.ParquetTarballFileReader.ReadStrategy.KV.toString());
             job.setMapperClass(KapMergeCuboidMapper.class);
             job.setMapOutputKeyClass(Text.class);
@@ -138,5 +138,9 @@ public class KapMergeCuboidJob extends KapCuboidJob {
             return ret;
         }
 
+    }
+
+    protected Class<? extends FileInputFormat> getInputFormat() {
+        return ParquetTarballFileInputFormat.class;
     }
 }

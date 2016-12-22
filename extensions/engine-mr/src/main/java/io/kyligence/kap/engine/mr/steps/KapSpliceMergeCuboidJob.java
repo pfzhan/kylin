@@ -22,25 +22,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.storage.parquet.steps;
+package io.kyligence.kap.engine.mr.steps;
 
-import io.kyligence.kap.engine.mr.steps.KapSpliceMergeCuboidJob;
-import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 
-public class ParquetSpliceMROutput2 extends ParquetMROutput2 {
-    @SuppressWarnings("unused")
-    private static final Logger logger = LoggerFactory.getLogger(ParquetSpliceMROutput2.class);
+import io.kyligence.kap.storage.parquet.format.ParquetSpliceTarballFileInputFormat;
 
+public class KapSpliceMergeCuboidJob extends KapMergeCuboidJob{
     @Override
-    protected ParquetMRSteps createParquetMRSteps(CubeSegment seg) {
-        return new ParquetSpliceMRSteps(seg);
-    }
-
-    @Override
-    protected Class<? extends AbstractHadoopJob> getCubeMergeJobClass() {
-        return KapSpliceMergeCuboidJob.class;
+    protected Class<? extends FileInputFormat> getInputFormat() {
+        return ParquetSpliceTarballFileInputFormat.class;
     }
 }

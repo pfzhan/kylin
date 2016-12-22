@@ -30,7 +30,6 @@ import java.util.Iterator;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.util.ByteArray;
@@ -51,6 +50,8 @@ import com.google.common.collect.Iterators;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner4Cube;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner4Raw;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableFileInputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetSpliceTarballFileInputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 import scala.Tuple2;
 
 public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tuple2<Text, Text>>, byte[]> {
@@ -60,12 +61,18 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
     private final Accumulator<Long> collectedRecords;
     private final String realizationType;
     private final String queryId;
+    private final boolean isSplice;
 
     public SparkExecutorPreAggFunction(String queryId, String realizationType, Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords) {
+        this(queryId, realizationType, scannedRecords, collectedRecords, false);
+    }
+
+    public SparkExecutorPreAggFunction(String queryId, String realizationType, Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords, boolean isSplice) {
         this.queryId = queryId;
         this.realizationType = realizationType;
         this.scannedRecords = scannedRecords;
         this.collectedRecords = collectedRecords;
+        this.isSplice = isSplice;
     }
 
     @Override
@@ -87,7 +94,11 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
 
         IGTScanner scanner;
         if (RealizationType.CUBE.toString().equals(realizationType)) {
-            gtScanRequest = ParquetTarballFileInputFormat.ParquetTarballFileReader.gtScanRequestThreadLocal.get();
+            if (isSplice) {
+                gtScanRequest = ParquetSpliceTarballFileInputFormat.ParquetTarballFileReader.gtScanRequestThreadLocal.get();
+            } else {
+                gtScanRequest = ParquetTarballFileInputFormat.ParquetTarballFileReader.gtScanRequestThreadLocal.get();
+            }
             behavior = StorageSideBehavior.valueOf(gtScanRequest.getStorageBehavior());
             scanner = new ParquetBytesGTScanner4Cube(gtScanRequest.getInfo(), iterator, gtScanRequest, behavior.delayToggledOn());//in
         } else if (RealizationType.INVERTED_INDEX.toString().equals(realizationType)) {

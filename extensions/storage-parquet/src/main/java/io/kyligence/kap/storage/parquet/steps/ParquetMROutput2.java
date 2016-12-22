@@ -28,6 +28,7 @@ import java.util.List;
 
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.IMROutput2;
+import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,7 +96,7 @@ public class ParquetMROutput2 implements IMROutput2 {
 
             @Override
             public void addStepPhase2_BuildCube(CubeSegment seg, List<CubeSegment> mergingSegments, DefaultChainedExecutable jobFlow) {
-                jobFlow.addTask(steps.createCubeMergeStep(seg, mergingSegments, jobFlow.getId(), KapMergeCuboidJob.class));
+                jobFlow.addTask(steps.createCubeMergeStep(seg, mergingSegments, jobFlow.getId(), getCubeMergeJobClass()));
                 jobFlow.addTask(steps.createCubeMergeCleanupStep(jobFlow.getId(), seg));
                 jobFlow.addTask(steps.createCubePageIndexStep(jobFlow.getId()));
                 jobFlow.addTask(steps.createCubePageIndexCleanupStep(jobFlow.getId()));
@@ -117,5 +118,9 @@ public class ParquetMROutput2 implements IMROutput2 {
                 steps.addMergeGarbageCollectionSteps(jobFlow);
             }
         };
+    }
+
+    protected Class<? extends AbstractHadoopJob> getCubeMergeJobClass() {
+        return KapMergeCuboidJob.class;
     }
 }

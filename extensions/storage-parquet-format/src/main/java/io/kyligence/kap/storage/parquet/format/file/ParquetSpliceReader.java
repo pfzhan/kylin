@@ -25,6 +25,7 @@
 package io.kyligence.kap.storage.parquet.format.file;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -34,9 +35,14 @@ import org.apache.hadoop.fs.Path;
 import org.apache.parquet.format.converter.ParquetMetadataConverter;
 import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
+import org.roaringbitmap.RoaringBitmap;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
+import org.roaringbitmap.buffer.MutableRoaringBitmap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ParquetSpliceReader {
+    public static final Logger logger = LoggerFactory.getLogger(ParquetSpliceReader.class);
     private long fileOffset;
     private ParquetBundleReader reader;
     private Map<String, Pair<Integer, Integer>> divCache;
@@ -61,6 +67,11 @@ public class ParquetSpliceReader {
         return divCache.keySet();
     }
 
+    public static Set<String> getDivs(Configuration configuration, Path path) throws IOException {
+        ParquetMetadata pm = ParquetFileReader.readFooter(configuration, path, ParquetMetadataConverter.NO_FILTER);
+        return Utils.filterDivision(pm.getFileMetaData().getKeyValueMetaData()).keySet();
+    }
+
     /**
      * get bundle reader for one division, it's a full data reader
      * @param div Div name
@@ -68,9 +79,32 @@ public class ParquetSpliceReader {
      */
     public ParquetBundleReader getDivReader(String div) throws IOException {
         Pair<Integer, Integer> range = divCache.get(div);
-        range.getLeft();
-        range.getRight();
         return new ParquetBundleReader(configuration, path, columns, Utils.createBitset(range.getLeft(), range.getRight()), fileOffset, metadata);
+    }
+
+    /**
+     * get bundle reader for several divisions, it's a full data reader
+     * @param divs Div name list
+     * @return the bundle reader
+     * @throws IOException
+     */
+    public ParquetBundleReader getDivReader(Collection<String> divs) throws IOException {
+        MutableRoaringBitmap bitmap = null;
+        for (String d : divs) {
+            Pair<Integer, Integer> range = divCache.get(d);
+            logger.info("div: {}, range: {} - {}", d, range.getLeft(), range.getRight());
+            if (bitmap == null) {
+                bitmap = new MutableRoaringBitmap(new RoaringBitmap(Utils.createBitset(range.getLeft(), range.getRight())));
+            } else {
+                bitmap.or(Utils.createBitset(range.getLeft(), range.getRight()));
+            }
+        }
+        logger.info("bitmap: {}", bitmap);
+        return new ParquetBundleReader(configuration, path, columns, bitmap.toImmutableRoaringBitmap(), fileOffset, metadata);
+    }
+
+    public Pair<Integer, Integer> getDivPageRange(String div) {
+        return divCache.get(div);
     }
 
     public static class Builder {
