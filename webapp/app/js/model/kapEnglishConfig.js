@@ -816,6 +816,7 @@ KylinApp.constant('kapEnglishConfig', {
     value: 'Value',
     tip_value: 'Config Value..',
     tip_required_value: 'Value is required.',
+    cancel: 'Cancel',
     update: 'Update'
   },
   alert:{

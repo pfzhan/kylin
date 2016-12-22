@@ -810,12 +810,13 @@ KylinApp.constant('kapChineseConfig', {
     tip_backup:'全局备份',
     links: '链接',
     updateConfig: '更新配置',//modal updateConfig begin
-    key: 'Key',
-    tip_key: 'Config Key..',
-    tip_required_key: 'Key不能为空.',
-    value: 'Value',
+    key: '配置项',
+    tip_key: '配置值..',
+    tip_required_key: '配置项不能为空.',
+    value: '配置值',
     tip_value: '配置值..',
-    tip_required_value: 'Value不能为空.',
+    tip_required_value: '配置值不能为空.',
+    cancel: '取消',
     update: '更新'
   },
   alert:{
