@@ -43,7 +43,7 @@ KylinApp.constant('jobConfig', {
   theaditems: [
     {attr: 'name', name: 'Job Name'},
     {attr: 'related_cube', name: 'Cube'},
-    {attr: 'progress', name: 'Progress'},
+    {attr: 'progress', name: 'Progress/Status'},
     {attr: 'last_modified', name: 'Last Modified Time'},
     {attr: 'duration', name: 'Duration'}
   ],
@@ -77,7 +77,7 @@ KylinApp.constant('jobConfig', {
     theaditems: [
       {attr: 'name', name: '任务名称'},
       {attr: 'related_cube', name: 'Cube'},
-      {attr: 'progress', name: '进程'},
+      {attr: 'progress', name: '进度/状态'},
       {attr: 'last_modified', name: '最后修改时间'},
       {attr: 'duration', name: '耗时'}
     ],

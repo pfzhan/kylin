@@ -95,7 +95,7 @@ KylinApp.constant('kapEnglishConfig', {
     {link:'https://kybot.io',displayName:'KyBot Service'}
   ],
   requestLicense:'Generate License Request File',
-  selectLanguage: 'select language'
+  selectLanguage: 'Languages'
   },
   /*
    module of  project
@@ -231,7 +231,7 @@ KylinApp.constant('kapEnglishConfig', {
     save: 'Save',
     grid: 'grid',    //grid of model begin
     gridTheadItems:[
-        {attr: 'name', name: 'Name'},
+        {attr: 'name', name: 'Column Name'},
         {attr: 'datatype', name: 'Data Type'},
         {attr: 'cardinality', name: 'Cardinality'},
         {attr: 'comment', name: 'Comment'}
@@ -328,8 +328,6 @@ KylinApp.constant('kapEnglishConfig', {
     cubesIn: '-- All --',
     ac_cube: 'Cube',
     aggregationGroups: 'Aggregation Groups',
-    tip_visit: 'visit',
-    tip_about_aggregation_group:'for more about aggregation group.',
     theaditems: [
       {attr: 'name', name: 'Name'},
       {attr: 'detail.model_name', name: 'Model'},
@@ -341,7 +339,6 @@ KylinApp.constant('kapEnglishConfig', {
       {attr: 'create_time_utc', name: 'Create Time'}
     ],
     aggregationGroups: 'Aggregation Groups',
-    tip_visit: 'Click',
     actions: 'Actions',
     schema: ['Cube Info','Dimensions','Measures','Refresh Setting','Advanced Setting','Raw Table(Beta)','Configuration Overwrites','Overview'],
     admins: 'Admins',
@@ -611,6 +608,9 @@ KylinApp.constant('kapEnglishConfig', {
     jobPause:'Pause',
     jobDiagnosis: 'Diagnosis',
     tip_jobDiagnosis: 'Download Diagnosis Info For This Job',
+    tip_jobResume: 'Resume the Job',
+    tip_jobPause: 'Pause the Job',
+    tip_jobDiscard: 'Discard the Job',
     jobsDetailInfo: 'Detail Information',//job detail begin
     tip_jobsDetailInfo: 'Collapse',
     jobsJobName: 'Job Name',
@@ -751,7 +751,7 @@ KylinApp.constant('kapEnglishConfig', {
     columns: 'Columns',
     extendInforFDFmation: 'Extend Information',
     streamingCluster: 'Streaming Cluster',
-    name: 'NAME',
+    name: 'Table NAME',
     hiveDatabase: 'Hive DATABASE',
     snapshotTime: 'SNAPSHOT TIME',
     location: 'lOCATION',
@@ -765,7 +765,7 @@ KylinApp.constant('kapEnglishConfig', {
     plac_column: 'Filter ...',
     theaditems: [
       {attr: 'id', name: 'ID'},
-      {attr: 'name', name: 'Name'},
+      {attr: 'name', name: 'Column Name'},
       {attr: 'datatype', name: 'Data Type'},
       {attr: 'cardinality', name: 'Cardinality'},
       {attr: 'comment', name: 'Comment'}
@@ -784,11 +784,11 @@ KylinApp.constant('kapEnglishConfig', {
     metaData:'Meta Data',
     lastModifiedTime:'Last Modified Time',
     totalRows:'Total Rows',
-    maxLengthValue:'MaxLengthValue',
-    maxValue:'MaxValue',
-    minLengthValue:'MinLengthValue',
-    minValue:'MinValue',
-    nullCount:'NullCount'
+    maxLengthValue:'Max Length Value',
+    maxValue:'Max Value',
+    minLengthValue:'Min Length Value',
+    minValue:'Min Value',
+    nullCount:'Null Count'
   },
   system:{
     system: 'System',

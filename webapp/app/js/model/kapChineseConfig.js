@@ -95,7 +95,7 @@ KylinApp.constant('kapChineseConfig', {
     {link:'https://kybot.io',displayName:'KyBot服务'}
   ],
   requestLicense:'生成许可申请文件',
-  selectLanguage: '请选择语言'
+  selectLanguage: '语言'
   },
   /*
    module of  project
@@ -231,7 +231,7 @@ KylinApp.constant('kapChineseConfig', {
     save: '保存',
     grid: 'grid',    //grid of model begin
     gridTheadItems: [
-          {attr: 'name', name: '名称'},
+          {attr: 'name', name: '列名'},
           {attr: 'datatype', name: '数据类型'},
           {attr: 'cardinality', name: '基数'},
           {attr: 'comment', name: '注释'}
@@ -327,9 +327,7 @@ KylinApp.constant('kapChineseConfig', {
     cubePrev: '上一步',
     cubesIn: '-- 所有 --',
     ac_cube: 'Cube',
-    aggregationGroups: 'Aggregation Groups',
-    tip_visit: 'visit',
-    tip_about_aggregation_group:'for more about aggregation group.',
+    aggregationGroups: '聚合组',
     theaditems: [
       {attr: 'name', name: '名称'},
       {attr: 'detail.model_name', name: '模型'},
@@ -340,7 +338,6 @@ KylinApp.constant('kapChineseConfig', {
       {attr: 'owner', name: '所有者'},
       {attr: 'create_time_utc', name: '创建时间'}
     ],
-    aggregationGroups: '聚合组',
     tip_visit: '点击',
     actions: '操作',
     schema: ['Cube信息','维度','度量','更新配置','高级设置','Raw Table配置(测试版)','配置覆盖','概览'],
@@ -396,7 +393,7 @@ KylinApp.constant('kapChineseConfig', {
     cubeDSNormal: '普通维度',
     cubeDSDerived: '可推导维度',
     cubeDSSwitchDer: 'derived',
-    cubeDSColumn: 'Column',
+    cubeDSColumn: '列名',
     cubeDSDatatype : '数据类型',
     cubeDSCardinality:'基数',
     cubeDSComment : '注释',
@@ -429,7 +426,7 @@ KylinApp.constant('kapChineseConfig', {
     ac_cancel_cube: '取消',
     cubeDSAutoGenerate_part_one: '自动生成维度 ',//Auto Generate Dimensions
     cubeDSAutoGenerate_part_two: '这个工具会帮助您批量生成维度. ',
-    cubeDSColumns: 'Columns',
+    cubeDSColumns: '列名',
     cubeDSFactTable: '[事实表]',
     cubeDSLookupTable: '[维度表]',
     cubeDSSelectAll: '全选',
@@ -611,6 +608,9 @@ KylinApp.constant('kapChineseConfig', {
     jobPause:'暂停',
     jobDiagnosis: '诊断',
     tip_jobDiagnosis: '下载Job诊断包',
+    tip_jobResume: '恢复Job',
+    tip_jobPause: '暂停Job',
+    tip_jobDiscard: '终止Job',
     jobsDetailInfo: '详细信息',//job detail begin
     tip_jobsDetailInfo: '收起',
     jobsJobName: '任务名',
@@ -751,7 +751,7 @@ KylinApp.constant('kapChineseConfig', {
     columns: '列',
     extendInforFDFmation: '扩展信息',
     streamingCluster: '流集群',
-    name: '名称',
+    name: '表名',
     hiveDatabase: 'Hive数据库',
     snapshotTime: '快照时间',
     location: '位置',
@@ -765,7 +765,7 @@ KylinApp.constant('kapChineseConfig', {
     plac_column: '过滤器 ...',
     theaditems: [
       {attr: 'id', name: 'ID'},
-      {attr: 'name', name: '名称'},
+      {attr: 'name', name: '列名'},
       {attr: 'datatype', name: '数据类型'},
       {attr: 'cardinality', name: '基数'},
       {attr: 'comment', name: '注释'}
@@ -783,7 +783,7 @@ KylinApp.constant('kapChineseConfig', {
     statistics:'统计信息',
     metaData:'元数据',
     lastModifiedTime:'上次更新时间',
-    totalRows:'表总行数',
+    totalRows:'总行数',
     maxLengthValue:'最长值',
     maxValue:'最大值',
     minLengthValue:'最短值',

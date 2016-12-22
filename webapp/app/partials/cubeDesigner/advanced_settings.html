@@ -21,14 +21,6 @@
     <div style="width:{{state.mode!='view'?75:100}}%;float:left;padding-right:10px">
       <div class="form-group">
         <h3 style="margin-left:42px;">{{dataKylin.cube.aggregationGroups}} </h3>
-        <div style="margin-left:22px;">
-          <div class="box-body">
-            <div class="col-xs-12">
-              {{dataKylin.cube.tip_visit}} <a href="http://kylin.apache.org/blog/2016/02/18/new-aggregation-group" target="_blank">{{dataKylin.cube.aggregationGroups}}</a> {{dataKylin.cube.tip_about_aggregation_group}}
-
-            </div>
-          </div>
-        </div>
         <table
                ng-if="cubeMetaFrame.aggregation_groups.length > 0"
                class="table table-hover list">
@@ -517,7 +509,7 @@
   </ng-form>
 </div>
 <script type="text/ng-template" id="rowkeyTip.html">
-<div ng-bind-html="dataKylin.cube.tip_body_cubeASRowkeys">
+<div ng-bind-html="{{dataKylin.cube.tip_body_cubeASRowkeys}}">
 </div>
 </script>
 <script type="text/ng-template" id="AdvancedDictionariesTip.html">

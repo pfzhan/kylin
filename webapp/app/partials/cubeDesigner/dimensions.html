@@ -39,8 +39,8 @@
                 <tr>
                     <th>{{dataKylin.cube.cubeDSID}}</th>
                     <th>{{dataKylin.cube.cubeDSName}}</th>
-                    <th>{{dataKylin.cube.cubeDSTableName}}</th>
                     <th>{{dataKylin.cube.cubeDSType}}</th>
+                    <th>{{dataKylin.cube.cubeDSTableName}}</th>
                     <th>{{dataKylin.cube.cubeDSColumn}}</th>
                     <th class="wid-100">{{dataKylin.cube.cubeDSDatatype}}</th>
                     <th>{{dataKylin.cube.cubeDSCardinality}}</th>
@@ -58,13 +58,13 @@
                     <td>
                         <span>{{dimension.name}}</span>
                     </td>
+                    <!--Type-->
+                    <td>
+                      <span class="label label-primary" ng-repeat="t in getDimType(dimension)">{{t}}</span>
+                    </td>
                     <!--Table Name -->
                     <td>
                         <span tooltip="{{dimension.table == metaModel.model.fact_table ? 'Fact Table' : 'Lookup Table'}}">{{dimension.table}}</span>
-                    </td>
-                    <!--Type-->
-                    <td>
-                        <span class="label label-primary" ng-repeat="t in getDimType(dimension)">{{t}}</span>
                     </td>
                     <!--Columns-->
                     <td>
