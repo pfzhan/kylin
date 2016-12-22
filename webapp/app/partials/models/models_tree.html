@@ -75,7 +75,7 @@
                   </span>
         </td>
       </tr>
-      <tr ng-show="model.showDetail">
+      <tr ng-if="model.showDetail">
         <td colspan="9" style="padding: 10px 30px 10px 30px;">
           <div ng-include src="'partials/models/models_detail.html'"></div>
         </td>

@@ -35,6 +35,7 @@
   font-size: 12px;
   margin-left: 4px;
   display: block;
+  border:dashed 1px #ccc;
 }
 .classUml .title .tableKind{
   vertical-align: top;
@@ -62,28 +63,29 @@
 .classUml p:hover{
   /*background-color:#eee;*/
 }
-#snowBox{
+.snowBox{
   width: 100%;
   height: 1000px;
   background: #383838;
-  position: relative;
+  position: absolute;
   margin-top: 10px;;
 }
 
-#snowBox .more{
+.snowBox .more{
   display: inline-block;
   width: 10px;
   height: 10px;
-  background: url('../image/more_normal.png') no-repeat;
+  /*background: url('../image/more_normal.png') no-repeat;*/
   position: absolute;
-  right: 5px;
-  top: 10px;
+  right: 2px;
+  top: 2px;
   cursor: pointer;
   background-size:contain;
+  font-size:12px;
 }
-#snowBox .more:hover{
-  background: url('../image/more_hover.png') no-repeat;
-  background-size:contain;
+.snowBox .more:hover{
+  /*background: url('../image/more_hover.png') no-repeat;*/
+  /*background-size:contain;*/
 }
 
 .plusHandle{
@@ -162,15 +164,16 @@
 .align-right{
   text-align: right;
 }
-#tipToolbar{
+.tipToolbar{
   text-align: right;
   color:#fff;
   padding-right: 10px;
   position: absolute;
   top:8px;
   right: 5px;
+  z-index: 1;
 }
-#tipToolbar span{
+.tipToolbar span{
   display: inline-block;
   margin-left: 5px;
   font-size: 12px;
@@ -187,27 +190,27 @@
 }
 .snowclock{
   color:#ccc;
-  font-size: 16px;
   position: absolute;
   right: 10px;
   box-shadow: 2px 2px 19px #aaa;
   -o-box-shadow: 2px 2px 19px #aaa;
   -webkit-box-shadow: 2px 2px 19px #000;
   -moz-box-shadow: 2px 2px 19px #000;
+  font-size: 12px;
+  top: 3px;
 }
 .snowclock.active{
   color:green;
 }
-.isfact .snowclock{
+.isfact p:hover .snowclock{
   display: inline-block;
-  font-size: 12px;
-  top: 3px;
 }
-.islookup .snowclock{
+ .snowclock{
   display: none;
 }
 .isfact .snowclock.active{
   color:green;
+  display: inline-block;
 }
 .isfact .noshow.snowclock{
   display: none;
@@ -228,20 +231,21 @@
 .modal_dateformat>div.modal-dialog{
   width: 400px;
 }
-#bar_action{
+.bar_action{
   position: absolute;
   left: 10px;
   top: 10px;
+  z-index: 1;
 
 }
-#bar_action span{
+.bar_action span{
   color: #ccc;
   border: solid 1px #ccc;
   padding: 4px;
   cursor: pointer;
   margin-left: 10px;
 }
-#bar_action span:hover{
+.bar_action span:hover{
   color: #fff;
   border-color: #fff;
 }
@@ -274,4 +278,23 @@
 p:hover .jsplumb-tips{
   display: block;
 }
-
+.input_alias{
+  display: none;
+  position: absolute;
+  top: 25px;
+  left: 30px;
+  width:244px;
+}
+.input_alias_save{
+  position: absolute;
+  right: 4px;
+  top: 25px;
+  height: 25px;
+  width: 25px;
+  line-height: 25px;
+  display: none;
+  background: green;
+  color: #fff;
+  text-align: center;
+ cursor: pointer;
+}

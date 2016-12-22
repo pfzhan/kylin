@@ -24,7 +24,7 @@
 
 'use strict';
 
-KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, UserService, ProjectService, $q, AuthenticationService, $filter, ModelService, MetaModel, CubeDescModel, CubeList, TableModel, ProjectModel, $log, SweetAlert, modelsManager,language, modelsEdit,DrawHelper,$modal,cubeConfig,loadingRequest,$location) {
+KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,QueryService, UserService, ProjectService, $q, AuthenticationService, $filter, ModelService, MetaModel, CubeDescModel, CubeList, TableModel, ProjectModel, $log, SweetAlert, modelsManager,language, modelsEdit,DrawHelper,$modal,cubeConfig,loadingRequest,$location,ModelDescService) {
 
   $scope.modelsManager = modelsManager;
   $scope.projectModel = ProjectModel;
@@ -40,9 +40,12 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
       $scope.state.project=newValue;
     }
   })
+  $scope.model_jsplumb_name='snowBox'
   // ~ init
   if (!$scope.state) {
     $scope.state = {mode: "view"};
+  }else{
+    $scope.model_jsplumb_name = $scope.state.modelName;
   }
 
   if(!$scope.partitionColumn){
@@ -128,9 +131,42 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
           treeDom.sortable('cancel') ;
           var database=$(ui.item).attr("data");
           TableModel.initTableData(function(){
-            var tableDataList=TableModel.getTableDatas(database);
+            var tableDataList=TableModel.getTableDatail(database);
             if(tableDataList&&tableDataList.length<2){
-              openSnowTableInfoDialog(tableDataList[0],function(table){
+              //openSnowTableInfoDialog(tableDataList[0],function(table){
+              //
+              //  ModelService.suggestion({
+              //    table:table.database+'.'+table.name
+              //  },function(data){
+              //      for(var i=0;i<table.columns.length;i++){
+              //         for(var m in data){
+              //           if(m.indexOf(table.columns[i].name)>=0){
+              //             table.columns[i].kind=data[m].replace(/_[^_\s]+$/,'');
+              //             break;
+              //           }
+              //         }
+              //      }
+              //      DrawHelper.addTable(table);
+              //
+              //  },function(){
+              //    DrawHelper.addTable(table);
+              //  })
+              //})
+              var table=tableDataList[0];
+              ModelService.suggestion({
+                table:table.database+'.'+table.name
+              },function(data){
+                for(var i=0;i<table.columns.length;i++){
+                  for(var m in data){
+                    if(m.indexOf(table.columns[i].name)>=0){
+                      table.columns[i].kind=data[m].replace(/_[^_\s]+$/,'');
+                      break;
+                    }
+                  }
+                }
+                DrawHelper.addTable(table);
+
+              },function(){
                 DrawHelper.addTable(table);
               })
             }
@@ -294,8 +330,16 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
 //model 保存弹窗
       function openModelSaveDialog(conn){
         var snowModelSaveCtrl=function($scope,$modalInstance,SweetAlert,VdmUtil,scope,MessageService,loadingRequest,$location){
-          $scope.model={name:DrawHelper.instanceName, description:DrawHelper.instanceDiscribe, filter:DrawHelper.filterStr};
-          $scope.cancel = function () {
+         if(DrawHelper.kylinData){
+           $scope.model={name:DrawHelper.kylinData.name, description:DrawHelper.kylinData.description, filter:DrawHelper.kylinData.filter_condition};
+         }else{
+           $scope.model={
+             name:'',
+             description:'',
+             filter:''
+           }
+         }
+         $scope.cancel = function () {
             $modalInstance.dismiss('cancel');
           }
           $scope.saveModel=function(){
@@ -309,36 +353,70 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
               SweetAlert.swal(scope.dataKylin.alert.oops, scope.dataKylin.alert.tip_invalid_model_json, 'error');
               return;
             }
-            ModelService.save({}, {
-              modelDescData:VdmUtil.filterNullValInObj(saveData),
-              project: scope.state.project
-            }, function (request) {
-              if(request.successful) {
-                SweetAlert.swal('', scope.dataKylin.alert.success_created_model, 'success');
-                $modalInstance.dismiss('cancel');
-                $location.path("/models");
-                //location.reload();
-              } else {
-                var message =request.message;
-                var msg = !!(message) ? message : scope.dataKylin.alert.error_info;
-                MessageService.sendMsg(scope.modelResultTmpl({'text':msg,'schema':''}), 'error', {}, true, 'top_center');
-              }
+            if(DrawHelper.kylinData){
+               var updateModelData= $.extend({},DrawHelper.kylinData,saveData);
+               ModelService.update({}, {
+                modelDescData:VdmUtil.filterNullValInObj(updateModelData),
+                modelName: saveData.name,
+                project:scope.state.project
+              }, function (request) {
+                if (request.successful) {
+                  //$scope.state.modelSchema = request.modelSchema;
+                  SweetAlert.swal('', $scope.dataKylin.alert.success_updated_model, 'success');
+                  $location.path("/models");
+                  //location.reload();
+                } else {
+                  //$scope.saveModelRollBack();
+                  var message =request.message;
+                  var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
+                  MessageService.sendMsg($scope.modelResultTmpl({'text':msg,'schema':''}), 'error', {}, true, 'top_center');
+                }
+                //end loading
+                loadingRequest.hide();
+              }, function (e) {
+                //$scope.saveModelRollBack();
 
-              //end loading
-              loadingRequest.hide();
-            }, function (e) {
-              if (e.data && e.data.exception) {
-                var message =e.data.exception;
-                var msg = !!(message) ? message : scope.dataKylin.alert.error_info;
-                MessageService.sendMsg(scope.modelResultTmpl({'text':msg,'schema':scope.state.modelSchema}), 'error', {}, true, 'top_center');
-              } else {
-                MessageService.sendMsg(scope.modelResultTmpl({'text':scope.dataKylin.alert.error_info,'schema':''}), 'error', {}, true, 'top_center');
-              }
-              //end loading
-              loadingRequest.hide();
+                if(e.data&& e.data.exception){
+                  var message =e.data.exception;
+                  var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
 
-            });
+                  MessageService.sendMsg($scope.modelResultTmpl({'text':msg,'schema':''}), 'error', {}, true, 'top_center');
+                } else {
+                  MessageService.sendMsg($scope.modelResultTmpl({'text':scope.dataKylin.alert.error_info,'schema':''}), 'error', {}, true, 'top_center');
+                }
+                loadingRequest.hide();
+              });
+            }else{
+              ModelService.save({}, {
+                modelDescData:VdmUtil.filterNullValInObj(saveData),
+                project: scope.state.project
+              }, function (request) {
+                if(request.successful) {
+                  SweetAlert.swal('', scope.dataKylin.alert.success_created_model, 'success');
+                  $modalInstance.dismiss('cancel');
+                  $location.path("/models");
+                  //location.reload();
+                } else {
+                  var message =request.message;
+                  var msg = !!(message) ? message : scope.dataKylin.alert.error_info;
+                  MessageService.sendMsg(scope.modelResultTmpl({'text':msg,'schema':''}), 'error', {}, true, 'top_center');
+                }
 
+                //end loading
+                loadingRequest.hide();
+              }, function (e) {
+                if (e.data && e.data.exception) {
+                  var message =e.data.exception;
+                  var msg = !!(message) ? message : scope.dataKylin.alert.error_info;
+                  MessageService.sendMsg(scope.modelResultTmpl({'text':msg,'schema':scope.state.modelSchema}), 'error', {}, true, 'top_center');
+                } else {
+                  MessageService.sendMsg(scope.modelResultTmpl({'text':scope.dataKylin.alert.error_info,'schema':''}), 'error', {}, true, 'top_center');
+                }
+                //end loading
+                loadingRequest.hide();
+
+              });
+            }
 
           }
         }
@@ -355,16 +433,55 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
         });
       }
       //拖拽建模（雪花）初始化入口
-      DrawHelper.init({
-        changeTableInfo:openSnowTableInfoDialog,
-        changeConnectType:openSelectJoinTypeDialog,
-        addColumnToPartitionDate:openDateFormatTypeDialog,
-        addColumnToPartitionTime:openDateFormatTypeDialog,
-        saveModel:openModelSaveDialog
-      });
+      DrawHelper=DrawHelper.initService();
+      if ($scope.isEdit = !!$routeParams.modelName||$scope.state.mode=='view') {
+
+        var modelName = $routeParams.modelName||$scope.state.modelName;
+
+        ModelDescService.query({model_name: modelName}, function (model) {
+          if (model) {
+            $scope.modelCopy = angular.copy(model);
+            modelsManager.setSelectedModel($scope.modelCopy);
+            modelsEdit.setSelectedModel(model);
+            $scope.lookupLength=modelsEdit.selectedModel.lookups.length;
+
+            DrawHelper.init({
+              changeTableInfo:openSnowTableInfoDialog,
+              changeConnectType:openSelectJoinTypeDialog,
+              addColumnToPartitionDate:openDateFormatTypeDialog,
+              addColumnToPartitionTime:openDateFormatTypeDialog,
+              saveModel:openModelSaveDialog,
+              kylinData:$scope.modelCopy,
+              containerId: $scope.model_jsplumb_name
+            });
+            DrawHelper.kylinDataToJsPlumbData();
+
+          }
+        });
+        //init project
+      }else{
+        DrawHelper.init({
+          changeTableInfo:openSnowTableInfoDialog,
+          changeConnectType:openSelectJoinTypeDialog,
+          addColumnToPartitionDate:openDateFormatTypeDialog,
+          addColumnToPartitionTime:openDateFormatTypeDialog,
+          saveModel:openModelSaveDialog,
+          containerId: $scope.model_jsplumb_name
+        });
+      }
+
     },1000)
 
   });
+
+
+
+
+
+
+
+
+
   //snow part
 
   //snow

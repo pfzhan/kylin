@@ -291,7 +291,7 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,String
     * database.tablename
     * database
     * */
-   this.getTableDatas=function(filterName){
+   this.getTableDatail=function(filterName){
       var filterList=filterName.split('.'),result=[];
       for(var i= 0,len=this.tableOriginalData.length||0;i<len;i++){
         if(filterList){
