@@ -59,7 +59,7 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
 
         HCatSplit hCatSplit = (HCatSplit) context.getInputSplit();
         FileSplit fileSplit = (FileSplit) hCatSplit.getBaseSplit();
-        isOffsetZero = (fileSplit.getStart() == 0);
+        isOffsetZero = (0 == fileSplit.getStart());
         String skipCount = conf.get("skip.header.line.count");
         if (null != skipCount)
             skipHeaderLineCount = Integer.parseInt(skipCount);
@@ -100,7 +100,7 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
         while (it.hasNext()) {
             int key = it.next();
             HiveTableExtSampler sampler = samplerMap.get(key);
-            sampler.sync(counter - skipHeaderLineCount);
+            sampler.sync(counter);
             sampler.code();
             context.write(new IntWritable(key), new BytesWritable(sampler.getBuffer().array(), sampler.getBuffer().limit()));
             sampler.clean();
