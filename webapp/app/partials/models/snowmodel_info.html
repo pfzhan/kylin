@@ -4,18 +4,18 @@
 <div class="modal-body">
   <div class="row">
     <label class="col-xs-12 col-sm-3 no-padding-right align-right">Table Name:</label>
-    <div class="col-xs-12 col-sm-6">{{table.database+'.'+table.name}}</div>
+    <div class="col-xs-12 col-sm-6">{{table.table||table.database+'.'+table.name}}</div>
   </div>
   <div class="row">
     <label class="col-xs-12 col-sm-3 no-padding-right align-right">Alias Name:</label>
     <div class="col-xs-12 col-sm-6">
-      <input class="form-control" value="{{table.alias}}" ng-model="table.alias">
+      <input class="form-control" value="{{table.alias}}" ng-model="table.alias"><span style="color:red" ng-show="sameError">别名重复啦！</span>
     </div>
   </div>
   <div class="row">
     <label class="col-xs-12 col-sm-3 no-padding-right align-right">Type:</label>
     <div class="col-xs-12 col-sm-6">
-      <input type="radio" name="tabletype" id="rft" ng-model="table.isRoot" value="true" ng-checked="table.isRoot"/> <label for="rft">Root Fact Table</label>
+      <input type="radio" name="tabletype" id="rft" ng-model="table.kind" value="rootfact" ng-checked="table.kind=='rootfact'"/> <label for="rft">Root Fact Table</label>
       <input type="radio" name="tabletype" id="ft" ng-model="table.kind" value="fact" ng-checked="table.kind=='fact'"/> <label for="ft">Fact Table</label>
       <input type="radio" name="tabletype" id="lt" ng-model="table.kind" value="lookup" ng-checked="table.kind=='lookup'"/> <label for="lt">LookUp Table</label>
     </div>
@@ -23,5 +23,5 @@
 </div>
 <div class="modal-footer">
   <button class="btn btn-default" ng-click="cancel()">cancle</button>
-  <button class="btn btn-success" ng-click="editTableInfo();">保存</button>
+  <button class="btn btn-success" ng-click="editTableInfo();">save</button>
 </div>

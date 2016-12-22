@@ -20,22 +20,30 @@
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-  margin-left: 30px;
+  margin-left:10px;
+  display: inline-block;
+  width: 250px;
 }
 .classUml .title .alias{
   font-style: italic;
   font-size: 12px;
   margin-left: 4px;
-  margin-top: 10px;
+  display: block;
+}
+.classUml .title .tableKind{
+  vertical-align: top;
 }
 .classUml p{
-  padding-left: 20px;
+  padding-left: 10px;
   border-bottom: solid 1px #eee;
   height: 20px;
   line-height: 20px;
   font-size: 12px;
   margin: 0;
   /*font-weight:bold;*/
+}
+.classUml p:hover{
+  background-color:#eee;
 }
 #snowBox{
   width: 100%;
@@ -44,21 +52,44 @@
   position: relative;
   margin-top: 10px;;
 }
+
 #snowBox .more{
   display: inline-block;
   width: 20px;
-  height: 6px;
-  background: url('../image/more_normal.png');
+  height: 20px;
+  background: url('../image/more_normal.png') no-repeat;
   position: absolute;
   right: 5px;
   top: 10px;
   cursor: pointer;
 }
 #snowBox .more:hover{
-  display: inline-block;
-  width: 20px;
-  height: 6px;
-  background: url('../image/more_hover.png');
+  background: url('../image/more_hover.png') no-repeat;
+}
+
+.plusHandle{
+   width: 32px;
+   height: 32px;
+   display: block;
+   position: fixed;
+   background:url('../image/plus.png');
+   right:25px;
+   top:150px;
+ }
+.plusHandle:hover{
+  background:url('../image/plus_hover.png');
+}
+.minusHandle{
+  width: 32px;
+  height: 32px;
+  display: block;
+  position:fixed;
+  background:url('../image/minus.png');
+  right:25px;
+  top:190px;
+}
+.minusHandle:hover{
+  background:url('../image/minus_hover.png');
 }
 .snowFont{
   width: 20px;
@@ -69,9 +100,10 @@
   text-align: center;
   line-height: 20px;
   border-radius: 10px;
-  position: absolute;
   font-weight: bold;
-  left: 5px;
+}
+.columnKind{
+  cursor: pointer;
 }
 .snowFont1{
   background-color: red;
@@ -86,8 +118,59 @@
 .snowFont4{
   background-color: #ccc;
   color: #000;
-
+}
+.snowFont5{
+  background-color: #909;
+  color: #FFF;
+}
+.snowFont6{
+  background-color: #228011;
+  color: #FFF;
 }
 .align-right{
   text-align: right;
+}
+#tipToolbar{
+  text-align: right;
+  color:#fff;
+  padding-right: 10px;
+  position: absolute;
+  top:8px;
+  right: 5px;
+}
+#tipToolbar span{
+  display: inline-block;
+  margin-left: 5px;
+}
+.aLabel{
+  color:red;
+  font-size: 14px;
+  font-weight: bold;
+}
+.snowclock{
+  color:#ccc;
+  font-size: 16px;
+  position: absolute;
+  right: 10px;
+}
+.snowclock.active{
+  color:green;
+}
+.isfact .snowclock{
+  display: inline-block;
+}
+.islookup .snowclock{
+  display: none;
+}
+.isfact .snowclock.active{
+  color:green;
+}
+.isfact .noshow.snowclock{
+  display: none;
+}
+.snowclock.snowDate{
+  right: 25px;
+}
+.snowclock:hover{
+  color:green;
 }

@@ -9,23 +9,27 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
     baseTop:10,
     levelTopList:[10],
     containerId:'snowBox',
+    container:null,
     tableCount:1,
     instance:null,
     lastLink:[],
     connects:{},
     zoom:1,
+    zoomRate:0.01,
     changeTableInfo:null,
+    changeConnectType:null,
     init:function(para){
       $.extend(this,para);
-      this.boxWidth=$("#"+this.containerId).width();
-      this.boxHeight=$("#"+this.containerId).height();
+      this.boxWidth=$('#'+this.containerId).width();
+      this.boxHeight=$('#'+this.containerId).height();
       var that=this;
+      this.container=$('#'+this.containerId);
       this.instance = jsPlumb.getInstance({
           DragOptions: { cursor: 'pointer', zIndex: 2000},
-          PaintStyle: { strokeStyle: '#66a8fa' },
+          PaintStyle: {width: 25, height: 21, strokeStyle: '#66a8fa' },
           EndpointHoverStyle: { fillStyle: "yellow" },
           HoverPaintStyle: { strokeStyle: "yellow" },
-          EndpointStyle: { width: 20, height: 16, strokeStyle: '#66a8fa' },
+          EndpointStyle: { width: 20, height: 16, stroke: '#666' },
           Endpoint: "Rectangle",
           Anchors: ["TopCenter", "TopCenter"],
           Container: that.containerId,
@@ -38,19 +42,97 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       this.instance.bind("connection", function (info, originalEvent) {
         that.lastLink.push(info.connection.getParameters().data);
         that.connects[info.connection.id]=that.lastLink;
-        info.connection.bind('dblclick',function(conn){
-          that.instance.detach(conn);
-          delete that.connects[conn.id];
+        that.changeConnectType(info.connection);
+        info.connection.unbind('click').bind('click',function(conn){
+          if(conn.id!='label'){
+            that.changeConnectType(conn);
+          }
         })
       });
-      var $panzoom=$("#"+this.containerId).panzoom({
-        cursor: "default",
+      var $panzoom=this.container.panzoom({
+        cursor: "zoom",
         minScale: 0.25,
         increment: 0.1,
         duration: 100
       });
+      this.showToolbar();
+      this.showMapControl();
       return this;
     },
+    showToolbar:function(){
+       var toolBarHtml='<div id="tipToolbar"><span class="snowFont snowFont1 relative">RF</span><span>Root Fact Table</span><span class="snowFont snowFont2 relative">F</span><span>Fact Table</span><span class="snowFont snowFont3 relative">L</span><span>Lookup Table</span><span class="snowFont snowFont5 relative">D</span><span>Dimension</span><span class="snowFont snowFont6 relative">M</span><span>Measure</span><span class="snowFont snowFont4 relative">-</span><span>Disable</span></div>';
+       $(toolBarHtml).insertAfter(this.container);
+    },
+    showMapControl:function(){
+      var that=this;
+      var mapControlHtml='<span class="plusHandle"></span><span class="minusHandle"></span>';
+      $(mapControlHtml).insertAfter(this.container);
+      this.container.parent().find('.plusHandle').click(function(){
+        that.setZoom(that.zoom+=that.zoomRate);
+      }).end().find('.minusHandle').click(function(){
+        that.setZoom(that.zoom-=that.zoomRate);
+      })
+
+    },
+    //提供table类型的dom结构
+    renderTableKind:function(kind){
+        if(kind=='rootfact'){
+           return '<span class="snowFont snowFont1 tableKind">RF</span>'
+        }else if(kind=='fact'){
+          return '<span class="snowFont snowFont2 tableKind" >F</span>'
+        }else{
+         return '<span class="snowFont snowFont3 tableKind" >L</span>'
+        }
+    },
+    //提供列类型的dom结构
+    renderTableColumnKind:function(type){
+      if(type=='dimension'){
+        return '<span class="snowFont snowFont5 columnKind" data="dimension">D</span>';
+      }else if(type=='measure') {
+        return '<span class="snowFont snowFont6 columnKind" data="measure">M</span>';
+      }else if(type=='disable'){
+        return '<span class="snowFont snowFont4 columnKind" data="disable">-</span>';
+      }else{
+        return '<span class="snowFont snowFont5 columnKind" data="dimension">D</span>';
+      }
+    },
+    partionColumn:{
+
+    },
+    renderPartionColumn:function(columnType){
+      var canSetDatePartion=['date','timestamp','string','bigint','int','integer'];
+      var canSetTimePartion=['time','timestamp','string'];
+      var needNotSetDateFormat=['bigint','int','integer'];
+      var domHtml='';
+      if(canSetDatePartion.indexOf(columnType)>=0&&canSetTimePartion.indexOf(columnType)>=0||columnType.indexOf('varchar')>=0){
+        if(needNotSetDateFormat.indexOf(columnType)){
+          domHtml+= '<i class="fa fa-calendar snowclock noFormat snowDate" ></i>';
+          domHtml+= '<i class="fa fa-clock-o snowclock  noFormat snowTime" ></i>';
+        }else{
+          domHtml+= '<i class="fa fa-calendar snowclock snowDate" ></i>';
+          domHtml+= '<i class="fa fa-clock-o snowclock  snowTime" ></i>';
+        }
+      }else if(canSetDatePartion.indexOf(columnType)>=0||columnType.indexOf('varchar')>=0){
+        if(needNotSetDateFormat.indexOf(columnType)){
+          domHtml+= '<i class="fa fa-calendar snowclock noFormat snowDate" ></i>';
+          domHtml+= '<i class="fa fa-clock-o snowclock noshow noFormat snowTime" ></i>';
+        }else{
+          domHtml+= '<i class="fa fa-calendar snowclock snowDate" ></i>';
+          domHtml+= '<i class="fa fa-clock-o snowclock noshow snowTime" ></i>';
+        }
+      }else if(canSetTimePartion.indexOf(columnType)>=0||columnType.indexOf('varchar')>=0){
+        if(needNotSetDateFormat.indexOf(columnType)){
+          domHtml+= '<i class="fa fa-clock-o snowclock noFormat snowTime"></i>';
+          domHtml+= '<i class="fa fa-calendar snowclock noshow noFormat snowDate" ></i>';
+        }else{
+          domHtml+= '<i class="fa fa-clock-o snowclock snowTime"></i>';
+          domHtml+= '<i class="fa fa-calendar snowclock noshow snowDate" ></i>';
+        }
+      }
+      return domHtml;
+    },
+    columnTypes:['dimension','measure','disable'],
+    //数据仓库
     tableList:{
       data:[],
       add:function(obj,errcallback){
@@ -63,6 +145,13 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           }
         }
         this.data.push(obj);
+      },
+      getTableByGuid:function(key,val){
+        for(var i=0;i<this.data.length;i++){
+          if(this.data[i][key]==val){
+            return this.data[i];
+          }
+        }
       },
       remove:function(key,val){
         for(var i=0;i<this.data.length;i++){
@@ -79,80 +168,125 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
             break;
           }
         }
+      },
+      updateColumnKind:function(tablename,columnName,kind){
+        for(var i=0;i<this.data.length;i++){
+          if(this.data[i]['table']==tablename){
+            for(var k=0;k<this.data[i].columns.length;k++){
+              if(this.data[i].columns[k].name==columnName){
+                this.data[i].columns[k].kind=kind;
+                return this;
+              }
+            }
+          }
+        }
       }
     },
+    //刷新页面的别名显示
     refreshAlias:function(tableName,newVal){
       this.getTableDom(tableName).find('.alias').html('Alias:'+newVal);
       return this;
     },
-    getTableDom:function(tableName){
-       return  $('#umlobj_'+tableName);
+    //刷新页面表类型显示
+    refreshTableKind:function(tableName,kind){
+      this.getTableDom(tableName).find('.tableKind').replaceWith(this.renderTableKind(kind)).removeClass('isfact').removeClass('islookup');
+
+      if(kind=='fact'&&kind=='rootfact'){
+        this.getTableDom(tableName).addClass('isfact');
+      }else{
+        this.getTableDom(tableName).addClass('islookup');
+      }
+      return this;
     },
+    //刷新页面表中列的类型显示
+    refreshTableColumnKind:function(tableName,columnName,kind){
+      $('#column_'+tableName.replace('.','')+columnName).find('.columnKind').replaceWith(this.renderTableColumnKind(kind));
+    },
+    //页面表中列绑定点击改变事件
+    bindColumnChangeTypeEvent:function(box){
+      var that=this;
+      $(box).on('click','.columnKind',function(){
+        var columnName=$(this).parent().attr('data');
+        var tableName=$(box).attr('data');
+        var columnType=$(this).attr('data');
+        var nextTypeIndex=that.columnTypes.indexOf(columnType)+1<=that.columnTypes.length-1?that.columnTypes.indexOf(columnType)+1:0;
+        that.refreshTableColumnKind(tableName,columnName,that.columnTypes[nextTypeIndex]);
+        that.tableList.updateColumnKind(tableName,columnName,that.columnTypes[nextTypeIndex]);
+      })
+    },
+    getTableDom:function(guid){
+       return  $('#umlobj_'+guid);
+    },
+    aliasList:[],
+    checkHasThisAlias:function(alias){
+      if(alias&&this.aliasList.indexOf(alias)==-1){
+        return false;
+      }
+      return true;
+    },
+    changeAliasList:function(oldAlias,newAlias){
+      var index=this.aliasList.indexOf(oldAlias);
+      if(index>=0){
+        this.aliasList.splice(index,1,newAlias);
+      }else{
+        this.aliasList.push(newAlias);
+      }
+
+    },
+    //添加表
     addTable:function(tableData,count){
+      var that=this;
       var tableBaseObject={
         table:tableData.database+'.'+tableData.name,
-        alias:tableData.name,
+        alias:tableData.alias||tableData.name,
         kind:tableData.kind||'lookup',
-        isRoot:tableData.isRoot||false,
-        pos:[10,10]
+        columns:tableData.columns,
+        pos:[10,10],
+        guid:tableData.guid||this.guid()
       };
-      var that=this;
       this.tableList.add(tableBaseObject);
-      var str=' <div id="umlobj_'+tableData.database+tableData.name+'" class="classUml" style="left:'+tableBaseObject.pos[0]+'px;top:'+tableBaseObject.pos[1]+'px">';
+      var str=' <div data="'+tableData.database+'.'+tableData.name+'" id="umlobj_'+tableBaseObject.guid+'" class="classUml '+(tableBaseObject.kind!='lookup'?'isfact':'islookup')+'" style="left:'+tableBaseObject.pos[0]+'px;top:'+tableBaseObject.pos[1]+'px">';
           str+=' <div 	class="title" style="height:'+this.titleHeight+'px">';
-          if(tableBaseObject.kind=='fact'){
-            if(tableBaseObject.isRoot){
-                str+='<span class="snowFont snowFont1">RF</span>'
-            }else{
-               str+='<span class="snowFont snowFont2">F</span>'
-            }
-          }else{
-              str+='<span class="snowFont snowFont3">L</span>'
-          }
-          str+='<a title="'+tableBaseObject.table+'"><i class="fa fa-table"></i> '+tableBaseObject.table+'<span class="more" ></span></a>' +
+          str+=this.renderTableKind(tableBaseObject.kind);
+          str+='<a title="'+tableBaseObject.table+'"><i class="fa fa-table"></i> '+tableBaseObject.table+'</a><span class="more" ></span>' +
                     '<a class="alias" title="'+tableBaseObject.table+'">Alias:'+tableBaseObject.alias+'</a></div>';
           for (var i =0; i <tableData.columns.length; i++) {
-            if(tableData.columns[i].type=='dimension'){
-              str+='<span class="snowFont snowFont2">D</span><p>&nbsp;&nbsp;'+tableData.columns[i].name+'('+tableData.columns[i].datatype+')</p>';
-            }else if(tableData.columns[i].type=='measure') {
-              str+='<span class="snowFont snowFont3">M</span><p>&nbsp;&nbsp;'+tableData.columns[i].name+'('+tableData.columns[i].datatype+')</p>';
-            }else if(tableData.columns[i].type=='disable'){
-              str+='<span class="snowFont snowFont4">-</span><p class="snowFont4">&nbsp;&nbsp;'+tableData.columns[i].name+'('+tableData.columns[i].datatype+')</p>';
-            }else{
-              str+='<span class="snowFont snowFont2">D</span><p>&nbsp;&nbsp;'+tableData.columns[i].name+'('+tableData.columns[i].datatype+')</p>';
-            }
-
+            str+='<p id="column_'+tableData.database+tableData.name+tableData.columns[i].name+'" data="'+tableData.columns[i].name+'">'+this.renderTableColumnKind(tableData.columns[i].type)+'&nbsp;&nbsp;'+tableData.columns[i].name+'('+tableData.columns[i].datatype+')'+this.renderPartionColumn(tableData.columns[i].datatype)+'</p>';
           }
           str+='</div>';
       $("#"+this.containerId).append($(str));
       var len=tableData.columns.length;
       var totalHeight=this.titleHeight+this.itemHeight*len;
       var totalPer=this.titleHeight/totalHeight;
+      var boxIdName='umlobj_'+tableBaseObject.guid;
+      var boxDom=$("#"+boxIdName);
       for (var i =0; i <len; i++) {
         var h=this.numDiv((this.titleHeight+this.itemHeight*i+this.numDiv(this.itemHeight,2)),totalHeight);
-        this.instance.addEndpoint('umlobj_'+tableData.database+tableData.name, {anchor:[[0, h, -1, 0]]}, this.createPoint({
+        this.instance.addEndpoint(boxIdName, {anchor:[[0, h, -1, 0]]}, this.createPoint({
             parameters:{
-              data:tableData.alias+'.'+tableData.columns[i].name
+              data:tableBaseObject.alias+'.'+tableBaseObject.columns[i].name
             },
-            uuid:tableData.database+tableData.name+tableData.columns[i].columnName
+            uuid:tableBaseObject.guid
           }
         ));
-        this.instance.addEndpoint('umlobj_'+tableData.database+tableData.name, {anchor:[[1.0,h, 1.5, 0]]}, this.createPoint({
+        this.instance.addEndpoint(boxIdName, {anchor:[[1.0,h, 1.5, 0]]}, this.createPoint({
             parameters:{
-              data:tableData.alias+'.'+tableData.columns[i].name
+              data:tableBaseObject.guid+'.'+tableBaseObject.columns[i].name
             },
-            uuid:tableData.database+tableData.name+tableData.columns[i].columnName
+            uuid:tableBaseObject.guid
           }
         ));
       }
-      this.instance.draggable($("#umlobj_"+tableData.database+tableData.name),{
+      this.bindColumnChangeTypeEvent(boxDom);
+      this.instance.draggable(boxDom,{
         drag:function(e){
         },stop:function(e){
-          this.tableList.data.update('table',tableData.database+'.'+tableData.name,{'pos':e.pos})
+          this.tableList.data.update('guid',tableBaseObject.guid,{'pos':e.pos})
         }
       });
-      $('#umlobj_'+tableData.database+tableData.name).find('.more').on('click',function(){
-        that.changeTableInfo(tableData);
+      boxDom.find('.more').on('click',function(){
+        var tableObj=that.tableList.getTableByGuid(tableBaseObject.guid);
+        that.changeTableInfo(tableBaseObject);
       })
       return this;
     },
@@ -176,23 +310,33 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         left:10,
       }
     },
-
+    //创建连接点
     createPoint:function(para){
       var that=this;
       var pointObj = {
         endpoint:"Rectangle",//设置连接点的形状为圆形
-        paintStyle:{ fillStyle:'#46b8da',width: 10, height: 10 },//设置连接点的颜色
+        paintStyle:{ fill:'#46b8da',width: 10, height: 10 },//设置连接点的颜色
         isSource:true,	//是否可以拖动（作为连线起点）
         scope:"green dot",//连接点的标识符，只有标识符相同的连接点才能连接
-        connectorStyle:{ strokeStyle:'#46b8da', lineWidth:5 },//连线颜色、粗细
         connector: ["Bezier", { curviness:63 } ],//设置连线为贝塞尔曲线
         maxConnections:100,//设置连接点最多可以连接几条线
         isTarget:true,	//是否可以放置（作为连线终点）
-        overlays: ["Arrow"],
+        connectorStyle: {
+          strokeWidth: 5,
+          stroke: '#66a8fa'
+        },
         dropOptions:{
           hoverClass:"dropHover",//释放时指定鼠标停留在该元素上使用的css class
           activeClass:"dragActive",//设置放置相关的css
         },
+        overlays:[
+          [ "Label", {
+            location:-130,
+            label:"",
+            cssClass:"endpointSourceLabel"
+          }],
+          'Arrow'
+        ],
         beforeDetach:function(conn) {	//绑定一个函数，在连线前弹出确认框
            delete that.connects[info.connection.id];
         },
@@ -221,9 +365,13 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       };
       return $.extend(pointObj,para);
     },
-    connect:function(p1,p2){
-       this.instance.connect({uuids: [p1,p2], editable: true});
+    //主动连接
+    connect:function(p1,p2,otherProper){
+       var defaultPata={uuids: [p1,p2], editable: true};
+       $.extend(defaultPata,otherProper);
+       this.instance.connect(defaultPata);
     },
+    //缩放空间
     setZoom:function(zoom, transformOrigin, el) {
       transformOrigin = transformOrigin || [ 0.5, 0.5 ];
       this.instance = this.instance || jsPlumb;
@@ -258,6 +406,15 @@ KylinApp.factory('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       baseNum3 = Number(num1.toString().replace(".", ""));
       baseNum4 = Number(num2.toString().replace(".", ""));
       return (baseNum3 / baseNum4) * Math.pow(10, baseNum2 - baseNum1);
+    },
+    guid:function(){
+      function S4() {
+        return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
+      }
+      function guid() {
+        return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
+      }
+      return guid();
     }
   }
 });

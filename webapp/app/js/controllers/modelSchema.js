@@ -109,7 +109,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
       var treeDom=$('ul.abn-tree');
       treeDom.sortable({
         helper:'clone',
-        connectWith:'#snowBox',
+        connectWith:'#modelDesign',
         delay: 150,
         items: '.level-1,.level-2',
         stop:function(event,ui){
@@ -117,34 +117,48 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
         }}).disableSelection();
 
 
-      $("#snowBox").sortable({
+      $("#modelDesign").sortable({
         receive:function(event,ui){
           treeDom.sortable('cancel') ;
           var database=$(ui.item).attr("data");
           TableModel.initTableData(function(){
             var tableDataList=TableModel.getTableDatas(database);
             if(tableDataList&&tableDataList.length<2){
-              openSnowTableInfoDialog(tableDataList[0])
-
+              openSnowTableInfoDialog(tableDataList[0],function(table){
+                DrawHelper.addTable(table);
+              })
             }
           })
         }
       })
       //修改snowTable信息弹窗
-      function openSnowTableInfoDialog(table){
+      function openSnowTableInfoDialog(table,callback){
         var snowTableInfoCtrl=function($scope, $modalInstance,table){
           $scope.table=table;
           $scope.cancel = function () {
             $modalInstance.dismiss('cancel');
           }
+          var oldAlias=table.alias;
           $scope.editTableInfo=function(){
-            console.log(table);
-            DrawHelper.tableList.update('table',table.table,{
+            //监测是否有重复的别名
+            if(oldAlias!=table.alias&&DrawHelper.checkHasThisAlias(table.alias)){
+              $scope.sameError=true;
+              return;
+            }
+            //更新 数据仓库里的别名和表类型
+            DrawHelper.tableList.update('table',table.guid,{
               alias:table.alias,
               kind:table.kind
             });
-            DrawHelper.refreshAlias(table.table,table.alias);
-            DrawHelper.addTable(table);
+            DrawHelper.changeAliasList(oldAlias,table.alias);
+            if(typeof callback=='function'){
+              callback(table);
+            }else{
+              //更新 界面的的别名和表类型
+              DrawHelper.refreshAlias(table.guid,table.alias);
+              DrawHelper.refreshTableKind(table.guid,table.kind);
+
+            }
             $modalInstance.dismiss('cancel');
           }
         }
@@ -159,22 +173,48 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
           }
         });
       }
+
+      //选择join类型弹窗
+      function openSelectJoinTypeDialog(conn){
+        var snowTableJoinTypeCtrl=function($scope,$modalInstance,conn){
+          var linkData=DrawHelper.connects[conn.id];
+          if(linkData){
+            $scope.link={};
+            $scope.link.type=linkData[2]||'inner';
+          }
+          $scope.conn=conn;
+          $scope.cancel = function () {
+            $modalInstance.dismiss('cancel');
+          }
+          $scope.editJoinType=function(){
+            if($scope.link.type=='remove'){
+              DrawHelper.instance.detach(conn);
+              delete DrawHelper.connects[conn.id];
+            }else{
+              conn.getOverlay("label").setLabel($scope.link.type);
+              DrawHelper.connects[conn.id][2]=$scope.link.type;
+            }
+            $modalInstance.dismiss('cancel');
+          }
+        }
+        var modalInstance = $modal.open({
+          templateUrl: 'partials/models/snowmodel_jointype.html',
+          controller: snowTableJoinTypeCtrl,
+          backdrop: 'static',
+          resolve:{
+            conn:function(){
+              return conn;
+            }
+          }
+        });
+      }
+
+
+      //拖拽建模（雪花）初始化入口
       DrawHelper.init({
-        changeTableInfo:openSnowTableInfoDialog
+        changeTableInfo:openSnowTableInfoDialog,
+        changeConnectType:openSelectJoinTypeDialog
       });
-      $('#jia').click(function(){
-        DrawHelper.setZoom(DrawHelper.zoom);
-        DrawHelper.zoom=DrawHelper.zoom+0.1;
-      })
-      $('#jian').click(function(){
-        DrawHelper.setZoom(DrawHelper.zoom);
-        DrawHelper.zoom=DrawHelper.zoom-0.1;
-      })
-
-
-      //DrawHelper.addTable(tableData,1);
-      //DrawHelper.addTable(tableData1,1);
-      //DrawHelper.connect('DefaultKylinid','DefaultKylin1id');
     },1000)
 
   });
