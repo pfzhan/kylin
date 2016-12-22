@@ -95,17 +95,32 @@
                     </button>
                     <ul class="dropdown-menu" role="menu">
                         <li ng-if="cube.status=='DISABLED' && userService.hasRole('ROLE_ADMIN') ">
-                          <a ng-click="dropCube(cube, $index)" tooltip="{{dataKylin.cube.tip_drop_cube}}">{{dataKylin.cube.cubeActions[0]}}</a></li>
+                          <a ng-click="dropCube(cube, $index)" tooltip="{{dataKylin.cube.tip_drop_cube}}">{{dataKylin.cube.cubeActions[0]}}</a>
+                        </li>
                         <li ng-if="(userService.hasRole('ROLE_ADMIN') || hasPermission(cube, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask))">
-                          <a ng-click="cubeEdit(cube);">{{dataKylin.cube.cubeActions[1]}}</a></li>
-                      <li ng-if="cube.streaming && cube.status=='DISABLED' && (userService.hasRole('ROLE_ADMIN') || hasPermission(cube, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask))">
-                      <li><a ng-click="startJobSubmit(cube, $index);">{{dataKylin.cube.cubeActions[2]}}</a></li>
-                      <li ng-if="cube.status!='DISABLED'"><a ng-click="startRefresh(cube, $index)">{{dataKylin.cube.cubeActions[3]}}</a></li>
-                      <li><a ng-click="startMerge(cube, $index)">{{dataKylin.cube.cubeActions[4]}}</a></li>
-                      <li ng-if="cube.status!='DISABLED'"><a ng-click="disable(cube, $index)">{{dataKylin.cube.cubeActions[5]}}</a></li>
-                      <li ng-if="cube.status=='DISABLED'"><a ng-click="enable(cube, $index)">{{dataKylin.cube.cubeActions[6]}}</a></li>
-                      <li ng-if="cube.status=='DISABLED'"><a ng-click="purge(cube, $index)">{{dataKylin.cube.cubeActions[7]}}</a></li>
-                      <li><a ng-click="cloneCube(cube)">{{dataKylin.cube.cubeActions[8]}}</a></li>
+                          <a ng-click="cubeEdit(cube)" tooltip="{{dataKylin.cube.tip_edit_cube}}">{{dataKylin.cube.cubeActions[1]}}</a>
+                        </li>
+                        <li ng-if="cube.streaming && cube.status=='DISABLED' && (userService.hasRole('ROLE_ADMIN') || hasPermission(cube, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask))">
+                          <a ng-click="startJobSubmit(cube, $index);">{{dataKylin.cube.cubeActions[2]}}</a>
+                        </li>
+                        <li ng-if="cube.status!='DISABLED'">
+                          <a ng-click="startRefresh(cube, $index)" tooltip="{{dataKylin.cube.tip_refresh_cube}}">{{dataKylin.cube.cubeActions[3]}}</a>
+                        </li>
+                        <li>
+                          <a ng-click="startMerge(cube, $index)" tooltip="{{dataKylin.cube.tip_merge_cube}}">{{dataKylin.cube.cubeActions[4]}}</a>
+                        </li>
+                        <li ng-if="cube.status!='DISABLED'">
+                          <a ng-click="disable(cube, $index)" tooltip="{{dataKylin.cube.tip_disable_cube}}">{{dataKylin.cube.cubeActions[5]}}</a>
+                        </li>
+                        <li ng-if="cube.status=='DISABLED'">
+                          <a ng-click="enable(cube, $index)" tooltip="{{dataKylin.cube.tip_enable_cube}}">{{dataKylin.cube.cubeActions[6]}}</a>
+                        </li>
+                        <li ng-if="cube.status=='DISABLED'">
+                          <a ng-click="purge(cube, $index)" tooltip="{{dataKylin.cube.tip_purge_cube}}">{{dataKylin.cube.cubeActions[7]}}</a>
+                        </li>
+                        <li>
+                          <a ng-click="cloneCube(cube)"  tooltip="{{dataKylin.cube.tip_clone_cube}}">{{dataKylin.cube.cubeActions[8]}}</a>
+                        </li>
 
                     </ul>
                 </div>
