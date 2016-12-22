@@ -669,6 +669,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       this.tableList.remove('guid',guid);
       this.instance.removeAllEndpoints("umlobj_"+guid)
     },
+    //位置计算算法
     calcPosition:function(){
       var that=this;
       for(var i=0;i<this.tableList.data.length;i++){
@@ -693,35 +694,37 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
             }
           }
         }
-
-
         if(goOnCalc.length){
           layerArr.push(arr);
           calcLayer(goOnCalc);
         }
       }
       var basePosition=that.getBasePosition();
-      var maxHeightInGrid=[],boxMarginL=20,boxMarginT=20;
+      var maxHeightInGrid=[basePosition[1],basePosition[1],basePosition[1],basePosition[1],basePosition[1]],boxMarginL=20,boxMarginT=20;
       for(var m=0;m<layerArr.length;m++){
         var currLayer=layerArr[m];
         for(var n=0;n<layerArr[m].length;n++){
           for(var s in layerArr[m][n]){
             var boxH;
-            if(maxHeightInGrid[n]){
-              boxH=maxHeightInGrid[n]+boxMarginT;
-            }else{
-              boxH=basePosition[1];
-            }
-            maxHeightInGrid[n]=boxH+that.tableList.getTable('guid',s).size[1];
-            that.tableList.update('guid',s,{
-              pos:[n*(that.itemWidth+boxMarginL)+basePosition[0],boxH]
-            })
-
+            //if(maxHeightInGrid[n]){
+              var lastH;
+              if(m<=1){
+                lastH=Math.max.apply(null,maxHeightInGrid.filter(function(a){
+                  return typeof  a=='number';
+                }))
+              }else if(m>=2){
+                  lastH=Math.min.apply(null,maxHeightInGrid.filter(function(a){
+                    return typeof  a=='number';
+                 }))
+              }
+              boxH=lastH+boxMarginT;
+              maxHeightInGrid[n]=boxH+that.tableList.getTable('guid',s).size[1];
+              that.tableList.update('guid',s,{
+                pos:[n*(that.itemWidth+boxMarginL)+basePosition[0],boxH]
+              })
           }
         }
       }
-
-
       for(var i= 0;i<that.tableList.data.length;i++){
         $('#umlobj_'+that.tableList.data[i].guid).css({
           top:that.tableList.data[i].pos[1]+'px',
