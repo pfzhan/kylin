@@ -172,7 +172,9 @@ KylinApp.constant('kapEnglishConfig', {
     plac_addProjectDescription: 'Project Description..',
     addClose: 'Close',
     addSubmit: 'Submit',
-    total:'Total' //sum of project
+    total:'Total',//sum of project
+    projectConfig:'Project Config',
+    property:'Property'
   },
   name:'kylin',
   /*

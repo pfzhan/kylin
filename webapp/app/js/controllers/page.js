@@ -280,12 +280,19 @@ var projCtrl = function ($scope, $location, $modalInstance, ProjectService, Mess
   };
 
   $scope.isEdit = false;
-  $scope.proj = {name: '', description: ''};
+  $scope.proj = {name: '', description: '',override_kylin_properties: {}};
+  $scope.convertedProperties = [];
   $scope.dataKylin = language.getDataKylin();
   if (project) {
     $scope.state.isEdit = true;
     $scope.state.oldProjName = project.name;
     $scope.proj = project;
+    for (var key in $scope.proj.override_kylin_properties) {
+      $scope.convertedProperties.push({
+        name: key,
+        value: $scope.proj.override_kylin_properties[key]
+      });
+    }
     for (var i = 0; i < projects.length; i++) {
       if (projects[i].name === $scope.state.oldProjName) {
         $scope.state.projectIdx = i;
@@ -300,9 +307,10 @@ var projCtrl = function ($scope, $location, $modalInstance, ProjectService, Mess
       var requestBody = {
         formerProjectName: $scope.state.oldProjName,
         newProjectName: $scope.proj.name,
-        newDescription: $scope.proj.description
+        newDescription: $scope.proj.description,
+        overrideKylinProps: $scope.proj.overrideKylinProps
       };
-      ProjectService.update({}, requestBody, function (newProj) {
+      ProjectService.update({}, {formerProjectName: $scope.state.oldProjName, projectDescData: angular.toJson($scope.proj)}, function (newProj) {
         kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_project_update);
         //update project in project model
         ProjectModel.updateProject($scope.proj.name, $scope.state.oldProjName);
@@ -314,7 +322,7 @@ var projCtrl = function ($scope, $location, $modalInstance, ProjectService, Mess
       });
     }
     else {
-      ProjectService.save({}, $scope.proj, function (newProj) {
+      ProjectService.save({}, {projectDescData: angular.toJson($scope.proj)}, function (newProj) {
         SweetAlert.swal($scope.dataKylin.alert.success, $scope.dataKylin.alert.tip_new_project_created, 'success');
         $modalInstance.dismiss('cancel');
 //                if(projects) {
@@ -335,6 +343,38 @@ var projCtrl = function ($scope, $location, $modalInstance, ProjectService, Mess
     }
     $modalInstance.dismiss('cancel');
   };
+
+  $scope.addNewProperty = function () {
+    if ($scope.proj.override_kylin_properties.hasOwnProperty('')) {
+      return;
+    }
+    $scope.proj.override_kylin_properties[''] = '';
+    $scope.convertedProperties.push({
+      name: '',
+      value: ''
+    });
+  };
+
+  $scope.refreshPropertiesObj = function () {
+    $scope.proj.override_kylin_properties = {};
+    angular.forEach($scope.convertedProperties, function (item, index) {
+      $scope.proj.override_kylin_properties[item.name] = item.value;
+    })
+  };
+
+
+  $scope.refreshProperty = function (list, index, item) {
+    $scope.convertedProperties[index] = item;
+    $scope.refreshPropertiesObj();
+  };
+
+
+  $scope.removeProperty = function (arr, index, item) {
+    if (index > -1) {
+      arr.splice(index, 1);
+    }
+    delete $scope.proj.override_kylin_properties[item.name];
+  }
 
 };
 

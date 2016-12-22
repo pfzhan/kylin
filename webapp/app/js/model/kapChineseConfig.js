@@ -172,7 +172,9 @@ KylinApp.constant('kapChineseConfig', {
     plac_addProjectDescription: '项目描述..',
     addClose: '关闭',
     addSubmit: '提交',
-    total:'总数' //sum of project
+    total:'总数', //sum of project
+    projectConfig:'项目配置',
+    property:'配置'
   },
   name: 'kylin',
   /*

@@ -45,6 +45,42 @@
                             ></textarea>
                 </div>
             </div>
+
+
+
+          <div>
+            <label><b>{{dataKylin.project.projectConfig}}</b></label>
+            <div ng-repeat=" prop in convertedProperties track by $index " class="form-group">
+              <div class="row">
+                <label class="col-xs-12 col-sm-6 control-label no-padding-right" ng-class="{'has-error':prop.name==''}">
+                  <input ng-model="prop.name" placeholder="key" ng-change="refreshProperty(convertedProperties,$index,prop)"
+                         class="form-control"/>
+                  <small style="font-weight: normal !important;" class="help-block" ng-show="prop.name==''">Property name is
+                    required.
+                  </small>
+                </label>
+                <div class="col-xs-12 col-sm-5" ng-class="{'has-error':prop.value==''}">
+                  <input ng-model="prop.value" placeholder="value"
+                         ng-change="refreshProperty(convertedProperties,$index,prop)" class="form-control"/>
+                  <small class="help-block" ng-show="prop.value==''">Property value is required.</small>
+                </div>
+                <div class="col-sm-1">
+                  <button class="btn btn-xs btn-info" ng-click="removeProperty(convertedProperties,$index,prop)"><i
+                    class="fa fa-minus"></i>
+                  </button>
+                </div>
+
+              </div>
+            </div>
+            <!--Add Project Property-->
+            <div class="form-group">
+              <button class="btn btn-sm btn-info" ng-click="addNewProperty();">
+                <i class="fa fa-plus"></i> {{dataKylin.project.property}}
+              </button>
+            </div>
+
+          </div>
+
         </div>
         <div class="modal-footer">
             <button class="btn btn-default" ng-click="cancel()">{{dataKylin.project.addClose}}</button>
