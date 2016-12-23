@@ -350,10 +350,6 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
     "mode": 'edit'
   };
 
-  $scope.cubeState={
-    "isStreaming": false
-  }
-
   //fetch cube info and model info in edit model
   // ~ init
   if ($scope.isEdit = !!$routeParams.cubeName) {
