@@ -40,12 +40,9 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
       $scope.state.project=newValue;
     }
   })
-  $scope.model_jsplumb_name='snowBox'
   // ~ init
   if (!$scope.state) {
     $scope.state = {mode: "view"};
-  }else{
-    $scope.model_jsplumb_name = $scope.state.modelName;
   }
 
   if(!$scope.partitionColumn){
@@ -133,25 +130,6 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
           TableModel.initTableData(function(){
             var tableDataList=TableModel.getTableDatail(database);
             if(tableDataList&&tableDataList.length<2){
-              //openSnowTableInfoDialog(tableDataList[0],function(table){
-              //
-              //  ModelService.suggestion({
-              //    table:table.database+'.'+table.name
-              //  },function(data){
-              //      for(var i=0;i<table.columns.length;i++){
-              //         for(var m in data){
-              //           if(m.indexOf(table.columns[i].name)>=0){
-              //             table.columns[i].kind=data[m].replace(/_[^_\s]+$/,'');
-              //             break;
-              //           }
-              //         }
-              //      }
-              //      DrawHelper.addTable(table);
-              //
-              //  },function(){
-              //    DrawHelper.addTable(table);
-              //  })
-              //})
               var table=tableDataList[0];
               ModelService.suggestion({
                 table:table.database+'.'+table.name
@@ -471,7 +449,8 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
               addColumnToPartitionTime:openDateFormatTypeDialog,
               saveModel:openModelSaveDialog,
               kylinData:$scope.modelCopy,
-              openJsonDialog:openJsonDialog
+              openJsonDialog:openJsonDialog,
+              actionLock:$scope.state.mode=='view'
             });
             DrawHelper.kylinDataToJsPlumbData();
 
@@ -489,7 +468,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
         });
       }
 
-    },1000)
+    },1)
 
   });
 

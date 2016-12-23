@@ -17,7 +17,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
     partitionDate:{},
     partitionTime:{},
     zoom:1,
-    zoomRate:0.01,
+    zoomRate:0.1,
     changeTableInfo:null,
     changeConnectType:null,
     addColumnToPartitionDate:null,
@@ -64,18 +64,20 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         //自己不能连自己
         if(info.sourceId==info.targetId){
           that.instance.detach(info.connection);
+          that.showTips('Cannot connect itself','error');
           return;
         }
         //rootFact不能连别人
         var rootFactTable=that.tableList.getRootFact();
         if(that.lastLink[0]&&rootFactTable&&rootFactTable.guid==that.lastLink[0].guid){
           that.instance.detach(info.connection);
+          that.showTips('RootTable cannot connect to other tables！','error');
           return;
         }
 
         //不同类型的主外键关联预警
         if(that.lastLink[0].type!=that.lastLink[1].type){
-          console.log('warn');
+          that.showTips('Connected two column types are different','warn')
         }
 
         that.connects[info.connection.id]=[that.lastLink[0].column,that.lastLink[1].column];
@@ -170,7 +172,6 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
 
          setTimeout(function(){
            that.calcPosition();
-           that.instance.setSuspendDrawing(false, true)
          },1)
 
 
@@ -257,7 +258,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           kylinData.dimensions.push(tableObj);
         }
       }
-      console.log(kylinData);
+      //console.log(kylinData);
       return kylinData;
     },
     getForeignKeyCount:function(guid){
@@ -283,6 +284,9 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
        $(toolBarHtml).insertAfter(this.container);
     },
     showActionBtn:function(){
+      if(this.actionLock){
+        return;
+      }
       var that=this;
       var actionBar='<div class="bar_action"><span>Save</span><span>JSON</span></div>';
       $(actionBar).insertAfter(this.container);
@@ -294,17 +298,17 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       })
 
     },
-    showTips:function(msg){
-        if($('#tipsBox').length){
-          this.container.parent().append('<div class="tips_snow" id="tipsBox">'+msg+'</div>').show();
-        }else{
-
+    showTips:function(msg,type){
+        if($('#tipsBox').length==0){
+          this.container.parent().append('<div class="tips_snow" id="tipsBox">'+msg+'</div>');
         }
+        $('#tipsBox').html(msg).attr('class','tips_snow '+type).fadeIn(2000).fadeOut(400);
+
 
     },
     showMapControl:function(){
       var that=this;
-      var mapControlHtml='<span class="plusHandle"></span><span class="minusHandle"></span>';
+      var mapControlHtml='<span class="plusHandle">+</span><span class="minusHandle">－</span>';
       $(mapControlHtml).insertAfter(this.container);
       this.container.parent().find('.plusHandle').click(function(){
         if(that.zoom<that.maxZoom){
@@ -388,7 +392,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
             }
           }
         }
-        this.data.push(obj);
+        this.data.push($.extend(true,{},obj));
       },
       getTable:function(key,val){
         for(var i=0;i<this.data.length;i++){
@@ -408,7 +412,9 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       update:function(key,val,obj){
         for(var i=0;i<this.data.length;i++){
           if(this.data[i][key]==val){
-            $.extend(this.data[i],obj);
+            for(var s in obj){
+              this.data[i][s]=obj[s];
+            }
             break;
           }
         }
@@ -469,11 +475,12 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
        return  $('#umlobj_'+guid);
     },
     aliasList:[],
-    checkHasThisAlias:function(alias){
-      if(alias&&this.aliasList.indexOf(alias)==-1){
-        return false;
+    checkHasThisAlias:function(alias,guid){
+      var tableDetail=this.tableList.getTable('alias',alias);
+      if(tableDetail&&tableDetail.guid!=guid){
+        return true;
       }
-      return true;
+      return false;
     },
     changeAliasList:function(oldAlias,newAlias){
       var index=this.aliasList.indexOf(oldAlias);
@@ -613,7 +620,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           index++;
         }
         var willKind=that.tableKind[index];
-        if(willKind=='ROOTFACT'&&that.tableList.getRootFact()&&that.getForeignKeyCount(tableBaseObject.guid)>0){
+        if(willKind=='ROOTFACT'&&(that.tableList.getRootFact()||that.getForeignKeyCount(tableBaseObject.guid)>0)){
           index++;
         }
         $(this).replaceWith(that.renderTableKind(that.tableKind[index])) ;
@@ -621,7 +628,6 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           kind:that.tableKind[index]
         });
         if(willKind=='ROOTFACT'){
-          that.changeAliasList(boxDom.find('.alias').html().replace(aliasLabel,''),tableBaseObject.name);
           that.tableList.update('guid',tableBaseObject.guid,{
             alias:tableBaseObject.name
           });
@@ -632,37 +638,33 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       boxDom.on('dblclick','.alias',function(){
           var rootFact=that.tableList.getRootFact();
           if(rootFact&&rootFact.guid==tableBaseObject.guid){
-            that.showTips('ROOTFACT Table Cant not change alias!');
+            that.showTips('ROOTFACT Table Cant not change alias!','warn');
             return;
           }
-          $(this).next().show().focus().val($(this).html().replace(aliasLabel,'')).select().next().show();
+          $(this).next().show().focus().val($(this).html().replace(aliasLabel,'')).select();
       });
-      boxDom.on('dblclick','.input_alias_save',function(){
-        var rootFact=that.tableList.getRootFact();
-        if(rootFact&&rootFact.guid==tableBaseObject.guid){
-          console.log('ROOTFACT Table Cant not change alias!');
-          return;
+      //boxDom.on('dblclick','.input_alias_save',function(){
+      //  var rootFact=that.tableList.getRootFact();
+      //  if(rootFact&&rootFact.guid==tableBaseObject.guid){
+      //    that.showTips('ROOTFACT Table Cant not change alias!','warn');
+      //    return;
+      //  }
+      //  $(this).focus();
+      //});
+      boxDom.on('blur','.input_alias',function(){
+         $(this).hide();
+        var aliasInputVal=$(this).val();
+        var labelDom=$(this).prev();
+        if(labelDom.html().replace(aliasLabel,'')!=aliasInputVal&&that.checkHasThisAlias(aliasInputVal,tableBaseObject.guid)){
+          that.showTips('Alias repetition！','error');
+        }else{
+          $(this).hide();
+          labelDom.show().html(aliasLabel+that.filterSpecialChar(aliasInputVal).toUpperCase());
+          that.tableList.update('guid',tableBaseObject.guid,{
+            alias:aliasInputVal
+          });
         }
-        $(this).focus();
       });
-      $("body").on('blur','.input_alias',function(){
-         $(this).hide().next().hide();
-         $(this).prev().html(aliasLabel+$(this).val())
-      });
-      boxDom.on('click','.input_alias_save',function(){
-        var aliasInputVal=$(this).prev().val();
-        var labelDom=$(this).prev().prev();
-       if(labelDom.html().replace(aliasLabel,'')!=aliasInputVal&&that.checkHasThisAlias(aliasInputVal)){
-
-       }else{
-         labelDom.nextAll().hide();
-         that.changeAliasList(labelDom.html().replace(aliasLabel,''),aliasInputVal);
-         labelDom.show().html(aliasLabel+aliasInputVal);
-         that.tableList.update('guid',tableBaseObject.guid,{
-           alias:aliasInputVal
-         });
-       }
-      })
       boxDom.on('dbclick','.input_alias',function(){
         $(this).focus().select();
       })
@@ -672,9 +674,9 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       boxDom.find('.input_alias,p').mousedown(function(e){
         e.stopPropagation();
       })
-      this.container.mouseup(function(){
-        boxDom.find('p').eq(0).click();
-      })
+      //this.container.mouseup(function(){
+      //  boxDom.find('p').eq(0).click();
+      //})
       return this;
     },
 
@@ -689,7 +691,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       this.tableList.remove('guid',guid);
       this.instance.removeAllEndpoints("umlobj_"+guid)
     },
-    //位置计算算法
+    //位置计算层级树算法
     calcPosition:function(){
       var that=this;
       for(var i=0;i<this.tableList.data.length;i++){
@@ -720,28 +722,41 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         }
       }
       var basePosition=that.getBasePosition();
-      var maxHeightInGrid=[basePosition[1],basePosition[1],basePosition[1],basePosition[1],basePosition[1]],boxMarginL=20,boxMarginT=20;
+      var maxHeightInGrid=[],boxMarginL=120,boxMarginT=60;
       for(var m=0;m<layerArr.length;m++){
         var currLayer=layerArr[m];
+        var lockGridIndex=1;
         for(var n=0;n<layerArr[m].length;n++){
           for(var s in layerArr[m][n]){
             var boxH;
             //if(maxHeightInGrid[n]){
-              var lastH;
-              if(m<=1){
-                lastH=Math.max.apply(null,maxHeightInGrid.filter(function(a){
-                  return typeof  a=='number';
-                }))
-              }else if(m>=2){
-                  lastH=Math.min.apply(null,maxHeightInGrid.filter(function(a){
-                    return typeof  a=='number';
-                 }))
+              var level2Base=basePosition[1]+factTable.size[1];
+              var lastH=(maxHeightInGrid[n]||level2Base)+boxMarginT;
+              var pos;
+              var currentH=that.tableList.getTable('guid',s).size[1];
+
+              if(n>=1){
+                if(maxHeightInGrid[lockGridIndex]+currentH<=maxHeightInGrid[lockGridIndex-1]){
+                  pos=[(lockGridIndex)*(that.itemWidth+boxMarginL)+basePosition[0],(maxHeightInGrid[lockGridIndex]||level2Base)+boxMarginT];
+                  maxHeightInGrid[lockGridIndex]=lastH+currentH;
+                }else{
+                  lockGridIndex++;
+                  pos=[(lockGridIndex)*(that.itemWidth+boxMarginL)+basePosition[0],(maxHeightInGrid[lockGridIndex]||level2Base)+boxMarginT];
+                }
+              }else{
+                if(m==0){
+                  pos=[(n+1)*(that.itemWidth+boxMarginL)+basePosition[0],(maxHeightInGrid[n]||basePosition[1])+boxMarginT];
+                  maxHeightInGrid[n+1]=lastH;
+                }else{
+                  pos=[(n)*(that.itemWidth+boxMarginL)+basePosition[0],(maxHeightInGrid[n]||level2Base)+boxMarginT];
+                  maxHeightInGrid[n]=lastH+currentH;
+                }
+
               }
-              boxH=lastH+boxMarginT;
-              maxHeightInGrid[n]=boxH+that.tableList.getTable('guid',s).size[1];
               that.tableList.update('guid',s,{
-                pos:[n*(that.itemWidth+boxMarginL)+basePosition[0],boxH]
+                pos:pos
               })
+
           }
         }
       }
@@ -751,11 +766,10 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           left:that.tableList.data[i].pos[0]+'px',
         })
       }
-
-
+      that.instance.setSuspendDrawing(false, true)
     },
     getBasePosition:function(){
-      return [-parseInt(this.container.css('left'))+200,-parseInt(this.container.css('top'))+200]
+      return [-parseInt(this.container.css('left'))+100,-parseInt(this.container.css('top'))+100]
     },
     beginDrop:false,
     //创建连接点
@@ -861,6 +875,12 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
          return false;
        }
        return true;
+    },
+    filterSpecialChar:function(str){
+      if(str){
+        return str.replace(/[.]/g,'');
+      }
+      return '';
     }
   }
   return $.extend(true,{initService:function(){

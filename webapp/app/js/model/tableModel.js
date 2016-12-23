@@ -224,13 +224,13 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,String
    //table detail load install
    this.tableDetails;
    this.tableOriginalData;
-   this.initTableData=function(callback){
+   this.initTableData=function(callback,project){
       var that=this;
       if(!that.tableDetails){
         that.tableDetails=[];
         var param = {
           ext: true,
-          project:ProjectModel.selectedProject
+          project:project||ProjectModel.selectedProject
         };
         TableService.list(param, function (tables) {
           that.tableOriginalData=tables;

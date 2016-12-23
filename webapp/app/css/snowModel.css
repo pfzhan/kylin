@@ -58,7 +58,7 @@
   cursor: pointer;
   background-color: #333;
   color: #fff;
-  font-weight:bold;
+  /*font-weight:bold;*/
 }
 .classUml p:hover{
   /*background-color:#eee;*/
@@ -88,37 +88,35 @@
   /*background-size:contain;*/
 }
 
-.plusHandle{
-   width: 16px;
-   height: 16px;
-   display: block;
-   position: absolute;
-   background:url('../image/plus.png');
-   right:25px;
-   bottom:20px;
-   z-index:999;
-   background-size: cover;
-   cursor: pointer;
- }
-.plusHandle:hover{
-  background:url('../image/plus_hover.png');
-  background-size: cover;
-}
-.minusHandle{
-  width: 16px;
-  height: 16px;
+
+
+.minusHandle,.plusHandle{
   display: block;
   position:absolute;
-  background:url('../image/minus.png');
-  right:50px;
-  bottom:20px;
-  z-index:999;
-  background-size:cover;
+  right:20px;
+  top:80px;
   cursor: pointer;
+  box-shadow: 1px 2px 1px rgba(0,0,0,.15);
+  cursor: pointer;
+  width: 26px;
+  height: 26px;
+  right: 16px;
+  overflow: hidden;
+  background-color: #FFF;
+  z-index: 10;
+  text-align: center;
+  line-height: 26px;
+  font-weight: bold;
 }
 .minusHandle:hover{
-  background:url('../image/minus_hover.png');
-  background-size: cover;
+  color: green;
+}
+.plusHandle{
+  top: 50px;
+  border-bottom:solid 1px #000;
+}
+.plusHandle:hover{
+  color: green;
 }
 .snowFont{
   width: 18px;
@@ -242,15 +240,31 @@
 
 }
 .bar_action span{
-  color: #ccc;
-  border: solid 1px #ccc;
-  padding: 4px;
+  /*color: #ccc;*/
+  /*border: solid 1px #ccc;*/
+  /*padding: 4px;*/
+  /*cursor: pointer;*/
+  /*margin-left: 10px;*/
+  /*display: block;*/
+  /*position:absolute;*/
+  /*right:20px;*/
+  /*top:80px;*/
   cursor: pointer;
-  margin-left: 10px;
+  box-shadow: 1px 2px 1px rgba(0,0,0,.15);
+  cursor: pointer;
+  width: 80px;
+  height: 26px;
+  /*right: 16px;*/
+  overflow: hidden;
+  background-color: #FFF;
+  z-index: 10;
+  text-align: center;
+  line-height: 26px;
+  display: inline-block;
+  margin-left: 4px;
 }
 .bar_action span:hover{
-  color: #fff;
-  border-color: #fff;
+  color: green;
 }
 .jsplumb-tips{
   position: absolute;
@@ -302,12 +316,24 @@ p:hover .jsplumb-tips{
  cursor: pointer;
 }
 .tips_snow{
-  width: 20px;
-  height: auto;
+  width: 320px;
+  height: 60px;
   position: absolute;
   background: #000;
   z-index: 999;
   top:40%;
   left: 50%;
   display: none;
+  color:#fff;
+  text-align: center;
+  line-height: 60px;
+  margin-left: -160px;
+  margin-top: -30px;
+  font-weight: bold;
+}
+.tips_snow.warn{
+  color:yellow
+}
+.tips_snow.error{
+  color:red
 }
