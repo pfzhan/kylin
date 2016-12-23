@@ -141,6 +141,20 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
              tableBaseList[i].pos=[],
              tableBaseList[i].guid=that.guid();
              for(var m=0;m<tableBaseList[i].columns.length;m++){
+               if(tableBaseList[i].alias+'.'+tableBaseList[i].columns[m].name==cloneData.partition_desc.partition_date_column){
+                 that.partitionDate[tableBaseList[i].guid]={
+                   columnName:tableBaseList[i].alias+'.'+tableBaseList[i].columns[m],
+                   dateType:cloneData.partition_desc.partition_date_format
+                 }
+                 tableBaseList[i].columns[m].isDate=true;
+               }
+               if(tableBaseList[i].alias+'.'+tableBaseList[i].columns[m]==cloneData.partition_desc.partition_time_column){
+                 that.partitionTime[tableBaseList[i].guid]={
+                  columnName:tableBaseList[i].alias+'.'+tableBaseList[i].columns[m],
+                  dateType:cloneData.partition_desc.partition_time_format
+                 }
+                 tableBaseList[i].columns[m].isTime=true;
+               }
                 tableBaseList[i].columns[m].kind='disable';
                 if(cloneData.metrics.indexOf(tableBaseList[i].alias+'.'+tableBaseList[i].columns[m].name)>=0){
                   tableBaseList[i].columns[m].kind='measure';
@@ -373,36 +387,59 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         return '<span class="snowFont snowFont5 columnKind" data="dimension">D</span>';
       }
     },
-    renderPartionColumn:function(columnType){
+    renderPartionColumn:function(column){
+      var columnType=column.datatype;
+      var isDate=column.isDate;
+      var isTime=column.isTime;
       var canSetDatePartion=['date','timestamp','string','bigint','int','integer'];
       var canSetTimePartion=['time','timestamp','string'];
       var needNotSetDateFormat=['bigint','int','integer'];
       var domHtml='';
-      if(canSetDatePartion.indexOf(columnType)>=0&&canSetTimePartion.indexOf(columnType)>=0||columnType.indexOf('varchar')>=0){
-        if(needNotSetDateFormat.indexOf(columnType)>=0){
-          domHtml+= '<i class="fa fa-calendar snowclock noFormat snowDate" ></i>';
-          domHtml+= '<i class="fa fa-clock-o snowclock  noFormat snowTime" ></i>';
-        }else{
-          domHtml+= '<i class="fa fa-calendar snowclock snowDate" ></i>';
-          domHtml+= '<i class="fa fa-clock-o snowclock  snowTime" ></i>';
-        }
-      }else if(canSetDatePartion.indexOf(columnType)>=0||columnType.indexOf('varchar')>=0){
-        if(needNotSetDateFormat.indexOf(columnType)>=0){
-          domHtml+= '<i class="fa fa-calendar snowclock noFormat snowDate" ></i>';
-          domHtml+= '<i class="fa fa-clock-o snowclock noshow noFormat snowTime" ></i>';
-        }else{
-          domHtml+= '<i class="fa fa-calendar snowclock snowDate" ></i>';
-          domHtml+= '<i class="fa fa-clock-o snowclock noshow snowTime" ></i>';
-        }
-      }else if(canSetTimePartion.indexOf(columnType)>=0||columnType.indexOf('varchar')>=0){
-        if(needNotSetDateFormat.indexOf(columnType)>=0){
-          domHtml+= '<i class="fa fa-clock-o snowclock noFormat snowTime"></i>';
-          domHtml+= '<i class="fa fa-calendar snowclock noshow noFormat snowDate" ></i>';
-        }else{
-          domHtml+= '<i class="fa fa-clock-o snowclock snowTime"></i>';
-          domHtml+= '<i class="fa fa-calendar snowclock noshow snowDate" ></i>';
-        }
+      //if(canSetDatePartion.indexOf(columnType)>=0&&canSetTimePartion.indexOf(columnType)>=0||columnType.indexOf('varchar')>=0){
+      //  //设置日期
+      //  if(needNotSetDateFormat.indexOf(columnType)>=0){
+      //    domHtml+= '<i class="fa fa-calendar snowclock noFormat snowDate" ></i>';
+      //    domHtml+= '<i class="fa fa-clock-o snowclock  noFormat snowTime" ></i>';
+      //  }else{
+      //    domHtml+= '<i class="fa fa-calendar snowclock snowDate" ></i>';
+      //    domHtml+= '<i class="fa fa-clock-o snowclock  snowTime" ></i>';
+      //  }
+      //}else if(canSetDatePartion.indexOf(columnType)>=0||columnType.indexOf('varchar')>=0){
+      //  if(needNotSetDateFormat.indexOf(columnType)>=0){
+      //    domHtml+= '<i class="fa fa-calendar snowclock noFormat snowDate" ></i>';
+      //    domHtml+= '<i class="fa fa-clock-o snowclock noshow noFormat snowTime" ></i>';
+      //  }else{
+      //    domHtml+= '<i class="fa fa-calendar snowclock snowDate" ></i>';
+      //    domHtml+= '<i class="fa fa-clock-o snowclock noshow snowTime" ></i>';
+      //  }
+      //}else if(canSetTimePartion.indexOf(columnType)>=0||columnType.indexOf('varchar')>=0){
+      //  if(needNotSetDateFormat.indexOf(columnType)>=0){
+      //    domHtml+= '<i class="fa fa-clock-o snowclock noFormat snowTime"></i>';
+      //    domHtml+= '<i class="fa fa-calendar snowclock noshow noFormat snowDate" ></i>';
+      //  }else{
+      //    domHtml+= '<i class="fa fa-clock-o snowclock snowTime"></i>';
+      //    domHtml+= '<i class="fa fa-calendar snowclock noshow snowDate" ></i>';
+      //  }
+      //}
+      var timeClass='fa fa-clock-o snowclock snowTime',dateClass='fa fa-calendar snowclock snowDate';
+      if(needNotSetDateFormat.indexOf(columnType)>=0){
+        timeClass+=' noFormat';
+        dateClass+=' noFormat';
       }
+      if(canSetDatePartion.indexOf(columnType)<0&&columnType.indexOf('varchar')<0){
+        dateClass+=' noshow';
+      }
+      if(canSetTimePartion.indexOf(columnType)<0&&columnType.indexOf('varchar')<0){
+        timeClass+=' noshow';
+      }
+      if(isDate){
+        dateClass+=' active';
+      }
+      if(isTime){
+        timeClass+=' active';
+      }
+      domHtml+= '<i class="'+dateClass+'"></i>';
+      domHtml+= '<i class="'+timeClass+'"></i>';
       return domHtml;
     },
     columnTypes:['dimension','measure','disable'],
@@ -537,7 +574,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           str+='<a title="'+tableBaseObject.table+'"><i class="fa fa-table"></i> '+tableBaseObject.table+'</a><span class="more" >X</span>' +
                     '<a class="alias" >Alias:'+tableBaseObject.alias+'</a><input type="text" class="input_alias""/><span class="input_alias_save">OK</span></div>';
           for (var i =0; i <tableBaseObject.columns.length; i++) {
-            str+='<p  id="column_'+tableBaseObject.guid+tableBaseObject.columns[i].name+'" style="width:'+that.itemWidth+'px" data="'+tableBaseObject.columns[i].name+'">'+this.renderTableColumnKind(tableBaseObject.columns[i].kind)+'&nbsp;&nbsp;'+tableBaseObject.columns[i].name+'('+tableBaseObject.columns[i].datatype+')'+this.renderPartionColumn(tableBaseObject.columns[i].datatype)+'<span class="jsplumb-tips">'+tableBaseObject.columns[i].name+'('+tableBaseObject.columns[i].datatype+')</span></p>';
+            str+='<p  id="column_'+tableBaseObject.guid+tableBaseObject.columns[i].name+'" style="width:'+that.itemWidth+'px" data="'+tableBaseObject.columns[i].name+'">'+this.renderTableColumnKind(tableBaseObject.columns[i].kind)+'&nbsp;&nbsp;'+tableBaseObject.columns[i].name+'('+tableBaseObject.columns[i].datatype+')'+this.renderPartionColumn(tableBaseObject.columns[i])+'<span class="jsplumb-tips">'+tableBaseObject.columns[i].name+'('+tableBaseObject.columns[i].datatype+')</span></p>';
           }
           str+='</div>';
       $("#"+this.containerId).append($(str));

@@ -211,7 +211,7 @@
   display: inline-block;
 }
 .isfact .noshow.snowclock{
-  display: none;
+  display: none!important;
 }
 .snowclock.snowDate{
   right: 25px;
