@@ -100,7 +100,7 @@
                         <li ng-if="(userService.hasRole('ROLE_ADMIN') || hasPermission(cube, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask))">
                           <a ng-click="cubeEdit(cube)" tooltip="{{dataKylin.cube.tip_edit_cube}}">{{dataKylin.cube.cubeActions[1]}}</a>
                         </li>
-                        <li ng-if="cube.streaming && cube.status=='DISABLED' && (userService.hasRole('ROLE_ADMIN') || hasPermission(cube, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask))">
+                        <li>
                           <a ng-click="startJobSubmit(cube, $index);">{{dataKylin.cube.cubeActions[2]}}</a>
                         </li>
                         <li ng-if="cube.status!='DISABLED'">
