@@ -158,7 +158,7 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
         model: {}
       }
       $scope.metaModel.model=modelsManager.getModel($scope.cubeMetaFrame.model_name);
-
+      $scope.metaModel.model.aliasColumnMap=angular.copy(MetaModel.setMetaModel($scope.metaModel.model).aliasColumnMap);
     }
   });
 

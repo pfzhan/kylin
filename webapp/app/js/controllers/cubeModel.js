@@ -194,7 +194,6 @@ KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConf
             }else{
                $scope.newLookup.join.isCompatible[index]=true;
             }
-
          }
     }
 
@@ -240,7 +239,6 @@ KylinApp.controller('CubeModelCtrl', function ($location,$scope, $modal,cubeConf
                 errorInfo+="\n"+item;
             });
             if(errors.length){
-//                SweetAlert.swal('Warning!', errorInfo, '');
                 SweetAlert.swal('', errorInfo, 'warning');
                 return false;
             }else{

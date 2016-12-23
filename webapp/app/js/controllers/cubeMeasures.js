@@ -18,14 +18,14 @@
 
 'use strict';
 
-KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,MetaModel,cubesManager,CubeDescModel,SweetAlert,kylinCommon,VdmUtil) {
+KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,MetaModel,cubesManager,CubeDescModel,SweetAlert,kylinCommon,VdmUtil,StringHelper) {
   $scope.TableModel=TableModel;
   $scope.num=0;
   $scope.convertedColumns=[];
   $scope.groupby=[];
   if ($scope.state.mode =="edit"&&($scope.isEdit = !$scope.cubeName)&&$scope.$parent.initMeasures.statu==false) {
     if(!$scope.cubeMetaFrame.measures||$scope.cubeMetaFrame.measures&&$scope.cubeMetaFrame.measures.length<=1){
-      CubeDescModel.initMeasures($scope.cubeMetaFrame.measures,$scope.cubeMetaFrame.model_name,$scope.metaModel.model.fact_table);
+      CubeDescModel.initMeasures($scope.cubeMetaFrame.measures,$scope.metaModel.model);
       $scope.$parent.initMeasures.statu=true;
     }
   }
@@ -354,14 +354,13 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
     if($scope.newMeasure.function.parameter.type=="column"&&$scope.newMeasure.function.expression!=="COUNT_DISTINCT"){
 
       var column = $scope.newMeasure.function.parameter.value;
-      var colType = $scope.getColumnType(column, $scope.metaModel.model.fact_table); // $scope.getColumnType defined in cubeEdit.js
-
+      if(typeof column=="string"&&column){
+        var colType = $scope.getColumnTypeByAlias(StringHelper.removeNameSpace(column), VdmUtil.getNameSpace(column)); // $scope.getColumnType defined in cubeEdit.js
+      }
       if(colType==""||!colType){
         $scope.newMeasure.function.returntype = "";
         return;
       }
-
-
       switch($scope.newMeasure.function.expression){
         case "SUM":
           if(colType==="smallint"||colType==="int"||colType==="bigint"||colType==="integer"){

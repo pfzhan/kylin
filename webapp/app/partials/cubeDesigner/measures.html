@@ -54,10 +54,10 @@
             <!--<span ng-if="measure.function.parameter.next_parameter!=null">{{measure.function.parameter.next_parameter |json}}</span>-->
           </td>
           <td >
-            {{TableModel.tableColumnMap[metaModel.model.fact_table][metaModel.model.fact_table+"."+measure.function.parameter.value].datatype}}
+            {{metaModel.model.aliasColumnMap[measure.function.parameter.value].datatype}}
           </td>
           <td >
-            {{TableModel.tableColumnMap[metaModel.model.fact_table][metaModel.model.fact_table+"."+measure.function.parameter.value].comment}}
+            {{metaModel.model.aliasColumnMap[+measure.function.parameter.value].comment}}
           </td>
           <td>
             <!--Return Type -->
@@ -247,10 +247,10 @@
                            class="table table-hover table-bordered list">
                       <thead>
                         <tr>
-                          <th>{{dataKylin.cube.cubeMSID}}</th>
+                          <th style="width:40px;">{{dataKylin.cube.cubeMSID}}</th>
                           <th>{{dataKylin.cube.cubeMSColumn}}</th>
                           <th style="width:190px;">{{dataKylin.cube.cubeMSEncoding}}</th>
-                          <th>{{dataKylin.cube.cubeMSLength}}</th>
+                          <th style="width:190px;">{{dataKylin.cube.cubeMSLength}}</th>
                           <th ng-if="state.mode=='edit'"></th>
                         </tr>
                       </thead>
@@ -264,9 +264,9 @@
                           </td>
                           <!--Column Name -->
                           <td>
-                            <select class="form-control" chosen ng-if="nextPara.type !== 'constant'" required
+                            <select class="form-control col-xs-12" chosen ng-if="nextPara.type !== 'constant'" required
                                     ng-model="groupby_column.name"
-                                    ng-options="column as column for column in getAllModelDimColumns()" style="width:200px;">
+                                    ng-options="column as column for column in getAllModelDimColumns()" >
                               <option value="">{{dataKylin.cube.cubeMSParamValueSelect}}</option>
                             </select>
                           </td>

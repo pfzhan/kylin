@@ -64,7 +64,7 @@
                     </td>
                     <!--Table Name -->
                     <td>
-                        <span tooltip="{{dimension.table == metaModel.model.fact_table ? 'Fact Table' : 'Lookup Table'}}">{{dimension.table}}</span>
+                      <span>{{dimension.table}}</span>
                     </td>
                     <!--Columns-->
                     <td>
@@ -83,10 +83,10 @@
                         <div ng-repeat="t in getDimType(dimension)">
                             <div ng-switch="t">
                                 <div class="dl-horizontal" ng-switch-when="derived">
-                                  {{TableModel.tableColumnMap[dimension.table][dimension.table+"."+dimension.derived].datatype}}
+                                  {{metaModel.model.aliasColumnMap[dimension.table+"."+dimension.derived].datatype}}
                                 </div>
                                 <div class="dl-horizontal" ng-switch-when="normal">
-                                  {{TableModel.tableColumnMap[dimension.table][dimension.table+"."+dimension.column].datatype}}
+                                  {{metaModel.model.aliasColumnMap[dimension.table+"."+dimension.column].datatype}}
                                 </div>
                             </div>
                         </div>
@@ -96,10 +96,10 @@
                         <div ng-repeat="t in getDimType(dimension)">
                             <div ng-switch="t">
                                 <div class="dl-horizontal" ng-switch-when="derived">
-                                  {{TableModel.tableColumnMap[dimension.table][dimension.table+"."+dimension.derived].cardinality}}
+                                  {{metaModel.model.aliasColumnMap[dimension.table+"."+dimension.derived].cardinality}}
                                 </div>
                                 <div class="dl-horizontal" ng-switch-when="normal">
-                                  {{TableModel.tableColumnMap[dimension.table][dimension.table+"."+dimension.column].cardinality}}
+                                  {{metaModel.model.aliasColumnMap[dimension.table+"."+dimension.column].cardinality}}
                                 </div>
                             </div>
                         </div>
@@ -109,10 +109,10 @@
                         <div ng-repeat="t in getDimType(dimension)">
                             <div ng-switch="t">
                                 <div class="dl-horizontal" ng-switch-when="derived">
-                                    {{TableModel.tableColumnMap[dimension.table][dimension.table+"."+dimension.derived].comment}}
+                                    {{metaModel.model[dimension.table+"."+dimension.derived].comment}}
                                 </div>
                                 <div class="dl-horizontal" ng-switch-when="normal">
-                                     {{TableModel.tableColumnMap[dimension.table][dimension.table+"."+dimension.column].comment}}
+                                    {{metaModel.model[dimension.table+"."+dimension.column].comment}}
                                 </div>
                             </div>
                         </div>
@@ -150,7 +150,7 @@
     <!-- Edit Dimension Form -->
     <script type="text/ng-template" id="editDimension.html">
         <div class="modal-header">
-            <h4 class="box-title lighter">{{dimState.editing ? dataKylin.cube.cubeDSEditDSEdit : dataKylin.cube.cubeDSEditDSAdd}}
+            <h4 class="box-title lighter">{{dataKylin.cube.cubeDSEditDSEdit}}
             </h4>
         </div>
         <div class="modal-body">
@@ -202,7 +202,7 @@
                             </div>
                         </div>
                     </div>
-                    <div  ng-if="newDimension.table != metaModel.model.fact_table">
+                    <div  ng-if="availableFactTables.indexOf(newDimension.table)==-1">
                         <div  class="row">
                             <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default">
                                 <b>{{dataKylin.cube.cubeDSType}}</b>
@@ -274,7 +274,7 @@
                         <div class="box-body">
                            <ul class="list-unstyled columns-region">
                               <!--FactTable-->
-                              <div ng-repeat="table in availableTables track by $index" ng-if="$index == 0"  class="panel-default " >
+                              <div ng-repeat="table in availableFactTables track by $index"  class="panel-default " >
                                  <h4>{{table}}{{dataKylin.cube.cubeDSFactTable}}</h4>
                                  <table class="table table-striped table-hover ng-scope" >
                                        <tr>
@@ -298,17 +298,17 @@
                                              {{col.name}}
                                           </td>
                                           <td>
-                                             {{TableModel.tableColumnMap[table][table+"."+col.name].datatype}}
+                                             {{metaModel.model.aliasColumnMap[table+"."+col.name].datatype}}
                                           </td>
                                           <td>
-                                             {{TableModel.tableColumnMap[table][table+"."+col.name].cardinality}}
+                                             {{metaModel.model.aliasColumnMap[table+"."+col.name].cardinality}}
                                           </td>
                                           <td colspan="2"></td>
                                        </tr>
                                     </table>
                                  </div>
                                  <!--LookUp Table-->
-                                 <div ng-repeat="table in availableTables track by $index" ng-if="$index > 0"  class="panel-default" heading="{{table}}{{dataKylin.cube.cubeDSLookupTable}}">
+                                 <div ng-repeat="table in availableLookupTables track by $index" ng-if="$index > 0"  class="panel-default" heading="{{table}}{{dataKylin.cube.cubeDSLookupTable}}">
                                     <table class="table table-striped table-hover ng-scope">
                                        <h4>{{table}}{{dataKylin.cube.cubeDSLookupTable}}</h4>
                                        <tr class="row" >
@@ -332,10 +332,10 @@
                                              {{col.name}}
                                           </td>
                                           <td>
-                                           {{TableModel.tableColumnMap[table][table+"."+col.name].datatype}}
+                                            {{metaModel.model.aliasColumnMap[table+"."+col.name].datatype}}
                                           </td>
                                           <td>
-                                            {{TableModel.tableColumnMap[table][table+"."+col.name].cardinality}}
+                                            {{metaModel.model.aliasColumnMap[table+"."+col.name].cardinality}}
                                           </td>
                                           <td>
                                              <label> <input type="radio" ng-model="selectedColumns[table][col.name].normal" value="true" ng-disabled="!selectedColumns[table][col.name].selected"> {{dataKylin.cube.cubeDSNormal}} </label>

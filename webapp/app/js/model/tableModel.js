@@ -99,8 +99,7 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,String
                     tableMap[table.database] = [];
                 }
                angular.forEach(table.columns, function (column) {
-                    columnName=tableName+"."+column.name;
-                    _this.tableColumnMap[tableName][columnName]={
+                    _this.tableColumnMap[tableName][column.name]={
                         name:column.name,
                         datatype:column.datatype,
                         cardinality:table.cardinality[column.name],

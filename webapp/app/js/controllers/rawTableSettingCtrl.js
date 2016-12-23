@@ -27,7 +27,7 @@
 
 'use strict';
 
-KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,RawTablesService,cubesManager,modelsManager,SweetAlert,kylinConfig,VdmUtil,TableModel) {
+KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,RawTablesService,cubesManager,modelsManager,SweetAlert,kylinConfig,VdmUtil,TableModel, StringHelper) {
   $scope.availableColumns = {};
   $scope.selectedColumns = {};
   $scope.wantSetting=false;
@@ -66,9 +66,9 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
   }
   //无后台数据的时候获取基础信息
   var getBaseColumnsData=function(){
-    if($scope.getDimColumnsByTable){
-      var factTable = $scope.metaModel.model.fact_table;
-      var cols = $scope.getDimColumnsByTable(factTable);
+    if($scope.getDimColumnsByAlias){
+      var factTable = StringHelper.removeNameSpace($scope.metaModel.model.fact_table);
+      var cols = $scope.getDimColumnsByAlias(factTable);
       var factSelectAvailable = {};
       for (var i = 0; i < cols.length; i++) {
         cols[i].table = factTable;
@@ -80,17 +80,17 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
       $scope.availableTables.push(factTable);
       var lookups = $scope.metaModel.model.lookups;
       for (var j = 0; j < lookups.length; j++) {
-        var cols2 = $scope.getDimColumnsByTable(lookups[j].table);
+        var cols2 = $scope.getDimColumnsByAlias(lookups[j].alias);
         var lookupSelectAvailable = {};
         for (var k = 0; k < cols2.length; k++) {
-          cols2[k].table = lookups[j].table;
+          cols2[k].table = lookups[j].alias;
           cols2[k].isLookup = true;
           lookupSelectAvailable[cols2[k].name] = {selected: false, disabled: false};
         }
-        $scope.availableColumns[lookups[j].table] = cols2;
-        $scope.selectedColumns[lookups[j].table] = lookupSelectAvailable;
-        if ($scope.availableTables.indexOf(lookups[j].table) == -1) {
-          $scope.availableTables.push(lookups[j].table);
+        $scope.availableColumns[lookups[j].alias] = cols2;
+        $scope.selectedColumns[lookups[j].alias] = lookupSelectAvailable;
+        if ($scope.availableTables.indexOf(lookups[j].alias) == -1) {
+          $scope.availableTables.push(lookups[j].alias);
         }
       }
       var rawTableColumns = [];
@@ -100,8 +100,8 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
       var measuresColumns=$scope.metaModel.model.metrics;
       for(var i=0;i<measuresColumns.length;i++){
         var measuresColumnsObj={};
-        measuresColumnsObj.table=$scope.metaModel.model.fact_table;
-        measuresColumnsObj.name=measuresColumns[i];
+        measuresColumnsObj.table=VdmUtil.getNameSpace(measuresColumns[i]);
+        measuresColumnsObj.name=VdmUtil.removeNameSpace(measuresColumns[i]);
         rawTableColumns.push(measuresColumnsObj);
       }
       var saveData = {};

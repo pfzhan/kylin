@@ -285,10 +285,10 @@
                 <small class="help-block red" ng-show="rule.shardColumnAvailable==false && rowkey_column.isShardBy == true">at most one 'shard by' column is allowed.</small>
               </td>
               <td>
-                <span>{{TableModel.tableColumnMap[rowkey_column.database+"."+rowkey_column.table][rowkey_column.database+"."+rowkey_column.column].datatype}}</span>
+                <span>{{metaModel.model.aliasColumnMap[rowkey_column.column].datatype}}</span>
               </td>
               <td>
-                <span>{{TableModel.tableColumnMap[rowkey_column.database+"."+rowkey_column.table][rowkey_column.database+"."+rowkey_column.column].cardinality}}</span>
+                <span>{{metaModel.model.aliasColumnMap[rowkey_column.column].cardinality}}</span>
               </td>
             </tr>
           </tbody>
@@ -314,10 +314,10 @@
                 <span >{{rowkey_column.isShardBy}}</span>
               </td>
               <td>
-                <span>{{TableModel.tableColumnMap[rowkey_column.database+"."+rowkey_column.table][rowkey_column.database+"."+rowkey_column.column].datatype}}</span>
+                <span>{{metaModel.model.aliasColumnMap[rowkey_column.column].datatype}}</span>
               </td>
               <td>
-                <span>{{TableModel.tableColumnMap[rowkey_column.database+"."+rowkey_column.table][rowkey_column.database+"."+rowkey_column.column].cardinality}}</span>
+                <span>{{metaModel.model.aliasColumnMap[rowkey_column.column].cardinality}}</span>
               </td>
             </tr>
           </tbody>

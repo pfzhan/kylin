@@ -19,7 +19,7 @@
 /**
  *MetaModel will manage model info of cube
  */
-KylinApp.service('MetaModel',function(){
+KylinApp.service('MetaModel',function(TableModel, StringHelper){
 
     //data model when edit model
     this.model={
@@ -38,7 +38,8 @@ KylinApp.service('MetaModel',function(){
             "partition_time_column" : null,
             "partition_time_start" : null
         },
-        last_modified:0
+        last_modified:0,
+        aliasColumnMap:{}
     };
 
 
@@ -54,7 +55,27 @@ KylinApp.service('MetaModel',function(){
         _model.metrics = model.metrics;
         _model.partition_desc = model.partition_desc;
         _model.last_modified = model.last_modified;
+        _model.aliasColumnMap={};
+        angular.forEach(TableModel.tableColumnMap,function(tables,tableName){
+          if(_model.fact_table==tableName){
+           var rootFactTable=StringHelper.removeNameSpace(_model.fact_table);
+           angular.forEach(tables,function(column,columnName){
+              _model.aliasColumnMap[rootFactTable+"."+columnName]=column;
+           });
+          }
+          angular.forEach(_model.lookups,function(joinTable){
+            if(joinTable.table==tableName){
+              angular.forEach(tables,function(column,columnName){
+                if(!joinTable.alias){
+                  joinTable.alias=StringHelper.removeNameSpace(joinTable.table);
+                }
+                _model.aliasColumnMap[joinTable.alias+"."+columnName]=column;
+              });
+            }
+          });
+        });
         this.model = _model;
+        return this.model;
     };
 
     this.initModel = function(){

@@ -24,7 +24,7 @@
 
 'use strict';
 
-KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cubesManager,SweetAlert ,kylinCommon, TableModel) {
+KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cubesManager,SweetAlert ,kylinCommon, TableModel, StringHelper) {
     $scope.TableModel=TableModel;
 
     $scope.cubeManager = cubesManager;
@@ -34,8 +34,6 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
     // Columns selected and disabled status bound to UI, group by table.
     $scope.selectedColumns = {};
 
-    // Available tables cache: 1st is the fact table, next are lookup tables.
-    $scope.availableTables = [];
     $scope.editDimension={normal:"true"};
     var dimCols = function (dim) {
         var referredCols = [];
@@ -44,12 +42,6 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
         if (dim.derived && dim.derived.length) {
             referredCols = referredCols.concat(dim.derived);
         }
-
-        // Case 2.
-        //if (dim.hierarchy && dim.column.length) {
-        //    referredCols = referredCols.concat(dim.column);
-        //}
-
         // Case 1.
         if (!dim.derived && dim.column) {
             referredCols.push(dim.column);
@@ -60,53 +52,47 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
 
     // Dump available columns plus column table name, whether is from lookup table.
     $scope.initColumns = function () {
-        var factTable = $scope.metaModel.model.fact_table;
-
+        var rootFactTable = StringHelper.removeNameSpace($scope.metaModel.model.fact_table);
         // At first dump the columns of fact table.
-//        var cols = $scope.getColumnsByTable(factTable);
-        var cols = $scope.getDimColumnsByTable(factTable);
-
+        var cols = $scope.getDimColumnsByAlias(rootFactTable);
         // Initialize selected available.
         var factSelectAvailable = {};
 
         for (var i = 0; i < cols.length; i++) {
-            cols[i].table = factTable;
-            cols[i].isLookup = false;
+            cols[i].table = rootFactTable;
 
             // Default not selected and not disabled.
             factSelectAvailable[cols[i].name] = {name:cols[i].name ,selected: false};
         }
 
-        $scope.availableColumns[factTable] = cols;
+        $scope.availableColumns[rootFactTable] = cols;
         factSelectAvailable.all=false;
-        $scope.selectedColumns[factTable] = factSelectAvailable;
-        $scope.availableTables.push(factTable);
+        $scope.selectedColumns[rootFactTable] = factSelectAvailable;
+        $scope.availableFactTables.push(rootFactTable);
 
         // Then dump each lookup tables.
         var lookups = $scope.metaModel.model.lookups;
 
         for (var j = 0; j < lookups.length; j++) {
-            var cols2 = $scope.getDimColumnsByTable(lookups[j].table);
+          if(lookups[j].kind=="FACT"){
+            $scope.availableFactTables.push(lookups[j].alias);
+          }else{
+            $scope.availableLookupTables.push(lookups[j].alias);
+          }
+            var cols2 = $scope.getDimColumnsByAlias(lookups[j].alias);
 
             // Initialize selected available.
             var lookupSelectAvailable = {};
-
             for (var k = 0; k < cols2.length; k++) {
-                cols2[k].table = lookups[j].table;
-                cols2[k].isLookup = true;
-
-
-
-                // Default not selected and not disabled.
-                lookupSelectAvailable[cols2[k].name] = {name:cols2[k].name,selected: false};
+              cols2[k].table = lookups[j].alias;
+              cols2[k].isLookup = true;
+              // Default not selected and not disabled.
+              lookupSelectAvailable[cols2[k].name] = {name:cols2[k].name,selected: false};
             }
 
-            $scope.availableColumns[lookups[j].table] = cols2;
+            $scope.availableColumns[lookups[j].alias] = cols2;
             lookupSelectAvailable.all=false;
-            $scope.selectedColumns[lookups[j].table] = lookupSelectAvailable;
-            if($scope.availableTables.indexOf(lookups[j].table)==-1){
-                $scope.availableTables.push(lookups[j].table);
-            }
+            $scope.selectedColumns[lookups[j].alias] = lookupSelectAvailable;
         }
     };
 
@@ -148,7 +134,8 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
               column :null,
               derived:[derived],
               name:dimension.name,
-              table:dimension.table}
+              table:dimension.table
+              }
               dimensions.push(dim);
             });
         }else{
@@ -395,7 +382,7 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
         var selectedCols = $scope.getSelectedCols();
         dimList=[];
         angular.forEach(selectedCols, function (cols, table) {
-            if ($scope.metaModel.model.fact_table == table) {
+            if ($scope.availableFactTables.indexOf(table)!=-1) {
                 // Fact table: for each selected column, create one normal dimension.
                 for (var i = 0; i < cols.length; i++) {
                     dimList.push(Dimension(cols[i].name, table, [cols[i].col], 'normal'));
@@ -416,7 +403,7 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
     };
 
     $scope.autoChange= function(table,name){
-        if($scope.metaModel.model.fact_table==table){
+        if($scope.availableFactTables.indexOf(table)!=-1){
             if($scope.selectedColumns[table][name].selected==false){
                 $scope.selectedColumns[table].all=false;
             }else{
@@ -448,7 +435,7 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
         }
     }
     $scope.autoChangeAll= function(table){
-        if($scope.metaModel.model.fact_table==table){
+        if($scope.availableFactTables.indexOf(table)!=-1){
             if($scope.selectedColumns[table].all==true){
                 angular.forEach($scope.selectedColumns[table],function(col){
                     if(typeof col==="object"){
