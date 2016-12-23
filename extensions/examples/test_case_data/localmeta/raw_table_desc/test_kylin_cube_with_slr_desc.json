@@ -152,24 +152,6 @@
       "encoding": "orderedbytes",
       "table": "EDW.TEST_SELLER_TYPE_DIM",
       "column": "SELLER_TYPE_CD"
-    },
-    {
-      "index": "discrete",
-      "encoding": "orderedbytes",
-      "table": "DEFAULT.TEST_KYLIN_FACT",
-      "column": "SELLER_COUNTRY"
-    },
-    {
-      "index": "discrete",
-      "encoding": "orderedbytes",
-      "table": "DEFAULT.TEST_KYLIN_FACT",
-      "column": "BUYER_COUNTRY"
-    },
-    {
-      "index": "discrete",
-      "encoding": "orderedbytes",
-      "table": "DEFAULT.TEST_KYLIN_FACT",
-      "column": "USER_ID"
     }
   ],
   "last_modified": 1471506321632,
