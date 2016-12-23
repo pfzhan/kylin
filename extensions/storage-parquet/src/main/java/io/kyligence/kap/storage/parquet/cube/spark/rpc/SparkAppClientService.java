@@ -68,11 +68,15 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase {
             sc = new JavaSparkContext(conf);
         }
 
-        if (responseObserver instanceof ServerCallStreamObserver) {
-            logger.info("Setting response compression to gzip");
-            ((ServerCallStreamObserver) responseObserver).setCompression("gzip");
+        if (!"false".equals(System.getenv("kap.storage.columnar.enable-compression"))) {//it's a system env!!!
+            if (responseObserver instanceof ServerCallStreamObserver) {
+                logger.info("Setting response compression to gzip");
+                ((ServerCallStreamObserver) responseObserver).setCompression("gzip");
+            } else {
+                logger.warn("responseObserver is not ServerCallStreamObserver");
+            }
         } else {
-            logger.warn("responseObserver is not ServerCallStreamObserver");
+            logger.info("Will not enable response compression.");
         }
 
         return new ServerStreamObserver(responseObserver, sc);
