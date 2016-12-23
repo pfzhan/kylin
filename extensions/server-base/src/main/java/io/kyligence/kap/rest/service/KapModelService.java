@@ -40,16 +40,14 @@ public class KapModelService extends BasicService {
     public Map<String, MODEL_COLUMN_SUGGESTION> inferSuggestions(String tableName) {
         Map<String, MODEL_COLUMN_SUGGESTION> result = new HashMap<String, MODEL_COLUMN_SUGGESTION>();
         TableDesc tableDesc = getMetadataManager().getTableDesc(tableName);
+        if (tableDesc == null)
+            return result;
         ColumnDesc[] columns = tableDesc.getColumns();
         TableExtDesc tableExt = getMetadataManager().getTableExt(tableName);
         List<TableExtDesc.ColumnStats> columnStats = tableExt.getColumnStats();
-        if (columnStats.size() != columns.length) {
-            // No Stats Data
-            return result;
-        }
         for (int i = 0; i < columns.length; i++) {
             ColumnDesc column = columns[i];
-            TableExtDesc.ColumnStats stat = columnStats.get(i);
+            TableExtDesc.ColumnStats stat = columnStats.size() > i ? columnStats.get(i) : null;
             MODEL_COLUMN_SUGGESTION suggestion = inferSuggestion(column, stat);
             result.put(column.getName(), suggestion);
         }
@@ -60,7 +58,7 @@ public class KapModelService extends BasicService {
     private MODEL_COLUMN_SUGGESTION inferSuggestion(ColumnDesc column, TableExtDesc.ColumnStats stat) {
         if (column.getType().isIntegerFamily()) {
             if (column.getType().isTinyInt() || column.getType().isSmallInt()) {
-                return inferDimensionByCardinality(stat.getCardinality());
+                return inferDimensionByCardinality(stat);
             } else {
                 return MODEL_COLUMN_SUGGESTION.MEASURE;
             }
@@ -68,18 +66,22 @@ public class KapModelService extends BasicService {
             return MODEL_COLUMN_SUGGESTION.MEASURE;
         } else if (column.getType().isDateTimeFamily()) {
             if (column.getType().isDate() || column.getType().isDatetime()) {
-                return inferDimensionByCardinality(stat.getCardinality());
+                return inferDimensionByCardinality(stat);
             } else {
                 return MODEL_COLUMN_SUGGESTION.MEASURE;
             }
         } else if (column.getType().isStringFamily()) {
-            return inferDimensionByCardinality(stat.getCardinality());
+            return inferDimensionByCardinality(stat);
         } else {
-            return inferDimensionByCardinality(stat.getCardinality());
+            return inferDimensionByCardinality(stat);
         }
     }
 
-    private MODEL_COLUMN_SUGGESTION inferDimensionByCardinality(long cardinality) {
+    private MODEL_COLUMN_SUGGESTION inferDimensionByCardinality(TableExtDesc.ColumnStats stat) {
+        if (stat == null) {
+            return MODEL_COLUMN_SUGGESTION.DIMENSION;
+        }
+        long cardinality = stat.getCardinality();
         if (cardinality < 20) {
             return MODEL_COLUMN_SUGGESTION.DIMENSION_TINY;
         } else if (cardinality < 100) {
@@ -97,6 +99,7 @@ public class KapModelService extends BasicService {
 
     public enum MODEL_COLUMN_SUGGESTION {
         MEASURE, // measure
+        DIMENSION, // dimension without cardinality info
         DIMENSION_TINY, // cardinality<20
         DIMENSION_SMALL, //cardinality<100
         DIMENSION_MEDIUM, //cardinality<1,000
