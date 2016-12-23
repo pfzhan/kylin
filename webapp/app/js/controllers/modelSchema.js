@@ -138,7 +138,8 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
                   for(var m in data){
                     if(m.indexOf(table.columns[i].name)>=0){
                       table.columns[i].kind=data[m].replace(/_[^_\s]+$/,'');
-                      break;
+                    }else{
+                      table.columns[i].kind='disable';
                     }
                   }
                 }

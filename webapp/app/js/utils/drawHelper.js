@@ -160,16 +160,13 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
          that.addTables(tableBaseList);
          //加载链接
          that.instance.batch(function() {
+           var count=0;
            for(var i=0;i<tableBaseList.length;i++){
              if(tableBaseList[i].join){
                for(var f=0;f<tableBaseList[i].join.primary_key.length;f++){
-                 that.connect(tableBaseList[i].join.primary_key[f],tableBaseList[i].join.foreign_key[f],{ overlays:[
-                   [ "Label", {
-                     location:-130,
-                     label:tableBaseList[i].join.type,
-                     cssClass:"endpointSourceLabel"
-                   }]
-                 ]});
+                 that.connect(tableBaseList[i].join.primary_key[f],tableBaseList[i].join.foreign_key[f]);
+                 that.instance.getAllConnections()[count].getOverlay("label").setLabel(tableBaseList[i].join.type||'');
+                 count++;
                }
              }
            }
