@@ -20,7 +20,7 @@
   <div class="modal-header">
     <h4 tooltip="submit">{{dataKylin.model.modelClone}}</h4>
   </div>
-  <div class="modal-body" style="background-color: white">
+  <ng-form name="forms.model_clone_form" novalidate="novalidate" class="modal-body" style="background-color: white">
 
     <div class="row">
       <div class="col-md-2"></div>
@@ -28,15 +28,6 @@
         <div class="row">
           <div class="form-group">
             <label><b>{{dataKylin.model.targetProject}}:</b></label>
-            <!--<br/>-->
-            <!--<select ng-required="projectModel.projects.length" chosen ng-model="targetObj.targetProject"-->
-                    <!--ng-init="newAccess.permission=permissions.READ.value;"-->
-                    <!--ng-options="project.name as project.name for project in projectModel.projects "-->
-                    <!--style="width: 100% !important;"-->
-                    <!--data-placeholder="{{dataKylin.cube.selectProject}}"-->
-                    <!--class="chosen-select">-->
-              <!--<option value=""></option>-->
-            <!--</select>-->
             <input type="text" class="form-control" disabled ng-model="targetObj.targetProject"/>
           </div>
         </div>
@@ -50,15 +41,17 @@
           <div class="form-group">
             <b>{{dataKylin.model.newModelName}}</b>
             <br/>
-            <input type="text" class="form-control" ng-model="targetObj.modelName"/>
+            <input type="text" name="model_name"  class="form-control" ng-model="targetObj.modelName" ng-pattern="/^\w+$/"  required />
+            <small class="help-block red" ng-show="forms.model_clone_form.model_name.$error.required && (forms.model_clone_form.model_name.$dirty||forms.model_clone_form.$submitted)">{{dataKylin.model.check_info_required_model_name}}</small>
+            <small class="help-block red" ng-show="!forms.model_clone_form.model_name.$error.required&&forms.model_clone_form.model_name.$invalid && (forms.model_clone_form.model_name.$dirty||forms.model_clone_form.$submitted)">{{dataKylin.model.check_info_invalid_model_name}}</small>
           </div>
         </div>
       </div>
       <div class="col-md-2"></div>
     </div>
-  </div>
+  </ng-form>
   <div class="modal-footer">
     <button class="btn btn-default" ng-click="cancel()">{{dataKylin.cube.close}}</button>
-    <button class="btn btn-success" ng-click="cloneModel()">{{dataKylin.cube.submit}}</button>
+    <button class="btn btn-success" ng-click="cloneModel()" ng-disabled="forms.model_clone_form.$invalid">{{dataKylin.cube.submit}}</button>
   </div>
 </script>
