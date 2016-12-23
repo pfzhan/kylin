@@ -661,7 +661,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           $(this).hide();
           labelDom.show().html(aliasLabel+that.filterSpecialChar(aliasInputVal).toUpperCase());
           that.tableList.update('guid',tableBaseObject.guid,{
-            alias:aliasInputVal
+            alias:that.filterSpecialChar(aliasInputVal).toUpperCase()
           });
         }
       });
