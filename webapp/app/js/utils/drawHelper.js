@@ -84,9 +84,15 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
 
         if(that.beginDrag){
           that.beginDrag=false;
-          that.changeConnectType(info.connection);
+          var joinType=that.getConnectType(that.lastLink[0].guid,that.lastLink[1].guid)||'';
+          if(!joinType){
+            that.changeConnectType(info.connection);
+          }else{
+            info.connection.getOverlay("label").setLabel(joinType);
+            that.connects[info.connection.id][2]=joinType;
+          }
         }
-        that.plumbDataToKylinData();
+        //that.plumbDataToKylinData();
         info.connection.unbind('click').bind('click',function(conn){
           if(conn.id!='label'){
             that.changeConnectType(info.connection);
@@ -261,6 +267,28 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       //console.log(kylinData);
       return kylinData;
     },
+    getConnectType:function(sourceGuid,targetGuid){
+      for(var i in this.connects){
+        if(this.connects[i][0].indexOf(sourceGuid+'.')>=0&&this.connects[i][1].indexOf(targetGuid+'.')>=0){
+          return this.connects[i][2];
+        }
+      }
+      return '';
+    },
+    updataConnectsType:function(sourceGuid,targetGuid,type){
+      for(var i in this.connects){
+        if(this.connects[i][0].indexOf(sourceGuid+'.')>=0&&this.connects[i][1].indexOf(targetGuid+'.')>=0){
+          this.connects[i][2]=type;
+          for(var s=0;s<this.instance.getAllConnections().length;s++){
+            if(this.instance.getAllConnections()[s].id==i){
+              this.instance.getAllConnections()[s].getOverlay("label").setLabel(type);
+            }
+          }
+        }
+      }
+
+    },
+
     getForeignKeyCount:function(guid){
       var count=0;
       for(var i in this.connects){
@@ -643,25 +671,17 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           }
           $(this).next().show().focus().val($(this).html().replace(aliasLabel,'')).select();
       });
-      //boxDom.on('dblclick','.input_alias_save',function(){
-      //  var rootFact=that.tableList.getRootFact();
-      //  if(rootFact&&rootFact.guid==tableBaseObject.guid){
-      //    that.showTips('ROOTFACT Table Cant not change alias!','warn');
-      //    return;
-      //  }
-      //  $(this).focus();
-      //});
       boxDom.on('blur','.input_alias',function(){
          $(this).hide();
-        var aliasInputVal=$(this).val();
+        var aliasInputVal=$(this).val().toUpperCase();
         var labelDom=$(this).prev();
         if(labelDom.html().replace(aliasLabel,'')!=aliasInputVal&&that.checkHasThisAlias(aliasInputVal,tableBaseObject.guid)){
           that.showTips('Alias repetition！','error');
         }else{
           $(this).hide();
-          labelDom.show().html(aliasLabel+that.filterSpecialChar(aliasInputVal).toUpperCase());
+          labelDom.show().html(aliasLabel+that.filterSpecialChar(aliasInputVal));
           that.tableList.update('guid',tableBaseObject.guid,{
-            alias:that.filterSpecialChar(aliasInputVal).toUpperCase()
+            alias:that.filterSpecialChar(aliasInputVal)
           });
         }
       });

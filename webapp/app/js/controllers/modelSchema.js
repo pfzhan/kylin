@@ -242,7 +242,8 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
           }
           $scope.editJoinType=function(){
             conn.getOverlay("label").setLabel($scope.link.type);
-            DrawHelper.connects[conn.id][2]=$scope.link.type;
+
+            DrawHelper.updataConnectsType(DrawHelper.connects[conn.id][0].split('.')[0],DrawHelper.connects[conn.id][1].split('.')[0],$scope.link.type)
             $modalInstance.dismiss('cancel');
           }
         }
