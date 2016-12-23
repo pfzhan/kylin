@@ -141,6 +141,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
              tableBaseList[i].pos=[],
              tableBaseList[i].guid=that.guid();
              for(var m=0;m<tableBaseList[i].columns.length;m++){
+                tableBaseList[i].columns[m].kind='disable';
                 if(cloneData.metrics.indexOf(tableBaseList[i].alias+'.'+tableBaseList[i].columns[m].name)>=0){
                   tableBaseList[i].columns[m].kind='measure';
                 }
@@ -150,7 +151,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
                    break;
                  }
                }
-               tableBaseList[i].columns.kind='disable';
+
              }
            }
            that.aliasList.push(tableBaseList[i].alias);
