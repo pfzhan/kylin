@@ -225,7 +225,7 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,String
    this.tableOriginalData;
    this.initTableData=function(callback,project){
       var that=this;
-      if(!that.tableDetails){
+      //if(!that.tableDetails){
         that.tableDetails=[];
         var param = {
           ext: true,
@@ -250,11 +250,7 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,String
             callback(that.tableDetails)
           }
         })
-      }else{
-        if(typeof callback=='function'){
-          callback(that.tableDetails)
-        }
-      }
+
    }
    /*
    *filterName example

@@ -125,7 +125,14 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
 
       $("#modelDesign").sortable({
         receive:function(event,ui){
-          treeDom.sortable('cancel') ;
+          var pos=[0,0];
+          var domOffset= $("#modelDesign").offset();
+          if($("#modelDesign").offset()){
+            pos[0]=event.clientX-domOffset.left;
+            pos[1]=event.clientY-domOffset.top;
+          }
+          console.log(pos);
+          treeDom.sortable('cancel');
           var database=$(ui.item).attr("data");
           TableModel.initTableData(function(){
             var tableDataList=TableModel.getTableDatail(database);
@@ -143,10 +150,10 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
                     }
                   }
                 }
-                DrawHelper.addTable(table);
+                DrawHelper.addTable(table,pos);
 
               },function(){
-                DrawHelper.addTable(table);
+                DrawHelper.addTable(table,pos);
               })
             }
           })

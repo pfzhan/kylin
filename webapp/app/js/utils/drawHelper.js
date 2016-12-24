@@ -1,5 +1,5 @@
 //snow model design
-KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScroll, $window,TableModel) {
+KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScroll, $window,TableModel,ProjectModel) {
     var DrawHelper= {
     titleHeight:60,
     itemHeight:20,
@@ -35,6 +35,11 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
     },
     actionLock:false,
     unDraggaleList:['.bar_action','.tipToolbar','.plusHandle','.minusHandle'],
+    checkLock:function(){
+      if(this.actionLock){
+        return true;
+      }
+    },
     init:function(para){
       $.extend(this,para);
       this.boxWidth=$('#'+this.containerId).width();
@@ -60,6 +65,10 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       var that=this;
       //全局链接事件
       this.instance.bind("connection", function (info, originalEvent) {
+        if(that.checkLock()&&that.beginDrag){
+          that.instance.detach(info.connection);
+          return;
+        }
         that.lastLink=[info.sourceEndpoint.getParameters().data,info.targetEndpoint.getParameters().data];
         //自己不能连自己
         if(info.sourceId==info.targetId){
@@ -94,6 +103,9 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         }
         //that.plumbDataToKylinData();
         info.connection.unbind('click').bind('click',function(conn){
+          if(that.checkLock()){
+            return;
+          }
           if(conn.id!='label'){
             that.changeConnectType(info.connection);
           }
@@ -131,7 +143,8 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
          alias:factTable.replace(/[^.]+\./g,'')
        }]
        tableBaseList=tableBaseList.concat(cloneData.lookups);
-       TableModel.initTableData(loadTableFunc)
+       var projectName=ProjectModel.getProjectByCubeModel(cloneData.name)
+       TableModel.initTableData(loadTableFunc,projectName)
        function loadTableFunc(){
          //加载table基础信息到面板
          for(var i=0;i<tableBaseList.length;i++){
@@ -526,6 +539,9 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
     bindColumnChangeTypeEvent:function(box,guid){
       var that=this;
       $(box).on('click','.columnKind',function(){
+        if(that.checkLock()){
+          return;
+        }
         var columnName=$(this).parent().attr('data');
         var tableName=$(box).attr('data');
         var columnType=$(this).attr('data');
@@ -555,15 +571,16 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
 
     },
     //添加表
-    addTable:function(tableData,count){
+    addTable:function(tableData,offset){
       var that=this;
+      var basePosition=that.getBasePosition();
       var tableBaseObject={
         name:tableData.name,
         table:tableData.table||tableData.database+'.'+tableData.name,
         alias:tableData.alias||tableData.name,
         kind:tableData.kind||'LOOKUP',
         columns: $.extend(true,[],tableData.columns),
-        pos:that.getBasePosition(),
+        pos:[basePosition[0]+offset[0],basePosition[1]+offset[1]],
         guid:tableData.guid||this.guid()
 
       };
@@ -574,7 +591,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           str+='<a title="'+tableBaseObject.table+'"><i class="fa fa-table"></i> '+tableBaseObject.table+'</a><span class="more" >X</span>' +
                     '<a class="alias" >Alias:'+tableBaseObject.alias+'</a><input type="text" class="input_alias""/><span class="input_alias_save">OK</span></div>';
           for (var i =0; i <tableBaseObject.columns.length; i++) {
-            str+='<p  id="column_'+tableBaseObject.guid+tableBaseObject.columns[i].name+'" style="width:'+that.itemWidth+'px" data="'+tableBaseObject.columns[i].name+'">'+this.renderTableColumnKind(tableBaseObject.columns[i].kind)+'&nbsp;&nbsp;'+tableBaseObject.columns[i].name+'('+tableBaseObject.columns[i].datatype+')'+this.renderPartionColumn(tableBaseObject.columns[i])+'<span class="jsplumb-tips">'+tableBaseObject.columns[i].name+'('+tableBaseObject.columns[i].datatype+')</span></p>';
+            str+='<p  id="column_'+tableBaseObject.guid+tableBaseObject.columns[i].name+'" style="width:'+that.itemWidth+'px" data="'+tableBaseObject.columns[i].name+'">'+this.renderTableColumnKind(tableBaseObject.columns[i].kind)+'&nbsp;&nbsp;'+that.cutStr(tableBaseObject.columns[i].name,30,"...")+this.renderPartionColumn(tableBaseObject.columns[i])+'<span class="jsplumb-tips">'+tableBaseObject.columns[i].name+'('+tableBaseObject.columns[i].datatype+')</span></p>';
           }
           str+='</div>';
       $("#"+this.containerId).append($(str));
@@ -609,10 +626,16 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         }
       });
       boxDom.find('.more').on('click',function(){
+        if(that.checkLock()){
+          return;
+        }
         var tableObj=that.tableList.getTable('guid',tableBaseObject.guid);
         that.changeTableInfo(tableBaseObject);
       })
       boxDom.on('click','.snowDate',function(){
+        if(that.checkLock()){
+          return;
+        }
         var snowDateDomList=that.container.find('.snowDate');
         var columnName=$(this).parent().attr('data');
         var guid=tableBaseObject.guid;
@@ -643,6 +666,9 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         }
       })
       boxDom.on('click','.snowTime',function(){
+        if(that.checkLock()){
+          return;
+        }
         var snowTimeDomList=that.container.find('.snowTime');
         var columnName=$(this).parent().attr('data');
         var guid=tableBaseObject.guid;
@@ -675,6 +701,9 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       })
 
       boxDom.on('click','.tableKind',function(){
+        if(that.checkLock()){
+          return;
+        }
         var kindAlias=$(this).html();
         var index=that.tableKindAlias.indexOf(kindAlias);
         if(index>=that.tableKindAlias.length-1){
@@ -700,6 +729,9 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       })
       var aliasLabel='Alias:';
       boxDom.on('dblclick','.alias',function(){
+        if(that.checkLock()){
+          return;
+        }
           var rootFact=that.tableList.getRootFact();
           if(rootFact&&rootFact.guid==tableBaseObject.guid){
             that.showTips('ROOTFACT Table Cant not change alias!','warn');
@@ -708,6 +740,9 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           $(this).next().show().focus().val($(this).html().replace(aliasLabel,'')).select();
       });
       boxDom.on('blur','.input_alias',function(){
+        if(that.checkLock()){
+          return;
+        }
          $(this).hide();
         var aliasInputVal=$(this).val().toUpperCase();
         var labelDom=$(this).prev();
@@ -722,6 +757,9 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         }
       });
       boxDom.on('dbclick','.input_alias',function(){
+        if(that.checkLock()){
+          return;
+        }
         $(this).focus().select();
       })
       boxDom.find('.input_alias').mousemove(function(e){
@@ -777,7 +815,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           calcLayer(goOnCalc);
         }
       }
-      var basePosition=that.getBasePosition();
+      var basePosition=that.getBasePosition(100);
       var maxHeightInGrid=[],boxMarginL=120,boxMarginT=60;
       for(var m=0;m<layerArr.length;m++){
         var currLayer=layerArr[m];
@@ -824,8 +862,9 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       }
       that.instance.setSuspendDrawing(false, true)
     },
-    getBasePosition:function(){
-      return [-parseInt(this.container.css('left'))+100,-parseInt(this.container.css('top'))+100]
+    getBasePosition:function(offsetSize){
+      offsetSize=offsetSize||0
+      return [-parseInt(this.container.css('left'))+offsetSize,-parseInt(this.container.css('top'))+offsetSize]
     },
     beginDrop:false,
     //创建连接点
@@ -937,6 +976,14 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         return str.replace(/[.]/g,'');
       }
       return '';
+    },
+    cutStr:function(str,len,replaceStr){
+      if(str){
+        if(str.length>len){
+          str=str.substr(0,len)+replaceStr;
+        }
+      }
+      return str;
     }
   }
   return $.extend(true,{initService:function(){
