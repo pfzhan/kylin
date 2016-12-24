@@ -10,13 +10,13 @@
       <div class="col-xs-12 col-sm-6">
         <select style="width: 100%" chosen
 
-                ng-model="formatDateType"
+                ng-model="dateTypeSet.dateType"
                 ng-if="whatDate.type=='date'"
                 ng-options="ddt1 as ddt1 for ddt1 in cubeConfig.partitionDateFormatOpt">
         </select>
         <select style="width: 100%" chosen
 
-                ng-model="formatTimeType"
+                ng-model="dateTypeSet.dateType"
                 ng-if="whatDate.type=='time'"
 
                 ng-options="ddt as ddt for ddt in cubeConfig.partitionTimeFormatOpt">

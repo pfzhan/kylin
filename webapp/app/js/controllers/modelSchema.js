@@ -134,10 +134,15 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
           console.log(pos);
           treeDom.sortable('cancel');
           var database=$(ui.item).attr("data");
+
           TableModel.initTableData(function(){
             var tableDataList=TableModel.getTableDatail(database);
+
             if(tableDataList&&tableDataList.length<2){
               var table=tableDataList[0];
+              if(DrawHelper.checkHasThisAlias(table.name)){
+                table.alias=table.name+'_'+DrawHelper.tableList.data.length
+              }
               ModelService.suggestion({
                 table:table.database+'.'+table.name
               },function(data){
@@ -236,11 +241,18 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
 
 
       //选择date类型弹窗
-      function openDateFormatTypeDialog(callback,whatDate){
+      function openDateFormatTypeDialog(callback,whatDate,hisObj){
         var dateFormatTypeCtrl=function($scope,$modalInstance,callback,cubeConfig,whatDate,scope){
           $scope.callback=callback;
-          $scope.formatDateType='yyyyMMdd';
-          $scope.formatTimeType='HH:mm:ss';
+          $scope.dateTypeSet={dateType:''};
+          if(whatDate.type=='date'){
+            $scope.dateTypeSet={dateType:'yyyy-MM-dd'};
+          }else{
+            $scope.dateTypeSet={dateType:'HH:mm:ss'};
+          }
+          if(hisObj){
+            $.extend($scope.dateTypeSet,hisObj);
+          }
           $scope.dataKylin=scope.dataKylin;
           if(whatDate.type=='date'&&!DrawHelper.isNullObj(DrawHelper.partitionDate)||whatDate.type=='time'&&!DrawHelper.isNullObj(DrawHelper.partitionTime)){
             $scope.showRemoveBtn=true;
@@ -254,9 +266,9 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
           }
           $scope.editDateFormatType=function(){
             if(whatDate.type=='date'){
-              $scope.callback($scope.formatDateType);
+              $scope.callback($scope.dateTypeSet.dateType);
             }else{
-              $scope.callback($scope.formatTimeType);
+              $scope.callback($scope.dateTypeSet.dateType);
             }
             $modalInstance.dismiss('cancel');
           }

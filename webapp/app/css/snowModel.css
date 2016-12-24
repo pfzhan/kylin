@@ -210,6 +210,9 @@
   color:green;
   display: inline-block;
 }
+.isfact .snowclock.active+.snowclock{
+  display: none;
+}
 .isfact .noshow.snowclock{
   display: none!important;
 }
@@ -312,7 +315,7 @@ p:hover .jsplumb-tips{
   position: absolute;
   background: #000;
   z-index: 999;
-  top:40%;
+  top:30px;
   left: 50%;
   display: none;
   color:#fff;

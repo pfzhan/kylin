@@ -155,14 +155,14 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
              for(var m=0;m<tableBaseList[i].columns.length;m++){
                if(tableBaseList[i].alias+'.'+tableBaseList[i].columns[m].name==cloneData.partition_desc.partition_date_column){
                  that.partitionDate[tableBaseList[i].guid]={
-                   columnName:tableBaseList[i].alias+'.'+tableBaseList[i].columns[m],
+                   columnName:tableBaseList[i].columns[m].name,
                    dateType:cloneData.partition_desc.partition_date_format
                  }
                  tableBaseList[i].columns[m].isDate=true;
                }
-               if(tableBaseList[i].alias+'.'+tableBaseList[i].columns[m]==cloneData.partition_desc.partition_time_column){
+               if(tableBaseList[i].alias+'.'+tableBaseList[i].columns[m].name==cloneData.partition_desc.partition_time_column){
                  that.partitionTime[tableBaseList[i].guid]={
-                  columnName:tableBaseList[i].alias+'.'+tableBaseList[i].columns[m],
+                  columnName:tableBaseList[i].columns[m].name,
                   dateType:cloneData.partition_desc.partition_time_format
                  }
                  tableBaseList[i].columns[m].isTime=true;
@@ -347,7 +347,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
     showTips:function(type){
        var tipDom= this.container.parent().find('.'+type);
        if(tipDom){
-         tipDom.fadeIn(2000).fadeOut(400);
+         tipDom.fadeIn().delay(2000).fadeOut();
        }
     },
     showMapControl:function(){
@@ -425,7 +425,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       //}
       var timeClass='fa fa-clock-o snowclock snowTime',dateClass='fa fa-calendar snowclock snowDate';
       if(needNotSetDateFormat.indexOf(columnType)>=0){
-        timeClass+=' noFormat';
+        timeClass+=' noshow';
         dateClass+=' noFormat';
       }
       if(canSetDatePartion.indexOf(columnType)<0&&columnType.indexOf('varchar')<0){
@@ -543,9 +543,9 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
        return  $('#umlobj_'+guid);
     },
     aliasList:[],
-    checkHasThisAlias:function(alias,guid){
+    checkHasThisAlias:function(alias){
       var tableDetail=this.tableList.getTable('alias',alias);
-      if(tableDetail&&tableDetail.guid!=guid){
+      if(tableDetail){
         return true;
       }
       return false;
@@ -629,6 +629,10 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         var columnName=$(this).parent().attr('data');
         var guid=tableBaseObject.guid;
         var currentDom=$(this);
+        var hisPartionObj={};
+        if(that.partitionDate[guid]&&that.partitionDate[guid].columnName==columnName){
+          hisPartionObj=that.partitionDate[guid];
+        }
         if(currentDom.hasClass('noFormat')){
           that.partitionDate={}
           that.partitionDate[guid]={
@@ -651,7 +655,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
             }
             snowDateDomList.removeClass('active');
             currentDom.addClass('active');
-          },{type:'date'})
+          },{type:'date'},hisPartionObj)
         }
       })
       boxDom.on('click','.snowTime',function(){
@@ -662,11 +666,15 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         var columnName=$(this).parent().attr('data');
         var guid=tableBaseObject.guid;
         var currentDom=$(this);
+        var hisPartionObj={};
+        if(that.partitionTime[guid]&&that.partitionTime[guid].columnName==columnName){
+          hisPartionObj=that.partitionTime[guid];
+        }
         if(currentDom.hasClass('noFormat')){
           that.partitionTime={}
           that.partitionTime[guid]={
             columnName:columnName,
-            dateType:'yyyyMMdd'
+            dateType:'HHmmss'
           }
           snowTimeDomList.removeClass('active');
           currentDom.addClass('active');
@@ -684,7 +692,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
             }
             snowTimeDomList.removeClass('active');
             currentDom.addClass('active');
-          },{type:'time'})
+          },{type:'time'},hisPartionObj)
         }
 
       })
@@ -713,6 +721,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           that.tableList.update('guid',tableBaseObject.guid,{
             alias:tableBaseObject.name
           });
+          boxDom.find('.input_alias').val(tableBaseObject.name).hide();
           that.refreshAlias(tableBaseObject.guid,tableBaseObject.name);
         }
       })
@@ -735,7 +744,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
          $(this).hide();
         var aliasInputVal=$(this).val().toUpperCase();
         var labelDom=$(this).prev();
-        if(labelDom.html().replace(aliasLabel,'')!=aliasInputVal&&that.checkHasThisAlias(aliasInputVal,tableBaseObject.guid)){
+        if(labelDom.html().replace(aliasLabel,'')!=aliasInputVal&&that.checkHasThisAlias(aliasInputVal)){
           that.showTips('samealias');
         }else{
           $(this).hide();

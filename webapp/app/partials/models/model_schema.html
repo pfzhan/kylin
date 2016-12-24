@@ -67,14 +67,14 @@
   <div id="snowBox" class="snowBox">
 
   </div>
-  <div class="bar_action"><span>{{dataKylin.snowModel.save}}</span><span>JSON</span></div>
+  <div class="bar_action" ng-if="state.mode!='view'"><span>{{dataKylin.snowModel.save}}</span><span>JSON</span></div>
   <span class="plusHandle" title="{{dataKylin.snowModel.zoomIn}}">+</span><span title="{{dataKylin.snowModel.zoomOut}}" class="minusHandle">－</span>
   <div class="tipToolbar"><span class="snowFont snowFont1 relative">RF</span><span>{{dataKylin.snowModel.rootFactTable}}</span><span class="snowFont snowFont2 relative">F</span><span>{{dataKylin.snowModel.factTable}}</span><span class="snowFont snowFont3 relative">L</span><span>{{dataKylin.snowModel.loopUpTable}}</span><span class="snowFont snowFont5 relative">D</span><span>{{dataKylin.snowModel.dimension}}</span><span class="snowFont snowFont6 relative">M</span><span>{{dataKylin.snowModel.measure}}</span><span class="snowFont snowFont4 relative">-</span><span>{{dataKylin.snowModel.disable}}</span></div>
-  <div class="tips_snow warn rootaliaslimit" >{{dataKylin.snowModel.rootFactTableNeedNotSetAlias}}</div>
+  <div class="tips_snow error rootaliaslimit" >{{dataKylin.snowModel.rootFactTableNeedNotSetAlias}}</div>
   <div class="tips_snow error samealias" >{{dataKylin.snowModel.sameAliasWarn}}</div>
   <div class="tips_snow error linklimit" >{{dataKylin.snowModel.limitLinkItself}}</div>
   <div class="tips_snow error rootlimit" >{{dataKylin.snowModel.rootFactCannotLinkOtherTable}}</div>
-  <div class="tips_snow warn difftype" >{{dataKylin.snowModel.linkDiffTypeTip}}</div>
+  <div class="tips_snow error difftype" >{{dataKylin.snowModel.linkDiffTypeTip}}</div>
 </div>
 
 <!--show create model tip when no models list-->
