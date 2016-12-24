@@ -33,7 +33,6 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.JobServiceGrpc;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobRequest;
@@ -66,17 +65,6 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase {
         if (sc.sc().isStopped()) {
             logger.warn("Current JavaSparkContext(started at {} GMT) is found to be stopped, creating a new one", DateFormat.formatToTimeStr(sc.startTime()));
             sc = new JavaSparkContext(conf);
-        }
-
-        if (!"false".equals(System.getenv("kap.storage.columnar.enable-compression"))) {//it's a system env!!!
-            if (responseObserver instanceof ServerCallStreamObserver) {
-                logger.info("Setting response compression to gzip");
-                ((ServerCallStreamObserver) responseObserver).setCompression("gzip");
-            } else {
-                logger.warn("responseObserver is not ServerCallStreamObserver");
-            }
-        } else {
-            logger.info("Will not enable response compression.");
         }
 
         return new ServerStreamObserver(responseObserver, sc);
