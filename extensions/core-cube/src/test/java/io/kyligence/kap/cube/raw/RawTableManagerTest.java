@@ -41,7 +41,7 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testBasics() throws IOException {
-        final String cubeName = "test_kylin_cube_with_slr_empty";
+        final String cubeName = "ci_left_join_cube";
 
         // init
         RawTableManager mgr = RawTableManager.getInstance(getTestConfig());
@@ -66,7 +66,7 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
     @Test
     public void testCreateAndDrop() throws Exception {
         final String cubeName = "a_whole_new_rawtable";
-        final String cubeDesc = "test_kylin_cube_with_slr_desc";
+        final String cubeDesc = "ci_left_join_cube";
 
         // cube for raw dependency
         createCubeInstance(cubeName, cubeDesc);
@@ -119,7 +119,7 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testAutoMergeNormal() throws Exception {
-        String cubeName = "test_kylin_cube_with_slr_empty";
+        String cubeName = "ci_left_join_cube";
 
         CubeManager mgr = CubeManager.getInstance(getTestConfig());
         CubeInstance cube = mgr.getCube(cubeName);
@@ -181,7 +181,7 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testAutoMergeWithGap() throws Exception {
-        String cubeName = "test_kylin_cube_with_slr_empty";
+        String cubeName = "ci_left_join_cube";
 
         CubeManager mgr = CubeManager.getInstance(getTestConfig());
         CubeInstance cube = mgr.getCube(cubeName);

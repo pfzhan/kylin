@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceTool;
 import org.apache.kylin.cube.CubeDescManager;
@@ -35,13 +36,10 @@ import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.LocalTempMetadata;
 
 public class KAPDeployUtil {
-    private static final Logger logger = LoggerFactory.getLogger(KAPDeployUtil.class);
 
     public static void initCliWorkDir() throws IOException {
         execCliCommand("rm -rf " + getHadoopCliWorkingDir());
@@ -51,10 +49,11 @@ public class KAPDeployUtil {
     public static void deployMetadata() throws IOException {
         // install metadata to hbase
         ResourceTool.reset(config());
-        ResourceTool.copy(KylinConfig.createInstanceFromUri(LocalFileMetadataTestCase.KYLIN_META_TEST_DATA), config());
-        ResourceTool.copy(KylinConfig.createInstanceFromUri(LocalFileMetadataTestCase.KAP_META_TEST_DATA), config());
+        String tempMetadataDir = LocalTempMetadata.prepareLocalTempMetadata();
+        ResourceTool.copy(KylinConfig.createInstanceFromUri(tempMetadataDir), config());
+        FileUtils.deleteDirectory(new File(tempMetadataDir));
 
-        // update cube desc signature.
+        // update cube desc signature
         for (CubeInstance cube : CubeManager.getInstance(config()).listAllCubes()) {
             CubeDescManager.getInstance(config()).updateCubeDesc(cube.getDescriptor());//enforce signature updating
         }

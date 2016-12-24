@@ -28,7 +28,7 @@ public class RawTableDescManagerTest extends LocalFileMetadataTestCase {
     public void testBasics() throws IOException {
 
         RawTableDescManager mgr = RawTableDescManager.getInstance(getTestConfig());
-        final String name = "test_kylin_cube_with_slr_desc";
+        final String name = "ci_left_join_cube";
 
         // init
         RawTableDesc existing = mgr.getRawTableDesc(name);

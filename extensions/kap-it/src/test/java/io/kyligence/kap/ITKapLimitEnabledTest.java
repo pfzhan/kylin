@@ -56,7 +56,7 @@ public class ITKapLimitEnabledTest extends KylinTestBase {
     @Test
     public void testLimitEnabled() throws Exception {
         try {
-            RemoveBlackoutRealizationsRule.whiteList.add("INVERTED_INDEX[name=test_kylin_cube_with_slr_empty]");
+            RemoveBlackoutRealizationsRule.whiteList.add("INVERTED_INDEX[name=ci_inner_join_cube]");
 
             runSQL(new File(getQueryFolderPrefix() + "src/test/resources/query/sql_limit/query01.sql"), false, false);
             assertTrue(checkFinalPushDownLimit());
@@ -69,9 +69,9 @@ public class ITKapLimitEnabledTest extends KylinTestBase {
             runSQL(new File("src/test/resources/query/sql_limit/query01.sql"), false, false);
             assertTrue(checkFinalPushDownLimit());
 
-            RemoveBlackoutRealizationsRule.whiteList.remove("INVERTED_INDEX[name=test_kylin_cube_with_slr_empty]");
+            RemoveBlackoutRealizationsRule.whiteList.remove("INVERTED_INDEX[name=ci_inner_join_cube]");
 
-            RemoveBlackoutRealizationsRule.whiteList.add("CUBE[name=test_kylin_cube_with_slr_empty]");
+            RemoveBlackoutRealizationsRule.whiteList.add("CUBE[name=ci_inner_join_cube]");
 
             runSQL(new File(getQueryFolderPrefix() + "src/test/resources/query/sql_limit/query01.sql"), false, false);
             assertTrue(checkFinalPushDownLimit());
@@ -87,11 +87,11 @@ public class ITKapLimitEnabledTest extends KylinTestBase {
                 //expected
             }
 
-            RemoveBlackoutRealizationsRule.whiteList.remove("CUBE[name=test_kylin_cube_with_slr_empty]");
+            RemoveBlackoutRealizationsRule.whiteList.remove("CUBE[name=ci_inner_join_cube]");
 
         } finally {
-            RemoveBlackoutRealizationsRule.whiteList.remove("CUBE[name=test_kylin_cube_with_slr_empty]");
-            RemoveBlackoutRealizationsRule.whiteList.remove("INVERTED_INDEX[name=test_kylin_cube_with_slr_empty]");
+            RemoveBlackoutRealizationsRule.whiteList.remove("CUBE[name=ci_inner_join_cube]");
+            RemoveBlackoutRealizationsRule.whiteList.remove("INVERTED_INDEX[name=ci_inner_join_cube]");
         }
     }
 

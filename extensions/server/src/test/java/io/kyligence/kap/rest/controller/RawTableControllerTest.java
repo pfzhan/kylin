@@ -40,7 +40,7 @@ public class RawTableControllerTest extends ServiceTestBase {
 
     @Test
     public void testBasics() throws IOException {
-        RawTableDesc desc = descController.getDesc("test_kylin_cube_with_slr_ready");
+        RawTableDesc desc = descController.getDesc("ci_left_join_cube");
         Assert.assertNotNull(desc);
         RawTableDesc newDesc = new RawTableDesc();
         String newRawName = desc.getName() + "_test_save";

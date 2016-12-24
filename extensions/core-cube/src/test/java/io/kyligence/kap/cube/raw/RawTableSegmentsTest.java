@@ -30,7 +30,7 @@ public class RawTableSegmentsTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testAppendNonPartitioned() throws IOException {
-        String cubeName = "test_kylin_cube_with_slr_empty";
+        String cubeName = "ci_left_join_cube";
         CubeManager mgr = mgr();
         CubeInstance cube = mgr.getCube(cubeName);
 
@@ -66,12 +66,21 @@ public class RawTableSegmentsTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testAppendNonPartitioned2() throws IOException {
-        String cubeName = "test_kylin_cube_with_slr_ready";
+        String cubeName = "ci_left_join_cube";
         CubeManager mgr = mgr();
         CubeInstance cube = mgr.getCube(cubeName);
 
         RawTableManager rawMgr = RawTableManager.getInstance(getTestConfig());
         RawTableInstance raw = rawMgr.getRawTableInstance(cubeName);
+
+        // append the first
+        CubeSegment seg1 = mgr.appendSegment(cube, 0, 1000);
+        seg1.setStatus(SegmentStatusEnum.READY);
+        assertEquals(1, cube.getSegments().size());
+
+        RawTableSegment rawSeg1 = rawMgr.appendSegment(raw, seg1);
+        rawSeg1.setStatus(SegmentStatusEnum.READY);
+        assertEquals(1, raw.getSegments().size());
 
         // override partition desc
         cube.getModel().setPartitionDesc(new PartitionDesc());
@@ -112,7 +121,7 @@ public class RawTableSegmentsTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testPartitioned() throws IOException {
-        String cubeName = "test_kylin_cube_with_slr_left_join_empty";
+        String cubeName = "ci_left_join_cube";
         CubeManager mgr = mgr();
         CubeInstance cube = mgr.getCube(cubeName);
 
@@ -212,7 +221,7 @@ public class RawTableSegmentsTest extends LocalFileMetadataTestCase {
     @Test
     public void testAllowGap() throws IOException {
 
-        String cubeName = "test_kylin_cube_with_slr_left_join_empty";
+        String cubeName = "ci_left_join_cube";
         CubeManager mgr = mgr();
         CubeInstance cube = mgr.getCube(cubeName);
 

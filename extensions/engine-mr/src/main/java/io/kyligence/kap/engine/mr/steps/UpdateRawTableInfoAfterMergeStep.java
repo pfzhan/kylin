@@ -77,7 +77,6 @@ public class UpdateRawTableInfoAfterMergeStep extends AbstractExecutable {
         mergedSegment.setInputRecords(sourceCount);
         mergedSegment.setInputRecordsSize(sourceSize);
         mergedSegment.setLastBuildJobID(CubingExecutableUtil.getCubingJobId(this.getParams()));
-        mergedSegment.setIndexPath(CubingExecutableUtil.getIndexPath(this.getParams()));
         mergedSegment.setLastBuildTime(System.currentTimeMillis());
 
         try {

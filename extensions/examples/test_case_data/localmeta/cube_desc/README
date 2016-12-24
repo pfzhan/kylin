@@ -1,0 +1,3 @@
+The two CI cubes are (and must be) copied from Kylin and the only differences are:
+- add a PERCENTILE measure on PRICE
+- set storage_type and engine_type to 100

@@ -23,16 +23,12 @@ package io.kyligence.kap;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Map;
 
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.query.routing.Candidate;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import com.google.common.collect.Maps;
 
 /**
  */
@@ -64,27 +60,10 @@ public class ITKapCombinationTest extends ITKapKylinQueryTest {
 
     public ITKapCombinationTest(String joinType, Boolean rawTableFirst) throws Exception {
 
-        if (rawTableFirst) {
-            Map<RealizationType, Integer> priorities = Maps.newHashMap();
-            priorities.put(RealizationType.HYBRID, 1);
-            priorities.put(RealizationType.CUBE, 1);
-            priorities.put(RealizationType.INVERTED_INDEX, 0);
-            Candidate.setPriorities(priorities);
-            ITKapKylinQueryTest.rawTableFirst = true;
-        } else {
-            Map<RealizationType, Integer> priorities = Maps.newHashMap();
-            priorities.put(RealizationType.HYBRID, 0);
-            priorities.put(RealizationType.CUBE, 0);
-            priorities.put(RealizationType.INVERTED_INDEX, 0);
-            Candidate.setPriorities(priorities);
-            ITKapKylinQueryTest.rawTableFirst = false;
-        }
-
-        printInfo("Into combination join type: " + joinType);
-
+        ITKapKylinQueryTest.configure(joinType, rawTableFirst);
+        
         ITKapKylinQueryTest.clean();
 
-        ITKapKylinQueryTest.joinType = joinType;
         ITKapKylinQueryTest.setupAll();
     }
 }
