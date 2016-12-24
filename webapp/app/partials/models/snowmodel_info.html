@@ -1,5 +1,5 @@
 <div class="modal-header">
-  <h4 class="box-title lighter">table info</h4>
+  <h4 class="box-title lighter">{{dataKylin.snowModel.delTable}}</h4>
 </div>
 <div class="modal-body">
   <!--<div class="row">-->
@@ -19,14 +19,14 @@
       <!--<input type="radio" name="tabletype" id="ft" ng-model="table.kind" value="FACT" ng-checked="table.kind=='FACT'"/> <label for="ft">Fact Table</label>-->
       <!--<input type="radio" name="tabletype" id="lt" ng-model="table.kind" value="LOOKUP" ng-checked="table.kind=='LOOKUP'"/> <label for="lt">LookUp Table</label>-->
       <!--<span style="color:red" ng-show="hasRootfactError">已经有一个rootFact table了！</span>-->
-      <span style="color:red" ng-show="hasForeignKeysError">该表已经有外键，不能设置为rootFact table,请先删除外键！</span>
-      <span style="color:red" ng-show="hasUnRemoveLink">该表有未删除的关联，无法删除！</span>
+      <!--<span style="color:red" ng-show="hasForeignKeysError">{{dataKylin.tableHasLink}}</span>-->
+      <span style="color:red" ng-show="hasUnRemoveLink">{{dataKylin.snowModel.tableHasLink}}</span>
     <!--</div>-->
 
   <!--</div>-->
-  Are you sure delete it?
+  {{dataKylin.snowModel.delSnowModelTableTips}}
 </div>
 <div class="modal-footer">
-  <button class="btn btn-default" ng-click="cancel()">cancle</button>
-  <button class="btn btn-success" ng-click="remove()" ng-show="showRemoveBtn">remove</button>
+  <button class="btn btn-default" ng-click="cancel()">{{dataKylin.snowModel.cancel}}</button>
+  <button class="btn btn-success" ng-click="remove()">{{dataKylin.snowModel.ok}}</button>
 </div>

@@ -18,7 +18,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
     partitionTime:{},
     zoom:1,
     zoomRate:0.1,
-    changeTableInfo:null,
+    delTable:null,
     changeConnectType:null,
     addColumnToPartitionDate:null,
     addColumnToPartitionTime:null,
@@ -73,20 +73,20 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         //自己不能连自己
         if(info.sourceId==info.targetId){
           that.instance.detach(info.connection);
-          that.showTips('Cannot connect itself','error');
+          that.showTips('linklimit');
           return;
         }
         //rootFact不能连别人
         var rootFactTable=that.tableList.getRootFact();
         if(that.lastLink[0]&&rootFactTable&&rootFactTable.guid==that.lastLink[0].guid){
           that.instance.detach(info.connection);
-          that.showTips('RootTable cannot connect to other tables！','error');
+          that.showTips('rootlimit');
           return;
         }
 
         //不同类型的主外键关联预警
         if(that.lastLink[0].type!=that.lastLink[1].type){
-          that.showTips('Connected two column types are different','warn')
+          that.showTips('difftype')
         }
 
         that.connects[info.connection.id]=[that.lastLink[0].column,that.lastLink[1].column];
@@ -117,7 +117,6 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         increment: 0.1,
         duration: 100
       });
-      this.showToolbar();
       this.showMapControl();
       this.showActionBtn();
       for(var i=0;i<this.unDraggaleList.length;i++){
@@ -332,17 +331,11 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       }
       return count;
     },
-    showToolbar:function(){
-       var toolBarHtml='<div class="tipToolbar"><span class="snowFont snowFont1 relative">RF</span><span>Root Fact Table</span><span class="snowFont snowFont2 relative">F</span><span>Fact Table</span><span class="snowFont snowFont3 relative">L</span><span>Lookup Table</span><span class="snowFont snowFont5 relative">D</span><span>Dimension</span><span class="snowFont snowFont6 relative">M</span><span>Measure</span><span class="snowFont snowFont4 relative">-</span><span>Disable</span></div>';
-       $(toolBarHtml).insertAfter(this.container);
-    },
     showActionBtn:function(){
       if(this.actionLock){
         return;
       }
       var that=this;
-      var actionBar='<div class="bar_action"><span>Save</span><span>JSON</span></div>';
-      $(actionBar).insertAfter(this.container);
       this.container.nextAll('.bar_action').find('span').eq(0).click(function(){
         that.saveModel();
       })
@@ -351,18 +344,14 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       })
 
     },
-    showTips:function(msg,type){
-        if($('#tipsBox').length==0){
-          this.container.parent().append('<div class="tips_snow" id="tipsBox">'+msg+'</div>');
-        }
-        $('#tipsBox').html(msg).attr('class','tips_snow '+type).fadeIn(2000).fadeOut(400);
-
-
+    showTips:function(type){
+       var tipDom= this.container.parent().find('.'+type);
+       if(tipDom){
+         tipDom.fadeIn(2000).fadeOut(400);
+       }
     },
     showMapControl:function(){
       var that=this;
-      var mapControlHtml='<span class="plusHandle">+</span><span class="minusHandle">－</span>';
-      $(mapControlHtml).insertAfter(this.container);
       this.container.parent().find('.plusHandle').click(function(){
         if(that.zoom<that.maxZoom){
           that.setZoom(that.zoom+=that.zoomRate);
@@ -630,7 +619,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           return;
         }
         var tableObj=that.tableList.getTable('guid',tableBaseObject.guid);
-        that.changeTableInfo(tableBaseObject);
+        that.delTable(tableBaseObject);
       })
       boxDom.on('click','.snowDate',function(){
         if(that.checkLock()){
@@ -734,7 +723,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         }
           var rootFact=that.tableList.getRootFact();
           if(rootFact&&rootFact.guid==tableBaseObject.guid){
-            that.showTips('ROOTFACT Table Cant not change alias!','warn');
+            that.showTips('rootaliaslimit');
             return;
           }
           $(this).next().show().focus().val($(this).html().replace(aliasLabel,'')).select();
@@ -747,7 +736,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         var aliasInputVal=$(this).val().toUpperCase();
         var labelDom=$(this).prev();
         if(labelDom.html().replace(aliasLabel,'')!=aliasInputVal&&that.checkHasThisAlias(aliasInputVal,tableBaseObject.guid)){
-          that.showTips('Alias repetition！','error');
+          that.showTips('samealias');
         }else{
           $(this).hide();
           labelDom.show().html(aliasLabel+that.filterSpecialChar(aliasInputVal));

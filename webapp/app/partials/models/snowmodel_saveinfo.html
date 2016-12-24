@@ -1,27 +1,29 @@
 <div class="modal-header">
-  <h4 class="box-title lighter">model info</h4>
+  <h4 class="box-title lighter">{{dataKylin.snowModel.modelSaveInfo}}</h4>
 </div>
 <div class="modal-body">
   <div class="form-group">
     <div class="row">
-      <label class="col-xs-12 col-sm-3 no-padding-right align-right">Model Name:</label>
+      <label class="col-xs-12 col-sm-3 no-padding-right align-right">{{dataKylin.snowModel.modelName}}</label>
       <div class="col-xs-12 col-sm-6">
-        <input class="form-control" value="{{model.name}}" ng-model="model.name"><span style="color:red" ng-show="sameError">别名重复啦！</span>
+        <input class="form-control" value="{{model.name}}" ng-model="model.name">
       </div>
     </div>
   </div>
   <div class="form-group">
     <div class="row">
-      <label class="col-xs-12 col-sm-3 no-padding-right align-right">Description:</label>
+      <label class="col-xs-12 col-sm-3 no-padding-right align-right">{{dataKylin.snowModel.modelDescription}}</label>
       <div class="col-xs-12 col-sm-6">
-       <textarea  class="form-control box-default"
+       <textarea  class="form-control box-default" class="form-control box-default"
+                  placeholder="{{dataKylin.snowModel.modelFilterPlaceHolder}}"
+                  ng-disabled="cubesLength>0"
                  name="comment" id="comment" ng-model="model.description">{{model.description}}</textarea>
       </div>
     </div>
   </div>
   <div class="form-group">
     <div class="row">
-      <label class="col-xs-12 col-sm-3 no-padding-right align-right">Filter:</label>
+      <label class="col-xs-12 col-sm-3 no-padding-right align-right">{{dataKylin.snowModel.modelFilter}}</label>
       <div class="col-xs-12 col-sm-6">
        <textarea  class="form-control box-default"
                   name="comment" id="filter" ng-model="model.filter">{{model.description}}</textarea>
@@ -30,6 +32,6 @@
   </div>
 </div>
 <div class="modal-footer">
-  <button class="btn btn-default" ng-click="cancel()">cancle</button>
-  <button class="btn btn-success" ng-click="saveModel();">save</button>
+  <button class="btn btn-default" ng-click="cancel()">{{dataKylin.snowModel.cancel}}</button>
+  <button class="btn btn-success" ng-click="saveModel();">{{dataKylin.snowModel.save}}</button>
 </div>

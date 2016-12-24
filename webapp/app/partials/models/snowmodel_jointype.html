@@ -1,9 +1,9 @@
 <div class="modal-header">
-  <h4 class="box-title lighter">join info</h4>
+  <h4 class="box-title lighter">{{dataKylin.snowModel.joinTypeSet}}</h4>
 </div>
 <div class="modal-body">
   <div class="row">
-    <label class="col-xs-12 col-sm-3 no-padding-right align-right">Join Type:</label>
+    <label class="col-xs-12 col-sm-3 no-padding-right align-right">{{dataKylin.snowModel.joinType}}</label>
     <div class="col-xs-12 col-sm-6">
       <input type="radio" name="tabletype" id="inner" ng-model="link.type" value="inner" ng-checked="link.type=='inner'"/> <label for="inner">inner</label>
       <input type="radio" name="tabletype" id="left" ng-model="link.type" value="left" ng-checked="link.type=='left'"/> <label for="left">left</label>
@@ -11,7 +11,7 @@
   </div>
 </div>
 <div class="modal-footer">
-  <button class="btn btn-default" ng-click="cancel()">cancle</button>
-  <button class="btn btn-warn" ng-click="remove()">remove</button>
-  <button class="btn btn-success" ng-click="editJoinType();">save</button>
+  <button class="btn btn-default" ng-click="cancel()">{{dataKylin.snowModel.cancel}}</button>
+  <button class="btn btn-warn" ng-click="remove()">{{dataKylin.snowModel.remove}}</button>
+  <button class="btn btn-success" ng-click="editJoinType();">{{dataKylin.snowModel.save}}</button>
 </div>

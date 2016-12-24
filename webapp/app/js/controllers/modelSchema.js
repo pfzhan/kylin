@@ -159,13 +159,12 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
           })
         }
       })
-      //修改snowTable信息弹窗
-      function openSnowTableInfoDialog(table,callback){
-        var snowTableInfoCtrl=function($scope, $modalInstance,table){
-          if(typeof callback=='function'){
-            table.alias='';
-          }
+      //删除table弹窗
+      function openDelDialog(table,callback){
+        var delTableCtrl=function($scope, $modalInstance,table,scope){
           $scope.table=table;
+          $scope.dataKylin=scope.dataKylin;
+          console.log($scope.dataKylin)
           $scope.cancel = function () {
             $modalInstance.dismiss('cancel');
           }
@@ -179,53 +178,17 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
             }
 
           }
-          var oldAlias=table.alias;
-          if(DrawHelper.tableList.getTable('guid',table.guid)){
-            $scope.showRemoveBtn=true;
-          }
-          $scope.editTableInfo=function(){
-            //监测是否有重复的别名
-            if(oldAlias!=table.alias&&DrawHelper.checkHasThisAlias(table.alias)){
-              $scope.sameError=true;
-              return;
-            }
-            var rootFactTable=DrawHelper.tableList.getRootFact();
-            if(table.kind=='ROOTFACT'&&rootFactTable&&rootFactTable.guid!=table.guid){
-              $scope.hasRootfactError=true;
-              return;
-            }
-            if(table.kind=='ROOTFACT'){
-              if(DrawHelper.getForeignKeyCount(table.guid)>0){
-                $scope.hasForeignKeysError=true;
-                return;
-              }
-              table.alias=table.name;
-            }
-            //更新 数据仓库里的别名和表类型
-            DrawHelper.tableList.update('table',table.guid,{
-              alias:table.alias,
-              kind:table.kind
-            });
-            DrawHelper.changeAliasList(oldAlias,table.alias);
-            if(typeof callback=='function'){
-              callback(table);
-            }else{
-              //更新 界面的的别名和表类型
-              DrawHelper.refreshAlias(table.guid,table.alias);
-              DrawHelper.refreshTableKind(table.guid,table.kind);
-
-            }
-            $modalInstance.dismiss('cancel');
-          }
         }
         var modalInstance = $modal.open({
           windowClass:'modal_snowtableInfo',
           templateUrl: 'partials/models/snowmodel_info.html',
-          controller: snowTableInfoCtrl,
+          controller: delTableCtrl,
           backdrop: 'static',
           resolve:{
             table:function() {
               return table;
+            },scope:function(){
+              return $scope;
             }
           }
         });
@@ -233,8 +196,9 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
 
       //选择join类型弹窗
       function openSelectJoinTypeDialog(conn){
-        var snowTableJoinTypeCtrl=function($scope,$modalInstance,conn){
+        var snowTableJoinTypeCtrl=function($scope,$modalInstance,conn,scope){
           var linkData=DrawHelper.connects[conn.id];
+          $scope.dataKylin=scope.dataKylin;
           if(linkData){
             $scope.link={};
             $scope.link.type=linkData[2]||'inner';
@@ -263,6 +227,8 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
           resolve:{
             conn:function(){
               return conn;
+            },scope:function(){
+              return $scope;
             }
           }
         });
@@ -271,10 +237,11 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
 
       //选择date类型弹窗
       function openDateFormatTypeDialog(callback,whatDate){
-        var dateFormatTypeCtrl=function($scope,$modalInstance,callback,cubeConfig,whatDate){
+        var dateFormatTypeCtrl=function($scope,$modalInstance,callback,cubeConfig,whatDate,scope){
           $scope.callback=callback;
           $scope.formatDateType='yyyyMMdd';
-          $scope.formatTimeType='HH:mm:ss'
+          $scope.formatTimeType='HH:mm:ss';
+          $scope.dataKylin=scope.dataKylin;
           if(whatDate.type=='date'&&!DrawHelper.isNullObj(DrawHelper.partitionDate)||whatDate.type=='time'&&!DrawHelper.isNullObj(DrawHelper.partitionTime)){
             $scope.showRemoveBtn=true;
           }
@@ -310,13 +277,17 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
             },
             whatDate:function(){
               return whatDate;
+            },
+            scope:function(){
+              return $scope;
             }
           }
         });
       }
       //弹出json内容
       function openJsonDialog(){
-        var snowJsonCtr=function($scope,$modalInstance){
+        var snowJsonCtr=function($scope,$modalInstance,scope){
+            $scope.dataKylin=scope.dataKylin;
             $scope.snowModelJson=angular.toJson(DrawHelper.plumbDataToKylinData(),true);
             $scope.cancel = function () {
               $modalInstance.dismiss('cancel');
@@ -328,13 +299,16 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
           controller: snowJsonCtr,
           backdrop: 'static',
           resolve:{
-
+            scope:function(){
+              return $scope;
+            }
           }
         });
       }
-//model 保存弹窗
+      //model 保存弹窗
       function openModelSaveDialog(conn){
         var snowModelSaveCtrl=function($scope,$modalInstance,SweetAlert,VdmUtil,scope,MessageService,loadingRequest,$location){
+         $scope.dataKylin=scope.dataKylin;
          if(DrawHelper.kylinData){
            $scope.model={name:DrawHelper.kylinData.name, description:DrawHelper.kylinData.description, filter:DrawHelper.kylinData.filter_condition};
          }else{
@@ -452,7 +426,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
             $scope.lookupLength=modelsEdit.selectedModel.lookups.length;
 
             DrawHelper.init({
-              changeTableInfo:openSnowTableInfoDialog,
+              delTable:openDelDialog,
               changeConnectType:openSelectJoinTypeDialog,
               addColumnToPartitionDate:openDateFormatTypeDialog,
               addColumnToPartitionTime:openDateFormatTypeDialog,
@@ -468,7 +442,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,Q
         //init project
       }else{
         DrawHelper.init({
-          changeTableInfo:openSnowTableInfoDialog,
+          delTable:openDelDialog,
           changeConnectType:openSelectJoinTypeDialog,
           addColumnToPartitionDate:openDateFormatTypeDialog,
           addColumnToPartitionTime:openDateFormatTypeDialog,

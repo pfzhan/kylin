@@ -1,11 +1,12 @@
 <div class="modal-header">
-  <h4 class="box-title lighter">date format</h4>
+  <h4 class="box-title lighter" ng-if="whatDate.type=='date'">{{dataKylin.snowModel.dateFormat}}</h4>
+  <h4 class="box-title lighter" ng-if="whatDate.type=='time'">{{dataKylin.snowModel.timeFormat}}</h4>
 </div>
 <div class="modal-body">
   <!--Date Format  -->
   <div class="form-group" >
     <div class="row">
-      <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default align-right"><b>类型:</b></label>
+      <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default align-right"><b>{{dataKylin.snowModel.format}}</b></label>
       <div class="col-xs-12 col-sm-6">
         <select style="width: 100%" chosen
 
@@ -25,8 +26,8 @@
   </div>
 </div>
 <div class="modal-footer">
-  <button class="btn btn-default" ng-click="cancel()">cancle</button>
-  <button class="btn btn-warn" ng-click="remove()" ng-show="showRemoveBtn">remove</button>
-  <button class="btn btn-success" ng-click="editDateFormatType();">save</button>
+  <button class="btn btn-default" ng-click="cancel()">{{dataKylin.snowModel.cancel}}</button>
+  <button class="btn btn-warn" ng-click="remove()" ng-show="showRemoveBtn">{{dataKylin.snowModel.remove}}</button>
+  <button class="btn btn-success" ng-click="editDateFormatType();">{{dataKylin.snowModel.save}}</button>
 </div>
 
