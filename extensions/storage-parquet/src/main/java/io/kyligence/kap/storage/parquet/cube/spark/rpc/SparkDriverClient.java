@@ -37,7 +37,7 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.debug.BackdoorToggles;
+import org.apache.kylin.common.QueryContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -210,7 +210,7 @@ public class SparkDriverClient {
                                     @Override
                                     public Iterator<SparkJobProtos.SparkJobResponse.ShardBlob> apply(@Nullable SparkJobProtos.SparkJobResponse sparkJobResponse) {
                                         logger.info("Time for the {}th gRPC response message of query {} from spark instance {} visit is {}", //
-                                                responseCount, BackdoorToggles.getQueryId(), sparkJobResponse.getSparkInstanceIdentifier(), (System.currentTimeMillis() - startTime));
+                                                responseCount, QueryContext.getQueryId(), sparkJobResponse.getSparkInstanceIdentifier(), (System.currentTimeMillis() - startTime));
                                         responseCount.increment();
                                         return sparkJobResponse.getShardBlobsList().iterator();
                                     }

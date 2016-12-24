@@ -29,7 +29,7 @@ import java.util.List;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.debug.BackdoorToggles;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.gridtable.GTInfo;
@@ -95,7 +95,7 @@ public class CubeSparkRPC implements IGTStorage {
         SparkDriverClientParams sparkDriverClientParams = new SparkDriverClientParams(KylinConfig.getInstanceFromEnv().getConfigAsString(), //
                 RealizationType.CUBE.toString(), cubeSegment.getCubeInstance().getUuid(), cubeSegment.getUuid(), String.valueOf(cuboid.getId()), // 
                 scanRequest.getInfo().getMaxLength(), getRequiredParquetColumns(scanRequest), KapConfig.getInstanceFromEnv().isUsingInvertedIndex(), //
-                BackdoorToggles.getQueryId());
+                QueryContext.getQueryId());
         logger.info("Filter: {}", scanRequest.getFilterPushDown());
 
         final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest.toByteArray(), sparkDriverClientParams);
