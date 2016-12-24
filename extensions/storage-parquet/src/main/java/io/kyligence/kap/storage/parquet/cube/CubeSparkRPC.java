@@ -24,12 +24,17 @@
 
 package io.kyligence.kap.storage.parquet.cube;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.gridtable.GTInfo;
@@ -38,11 +43,14 @@ import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.kylin.gridtable.IGTStorage;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.realization.RealizationType;
+import org.apache.kylin.storage.gtrecord.DummyPartitionStreamer;
 import org.apache.kylin.storage.gtrecord.StorageResponseGTScatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.UnmodifiableIterator;
 
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.IStorageVisitResponseStreamer;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
@@ -98,7 +106,45 @@ public class CubeSparkRPC implements IGTStorage {
                 QueryContext.getQueryId());
         logger.info("Filter: {}", scanRequest.getFilterPushDown());
 
+        if (BackdoorToggles.getDumpedPartitionDir() != null) {
+            logger.info("debugging: use previously dumped partition from {} instead of real requesting from storage", BackdoorToggles.getDumpedPartitionDir());
+            return new StorageResponseGTScatter(info, new DummyPartitionStreamer(new PartitionIteratorFromDir(BackdoorToggles.getDumpedPartitionDir())), scanRequest.getColumns(), 0, scanRequest.getStoragePushDownLimit());
+        }
+
         final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest.toByteArray(), sparkDriverClientParams);
         return new StorageResponseGTScatter(info, storageVisitResponseStreamer, scanRequest.getColumns(), 0, scanRequest.getStoragePushDownLimit());
+
+    }
+
+    //only for debug/profile purpose
+    private static class PartitionIteratorFromDir extends UnmodifiableIterator<byte[]> {
+
+        private final UnmodifiableIterator<File> fileUnmodifiableIterator;
+
+        public PartitionIteratorFromDir(String dirStr) {
+            File dir = new File(dirStr);
+
+            if (!dir.exists() || !dir.isDirectory() || dir.listFiles().length == 0) {
+                throw new IllegalArgumentException("{} is not legal dir for BytesIteratorFromDir");
+            }
+
+            File[] files = dir.listFiles();
+            fileUnmodifiableIterator = Iterators.forArray(files);
+        }
+
+        @Override
+        public boolean hasNext() {
+            return fileUnmodifiableIterator.hasNext();
+        }
+
+        @Override
+        public byte[] next() {
+            File next = fileUnmodifiableIterator.next();
+            try (InputStream in = new FileInputStream(next)) {
+                return IOUtils.toByteArray(in);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }
