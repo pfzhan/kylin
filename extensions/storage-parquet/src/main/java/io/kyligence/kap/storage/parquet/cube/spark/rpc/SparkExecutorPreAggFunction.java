@@ -98,8 +98,8 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
             throw new IllegalArgumentException("Unsupported realization type " + realizationType);
         }
 
-        long deadline = gtScanRequest.getTimeout() + localStartTime;
-        logger.info("Local start time is {} and the deadline is {}", localStartTime, deadline);
+        long deadline = gtScanRequest.getTimeout() + gtScanRequest.getStartTime();
+        logger.info("Start latency is {}, the deadline is {}", localStartTime - gtScanRequest.getStartTime(), deadline);
 
         IGTScanner preAggred = gtScanRequest.decorateScanner(scanner, behavior.filterToggledOn(), behavior.aggrToggledOn(), deadline);
 
@@ -110,22 +110,24 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
         long counter = 0;
         while (gtIterator.hasNext()) {
 
-            //check deadline
-            if (counter % GTScanRequest.terminateCheckInterval == 1 && System.currentTimeMillis() > deadline) {
-                throw new GTScanTimeoutException("Timeout in GTAggregateScanner with scanned count " + counter);
-            }
-
             GTRecord row = gtIterator.next();
             ByteArray byteArray = function.apply(row);
             baos.write(byteArray.array(), 0, byteArray.length());
 
             counter++;
 
-            //if it's doing storage aggr, then should rely on GTAggregateScanner's limit check
-            if (!gtScanRequest.isDoingStorageAggregation() && counter >= gtScanRequest.getStoragePushDownLimit()) {
-                //read one more record than limit
-                logger.info("The finalScanner aborted because storagePushDownLimit is satisfied");
-                break;
+            if (!gtScanRequest.isDoingStorageAggregation()) {
+                //if it's doing storage aggr, then should rely on GTAggregateScanner's check deadline
+                if (counter % GTScanRequest.terminateCheckInterval == 1 && System.currentTimeMillis() > deadline) {
+                    throw new GTScanTimeoutException("Timeout in GTAggregateScanner with scanned count " + counter);
+                }
+
+                //if it's doing storage aggr, then should rely on GTAggregateScanner's limit check
+                if (counter >= gtScanRequest.getStoragePushDownLimit()) {
+                    //read one more record than limit
+                    logger.info("The finalScanner aborted because storagePushDownLimit is satisfied");
+                    break;
+                }
             }
         }
 
