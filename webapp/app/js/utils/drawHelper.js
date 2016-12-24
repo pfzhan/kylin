@@ -511,7 +511,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
     refreshTableKind:function(tableName,kind){
       this.getTableDom(tableName).find('.tableKind').replaceWith(this.renderTableKind(kind)).end().removeClass('isfact').removeClass('islookup');
 
-      if(kind=='fact'||kind=='rootfact'){
+      if(kind=='FACT'||kind=='ROOTFACT'){
         this.getTableDom(tableName).addClass('isfact');
       }else{
         this.getTableDom(tableName).addClass('islookup');
@@ -690,6 +690,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         that.tableList.update('guid',tableBaseObject.guid,{
           kind:that.tableKind[index]
         });
+        that.refreshTableKind(tableBaseObject.guid,that.tableKind[index]);
         if(willKind=='ROOTFACT'){
           that.tableList.update('guid',tableBaseObject.guid,{
             alias:tableBaseObject.name

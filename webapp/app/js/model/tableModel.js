@@ -292,7 +292,7 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,String
     * */
    this.getTableDatail=function(filterName){
       var filterList=filterName.split('.'),result=[];
-      for(var i= 0,len=this.tableOriginalData.length||0;i<len;i++){
+      for(var i= 0,len=this.tableOriginalData&&this.tableOriginalData.length||0;i<len;i++){
         if(filterList){
           if(filterList.length==1&&this.tableOriginalData[i].database==filterList[0]){
             result.push(this.tableOriginalData[i]);
