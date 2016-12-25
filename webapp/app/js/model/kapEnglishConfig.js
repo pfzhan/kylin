@@ -998,6 +998,7 @@ KylinApp.constant('kapEnglishConfig', {
     joinType:'Join Type:',
     jsonDesc:'Model JSON format data preview',
     modelSaveInfo:'Save model  information',
-    modelFilterPlaceHolder:'The filter condition, no clause \'WHERE\' needed'
+    modelFilterPlaceHolder:'The filter condition, no clause \'WHERE\' needed',
+    errorRepeat:'A model already exists using this name！'
   }
 });

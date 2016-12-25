@@ -129,6 +129,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
 
       return this;
     },
+    projectName:'',
     kylinData:null,
     //kylin数据转化未plumbjs效果
     kylinDataToJsPlumbData:function(){
@@ -142,7 +143,9 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
          alias:factTable.replace(/[^.]+\./g,'')
        }]
        tableBaseList=tableBaseList.concat(cloneData.lookups);
-       var projectName=ProjectModel.getProjectByCubeModel(cloneData.name)
+       var projectName=ProjectModel.getProjectByCubeModel(cloneData.name);
+       this.projectName=projectName;
+
        TableModel.initTableData(loadTableFunc,projectName)
        function loadTableFunc(){
          //加载table基础信息到面板
@@ -766,9 +769,9 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       boxDom.find('.input_alias,p').mousedown(function(e){
         e.stopPropagation();
       })
-      //this.container.mouseup(function(){
-      //  boxDom.find('p').eq(0).click();
-      //})
+      $('body').on('click',function(){
+        that.container.parent().find('.tableColumnInfoBox').fadeOut();
+      })
       return this;
     },
 

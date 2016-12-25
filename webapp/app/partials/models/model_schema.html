@@ -67,6 +67,64 @@
   <div id="snowBox" class="snowBox">
 
   </div>
+
+  <div  class="tableColumnInfoBox snowBoxShadow" >
+    <div class="titleOfInfo"><span class="bigtitle">{{columnName}}</span><span> {{dataKylin.data_source.metaData}}</span></div>
+    <table class="table table-bordered  list">
+      <tr>
+        <th style="width:130px">Name</th>
+        <th>Value</th>
+      </tr>
+      <tr>
+        <td style="width:130px">{{dataKylin.cube.cubeASDatatype}}</td>
+        <td>{{columnType}}</td>
+      </tr>
+      <tr>
+        <td style="width:130px">{{dataKylin.data_source.cardinality}}</td>
+        <td>{{ specialData[columnIndex].cardinality }}</td>
+      </tr>
+      <tr>
+        <td>{{dataKylin.data_source.maxValue}}</td>
+        <td>{{ specialData[columnIndex].max_value }}</td>
+      </tr>
+      <tr>
+        <td>{{dataKylin.data_source.minValue}}</td>
+        <td>{{ specialData[columnIndex].min_value }}</td>
+      </tr>
+      <tr>
+        <td>{{dataKylin.data_source.maxLengthValue}}</td>
+        <td>{{ specialData[columnIndex].max_length_value }}</td>
+      </tr>
+      <tr>
+        <td>{{dataKylin.data_source.minLengthValue}}</td>
+        <td>{{ specialData[columnIndex].min_length_value }}</td>
+      </tr>
+      <tr>
+        <td>{{dataKylin.data_source.nullCount}}</td>
+        <td>{{ specialData[columnIndex].null_count }}</td>
+      </tr>
+    </table>
+    <br>
+    <div class="titleOfInfo"> <span class="bigtitle" >{{tableName}}</span><span> {{dataKylin.data_source.sampleData}}</span></div>
+    <div style="overflow-y: auto" ng-if="columnList&&columnList.length">
+      <table class="table table-hover table-bordered table-striped list">
+        <thead>
+        <tr >
+          <th>Row</th>
+          <th ng-repeat="column in columnList " id="{{column.name}}">{{column.name}}</th>
+        </tr>
+        </thead>
+        <tr ng-repeat="list in sampleData track by $index">
+          <td>{{$index+1}}</td>
+          <td ng-repeat="sd in sampleData[$index] track by $index">
+            {{sd}}
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+
   <div class="bar_action" ng-if="state.mode!='view'"><span>{{dataKylin.snowModel.save}}</span><span>JSON</span></div>
   <span class="plusHandle" title="{{dataKylin.snowModel.zoomIn}}">+</span><span title="{{dataKylin.snowModel.zoomOut}}" class="minusHandle">－</span>
   <div class="tipToolbar"><span class="snowFont snowFont1 relative">RF</span><span>{{dataKylin.snowModel.rootFactTable}}</span><span class="snowFont snowFont2 relative">F</span><span>{{dataKylin.snowModel.factTable}}</span><span class="snowFont snowFont3 relative">L</span><span>{{dataKylin.snowModel.loopUpTable}}</span><span class="snowFont snowFont5 relative">D</span><span>{{dataKylin.snowModel.dimension}}</span><span class="snowFont snowFont6 relative">M</span><span>{{dataKylin.snowModel.measure}}</span><span class="snowFont snowFont4 relative">-</span><span>{{dataKylin.snowModel.disable}}</span></div>

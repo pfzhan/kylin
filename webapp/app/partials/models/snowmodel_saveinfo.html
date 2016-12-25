@@ -6,7 +6,8 @@
     <div class="row">
       <label class="col-xs-12 col-sm-3 no-padding-right align-right">{{dataKylin.snowModel.modelName}}</label>
       <div class="col-xs-12 col-sm-6">
-        <input class="form-control" value="{{model.name}}" ng-model="model.name">
+        <input class="form-control" value="{{model.name}}" ng-model="model.name" ng-disabled="{{model.uuid}}">
+        <small class="help-block" style="color:red" ng-show="validate.errorRepeatName">{{dataKylin.snowModel.errorRepeat}}</small>
       </div>
     </div>
   </div>
@@ -16,7 +17,7 @@
       <div class="col-xs-12 col-sm-6">
        <textarea  class="form-control box-default" class="form-control box-default"
                   placeholder="{{dataKylin.snowModel.modelFilterPlaceHolder}}"
-                  ng-disabled="cubesLength>0"
+                  ng-disabled="cubeLen>0"
                  name="comment" id="comment" ng-model="model.description">{{model.description}}</textarea>
       </div>
     </div>

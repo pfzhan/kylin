@@ -998,6 +998,7 @@ KylinApp.constant('kapChineseConfig', {
     joinType:'连接类型:',
     jsonDesc:'模型json格式数据预览',
     modelSaveInfo:'保存模型基础信息',
-    modelFilterPlaceHolder: '请输入WHERE条件，不需要输入\'WHERE\''
+    modelFilterPlaceHolder: '请输入WHERE条件，不需要输入\'WHERE\'',
+    errorRepeat:'已经存在使用该名称的模型！'
   }
 });
