@@ -320,10 +320,8 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
             DrawHelper.instanceDiscribe=$scope.model.description;
             DrawHelper.filterStr=$scope.model.filter;
             $scope.validate={};
-            if(!$scope.checkModelName($scope.model.name)){
-              $scope.validate.errorRepeatName=true;
-              return;
-            }
+
+
 
             var saveData;
             try {
@@ -333,6 +331,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
               return;
             }
             if(DrawHelper.kylinData){
+
                var updateModelData= $.extend({},DrawHelper.kylinData,saveData);
                ModelService.update({}, {
                 modelDescData:VdmUtil.filterNullValInObj(updateModelData),
@@ -349,7 +348,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
                   //$scope.saveModelRollBack();
                   var message =request.message;
                   var msg = !!(message) ? message : scope.dataKylin.alert.error_info;
-                  MessageService.sendMsg($scope.modelResultTmpl({'text':msg,'schema':''}), 'error', {}, true, 'top_center');
+                  MessageService.sendMsg(scope.modelResultTmpl({'text':msg,'schema':''}), 'error', {}, true, 'top_center');
                 }
                 //end loading
                 loadingRequest.hide();
@@ -360,13 +359,17 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
                   var message =e.data.exception;
                   var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
 
-                  MessageService.sendMsg($scope.modelResultTmpl({'text':msg,'schema':''}), 'error', {}, true, 'top_center');
+                  MessageService.sendMsg(scope.modelResultTmpl({'text':msg,'schema':''}), 'error', {}, true, 'top_center');
                 } else {
-                  MessageService.sendMsg($scope.modelResultTmpl({'text':scope.dataKylin.alert.error_info,'schema':''}), 'error', {}, true, 'top_center');
+                  MessageService.sendMsg(scope.modelResultTmpl({'text':scope.dataKylin.alert.error_info,'schema':''}), 'error', {}, true, 'top_center');
                 }
                 loadingRequest.hide();
               });
             }else{
+              if(!$scope.checkModelName($scope.model.name)){
+                $scope.validate.errorRepeatName=true;
+                return;
+              }
               ModelService.save({}, {
                 modelDescData:VdmUtil.filterNullValInObj(saveData),
                 project: scope.state.project

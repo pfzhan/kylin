@@ -6,7 +6,7 @@
     <div class="row">
       <label class="col-xs-12 col-sm-3 no-padding-right align-right">{{dataKylin.snowModel.modelName}}</label>
       <div class="col-xs-12 col-sm-6">
-        <input class="form-control" value="{{model.name}}" ng-model="model.name" ng-disabled="{{model.uuid}}">
+        <input class="form-control" value="{{model.name}}" ng-model="model.name" ng-disabled="{{!!model.uuid}}">
         <small class="help-block" style="color:red" ng-show="validate.errorRepeatName">{{dataKylin.snowModel.errorRepeat}}</small>
       </div>
     </div>
