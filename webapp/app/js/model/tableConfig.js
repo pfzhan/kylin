@@ -31,14 +31,4 @@ KylinApp.constant('tableConfig', {
     {attr: 'comment', name: 'Comment'}
   ],
   dataTypes:["tinyint","smallint","int","bigint","float","double","decimal","timestamp","date","string","varchar(256)","char","boolean","binary"]
-  ,
-  usertheaditems: [
-    {attr: 'username', name: 'Username'},
-    {attr: 'admin', name: 'Admin'},
-    {attr: 'modeler', name: 'Modeler'},
-    {attr: 'analyst', name: 'Analyst'},
-    {attr: 'disabled', name: 'Status'}
-  ],
-
-
 });

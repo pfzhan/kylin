@@ -41,13 +41,13 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       }
     },
     init:function(para){
-      $.extend(this,para);
-      this.boxWidth=$('#'+this.containerId).width();
-      this.boxHeight=$('#'+this.containerId).height();
-      var that=this;
       this.container=$('#'+this.containerId);
+      $.extend(this,para);
+      //this.boxWidth=this.container.width();
+      //this.boxHeight=this.container.height();
+      var that=this;
       this.container.css({width:this.containerSize.width+'px',height:this.containerSize.height+'px',left:(-this.containerSize.width+this.container.parent().width())/2+'px',top:(-this.containerSize.height+this.container.parent().height())/2+'px'})
-      this.container.parent().css({'height':this.boxHeight+'px','overflow':'hidden'});
+      this.container.parent().css({'height':$(window).height()+'px','overflow':'hidden'});
       this.instance = jsPlumb.getInstance({
           DragOptions: { cursor: 'pointer', zIndex: 2000},
           PaintStyle: {width: 25, height: 21, strokeStyle: '#66a8fa' },
@@ -62,7 +62,6 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
             [ "Label", {location: 0.1,id: "label",cssClass: "aLabel"}]
           ]
       });
-      var that=this;
       //全局链接事件
       this.instance.bind("connection", function (info, originalEvent) {
         if(that.checkLock()&&that.beginDrag){
@@ -155,6 +154,8 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
              tableBaseList[i].columns= $.extend(true,[],tableDetail[0].columns);
              tableBaseList[i].pos=[],
              tableBaseList[i].guid=that.guid();
+             tableBaseList[i].name=tableBaseList[i].table.replace(/[^.]+\./g,'');
+             tableBaseList[i].table=tableBaseList[i].table;
              for(var m=0;m<tableBaseList[i].columns.length;m++){
                if(tableBaseList[i].alias+'.'+tableBaseList[i].columns[m].name==cloneData.partition_desc.partition_date_column){
                  that.partitionDate[tableBaseList[i].guid]={
@@ -339,10 +340,11 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         return;
       }
       var that=this;
-      this.container.nextAll('.bar_action').find('span').eq(0).click(function(){
+      var barActionBtn=this.container.nextAll('.bar_action').find('span');
+      barActionBtn.eq(0).click(function(){
         that.saveModel();
       })
-      this.container.nextAll('.bar_action').find('span').eq(1).click(function(){
+      barActionBtn.eq(1).click(function(){
         that.openJsonDialog();
       })
 
@@ -366,7 +368,6 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         }
 
       })
-
     },
     tableKindAlias:['RF','F','L'],
     tableKind:['ROOTFACT','FACT','LOOKUP'],
@@ -400,32 +401,6 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       var canSetTimePartion=['time','timestamp','string'];
       var needNotSetDateFormat=['bigint','int','integer'];
       var domHtml='';
-      //if(canSetDatePartion.indexOf(columnType)>=0&&canSetTimePartion.indexOf(columnType)>=0||columnType.indexOf('varchar')>=0){
-      //  //设置日期
-      //  if(needNotSetDateFormat.indexOf(columnType)>=0){
-      //    domHtml+= '<i class="fa fa-calendar snowclock noFormat snowDate" ></i>';
-      //    domHtml+= '<i class="fa fa-clock-o snowclock  noFormat snowTime" ></i>';
-      //  }else{
-      //    domHtml+= '<i class="fa fa-calendar snowclock snowDate" ></i>';
-      //    domHtml+= '<i class="fa fa-clock-o snowclock  snowTime" ></i>';
-      //  }
-      //}else if(canSetDatePartion.indexOf(columnType)>=0||columnType.indexOf('varchar')>=0){
-      //  if(needNotSetDateFormat.indexOf(columnType)>=0){
-      //    domHtml+= '<i class="fa fa-calendar snowclock noFormat snowDate" ></i>';
-      //    domHtml+= '<i class="fa fa-clock-o snowclock noshow noFormat snowTime" ></i>';
-      //  }else{
-      //    domHtml+= '<i class="fa fa-calendar snowclock snowDate" ></i>';
-      //    domHtml+= '<i class="fa fa-clock-o snowclock noshow snowTime" ></i>';
-      //  }
-      //}else if(canSetTimePartion.indexOf(columnType)>=0||columnType.indexOf('varchar')>=0){
-      //  if(needNotSetDateFormat.indexOf(columnType)>=0){
-      //    domHtml+= '<i class="fa fa-clock-o snowclock noFormat snowTime"></i>';
-      //    domHtml+= '<i class="fa fa-calendar snowclock noshow noFormat snowDate" ></i>';
-      //  }else{
-      //    domHtml+= '<i class="fa fa-clock-o snowclock snowTime"></i>';
-      //    domHtml+= '<i class="fa fa-calendar snowclock noshow snowDate" ></i>';
-      //  }
-      //}
       var timeClass='fa fa-clock-o snowclock snowTime',dateClass='fa fa-calendar snowclock snowDate';
       if(needNotSetDateFormat.indexOf(columnType)>=0){
         timeClass+=' noshow';
@@ -720,7 +695,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           kind:that.tableKind[index]
         });
         that.refreshTableKind(tableBaseObject.guid,that.tableKind[index]);
-        if(willKind=='ROOTFACT'){
+        if(that.tableKind[index]=='ROOTFACT'){
           that.tableList.update('guid',tableBaseObject.guid,{
             alias:tableBaseObject.name
           });
@@ -771,6 +746,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       })
       $('body').on('click',function(){
         that.container.parent().find('.tableColumnInfoBox').fadeOut();
+        that.container.find('.input_alias:visible').blur();
       })
       return this;
     },

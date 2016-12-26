@@ -12,5 +12,13 @@ KylinApp.factory('StringHelper', function ($modal, $timeout, $location, $anchorS
         return '';
       }
     },
+    cutStr:function(str,len,replaceStr){
+      if(str){
+        if(str.length>len){
+          str=str.substr(0,len)+replaceStr;
+        }
+      }
+      return str;
+    }
   }
 });
