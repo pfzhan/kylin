@@ -98,7 +98,7 @@ public class KapMergeCuboidJob extends KapCuboidJob {
             job.setPartitionerClass(ShardCuboidPartitioner.class);
 
             job.setReducerClass(CuboidReducer.class);
-            job.setOutputFormatClass(ParquetCubeOutputFormat.class);
+            job.setOutputFormatClass(getOutputFormat());
             job.setOutputKeyClass(Text.class);
             job.setOutputValueClass(Text.class);
 
@@ -142,5 +142,9 @@ public class KapMergeCuboidJob extends KapCuboidJob {
 
     protected Class<? extends FileInputFormat> getInputFormat() {
         return ParquetTarballFileInputFormat.class;
+    }
+
+    protected Class<? extends FileOutputFormat> getOutputFormat() {
+        return ParquetCubeOutputFormat.class;
     }
 }

@@ -50,8 +50,8 @@ import org.apache.kylin.job.execution.ExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.storage.parquet.format.ParquetCubeInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetCubeOutputFormat;
-import io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 
 public class KapCuboidJob extends AbstractHadoopJob {
@@ -205,7 +205,7 @@ public class KapCuboidJob extends AbstractHadoopJob {
     }
 
     protected Class<? extends FileInputFormat> getCubeInputFormat() {
-        return ParquetCubeSpliceInputFormat.class;
+        return ParquetCubeInputFormat.class;
     }
 
     protected Class<? extends FileOutputFormat> getCubeOutputFormat() {

@@ -25,12 +25,19 @@
 package io.kyligence.kap.engine.mr.steps;
 
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
+import io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceOutputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetSpliceTarballFileInputFormat;
 
 public class KapSpliceMergeCuboidJob extends KapMergeCuboidJob{
     @Override
     protected Class<? extends FileInputFormat> getInputFormat() {
         return ParquetSpliceTarballFileInputFormat.class;
+    }
+
+    @Override
+    protected Class<? extends FileOutputFormat> getOutputFormat() {
+        return ParquetCubeSpliceOutputFormat.class;
     }
 }
