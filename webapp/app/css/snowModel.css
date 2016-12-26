@@ -364,3 +364,7 @@ p:hover .jsplumb-tips{
   -moz-box-shadow: 2px 2px 19px #000;
 }
 
+.model_graph svg{
+  width:1100px !important;
+  height:600px !important;
+}
