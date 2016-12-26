@@ -45,7 +45,8 @@ KylinApp.constant('jobConfig', {
     {attr: 'related_cube', name: 'Cube'},
     {attr: 'progress', name: 'Progress/Status'},
     {attr: 'last_modified', name: 'Last Modified Time'},
-    {attr: 'duration', name: 'Duration'}
+    {attr: 'duration', name: 'Duration'},
+    {attr: 'actions', name: 'Actions'}
   ],
   queryitems: [
     {attr: 'server', name: 'Server'},
@@ -75,11 +76,12 @@ KylinApp.constant('jobConfig', {
       {name: '所有', value: 4},
     ],
     theaditems: [
-      {attr: 'name', name: '任务名称'},
+      {attr: 'name', name: '任务'},
       {attr: 'related_cube', name: 'Cube'},
       {attr: 'progress', name: '进度/状态'},
       {attr: 'last_modified', name: '最后修改时间'},
-      {attr: 'duration', name: '耗时'}
+      {attr: 'duration', name: '耗时'},
+      {attr: 'actions', name: '操作'}
     ],
     queryitems: [
       {attr: 'server', name: '服务器'},

@@ -60,7 +60,8 @@ KylinApp.constant('kapEnglishConfig', {
       {attr: 'admin', name: 'Admin'},
       {attr: 'modeler', name: 'Modeler'},
       {attr: 'analyst', name: 'Analyst'},
-      {attr: 'disabled', name: 'Status'}
+      {attr: 'disabled', name: 'Status'},
+      {attr: 'action', name: 'Actions'}
     ],
     editRole: 'Edit Role',
     resetPassword: 'Reset Password',
@@ -779,6 +780,7 @@ KylinApp.constant('kapEnglishConfig', {
     tip_select_project: 'Please select your project first',
     tip_select_table: 'Select your table',
     sampleData:'Sample Data',
+    columnName:'Column',
     cardinality:'Cardinality',
     noSampleData:'No Sample Data',
     collectStatistics:'Collect Statistics',

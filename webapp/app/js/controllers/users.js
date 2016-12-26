@@ -80,8 +80,8 @@ KylinApp.controller('UsersCtrl', function ($scope, $rootScope, $location, $base6
           cellTemplate: '<span class="label badge" ng-class="{\'label-success\': grid.getCellValue(row, col)==false, \'label-default\': grid.getCellValue(row, col)==true}" style="margin-left: 2%;margin-top: 2%;">{{grid.getCellValue(row, col)?grid.appScope.griddisable:grid.appScope.gridenable}}</span>'
         },
         {
-          field: 'disabled',
-          displayName: "Action",
+          field: 'action',
+          displayName: $scope.dataKylin.user.usertheaditems[5].name,
           enableFiltering: false,
           enableSorting: false,
           enableColumnMenu: false,

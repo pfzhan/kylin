@@ -60,7 +60,8 @@ KylinApp.constant('kapChineseConfig', {
       {attr: 'admin', name: '管理人员'},
       {attr: 'modeler', name: '建模人员'},
       {attr: 'analyst', name: '分析人员'},
-      {attr: 'disabled', name: '状态'}
+      {attr: 'disabled', name: '状态'},
+      {attr: 'action', name: '操作'}
     ],
     editRole: '编辑角色',
     resetPassword: '重置密码',
@@ -779,6 +780,7 @@ KylinApp.constant('kapChineseConfig', {
     tip_select_project: '请先选中项目',
     tip_select_table: '请选择表',
     sampleData:'采样数据',
+    columnName:'列名',
     cardinality:'基数',
     noSampleData:'无采样数据',
     collectStatistics:'收集统计信息',
