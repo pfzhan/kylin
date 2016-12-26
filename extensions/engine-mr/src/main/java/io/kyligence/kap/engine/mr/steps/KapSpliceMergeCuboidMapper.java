@@ -24,26 +24,23 @@
 
 package io.kyligence.kap.engine.mr.steps;
 
-import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.kylin.cube.CubeInstance;
+import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.engine.mr.steps.MergeCuboidMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceOutputFormat;
-import io.kyligence.kap.storage.parquet.format.ParquetSpliceTarballFileInputFormat;
+public class KapSpliceMergeCuboidMapper extends MergeCuboidMapper {
 
-public class KapSpliceMergeCuboidJob extends KapMergeCuboidJob {
-    @Override
-    protected Class<? extends Mapper> getMapperClass() {
-        return KapSpliceMergeCuboidMapper.class;
-    }
-
-    @Override
-    protected Class<? extends FileInputFormat> getInputFormat() {
-        return ParquetSpliceTarballFileInputFormat.class;
-    }
+    public static final Logger logger = LoggerFactory.getLogger(KapSpliceMergeCuboidMapper.class);
 
     @Override
-    protected Class<? extends FileOutputFormat> getOutputFormat() {
-        return ParquetCubeSpliceOutputFormat.class;
+    public CubeSegment findSourceSegment(FileSplit fileSplit, CubeInstance cube) {
+        Path path = fileSplit.getPath();
+        String segmentID = path.getParent().getName();
+        logger.info("Identified segment id for current input split is " + segmentID);
+        return cube.getSegmentById(segmentID);
     }
 }

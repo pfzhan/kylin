@@ -29,6 +29,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KylinConfig;
@@ -76,7 +77,6 @@ public class KapMergeCuboidJob extends KapCuboidJob {
             job = Job.getInstance(getConf(), jobName);
 
             setJobClasspath(job, cube.getConfig());
-            FileInputFormat.setInputPathFilter(job, CuboidPathFilter.class);
 
             // set inputs
             int folderNum = addInputDirs(getOptionValue(OPTION_INPUT_PATH), job);
@@ -85,6 +85,7 @@ public class KapMergeCuboidJob extends KapCuboidJob {
                 logger.info("{} is skipped because there's no input folder", getOptionValue(OPTION_JOB_NAME));
                 return 0;
             }
+            FileInputFormat.setInputPathFilter(job, CuboidPathFilter.class);
 
             Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
             FileOutputFormat.setOutputPath(job, output);
@@ -92,7 +93,7 @@ public class KapMergeCuboidJob extends KapCuboidJob {
             // Mapper
             job.setInputFormatClass(getInputFormat());
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileInputFormat.ParquetTarballFileReader.ReadStrategy.KV.toString());
-            job.setMapperClass(KapMergeCuboidMapper.class);
+            job.setMapperClass(getMapperClass());
             job.setMapOutputKeyClass(Text.class);
             job.setMapOutputValueClass(Text.class);
             job.setPartitionerClass(ShardCuboidPartitioner.class);
@@ -134,10 +135,14 @@ public class KapMergeCuboidJob extends KapCuboidJob {
         @Override
         public boolean accept(Path path) {
             String name = path.getName();
-            boolean ret = !(name.endsWith(".parquet") || name.endsWith(".inv") || name.endsWith(".fuzzy"));
+            boolean ret = !(name.endsWith(".parquet") || name.endsWith("CUBE_INFO") || name.endsWith(".inv"));
             return ret;
         }
 
+    }
+
+    protected Class<? extends Mapper> getMapperClass() {
+        return KapMergeCuboidMapper.class;
     }
 
     protected Class<? extends FileInputFormat> getInputFormat() {
