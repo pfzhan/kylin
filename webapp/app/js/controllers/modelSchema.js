@@ -502,7 +502,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
       $scope.columnType= TableModel.columnNameTypeMap[VdmUtil.removeNameSpace(columnName)]||''
       $scope.columnList=TableModel.getColumnsByTable(tableName);
       $scope.columnList.map(function(obj,k){
-        if(VdmUtil.removeNameSpace(tableName)+'.'+obj.name==columnName){
+        if(obj.name==columnName){
           $scope.columnIndex=k;
           return false;
         }
