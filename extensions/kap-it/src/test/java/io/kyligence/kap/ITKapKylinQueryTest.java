@@ -274,6 +274,14 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         }
     }
 
+    @Override
+    @Test
+    public void testSnowflakeQuery() throws Exception {
+        if (!rawTableFirst) {
+            super.testSnowflakeQuery();
+        }
+    }
+    
     @Test
     public void testLikeQuery() throws Exception {
         execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_like", null, true);

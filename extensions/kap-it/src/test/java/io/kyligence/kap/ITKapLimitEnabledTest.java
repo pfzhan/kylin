@@ -39,6 +39,7 @@ public class ITKapLimitEnabledTest extends KylinTestBase {
     @BeforeClass
     public static void setUp() throws Exception {
         printInfo("setUp in ITLimitEnabledTest");
+        joinType = "inner";
         setupAll();
     }
 
