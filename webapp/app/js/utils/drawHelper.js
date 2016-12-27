@@ -180,6 +180,9 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       this.renderLinks();
       this.renderPartitionSetting();
     },
+    removeCache:function(){
+      StorageHelper.storage.remove('snowModelJsDragData');
+    },
     //kylin数据转化未plumbjs效果
     kylinDataToJsPlumbData:function(){
        var data=this.kylinData,that=this;

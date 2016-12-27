@@ -82,6 +82,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
   //snow
 //snow part
   jsPlumb.ready(function() {
+    console.log('draw init start');
     //画线对象===================================
     $timeout(function(){
       var treeDom=$('ul.abn-tree');
@@ -190,7 +191,6 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
           }
           $scope.editJoinType=function(){
             conn.getOverlay("label").setLabel($scope.link.type);
-
             DrawHelper.updataConnectsType(DrawHelper.connects[conn.id][0].split('.')[0],DrawHelper.connects[conn.id][1].split('.')[0],$scope.link.type)
             $modalInstance.dismiss('cancel');
           }
@@ -339,6 +339,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
               }, function (request) {
                 if (request.successful) {
                   //$scope.state.modelSchema = request.modelSchema;
+                  DrawHelper.removeCache();
                   $modalInstance.dismiss('cancel');
                   SweetAlert.swal('', scope.dataKylin.alert.success_updated_model, 'success');
                   $location.path("/models");
@@ -374,6 +375,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
                 project: scope.state.project
               }, function (request) {
                 if(request.successful) {
+                  DrawHelper.removeCache();
                   SweetAlert.swal('', scope.dataKylin.alert.success_created_model, 'success');
                   $modalInstance.dismiss('cancel');
                   $location.path("/models");
@@ -481,7 +483,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
           saveModel:openModelSaveDialog,
           openJsonDialog:openJsonDialog
         }
-        //载入缓存
+        //载入缓存模式
         if(StorageHelper.storage.get('snowModelJsDragData')){
           var storeData=angular.fromJson(StorageHelper.storage.get('snowModelJsDragData'));
           initPara.tableList=DrawHelper.tableList;
