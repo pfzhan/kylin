@@ -1,0 +1,9 @@
+
+# this file will be appended to kylin.properties, used by io.kyligence.kap.common.util.LocalTempMetadata
+
+kylin.storage.provider.100=io.kyligence.kap.storage.parquet.ParquetStorage
+kylin.engine.provider.100=io.kyligence.kap.engine.mr.KapMRBatchCubingEngine
+kylin.engine.default=100
+kylin.storage.default=100
+kylin.metadata.realization-providers=org.apache.kylin.cube.CubeManager,org.apache.kylin.storage.hybrid.HybridManager,io.kyligence.kap.cube.raw.RawTableManager
+kylin.metadata.custom-measure-types.percentile=io.kyligence.kap.measure.percentile.PercentileMeasureTypeFactory
