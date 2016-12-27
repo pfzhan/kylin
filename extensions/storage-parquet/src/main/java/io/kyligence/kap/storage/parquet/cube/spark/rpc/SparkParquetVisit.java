@@ -70,24 +70,6 @@ import scala.Tuple4;
 public class SparkParquetVisit implements Serializable {
     public static final Logger logger = LoggerFactory.getLogger(SparkParquetVisit.class);
 
-    public class RDDPartitionData {
-        private final byte[] data;
-
-        public RDDPartitionData(byte[] data) {
-            this.data = data;
-        }
-
-        public byte[] getData() {
-            return data;
-        }
-    }
-
-    public static Map<String, Map<Long, Set<String>>> CubeMappingCache;
-
-    static {
-        CubeMappingCache = Maps.newConcurrentMap();
-    }
-
     private final transient JavaSparkContext sc;
     private final transient SparkJobProtos.SparkJobRequestPayload request;
     private final transient KylinConfig kylinConfig;
@@ -98,7 +80,10 @@ public class SparkParquetVisit implements Serializable {
 
     private final static ExecutorService cachedRDDCleaner = Executors.newSingleThreadExecutor();
     private final static ConcurrentLinkedDeque<Tuple4<String, Iterator<RDDPartitionData>, JavaRDD<byte[]>, Long>> cachedRDDs = new ConcurrentLinkedDeque<>();//queryid,iterator,rdd,inqueue time
+    private final static Map<String, Map<Long, Set<String>>> cubeMappingCache;
     static {
+        //cuboid to file mapping for each cube
+        cubeMappingCache = Maps.newConcurrentMap();
         //avoid cached RDD to occupy executor heap for too long
         cachedRDDCleaner.submit(new Runnable() {
             @Override
@@ -150,7 +135,7 @@ public class SparkParquetVisit implements Serializable {
                 Map<Long, Set<String>> cubeMapping = readCubeMappingInfo();
 
                 if (cubeMapping == null) {
-                    // Old version cube
+                    // Engine 100
                     this.isSplice = false;
                     this.parquetPathCollection = Sets.newHashSet();
                     this.parquetPathCollection.add(new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
@@ -159,7 +144,7 @@ public class SparkParquetVisit implements Serializable {
                             append(request.getDataFolderName()).//
                             append("/*.parquettar").toString());
                 } else {
-                    // New version cube
+                    // Engine 99
                     this.isSplice = true;
                     this.parquetPathCollection = cubeMapping.get(Long.parseLong(request.getDataFolderName()));
                 }
@@ -182,8 +167,8 @@ public class SparkParquetVisit implements Serializable {
                 .append(request.getRealizationId()).append("/")//
                 .append(request.getSegmentId()).append("/")//
                 .append(ParquetCubeInfoCollectionStep.CUBE_INFO_NAME).toString();
-        if (CubeMappingCache.containsKey(cubeInfoPath)) {
-            return CubeMappingCache.get(cubeInfoPath);
+        if (cubeMappingCache.containsKey(cubeInfoPath)) {
+            return cubeMappingCache.get(cubeInfoPath);
         }
 
         FileSystem fs = HadoopUtil.getFileSystem(cubeInfoPath);
@@ -191,7 +176,7 @@ public class SparkParquetVisit implements Serializable {
             Map<Long, Set<String>> map;
             try (ObjectInputStream inputStream = new ObjectInputStream(fs.open(new Path(cubeInfoPath)))) {
                 map = (Map<Long, Set<String>>) inputStream.readObject();
-                CubeMappingCache.put(cubeInfoPath, map);
+                cubeMappingCache.put(cubeInfoPath, map);
             }
             return map;
         } else {
@@ -266,4 +251,15 @@ public class SparkParquetVisit implements Serializable {
         });
     }
 
+    public class RDDPartitionData {
+        private final byte[] data;
+
+        public RDDPartitionData(byte[] data) {
+            this.data = data;
+        }
+
+        public byte[] getData() {
+            return data;
+        }
+    }
 }

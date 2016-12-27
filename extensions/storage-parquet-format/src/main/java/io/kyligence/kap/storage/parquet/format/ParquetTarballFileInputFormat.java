@@ -26,7 +26,6 @@ package io.kyligence.kap.storage.parquet.format;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.net.NetworkInterface;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Properties;
@@ -109,16 +108,6 @@ public class ParquetTarballFileInputFormat extends FileInputFormat<Text, Text> {
             Path shardPath = fileSplit.getPath();
 
             logger.info("tarball file: {}", shardPath);
-            // determine the running node
-            //            Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces();
-            //            while (e.hasMoreElements()) {
-            //                NetworkInterface n = e.nextElement();
-            //                Enumeration<InetAddress> ee = n.getInetAddresses();
-            //                while (ee.hasMoreElements()) {
-            //                    InetAddress ia = ee.nextElement();
-            //                    logger.info("Hostname: {}", ia.getHostName());
-            //                }
-            //            }
 
             long startTime = System.currentTimeMillis();
             String kylinPropsStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, "");
