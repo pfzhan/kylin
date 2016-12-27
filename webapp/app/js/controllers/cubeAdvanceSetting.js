@@ -80,6 +80,9 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
       table:tableName,
       database:databaseName
     }
+    if(item.index){
+      rowkeyObj.index=item.index;
+    }
     $scope.convertedRowkeys.push(rowkeyObj);
 
   })
@@ -125,12 +128,17 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
       encoding = encodingType;
       item.valueLength=0;
     }
-    $scope.convertedRowkeys[[index]].table=tableName;
-    $scope.convertedRowkeys[[index]].database=databaseName;
-    $scope.cubeMetaFrame.rowkey.rowkey_columns[index].column = column;
+    $scope.convertedRowkeys[index].table=tableName;
+    $scope.convertedRowkeys[index].database=databaseName;
+    $scope.cubeMetaFrame.rowkey.rowkey_columns[index].column= column;
     $scope.cubeMetaFrame.rowkey.rowkey_columns[index].encoding = encoding;
     $scope.cubeMetaFrame.rowkey.rowkey_columns[index].encoding_version =version;
     $scope.cubeMetaFrame.rowkey.rowkey_columns[index].isShardBy = isShardBy;
+    if(item.index){
+      $scope.cubeMetaFrame.rowkey.rowkey_columns[index].index=item.index;
+    }else{
+      delete $scope.cubeMetaFrame.rowkey.rowkey_columns[index].index;
+    }
     if(checkShard == true){
       $scope.checkShardByColumn();
     }
