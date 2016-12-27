@@ -163,7 +163,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       }
     },
     storeCash:function(){
-      if(this.useCache){
+      if(!this.useCache){
         return;
       }
       var that=this;
