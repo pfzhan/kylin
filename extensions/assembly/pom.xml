@@ -46,6 +46,10 @@
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-engine-mr</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-source-hive</artifactId>
+        </dependency>
 
         <!-- Env & Test -->
         <dependency>

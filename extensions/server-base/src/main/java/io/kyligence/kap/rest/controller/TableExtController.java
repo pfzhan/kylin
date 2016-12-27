@@ -46,8 +46,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import io.kyligence.kap.engine.mr.tablestats.HiveTableExtSampleJob;
 import io.kyligence.kap.rest.service.TableExtService;
+import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampleJob;
 
 @Controller
 @RequestMapping(value = "/table_ext")

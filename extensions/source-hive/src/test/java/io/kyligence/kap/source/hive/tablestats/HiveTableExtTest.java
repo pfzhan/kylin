@@ -1,11 +1,11 @@
-package io.kyligence.kap.engine.mr;
+package io.kyligence.kap.source.hive.tablestats;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
 
-import io.kyligence.kap.engine.mr.tablestats.HiveTableExtSampler;
+import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampler;
 import junit.framework.TestCase;
 
 public class HiveTableExtTest extends TestCase {

@@ -42,8 +42,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import io.kyligence.kap.engine.mr.modelstats.CollectModelStats;
 import io.kyligence.kap.rest.service.KapModelService;
+import io.kyligence.kap.source.hive.modelstats.CollectModelStats;
 
 @Controller
 @RequestMapping(value = "/models")

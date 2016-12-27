@@ -22,44 +22,31 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.mr.tablestats;
+package io.kyligence.kap.source.hive.modelstats;
 
-import org.apache.commons.cli.Options;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.BufferedLogger;
+import org.apache.kylin.job.exception.ExecuteException;
+import org.apache.kylin.job.execution.ExecutableContext;
+import org.apache.kylin.job.execution.ExecuteResult;
+import org.apache.kylin.source.hive.CreateFlatHiveTableStep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CheckHdfsPath extends AbstractHadoopJob {
-    public static final String JOB_TITLE = "Check HDFS Path";
-
-    private static final Logger logger = LoggerFactory.getLogger(CheckHdfsPath.class);
-
-    public CheckHdfsPath() {
-
-    }
+public class ModelStatsFlatTableStep extends CreateFlatHiveTableStep {
+    private static final Logger logger = LoggerFactory.getLogger(ModelStatsFlatTableStep.class);
+    private final BufferedLogger stepLogger = new BufferedLogger(logger);
 
     @Override
-    public int run(String[] args) throws Exception {
-
-        Options options = new Options();
-
+    protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
         try {
-            options.addOption(OPTION_OUTPUT_PATH);
-            parseOptions(options, args);
-            String jobName = JOB_TITLE + getOptionsAsString();
-            logger.info("Starting: " + jobName);
-            Configuration conf = getConf();
-            Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
-            FileSystem fs = FileSystem.get(conf);
-            if (!fs.exists(output))
-                fs.mkdirs(output);
-            return 0;
+            createFlatHiveTable(config);
+            return new ExecuteResult(ExecuteResult.State.SUCCEED, stepLogger.getBufferedLog());
+
         } catch (Exception e) {
-            printUsage(options);
-            throw e;
+            logger.error("job:" + getId() + " execute finished with exception", e);
+            return new ExecuteResult(ExecuteResult.State.ERROR, stepLogger.getBufferedLog());
         }
     }
 }

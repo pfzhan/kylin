@@ -48,6 +48,7 @@
         <module>extensions/storage-hbase</module>
         <module>extensions/storage-parquet</module>
         <module>extensions/storage-parquet-format</module>
+        <module>extensions/source-hive</module>
         <module>extensions/query</module>
         <module>extensions/server-base</module>
         <module>extensions/server</module>
@@ -109,6 +110,11 @@
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
                 <artifactId>kap-engine-mr</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.kap</groupId>
+                <artifactId>kap-source-hive</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

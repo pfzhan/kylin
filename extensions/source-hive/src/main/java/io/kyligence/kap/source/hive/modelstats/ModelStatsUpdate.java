@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.mr.modelstats;
+package io.kyligence.kap.source.hive.modelstats;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -52,7 +52,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
-import io.kyligence.kap.engine.mr.tablestats.HiveTableExtSampler;
+import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampler;
 
 public class ModelStatsUpdate extends AbstractHadoopJob {
     public static final String JOB_TITLE = "Model Update Job";

@@ -33,7 +33,7 @@ import org.apache.kylin.rest.service.BasicService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 
-import io.kyligence.kap.engine.mr.tablestats.HiveTableExtSampleJob;
+import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampleJob;
 
 @Component("tableExtService")
 public class TableExtService extends BasicService {

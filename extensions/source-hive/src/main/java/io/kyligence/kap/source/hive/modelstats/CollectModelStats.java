@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.mr.modelstats;
+package io.kyligence.kap.source.hive.modelstats;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;

@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.mr.modelstats;
+package io.kyligence.kap.source.hive.modelstats;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -45,7 +45,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.source.hive.HiveMRInput;
 
 import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
-import io.kyligence.kap.engine.mr.tablestats.HiveTableExtSampler;
+import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampler;
 
 public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, BytesWritable> {
 

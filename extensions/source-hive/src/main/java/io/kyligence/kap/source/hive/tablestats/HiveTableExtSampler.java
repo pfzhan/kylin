@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.mr.tablestats;
+package io.kyligence.kap.source.hive.tablestats;
 
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
