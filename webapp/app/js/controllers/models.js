@@ -24,7 +24,7 @@
 
 'use strict';
 
-KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location, $window, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, modelConfig, ProjectModel, ModelService, MetaModel, modelsManager, cubesManager, TableModel, $animate,language,kylinCommon,VdmUtil) {
+KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location, $window, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, modelConfig, ProjectModel, ModelService, MetaModel, modelsManager, cubesManager, TableModel, AccessService,language,kylinCommon,VdmUtil) {
 
   //tree data
 
@@ -186,22 +186,25 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
     var cubename = [];
     var i = 0;
     var modelstate = false;
-    if (model.cubes.length != 0) {
-      angular.forEach(model.cubes, function (cube) {
-        if (cube.status == "READY") {
-          modelstate = true;
-          cubename[i] = cube.name;
-          i++;
-        }
-      })
-    }
-    if (modelstate == false) {
-      $location.path("/models/edit/" + model.name);
-    }
-    else {
-      SweetAlert.swal($scope.dataKylin.alert.oops,$scope.dataKylin.alert.tip_model_be_used + cubename.join(',') +$scope.dataKylin.alert.tip_model_be_used_by,'warning');
-    }
-  }
+    CubeService.list({modelName:model.name}, function (_cubes) {
+      model.cubes = _cubes;
+      if (model.cubes.length != 0) {
+        angular.forEach(model.cubes, function (cube) {
+          if (cube.status == "READY") {
+            modelstate = true;
+            cubename[i] = cube.name;
+            i++;
+          }
+        })
+      }
+      if (modelstate == false) {
+        $location.path("/models/edit/" + model.name);
+      }
+      else {
+        SweetAlert.swal($scope.dataKylin.alert.oops,$scope.dataKylin.alert.tip_model_be_used + cubename.join(',') +$scope.dataKylin.alert.tip_model_be_used_by,'warning');
+      }
+    })
+  };
 
 
   $scope.openModal = function (model) {
@@ -215,6 +218,21 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
         }
       }
     });
+  };
+
+  $scope.listModelAccess = function (model) {
+    if(model.uuid){
+      AccessService.list({type: "DataModelDesc", uuid: model.uuid}, function (accessEntities) {
+        model.accessEntities = accessEntities;
+        try {
+          if (!model.owner) {
+            model.owner = accessEntities[0].sid.principal;
+          }
+        } catch (error) {
+          $log.error("No acl info.");
+        }
+      })
+    }
   };
 
   var ModelDetailModalCtrl = function ($scope, $location, $modalInstance, scope) {

@@ -29,7 +29,6 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
     $scope.cubeConfig = cubeConfig;
     $scope.cubeList = CubeList;
     $scope.modelsManager = modelsManager;
-    //$scope.cubesManager = cubesManager;
     $scope.goToAddPage=function(){
       var proName=ProjectModel.getSelectedProject();
       if(VdmUtil.storage.getObject(proName)&&VdmUtil.storage.getObject(proName).name){
@@ -105,32 +104,17 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
     };
 
     $scope.refreshCubeModel = function (cube){
-      cube.streaming = false;
-      CubeDescService.query({cube_name: cube.name}, {}, function (detail) {
-        if (detail.length > 0 && detail[0].hasOwnProperty("name")) {
-          cube.detail = detail[0];
-          ModelService.list({projectName:$scope.projectModel.selectedProject,modelName:cube.detail.model_name}, function (_models) {
-            if(_models && _models.length){
-              for(var i=0;i<=_models.length;i++){
-                if(_models[i].name == cube.detail.model_name){
-                  cube.model = _models[i];
-                  var factTable = cube.model.fact_table;
-                  TableService.get({tableName:factTable},function(table){
-                    if(table && table.source_type == 1){
-                      cube.streaming = true;
-                    }
-                  })
-                break;
-                }
-              }
+       cube.streaming = false;
+       $scope.loadDetail(cube).then(function () {
+          $scope.metaModel={
+            model:cube.model
+          };
+          TableService.get({tableName:$scope.metaModel.model.fact_table},function(table){
+            if(table && table.source_type == 1){
+               cube.streaming = true;
             }
-          })
-        } else {
-          SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.tip_no_cube_detail, 'error');
-        }
-      }, function (e) {
-        kylinCommon.error_default(e);
-      });
+          });
+       })
     };
 
     $scope.refreshCube = function(cube){
@@ -151,7 +135,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
         defer.resolve([]);
       })
       return defer.promise;
-    }
+    };
     $scope.list = function (offset, limit) {
       var defer = $q.defer();
       if (!$scope.projectModel.projects.length) {
@@ -378,132 +362,121 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
     };
 
     $scope.startJobSubmit = function (cube) {
-      $scope.loadDetail(cube);
-      // for streaming cube build tip
-      if(cube.streaming){
-        SweetAlert.swal({
-          title: '',
-          text: "Are you sure to start the build?",
-          type: '',
-          showCancelButton: true,
-          confirmButtonColor: '#DD6B55',
-          confirmButtonText: "Yes",
-          closeOnConfirm: true
-        }, function(isConfirm) {
-          if(isConfirm){
-            loadingRequest.show();
-            CubeService.rebuildStreamingCube(
-              {
-                cubeId: cube.name
-              },
-              {
-                sourceOffsetStart:0,
-                sourceOffsetEnd:'9223372036854775807',
-                buildType:'BUILD'
-              }, function (job) {
-                loadingRequest.hide();
-                SweetAlert.swal('Success!', 'Rebuild job was submitted successfully', 'success');
-              },function(e){
+      $scope.loadDetail(cube).then(function () {
+        $scope.metaModel={
+          model:cube.model
+        };
 
-                loadingRequest.hide();
-                if(e.data&& e.data.exception){
-                  var message =e.data.exception;
-                  var msg = !!(message) ? message : 'Failed to take action.';
-                  SweetAlert.swal('Oops...', msg, 'error');
-                }else{
-                  SweetAlert.swal('Oops...', "Failed to take action.", 'error');
+        TableService.get({tableName:$scope.metaModel.model.fact_table},function(table){
+          if(table && table.source_type == 1){
+             cube.streaming = true;
+          }
+          // for streaming cube build tip
+          if(cube.streaming){
+            $modal.open({
+              templateUrl: 'streamingBuild.html',
+              controller: streamingBuildCtrl,
+              resolve: {
+                cube: function () {
+                  return cube;
+                },
+                metaModel:function(){
+                  return $scope.metaModel;
+                },
+                buildType: function () {
+                  return 'BUILD';
+                },
+                scope:function(){
+                  return $scope;
+                }
+              }
+            });
+            return;
+          }
+
+          if ($scope.metaModel.model.name) {
+            if ($scope.metaModel.model.partition_desc.partition_date_column) {
+              $modal.open({
+                templateUrl: 'jobSubmit.html',
+                controller: jobSubmitCtrl,
+                resolve: {
+                  cube: function () {
+                    return cube;
+                  },
+                  scope:function(){
+                    return $scope;
+                  },
+                  metaModel:function(){
+                    return $scope.metaModel;
+                  },
+                  buildType: function () {
+                    return 'BUILD';
+                  }
                 }
               });
+            }
+            else {
+
+              SweetAlert.swal({
+                title: '',
+                text: $scope.dataKylin.alert.tip_to_start_build,
+                type: '',
+                closeOnConfirm: true,
+                showCancelButton: true,
+                confirmButtonColor: '#DD6B55',
+                confirmButtonText: "Yes"
+
+              }, function(isConfirm) {
+                if(isConfirm){
+
+                  loadingRequest.show();
+                  CubeService.rebuildCube(
+                    {
+                      cubeId: cube.name
+                    },
+                    {
+                      buildType: 'BUILD',
+                      startTime: 0,
+                      endTime: 0
+                    }, function (job) {
+                      loadingRequest.hide();
+                      kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_rebuild_job);
+                    },function(e){
+                      loadingRequest.hide();
+                      kylinCommon.error_default(e);
+                    });
+                }
+              });
+            }
           }
         })
-        return;
-      }
-
-      $scope.metaModel={
-        model:modelsManager.getModelByCube(cube.name)
-      }
-      if ($scope.metaModel.model.name) {
-        if ($scope.metaModel.model.partition_desc.partition_date_column) {
-          $modal.open({
-            templateUrl: 'jobSubmit.html',
-            controller: jobSubmitCtrl,
-            resolve: {
-              cube: function () {
-                return cube;
-              },
-              scope:function(){
-                return $scope;
-              },
-              metaModel:function(){
-                return $scope.metaModel;
-              },
-              buildType: function () {
-                return 'BUILD';
-              }
-            }
-          });
-        }
-        else {
-
-          SweetAlert.swal({
-            title: '',
-            text: $scope.dataKylin.alert.tip_to_start_build,
-            type: '',
-            closeOnConfirm: true,
-            showCancelButton: true,
-            confirmButtonColor: '#DD6B55',
-            confirmButtonText: "Yes"
-
-          }, function(isConfirm) {
-            if(isConfirm){
-
-              loadingRequest.show();
-              CubeService.rebuildCube(
-                {
-                  cubeId: cube.name
-                },
-                {
-                  buildType: 'BUILD',
-                  startTime: 0,
-                  endTime: 0
-                }, function (job) {
-
-                  loadingRequest.hide();
-                  kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.alert.success_rebuild_job);
-                },function(e){
-                  loadingRequest.hide();
-                  kylinCommon.error_default(e);
-                });
-            }
-
-          });
-        }
-      }
+      })
     };
 
     $scope.startRefresh = function (cube) {
-      $scope.metaModel={
-        model:modelsManager.getModelByCube(cube.name)
-      };
-      $modal.open({
-        templateUrl: 'jobRefresh.html',
-        controller: jobSubmitCtrl,
-        resolve: {
-          cube: function () {
-            return cube;
-          },
-          metaModel:function(){
-            return $scope.metaModel;
-          },
-          scope:function(){
-            return $scope;
-          },
-          buildType: function () {
-            return 'REFRESH';
+      $scope.loadDetail(cube).then(function () {
+        $scope.metaModel={
+          model:cube.model
+        };
+        $modal.open({
+          templateUrl: 'jobRefresh.html',
+          controller: jobSubmitCtrl,
+          resolve: {
+            cube: function () {
+              return cube;
+            },
+            metaModel:function(){
+              return $scope.metaModel;
+            },
+            scope:function(){
+              return $scope;
+            },
+            buildType: function () {
+              return 'REFRESH';
+            }
           }
-        }
-      });
-
+        });
+      })
     };
 
     $scope.cloneCube = function(cube){
@@ -532,27 +505,29 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
       $location.path("cubes/edit/" + cube.name);
     }
     $scope.startMerge = function (cube) {
-      $scope.metaModel={
-        model:modelsManager.getModelByCube(cube.name)
-      };
-      $modal.open({
-        templateUrl: 'jobMerge.html',
-        controller: jobSubmitCtrl,
-        resolve: {
-          cube: function () {
-            return cube;
-          },
-          metaModel:function(){
-            return $scope.metaModel;
-          },
-          buildType: function () {
-            return 'MERGE';
-          },
-          scope:function(){
-            return $scope;
-          },
-        }
-      });
+      $scope.loadDetail(cube).then(function () {
+        $scope.metaModel={
+          model:cube.model
+        };
+        $modal.open({
+          templateUrl: 'jobMerge.html',
+          controller: jobSubmitCtrl,
+          resolve: {
+            cube: function () {
+              return cube;
+            },
+            metaModel:function(){
+              return $scope.metaModel;
+            },
+            buildType: function () {
+              return 'MERGE';
+            },
+            scope:function(){
+              return $scope;
+            }
+          }
+        });
+      })
     }
   });
 

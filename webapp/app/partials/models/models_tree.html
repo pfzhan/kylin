@@ -62,7 +62,7 @@
                     data-toggle="dropdown">
               Action <span class="ace-icon fa fa-caret-down icon-on-right"></span>
             </button>
-            <ul class="dropdown-menu" role="menu">
+            <ul class="dropdown-menu" role="menu" ng-if="(userService.hasRole('ROLE_ADMIN') || hasPermission(model, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask))">
               <li><a ng-click="modelEdit(model)">{{dataKylin.model.edit}}</a></li>
               <li><a ng-click="cloneModel(model)">{{dataKylin.model.clone}}</a></li>
               <li><a ng-click="statsModel(model)">{{dataKylin.model.stats}}</a></li>

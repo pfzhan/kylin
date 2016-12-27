@@ -88,12 +88,12 @@
             <td>{{ cube.owner}}</td>
             <td>{{ cube.create_time_utc | utcToConfigTimeZone}}</td>
             <td>
-                <div ng-click="$event.stopPropagation();" class="btn-group" ng-if="userService.hasRole('ROLE_ADMIN') || hasPermission(cube, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask)">
+                <div ng-click="$event.stopPropagation();" class="btn-group" >
                     <button type="button" class="btn btn-default btn-xs dropdown-toggle"
                             data-toggle="dropdown" ng-click="listAccess(cube, 'CubeInstance')">
                         Action <span class="ace-icon fa fa-caret-down icon-on-right"></span>
                     </button>
-                    <ul class="dropdown-menu" role="menu">
+                    <ul ng-if="userService.hasRole('ROLE_ADMIN') || hasPermission(cube, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask)" class="dropdown-menu" role="menu">
                         <li ng-if="cube.status=='DISABLED' && userService.hasRole('ROLE_ADMIN') ">
                           <a ng-click="dropCube(cube, $index)" tooltip="{{dataKylin.cube.tip_drop_cube}}">{{dataKylin.cube.cubeActions[0]}}</a>
                         </li>
@@ -127,12 +127,12 @@
                     N/A
                 </span>
             </td>
-            <td ng-if="userService.hasRole('ROLE_ADMIN')">
+            <td >
                 <div ng-click="$event.stopPropagation();" class="btn-group">
                     <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" ng-click="listAccess(cube, 'CubeInstance')">
                         Action <span class="ace-icon fa fa-caret-down icon-on-right"></span>
                     </button>
-                    <ul class="dropdown-menu" role="menu">
+                    <ul class="dropdown-menu" role="menu" ng-if="userService.hasRole('ROLE_ADMIN')">
                       <li ng-if="cube.status=='DISABLED'"><a href="cubes/edit/{{cube.name}}/descriptionjson">{{dataKylin.cube.edit}} CubeDesc</a></li>
                       <li><a href="cubes/view/{{cube.name}}/instancejson">{{dataKylin.cube.view}} Cube</a></li>
                       <li><a ng-click='backUpCube(cube.name)'>{{dataKylin.cube.backup_cube}}</a></li>

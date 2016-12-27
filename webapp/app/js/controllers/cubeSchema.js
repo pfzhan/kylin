@@ -61,17 +61,6 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
     $scope.state = {mode: "view"};
   }
 
-  var queryParam = {offset: 0, limit: 65535};
-
-  CubeService.list(queryParam, function (all_cubes) {
-    if($scope.allCubes.length > 0){
-      $scope.allCubes.splice(0,$scope.allCubes.length);
-    }
-
-    for (var i = 0; i < all_cubes.length; i++) {
-      $scope.allCubes.push(all_cubes[i].name.toUpperCase());
-    }
-  });
 
   $scope.$watch('cubeMetaFrame', function (newValue, oldValue) {
     if(!newValue){
@@ -216,6 +205,17 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
   };
 
   $scope.check_cube_info = function(){
+    var queryParam = {offset: 0, limit: 65535};
+    CubeService.list(queryParam, function (all_cubes) {
+      if($scope.allCubes.length > 0){
+        $scope.allCubes.splice(0,$scope.allCubes.length);
+      }
+
+      for (var i = 0; i < all_cubes.length; i++) {
+        $scope.allCubes.push(all_cubes[i].name.toUpperCase());
+      }
+    });
+
     if(($scope.state.mode === "edit") &&$scope.cubeMode=="addNewCube"&&($scope.allCubes.indexOf($scope.cubeMetaFrame.name.toUpperCase()) >= 0)){
       SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.warning_cube_part_one + $scope.cubeMetaFrame.name.toUpperCase() + $scope.dataKylin.alert.warning_cube_part_two, 'warning');
       return false;
