@@ -5,8 +5,9 @@ source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
 echo "Checking OS commands..."
 
-a=`lsb_release -a`                      || quit "ERROR: Command 'lsb_release -a' does not work. Please run on Linux OS."
-[[ $a == *Mac* ]]                       && quit "ERROR: Mac is not supported."
+command -v lsb_release                  || echo "WARN: Command lsb_release is not accessible. Please run on Linux OS."
+a=`lsb_release -a`                      || echo "WARN: Command 'lsb_release -a' does not work. Please run on Linux OS."
+[[ $a == *Mac* ]]                       && echo "WARN: Mac is not officially supported. Use at your own risk."
 [[ $a == *Ubuntu* ]]                    && echo "WARN: Ubuntu is not officially supported. Use at your own risk."
 
 command -v hadoop                       || quit "ERROR: Command 'hadoop' is not accessible. Please check Hadoop client setup."
