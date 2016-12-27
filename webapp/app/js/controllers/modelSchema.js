@@ -24,7 +24,7 @@
 
 'use strict';
 
-KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,VdmUtil,QueryService, UserService,TableService, ProjectService, $q, AuthenticationService, $filter, ModelService, MetaModel, CubeDescModel, CubeList, TableModel, ProjectModel, $log, SweetAlert, modelsManager,language, modelsEdit,DrawHelper,$modal,cubeConfig,loadingRequest,$location,ModelDescService,CubeService,TableExtService) {
+KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,VdmUtil,QueryService, UserService,TableService, ProjectService, $q, AuthenticationService, $filter, ModelService, MetaModel, CubeDescModel, CubeList, TableModel, ProjectModel, $log, SweetAlert, modelsManager,language, modelsEdit,DrawHelper,$modal,cubeConfig,loadingRequest,$location,ModelDescService,CubeService,TableExtService,StorageHelper) {
   $scope.modelsManager = modelsManager;
   $scope.projectModel = ProjectModel;
   $scope.projects = [];
@@ -80,7 +80,6 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
 
 
   //snow
-
 //snow part
   jsPlumb.ready(function() {
     //画线对象===================================
@@ -121,7 +120,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
                 for(var i=0;i<table.columns.length;i++){
                   for(var m in data){
                     if(m=table.columns[i].name){
-                      table.columns[i].kind=data[m].toLowerCase();
+                      table.columns[i].kind=data[m].toLowerCase().split('_')[0];
                     }else{
                       table.columns[i].kind='disable';
                     }
@@ -330,7 +329,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
               SweetAlert.swal(scope.dataKylin.alert.oops, scope.dataKylin.alert.tip_invalid_model_json, 'error');
               return;
             }
-            if(DrawHelper.kylinData){
+            if(DrawHelper.kylinData&&DrawHelper.kylinData.uuid){
 
                var updateModelData= $.extend({},DrawHelper.kylinData,saveData);
                ModelService.update({}, {
@@ -417,7 +416,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
       }
       //拖拽建模（雪花）初始化入口
       DrawHelper=DrawHelper.initService();
-
+      //编辑和试图模式
       if ($scope.isEdit = !!$routeParams.modelName||$scope.state.mode=='view') {
         if($scope.state.mode!='view'){
           $scope.cubeLengthOfModel=0;
@@ -443,7 +442,9 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
               saveModel:openModelSaveDialog,
               kylinData:$scope.modelCopy,
               openJsonDialog:openJsonDialog,
-              actionLock:$scope.state.mode=='view'
+              actionLockForView:$scope.state.mode=='view',
+              actionLockForEdit:$scope.isEdit,
+              usedColumnsMap:$scope.selectedColumns
             });
             DrawHelper.kylinDataToJsPlumbData();
             var param = {
@@ -469,16 +470,30 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
             })
           }
         });
-        //init project
       }else{
-        DrawHelper.init({
+        //添加模式
+        var initPara={
+          kylinData:angular.fromJson(StorageHelper.storage.get('snowModelJsDragData')),
           delTable:openDelDialog,
           changeConnectType:openSelectJoinTypeDialog,
           addColumnToPartitionDate:openDateFormatTypeDialog,
           addColumnToPartitionTime:openDateFormatTypeDialog,
           saveModel:openModelSaveDialog,
           openJsonDialog:openJsonDialog
-        });
+        }
+        //载入缓存
+        if(StorageHelper.storage.get('snowModelJsDragData')){
+          var storeData=angular.fromJson(StorageHelper.storage.get('snowModelJsDragData'));
+          initPara.tableList=DrawHelper.tableList;
+          initPara.tableList.data=storeData.tableList.data;
+          initPara.connects=storeData.connects;
+          initPara.partitionDate=storeData.partitionDate;
+          initPara.partitionTime=storeData.partitionTime;
+        }
+        DrawHelper.init(initPara);
+        if(StorageHelper.storage.get('snowModelJsDragData')){
+          DrawHelper.restoreCash();
+        }
         DrawHelper.container.on('click','p',function(e){
           var columnName=$(this).attr('data');
           var tableName=$(this).parent().attr('data');

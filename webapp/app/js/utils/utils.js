@@ -70,6 +70,7 @@ KylinApp.factory('VdmUtil', function ($modal, $timeout, $location, $anchorScroll
 
       return fmt;
     },
+    //this function will remove to storageHelper.js
     storage:{
       set :function(key,value){
         if($window.localStorage){

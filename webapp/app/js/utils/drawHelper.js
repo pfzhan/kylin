@@ -1,5 +1,5 @@
 //snow model design
-KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScroll, $window,TableModel,ProjectModel) {
+KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScroll, $window,TableModel,ProjectModel,StorageHelper) {
     var DrawHelper= {
     titleHeight:60,
     itemHeight:20,
@@ -29,14 +29,17 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
     filterStr:'',
     maxZoom:1.2,
     minZoom:0.43,
+    useCache:true,
+    usedColumnsMap:[],
     containerSize:{
       width:100000,
       height:100000
     },
-    actionLock:false,
+    actionLockForView:false,
+    actionLockForEdit:false,
     unDraggaleList:['.bar_action','.tipToolbar','.plusHandle','.minusHandle'],
     checkLock:function(){
-      if(this.actionLock){
+      if(this.actionLockForView){
         return true;
       }
     },
@@ -68,6 +71,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           that.instance.detach(info.connection);
           return;
         }
+
         that.lastLink=[info.sourceEndpoint.getParameters().data,info.targetEndpoint.getParameters().data];
         //自己不能连自己
         if(info.sourceId==info.targetId){
@@ -109,6 +113,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
             that.changeConnectType(info.connection);
           }
         })
+        that.storeCash();
       });
       var $panzoom=this.container.panzoom({
         cursor: "zoom",
@@ -130,17 +135,65 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
     },
     projectName:'',
     kylinData:null,
+    renderLinks:function(){
+      var that=this,count=0;
+      var cloneLinkes= $.extend(true,{},that.connects);
+      that.instance.batch(function() {
+        for(var i in cloneLinkes){
+            var point1Obj=cloneLinkes[i][0].split('.');
+            var point2Obj=cloneLinkes[i][1].split('.');
+            var linkType=cloneLinkes[i][2];
+            var point1=that.tableList.getTable('guid',point1Obj[0]).alias+'.'+point1Obj[1];
+            var point2=that.tableList.getTable('guid',point2Obj[0]).alias+'.'+point2Obj[1];
+            delete that.connects[i];
+            that.connect(point1,point2);
+            that.instance.getAllConnections()[count].getOverlay("label").setLabel(linkType||'');
+            that.connects[that.instance.getAllConnections()[count].id][2]=linkType;
+            count++;
+        }
+      })
+      this.storeCash();
+    },
+    renderPartitionSetting:function(){
+      for(var i in this.partitionDate){
+        $('#column_'+i+this.partitionDate[i].columnName).find('.snowDate').addClass('.active');
+      }
+      for(var i in this.partitionTime){
+        $('#column_'+i+this.partitionTime[i].columnName).find('.snowTime').addClass('.active');
+      }
+    },
+    storeCash:function(){
+      if(this.useCache){
+        return;
+      }
+      var that=this;
+      var storeObj={};
+      storeObj.tableList={};
+      storeObj.tableList.data=that.tableList.data;
+      storeObj.connects=that.connects;
+      storeObj.partitionDate=that.partitionDate;
+      storeObj.partitionTime=that.partitionTime;
+      StorageHelper.storage.set('snowModelJsDragData',angular.toJson(storeObj,true));
+    },
+    restoreCash:function(){
+      this.renderTables(this.tableList.data);
+      this.renderLinks();
+      this.renderPartitionSetting();
+    },
     //kylin数据转化未plumbjs效果
     kylinDataToJsPlumbData:function(){
        var data=this.kylinData,that=this;
        var cloneData= $.extend(true,{},data);
        var factTable=cloneData.fact_table;
        var looks=[];
-       var tableBaseList=[{
-         table:factTable,
-         kind:'ROOTFACT',
-         alias:factTable.replace(/[^.]+\./g,'')
-       }]
+       var tableBaseList=[];
+       if(factTable){
+         tableBaseList.push({
+           table:factTable,
+           kind:'ROOTFACT',
+           alias:factTable.replace(/[^.]+\./g,'')
+         })
+       }
        tableBaseList=tableBaseList.concat(cloneData.lookups);
        var projectName=ProjectModel.getProjectByCubeModel(cloneData.name);
        this.projectName=projectName;
@@ -205,15 +258,15 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
 
 
          setTimeout(function(){
-           that.calcPosition();
+           if(cloneData.uuid){
+             that.calcPosition();
+           }
          },1)
-
-
        }
-
     },
     //操作台数据转换为kylin接受数据
     plumbDataToKylinData:function(){
+      var that=this;
        var kylinData={
          lookups:[],
          partition_desc:{},
@@ -225,10 +278,12 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
        };
       //采集rootfacttable信息
        var rootFactTable=this.tableList.getRootFact();
-       if(!rootFactTable){
+       if(!rootFactTable&&!that.useCache){
          return 'lose root fact';
        }
-       kylinData.fact_table=rootFactTable.table;
+      if(rootFactTable){
+        kylinData.fact_table=rootFactTable.table;
+      }
       //采集jontable的信息
        var lookups={},linkTables={};
        for(var i in this.connects){
@@ -292,7 +347,10 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           kylinData.dimensions.push(tableObj);
         }
       }
-      //console.log(kylinData);
+      ////console.log(kylinData);
+      //if(that.useCache){
+      //  StorageHelper.storage.set('snowModelJsDragData',angular.toJson(kylinData,true));
+      //}
       return kylinData;
     },
     getConnectType:function(sourceGuid,targetGuid){
@@ -314,7 +372,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           }
         }
       }
-
+      this.storeCash();
     },
 
     getForeignKeyCount:function(guid){
@@ -336,7 +394,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       return count;
     },
     showActionBtn:function(){
-      if(this.actionLock){
+      if(this.checkLock()){
         return;
       }
       var that=this;
@@ -427,6 +485,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
     tableList:{
       data:[],
       add:function(obj,errcallback){
+        var that=this;
         for(var i=0;i<this.data.length;i++){
           if(this.data[i].alias==obj.alias){
             if(typeof  errcallback=='function'){
@@ -528,14 +587,214 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       }
       return false;
     },
-    changeAliasList:function(oldAlias,newAlias){
-      var index=this.aliasList.indexOf(oldAlias);
-      if(index>=0){
-        this.aliasList.splice(index,1,newAlias);
-      }else{
-        this.aliasList.push(newAlias);
-      }
+    renderTables:function(tableBaseObjects){
+      var that=this;
+      for(var tableLen= 0;tableLen<tableBaseObjects.length;tableLen++){
+        (function(tableBaseObject){
+          var str=' <div data="'+tableBaseObject.table+'" id="umlobj_'+tableBaseObject.guid+'" class="classUml '+(tableBaseObject.kind!='LOOKUP'?'isfact':'islookup')+'" style="left:'+tableBaseObject.pos[0]+'px;top:'+tableBaseObject.pos[1]+'px">';
+          str+=' <div 	class="title" style="height:'+that.titleHeight+'px">';
+          str+=that.renderTableKind(tableBaseObject.kind);
+          str+='<a title="'+tableBaseObject.table+'"><i class="fa fa-table"></i> '+tableBaseObject.table+'</a><span class="more" >X</span>' +
+            '<a class="alias" >Alias:'+tableBaseObject.alias+'</a><input type="text" class="input_alias""/><span class="input_alias_save">OK</span></div>';
+          for (var i =0; i <tableBaseObject.columns.length; i++) {
+            str+='<p  id="column_'+tableBaseObject.guid+tableBaseObject.columns[i].name+'" style="width:'+that.itemWidth+'px" data="'+tableBaseObject.columns[i].name+'">'+that.renderTableColumnKind(tableBaseObject.columns[i].kind)+'&nbsp;&nbsp;'+that.cutStr(tableBaseObject.columns[i].name,30,"...")+that.renderPartionColumn(tableBaseObject.columns[i])+'<span class="jsplumb-tips">'+tableBaseObject.columns[i].name+'('+tableBaseObject.columns[i].datatype+')</span></p>';
+          }
+          str+='</div>';
+          $("#"+that.containerId).append($(str));
+          var len=tableBaseObject.columns.length;
+          var totalHeight=that.titleHeight+that.itemHeight*len;
+          var totalPer=that.titleHeight/totalHeight;
+          var boxIdName='umlobj_'+tableBaseObject.guid;
+          var boxDom=$("#"+boxIdName);
+          for (var i =0; i <len; i++) {
+            var h=that.numDiv((that.titleHeight+that.itemHeight*i+that.numDiv(that.itemHeight,2)),totalHeight);
+            that.instance.addEndpoint(boxIdName, {anchor:[[1.0,h, 1.5, 0],[0, h, -1, 0]]}, that.createPoint({
+                parameters:{
+                  data:{guid:tableBaseObject.guid,column:tableBaseObject.guid+'.'+tableBaseObject.columns[i].name,type:tableBaseObject.columns[i].type}
+                },
+                uuid:tableBaseObject.alias+'.'+tableBaseObject.columns[i].name
+              }
+            ));
+            //that.instance.addEndpoint(boxIdName, {anchor:[[0,h, -1, 0],[1, h, 1.5, 0]]}, that.createPoint({
+            //    parameters:{
+            //      data:{column:tableBaseObject.guid+'.'+tableBaseObject.columns[i].name,type:tableBaseObject.columns[i].kind}
+            //    },
+            //    uuid:tableBaseObject.alias+'.'+tableBaseObject.columns[i].name
+            //  }
+            //));
+          }
+          that.bindColumnChangeTypeEvent(boxDom,tableBaseObject.guid);
+          that.instance.draggable(boxDom,{
+            drag:function(e){
+            },
+            stop:function(e){
+              that.tableList.update('guid',tableBaseObject.guid,{'pos':e.pos})
+              that.storeCash();
+            }
+          });
+          boxDom.find('.more').on('click',function(){
+            if(that.checkLock()){
+              return;
+            }
+            var tableObj=that.tableList.getTable('guid',tableBaseObject.guid);
+            that.delTable(tableBaseObject);
+          })
+          boxDom.on('click','.snowDate',function(){
+            if(that.checkLock()){
+              return;
+            }
+            var snowDateDomList=that.container.find('.snowDate');
+            var columnName=$(this).parent().attr('data');
+            var guid=tableBaseObject.guid;
+            var currentDom=$(this);
+            var hisPartionObj={};
+            if(that.partitionDate[guid]&&that.partitionDate[guid].columnName==columnName){
+              hisPartionObj=that.partitionDate[guid];
+            }
+            if(currentDom.hasClass('noFormat')){
+              that.partitionDate={}
+              that.partitionDate[guid]={
+                columnName:columnName,
+                dateType:'yyyyMMdd'
+              }
+              snowDateDomList.removeClass('active');
+              currentDom.addClass('active');
+            }else{
+              that.addColumnToPartitionDate(function(type){
+                if(type=='del'){
+                  that.partitionDate={};
+                  currentDom.removeClass('active');
+                  return;
+                }
+                that.partitionDate={}
+                that.partitionDate[guid]={
+                  columnName:columnName,
+                  dateType:type
+                }
+                snowDateDomList.removeClass('active');
+                currentDom.addClass('active');
+              },{type:'date'},hisPartionObj)
+            }
+            that.storeCash();
+          })
+          boxDom.on('click','.snowTime',function(){
+            if(that.checkLock()){
+              return;
+            }
+            var snowTimeDomList=that.container.find('.snowTime');
+            var columnName=$(this).parent().attr('data');
+            var guid=tableBaseObject.guid;
+            var currentDom=$(this);
+            var hisPartionObj={};
+            if(that.partitionTime[guid]&&that.partitionTime[guid].columnName==columnName){
+              hisPartionObj=that.partitionTime[guid];
+            }
+            if(currentDom.hasClass('noFormat')){
+              that.partitionTime={}
+              that.partitionTime[guid]={
+                columnName:columnName,
+                dateType:'HHmmss'
+              }
+              snowTimeDomList.removeClass('active');
+              currentDom.addClass('active');
+            }else{
+              that.addColumnToPartitionTime(function(type){
+                if(type=='del'){
+                  that.partitionDate={};
+                  currentDom.removeClass('active');
+                  return;
+                }
+                that.partitionTime={}
+                that.partitionTime[guid]={
+                  columnName:columnName,
+                  dateType:type
+                }
+                snowTimeDomList.removeClass('active');
+                currentDom.addClass('active');
+              },{type:'time'},hisPartionObj)
+            }
+            that.storeCash();
+          })
 
+          boxDom.on('click','.tableKind',function(){
+            if(that.checkLock()){
+              return;
+            }
+            var kindAlias=$(this).html();
+            var index=that.tableKindAlias.indexOf(kindAlias);
+            if(index>=that.tableKindAlias.length-1){
+              index=0;
+            }else{
+              index++;
+            }
+            var willKind=that.tableKind[index];
+            if(willKind=='ROOTFACT'&&(that.tableList.getRootFact()||that.getForeignKeyCount(tableBaseObject.guid)>0)){
+              index++;
+            }
+            $(this).replaceWith(that.renderTableKind(that.tableKind[index])) ;
+            that.tableList.update('guid',tableBaseObject.guid,{
+              kind:that.tableKind[index]
+            });
+            that.refreshTableKind(tableBaseObject.guid,that.tableKind[index]);
+            if(that.tableKind[index]=='ROOTFACT'){
+              that.tableList.update('guid',tableBaseObject.guid,{
+                alias:tableBaseObject.name
+              });
+              boxDom.find('.input_alias').val(tableBaseObject.name).hide();
+              that.refreshAlias(tableBaseObject.guid,tableBaseObject.name);
+            }
+            that.storeCash();
+          })
+          var aliasLabel='Alias:';
+          boxDom.on('dblclick','.alias',function(){
+            if(that.checkLock()){
+              return;
+            }
+            var rootFact=that.tableList.getRootFact();
+            if(rootFact&&rootFact.guid==tableBaseObject.guid){
+              that.showTips('rootaliaslimit');
+              return;
+            }
+            $(this).next().show().focus().val($(this).html().replace(aliasLabel,'')).select();
+          });
+          boxDom.on('blur','.input_alias',function(){
+            if(that.checkLock()){
+              return;
+            }
+            $(this).hide();
+            var aliasInputVal=$(this).val().toUpperCase();
+            var labelDom=$(this).prev();
+            if(labelDom.html().replace(aliasLabel,'')!=aliasInputVal&&that.checkHasThisAlias(aliasInputVal)){
+              that.showTips('samealias');
+            }else{
+              $(this).hide();
+              labelDom.show().html(aliasLabel+that.filterSpecialChar(aliasInputVal));
+              that.tableList.update('guid',tableBaseObject.guid,{
+                alias:that.filterSpecialChar(aliasInputVal)
+              });
+            }
+            that.storeCash();
+          });
+          boxDom.on('dbclick','.input_alias',function(){
+            if(that.checkLock()){
+              return;
+            }
+            $(this).focus().select();
+          })
+          boxDom.find('.input_alias').mousemove(function(e){
+            e.stopPropagation();
+          })
+          boxDom.find('.input_alias,p').mousedown(function(e){
+            e.stopPropagation();
+          })
+          $('body').on('click',function(){
+            that.container.parent().find('.tableColumnInfoBox').fadeOut();
+            that.container.find('.input_alias:visible').blur();
+          })
+        }(tableBaseObjects[tableLen]));
+      }
+      this.storeCash();
+      return this;
     },
     //添加表
     addTable:function(tableData,offset){
@@ -552,202 +811,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
 
       };
       this.tableList.add(tableBaseObject);
-      var str=' <div data="'+tableBaseObject.table+'" id="umlobj_'+tableBaseObject.guid+'" class="classUml '+(tableBaseObject.kind!='LOOKUP'?'isfact':'islookup')+'" style="left:'+tableBaseObject.pos[0]+'px;top:'+tableBaseObject.pos[1]+'px">';
-          str+=' <div 	class="title" style="height:'+this.titleHeight+'px">';
-          str+=this.renderTableKind(tableBaseObject.kind);
-          str+='<a title="'+tableBaseObject.table+'"><i class="fa fa-table"></i> '+tableBaseObject.table+'</a><span class="more" >X</span>' +
-                    '<a class="alias" >Alias:'+tableBaseObject.alias+'</a><input type="text" class="input_alias""/><span class="input_alias_save">OK</span></div>';
-          for (var i =0; i <tableBaseObject.columns.length; i++) {
-            str+='<p  id="column_'+tableBaseObject.guid+tableBaseObject.columns[i].name+'" style="width:'+that.itemWidth+'px" data="'+tableBaseObject.columns[i].name+'">'+this.renderTableColumnKind(tableBaseObject.columns[i].kind)+'&nbsp;&nbsp;'+that.cutStr(tableBaseObject.columns[i].name,30,"...")+this.renderPartionColumn(tableBaseObject.columns[i])+'<span class="jsplumb-tips">'+tableBaseObject.columns[i].name+'('+tableBaseObject.columns[i].datatype+')</span></p>';
-          }
-          str+='</div>';
-      $("#"+this.containerId).append($(str));
-      var len=tableData.columns.length;
-      var totalHeight=this.titleHeight+this.itemHeight*len;
-      var totalPer=this.titleHeight/totalHeight;
-      var boxIdName='umlobj_'+tableBaseObject.guid;
-      var boxDom=$("#"+boxIdName);
-      for (var i =0; i <len; i++) {
-        var h=this.numDiv((this.titleHeight+this.itemHeight*i+this.numDiv(this.itemHeight,2)),totalHeight);
-        this.instance.addEndpoint(boxIdName, {anchor:[[1.0,h, 1.5, 0],[0, h, -1, 0]]}, this.createPoint({
-            parameters:{
-              data:{guid:tableBaseObject.guid,column:tableBaseObject.guid+'.'+tableBaseObject.columns[i].name,type:tableData.columns[i].type}
-            },
-            uuid:tableBaseObject.alias+'.'+tableBaseObject.columns[i].name
-          }
-        ));
-        //this.instance.addEndpoint(boxIdName, {anchor:[[0,h, -1, 0],[1, h, 1.5, 0]]}, this.createPoint({
-        //    parameters:{
-        //      data:{column:tableBaseObject.guid+'.'+tableBaseObject.columns[i].name,type:tableData.columns[i].kind}
-        //    },
-        //    uuid:tableBaseObject.alias+'.'+tableBaseObject.columns[i].name
-        //  }
-        //));
-      }
-      this.bindColumnChangeTypeEvent(boxDom,tableBaseObject.guid);
-      this.instance.draggable(boxDom,{
-        drag:function(e){
-        },
-        stop:function(e){
-          that.tableList.update('guid',tableBaseObject.guid,{'pos':e.pos})
-        }
-      });
-      boxDom.find('.more').on('click',function(){
-        if(that.checkLock()){
-          return;
-        }
-        var tableObj=that.tableList.getTable('guid',tableBaseObject.guid);
-        that.delTable(tableBaseObject);
-      })
-      boxDom.on('click','.snowDate',function(){
-        if(that.checkLock()){
-          return;
-        }
-        var snowDateDomList=that.container.find('.snowDate');
-        var columnName=$(this).parent().attr('data');
-        var guid=tableBaseObject.guid;
-        var currentDom=$(this);
-        var hisPartionObj={};
-        if(that.partitionDate[guid]&&that.partitionDate[guid].columnName==columnName){
-          hisPartionObj=that.partitionDate[guid];
-        }
-        if(currentDom.hasClass('noFormat')){
-          that.partitionDate={}
-          that.partitionDate[guid]={
-            columnName:columnName,
-            dateType:'yyyyMMdd'
-          }
-          snowDateDomList.removeClass('active');
-          currentDom.addClass('active');
-        }else{
-          that.addColumnToPartitionDate(function(type){
-            if(type=='del'){
-              that.partitionDate={};
-              currentDom.removeClass('active');
-              return;
-            }
-            that.partitionDate={}
-            that.partitionDate[guid]={
-              columnName:columnName,
-              dateType:type
-            }
-            snowDateDomList.removeClass('active');
-            currentDom.addClass('active');
-          },{type:'date'},hisPartionObj)
-        }
-      })
-      boxDom.on('click','.snowTime',function(){
-        if(that.checkLock()){
-          return;
-        }
-        var snowTimeDomList=that.container.find('.snowTime');
-        var columnName=$(this).parent().attr('data');
-        var guid=tableBaseObject.guid;
-        var currentDom=$(this);
-        var hisPartionObj={};
-        if(that.partitionTime[guid]&&that.partitionTime[guid].columnName==columnName){
-          hisPartionObj=that.partitionTime[guid];
-        }
-        if(currentDom.hasClass('noFormat')){
-          that.partitionTime={}
-          that.partitionTime[guid]={
-            columnName:columnName,
-            dateType:'HHmmss'
-          }
-          snowTimeDomList.removeClass('active');
-          currentDom.addClass('active');
-        }else{
-          that.addColumnToPartitionTime(function(type){
-            if(type=='del'){
-              that.partitionDate={};
-              currentDom.removeClass('active');
-              return;
-            }
-            that.partitionTime={}
-            that.partitionTime[guid]={
-              columnName:columnName,
-              dateType:type
-            }
-            snowTimeDomList.removeClass('active');
-            currentDom.addClass('active');
-          },{type:'time'},hisPartionObj)
-        }
-
-      })
-
-      boxDom.on('click','.tableKind',function(){
-        if(that.checkLock()){
-          return;
-        }
-        var kindAlias=$(this).html();
-        var index=that.tableKindAlias.indexOf(kindAlias);
-        if(index>=that.tableKindAlias.length-1){
-           index=0;
-        }else{
-          index++;
-        }
-        var willKind=that.tableKind[index];
-        if(willKind=='ROOTFACT'&&(that.tableList.getRootFact()||that.getForeignKeyCount(tableBaseObject.guid)>0)){
-          index++;
-        }
-        $(this).replaceWith(that.renderTableKind(that.tableKind[index])) ;
-        that.tableList.update('guid',tableBaseObject.guid,{
-          kind:that.tableKind[index]
-        });
-        that.refreshTableKind(tableBaseObject.guid,that.tableKind[index]);
-        if(that.tableKind[index]=='ROOTFACT'){
-          that.tableList.update('guid',tableBaseObject.guid,{
-            alias:tableBaseObject.name
-          });
-          boxDom.find('.input_alias').val(tableBaseObject.name).hide();
-          that.refreshAlias(tableBaseObject.guid,tableBaseObject.name);
-        }
-      })
-      var aliasLabel='Alias:';
-      boxDom.on('dblclick','.alias',function(){
-        if(that.checkLock()){
-          return;
-        }
-          var rootFact=that.tableList.getRootFact();
-          if(rootFact&&rootFact.guid==tableBaseObject.guid){
-            that.showTips('rootaliaslimit');
-            return;
-          }
-          $(this).next().show().focus().val($(this).html().replace(aliasLabel,'')).select();
-      });
-      boxDom.on('blur','.input_alias',function(){
-        if(that.checkLock()){
-          return;
-        }
-         $(this).hide();
-        var aliasInputVal=$(this).val().toUpperCase();
-        var labelDom=$(this).prev();
-        if(labelDom.html().replace(aliasLabel,'')!=aliasInputVal&&that.checkHasThisAlias(aliasInputVal)){
-          that.showTips('samealias');
-        }else{
-          $(this).hide();
-          labelDom.show().html(aliasLabel+that.filterSpecialChar(aliasInputVal));
-          that.tableList.update('guid',tableBaseObject.guid,{
-            alias:that.filterSpecialChar(aliasInputVal)
-          });
-        }
-      });
-      boxDom.on('dbclick','.input_alias',function(){
-        if(that.checkLock()){
-          return;
-        }
-        $(this).focus().select();
-      })
-      boxDom.find('.input_alias').mousemove(function(e){
-        e.stopPropagation();
-      })
-      boxDom.find('.input_alias,p').mousedown(function(e){
-        e.stopPropagation();
-      })
-      $('body').on('click',function(){
-        that.container.parent().find('.tableColumnInfoBox').fadeOut();
-        that.container.find('.input_alias:visible').blur();
-      })
+      this.renderTables([tableBaseObject]);
       return this;
     },
 
@@ -760,7 +824,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
     removeTable:function(guid){
       $("#umlobj_"+guid).remove();
       this.tableList.remove('guid',guid);
-      this.instance.removeAllEndpoints("umlobj_"+guid)
+      this.instance.removeAllEndpoints("umlobj_"+guid);
     },
     //位置计算层级树算法
     calcPosition:function(){
