@@ -34,8 +34,6 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.measure.percentile.PercentileAggregator;
-import io.kyligence.kap.measure.percentile.PercentileCounter;
 import io.kyligence.kap.util.MathUtil;
 
 /**

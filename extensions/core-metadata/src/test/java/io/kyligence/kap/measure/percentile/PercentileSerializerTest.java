@@ -35,8 +35,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
-import io.kyligence.kap.measure.percentile.PercentileCounter;
-import io.kyligence.kap.measure.percentile.PercentileSerializer;
 
 /**
  * Created by dongli on 5/21/16.
