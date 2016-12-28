@@ -37,6 +37,7 @@ import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.JobBuilderSupport;
 import org.apache.kylin.engine.mr.common.HadoopShellExecutable;
 import org.apache.kylin.engine.mr.common.MapReduceExecutable;
+import org.apache.kylin.engine.mr.steps.CubingExecutableUtil;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableManager;
@@ -44,7 +45,6 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.metadata.project.ProjectManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,11 +61,6 @@ public class HiveTableExtSampleJob extends CubingJob {
         return jobIDs;
     }
 
-    public static List<String> createSampleJob(String project, String submitter) throws IOException {
-        String[] tables = getTableFromProject(project);
-        return createSampleJob(project, submitter, tables);
-    }
-
     private static String initSampleJob(String project, String submitter, String table) throws IOException {
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -74,43 +69,44 @@ public class HiveTableExtSampleJob extends CubingJob {
         if (runningJobID != null)
             return runningJobID;
 
-        HiveTableExtSampleJob result = createSamplesJob(project, table, submitter, config);
+        HiveTableExtSampleJob sampleJob = createSamplesJob(project, table, submitter, config);
 
-        ExecutableManager.getInstance(config).addJob(result);
-        logger.info("Start HiveTableExt job: " + result.getId());
-        return result.getId();
+        ExecutableManager.getInstance(config).addJob(sampleJob);
+        logger.info("Start HiveTableExt job: " + sampleJob.getId());
+        return sampleJob.getId();
     }
 
     private static HiveTableExtSampleJob createSamplesJob(String project, String tableName, String submitter, KylinConfig config) throws IOException {
-        HiveTableExtSampleJob result = new HiveTableExtSampleJob();
+        HiveTableExtSampleJob sampleJob = new HiveTableExtSampleJob();
 
         SimpleDateFormat format = new SimpleDateFormat("z yyyy-MM-dd HH:mm:ss");
         format.setTimeZone(TimeZone.getTimeZone(config.getTimeZone()));
-        result.setDeployEnvName(config.getDeployEnv());
-        result.setProjectName(project);
-        result.setName("Collect " + tableName + " statistics " + format.format(new Date(System.currentTimeMillis())));
-        result.setSubmitter(submitter);
+        sampleJob.setDeployEnvName(config.getDeployEnv());
+        sampleJob.setProjectName(project);
+        sampleJob.setName("Collect " + tableName + " statistics " + format.format(new Date(System.currentTimeMillis())));
+        sampleJob.setSubmitter(submitter);
+        sampleJob.setParam(CubingExecutableUtil.CUBE_NAME, tableName);
 
         MetadataManager metaMgr = MetadataManager.getInstance(config);
         TableDesc table = metaMgr.getTableDesc(tableName);
         TableExtDesc table_ext = metaMgr.getTableExt(tableName);
         if (table == null) {
-            throw new IllegalArgumentException("Cannot find table descirptor " + tableName);
+            throw new IllegalArgumentException("Cannot find table descriptor " + tableName);
         }
 
         if (table.isView()) {
             JobEngineConfig jobConf = new JobEngineConfig(config);
-            String checkParam = "-output " + getViewPath(jobConf, result.getId(), table);
+            String checkParam = "-output " + getViewPath(jobConf, sampleJob.getId(), table);
             HadoopShellExecutable prestep = new HadoopShellExecutable();
             prestep.setName("Check Hdfs Path");
             prestep.setJobClass(CheckHdfsPath.class);
             prestep.setJobParams(checkParam);
-            result.addTask(prestep);
-            result.addTask(materializedView(table, result.getId(), jobConf, "limit 1000000"));
+            sampleJob.addTask(prestep);
+            sampleJob.addTask(materializedView(table, sampleJob.getId(), jobConf, "limit 1000000"));
             logger.info("The View: " + tableName + " will be materialized in maximum 1000000 lines!");
         }
 
-        String samplesOutPath = getOutputPath(config, result.getId(), HiveTableExtSampleJob.SAMPLES) + table.getIdentity();
+        String samplesOutPath = getOutputPath(config, sampleJob.getId(), HiveTableExtSampleJob.SAMPLES) + table.getIdentity();
         String samplesParam = "-table " + tableName + " -output " + samplesOutPath;
 
         MapReduceExecutable step1 = new MapReduceExecutable();
@@ -119,22 +115,22 @@ public class HiveTableExtSampleJob extends CubingJob {
         step1.setMapReduceJobClass(HiveTableExtJob.class);
         step1.setMapReduceParams(samplesParam);
 
-        result.addTask(step1);
+        sampleJob.addTask(step1);
 
         HadoopShellExecutable step2 = new HadoopShellExecutable();
 
         step2.setName("Move " + tableName + " Samples to MetaData");
         step2.setJobClass(HiveTableExtUpdate.class);
         step2.setJobParams(samplesParam);
-        result.addTask(step2);
+        sampleJob.addTask(step2);
 
         if (table.isView())
-            result.addTask(deleteMaterializedView(table, config));
+            sampleJob.addTask(deleteMaterializedView(table, config));
 
-        table_ext.setJodID(result.getId());
+        table_ext.setJodID(sampleJob.getId());
         metaMgr.saveTableExt(table_ext);
 
-        return result;
+        return sampleJob;
     }
 
     public static String findRunningJob(String table, KylinConfig config) throws IOException {
@@ -154,21 +150,6 @@ public class HiveTableExtSampleJob extends CubingJob {
         }
 
         return null;
-    }
-
-    private static String[] getTableFromProject(String project) throws IOException {
-
-        List<TableDesc> tables = ProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listDefinedTables(project);
-        if (null == tables)
-            return null;
-        String[] tableNames = new String[tables.size()];
-        int index = 0;
-        for (TableDesc desc : tables) {
-            tableNames[index] = desc.getName();
-            index++;
-        }
-
-        return tableNames;
     }
 
     private static ShellExecutable materializedView(TableDesc desc, String jobId, JobEngineConfig conf, String condition) throws IOException {

@@ -65,7 +65,7 @@ public class TableExtController extends BasicController {
     @RequestMapping(value = "/{database}.{tableName}", method = { RequestMethod.GET })
     @ResponseBody
     public TableExtDesc getTableExtDesc(@PathVariable String database, @PathVariable String tableName) throws IOException {
-        TableExtDesc tableExtDesc = tableExtService.getMetaDataManager().getTableExt(database + "." + tableName);
+        TableExtDesc tableExtDesc = tableExtService.getTableExt(database + "." + tableName);
         return tableExtDesc;
     }
 
@@ -112,7 +112,7 @@ public class TableExtController extends BasicController {
             if ((jobID = HiveTableExtSampleJob.findRunningJob(tableName, tableExtService.getConfig())) != null) {
                 jobService.cancelJob(jobService.getJobInstance(jobID));
             }
-            tableExtService.getMetaDataManager().removeTableExt(tableName);
+            tableExtService.removeTableExt(tableName);
         }
         return "OK";
     }
