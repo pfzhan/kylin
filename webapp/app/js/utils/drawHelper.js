@@ -38,6 +38,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
     actionLockForView:false,
     actionLockForEdit:false,
     unDraggaleList:['.bar_action','.tipToolbar','.plusHandle','.minusHandle'],
+    //view级别的锁定
     checkLock:function(){
       if(this.actionLockForView){
         return true;
@@ -65,11 +66,11 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       });
       //全局链接事件
       this.instance.bind("connection", function (info, originalEvent) {
+        //排除锁定的情况下人为拖动
         if(that.checkLock()&&that.beginDrag){
           that.instance.detach(info.connection);
           return;
         }
-
         that.lastLink=[info.sourceEndpoint.getParameters().data,info.targetEndpoint.getParameters().data];
         //自己不能连自己
         if(info.sourceId==info.targetId){
@@ -111,7 +112,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
             that.changeConnectType(info.connection);
           }
         })
-        that.storeCash();
+        that.storeCache();
       });
       var $panzoom=this.container.panzoom({
         cursor: "zoom",
@@ -133,6 +134,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
     },
     projectName:'',
     kylinData:null,
+    //通过connects数据绘制连接线
     renderLinks:function(){
       var that=this,count=0;
       var cloneLinkes= $.extend(true,{},that.connects);
@@ -150,7 +152,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
             count++;
         }
       })
-      this.storeCash();
+      this.storeCache();
     },
     renderPartitionSetting:function(){
       for(var i in this.partitionDate){
@@ -160,7 +162,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         $('#column_'+i+this.partitionTime[i].columnName).find('.snowTime').addClass('.active');
       }
     },
-    storeCash:function(){
+    storeCache:function(){
       if(!this.useCache){
         return;
       }
@@ -173,7 +175,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       storeObj.partitionTime=that.partitionTime;
       StorageHelper.storage.set('snowModelJsDragData',angular.toJson(storeObj,true));
     },
-    restoreCash:function(){
+    restoreCache:function(){
       this.renderTables(this.tableList.data);
       this.renderLinks();
       this.renderPartitionSetting();
@@ -375,7 +377,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           }
         }
       }
-      this.storeCash();
+      this.storeCache();
     },
 
     getForeignKeyCount:function(guid){
@@ -654,7 +656,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
             },
             stop:function(e){
               that.tableList.update('guid',tableBaseObject.guid,{'pos':e.pos})
-              that.storeCash();
+              that.storeCache();
             }
           });
           boxDom.find('.more').on('click',function(){
@@ -700,7 +702,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
                 currentDom.addClass('active');
               },{type:'date'},hisPartionObj)
             }
-            that.storeCash();
+            that.storeCache();
           })
           boxDom.on('click','.snowTime',function(){
             if(that.checkLock()){
@@ -738,7 +740,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
                 currentDom.addClass('active');
               },{type:'time'},hisPartionObj)
             }
-            that.storeCash();
+            that.storeCache();
           })
 
           boxDom.on('click','.tableKind',function(){
@@ -768,7 +770,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
               boxDom.find('.input_alias').val(tableBaseObject.name).hide();
               that.refreshAlias(tableBaseObject.guid,tableBaseObject.name);
             }
-            that.storeCash();
+            that.storeCache();
           })
           var aliasLabel='Alias:';
           boxDom.on('dblclick','.alias',function(){
@@ -798,7 +800,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
                 alias:that.filterSpecialChar(aliasInputVal)
               });
             }
-            that.storeCash();
+            that.storeCache();
           });
           boxDom.on('dbclick','.input_alias',function(){
             if(that.checkLock()){
@@ -812,13 +814,15 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           boxDom.find('.input_alias,p').mousedown(function(e){
             e.stopPropagation();
           })
-          $('body').on('click',function(){
+          $('body').on('click',function(e){
             that.container.parent().find('.tableColumnInfoBox').fadeOut();
-            that.container.find('.input_alias:visible').blur();
+            if(!$(e.target).hasClass('input_alias')){
+              that.container.find('.input_alias:visible').blur();
+            }
           })
         }(tableBaseObjects[tableLen]));
       }
-      this.storeCash();
+      this.storeCache();
       return this;
     },
     //添加表
@@ -952,14 +956,6 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           hoverClass:"dropHover",//释放时指定鼠标停留在该元素上使用的css class
           activeClass:"dragActive",//设置放置相关的css
         },
-        //overlays:[
-        //  [ "Label", {
-        //    location:-130,
-        //    label:"",
-        //    cssClass:"endpointSourceLabel"
-        //  }],
-        //  'Arrow'
-        //],
         beforeDetach:function(conn) {	//绑定一个函数，在连线前弹出确认框
            delete that.connects[info.connection.id];
         },
@@ -976,7 +972,6 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           that.beginDrag=true;
           return true;
         }
-
       };
       return $.extend(pointObj,para);
     },
@@ -1005,6 +1000,10 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
 
       this.instance.setZoom(zoom);
     },
+    /*
+    * ＝＝＝＝＝＝＝＝＝＝工具函数＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+    *
+    * */
     numDiv:function(num1, num2) {
       var baseNum1 = 0, baseNum2 = 0;
       var baseNum3, baseNum4;

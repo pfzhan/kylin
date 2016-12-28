@@ -451,7 +451,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
       function loadDataRender(initPara,cache){
         DrawHelper.init(initPara);
         if(cache){
-          DrawHelper.restoreCash();
+          DrawHelper.restoreCache();
         }
         DrawHelper.container.on('click','p',function(e){
           var columnName=$(this).attr('data');
