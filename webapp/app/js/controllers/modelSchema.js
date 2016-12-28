@@ -170,7 +170,34 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
           }
         });
       }
-
+      //缓存提示弹窗
+      function cacheTipDialog(callback){
+        var cacheTipCtrl=function($scope, $modalInstance,scope){
+          $scope.dataKylin=scope.dataKylin;
+          console.log($scope.dataKylin)
+          $scope.cancel = function () {
+            DrawHelper.removeCache();
+            $modalInstance.dismiss('cancel');
+            callback()
+          }
+          //移除table
+          $scope.ok=function(){
+            $modalInstance.dismiss('cancel');
+            callback();
+          }
+        }
+        var modalInstance = $modal.open({
+          windowClass:'modal_snowtableInfo',
+          templateUrl: 'partials/models/snowmodel_cachetip.html',
+          controller: cacheTipCtrl,
+          backdrop: 'static',
+          resolve:{
+            scope:function(){
+              return $scope;
+            }
+          }
+        });
+      }
       //选择join类型弹窗
       function openSelectJoinTypeDialog(conn){
         var snowTableJoinTypeCtrl=function($scope,$modalInstance,conn,scope){
@@ -416,8 +443,25 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
           }
         });
       }
+
       //拖拽建模（雪花）初始化入口
       DrawHelper=DrawHelper.initService();
+      function loadDataRender(initPara,cache){
+        DrawHelper.init(initPara);
+        if(cache){
+          DrawHelper.restoreCash();
+        }
+        DrawHelper.container.on('click','p',function(e){
+          var columnName=$(this).attr('data');
+          var tableName=$(this).parent().attr('data');
+          $scope.showColumnInfo(tableName,columnName);
+          var showInfoPanel=DrawHelper.container.parent().find('.tableColumnInfoBox');
+          if(!showInfoPanel.is(':visible')){
+            showInfoPanel.fadeIn();
+          }
+          e.stopPropagation();
+        })
+      }
       //编辑和试图模式
       if ($scope.isEdit = !!$routeParams.modelName||$scope.state.mode=='view') {
         if($scope.state.mode!='view'){
@@ -443,6 +487,7 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
               addColumnToPartitionTime:openDateFormatTypeDialog,
               saveModel:openModelSaveDialog,
               kylinData:$scope.modelCopy,
+              useCache:false,
               openJsonDialog:openJsonDialog,
               actionLockForView:$scope.state.mode=='view',
               actionLockForEdit:$scope.isEdit,
@@ -485,31 +530,26 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
         }
         //载入缓存模式
         if(StorageHelper.storage.get('snowModelJsDragData')){
-          var storeData=angular.fromJson(StorageHelper.storage.get('snowModelJsDragData'));
-          initPara.tableList=DrawHelper.tableList;
-          initPara.tableList.data=storeData.tableList.data;
-          initPara.connects=storeData.connects;
-          initPara.partitionDate=storeData.partitionDate;
-          initPara.partitionTime=storeData.partitionTime;
+          cacheTipDialog(function(){
+            if(StorageHelper.storage.get('snowModelJsDragData')){
+              var storeData=angular.fromJson(StorageHelper.storage.get('snowModelJsDragData'));
+              initPara.tableList=DrawHelper.tableList;
+              initPara.tableList.data=storeData.tableList.data;
+              initPara.connects=storeData.connects;
+              initPara.partitionDate=storeData.partitionDate;
+              initPara.partitionTime=storeData.partitionTime;
+              loadDataRender(initPara,true);
+            }else{
+              loadDataRender(initPara);
+            }
+
+          });
+        }else{
+          loadDataRender(initPara);
         }
-        DrawHelper.init(initPara);
-        if(StorageHelper.storage.get('snowModelJsDragData')){
-          DrawHelper.restoreCash();
-        }
-        DrawHelper.container.on('click','p',function(e){
-          var columnName=$(this).attr('data');
-          var tableName=$(this).parent().attr('data');
-          $scope.showColumnInfo(tableName,columnName);
-          var showInfoPanel=DrawHelper.container.parent().find('.tableColumnInfoBox');
-          if(!showInfoPanel.is(':visible')){
-            showInfoPanel.fadeIn();
-          }
-          e.stopPropagation();
-        })
+
       }
-
-
-    },1)
+    },$scope.state.mode=='view'?1:400)
 
   });
   //snow part
