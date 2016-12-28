@@ -597,13 +597,13 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       var toKylinData=this.plumbDataToKylinData();
       //数据格式是否有误差
       if(typeof toKylinData=='object'){
+        if(!toKylinData.fact_table){
+          errcallback('norootfact');
+          return;
+        }
         //检察是否有dimension
         if(toKylinData.dimensions&&toKylinData.dimensions.length==0){
           errcallback('nodimension');
-          return;
-        }
-        if(!toKylinData.fact_table){
-          errcallback('norootfact');
           return;
         }
       }
@@ -652,11 +652,18 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
           }
           that.bindColumnChangeTypeEvent(boxDom,tableBaseObject.guid);
           that.instance.draggable(boxDom,{
+            start:function(){
+              that.container.panzoom('disable');
+              $(this).css("cursor","move");
+            },
             drag:function(e){
+
             },
             stop:function(e){
               that.tableList.update('guid',tableBaseObject.guid,{'pos':e.pos})
               that.storeCache();
+              that.container.panzoom('enable');
+              $(this).css("cursor","");
             }
           });
           boxDom.find('.more').on('click',function(){
@@ -933,8 +940,14 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
       that.instance.setSuspendDrawing(false, true)
     },
     getBasePosition:function(offsetSize){
-      offsetSize=offsetSize||0
-      return [-parseInt(this.container.css('left'))+offsetSize,-parseInt(this.container.css('top'))+offsetSize]
+      offsetSize=offsetSize||0;
+      var transSize=$("#snowBox").css('transform');
+      var x=0,y=0;
+      if(transSize){
+        x=parseFloat(transSize.split(',')[4])||0;
+        y=parseFloat(transSize.split(',')[5])||0
+      }
+      return [-parseInt(this.container.css('left'))+offsetSize-x,-parseInt(this.container.css('top'))+offsetSize-y]
     },
     beginDrop:false,
     //创建连接点
@@ -945,7 +958,7 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         paintStyle:{ fill:'#46b8da',width: 10, height: 10 },//设置连接点的颜色
         isSource:true,	//是否可以拖动（作为连线起点）
         scope:"green dot",//连接点的标识符，只有标识符相同的连接点才能连接
-        connector: ["Bezier", { curviness:63 } ],//设置连线为贝塞尔曲线
+        connector: ["Bezier", { curviness:163 } ],//设置连线为贝塞尔曲线
         maxConnections:100,//设置连接点最多可以连接几条线
         isTarget:true,	//是否可以放置（作为连线终点）
         connectorStyle: {
