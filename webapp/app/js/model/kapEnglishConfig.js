@@ -1002,6 +1002,9 @@ KylinApp.constant('kapEnglishConfig', {
     modelSaveInfo:'Save model  information',
     modelFilterPlaceHolder:'The filter condition, no clause \'WHERE\' needed',
     errorRepeat:'A model already exists using this name！',
-    hasCacheTip:'Monitor your last incomplete modeling data, load continue edit?'
+    hasCacheTip:'Monitor your last incomplete modeling data, load continue edit?',
+    noDimension:'Dimension column is not set in the model',
+    formatError:'Model data is not complete',
+    noRootFact:'You are not set root fact table'
   }
 });

@@ -356,92 +356,94 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, $routeParams,V
               SweetAlert.swal(scope.dataKylin.alert.oops, scope.dataKylin.alert.tip_invalid_model_json, 'error');
               return;
             }
-            if(DrawHelper.kylinData&&DrawHelper.kylinData.uuid){
+              if(DrawHelper.kylinData&&DrawHelper.kylinData.uuid){
 
-               var updateModelData= $.extend({},DrawHelper.kylinData,saveData);
-               ModelService.update({}, {
-                modelDescData:VdmUtil.filterNullValInObj(updateModelData),
-                modelName: saveData.name,
-                project:scope.state.project
-              }, function (request) {
-                if (request.successful) {
-                  //$scope.state.modelSchema = request.modelSchema;
-                  DrawHelper.removeCache();
-                  $modalInstance.dismiss('cancel');
-                  SweetAlert.swal('', scope.dataKylin.alert.success_updated_model, 'success');
-                  $location.path("/models");
-                  //location.reload();
-                } else {
+                var updateModelData= $.extend({},DrawHelper.kylinData,saveData);
+                ModelService.update({}, {
+                  modelDescData:VdmUtil.filterNullValInObj(updateModelData),
+                  modelName: saveData.name,
+                  project:scope.state.project
+                }, function (request) {
+                  if (request.successful) {
+                    //$scope.state.modelSchema = request.modelSchema;
+                    DrawHelper.removeCache();
+                    $modalInstance.dismiss('cancel');
+                    SweetAlert.swal('', scope.dataKylin.alert.success_updated_model, 'success');
+                    $location.path("/models");
+                    //location.reload();
+                  } else {
+                    //$scope.saveModelRollBack();
+                    var message =request.message;
+                    var msg = !!(message) ? message : scope.dataKylin.alert.error_info;
+                    MessageService.sendMsg(scope.modelResultTmpl({'text':msg,'schema':''}), 'error', {}, true, 'top_center');
+                  }
+                  //end loading
+                  loadingRequest.hide();
+                }, function (e) {
                   //$scope.saveModelRollBack();
-                  var message =request.message;
-                  var msg = !!(message) ? message : scope.dataKylin.alert.error_info;
-                  MessageService.sendMsg(scope.modelResultTmpl({'text':msg,'schema':''}), 'error', {}, true, 'top_center');
-                }
-                //end loading
-                loadingRequest.hide();
-              }, function (e) {
-                //$scope.saveModelRollBack();
 
-                if(e.data&& e.data.exception){
-                  var message =e.data.exception;
-                  var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
+                  if(e.data&& e.data.exception){
+                    var message =e.data.exception;
+                    var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
 
-                  MessageService.sendMsg(scope.modelResultTmpl({'text':msg,'schema':''}), 'error', {}, true, 'top_center');
-                } else {
-                  MessageService.sendMsg(scope.modelResultTmpl({'text':scope.dataKylin.alert.error_info,'schema':''}), 'error', {}, true, 'top_center');
+                    MessageService.sendMsg(scope.modelResultTmpl({'text':msg,'schema':''}), 'error', {}, true, 'top_center');
+                  } else {
+                    MessageService.sendMsg(scope.modelResultTmpl({'text':scope.dataKylin.alert.error_info,'schema':''}), 'error', {}, true, 'top_center');
+                  }
+                  loadingRequest.hide();
+                });
+              }else{
+                if(!$scope.checkModelName($scope.model.name)){
+                  $scope.validate.errorRepeatName=true;
+                  return;
                 }
-                loadingRequest.hide();
-              });
-            }else{
-              if(!$scope.checkModelName($scope.model.name)){
-                $scope.validate.errorRepeatName=true;
-                return;
+                ModelService.save({}, {
+                  modelDescData:VdmUtil.filterNullValInObj(saveData),
+                  project: scope.state.project
+                }, function (request) {
+                  if(request.successful) {
+                    DrawHelper.removeCache();
+                    SweetAlert.swal('', scope.dataKylin.alert.success_created_model, 'success');
+                    $modalInstance.dismiss('cancel');
+                    $location.path("/models");
+                    //location.reload();
+                  } else {
+                    var message =request.message;
+                    var msg = !!(message) ? message : scope.dataKylin.alert.error_info;
+                    MessageService.sendMsg(scope.modelResultTmpl({'text':msg,'schema':''}), 'error', {}, true, 'top_center');
+                  }
+
+                  //end loading
+                  loadingRequest.hide();
+                }, function (e) {
+                  if (e.data && e.data.exception) {
+                    var message =e.data.exception;
+                    var msg = !!(message) ? message : scope.dataKylin.alert.error_info;
+                    MessageService.sendMsg(scope.modelResultTmpl({'text':msg,'schema':scope.state.modelSchema}), 'error', {}, true, 'top_center');
+                  } else {
+                    MessageService.sendMsg(scope.modelResultTmpl({'text':scope.dataKylin.alert.error_info,'schema':''}), 'error', {}, true, 'top_center');
+                  }
+                  //end loading
+                  loadingRequest.hide();
+                });
               }
-              ModelService.save({}, {
-                modelDescData:VdmUtil.filterNullValInObj(saveData),
-                project: scope.state.project
-              }, function (request) {
-                if(request.successful) {
-                  DrawHelper.removeCache();
-                  SweetAlert.swal('', scope.dataKylin.alert.success_created_model, 'success');
-                  $modalInstance.dismiss('cancel');
-                  $location.path("/models");
-                  //location.reload();
-                } else {
-                  var message =request.message;
-                  var msg = !!(message) ? message : scope.dataKylin.alert.error_info;
-                  MessageService.sendMsg(scope.modelResultTmpl({'text':msg,'schema':''}), 'error', {}, true, 'top_center');
-                }
-
-                //end loading
-                loadingRequest.hide();
-              }, function (e) {
-                if (e.data && e.data.exception) {
-                  var message =e.data.exception;
-                  var msg = !!(message) ? message : scope.dataKylin.alert.error_info;
-                  MessageService.sendMsg(scope.modelResultTmpl({'text':msg,'schema':scope.state.modelSchema}), 'error', {}, true, 'top_center');
-                } else {
-                  MessageService.sendMsg(scope.modelResultTmpl({'text':scope.dataKylin.alert.error_info,'schema':''}), 'error', {}, true, 'top_center');
-                }
-                //end loading
-                loadingRequest.hide();
-
-              });
-            }
-
           }
         }
-        var modalInstance = $modal.open({
-          windowClass:'modal_modelsave',
-          templateUrl: 'partials/models/snowmodel_saveinfo.html',
-          controller: snowModelSaveCtrl,
-          backdrop: 'static',
-          resolve:{
-            scope: function () {
-              return $scope;
+        DrawHelper.checkSaveData(function(errcode){
+          DrawHelper.showTips(errcode);
+        },function(){
+          var modalInstance = $modal.open({
+            windowClass:'modal_modelsave',
+            templateUrl: 'partials/models/snowmodel_saveinfo.html',
+            controller: snowModelSaveCtrl,
+            backdrop: 'static',
+            resolve:{
+              scope: function () {
+                return $scope;
+              }
             }
-          }
-        });
+          });
+        })
       }
 
       //拖拽建模（雪花）初始化入口

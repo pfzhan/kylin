@@ -1002,6 +1002,9 @@ KylinApp.constant('kapChineseConfig', {
     modelSaveInfo:'保存模型基础信息',
     modelFilterPlaceHolder: '请输入WHERE条件，不需要输入\'WHERE\'',
     errorRepeat:'已经存在使用该名称的模型！',
-    hasCacheTip:'监测到您上次有未完成的建模数据，是否加载继续编辑?'
+    hasCacheTip:'监测到您上次有未完成的建模数据，是否加载继续编辑?',
+    noDimension:'您的模型中未设置Dimension列',
+    formatError:'模型数据不完整',
+    noRootFact:'您未设置root fact表'
   }
 });

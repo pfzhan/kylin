@@ -46,8 +46,6 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
     init:function(para){
       this.container=$('#'+this.containerId);
       $.extend(this,para);
-      //this.boxWidth=this.container.width();
-      //this.boxHeight=this.container.height();
       var that=this;
       this.container.css({width:this.containerSize.width+'px',height:this.containerSize.height+'px',left:(-this.containerSize.width+this.container.parent().width())/2+'px',top:(-this.containerSize.height+this.container.parent().height())/2+'px'})
       this.container.parent().css({'height':$(window).height()+'px','overflow':'hidden'});
@@ -281,25 +279,27 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
        };
       //采集rootfacttable信息
        var rootFactTable=this.tableList.getRootFact();
-       if(!rootFactTable&&!that.useCache){
-         return 'lose root fact';
-       }
       if(rootFactTable){
         kylinData.fact_table=rootFactTable.table;
       }
       //采集jontable的信息
        var lookups={},linkTables={};
-       for(var i in this.connects){
-         var joinTableGuid=this.connects[i][0].split('.')[0];
-         if(!lookups[joinTableGuid]){
-           lookups[joinTableGuid]={foreigns:[],primarys:[], type:''}
+       if(this.isNullObj(this.connects)&&this.tableList.data.length>=1){
+         linkTables[this.tableList.data[0].guid]=true;
+       }else{
+         for(var i in this.connects){
+           var joinTableGuid=this.connects[i][0].split('.')[0];
+           if(!lookups[joinTableGuid]){
+             lookups[joinTableGuid]={foreigns:[],primarys:[], type:''}
+           }
+           lookups[joinTableGuid].primarys.push(this.connects[i][0]);
+           lookups[joinTableGuid].foreigns.push(this.connects[i][1]);
+           linkTables[this.connects[i][0].split('.')[0]]=true;
+           linkTables[this.connects[i][1].split('.')[0]]=true;
+           lookups[joinTableGuid].type=this.connects[i][2];
          }
-         lookups[joinTableGuid].primarys.push(this.connects[i][0]);
-         lookups[joinTableGuid].foreigns.push(this.connects[i][1]);
-         linkTables[this.connects[i][0].split('.')[0]]=true;
-         linkTables[this.connects[i][1].split('.')[0]]=true;
-         lookups[joinTableGuid].type=this.connects[i][2];
        }
+
        for(var i in lookups){
           var tableObj={};
           var tableBase=this.tableList.getTable('guid', i);
@@ -589,6 +589,28 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         return true;
       }
       return false;
+    },
+    //保存数据监测
+    checkSaveData:function(errcallback,callback){
+      var toKylinData=this.plumbDataToKylinData();
+      //数据格式是否有误差
+      if(typeof toKylinData=='object'){
+        //检察是否有dimension
+        if(toKylinData.dimensions&&toKylinData.dimensions.length==0){
+          errcallback('nodimension');
+          return;
+        }
+        if(!toKylinData.fact_table){
+          errcallback('norootfact');
+          return;
+        }
+      }
+      if(typeof toKylinData=='string'){
+        errcallback('formaterror');
+        return;
+      }
+      callback(toKylinData);
+
     },
     renderTables:function(tableBaseObjects){
       var that=this;
