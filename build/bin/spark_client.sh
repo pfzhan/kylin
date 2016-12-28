@@ -18,6 +18,9 @@ then
     export KYLIN_SPARK_JAR_PATH=`ls $KYLIN_HOME/extensions/storage-parquet/target/kap-storage-parquet-*-spark.jar`
     export KAP_HDFS_WORKING_DIR=`sh $KYLIN_HOME/build/bin/get-properties.sh kylin.env.hdfs-working-dir`
     export KAP_METADATA_URL=`sh $KYLIN_HOME/build/bin/get-properties.sh kylin.metadata.url`
+    export SPARK_ENV_PROPS=`sh $KYLIN_HOME/build/bin/get-properties.sh kap.storage.columnar.spark-env.`
+    export SPARK_CONF_PROPS=`sh $KYLIN_HOME/build/bin/get-properties.sh kap.storage.columnar.spark-conf.`
+    export SPARK_DRIVER_PORT=`sh $KYLIN_HOME/build/bin/get-properties.sh kap.storage.columnar.spark-driver-port`
 else
     verbose 'in normal mode'
     export KYLIN_HOME=${KYLIN_HOME:-"${dir}/../"}
@@ -27,7 +30,10 @@ else
     export KYLIN_SPARK_JAR_PATH=`ls $KYLIN_HOME/lib/kylin-storage-parquet-kap-*.jar`
     export KAP_HDFS_WORKING_DIR=`sh $KYLIN_HOME/bin/get-properties.sh kylin.env.hdfs-working-dir`
     export KAP_METADATA_URL=`sh $KYLIN_HOME/bin/get-properties.sh kylin.metadata.url`
-    
+    export SPARK_ENV_PROPS=`sh $KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.spark-env.`
+    export SPARK_CONF_PROPS=`sh $KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.spark-conf.`
+    export SPARK_DRIVER_PORT=`sh $KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.spark-driver-port`
+
     if [ ! -f ${KYLIN_HOME}/commit_SHA1 ]
     then
         quit "Seems you're not in binary package, did you forget to set CI_MODE=true?"
@@ -69,17 +75,9 @@ then
           quit "Spark Client is running, stop it first"
         fi
     fi
-    
+
     #Spark Client port
-    driverPortPrefix="kap.storage.columnar.spark-driver-port="
-    realStart=$((${#driverPortPrefix} + 1))
-    driverPort=
-    for x in `cat ${CONF_DIR}/*.properties | grep "^$driverPortPrefix" | cut -c ${realStart}-   `
-    do  
-        driverPort=$x
-    done
-    
-    driverPort=${driverPort:-7071}
+    driverPort=${SPARK_DRIVER_PORT:-7071}
     verbose "The driver port is $driverPort"
     export driverPort
 
@@ -87,15 +85,13 @@ then
     if [ $nc_result -eq 0 ]; then
         quit "Port ${driverPort} is not available, could not start Spark Client"
     fi
-    
+
     # spark envs
-    sparkEnvPrefix="kap.storage.columnar.spark-env."
-    realStart=$((${#sparkEnvPrefix} + 1))
-    for kv in `cat ${CONF_DIR}/*.properties | grep "^${sparkEnvPrefix}" | cut -c ${realStart}-   `
-    do  
+    for kv in `echo "$SPARK_ENV_PROPS"`
+    do
         key=`echo "$kv" |  awk '{ n = index($0,"="); print substr($0,0,n-1)}'`
         existingValue=`printenv ${key}`
-        if [ -z "$existingValue" ] 
+        if [ -z "$existingValue" ]
         then
             verbose "$key is not set, running: export $kv"
             export $kv
@@ -103,28 +99,26 @@ then
             verbose "$key already has value: $existingValue, use it"
         fi
     done
-    
+
     # spark conf
-    sparkConfPrefix="kap.storage.columnar.spark-conf."
-    realStart=$((${#sparkConfPrefix} + 1))
-    confStr=`cat ${CONF_DIR}/*.properties | grep "^${sparkConfPrefix}" | cut -c ${realStart}- |  awk '{ print "--conf " "\"" $0 "\""}' | tr '\n' ' ' `
+    confStr=`echo "$SPARK_CONF_PROPS" |  awk '{ print "--conf " "\"" $0 "\""}' | tr '\n' ' ' `
     verbose "additional confs spark-submit: $confStr"
 
     submitCommand='$SPARK_HOME/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry --master yarn --deploy-mode client --verbose --files "${LOG4J_DIR}/spark-executor-log4j.properties,${KYLIN_SPARK_JAR_PATH}" '
     submitCommand=${submitCommand}${confStr}
     submitCommand=${submitCommand}' ${KYLIN_SPARK_JAR_PATH} -className io.kyligence.kap.storage.parquet.cube.spark.SparkQueryDriver --port ${driverPort} > ${KYLIN_HOME}/logs/spark-driver.out 2>&1 & echo $! > ${KYLIN_HOME}/spark_client_pid &'
     verbose "The submit command is: $submitCommand"
-    eval $submitCommand 
-    
+    eval $submitCommand
+
     echo "A new Spark Client instance is started by $USER. To stop it, run 'spark_client.sh stop'"
     echo "Check the log at ${KYLIN_HOME}/logs/spark-driver.log"
-    
+
     if [[ $CI_MODE == 'true' ]]
     then
         echo "sleep one minute before exit, allowing spark fully start"
         sleep 60
     fi
-    
+
     exit 0
 
 # stop command
@@ -142,7 +136,7 @@ then
         else
            quit "Spark Client is not running"
         fi
-        
+
     else
         quit "Spark Client is not running"
     fi
