@@ -78,15 +78,12 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
     private int fuzzyLength = 0;
     private int fuzzyHashLength = 0;
 
-    private HashMap<Path, Path> pathMap;
-
     private double spillThresholdMB;
 
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
         Configuration conf = context.getConfiguration();
         inputPath = ((FileSplit) context.getInputSplit()).getPath();
-        pathMap = new HashMap<>();
 
         super.bindCurrentConfiguration(conf);
 
