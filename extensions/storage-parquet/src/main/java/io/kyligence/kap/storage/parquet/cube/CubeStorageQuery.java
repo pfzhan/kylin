@@ -24,14 +24,23 @@
 
 package io.kyligence.kap.storage.parquet.cube;
 
+import java.util.Set;
+
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.cube.cuboid.Cuboid;
+import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.tuple.TupleInfo;
 import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryBase;
+import org.apache.kylin.storage.gtrecord.ITupleConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CubeStorageQuery extends GTCubeStorageQueryBase {
+    
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(CubeStorageQuery.class);
 
     public CubeStorageQuery(CubeInstance cube) {
@@ -45,6 +54,11 @@ public class CubeStorageQuery extends GTCubeStorageQueryBase {
     @Override
     protected String getGTStorage() {
         return KapConfig.getInstanceFromEnv().getSparkCubeGTStorage();
+    }
+
+    @Override
+    protected ITupleConverter newCubeTupleConverter(CubeSegment cubeSeg, Cuboid cuboid, Set<TblColRef> selectedDimensions, Set<FunctionDesc> selectedMetrics, TupleInfo tupleInfo) {
+        return new CubeTupleConverter(cubeSeg, cuboid, selectedDimensions, selectedMetrics, tupleInfo);
     }
 
 }
