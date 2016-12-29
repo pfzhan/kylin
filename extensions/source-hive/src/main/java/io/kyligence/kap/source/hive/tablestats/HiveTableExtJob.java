@@ -108,7 +108,7 @@ public class HiveTableExtJob extends AbstractHadoopJob {
 
         logger.info("Going to submit Hive Sample Job for table '" + table + "'");
 
-        attachKylinPropsAndMetadata(tableDesc, job.getConfiguration());
+        attachTableMetadata(tableDesc, job.getConfiguration());
         int result = waitForCompletion(job);
 
         return result;

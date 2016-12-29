@@ -30,13 +30,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.JobInstance;
 import org.apache.kylin.job.exception.JobException;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.request.HiveTableRequest;
-import org.apache.kylin.rest.service.CubeService;
 import org.apache.kylin.rest.service.JobService;
+import org.apache.kylin.rest.service.TableService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -60,7 +61,7 @@ public class TableExtController extends BasicController {
     private JobService jobService;
 
     @Autowired
-    private CubeService cubeMgmtService;
+    private TableService tableService;
 
     @RequestMapping(value = "/{database}.{tableName}", method = { RequestMethod.GET })
     @ResponseBody
@@ -94,9 +95,8 @@ public class TableExtController extends BasicController {
     @ResponseBody
     public Map<String, JobInstance> loadHiveTable(@PathVariable String tables, @PathVariable String project, @RequestBody HiveTableRequest request) throws IOException, JobException {
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
-        String[] loadedTables = cubeMgmtService.reloadHiveTable(tables);
+        String[] loadedTables = tableService.loadHiveTablesToProject(StringUtil.splitAndTrim(tables, ","), project);
         List<String> jobIDs = tableExtService.extractTableExt(project, submitter, loadedTables);
-        cubeMgmtService.syncTableToProject(loadedTables, project);
         Map<String, JobInstance> result = new HashMap<>();
         for (int i = 0; i < loadedTables.length; i++) {
             result.put(loadedTables[i], jobService.getJobInstance(jobIDs.get(i)));

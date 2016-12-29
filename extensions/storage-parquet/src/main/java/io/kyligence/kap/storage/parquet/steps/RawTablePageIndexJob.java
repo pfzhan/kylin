@@ -153,7 +153,7 @@ public class RawTablePageIndexJob extends AbstractHadoopJob {
             List<String> dependentResources = SourceFactory.getMRDependentResources(table);
             dumpList.addAll(dependentResources);
         }
-        attachKylinPropsAndMetadata(dumpList, instance.getConfig(), conf);
+        dumpKylinPropsAndMetadata(dumpList, instance.getConfig(), conf);
     }
 
     protected int setJobInputFile(Job job, Path path) throws IOException {

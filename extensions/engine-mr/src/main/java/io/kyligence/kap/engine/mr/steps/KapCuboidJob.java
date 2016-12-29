@@ -151,7 +151,7 @@ public class KapCuboidJob extends AbstractHadoopJob {
             cubeSeg.setStorageLocationIdentifier(getWorkingDir(config, cube, cubeSeg));
 
             // add metadata to distributed cache
-            attachKylinPropsAndMetadata(cube, job.getConfiguration());
+            attachSegmentMetadataWithDict(cubeSeg, job.getConfiguration());
 
             LayerReducerNumSizing.setReduceTaskNum(job, cubeSeg, getTotalMapInputMB(), nCuboidLevel);
 
