@@ -114,7 +114,7 @@
                 <div class="col-xs-12 col-sm-6">
                   <select class="form-control"
                           ng-init="newMeasure.function.expression = (!!newMeasure.function.expression)?newMeasure.function.expression:cubeConfig.dftSelections.measureExpression" chosen ng-model="newMeasure.function.expression" required
-                          ng-change="measureReturnTypeUpdate();"
+                          ng-change="measureReturnTypeUpdate(); measureParamValueUpdate();"
                           ng-options="me as me for me in cubeConfig.measureExpressions">
                     <option value=""></option>
                   </select>
@@ -152,32 +152,21 @@
                 </label>
 
                 <div class="col-xs-12 col-sm-6">
-                                  <span class="font-color-default"
-                                        ng-if="newMeasure.function.parameter.type == 'constant'"
-                                        ng-init="newMeasure.function.parameter.value = 1"><b>&nbsp;&nbsp;1</b></span>
+                  <span class="font-color-default"
+                        ng-if="newMeasure.function.parameter.type == 'constant'"
+                        ng-init="newMeasure.function.parameter.value = 1"><b>&nbsp;&nbsp;1</b></span>
                   <!--!COUNT_DISTINCT-->
                   <select class="form-control" chosen
-                          ng-if="newMeasure.function.parameter.type == 'column' && (newMeasure.function.expression == 'COUNT_DISTINCT'||newMeasure.function.expression == 'RAW')"
+                          ng-if="newMeasure.function.parameter.type == 'column'"
                           ng-model="newMeasure.function.parameter.value" required
                           ng-change="measureReturnTypeUpdate();"
-                          ng-options="column as column for column in getAllModelDimMeasureColumns(newMeasure)" >
-                    <option value="">{{dataKylin.cube.cubeMSParamValueSelect}}</option>
-                  </select>
-                  <select class="form-control" chosen
-                          ng-if="newMeasure.function.parameter.type == 'column' && newMeasure.function.expression !== 'EXTENDED_COLUMN' && newMeasure.function.expression !== 'COUNT_DISTINCT' && newMeasure.function.expression !== 'RAW'"
-                          ng-model="newMeasure.function.parameter.value" required
-                          ng-change="measureReturnTypeUpdate();"
-                          ng-options="column as column for column in getCommonMetricColumns(newMeasure)" >
-                    <option value="">{{dataKylin.cube.cubeMSParamValueSelect}}</option>
-                  </select>
-                  <select class="form-control" chosen
-                          ng-if="newMeasure.function.expression == 'EXTENDED_COLUMN'"
-                          ng-model="newMeasure.function.parameter.value" required
-                          ng-change="measureReturnTypeUpdate();"
-                          ng-options="column as column for column in getExtendedHostColumn()" >
+                          ng-options="column as column for column in measureParamValueColumn" >
                     <option value="">{{dataKylin.cube.cubeMSParamValueSelect}}</option>
                   </select>
                 </div>
+                <label ng-if="newMeasure.function.parameter.type == 'column'&& newMeasure.function.expression !== 'EXTENDED_COLUMN'">
+                  <input type="checkbox" ng-model="newMeasure.showDim" ng-change="measureParamValueUpdate();" />&nbsp;Also Show Dimensions
+                </label>
               </div>
             </div>
 

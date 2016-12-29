@@ -310,12 +310,18 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
 
   $scope.initAliasMap = function (){
     var rootFactTable = VdmUtil.removeNameSpace($scope.metaModel.model.fact_table);
+    $scope.availableFactTables.push(rootFactTable);
     $scope.aliasName.push(rootFactTable);
     $scope.aliasTableMap[rootFactTable]=$scope.metaModel.model.fact_table;
     $scope.tableAliasMap[$scope.metaModel.model.fact_table]=rootFactTable;
     angular.forEach($scope.metaModel.model.lookups,function(joinTable){
       if(!joinTable.alias){
         joinTable.alias=StringHelper.removeNameSpace(joinTable.table);
+      }
+      if(joinTable.kind=="FACT"){
+        $scope.availableFactTables.push(joinTable.alias);
+      }else{
+        $scope.availableLookupTables.push(joinTable.alias);
       }
       $scope.aliasTableMap[joinTable.alias]=joinTable.table;
       $scope.tableAliasMap[joinTable.table]=joinTable.alias;

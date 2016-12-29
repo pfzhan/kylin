@@ -84,6 +84,16 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
     if(!!measure && measure.function.parameter.next_parameter){
       $scope.nextPara.value = measure.function.parameter.next_parameter.value;
     }
+    if($scope.newMeasure.function.parameter.value){
+      if($scope.metaModel.model.metrics&&$scope.metaModel.model.metrics.indexOf($scope.newMeasure.function.parameter.value)!=-1){
+          $scope.newMeasure.showDim=false;
+      }else{
+          $scope.newMeasure.showDim=true;
+      }
+    }else{
+      $scope.newMeasure.showDim=false;
+    }
+    $scope.measureParamValueUpdate();
     if(measure.function.expression=="TOP_N"){
       $scope.convertedColumns=[];
         if(measure.function.configuration==null){
@@ -262,6 +272,7 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
   $scope.addMeasure = function () {
      // Make a copy of model will be editing.
      $scope.newMeasure = CubeDescModel.createMeasure();
+     $scope.measureParamValueColumn=$scope.getCommonMetricColumns();
      $scope.openMeasureModal();
      $scope.addEditMeasureEncoding($scope.newMeasure);
   };
@@ -317,7 +328,17 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
      $scope.initUpdateMeasureStatus();
      $scope.nextParameterInit();
   };
-
+  $scope.measureParamValueUpdate = function(){
+   if($scope.newMeasure.function.expression !== 'EXTENDED_COLUMN' && $scope.newMeasure.showDim==true){
+      $scope.measureParamValueColumn=$scope.getAllModelDimMeasureColumns();
+   }
+   if($scope.newMeasure.function.expression !== 'EXTENDED_COLUMN' && $scope.newMeasure.showDim==false){
+      $scope.measureParamValueColumn=$scope.getCommonMetricColumns();
+   }
+   if($scope.newMeasure.function.expression == 'EXTENDED_COLUMN'){
+      $scope.measureParamValueColumn=$scope.getExtendedHostColumn();
+   }
+  }
   //map right return type for param
   $scope.measureReturnTypeUpdate = function(){
 

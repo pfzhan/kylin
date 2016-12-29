@@ -68,17 +68,12 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
         $scope.availableColumns[rootFactTable] = cols;
         factSelectAvailable.all=false;
         $scope.selectedColumns[rootFactTable] = factSelectAvailable;
-        $scope.availableFactTables.push(rootFactTable);
 
         // Then dump each lookup tables.
         var lookups = $scope.metaModel.model.lookups;
 
         for (var j = 0; j < lookups.length; j++) {
-          if(lookups[j].kind=="FACT"){
-            $scope.availableFactTables.push(lookups[j].alias);
-          }else{
-            $scope.availableLookupTables.push(lookups[j].alias);
-          }
+
             var cols2 = $scope.getDimColumnsByAlias(lookups[j].alias);
 
             // Initialize selected available.
