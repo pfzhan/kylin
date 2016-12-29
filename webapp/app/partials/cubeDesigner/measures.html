@@ -165,7 +165,7 @@
                   </select>
                 </div>
                 <label ng-if="newMeasure.function.parameter.type == 'column'&& newMeasure.function.expression !== 'EXTENDED_COLUMN'">
-                  <input type="checkbox" ng-model="newMeasure.showDim" ng-change="measureParamValueUpdate();" />&nbsp;Also Show Dimensions
+                  <input type="checkbox" ng-model="newMeasure.showDim" ng-change="measureParamValueUpdate();" />&nbsp;{{dataKylin.cube.includeDimension}}
                 </label>
               </div>
             </div>

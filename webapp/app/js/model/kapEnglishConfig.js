@@ -594,7 +594,8 @@ KylinApp.constant('kapEnglishConfig', {
     tip_body_parser_name:'Set the parser to parse source data messages. The default parser works for json messages with a timestamp field.',
     tip_body_parser_timestamp_field:'Provide the name of the timestamp field to the default parser.',
     tip_body_parser_properties:'Provide a list of KV properties to the parser, delimited by semicolon.',
-    backup_cube:'Backup Cube'
+    backup_cube:'Backup Cube',
+    includeDimension:'Include Dimensions'
   },
   monitor:{
     monitor: 'Monitor',

@@ -594,7 +594,8 @@ KylinApp.constant('kapChineseConfig', {
     tip_body_parser_name:'设置用来解析源数据消息的解析器，默认的解析器适用于带时间戳字段的json消息.',
     tip_body_parser_timestamp_field:'向默认的解析器提供时间戳字段的名称.',
     tip_body_parser_properties:'向解析器提供KV形式的属性列表，以分号间隔.',
-    backup_cube:'备份cube'
+    backup_cube:'备份cube',
+    includeDimension:'包含维度'
   },
   monitor:{
     monitor: '监控',
