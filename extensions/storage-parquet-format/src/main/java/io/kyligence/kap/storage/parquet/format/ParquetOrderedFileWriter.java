@@ -46,12 +46,7 @@ public abstract class ParquetOrderedFileWriter extends RecordWriter<Text, Text> 
      */
     abstract protected ParquetRawWriter newWriter() throws IOException, InterruptedException;
 
-    protected void cleanWriter() throws IOException {
-        if (writer != null) {
-            writer.close();
-            writer = null;
-        }
-    }
+    abstract protected void cleanWriter() throws IOException;
 
     /**
      * write data to parquet file

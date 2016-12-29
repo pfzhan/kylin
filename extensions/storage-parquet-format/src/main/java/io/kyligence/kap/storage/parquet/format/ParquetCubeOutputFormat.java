@@ -70,9 +70,10 @@ public class ParquetCubeOutputFormat extends FileOutputFormat<Text, Text> {
     public static class ParquetCubeWriter extends ParquetOrderedFileWriter {
         private static final Logger logger = LoggerFactory.getLogger(ParquetCubeWriter.class);
 
-        private long curCuboidId = 0;
-        private short curShardId = 0;
-
+        private long curCuboidId = -1;
+        private short curShardId = -1;
+        private int curShardCounter = 0;
+        
         private Configuration config;
         private KylinConfig kylinConfig;
         private MeasureCodec measureCodec;
@@ -115,10 +116,25 @@ public class ParquetCubeOutputFormat extends FileOutputFormat<Text, Text> {
                 cleanWriter();
                 curShardId = shardId;
                 curCuboidId = cuboidId;
+                
+                curShardCounter = 0;
+                logger.info("meet a new shard: cuboid {} shard {}", curCuboidId, curShardId);
+
             }
+            
+            curShardCounter++;
 
             if (writer == null) {
                 writer = newWriter();
+            }
+        }
+        
+        @Override
+        protected void cleanWriter() throws IOException {
+            logger.info("Finish written {} lines for cuboid {} shard {}", curShardCounter, curCuboidId, curShardId);
+            if (writer != null) {
+                writer.close();
+                writer = null;
             }
         }
 

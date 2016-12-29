@@ -32,6 +32,7 @@ import java.util.Map;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.common.CubeStatsReader;
 import org.apache.kylin.engine.mr.common.CuboidShardUtil;
@@ -52,6 +53,7 @@ import com.google.common.collect.Maps;
 public class CubeShardSizingStep extends AbstractExecutable {
 
     private static final Logger logger = LoggerFactory.getLogger(CubeShardSizingStep.class);
+    private final BufferedLogger stepLogger = new BufferedLogger(logger);
 
     public CubeShardSizingStep() {
         super();
@@ -64,7 +66,7 @@ public class CubeShardSizingStep extends AbstractExecutable {
 
         try {
             cuboidShardSizing(newSegment, kylinConf);
-            return new ExecuteResult(ExecuteResult.State.SUCCEED, "succeed");
+            return new ExecuteResult(ExecuteResult.State.SUCCEED, stepLogger.getBufferedLog());
         } catch (IOException e) {
             logger.error("fail to save cuboid statistics", e);
             return new ExecuteResult(ExecuteResult.State.ERROR, e.getLocalizedMessage());
@@ -92,13 +94,13 @@ public class CubeShardSizingStep extends AbstractExecutable {
             int shardNum = (int) (1.0 * estimatedSize / mbPerShard + 0.99);
 
             if (shardNum > shardMax) {
-                logger.info(String.format("Cuboid %d 's estimated size %.2f MB will generate %d regions, reduce to %d", cuboidId, estimatedSize, shardNum, shardMax));
+                stepLogger.log(String.format("Cuboid %d 's estimated size %.2f MB will generate %d regions, reduce to %d", cuboidId, estimatedSize, shardNum, shardMax));
                 shardNum = shardMax;
             } else if (shardNum < shardMin) {
-                logger.info(String.format("Cuboid %d 's estimated size %.2f MB will generate %d regions, increase to %d", cuboidId, estimatedSize, shardNum, shardMin));
+                stepLogger.log(String.format("Cuboid %d 's estimated size %.2f MB will generate %d regions, increase to %d", cuboidId, estimatedSize, shardNum, shardMin));
                 shardNum = shardMin;
             } else {
-                logger.info(String.format("Cuboid %d 's estimated size %.2f MB will generate %d regions", cuboidId, estimatedSize, shardNum));
+                stepLogger.log(String.format("Cuboid %d 's estimated size %.2f MB will generate %d regions", cuboidId, estimatedSize, shardNum));
             }
 
             cuboidShards.put(cuboidId, (short) shardNum);

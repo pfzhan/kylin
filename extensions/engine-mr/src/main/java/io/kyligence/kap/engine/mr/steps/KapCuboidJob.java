@@ -44,7 +44,7 @@ import org.apache.kylin.engine.mr.MRUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.steps.CuboidReducer;
-import org.apache.kylin.engine.mr.steps.LayerReduerNumSizing;
+import org.apache.kylin.engine.mr.steps.LayerReducerNumSizing;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -153,7 +153,7 @@ public class KapCuboidJob extends AbstractHadoopJob {
             // add metadata to distributed cache
             attachKylinPropsAndMetadata(cube, job.getConfiguration());
 
-            LayerReduerNumSizing.setReduceTaskNum(job, cubeSeg, getTotalMapInputMB(), nCuboidLevel);
+            LayerReducerNumSizing.setReduceTaskNum(job, cubeSeg, getTotalMapInputMB(), nCuboidLevel);
 
             this.deletePath(job.getConfiguration(), output);
 

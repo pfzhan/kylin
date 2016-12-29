@@ -69,7 +69,8 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<Text, Text> {
     public static class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
         private static final Logger logger = LoggerFactory.getLogger(ParquetRawTableFileWriter.class);
 
-        private short curShardId = 0;
+        private short curShardId = -1;
+        private int curShardCounter = 0;
 
         private Configuration config;
         private KylinConfig kylinConfig;
@@ -115,12 +116,28 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<Text, Text> {
             if (shardId != curShardId) {
                 cleanWriter();
                 curShardId = shardId;
+                curShardCounter = 0;
+                logger.info("meet a new raw table shard: shard {}", curShardId);
+
             }
+
+            curShardCounter++;
+
 
             if (writer == null) {
                 writer = newWriter();
             }
         }
+
+        @Override
+        protected void cleanWriter() throws IOException {
+            logger.info("Finish written {} lines for shard {}", curShardCounter, curShardId);
+            if (writer != null) {
+                writer.close();
+                writer = null;
+            }
+        }
+
 
         @Override
         protected ParquetRawWriter newWriter() throws IOException, InterruptedException {
