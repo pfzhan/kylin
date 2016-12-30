@@ -35,7 +35,24 @@
             <groupId>org.apache.parquet</groupId>
             <artifactId>parquet-hadoop-bundle</artifactId>
         </dependency>
-
+        <!--  in case want to read parquet source
+        <dependency>
+            <groupId>org.apache.parquet</groupId>
+            <artifactId>parquet-common</artifactId>
+            <version>1.9.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.parquet</groupId>
+            <artifactId>parquet-column</artifactId>
+            <version>1.9.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.parquet</groupId>
+            <artifactId>parquet-hadoop</artifactId>
+            <version>1.9.0</version>
+        </dependency>
+        -->
+        
         <!--Test & Env-->
         <dependency>
             <groupId>org.apache.kylin</groupId>
