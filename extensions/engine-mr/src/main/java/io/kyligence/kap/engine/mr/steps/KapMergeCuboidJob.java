@@ -107,7 +107,7 @@ public class KapMergeCuboidJob extends KapCuboidJob {
             job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_ID, segmentID);
 
             // add metadata to distributed cache
-            attachSegmentMetadataWithDict(cubeSeg, job.getConfiguration());
+            attachCubeMetadataWithDict(cube, job.getConfiguration());
 
             // set path for output
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_OUTPUT_DIR, getWorkingDir(cube.getDescriptor().getConfig(), cube, cubeSeg));
