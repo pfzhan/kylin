@@ -97,7 +97,7 @@ public class ParquetPageIndexJob extends AbstractHadoopJob {
             job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_ID, segmentID);
 
             // add metadata to distributed cache
-            attachCubeMetadata(cube, job.getConfiguration());
+            attachCubeMetadataWithDict(cube, job.getConfiguration());
 
             HadoopUtil.deletePath(job.getConfiguration(), output);
             return waitForCompletion(job);
