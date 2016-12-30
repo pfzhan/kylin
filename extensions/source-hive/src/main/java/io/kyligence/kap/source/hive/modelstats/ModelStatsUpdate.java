@@ -105,13 +105,8 @@ public class ModelStatsUpdate extends AbstractHadoopJob {
 
     public void updateModelStats(String model, String outPath, Configuration config) throws IOException {
         TreeMap<Integer, HiveTableExtSampler> samplers = null;
-        try {
-            samplers = read(new Path(outPath), config);
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.info("Failed to resolve stats for " + model + " from " + outPath);
-            return;
-        }
+
+        samplers = read(new Path(outPath), config);
 
         ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(KylinConfig.getInstanceFromEnv());
         ModelStats modelStats = modelStatsManager.getModelStats(model);

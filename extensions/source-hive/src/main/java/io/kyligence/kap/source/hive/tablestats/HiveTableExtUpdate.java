@@ -90,13 +90,8 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
 
     public void updateTableSample(String tableName, String outPath, Configuration config) throws IOException {
         TreeMap<Integer, HiveTableExtSampler> samplers = null;
-        try {
-            samplers = read(new Path(outPath), config);
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.info("Failed to resolve samples for " + tableName + " from " + outPath);
-            return;
-        }
+
+        samplers = read(new Path(outPath), config);
 
         MetadataManager metaMgr = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv());
         TableExtDesc tableSample = metaMgr.getTableExt(tableName);

@@ -180,7 +180,6 @@ public class RawTableManager implements IRealizationProvider {
 
         // Reload the RawTableInstance
         RawTableInstance instance = loadRawTableInstance(path);
-        instance.validateSegments();
 
         // Keep consistence with cube
         instance.validateSegments();
@@ -268,16 +267,6 @@ public class RawTableManager implements IRealizationProvider {
         }
 
         logger.debug("Loaded " + rawTableInstanceMap.size() + " RawTableInstance(s)");
-    }
-
-    public void clearAllSegments(RawTableInstance instance) {
-        RawTableUpdate builder = new RawTableUpdate(instance);
-        builder.setToRemoveSegs(instance.getSegments().toArray(new RawTableSegment[instance.getSegments().size()]));
-        try {
-            updateRawTable(builder);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     public RawTableSegment appendSegment(RawTableInstance instance, CubeSegment seg) throws IOException {
