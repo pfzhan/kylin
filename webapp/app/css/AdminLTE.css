@@ -4174,3 +4174,10 @@ Gradient Background colors
 .relative{
   position: relative;
 }
+
+.ui-grid-contents-wrapper{
+  overflow:visible;!important
+}
+.query-results{
+margin-bottom:30px;
+}
