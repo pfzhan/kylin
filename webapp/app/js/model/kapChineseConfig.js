@@ -757,6 +757,7 @@ KylinApp.constant('kapChineseConfig', {
     streamingCluster: '流集群',
     name: '表名',
     hiveDatabase: 'Hive数据库',
+    tableType: '表类型',
     snapshotTime: '快照时间',
     location: '位置',
     inputFormat: '输入格式',

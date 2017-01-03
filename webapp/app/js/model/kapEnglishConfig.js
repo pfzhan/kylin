@@ -757,6 +757,7 @@ KylinApp.constant('kapEnglishConfig', {
     streamingCluster: 'Streaming Cluster',
     name: 'TABLE NAME',
     hiveDatabase: 'Hive DATABASE',
+    tableType: 'TABLE TYPE',
     snapshotTime: 'SNAPSHOT TIME',
     location: 'LOCATION',
     inputFormat: 'INPUT FORMAT',
