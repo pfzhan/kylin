@@ -51,7 +51,7 @@ import io.kyligence.kap.rest.service.LicenseInfoService;
 @Controller
 @Component("kapSystemController")
 @RequestMapping(value = "/kap/system")
-public class SystemController extends BasicController {
+public class KapSystemController extends BasicController {
 
     @Autowired
     private LicenseInfoService licenseInfoService;

@@ -1,6 +1,3 @@
-/**
- * Created by luguosheng on 16/9/27.
- */
 /*
  * Copyright (C) 2016 Kyligence Inc. All rights reserved.
  *
@@ -27,25 +24,12 @@
 
 KylinApp.factory('RawTablesService', ['$resource', function ($resource, config) {
   return $resource(Config.service.url + 'rawtables/:rawTableName/:action', {}, {
-    //list: {method: 'GET', params: {}, isArray: true},
-    //getValidEncodings: {method: 'GET', params: {action:"validEncodings"}, isArray: true},
-    //getCube: {method: 'GET', params: {}, isArray: false},
-    //getSql: {method: 'GET', params: {propName: 'segs', action: 'sql'}, isArray: false},
-    //updateNotifyList: {method: 'PUT', params: {propName: 'notify_list'}, isArray: false},
-    //cost: {method: 'PUT', params: {action: 'cost'}, isArray: false},
-    //rebuildLookUp: {method: 'PUT', params: {propName: 'segs', action: 'refresh_lookup'}, isArray: false},
-    //rebuildCube: {method: 'PUT', params: {action: 'rebuild'}, isArray: false},
-    //disable: {method: 'PUT', params: {action: 'disable'}, isArray: false},
-    //enable: {method: 'PUT', params: {action: 'enable'}, isArray: false},
-    //purge: {method: 'PUT', params: {action: 'purge'}, isArray: false},
-    //clone: {method: 'PUT', params: {action: 'clone'}, isArray: false},
-    //drop: {method: 'DELETE', params: {}, isArray: false},
     save: {method: 'POST', params: {}, isArray: false},
     update: {method: 'PUT', params: {}, isArray: false},
-    delete:{method:'DELETE',params:{},isArray:false},
-    enable:{method:'PUT',params:{action:'enable'},isArray:false},
-    disable:{method:'PUT',params:{action:'disable'},isArray:false},
-    clone:{method:'PUT',params:{action:'clone'},isArray:false},
-    getRawTableInfo: {method: 'GET', params:{},isArray:false}
+    delete: {method: 'DELETE',params: {}, isArray: false},
+    enable: {method: 'PUT',params: {action:'enable'}, isArray: false},
+    disable: {method: 'PUT',params: {action:'disable'}, isArray: false},
+    clone: {method: 'PUT',params: {action:'clone'}, isArray: false},
+    getRawTableInfo: {method: 'GET', params:{}, isArray: false}
   });
 }]);
