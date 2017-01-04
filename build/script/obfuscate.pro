@@ -4,9 +4,15 @@
 -dontusemixedcaseclassnames
 -ignorewarnings
 
+-keep class * implements io.kyligence.kap.common.obf.IKeep {*;}
+-keepclassmembers class * implements io.kyligence.kap.common.obf.IKeepClassMembers {*;}
+-keepclassmembernames class * implements io.kyligence.kap.common.obf.IKeepClassMemberNames {*;}
+-keepclasseswithmembers class * implements io.kyligence.kap.common.obf.IKeepClassWithMembers {*;}
+-keepclasseswithmembernames class * implements io.kyligence.kap.common.obf.IKeepClassWithMemberNames {*;}
+-keepnames class * implements io.kyligence.kap.common.obf.IKeepNames {*;}
+
 -keepnames class * implements java.io.Serializable
 -keepnames class * extends org.apache.kylin.measure.MeasureTypeFactory
-
 -keepnames class * extends org.apache.kylin.engine.mr.common.AbstractHadoopJob
 -keepnames class * extends org.apache.kylin.job.execution.AbstractExecutable
 
@@ -23,17 +29,12 @@
 }
 -keepclassmembers class io.kyligence.kap.rest.request.** {*;}
 -keepclassmembers class io.kyligence.kap.rest.response.** {*;}
--keepclassmembers class io.kyligence.kap.measure.percentile.PercentileAggFunc {*;}
-
--keepclassmembers class io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkExecutorPreAggFunction {*;}
--keepclassmembers class io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkAppClientService {*;}
 -keepclassmembers class * implements org.apache.kylin.gridtable.IGTCodeSystem {*;}
 
 -keep class * extends org.apache.log4j.AppenderSkeleton {*;}
 -keep class * extends org.apache.kylin.rest.controller.BasicController {*;}
 -keep class * extends org.apache.kylin.rest.service.BasicService {*;}
 -keep class !io.kyligence.** {*;}
--keep class io.kyligence.kap.query.udf.** {*;}
 -keep class io.kyligence.kap.tool.** {*;}
 -keep enum io.kyligence.kap.**,io.kyligence.kap.**$** {
     **[] $VALUES;

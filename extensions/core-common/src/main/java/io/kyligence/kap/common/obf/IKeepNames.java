@@ -22,31 +22,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.measure.percentile;
+package io.kyligence.kap.common.obf;
 
-import io.kyligence.kap.common.obf.IKeepClassMembers;
-
-public class PercentileAggFunc implements IKeepClassMembers {
-    public static PercentileCounter init() {
-        return null;
-    }
-
-    public static PercentileCounter add(PercentileCounter counter, Object v, Object r) {
-        PercentileCounter c = (PercentileCounter) v;
-        Number n = (Number) r;
-        if (counter == null) {
-            counter = new PercentileCounter(c.compression, n.doubleValue());
-        }
-        counter.merge(c);
-        return counter;
-    }
-
-    public static PercentileCounter merge(PercentileCounter counter0, PercentileCounter counter1) {
-        counter0.merge(counter1);
-        return counter0;
-    }
-
-    public static double result(PercentileCounter counter) {
-        return counter == null ? 0L : counter.getResultEstimate();
-    }
+/**
+ * Specifies classes and class members whose names are to be preserved,
+ * if they aren't removed in the shrinking phase. For example, you may
+ * want to keep all class names of classes that implement the Serializable
+ * interface, so that the processed code remains compatible with any
+ * originally serialized classes. Classes that aren't used at all can still
+ * be removed. Only applicable when obfuscating.
+ */
+public interface IKeepNames {
 }

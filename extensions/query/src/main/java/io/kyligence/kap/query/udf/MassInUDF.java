@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import io.kyligence.kap.metadata.filter.MassinFilterManager;
 import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -37,7 +36,10 @@ import org.apache.kylin.metadata.filter.function.Functions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MassInUDF {
+import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.metadata.filter.MassinFilterManager;
+
+public class MassInUDF implements IKeep {
     private static final Logger logger = LoggerFactory.getLogger(MassInUDF.class);
     private static final ConcurrentHashMap<String, Set<ByteArray>> FILTER_RESULT_CACHE = new ConcurrentHashMap<>();
 

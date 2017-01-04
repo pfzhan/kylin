@@ -34,11 +34,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.grpc.stub.StreamObserver;
+import io.kyligence.kap.common.obf.IKeepClassMembers;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.JobServiceGrpc;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobRequest;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobResponse;
 
-public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase {
+public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase implements IKeepClassMembers {
 
     public static final Logger logger = LoggerFactory.getLogger(SparkAppClientService.class);
 

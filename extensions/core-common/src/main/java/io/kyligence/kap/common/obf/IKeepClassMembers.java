@@ -22,31 +22,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.measure.percentile;
+package io.kyligence.kap.common.obf;
 
-import io.kyligence.kap.common.obf.IKeepClassMembers;
-
-public class PercentileAggFunc implements IKeepClassMembers {
-    public static PercentileCounter init() {
-        return null;
-    }
-
-    public static PercentileCounter add(PercentileCounter counter, Object v, Object r) {
-        PercentileCounter c = (PercentileCounter) v;
-        Number n = (Number) r;
-        if (counter == null) {
-            counter = new PercentileCounter(c.compression, n.doubleValue());
-        }
-        counter.merge(c);
-        return counter;
-    }
-
-    public static PercentileCounter merge(PercentileCounter counter0, PercentileCounter counter1) {
-        counter0.merge(counter1);
-        return counter0;
-    }
-
-    public static double result(PercentileCounter counter) {
-        return counter == null ? 0L : counter.getResultEstimate();
-    }
+/**
+ * Specifies class members to be preserved, if their classes are preserved
+ * as well. For example, you may want to keep all serialization fields
+ * and methods of classes that implement the Serializable interface.
+ */
+public interface IKeepClassMembers {
 }
