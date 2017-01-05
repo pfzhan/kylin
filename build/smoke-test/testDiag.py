@@ -19,8 +19,9 @@ class testDiag(unittest.TestCase):
         }
 
         response = requests.get(url, headers = headers)
-        self.assertEqual(response.status_code, 200, 'Diagnosis failed.')
 
+        self.assertEqual(response.status_code, 200, 'Diagnosis failed.')
+        print response.text
 
 if __name__ == '__main__':
     print 'Test Diagnogis for Kylin sample.'
