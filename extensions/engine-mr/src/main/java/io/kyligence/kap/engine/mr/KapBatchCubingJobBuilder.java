@@ -142,7 +142,7 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
         updateDirStep.setJobId(jobId);
         updateDirStep.setCheckSkip(true);
         updateDirStep.setCheckAlgorithm("LAYER");
-        updateDirStep.setName("Clean Cube Output");
+        updateDirStep.setName("Clean Layer Cubing Output");
         return updateDirStep;
     }
 
@@ -153,7 +153,7 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
         updateDirStep.setJobId(jobId);
         updateDirStep.setCheckSkip(true);
         updateDirStep.setCheckAlgorithm("INMEM");
-        updateDirStep.setName("Clean Cube Output");
+        updateDirStep.setName("Clean InMem Cubing Output");
         return updateDirStep;
     }
 
