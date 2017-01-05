@@ -116,9 +116,7 @@ public class KapMergeCuboidJob extends KapCuboidJob {
             //push down kylin config
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, KylinConfig.getInstanceFromEnv().getConfigAsString());
 
-            LayerReducerNumSizing
-                .setReduceTaskNum(job, cube.getSegmentById(segmentID), getTotalMapInputMB(), -1);
-
+            job.setNumReduceTasks(LayerReducerNumSizing.getReduceTaskNum(cube.getSegmentById(segmentID), getTotalMapInputMB(), -1));
             this.deletePath(job.getConfiguration(), output);
 
             return waitForCompletion(job);

@@ -28,10 +28,13 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
+import org.apache.kylin.engine.mr.ByteArrayWritable;
 
 public class ByteArrayListWritable implements WritableComparable<ByteArrayListWritable> {
 
@@ -53,13 +56,31 @@ public class ByteArrayListWritable implements WritableComparable<ByteArrayListWr
         return value;
     }
 
-    // Because the order of two dimension array is not that important,
-    // we only compare the first byte[]
     @Override
     public int compareTo(ByteArrayListWritable that) {
-        byte[] first = this.value.get(0);
-        byte[] thatFirst = that.get().get(0);
-        return WritableComparator.compareBytes(first, 0, first.length, thatFirst, 0, thatFirst.length);
+        Iterator<byte[]> thisIter = this.get().iterator();
+        Iterator<byte[]> thatIter = that.get().iterator();
+        while (true) {
+            if (thisIter.hasNext()) {
+                if (thatIter.hasNext()) {
+                    byte[] thisE = thisIter.next();
+                    byte[] thatE = thatIter.next();
+                    int comp = WritableComparator.compareBytes(thisE, 0, thisE.length, thatE, 0, thatE.length);
+                    if (comp == 0) {
+                        continue;
+                    }
+                    return comp;
+                } else {
+                    return 1;
+                }
+            } else {
+                if (thatIter.hasNext()) {
+                    return -1;
+                } else {
+                    return 0;
+                }
+            }
+        }
     }
 
     @Override
@@ -85,5 +106,54 @@ public class ByteArrayListWritable implements WritableComparable<ByteArrayListWr
         for (int i = 0; i < len; ++i) {
             in.readFully(value.get(i));
         }
+    }
+
+    @Override
+    public int hashCode() {
+        int result = 17;
+        if (value != null) {
+            for (byte[] v : value) {
+                result = 31 * result + (v == null || v.length == 0 ? 0 : v[0]);
+            }
+        }
+
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+
+        if (!(obj instanceof ByteArrayListWritable)) {
+            return false;
+        }
+
+        ByteArrayListWritable castObj = (ByteArrayListWritable) obj;
+        return this.compareTo(castObj) == 0;
+    }
+
+    /** A Comparator optimized for byte array.
+     */
+    public static class Comparator extends WritableComparator {
+        private BytesWritable.Comparator comparator = new BytesWritable.Comparator();
+
+        /** constructor */
+        public Comparator() {
+            super(ByteArrayWritable.class);
+        }
+
+        /**
+         * @see org.apache.hadoop.io.WritableComparator#compare(byte[], int, int, byte[], int, int)
+         */
+        @Override
+        public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
+            return comparator.compare(b1, s1, l1, b2, s2, l2);
+        }
+    }
+
+    static { // register this comparator
+        WritableComparator.define(ByteArrayWritable.class, new ByteArrayWritable.Comparator());
     }
 }

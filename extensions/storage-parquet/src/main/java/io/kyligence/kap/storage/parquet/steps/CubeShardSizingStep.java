@@ -91,7 +91,7 @@ public class CubeShardSizingStep extends AbstractExecutable {
         HashMap<Long, Short> cuboidShards = Maps.newHashMap();
         for (long cuboidId : allCuboids) {
             double estimatedSize = cuboidSizeMap.get(cuboidId);
-            int shardNum = (int) (1.0 * estimatedSize / mbPerShard + 0.99);
+            int shardNum = (int) Math.ceil(1.0 * estimatedSize / mbPerShard);
 
             if (shardNum > shardMax) {
                 stepLogger.log(String.format("Cuboid %d 's estimated size %.2f MB will generate %d regions, reduce to %d", cuboidId, estimatedSize, shardNum, shardMax));

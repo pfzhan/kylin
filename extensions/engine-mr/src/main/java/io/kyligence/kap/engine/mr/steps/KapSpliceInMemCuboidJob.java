@@ -24,10 +24,25 @@
 
 package io.kyligence.kap.engine.mr.steps;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.util.Comparator;
+import java.util.Map;
+
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.collections.buffer.PriorityBuffer;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.engine.mr.common.CubeStatsReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceOutputFormat;
 
@@ -39,6 +54,99 @@ public class KapSpliceInMemCuboidJob extends KapInMemCuboidJob {
     }
 
     protected Class<? extends Partitioner> getPartitioner() {
-        return ByteArrayShardCuboidPartitioner.class;
+        return ByteArrayConfigurationBasedPartitioner.class;
+    }
+
+    @Override
+    protected void setPartitionMapping(Job job, KylinConfig config, CubeSegment cubeSeg, int reduceNum) throws IOException {
+        logger.info("setPartitionMapping in KapSpliceInMemCuboidJob");
+        Map<Pair<Long, Short>, Integer> partitionMap = Maps.newHashMap();
+        PriorityBuffer bucketPriorityQueue = new PriorityBuffer(new Comparator() {
+            @Override
+            public int compare(Object o1, Object o2) {
+                if (o1 instanceof SizeBucket && o2 instanceof SizeBucket) {
+                    SizeBucket bucket1 = (SizeBucket) o1;
+                    SizeBucket bucket2 = (SizeBucket) o2;
+
+                    if (bucket1.size > bucket2.size) {
+                        return 1;
+                    } else if (bucket1.size < bucket2.size) {
+                        return -1;
+                    } else {
+                        return 0;
+                    }
+                }
+                return 0;
+            }
+        });
+
+        // Bucket initialize
+        for (int reduceId = 0; reduceId < reduceNum; reduceId++) {
+            bucketPriorityQueue.add(new SizeBucket(reduceId));
+        }
+
+        Map<Long, Double> cuboidSizeMapping = new CubeStatsReader(cubeSeg, config).getCuboidSizeMap();
+        for (long cuboidId : cuboidSizeMapping.keySet()) {
+            short shardNum = cubeSeg.getCuboidShardNum(cuboidId);
+            long shardAvgSize = (long) (cuboidSizeMapping.get(cuboidId) / shardNum);
+            SizeBucket[] bucketHolder = new SizeBucket[Math.min(shardNum, reduceNum)];
+            // Prepare bucket
+            for (int holderId = 0; holderId < bucketHolder.length; holderId++) {
+                bucketHolder[holderId] = (SizeBucket) bucketPriorityQueue.remove();
+            }
+            // Create mapping
+            for (short shardId = 0; shardId < shardNum; shardId++) {
+                int holderId = shardId % bucketHolder.length;
+                bucketHolder[holderId].size += shardAvgSize;
+                partitionMap.put(new Pair(cuboidId, shardId), bucketHolder[holderId].reduceId);
+            }
+            // Re-add bucket
+            for (SizeBucket bucket : bucketHolder) {
+                bucketPriorityQueue.add(bucket);
+            }
+        }
+
+        for (Pair<Long, Short> key : partitionMap.keySet()) {
+            logger.info("Cuboid {} Shard {} --> Reducer {}", key.getFirst(), key.getSecond(), partitionMap.get(key));
+        }
+
+        // Serialize mapping
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(partitionMap);
+        oos.close();
+        byte[] serialized = baos.toByteArray();
+        job.getConfiguration().set(ByteArrayConfigurationBasedPartitioner.CUBOID_SHARD_REDUCE_MAPPING, new String(Base64.encodeBase64(serialized)));
+    }
+
+    private class SizeBucket {
+        private long size;
+        private int reduceId;
+
+        public SizeBucket(int reduceId) {
+            this.reduceId = reduceId;
+            size = 0;
+        }
+
+        public long getSize() {
+            return size;
+        }
+
+        public void setSize(long size) {
+            this.size = size;
+        }
+
+        public int getReduceId() {
+            return reduceId;
+        }
+
+        public void setReduceId(int reduceId) {
+            this.reduceId = reduceId;
+        }
+
+        @Override
+        public String toString() {
+            return "size=" + size + ", reduceId=" + reduceId;
+        }
     }
 }

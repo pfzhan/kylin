@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.mr.steps;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
@@ -39,6 +40,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.cube.cuboid.CuboidScheduler;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.IMRInput;
 import org.apache.kylin.engine.mr.MRUtil;
@@ -155,7 +157,15 @@ public class KapCuboidJob extends AbstractHadoopJob {
             // add metadata to distributed cache
             attachSegmentMetadataWithDict(cubeSeg, job.getConfiguration());
 
-            LayerReducerNumSizing.setReduceTaskNum(job, cubeSeg, getTotalMapInputMB(), nCuboidLevel);
+            int numReduceTasks = LayerReducerNumSizing.getReduceTaskNum(cubeSeg, getTotalMapInputMB(), nCuboidLevel);
+            // at least bigger than the largest shard number in this layer
+            List<List<Long>> layeredCuboids = new CuboidScheduler(cubeSeg.getCubeDesc()).getCuboidsByLayer();
+            for (Long cuboidId : layeredCuboids.get(nCuboidLevel)) {
+                numReduceTasks = Math.max(numReduceTasks, cubeSeg.getCuboidShardNum(cuboidId));
+            }
+            job.setNumReduceTasks(numReduceTasks);
+
+            setPartitionMapping(job, config, cubeSeg, job.getNumReduceTasks());
 
             this.deletePath(job.getConfiguration(), output);
 
@@ -189,6 +199,10 @@ public class KapCuboidJob extends AbstractHadoopJob {
                 return numFiles;
             }
         }
+    }
+
+    protected void setPartitionMapping(Job job, KylinConfig config, CubeSegment cubeSeg, int reduceNum) throws IOException {
+        // Do nothing
     }
 
     /**

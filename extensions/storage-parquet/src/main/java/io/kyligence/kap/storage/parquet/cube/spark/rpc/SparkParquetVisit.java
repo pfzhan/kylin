@@ -221,7 +221,7 @@ public class SparkParquetVisit implements Serializable {
         JavaPairRDD<Text, Text> seed = sc.union(rdds);
 
         final Iterator<RDDPartitionData> partitionResults;
-        JavaRDD<byte[]> cached = seed.mapPartitions(new SparkExecutorPreAggFunction(request.getQueryId(), realizationType, scannedRecords, collectedRecords)).cache();
+        JavaRDD<byte[]> cached = seed.mapPartitions(new SparkExecutorPreAggFunction(request.getQueryId(), realizationType, scannedRecords, collectedRecords, isSplice)).cache();
         cached.count();//trigger lazy materialization
         long scanCount = collectedRecords.value();
         long threshold = (long) kylinConfig.getLargeQueryThreshold();

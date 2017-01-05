@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.mr.steps;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.cli.Options;
@@ -39,6 +40,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.cube.cuboid.CuboidScheduler;
 import org.apache.kylin.engine.mr.ByteArrayWritable;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.HadoopUtil;
@@ -141,6 +143,7 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
             job.setReducerClass(InMemCuboidReducer.class);
             reduceNum = calculateReducerNum(cubeSeg);
             job.setNumReduceTasks(reduceNum);
+            setPartitionMapping(job, config, cubeSeg, reduceNum);
 
             // the cuboid file and KV class must be compatible with 0.7 version for smooth upgrade
             job.setOutputFormatClass(getOutputFormat());
@@ -183,6 +186,12 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
         // no more than 5000 reducer by default
         numReduceTasks = Math.min(kylinConfig.getHadoopJobMaxReducerNumber(), numReduceTasks);
 
+        // at least more than largest cuboid shard number
+        List<Long> allCuboidIds = new CuboidScheduler(cubeSeg.getCubeDesc()).getAllCuboidIds();
+        for (Long cuboidId : allCuboidIds) {
+            numReduceTasks = Math.max(numReduceTasks, cubeSeg.getCuboidShardNum(cuboidId));
+        }
+
         logger.info("Having total map input MB " + Math.round(totalSizeInM));
         logger.info("Having per reduce MB " + perReduceInputMB);
         logger.info("Setting " + Context.NUM_REDUCES + "=" + numReduceTasks);
@@ -195,6 +204,11 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
 
     protected Class<? extends Partitioner> getPartitioner() {
         return ByteArrayShardCuboidPartitioner.class;
+    }
+
+    protected void setPartitionMapping(Job job, KylinConfig config, CubeSegment cubeSeg, int reduceNum) throws IOException {
+        logger.info("setPartitionMapping in KapInMemCuboidJob");
+        // Do nothing
     }
 
     public static void main(String[] args) throws Exception {

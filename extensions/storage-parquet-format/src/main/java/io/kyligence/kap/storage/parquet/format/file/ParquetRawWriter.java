@@ -258,6 +258,7 @@ public class ParquetRawWriter {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 if (compressionCodec == null) {
                     bi.writeAllTo(baos);
+                    baos.close();
                 } else {
                     CompressionOutputStream os = compressionCodec.createOutputStream(baos, compressionCodec.createCompressor());
                     bi.writeAllTo(os);
