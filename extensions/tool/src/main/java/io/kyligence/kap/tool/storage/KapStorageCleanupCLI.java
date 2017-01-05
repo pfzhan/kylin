@@ -73,10 +73,10 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
 
         FileSystem fs = FileSystem.get(conf);
         List<String> allHdfsPathsNeedToBeDeleted = new ArrayList<String>();
-        Path parquentStoragePath = new Path(KapConfig.getInstanceFromEnv().getParquetStoragePath());
+        Path parquetStoragePath = new Path(KapConfig.getInstanceFromEnv().getParquetStoragePath());
         FileStatus[] realizationParquetFolders = null;
-        if (fs.exists(parquentStoragePath)) {
-            realizationParquetFolders = fs.listStatus(parquentStoragePath);
+        if (fs.exists(parquetStoragePath)) {
+            realizationParquetFolders = fs.listStatus(parquetStoragePath);
             if (realizationParquetFolders != null) {
                 for (FileStatus dataFolder : realizationParquetFolders) { //folders for cubes
                     FileStatus[] segmentFolders = fs.listStatus(dataFolder.getPath());
@@ -154,9 +154,9 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
                 Path p = new Path(hdfsPath);
                 if (fs.exists(p)) {
                     fs.delete(p, true);
-                    logger.info("Deleted hdfs path " + hdfsPath);
+                    logger.info("Deleted HDFS path " + hdfsPath);
                 } else {
-                    logger.info("Hdfs path " + hdfsPath + "does not exist");
+                    logger.info("HDFS path " + hdfsPath + "does not exist");
                 }
             }
 

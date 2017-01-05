@@ -24,17 +24,17 @@
 
 package io.kyligence.kap.metadata.model;
 
-import org.apache.kylin.metadata.model.IStorageAware;
+import org.apache.kylin.metadata.model.IEngineAware;
 
-public interface IKapStorageAware extends IStorageAware {
-
-    /**
-     * io.kyligence.kap.storage.parquet.ParquetStorage
-     */
-    int ID_SHARDED_PARQUET = 100;
+public interface IKapEngineAware extends IEngineAware{
 
     /**
-     * io.kyligence.kap.storage.parquet.ParquetSpliceStorage
+     * io.kyligence.kap.engine.mr.KapMRBatchCubingEngine
      */
-    int ID_SPLICE_PARQUET = 99;
+    int ID_KAP_MR_V1 = 100;
+
+    /**
+     * io.kyligence.kap.engine.mr.KapSpliceMRBatchCubingEngine
+     */
+    int ID_KAP_MR_V2 = 99;
 }
