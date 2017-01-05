@@ -36,6 +36,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.cube.cuboid.CuboidScheduler;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.steps.CuboidReducer;
 import org.apache.kylin.engine.mr.steps.LayerReducerNumSizing;
@@ -43,6 +44,8 @@ import org.apache.kylin.engine.mr.steps.LayerReducerNumSizing;
 import io.kyligence.kap.storage.parquet.format.ParquetCubeOutputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
+
+import java.util.List;
 
 public class KapMergeCuboidJob extends KapCuboidJob {
     private boolean skipped = false;
@@ -116,7 +119,14 @@ public class KapMergeCuboidJob extends KapCuboidJob {
             //push down kylin config
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, KylinConfig.getInstanceFromEnv().getConfigAsString());
 
-            job.setNumReduceTasks(LayerReducerNumSizing.getReduceTaskNum(cube.getSegmentById(segmentID), getTotalMapInputMB(), -1));
+            int numReduceTasks = LayerReducerNumSizing.getReduceTaskNum(cube.getSegmentById(segmentID), getTotalMapInputMB(), -1);
+            // at least more than largest cuboid shard number
+            List<Long> allCuboidIds = new CuboidScheduler(cubeSeg.getCubeDesc()).getAllCuboidIds();
+            for (Long cuboidId : allCuboidIds) {
+                numReduceTasks = Math.max(numReduceTasks, cubeSeg.getCuboidShardNum(cuboidId));
+            }
+            job.setNumReduceTasks(numReduceTasks);
+
             this.deletePath(job.getConfiguration(), output);
 
             return waitForCompletion(job);

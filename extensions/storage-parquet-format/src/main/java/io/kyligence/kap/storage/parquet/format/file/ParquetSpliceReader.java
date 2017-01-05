@@ -100,6 +100,9 @@ public class ParquetSpliceReader {
             }
         }
         logger.info("bitmap: {}", bitmap);
+        if (bitmap == null) {
+            return null;
+        }
         return new ParquetBundleReader(configuration, path, columns, bitmap.toImmutableRoaringBitmap(), fileOffset, metadata);
     }
 
