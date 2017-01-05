@@ -98,8 +98,8 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
             throw new IllegalArgumentException("Unsupported realization type " + realizationType);
         }
 
-        long deadline = gtScanRequest.getTimeout() + gtScanRequest.getStartTime();
-        logger.info("Start latency is {}, the deadline is {}", localStartTime - gtScanRequest.getStartTime(), deadline);
+        long deadline = gtScanRequest.getTimeout() + localStartTime;
+        logger.info("Start latency is {}, the deadline(local) is {}", localStartTime - gtScanRequest.getStartTime(), deadline);
 
         IGTScanner preAggred = gtScanRequest.decorateScanner(scanner, behavior.filterToggledOn(), behavior.aggrToggledOn(), deadline);
 
