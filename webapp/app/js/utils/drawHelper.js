@@ -118,7 +118,8 @@ KylinApp.service('DrawHelper', function ($modal, $timeout, $location, $anchorScr
         cursor: "zoom",
         minScale: 0.25,
         increment: 0.1,
-        duration: 100
+        duration: 100,
+        ignoreChildrensEvents:true
       });
       this.showMapControl();
       this.showActionBtn();
