@@ -16,11 +16,11 @@ then
     export LOG4J_DIR=${KYLIN_HOME}/build/conf
     export SPARK_DIR=${KYLIN_HOME}/build/spark/
     export KYLIN_SPARK_JAR_PATH=`ls $KYLIN_HOME/extensions/storage-parquet/target/kap-storage-parquet-*-spark.jar`
-    export KAP_HDFS_WORKING_DIR=`sh $KYLIN_HOME/build/bin/get-properties.sh kylin.env.hdfs-working-dir`
-    export KAP_METADATA_URL=`sh $KYLIN_HOME/build/bin/get-properties.sh kylin.metadata.url`
-    export SPARK_ENV_PROPS=`sh $KYLIN_HOME/build/bin/get-properties.sh kap.storage.columnar.spark-env.`
-    export SPARK_CONF_PROPS=`sh $KYLIN_HOME/build/bin/get-properties.sh kap.storage.columnar.spark-conf.`
-    export SPARK_DRIVER_PORT=`sh $KYLIN_HOME/build/bin/get-properties.sh kap.storage.columnar.spark-driver-port`
+    export KAP_HDFS_WORKING_DIR=`bash $KYLIN_HOME/build/bin/get-properties.sh kylin.env.hdfs-working-dir`
+    export KAP_METADATA_URL=`bash $KYLIN_HOME/build/bin/get-properties.sh kylin.metadata.url`
+    export SPARK_ENV_PROPS=`bash $KYLIN_HOME/build/bin/get-properties.sh kap.storage.columnar.spark-env.`
+    export SPARK_CONF_PROPS=`bash $KYLIN_HOME/build/bin/get-properties.sh kap.storage.columnar.spark-conf.`
+    export SPARK_DRIVER_PORT=`bash $KYLIN_HOME/build/bin/get-properties.sh kap.storage.columnar.spark-driver-port`
 else
     verbose 'in normal mode'
     export KYLIN_HOME=${KYLIN_HOME:-"${dir}/../"}
@@ -28,11 +28,11 @@ else
     export LOG4J_DIR=${KYLIN_HOME}/conf
     export SPARK_DIR=${KYLIN_HOME}/spark/
     export KYLIN_SPARK_JAR_PATH=`ls $KYLIN_HOME/lib/kylin-storage-parquet-kap-*.jar`
-    export KAP_HDFS_WORKING_DIR=`sh $KYLIN_HOME/bin/get-properties.sh kylin.env.hdfs-working-dir`
-    export KAP_METADATA_URL=`sh $KYLIN_HOME/bin/get-properties.sh kylin.metadata.url`
-    export SPARK_ENV_PROPS=`sh $KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.spark-env.`
-    export SPARK_CONF_PROPS=`sh $KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.spark-conf.`
-    export SPARK_DRIVER_PORT=`sh $KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.spark-driver-port`
+    export KAP_HDFS_WORKING_DIR=`bash $KYLIN_HOME/bin/get-properties.sh kylin.env.hdfs-working-dir`
+    export KAP_METADATA_URL=`bash $KYLIN_HOME/bin/get-properties.sh kylin.metadata.url`
+    export SPARK_ENV_PROPS=`bash $KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.spark-env.`
+    export SPARK_CONF_PROPS=`bash $KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.spark-conf.`
+    export SPARK_DRIVER_PORT=`bash $KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.spark-driver-port`
 
     if [ ! -f ${KYLIN_HOME}/commit_SHA1 ]
     then

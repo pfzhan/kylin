@@ -10,7 +10,7 @@ if [ -z "${hive_dependency}" ]; then
 fi
 
 # check snappy
-need_snappy_lib=`sh ${dir}/get-properties.sh kap.storage.columnar.page-compression`
+need_snappy_lib=`bash ${dir}/get-properties.sh kap.storage.columnar.page-compression`
 if [[ ${need_snappy_lib} == "SNAPPY" ]]
 then
     snappy_lib_count=`echo ${hive_dependency} | grep -o "snappy-java" | wc -l`

@@ -6,9 +6,9 @@ source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 echo "Checking Hive write permission..."
 
 # test hive or beeline has write permission
-HIVE_CLIENT_TYPE=`sh $KYLIN_HOME/bin/get-properties.sh kylin.source.hive.client`
-HIVE_TEST_DB=`sh $KYLIN_HOME/bin/get-properties.sh kylin.source.hive.database-for-flat-table`
-WORKING_DIR=`sh $KYLIN_HOME/bin/get-properties.sh kylin.env.hdfs-working-dir`
+HIVE_CLIENT_TYPE=`bash $KYLIN_HOME/bin/get-properties.sh kylin.source.hive.client`
+HIVE_TEST_DB=`bash $KYLIN_HOME/bin/get-properties.sh kylin.source.hive.database-for-flat-table`
+WORKING_DIR=`bash $KYLIN_HOME/bin/get-properties.sh kylin.env.hdfs-working-dir`
 if [ -z "${HIVE_TEST_DB}" ]
 then
     HIVE_TEST_DB=default
@@ -25,7 +25,7 @@ then
 elif [ ${HIVE_CLIENT_TYPE} = "beeline" ]
 then
     HQL_TMP_FILE=hql_tmp__${RANDOM}
-    HIVE_BEELINE_PARAM=`sh $KYLIN_HOME/bin/get-properties.sh kylin.source.hive.beeline-params`
+    HIVE_BEELINE_PARAM=`bash $KYLIN_HOME/bin/get-properties.sh kylin.source.hive.beeline-params`
 
     echo "set;" > ${HQL_TMP_FILE}
     beeline ${HIVE_BEELINE_PARAM} -f ${HQL_TMP_FILE} >/dev/null
