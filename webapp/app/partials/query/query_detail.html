@@ -71,7 +71,7 @@
 </div>
 
 <div ng-if="curQuery.status!='executing'" ng-class="{true: 'fullscreen-result', false: ''}[ui.fullScreen]"
-     style="{{ui.fullScreen ? 'padding: 40px 40px 0px 40px':''}}">
+     ng-style="{padding: ui.fullScreen? '40px 40px 0px 40px':''}">
     <label>{{dataKylin.insight.results}} <span style="vertical-align:middle;color: grey;font-size: 15px"
                          ng-if="curQuery.status=='success'">(<strong>{{curQuery.result.results.length}})</strong></span></label>
     <span  ng-if="curQuery.result.partial" class="text-warning">
@@ -98,7 +98,7 @@
             <div ng-if="curQuery.status=='success'">
                 <div class="gridStyle" ui-grid="curQuery.result.gridOptions" ui-grid-resize-columns  ui-grid-grouping
                      ng-if="curQuery.result.results.length > 0" id="data_grid"
-                     style="{{ui.fullScreen?'height: 600px;width:auto':'height: 300px'}}"></div>
+                     ng-style="{height:ui.fullScreen?'600px':'300px',}"></div>
                 <div ng-if="!curQuery.result.results || curQuery.result.results.length == 0"
                      style="padding-top: 10%">
                     <div no-result></div>

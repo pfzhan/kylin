@@ -18,7 +18,7 @@
 
 <div ng-controller="CubeAdvanceSettingCtrl" class="clearfix">
   <ng-form name="forms.cube_setting_form" >
-    <div style="width:{{state.mode!='view'?75:100}}%;float:left;padding-right:10px">
+    <div style="float:left;padding-right:10px" ng-style="{width:state.mode!='view'?'75%':'100%'}">
       <div class="form-group">
         <h3 style="margin-left:42px;">{{dataKylin.cube.aggregationGroups}} </h3>
         <table

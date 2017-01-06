@@ -4166,18 +4166,18 @@ Gradient Background colors
 .ace-chrome div.ace_print-margin{
   background: none;
 }
-.ui-grid-contents-wrapper {
-  overflow: scroll;
-}
-
 
 .relative{
   position: relative;
 }
 
 .ui-grid-contents-wrapper{
-  overflow:visible;!important
+  overflow:visible;
 }
 .query-results{
-margin-bottom:30px;
+  margin-bottom:30px;
+}
+@media all and (-ms-high-contrast:none) {
+ .foo { color: green } /* IE10 */
+ *::-ms-backdrop, .foo { color: red } /* IE11 */
 }
