@@ -225,6 +225,10 @@
                     <groupId>com.google.protobuf</groupId>
                     <artifactId>protobuf-java</artifactId>
                 </exclusion>
+                <exclusion>
+                    <artifactId>jetty-all</artifactId>
+                    <groupId>org.eclipse.jetty.aggregate</groupId>
+                </exclusion>
             </exclusions>
         </dependency>
         
