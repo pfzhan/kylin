@@ -42,6 +42,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
+import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -158,7 +159,7 @@ public class RawTablePageIndexJob extends AbstractHadoopJob {
 
     protected int setJobInputFile(Job job, Path path) throws IOException {
         int ret = 0;
-        FileSystem fs = FileSystem.get(job.getConfiguration());
+        FileSystem fs = HadoopUtil.getWorkingFileSystem(job.getConfiguration());
         if (!fs.exists(path)) {
             logger.warn("Input {} does not exist.", path.toString());
         } else if (fs.isDirectory(path)) {

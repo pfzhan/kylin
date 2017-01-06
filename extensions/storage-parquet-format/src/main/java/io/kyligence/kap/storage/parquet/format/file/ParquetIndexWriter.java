@@ -30,12 +30,13 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.engine.mr.HadoopUtil;
 
 public class ParquetIndexWriter {
     private FSDataOutputStream os;
 
     public ParquetIndexWriter(Configuration config, Path path) throws IOException {
-        FileSystem fileSystem = FileSystem.get(config);
+        FileSystem fileSystem = HadoopUtil.getFileSystem(path, config);
         os = fileSystem.create(path);
     }
 

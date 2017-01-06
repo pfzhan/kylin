@@ -44,6 +44,7 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
@@ -156,7 +157,7 @@ public class ModelStatsUpdate extends AbstractHadoopJob {
     }
 
     private static List<Path> getAllPaths(Path root, Configuration conf) throws IOException {
-        FileSystem fileSystem = FileSystem.get(root.toUri(), conf);
+        FileSystem fileSystem = HadoopUtil.getWorkingFileSystem(conf);
         FileStatus[] items = fileSystem.listStatus(root);
         if (items == null)
             return new ArrayList<>();

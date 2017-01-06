@@ -45,6 +45,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ByteArray;
+import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.GTUtil;
 import org.apache.kylin.metadata.filter.IFilterCodeSystem;
@@ -127,7 +128,7 @@ public class ParquetRawTableFileInputFormat extends FileInputFormat<Text, Text> 
             KylinConfig.setKylinConfigInEnvIfMissing(kylinProps);
 
             // read index file
-            FileSystem fileSystem = FileSystem.get(conf);
+            FileSystem fileSystem = HadoopUtil.getFileSystem(parquetPath, conf);
             FSDataInputStream inputStream = fileSystem.open(indexPath);
             indexTable = new ParquetOrderedPageIndexTable(fileSystem, indexPath, inputStream, 0, Collections.singleton(0));
 

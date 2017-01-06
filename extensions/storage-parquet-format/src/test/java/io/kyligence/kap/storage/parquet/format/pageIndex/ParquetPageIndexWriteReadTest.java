@@ -35,7 +35,6 @@ import java.util.Set;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
@@ -118,7 +117,7 @@ public class ParquetPageIndexWriteReadTest extends LocalFileMetadataTestCase {
         writer.close();
 
         // read
-        FSDataInputStream inputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).open(new Path(indexFile.getAbsolutePath()));
+        FSDataInputStream inputStream = HadoopUtil.getWorkingFileSystem().open(new Path(indexFile.getAbsolutePath()));
         ParquetPageIndexReader reader = new ParquetPageIndexReader(inputStream, 0);
 
         for (int i = 0; i < data1.length; i++) {

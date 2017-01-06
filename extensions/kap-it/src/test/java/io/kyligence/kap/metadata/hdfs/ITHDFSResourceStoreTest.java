@@ -35,7 +35,6 @@ import java.io.OutputStreamWriter;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.query.KylinTestBase;
@@ -48,7 +47,7 @@ import org.junit.Test;
 import io.kyligence.kap.engine.mr.HDFSResourceStore;
 
 public class ITHDFSResourceStoreTest extends KylinTestBase {
-    private static String[] testStrings = new String[] {"Apple", "Banana", "Kylin"};
+    private static String[] testStrings = new String[] { "Apple", "Banana", "Kylin" };
     private static final String testPath = "/tmp/test";
     private static final String testPath2 = "/tmp/test2";
 
@@ -59,12 +58,12 @@ public class ITHDFSResourceStoreTest extends KylinTestBase {
 
     @Before
     public void beforeTest() throws IOException {
-        FileSystem fs = HadoopUtil.getFileSystem(testPath);
-        fs.deleteOnExit(new Path(testPath));
-        fs.deleteOnExit(new Path(testPath2));
-        FSDataOutputStream outputStream = fs.create(new Path(testPath));
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        fs.delete(HDFSResourceStore.hdfsPath(testPath, config), true);
+        fs.delete(HDFSResourceStore.hdfsPath(testPath2, config), true);
+        FSDataOutputStream outputStream = fs.create(HDFSResourceStore.hdfsPath(testPath, config));
         BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(outputStream));
-        for (String s: testStrings) {
+        for (String s : testStrings) {
             bw.write(s);
             bw.newLine();
         }
@@ -73,24 +72,24 @@ public class ITHDFSResourceStoreTest extends KylinTestBase {
 
     @After
     public void afterTest() throws IOException {
-        FileSystem fs = HadoopUtil.getFileSystem(testPath);
-        fs.deleteOnExit(new Path(testPath));
-        fs.deleteOnExit(new Path(testPath2));
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        fs.delete(HDFSResourceStore.hdfsPath(testPath, config), true);
+        fs.delete(HDFSResourceStore.hdfsPath(testPath2, config), true);
     }
 
     @Test
     public void testSave() throws IOException {
         HDFSResourceStore resourceStore = new HDFSResourceStore(config);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        for (String s: testStrings) {
+        for (String s : testStrings) {
             baos.write(s.getBytes());
             baos.write("\n".getBytes());
         }
         baos.close();
         resourceStore.putResource(testPath2, new ByteArrayInputStream(baos.toByteArray()), 0);
 
-        FileSystem fs = HadoopUtil.getFileSystem(testPath);
-        FSDataInputStream inputStream = fs.open(new Path(testPath2));
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        FSDataInputStream inputStream = fs.open(HDFSResourceStore.hdfsPath(testPath2, config));
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
 
         try {

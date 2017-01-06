@@ -31,6 +31,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
+import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.spi.LoggingEvent;
 
@@ -214,7 +215,7 @@ public class HdfsAppender extends AppenderSkeleton {
     private void initWriter(Path outPath) throws IOException {
         closeWriter();
         Configuration conf = new Configuration();
-        fileSystem = FileSystem.get(conf);
+        fileSystem = HadoopUtil.getWorkingFileSystem(conf);
 
         int retry = 10;
         for (int i = 0; i < retry; i++) {

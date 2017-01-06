@@ -61,7 +61,7 @@ public class ParquetStorageCleanupStep extends AbstractExecutable {
         try {
             List<String> toCleanPaths = getToCleanFolders();
             List<String> toCleanPatterns = getToCleanFileSuffix();
-            dropHdfsPathOnCluster(toCleanPaths, toCleanPatterns, FileSystem.get(HadoopUtil.getCurrentConfiguration()));
+            dropHdfsPathOnCluster(toCleanPaths, toCleanPatterns, HadoopUtil.getWorkingFileSystem());
 
         } catch (IOException e) {
             logger.error("job:" + getId() + " execute finished with exception", e);

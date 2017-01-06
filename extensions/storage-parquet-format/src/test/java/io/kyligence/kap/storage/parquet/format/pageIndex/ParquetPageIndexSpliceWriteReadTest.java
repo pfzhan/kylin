@@ -36,7 +36,6 @@ import java.util.Set;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
@@ -135,8 +134,8 @@ public class ParquetPageIndexSpliceWriteReadTest extends LocalFileMetadataTestCa
         oos.close();
 
         // read
-        FSDataInputStream inputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).open(new Path(indexFile.getAbsolutePath()));
-        long fileSize = FileSystem.get(HadoopUtil.getCurrentConfiguration()).getFileStatus(new Path(indexFile.getAbsolutePath())).getLen();
+        FSDataInputStream inputStream = HadoopUtil.getWorkingFileSystem().open(new Path(indexFile.getAbsolutePath()));
+        long fileSize = HadoopUtil.getWorkingFileSystem().getFileStatus(new Path(indexFile.getAbsolutePath())).getLen();
         ParquetPageIndexSpliceReader spliceReader = new ParquetPageIndexSpliceReader(inputStream, fileSize - 8, 8);
 
         for (String div : divMap1.keySet()) {

@@ -52,6 +52,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.cube.kv.RowConstants;
 import org.apache.kylin.dimension.DimensionEncoding;
+import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.filter.UDF.MassInTupleFilter;
@@ -143,7 +144,7 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
             }
 
             // Index length (parquet file start offset)
-            FileSystem fileSystem = FileSystem.get(conf);
+            FileSystem fileSystem = HadoopUtil.getFileSystem(path, conf);
             FSDataInputStream inputStream = fileSystem.open(path);
             long indexLength = inputStream.readLong();
 

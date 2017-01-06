@@ -35,6 +35,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.engine.mr.HadoopUtil;
 
 public class ParquetIndexReader {
     private FSDataInputStream is;
@@ -42,7 +43,7 @@ public class ParquetIndexReader {
     private Map<Integer, List<GroupOffsetPair>> indexListMap;
 
     public ParquetIndexReader(Configuration config, Path path) throws IOException {
-        FileSystem fileSystem = FileSystem.get(config);
+        FileSystem fileSystem = HadoopUtil.getFileSystem(path, config);
         is = fileSystem.open(path);
         indexListMap = new HashMap<Integer, List<GroupOffsetPair>>();
         indexMap = getIndex(indexListMap);

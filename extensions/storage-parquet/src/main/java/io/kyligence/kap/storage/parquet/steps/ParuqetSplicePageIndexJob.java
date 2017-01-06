@@ -32,6 +32,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.kylin.engine.mr.HadoopUtil;
 
 import io.kyligence.kap.storage.parquet.format.ParquetCubeSplicePageInputFormat;
 
@@ -39,7 +40,7 @@ public class ParuqetSplicePageIndexJob extends ParquetPageIndexJob {
     @Override
     protected int setJobInputFile(Job job, Path path) throws IOException {
         int ret = 0;
-        FileSystem fs = FileSystem.get(job.getConfiguration());
+        FileSystem fs = HadoopUtil.getWorkingFileSystem(job.getConfiguration());
         if (!fs.exists(path)) {
             logger.warn("Input {} does not exist.", path.toString());
         } else if (fs.isDirectory(path)) {

@@ -43,6 +43,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.StringSplitter;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
+import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.engine.mr.KylinReducer;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
@@ -183,7 +184,7 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
             inp = inp.trim();
             if (inp.endsWith("/*")) {
                 inp = inp.substring(0, inp.length() - 2);
-                FileSystem fs = FileSystem.get(job.getConfiguration());
+                FileSystem fs = HadoopUtil.getWorkingFileSystem(job.getConfiguration());
                 Path path = new Path(inp);
 
                 if (!fs.exists(path)) {

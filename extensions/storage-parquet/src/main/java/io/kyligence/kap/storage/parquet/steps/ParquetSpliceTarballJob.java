@@ -29,6 +29,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.kylin.engine.mr.HadoopUtil;
 
 import java.io.IOException;
 
@@ -38,7 +39,7 @@ public class ParquetSpliceTarballJob extends ParquetTarballJob{
     @Override
     protected int setJobInputFile(Job job, Path path) throws IOException {
         int ret = 0;
-        FileSystem fs = FileSystem.get(job.getConfiguration());
+        FileSystem fs = HadoopUtil.getWorkingFileSystem(job.getConfiguration());
         if (!fs.exists(path)) {
             logger.warn("Input {} does not exist.", path.toString());
         } else if (fs.isDirectory(path)) {

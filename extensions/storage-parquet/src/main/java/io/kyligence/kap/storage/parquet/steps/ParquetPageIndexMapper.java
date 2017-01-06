@@ -28,7 +28,6 @@ import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
@@ -139,7 +138,7 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
             logger.debug("Column Length:" + columnName[col] + "=" + columnLength[col]);
         }
 
-        FSDataOutputStream outputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(outputPath);
+        FSDataOutputStream outputStream = HadoopUtil.getFileSystem(outputPath).create(outputPath);
         indexBundleWriter = new ParquetPageIndexWriter(columnName, columnLength, cardinality, onlyEQIndex, outputStream);
     }
 

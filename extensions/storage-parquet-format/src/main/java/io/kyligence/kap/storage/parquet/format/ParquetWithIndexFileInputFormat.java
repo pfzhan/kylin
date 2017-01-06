@@ -37,6 +37,7 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.kylin.engine.mr.HadoopUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,8 +76,9 @@ public class ParquetWithIndexFileInputFormat extends FileInputFormat<IntWritable
             Path shardIndexPath = new Path(shardIndexPathString);
             val = new byte[128 << 10];
 
-            shardIS = FileSystem.get(conf).open(shardPath);
-            shardIndexIS = FileSystem.get(conf).open(shardIndexPath);
+            FileSystem fs = HadoopUtil.getFileSystem(shardPath, conf);
+            shardIS = fs.open(shardPath);
+            shardIndexIS = fs.open(shardIndexPath);
         }
 
         @Override

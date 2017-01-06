@@ -24,12 +24,14 @@
 
 package io.kyligence.kap.storage.parquet.format.file;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.parquet.io.api.Binary;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
@@ -48,10 +50,17 @@ public abstract class AbstractParquetFormatTest extends LocalFileMetadataTestCas
     protected MessageType type;
 
     public AbstractParquetFormatTest() throws IOException {
-        path = new Path("./a.parquet");
-        indexPath = new Path("./a.parquetindex");
-        cleanTestFile(path);
+        path = new Path(qualify("./a.parquet"));
+        indexPath = new Path(qualify("./a.parquetindex"));
         type = new MessageType("test", new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, "key1"), new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "m1"), new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "m2"));
+    }
+
+    protected String qualify(String path) {
+        String absolutePath = new File(path).getAbsolutePath();
+        if (absolutePath.startsWith("/"))
+            return "file://" + absolutePath;
+        else
+            return "file:///" + absolutePath;
     }
 
     @After
@@ -61,8 +70,9 @@ public abstract class AbstractParquetFormatTest extends LocalFileMetadataTestCas
     }
 
     @Before
-    public void setup() {
+    public void setup() throws IOException {
         createTestMetadata();
+        cleanTestFile(path);
     }
 
     protected void writeRows(int rowCnt) throws Exception {
@@ -86,7 +96,7 @@ public abstract class AbstractParquetFormatTest extends LocalFileMetadataTestCas
     }
 
     protected void cleanTestFile(Path path) throws IOException {
-        FileSystem fs = FileSystem.get(new Configuration());
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
         if (fs.exists(path)) {
             fs.delete(path, true);
         }

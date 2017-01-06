@@ -51,7 +51,7 @@ public class ParquetSpliceTarballMapper extends KylinMapper<IntWritable, byte[],
         Configuration conf = context.getConfiguration();
         Path inputPath = ((FileSplit) context.getInputSplit()).getPath();
         super.bindCurrentConfiguration(conf);
-        FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
+        FileSystem fs = HadoopUtil.getFileSystem(inputPath);
 
         String fileNameWithoutSuffix = inputPath.getName().substring(0, inputPath.getName().indexOf('.'));
 

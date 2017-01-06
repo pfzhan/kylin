@@ -31,7 +31,6 @@ import java.util.Map;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.engine.mr.HadoopUtil;
@@ -72,7 +71,7 @@ public class ColumnIndexTest extends LocalFileMetadataTestCase {
         }
 
         // write
-        FSDataOutputStream outputStream = FileSystem.getLocal(HadoopUtil.getCurrentConfiguration()).create(indexPath);
+        FSDataOutputStream outputStream = HadoopUtil.getWorkingFileSystem().create(indexPath);
         ColumnIndexWriter indexWriter = new ColumnIndexWriter(new ColumnSpec("0", 1, 0, false, 0), outputStream);
         for (Map.Entry<ByteArray, Integer> dataEntry : data.entrySet()) {
             indexWriter.appendToRow(dataEntry.getKey(), dataEntry.getValue());
@@ -81,7 +80,7 @@ public class ColumnIndexTest extends LocalFileMetadataTestCase {
         outputStream.close();
 
         // read
-        FSDataInputStream inputStream = FileSystem.getLocal(HadoopUtil.getCurrentConfiguration()).open(indexPath);
+        FSDataInputStream inputStream = HadoopUtil.getWorkingFileSystem().open(indexPath);
         ColumnIndexReader indexReader = new ColumnIndexReader(inputStream);
         assertEquals(100, indexReader.getNumberOfRows());
         for (Map.Entry<ByteArray, Integer> dataEntry : data.entrySet()) {
@@ -93,5 +92,6 @@ public class ColumnIndexTest extends LocalFileMetadataTestCase {
 
             assertEquals(dataEntry.getValue().intValue(), row);
         }
+        indexReader.close();
     }
 }

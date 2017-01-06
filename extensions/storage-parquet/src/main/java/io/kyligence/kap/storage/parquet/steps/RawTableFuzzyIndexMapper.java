@@ -31,7 +31,6 @@ import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
@@ -114,7 +113,7 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
             TblColRef column = columns.get(i);
             if (rawTableDesc.isNeedFuzzyIndex(column)) {
                 Path outputPath = new Path(FileOutputFormat.getWorkOutputPath(context), RawTableConstants.RawTableDir + "/" + shardId + "." + i + ".parquet.fuzzy");
-                FSDataOutputStream output = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(outputPath);
+                FSDataOutputStream output = HadoopUtil.getFileSystem(outputPath).create(outputPath);
                 ColumnSpec columnSpec = new ColumnSpec(column.getName(), RawTableUtils.roundToByte(fuzzyHashLength), 10000, true, i);
                 columnSpec.setValueEncodingIdentifier('s');
                 fuzzyIndexWriterMap.put(i, new ParquetPageIndexWriter(new ColumnSpec[] { columnSpec }, output));

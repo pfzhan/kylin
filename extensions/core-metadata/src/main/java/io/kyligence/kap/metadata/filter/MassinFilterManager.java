@@ -109,7 +109,7 @@ public class MassinFilterManager {
     }
 
     public static String getResourceIdentifier(KapConfig kapConfig, String filterName) {
-        return kapConfig.getMassinResourceIdentiferDir() + filterName;
+        return kapConfig.getMassinResourceIdentiferDir() + "/" + filterName;
     }
 
     public String save(Functions.FilterTableType filterTableType, List<List<String>> result) throws IOException {

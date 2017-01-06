@@ -34,16 +34,14 @@ import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.engine.mr.HadoopUtil;
 
-public class HDFSResourceStore extends ResourceStore{
+public class HDFSResourceStore extends ResourceStore {
     public HDFSResourceStore(KylinConfig kylinConfig) {
         super(kylinConfig);
-        KapConfig kapConfig = KapConfig.wrap(kylinConfig);
     }
 
     @Override
@@ -63,8 +61,8 @@ public class HDFSResourceStore extends ResourceStore{
 
     @Override
     protected RawResource getResourceImpl(String resPath) throws IOException {
-        FileSystem fs = HadoopUtil.getFileSystem(resPath);
-        InputStream inputStream = fs.open(new Path(resPath));
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        InputStream inputStream = fs.open(hdfsPath(resPath, kylinConfig));
         RawResource result = new RawResource(inputStream, 0);
         return result;
     }
@@ -76,11 +74,15 @@ public class HDFSResourceStore extends ResourceStore{
 
     @Override
     protected void putResourceImpl(String resPath, InputStream content, long ts) throws IOException {
-        FileSystem fs = HadoopUtil.getFileSystem(resPath);
-        FSDataOutputStream os = fs.create(new Path(resPath), false);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        FSDataOutputStream os = fs.create(hdfsPath(resPath, kylinConfig), false);
         BufferedOutputStream bos = IOUtils.buffer(os);
         IOUtils.copy(content, bos);
         bos.close();
+    }
+
+    public static Path hdfsPath(String resourcePath, KylinConfig conf) {
+        return new Path(conf.getHdfsWorkingDirectory(), resourcePath.substring(1));
     }
 
     @Override

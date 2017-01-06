@@ -28,6 +28,7 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +54,7 @@ public class CheckHdfsPath extends AbstractHadoopJob {
             logger.info("Starting: " + jobName);
             Configuration conf = getConf();
             Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
-            FileSystem fs = FileSystem.get(conf);
+            FileSystem fs = HadoopUtil.getWorkingFileSystem(conf);
             if (!fs.exists(output))
                 fs.mkdirs(output);
             return 0;

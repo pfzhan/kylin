@@ -39,8 +39,8 @@ import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.kylin.engine.mr.steps.CubingExecutableUtil;
-import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.tool.StorageCleanupJob;
@@ -67,11 +67,10 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
     }
 
     private void cleanUnusedParquetFolders(Configuration conf) throws IOException {
-        JobEngineConfig engineConfig = new JobEngineConfig(KylinConfig.getInstanceFromEnv());
         CubeManager cubeMgr = CubeManager.getInstance(KylinConfig.getInstanceFromEnv());
         RawTableManager rawMgr = RawTableManager.getInstance(KylinConfig.getInstanceFromEnv());
 
-        FileSystem fs = FileSystem.get(conf);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem(conf);
         List<String> allHdfsPathsNeedToBeDeleted = new ArrayList<String>();
         Path parquetStoragePath = new Path(KapConfig.getInstanceFromEnv().getParquetStoragePath());
         FileStatus[] realizationParquetFolders = null;

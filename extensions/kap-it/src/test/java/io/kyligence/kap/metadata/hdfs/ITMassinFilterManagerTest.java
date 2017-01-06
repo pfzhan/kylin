@@ -44,11 +44,12 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.engine.mr.HDFSResourceStore;
 import io.kyligence.kap.metadata.filter.MassinFilterManager;
 
-public class ITMassinFilterManagerTest extends KylinTestBase{
+public class ITMassinFilterManagerTest extends KylinTestBase {
     private MassinFilterManager manager;
-    private static final String[] testStrings = new String[] {"Apple", "Banana", "Kylin"};
+    private static final String[] testStrings = new String[] { "Apple", "Banana", "Kylin" };
 
     @BeforeClass
     public static void setupAll() throws Exception {
@@ -64,7 +65,7 @@ public class ITMassinFilterManagerTest extends KylinTestBase{
     public void testSaveHBase() throws IOException {
         try {
             manager.save(Functions.FilterTableType.HBASE_TABLE, null);
-        } catch (RuntimeException e)  {
+        } catch (RuntimeException e) {
             // This exception is expected.
             Assert.assertTrue(true);
             return;
@@ -87,18 +88,19 @@ public class ITMassinFilterManagerTest extends KylinTestBase{
     @Test
     public void testSaveHDFS() throws IOException {
         List<List<String>> result = Lists.newArrayList();
-        for (String s: testStrings) {
+        for (String s : testStrings) {
             result.add(Lists.newArrayList(s));
         }
         String filterName = manager.save(Functions.FilterTableType.HDFS, result);
         String resourceIdentifier = MassinFilterManager.getResourceIdentifier(KapConfig.wrap(config), filterName);
-        Path identifierPath = new Path(resourceIdentifier);
-        FileSystem fs = HadoopUtil.getFileSystem(resourceIdentifier);
+
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        Path identifierPath = HDFSResourceStore.hdfsPath(resourceIdentifier, config);
 
         Assert.assertTrue(fs.exists(identifierPath));
 
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fs.open(identifierPath)));
-        for (String s: testStrings) {
+        for (String s : testStrings) {
             Assert.assertEquals(s, bufferedReader.readLine());
         }
         bufferedReader.close();
@@ -109,17 +111,17 @@ public class ITMassinFilterManagerTest extends KylinTestBase{
     @Test
     public void testLoadHDFS() throws IOException {
         List<List<String>> result = Lists.newArrayList();
-        for (String s: testStrings) {
+        for (String s : testStrings) {
             result.add(Lists.newArrayList(s));
         }
         String filterName = manager.save(Functions.FilterTableType.HDFS, result);
         String resourceIdentifier = MassinFilterManager.getResourceIdentifier(KapConfig.wrap(config), filterName);
-        FileSystem fs = HadoopUtil.getFileSystem(resourceIdentifier);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
 
         Set<ByteArray> loadedData = manager.load(Functions.FilterTableType.HDFS, resourceIdentifier);
         Assert.assertEquals(result.size(), loadedData.size());
 
-        for (String s: testStrings) {
+        for (String s : testStrings) {
             Assert.assertTrue(loadedData.contains(new ByteArray(s.getBytes())));
         }
         fs.deleteOnExit(new Path(resourceIdentifier));

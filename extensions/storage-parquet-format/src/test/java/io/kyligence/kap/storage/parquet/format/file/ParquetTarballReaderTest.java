@@ -32,6 +32,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.engine.mr.HadoopUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -41,16 +42,16 @@ public class ParquetTarballReaderTest extends AbstractParquetFormatTest {
 
     public ParquetTarballReaderTest() throws IOException {
         super();
-        tarballPath = new Path("./a.parquettar");
+        tarballPath = new Path(qualify("./a.parquettar"));
     }
 
     @After
     public void cleanup() throws IOException {
-        super.cleanup();
-        FileSystem fs = FileSystem.get(new Configuration());
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
         if (fs.exists(tarballPath)) {
             fs.delete(tarballPath, true);
         }
+        super.cleanup();
     }
 
     @Test
@@ -72,7 +73,7 @@ public class ParquetTarballReaderTest extends AbstractParquetFormatTest {
 
     private void appendFile(long length) throws IOException {
         byte[] content = new byte[(int) length - 8];
-        FileSystem fs = FileSystem.get(new Configuration());
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
         FSDataOutputStream outs = fs.create(tarballPath);
         outs.writeLong(length);
         outs.write(content);

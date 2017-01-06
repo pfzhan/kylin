@@ -60,7 +60,7 @@ public class KapCubeService extends BasicService {
         columnarResp.setDateRangeStart(segment.getDateRangeStart());
         columnarResp.setDateRangeEnd(segment.getDateRangeEnd());
 
-        FileSystem fs = HadoopUtil.getFileSystem(segStoragePath);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
         if (fs.exists(new Path(segStoragePath))) {
             ContentSummary cs = fs.getContentSummary(new Path(segStoragePath));
             columnarResp.setFileCount(cs.getFileCount());

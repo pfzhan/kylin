@@ -108,7 +108,7 @@ public class UpdateOutputDirStep extends AbstractExecutable {
             return new ExecuteResult(ExecuteResult.State.SUCCEED);
         }
         try {
-            FileSystem fs = HadoopUtil.getFileSystem(getOutputDir());
+            FileSystem fs = HadoopUtil.getWorkingFileSystem();
             Path cubeOutputPath = new Path(getOutputDir());
             FileStatus outputDirStatus = fs.getFileStatus(cubeOutputPath);
             assert (outputDirStatus.isDirectory());

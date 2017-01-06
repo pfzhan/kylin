@@ -29,7 +29,6 @@ import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
@@ -90,7 +89,7 @@ public class ParquetSplicePageIndexMapper extends KylinMapper<ByteArrayListWrita
         segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
 
         outputPath = new Path(FileOutputFormat.getWorkOutputPath(context), inputPath.getName().replace("parquet", "parquet.inv"));
-        FSDataOutputStream outputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(outputPath);
+        FSDataOutputStream outputStream = HadoopUtil.getFileSystem(outputPath).create(outputPath);
         indexSpliceWriter = new ParquetPageIndexSpliceWriter(outputStream);
 
         // cube and its segment keep the same in the mapper

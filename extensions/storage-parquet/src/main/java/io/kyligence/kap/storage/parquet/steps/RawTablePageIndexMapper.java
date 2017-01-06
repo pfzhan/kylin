@@ -29,7 +29,6 @@ import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
@@ -108,7 +107,7 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
             columnSpecs[i].setValueEncodingIdentifier('s');
         }
 
-        FSDataOutputStream outputStream = FileSystem.get(HadoopUtil.getCurrentConfiguration()).create(outputPath);
+        FSDataOutputStream outputStream = HadoopUtil.getFileSystem(outputPath).create(outputPath);
         indexBundleWriter = new ParquetPageIndexWriter(columnSpecs, outputStream);
     }
 

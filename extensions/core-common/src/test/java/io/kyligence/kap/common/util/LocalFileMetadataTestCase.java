@@ -44,7 +44,9 @@ public class LocalFileMetadataTestCase extends org.apache.kylin.common.util.Loca
         if (System.getProperty(KylinConfig.KYLIN_CONF) == null && System.getenv(KylinConfig.KYLIN_CONF) == null)
             System.setProperty(KylinConfig.KYLIN_CONF, tempMetadataDir);
 
-        KylinConfig.getInstanceFromEnv().setMetadataUrl(tempMetadataDir);
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setMetadataUrl(tempMetadataDir);
+        config.setProperty("kylin.env.hdfs-working-dir", "file:///tmp/kylin");
     }
 
 }

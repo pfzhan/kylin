@@ -51,7 +51,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.rest.service.MassInService;
 
-public class ITKapMassinQueryTest extends ITMassInQueryTest{
+public class ITKapMassinQueryTest extends ITMassInQueryTest {
     private static String filterName1;
     private static String filterName2;
     private static List<List<String>> testData1;

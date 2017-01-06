@@ -30,6 +30,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.engine.mr.HadoopUtil;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 
 public class ParquetTarballReader extends ParquetRawReader {
@@ -56,9 +57,10 @@ public class ParquetTarballReader extends ParquetRawReader {
     }
 
     private long getSkipOffset(Configuration config, Path path) throws IOException {
-        FileSystem fs = FileSystem.get(config);
+        FileSystem fs = HadoopUtil.getFileSystem(path, config);
         FSDataInputStream in = fs.open(path);
         skipLength = in.readLong();
+        in.close();
         return skipLength;
     }
 }

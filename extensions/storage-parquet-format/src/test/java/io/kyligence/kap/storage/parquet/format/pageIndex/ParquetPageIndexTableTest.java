@@ -91,7 +91,7 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         File indexFile = File.createTempFile("local", "inv");
         writeIndexFile(indexFile);
         Path invPath = new Path(indexFile.getAbsolutePath());
-        FileSystem fileSystem = FileSystem.get(HadoopUtil.getCurrentConfiguration());
+        FileSystem fileSystem = HadoopUtil.getWorkingFileSystem();
         FSDataInputStream inputStream = fileSystem.open(invPath);
         indexTable = new ParquetPageIndexTable(fileSystem, invPath, inputStream, 0);
         inputStream.seek(0);

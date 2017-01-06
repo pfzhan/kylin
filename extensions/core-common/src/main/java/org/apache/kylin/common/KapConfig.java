@@ -184,7 +184,7 @@ public class KapConfig {
      * Massin
      */
     public String getMassinResourceIdentiferDir() {
-        return config.getOptional("kap.server.massin-resource-dir", new StringBuilder().append(config.getHdfsWorkingDirectory()).append("massin/").toString());
+        return config.getOptional("kap.server.massin-resource-dir", "/massin");
     }
 
     public String getHelixZookeeperAddress() {

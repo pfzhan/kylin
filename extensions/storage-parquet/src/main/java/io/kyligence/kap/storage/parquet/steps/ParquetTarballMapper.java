@@ -51,7 +51,7 @@ public class ParquetTarballMapper extends KylinMapper<IntWritable, byte[], Text,
         Configuration conf = context.getConfiguration();
         Path inputPath = ((FileSplit) context.getInputSplit()).getPath();
         super.bindCurrentConfiguration(conf);
-        FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
+        FileSystem fs = HadoopUtil.getFileSystem(inputPath, conf);
 
         String shardId = inputPath.getName().substring(0, inputPath.getName().indexOf('.'));
         String cuboidId = inputPath.getParent().getName();
