@@ -132,29 +132,43 @@ KylinApp
         }
       });
     };
-
-    $scope.openUnLoadModal = function () {
-      if(!$scope.projectModel.selectedProject){
-        SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.tip_select_project, 'info');
-        return;
-      }
-      $modal.open({
-        templateUrl: 'removeHiveTable.html',
-        controller: ModalInstanceCtrl,
-        backdrop : 'static',
-        resolve: {
-          tableNames: function () {
-            return $scope.tableNames;
-          },
-          projectName: function () {
-            return $scope.projectModel.selectedProject;
-          },
-          scope: function () {
-            return $scope;
-          }
+    $scope.reloadTable = function (tableNames,projectName){
+      loadingRequest.show();
+      TableExtService.loadHiveTable({tableName: tableNames, action: projectName}, {}, function (result) {
+        var loadTableInfo = "";
+        for (var tableName in result) {
+          if (VdmUtil.isNotExtraKey(result, tableName)) {
+            loadTableInfo += "\n" + tableName;
+           }
+         }
+        if (loadTableInfo) {
+          kylinCommon.success_alert($scope.dataKylin.alert.success, $scope.dataKylin.alert.success_table_been_synchronized + loadTableInfo);
         }
-      });
-    };
+        loadingRequest.hide();
+        $scope.aceSrcTbLoaded(true);
+      }, function (e) {
+        kylinCommon.error_default(e);
+        loadingRequest.hide();
+      })
+    }
+
+    $scope.removeList = function (tableNames,projectName) {
+        loadingRequest.show();
+        TableExtService.unLoadHiveTable({tableName: tableNames, action: projectName}, {}, function (result) {
+          TableService.unLoadHiveTable({tableName: tableNames, action: projectName}, {}, function (result) {
+            var removedTableInfo = tableNames;
+            kylinCommon.success_alert($scope.dataKylin.alert.success, $scope.dataKylin.alert.tip_partial_loaded_body_part_one + removedTableInfo);
+            loadingRequest.hide();
+            $scope.aceSrcTbLoaded(true);
+          }, function (e) {
+            kylinCommon.error_default(e);
+            loadingRequest.hide();
+          })
+        }, function (e) {
+          kylinCommon.error_default(e);
+          loadingRequest.hide();
+        })
+    }
 
     var ModalInstanceCtrl = function ($scope, $location, $modalInstance, tableNames, MessageService, projectName, scope,kylinConfig,language,kylinCommon) {
       $scope.dataKylin = language.getDataKylin();
@@ -345,61 +359,10 @@ KylinApp
         }
 
         $scope.cancel();
-        loadingRequest.show();
-        TableExtService.loadHiveTable({tableName: $scope.tableNames, action: projectName}, {}, function (result) {
-          var loadTableInfo = "";
-          for (var tableName in result) {
-            if (VdmUtil.isNotExtraKey(result, tableName)) {
-              loadTableInfo += "\n" + tableName;
-            }
-          }
-          if (loadTableInfo) {
-            kylinCommon.success_alert($scope.dataKylin.alert.success, $scope.dataKylin.alert.success_table_been_synchronized + loadTableInfo);
-          }
-          loadingRequest.hide();
-          scope.aceSrcTbLoaded(true);
-
-        }, function (e) {
-          kylinCommon.error_default(e);
-          loadingRequest.hide();
-        })
+        scope.reloadTable($scope.tableNames,projectName);
       }
 
 
-      $scope.removeList = function () {
-        $scope.cancel();
-        removeTablesByNameList($scope.tableNames);
-      };
-
-      function removeTablesByNameList(tableNames) {
-        if (tableNames && tableNames.trim() === "") {
-          SweetAlert.swal('', $scope.dataKylin.alert.tip_to_synchronize, 'info');
-          return;
-        }
-
-        if (!$scope.projectName) {
-          SweetAlert.swal('', $scope.dataKylin.alert.tip_choose_project, 'info');
-          return;
-        }
-        loadingRequest.show();
-        TableExtService.unLoadHiveTable({tableName: tableNames, action: projectName}, {}, function (result) {
-          TableService.unLoadHiveTable({tableName: tableNames, action: projectName}, {}, function (result) {
-            var removedTableInfo = '';
-            angular.forEach(result['result.unload.success'], function (table) {
-              removedTableInfo += '\n' + table;
-            })
-            kylinCommon.success_alert($scope.dataKylin.alert.success, $scope.dataKylin.alert.tip_partial_loaded_body_part_one + removedTableInfo);
-            loadingRequest.hide();
-            scope.aceSrcTbLoaded(true);
-          }, function (e) {
-            kylinCommon.error_default(e);
-            loadingRequest.hide();
-          })
-        }, function (e) {
-          kylinCommon.error_default(e);
-          loadingRequest.hide();
-        })
-      }
     };
 
 

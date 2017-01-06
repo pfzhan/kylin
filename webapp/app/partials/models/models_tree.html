@@ -89,7 +89,11 @@
   <div ng-if="modelsManager.loading!=true&&modelsManager.models.length==0">
     <div no-result text="{{dataKylin.model.info_no_model}}"></div>
   </div>
-
+  <div class="row">
+    <div class="col-xs-12">
+      <kylin-pagination data="modelsManager.models" load-func="list" action="action"/>
+    </div>
+  </div>
 </div>
 
 

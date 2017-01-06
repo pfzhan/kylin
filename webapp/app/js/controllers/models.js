@@ -77,12 +77,14 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
   modelsManager.removeAll();
   $scope.loading = false;
   $scope.window = 0.68 * $window.innerHeight;
-
+  $scope.action = {};
 
   //trigger init with directive []
-  $scope.list = function () {
+  $scope.list = function (offset, limit) {
     var defer = $q.defer();
-    var queryParam = {};
+    offset = (!!offset) ? offset : 0;
+    limit = (!!limit) ? limit : 20;
+    var queryParam = {offset: offset, limit: limit};
     if (!$scope.projectModel.isSelectedProjectValid()) {
       defer.resolve([]);
       return defer.promise;
@@ -94,22 +96,25 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
     }
     queryParam.projectName = $scope.projectModel.selectedProject;
     return modelsManager.list(queryParam).then(function (resp) {
-      defer.resolve(resp);
+      defer.resolve(resp.length);
       modelsManager.loading = false;
       return defer.promise;
     });
 
   };
 
-  $scope.list();
 
   $scope.$watch('projectModel.selectedProject', function (newValue, oldValue) {
     if (newValue != oldValue || newValue == null) {
-      $scope.list();
+      modelsManager.removeAll();
+      $scope.reload();
     }
 
   });
-
+  $scope.reload = function () {
+    // trigger reload action in pagination directive
+    $scope.action.reload = !$scope.action.reload;
+  };
   $scope.status = {
     isopen: true
   };

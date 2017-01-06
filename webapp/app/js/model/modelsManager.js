@@ -30,17 +30,42 @@ KylinApp.service('modelsManager',function(ModelService,CubeService,$q,AccessServ
     this.list = function(queryParam){
         _this.loading = true;
         var defer = $q.defer();
+        var cubeDetail = [];
+        var modelPermission = [];
         ModelService.list(queryParam, function (_models) {
             //_this.removeAll();
             angular.forEach(_models, function (model, index) {
+               if(model.uuid){
+                  modelPermission.push(
+                  AccessService.list({type: "DataModelDesc", uuid: model.uuid}, function (accessEntities) {
+                     model.accessEntities = accessEntities;
+                       //if no owner in metadata, will get from acl
+                     try{
+                       if(!model.owner){
+                         model.owner = accessEntities[0].sid.principal;
+                       }
+                     } catch(error){
+                       //$log.error("No acl info. Model: %s",model.name);
+                     }
+                   }).$promise
+                   )
+                 }
+                 cubeDetail.push(
+                     CubeService.list({modelName:model.name}, function (_cubes) {
+                    model.cubes = _cubes;
+                     }).$promise
+                 );
               _this.modelNameList.push(model.name);
               model.project = ProjectModel.getProjectByCubeModel(model.name);
             });
-
-            _models = _.filter(_models,function(models){return models.name!=undefined});
-            _this.models = _models;
-            _this.loading = false;
-
+            $q.all(cubeDetail,modelPermission).then(
+                function(result){
+                    _models = _.filter(_models,function(models){return models.name!=undefined});
+                    _this.models =_this.models.concat(_models);;
+                    _this.loading = false;
+                    defer.resolve(_this.models);
+                }
+            );
         },function(){
             defer.reject("Failed to load models");
         });

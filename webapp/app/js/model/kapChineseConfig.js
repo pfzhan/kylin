@@ -717,6 +717,7 @@ KylinApp.constant('kapChineseConfig', {
     tables: '表',//--table tree begin
     tip_load_hive_table: '加载Hive表',
     tip_load_table_tree: '使用图形化树状结构方式加载Hive表',
+    tip_reload_table:'重新加载Hive表',
     tip_unLoad_hive_table: '卸载Hive表',
     tip_add_streaming_table: '新建流式表',
     titleAddHiveTable: '加载Hive表元数据',//modal addHiveTable begin
