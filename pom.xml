@@ -33,7 +33,7 @@
         <fastPFOR.version>0.0.13</fastPFOR.version>
         <helix.version>0.7.1</helix.version>
         <parquet.version>1.9.0</parquet.version>
-        <tomcat.version>7.0.69</tomcat.version>
+        <tomcat.version>8.5.9</tomcat.version>
         <spark.version>1.6.2</spark.version>
     </properties>
 
