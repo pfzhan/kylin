@@ -55,7 +55,6 @@ class testBuildCube(unittest.TestCase):
             job_response = requests.request("GET", job_url, headers=headers)
 
             self.assertEqual(job_response.status_code, 200, 'Build job information fetched failed.')
-            print job_response.text
 
             job_info = json.loads(job_response.text)
             job_status = job_info['job_status']

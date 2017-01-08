@@ -37,7 +37,6 @@ class testQuery(unittest.TestCase):
             response = requests.request("POST", url, data=payload, headers=headers)
 
             self.assertEqual(response.status_code, 200, 'Query failed.')
-            print response.text
 
             actual_result = json.loads(response.text)
             print 'Query duration: ' + str(actual_result['duration']) + 'ms'
