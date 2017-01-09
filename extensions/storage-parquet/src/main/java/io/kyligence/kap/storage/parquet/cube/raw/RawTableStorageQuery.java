@@ -64,22 +64,7 @@ public class RawTableStorageQuery implements IStorageQuery {
     }
 
     private void hackSelectStar(SQLDigest sqlDigest) {
-        if (!sqlDigest.isRawQuery) {
-            return;
-        }
-
-        // If it's select * from ...,
-        // We need to retrieve cube to manually add columns into sqlDigest, so that we have full-columns results as output.
-        boolean isSelectAll = sqlDigest.allColumns.isEmpty();
-
-        if (!isSelectAll)
-            return;
-
-        for (TblColRef col : this.rawTableDesc.getColumns()) {
-            if (col.getTable().equals(sqlDigest.factTable)) {
-                sqlDigest.allColumns.add(col);
-            }
-        }
+        // this is no longer needed thanks to SqlToRelConverter.hackSelectStar()
     }
 
     @Override
