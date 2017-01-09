@@ -111,6 +111,13 @@ public class IndexedRawMeasureType extends MeasureType<ByteArray> {
             }
 
             @Override
+            public ByteArray aggregate(ByteArray value1, ByteArray value2) {
+                if (value1 != null)
+                    return value1;
+                return value2;
+            }
+
+            @Override
             public ByteArray getState() {
                 return byteArray;
             }

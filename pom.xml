@@ -34,7 +34,7 @@
         <helix.version>0.7.1</helix.version>
         <parquet.version>1.9.0</parquet.version>
         <tomcat.version>8.5.9</tomcat.version>
-        <spark.version>1.6.2</spark.version>
+        <spark.version>1.6.3</spark.version>
 
         <!-- Sonar -->
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
