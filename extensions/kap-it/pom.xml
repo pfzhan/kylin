@@ -19,6 +19,8 @@
     <properties>
         <hdp.version/>
         <fastBuildMode/>
+        <kylin.engine/>
+        <kylin.storage/>
     </properties>
 
     <!-- Dependencies. -->
@@ -366,6 +368,8 @@
                                         <argument>-DuseSandbox=true</argument>
                                         <argument>-Dhdp.version=${hdp.version}</argument>
                                         <argument>-DfastBuildMode=${fastBuildMode}</argument>
+                                        <argument>-Dkylin.engine=${kylin.engine}</argument>
+                                        <argument>-Dkylin.storage=${kylin.storage}</argument>
                                         <argument>
                                             -Dlog4j.configuration=file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties
                                         </argument>
@@ -390,6 +394,8 @@
                                         <argument>-DuseSandbox=true</argument>
                                         <argument>-Dhdp.version=${hdp.version}</argument>
                                         <argument>-DfastBuildMode=${fastBuildMode}</argument>
+                                        <argument>-Dkylin.engine=${kylin.engine}</argument>
+                                        <argument>-Dkylin.storage=${kylin.storage}</argument>
                                         <argument>
                                             -Dlog4j.configuration=file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties
                                         </argument>
