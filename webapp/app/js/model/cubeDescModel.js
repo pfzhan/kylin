@@ -129,19 +129,6 @@ KylinApp.service('CubeDescModel', function (kylinConfig, modelsManager, TableMod
              "returntype": "decimal"
              },
            });
-        }else{
-          arr.push(
-            {"name": metric,
-             "function": {
-               "expression": "COUNT_DISTINCT",
-               "parameter": {
-                 "type": "column",
-                 "value": metric,
-                 "next_parameter": null
-               },
-               "returntype": "hllc(10)"
-             }
-           });
         }
       }
     });
