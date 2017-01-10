@@ -23,31 +23,59 @@ KylinApp.controller('CubeOverWriteCtrl', function ($scope, $modal,cubeConfig,Met
 
   $scope.convertedProperties=[];
   //rowkey
-  if(angular.equals({},$scope.cubeMetaFrame.override_kylin_properties)&&$scope.state.mode!="view"){
+  if($scope.state.mode!="view"){
     $scope.convertedProperties=[];
     CubeConfigService.getDefaults({},function(data){
       delete data.$promise;
       delete data.$resolved;
         for(var s in data){
           if(data.hasOwnProperty(s)){
-            $scope.cubeMetaFrame.override_kylin_properties[s]=data[s];
+            $scope.convertedProperties.push({
+              name:s,
+              value:data[s],
+              default:true
+            });
           }
         }
-        for(var key in $scope.cubeMetaFrame.override_kylin_properties){
-          $scope.convertedProperties.push({
-            name:key,
-            value:$scope.cubeMetaFrame.override_kylin_properties[key]
-          });
-        }
+      loadSavedConfig()
     })
   }else{
+    loadSavedConfig()
+  }
+
+
+  function loadSavedConfig(){
     for(var key in $scope.cubeMetaFrame.override_kylin_properties){
-      $scope.convertedProperties.push({
-        name:key,
-        value:$scope.cubeMetaFrame.override_kylin_properties[key]
-      });
+      var hasKey=false
+      for(var i=0;i<$scope.convertedProperties.length;i++){
+        if(key==$scope.convertedProperties[i].name){
+          $scope.convertedProperties[i]={
+            name:key,
+            value:$scope.cubeMetaFrame.override_kylin_properties[key],
+            checked:true,
+            default:true
+          }
+          hasKey=true;
+          break;
+        }
+      }
+      if(!hasKey){
+        $scope.convertedProperties.push({
+          name:key,
+          value:$scope.cubeMetaFrame.override_kylin_properties[key],
+          checked:true
+        });
+      }
     }
   }
+
+
+
+
+
+
+
+
   $scope.addNewProperty = function () {
     if($scope.cubeMetaFrame.override_kylin_properties.hasOwnProperty('')){
       return;
@@ -55,15 +83,17 @@ KylinApp.controller('CubeOverWriteCtrl', function ($scope, $modal,cubeConfig,Met
     $scope.cubeMetaFrame.override_kylin_properties['']='';
     $scope.convertedProperties.push({
       name:'',
-      value:''
+      value:'',
+      checked:true
     });
-
   };
 
   $scope.refreshPropertiesObj = function(){
     $scope.cubeMetaFrame.override_kylin_properties = {};
     angular.forEach($scope.convertedProperties,function(item,index){
-      $scope.cubeMetaFrame.override_kylin_properties[item.name] = item.value;
+      if(item.checked){
+        $scope.cubeMetaFrame.override_kylin_properties[item.name] = item.value;
+      }
     })
   }
 
@@ -78,6 +108,10 @@ KylinApp.controller('CubeOverWriteCtrl', function ($scope, $modal,cubeConfig,Met
     if (index > -1) {
       arr.splice(index, 1);
     }
+    delete $scope.cubeMetaFrame.override_kylin_properties[item.name];
+  }
+
+  $scope.removeCheck= function(arr,index,item){
     delete $scope.cubeMetaFrame.override_kylin_properties[item.name];
   }
 

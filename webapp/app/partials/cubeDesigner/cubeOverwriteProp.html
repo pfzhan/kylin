@@ -16,28 +16,31 @@
 * limitations under the License.
 -->
 
-<div class="row" ng-controller="CubeOverWriteCtrl" style="padding-left:40px;">
+<div class="row" id="cubeOverWriteBox" ng-controller="CubeOverWriteCtrl" style="padding-left:40px;">
     <div class="col-xs-8">
         <ng-form name="forms.cube_overwrite_prop_form" novalidate>
             <!--Project-->
-            <div ng-repeat=" prop in convertedProperties track by $index " class="form-group">
-                <div class="row">
+            <div ng-repeat=" prop in convertedProperties track by $index " class="form-group" ng-class="{true:'defaultConfig',false:''}[!!prop.default]">
+                <div class="row" ng-class="{true:'checkedRow',false:'unCheckedRow'}[!!prop.default&&!!prop.checked]">
+                  <div class=" col-sm-1" style="text-align: right"><input  ng-show="prop.default" type="checkbox" style="display: inline-block" ng-checked="{{prop.checked}}" ng-model="prop.checked" ng-change="refreshProperty(convertedProperties,$index,prop)"/></div>
                   <label class="col-xs-12 col-sm-6 control-label no-padding-right" ng-class="{'has-error':prop.name==''}">
                     <b ng-if="state.mode=='view'">{{prop.name}}</b>
-                    <input ng-model="prop.name" placeholder="{{dataKylin.cube.plac_cubeCOKey}}" ng-change="refreshProperty(convertedProperties,$index,prop)" class="form-control" ng-if="state.mode=='edit'"/>
+
+                    <input ng-readonly="prop.default" ng-model="prop.name" placeholder="{{dataKylin.cube.plac_cubeCOKey}}" ng-change="refreshProperty(convertedProperties,$index,prop)" class="form-control" ng-if="state.mode=='edit'"/>
                     <small style="font-weight: normal !important;" class="help-block" ng-show="prop.name==''">{{dataKylin.cube.tip_cubeCOKey}}</small>
                   </label>
-                  <div class="col-xs-12 col-sm-5" ng-class="{'has-error':prop.value==''}">
-                    <input ng-model="prop.value" placeholder="{{dataKylin.cube.plac_cubeCOValue}}" ng-change="refreshProperty(convertedProperties,$index,prop)" class="form-control" ng-if="state.mode=='edit'"/>
+                  <div class="col-xs-12 col-sm-4" ng-class="{'has-error':prop.value==''}">
+                    <input ng-readonly="prop.default&&!prop.checked" ng-model="prop.value" placeholder="{{dataKylin.cube.plac_cubeCOValue}}" ng-change="refreshProperty(convertedProperties,$index,prop)" class="form-control" ng-if="state.mode=='edit'"/>
                     <small class="help-block" ng-show="prop.value==''">{{dataKylin.cube.tip_cubeCOValue}}</small>
                     <span ng-if="state.mode=='view'">{{prop.value}}</span>
                   </div>
                   <div class="col-sm-1" ng-if="state.mode=='edit'">
-                    <button class="btn btn-xs btn-info" ng-click="removeProperty(convertedProperties,$index,prop)"><i class="fa fa-minus"></i>
+                    <button class="btn btn-xs btn-info" ng-click="removeProperty(convertedProperties,$index,prop)" ng-show="!prop.default"><i class="fa fa-minus"></i>
                     </button>
                   </div>
 
                 </div>
+
             </div>
         </ng-form>
         <!--Add Measures Property-->
