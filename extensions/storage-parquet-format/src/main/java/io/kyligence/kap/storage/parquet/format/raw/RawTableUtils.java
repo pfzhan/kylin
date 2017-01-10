@@ -62,9 +62,9 @@ public class RawTableUtils {
         } else {
             System.arraycopy(value, 0, result, 0, length);
 
-            for (int i = length; i < value.length; i++) {
-                result[i % length] ^= value[i];
-            }
+//            for (int i = length; i < value.length; i++) {
+//                result[i % length] ^= value[i];
+//            }
         }
 
         return result;
@@ -82,9 +82,9 @@ public class RawTableUtils {
         } else {
             System.arraycopy(value.array(), value.offset(), result, 0, hashLength);
 
-            for (int i = hashLength; i < value.length(); i++) {
-                result[i % hashLength] ^= value.array()[i + value.offset()];
-            }
+//            for (int i = hashLength; i < value.length(); i++) {
+//                result[i % hashLength] ^= value.array()[i + value.offset()];
+//            }
         }
 
         return new ByteArray(result);
