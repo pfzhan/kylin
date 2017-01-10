@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.Pair;
 
 public class LocalTempMetadata {
@@ -100,11 +101,11 @@ public class LocalTempMetadata {
         }
         
         String tmp = System.getProperty("kylin.engine");
-        if (tmp != null) {
+        if (!StringUtils.isBlank(tmp)) {
             engineType = Integer.parseInt(tmp.trim());
         }
         tmp = System.getProperty("kylin.storage");
-        if (tmp != null) {
+        if (!StringUtils.isBlank(tmp)) {
             storageType = Integer.parseInt(tmp.trim());
         }
         
