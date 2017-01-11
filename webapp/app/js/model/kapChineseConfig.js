@@ -465,8 +465,8 @@ KylinApp.constant('kapChineseConfig', {
     cubeMSEncoding: '编码',
     cubeMSLength: '长度',
     cubeMSNewColumn:'新加列',
-    cubeRSAutoMerge: '触发自动合并的时间阀值',//refresh_settings begin
-    tip_cubeRSAutoMerge: '系统会自动检查您设置的时间阀值,例如设置了时间阀值为[7天,30天],则系统会每隔7天合并一次segment,并且每隔30天再合并一次已合并的segment',
+    cubeRSAutoMerge: '触发自动合并的时间阈值',//refresh_settings begin
+    tip_cubeRSAutoMerge: '系统会自动检查您设置的时间阈值,例如设置了时间阈值为[7天,30天],则系统会每隔7天合并一次segment,并且每隔30天再合并一次已合并的segment',
     cubeRSNewThresholds: '新建阈值',
     cubeRSRetentionThreshold: '保留时间阈值',
     tip_cubeRSRetentionThreshold: '该值默认值为0, 系统会保留所有的历史Cube Segment, 当用户设置值为n时,系统会保留对应最近n天的历史',
