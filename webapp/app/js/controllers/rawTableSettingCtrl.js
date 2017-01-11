@@ -131,7 +131,7 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
   }
   //检测全局配置是否支持rawtable
   $scope.checkIsSupportRawTable=function(){
-    return ($scope.cubeMetaFrame&&$scope.cubeMetaFrame.engine_type&&$scope.cubeMetaFrame.engine_type==100);
+    return ($scope.cubeMetaFrame&&$scope.cubeMetaFrame.engine_type&&($scope.cubeMetaFrame.engine_type==100||$scope.cubeMetaFrame.engine_type==99));
   }
   $scope.wantSetting=!($scope.RawTables&&$scope.RawTables.needDelete);
   $scope.hisRawTableData=[];

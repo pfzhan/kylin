@@ -79,7 +79,7 @@ KylinApp.controller('CubeCtrl', function ($scope, AccessService, MessageService,
         })
 
         if (!cube.hbase) {
-          if(+cube.detail.storage_type==100&&+cube.detail.engine_type==100){
+          if(+cube.detail.storage_type==100&&+cube.detail.engine_type==100||+cube.detail.storage_type==99&&+cube.detail.engine_type==99){
             CubeService.getColumnarInfo({cubeId: cube.name, propValue: null, action: null}, function (hbase) {
               cube.hbase = hbase;
               cube.type="columnar";
