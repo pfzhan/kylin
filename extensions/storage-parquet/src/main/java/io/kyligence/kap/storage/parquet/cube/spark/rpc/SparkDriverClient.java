@@ -42,6 +42,7 @@ import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
+import org.apache.kylin.gridtable.GTScanRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,9 +98,10 @@ public class SparkDriverClient {
 
     }
 
-    public IStorageVisitResponseStreamer submit(byte[] gtScanReq, SparkDriverClientParams sparkDriverClientParams) {
+    public IStorageVisitResponseStreamer submit(GTScanRequest scanRequest, SparkDriverClientParams sparkDriverClientParams) {
         final long startTime = System.currentTimeMillis();
-        final SparkJobProtos.SparkJobRequestPayload payload = SparkJobProtos.SparkJobRequestPayload.newBuilder().setGtScanRequest(ByteString.copyFrom(gtScanReq)).//
+        final String scanReqId = Integer.toHexString(System.identityHashCode(scanRequest));
+        final SparkJobProtos.SparkJobRequestPayload payload = SparkJobProtos.SparkJobRequestPayload.newBuilder().setGtScanRequest(ByteString.copyFrom(scanRequest.toByteArray())).//
                 setKylinProperties(sparkDriverClientParams.getKylinProperties()).setRealizationId(sparkDriverClientParams.getRealizationId()).//
                 setSegmentId(sparkDriverClientParams.getSegmentId()).setDataFolderName(sparkDriverClientParams.getCuboidId()).//
                 setMaxRecordLength(sparkDriverClientParams.getMaxGTLength()).addAllParquetColumns(sparkDriverClientParams.getParquetColumns()).//
@@ -140,7 +142,7 @@ public class SparkDriverClient {
         //start
         requestObserver.onNext(initialRequest);
 
-        return new KyStorageVisitResponseStreamer(semaphore, serverSideCompleted, serverSideError, responses, requestObserver, startTime);
+        return new KyStorageVisitResponseStreamer(semaphore, serverSideCompleted, serverSideError, responses, requestObserver, scanReqId, startTime);
     }
 
     public String getSparkConf(String confName) {
@@ -155,16 +157,18 @@ public class SparkDriverClient {
         private final AtomicBoolean serverSideError;
         private final List<SparkJobResponse> responses;
         private final StreamObserver<SparkJobRequest> requestObserver;
+        private final String scanRequestId;
         private final long startTime;
         SparkJobRequest subsequentRequest;
         private boolean fetched;
 
-        public KyStorageVisitResponseStreamer(Semaphore semaphore, AtomicBoolean serverSideCompleted, AtomicBoolean serverSideError, List<SparkJobResponse> responses, StreamObserver<SparkJobRequest> requestObserver, long startTime) {
+        public KyStorageVisitResponseStreamer(Semaphore semaphore, AtomicBoolean serverSideCompleted, AtomicBoolean serverSideError, List<SparkJobResponse> responses, StreamObserver<SparkJobRequest> requestObserver, String scanRequestId, long startTime) {
             this.semaphore = semaphore;
             this.serverSideCompleted = serverSideCompleted;
             this.serverSideError = serverSideError;
             this.responses = responses;
             this.requestObserver = requestObserver;
+            this.scanRequestId = scanRequestId;
             this.startTime = startTime;
             subsequentRequest = null;
             fetched = false;
@@ -238,8 +242,9 @@ public class SparkDriverClient {
                             Iterators.transform(this, new Function<SparkJobResponse, Iterator<SparkJobResponse.ShardBlob>>() {
                                 @Override
                                 public Iterator<SparkJobResponse.ShardBlob> apply(@Nullable SparkJobResponse sparkJobResponse) {
-                                    logger.info("Time for the {}th gRPC response message of query {} from spark instance {} visit is {}", //
-                                            responseCount, QueryContext.getQueryId(), sparkJobResponse.getSparkInstanceIdentifier(), (System.currentTimeMillis() - startTime));
+                                    logger.info("Time for the {}th gRPC response message of query {} scan-request {} from spark instance {} visit is {}, {} shard blobs retrieved.", //
+                                            responseCount, QueryContext.getQueryId(), scanRequestId, sparkJobResponse.getSparkInstanceIdentifier(), (System.currentTimeMillis() - startTime),
+                                            sparkJobResponse.getShardBlobsList().size());
                                     responseCount.increment();
                                     return sparkJobResponse.getShardBlobsList().iterator();
                                 }

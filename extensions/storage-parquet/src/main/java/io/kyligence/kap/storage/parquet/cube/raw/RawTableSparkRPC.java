@@ -96,7 +96,7 @@ public class RawTableSparkRPC implements IGTStorage {
                 QueryContext.getQueryId());
         logger.info("Filter: {}", scanRequest.getFilterPushDown());
 
-        final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest.toByteArray(), sparkDriverClientParams);
+        final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest, sparkDriverClientParams);
         return new StorageResponseGTScatter(info, storageVisitResponseStreamer, scanRequest.getColumns(), 0, scanRequest.getStoragePushDownLimit());
     }
 }
