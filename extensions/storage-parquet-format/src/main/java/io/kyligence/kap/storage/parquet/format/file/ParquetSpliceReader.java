@@ -110,6 +110,12 @@ public class ParquetSpliceReader {
         return divCache.get(div);
     }
 
+    public MutableRoaringBitmap getDivPageRangeBitmap(String div) throws IOException {
+        Pair<Integer, Integer> range = getDivPageRange(div);
+        MutableRoaringBitmap bitmap = new MutableRoaringBitmap(new RoaringBitmap(Utils.createBitset(range.getLeft(), range.getRight())));
+        return bitmap;
+    }
+
     public static class Builder {
         private Configuration conf;
         private Path path;

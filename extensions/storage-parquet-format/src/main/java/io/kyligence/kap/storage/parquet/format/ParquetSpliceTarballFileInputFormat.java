@@ -191,7 +191,7 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
                 });
 
                 TupleFilter filter = gtScanRequest.getFilterPushDown();
-                if (Boolean.valueOf(conf.get(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX)) && filter != null) {
+                if (Boolean.valueOf(conf.get(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX)) && !filterIsNull(filter)) {
                     ParquetPageIndexSpliceReader pageIndexSpliceReader;
                     try {
                         pageIndexSpliceReader = new ParquetPageIndexSpliceReader(inputStream, indexLength, ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE);
@@ -203,14 +203,18 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
                         indexTable = new ParquetPageIndexTable(fileSystem, path, pageIndexSpliceReader.getIndexReader(d));
                         logger.info("Starting to lookup inverted index");
                         if (pageBitmap == null) {
-                            pageBitmap = new MutableRoaringBitmap(new RoaringBitmap(indexTable.lookup(filter)));
+                            ImmutableRoaringBitmap localBitmap = indexTable.lookup(filter);
+                            logger.info("div {} bitmap {} filter {}", d, localBitmap, filter);
+                            pageBitmap = new MutableRoaringBitmap(new RoaringBitmap(localBitmap));
                         } else {
-                            pageBitmap.or(indexTable.lookup(filter));
+                            ImmutableRoaringBitmap localBitmap = indexTable.lookup(filter);
+                            logger.info("div {} bitmap {} filter {}", d, localBitmap, filter);
+                            pageBitmap.or(localBitmap);
                         }
-                        logger.info("Inverted Index bitmap: {}", pageBitmap);
                         indexTable.closeWithoutStream();
-                        logger.info("read index takes: {} ms", (System.currentTimeMillis() - startTime));
                     }
+                    logger.info("Inverted Index bitmap: {}", pageBitmap);
+                    logger.info("read index takes: {} ms", (System.currentTimeMillis() - startTime));
                 }
             }
 
@@ -255,6 +259,20 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
                 }
             }
             return result;
+        }
+
+        private boolean filterIsNull(TupleFilter filter) {
+            if (filter == null) {
+                return true;
+            }
+
+            for (TupleFilter child : filter.getChildren()) {
+                if (child != null) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         @Override
