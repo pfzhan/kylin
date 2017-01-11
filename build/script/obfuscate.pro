@@ -36,6 +36,7 @@
 -keep class * extends org.apache.kylin.rest.service.BasicService {*;}
 -keep class !io.kyligence.** {*;}
 -keep class io.kyligence.kap.tool.** {*;}
+-keep class io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient
 -keep enum io.kyligence.kap.**,io.kyligence.kap.**$** {
     **[] $VALUES;
 	public *;

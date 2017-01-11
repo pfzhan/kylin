@@ -111,7 +111,8 @@ public class CubeSparkRPC implements IGTStorage {
             return new StorageResponseGTScatter(info, new DummyPartitionStreamer(new PartitionIteratorFromDir(BackdoorToggles.getDumpedPartitionDir())), scanRequest.getColumns(), 0, scanRequest.getStoragePushDownLimit());
         }
 
-        final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest.toByteArray(), sparkDriverClientParams);
+        logger.info("The scan {} for segment {} is ready to be submitted to spark client", Integer.toHexString(System.identityHashCode(scanRequest)), cubeSegment);
+        final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest, sparkDriverClientParams);
         return new StorageResponseGTScatter(info, storageVisitResponseStreamer, scanRequest.getColumns(), 0, scanRequest.getStoragePushDownLimit());
 
     }
