@@ -24,6 +24,11 @@ cd ${TARGET_PATH}/kap-*/
 export KYLIN_HOME=`pwd`
 cd -
 
+# switch to min profile
+cd ${KYLIN_HOME}/conf/
+ln -sfn profile_min profile
+cd -
+
 ${KYLIN_HOME}/bin/metastore.sh reset
 
 # Firstly run origin package to initialize metadata and build a segment
@@ -46,6 +51,12 @@ tar -zxvf ${PKG_PATH} -C ${TARGET_PATH}
 
 cd ${TARGET_PATH}/kap-*/
 export KYLIN_HOME=`pwd`
+
+# switch to min profile
+cd ${KYLIN_HOME}/conf/
+ln -sfn profile_min profile
+cd -
+
 ${KYLIN_HOME}/bin/kylin.sh start
 
 echo "Wait 2 minutes for service start KAP obf package."
