@@ -102,6 +102,24 @@
     </property>
 
     <property>
+        <name>mapreduce.reduce.memory.mb</name>
+        <value>4096</value>
+        <description></description>
+    </property>
+
+    <property>
+        <name>mapreduce.reduce.java.opts</name>
+        <value>-Xmx3700m -XX:OnOutOfMemoryError='kill -9 %p'</value>
+        <description></description>
+    </property>
+
+    <property>
+        <name>mapreduce.reduce.shuffle.input.buffer.percent</name>
+        <value>0.5</value>
+        <description></description>
+    </property>
+
+    <property>
         <name>mapreduce.task.io.sort.mb</name>
         <value>200</value>
         <description></description>
