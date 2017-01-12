@@ -111,12 +111,15 @@ KylinApp.service('CubeDescModel', function (kylinConfig, modelsManager, TableMod
     return dictionaries;
   }
 
-  this.initMeasures = function(arr,modelName){
-    var model=modelName;
-    var numberType=["int","integer","smallint","bigint","tinyint","float","double","long"];
+
+  this.initMeasures = function(arr,modelName,factTable){
+    var model=modelsManager.getModel(modelName);
+    var bigintType=["int","integer","smallint","bigint","tinyint","long"];
+    var numbertype=["int","integer","smallint","bigint","tinyint","float","double","long"];
     angular.forEach(model.metrics,function(metric){
       if(!arr.filter(function(element,pos){return element.name==metric}).length){
-        if((numberType.indexOf(model.aliasColumnMap[metric].datatype)!=-1)||(model.aliasColumnMap[metric].datatype.substring(0,7)==="decimal")){
+        var dataType=TableModel.tableColumnMap[factTable][factTable+"."+metric].datatype;
+        if((numbertype.indexOf(dataType)!=-1)||(dataType.substring(0,7)==="decimal")){
           arr.push(
             {"name": metric,
              "function": {
@@ -126,7 +129,7 @@ KylinApp.service('CubeDescModel', function (kylinConfig, modelsManager, TableMod
                "value": metric,
                "next_parameter": null
              },
-             "returntype": "decimal"
+               "returntype": bigintType.indexOf(dataType)!=-1?"bigint":"decimal"
              },
            });
         }
