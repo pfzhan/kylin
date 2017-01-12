@@ -58,8 +58,8 @@ if [ "${PACKAGE_PLUS}" != "0" ]; then
     cat conf/profile_prod/kap-plus.properties >> ${package_name}/conf/profile_prod/kylin.properties
 fi
 
-# update symblink, use minimum profile as default
-ln -sfn profile_min profile
+# update symblink, use production profile as default
+ln -sfn profile_prod profile
 mv profile ${package_name}/conf/
 ln -sfn profile/kylin.properties kylin.properties
 mv kylin.properties ${package_name}/conf/
