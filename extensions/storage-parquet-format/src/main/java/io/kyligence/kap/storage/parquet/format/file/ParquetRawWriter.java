@@ -380,8 +380,8 @@ public class ParquetRawWriter {
                 compressionCodecName = CompressionCodecName.UNCOMPRESSED;
             }
 
-            logger.info("The chosen CompressionCodecName is " + this.codecName);
             this.codecName = compressionCodecName;
+            logger.info("The chosen CompressionCodecName is " + this.codecName);
             return this;
         }
 
