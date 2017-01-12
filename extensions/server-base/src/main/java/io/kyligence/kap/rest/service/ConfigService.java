@@ -46,7 +46,7 @@ public class ConfigService extends BasicService {
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(ConfigService.class);
 
-    private static final String[] cubeLevelExposedKeys = new String[] { //
+    private static final String[] cubeLevelKylinExposedKeys = new String[] { //
             "kylin.cube.algorithm", //
             "kylin.cube.aggrgroup.max-combination", //
             "kylin.job.sampling-percentage", //
@@ -60,7 +60,52 @@ public class ConfigService extends BasicService {
             "kylin.engine.mr.mapper-input-rows", //
     };
 
+    private static final String[] cubeLevelKAPPlusExposedKeys = new String[] { //
+            "kylin.cube.algorithm", //
+            "kylin.cube.aggrgroup.max-combination", //
+            "kylin.job.sampling-percentage", //
+            "kylin.source.hive.redistribute-flat-table", //
+            "kylin.engine.mr.reduce-input-mb", //
+            "kylin.engine.mr.max-reducer-number", //
+            "kylin.engine.mr.mapper-input-rows", //
+            "kap.storage.columnar.shard-size-mb", //
+            "kap.storage.columnar.shard-min", //
+            "kap.storage.columnar.shard-max", //
+    };
+
     public Map<String, String> getDefaultConfigMap() {
+        if (System.getProperty("kap.version") != null && System.getProperty("kap.version").contains("Plus")) {
+            return getDefaultKAPPlusConfigMap();
+        } else {
+            return getDefaultKylinConfigMap();
+        }
+    }
+
+    private Map<String, String> getDefaultKylinConfigMap() {
+        Properties allKylinProps = getAllKylinProperties();
+
+        // Keep same order with key
+        Map<String, String> result = Maps.newLinkedHashMap();
+        for (String key : cubeLevelKylinExposedKeys) {
+            result.put(key, allKylinProps.getProperty(key));
+        }
+
+        return result;
+    }
+
+    private Map<String, String> getDefaultKAPPlusConfigMap() {
+        Properties allKylinProps = getAllKylinProperties();
+
+        // Keep same order with key
+        Map<String, String> result = Maps.newLinkedHashMap();
+        for (String key : cubeLevelKAPPlusExposedKeys) {
+            result.put(key, allKylinProps.getProperty(key));
+        }
+
+        return result;
+    }
+
+    private Properties getAllKylinProperties() {
         // hack to get all config properties
         Properties allProps = null;
         try {
@@ -71,14 +116,7 @@ public class ConfigService extends BasicService {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-
-        // Keep same order with key
-        Map<String, String> result = Maps.newLinkedHashMap();
-        for (String key : cubeLevelExposedKeys) {
-            result.put(key, allProps.getProperty(key));
-        }
-
-        return result;
+        return allProps;
     }
 
     public String getSparkDriverConf(String confName) {
