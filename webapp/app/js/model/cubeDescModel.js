@@ -112,13 +112,13 @@ KylinApp.service('CubeDescModel', function (kylinConfig, modelsManager, TableMod
   }
 
 
-  this.initMeasures = function(arr,modelName,factTable){
-    var model=modelsManager.getModel(modelName);
+  this.initMeasures = function(arr,modelName){
+    var model=modelName;
     var bigintType=["int","integer","smallint","bigint","tinyint","long"];
     var numbertype=["int","integer","smallint","bigint","tinyint","float","double","long"];
     angular.forEach(model.metrics,function(metric){
       if(!arr.filter(function(element,pos){return element.name==metric}).length){
-        var dataType=TableModel.tableColumnMap[factTable][factTable+"."+metric].datatype;
+        var dataType=model.aliasColumnMap[metric].datatype;
         if((numbertype.indexOf(dataType)!=-1)||(dataType.substring(0,7)==="decimal")){
           arr.push(
             {"name": metric,
