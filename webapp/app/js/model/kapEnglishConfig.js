@@ -957,7 +957,7 @@ KylinApp.constant('kapEnglishConfig', {
     duplicate_measures_part_two: '] already exists!',
     warning_dimensions_name:"The name is required.",
     success_back:"Backup success!",
-    tip_cubadd_cache:"Detect that you have not saved the cube build information, whether to continue to build?",
+    tip_cubadd_cache:"Detect that you have not saved the cube edit information, whether to continue to edit?",
     tip_store_callback:'Backup Success！Path：',
     rawTableSaveError:'Failed to save the raw table setting!',
     collectStaticsSuccess:'Collect job start running!You can go to Monitor page to watch the progress!',

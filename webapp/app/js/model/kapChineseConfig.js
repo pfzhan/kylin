@@ -818,7 +818,7 @@ KylinApp.constant('kapChineseConfig', {
     links: '链接',
     updateConfig: '更新配置',//modal updateConfig begin
     key: '配置项',
-    tip_key: '配置值..',
+    tip_key: '配置项..',
     tip_required_key: '配置项不能为空.',
     value: '配置值',
     tip_value: '配置值..',
@@ -957,7 +957,7 @@ KylinApp.constant('kapChineseConfig', {
     duplicate_measures_part_two: '] 的度量已经存在.',
     warning_dimensions_name:"名称不能为空",
     success_back:"备份成功!",
-    tip_cubadd_cache:"检测到您有未保存的cube构建信息，是否继续构建?",
+    tip_cubadd_cache:"检测到您有未保存的cube编辑信息，是否继续编辑?",
     tip_store_callback:'备份成功！路径为：',
     rawTableSaveError:'Raw Table设置内容保存失败!',
     collectStaticsSuccess:'收集作业已经开始，您可以去Monitor页面查看进度!',
