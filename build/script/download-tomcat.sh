@@ -19,7 +19,7 @@ else
     then
         echo "md5 check failed"
         rm build/apache-tomcat-${tomcat_pkg_version}.tar.gz
-        wget --directory-prefix=build/ http://archive.apache.org/dist/tomcat/tomcat-7/v${tomcat_pkg_version}/bin/apache-tomcat-${tomcat_pkg_version}.tar.gz || echo "download tomcat failed"
+        wget --directory-prefix=build/ http://archive.apache.org/dist/tomcat/tomcat-8/v${tomcat_pkg_version}/bin/apache-tomcat-${tomcat_pkg_version}.tar.gz || echo "download tomcat failed"
     fi
 fi
 
