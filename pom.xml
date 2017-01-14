@@ -64,6 +64,7 @@
         <module>extensions/assembly</module>
         <module>extensions/tool</module>
         <module>extensions/kap-it</module>
+        <module>extensions/auto-modeling</module>
         <module>kybot</module>
     </modules>
 
@@ -166,6 +167,12 @@
                 <artifactId>kap-tool</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>io.kyligence.kap</groupId>
+                <artifactId>kap-auto-modeling</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            
 
             <!--KAP test scope-->
             <dependency>

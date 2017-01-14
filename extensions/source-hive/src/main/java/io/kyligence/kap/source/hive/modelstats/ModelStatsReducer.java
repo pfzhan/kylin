@@ -43,6 +43,7 @@ import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
+import org.apache.kylin.metadata.model.TblColRef;
 
 import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
 import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampler;
@@ -52,6 +53,7 @@ public class ModelStatsReducer extends KylinReducer<IntWritable, BytesWritable, 
     private Map<Integer, HiveTableExtSampler> samplerMap = new HashMap<Integer, HiveTableExtSampler>();
 
     private int columnSize = 0;
+    List<TblColRef> columns;
 
     @Override
     protected void setup(Context context) throws IOException {
@@ -63,6 +65,7 @@ public class ModelStatsReducer extends KylinReducer<IntWritable, BytesWritable, 
         DataModelDesc dataModelDesc = MetadataManager.getInstance(config).getDataModelDesc(model);
         IJoinedFlatTableDesc flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc);
         columnSize = flatTableDesc.getAllColumns().size();
+        columns = flatTableDesc.getAllColumns();
     }
 
     @Override
@@ -77,6 +80,9 @@ public class ModelStatsReducer extends KylinReducer<IntWritable, BytesWritable, 
             else {
                 samplerMap.get(skey);
             }
+            sampler.setDataType(columns.get(skey).getType().getName());
+            sampler.setColumnName(columns.get(skey).getCanonicalName());
+
             samplerMap.get(skey).merge(sampler);
         }
     }

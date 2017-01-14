@@ -1,0 +1,17 @@
+{
+  "uuid": "929426eb-baa2-4f61-9212-906ec3836b98",
+  "last_modified": 1483155947151,
+  "version": "1.6.1",
+  "table_name": "DEFAULT.P_LINEORDER",
+  "last_build_job_id": null,
+  "columns_stats": [],
+  "sample_rows": [],
+  "storage_location": null,
+  "owner": null,
+  "last_access_time": null,
+  "last_modified_time": null,
+  "partition_column": null,
+  "total_file_size": null,
+  "total_rows": null,
+  "data_source_properties": {}
+}

@@ -32,6 +32,7 @@ import org.apache.kylin.metadata.MetadataConstants;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Preconditions;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
@@ -79,6 +80,27 @@ public class ModelStats extends RootPersistentEntity {
 
     public Map<String, Long> getDoubleColumnCardinality() {
         return this.doubleColumnCardinality;
+    }
+
+    public long getSingleColumnCardinalityVal(String col) {
+        return singleColumnCardinality.get(col);
+    }
+
+    public long getDoubleColumnCardinalityVal(String col1, String col2) {
+        Preconditions.checkNotNull(col1);
+        Preconditions.checkNotNull(col2);
+
+        String key = col1 + "," + col2;
+        if (doubleColumnCardinality.containsKey(key)) {
+            return doubleColumnCardinality.get(key);
+        }
+
+        key = col1 + "," + col1;
+        if (doubleColumnCardinality.containsKey(key)) {
+            return doubleColumnCardinality.get(key);
+        }
+
+        return -1;
     }
 
     public String getResourcePath() {

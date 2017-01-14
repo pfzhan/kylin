@@ -1,0 +1,284 @@
+{
+  "uuid": "304ca905-1fc6-4f67-985c-38fa5aeafd2d",
+  "name": "test_kylin_cube_auto",
+  "description": null,
+  "dimensions": [
+    {
+      "name": "CAL_DT",
+      "table": "EDW.TEST_CAL_DT",
+      "column": "CAL_DT",
+      "derived": null
+    },
+    {
+      "name": "WEEK_BEG_DT",
+      "table": "EDW.TEST_CAL_DT",
+      "column": "WEEK_BEG_DT",
+      "derived": null
+    },
+    {
+      "name": "USER_DEFINED_FIELD1",
+      "table": "DEFAULT.TEST_CATEGORY_GROUPINGS",
+      "column": "USER_DEFINED_FIELD1",
+      "derived": null
+    },
+    {
+      "name": "USER_DEFINED_FIELD3",
+      "table": "DEFAULT.TEST_CATEGORY_GROUPINGS",
+      "column": "USER_DEFINED_FIELD3",
+      "derived": null
+    },
+    {
+      "name": "UPD_DATE",
+      "table": "DEFAULT.TEST_CATEGORY_GROUPINGS",
+      "column": "UPD_DATE",
+      "derived": null
+    },
+    {
+      "name": "UPD_USER",
+      "table": "DEFAULT.TEST_CATEGORY_GROUPINGS",
+      "column": "UPD_USER",
+      "derived": null
+    },
+    {
+      "name": "META_CATEG_NAME",
+      "table": "DEFAULT.TEST_CATEGORY_GROUPINGS",
+      "column": "META_CATEG_NAME",
+      "derived": null
+    },
+    {
+      "name": "CATEG_LVL2_NAME",
+      "table": "DEFAULT.TEST_CATEGORY_GROUPINGS",
+      "column": "CATEG_LVL2_NAME",
+      "derived": null
+    },
+    {
+      "name": "CATEG_LVL3_NAME",
+      "table": "DEFAULT.TEST_CATEGORY_GROUPINGS",
+      "column": "CATEG_LVL3_NAME",
+      "derived": null
+    },
+    {
+      "name": "LSTG_FORMAT_NAME",
+      "table": "DEFAULT.TEST_KYLIN_FACT",
+      "column": "LSTG_FORMAT_NAME",
+      "derived": null
+    },
+    {
+      "name": "SITE_NAME",
+      "table": "EDW.TEST_SITES",
+      "column": "SITE_NAME",
+      "derived": null
+    },
+    {
+      "name": "CRE_USER",
+      "table": "EDW.TEST_SITES",
+      "column": "CRE_USER",
+      "derived": null
+    },
+    {
+      "name": "SELLER_TYPE_DESC",
+      "table": "EDW.TEST_SELLER_TYPE_DIM",
+      "column": "SELLER_TYPE_DESC",
+      "derived": null
+    },
+    {
+      "name": "SELLER_ID",
+      "table": "DEFAULT.TEST_KYLIN_FACT",
+      "column": "SELLER_ID",
+      "derived": null
+    }
+  ],
+  "measures": [
+    {
+      "name": "GMV_SUM",
+      "function": {
+        "expression": "SUM",
+        "parameter": {
+          "type": "column",
+          "value": "PRICE",
+          "next_parameter": null
+        },
+        "returntype": "decimal(19,4)"
+      },
+      "dependent_measure_ref": null
+    },
+    {
+      "name": "GMV_MIN",
+      "function": {
+        "expression": "MIN",
+        "parameter": {
+          "type": "column",
+          "value": "PRICE",
+          "next_parameter": null
+        },
+        "returntype": "decimal(19,4)"
+      },
+      "dependent_measure_ref": null
+    },
+    {
+      "name": "GMV_MAX",
+      "function": {
+        "expression": "MAX",
+        "parameter": {
+          "type": "column",
+          "value": "PRICE",
+          "next_parameter": null
+        },
+        "returntype": "decimal(19,4)"
+      },
+      "dependent_measure_ref": null
+    },
+    {
+      "name": "TRANS_CNT",
+      "function": {
+        "expression": "COUNT",
+        "parameter": {
+          "type": "constant",
+          "value": "1",
+          "next_parameter": null
+        },
+        "returntype": "bigint"
+      },
+      "dependent_measure_ref": null
+    },
+    {
+      "name": "ITEM_COUNT_SUM",
+      "function": {
+        "expression": "SUM",
+        "parameter": {
+          "type": "column",
+          "value": "ITEM_COUNT",
+          "next_parameter": null
+        },
+        "returntype": "bigint"
+      },
+      "dependent_measure_ref": null
+    }
+  ],
+  "rowkey": {
+    "rowkey_columns": [
+      {
+        "column": "CAL_DT",
+        "encoding": "dict",
+        "index": "eq"
+      },
+      {
+        "column": "WEEK_BEG_DT",
+        "encoding": "dict",
+        "index": "eq"
+      },
+      {
+        "column": "USER_DEFINED_FIELD1",
+        "encoding": "dict",
+        "index": "eq"
+      },
+      {
+        "column": "USER_DEFINED_FIELD3",
+        "encoding": "dict",
+        "index": "eq"
+      },
+      {
+        "column": "UPD_DATE",
+        "encoding": "dict",
+        "index": "eq"
+      },
+      {
+        "column": "UPD_USER",
+        "encoding": "dict",
+        "index": "eq"
+      },
+      {
+        "column": "META_CATEG_NAME",
+        "encoding": "dict",
+        "index": "eq"
+      },
+      {
+        "column": "CATEG_LVL2_NAME",
+        "encoding": "dict",
+        "index": "eq"
+      },
+      {
+        "column": "CATEG_LVL3_NAME",
+        "encoding": "dict",
+        "index": "eq"
+      },
+      {
+        "column": "LSTG_FORMAT_NAME",
+        "encoding": "dict",
+        "index": "eq"
+      },
+      {
+        "column": "SITE_NAME",
+        "encoding": "dict",
+        "index": "eq"
+      },
+      {
+        "column": "CRE_USER",
+        "encoding": "dict",
+        "index": "eq"
+      },
+      {
+        "column": "SELLER_TYPE_DESC",
+        "encoding": "dict",
+        "index": "eq"
+      },
+      {
+        "column": "SELLER_ID",
+        "encoding": "dict",
+        "index": "eq"
+      }
+    ]
+  },
+  "signature": null,
+  "last_modified": 1448959801271,
+  "model_name": "test_kylin_inner_join_model_desc",
+  "null_string": null,
+  "hbase_mapping": {
+    "column_family": [
+      {
+        "name": "f1",
+        "columns": [
+          {
+            "qualifier": "m",
+            "measure_refs": [
+              "gmv_sum",
+              "gmv_min",
+              "gmv_max",
+              "trans_cnt",
+              "item_count_sum"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "aggregation_groups": [
+    {
+      "includes": [
+        "categ_lvl2_name",
+        "categ_lvl3_name",
+        "lstg_format_name",
+        "meta_categ_name"
+      ],
+      "select_rule": {
+        "hierarchy_dims": [
+          []
+        ],
+        "mandatory_dims": [
+        ],
+        "joint_dims": [
+          []
+        ]
+      }
+    }
+  ],
+  "override_kylin_properties": {
+  },
+  "notify_list": null,
+  "status_need_notify": [],
+  "auto_merge_time_ranges": null,
+  "retention_range": 0,
+  "engine_type": 100,
+  "storage_type": 100,
+  "partition_date_start": 0
+}
