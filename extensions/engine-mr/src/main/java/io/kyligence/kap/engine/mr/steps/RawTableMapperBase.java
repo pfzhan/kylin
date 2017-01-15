@@ -202,7 +202,7 @@ abstract public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEY
 
         // TODO expose errorRecordCounter as hadoop counter
         errorRecordCounter++;
-        if (errorRecordCounter > BatchConstants.ERROR_RECORD_LOG_THRESHOLD) {
+        if (errorRecordCounter > cubeSegment.getConfig().getErrorRecordThreshold()) {
             if (ex instanceof IOException)
                 throw (IOException) ex;
             else if (ex instanceof RuntimeException)
