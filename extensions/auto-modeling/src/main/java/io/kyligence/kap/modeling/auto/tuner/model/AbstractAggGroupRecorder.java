@@ -24,12 +24,9 @@
 
 package io.kyligence.kap.modeling.auto.tuner.model;
 
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public abstract class AbstractAggGroupRecorder {
@@ -47,24 +44,7 @@ public abstract class AbstractAggGroupRecorder {
         }
     }
 
-    abstract protected void internalMerge(List<Map.Entry<List<String>, AggGroupRecord>> aggGroupEntries);
-
-    public List<List<String>> getAggGroups() {
-        List<List<String>> result = Lists.newArrayList();
-        List<Map.Entry<List<String>, AggGroupRecord>> aggGroupEntries = Lists.newArrayList(aggGroupRecords.entrySet());
-        Collections.sort(aggGroupEntries, Collections.reverseOrder(new Comparator<Map.Entry<List<String>, AggGroupRecord>>() {
-            @Override
-            public int compare(Map.Entry<List<String>, AggGroupRecord> o1, Map.Entry<List<String>, AggGroupRecord> o2) {
-                return o1.getValue().compareTo(o2.getValue());
-            }
-        }));
-
-        internalMerge(aggGroupEntries);
-        for (Map.Entry<List<String>, AggGroupRecord> entry : aggGroupEntries) {
-            result.add(entry.getKey());
-        }
-        return result;
-    }
+    abstract public List<List<String>> getAggGroups();
 
     public int size() {
         return aggGroupRecords.size();

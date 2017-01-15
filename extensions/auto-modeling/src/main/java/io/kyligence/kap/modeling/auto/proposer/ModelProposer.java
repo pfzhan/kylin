@@ -44,9 +44,11 @@ import io.kyligence.kap.modeling.auto.mockup.MockupCubeBuilder;
 public class ModelProposer extends AbstractProposer {
 
     private DataModelDesc model;
+    private String cubeName;
 
-    public ModelProposer(DataModelDesc model) {
+    public ModelProposer(String cubeName, DataModelDesc model) {
         this.model = model;
+        this.cubeName = cubeName;
     }
 
     public void preCheck() {
@@ -58,7 +60,7 @@ public class ModelProposer extends AbstractProposer {
     @Override
     public CubeDesc propose() {
         preCheck();
-        return new MockupCubeBuilder(getDomain()).build();
+        return new MockupCubeBuilder(cubeName, getDomain()).build();
     }
 
     public AnalyticsDomain getDomain() {

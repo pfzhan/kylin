@@ -24,54 +24,105 @@
 
 package io.kyligence.kap.modeling.auto.tuner.model;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 public class HierarchyAggGroupRecorder extends AbstractAggGroupRecorder {
-    @Override
-    protected void internalMerge(List<Map.Entry<List<String>, AggGroupRecord>> aggGroupEntries) {
-        Map<List<String>, AggGroupRecord> resultMap = Maps.newHashMap();
-        outer: for (Map.Entry<List<String>, AggGroupRecord> entry : aggGroupEntries) {
-            List<String> intersectKey = null;
-            for (Map.Entry<List<String>, AggGroupRecord> resultEntry : resultMap.entrySet()) {
-                if (CollectionUtils.containsAny(resultEntry.getKey(), entry.getKey())) {
-                    if (intersectKey != null) {
-                        continue outer;
-                    } else {
-                        intersectKey = resultEntry.getKey();
-                    }
-                }
+    private Map<String, Node> nodeMap = Maps.newHashMap();
+
+    class Node {
+        Node parent;
+        List<Node> children = Lists.newArrayList();
+        String val;
+
+        Node(String val) {
+            this.val = val;
+        }
+
+        void addNext(Node next) {
+            children.add(next);
+        }
+
+        void buildAllPath(List<String> path, List<List<String>> result) {
+            path.add(val);
+            if (children.isEmpty()) {
+                result.add(Lists.newArrayList(path));
             }
 
-            if (intersectKey == null) {
-                resultMap.put(entry.getKey(), entry.getValue());
-            } else {
-                // find hierarchy chain
-                if (CollectionUtils.intersection(intersectKey, entry.getKey()).size() == 1) {
-                    List<String> newResultKey = Lists.newArrayList();
-                    if (intersectKey.get(intersectKey.size() - 1).equals(entry.getKey().get(0))) {
-                        newResultKey.addAll(intersectKey);
-                        newResultKey.remove(newResultKey.size() - 1);
-                        newResultKey.addAll(entry.getKey());
-                    } else if (intersectKey.get(0).equals(entry.getKey().get(entry.getKey().size() - 1))) {
-                        newResultKey.addAll(entry.getKey());
-                        newResultKey.remove(newResultKey.size() - 1);
-                        newResultKey.addAll(intersectKey);
-                    }
+            for (Node child : children) {
+                child.buildAllPath(path, result);
+            }
+            path.remove(path.size() - 1);
+        }
+    }
 
-                    if (!newResultKey.isEmpty()) {
-                        intersectKey.clear();
-                        intersectKey.addAll(newResultKey);
-                    }
-                }
+    private Node getNode(String dim) {
+        Node ret = null;
+        if (!nodeMap.containsKey(dim)) {
+            nodeMap.put(dim, new Node(dim));
+        }
+        ret = nodeMap.get(dim);
+        return ret;
+    }
+
+    public List<List<String>> getAggGroups() {
+        // build node graph
+        for (Map.Entry<List<String>, AggGroupRecord> entry : aggGroupRecords.entrySet()) {
+            Node prev = getNode(entry.getKey().get(0));
+            Node curr = null;
+            for (int i = 1; i < entry.getKey().size(); i++) {
+                curr = getNode(entry.getKey().get(i));
+                prev.addNext(curr);
+                curr.parent = prev;
+                prev = curr;
             }
         }
-        aggGroupEntries.clear();
-        aggGroupEntries.addAll(resultMap.entrySet());
+
+        // find heads
+        Set<Node> nodeHeads = Sets.newHashSet();
+        for (Node node : nodeMap.values()) {
+            if (node.parent == null) {
+                nodeHeads.add(node);
+            }
+        }
+
+        // build result candidates
+        List<List<String>> candidates = Lists.newArrayList();
+        List<String> path = Lists.newArrayList();
+        for (Node head : nodeHeads) {
+            head.buildAllPath(path, candidates);
+        }
+
+        // order by elements number
+        Collections.sort(candidates, Collections.reverseOrder(new Comparator<List<String>>() {
+            @Override
+            public int compare(List<String> o1, List<String> o2) {
+                return o1.size() - o2.size();
+            }
+        }));
+
+        // remove duplicated
+        List<List<String>> results = Lists.newArrayList();
+        outer: for (List<String> candidate : candidates) {
+            for (List<String> result : results) {
+                Collection<String> intersect = CollectionUtils.intersection(result, candidate);
+                if (!intersect.isEmpty()) {
+                    continue outer;
+                }
+            }
+            results.add(candidate);
+        }
+
+        return results;
     }
 }

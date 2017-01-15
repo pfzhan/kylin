@@ -64,6 +64,7 @@ import com.google.common.base.Joiner;
 
 import io.kyligence.kap.modeling.auto.mockup.QueryResult.OLAPQueryResult;
 import io.kyligence.kap.modeling.auto.proposer.AnalyticsDomain;
+import io.kyligence.kap.modeling.auto.util.StringUtil;
 
 public class MockupRunner {
 
@@ -151,7 +152,7 @@ public class MockupRunner {
         List<Long> hotCuboids = new ArrayList<>(sqls.length);
         Set<FunctionDesc> measureFuncs = new HashSet<>();
         for (String sql : sqls) {
-            QueryResult result = dryRunSQL(sql, project, sql);
+            QueryResult result = dryRunSQL(StringUtil.md5(sql, true), project, sql);
             for (OLAPQueryResult olapResult : result.getOLAPQueries()) {
                 hotCuboids.add(olapResult.getCuboidId());
                 measureFuncs.addAll(olapResult.getMeasures());
@@ -167,7 +168,6 @@ public class MockupRunner {
         for (Long cuboid : hotCuboids) {
             pruneCuboid |= cuboid;
         }
-        System.out.println(pruneCuboid);
 
         RowKeyColDesc[] rowKeyCols = srcCubeDesc.getRowkey().getRowKeyColumns();
         long filter = pruneCuboid.longValue();
@@ -184,7 +184,7 @@ public class MockupRunner {
         domain.setDimensionCols(dimensionCols);
         domain.setMeasureFuncs(measureFuncs);
 
-        CubeDesc prunedCube = new MockupCubeBuilder(domain).build();
+        CubeDesc prunedCube = new MockupCubeBuilder(srcCubeDesc.getName(), domain).build();
         return prunedCube;
     }
 

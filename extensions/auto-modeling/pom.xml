@@ -35,10 +35,11 @@
             <artifactId>kap-source-hive</artifactId>
         </dependency>
 
-        <!--3rd party-->
+        <!--log4j provided for debugging-->
         <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <!--Env & Test-->

@@ -24,21 +24,22 @@
 
 package io.kyligence.kap.modeling.auto.util;
 
-public class Constants {
-    // thresholds
-    public final static int DIM_ENCODING_DICT_CARDINALITY_MAX = 1000000;
-    public final static int DIM_ENCODING_FIXLEN_LENGTH_MAX = Integer.MAX_VALUE;
-    public final static int DIM_UHC_MIN = 1000000;
-    public final static int DIM_JOINT_FORCE_CARDINALITY_GROUP_MAX = 100;
-    public final static double DIM_DERIVED_PK_RATIO = 0.5;
-    public final static int DIM_MANDATORY_FORCE_CARDINALITY_MAX = 1;
-    public final static double DIM_AGG_GROUP_JOINT_CORRELATION_COE_MAX = 100;
-    public final static double DIM_AGG_GROUP_HIERARCHY_CORRELATION_COE_MAX = 1.15;
-    public final static double DIM_AGG_GROUP_HIERARCHY_CORRELATION_COE_MIN = 0.85;
-    public final static int DIM_AGG_GROUP_JOINT_ELEMENTS_MAX = 5;
+import java.math.BigInteger;
+import java.security.MessageDigest;
 
-    // values
-    public final static String DIM_DEREIVED_COLUMN_NAME = "{FK}";
-    public final static String DIM_ENCODING_DEFAULT = "dict";
-    public final static String DIM_DEREIVED_NAME_SUFFIX = "DERIVED";
+import org.apache.commons.codec.binary.Base64;
+
+public class StringUtil {
+    public static String md5(String value, boolean ignoreCase) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            if (ignoreCase) {
+                value = value.toLowerCase();
+            }
+            BigInteger bi = new BigInteger(1, Base64.encodeBase64(md.digest(value.getBytes())));
+            return bi.toString(16);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

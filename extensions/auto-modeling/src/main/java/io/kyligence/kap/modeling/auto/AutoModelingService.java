@@ -64,7 +64,7 @@ public class AutoModelingService {
         return INSTANCE;
     }
 
-    public CubeDesc generateCube(String modelName, String[] queries, String project) throws Exception {
+    public CubeDesc generateCube(String modelName, String cubeName, String[] queries, String project) throws Exception {
         DataModelDesc model = metadataManager.getDataModelDesc(modelName);
         ModelStats modelStats = modelStatsManager.getModelStats(modelName);
         if (model == null) {
@@ -75,7 +75,7 @@ public class AutoModelingService {
         }
 
         // Phase 1 - Propose: Model => Initial Cube; Query Dry-run
-        IProposer proposer = new ModelProposer(model);
+        IProposer proposer = new ModelProposer(cubeName, model);
         CubeDesc workCubeDesc = proposer.propose(queries, project);
         if (workCubeDesc == null) {
             throw new RuntimeException("Failed to create cube from dry run.");

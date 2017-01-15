@@ -50,6 +50,10 @@
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-source-hive</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-auto-modeling</artifactId>
+        </dependency>
 
         <!-- Env & Test -->
         <dependency>

@@ -52,6 +52,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 import io.kyligence.kap.modeling.auto.proposer.AnalyticsDomain;
 
 public class MockupCubeBuilder {
+    private String cubeName;
 
     /*
      * Initial analytics domain
@@ -76,8 +77,9 @@ public class MockupCubeBuilder {
     // To Collect HBase Mapping Info
     private HBaseMappingDesc hBaseMapping;
 
-    public MockupCubeBuilder(AnalyticsDomain domain) {
+    public MockupCubeBuilder(String cubeName, AnalyticsDomain domain) {
         this.domain = domain;
+        this.cubeName = cubeName;
     }
 
     public CubeDesc build() {
@@ -93,9 +95,7 @@ public class MockupCubeBuilder {
         cubeDesc.updateRandomUuid();
         // cubeDesc.setLastModified(System.currentTimeMillis());
         cubeDesc.setVersion(KylinVersion.getCurrentVersion().toString());
-        cubeDesc.setName(model.getName() + "_tmp_full"); // TODO temp cube
-                                                         // should map to user
-                                                         // input name
+        cubeDesc.setName(cubeName);
         cubeDesc.setModelName(model.getName());
         cubeDesc.setModel(model);
         cubeDesc.setDimensions(dimensions);

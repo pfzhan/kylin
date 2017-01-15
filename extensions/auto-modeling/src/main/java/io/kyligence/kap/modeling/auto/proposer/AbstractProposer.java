@@ -88,7 +88,7 @@ public abstract class AbstractProposer implements IProposer {
             FileUtils.writeStringToFile(input, cubeJson, Charset.defaultCharset(), false);
 
             /* Fork Executer process */
-            String diagCmd = "java -cp \"" + System.getProperty("java.class.path") + "\" io.kyligence.kap.modeling.auto.mockup.MockupRunner " + dstPath + " " + project;
+            String diagCmd = "java -cp \"" + System.getProperty("java.class.path") + "\" " + io.kyligence.kap.modeling.auto.mockup.MockupRunner.class.getName() + " \"" + dstPath + "\" " + project;
             CliCommandExecutor executor = KylinConfig.getInstanceFromEnv().getCliCommandExecutor();
             Pair<Integer, String> cmdOutput = executor.execute(diagCmd, new org.apache.kylin.common.util.Logger() {
                 @Override

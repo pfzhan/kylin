@@ -26,45 +26,24 @@ package io.kyligence.kap.modeling.auto;
 
 import java.io.File;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.CubeDesc;
 
 /**
- * Before run this CLI, need to replase "PROVIDED" with "COMPILE" in kap-auto-modeling.iml
+ * Before run this CLI, need to replace "PROVIDED" with "COMPILE" in kap-auto-modeling.iml
  */
-public class AutoModelingTestCLI {
+public class AutoModelingDebug {
 
-    private static void updateConfig(File metaDir) {
-        KylinConfig.getInstanceFromEnv().setProperty("kylin.job.use-remote-cli", "false");
-        KylinConfig.getInstanceFromEnv().setProperty("kylin.metadata.url", metaDir.getAbsolutePath());
-    }
-
-    private static CubeDesc generateCube(String metaDir, String sqlDir, String modelName, String project) throws Exception {
+    private static void setupSandboxEnv(String metaDir, String sqlDir, String modelName, String project) throws Exception {
         File metaRoot = new File(metaDir);
         if (!metaRoot.exists()) {
             throw new RuntimeException("metadata dir not found at: " + metaDir);
         }
-        updateConfig(metaRoot);
 
-        File sqlRoot = new File(sqlDir);
-        String[] sqls = null;
-        if (sqlRoot.exists()) {
-            File[] sqlFiles = sqlRoot.listFiles();
-            if (sqlFiles == null) {
-                System.out.println("Must specify a dir for sqls.");
-                System.exit(1);
-            }
-
-            sqls = new String[sqlFiles.length];
-            for (int i = 0; i < sqlFiles.length; i++) {
-                sqls[i] = FileUtils.readFileToString(sqlFiles[i], "utf-8");
-            }
-        }
-
-        CubeDesc autoCube = AutoModelingService.getInstance().generateCube(modelName, sqls, project);
-        return autoCube;
+        System.setProperty("KYLIN_CONF", new File("extensions/examples/test_case_data/sandbox").getAbsolutePath());
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.job.use-remote-cli", "false");
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.metadata.url", metaRoot.getAbsolutePath());
     }
 
     public static void main(String[] args) throws Exception {
@@ -72,10 +51,11 @@ public class AutoModelingTestCLI {
         final String sqlDir = "extensions/auto-modeling/src/main/resources/ssb/sql";
         final String modelName = "ssb";
         final String project = "ssb";
+        final String cubeName = "ssb";
 
-        System.setProperty("KYLIN_CONF", new File("extensions/examples/test_case_data/sandbox").getAbsolutePath());
+        setupSandboxEnv(metaDir, sqlDir, modelName, project);
 
-        CubeDesc cubeDesc = generateCube(metaDir, sqlDir, modelName, project);
+        CubeDesc cubeDesc = AutoModelingCLI.generateCube(sqlDir, modelName, cubeName, project);
 
         System.out.println("==============================================");
         System.out.println(JsonUtil.writeValueAsIndentString(cubeDesc));
