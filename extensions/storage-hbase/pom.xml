@@ -97,6 +97,7 @@
                                     <include>org.apache.kylin:kylin-core-metadata</include>
                                     <include>org.apache.kylin:kylin-core-dictionary</include>
                                     <include>org.apache.kylin:kylin-core-cube</include>
+                                    <include>io.kyligence.kap:kap-core-common</include>
                                     <include>io.kyligence.kap:kap-core-cube</include>
                                     <include>io.kyligence.kap:kap-core-metadata</include>
                                     <include>org.apache.kylin:kylin-storage-hbase</include>
