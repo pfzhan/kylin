@@ -84,7 +84,7 @@ public class CollectModelStats extends CubingJob {
         result.setSubmitter(submitter);
 
         ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(config);
-        ModelStats modelStats = modelStatsManager.getModelStats(modelName.toUpperCase());
+        ModelStats modelStats = modelStatsManager.getModelStats(modelName);
 
         DataModelDesc dataModelDesc = MetadataManager.getInstance(config).getDataModelDesc(modelName);
         IJoinedFlatTableDesc flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc);
@@ -123,7 +123,7 @@ public class CollectModelStats extends CubingJob {
     public static String findRunningJob(String model, KylinConfig config) throws IOException {
 
         ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(config);
-        ModelStats modelStats = modelStatsManager.getModelStats(model.toUpperCase());
+        ModelStats modelStats = modelStatsManager.getModelStats(model);
         String jobID = modelStats.getJodID();
 
         if (null == jobID || jobID.isEmpty()) {
