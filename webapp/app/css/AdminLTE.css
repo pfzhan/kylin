@@ -4185,6 +4185,7 @@ Gradient Background colors
     margin-right: 5px;
     padding: 3px 16px 2px 5px;
     color: #ffffff;
+    position:static;
 }
 .abn-tree .abn-tree-row .tree-table-btn .tooltip{
     overflow:visible;

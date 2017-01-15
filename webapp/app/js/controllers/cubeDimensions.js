@@ -53,6 +53,21 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
     // Dump available columns plus column table name, whether is from lookup table.
     $scope.initColumns = function () {
         var rootFactTable = StringHelper.removeNameSpace($scope.metaModel.model.fact_table);
+
+        if($scope.aliasName.length==0){
+          $scope.aliasName.push(rootFactTable);
+          $scope.aliasTableMap[rootFactTable]=$scope.metaModel.model.fact_table;
+          $scope.tableAliasMap[$scope.metaModel.model.fact_table]=rootFactTable;
+          angular.forEach($scope.metaModel.model.lookups,function(joinTable){
+            if(!joinTable.alias){
+              joinTable.alias=VdmUtil.removeNameSpace(joinTable.table);
+            }
+            $scope.aliasTableMap[joinTable.alias]=joinTable.table;
+            $scope.tableAliasMap[joinTable.table]=joinTable.alias;
+            $scope.aliasName.push(joinTable.alias);
+          });
+        }
+
         // At first dump the columns of fact table.
         var cols = $scope.getDimColumnsByAlias(rootFactTable);
         // Initialize selected available.

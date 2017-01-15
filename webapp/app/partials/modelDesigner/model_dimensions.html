@@ -75,7 +75,7 @@
                        class="fa fa-sort-desc"></i>
                   </th>
                 </tr>
-                <tr ng-repeat="column in getColumnsByTable(dimension.table) | orderObjectBy:state[dimension.table].filterAttr:state[dimension.table].filterReverse " class="row">
+                <tr ng-repeat="column in getColumnsByAlias(dimension.table) | orderObjectBy:state[dimension.table].filterAttr:state[dimension.table].filterReverse " class="row">
                   <td><label class="dim-checkbox-label">
                     <input type="checkbox" ng-change="Change(dimension.table,column.name,outindex)" ng-model="selectedColumns[dimension.table][column.name].selected"
                            ng-disabled="selectedColumns[dimension.table][column.name].disabled&&cubesLength>0" >

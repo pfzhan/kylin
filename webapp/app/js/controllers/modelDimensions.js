@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, modelsManager, modelsEdit, CubeDescService, TableService) {
+KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, modelsManager, modelsEdit, CubeDescService, TableService, TableModel, VdmUtil) {
     $scope.modelsManager = modelsManager;
     $scope.selectedColumns = {};
 
@@ -27,11 +27,11 @@ KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, 
 
     // Dump available columns plus column table name, whether is from lookup table.
     $scope.initColumns = function () {
-        $scope.availableTables.push(modelsManager.selectedModel.fact_table);
+        $scope.availableTables.push(VdmUtil.removeNameSpace(modelsManager.selectedModel.fact_table));
 //        var table=modelsManager.getTable();*/
         var lookups = modelsManager.selectedModel.lookups;
         for (var j = 0; j < lookups.length; j++) {
-            $scope.availableTables.push(lookups[j].table);
+            $scope.availableTables.push(lookups[j].alias);
         }
         angular.forEach(modelsManager.selectedModel.dimensions,function(dim){
             if($scope.availableTables.indexOf(dim.table)==-1){
@@ -49,7 +49,7 @@ KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, 
             }
         }
         for (var j = 0; j < $scope.availableTables.length; j++) {
-            var cols2 = $scope.getColumnsByTable($scope.availableTables[j]);
+            var cols2 = $scope.getColumnsByAlias($scope.availableTables[j]);
             // Initialize selected available.
             var SelectAvailable = {};
             for (var k = 0; k < cols2.length; k++) {
@@ -62,6 +62,20 @@ KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, 
             SelectAvailable.sortFlag = ''
             SelectAvailable.sortIcon = 'fa fa-unsorted';
             $scope.selectedColumns[$scope.availableTables[j]] = SelectAvailable;
+        }
+        if(!$scope.initStatus.dimensions){
+          $scope.initStatus.dimensions=true;
+          angular.forEach(modelsManager.selectedModel.dimensions,function(dimTable,index){
+            angular.forEach(TableModel.selectProjectTables,function(table){
+              if($scope.aliasTableMap[dimTable.table]==table.name){
+                angular.forEach(table.columns,function(column){
+                  if(column.kind=="dimension"){
+                    modelsManager.selectedModel.dimensions[index].columns.push(column.name);
+                  }
+                });
+              }
+            });
+          });
         }
         angular.forEach(modelsManager.selectedModel.dimensions, function (dim) {
             angular.forEach(dim.columns, function (column) {
@@ -90,7 +104,7 @@ KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, 
             $scope.selectedColumns[table].disabled=disabled;
             $scope.selectedColumns[table].all=all;
         });
-        var column=$scope.getColumnsByTable(modelsManager.selectedModel.fact_table);
+        //var column=$scope.getColumnsByTable(modelsManager.selectedModel.fact_table);
     };
 
 

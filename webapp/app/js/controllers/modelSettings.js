@@ -18,6 +18,70 @@
 
 'use strict';
 
-KylinApp.controller('ModelSettingsCtrl', function ($scope, $modal, MetaModel, modelsManager, modelsEdit) {
+KylinApp.controller('ModelSettingsCtrl', function ($scope, $modal, MetaModel, modelsManager, modelsEdit,VdmUtil) {
+   $scope.modelsManager = modelsManager;
+   $scope.availableFactTables = [];
+   $scope.initSetting = function (){
+     $scope.selectedTables={fact:VdmUtil.getNameSpace($scope.modelsManager.selectedModel.partition_desc.partition_date_column)}
+     $scope.availableFactTables.push(VdmUtil.removeNameSpace($scope.modelsManager.selectedModel.fact_table));
+     var joinTable = $scope.modelsManager.selectedModel.lookups;
+     for (var j = 0; j < joinTable.length; j++) {
+       if(joinTable[j].kind=='FACT'){
+         $scope.availableFactTables.push(joinTable[j].alias);
+       }
+     }
+   }
+
+   $scope.isFormatEdit = {editable:false};
+   var judgeFormatEditable = function(dateColumn){
+     if(dateColumn == null){
+       $scope.isFormatEdit.editable = false;
+       return;
+     }
+     var column = _.filter($scope.getColumnsByAlias(VdmUtil.getNameSpace(dateColumn)),function(_column){
+       var columnName=VdmUtil.getNameSpace(dateColumn)+"."+_column.name;
+       if(dateColumn == columnName){
+         return _column;
+       }
+     });
+
+     var data_type = column[0].datatype;
+     if(data_type ==="bigint" ||data_type ==="int" ||data_type ==="integer"){
+       $scope.isFormatEdit.editable = false;
+       $scope.modelsManager.selectedModel.partition_desc.partition_date_format='yyyyMMdd';
+       $scope.partitionColumn.hasSeparateTimeColumn=false;
+       $scope.modelsManager.selectedModel.partition_desc.partition_time_column=null;
+       $scope.modelsManager.selectedModel.partition_desc.partition_time_format=null;
+
+       return;
+     }
+
+     $scope.isFormatEdit.editable = true;
+     return;
+
+   };
+   $scope.partitionChange = function (dateColumn) {
+     judgeFormatEditable(dateColumn);
+   };
+   $scope.partitionColumn ={
+       "hasSeparateTimeColumn" : false
+   }
+
+   if ($scope.state.mode=='edit'){
+     $scope.initSetting();
+     if($scope.isEdit = !!$scope.route.params) {
+       if($scope.modelsManager.selectedModel.partition_desc.partition_time_column){
+         $scope.partitionColumn.hasSeparateTimeColumn = true;
+       }
+       judgeFormatEditable($scope.modelsManager.selectedModel.partition_desc.partition_date_column);
+     }
+   }
+
+
+   $scope.toggleHasSeparateColumn = function(){
+     if($scope.partitionColumn.hasSeparateTimeColumn == false){
+       $scope.modelsManager.selectedModel.partition_desc.partition_time_column = null;
+     }
+   }
 
 });

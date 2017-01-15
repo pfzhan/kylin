@@ -28,107 +28,130 @@
 
 'use strict';
 
-KylinApp.controller('ModelMeasuresCtrl', function ($scope, $modal,MetaModel,modelsManager, modelsEdit) {
+KylinApp.controller('ModelMeasuresCtrl', function ($scope, $modal,MetaModel,modelsManager, modelsEdit, TableModel, VdmUtil) {
 
   $scope.selectedColumns={};
-
+  $scope.availableFactTables = [];
+  $scope.selectedFactTables = {};
   $scope.initMeasure = function () {
-      $scope.availableTables=modelsManager.selectedModel.fact_table;
+    $scope.availableFactTables.push(VdmUtil.removeNameSpace($scope.modelsManager.selectedModel.fact_table));
+    var joinTable = $scope.modelsManager.selectedModel.lookups;
+    for (var j = 0; j < joinTable.length; j++) {
+      if(joinTable[j].kind=='FACT'){
+        $scope.availableFactTables.push(joinTable[j].alias);
+        }
+    }
+    angular.forEach($scope.modelsManager.selectedModel.metrics,function(metric){
+      $scope.selectedFactTables[VdmUtil.getNameSpace(metric)]=$scope.selectedFactTables[VdmUtil.getNameSpace(metric)]||[];
+      $scope.selectedFactTables[VdmUtil.getNameSpace(metric)].push(metric);
+    });
 
-      var cols2 = $scope.getColumnsByTable($scope.availableTables);
+    for (var j = 0; j < $scope.availableFactTables.length; j++) {
+      var cols2 = $scope.getColumnsByAlias($scope.availableFactTables[j]);
+      // Initialize selected available.
       var SelectAvailable = {};
-      if($scope.availableTables!=modelsEdit.selectedModel.fact_table){
-         modelsManager.selectedModel.metrics=[];
-      }
-      modelsEdit.selectedModel.fact_table=modelsManager.selectedModel.fact_table;
       for (var k = 0; k < cols2.length; k++) {
-          // Default not selected and not disabled.
-          SelectAvailable[cols2[k].name] = {name:cols2[k].name,selected: false,disabled:false};
+      // Default not selected and not disabled.
+        SelectAvailable[cols2[k].name] = {name:cols2[k].name,selected: false,disabled:false};
       }
-      SelectAvailable.all=false;
       SelectAvailable.disabled=false;
-      SelectAvailable.open=false;
+      SelectAvailable.open=true;
       SelectAvailable.sortFlag = ''
       SelectAvailable.sortIcon = 'fa fa-unsorted';
-      $scope.selectedColumns = SelectAvailable;
-      angular.forEach(modelsManager.selectedModel.metrics, function (column) {
-          $scope.selectedColumns[column].selected=true;
+      $scope.selectedColumns[$scope.availableFactTables[j]] = SelectAvailable;
+    }
+    if(!$scope.initStatus.measures){
+      $scope.initStatus.measures=true;
+      angular.forEach(TableModel.selectProjectTables,function(table){
+        angular.forEach(table.columns,function(column){
+          if(column.kind=="measure"){
+            angular.forEach($scope.availableFactTables,function(alias){
+              if($scope.aliasTableMap[alias]==table.name){
+                modelsManager.selectedModel.metrics.push(alias+"."+column.name);
+              }
+            });
+          }
+        });
       });
-      angular.forEach($scope.usedMeasuresCubeMap, function (column,columnName) {
-          $scope.selectedColumns[columnName].disabled=true;
-          angular.forEach(column,function(cube){
-              $scope.usedMeasuresCubeMap[columnName]=$scope.unique(column);
-          });
+    }
+    angular.forEach(modelsManager.selectedModel.metrics, function (column) {
+      $scope.selectedColumns[VdmUtil.getNameSpace(column)][VdmUtil.removeNameSpace(column)].selected=true;
+    });
+    angular.forEach($scope.usedMeasuresCubeMap, function (column,columnName) {
+      $scope.selectedColumns[VdmUtil.getNameSpace(columnName)][VdmUtil.removeNameSpace(columnName)].disabled=true;
+      angular.forEach(column,function(cube){
+        $scope.usedMeasuresCubeMap[columnName]=$scope.unique(column);
       });
+    });
 
+    angular.forEach($scope.selectedColumns,function(value,table){
       var all=true;
       var disabled=true;
-      var open=false;
-      angular.forEach($scope.selectedColumns,function(col){
-          if(typeof col=="object"){
-              if(col.selected==false){
-                  all=false;
-              }else{
-                  open=true;
-              }
-              if(col.disabled==false){
-                  disabled=false;
-              }
+      angular.forEach(value,function(col){
+        if(typeof col=="object"){
+          if(col.selected==false){
+            all=false;
           }
+          if(col.disabled==false){
+            disabled=false;
+          }
+        }
       });
-      $scope.selectedColumns.disabled=disabled;
-      $scope.selectedColumns.all=all;
-      $scope.selectedColumns.open=open;
-  }
+      $scope.selectedColumns[table].disabled=disabled;
+      $scope.selectedColumns[table].all=all;
+    });
+     //   var column=$scope.getColumnsByTable(modelsManager.selectedModel.fact_table);
+  };
 
   if ($scope.state.mode == 'edit') {
       $scope.initMeasure();
   }
 
-  $scope.Change= function(name){
-      if($scope.selectedColumns[name].selected==false){
-          $scope.selectedColumns.all=false;
-          modelsManager.selectedModel.metrics.splice(modelsManager.selectedModel.metrics.indexOf(name),1);
-      }else{
+    $scope.Change= function(table,name,index){
+       if($scope.selectedColumns[table][name].selected==false){
+          $scope.selectedColumns[table].all=false;
+           modelsManager.selectedModel.metrics.splice(modelsManager.selectedModel.metrics.indexOf(table+"."+name),1);
+       }else{
           var all=true;
-          angular.forEach($scope.selectedColumns,function(col){
-              if(col.selected==false&&typeof col=="object"){
-                  all=false;
-              }
+          angular.forEach($scope.selectedColumns[table],function(col){
+             if(col.selected==false&&typeof col=="object"){
+                 all=false;
+             }
           });
-          $scope.selectedColumns.all=all;
-          modelsManager.selectedModel.metrics.push(name);
-      }
-  }
+          $scope.selectedColumns[table].all=all;
+          modelsManager.selectedModel.metrics.push(tabel+"."+name);
+       }
+    }
 
-  $scope.ChangeAll= function(){
-      angular.forEach($scope.selectedColumns,function(col){
-          if($scope.usedMeasuresCubeMap!=null){
-              if(typeof col==="object"&&col.disabled==false){
-                  var local=modelsManager.selectedModel.metrics.indexOf(col.name);
-                  if($scope.selectedColumns.all==true&&col.selected==false){
-                      col.selected=true;
-                      modelsManager.selectedModel.metrics.push(col.name);
-                  }
-                  if($scope.selectedColumns.all==false&&col.selected==true){
-                      col.selected=false;
-                      modelsManager.selectedModel.metrics.splice(local,1);
-                  }
-              }
-          }else{
-              if(typeof col==="object"){
-                  if($scope.selectedColumns.all==true){
-                      if(col.selected == false){
-                         col.selected=true;
-                         modelsManager.selectedModel.metrics.push(col.name);
-                      }
-                  }else{
-                      col.selected=false;
-                      modelsManager.selectedModel.metrics.splice(0,1);
-                  }
-              }
-          }
-      });
-  }
+    $scope.ChangeAll= function(table,index){
+        angular.forEach($scope.selectedColumns[table],function(col){
+            if($scope.cubesLength>0){
+                if(typeof col==="object"&&col.disabled==false){
+                    var local=modelsManager.selectedModel.metrics.indexOf(table+"."+col.name);
+                    if($scope.selectedColumns[table].all==true&&col.selected==false){
+                        col.selected=true;
+                        modelsManager.selectedModel.metrics.push(col.table+"."+name);
+                    }
+                    if($scope.selectedColumns[table].all==false&&col.selected==true){
+                        col.selected=false;
+                        modelsManager.selectedModel.metrics.splice(local,1);
+                    }
+                }
+            }else{
+                if(typeof col==="object"){
+                    if($scope.selectedColumns[table].all==true){
+                        if(col.selected == false){
+                           col.selected=true;
+                           modelsManager.selectedModel.metrics.push(table+"."+col.name);
+                        }
+                    }else{
+                        col.selected=false;
+                         modelsManager.selectedModel.metrics.splice(0,1);
+                    }
+                }
+            }
+        });
+    }
+
 
 });
