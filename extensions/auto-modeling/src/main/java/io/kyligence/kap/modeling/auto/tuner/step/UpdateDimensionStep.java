@@ -97,10 +97,10 @@ public class UpdateDimensionStep extends AbstractStep {
             for (DimensionDesc tblDim : tblDims.getValue()) {
                 if (ArrayUtils.contains(pKeys, tblDim.getTable() + "." + tblDim.getColumn())) {
                     // save pk dimensions, will add them as normal if no derived exists
-                    if (!pKeyDimsBackup.containsKey(tblDim.getTable())) {
-                        pKeyDimsBackup.put(tblDim.getTable(), Lists.<DimensionDesc> newArrayList());
+                    if (!pKeyDimsBackup.containsKey(tblName)) {
+                        pKeyDimsBackup.put(tblName, Lists.<DimensionDesc> newArrayList());
                     }
-                    pKeyDimsBackup.get(tblDim.getTable()).add(tblDim);
+                    pKeyDimsBackup.get(tblName).add(tblDim);
                     continue;
                 }
 

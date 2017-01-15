@@ -2,7 +2,7 @@
   "uuid": null,
   "last_modified": 1483197160126,
   "version": "1.6.1",
-  "model_name": "SSB",
+  "model_name": "ssb",
   "last_build_job_id": "de2b4eb8-f627-4d44-8a3c-1019e467705b",
   "single_column_cardinality": {
     "SSB.CUSTOMER.C_CITY": 2456,
