@@ -30,6 +30,10 @@
             <artifactId>kap-core-common</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-auto-modeling</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-client</artifactId>
             <scope>provided</scope>
@@ -61,6 +65,7 @@
                             <shadedClassifierName>assembly</shadedClassifierName>
                             <artifactSet>
                                 <includes>
+                                    <include>io.kyligence.kap:kap-auto-modeling</include>
                                     <include>io.kyligence.kap:kap-tool</include>
                                     <include>org.apache.kylin:kylin-tool</include>
                                 </includes>
