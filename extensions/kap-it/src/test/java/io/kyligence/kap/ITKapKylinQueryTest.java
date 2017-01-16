@@ -58,7 +58,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     @BeforeClass
     public static void setUp() throws Exception {
         printInfo("setUp in ITKapKylinQueryTest");
-        
+
         configure("left", false);
 
         setupAll();
@@ -228,7 +228,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     @Test
     public void testPercentileQuery() throws Exception {
         if (!rawTableFirst) {
-            batchExecuteQuery("src/test/resources/query/percentile");
+            super.testPercentileQuery();
         }
     }
 
@@ -285,7 +285,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
             super.testSnowflakeQuery();
         }
     }
-    
+
     @Test
     public void testLikeQuery() throws Exception {
         execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_like", null, true);

@@ -27,10 +27,6 @@
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-common</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.tdunning</groupId>
-            <artifactId>t-digest</artifactId>
-        </dependency>
 
         <!--Env & Test-->
         <dependency>

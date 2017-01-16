@@ -1,2 +1,0 @@
-The two CI cubes are (and must be) copied from Kylin and the only differences are:
-- add a PERCENTILE measure on PRICE
