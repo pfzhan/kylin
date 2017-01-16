@@ -36,12 +36,6 @@
     <!--tree-->
     <div style="width:100%;overflow-y:visible;" ng-style="{height:'{{window}}px'}">
         <abn-tree
-                user-service      = "userService"
-                tip-reload-table  = "{{dataKylin.data_source.tip_reload_table}}"
-                tip-unload-table  = "{{dataKylin.data_source.tip_unLoad_hive_table}}"
-                reload-table      = "reloadTable(tableNames,projectName)"
-                unload-table      = "removeList(tableNames,projectName)"
-                project-name      = "{{projectModel.selectedProject}}"
                 tree-data         = "tableModel.selectedSrcDb"
                 tree-control      = "my_tree"
                 icon-leaf         = "fa fa-columns"

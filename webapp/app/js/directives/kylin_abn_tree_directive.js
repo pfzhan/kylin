@@ -31,15 +31,9 @@
     '$timeout', function($timeout) {
       return {
         restrict: 'E',
-        template: "<ul class=\"nav nav-list nav-pills nav-stacked abn-tree\">\n  <li data=\"{{row.branch.fullName}}\"  ng-repeat=\"row in tree_rows | filter:{visible:true} track by row.branch.uid\" ng-animate=\"'abn-tree-animate'\" ng-class=\"'level-' + {{ row.level }} + (row.branch.selected ? ' active':'') + ' ' +row.classes.join(' ')\" class=\"abn-tree-row\" ><a ng-click=\"user_clicks_branch(row.branch)\" ng-dblclick=\"user_dbClicks_branch(row.branch)\" style=\"float:left;\" ng-style=\"{width:userService.hasRole('ROLE_ADMIN')?'75%':'100%'}\"><i ng-class=\"row.tree_icon\" class=\"indented tree-icon\" > </i><span class=\"indented tree-label\">{{ row.label }} </span></a>  <a class=\"btn btn-xs btn-info tree-table-btn\"   ng-if=\"row.level==2&&userService.hasRole('ROLE_ADMIN')\" tooltip={{tipUnloadTable}} tooltip-placement=\"left\" ng-click=\"unloadTable({tableNames:row.branch.fullName,projectName:projectName})\" ><i class=\"fa fa-remove\"></i></a> <a class=\"btn btn-xs btn-success tree-table-btn\" tooltip-placement=\"left\" tooltip={{tipReloadTable}} ng-if=\"row.level==2&&userService.hasRole('ROLE_ADMIN')&&row.branch.data.source_type==0\"  ng-click=\"reloadTable({tableNames:row.branch.fullName,projectName:projectName})\"><i class=\"fa fa-download\"></i></a> </li>\n</ul>",
+        template: "<ul class=\"nav nav-list nav-pills nav-stacked abn-tree\">\n  <li data=\"{{row.branch.fullName}}\"  ng-repeat=\"row in tree_rows | filter:{visible:true} track by row.branch.uid\" ng-animate=\"'abn-tree-animate'\" ng-class=\"'level-' + {{ row.level }} + (row.branch.selected ? ' active':'') + ' ' +row.classes.join(' ')\" class=\"abn-tree-row\"><a   ng-click=\"user_clicks_branch(row.branch)\" ng-dblclick=\"user_dbClicks_branch(row.branch)\"><i ng-class=\"row.tree_icon\" class=\"indented tree-icon\"> </i><span class=\"indented tree-label\">{{ row.label }} </span></a></li>\n</ul>",
         replace: true,
         scope: {
-          userService:'=',
-          tipUnloadTable:'@',
-          tipReloadTable:'@',
-          reloadTable:'&',
-          unloadTable:'&',
-          projectName:'@',
           treeData: '=',
           onSelect: '&',
           onDblclick:'&',
