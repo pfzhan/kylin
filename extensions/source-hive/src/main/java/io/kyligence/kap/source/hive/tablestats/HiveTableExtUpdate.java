@@ -102,7 +102,7 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
         for (HiveTableExtSampler sampler : samplers.values()) {
             TableExtDesc.ColumnStats columnStats = new TableExtDesc.ColumnStats();
             columnStats.setColumnSamples(sampler.getMax(), sampler.getMin(), sampler.getMaxLenValue(), sampler.getMinLenValue());
-            columnStats.setNullCount(Integer.parseInt(sampler.getNullCounter()));
+            columnStats.setNullCount(Long.parseLong(sampler.getNullCounter()));
             columnStats.setCardinality(sampler.getCardinality());
             sampleRows.add(sampler.getRawSampleValues());
             columnStatsList.add(columnStats);
