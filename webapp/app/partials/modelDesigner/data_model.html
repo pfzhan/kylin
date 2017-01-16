@@ -200,7 +200,7 @@
                         <label class="col-sm-3 control-label font-color-default"><b>{{dataKylin.model.gridDMAlias}}</b></label>
                         <div class="col-sm-6">
                           <input type="text" class="form-control " placeholder="Input Table Alias" ng-required="true"
-                                 ng-model="newLookup.alias" ng-change="changeAlias()" ng-disabled="">
+                                 ng-model="newLookup.alias" ng-change="changeAlias()" >
                         </div>
                       </div>
                     </div>
@@ -235,7 +235,6 @@
                                 <option value=""></option>
                               </select>
                               <b>=</b>
-                              {{newLookup.join.primary_key}}
                               <select style="width: 45%" chosen data-placeholder="Lookup Table Column"
                                       ng-model="newLookup.join.primary_key[$index]"    ng-change="changeKey($index)"
                                       ng-options="newLookup.alias+'.'+columns.name as columns.name for columns in getColumnsByTable(newLookup.table)" >

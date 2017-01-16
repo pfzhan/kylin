@@ -153,9 +153,6 @@ KylinApp.controller('ModelDataModelCtrl', function ($location,$scope, $modal,cub
         var newAlias=$scope.newLookup.alias;
         if(oldAlias!=newAlias){
           $scope.aliasName[$scope.lookupState.editingIndex+1]=newAlias;
-          for(var i=0;i<$scope.newLookup.join.primary_key.length;i++){
-            $scope.newLookup.join.primary_key[i]=$scope.newLookup.join.primary_key[i].replace(oldAlias+'.',newAlias+'.');
-          }
 
           delete $scope.aliasTableMap[oldAlias];
           $scope.aliasTableMap[newAlias]=$scope.newLookup.table;
@@ -256,6 +253,13 @@ KylinApp.controller('ModelDataModelCtrl', function ($location,$scope, $modal,cub
          }
     }
 
+    $scope.changeAlias = function (){
+      for(var i=0;i<$scope.newLookup.join.primary_key.length;i++){
+        var pk=$scope.newLookup.join.primary_key[i];
+        $scope.newLookup.join.primary_key[i]=pk.replace(VdmUtil.getNameSpace(pk)+'.',$scope.newLookup.alias+'.');
+      }
+    }
+
     $scope.addNewJoin = function(){
         $scope.newLookup.join.primary_key.push("null");
         $scope.newLookup.join.foreign_key.push("null");
@@ -292,8 +296,14 @@ KylinApp.controller('ModelDataModelCtrl', function ($location,$scope, $modal,cub
           break;
         }
       }
-      if($scope.lookupState.editingIndex==-1&&$scope.aliasName.indexOf($scope.newLookup.alias)!=-1||$scope.aliasName.indexOf($scope.newLookup.alias)!=-1&&$scope.aliasName[$scope.lookupState.editingIndex+1] != $scope.newLookup.alias){
-        errors.push("Table Alias ["+$scope.newLookup.alias+"] already exist!");
+      if($scope.aliasName.indexOf($scope.newLookup.alias)!=-1){
+        if($scope.lookupState.editingIndex==-1){
+          errors.push("Table Alias ["+$scope.newLookup.alias+"] already exist!");
+        }else{
+          if($scope.aliasName[$scope.lookupState.editingIndex+1] != $scope.newLookup.alias){
+            errors.push("Table Alias ["+$scope.newLookup.alias+"] already exist!");
+          }
+        }
       }
       var errorInfo = "";
       angular.forEach(errors,function(item){
