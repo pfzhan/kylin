@@ -235,6 +235,7 @@
                                 <option value=""></option>
                               </select>
                               <b>=</b>
+                              {{newLookup.join.primary_key}}
                               <select style="width: 45%" chosen data-placeholder="Lookup Table Column"
                                       ng-model="newLookup.join.primary_key[$index]"    ng-change="changeKey($index)"
                                       ng-options="newLookup.alias+'.'+columns.name as columns.name for columns in getColumnsByTable(newLookup.table)" >
