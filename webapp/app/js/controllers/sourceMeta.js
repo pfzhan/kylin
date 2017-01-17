@@ -137,13 +137,21 @@ KylinApp
       loadingRequest.show();
       TableExtService.loadHiveTable({tableName: tableNames, action: projectName}, {}, function (result) {
         var loadTableInfo = "";
-        for (var tableName in result) {
-          if (VdmUtil.isNotExtraKey(result, tableName)) {
-            loadTableInfo += "\n" + tableName;
-           }
-         }
-        if (loadTableInfo) {
-          kylinCommon.success_alert($scope.dataKylin.alert.success, $scope.dataKylin.alert.success_table_been_synchronized + loadTableInfo);
+        angular.forEach(result['result.loaded'], function (table) {
+          loadTableInfo += "\n" + table;
+        });
+        var unloadedTableInfo = "";
+        angular.forEach(result['result.unloaded'], function (table) {
+          unloadedTableInfo += "\n" + table;
+        });
+        if (result['result.unloaded'].length != 0 && result['result.loaded'].length == 0) {
+          SweetAlert.swal('Failed!', 'Failed to load following table(s): ' + unloadedTableInfo, 'error');
+        }
+        if (result['result.loaded'].length != 0 && result['result.unloaded'].length == 0) {
+          SweetAlert.swal('Success!', 'The following table(s) have been successfully loaded: ' + loadTableInfo, 'success');
+        }
+        if (result['result.loaded'].length != 0 && result['result.unloaded'].length != 0) {
+          SweetAlert.swal('Partial loaded!', 'The following table(s) have been successfully loaded: ' + loadTableInfo + "\n\n Failed to load following table(s):" + unloadedTableInfo, 'warning');
         }
         loadingRequest.hide();
         delay.resolve("");

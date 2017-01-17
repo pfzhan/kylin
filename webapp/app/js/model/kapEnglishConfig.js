@@ -300,12 +300,12 @@ KylinApp.constant('kapEnglishConfig', {
     //gridSTWhere: 'Where',
     edit: 'Edit',  //edit of model begin
     editDMSelectFact: '-- Select Fact Table --',
-    editDMAddLookupTable: 'Add Lookup Table',
-    editDMSelectLookup: '-- Select Lookup Table --',
+    editDMAddLookupTable: 'Add Join Table',
+    editDMSelectLookup: '-- Select Join Table --',
     editDMActions: 'Actions',
     editDMLookupAdd: 'Add',
     editDMLookupAdd: 'Edit',//lookup table modal
-    editDMLookupTableName: 'Lookup Table Name',
+    editDMLookupTableName: 'Join Table Name',
     editDMLookupNewJoin: ' New Join Condition',
     tip_join_delete: 'delete',
     tip_header_lookup_modal: ' <h4 class="box-title">Tips</h4>',

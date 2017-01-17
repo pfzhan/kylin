@@ -47,7 +47,7 @@
         <div class="row ">
             <div class="col-xs-6" ng-if="state.mode=='edit'">
                 <button type="button" class="btn btn-primary" ng-disabled="!modelsManager.selectedModel.fact_table.length"
-                        ng-click="openLookupModal()">
+                        ng-click="openLookupModal();addNewJoin();">
                     <i class="fa fa-plus"></i> {{dataKylin.model.editDMAddLookupTable}}
                 </button>
             </div>
@@ -158,7 +158,7 @@
     <!-- Add Join Table Form -->
     <script type="text/ng-template" id="dataModelLookupTable.html">
         <div class="modal-header">
-            <h4 class="box-title lighter">{{lookupState.editing ? dataKylin.model.editDMLookupEdit : dataKylin.mode.editDMLookupAdd}} Lookup</h4>
+            <h4 class="box-title lighter">Join Table</h4>
         </div>
         <div class="modal-body">
             <div class="row">
@@ -167,38 +167,35 @@
                     <div class="form-group">
                       <div class="row">
                         <div class="col-xs-12">
-                          <div>
-                            <select chosen ng-model="newLookup.joinTable" style="width:40%;"
-                                    ng-options="table as table for table in aliasName"
-                                    name="table_name"  ng-disabled="lookupState.editing"
-                                    ng-required="true"
-                                    data-placeholder="Join Table Name"
-                                    class="chosen-select">
-                              <option value=""> {{dataKylin.model.editDMSelectLookup}}</option>
-                            </select>
-                            <!--Join Type-->
-                            <select class="form-control"  chosen ng-model="newLookup.join.type" style="width:12%;"
-                                    ng-options="joinType.value as joinType.name for joinType in cubeConfig.joinTypes">
-                              <option value=""></option>
-                            </select>
-                            <label class="control-label font-color-default"><b>{{dataKylin.model.gridDMJoinType}}</b></label>
-
-                            <select chosen ng-model="newLookup.table" style="width:40%;"
-                                    ng-options="table.name as table.name for table in tableModel.selectProjectTables"
-                                    name="table_name"  ng-disabled="lookupState.editing"
-                                    ng-required="true"  ng-change="changeJoinTable()"
-                                    data-placeholder="Join Table Name"
-                                    class="chosen-select">
-                              <option value="">{{dataKylin.model.editDMSelectLookup}} </option>
-                            </select>
-                          </div>
+                          <select chosen ng-model="newLookup.joinTable" style="width:40%;"
+                                  ng-options="table as table for table in aliasName"
+                                  name="table_name"  ng-disabled="lookupState.editing"
+                                  ng-required="true"
+                                  data-placeholder="Join Table Name"
+                                  class="chosen-select ">
+                            <option value=""> {{dataKylin.model.editDMSelectLookup}}</option>
+                          </select>
+                          <!--Join Type-->
+                          <select class="chosen-select"  chosen ng-model="newLookup.join.type" style="width:10%;"
+                                  ng-options="joinType.value as joinType.name for joinType in cubeConfig.joinTypes">
+                            <option value=""></option>
+                          </select>
+                          <label class="control-label  font-color-default " style="width:6%;text-align:center;" ><b>{{dataKylin.model.gridDMJoinType}}</b></label>
+                          <select chosen ng-model="newLookup.table" style="width:40%;"
+                                  ng-options="table.name as table.name for table in tableModel.selectProjectTables"
+                                  name="table_name"  ng-disabled="lookupState.editing"
+                                  ng-required="true"  ng-change="changeJoinTable()"
+                                  data-placeholder="Join Table Name"
+                                  class="chosen-select ">
+                            <option value="">{{dataKylin.model.editDMSelectLookup}} </option>
+                          </select>
                         </div>
                       </div>
                     </div>
                     <div class="form-group">
                       <div class="row">
-                        <label class="col-sm-3 control-label font-color-default"><b>{{dataKylin.model.gridDMAlias}}</b></label>
-                        <div class="col-sm-6">
+                        <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default align-right" style="width:55.5%"><b>{{dataKylin.model.gridDMAlias}}</b></label>
+                        <div  class="col-xs-12 col-sm-6 " style="width:42%" >
                           <input type="text" class="form-control " placeholder="Input Table Alias" ng-required="true"
                                  ng-model="newLookup.alias" ng-change="changeAlias()" >
                         </div>
@@ -207,8 +204,8 @@
 
                     <div class="form-group">
                       <div class="row">
-                        <label class="col-sm-3 control-label font-color-default"><b>{{dataKylin.model.gridDMTableType}}</b></label>
-                        <div class="col-sm-6">
+                        <label class=" col-xs-12 col-sm-3 control-label no-padding-right font-color-default align-right" style="width:55.5%;"><b>{{dataKylin.model.gridDMTableType}}</b></label>
+                        <div class="col-xs-12  col-sm-6 " style="width:42%" >
                           <label class="col-sm-6" > <input type="radio" ng-model="newLookup.kind" value="FACT" >&nbsp;&nbsp;{{dataKylin.model.gridDMFactTable}}</label>
                           <label class="col-sm-6" > <input type="radio" ng-model="newLookup.kind" value="LOOKUP">&nbsp;&nbsp;{{dataKylin.model.gridDMLookupTables}}</label>
                         </div>
@@ -217,25 +214,23 @@
                     <div class="form-group">
                       <div class="row">
                         <div class="col-sm-3">
-                          <button class="btn btn-xs btn-info"
-                                  ng-if="newLookup.join.type"
-                                  ng-click="addNewJoin();">
+                          <button class="btn btn-xs btn-info" ng-click="addNewJoin();">
                             <i class="fa fa-plus"></i>{{dataKylin.model.editDMLookupNewJoin}}</button>
                         </div>
                       </div>
                     </div>
                     <div class="form-group">
                       <div class="row">
-                        <div class="col-xs-9">
+                        <div class="col-xs-12">
                           <div ng-repeat="joinIndex in [] | range: newLookup.join.primary_key.length">
                             <div>
-                              <select style="width: 45%" chosen data-placeholder="Fact Table Column"
+                              <select style="width: 45%" chosen data-placeholder="Join Table Column"
                                       ng-model="newLookup.join.foreign_key[$index]"    ng-change="changeKey($index)"
                                       ng-options="newLookup.joinTable+'.'+columns.name as columns.name for columns in getColumnsByAlias(newLookup.joinTable)" >
                                 <option value=""></option>
                               </select>
                               <b>=</b>
-                              <select style="width: 45%" chosen data-placeholder="Lookup Table Column"
+                              <select style="width: 45%" chosen data-placeholder="Join Table Column"
                                       ng-model="newLookup.join.primary_key[$index]"    ng-change="changeKey($index)"
                                       ng-options="newLookup.alias+'.'+columns.name as columns.name for columns in getColumnsByTable(newLookup.table)" >
                                 <option value=""></option>

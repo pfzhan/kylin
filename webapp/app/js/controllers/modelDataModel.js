@@ -116,7 +116,6 @@ KylinApp.controller('ModelDataModelCtrl', function ($location,$scope, $modal,cub
             $modalInstance.dismiss('cancel');
         };
     };
-
     $scope.editLookup = function (lookup) {
         $scope.lookupState.editingIndex = lookupList.indexOf(lookup);
         $scope.lookupState.editing = true;
