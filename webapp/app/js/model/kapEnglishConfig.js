@@ -720,8 +720,8 @@ KylinApp.constant('kapEnglishConfig', {
     tables: 'Tables',//--table tree begin
     tip_load_hive_table: 'Load Hive Table',
     tip_load_table_tree: 'Load Hive Table From Tree',
-    unload_table: 'UnLoad  Table',
-    reload_table:'ReLoad  Table',
+    unload_table: 'Unload Table',
+    reload_table:'Reload Table',
     tip_add_streaming_table: 'Add Streaming Table',
     titleAddHiveTable: 'Load Hive Table Metadata',//modal addHiveTable begin
     project: 'Project:',

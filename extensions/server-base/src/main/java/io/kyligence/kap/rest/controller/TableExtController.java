@@ -35,6 +35,7 @@ import org.apache.kylin.job.JobInstance;
 import org.apache.kylin.job.exception.JobException;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.controller.BasicController;
+import org.apache.kylin.rest.controller.TableController;
 import org.apache.kylin.rest.request.HiveTableRequest;
 import org.apache.kylin.rest.service.JobService;
 import org.apache.kylin.rest.service.TableService;
@@ -61,7 +62,7 @@ public class TableExtController extends BasicController {
     private JobService jobService;
 
     @Autowired
-    private TableService tableService;
+    private TableController tableController;
 
     @RequestMapping(value = "/{database}.{tableName}", method = { RequestMethod.GET })
     @ResponseBody
@@ -93,20 +94,21 @@ public class TableExtController extends BasicController {
 
     @RequestMapping(value = "/{tables}/{project}", method = { RequestMethod.POST })
     @ResponseBody
-    public Map<String, JobInstance> loadHiveTable(@PathVariable String tables, @PathVariable String project, @RequestBody HiveTableRequest request) throws IOException, JobException {
+    public Map<String, String[]> loadHiveTable(@PathVariable String tables, @PathVariable String project, @RequestBody HiveTableRequest request) throws IOException, JobException {
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
-        String[] loadedTables = tableService.loadHiveTablesToProject(StringUtil.splitAndTrim(tables, ","), project);
-        List<String> jobIDs = tableExtService.extractTableExt(project, submitter, loadedTables);
-        Map<String, JobInstance> result = new HashMap<>();
-        for (int i = 0; i < loadedTables.length; i++) {
-            result.put(loadedTables[i], jobService.getJobInstance(jobIDs.get(i)));
+        boolean isCalculate = request.isCalculate();
+        request.setCalculate(false);
+        Map<String, String[]> loadResult = tableController.loadHiveTables(tables, project, request);
+        if (isCalculate) {
+            String[] loadedTables = loadResult.get("result.loaded");
+            List<String> jobIDs = tableExtService.extractTableExt(project, submitter, loadedTables);
         }
-        return result;
+        return loadResult;
     }
 
     @RequestMapping(value = "/{tables}/{project}", method = { RequestMethod.DELETE })
     @ResponseBody
-    public String unLoadHiveTables(@PathVariable String tables, @PathVariable String project) throws Exception {
+    public Map<String, String[]> unLoadHiveTables(@PathVariable String tables, @PathVariable String project) throws Exception {
         String jobID;
         for (String tableName : tables.split(",")) {
             if ((jobID = HiveTableExtSampleJob.findRunningJob(tableName, tableExtService.getConfig())) != null) {
@@ -114,6 +116,7 @@ public class TableExtController extends BasicController {
             }
             tableExtService.removeTableExt(tableName);
         }
-        return "OK";
+        Map<String, String[]> unloadResult = tableController.unLoadHiveTables(tables, project);
+        return unloadResult;
     }
 }
