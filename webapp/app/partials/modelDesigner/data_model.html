@@ -95,7 +95,7 @@
                 <td>
                   <ul class="list-unstyled">
                     <li ng-repeat="pk in lookup.join.primary_key track by $index">
-                      <code>{{lookup.join.foreign_key[$index]}} = {{pk}}</code>
+                      <code style="white-space: normal">{{lookup.join.foreign_key[$index]}} = {{pk}}</code>
                     </li>
                   </ul>
                 </td>
@@ -206,8 +206,8 @@
                       <div class="row">
                         <label class=" col-xs-12 col-sm-3 control-label no-padding-right font-color-default align-right" style="width:55.5%;"><b>{{dataKylin.model.gridDMTableType}}</b></label>
                         <div class="col-xs-12  col-sm-6 " style="width:42%" >
-                          <label class="col-sm-6" > <input type="radio" ng-model="newLookup.kind" value="FACT" >&nbsp;&nbsp;{{dataKylin.model.gridDMFactTable}}</label>
-                          <label class="col-sm-6" > <input type="radio" ng-model="newLookup.kind" value="LOOKUP">&nbsp;&nbsp;{{dataKylin.model.gridDMLookupTables}}</label>
+                          <label class="col-sm-6 no-padding" > <input type="radio" ng-model="newLookup.kind" value="FACT" >&nbsp;&nbsp;{{dataKylin.model.gridDMFactTable}}</label>
+                          <label class="col-sm-6 no-padding" > <input type="radio" ng-model="newLookup.kind" value="LOOKUP">&nbsp;&nbsp;{{dataKylin.model.gridDMLookupTables}}</label>
                         </div>
                       </div>
                     </div>
