@@ -26,11 +26,9 @@ package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.JobInstance;
 import org.apache.kylin.job.exception.JobException;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -38,7 +36,6 @@ import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.controller.TableController;
 import org.apache.kylin.rest.request.HiveTableRequest;
 import org.apache.kylin.rest.service.JobService;
-import org.apache.kylin.rest.service.TableService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
