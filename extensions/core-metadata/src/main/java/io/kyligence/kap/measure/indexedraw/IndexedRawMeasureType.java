@@ -38,7 +38,8 @@ import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
 public class IndexedRawMeasureType extends MeasureType<ByteArray> {
-
+    private static final long serialVersionUID = 1L;
+    
     private final DataType dataType;
 
     public IndexedRawMeasureType(String funcName, DataType dataType) {
@@ -48,6 +49,8 @@ public class IndexedRawMeasureType extends MeasureType<ByteArray> {
     @Override
     public MeasureIngester<ByteArray> newIngester() {
         return new MeasureIngester<ByteArray>() {
+            private static final long serialVersionUID = 1L;
+
             //encode measure value to dictionary
             @Override
             public ByteArray valueOf(String[] values, MeasureDesc measureDesc, Map<TblColRef, Dictionary<String>> dictionaryMap) {
@@ -78,15 +81,14 @@ public class IndexedRawMeasureType extends MeasureType<ByteArray> {
                 Dictionary<String> mergedDict = newDicts.get(colRef);
 
                 byte[] newIdBuf = new byte[mergedDict.getSizeOfId()];
-                byte[] literal = new byte[sourceDict.getSizeOfValue()];
 
                 int oldId = BytesUtil.readUnsigned(value.array(), value.offset(), value.length());
                 int newId;
-                int size = sourceDict.getValueBytesFromId(oldId, literal, 0);
-                if (size < 0) {
+                String v = sourceDict.getValueFromId(oldId);
+                if (v == null) {
                     newId = mergedDict.nullId();
                 } else {
-                    newId = mergedDict.getIdFromValueBytes(literal, 0, size);
+                    newId = mergedDict.getIdFromValue(v);
                 }
                 BytesUtil.writeUnsigned(newId, newIdBuf, 0, mergedDict.getSizeOfId());
                 return new ByteArray(newIdBuf);
