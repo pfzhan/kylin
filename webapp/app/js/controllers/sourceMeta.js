@@ -155,22 +155,18 @@ KylinApp
     }
 
     $scope.unloadTable = function (tableNames,projectName) {
-        loadingRequest.show();
-        TableExtService.unLoadHiveTable({tableName: tableNames, action: projectName}, {}, function (result) {
-          TableService.unLoadHiveTable({tableName: tableNames, action: projectName}, {}, function (result) {
-            var removedTableInfo = tableNames;
-            kylinCommon.success_alert($scope.dataKylin.alert.success, $scope.dataKylin.alert.tip_partial_loaded_body_part_one + removedTableInfo);
-            loadingRequest.hide();
-            $scope.aceSrcTbLoaded(true);
-          }, function (e) {
-            kylinCommon.error_default(e);
-            loadingRequest.hide();
-          })
-        }, function (e) {
-          kylinCommon.error_default(e);
-          loadingRequest.hide();
-        })
+      loadingRequest.show();
+      TableExtService.unLoadHiveTable({tableName: tableNames, action: projectName}, {}, function (result) {
+        var removedTableInfo = tableNames;
+        kylinCommon.success_alert($scope.dataKylin.alert.success, $scope.dataKylin.alert.tip_partial_loaded_body_part_one + removedTableInfo);
+        loadingRequest.hide();
+        $scope.aceSrcTbLoaded(true);
+      }, function (e) {
+        kylinCommon.error_default(e);
+        loadingRequest.hide();
+      })
     }
+
 
     var ModalInstanceCtrl = function ($scope, $location, $modalInstance, tableNames, MessageService, projectName, scope,kylinConfig,language,kylinCommon) {
       $scope.dataKylin = language.getDataKylin();
