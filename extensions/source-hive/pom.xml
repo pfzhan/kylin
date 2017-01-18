@@ -27,6 +27,10 @@
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-source-hive</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-source-kafka</artifactId>
+        </dependency>
 
         <!--Env & Test-->
         <dependency>
@@ -50,6 +54,11 @@
         <dependency>
             <groupId>org.apache.hive.hcatalog</groupId>
             <artifactId>hive-hcatalog-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka_2.10</artifactId>
             <scope>provided</scope>
         </dependency>
 
