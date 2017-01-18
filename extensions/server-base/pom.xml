@@ -111,6 +111,12 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka_2.10</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Hadoop Env -->
         <dependency>
             <groupId>org.apache.hbase</groupId>
