@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.request.StreamingRequest;
 import org.apache.kylin.source.kafka.config.KafkaConfig;
@@ -49,7 +50,7 @@ import io.kyligence.kap.rest.service.KafkaService;
 
 @Controller
 @RequestMapping(value = "/kafka")
-public class KafkaController {
+public class KafkaController extends BasicController {
     private static final Logger logger = LoggerFactory.getLogger(KafkaController.class);
 
     @Autowired
