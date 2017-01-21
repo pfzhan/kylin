@@ -195,4 +195,26 @@ public class KapConfig {
         return config.getOptional("kap.job.helix.host-address", "localhost:7070");
     }
 
+    /**
+     * Online service
+     */
+    public String getKyAccountUsename() {
+        return config.getOptional("kap.kyaccount.username");
+    }
+
+    public String getKyAccountPassword() {
+        return config.getOptional("kap.kyaccount.password");
+    }
+
+    public String getKyBotSiteUrl() {
+        return config.getOptional("kap.external.kybot.url", "https://kybot.io");
+    }
+
+    public String getHttpProxyHost() {
+        return config.getOptional("kap.external.http.proxy.host");
+    }
+
+    public int getHttpProxyPort() {
+        return Integer.parseInt(config.getOptional("kap.external.http.proxy.port", "-1"));
+    }
 }
