@@ -20,6 +20,7 @@
   <form name="form.cube_streaming_form" novalidate>
 
     <!--add cluster-->
+
     <!--cluster-from-->
     <div ng-repeat="cluster in kafkaMeta.clusters | filter: state.measureFilter" class="box">
       <div class="box-header">
@@ -43,7 +44,7 @@
             <td>{{broker.port}}</td>
             <td ng-if="state.mode=='edit'">
               <!--Edit Button -->
-              <button class="btn btn-xs btn-info" ng-click="addBroker(cluster,broker)">
+              <button class="btn btn-xs btn-info" ng-click="addBroker(cluster,broker,$index)">
                 <i class="fa fa-pencil"></i>
               </button>
 
@@ -97,8 +98,8 @@
     </button>
 
     <!--add cluster-->
+    <div style="font-size: 16px;" ng-if="state.target||state.mode=='view'">Topic:{{kafkaMeta.topic}}</div>
 
-    <hr/>
 
 
     <!--tableselect and jsonbox-->
@@ -139,17 +140,17 @@
           <div class="form-group middle-popover" ng-class="{'required':state.mode=='edit'}" >
             <ol class="text-info" style="margin-bottom: 30px;" ng-bind-html="dataKylin.data_source.tip_table_schemaChecked_detail">
             </ol>
-            <div class="row">
+            <div class="row" style="text-align: right;line-height: 35px">
               <label class="col-xs-12 col-sm-2 control-label no-padding-right">
-                <b>Table Name:</b>
+                <b style="font-size: 16px">{{dataKylin.data_source.tableName}}</b>
               </label>
-              <div class="col-xs-12 col-sm-4" style="text-align: left">
-                 <select ng-if="!state.tableName" class="form-control" ng-model="table.database"><option ng-repeat=" db in dataBaseList" value="{{db}}">{{db}}</option></select>
-                  <span ng-if="state.tableName">{{state.tableName}}</span>
-
+              <div class="col-xs-12 col-sm-2" style="text-align: right">
+                 <select ng-if="!state.tableName&&dataBaseList.length>0" class="form-control" ng-model="table.database"><option ng-repeat=" db in dataBaseList" value="{{db}}">{{db}}</option></select>
+                <span ng-if="!dataBaseList||dataBaseList&&dataBaseList.length<=0" style="display: inline-block;border: solid 1px #ccc;height: 33px;width: 140px;line-height: 33px;text-align: center;">{{state.database||'Default'}}</span>
               </div>
-              <div class="col-xs-12 col-sm-3"   ng-class="{'has-error':form.cube_streaming_form.tablename.$invalid && (form.cube_streaming_form.tablename.$dirty||form.cube_streaming_form.$submitted)}">
-                <input  ng-if="!state.tableName"  name="tablename" required ng-model="table.name" type="text"
+              <div class="col-xs-12 col-sm-1" style="text-align: center;font-size: 25px;">/</div>
+              <div class="col-xs-12 col-sm-3" style="text-align: left"   ng-class="{'has-error':form.cube_streaming_form.tablename.$invalid && (form.cube_streaming_form.tablename.$dirty||form.cube_streaming_form.$submitted)}">
+                <input style="display: inline-block"  ng-if="!state.tableName"  name="tablename" required ng-model="table.name" type="text"
                         placeholder="{{database.table}}"
                         class="form-control"/>
 

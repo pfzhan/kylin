@@ -75,6 +75,9 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
 
   //过滤column配置
   $scope.loadColumnZH=function(){
+    if($scope.state.target){
+      return;
+    }
     $scope.streamingCfg.columnOptions = [];
     $scope.rule.timestampColumnExist = false;
     angular.forEach($scope.table.columnList, function (column, $index) {
@@ -233,8 +236,9 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
 
     })
   }
-
-  $scope.addBroker = function (cluster,broker) {
+  $scope.currentCheck=-1;
+  $scope.addBroker = function (cluster,broker,index) {
+    $scope.currentCheck=index;
     $scope.fromError=false;
     //$scope.modelsManager.selectedModel = model;
     cluster.newBroker=(!!broker)?broker:StreamingModel.createBrokerConfig();
@@ -257,18 +261,25 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
 
   $scope.saveNewBroker = function(cluster){
     $scope.fromError=false;
-    var checkResult=cluster.brokers.some(function(item){
-      if(item.port==cluster.newBroker.port&&item.host==cluster.newBroker.host){
-         return true;
+    var checkResult=false;
+    cluster.brokers.forEach(function(item,index){
+      if(index!=$scope.currentCheck){
+        if(item.port==cluster.newBroker.port&&item.host==cluster.newBroker.host){
+          checkResult=true;
+        }
       }
     })
     if(checkResult||(cluster.newBroker.port==''||cluster.newBroker.host==''||cluster.newBroker.id=='')){
       $scope.fromError=true;
       return;
     }else{
-      cluster.brokers.push(cluster.newBroker);
-      delete cluster.newBroker;
+      if($scope.currentCheck>=0){
+        cluster.brokers[$scope.currentCheck]=cluster.newBroker;
+      }else{
+        cluster.brokers.push(cluster.newBroker);
+      }
     }
+    delete cluster.newBroker;
 
   }
 
@@ -321,6 +332,9 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
 
   $scope.treeData=[];
   $scope.loadClusterInfo=function(){
+    if($scope.state.target){
+      return;
+    }
     $scope.treeData=[];
     $scope.loading = true;
     var hasHisTopic=false;
