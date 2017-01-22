@@ -24,23 +24,63 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.source.kafka.config.KafkaConfig;
 import org.springframework.stereotype.Component;
 
-import io.kyligence.kap.source.hive.kafkastats.CollectKafkaStats;
+import io.kyligence.kap.source.kafka.CollectKafkaStats;
 
 @Component("kafkaClusterService")
 public class KafkaService extends BasicService {
 
     public Map<String, List<String>> getTopics(KafkaConfig kafkaConfig) {
+        //Consumer consumer = KafkaClient.getKafkaConsumer("10.1.1.69:9092", "test", null);
         return CollectKafkaStats.getTopics(kafkaConfig);
     }
 
     public List<String> getMessageByTopic(String cluster, String topic, KafkaConfig kafkaConfig) {
         return CollectKafkaStats.getMessageByTopic(cluster, topic, kafkaConfig);
+    }
+
+    public String saveSamplesToStreamingTable(String identity, List<String> messages) throws IOException {
+        List<String[]> samples = convertMessagesToSamples(messages);
+        TableExtDesc tableExtDesc = getMetadataManager().getTableExt(identity);
+        tableExtDesc.setSampleRows(samples);
+        getMetadataManager().saveTableExt(tableExtDesc);
+        return "OK";
+    }
+
+    private List<String[]> convertMessagesToSamples(List<String> messages) throws IOException {
+        if (0 == messages.size())
+            return null;
+        Map<String, List<String>> messageTable = new LinkedHashMap<>();
+        for (int i = 0; i < messages.size(); i++) {
+            String row = messages.get(i);
+            String[] values = row.replace('{', ' ').replace('}', ' ').trim().split(",");
+            for (int j = 0; j < values.length; j++) {
+                String[] value = values[j].split(":");
+                String columnName = value[0].replace("\"", " ").trim();
+                String columnValue = value[1].replace("\"", " ").trim();
+                if (messageTable.get(columnName) == null) {
+                    List<String> columnValues = new ArrayList<>();
+                    columnValues.add(columnValue);
+                    messageTable.put(columnName, columnValues);
+                } else {
+                    messageTable.get(columnName).add(columnValue);
+                }
+            }
+        }
+        List<String[]> samples = new ArrayList<>();
+        for (List<String> values : messageTable.values()) {
+            samples.add((String[]) values.toArray(new String[values.size()]));
+        }
+        return samples;
     }
 }

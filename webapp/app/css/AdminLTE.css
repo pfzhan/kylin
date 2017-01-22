@@ -4148,7 +4148,6 @@ Gradient Background colors
 #advancedSettingInfoBox span.bigtitle {
   color:#3276b1;
   font-size: 14px;
-
 }
 #advancedSettingInfoBox table{
   margin-top: 20px;
@@ -4186,5 +4185,28 @@ Gradient Background colors
 }
 #cubeOverWriteBox .defaultConfig .unCheckedRow input{
   color:#ccc;
+}
+
+.convertBtn{
+  position:absolute;
+  bottom:0;
+  background-color: #ccc;
+  left: 50%;
+  margin-left: -10px;
+  padding: 5px;
+  color: #000;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  height: 35px;
+  box-shadow: 2px 2px 2px #eee;
+}
+.convertBtn i{
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  margin-left: -5px;
+  color:#383838;
+  font-weight: normal;
+
 }
 

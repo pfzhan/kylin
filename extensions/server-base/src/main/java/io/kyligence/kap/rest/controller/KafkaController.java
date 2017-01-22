@@ -63,11 +63,17 @@ public class KafkaController extends BasicController {
         return kafkaService.getTopics(kafkaConfig);
     }
 
-    @RequestMapping(value = "{cluster}/{topic}", method = { RequestMethod.GET })
+    @RequestMapping(value = "{cluster}/{topic}", method = { RequestMethod.POST })
     @ResponseBody
     public List<String> getMessages(@PathVariable String cluster, @PathVariable String topic, @RequestBody StreamingRequest streamingRequest) {
         KafkaConfig kafkaConfig = deserializeKafkaSchemalDesc(streamingRequest);
         return kafkaService.getMessageByTopic(cluster, topic, kafkaConfig);
+    }
+
+    @RequestMapping(value = "{database}.{tablename}/samples", method = { RequestMethod.POST })
+    @ResponseBody
+    public String getSamples(@PathVariable String database, @PathVariable String tablename, @RequestBody List<String> messages) throws IOException {
+        return kafkaService.saveSamplesToStreamingTable(database + "." + tablename, messages);
     }
 
     private KafkaConfig deserializeKafkaSchemalDesc(StreamingRequest streamingRequest) {

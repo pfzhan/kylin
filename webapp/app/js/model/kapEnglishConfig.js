@@ -798,7 +798,11 @@ KylinApp.constant('kapEnglishConfig', {
     maxValue:'Max Value',
     minLengthValue:'Min Length Value',
     minValue:'Min Value',
-    nullCount:'Null Count'
+    nullCount:'Null Count',
+    noCluster:'No Cluster',
+    loadingCluster:'Loading Cluster Info',
+    useLessTopic:'The Topic is temporarily unavailable！',
+    clusterFormError:'Make sure you are not repeat or empty the broker info！'
   },
   system:{
     system: 'System',

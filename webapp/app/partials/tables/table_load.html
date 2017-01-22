@@ -46,8 +46,8 @@
     </div>
 
     <div class="modal-body streaming-source" style="height: 660px;overflow-y:auto;">
-        <div ng-show="steps.curStep==1" ng-include="'partials/tables/loadStreamingTable.html'"></div>
-        <div ng-show="steps.curStep==2" ng-include="'partials/cubeDesigner/streamingConfig.html'"></div>
+        <!--<div ng-show="steps.curStep==1" ng-include="'partials/tables/loadStreamingTable.html'"></div>-->
+        <div  ng-include="'partials/cubeDesigner/streamingConfig.html'"></div>
     </div>
     <div class="modal-footer">
       <div class="row">
@@ -56,15 +56,18 @@
           </div>
         </div>
         <div class="col-xs-4">
-          <button class="btn btn-prev" ng-click="previewStep();" ng-show="steps.curStep==2">
-            <i class="ace-icon fa fa-arrow-left"></i>
-            {{dataKylin.data_source.prev}}
+          <!--<button class="btn btn-prev" ng-click="previewStep();" ng-show="steps.curStep==2">-->
+            <!--<i class="ace-icon fa fa-arrow-left"></i>-->
+            <!--{{dataKylin.data_source.prev}}-->
+          <!--</button>-->
+          <!--<button id="nextButton" class="btn btn-success btn-next"  ng-click="nextStep();" ng-show="steps.curStep==1">-->
+            <!--{{dataKylin.data_source.next}}-->
+            <!--<i class="ace-icon fa fa-arrow-right icon-on-right"></i>-->
+          <!--</button>-->
+          <button class="btn btn-default" ng-click="cancel()" >
+            {{dataKylin.data_source.cancel}}
           </button>
-          <button id="nextButton" class="btn btn-success btn-next"  ng-click="nextStep();" ng-show="steps.curStep==1">
-            {{dataKylin.data_source.next}}
-            <i class="ace-icon fa fa-arrow-right icon-on-right"></i>
-          </button>
-          <button class="btn btn-success" ng-click="syncStreamingSchema()" ng-show="steps.curStep==2">
+          <button class="btn btn-success" ng-click="syncStreamingSchema()" >
             {{dataKylin.data_source.submit}}
           </button>
         </div>

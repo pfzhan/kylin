@@ -298,6 +298,17 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,String
         }
       }
      return result;
-   }
+   },
+   //获取database列表
+    this.getDataBaseList=function(){
+        var obj={},databaseList=[];
+        for(var i= 0,len=this.tableOriginalData&&this.tableOriginalData.length||0;i<len;i++){
+            obj[this.tableOriginalData[i].database]=1;
+        }
+        for(var i in obj){
+            databaseList.push(i);
+        }
+        return databaseList;
+    }
 });
 

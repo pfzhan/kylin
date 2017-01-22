@@ -26,3 +26,10 @@ KylinApp.factory('StreamingService', ['$resource', function ($resource, config) 
         update: {method: 'PUT', params: {}, isArray: false}
     });
 }]);
+KylinApp.factory('ClusterService', ['$resource', function ($resource, config) {
+  return $resource(Config.service.url + 'kafka/:cluster/:topic/:table/:action', {}, {
+    getCusterTopic: {method: 'POST', params: {}, isArray: false},
+    getTopicInfo:{method: 'POST', params: {}, isArray: true},
+    saveSampleData:{method: 'POST', params: {}, isArray: false}
+  });
+}]);

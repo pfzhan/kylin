@@ -798,7 +798,11 @@ KylinApp.constant('kapChineseConfig', {
     maxValue:'最大值',
     minLengthValue:'最短值',
     minValue:'最小值',
-    nullCount:'空值计数'
+    nullCount:'空值计数',
+    noCluster:'未找到集群信息',
+    loadingCluster:'正在加载集群信息',
+    useLessTopic:'该Topic暂时无法使用',
+    clusterFormError:'请填写完整的broker信息，且确保不要和已填的重复!'
   },
   system:{
     system: '系统',

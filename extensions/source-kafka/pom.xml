@@ -1,11 +1,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>kap-source-hive</artifactId>
+    <artifactId>kap-source-kafka</artifactId>
     <packaging>jar</packaging>
-    <name>KAP - Source Hive</name>
+    <name>KAP - Source Kafka</name>
     <url>http://kyligence.io</url>
-    <description>Kyligence Source Hive</description>
+    <description>Kyligence Source Kafka</description>
 
     <parent>
         <groupId>io.kyligence.kap</groupId>
@@ -20,12 +20,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-engine-mr</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.apache.kylin</groupId>
-            <artifactId>kylin-source-hive</artifactId>
+            <artifactId>kylin-source-kafka</artifactId>
         </dependency>
 
         <!--Env & Test-->
@@ -43,13 +39,8 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-mapreduce-client-core</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.hive.hcatalog</groupId>
-            <artifactId>hive-hcatalog-core</artifactId>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka_2.10</artifactId>
             <scope>provided</scope>
         </dependency>
 

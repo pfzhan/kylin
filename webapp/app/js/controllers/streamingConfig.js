@@ -24,14 +24,39 @@
 
 'use strict';
 
-KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q, $routeParams, $location, $window, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, modelConfig, ProjectModel, ModelService, MetaModel, modelsManager, cubesManager, TableModel, $animate,StreamingModel,kylinCommon) {
+KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q, $routeParams, $location, $window, $modal, MessageService, CubeDescService, CubeService, JobService, UserService, ProjectService, SweetAlert, loadingRequest, $log, modelConfig, ProjectModel, ModelService, MetaModel, modelsManager, cubesManager, TableModel, $animate,StreamingModel,kylinCommon,ClusterService,VdmUtil,cubeConfig,tableConfig) {
 
   $scope.tableModel = TableModel;
-
+  $scope.cubeConfig = cubeConfig;
+  $scope.tableConfig = tableConfig;
+  $scope.selectedSrcDb = [];
   if($scope.state.mode=='view') {
     $scope.streamingMeta = StreamingModel.createStreamingConfig();
     $scope.kafkaMeta = StreamingModel.createKafkaConfig();
   }
+  $scope.filterColumnType=function(typeName){
+    if(typeName&&typeName.indexOf('decimal')>=0){
+      return typeName.replace(/\(.*?\)/,'');
+    }
+    return typeName;
+  }
+  $scope.tableColumnTrans=function(tableColumn){
+    var resultArr=[];
+    for(var i= 0,len=tableColumn.length||0;i<len;i++){
+      var obj={}
+      obj.name=tableColumn[i].name;
+      obj.checked='Y';
+      obj.type=$scope.filterColumnType(tableColumn[i].datatype);
+      if($scope.cubeConfig.streamingAutoGenerateMeasure.some(function(list){return obj.name.toUpperCase()==list.name.toUpperCase()})){
+        obj.fromSource='N';
+      }else{
+        obj.fromSource='Y';
+      }
+      resultArr.push(obj);
+    }
+    return resultArr;
+  }
+
 
   if($scope.state.mode=='edit'&& $scope.state.target=='kfkConfig' && $scope.state.tableName){
     StreamingService.getConfig({table:$scope.state.tableName}, function (configs) {
@@ -40,16 +65,152 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
         StreamingService.getKfkConfig({kafkaConfigName:$scope.streamingMeta.name}, function (streamings) {
           if(!!streamings[0]&&streamings[0].name.toUpperCase() == $scope.state.tableName.toUpperCase()){
             $scope.updateKafkaMeta(streamings[0]);
+            $scope.loadClusterInfo();
           }
         })
       }
     })
+    $scope.table.columnList=$scope.tableColumnTrans($scope.tableModel.selectedSrcTable.columns);
+  }
+
+  //过滤column配置
+  $scope.loadColumnZH=function(){
+    $scope.streamingCfg.columnOptions = [];
+    $scope.rule.timestampColumnExist = false;
+    angular.forEach($scope.table.columnList, function (column, $index) {
+      if (column.checked == "Y" && column.fromSource == "Y" && column.type == "timestamp") {
+        $scope.streamingCfg.columnOptions.push(column.name);
+        $scope.rule.timestampColumnExist = true;
+      }
+    })
+    if ($scope.streamingCfg.columnOptions.length >= 1) {
+      $scope.streamingCfg.parseTsColumn = $scope.streamingCfg.columnOptions[0];
+      $scope.kafkaMeta.parserProperties = "tsColName=" + $scope.streamingCfg.parseTsColumn;
+    }else{
+      $scope.streamingCfg.parseTsColumn =[];
+      $scope.kafkaMeta.parserProperties ="";
+    }
   }
 
 
+
+
+  //通过json来解析columnList
+  $scope.convertJson = function (jsonData) {
+    $scope.table.schemaChecked = true;
+    try {
+      $scope.streaming.parseResult =JSON.parse(jsonData);
+    } catch (error) {
+      $scope.table.sourceValid = false;
+      return;
+    }
+    $scope.table.sourceValid = true;
+    //streaming table data change structure
+    var columnList = []
+
+    function changeObjTree(obj, base) {
+      base = base ? base + "_" : "";
+      for (var i in obj) {
+        if (Object.prototype.toString.call(obj[i]) == "[object Object]") {
+          changeObjTree(obj[i], base + i);
+          continue;
+        }
+        columnList.push(createNewObj(base + i, obj[i]));
+      }
+    }
+
+    function checkValType(val, key) {
+      var defaultType;
+      if (typeof val === "number") {
+        if (/id/i.test(key) && val.toString().indexOf(".") == -1) {
+          defaultType = "int";
+        } else if (val <= 2147483647) {
+          if (val.toString().indexOf(".") != -1) {
+            defaultType = "decimal";
+          } else {
+            defaultType = "int";
+          }
+        } else {
+          defaultType = "timestamp";
+        }
+      } else if (typeof val === "string") {
+        if (!isNaN((new Date(val)).getFullYear()) && typeof ((new Date(val)).getFullYear()) === "number") {
+          defaultType = "date";
+        } else {
+          defaultType = "varchar(256)";
+        }
+      } else if (Object.prototype.toString.call(val) == "[object Array]") {
+        defaultType = "varchar(256)";
+      } else if (typeof val === "boolean") {
+        defaultType = "boolean";
+      }
+      return defaultType;
+    }
+
+    function createNewObj(key, val) {
+      var obj = {};
+      obj.name = key;
+      obj.type = checkValType(val, key);
+      obj.value=val;
+      obj.fromSource = "Y";
+      obj.checked = "Y";
+      if (Object.prototype.toString.call(val) == "[object Array]") {
+        obj.checked = "N";
+      }
+      return obj;
+    }
+
+    changeObjTree($scope.streaming.parseResult);
+
+    var timeMeasure = $scope.cubeConfig.streamingAutoGenerateMeasure;
+    for (var i = 0; i < timeMeasure.length; i++) {
+      var defaultCheck = 'Y';
+      columnList.push({
+        'name': timeMeasure[i].name,
+        'checked': defaultCheck,
+        'type': timeMeasure[i].type,
+        'value':null,
+        'fromSource': 'N'
+      });
+    }
+
+    //
+    //if (!firstCommit) {
+    //  angular.forEach(columnList, function (item) {
+    //    for (var i = 0; i < $scope.table.columnList.length; i++) {
+    //      if ($scope.table.columnList[i].name == item.name) {
+    //        item.checked = $scope.table.columnList[i].checked;
+    //        item.type = $scope.table.columnList[i].type;
+    //        item.fromSource = $scope.table.columnList[i].fromSource;
+    //        break;
+    //      }
+    //    }
+    //  })
+    //}
+    return columnList;
+  }
+
+  $scope.streamingOnChange=function(){
+    $scope.table.columnList=$scope.convertJson($scope.streaming.sourceSchema);
+  }
+
+  $scope.convertSampleData=function(arr){
+    var result=[];
+    for(var i=0;i<(arr&&arr.length||0);i++){
+      var obj={};
+      var baseObj=$scope.convertJson(arr[i]);
+      for(var m=0;m<baseObj.length||0;m++){
+        obj[baseObj[m].name]=baseObj[m].value
+      }
+      result.push(angular.toJson(obj));
+    }
+    return result;
+  }
   $scope.addCluster = function () {
     $scope.kafkaMeta.clusters.push(StreamingModel.createKafkaCluster());
   };
+
+
 
   $scope.removeCluster = function(cluster){
 
@@ -67,17 +228,23 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
         if (index > -1) {
           $scope.kafkaMeta.clusters.splice(index, 1);
         }
+        $scope.loadClusterInfo();
       }
 
     })
   }
 
   $scope.addBroker = function (cluster,broker) {
+    $scope.fromError=false;
     //$scope.modelsManager.selectedModel = model;
     cluster.newBroker=(!!broker)?broker:StreamingModel.createBrokerConfig();
   };
-
+  if($scope.state.mode=='edit'&&!$scope.state.target){
+    $scope.addCluster();
+    $scope.addBroker($scope.kafkaMeta.clusters[0])
+  }
   $scope.removeNewBroker = function (cluster){
+    $scope.fromError=false;
     delete cluster.newBroker;
   }
 
@@ -89,13 +256,24 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
   };
 
   $scope.saveNewBroker = function(cluster){
-    if (cluster.brokers.indexOf(cluster.newBroker) === -1) {
+    $scope.fromError=false;
+    var checkResult=cluster.brokers.some(function(item){
+      if(item.port==cluster.newBroker.port&&item.host==cluster.newBroker.host){
+         return true;
+      }
+    })
+    if(checkResult||(cluster.newBroker.port==''||cluster.newBroker.host==''||cluster.newBroker.id=='')){
+      $scope.fromError=true;
+      return;
+    }else{
       cluster.brokers.push(cluster.newBroker);
+      delete cluster.newBroker;
     }
-    delete cluster.newBroker;
+
   }
 
   $scope.clearNewBroker = function(cluster){
+    $scope.fromError=false;
     delete cluster.newBroker;
   }
 
@@ -139,5 +317,95 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
       }
     })
   }
+
+
+  $scope.treeData=[];
+  $scope.loadClusterInfo=function(){
+    $scope.treeData=[];
+    $scope.loading = true;
+    var hasHisTopic=false;
+    ClusterService.getCusterTopic({},{
+      project: $scope.projectName,
+      tableData: angular.toJson($scope.tableData),
+      streamingConfig: angular.toJson($scope.streamingMeta),
+      kafkaConfig: angular.toJson($scope.kafkaMeta)
+    },function(data){
+      $scope.loading = false;
+      for(var i in data){
+        if(VdmUtil.isNotExtraKey(data,i)){
+          var obj={}
+          obj.label= i.replace(/-/g,'.');
+          obj.data=i;
+          obj.children=[];
+          for(var k=0;k<data[i].length;k++){
+            var childObj={};
+            childObj.label=data[i][k];
+            childObj.data=data[i][k];
+            childObj.pdata=i;
+            childObj.icon='indented tree-icon fa fa-table';
+
+            if($scope.kafkaMeta.topic&&$scope.kafkaMeta.topic==data[i][k]){
+              hasHisTopic=true;
+            }
+            childObj.onSelect=function(branch) {
+              loadingRequest.show();
+              $scope.kafkaMeta.topic=branch.data;
+              ClusterService.getTopicInfo({
+                cluster:branch.pdata,
+                topic:branch.data,
+              },{
+                project: $scope.projectName,
+                tableData: angular.toJson($scope.tableData),
+                streamingConfig: angular.toJson($scope.streamingMeta),
+                kafkaConfig: angular.toJson($scope.kafkaMeta)
+              },function(data){
+                 loadingRequest.hide();
+                 if(!data||data&&data.length==0){
+                   SweetAlert.swal('', $scope.dataKylin.data_source.useLessTopic, 'error');
+                 }else{
+                   $scope.streaming.sourceSchema= data[0]||'';
+                   $scope.table.message=$scope.convertSampleData(data);
+                 }
+              },function(){
+                var message;
+                if (e.data && e.data.exception) {
+                  message = e.data.exception;
+                } else {
+                  message = $scope.dataKylin.alert.error_info;
+                }
+                loadingRequest.hide();
+                SweetAlert.swal('', message, 'error');
+              })
+            }
+            obj.children.push(childObj);
+          }
+          $scope.treeData.push(obj);
+        }
+        //当前列表中没有了之前选择的topic，就清空之前根据topic设置的内容
+        if(!hasHisTopic){
+          $scope.streaming.sourceSchema='';
+          $scope.table.message=[];
+          $scope.streamingOnChange();
+          $scope.loadColumnZH();
+        }
+      }
+    },function(){
+      $scope.loading = false;
+      $scope.streaming.sourceSchema='';
+      $scope.table.message=[];
+      $scope.streamingOnChange();
+      $scope.loadColumnZH();
+    })
+  }
+
+  $scope.loadStreaming=function(){
+
+  }
+  $scope.dataBaseList=[]
+  TableModel.initTableData(function(data){
+    $scope.dataBaseList=TableModel.getDataBaseList();
+  })
+
+
 
 });

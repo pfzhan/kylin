@@ -22,16 +22,20 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.source.hive.kafkastats;
+package io.kyligence.kap.source.kafka;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.PartitionInfo;
@@ -39,12 +43,17 @@ import org.apache.kylin.source.kafka.config.BrokerConfig;
 import org.apache.kylin.source.kafka.config.KafkaClusterConfig;
 import org.apache.kylin.source.kafka.config.KafkaConfig;
 import org.apache.kylin.source.kafka.util.KafkaClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CollectKafkaStats {
 
+    private static final Logger logger = LoggerFactory.getLogger(CollectKafkaStats.class);
     final static String uuidPattern = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
-    final static long timeOut = 10000;
-    final static int msgCount = 10;
+    final static String ipPattern = "\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}";
+    final static long FETCH_MSG_TIMEOUT = 20000;
+    final static long LIST_TOPIC_TIMEOUT = 12000;
+    final static int MSG_AMOUNT = 10;
 
     public static Map<String, List<String>> getTopics(KafkaConfig kafkaConfig) {
         Map<String, List<String>> topicsMap = new HashMap<>();
@@ -52,11 +61,17 @@ public class CollectKafkaStats {
 
         for (Map.Entry<String, List<String>> cluster : clustersMap.entrySet()) {
             for (String broker : cluster.getValue()) {
-                Consumer consumer = KafkaClient.getKafkaConsumer(broker, null, null);
+                Properties property = new Properties();
+                //this property must greater than 10000
+                property.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, LIST_TOPIC_TIMEOUT);
+                Consumer consumer = KafkaClient.getKafkaConsumer(broker, "test", property);
+                logger.info("Trying to get messages from broker: " + broker);
                 if (null == consumer)
                     throw new IllegalArgumentException("The given cluster: " + broker + "is not found");
 
                 Map<String, List<PartitionInfo>> topics = consumer.listTopics();
+                if (0 == topics.size())
+                    logger.info("There are no topics in the given broker: " + broker + ", please check if the broker is reasonable!");
                 for (Map.Entry<String, List<PartitionInfo>> topic : topics.entrySet()) {
                     if (!isUsefulTopic(topic.getKey()))
                         continue;
@@ -69,6 +84,7 @@ public class CollectKafkaStats {
                             topicsMap.get(cluster.getKey()).add(topic.getKey());
                     }
                 }
+                consumer.close();
             }
         }
         return topicsMap;
@@ -106,7 +122,7 @@ public class CollectKafkaStats {
         Map<String, List<String>> clustersMap = getCluster(kafkaConfig);
         Map<String, List<String>> topicsMap = getBrokers(kafkaConfig);
 
-        List<String> msgList = new ArrayList<>();
+        List<String> msgList = null;
         List<String> availableBrokers = new ArrayList<>();
         List<String> brokersByTopic = topicsMap.get(topic);
         if (null == brokersByTopic)
@@ -119,24 +135,35 @@ public class CollectKafkaStats {
                 availableBrokers.add(broker);
         }
 
+        Consumer consumer = null;
         ConsumerRecords<String, String> records = null;
         for (String broker : availableBrokers) {
-            Consumer consumer = KafkaClient.getKafkaConsumer(broker, "test", null);
+            consumer = KafkaClient.getKafkaConsumer(broker, "test", null);
             consumer.subscribe(Arrays.asList(topic));
-            records = consumer.poll(timeOut);
+            records = consumer.poll(FETCH_MSG_TIMEOUT);
             if (records.isEmpty())
                 continue;
-            else
+            else {
+                msgList = collectSamples(consumer);
                 break;
+            }
         }
 
-        int count = 0;
-        for (ConsumerRecord<String, String> record : records) {
-            msgList.add(record.value());
-            if (count++ < msgCount)
-                break;
-        }
+        consumer.close();
         return msgList;
+    }
+
+    private static List<String> collectSamples(Consumer consumer) {
+        List<String> samples = new ArrayList<>();
+        int nTryTimes = 0;
+        while (samples.size() < MSG_AMOUNT || nTryTimes > 10) {
+            ConsumerRecords<String, String> records = consumer.poll(FETCH_MSG_TIMEOUT);
+            for (ConsumerRecord<String, String> record : records) {
+                samples.add(record.value());
+            }
+            nTryTimes++;
+        }
+        return samples;
     }
 
     private static Map<String, List<String>> getCluster(KafkaConfig kafkaConfig) {
@@ -173,9 +200,19 @@ public class CollectKafkaStats {
     private static String IdentifyClusterByBrokers(List<BrokerConfig> brokerConfigList) {
         StringBuffer clusterName = new StringBuffer();
         for (BrokerConfig brokerConfig : brokerConfigList) {
-            clusterName.append(brokerConfig.getHost());
+            String host = brokerConfig.getHost();
+            if (!StringUtils.isEmpty(host) && isIp(host))
+                host = host.replace('.', '-');
+            clusterName.append(host);
             clusterName.append("|");
         }
-        return clusterName.toString();
+        int length = clusterName.toString().length();
+        return clusterName.toString().substring(0, length - 1);
+    }
+
+    private static boolean isIp(String ipAddress) {
+        Pattern pattern = Pattern.compile(ipPattern);
+        Matcher matcher = pattern.matcher(ipAddress);
+        return matcher.matches();
     }
 }

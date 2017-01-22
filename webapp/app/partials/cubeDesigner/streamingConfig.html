@@ -19,110 +19,197 @@
 <div ng-controller="streamingConfigCtrl">
   <form name="form.cube_streaming_form" novalidate>
 
-    <div>
-      <accordion>
-        <accordion-group is-open="state.isKfkSettingOpen" ng-init="state.isKfkSettingOpen=true">
-          <accordion-heading>
-            {{dataKylin.cube.kaKafkaSetting}}
-            <i class="pull-right glyphicon"
-               ng-class="{'glyphicon-chevron-down': state.isKfkSettingOpen, 'glyphicon-chevron-right': !state.isKfkSettingOpen}"></i>
-          </accordion-heading>
+    <!--add cluster-->
+    <!--cluster-from-->
+    <div ng-repeat="cluster in kafkaMeta.clusters | filter: state.measureFilter" class="box">
+      <div class="box-header">
+        <h3 class="box-title">{{dataKylin.cube.kaCluster}}-{{$index+1}}</h3>
+        <button ng-if="state.mode=='edit'" type="button" ng-click="removeCluster(cluster)" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+      </div>
+      <div class="box-body no-padding">
+        <table class="table table-condensed" ng-if="cluster.brokers.length||cluster.newBroker">
+          <thead>
+          <tr>
+            <th>ID</th>
+            <th>{{dataKylin.cube.kaHost}}</th>
+            <th>{{dataKylin.cube.kaPort}}</th>
+            <th ng-if="state.mode=='edit'">{{dataKylin.cube.kaActions}}</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr ng-repeat="broker in cluster.brokers| filter: state.measureFilter track by $index">
+            <td>{{broker.id}}</td>
+            <td>{{broker.host}}</td>
+            <td>{{broker.port}}</td>
+            <td ng-if="state.mode=='edit'">
+              <!--Edit Button -->
+              <button class="btn btn-xs btn-info" ng-click="addBroker(cluster,broker)">
+                <i class="fa fa-pencil"></i>
+              </button>
 
-          <div class="form-group middle-popover" ng-class="{'required':state.mode=='edit'}">
-        <div class="row">
-          <label class="col-xs-12 col-sm-3 control-label no-padding-right">
-            <b>{{dataKylin.cube.kaTopic.name}}</b>
-            <i class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.kaTopic.name}}" ng-watch="{{dataKylin.cube.kaTopic.watch}}" template="KafkaTopicTip.html"></i>
-          </label>
-          <div class="col-xs-12 col-sm-6"   ng-class="{'has-error':form.cube_streaming_form.topic.$invalid && (form.cube_streaming_form.topic.$dirty||form.cube_streaming_form.$submitted)}">
-            <input  ng-if="state.mode=='edit'"  name="topic" required ng-model="kafkaMeta.topic" type="text"
-                    placeholder="{{dataKylin.cube.tip_input_kafkaConfig_topic}}"
-                    class="form-control"/>
-            <small class="help-block"
-                   ng-show="!form.cube_streaming_form.topic.$error.required && form.cube_streaming_form.topic.$invalid && (form.cube_streaming_form.topic.$dirty||form.cube_streaming_form.$submitted)">
-              {{dataKylin.cube.tip_kafka_topic_invalid}}
-            </small>
-            <small class="help-block" ng-show="form.cube_streaming_form.topic.$error.required && (form.cube_streaming_form.topic.$dirty||form.cube_streaming_form.$submitted)">{{dataKylin.cube.tip_Kafka_topic}}</small>
-            <span ng-if="state.mode=='view'">{{kafkaMeta.topic}}</span>
+              <button class="btn btn-xs btn-danger" ng-click="removeElement(cluster,broker);loadClusterInfo()"><i class="fa fa-trash-o"></i>
+              </button>
+            </td>
+          </tr>
+          <tr ng-if="cluster.newBroker">
+            <td>
+              <div class="input-group">
+                <input class="form-control" type="text" ng-model="cluster.newBroker.id" name="broker_id" placeholder="{{dataKylin.cube.tip_input_broker}}"/>
+              </div>
+            </td>
+            <td>
+              <div class="input-group">
+                <input class="form-control" type="text" ng-model="cluster.newBroker.host" name="broker_host" placeholder="{{dataKylin.cube.tip_input_broker_host}}">
+              </div>
+            </td>
+            <td>
+              <div class="input-group">
+                <input class="form-control" type="text" ng-model="cluster.newBroker.port" name="broker_port" placeholder="{{dataKylin.cube.tip_input_broker_port}}">
+              </div>
+            </td>
+            <td>
+              <button class="btn btn-xs btn-danger" ng-click="removeNewBroker(cluster);"><i class="fa fa-trash-o"></i>
+              </button>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="box-footer">
+        <div>
+          <button class="btn btn-sm btn-success" ng-click="addBroker(cluster);" ng-show="state.mode=='edit'&&!cluster.newBroker">
+            <i class="fa fa-plus"></i> {{dataKylin.cube.kaBroker}}
+          </button>
+          <button class="btn btn-sm btn-info" ng-click="saveNewBroker(cluster);loadClusterInfo()" ng-show="state.mode=='edit'&&cluster.newBroker">
+            <i class="fa fa-saved"></i> {{dataKylin.cube.kaSave}}
+          </button>
+          <button class="btn btn-link" ng-click="clearNewBroker(cluster);loadClusterInfo()"  ng-show="state.mode=='edit'&&cluster.newBroker">{{dataKylin.cube.kaCancel}}</button>
+          <span ng-if="fromError" style="color:red">{{dataKylin.data_source.clusterFormError}}</span>
+
+        </div>
+      </div>
+    </div>
+
+    <!--cluster-from-->
+
+    <button class="btn btn-sm btn-info" ng-click="addCluster();"  ng-show="state.mode=='edit'&&kafkaMeta.clusters.length<1">
+      <i class="fa fa-plus"></i> {{dataKylin.cube.kaCluster}}
+    </button>
+
+    <!--add cluster-->
+
+    <hr/>
+
+
+    <!--tableselect and jsonbox-->
+   <div style="border:solid 1px #eee;padding:10px" ng-if="state.mode!='view'&&!state.target">
+     <div class="col-xs-6">
+       <abn-tree
+               tree-data         = "treeData"
+               tree-control      = "my_tree"
+               icon-leaf         = "fa fa-columns"
+               icon-expand       = "fa fa-database"
+               icon-collapse     = "fa fa-database"
+               expand-level      = "3">
+       </abn-tree>
+
+       <div ng-if="!loading && treeData.length == 0">
+         <div no-result text="{{dataKylin.data_source.noCluster}}"></div>
+       </div>
+       <loading ng-if="loading" text="{{dataKylin.data_source.loadingCluster}}"></loading>
+     </div>
+     <div class="col-xs-6">
+       <div style="background-color:#f5f5f5" ng-model="streaming.sourceSchema" ui-ace="{
+        useWrapMode : true,
+        mode:'json',
+        onLoad: streamingOnLoad
+      }">
+{{streaming.sourceSchema}}
+     </div>
+       <div class="convertBtn" ng-click="streamingOnChange();loadColumnZH();">convert<i class="fa fa-chevron-down" aria-hidden="true"></i></div>
+    </div>
+     <div style="clear: both"></div>
+  </div>
+
+
+
+
+    <div >
+      <div style="border:solid 1px #eee;padding:10px;margin-top: -1px" ng-if="state.mode!='view'&&!state.target">
+          <div class="form-group middle-popover" ng-class="{'required':state.mode=='edit'}" >
+            <ol class="text-info" style="margin-bottom: 30px;" ng-bind-html="dataKylin.data_source.tip_table_schemaChecked_detail">
+            </ol>
+            <div class="row">
+              <label class="col-xs-12 col-sm-2 control-label no-padding-right">
+                <b>Table Name:</b>
+              </label>
+              <div class="col-xs-12 col-sm-4" style="text-align: left">
+                 <select ng-if="!state.tableName" class="form-control" ng-model="table.database"><option ng-repeat=" db in dataBaseList" value="{{db}}">{{db}}</option></select>
+                  <span ng-if="state.tableName">{{state.tableName}}</span>
+
+              </div>
+              <div class="col-xs-12 col-sm-3"   ng-class="{'has-error':form.cube_streaming_form.tablename.$invalid && (form.cube_streaming_form.tablename.$dirty||form.cube_streaming_form.$submitted)}">
+                <input  ng-if="!state.tableName"  name="tablename" required ng-model="table.name" type="text"
+                        placeholder="{{database.table}}"
+                        class="form-control"/>
+
+                <small class="help-block"
+                       ng-show="form.cube_streaming_form.tablename.$error.required && form.cube_streaming_form.tablename.$invalid && (form.cube_streaming_form.tablename.$dirty||form.cube_streaming_form.$submitted)">
+                  {{dataKylin.data_source.tip_table_name}}
+                </small>
+                <small class="help-block" ng-show="form.cube_streaming_form.topic.$error.required && (form.cube_streaming_form.topic.$dirty||form.cube_streaming_form.$submitted)">{{dataKylin.cube.tip_Kafka_topic}}</small>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div ng-repeat="cluster in kafkaMeta.clusters | filter: state.measureFilter track by $index" class="box">
-        <div class="box-header">
-          <h3 class="box-title">{{dataKylin.cube.kaCluster}}-{{$index+1}}</h3>
-          <button ng-if="state.mode=='edit'" type="button" ng-click="removeCluster(cluster)" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
-        </div>
-        <div class="box-body no-padding">
-          <table class="table table-condensed" ng-if="cluster.brokers.length||cluster.newBroker">
-            <thead>
-            <tr>
-              <th>ID</th>
-              <th>{{dataKylin.cube.kaHost}}</th>
-              <th>{{dataKylin.cube.kaPort}}</th>
-              <th ng-if="state.mode=='edit'">{{dataKylin.cube.kaActions}}</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr ng-repeat="broker in cluster.brokers| filter: state.measureFilter track by $index">
-              <td>{{broker.id}}</td>
-              <td>{{broker.host}}</td>
-              <td>{{broker.port}}</td>
-              <td ng-if="state.mode=='edit'">
-                <!--Edit Button -->
-                <button class="btn btn-xs btn-info" ng-click="addBroker(cluster,broker)">
-                  <i class="fa fa-pencil"></i>
-                </button>
 
-                <button class="btn btn-xs btn-danger" ng-click="removeElement(cluster,broker)"><i class="fa fa-trash-o"></i>
-                </button>
-              </td>
-            </tr>
-            <tr ng-if="cluster.newBroker">
-              <td>
-                <div class="input-group">
-                  <input class="form-control" type="text" ng-model="cluster.newBroker.id" name="broker_id" placeholder="{{dataKylin.cube.tip_input_broker}}"/>
-                </div>
-              </td>
-              <td>
-                <div class="input-group">
-                  <input class="form-control" type="text" ng-model="cluster.newBroker.host" name="broker_host" placeholder="{{dataKylin.cube.tip_input_broker_host}}">
-                </div>
-              </td>
-              <td>
-                <div class="input-group">
-                  <input class="form-control" type="text" ng-model="cluster.newBroker.port" name="broker_port" placeholder="{{dataKylin.cube.tip_input_broker_port}}">
-                </div>
-              </td>
-              <td>
-                <button class="btn btn-xs btn-danger" ng-click="removeNewBroker(cluster)"><i class="fa fa-trash-o"></i>
-                </button>
-              </td>
-            </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="box-footer">
-          <div>
-            <button class="btn btn-sm btn-success" ng-click="addBroker(cluster)" ng-show="state.mode=='edit'&&!cluster.newBroker">
-              <i class="fa fa-plus"></i> {{dataKylin.cube.kaBroker}}
-            </button>
-            <button class="btn btn-sm btn-info" ng-click="saveNewBroker(cluster)" ng-show="state.mode=='edit'&&cluster.newBroker">
-              <i class="fa fa-saved"></i> {{dataKylin.cube.kaSave}}
-            </button>
-            <button class="btn btn-link" ng-click="clearNewBroker(cluster)"  ng-show="state.mode=='edit'&&cluster.newBroker">{{dataKylin.cube.kaCancel}}</button>
-          </div>
-        </div>
-      </div>
-      <!--Add Measures Button-->
-      <div class="form-group">
-        <button class="btn btn-sm btn-info" ng-click="addCluster()" ng-show="state.mode=='edit'">
-          <i class="fa fa-plus"></i> {{dataKylin.cube.kaCluster}}
-        </button>
-      </div>
+          <!--Add Measures Button-->
+          <div class="form-group" >
+        <!--<button class="btn btn-sm btn-info" ng-click="addCluster()" ng-show="state.mode=='edit'">-->
+          <!--<i class="fa fa-plus"></i> {{dataKylin.cube.kaCluster}}-->
+        <!--</button>-->
 
-          </accordion-group>
-        </accordion>
+              <table class="table table-hover table-bordered table-striped list">
+                <thead>
+                <tr style="cursor: pointer">
+                  <th style="text-align: center">ID</th>
+                  <th>{{dataKylin.data_source.column}}</th>
+                  <th>{{dataKylin.data_source.columnType}}</th>
+                  <th>{{dataKylin.data_source.comment}}</th>
+                </tr>
+                </thead>
+                <tr ng-repeat="column in table.columnList">
+                  <td align="center"><label style="width:100%;cursor: pointer;" for="{{column.name}}"><input style="width:1em;height:1em;"
+                                                                                              type="checkbox"
+                                                                                              id="{{column.name}}"
+                                                                                              ng-model="column.checked"
+                                                                                              ng-true-value="Y"
+                                                                                              ng-false-value="N"/></label>
+                  </td>
+                  <td>{{column.name}}</td>
+                  <td>
+                    <select chosen ng-model="column.type" ng-change="loadColumnZH()"
+                            ng-options="type as type for type in tableConfig.dataTypes"
+                            data-placeholder="{{dataKylin.data_source.plac_select_column_type}}"
+                            style="width: 120px !important;"
+                            class="chosen-select">
+                    </select>
+                  </td>
+                  <td>
+                    <label ng-if="column.type=='timestamp'&&column.fromSource=='Y'" class="badge badge-info">{{dataKylin.data_source.timestamp}}</label>
+                    <label ng-if="column.fromSource=='N'" class="badge badge-info">{{dataKylin.data_source.derivedTimeDimension}}</label>
+                  </td>
+                </tr>
+              </table>
+            </div>
+        <div class="has-error" ng-if="!rule.timestampColumnExist&&form.cube_streaming_form.$submitted&&state.mode!='view'">
+          <small class="help-block">
+            {{dataKylin.data_source.tip_choose_timestamp}}
+          </small>
+        </div>
+          <!--</accordion-group>-->
+          <!--</accordion>-->
+      </div>
       <hr/>
       <accordion>
 
@@ -201,72 +288,6 @@
           </div>
         </accordion-group>
       </accordion>
-      <hr/>
-      <!--Advanced setting-->
-      <accordion>
-        <accordion-group is-open="state.isStreamingAdOpen" ng-init="state.isStreamingAdOpen">
-          <accordion-heading>
-            {{dataKylin.cube.kaAdvancedSetting}}
-            <i class="pull-right glyphicon"
-               ng-class="{'glyphicon-chevron-down': state.isStreamingAdOpen, 'glyphicon-chevron-right': !state.isStreamingAdOpen}"></i>
-          </accordion-heading>
-
-          <div class="form-group middle-popover" ng-class="{'required':state.mode=='edit'}">
-            <div class="row">
-              <label class="col-xs-12 col-sm-3 control-label no-padding-right">
-                <b>{{dataKylin.cube.kaTimeout}}</b>
-                <i class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.kaTimeout}}" template="TimeoutTip.html"></i>
-              </label>
-
-              <div class="col-xs-12 col-sm-6"
-                   ng-class="{'has-error':form.cube_streaming_form.timeout.$invalid && (form.cube_streaming_form.timeout.$dirty||form.cube_streaming_form.$submitted)}">
-                <input ng-if="state.mode=='edit'" name="timeout" required ng-model="kafkaMeta.timeout" type="text"
-                       placeholder="{{dataKylin.cube.tip_input_kafkaConfig_timeout}}"
-                       ng-pattern="/^\+?[1-9][0-9]*$/"
-                       class="form-control"/>
-                <small class="help-block"
-                       ng-show="!form.cube_streaming_form.timeout.$error.required && form.cube_streaming_form.timeout.$invalid && (form.cube_streaming_form.timeout.$dirty||form.cube_streaming_form.$submitted)">
-                  {{dataKylin.cube.tip_timeout_invalid}}
-                </small>
-                <small class="help-block"
-                       ng-show="form.cube_streaming_form.timeout.$error.required && (form.cube_streaming_form.timeout.$dirty||form.cube_streaming_form.$submitted)">
-                  {{dataKylin.cube.tip_timeout_required}}
-                </small>
-                <span ng-if="state.mode=='view'">{{kafkaMeta.timeout}}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-group middle-popover" ng-class="{'required':state.mode=='edit'}">
-            <div class="row">
-              <label class="col-xs-12 col-sm-3 control-label no-padding-right">
-                <b>{{dataKylin.cube.kaBufferSize}}</b>
-                <i class="fa fa-info-circle" kylinpopover placement="right" ng-title="{{dataKylin.cube.kaBufferSize}}" template="BufferSizecTip.html"></i>
-              </label>
-
-              <div class="col-xs-12 col-sm-6"
-                   ng-class="{'has-error':form.cube_streaming_form.bufferSize.$invalid && (form.cube_streaming_form.bufferSize.$dirty||form.cube_streaming_form.$submitted)}">
-                <input ng-if="state.mode=='edit'" name="bufferSize" required ng-model="kafkaMeta.bufferSize" type="text"
-                       placeholder="{{dataKylin.cube.tip_kafkaConfig_bufferSize}}"
-                       ng-pattern="/^\+?[1-9][0-9]*$/"
-                       class="form-control"/>
-                <small class="help-block"
-                       ng-show="!form.cube_streaming_form.bufferSize.$error.required && form.cube_streaming_form.bufferSize.$invalid && (form.cube_streaming_form.bufferSize.$dirty||form.cube_streaming_form.$submitted)">
-                  {{dataKylin.cube.tip_bufferSize_invalid}}
-                </small>
-                <small class="help-block"
-                       ng-show="form.cube_streaming_form.bufferSize.$error.required && (form.cube_streaming_form.bufferSize.$dirty||form.cube_streaming_form.$submitted)">
-                  {{dataKylin.cube.tip_bufferSize_required}}
-                </small>
-                <span ng-if="state.mode=='view'">{{kafkaMeta.bufferSize}}</span>
-              </div>
-            </div>
-          </div>
-
-        </accordion-group>
-      </accordion>
-
-
 
     </div>
   </form>

@@ -428,17 +428,34 @@ KylinApp
       }
 
 
-      var EditStreamingSourceCtrl = function ($scope, language, $interpolate, $templateCache, tableName, $modalInstance, tableNames, MessageService, projectName, scope, tableConfig, cubeConfig, StreamingModel, StreamingService) {
+      var EditStreamingSourceCtrl = function ($scope, language, $interpolate, $templateCache, tableName, $modalInstance, tableNames, MessageService, projectName, scope, tableConfig, cubeConfig, StreamingModel, StreamingService,ClusterService) {
 
 
         $scope.dataKylin = language.getDataKylin();
-
         $scope.state = {
           tableName: tableName,
           mode: "edit",
           target: "kfkConfig"
         }
-
+        $scope.rule = {
+          'timestampColumnExist': false
+        }
+        $scope.streaming = {
+          sourceSchema: '',
+          'parseResult': {}
+        }
+        $scope.streamingCfg = {
+          parseTsColumn: "{{}}",
+          columnOptions: []
+        }
+        $scope.table = {
+          name: '',
+          sourceValid: false,
+          schemaChecked: false,
+          database:'DEFAULT',
+          message:[],
+          columnList:[]
+        }
         $scope.cancel = function () {
           $modalInstance.dismiss('cancel');
         };
@@ -458,7 +475,20 @@ KylinApp
           var tmpl = notification.type == 'success' ? 'streamingResultSuccess.html' : 'streamingResultError.html';
           return $interpolate($templateCache.get(tmpl))(notification);
         };
-
+        $scope.setSampleData=function(table,callback,errcallback){
+          ClusterService.saveSampleData({
+            table:table,
+            action:'samples'
+          },$scope.table.message,function(data){
+            if(data&&data[0]+data[1]=='ok'){
+              callback();
+            }else{
+              errcallback();
+            }
+          },function(){
+            errcallback();
+          })
+        }
         $scope.updateStreamingSchema = function () {
           StreamingService.update({}, {
             project: $scope.projectName,
@@ -467,7 +497,11 @@ KylinApp
             kafkaConfig: angular.toJson($scope.kafkaMeta)
           }, function (request) {
             if (request.successful) {
-              SweetAlert.swal('', 'Updated the streaming successfully.', 'success');
+              $scope.setSampleData($scope.table.database+'.'+$scope.table.namegit,function(){
+                SweetAlert.swal('', 'Updated the streaming successfully.', 'success');
+              },function(){
+                SweetAlert.swal('', 'Updated the streaming successfully.', 'success');
+              });
               $scope.cancel();
             } else {
               var message = request.message;
@@ -501,10 +535,13 @@ KylinApp
           })
         }
 
+
+
+
       }
 
 
-      var StreamingSourceCtrl = function ($scope, $location, $interpolate, $templateCache, $modalInstance, tableNames, MessageService, projectName, scope, tableConfig, cubeConfig, StreamingModel, StreamingService, language, kylinCommon) {
+      var StreamingSourceCtrl = function ($scope, $location, $interpolate, $templateCache, $modalInstance, tableNames, MessageService, projectName, scope, tableConfig, cubeConfig, StreamingModel, StreamingService, language, kylinCommon,ClusterService) {
         $scope.dataKylin = language.getDataKylin();
         $scope.state = {
           'mode': 'edit'
@@ -513,71 +550,13 @@ KylinApp
         $scope.streamingMeta = StreamingModel.createStreamingConfig();
         $scope.kafkaMeta = StreamingModel.createKafkaConfig();
 
-
-        $scope.steps = {
-          curStep: 1
-        };
-
         $scope.streamingCfg = {
           parseTsColumn: "{{}}",
           columnOptions: []
         }
-
-        $scope.previewStep = function () {
-          $scope.steps.curStep--;
-        }
-
-        $scope.nextStep = function () {
-
-          $scope.checkFailed = false;
-
-          //check form
-          $scope.form['setStreamingSchema'].$submitted = true;
-          if (!$scope.streaming.sourceSchema || $scope.streaming.sourceSchema === "") {
-            $scope.checkFailed = true;
-          }
-
-          if (!$scope.table.name || $scope.table.name === "") {
-            $scope.checkFailed = true;
-          }
-
-          $scope.prepareNextStep();
-
-          if (!$scope.rule.timestampColumnExist) {
-            $scope.checkFailed = true;
-          }
-
-          if ($scope.checkFailed) {
-            return;
-          }
-
-          $scope.steps.curStep++;
-        }
-
-        $scope.prepareNextStep = function () {
-          $scope.streamingCfg.columnOptions = [];
-          $scope.rule.timestampColumnExist = false;
-          angular.forEach($scope.columnList, function (column, $index) {
-            if (column.checked == "Y" && column.fromSource == "Y" && column.type == "timestamp") {
-              $scope.streamingCfg.columnOptions.push(column.name);
-              $scope.rule.timestampColumnExist = true;
-            }
-          })
-
-          if ($scope.streamingCfg.columnOptions.length == 1) {
-            $scope.streamingCfg.parseTsColumn = $scope.streamingCfg.columnOptions[0];
-            $scope.kafkaMeta.parserProperties = "tsColName=" + $scope.streamingCfg.parseTsColumn;
-          }
-          if ($scope.kafkaMeta.parserProperties !== '') {
-            $scope.state.isParserHeaderOpen = false;
-          } else {
-            $scope.state.isParserHeaderOpen = true;
-          }
-        }
+        $scope.columnList=[];
 
         $scope.projectName = projectName;
-        $scope.tableConfig = tableConfig;
-        $scope.cubeConfig = cubeConfig;
         $scope.streaming = {
           sourceSchema: '',
           'parseResult': {}
@@ -586,7 +565,10 @@ KylinApp
         $scope.table = {
           name: '',
           sourceValid: false,
-          schemaChecked: false
+          schemaChecked: false,
+          database:'DEFAULT',
+          message:[],
+          columnList:[]
         }
 
         $scope.cancel = function () {
@@ -597,103 +579,7 @@ KylinApp
 
         }
 
-        $scope.columnList = [];
 
-        $scope.streamingOnChange = function () {
-          $scope.table.schemaChecked = true;
-          try {
-            $scope.streaming.parseResult = JSON.parse($scope.streaming.sourceSchema);
-          } catch (error) {
-            $scope.table.sourceValid = false;
-            return;
-          }
-          $scope.table.sourceValid = true;
-          //streaming table data change structure
-          var columnList = []
-
-          function changeObjTree(obj, base) {
-            base = base ? base + "_" : "";
-            for (var i in obj) {
-              if (Object.prototype.toString.call(obj[i]) == "[object Object]") {
-                changeObjTree(obj[i], base + i);
-                continue;
-              }
-              columnList.push(createNewObj(base + i, obj[i]));
-            }
-          }
-
-          function checkValType(val, key) {
-            var defaultType;
-            if (typeof val === "number") {
-              if (/id/i.test(key) && val.toString().indexOf(".") == -1) {
-                defaultType = "int";
-              } else if (val <= 2147483647) {
-                if (val.toString().indexOf(".") != -1) {
-                  defaultType = "decimal";
-                } else {
-                  defaultType = "int";
-                }
-              } else {
-                defaultType = "timestamp";
-              }
-            } else if (typeof val === "string") {
-              if (!isNaN((new Date(val)).getFullYear()) && typeof ((new Date(val)).getFullYear()) === "number") {
-                defaultType = "date";
-              } else {
-                defaultType = "varchar(256)";
-              }
-            } else if (Object.prototype.toString.call(val) == "[object Array]") {
-              defaultType = "varchar(256)";
-            } else if (typeof val === "boolean") {
-              defaultType = "boolean";
-            }
-            return defaultType;
-          }
-
-          function createNewObj(key, val) {
-            var obj = {};
-            obj.name = key;
-            obj.type = checkValType(val, key);
-            obj.fromSource = "Y";
-            obj.checked = "Y";
-            if (Object.prototype.toString.call(val) == "[object Array]") {
-              obj.checked = "N";
-            }
-            return obj;
-          }
-
-          changeObjTree($scope.streaming.parseResult);
-
-          var timeMeasure = $scope.cubeConfig.streamingAutoGenerateMeasure;
-          for (var i = 0; i < timeMeasure.length; i++) {
-            var defaultCheck = 'Y';
-            columnList.push({
-              'name': timeMeasure[i].name,
-              'checked': defaultCheck,
-              'type': timeMeasure[i].type,
-              'fromSource': 'N'
-            });
-          }
-
-          var firstCommit = false;
-          if ($scope.columnList.length == 0) {
-            firstCommit = true;
-          }
-
-          if (!firstCommit) {
-            angular.forEach(columnList, function (item) {
-              for (var i = 0; i < $scope.columnList.length; i++) {
-                if ($scope.columnList[i].name == item.name) {
-                  item.checked = $scope.columnList[i].checked;
-                  item.type = $scope.columnList[i].type;
-                  item.fromSource = $scope.columnList[i].fromSource;
-                  break;
-                }
-              }
-            })
-          }
-          $scope.columnList = columnList;
-        }
 
 
         $scope.streamingResultTmpl = function (notification) {
@@ -718,12 +604,12 @@ KylinApp
             $scope.state.isParserHeaderOpen = true;
           }
 
-          if ($scope.form['cube_streaming_form'].$invalid) {
+          if ($scope.form['cube_streaming_form'].$invalid||!$scope.rule.timestampColumnExist) {
             return;
           }
 
           var columns = [];
-          angular.forEach($scope.columnList, function (column, $index) {
+          angular.forEach($scope.table.columnList, function (column, $index) {
             if (column.checked == "Y") {
               var columnInstance = {
                 "id": ++$index,
@@ -739,7 +625,7 @@ KylinApp
             "name": $scope.table.name,
             "source_type": 1,
             "columns": columns,
-            'database': 'Default'
+            'database': $scope.table.database||'Default'
           }
 
 
@@ -756,48 +642,21 @@ KylinApp
           }, function (isConfirm) {
             if (isConfirm) {
               loadingRequest.show();
-
-              if ($scope.modelMode == "editExistStreaming") {
-                StreamingService.update({}, {
-                  project: $scope.projectName,
-                  tableData: angular.toJson($scope.tableData),
-                  streamingConfig: angular.toJson($scope.streamingMeta),
-                  kafkaConfig: angular.toJson($scope.kafkaMeta)
-                }, function (request) {
-                  if (request.successful) {
-                    SweetAlert.swal('', $scope.dataKylin.alert.success_updated_streaming, 'success');
-                    $location.path("/models");
-                  } else {
-                    var message = request.message;
-                    var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
-                    MessageService.sendMsg($scope.streamingResultTmpl({
-                      'text': msg,
-                      'streamingSchema': angular.toJson($scope.streamingMeta, true),
-                      'kfkSchema': angular.toJson($scope.kafkaMeta, true)
-                    }), 'error', {}, true, 'top_center');
+              $scope.setSampleData=function(table,callback,errcallback){
+                ClusterService.saveSampleData({
+                  table:table,
+                  action:'samples'
+                },$scope.table.message,function(data){
+                  if(data&&data[0]+data[1]=='ok'){
+                    callback();
+                  }else{
+                    errcallback();
                   }
-                  loadingRequest.hide();
-                }, function (e) {
-                  if (e.data && e.data.exception) {
-                    var message = e.data.exception;
-                    var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
-                    MessageService.sendMsg($scope.streamingResultTmpl({
-                      'text': msg,
-                      'streamingSchema': angular.toJson($scope.streamingMeta, true),
-                      'kfkSchema': angular.toJson($scope.kafkaMeta, true)
-                    }), 'error', {}, true, 'top_center');
-                  } else {
-                    MessageService.sendMsg($scope.streamingResultTmpl({
-                      'text': msg,
-                      'streamingSchema': angular.toJson($scope.streamingMeta, true),
-                      'kfkSchema': angular.toJson($scope.kafkaMeta, true)
-                    }), 'error', {}, true, 'top_center');
-                  }
-                  //end loading
-                  loadingRequest.hide();
-
+                },function(){
+                  errcallback();
                 })
-              } else {
+              }
+                //$scope.kafkaMeta.messages=angular.fromJson('['+$scope.table.message.join(',')+']');
                 StreamingService.save({}, {
                   project: $scope.projectName,
                   tableData: angular.toJson($scope.tableData),
@@ -805,7 +664,11 @@ KylinApp
                   kafkaConfig: angular.toJson($scope.kafkaMeta)
                 }, function (request) {
                   if (request.successful) {
-                    SweetAlert.swal('', $scope.dataKylin.alert.tip_created_streaming, 'success');
+                    $scope.setSampleData($scope.table.database+'.'+$scope.table.name,function(){
+                      SweetAlert.swal('', $scope.dataKylin.alert.tip_created_streaming, 'success');
+                    },function(){
+                      SweetAlert.swal('', $scope.dataKylin.alert.tip_created_streaming, 'success');
+                    });
                     $scope.cancel();
                     scope.aceSrcTbLoaded(true);
                   } else {
@@ -840,10 +703,15 @@ KylinApp
                 })
               }
 
-            }
+            //}
           });
         }
       }
+
+
+
+
+
 
       $scope.calcSampleData = function () {
         loadingRequest.show();
