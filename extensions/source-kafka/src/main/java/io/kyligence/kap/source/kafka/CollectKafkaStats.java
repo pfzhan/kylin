@@ -52,7 +52,7 @@ public class CollectKafkaStats {
     final static String uuidPattern = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
     final static String ipPattern = "\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}";
     final static long FETCH_MSG_TIMEOUT = 20000;
-    final static long LIST_TOPIC_TIMEOUT = 12000;
+    final static int LIST_TOPIC_TIMEOUT = 12000;
     final static int MSG_AMOUNT = 10;
 
     public static Map<String, List<String>> getTopics(KafkaConfig kafkaConfig) {
