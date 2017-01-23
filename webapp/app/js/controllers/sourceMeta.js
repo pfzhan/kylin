@@ -666,11 +666,13 @@ KylinApp
                   if (request.successful) {
                     $scope.setSampleData($scope.table.database+'.'+$scope.table.name,function(){
                       SweetAlert.swal('', $scope.dataKylin.alert.tip_created_streaming, 'success');
+                      scope.aceSrcTbLoaded(true);
                     },function(){
                       SweetAlert.swal('', $scope.dataKylin.alert.tip_created_streaming, 'success');
+                      scope.aceSrcTbLoaded(true);
                     });
                     $scope.cancel();
-                    scope.aceSrcTbLoaded(true);
+
                   } else {
                     var message = request.message;
                     var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
