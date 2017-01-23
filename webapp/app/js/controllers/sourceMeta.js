@@ -136,33 +136,45 @@ KylinApp
       });
     };
     $scope.reloadTable = function (tableNames,projectName){
-      var delay = $q.defer();
-      loadingRequest.show();
-      TableExtService.loadHiveTable({tableName: tableNames, action: projectName}, {}, function (result) {
-        var loadTableInfo = "";
-        angular.forEach(result['result.loaded'], function (table) {
-          loadTableInfo += "\n" + table;
-        });
-        var unloadedTableInfo = "";
-        angular.forEach(result['result.unloaded'], function (table) {
-          unloadedTableInfo += "\n" + table;
-        });
-        if (result['result.unloaded'].length != 0 && result['result.loaded'].length == 0) {
-          SweetAlert.swal('Failed!', 'Failed to load following table(s): ' + unloadedTableInfo, 'error');
-        }
-        if (result['result.loaded'].length != 0 && result['result.unloaded'].length == 0) {
-          SweetAlert.swal('Success!', 'The following table(s) have been successfully loaded: ' + loadTableInfo, 'success');
-        }
-        if (result['result.loaded'].length != 0 && result['result.unloaded'].length != 0) {
-          SweetAlert.swal('Partial loaded!', 'The following table(s) have been successfully loaded: ' + loadTableInfo + "\n\n Failed to load following table(s):" + unloadedTableInfo, 'warning');
-        }
-        loadingRequest.hide();
-        delay.resolve("");
-      }, function (e) {
-        kylinCommon.error_default(e);
-        loadingRequest.hide();
+
+      SweetAlert.swal({
+        title: "",
+        text: $scope.dataKylin.alert.loadTableWidthCollectConfirm,
+        showCancelButton: true,
+        confirmButtonColor: '#DD6B55',
+        confirmButtonText: "Yes",
+        closeOnConfirm: true
+      }, function (isConfirm) {
+        var delay = $q.defer();
+        loadingRequest.show();
+        TableExtService.loadHiveTable({tableName: tableNames, action: projectName}, {
+          calculate:isConfirm
+        }, function (result) {
+          var loadTableInfo = "";
+          angular.forEach(result['result.loaded'], function (table) {
+            loadTableInfo += "\n" + table;
+          });
+          var unloadedTableInfo = "";
+          angular.forEach(result['result.unloaded'], function (table) {
+            unloadedTableInfo += "\n" + table;
+          });
+          if (result['result.unloaded'].length != 0 && result['result.loaded'].length == 0) {
+            SweetAlert.swal('Failed!', 'Failed to load following table(s): ' + unloadedTableInfo, 'error');
+          }
+          if (result['result.loaded'].length != 0 && result['result.unloaded'].length == 0) {
+            SweetAlert.swal('Success!', 'The following table(s) have been successfully loaded: ' + loadTableInfo, 'success');
+          }
+          if (result['result.loaded'].length != 0 && result['result.unloaded'].length != 0) {
+            SweetAlert.swal('Partial loaded!', 'The following table(s) have been successfully loaded: ' + loadTableInfo + "\n\n Failed to load following table(s):" + unloadedTableInfo, 'warning');
+          }
+          loadingRequest.hide();
+          delay.resolve("");
+        }, function (e) {
+          kylinCommon.error_default(e);
+          loadingRequest.hide();
+        })
+        return delay.promise;
       })
-       return delay.promise;
     }
 
     $scope.unloadTable = function (tableNames,projectName) {

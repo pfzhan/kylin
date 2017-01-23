@@ -932,6 +932,7 @@ KylinApp.constant('kapEnglishConfig', {
     tip_to_remove_cluster: 'Are you sure to remove this cluster ?',
     getNoMessages:'Failed to load Streaming Sample Data!',
     streamingSaveMsg:'Get Sample Data successfully！',
+    loadTableWidthCollectConfirm:'Do you want to automatically run the statistics job at the same time',
     streamingSaveMsgError:'Failed to Get  Sample Data！',
     tip_model_be_used:'This model is still used by ',
     tip_model_be_used_by:'',

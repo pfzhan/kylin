@@ -929,6 +929,7 @@ KylinApp.constant('kapChineseConfig', {
     tip_save_streaming_table: '确定要保存此流式表及其集群信息?',
     success_updated_streaming: '成功更新流式表.',
     tip_created_streaming: '成功创建流式表.',
+    loadTableWidthCollectConfirm:'是否同时自动开启采样任务？',
     getNoMessages:'未能获取到流示例数据',
     streamingSaveMsg:'流数据样本采集成功！',
     streamingSaveMsgError:'刘数据样本采集失败！',
