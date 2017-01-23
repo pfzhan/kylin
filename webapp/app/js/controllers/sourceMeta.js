@@ -497,7 +497,7 @@ KylinApp
             kafkaConfig: angular.toJson($scope.kafkaMeta)
           }, function (request) {
             if (request.successful) {
-              $scope.setSampleData($scope.table.database+'.'+$scope.table.namegit,function(){
+              $scope.setSampleData($scope.table.database+'.'+$scope.table.name,function(){
                 SweetAlert.swal('', 'Updated the streaming successfully.', 'success');
               },function(){
                 SweetAlert.swal('', 'Updated the streaming successfully.', 'success');
