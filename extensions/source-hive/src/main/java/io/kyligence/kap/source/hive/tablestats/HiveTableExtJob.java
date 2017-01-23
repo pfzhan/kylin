@@ -89,6 +89,7 @@ public class HiveTableExtJob extends AbstractHadoopJob {
         Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
         FileOutputFormat.setOutputPath(job, output);
         job.getConfiguration().set("dfs.block.size", "67108864");
+        job.getConfiguration().set("mapreduce.output.fileoutputformat.compress", "false");
 
         // Mapper
         IMRInput.IMRTableInputFormat tableInputFormat = MRUtil.getTableInputFormat(table);
