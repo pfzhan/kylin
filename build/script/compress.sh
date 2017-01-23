@@ -11,14 +11,12 @@ current_branch=${branch}
 if [ "${current_branch}" = "" ]; then
     current_branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
 fi
-target_env="hbase0.98"
+target_env="hbase1.x"
 feature="-plus"
 if [[ "${current_branch}" =~ "cdh" ]]; then
     target_env="cdh5.7"
-elif [[ "${current_branch}" =~ "hbase102" ]]; then
-    target_env="hbase102"
-elif [[ "${current_branch}" =~ "hbase1.x" ]]; then
-    target_env="hbase1.x"
+elif [[ "${current_branch}" =~ "hbase0.98" ]]; then
+    target_env="hbase0.98"
 fi
 if [ "${PACKAGE_PLUS}" = "0" ]; then
     feature=""

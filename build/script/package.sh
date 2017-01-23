@@ -7,11 +7,13 @@ source build/script/functions.sh
 
 if [ "$1" == "-skipObf" ] || [ "$2" == "-skipObf" ]; then
     export SKIP_OBF=1
+    shift
     echo "Skip Obfuscation..."
 fi
 
 if [ "$1" == "-noPlus" ] || [ "$2" == "-noPlus" ]; then
     export PACKAGE_PLUS=0
+    shift
     echo "Packing for KAP Normal..."
 else
 	export PACKAGE_PLUS=1
