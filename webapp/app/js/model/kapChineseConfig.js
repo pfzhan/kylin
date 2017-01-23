@@ -802,7 +802,8 @@ KylinApp.constant('kapChineseConfig', {
     noCluster:'未找到集群信息',
     loadingCluster:'正在加载集群信息',
     useLessTopic:'该Topic暂时无法使用',
-    clusterFormError:'请填写完整的broker信息，且确保不要和已填的重复!'
+    clusterFormError:'请填写完整的broker信息，且确保不要和已填的重复!',
+    collectKafkaSampleData:'收集流采样数据'
   },
   system:{
     system: '系统',

@@ -802,7 +802,8 @@ KylinApp.constant('kapEnglishConfig', {
     noCluster:'No Cluster',
     loadingCluster:'Loading Cluster Info',
     useLessTopic:'The Topic is temporarily unavailable！',
-    clusterFormError:'Make sure you are not repeat or empty the broker info！'
+    clusterFormError:'Make sure you are not repeat or empty the broker info！',
+    collectKafkaSampleData:'Collect Streaming Sample Data'
   },
   system:{
     system: 'System',

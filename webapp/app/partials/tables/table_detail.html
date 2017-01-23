@@ -19,12 +19,17 @@
 <div ng-controller="SourceMetaCtrl" class="nav-tabs-custom">
   <div class="col-xs-12" ng-show="tableModel.selectedSrcDb&&tableModel.selectedSrcTable.name">
     <h3 class="text-info">{{dataKylin.data_source.tableSchema}}{{ tableModel.selectedSrcTable.name}}</h3>
-    <a class="btn btn-info pull-right"  ng-click="calcSampleData()" style="margin-left:10px;" ><span class="fa fa-eyedropper"></span> {{dataKylin.data_source.collectStatistics}}</a>
+    <!--收集hive表示例数据按钮-->
+    <a class="btn btn-info pull-right" ng-if="tableModel.selectedSrcTable.source_type==0"  ng-click="calcSampleData()" style="margin-left:10px;" ><span class="fa fa-eyedropper"></span> {{dataKylin.data_source.collectStatistics}}</a>
+    <!--收集流示例数据按钮-->
+    <a class="btn btn-info pull-right" ng-if="tableModel.selectedSrcTable.source_type==1"  ng-click="calcStreamingSampleData(tableModel.selectedSrcTable.database+'.'+tableModel.selectedSrcTable.name)" style="margin-left:10px;" ><span class="fa fa-eyedropper"></span> {{dataKylin.data_source.collectKafkaSampleData}}</a>
+    <!--移除表按钮-->
     <a class="btn btn-primary pull-right" ng-if="userService.hasRole('ROLE_ADMIN')" ng-click="unloadTable(tableModel.selectedSrcTable.database+'.'+tableModel.selectedSrcTable.name,projectModel.selectedProject)" style="margin-left:10px;" ><span class="fa fa-remove"></span> {{dataKylin.data_source.unload_table}}</a>
+    <!--重新加载hive表信息按钮-->
     <a class="btn btn-success pull-right" ng-if="tableModel.selectedSrcTable.source_type==0&&userService.hasRole('ROLE_ADMIN')"  ng-click="reloadTable(tableModel.selectedSrcTable.database+'.'+tableModel.selectedSrcTable.name,projectModel.selectedProject)" style="margin-left:10px;" ><span class="fa fa-download"></span> {{dataKylin.data_source.reload_table}}</a>
     <div style="clear:both"></div>
     <span ng-if="last_modified" class="pull-right" style="margin-top: 10px;font-size: 12px;">{{dataKylin.data_source.lastModifiedTime}}：{{last_modified|utcToConfigTimeZone}}</span>
-    <div class="tabbable nav-tabs-custom">
+    <div class="tabbable nav-tabs-custom" style="margin-top: 20px;">
       <ul class="nav nav-tabs">
         <li class="active">
           <a data-toggle="tab" href="#column">{{dataKylin.data_source.columns}}</a>

@@ -25,7 +25,7 @@
 'use strict';
 
 KylinApp
-  .controller('SourceMetaCtrl', function ($scope, $cacheFactory, $q, $window, $routeParams, CubeService, $modal, TableService, $route, loadingRequest, SweetAlert, tableConfig, TableModel,cubeConfig,kylinCommon,TableExtService,VdmUtil) {
+  .controller('SourceMetaCtrl', function ($scope, $cacheFactory, $q, $window, $routeParams, CubeService, $modal, TableService, $route, loadingRequest, SweetAlert, tableConfig, TableModel,cubeConfig,kylinCommon,TableExtService,VdmUtil,ClusterService) {
     var $httpDefaultCache = $cacheFactory.get('$http');
     $scope.tableModel = TableModel;
     $scope.tableModel.selectedSrcDb = [];
@@ -79,7 +79,15 @@ KylinApp
         $scope.tableModel.selectedSrcTable.selectedSrcColumn = obj;
       }
     };
+    //收集流数据
+    $scope.calcStreamingSampleData=function(tableName){
+      ClusterService.getSampleData({
+        table:tableName,
+        action:'update_samples'
+      },{},function(){
 
+      })
+    }
     $scope.aceSrcTbChanged = function () {
       $scope.tableModel.selectedSrcDb = [];
       $scope.tableModel.selectedSrcTable = {};

@@ -176,20 +176,6 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
         'fromSource': 'N'
       });
     }
-
-    //
-    //if (!firstCommit) {
-    //  angular.forEach(columnList, function (item) {
-    //    for (var i = 0; i < $scope.table.columnList.length; i++) {
-    //      if ($scope.table.columnList[i].name == item.name) {
-    //        item.checked = $scope.table.columnList[i].checked;
-    //        item.type = $scope.table.columnList[i].type;
-    //        item.fromSource = $scope.table.columnList[i].fromSource;
-    //        break;
-    //      }
-    //    }
-    //  })
-    //}
     return columnList;
   }
 
@@ -329,7 +315,39 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
     })
   }
 
+  $scope.loadTopicSampleData=function(cluster,topic,callback,errorcallback){
+    loadingRequest.show();
+    ClusterService.getTopicInfo({
+      cluster:cluster,
+      topic:topic,
+    },{
+      project: $scope.projectName,
+      tableData: angular.toJson($scope.tableData),
+      streamingConfig: angular.toJson($scope.streamingMeta),
+      kafkaConfig: angular.toJson($scope.kafkaMeta)
+    },function(data){
+      loadingRequest.hide();
+      if(typeof callback=='function'){
+        callback(data);
+      }
+    },function(e){
+      var message;
+      if (e.data && e.data.exception) {
+        message = e.data.exception;
+      } else {
+        message = $scope.dataKylin.alert.error_info;
+      }
+      loadingRequest.hide();
+      if(typeof errorcallback=='function'){
+        errorcallback(message);
+      }
+    })
+  }
 
+
+  $scope.reloadTopicSampleData=function(){
+    $scope.loadTopicSampleData(kafkaMeta. kafkaMeta.topic)
+  }
   $scope.treeData=[];
   $scope.loadClusterInfo=function(){
     if($scope.state.target){
@@ -364,30 +382,14 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
             childObj.onSelect=function(branch) {
               loadingRequest.show();
               $scope.kafkaMeta.topic=branch.data;
-              ClusterService.getTopicInfo({
-                cluster:branch.pdata,
-                topic:branch.data,
-              },{
-                project: $scope.projectName,
-                tableData: angular.toJson($scope.tableData),
-                streamingConfig: angular.toJson($scope.streamingMeta),
-                kafkaConfig: angular.toJson($scope.kafkaMeta)
-              },function(data){
-                 loadingRequest.hide();
-                 if(!data||data&&data.length==0){
-                   SweetAlert.swal('', $scope.dataKylin.data_source.useLessTopic, 'error');
-                 }else{
-                   $scope.streaming.sourceSchema= data[0]||'';
-                   $scope.table.message=$scope.convertSampleData(data);
-                 }
-              },function(){
-                var message;
-                if (e.data && e.data.exception) {
-                  message = e.data.exception;
-                } else {
-                  message = $scope.dataKylin.alert.error_info;
+              $scope.loadTopicSampleData(branch.pdata,branch.data,function(data){
+                if(!data||data&&data.length==0){
+                  SweetAlert.swal('', $scope.dataKylin.data_source.useLessTopic, 'error');
+                }else{
+                  $scope.streaming.sourceSchema= data[0]||'';
+                  $scope.table.message=$scope.convertSampleData(data);
                 }
-                loadingRequest.hide();
+              },function(){
                 SweetAlert.swal('', message, 'error');
               })
             }
