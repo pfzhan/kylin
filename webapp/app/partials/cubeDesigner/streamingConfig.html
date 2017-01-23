@@ -151,7 +151,7 @@
               <div class="col-xs-12 col-sm-1" style="text-align: center;font-size: 25px;">/</div>
               <div class="col-xs-12 col-sm-3" style="text-align: left"   ng-class="{'has-error':form.cube_streaming_form.tablename.$invalid && (form.cube_streaming_form.tablename.$dirty||form.cube_streaming_form.$submitted)}">
                 <input style="display: inline-block"  ng-if="!state.tableName"  name="tablename" required ng-model="table.name" type="text"
-                        placeholder="{{database.table}}"
+                        placeholder="{{dataKylin.data_source.tableName}}"
                         class="form-control"/>
 
                 <small class="help-block"

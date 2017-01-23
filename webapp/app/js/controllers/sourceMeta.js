@@ -143,6 +143,7 @@ KylinApp
         showCancelButton: true,
         confirmButtonColor: '#DD6B55',
         confirmButtonText: "Yes",
+        cancelButtonText: "No",
         closeOnConfirm: true
       }, function (isConfirm) {
         var delay = $q.defer();
