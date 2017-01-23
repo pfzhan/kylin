@@ -100,14 +100,14 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
 
   //通过json来解析columnList
   $scope.convertJson = function (jsonData) {
-    $scope.table.schemaChecked = true;
+    //$scope.table.schemaChecked = true;
     try {
-      $scope.streaming.parseResult =JSON.parse(jsonData);
+      var parseResult =JSON.parse(jsonData);
     } catch (error) {
-      $scope.table.sourceValid = false;
+      //$scope.table.sourceValid = false;
       return;
     }
-    $scope.table.sourceValid = true;
+    //$scope.table.sourceValid = true;
     //streaming table data change structure
     var columnList = []
 
@@ -163,7 +163,7 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
       return obj;
     }
 
-    changeObjTree($scope.streaming.parseResult);
+    changeObjTree(parseResult);
 
     var timeMeasure = $scope.cubeConfig.streamingAutoGenerateMeasure;
     for (var i = 0; i < timeMeasure.length; i++) {
@@ -419,7 +419,7 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
       table:table,
       action:'samples'
     },messages,function(data){
-      if(data&&data[0]+data[1]=='ok'){
+      if(data&&data[0]+data[1].toUpperCase()=='OK'){
         callback();
       }else{
         errcallback();
@@ -428,10 +428,10 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
       errcallback();
     })
   }
-  $scope.$on('reloadSampleData', function(d,data) {
+  $scope.$on('reloadSampleData', function(d,tableName) {
     loadingRequest.show();
     ClusterService.getSampleData({
-      table:data,
+      table:tableName,
       action:'update_samples'
     },{},function(data){
         if(!data||data&&data.length<=0){
@@ -440,11 +440,12 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
           return;
         }
        $scope.message=$scope.convertSampleData(data);
-        $scope.setSampleData(data,$scope.message,function(){
-          SweetAlert.swal('', $scope.dataKylin.alert.tip_created_streaming, 'success');
+        $scope.setSampleData(tableName,$scope.message,function(){
+          SweetAlert.swal('', $scope.dataKylin.alert.streamingSaveMsg, 'success');
+          $scope.getSampleData();
           loadingRequest.hide();
         },function(){
-          SweetAlert.swal('', $scope.dataKylin.alert.tip_created_streaming, 'success');
+          SweetAlert.swal('', $scope.dataKylin.alert.streamingSaveMsgError, 'error');
           loadingRequest.hide();
         });
     },function(){

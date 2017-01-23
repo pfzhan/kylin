@@ -930,6 +930,8 @@ KylinApp.constant('kapChineseConfig', {
     success_updated_streaming: '成功更新流式表.',
     tip_created_streaming: '成功创建流式表.',
     getNoMessages:'未能获取到流示例数据',
+    streamingSaveMsg:'流数据样本采集成功！',
+    streamingSaveMsgError:'刘数据样本采集失败！',
     tip_to_remove_cluster: '确定要删除此集群信息?',
     tip_model_be_used:'该模型仍在被 ',
     tip_model_be_used_by:' 使用',
