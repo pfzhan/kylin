@@ -39,7 +39,11 @@ fi
 # .. - input jar names
 function obfuscate {
 	cd $1
-	mvn dependency:build-classpath -Dmdep.outputFile=cp.txt
+	MVN_OPTS="-Dmdep.outputFile=cp.txt"
+	if [ "$MVN_PROFILE" != "" ]; then
+	    MVN_OPTS="-P $MVN_PROFILE $MVN_OPTS"
+    fi
+	mvn dependency:build-classpath $MVN_OPTS
 	cp=`cat cp.txt`
 	rm cp.txt
 	cd -

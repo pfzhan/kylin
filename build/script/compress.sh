@@ -13,7 +13,7 @@ if [ "${current_branch}" = "" ]; then
 fi
 target_env="hbase1.x"
 feature="-plus"
-if [[ "${current_branch}" =~ "cdh" ]]; then
+if [[ "${MVN_PROFILE}" == "cdh5.7" ]]; then
     target_env="cdh5.7"
 elif [[ "${current_branch}" =~ "hbase0.98" ]]; then
     target_env="hbase0.98"
