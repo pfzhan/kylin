@@ -414,9 +414,44 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
     })
   }
 
-  $scope.loadStreaming=function(){
-
+  $scope.setSampleData=function(table,messages,callback,errcallback){
+    ClusterService.saveSampleData({
+      table:table,
+      action:'samples'
+    },messages,function(data){
+      if(data&&data[0]+data[1]=='ok'){
+        callback();
+      }else{
+        errcallback();
+      }
+    },function(){
+      errcallback();
+    })
   }
+  $scope.$on('reloadSampleData', function(d,data) {
+    loadingRequest.show();
+    ClusterService.getSampleData({
+      table:data,
+      action:'update_samples'
+    },{},function(data){
+        if(!data||data&&data.length<=0){
+          SweetAlert.swal('', $scope.dataKylin.alert.getNoMessages, 'error');
+          loadingRequest.hide();
+          return;
+        }
+       $scope.message=$scope.convertSampleData(data);
+        $scope.setSampleData(data,$scope.message,function(){
+          SweetAlert.swal('', $scope.dataKylin.alert.tip_created_streaming, 'success');
+          loadingRequest.hide();
+        },function(){
+          SweetAlert.swal('', $scope.dataKylin.alert.tip_created_streaming, 'success');
+          loadingRequest.hide();
+        });
+    },function(){
+      loadingRequest.hide();
+    })
+
+  });
   $scope.dataBaseList=[]
   TableModel.initTableData(function(data){
     $scope.dataBaseList=TableModel.getDataBaseList();

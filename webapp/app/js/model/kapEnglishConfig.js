@@ -930,6 +930,7 @@ KylinApp.constant('kapEnglishConfig', {
     success_updated_streaming: 'Updated the streaming successfully.',
     tip_created_streaming: 'Created the streaming successfully.',
     tip_to_remove_cluster: 'Are you sure to remove this cluster ?',
+    getNoMessages:'Failed to load Streaming Sample Data!',
     tip_model_be_used:'This model is still used by ',
     tip_model_be_used_by:'',
     warning_dictionaries_part_one:'The column named [',
