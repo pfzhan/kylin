@@ -76,6 +76,12 @@ public class KafkaController extends BasicController {
         return kafkaService.saveSamplesToStreamingTable(database + "." + tablename, messages);
     }
 
+    @RequestMapping(value = "{database}.{tablename}/update_samples", method = { RequestMethod.GET })
+    @ResponseBody
+    public List<String> updateSamples(@PathVariable String database, @PathVariable String tablename) throws IOException {
+        return kafkaService.updateSamplesByTableName(database + "." + tablename);
+    }
+
     private KafkaConfig deserializeKafkaSchemalDesc(StreamingRequest streamingRequest) {
         KafkaConfig desc = null;
         try {

@@ -110,7 +110,7 @@ public class CollectKafkaStats {
                         topicBrokerMap.put(topic.getKey(), brokerList);
                     } else {
                         if (!topicBrokerMap.get(topic.getKey()).contains(broker))
-                            topicBrokerMap.get(cluster.getKey()).add(topic.getKey());
+                            topicBrokerMap.get(topic.getKey()).add(broker);
                     }
                 }
             }
@@ -153,6 +153,33 @@ public class CollectKafkaStats {
         return msgList;
     }
 
+    public static List<String> getMessageByTopic(KafkaConfig kafkaConfig) {
+        Map<String, List<String>> topicsMap = getBrokers(kafkaConfig);
+
+        String topic = kafkaConfig.getTopic();
+        List<String> msgList = null;
+        List<String> brokersByTopic = topicsMap.get(topic);
+        if (null == brokersByTopic)
+            throw new IllegalArgumentException("There are no available brokers for the given topic: " + topic);
+
+        Consumer consumer = null;
+        ConsumerRecords<String, String> records = null;
+        for (String broker : brokersByTopic) {
+            consumer = KafkaClient.getKafkaConsumer(broker, "test", null);
+            consumer.subscribe(Arrays.asList(topic));
+            records = consumer.poll(FETCH_MSG_TIMEOUT);
+            if (records.isEmpty())
+                continue;
+            else {
+                msgList = collectSamples(consumer);
+                break;
+            }
+        }
+
+        consumer.close();
+        return msgList;
+    }
+
     private static List<String> collectSamples(Consumer consumer) {
         List<String> samples = new ArrayList<>();
         int nTryTimes = 0;
@@ -178,7 +205,7 @@ public class CollectKafkaStats {
                     clustersMap.put(clusterName, brokerList);
                 } else {
                     if (!clustersMap.get(clusterName).contains(brokerUrl))
-                        clustersMap.get(clusterName).add(kafkaConfig.getName());
+                        clustersMap.get(clusterName).add(brokerUrl);
                 }
             }
         }
@@ -206,13 +233,16 @@ public class CollectKafkaStats {
             clusterName.append(host);
             clusterName.append("|");
         }
-        int length = clusterName.toString().length();
-        return clusterName.toString().substring(0, length - 1);
+        String ret = clusterName.toString();
+        if (ret.isEmpty())
+            return ret;
+        else
+            return ret.substring(0, ret.length() - 1);
     }
 
     private static boolean isIp(String ipAddress) {
         Pattern pattern = Pattern.compile(ipPattern);
         Matcher matcher = pattern.matcher(ipAddress);
-        return matcher.matches();
+        return matcher.find();
     }
 }

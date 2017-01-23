@@ -57,6 +57,11 @@ public class KafkaService extends BasicService {
         return "OK";
     }
 
+    public List<String> updateSamplesByTableName(String tableName) throws IOException {
+        KafkaConfig kafkaConfig = getKafkaManager().getKafkaConfig(tableName);
+        return CollectKafkaStats.getMessageByTopic(kafkaConfig);
+    }
+
     private List<String[]> convertMessagesToSamples(List<String> messages) throws IOException {
         if (0 == messages.size())
             return null;
