@@ -51,10 +51,14 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.kylin.source.hive.HiveMRInput;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
 
 public class ModelStatsJob extends AbstractHadoopJob {
+    private static final Logger logger = LoggerFactory.getLogger(ModelStatsJob.class);
+    
     public static final String JOB_TITLE = "KAP DataModel stats job";
 
     @SuppressWarnings("static-access")

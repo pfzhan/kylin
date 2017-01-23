@@ -43,8 +43,12 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HiveTableExtJob extends AbstractHadoopJob {
+    private static final Logger logger = LoggerFactory.getLogger(HiveTableExtJob.class);
+
     public static final String JOB_TITLE = "Kylin Hive Column Sample Job";
 
     @SuppressWarnings("static-access")
