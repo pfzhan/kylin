@@ -25,7 +25,7 @@ rm testall*.log
 
 export SPARK_HOME=${SPARK_HOME:-"/root/spark-1.6.2-bin-hadoop2.6"}
 export CI_MODE=true
-export hdpv=${HDP_VERSION:-"2.2.4.2-2"}
+export hdpv=${HDP_VERSION:-"2.4.0.0-169"}
 
 mvn clean install -DskipTests                                  2>&1 | tee testall-1.log  || exit 1
 mvn test -Dhdp.version=$hdpv -fae                              2>&1 | tee testall-2.log  || exit 1
