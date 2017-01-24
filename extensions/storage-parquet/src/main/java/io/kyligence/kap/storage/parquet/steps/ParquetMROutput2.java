@@ -64,6 +64,7 @@ public class ParquetMROutput2 implements IMROutput2 {
                 jobFlow.addTask(steps.createCubePageIndexCleanupStep(jobFlow.getId()));
                 jobFlow.addTask(steps.createCubeTarballStep(jobFlow.getId()));
                 jobFlow.addTask(steps.createCubeTarballCleaupStep(jobFlow.getId()));
+                jobFlow.addTask(steps.createCubeInfoCollectionStep(jobFlow.getId()));
                 if (isRawTableEnable) {
                     jobFlow.addTask(steps.createRawtableShardSizingStep(jobFlow.getId()));
                     jobFlow.addTask(steps.createRawtableStep(jobFlow.getId()));
@@ -102,6 +103,7 @@ public class ParquetMROutput2 implements IMROutput2 {
                 jobFlow.addTask(steps.createCubePageIndexCleanupStep(jobFlow.getId()));
                 jobFlow.addTask(steps.createCubeTarballStep(jobFlow.getId()));
                 jobFlow.addTask(steps.createCubeTarballCleaupStep(jobFlow.getId()));
+                jobFlow.addTask(steps.createCubeInfoCollectionStep(jobFlow.getId()));
                 if (isRawTableEnable) {
                     jobFlow.addTask(steps.createRawtableMergeStep(seg, jobFlow.getId(), KapMergeRawTableJob.class));
                     jobFlow.addTask(steps.createRawtableMergeCleanupStep(jobFlow.getId(), seg));

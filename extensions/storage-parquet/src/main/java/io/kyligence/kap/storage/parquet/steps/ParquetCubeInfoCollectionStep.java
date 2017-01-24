@@ -53,9 +53,14 @@ public class ParquetCubeInfoCollectionStep extends AbstractExecutable {
     public static final String INPUT_PATH = "input_path";
     public static final String OUTPUT_PATH = "output_path";
     public static final String CUBE_INFO_NAME = "CUBE_INFO";
+    public static final String SKIP = "skip";
 
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
+        if (getParam(SKIP) != null) {
+            return new ExecuteResult(ExecuteResult.State.SUCCEED);
+        }
+
         String inputPath = getParam(INPUT_PATH);
         String outputPath = getParam(OUTPUT_PATH);
         Map<Long, Set<String>> cuboid2FileMap = Maps.newHashMap();

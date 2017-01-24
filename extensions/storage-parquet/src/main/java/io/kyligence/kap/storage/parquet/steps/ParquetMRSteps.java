@@ -253,6 +253,13 @@ public class ParquetMRSteps extends JobBuilderSupport {
         return result;
     }
 
+    public ParquetCubeInfoCollectionStep createCubeInfoCollectionStep(String jobId) {
+        ParquetCubeInfoCollectionStep step = new ParquetCubeInfoCollectionStep();
+        step.setName("Collect Cube File Mapping");
+        step.setParam(ParquetCubeInfoCollectionStep.SKIP, "true");
+        return step;
+    }
+
     public MapReduceExecutable createRawtableFuzzyIndexStep(String jobId) {
         MapReduceExecutable result = new MapReduceExecutable();
         RawTableInstance rawInstance = RawTableManager.getInstance(seg.getConfig()).getRawTableInstance(seg.getRealization().getName());

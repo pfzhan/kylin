@@ -90,11 +90,14 @@ public class ParquetSpliceMRSteps extends ParquetMRSteps {
         step.setToCleanFileSuffix(toCleanFileSuffixs);
 
         jobFlow.addTask(step);
+    }
 
-        ParquetCubeInfoCollectionStep step2 = new ParquetCubeInfoCollectionStep();
-        step2.setName(ExecutableConstants.STEP_NAME_UPDATE_CUBE_INFO);
-        step2.setParam(ParquetCubeInfoCollectionStep.INPUT_PATH, getCubeFolderPath(seg));
-        step2.setParam(ParquetCubeInfoCollectionStep.OUTPUT_PATH, getCubeFolderPath(seg) + ParquetCubeInfoCollectionStep.CUBE_INFO_NAME);
-        jobFlow.addTask(step2);
+    @Override
+    public ParquetCubeInfoCollectionStep createCubeInfoCollectionStep(String jobId) {
+        ParquetCubeInfoCollectionStep step = new ParquetCubeInfoCollectionStep();
+        step.setName("Collect Cube File Mapping");
+        step.setParam(ParquetCubeInfoCollectionStep.INPUT_PATH, getCubeFolderPath(seg));
+        step.setParam(ParquetCubeInfoCollectionStep.OUTPUT_PATH, getCubeFolderPath(seg) + ParquetCubeInfoCollectionStep.CUBE_INFO_NAME);
+        return step;
     }
 }
