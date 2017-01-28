@@ -117,7 +117,7 @@ obfuscate extensions/storage-parquet/ $BUILD_LIB_DIR 1 1 kylin-storage-parquet-k
 mv $BUILD_LIB_DIR/kylin-storage-parquet-kap-${release_version}-obf.jar tmp/
 
 # obfuscate tool jar
-obfuscate extensions/tool/ $BUILD_LIB_DIR 1 1 kylin-tool-kap-${release_version}-obf kylin-tool-kap-${release_version}.jar
+obfuscate extensions/assembly/ $BUILD_LIB_DIR 1 1 kylin-tool-kap-${release_version}-obf kylin-tool-kap-${release_version}.jar
 mv $BUILD_LIB_DIR/kylin-tool-kap-${release_version}-obf.jar tmp/
 
 # compare whether rest api signature changed in obf stage
