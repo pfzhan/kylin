@@ -49,7 +49,7 @@ public class KAPDeployUtil {
     public static void deployMetadata() throws IOException {
         // install metadata to hbase
         ResourceTool.reset(config());
-        String tempMetadataDir = LocalTempMetadata.prepareLocalTempMetadata();
+        String tempMetadataDir = LocalTempMetadata.prepareLocalTempMetadataWithDebugInfo();
         ResourceTool.copy(KylinConfig.createInstanceFromUri(tempMetadataDir), config());
         FileUtils.deleteDirectory(new File(tempMetadataDir));
 
@@ -83,10 +83,6 @@ public class KAPDeployUtil {
 
     private static File getCoprocessorJarFile() {
         return new File("../storage-hbase/target", "kap-storage-hbase-" + getPomVersion() + "-coprocessor.jar");
-    }
-
-    private static File getSparkJobJarFile() {
-        return new File("../engine-spark/target", "kap-engine-spark-" + getPomVersion() + "-job.jar");
     }
 
     private static void execCliCommand(String cmd) throws IOException {
