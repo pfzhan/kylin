@@ -305,6 +305,139 @@
 
     </dependencies>
 
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>2.16</version>
+                    <executions>
+                        <execution>
+                            <id>integration-tests</id>
+                            <goals>
+                                <goal>integration-test</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>verify</id>
+                            <goals>
+                                <goal>verify</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <excludes>
+                            <exclude>**/*$*</exclude>
+                        </excludes>
+                        <systemProperties>
+                            <property>
+                                <name>log4j.configuration</name>
+                                <value>file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties</value>
+                            </property>
+                        </systemProperties>
+                        <argLine>-Xms1G -Xmx2G -XX:PermSize=128M -XX:MaxPermSize=512M</argLine>
+                    </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>1.5.0</version>
+                    <executions>
+                        <execution>
+                            <id>build_cube_with_engine</id>
+                            <goals>
+                                <goal>exec</goal>
+                            </goals>
+                            <phase>pre-integration-test</phase>
+                            <configuration>
+                                <skip>${skipTests}</skip>
+                                <classpathScope>test</classpathScope>
+                                <executable>java</executable>
+                                <arguments>
+                                    <argument>-Dhdp.version=${profile.id}</argument>
+                                    <argument>-DfastBuildMode=${fastBuildMode}</argument>
+                                    <argument>-Dkylin.engine=${kylin.engine}</argument>
+                                    <argument>-Dkylin.storage=${kylin.storage}</argument>
+                                    <argument>
+                                        -Dlog4j.configuration=file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties
+                                    </argument>
+                                    <argument>-classpath</argument>
+                                    <classpath/>
+                                    <argument>io.kyligence.kap.provision.BuildCubeWithEngine</argument>
+                                    <argument>-P</argument>
+                                    <argument>${profile.id}</argument>
+                                </arguments>
+                                <workingDirectory>${project.basedir}</workingDirectory>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>build_cube_with_stream</id>
+                            <goals>
+                                <goal>exec</goal>
+                            </goals>
+                            <phase>pre-integration-test</phase>
+                            <configuration>
+                                <skip>${skipTests}</skip>
+                                <classpathScope>test</classpathScope>
+                                <executable>java</executable>
+                                <arguments>
+                                    <argument>-Dhdp.version=${hdp.version}</argument>
+                                    <argument>-DfastBuildMode=${fastBuildMode}</argument>
+                                    <argument>-Dkylin.engine=${kylin.engine}</argument>
+                                    <argument>-Dkylin.storage=${kylin.storage}</argument>
+                                    <argument>
+                                        -Dlog4j.configuration=file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties
+                                    </argument>
+                                    <argument>-classpath</argument>
+                                    <classpath/>
+                                    <argument>io.kyligence.kap.provision.BuildCubeWithStream</argument>
+                                    <argument>-P</argument>
+                                    <argument>${profile.id}</argument>
+                                </arguments>
+                                <workingDirectory>${project.basedir}</workingDirectory>
+                            </configuration>
+                        </execution>
+
+                        <execution>
+                            <id>start_spark</id>
+                            <goals>
+                                <goal>exec</goal>
+                            </goals>
+                            <phase>pre-integration-test</phase>
+                            <configuration>
+                                <skip>${skipTests}</skip>
+                                <executable>build/bin/spark_client.sh</executable>
+                                <commandlineArgs>start</commandlineArgs>
+                                <environmentVariables>
+                                    <CI_MODE>true</CI_MODE>
+                                </environmentVariables>
+                                <workingDirectory>${project.basedir}/../../</workingDirectory>
+                            </configuration>
+                        </execution>
+
+                        <execution>
+                            <id>stop_spark</id>
+                            <goals>
+                                <goal>exec</goal>
+                            </goals>
+                            <phase>post-integration-test</phase>
+                            <configuration>
+                                <skip>${skipTests}</skip>
+                                <executable>build/bin/spark_client.sh</executable>
+                                <commandlineArgs>stop</commandlineArgs>
+                                <environmentVariables>
+                                    <CI_MODE>true</CI_MODE>
+                                </environmentVariables>
+                                <workingDirectory>${project.basedir}/../../</workingDirectory>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
 
     <profiles>
         <profile>
@@ -317,128 +450,35 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
-                        <version>2.16</version>
-                        <executions>
-                            <execution>
-                                <id>integration-tests</id>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                </goals>
-                            </execution>
-                            <execution>
-                                <id>verify</id>
-                                <goals>
-                                    <goal>verify</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <excludes>
-                                <exclude>**/*$*</exclude>
-                            </excludes>
-                            <systemProperties>
-                                <property>
-                                    <name>log4j.configuration</name>
-                                    <value>file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties</value>
-                                </property>
-                            </systemProperties>
-                            <argLine>-Xms1G -Xmx2G -XX:PermSize=128M -XX:MaxPermSize=512M</argLine>
-                        </configuration>
                     </plugin>
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
-                        <version>1.5.0</version>
-                        <executions>
-                            <execution>
-                                <id>build_cube_with_engine</id>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <phase>pre-integration-test</phase>
-                                <configuration>
-                                    <skip>${skipTests}</skip>
-                                    <classpathScope>test</classpathScope>
-                                    <executable>java</executable>
-                                    <arguments>
-                                        <argument>-Dhdp.version=${hdp.version}</argument>
-                                        <argument>-DfastBuildMode=${fastBuildMode}</argument>
-                                        <argument>-Dkylin.engine=${kylin.engine}</argument>
-                                        <argument>-Dkylin.storage=${kylin.storage}</argument>
-                                        <argument>
-                                            -Dlog4j.configuration=file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties
-                                        </argument>
-                                        <argument>-classpath</argument>
-                                        <classpath/>
-                                        <argument>io.kyligence.kap.provision.BuildCubeWithEngine</argument>
-                                    </arguments>
-                                    <workingDirectory>${project.basedir}</workingDirectory>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>build_cube_with_stream</id>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <phase>pre-integration-test</phase>
-                                <configuration>
-                                    <skip>${skipTests}</skip>
-                                    <classpathScope>test</classpathScope>
-                                    <executable>java</executable>
-                                    <arguments>
-                                        <argument>-Dhdp.version=${hdp.version}</argument>
-                                        <argument>-DfastBuildMode=${fastBuildMode}</argument>
-                                        <argument>-Dkylin.engine=${kylin.engine}</argument>
-                                        <argument>-Dkylin.storage=${kylin.storage}</argument>
-                                        <argument>
-                                            -Dlog4j.configuration=file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties
-                                        </argument>
-                                        <argument>-classpath</argument>
-                                        <classpath/>
-                                        <argument>io.kyligence.kap.provision.BuildCubeWithStream</argument>
-                                    </arguments>
-                                    <workingDirectory>${project.basedir}</workingDirectory>
-                                </configuration>
-                            </execution>
-
-                            <execution>
-                                <id>start_spark</id>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <phase>pre-integration-test</phase>
-                                <configuration>
-                                    <skip>${skipTests}</skip>
-                                    <executable>build/bin/spark_client.sh</executable>
-                                    <commandlineArgs>start</commandlineArgs>
-                                    <environmentVariables>
-                                        <CI_MODE>true</CI_MODE>
-                                    </environmentVariables>
-                                    <workingDirectory>${project.basedir}/../../</workingDirectory>
-                                </configuration>
-                            </execution>
-
-                            <execution>
-                                <id>stop_spark</id>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <phase>post-integration-test</phase>
-                                <configuration>
-                                    <skip>${skipTests}</skip>
-                                    <executable>build/bin/spark_client.sh</executable>
-                                    <commandlineArgs>stop</commandlineArgs>
-                                    <environmentVariables>
-                                        <CI_MODE>true</CI_MODE>
-                                    </environmentVariables>
-                                    <workingDirectory>${project.basedir}/../../</workingDirectory>
-                                </configuration>
-                            </execution>
-                        </executions>
                     </plugin>
-
                 </plugins>
             </build>
+            <properties>
+                <profile.id>sandbox</profile.id>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>cdh5.7</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+            <properties>
+                <profile.id>cdh5.7</profile.id>
+            </properties>
         </profile>
     </profiles>
 
