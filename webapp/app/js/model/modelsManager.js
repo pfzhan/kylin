@@ -136,7 +136,11 @@ KylinApp.service('modelsManager',function(ModelService,CubeService,$q,AccessServ
         for(var j=0;j<_model.lookups.length;j++){
           var _lookup = _model.lookups[j];
           if(tableName.toUpperCase() == _lookup.table.toUpperCase()){
-            tags.push("LOOKUP");
+            if(_lookup.kind=="LOOKUP"){
+              tags.push("LOOKUP");
+            }else{
+              tags.push("FACT");
+            }
             tags.push(_lookup.join.type.toUpperCase());
             return tags;
           }
