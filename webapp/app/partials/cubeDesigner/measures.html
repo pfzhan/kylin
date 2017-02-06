@@ -191,11 +191,6 @@
                   <b>Extended column on fact table</b>    <i ng-if="newMeasure.function.expression == 'EXTENDED_COLUMN'" title="Extended Column" class="fa fa-info-circle" kylinpopover placement="right" template="extendedColumnTip.html"></i>
                 </label>
                 <div class="col-xs-12 col-sm-6">
-<!--                  <select class="form-control" chosen ng-if="nextPara.type !== 'constant'" required
-                          ng-model="nextPara.value"
-                          ng-options="column as column for column in getAllModelDimColumns()" >
-                    <option value="">{{dataKylin.cube.cubeMSParamValueSelect}}</option>
-                  </select>-->
                   <div  style="width:100%;" class="chosen-container chosen-container-single">
                     <button style="width:100%;" type="button" class="chosen-single dropdown-toggle" data-toggle="dropdown">
                       <span style="float:left;" ng-show="nextPara.value && nextPara.value!=1" >{{nextPara.value}}</span>

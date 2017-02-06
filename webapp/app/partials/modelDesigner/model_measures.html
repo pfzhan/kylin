@@ -43,7 +43,7 @@
       <div  ng-if="state.mode=='edit'" class="form-group" style="width: 100%">
         <h3 class="box-title">{{dataKylin.model.gridMSSelectMeasure}}</h3>
         <div ng-repeat="factTable in availableFactTables track by $index" ng-init="outindex=$index" class="row" style="margin-left:0px">
-          <accordion>
+          <accordion class="accordionCursor">
             <div accordion-group class="panel-default "  is-open="selectedColumns[factTable].open" >
               <accordion-heading>
                 <i class="glyphicon" ng-class="{'glyphicon-minus':selectedColumns[factTable].open, 'glyphicon-plus': !selectedColumns[factTable].open}"></i>
