@@ -353,6 +353,8 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
       $scope.newMeasure.function.parameter.type= 'column';
       $scope.newMeasure.function.returntype = "extendedcolumn(100)";
       return;
+    }else if($scope.newMeasure.function.expression=='PERCENTILE'){
+      $scope.newMeasure.function.parameter.type= 'column';
     }else{
       $scope.nextParameterInit();
     }
@@ -403,6 +405,9 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
           break;
         case "COUNT":
           $scope.newMeasure.function.returntype = "bigint";
+          break;
+        case "PERCENTILE":
+          $scope.newMeasure.function.returntype = "percentile(100)";
           break;
         default:
           $scope.newMeasure.function.returntype = "";
