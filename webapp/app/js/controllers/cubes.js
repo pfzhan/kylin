@@ -183,6 +183,7 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
       var defer = $q.defer();
       if (cube.detail) {
         defer.resolve(cube.detail);
+        cube.model = modelsManager.getModel(cube.detail.model_name);
       } else {
         CubeDescService.query({cube_name: cube.name}, {}, function (detail) {
           if (detail.length > 0 && detail[0].hasOwnProperty("name")) {
