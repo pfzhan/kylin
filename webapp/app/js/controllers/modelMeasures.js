@@ -119,7 +119,7 @@ KylinApp.controller('ModelMeasuresCtrl', function ($scope, $modal,MetaModel,mode
              }
           });
           $scope.selectedColumns[table].all=all;
-          modelsManager.selectedModel.metrics.push(tabel+"."+name);
+          modelsManager.selectedModel.metrics.push(table+"."+name);
        }
     }
 

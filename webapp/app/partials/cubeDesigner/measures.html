@@ -82,7 +82,7 @@
   <!--Add Measures Button-->
   <div class="form-group">
     <button class="btn btn-sm btn-info" ng-click="addMeasure()" ng-show="state.mode=='edit'"  ng-disabled="instance.status=='READY'">
-       {{dataKylin.model.Measure}}<i class="fa fa-plus"></i>
+       {{dataKylin.model.Measure}}&nbsp;<i class="fa fa-plus"></i>
     </button>
   </div>
 
@@ -157,14 +157,26 @@
                         ng-init="newMeasure.function.parameter.value = 1">
                     <b>&nbsp;&nbsp;1</b>
                   </span>
-                  <!--!COUNT_DISTINCT-->
-                  <select class="form-control" chosen
-                          ng-if="newMeasure.function.parameter.type == 'column'"
-                          ng-model="newMeasure.function.parameter.value" required
-                          ng-change="measureReturnTypeUpdate();"
-                          ng-options="column as column for column in measureParamValueColumn" >
-                    <option value="">{{dataKylin.cube.cubeMSParamValueSelect}}</option>
-                  </select>
+                  <div  style="width:100%;" class="chosen-container chosen-container-single" ng-if="newMeasure.function.parameter.type == 'column'">
+                    <button style="width:100%;" type="button" class="chosen-single dropdown-toggle" data-toggle="dropdown">
+                      <span style="float:left;" ng-show="newMeasure.function.parameter.value && newMeasure.function.parameter.value!=1" >{{newMeasure.function.parameter.value}}</span>
+                      <span class="align-right" ng-show="newMeasure.function.parameter.value && newMeasure.function.parameter.value!=1">{{metaModel.model.aliasColumnMap[newMeasure.function.parameter.value].datatype}}</span>
+                      <span style="float:left;" ng-show="!newMeasure.function.parameter.value || newMeasure.function.parameter.value==1" >{{dataKylin.cube.cubeMSParamValueSelect}}</span>
+                      <div><b></b></div>
+                    </button>
+                    <ul class="dropdown-menu my-dropdown" role="menu"  style="width:100%;height:200px;overflow-y:scroll;" >
+                      <li>
+                        <div class="chosen-search" ng-click="$event.stopPropagation();">
+                          <input type="text" ng-model="colsFilter" >
+                        </div>
+                        <a ng-repeat="column in measureParamValueColumn|filter:colsFilter" class="active-result"
+                           ng-click="newMeasure.function.parameter.value=column;measureReturnTypeUpdate();" >
+                          <span>{{column}}</span>
+                          <span style="float:right;" >{{metaModel.model.aliasColumnMap[column].datatype}}</span>
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
                 <label ng-if="newMeasure.function.parameter.type == 'column'&& newMeasure.function.expression !== 'EXTENDED_COLUMN'">
                   <input type="checkbox" ng-model="newMeasure.showDim" ng-change="measureParamValueUpdate();" />&nbsp;{{dataKylin.cube.includeDimension}}
@@ -179,11 +191,31 @@
                   <b>Extended column on fact table</b>    <i ng-if="newMeasure.function.expression == 'EXTENDED_COLUMN'" title="Extended Column" class="fa fa-info-circle" kylinpopover placement="right" template="extendedColumnTip.html"></i>
                 </label>
                 <div class="col-xs-12 col-sm-6">
-                  <select class="form-control" chosen ng-if="nextPara.type !== 'constant'" required
+<!--                  <select class="form-control" chosen ng-if="nextPara.type !== 'constant'" required
                           ng-model="nextPara.value"
                           ng-options="column as column for column in getAllModelDimColumns()" >
                     <option value="">{{dataKylin.cube.cubeMSParamValueSelect}}</option>
-                  </select>
+                  </select>-->
+                  <div  style="width:100%;" class="chosen-container chosen-container-single">
+                    <button style="width:100%;" type="button" class="chosen-single dropdown-toggle" data-toggle="dropdown">
+                      <span style="float:left;" ng-show="nextPara.value && nextPara.value!=1" >{{nextPara.value}}</span>
+                      <span class="align-right" ng-show="nextPara.value && nextPara.value!=1">{{metaModel.model.aliasColumnMap[nextPara.value].datatype}}</span>
+                      <span style="float:left;" ng-show="!nextPara.value || nextPara.value==1" >{{dataKylin.cube.cubeMSParamValueSelect}}</span>
+                      <div><b></b></div>
+                    </button>
+                    <ul class="dropdown-menu my-dropdown" role="menu"  style="width:100%;height:200px;overflow-y:scroll;" >
+                      <li>
+                        <div class="chosen-search" ng-click="$event.stopPropagation();">
+                          <input type="text" ng-model="nextParaFilter" >
+                        </div>
+                        <a ng-repeat="column in getAllModelDimColumns()|filter:nextParaFilter" class="active-result"
+                           ng-click="nextPara.value=column" >
+                          <span>{{column}}</span>
+                          <span style="float:right;" >{{metaModel.model.aliasColumnMap[column].datatype}}</span>
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
