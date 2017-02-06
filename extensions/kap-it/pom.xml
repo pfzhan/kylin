@@ -356,7 +356,7 @@
                                 <classpathScope>test</classpathScope>
                                 <executable>java</executable>
                                 <arguments>
-                                    <argument>-Dhdp.version=${profile.id}</argument>
+                                    <argument>-Dhdp.version=${hdp.version}</argument>
                                     <argument>-DfastBuildMode=${fastBuildMode}</argument>
                                     <argument>-Dkylin.engine=${kylin.engine}</argument>
                                     <argument>-Dkylin.storage=${kylin.storage}</argument>
