@@ -933,6 +933,7 @@ KylinApp.constant('kapEnglishConfig', {
     getNoMessages:'Failed to load Streaming Sample Data!',
     streamingSaveMsg:'Get Sample Data successfully！',
     loadTableWidthCollectConfirm:'Do you want to automatically run the statistics job at the same time',
+    unloadTableTip:'Are you sure to unload this table?',
     streamingSaveMsgError:'Failed to Get  Sample Data！',
     tip_model_be_used:'This model is still used by ',
     tip_model_be_used_by:'',

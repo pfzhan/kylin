@@ -135,7 +135,7 @@ KylinApp
         }
       });
     };
-    $scope.reloadTable = function (tableNames,projectName){
+    $scope.reloadTable = function (tableNames){
 
       SweetAlert.swal({
         title: "",
@@ -148,7 +148,7 @@ KylinApp
       }, function (isConfirm) {
         var delay = $q.defer();
         loadingRequest.show();
-        TableExtService.loadHiveTable({tableName: tableNames, action: projectName}, {
+        TableExtService.loadHiveTable({tableName: tableNames, action: $scope.projectModel.selectedProject}, {
           calculate:isConfirm
         }, function (result) {
           var loadTableInfo = "";
@@ -169,6 +169,7 @@ KylinApp
             SweetAlert.swal('Partial loaded!', 'The following table(s) have been successfully loaded: ' + loadTableInfo + "\n\n Failed to load following table(s):" + unloadedTableInfo, 'warning');
           }
           loadingRequest.hide();
+
           delay.resolve("");
         }, function (e) {
           kylinCommon.error_default(e);
@@ -178,16 +179,28 @@ KylinApp
       })
     }
 
-    $scope.unloadTable = function (tableNames,projectName) {
-      loadingRequest.show();
-      TableExtService.unLoadHiveTable({tableName: tableNames, action: projectName}, {}, function (result) {
-        var removedTableInfo = tableNames;
-        kylinCommon.success_alert($scope.dataKylin.alert.success, $scope.dataKylin.alert.tip_partial_loaded_body_part_one + removedTableInfo);
-        loadingRequest.hide();
-        $scope.aceSrcTbLoaded(true);
-      }, function (e) {
-        kylinCommon.error_default(e);
-        loadingRequest.hide();
+    $scope.unloadTable = function (tableNames) {
+      SweetAlert.swal({
+            title: "",
+            text: $scope.dataKylin.alert.unloadTableTip,
+            showCancelButton: true,
+            confirmButtonColor: '#DD6B55',
+            confirmButtonText: "Yes",
+            cancelButtonText: "No",
+            closeOnConfirm: true
+      }, function (isConfirm) {
+        if(isConfirm){
+          loadingRequest.show();
+          TableExtService.unLoadHiveTable({tableName: tableNames, action: $scope.projectModel.selectedProject}, {}, function (result) {
+            var removedTableInfo = tableNames;
+            kylinCommon.success_alert($scope.dataKylin.alert.success, $scope.dataKylin.alert.tip_partial_loaded_body_part_one + removedTableInfo);
+            loadingRequest.hide();
+            $scope.aceSrcTbLoaded(true);
+          }, function (e) {
+            kylinCommon.error_default(e);
+            loadingRequest.hide();
+          })
+        }
       })
     }
 
@@ -381,7 +394,7 @@ KylinApp
         }
 
         $scope.cancel();
-        scope.reloadTable($scope.tableNames,projectName).then(function(){
+        scope.reloadTab  le($scope.tableNames).then(function(){
           scope.aceSrcTbLoaded(true);
         });
       }
