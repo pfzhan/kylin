@@ -78,7 +78,8 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
         setTimeout(function(){
           $('.showSweetAlert.visible').removeClass('visible');
         },1000);
-      },function(){
+      },function(e){
+        kylinCommon.error_default(e);
         loadingRequest.hide();
       })
     }
@@ -112,7 +113,6 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
           $scope.metaModel={
            model:cube.model
          };
-        console.log(cube.model);
           TableService.get({tableName:$scope.metaModel.model.fact_table},function(table){
             if(table && table.source_type == 1){
                cube.streaming = true;
