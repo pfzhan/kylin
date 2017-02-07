@@ -106,9 +106,13 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
     $scope.refreshCubeModel = function (cube){
        cube.streaming = false;
        $scope.loadDetail(cube).then(function () {
+         if(!cube.model){
+           return
+         }
           $scope.metaModel={
            model:cube.model
          };
+        console.log(cube.model);
           TableService.get({tableName:$scope.metaModel.model.fact_table},function(table){
             if(table && table.source_type == 1){
                cube.streaming = true;
@@ -182,8 +186,8 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
     $scope.loadDetail = function (cube) {
       var defer = $q.defer();
       if (cube.detail) {
-        defer.resolve(cube.detail);
         cube.model = modelsManager.getModel(cube.detail.model_name);
+        defer.resolve(cube.detail);
       } else {
         CubeDescService.query({cube_name: cube.name}, {}, function (detail) {
           if (detail.length > 0 && detail[0].hasOwnProperty("name")) {

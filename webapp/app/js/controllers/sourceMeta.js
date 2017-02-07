@@ -136,7 +136,7 @@ KylinApp
       });
     };
     $scope.reloadTable = function (tableNames){
-
+      var delay = $q.defer();
       SweetAlert.swal({
         title: "",
         text: $scope.dataKylin.alert.loadTableWidthCollectConfirm,
@@ -146,7 +146,6 @@ KylinApp
         cancelButtonText: "No",
         closeOnConfirm: true
       }, function (isConfirm) {
-        var delay = $q.defer();
         loadingRequest.show();
         TableExtService.loadHiveTable({tableName: tableNames, action: $scope.projectModel.selectedProject}, {
           calculate:isConfirm
@@ -175,8 +174,8 @@ KylinApp
           kylinCommon.error_default(e);
           loadingRequest.hide();
         })
-        return delay.promise;
       })
+      return delay.promise;
     }
 
     $scope.unloadTable = function (tableNames) {
@@ -394,7 +393,7 @@ KylinApp
         }
 
         $scope.cancel();
-        scope.reloadTab  le($scope.tableNames).then(function(){
+        scope.reloadTable($scope.tableNames).then(function(){
           scope.aceSrcTbLoaded(true);
         });
       }
