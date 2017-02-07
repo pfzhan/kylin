@@ -92,9 +92,22 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         return fuzzyColumnSet;
     }
 
-    // validate there's at least one ordered column
+    // validate there's at least one and only one ordered column
     public void validate() {
-        getOrderedColumn();
+        boolean meetSorted = false;
+        for (RawTableColumnDesc colDesc : columns) {
+            if (INDEX_SORTED.equals(colDesc.getIndex())) {
+                if (meetSorted) {
+                    throw new IllegalStateException(this + " contains more than one ordered column");
+                } else {
+                    meetSorted = true;
+                }
+            }
+        }
+
+        if (!meetSorted) {
+            throw new IllegalStateException(this + " missing ordered column");
+        }
     }
 
     public TblColRef getOrderedColumn() {
