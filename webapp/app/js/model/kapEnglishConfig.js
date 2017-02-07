@@ -326,7 +326,7 @@ KylinApp.constant('kapEnglishConfig', {
     close: 'Close',
     cubeName: 'Cube Name',
     tip_cube_required: 'Cube name is required.',
-    tip_cube_name_invalid: 'Cube name is invalid.',
+    tip_cube_name_invalid: 'Cube name is invalid(A Combination of numbers, uppercase letters or underscores).',
     cubeCubeDesigner: 'Cube Designer',
     cubeSave: 'Save',
     cubeNext: 'Next',

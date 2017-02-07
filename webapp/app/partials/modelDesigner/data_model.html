@@ -197,7 +197,7 @@
                         <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default align-right" style="width:55.5%"><b>{{dataKylin.model.gridDMAlias}}</b></label>
                         <div  class="col-xs-12 col-sm-6 " style="width:42%" >
                           <input type="text" class="form-control " name="joinTable_alias" placeholder="Input Table Alias" ng-required="true"
-                                 ng-model="newLookup.alias" ng-change="changeAlias()"  ng-pattern="/^\w+$/" >
+                                 ng-model="newLookup.alias" ng-change="changeAlias()"  ng-pattern="/^[A-Z_\d]+$/" >
                           <small class="help-block red" ng-show="lookup_form.joinTable_alias.$error.required && (lookup_form.joinTable_alias.$dirty||lookup_form.joinTable_alias.$submitted)">{{dataKylin.cube.tip_cube_required}}</small>
                           <small class="help-block red" ng-show="!lookup_form.joinTable_alias.$error.required&&lookup_form.joinTable_alias.$invalid && (lookup_form.joinTable_alias.$dirty||lookup_form.$submitted)">{{dataKylin.cube.tip_cube_name_invalid}}</small>
                         </div>
