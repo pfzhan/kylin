@@ -87,7 +87,6 @@
                       chosen ng-model="col.index"
                       tooltip="{{dataKylin.cube.tip_false_by_default}}"
                       data-placeholder="false by default"
-                      ng-change="refreshRawTablesIndex(col,col.index)"
                       ng-options="dt as dt for dt in cubeConfig.rawTableIndexOptions">
                 <option value=""></option>
               </select>

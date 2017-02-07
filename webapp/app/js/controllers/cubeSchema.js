@@ -329,16 +329,23 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
   }
 
    $scope.rawtable_data_right_check=function(){
-     var test=$scope.RawTables;
      if(!$scope.RawTables||!$scope.RawTables.columns||$scope.RawTables.columns&&$scope.RawTables.columns.length<=0){
         return true;
      }
+     var sortedCount=0;
      for(var i=0;i<$scope.RawTables.columns.length;i++){
        if($scope.RawTables.columns[i].index=='sorted'){
-         return true;
+         sortedCount++;
        }
      }
-     var errorInfo=$scope.dataKylin.cube.rawtableMustSetSorted;
+     var errorInfo;
+     if(sortedCount==0){
+       errorInfo=$scope.dataKylin.cube.rawtableMustSetSorted;
+     }else if(sortedCount==1){
+       return true;
+     }else{
+       errorInfo=$scope.dataKylin.cube.rawtableMustSetSingleSorted;
+     }
      SweetAlert.swal('', errorInfo, 'warning');
      return false;
    }
