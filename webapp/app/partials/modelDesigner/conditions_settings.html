@@ -81,12 +81,17 @@
             <div class="row middle-popover">
               <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default align-right"><i kylinpopover placement="right" ng-title="{{dataKylin.model.gridHasParTimeColumn}}" template="partitionTimeTip.html" class="fa fa-info-circle"></i> <b>{{dataKylin.model.gridHasParTimeColumn}} :</b>  </label>
               <div class="col-xs-12 col-sm-6">
-
-                <select style="width: 100%" chosen data-placeholder="e.g. DEFAULT.TEST_KYLIN_FACT.CAL_DT"
+                <select style="width: 49%" chosen data-placeholder="e.g. DEFAULT.TEST_KYLIN_FACT.CAL_DT"
+                        ng-model="selectedTablesForPartitionTime.fact"
+                        data-placement=""    ng-disabled="cubesLength>0"
+                        ng-options="alias as alias for alias in availableFactTables" >
+                  <option value="">--Select Partition Table--</option>
+                </select>
+                <select style="width: 49%" chosen data-placeholder="e.g. DEFAULT.TEST_KYLIN_FACT.CAL_DT"
                         ng-model="modelsManager.selectedModel.partition_desc.partition_time_column"
                         ng-if="state.mode=='edit'"
                         data-placement=""      ng-disabled="cubesLength>0"
-                        ng-options="modelsManager.selectedModel.fact_table+'.'+columns.name as modelsManager.selectedModel.fact_table+'.'+columns.name for columns in getPartitonTimeColumns(modelsManager.selectedModel.fact_table)" >
+                        ng-options="selectedTablesForPartitionTime.fact+'.'+columns.name as columns.name for columns in getPartitonTimeColumns(selectedTablesForPartitionTime.fact,modelsManager.selectedModel.partition_desc.partition_date_column)">
                   <option value="">{{dataKylin.model.gridHasSepTimeColumnSelect}}</option>
                 </select>
                       <span ng-if="state.mode=='view'">

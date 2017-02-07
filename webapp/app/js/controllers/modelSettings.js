@@ -23,6 +23,7 @@ KylinApp.controller('ModelSettingsCtrl', function ($scope, $modal, MetaModel, mo
    $scope.availableFactTables = [];
    $scope.initSetting = function (){
      $scope.selectedTables={fact:VdmUtil.getNameSpace($scope.modelsManager.selectedModel.partition_desc.partition_date_column)}
+     $scope.selectedTablesForPartitionTime={fact:VdmUtil.getNameSpace($scope.modelsManager.selectedModel.partition_desc.partition_time_column)}
      $scope.availableFactTables.push(VdmUtil.removeNameSpace($scope.modelsManager.selectedModel.fact_table));
      var joinTable = $scope.modelsManager.selectedModel.lookups;
      for (var j = 0; j < joinTable.length; j++) {
