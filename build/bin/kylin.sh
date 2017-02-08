@@ -7,9 +7,11 @@ if [ "$verbose" = true ]; then
     shift
 fi
 
-source ${dir}/check-env.sh "if-not-yet"
-mkdir -p ${KYLIN_HOME}/logs
-mkdir -p ${KYLIN_HOME}/ext
+if [ "$ENABLE_CHECK_ENV" != false ]; then
+    source ${dir}/check-env.sh "if-not-yet"
+    mkdir -p ${KYLIN_HOME}/logs
+    mkdir -p ${KYLIN_HOME}/ext
+fi
 
 function retrieveDependency() {
     #retrive $hive_dependency and $hbase_dependency
