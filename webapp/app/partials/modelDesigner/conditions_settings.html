@@ -25,14 +25,14 @@
             <div class="row middle-popover">
               <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default align-right"><b>Partition Date Column</b> <i kylinpopover placement="right" title="Partition Date Column" template="partitionTip.html" class="fa fa-info-circle"></i></label>
               <div class="col-xs-12 col-sm-6" ng-if="state.mode=='edit'">
-                <select style="width: 49%" chosen data-placeholder="e.g. DEFAULT.TEST_KYLIN_FACT.CAL_DT"
+                <select style="width: 49%" chosen
                         ng-model="selectedTables.fact"
                         data-placement=""    ng-disabled="cubesLength>0"
                         ng-options="alias as alias for alias in availableFactTables" >
                   <option value="">--Select Partition Table--</option>
                 </select>
 
-                <select style="width: 49%" chosen data-placeholder="e.g. DEFAULT.TEST_KYLIN_FACT.CAL_DT"
+                <select style="width: 49%" chosen
                         ng-model="modelsManager.selectedModel.partition_desc.partition_date_column"
                         ng-change="partitionChange(modelsManager.selectedModel.partition_desc.partition_date_column)"
                         data-placement=""   ng-disabled="cubesLength>0"
@@ -81,13 +81,13 @@
             <div class="row middle-popover">
               <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default align-right"><i kylinpopover placement="right" ng-title="{{dataKylin.model.gridHasParTimeColumn}}" template="partitionTimeTip.html" class="fa fa-info-circle"></i> <b>{{dataKylin.model.gridHasParTimeColumn}} :</b>  </label>
               <div class="col-xs-12 col-sm-6">
-                <select style="width: 49%" chosen data-placeholder="e.g. DEFAULT.TEST_KYLIN_FACT.CAL_DT"
+                <select style="width: 49%" chosen
                         ng-model="selectedTablesForPartitionTime.fact"
                         data-placement=""    ng-disabled="cubesLength>0"
                         ng-options="alias as alias for alias in availableFactTables" >
                   <option value="">--Select Partition Table--</option>
                 </select>
-                <select style="width: 49%" chosen data-placeholder="e.g. DEFAULT.TEST_KYLIN_FACT.CAL_DT"
+                <select style="width: 49%" chosen
                         ng-model="modelsManager.selectedModel.partition_desc.partition_time_column"
                         ng-if="state.mode=='edit'"
                         data-placement=""      ng-disabled="cubesLength>0"
