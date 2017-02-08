@@ -20,26 +20,34 @@
 <div ng-controller="ModelMeasuresCtrl">
   <ng-form name="forms.model_measure_form" novalidate>
     <div class="dataTables_wrapper form-inline no-footer">
-      <table ng-if="state.mode=='view'&& model.metrics.length > 0" class="table table-striped table-hover">
-        <thead>
-        <tr>
-          <th>{{dataKylin.model.gridMSID}}</th>
-          <th>{{dataKylin.model.gridMSColumn}}</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr ng-repeat="measure in model.metrics track by $index">
-          <td>
+      <div  ng-if="state.mode=='view'">
+        <h4 ng-if="model.metrics.length==0">{{dataKylin.model.gridMSNoMetric}}</h4>
+        <table class="table table-striped table-hover" ng-if="model && model.metrics.length > 0">
+          <thead>
+          <tr>
+            <th>{{dataKylin.model.gridDSID}}</th>
+            <th>{{dataKylin.model.gridDSTableName}}</th>
+            <th>{{dataKylin.model.gridDSColumns}}</th>
+          </tr>
+          </thead>
+          <tbody class="cube-dimension">
+          <tr ng-repeat="factTable in availableFactTables track by $index" ng-if="selectedFactTables[factTable].length > 0" >
             <!--ID -->
-            <b>{{$index + 1}}</b>
-          </td>
-          <td>
+            <td>
+              <b>{{$index + 1}}</b>
+            </td>
             <!--Name -->
-            <span tooltip="measure name..">{{measure}}</span>
-          </td>
-        </tr>
-        </tbody>
-      </table>
+            <td>
+              <span>{{factTable}}</span>
+            </td>
+            <!--Table Name -->
+            <td>
+              <span ng-repeat="column in selectedFactTables[factTable]" ><label class="label label-info inline-block">{{column}}</label>&nbsp;&nbsp;&nbsp;</span>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
       <div  ng-if="state.mode=='edit'" class="form-group" style="width: 100%">
         <h3 class="box-title">{{dataKylin.model.gridMSSelectMeasure}}</h3>
         <div ng-repeat="factTable in availableFactTables track by $index" ng-init="outindex=$index" class="row" style="margin-left:0px">
@@ -69,7 +77,7 @@
                   <td><label class="dim-checkbox-label">
                     <input type="checkbox" ng-change="Change(factTable,column.name,outindex)" ng-model="selectedColumns[factTable][column.name].selected"
                            ng-disabled="selectedColumns[factTable][column.name].disabled&&usedMeasuresCubeMap!=null" >
-                    <i class="fa fa-info-circle" ng-if="selectedColumns[factTable][column.name].disabled&&usedMeasuresCubeMap!=null" kylinpopover placement="right" ng-title="{{dataKylin.model.gridInUseTip}}"  ng-cube="{{usedMeasuresCubeMap[column.name]}}" template="modelMeasures.html" ></i>
+                    <i class="fa fa-info-circle" ng-if="selectedColumns[factTable][column.name].disabled&&usedMeasuresCubeMap!=null" kylinpopover placement="right" ng-title="{{dataKylin.model.gridInUseTip}}"  ng-cube="{{usedMeasuresCubeMap[factTable+'.'+column.name]}}" template="modelMeasures.html" ></i>
                     </label>
                   </td>
                   <td>{{column.name}} </td>

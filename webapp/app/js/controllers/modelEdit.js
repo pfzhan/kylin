@@ -135,6 +135,9 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
             $scope.tableAliasMap[$scope.modelsManager.selectedModel.fact_table]=VdmUtil.removeNameSpace($scope.modelsManager.selectedModel.fact_table);
             $scope.aliasName.push(VdmUtil.removeNameSpace($scope.modelsManager.selectedModel.fact_table));
             angular.forEach($scope.modelsManager.selectedModel.lookups,function(joinTable){
+              if(!joinTable.alias){
+                joinTable.alias=VdmUtil.removeNameSpace(joinTable.table);
+              }
               $scope.aliasTableMap[joinTable.alias]=joinTable.table;
               $scope.tableAliasMap[joinTable.table]=joinTable.alias;
               $scope.aliasName.push(joinTable.alias);

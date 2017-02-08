@@ -36,8 +36,8 @@
                 <option value=""> {{dataKylin.model.editDMSelectFact}} </option>
               </select>
 
-                <small class="help-block" ng-show="forms.data_model_form.innerform.typeahead.$error.required && (forms.data_model_form.innerform.typeahead.$dirty||forms.data_model_form.$submitted)">The fact table is required</small>
-                <span ng-if="state.mode=='view'">{{$parent.rootFactTable}}</span>
+              <small class="help-block" ng-show="forms.data_model_form.innerform.typeahead.$error.required && (forms.data_model_form.innerform.typeahead.$dirty||forms.data_model_form.$submitted)">The fact table is required</small>
+              <span ng-if="state.mode=='view'">{{model.fact_table}}</span>
             </div>
         </div>
     </div>
@@ -80,7 +80,7 @@
                 </td>
                 <!-- Table Name -->
                 <td>
-                  <i class="fa fa-info-circle" ng-if="selectedTableCubeMap[lookup.alias]" kylinpopover placement="left" ng-title="{{dataKylin.model.gridInUseTip}}" ng-cube="{{selectedTableCubeMap[lookup.table]}}"  template="modelLookups.html" ></i>
+                  <i class="fa fa-info-circle" ng-if="selectedTableCubeMap[lookup.alias]" kylinpopover placement="left" ng-title="{{dataKylin.model.gridInUseTip}}" ng-cube="{{selectedTableCubeMap[lookup.alias]}}"  template="modelLookups.html" ></i>
                     <span tooltip="Lookup Table Name">{{lookup.alias}}</span>
                 </td>
               <!-- Table Kind -->

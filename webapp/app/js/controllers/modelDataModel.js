@@ -21,7 +21,6 @@
 KylinApp.controller('ModelDataModelCtrl', function ($location,$scope, $modal,cubeConfig,MetaModel,SweetAlert,ModelGraphService,$log,TableModel,ModelService,loadingRequest,modelsManager,VdmUtil) {
     $scope.selectedTableCubeMap={};
     $scope.modelsManager = modelsManager;
-    $scope.VdmUtil=VdmUtil;
     angular.forEach($scope.modelsManager.selectedModel.lookups,function(joinTable){
       if(!joinTable.alias){
         joinTable.alias=VdmUtil.removeNameSpace(joinTable.table);

@@ -33,7 +33,7 @@ KylinApp.controller('ModelMeasuresCtrl', function ($scope, $modal,MetaModel,mode
   $scope.selectedColumns={};
   $scope.availableFactTables = [];
   $scope.selectedFactTables = {};
-  $scope.initMeasure = function () {
+  $scope.initMeasureEdit = function () {
     $scope.availableFactTables.push(VdmUtil.removeNameSpace($scope.modelsManager.selectedModel.fact_table));
     var joinTable = $scope.modelsManager.selectedModel.lookups;
     for (var j = 0; j < joinTable.length; j++) {
@@ -103,8 +103,24 @@ KylinApp.controller('ModelMeasuresCtrl', function ($scope, $modal,MetaModel,mode
      //   var column=$scope.getColumnsByTable(modelsManager.selectedModel.fact_table);
   };
 
+  $scope.initMeasureView = function () {
+     $scope.availableFactTables.push(VdmUtil.removeNameSpace($scope.model.fact_table));
+     var joinTable = $scope.model.lookups ;
+     for (var j = 0; j < joinTable.length; j++) {
+       if(joinTable[j].kind=='FACT'){
+         $scope.availableFactTables.push(joinTable[j].alias);
+         }
+     }
+    angular.forEach($scope.model.metrics,function(metric){
+      $scope.selectedFactTables[VdmUtil.getNameSpace(metric)]=$scope.selectedFactTables[VdmUtil.getNameSpace(metric)]||[];
+      $scope.selectedFactTables[VdmUtil.getNameSpace(metric)].push(VdmUtil.removeNameSpace(metric));
+    });
+  }
+
   if ($scope.state.mode == 'edit') {
-      $scope.initMeasure();
+      $scope.initMeasureEdit();
+  }else{
+      $scope.initMeasureView();
   }
 
     $scope.Change= function(table,name,index){
@@ -130,7 +146,7 @@ KylinApp.controller('ModelMeasuresCtrl', function ($scope, $modal,MetaModel,mode
                     var local=modelsManager.selectedModel.metrics.indexOf(table+"."+col.name);
                     if($scope.selectedColumns[table].all==true&&col.selected==false){
                         col.selected=true;
-                        modelsManager.selectedModel.metrics.push(col.table+"."+name);
+                        modelsManager.selectedModel.metrics.push(table+"."+col.name);
                     }
                     if($scope.selectedColumns[table].all==false&&col.selected==true){
                         col.selected=false;
