@@ -23,7 +23,7 @@ then
     [[ $? == 0 ]] || quit "ERROR: Hive have no permission to create table in working directory: ${WORKING_DIR}"
     echo "Checking HCat Available"
     export ENABLE_CHECK_ENV=false
-    ret=`./kylin.sh io.kyligence.kap.source.hive.tool.CheckHCatalogJob ${HIVE_TEST_DB} ${RANDNAME} /tmp/kylin/check_hcatalog`
+    bash ${dir}/kylin.sh io.kyligence.kap.source.hive.tool.CheckHCatalogJob ${HIVE_TEST_DB} ${RANDNAME} /tmp/kylin/check_hcatalog
     [[ $? == 0 ]] || quit "ERROR: Can not get Hive table data via HCatInputFormat"
     hive -e "drop table ${HIVE_TEST_TABLE};"
     hadoop fs -rm -R -skipTrash ${HIVE_TEST_TABLE_LOCATION}
@@ -47,7 +47,7 @@ then
 
     echo "Checking HCat Available"
     export ENABLE_CHECK_ENV=false
-    ret=`./kylin.sh io.kyligence.kap.source.hive.tool.CheckHCatalogJob ${HIVE_TEST_DB} ${RANDNAME} /tmp/kylin/check_hcatalog`
+    bash ${dir}/kylin.sh io.kyligence.kap.source.hive.tool.CheckHCatalogJob ${HIVE_TEST_DB} ${RANDNAME} /tmp/kylin/check_hcatalog
     [[ $? == 0 ]] || quit "ERROR: Can not get Hive table data via HCatInputFormat"
     beeline ${HIVE_BEELINE_PARAM} -e "drop table ${HIVE_TEST_TABLE};"
     rm -f ${HQL_TMP_FILE}
