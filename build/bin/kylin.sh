@@ -7,7 +7,7 @@ if [ "$verbose" = true ]; then
     shift
 fi
 
-if [ "$ENABLE_CHECK_ENV" != false ]; then
+if [ "${ENABLE_CHECK_ENV}" != false ]; then
     source ${dir}/check-env.sh "if-not-yet"
     mkdir -p ${KYLIN_HOME}/logs
     mkdir -p ${KYLIN_HOME}/ext

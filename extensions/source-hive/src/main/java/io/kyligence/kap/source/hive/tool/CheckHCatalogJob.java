@@ -81,13 +81,13 @@ public class CheckHCatalogJob extends AbstractHadoopJob implements IKeep {
         Configuration conf = getConf();
         args = new GenericOptionsParser(conf, args).getRemainingArgs();
 
-        String inputTableName = args[0];
-        String outPut = args[1];
-        String dbName = "default";
+        String dbName = args[0];
+        String tableName = args[1];
+        String outPut = args[2];
 
         Job job = Job.getInstance(conf, "Check HCatInputFormat Available");
         setJobClasspath(job, KylinConfig.getInstanceFromEnv());
-        HCatInputFormat.setInput(job, dbName, inputTableName);
+        HCatInputFormat.setInput(job, dbName, tableName);
         // initialize HCatOutputFormat
 
         job.setInputFormatClass(HCatInputFormat.class);
