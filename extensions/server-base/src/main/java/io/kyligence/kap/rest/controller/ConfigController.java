@@ -65,6 +65,13 @@ public class ConfigController extends BasicController {
         return configService.getDefaultConfigMap();
     }
 
+    @RequestMapping(value = "hidden_feature", method = { RequestMethod.GET })
+    @ResponseBody
+    public boolean isFeatureHidden(@RequestParam("feature_name") String key) {
+        String s = configService.getAllKylinProperties().getProperty("kap.web.hide-feature." + key);
+        return "true".equals(s);
+    }
+
     @RequestMapping(value = "spark_status", method = { RequestMethod.GET })
     @ResponseBody
     public Map<String, String> getSparkExec() {

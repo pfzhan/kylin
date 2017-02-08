@@ -105,7 +105,7 @@ public class ConfigService extends BasicService {
         return result;
     }
 
-    private Properties getAllKylinProperties() {
+    public Properties getAllKylinProperties() {
         // hack to get all config properties
         Properties allProps = null;
         try {
