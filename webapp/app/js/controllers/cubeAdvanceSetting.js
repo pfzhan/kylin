@@ -27,20 +27,6 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
       $scope.cuboidList[index]=VdmUtil.linkArrObjectToString(data);
     })
   }
-  $scope.getTypeVersion=function(typename){
-    var searchResult=/\[v(\d+)\]/.exec(typename);
-    if(searchResult&&searchResult.length){
-      return searchResult.length&&searchResult[1]||1;
-    }else{
-      return 1;
-    }
-  }
-  $scope.removeVersion=function(typename){
-    if(typename){
-      return typename.replace(/\[v\d+\]/g,"");
-    }
-    return "";
-  }
   var needLengthKeyList=['fixed_length','fixed_length_hex','int','integer'];
 
   //rowkey
@@ -428,8 +414,8 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
      $scope.getSampleDataByTableName(tableName,function(){
        $scope.tableName=tableName;
        $scope.columnName=columnName;
-       $scope.columnType= TableModel.columnNameTypeMap[VdmUtil.removeNameSpace(columnName)]||''
-       $scope.columnList=TableModel.getColumnsByTable(VdmUtil.removeNameSpace(tableName));
+       $scope.columnType= TableModel.columnNameTypeMap[columnName]||''
+       $scope.columnList=TableModel.getColumnsByTable(tableName);
         $scope.columnList.map(function(obj,k){
          if(VdmUtil.removeNameSpace(tableName)+'.'+obj.name==columnName){
            $scope.columnIndex=k;

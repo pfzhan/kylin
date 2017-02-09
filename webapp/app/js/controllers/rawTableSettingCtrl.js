@@ -217,25 +217,27 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
 
   $scope.getRawTableEncodings =function (name){
     var filterName=name;
-    var type = TableModel.columnNameTypeMap[filterName]||'';
+    var clumnType = TableModel.columnNameTypeMap[filterName]||'';
     var filterEncoding;
     encodings=VdmUtil.removeFilterObjectList(encodings,'baseValue','dict');
-    var filerList=$scope.createFilter(type);
+    var matchList=VdmUtil.getObjValFromLikeKey($scope.store.encodingMaps,clumnType);
+    matchList.push('var','orderedbytes');
     if($scope.isEdit&&name){
       if($scope.hisRawTableData){
         for(var s=0;s<$scope.hisRawTableData.length;s++){
           if(filterName==$scope.hisRawTableData[s].column){
             var version=$scope.hisRawTableData[s].encoding_version||1;
             filterEncoding=VdmUtil.getFilterObjectListByOrFilterVal(encodings,'value',$scope.hisRawTableData[s].encoding.replace(/:\d+/,"")+(version?"[v"+version+"]":"[v1]"),'suggest',true)
+            matchList.push($scope.hisRawTableData[s].encoding.replace(/:\d+/,""))
+            filterEncoding=VdmUtil.getObjectList(filterEncoding,'baseValue',matchList);
           }
         }
       }
       filterEncoding=VdmUtil.getFilterObjectListByOrFilterVal(encodings,'suggest',true);
+      filterEncoding=VdmUtil.getObjectList(filterEncoding,'baseValue',matchList)
     }else{
       filterEncoding=VdmUtil.getFilterObjectListByOrFilterVal(encodings,'suggest',true);
-    }
-    for(var f=0;f<filerList.length;f++){
-      filterEncoding=VdmUtil.removeFilterObjectList(filterEncoding,'baseValue',filerList[f]);
+      filterEncoding=VdmUtil.getObjectList(filterEncoding,'baseValue',matchList)
     }
     return filterEncoding;
   }

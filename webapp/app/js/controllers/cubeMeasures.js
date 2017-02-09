@@ -37,44 +37,23 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
   };
   $scope.initUpdateMeasureStatus();
   var needLengthKeyList=['fixed_length','fixed_length_hex','int','integer'];
-  $scope.removeVersion=function(typename){
-    if(typename){
-      return typename.replace(/\[v\d+\]/g,"");
-    }
-    return "";
-  }
-  $scope.getTypeVersion=function(typename){
-    var searchResult=/\[v(\d+)\]/.exec(typename);
-    if(searchResult&&searchResult.length){
-      return searchResult.length&&searchResult[1]||1;
-    }else{
-      return 1;
-    }
-  }
-  $scope.createFilter=function(type){
-    var matchlist=[];
-    if(type.indexOf("varchar")<0){
-      matchlist.push('fixed_length_hex');
-      matchlist.push('fixed_length');
-    }
-    return matchlist;
-  }
   $scope.getEncodings =function (name){
-    var type = TableModel.columnNameTypeMap[name]||'';
+    var clumnType = TableModel.columnNameTypeMap[name]||'';
     var encodings =$scope.store.supportedEncoding,filterEncoding=[];
-    var filerList=$scope.createFilter(type);
+    var matchList=VdmUtil.getObjValFromLikeKey($scope.store.encodingMaps,clumnType);
     if($scope.isEdit) {
       if (name && $scope.newMeasure.function.configuration&&$scope.newMeasure.function.configuration['topn.encoding.' + name]) {
         var version = $scope.newMeasure.function.configuration['topn.encoding_version.' + name] || 1;
         filterEncoding = VdmUtil.getFilterObjectListByOrFilterVal(encodings, 'value', $scope.newMeasure.function.configuration['topn.encoding.' + name].replace(/:\d+/, "") + (version ? "[v" + version + "]" : "[v1]"), 'suggest', true);
+        matchList.push($scope.newMeasure.function.configuration['topn.encoding.' + name].replace(/:\d+/, ""));
+        filterEncoding=VdmUtil.getObjectList(filterEncoding,'baseValue',matchList);
       }else{
         filterEncoding=VdmUtil.getFilterObjectListByOrFilterVal(encodings,'suggest', true);
+        filterEncoding=VdmUtil.getObjectList(filterEncoding,'baseValue',matchList);
       }
     }else{
       filterEncoding=VdmUtil.getFilterObjectListByOrFilterVal(encodings,'suggest', true);
-    }
-    for(var f=0;f<filerList.length;f++){
-      filterEncoding=VdmUtil.removeFilterObjectList(filterEncoding,'baseValue',filerList[f]);
+      filterEncoding=VdmUtil.getObjectList(filterEncoding,'baseValue',matchList);
     }
     return filterEncoding;
   }

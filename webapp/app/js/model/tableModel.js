@@ -16,17 +16,15 @@
  * limitations under the License.
 */
 
-KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,StringHelper) {
-
-
+KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,StringHelper,EncodingService,tableConfig) {
     var _this = this;
-
     //tracking loading status
     var loading = false;
    //for tables in cubeDesigner
     this.selectProjectTables = [];
     this.tableColumnMap={};
     this.columnNameTypeMap = {};
+    this.columnTypeEncodingMap={}
 
     this.initTables = function(){
         this.selectProjectTables = [];
@@ -59,7 +57,7 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,String
 
           angular.forEach(tables, function (table) {
             angular.forEach(table.columns, function (column) {
-              _this.columnNameTypeMap[column.name] = column.datatype;
+              _this.columnNameTypeMap[table.name+'.'+column.name] = column.datatype;
             });
           });
           if(typeof  callback=='function'){
@@ -71,6 +69,26 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,String
           callback(_this.columnNameTypeMap);
         }
       }
+    }
+    this.getColumnTypeEncodingMap=function(){
+      var _this=this;
+      var defer = $q.defer();
+      if(!angular.equals({},_this.columnTypeEncodingMap)){
+        defer.resolve(_this.columnTypeEncodingMap);
+      }
+      EncodingService.getEncodingMap({},{},function(result){
+        if(result&&result.data){
+          _this.columnTypeEncodingMap=result.data;
+        }else{
+          _this.columnTypeEncodingMap=tableConfig.columnTypeEncodingMap;
+        }
+         defer.resolve(_this.columnTypeEncodingMap);
+      },function(){
+         _this.columnTypeEncodingMap=tableConfig.columnTypeEncodingMap;
+         defer.resolve(_this.columnTypeEncodingMap);
+      })
+
+      return defer.promise;
     }
     this.aceSrcTbLoaded = function (forceLoad) {
         _this.selectedSrcDb = [];
@@ -199,7 +217,7 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,String
     this.getColumnsByTable = function (tableName) {
         var temp = [];
         angular.forEach(_this.selectProjectTables, function (table) {
-            if (table.name == tableName) {
+            if (table.database+'.'+table.name == tableName) {
                 temp = table.columns;
             }
         });
