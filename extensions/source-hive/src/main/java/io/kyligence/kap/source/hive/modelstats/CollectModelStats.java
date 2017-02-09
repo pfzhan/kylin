@@ -131,6 +131,10 @@ public class CollectModelStats extends CubingJob {
         }
 
         ExecutableManager exeMgt = ExecutableManager.getInstance(config);
+        AbstractExecutable job = exeMgt.getJob(jobID);
+        if (null == job) {
+            return null;
+        }
         ExecutableState state = exeMgt.getOutput(jobID).getState();
         if (ExecutableState.RUNNING == state || ExecutableState.READY == state) {
             return jobID;

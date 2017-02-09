@@ -40,6 +40,7 @@ import org.apache.kylin.engine.mr.common.MapReduceExecutable;
 import org.apache.kylin.engine.mr.steps.CubingExecutableUtil;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.engine.JobEngineConfig;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.MetadataManager;
@@ -144,11 +145,14 @@ public class HiveTableExtSampleJob extends CubingJob {
         }
 
         ExecutableManager exeMgt = ExecutableManager.getInstance(config);
+        AbstractExecutable job = exeMgt.getJob(jobID);
+        if (null == job) {
+            return null;
+        }
         ExecutableState state = exeMgt.getOutput(jobID).getState();
         if (ExecutableState.RUNNING == state || ExecutableState.READY == state) {
             return jobID;
         }
-
         return null;
     }
 
