@@ -128,7 +128,7 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,String
                         column.cardinality = null;
                     }
                     column.id = parseInt(column.id);
-                  _this.columnNameTypeMap[column.name] = column.datatype;
+                  _this.columnNameTypeMap[tableName+'.'+column.name] = column.datatype;
                 });
                 tableMap[table.database].push(table);
             });

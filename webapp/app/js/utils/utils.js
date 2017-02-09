@@ -162,7 +162,7 @@ KylinApp.factory('VdmUtil', function ($modal, $timeout, $location, $anchorScroll
       }
       for(var i in obj){
         if(key.startsWith(i)){
-          return obj[i];
+          return  angular.copy(obj[i]);
         }
       }
       return [];
