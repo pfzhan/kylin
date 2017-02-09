@@ -83,6 +83,7 @@
               <div class="col-xs-12 col-sm-6">
                 <select style="width: 49%" chosen
                         ng-model="selectedTablesForPartitionTime.fact"
+                        ng-if="state.mode=='edit'"
                         data-placement=""    ng-disabled="cubesLength>0"
                         ng-options="alias as alias for alias in availableFactTables" >
                   <option value="">--Select Partition Table--</option>

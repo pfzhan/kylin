@@ -39,20 +39,6 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
     $scope.usedMeasuresCubeMap = {};
     $scope.cubeConfig = cubeConfig;
 
-    $scope.getPartitonColumns = function(aliasName){
-        var columns = _.filter($scope.getColumnsByAlias(aliasName),function(column){
-            return column.datatype==="date"||column.datatype==="timestamp"||column.datatype==="string"||column.datatype.startsWith("varchar")||column.datatype==="bigint"||column.datatype==="int"||column.datatype==="integer";
-        });
-        return columns;
-    };
-
-    $scope.getPartitonTimeColumns = function(tableName,filterColumn){
-      var columns = _.filter($scope.getColumnsByAlias(tableName),function(column){
-        return (column.datatype==="time"||column.datatype==="timestamp"||column.datatype==="string"||column.datatype.startsWith("varchar"))&&(tableName+'.'+column.name!=filterColumn);
-      });
-      return columns;
-    };
-
     $scope.getColumnsByTable = function (tableName) {
         var temp = [];
         angular.forEach(TableModel.selectProjectTables, function (table) {
@@ -180,9 +166,6 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
             if(!$scope.modelsManager.selectedModel.partition_desc.partition_data_format){
               $scope.isBigInt = true;
             }
-            //if($scope.modelsManager.selectedModel.partition_desc.partition_time_column){
-            //  $scope.partitionColumn.hasSeparateTimeColumn = true;
-            //}
             modelsManager.selectedModel.project = ProjectModel.getProjectByCubeModel(modelName);
             if(!ProjectModel.getSelectedProject()){
               ProjectModel.setSelectedProject(modelsManager.selectedModel.project);

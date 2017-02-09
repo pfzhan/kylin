@@ -33,6 +33,20 @@ KylinApp.controller('ModelSettingsCtrl', function ($scope, $modal, MetaModel, mo
      }
    }
 
+   $scope.getPartitonColumns = function(aliasName){
+     var columns = _.filter($scope.getColumnsByAlias(aliasName),function(column){
+       return column.datatype==="date"||column.datatype==="timestamp"||column.datatype==="string"||column.datatype.startsWith("varchar")||column.datatype==="bigint"||column.datatype==="int"||column.datatype==="integer";
+     });
+     return columns;
+   };
+
+   $scope.getPartitonTimeColumns = function(tableName,filterColumn){
+     var columns = _.filter($scope.getColumnsByAlias(tableName),function(column){
+       return (column.datatype==="time"||column.datatype==="timestamp"||column.datatype==="string"||column.datatype.startsWith("varchar"))&&(tableName+'.'+column.name!=filterColumn);
+     });
+     return columns;
+   };
+
    $scope.isFormatEdit = {editable:false};
    var judgeFormatEditable = function(dateColumn){
      if(dateColumn == null){
@@ -76,8 +90,11 @@ KylinApp.controller('ModelSettingsCtrl', function ($scope, $modal, MetaModel, mo
        }
        judgeFormatEditable($scope.modelsManager.selectedModel.partition_desc.partition_date_column);
      }
+   }else{
+     if($scope.model.partition_desc.partition_time_column){
+         $scope.partitionColumn.hasSeparateTimeColumn = true;
+       }
    }
-
 
    $scope.toggleHasSeparateColumn = function(){
      if($scope.partitionColumn.hasSeparateTimeColumn == false){

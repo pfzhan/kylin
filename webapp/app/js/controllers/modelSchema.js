@@ -39,11 +39,6 @@ KylinApp.controller('ModelSchemaCtrl', function ($scope,$timeout, QueryService, 
     $scope.state = {mode: "view"};
   }
 
-  if(!$scope.partitionColumn){
-    $scope.partitionColumn ={
-      "hasSeparateTimeColumn" : false
-    }
-  }
 
   $scope.dataKylin =  language.getDataKylin();
   $scope.wizardSteps =  [

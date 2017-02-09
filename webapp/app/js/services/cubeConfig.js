@@ -26,7 +26,8 @@
  */
 
 KylinApp.factory('CubeConfigService', ['$resource', function ($resource, config) {
-  return $resource(Config.service.url + 'config/defaults', {}, {
-    getDefaults: {method: 'GET', params: {}, isArray: false}
+  return $resource(Config.service.url + 'config/:action', {}, {
+    getDefaults: {method: 'GET', params: {action:'defaults'}, isArray: false},
+    hiddenFeature: {method: 'GET', params: {action:'hidden_feature'}, isArray: false},
   });
 }]);

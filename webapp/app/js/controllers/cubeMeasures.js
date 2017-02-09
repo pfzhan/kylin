@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,MetaModel,cubesManager,CubeDescModel,SweetAlert,kylinCommon,VdmUtil,StringHelper) {
+KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,MetaModel,cubesManager,CubeDescModel, CubeConfigService, cubeConfig, SweetAlert,kylinCommon,VdmUtil,StringHelper) {
   $scope.TableModel=TableModel;
   $scope.num=0;
   $scope.convertedColumns=[];
@@ -29,6 +29,29 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
       $scope.$parent.initMeasures.statu=true;
     }
   }
+
+  $scope.hiddenFeature = function () {
+    CubeConfigService.hiddenFeature({feature_name:'raw-measure'},function(result){
+      var rawIndex=cubeConfig.measureExpressions.indexOf('RAW');
+      if(rawIndex>=0&&result.data){
+        cubeConfig.measureExpressions.splice(rawIndex,1);
+      }
+    },function(e){
+      kylinCommon.error_default(e);
+    });
+
+    CubeConfigService.hiddenFeature({feature_name:'extendedcolumn-measure'},function(result){
+      var extendedIndex=cubeConfig.measureExpressions.indexOf('EXTENDED_COLUMN');
+      if(extendedIndex>=0&&result.data){
+        cubeConfig.measureExpressions.splice(extendedIndex,1);
+      }
+    },function(e){
+      kylinCommon.error_default(e);
+    });
+  }
+
+  $scope.hiddenFeature();
+
   $scope.initUpdateMeasureStatus = function(){
     $scope.updateMeasureStatus = {
       isEdit:false,
