@@ -31,6 +31,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HiveCmdBuilder;
 import org.apache.kylin.engine.mr.CubingJob;
@@ -103,7 +104,7 @@ public class HiveTableExtSampleJob extends CubingJob {
             prestep.setJobClass(CheckHdfsPath.class);
             prestep.setJobParams(checkParam);
             sampleJob.addTask(prestep);
-            sampleJob.addTask(materializedView(table, sampleJob.getId(), jobConf, "limit 1000000"));
+            sampleJob.addTask(materializedView(table, sampleJob.getId(), jobConf, "limit " + KapConfig.wrap(config).getSampleViewRowSize()));
             logger.info("The View: " + tableName + " will be materialized in maximum 1000000 lines!");
         }
 

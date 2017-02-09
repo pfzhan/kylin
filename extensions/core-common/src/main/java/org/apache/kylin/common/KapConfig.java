@@ -196,6 +196,14 @@ public class KapConfig {
     }
 
     /**
+     * Sample Table
+     */
+
+    public String getSampleViewRowSize() {
+        return config.getOptional("kap.sample.view.row.size", "1000000");
+    }
+
+    /**
      * Online service
      */
     public String getKyAccountUsename() {
