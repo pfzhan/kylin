@@ -28,6 +28,7 @@ import java.util.Map;
 
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.rest.controller.BasicController;
+import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,9 +68,9 @@ public class ConfigController extends BasicController {
 
     @RequestMapping(value = "hidden_feature", method = { RequestMethod.GET })
     @ResponseBody
-    public boolean isFeatureHidden(@RequestParam("feature_name") String key) {
+    public EnvelopeResponse isFeatureHidden(@RequestParam("feature_name") String key) {
         String s = configService.getAllKylinProperties().getProperty("kap.web.hide-feature." + key);
-        return "true".equals(s);
+        return new EnvelopeResponse(EnvelopeResponse.CODE_SUCCESS, "true".equals(s), "");
     }
 
     @RequestMapping(value = "spark_status", method = { RequestMethod.GET })
