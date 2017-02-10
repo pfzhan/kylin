@@ -43,7 +43,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.rest.service.KapModelService;
-import io.kyligence.kap.source.hive.modelstats.CollectModelStats;
+import io.kyligence.kap.source.hive.modelstats.CollectModelStatsJob;
 
 @Controller
 @RequestMapping(value = "/models")
@@ -69,13 +69,11 @@ public class KapModelController extends BasicController {
         return result;
     }
 
-    @RequestMapping(value = "{project}/{modelName}/stats", method = { RequestMethod.GET })
+    @RequestMapping(value = "{project}/{modelName}/stats", method = { RequestMethod.POST })
     @ResponseBody
     public JobInstance getModelStats(@PathVariable("project") String project, @PathVariable("modelName") String modelName) throws IOException, JobException {
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
-        String jobId = CollectModelStats.findRunningJob(modelName, kapModelService.getConfig());
-        if (jobId == null)
-            jobId = CollectModelStats.createCollectJob(project, submitter, modelName);
+        String jobId = CollectModelStatsJob.initCollectJob(project, modelName, submitter);
         return jobService.getJobInstance(jobId);
     }
 }

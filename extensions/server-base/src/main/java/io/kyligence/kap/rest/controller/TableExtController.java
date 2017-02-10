@@ -68,9 +68,9 @@ public class TableExtController extends BasicController {
         return tableExtDesc;
     }
 
-    @RequestMapping(value = "/{project}/{tableName}/sample_job", method = { RequestMethod.PUT })
+    @RequestMapping(value = "/{project}/{tableName}/sample_job", method = { RequestMethod.POST })
     @ResponseBody
-    public List<JobInstance> sample(@PathVariable String project, @PathVariable String tableName) throws IOException, JobException {
+    public List<JobInstance> sampleTable(@PathVariable String project, @PathVariable String tableName) throws IOException, JobException {
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
         List<String> jobIDs = tableExtService.extractTableExt(project, submitter, tableName);
         List<JobInstance> jobInstanceList = new ArrayList<>();

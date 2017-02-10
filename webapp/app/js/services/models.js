@@ -24,7 +24,7 @@ KylinApp.factory('ModelService', ['$resource', function ($resource, config) {
         clone: {method: 'PUT', params: {action: 'clone'}, isArray: false},
         save: {method: 'POST', params: {}, isArray: false},
         update: {method: 'PUT', params: {}, isArray: false},
-        stats:{method:'GET',params:{},isArray:false},
+        stats:{method:'POST',params:{},isArray:false},
         suggestion:{method:'GET',params:{action:'table_suggestions'},isArray:false}
     });
 }]);

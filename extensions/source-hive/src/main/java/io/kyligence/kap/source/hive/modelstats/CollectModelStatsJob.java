@@ -36,6 +36,7 @@ import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.JobBuilderSupport;
 import org.apache.kylin.engine.mr.common.HadoopShellExecutable;
 import org.apache.kylin.engine.mr.common.MapReduceExecutable;
+import org.apache.kylin.engine.mr.steps.CubingExecutableUtil;
 import org.apache.kylin.job.JoinedFlatTable;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.constant.ExecutableConstants;
@@ -51,37 +52,33 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
 
-public class CollectModelStats extends CubingJob {
-    private static final Logger logger = LoggerFactory.getLogger(CollectModelStats.class);
+public class CollectModelStatsJob extends CubingJob {
+    private static final Logger logger = LoggerFactory.getLogger(CollectModelStatsJob.class);
 
-    public static String createCollectJob(String project, String submitter, String modelName) throws IOException {
-        return initCollectJob(project, submitter, modelName);
-    }
-
-    private static String initCollectJob(String project, String submitter, String modelName) throws IOException {
-
+    public static String initCollectJob(String project, String modelName, String submitter) throws IOException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
 
         String runningJobID = findRunningJob(modelName, config);
         if (runningJobID != null)
             return runningJobID;
 
-        CollectModelStats result = createCollectJob(project, modelName, submitter, config);
+        CollectModelStatsJob result = createCollectJob(project, modelName, submitter, config);
 
         ExecutableManager.getInstance(config).addJob(result);
         logger.info("Start ModelStats job: " + result.getId());
         return result.getId();
     }
 
-    private static CollectModelStats createCollectJob(String project, String modelName, String submitter, KylinConfig config) throws IOException {
-        CollectModelStats result = new CollectModelStats();
+    private static CollectModelStatsJob createCollectJob(String project, String modelName, String submitter, KylinConfig config) throws IOException {
+        CollectModelStatsJob modelStatsJob = new CollectModelStatsJob();
 
         SimpleDateFormat format = new SimpleDateFormat("z yyyy-MM-dd HH:mm:ss");
         format.setTimeZone(TimeZone.getTimeZone(config.getTimeZone()));
-        result.setDeployEnvName(config.getDeployEnv());
-        result.setProjectName(project);
-        result.setName("Collect " + modelName + " statistics " + format.format(new Date(System.currentTimeMillis())));
-        result.setSubmitter(submitter);
+        modelStatsJob.setDeployEnvName(config.getDeployEnv());
+        modelStatsJob.setProjectName(project);
+        modelStatsJob.setName("Collect " + modelName + " statistics " + format.format(new Date(System.currentTimeMillis())));
+        modelStatsJob.setSubmitter(submitter);
+        modelStatsJob.setParam(CubingExecutableUtil.CUBE_NAME, modelName);
 
         ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(config);
         ModelStats modelStats = modelStatsManager.getModelStats(modelName);
@@ -91,9 +88,9 @@ public class CollectModelStats extends CubingJob {
         JobEngineConfig jobConf = new JobEngineConfig(config);
 
         //Step1 Create Flat Table
-        result.addTask(createStatsFlatTableStep(jobConf, flatTableDesc, result.getId()));
+        modelStatsJob.addTask(createStatsFlatTableStep(jobConf, flatTableDesc, modelStatsJob.getId()));
 
-        String samplesOutPath = getOutputPath(config, result.getId()) + modelName;
+        String samplesOutPath = getOutputPath(config, modelStatsJob.getId()) + modelName;
         String samplesParam = "-model " + modelName + " -output " + samplesOutPath;
         MapReduceExecutable step1 = new MapReduceExecutable();
         step1.setName("Extract stats from model " + modelName);
@@ -101,7 +98,7 @@ public class CollectModelStats extends CubingJob {
         step1.setMapReduceParams(samplesParam);
 
         //Step2 Collect Stats
-        result.addTask(step1);
+        modelStatsJob.addTask(step1);
 
         HadoopShellExecutable step2 = new HadoopShellExecutable();
 
@@ -109,15 +106,15 @@ public class CollectModelStats extends CubingJob {
         step2.setName("Move " + modelName + " stats to MetaData");
         step2.setJobClass(ModelStatsUpdate.class);
         step2.setJobParams(samplesParam);
-        result.addTask(step2);
+        modelStatsJob.addTask(step2);
 
         //Step3 Delete Flat Table
-        result.addTask(deleteFlatTable(flatTableDesc.getTableName(), config));
+        modelStatsJob.addTask(deleteFlatTable(flatTableDesc.getTableName(), config));
 
-        modelStats.setJodID(result.getId());
+        modelStats.setJodID(modelStatsJob.getId());
         modelStatsManager.saveModelStats(modelStats);
 
-        return result;
+        return modelStatsJob;
     }
 
     public static String findRunningJob(String model, KylinConfig config) throws IOException {
