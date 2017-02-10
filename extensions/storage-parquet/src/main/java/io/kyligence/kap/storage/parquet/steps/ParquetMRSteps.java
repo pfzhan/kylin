@@ -115,7 +115,6 @@ public class ParquetMRSteps extends JobBuilderSupport {
 
         rawTableStep.setMapReduceParams(cmd.toString());
         rawTableStep.setMapReduceJobClass(KapRawTableJob.class);
-        rawTableStep.setCounterSaveAs(CubingJob.SOURCE_RECORD_COUNT + "," + CubingJob.SOURCE_SIZE_BYTES);
         return rawTableStep;
     }
 

@@ -194,7 +194,7 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
 
         cubeStep.setMapReduceParams(cmd.toString());
         cubeStep.setMapReduceJobClass(getInMemCuboidJob());
-        cubeStep.setCounterSaveAs(CubingJob.SOURCE_RECORD_COUNT + "," + CubingJob.SOURCE_SIZE_BYTES + "," + CubingJob.CUBE_SIZE_BYTES);
+        cubeStep.setCounterSaveAs(",," + CubingJob.CUBE_SIZE_BYTES);
         return cubeStep;
     }
 
@@ -217,7 +217,6 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
 
         baseCuboidStep.setMapReduceParams(cmd.toString());
         baseCuboidStep.setMapReduceJobClass(getBaseCuboidJob());
-        baseCuboidStep.setCounterSaveAs(CubingJob.SOURCE_RECORD_COUNT + "," + CubingJob.SOURCE_SIZE_BYTES);
         return baseCuboidStep;
     }
 
