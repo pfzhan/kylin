@@ -26,9 +26,12 @@ package io.kyligence.kap.rest.controller;
 
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.rest.controller.BasicController;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.response.ResponseCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,11 +69,21 @@ public class ConfigController extends BasicController {
         return configService.getDefaultConfigMap();
     }
 
+    /**
+     * 
+     * @param key the name of the feature
+     * @return
+     * error code 001: feature_name is empty
+     */
     @RequestMapping(value = "hidden_feature", method = { RequestMethod.GET })
     @ResponseBody
     public EnvelopeResponse isFeatureHidden(@RequestParam("feature_name") String key) {
+        if (StringUtils.isEmpty(key)) {
+            throw new BadRequestException("request field feature_name cannot be empty", "001");
+        }
+
         String s = configService.getAllKylinProperties().getProperty("kap.web.hide-feature." + key);
-        return new EnvelopeResponse(EnvelopeResponse.CODE_SUCCESS, "true".equals(s), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "true".equals(s), "");
     }
 
     @RequestMapping(value = "spark_status", method = { RequestMethod.GET })
