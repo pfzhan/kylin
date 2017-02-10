@@ -31,6 +31,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.InternalErrorException;
+import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -46,14 +47,26 @@ public class KyBotController extends BasicController {
 
     @RequestMapping(value = "/kybot/dump", method = { RequestMethod.GET })
     @ResponseBody
-    public void localDumpKyBotPackage(boolean needUpload, final HttpServletRequest request, final HttpServletResponse response) {
+    public void localDumpKyBotPackage(final HttpServletRequest request, final HttpServletResponse response) {
         String filePath;
         try {
-            filePath = kybotService.dumpLocalKyBotPackage(needUpload);
+            filePath = kybotService.dumpLocalKyBotPackage(false);
         } catch (IOException e) {
             throw new InternalErrorException("Failed to dump kybot package. " + e.getMessage(), e);
         }
 
         setDownloadResponse(filePath, response);
+    }
+
+    @RequestMapping(value = "/kybot/upload", method = { RequestMethod.GET })
+    @ResponseBody
+    public EnvelopeResponse uploadToKybot() {
+        try {
+            kybotService.dumpLocalKyBotPackage(true);
+        } catch (IOException e) {
+            throw new InternalErrorException("Failed to dump kybot package. " + e.getMessage(), e);
+        }
+
+        return new EnvelopeResponse("000", true, "Uploaded to kybot Successfully.");
     }
 }
