@@ -4,13 +4,13 @@
 HADOOP_PREFIX=("org.apache.hadoop." "org.apache.hbase." "org.apache.hive.")
 CHK_DIRS=("lib" "tool" "tomcat/WEB-INF/lib" "tomcat/WEB-INF/classes")
 
-for prefix in $HADOOP_PREFIX; do
-    for dir in $CHK_DIRS; do
+for prefix in ${HADOOP_PREFIX[@]}; do
+    for dir in ${CHK_DIRS[@]}; do
         echo "Check if we shipped class with prefix \"$prefix\" in \"$dir\"".
         if [ ! -d "$dir" ]; then
-            echo "Dir $dir not exists"
+            echo "Directory $dir not exists"
         else
-            grep -R $KYLIN_HOME/$prefix $dir
+            grep -R $prefix $KYLIN_HOME/$dir
             if [ "$?" = "0" ]; then
                 echo "========================================"
                 echo "We should not ship classes/jars of hadoop/hbase/hive, but found one."
