@@ -65,10 +65,11 @@
             <thead>
             <tr>
                 <th class="col-xs-1">{{dataKylin.model.gridDMID}}</th>
-                <th class="col-xs-4">{{dataKylin.model.gridDMTableName}}</th>
-                <th class="col-xs-4">{{dataKylin.model.gridDMTableKind}}</th>
+                <th class="col-xs-3">{{dataKylin.model.gridDMTableAlias}}</th>
+                <th class="col-xs-3">{{dataKylin.model.gridDMTableName}}</th>
+                <th class="col-xs-1">{{dataKylin.model.gridDMTableKind}}</th>
                 <th class="col-xs-1">{{dataKylin.model.gridDMJoinType}}</th>
-                <th class="col-xs-4">{{dataKylin.model.gridDMJoinCondition}}</th>
+                <th class="col-xs-3">{{dataKylin.model.gridDMJoinCondition}}</th>
                 <th ng-if="state.mode=='edit'" class="col-xs-2">{{dataKylin.model.editDMActions}}</th>
             </tr>
             </thead>
@@ -80,12 +81,16 @@
                 </td>
                 <!-- Table Name -->
                 <td>
-                  <i class="fa fa-info-circle" ng-if="selectedTableCubeMap[lookup.alias]" kylinpopover placement="left" ng-title="{{dataKylin.model.gridInUseTip}}" ng-cube="{{selectedTableCubeMap[lookup.alias]}}"  template="modelLookups.html" ></i>
+                  <i class="fa fa-info-circle" ng-if="selectedTableCubeMap[lookup.alias]" kylinpopover placement="right" ng-title="{{dataKylin.model.gridInUseTip}}" ng-cube="{{selectedTableCubeMap[lookup.alias]}}"  template="modelLookups.html" ></i>
                     <span tooltip="Lookup Table Name">{{lookup.alias}}</span>
+                </td>
+                <td>
+                    <span>{{lookup.table}}</span>
                 </td>
               <!-- Table Kind -->
                 <td>
-                    <span>{{lookup.kind}}</span>
+                  <span ng-if="lookup.kind=='FACT'">Limited</span>
+                  <span ng-if="lookup.kind=='LOOKUP'">Normal</span>
                 </td>
                 <!-- Join Type -->
                 <td>
@@ -118,6 +123,7 @@
         <thead>
         <tr>
           <th>{{dataKylin.model.gridDMID}}</th>
+          <th>{{dataKylin.model.gridDMTableAlias}}</th>
           <th>{{dataKylin.model.gridDMTableName}}</th>
           <th>{{dataKylin.model.gridDMTableKind}}</th>
           <th>{{dataKylin.model.gridDMJoinType}}</th>
@@ -133,9 +139,13 @@
           <td>
             <span tooltip="Lookup Table Alias">{{lookup.alias||lookup.table}}</span>
           </td>
+          <td>
+            <span>{{lookup.table}}</span>
+          </td>
           <!-- Table Kind -->
           <td>
-            <span>{{lookup.kind}}</span>
+            <span ng-if="lookup.kind=='FACT'">Limited</span>
+            <span ng-if="lookup.kind=='LOOKUP'">Normal</span>
           </td>
           <!-- Join Type -->
           <td>
@@ -158,7 +168,7 @@
     <!-- Add Join Table Form -->
     <script type="text/ng-template" id="dataModelLookupTable.html">
         <div class="modal-header">
-            <h4 class="box-title lighter">Join Table</h4>
+            <h4 class="box-title lighter">Lookup Table</h4>
         </div>
         <div class="modal-body">
             <div class="row">
@@ -171,12 +181,11 @@
                                   ng-options="table as table for table in aliasName"
                                   name="table_name"  ng-disabled="lookupState.editing"
                                   ng-required="true"
-                                  data-placeholder="Join Table Name"
                                   class="chosen-select ">
-                            <option value=""> {{dataKylin.model.editDMSelectLookup}}</option>
+                            <option value=""> {{dataKylin.model.editDMFromTable}}</option>
                           </select>
                           <!--Join Type-->
-                          <select class="chosen-select"  chosen ng-model="newLookup.join.type" style="width:10%;"
+                          <select class="chosen-select"  chosen ng-model="newLookup.join.type" ng-init="newLookup.join.type='inner'" style="width:10%;"
                                   ng-options="joinType.value as joinType.name for joinType in cubeConfig.joinTypes">
                             <option value=""></option>
                           </select>
@@ -185,7 +194,6 @@
                                   ng-options="table.name as table.name for table in tableModel.selectProjectTables"
                                   name="table_name"  ng-disabled="lookupState.editing"
                                   ng-required="true"  ng-change="changeJoinTable()"
-                                  data-placeholder="Join Table Name"
                                   class="chosen-select ">
                             <option value="">{{dataKylin.model.editDMSelectLookup}} </option>
                           </select>
@@ -206,10 +214,12 @@
 
                     <div class="form-group">
                       <div class="row">
-                        <label class=" col-xs-12 col-sm-3 control-label no-padding-right font-color-default align-right" style="width:55.5%;"><b>{{dataKylin.model.gridDMTableType}}</b></label>
+                        <label class=" col-xs-12 col-sm-3 control-label no-padding-right font-color-default align-right" style="width:55.5%;"><b></b></label>
                         <div class="col-xs-12  col-sm-6 " style="width:42%" >
-                          <label class="col-sm-6 no-padding" > <input type="radio" ng-model="newLookup.kind" value="FACT" >&nbsp;&nbsp;{{dataKylin.model.gridDMFactTable}}</label>
-                          <label class="col-sm-6 no-padding" > <input type="radio" ng-model="newLookup.kind" value="LOOKUP">&nbsp;&nbsp;{{dataKylin.model.gridDMLookupTables}}</label>
+                          <label>
+                            <input type="checkbox" ng-model="newLookup.kind" ng-true-value="FACT" ng-false-value="LOOKUP" >&nbsp;{{dataKylin.model.editDMIsLimited}}
+                          </label>
+                          <i class="fa fa-info-circle" kylinpopover="" placement="right" title="" template="isLimited.html"></i>
                         </div>
                       </div>
                     </div>
@@ -278,4 +288,9 @@
     {{cube}}
     {{dataKylin.model.gridTableInUse_part_two}}
   </div>
+</script>
+<script type="text/ng-template" id="isLimited.html">
+ <div>
+   {{dataKylin.model.editDMIsLimitedTip}}
+ </div>
 </script>

@@ -492,7 +492,7 @@
                   <b>{{colFamily.name}}</b>
                 </td>
                   <td class="col-xs-10">
-                  <ui-select  style="width: 100%" autofocus="true"
+                  <ui-select  style="width: 100%"
                     close-on-select="false" ng-model="colFamily.columns[0].measure_refs" multiple>
                     <ui-select-match placeholder="Select Measure...">{{$item}}</ui-select-match>
                     <ui-select-choices repeat="measure in getAllMeasureNames() | filter:$select.search |assignedMeasureNames:getAssignedMeasureNames()">
