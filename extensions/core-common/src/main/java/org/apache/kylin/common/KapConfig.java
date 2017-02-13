@@ -199,8 +199,11 @@ public class KapConfig {
      * Sample Table
      */
 
-    public String getSampleViewRowSize() {
-        return config.getOptional("kap.sample.view.row.size", "1000000");
+    public String getTableStatusLimitRowSize() {
+        return config.getOptional("kap.table.stats.limit.row.size", "10000000");
+    }
+    public boolean IsTableStatsScanWholeTable() {
+        return Boolean.parseBoolean(config.getOptional("kap.table.stats.scan.whole.table.enabled", "true"));
     }
 
     /**

@@ -96,7 +96,12 @@ public class HiveTableExtSampleJob extends CubingJob {
             throw new IllegalArgumentException("Cannot find table descriptor " + tableName);
         }
 
-        if (table.isView()) {
+        boolean isScanWhole = KapConfig.wrap(config).IsTableStatsScanWholeTable();
+        table.setWholeScan(isScanWhole);
+        metaMgr.saveSourceTable(table);
+
+        if (table.isView() || !table.getWholeScan()) {
+            String limitRowSize = KapConfig.wrap(config).getTableStatusLimitRowSize();
             JobEngineConfig jobConf = new JobEngineConfig(config);
             String checkParam = "-output " + getViewPath(jobConf, sampleJob.getId(), table);
             HadoopShellExecutable prestep = new HadoopShellExecutable();
@@ -104,8 +109,8 @@ public class HiveTableExtSampleJob extends CubingJob {
             prestep.setJobClass(CheckHdfsPath.class);
             prestep.setJobParams(checkParam);
             sampleJob.addTask(prestep);
-            sampleJob.addTask(materializedView(table, sampleJob.getId(), jobConf, "limit " + KapConfig.wrap(config).getSampleViewRowSize()));
-            logger.info("The View: " + tableName + " will be materialized in maximum 1000000 lines!");
+            sampleJob.addTask(materializedView(table, sampleJob.getId(), jobConf, "limit " + limitRowSize));
+            logger.info("The View: " + tableName + " will be materialized in maximum" + limitRowSize + "lines!");
         }
 
         String samplesOutPath = getOutputPath(config, sampleJob.getId(), HiveTableExtSampleJob.SAMPLES) + table.getIdentity();
