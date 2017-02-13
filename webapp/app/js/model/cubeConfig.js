@@ -70,7 +70,7 @@ KylinApp.constant('cubeConfig', {
     cubePartitionType: 'APPEND',
     topN:{name: 'Top 100', value: "topn(100)"}
   },
-    dictionaries: ["true", "false"],
+  dictionaries: ["true", "false"],
   encodings:[
     {name:"dict",value:"value"},
     {name:"fixed_length",value:"fixed_length"},
@@ -118,5 +118,6 @@ KylinApp.constant('cubeConfig', {
   statusNeedNofity:['ERROR', 'DISCARDED', 'SUCCEED'],
   buildDictionaries:[
     {name:"Global Dictionary", value:"org.apache.kylin.dict.GlobalDictionaryBuilder"}
-  ]
+  ],
+  needSetLengthEncodingList:['fixed_length','fixed_length_hex','int','integer']
 });

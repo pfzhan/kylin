@@ -27,7 +27,7 @@
 
 KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParams, $location, $templateCache, $interpolate, MessageService, TableService, CubeDescService, CubeService,RawTablesService, loadingRequest, SweetAlert, $log, cubeConfig, CubeDescModel, MetaModel, TableModel, ModelDescService, modelsManager, cubesManager, ProjectModel, StreamingModel, StreamingService,kylinCommon,VdmUtil) {
   $scope.cubeConfig = cubeConfig;
-  $scope.initMeasures={statu:false};
+  $scope.initMeasures={status:false};
   $scope.cubeName=$routeParams.cubeName;
   $scope.metaModel = {};
   $scope.modelsManager = modelsManager;
@@ -76,7 +76,6 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
           var name = value;
           var typeVersion=+encodings[i]||1;
           var suggest=false,selecttips='';
-          if(/\d+/.test(""+typeVersion)&&typeVersion>=1){
             for(var s=1;s<=typeVersion;s++){
               if(s==typeVersion){
                 suggest=true;
@@ -100,21 +99,27 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
                 "suggest":suggest
               });
             }
-          }
         }
     }
   },function(e){
     $scope.store.supportedEncoding = $scope.cubeConfig.encodings;
   })
+  $scope.getDatabaseByColumnName=function(column){
+    return  VdmUtil.getNameSpaceTopName($scope.aliasTableMap[VdmUtil.getNameSpaceTopName(column)])
+  }
+  $scope.getColumnTypeByAliasName=function(column){
+    return TableModel.columnNameTypeMap[$scope.aliasTableMap[VdmUtil.getNameSpaceTopName(column)]+'.'+VdmUtil.removeNameSpace(column)];
+  }
   $scope.getEncodings =function (name){
     var filterName=name;
-    var columnType= TableModel.columnNameTypeMap[filterName]||'';
+    var columnType= $scope.getColumnTypeByAliasName(filterName);
     var matchList=VdmUtil.getObjValFromLikeKey($scope.store.encodingMaps,columnType);
         var encodings =$scope.store.supportedEncoding,filterEncoding;
         if($scope.isEdit){
           var rowkey_columns=$scope.cubeMetaFrame.rowkey.rowkey_columns;
           if(rowkey_columns&&filterName){
             for(var s=0;s<rowkey_columns.length;s++){
+              var database=$scope.getDatabaseByColumnName(rowkey_columns[s].column);
               if(filterName==rowkey_columns[s].column){
                 var version=rowkey_columns[s].encoding_version;
                 var noLenEncoding=rowkey_columns[s].encoding.replace(/:\d+/,"");
@@ -170,7 +175,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
     var avaColObject = _.filter(tableColumns, function (col) {
       return tableDimColumns.indexOf(col.name) != -1;
     });
-    return avaColObject;
+    return angular.copy(avaColObject);
   };
 
   $scope.getMetricColumnsByTable = function (tableName) {
@@ -311,7 +316,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
     $scope.tableAliasMap[$scope.metaModel.model.fact_table]=rootFactTable;
     angular.forEach($scope.metaModel.model.lookups,function(joinTable){
       if(!joinTable.alias){
-        joinTable.alias=StringHelper.removeNameSpace(joinTable.table);
+        joinTable.alias=VdmUtil.removeNameSpace(joinTable.table);
       }
       if(joinTable.kind=="FACT"){
         $scope.availableFactTables.push(joinTable.alias);
@@ -623,7 +628,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
 
   $scope.changeRawTableDataFromClient=function(rawtableData){
     var data=[].concat(rawtableData);
-    var needLengthKeyList=['fixed_length','fixed_length_hex','int','integer'];
+    var needLengthKeyList=cubeConfig.needSetLengthEncodingList;
     var len=data&&data.length|| 0;
     for(var i=0;i<len;i++){
       var version= $scope.getTypeVersion(data[i].encoding);
@@ -832,7 +837,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
       });
 
       $scope.cubeMetaFrame.aggregation_groups = [];
-      var initJointGroups = sliceGroupItemToGroups(newUniqAggregationItem);
+      var initJointGroups = [];
       var newGroup =  CubeDescModel.createAggGroup();
       newGroup.includes = newUniqAggregationItem;
       for(var i=1;i<initJointGroups.length;i++){
@@ -960,22 +965,6 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
     return increasedData;
   }
 
-  function sliceGroupItemToGroups(groupItems) {
-    if (!groupItems.length) {
-      return [];
-    }
-    var groups = [];
-    //var j = -1;
-    //for (var i = 0; i < groupItems.length; i++) {
-    //  if (i % 11 == 0) {
-    //    j++;
-    //    groups[j] = [];
-    //  }
-    //  groups[j].push(groupItems[i]);
-    //}
-    return groups;
-  }
-
 
   // ~ private methods
   function generateColumnFamily() {
@@ -1092,5 +1081,5 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
   if($scope.cubeMetaFrame&&$scope.cubeMetaFrame.name==""&&VdmUtil.storage.getObject(ProjectModel.getSelectedProject()).name){
     $scope.cubeMetaFrame=VdmUtil.storage.getObject(proName);
     $scope.RawTables=VdmUtil.storage.getObject(proName+"_rawtable")||[];
-   }
+  }
 });

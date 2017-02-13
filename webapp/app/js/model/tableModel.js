@@ -57,7 +57,8 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,String
 
           angular.forEach(tables, function (table) {
             angular.forEach(table.columns, function (column) {
-              _this.columnNameTypeMap[table.name+'.'+column.name] = column.datatype;
+              var tableName=table.database+"."+table.name;
+              _this.columnNameTypeMap[tableName+'.'+column.name] = column.datatype;
             });
           });
           if(typeof  callback=='function'){

@@ -44,7 +44,7 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
     var len=data&&data.length|| 0;
     for(var i=0;i<len;i++){
       var result = /:(\d+)/.exec(data[i].encoding);
-      data[i].valueLength = result ? result[1] : 0;
+      data[i].valueLength =data[i].valueLength?data[i].valueLength:(result ? result[1] : 0);
       data[i].encoding=$scope.removeVersion(data[i].encoding).replace(/:\d+/,'')+'[v'+(data[i].encoding_version||1)+']';
       data[i].encodingName=$scope.removeVersion(data[i].encoding).replace(/:\d+/,'');
     }
@@ -215,12 +215,12 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
     })
   }
 
-  $scope.getRawTableEncodings =function (name){
+  $scope.getRawTableEncodings =function (tableAlias,columnName){
     var filterName=name;
-    var clumnType = TableModel.columnNameTypeMap[filterName]||'';
+    var columnType=$scope.getColumnTypeByAlias(columnName,tableAlias)||'';
     var filterEncoding;
     encodings=VdmUtil.removeFilterObjectList(encodings,'baseValue','dict');
-    var matchList=VdmUtil.getObjValFromLikeKey($scope.store.encodingMaps,clumnType);
+    var matchList=VdmUtil.getObjValFromLikeKey($scope.store.encodingMaps,columnType);
     matchList.push('var','orderedbytes');
     if($scope.isEdit&&name){
       if($scope.hisRawTableData){

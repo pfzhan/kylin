@@ -21,41 +21,33 @@
 KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,cubesManager,CubeDescModel,SweetAlert, TableModel,TableExtService,VdmUtil,CubeService) {
   $scope.cubesManager = cubesManager;
   $scope.TableModel=TableModel;
+
+  //calc cuboid
   $scope.cuboidList=[];
   $scope.calcCuboidNumber=function(aggregation_group,index){
     CubeService.calcCuboid({propValue:'aggregationgroups',action:'cuboid'},angular.toJson(aggregation_group,true),function(data){
       $scope.cuboidList[index]=VdmUtil.linkArrObjectToString(data);
     })
   }
-  var needLengthKeyList=['fixed_length','fixed_length_hex','int','integer'];
+  angular.forEach($scope.cubeMetaFrame.aggregation_groups,function(group,i){
+    $scope.calcCuboidNumber(group,i);
+  })
+  //end
 
   //rowkey
+  var needLengthKeyList=cubeConfig.needSetLengthEncodingList;
   $scope.convertedRowkeys = [];
   angular.forEach($scope.cubeMetaFrame.rowkey.rowkey_columns,function(item){
     item.encoding=$scope.removeVersion(item.encoding);
-    var _encoding = item.encoding;
-    var _valueLength ;
+    var _valueLength;
     var tableName=VdmUtil.getNameSpaceTopName(item.column);
-    var databaseName=VdmUtil.getNameSpaceTopName($scope.metaModel.model.fact_table);
+    var databaseName=$scope.getDatabaseByColumnName(item.column);
     var baseKey=item.encoding.replace(/:\d+/,'');
     if(needLengthKeyList.indexOf(baseKey)>-1){
       var result=/:(\d+)/.exec(item.encoding);
       _valueLength=result?result[1]:0;
     }
-    _encoding=baseKey;
-    angular.forEach($scope.cubeMetaFrame.dimensions,function(dimension){
-      if(dimension.derived==null){
-        if(dimension.column==VdmUtil.removeNameSpace(item.column)){
-          databaseName=VdmUtil.getNameSpaceTopName(dimension.table);
-        }
-      }else{
-        angular.forEach(dimension.derived,function(derived){
-          if(derived==VdmUtil.removeNameSpace(item.column)){
-            databaseName=VdmUtil.getNameSpaceTopName(dimension.table);
-          }
-        });
-      }
-    });
+    var _encoding=baseKey;
     var rowkeyObj = {
       column:item.column,
       encoding:_encoding+(item.encoding_version?"[v"+item.encoding_version+"]":"[v1]"),
@@ -72,6 +64,8 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     $scope.convertedRowkeys.push(rowkeyObj);
 
   })
+
+  //rowkey table resize
   setTimeout(function(){
     if($.prototype.colResizable){
       $("#resizeRowkeys").colResizable({
@@ -83,6 +77,8 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
       });
     }
   },100)
+
+
   $scope.rule={
     shardColumnAvailable:true
   }
@@ -92,22 +88,10 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     var column = item.column;
     var isShardBy = item.isShardBy;
     var tableName=VdmUtil.getNameSpaceTopName(item.column);
-    var databaseName=VdmUtil.getNameSpaceTopName($scope.metaModel.model.fact_table);
+    //var databaseName=VdmUtil.getNameSpaceTopName($scope.metaModel.model.fact_table);
     var version=$scope.getTypeVersion(item.encoding);
     var encodingType=$scope.removeVersion(item.encoding);
-    angular.forEach($scope.cubeMetaFrame.dimensions,function(dimension){
-      if(dimension.derived==null){
-        if(dimension.column==VdmUtil.removeNameSpace(item.column)){
-          databaseName=VdmUtil.getNameSpaceTopName(dimension.table);
-        }
-      }else{
-        angular.forEach(dimension.derived,function(derived){
-          if(derived==VdmUtil.removeNameSpace(item.column)){
-            databaseName=VdmUtil.getNameSpaceTopName(dimension.table);
-          }
-        });
-      }
-    });
+
     if(needLengthKeyList.indexOf(encodingType)>-1){
       encoding = encodingType+":"+item.valueLength;
     }else{
@@ -115,7 +99,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
       item.valueLength=0;
     }
     $scope.convertedRowkeys[index].table=tableName;
-    $scope.convertedRowkeys[index].database=databaseName;
+    //$scope.convertedRowkeys[index].database=databaseName;
     $scope.cubeMetaFrame.rowkey.rowkey_columns[index].column= column;
     $scope.cubeMetaFrame.rowkey.rowkey_columns[index].encoding = encoding;
     $scope.cubeMetaFrame.rowkey.rowkey_columns[index].encoding_version =version;
@@ -191,18 +175,12 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
   //to do, agg update
   $scope.addNewAggregationGroup = function () {
     $scope.cubeMetaFrame.aggregation_groups.push(CubeDescModel.createAggGroup());
-    $scope.seletedColumns=$scope.calcSelectedColums($scope.cubeMetaFrame.aggregation_groups);
-    $scope.seletedInclues=$scope.calcSelectedIncludes($scope.cubeMetaFrame.aggregation_groups);
-    //$scope.cuboidCount=$scope.calcCuboidNumber($scope.cubeMetaFrame.aggregation_groups);
   };
 
   $scope.refreshAggregationGroup = function (list, index, aggregation_groups) {
     if (aggregation_groups) {
       list[index] = aggregation_groups;
     }
-    $scope.seletedColumns=$scope.calcSelectedColums(list);
-    $scope.seletedInclues=$scope.calcSelectedIncludes(list);
-    //$scope.cuboidCount=$scope.calcCuboidNumber(list);
     $scope.calcCuboidNumber(aggregation_groups,index);
   };
 
@@ -213,8 +191,6 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     if (aggregation_group) {
       list[index] = aggregation_group;
     }
-    $scope.seletedColumns=$scope.calcSelectedColums(list);
-    $scope.seletedInclues=$scope.calcSelectedIncludes(list);
     $scope.calcCuboidNumber(aggregation_group,index)
   };
 
@@ -225,8 +201,6 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     if (aggregation_group) {
       list[index] = aggregation_group;
     }
-    $scope.seletedColumns=$scope.calcSelectedColums(list);
-    $scope.seletedInclues=$scope.calcSelectedIncludes(list);
     $scope.calcCuboidNumber(aggregation_group,index);
   };
 
@@ -372,37 +346,6 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
       arr.splice(index, 1);
     }
   };
-  $scope.calcSelectedColums=function(metadata){
-    var arr=[];
-    var len=metadata.length;
-    for(var i=0;i<len;i++){
-      var curObj=metadata[i].select_rule;
-      arr=arr.concat(curObj.mandatory_dims||[]);
-      var lenOfHierarchy=curObj.hierarchy_dims&&curObj.hierarchy_dims.length||0;
-      var lenOfJoint=curObj.joint_dims&&curObj.joint_dims.length||0;
-      for(var m=0;m<lenOfHierarchy;m++){
-        arr=arr.concat(curObj.hierarchy_dims[m]||[]);
-      }
-      for(var n=0;n<lenOfJoint;n++){
-        arr=arr.concat(curObj.joint_dims[n]||[]);
-      }
-    }
-    return arr;
-  }
-  $scope.calcSelectedIncludes=function(metadata){
-    var arr=[];
-    var len=metadata.length;
-    for(var i=0;i<len;i++){
-      var curObj=metadata[i].includes;
-      arr=arr.concat(curObj);
-    }
-    return arr;
-  }
-
-  $scope.seletedColumns=$scope.calcSelectedColums($scope.cubeMetaFrame.aggregation_groups);
-  //$scope.cuboidCount=$scope.calcCuboidNumber($scope.cubeMetaFrame.aggregation_groups);
-
-
   var container=$("#advancedSettingInfoBox table").eq(1).parent();
   //show column info
   $scope.showColumnInfo=function(selectIndex,dataArr){
@@ -459,9 +402,6 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
       scrollTo.css('color','#3276b1');
     }
   }
-  //初始化已有分组的cuboid
-  for(var i=0;i<$scope.cubeMetaFrame.aggregation_groups.length;i++){
-    $scope.calcCuboidNumber($scope.cubeMetaFrame.aggregation_groups[i],i);
-  }
+
 
 });

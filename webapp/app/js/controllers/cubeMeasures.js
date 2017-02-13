@@ -23,10 +23,10 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
   $scope.num=0;
   $scope.convertedColumns=[];
   $scope.groupby=[];
-  if ($scope.state.mode =="edit"&&($scope.isEdit = !$scope.cubeName)&&$scope.$parent.initMeasures.statu==false) {
+  if ($scope.state.mode =="edit"&&($scope.isEdit = !$scope.cubeName)&&$scope.$parent.initMeasures.status==false) {
     if(!$scope.cubeMetaFrame.measures||$scope.cubeMetaFrame.measures&&$scope.cubeMetaFrame.measures.length<=1){
       CubeDescModel.initMeasures($scope.cubeMetaFrame.measures,$scope.metaModel.model);
-      $scope.$parent.initMeasures.statu=true;
+      $scope.$parent.initMeasures.status=true;
     }
   }
 
@@ -59,11 +59,12 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
     }
   };
   $scope.initUpdateMeasureStatus();
-  var needLengthKeyList=['fixed_length','fixed_length_hex','int','integer'];
+  var needLengthKeyList=cubeConfig.needSetLengthEncodingList;
   $scope.getEncodings =function (name){
-    var clumnType = TableModel.columnNameTypeMap[name]||'';
+    //var database=$scope.getDatabaseByColumnName(name);
+    var columnType = $scope.getColumnTypeByAliasName(name);
     var encodings =$scope.store.supportedEncoding,filterEncoding=[];
-    var matchList=VdmUtil.getObjValFromLikeKey($scope.store.encodingMaps,clumnType);
+    var matchList=VdmUtil.getObjValFromLikeKey($scope.store.encodingMaps,columnType);
     if($scope.isEdit) {
       if (name && $scope.newMeasure.function.configuration&&$scope.newMeasure.function.configuration['topn.encoding.' + name]) {
         var version = $scope.newMeasure.function.configuration['topn.encoding_version.' + name] || 1;

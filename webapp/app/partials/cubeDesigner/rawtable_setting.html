@@ -60,7 +60,7 @@
                 </button>
                 <ul class="dropdown-menu my-dropdown" role="menu"  style="width:100%;" >
                   <li>
-                    <a middle-popover ng-repeat="encoding in getRawTableEncodings(col.table+'.'+col.column)" ng-click="col.encoding=encoding.value;col.encodingName=encoding.name;"
+                    <a middle-popover ng-repeat="encoding in getRawTableEncodings(col.table,col.column)" ng-click="col.encoding=encoding.value;col.encodingName=encoding.name;"
                        kylinpopover placement="left" ng-version="{{integerVersion.version}}"
                        ng-title="{{(encoding.value=='dict[v1]'||encoding.value=='fixed_length[v1]'||encoding.value=='int[v1]'||encoding.value=='integer[v1]'||encoding.value=='integer[v2]'||encoding.value=='fixed_length_hex[v1]'||encoding.value=='date[v1]'||encoding.value=='time[v1]'||encoding.value=='boolean[v1]')?encoding.name:''}}" ng-value="{{encoding.value}}" ng-watch="{{dataKylin.cube.tip_encoding}}" template="encodingTip.html">
                       {{encoding.name}}
