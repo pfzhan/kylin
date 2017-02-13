@@ -45,11 +45,11 @@ public class RawTableUtilsTest {
         Assert.assertArrayEquals(expected, RawTableUtils.shrink(origin, 11));
         Assert.assertArrayEquals(expected, RawTableUtils.shrink(byteArray, 11).toBytes());
 
-        expected = new byte[] { 0x41 };
+        expected = new byte[] { 0x71 };
         Assert.assertArrayEquals(expected, RawTableUtils.shrink(origin, 8));
         Assert.assertArrayEquals(expected, RawTableUtils.shrink(byteArray, 8).toBytes());
 
-        expected = new byte[] { 0x40 };
+        expected = new byte[] { 0x70 };
         Assert.assertArrayEquals(expected, RawTableUtils.shrink(origin, 7));
         Assert.assertArrayEquals(expected, RawTableUtils.shrink(byteArray, 7).toBytes());
     }
