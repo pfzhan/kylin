@@ -332,14 +332,20 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
      if(!$scope.RawTables||!$scope.RawTables.columns||$scope.RawTables.columns&&$scope.RawTables.columns.length<=0){
         return true;
      }
-     var sortedCount=0;
+     var sortedCount= 0,setTypeError=false;
      for(var i=0;i<$scope.RawTables.columns.length;i++){
        if($scope.RawTables.columns[i].index=='sorted'){
+         if(['date','time'].indexOf($scope.RawTables.columns[i].encodingName)<0){
+           setTypeError=true;
+         }
          sortedCount++;
        }
      }
      var errorInfo;
-     if(sortedCount==0){
+     if(setTypeError){
+       errorInfo=$scope.dataKylin.cube.rawtableMustSetSortedWidthDateEncoding;
+     }
+     else if(sortedCount==0){
        errorInfo=$scope.dataKylin.cube.rawtableMustSetSorted;
      }else if(sortedCount==1){
        return true;

@@ -50,20 +50,6 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
     }
     return data;
   }
-  $scope.getTypeVersion=function(typename){
-    var searchResult=/\[v(\d+)\]/.exec(typename);
-    if(searchResult&&searchResult.length){
-      return searchResult.length&&searchResult[1]||1;
-    }else{
-      return 1;
-    }
-  }
-  $scope.removeVersion=function(typename){
-    if(typename){
-      return typename.replace(/\[v\d+\]/g,"");
-    }
-    return "";
-  }
   //无后台数据的时候获取基础信息
   var getBaseColumnsData=function(){
     if($scope.getDimColumnsByAlias){

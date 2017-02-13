@@ -56,7 +56,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
   }
   $scope.removeVersion=function(typename){
     if(typename){
-      return typename.replace(/\[v\d+\]/g,"");
+      return typename.replace(/\[v\d+\]/g,"").replace(/\s+/g,'');
     }
     return "";
   }
@@ -85,14 +85,14 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
                 suggest=false;
               }
               if(typeVersion>1){
-                selecttips="(v"+s;
+                selecttips=" (v"+s;
                 if(s==typeVersion){
                   selecttips=",suggest)"
                 }
                 selecttips=')';
               }
               $scope.store.supportedEncoding.push({
-                "name":name+' '+selecttips,
+                "name":name+selecttips,
                 "value":value+"[v"+s+"]",
                 "version":typeVersion,
                 "baseValue":value,
