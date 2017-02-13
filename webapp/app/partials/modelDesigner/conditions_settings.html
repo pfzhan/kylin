@@ -23,7 +23,7 @@
         <div class="box-body">
           <div class="form-group">
             <div class="row middle-popover">
-              <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default align-right"><b>Partition Date Column</b> <i kylinpopover placement="right" title="Partition Date Column" template="partitionTip.html" class="fa fa-info-circle"></i></label>
+              <label class="control-label col-xs-12 col-sm-4 no-padding-right font-color-default align-right"><b>{{dataKylin.model.gridSTPartitionDate}}</b> <i kylinpopover placement="right" ng-title="{{dataKylin.model.gridSTPartitionDate}}" template="partitionTip.html" class="fa fa-info-circle"></i> :</label>
               <div class="col-xs-12 col-sm-6" ng-if="state.mode=='edit'">
                 <select style="width: 49%" chosen
                         ng-model="selectedTables.fact"
@@ -52,7 +52,7 @@
           <!--Date Format  -->
           <div class="form-group" ng-if="(state.mode=='edit') || (state.mode=='view')" >
             <div class="row">
-              <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default align-right"><b>{{dataKylin.model.gridSTPartitionDateFormat}} :</b></label>
+              <label class="control-label col-xs-12 col-sm-4 no-padding-right font-color-default align-right"><b>{{dataKylin.model.gridSTPartitionDateFormat}} :</b></label>
               <div class="col-xs-12 col-sm-6">
                 <select style="width: 100%" chosen
                         ng-required="modelsManager.selectedModel.partition_desc.partition_date_format"
@@ -69,7 +69,7 @@
 
           <div class="form-group middle-popover"  ng-if="isFormatEdit.editable==true">
             <div class="row">
-              <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default align-right"> <i kylinpopover placement="right" ng-title="{{dataKylin.model.tip_tile_gridHasSepTimeColumn}}" template="separateTimeColumnTip.html" class="fa fa-info-circle"></i> <b>{{dataKylin.model.gridSTSetSeparate}} :</b> </label>
+              <label class="control-label col-xs-12 col-sm-4 no-padding-right font-color-default align-right">  <b>{{dataKylin.model.gridSTSetSeparate}} <i kylinpopover placement="right" ng-title="{{dataKylin.model.tip_tile_gridHasSepTimeColumn}}" template="separateTimeColumnTip.html" class="fa fa-info-circle"></i>:</b> </label>
               <div class="col-xs-12 col-sm-6">
                 <toggle-switch on-label="Yes" off-label="No" ng-disabled="state.mode!=='edit'||cubesLength>0" ng-click="toggleHasSeparateColumn(partitionColumn.hasSeparateTimeColumn)" ng-model="partitionColumn.hasSeparateTimeColumn"></toggle-switch>
               </div>
@@ -79,7 +79,7 @@
           <!--Partition Time Column-->
           <div class="form-group" ng-if="partitionColumn.hasSeparateTimeColumn == true">
             <div class="row middle-popover">
-              <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default align-right"><i kylinpopover placement="right" ng-title="{{dataKylin.model.gridHasParTimeColumn}}" template="partitionTimeTip.html" class="fa fa-info-circle"></i> <b>{{dataKylin.model.gridHasParTimeColumn}} :</b>  </label>
+              <label class="control-label col-xs-12 col-sm-4 no-padding-right font-color-default align-right"> <b>{{dataKylin.model.gridHasParTimeColumn}} <i kylinpopover placement="right" ng-title="{{dataKylin.model.gridHasParTimeColumn}}" template="partitionTimeTip.html" class="fa fa-info-circle"></i> :</b>  </label>
               <div class="col-xs-12 col-sm-6">
                 <select style="width: 49%" chosen
                         ng-model="selectedTablesForPartitionTime.fact"
@@ -93,7 +93,7 @@
                         ng-if="state.mode=='edit'"
                         data-placement=""      ng-disabled="cubesLength>0"
                         ng-options="selectedTablesForPartitionTime.fact+'.'+columns.name as columns.name for columns in getPartitonTimeColumns(selectedTablesForPartitionTime.fact,modelsManager.selectedModel.partition_desc.partition_date_column)">
-                  <option value="">{{dataKylin.model.gridHasSepTimeColumnSelect}}</option>
+                  <option value="">--Select Partition Column--</option>
                 </select>
                       <span ng-if="state.mode=='view'">
                           {{!!(model.partition_desc.partition_time_column)?model.partition_desc.partition_time_column: ''}}</span>
@@ -104,7 +104,7 @@
           <!--Time Format-->
           <div class="form-group" ng-if="partitionColumn.hasSeparateTimeColumn == true">
             <div class="row">
-              <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default align-right"><b>{{dataKylin.model.gridHasSepTimeColumnTF}} :</b></label>
+              <label class="control-label col-xs-12 col-sm-4 no-padding-right font-color-default align-right"><b>{{dataKylin.model.gridHasSepTimeColumnTF}} :</b></label>
               <div class="col-xs-12 col-sm-6">
                 <select style="width: 100%" chosen
                         ng-required="modelsManager.selectedModel.partition_desc.partition_time_format"
@@ -126,7 +126,7 @@
 
         <div class="form-group box-body middle-popover">
             <div class="row">
-                <label class="control-label col-xs-12 col-sm-3 no-padding-right font-color-default align-right"><b>{{dataKylin.model.gridSTFilter}} :</b></label>
+                <label class="control-label col-xs-12 col-sm-4 no-padding-right font-color-default align-right"><b>{{dataKylin.model.gridSTFilter}} :</b></label>
                 <div class="col-xs-12 col-sm-6">
 
                     <!--edit mode-->

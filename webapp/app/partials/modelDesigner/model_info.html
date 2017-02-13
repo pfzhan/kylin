@@ -25,7 +25,7 @@
       <div class="form-group middle-popover" ng-class="{'required':state.mode=='edit'}">
         <div class="row">
           <label class="col-xs-12 col-sm-3 control-label no-padding-right font-color-default align-right">
-            <i class="fa fa-info-circle"  kylinpopover placement="right"  ng-title="{{dataKylin.model.gridMIModelName}}" template="modelNameTip.html"></i> <b>{{dataKylin.model.gridMIModelName}} :</b>
+             <b>{{dataKylin.model.gridMIModelName}} <i class="fa fa-info-circle"  kylinpopover placement="right"  ng-title="{{dataKylin.model.gridMIModelName}}" template="modelNameTip.html"></i> :</b>
           </label>
 
           <div class="col-xs-12 col-sm-6" ng-class="{'has-error':forms.model_info_form.model_name.$invalid && (forms.model_info_form.model_name.$dirty||forms.model_info_form.$submitted)}">

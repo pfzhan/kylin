@@ -84,12 +84,10 @@ KylinApp.controller('ModelSettingsCtrl', function ($scope, $modal, MetaModel, mo
 
    if ($scope.state.mode=='edit'){
      $scope.initSetting();
-     if($scope.isEdit = !!$scope.route.params) {
-       if($scope.modelsManager.selectedModel.partition_desc.partition_time_column){
-         $scope.partitionColumn.hasSeparateTimeColumn = true;
-       }
-       judgeFormatEditable($scope.modelsManager.selectedModel.partition_desc.partition_date_column);
+     if($scope.modelsManager.selectedModel.partition_desc.partition_time_column){
+       $scope.partitionColumn.hasSeparateTimeColumn = true;
      }
+     judgeFormatEditable($scope.modelsManager.selectedModel.partition_desc.partition_date_column);
    }else{
      if($scope.model.partition_desc.partition_time_column){
          $scope.partitionColumn.hasSeparateTimeColumn = true;
