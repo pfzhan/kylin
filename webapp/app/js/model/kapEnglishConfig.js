@@ -824,6 +824,16 @@ KylinApp.constant('kapEnglishConfig', {
     setConfig: 'Set Config',
     tip_setConfig: 'Update Server Config',
     diagnosis: 'Diagnosis',
+
+    diagnosisIntroduce:'provides KAP online diagnosis, optimization and service by the analysis of KAP generated diagnostic package',
+    diagnosisTimeDis:'The time range of the generated diagnostic packet is three days before the generation time',
+    diagnosisUploadBtn:'Key generation diagnostic package to KYBOT',
+    diagnosisDownloadBtn:'Download diagnostic package',
+    diagnosisUploadByHand:'Manual upload',
+    diagnosisForPoorNetwork:'If there is no public network access, can choose manual upload, operation steps are as follows：',
+    diagnosisForPoorNetworkActionSeq:['1.Download diagnostic package','2.Login KYBOT','3.Click the upload button on the top left corner of the home page and upload the selected diagnostic package on the upload page'],
+    diagnosisFactoryPackage:'Generate diagnostic package',
+
     tip_diagnosis: 'Download Diagnosis Info For Current Project',
     backup:'Backup',
     tip_backup:'Global Backup',

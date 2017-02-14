@@ -113,6 +113,7 @@ KylinApp.directive('kylinPagination', function ($parse, $q, language) {
       templateUrl: 'partials/directives/loading.html',
       link: function (scope, element, attrs) {
         scope.text = (!!!attrs.text) ? 'Loading...' : attrs.text;
+        scope.seq = attrs.seq;
       }
     };
   })

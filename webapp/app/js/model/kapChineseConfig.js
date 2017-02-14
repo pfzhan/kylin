@@ -824,6 +824,16 @@ KylinApp.constant('kapChineseConfig', {
     setConfig: '设置配置',
     tip_setConfig: '更新服务器配置',
     diagnosis: '诊断',
+    
+    diagnosisIntroduce:'通过分析KAP生成的诊断包，提供KAP在线诊断、优化及服务',
+    diagnosisTimeDis:'生成的诊断包时间范围为生成时间前三天',
+    diagnosisUploadBtn:'一键生成诊断包至KYBOT',
+    diagnosisDownloadBtn:'下载诊断包',
+    diagnosisUploadByHand:'手动上传',
+    diagnosisForPoorNetwork:'如无公网访问权限，可选择手动上传，操作步骤如下：',
+    diagnosisForPoorNetworkActionSeq:['1.点击下载诊断包','2.登录KYBOT','3.在首页左上角点击上传按钮，在上传页面选择已下载的诊断包上传'],
+    diagnosisFactoryPackage:'生成诊断包',
+
     tip_diagnosis: '为当前项目创建并下载诊断包',
     backup:'备份',
     tip_backup:'全局备份',

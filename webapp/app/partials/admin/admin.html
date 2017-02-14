@@ -127,3 +127,36 @@
         </div>
     </ng-form>
 </script>
+
+
+<script type="text/ng-template" id="actionDiagnosis.html">
+  <ng-form name="config_update_form"  >
+    <div ng-if="loading"> <loading  text="{{ dataKylin.system.diagnosisFactoryPackage }}" seq="true"></loading></div>
+    <span class="kylinDialog_close" ng-click="cancel()"></span>
+    <div class="modal-header" ng-if="!loading">
+      <h4>{{ dataKylin.diagnosis }}</h4>
+    </div>
+    <div class="modal-body" ng-if="!loading">
+      <div class="form-group dialog_content">
+         <p><a>kybot</a>{{ dataKylin.system.diagnosisIntroduce }}（<span>{{ dataKylin.system.diagnosisTimeDis }}</span>）</p>
+      </div>
+      <div class="form-group dialog_btn">
+        <button class="btn btn-primary" ng-click="upload()">{{ dataKylin.system.diagnosisUploadBtn }}</button>
+      </div>
+      <div class="form-group dialog_content dialog_footer">
+       <p><a ng-href="{{dowloadLink}}" target="_blank">{{ dataKylin.system.diagnosisDownloadBtn }}</a>，{{ dataKylin.system.diagnosisUploadByHand }} <i class="fa fa-question-circle"  kylinpopover="" placement="right" ng-title="{{ dataKylin.system.diagnosisForPoorNetwork }}"  template="actionDiagnosisTips.html" ></i></p>
+      </div>
+    </div>
+    <!--<div class="modal-footer">-->
+      <!--<button class="btn btn-default" ng-click="cancel()">{{dataKylin.system.cancel}}</button>-->
+      <!--<button class="btn btn-success" ng-click="update()">{{dataKylin.system.update}}</button>-->
+    <!--</div>-->
+  </ng-form>
+</script>
+<script type="text/ng-template" id="actionDiagnosisTips.html">
+  <div id="actionDiagnosisTips">
+    <ul>
+      <li ng-repeat="tip in dataKylin.system.diagnosisForPoorNetworkActionSeq">{{tip}}</li>
+    </ul>
+  </div>
+</script>

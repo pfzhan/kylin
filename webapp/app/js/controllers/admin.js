@@ -166,16 +166,38 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
       });
     }
   };
+  var actionDiagnosisCtrl = function ($scope, $modalInstance, KybotDiagnosisService, MessageService,language,kylinCommon){
+    $scope.dataKylin = language.getDataKylin();
+    $scope.cancel = function () {
+      $modalInstance.dismiss('cancel');
+    };
+    $scope.upload=function(){
+      $scope.loading=true;
+      KybotDiagnosisService.uploadPackage(function(){
 
+      },function(){
+        //$scope.loading=false;
+      })
+    }
+    $scope.dowloadLink=Config.service.url+"kybot/dump"
+  }
   $scope.downloadBadQueryFiles = function(){
     //var _project = ProjectModel.selectedProject;
     //if (_project == null){
     //  SweetAlert.swal('', $scope.dataKylin.alert.tip_no_project_selected, 'info');
     //  return;
     //}
-    var  _project="-all";
-    var downloadUrl = Config.service.url + 'diag/project/'+_project+'/download';
-    $window.open(downloadUrl);
+    $modal.open({
+      templateUrl: 'actionDiagnosis.html',
+      controller: actionDiagnosisCtrl,
+      resolve: {},
+      windowClass:'kybot_dialog'
+    });
+    //var  _project="-all";
+    //var downloadUrl = Config.service.url + 'diag/project/'+_project+'/download';
+    //$window.open(downloadUrl);
+
+
   }
 
   $scope.backupGlobal=function(){

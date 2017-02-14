@@ -4213,3 +4213,100 @@ Gradient Background colors
   cursor:pointer;
 }
 
+
+/*kybot action*/
+.kybot_dialog .modal-dialog{
+   width: 530px;
+   height: 285px;
+}
+.kybot_dialog .modal-content{
+  background-color: #fcfcfc;
+  /*width: 530px;*/
+  /*height: 285px;*/
+}
+.kybot_dialog .modal-header{
+  text-align: center;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.kybot_dialog .modal-header h4{
+  font-size: 30px;
+  color: #333;
+}
+.kybot_dialog .dialog_content{
+  width: 320px;
+  margin: 0 auto;
+  font-size: 14px;
+  color: #333;
+}
+.kybot_dialog .dialog_content a{
+  color:#66a8fa;
+  cursor: pointer;
+}
+.kybot_dialog .dialog_content span{
+  color:#999;
+}
+.kybot_dialog .dialog_btn{
+  width: 320px;
+  margin: 0 auto;
+}
+.kybot_dialog .dialog_btn button{
+  width: 320px;
+  height: 40px;
+}
+.kybot_dialog .dialog_footer{
+  text-align: center;
+  width: 320px;
+  margin:15px auto;
+}
+.kybot_dialog .dialog_footer a{
+  color:#333;
+  text-decoration: underline;
+}
+.kybot_dialog .loading{
+  padding-top: 30px;
+  color:#333;
+  height:285px;
+
+}
+.kybot_dialog .loading span{
+  display:block;
+  font-size: 30px;
+  font-weight: normal;
+}
+.kybot_dialog .loading i{
+  font-size: 80px;
+  margin-top: 20px;
+}
+/* basic style */
+.kylinDialog_close {
+  color: #333;
+  border-radius: 12px;
+  line-height: 20px;
+  text-align: center;
+  height: 20px;
+  width: 20px;
+  font-size: 26px;
+  padding: 1px;
+  top: 10px;
+  right: 10px;
+  position: absolute;
+  cursor: pointer;
+}
+/* use cross as close button */
+.kylinDialog_close::before {
+  content: "\2A2F";
+}
+.kybot_dialog .popover{
+  width: 500px;
+  max-width: 1500px;
+}
+#actionDiagnosisTips ul li{
+  font-size: 14px;
+  color:#333;
+}
+#actionDiagnosisTips ul{
+  list-style: none;
+  margin-left: -20px;
+}
+

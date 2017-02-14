@@ -18,7 +18,8 @@
 
 <div class="loading">
     <h4>
+        <span ng-if="seq">{{ text }}</span>
         <i class="fa fa-spinner fa-spin"></i>
-        {{ text }}
+        <span ng-if="!seq">{{ text }}</span>
     </h4>
 </div>
