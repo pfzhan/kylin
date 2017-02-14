@@ -76,6 +76,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
           var name = value;
           var typeVersion=+encodings[i]||1;
           var suggest=false,selecttips='';
+          if(/\d+/.test(""+typeVersion)&&typeVersion>=1){
             for(var s=1;s<=typeVersion;s++){
               if(s==typeVersion){
                 suggest=true;
@@ -85,7 +86,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
                 suggest=false;
               }
               if(typeVersion>1){
-                selecttips=" (v"+s;
+                selecttips="(v"+s;
                 if(s==typeVersion){
                   selecttips=",suggest)"
                 }
@@ -99,11 +100,13 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
                 "suggest":suggest
               });
             }
+          }
         }
     }
   },function(e){
     $scope.store.supportedEncoding = $scope.cubeConfig.encodings;
   })
+
   $scope.getDatabaseByColumnName=function(column){
     return  VdmUtil.getNameSpaceTopName($scope.aliasTableMap[VdmUtil.getNameSpaceTopName(column)])
   }
