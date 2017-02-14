@@ -291,17 +291,32 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
       if(shardRowkeyList.length >1){
           errors.push($scope.dataKylin.alert.check_cube_rowkeys_shard);
       }
-
-        var errorInfo = "";
-        angular.forEach(errors,function(item){
-            errorInfo+="\n"+item;
+      var cfMeasures = [];
+      angular.forEach($scope.cubeMetaFrame.hbase_mapping.column_family,function(cf){
+        angular.forEach(cf.columns[0].measure_refs, function (measure, index) {
+          cfMeasures.push(measure);
         });
-        if(errors.length){
-            SweetAlert.swal('', errorInfo, 'warning');
-            return false;
-        }else{
-            return true;
-        }
+      });
+      var uniqCfMeasures = _.uniq(cfMeasures);
+      if(uniqCfMeasures.length != $scope.cubeMetaFrame.measures.length) {
+        errors.push($scope.dataKylin.alert.check_cube_column_family);
+      }
+      var isCFEmpty = _.some($scope.cubeMetaFrame.hbase_mapping.column_family, function(colFamily) {
+        return colFamily.columns[0].measure_refs.length == 0;
+      });
+      if (isCFEmpty == true) {
+        errors.push($scope.dataKylin.alert.check_cube_column_family_empty);
+      }
+      var errorInfo = "";
+      angular.forEach(errors,function(item){
+          errorInfo+="\n"+item;
+      });
+      if(errors.length){
+        SweetAlert.swal('', errorInfo, 'warning');
+        return false;
+      }else{
+        return true;
+      }
     }
 
   $scope.cube_overwrite_prop_check = function(){

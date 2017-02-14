@@ -24,7 +24,7 @@
 
 'use strict';
 
-KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $location, $rootScope, $routeParams, $http, UserService, ProjectService, SweetAlert, $cookieStore, language,$log, kylinConfig, ProjectModel, TableModel,kapEnglishConfig,kapChineseConfig,kylinCommon) {
+KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $location, $rootScope, $routeParams, $http, UserService, ProjectService, SweetAlert, $cookieStore, language,$log, kylinConfig, ProjectModel, KapSystemService, TableModel,kapEnglishConfig,kapChineseConfig,kylinCommon) {
 
   //init kylinConfig to get kylin.Propeties
   kylinConfig.init().$promise.then(function (data) {
@@ -78,7 +78,13 @@ KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $lo
   $scope.activeTab = "";
   $scope.projectModel = ProjectModel;
   $scope.tableModel = TableModel;
-
+  KapSystemService.license({},function(data){
+    if(data['kap.version']){
+      $scope.config.version=data['kap.version'];
+    }
+  },function(e){
+    kylinCommon.error_default(e);
+  })
 
   // Set up common methods
   $scope.logout = function () {

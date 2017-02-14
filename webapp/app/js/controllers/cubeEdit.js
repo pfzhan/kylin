@@ -329,26 +329,6 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
     });
   }
 
-  var ColFamily = function () {
-    var index = 1;
-    return function () {
-      var newColFamily =
-      {
-        "name": "f" + index,
-        "columns": [
-          {
-            "qualifier": "m",
-            "measure_refs": []
-          }
-        ]
-      };
-      index += 1;
-
-      return newColFamily;
-    }
-  };
-
-
   // ~ Define data
   $scope.state = {
     "cubeSchema": "",
@@ -418,8 +398,6 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
 
 
   $scope.prepareCube = function () {
-    //generate column family
-    generateColumnFamily();
     //generate rowkey
     reGenerateRowKey();
 
@@ -965,35 +943,6 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
     return increasedData;
   }
 
-
-  // ~ private methods
-  function generateColumnFamily() {
-    $scope.cubeMetaFrame.hbase_mapping.column_family = [];
-    var colFamily = ColFamily();
-    var normalMeasures = [], distinctCountMeasures = [];
-    angular.forEach($scope.cubeMetaFrame.measures, function (measure, index) {
-      if (measure.function.expression === 'COUNT_DISTINCT') {
-        distinctCountMeasures.push(measure);
-      } else {
-        normalMeasures.push(measure);
-      }
-    });
-    if (normalMeasures.length > 0) {
-      var nmcf = colFamily();
-      angular.forEach(normalMeasures, function (normalM, index) {
-        nmcf.columns[0].measure_refs.push(normalM.name);
-      });
-      $scope.cubeMetaFrame.hbase_mapping.column_family.push(nmcf);
-    }
-
-    if (distinctCountMeasures.length > 0) {
-      var dccf = colFamily();
-      angular.forEach(distinctCountMeasures, function (dcm, index) {
-        dccf.columns[0].measure_refs.push(dcm.name);
-      });
-      $scope.cubeMetaFrame.hbase_mapping.column_family.push(dccf);
-    }
-  }
 
   $scope.$watch('projectModel.selectedProject', function (newValue, oldValue) {
     if(!$scope.projectModel.getSelectedProject()) {

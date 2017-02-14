@@ -224,4 +224,15 @@ KylinApp
       }
       return newArr;
     };
+  }).filter('assignedMeasureNames', function ($filter) {
+    //return the measures that haven't assign to column family
+    return function (inputArr, assignedArr) {
+      var out = [];
+      angular.forEach(inputArr, function (inputItem) {
+        if (assignedArr.indexOf(inputItem) == -1) {
+          out.push(inputItem);
+        }
+      });
+      return out;
+    }
   });

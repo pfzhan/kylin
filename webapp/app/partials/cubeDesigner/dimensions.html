@@ -274,7 +274,7 @@
                         <div class="box-body">
                            <ul class="list-unstyled columns-region">
                               <!--FactTable-->
-                              <div ng-repeat="table in availableFactTables track by $index"  class="panel-default " >
+                              <div ng-repeat="table in availableFactTables track by $index"  class="panel-default " ng-if="availableColumns[table].length>0">
                                  <h4>{{table}}{{dataKylin.cube.cubeDSFactTable}}</h4>
                                  <table class="table table-striped table-hover ng-scope" >
                                        <tr>
