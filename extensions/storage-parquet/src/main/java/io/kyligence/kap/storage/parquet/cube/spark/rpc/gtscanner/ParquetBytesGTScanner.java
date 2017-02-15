@@ -30,10 +30,10 @@ import java.util.Iterator;
 
 import javax.annotation.Nullable;
 
+import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTRecord;
-import org.apache.kylin.gridtable.GTScanExceedThresholdException;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
 
@@ -89,7 +89,7 @@ public abstract class ParquetBytesGTScanner implements IGTScanner {
                 }
 
                 if (++counter > maxScanCount) {
-                    throw new GTScanExceedThresholdException("Exceed scan threshold at " + counter + ", consider increasing kylin.query.memory-budget-bytes and kylin.query.scan-threshold");
+                    throw new ResourceLimitExceededException("Exceed scan threshold at " + counter + ", consider increasing kylin.storage.partition.max-scan-bytes");
                 }
 
                 temp.loadColumns(ParquetBytesGTScanner.this.columns, input);

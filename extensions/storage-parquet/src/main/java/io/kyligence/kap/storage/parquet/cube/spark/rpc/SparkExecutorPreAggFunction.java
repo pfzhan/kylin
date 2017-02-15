@@ -35,7 +35,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.gridtable.GTRecord;
 import org.apache.kylin.gridtable.GTScanRequest;
-import org.apache.kylin.gridtable.GTScanTimeoutException;
 import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.kylin.gridtable.StorageSideBehavior;
 import org.apache.kylin.metadata.realization.RealizationType;
@@ -50,6 +49,7 @@ import com.google.common.collect.Iterators;
 import io.kyligence.kap.common.obf.IKeepClassMembers;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner4Cube;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner4Raw;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ResourceTrackingGTScanner;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetSpliceTarballFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
@@ -63,24 +63,28 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
     private final String realizationType;
     private final String queryId;
     private final boolean isSplice;
+    private final boolean spillEnabled;
+    private final long maxScanBytes;
 
     public SparkExecutorPreAggFunction(String queryId, String realizationType, Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords) {
-        this(queryId, realizationType, scannedRecords, collectedRecords, false);
+        this(queryId, realizationType, scannedRecords, collectedRecords, false, true, Long.MAX_VALUE);
     }
 
-    public SparkExecutorPreAggFunction(String queryId, String realizationType, Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords, boolean isSplice) {
+    //TODO: too long parameter
+    public SparkExecutorPreAggFunction(String queryId, String realizationType, Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords, boolean isSplice, boolean spillEnabled, long maxScanBytes) {
         this.queryId = queryId;
         this.realizationType = realizationType;
         this.scannedRecords = scannedRecords;
         this.collectedRecords = collectedRecords;
         this.isSplice = isSplice;
+        this.spillEnabled = spillEnabled;
+        this.maxScanBytes = maxScanBytes;
     }
 
     @Override
     public Iterable<byte[]> call(Iterator<Tuple2<Text, Text>> tuple2Iterator) throws Exception {
 
         logger.info("Working for query with id {}", queryId);
-        long localStartTime = System.currentTimeMillis();
 
         Iterator<ByteBuffer> iterator = Iterators.transform(tuple2Iterator, new Function<Tuple2<Text, Text>, ByteBuffer>() {
             @Nullable
@@ -110,10 +114,9 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
             throw new IllegalArgumentException("Unsupported realization type " + realizationType);
         }
 
-        long deadline = gtScanRequest.getTimeout() + localStartTime;
-        logger.info("Start latency is {}, the deadline(local) is {}", localStartTime - gtScanRequest.getStartTime(), deadline);
+        logger.info("Start latency is: {}", System.currentTimeMillis() - gtScanRequest.getStartTime());
 
-        IGTScanner preAggred = gtScanRequest.decorateScanner(scanner, behavior.filterToggledOn(), behavior.aggrToggledOn(), deadline);
+        IGTScanner preAggred = gtScanRequest.decorateScanner(new ResourceTrackingGTScanner(scanner, gtScanRequest.getTimeout()), behavior.filterToggledOn(), behavior.aggrToggledOn(), false, spillEnabled);
 
         SparkExecutorGTRecordSerializer function = new SparkExecutorGTRecordSerializer(gtScanRequest, gtScanRequest.getColumns());
 
@@ -129,11 +132,6 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
             counter++;
 
             if (!gtScanRequest.isDoingStorageAggregation()) {
-                //if it's doing storage aggr, then should rely on GTAggregateScanner's check deadline
-                if (counter % GTScanRequest.terminateCheckInterval == 1 && System.currentTimeMillis() > deadline) {
-                    throw new GTScanTimeoutException("Timeout in GTAggregateScanner with scanned count " + counter);
-                }
-
                 //if it's doing storage aggr, then should rely on GTAggregateScanner's limit check
                 if (counter >= gtScanRequest.getStoragePushDownLimit()) {
                     //read one more record than limit

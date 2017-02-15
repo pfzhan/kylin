@@ -106,7 +106,7 @@ public class SparkDriverClient {
                 setSegmentId(sparkDriverClientParams.getSegmentId()).setDataFolderName(sparkDriverClientParams.getCuboidId()).//
                 setMaxRecordLength(sparkDriverClientParams.getMaxGTLength()).addAllParquetColumns(sparkDriverClientParams.getParquetColumns()).//
                 setUseII(sparkDriverClientParams.isUseII()).setRealizationType(sparkDriverClientParams.getRealizationType()).//
-                setQueryId(sparkDriverClientParams.getQueryId()).//
+                setQueryId(sparkDriverClientParams.getQueryId()).setSpillEnabled(sparkDriverClientParams.isSpillEnabled()).setMaxScanBytes(sparkDriverClientParams.getPartitionMaxScanBytes()).//
                 build();
         final SparkJobRequest initialRequest = SparkJobRequest.newBuilder().setPayload(payload).build();
         final JobServiceGrpc.JobServiceStub asyncStub = JobServiceGrpc.newStub(channel);
@@ -243,7 +243,7 @@ public class SparkDriverClient {
                                 @Override
                                 public Iterator<SparkJobResponse.ShardBlob> apply(@Nullable SparkJobResponse sparkJobResponse) {
                                     logger.info("Time for the {}th gRPC response message of query {} scan-request {} from spark instance {} visit is {}, {} shard blobs retrieved.", //
-                                            responseCount, QueryContext.getQueryId(), scanRequestId, sparkJobResponse.getSparkInstanceIdentifier(), (System.currentTimeMillis() - startTime),
+                                            responseCount, QueryContext.current().getQueryId(), scanRequestId, sparkJobResponse.getSparkInstanceIdentifier(), (System.currentTimeMillis() - startTime),
                                             sparkJobResponse.getShardBlobsList().size());
                                     responseCount.increment();
                                     return sparkJobResponse.getShardBlobsList().iterator();

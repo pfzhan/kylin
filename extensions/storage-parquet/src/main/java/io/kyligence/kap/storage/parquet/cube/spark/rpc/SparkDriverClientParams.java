@@ -36,8 +36,11 @@ public class SparkDriverClientParams {
     private final List<Integer> parquetColumns;
     private final boolean useII;
     private final String queryId;
+    private final boolean spillEnabled;
+    private final long partitionMaxScanBytes;
 
-    public SparkDriverClientParams(String kylinProperties, String realizationType, String realizationId, String segmentId, String cuboidId, int maxGTLength, List<Integer> parquetColumns, boolean useII, String queryId) {
+    public SparkDriverClientParams(String kylinProperties, String realizationType, String realizationId, String segmentId, String cuboidId, int maxGTLength, //
+            List<Integer> parquetColumns, boolean useII, String queryId, boolean spillEnabled, long partitionMaxScanBytes) {
         this.kylinProperties = kylinProperties;
         this.realizationType = realizationType;
         this.realizationId = realizationId;
@@ -47,6 +50,8 @@ public class SparkDriverClientParams {
         this.parquetColumns = parquetColumns;
         this.useII = useII;
         this.queryId = queryId == null ? "" : queryId;
+        this.spillEnabled = spillEnabled;
+        this.partitionMaxScanBytes = partitionMaxScanBytes;
     }
 
     public String getKylinProperties() {
@@ -83,5 +88,13 @@ public class SparkDriverClientParams {
 
     public String getQueryId() {
         return queryId;
+    }
+
+    public boolean isSpillEnabled() {
+        return spillEnabled;
+    }
+
+    public long getPartitionMaxScanBytes() {
+        return partitionMaxScanBytes;
     }
 }

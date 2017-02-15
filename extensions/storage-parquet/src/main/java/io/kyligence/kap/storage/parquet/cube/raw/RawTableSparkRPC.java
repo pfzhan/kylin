@@ -93,7 +93,7 @@ public class RawTableSparkRPC implements IGTStorage {
         SparkDriverClientParams sparkDriverClientParams = new SparkDriverClientParams(KylinConfig.getInstanceFromEnv().getConfigAsString(), //
                 RealizationType.INVERTED_INDEX.toString(), rawTableSegment.getRawTableInstance().getUuid(), rawTableSegment.getUuid(), "RawTable", // 
                 scanRequest.getInfo().getMaxLength(), getRequiredParquetColumns(scanRequest), KapConfig.getInstanceFromEnv().isUsingInvertedIndex(), //
-                QueryContext.getQueryId());
+                QueryContext.current().getQueryId(), KylinConfig.getInstanceFromEnv().getQueryCoprocessorSpillEnabled(), KylinConfig.getInstanceFromEnv().getPartitionMaxScanBytes());
         logger.info("Filter: {}", scanRequest.getFilterPushDown());
 
         final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest, sparkDriverClientParams);

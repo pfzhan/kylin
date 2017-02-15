@@ -103,7 +103,7 @@ public class CubeSparkRPC implements IGTStorage {
         SparkDriverClientParams sparkDriverClientParams = new SparkDriverClientParams(KylinConfig.getInstanceFromEnv().getConfigAsString(), //
                 RealizationType.CUBE.toString(), cubeSegment.getCubeInstance().getUuid(), cubeSegment.getUuid(), String.valueOf(cuboid.getId()), // 
                 scanRequest.getInfo().getMaxLength(), getRequiredParquetColumns(scanRequest), KapConfig.getInstanceFromEnv().isUsingInvertedIndex(), //
-                QueryContext.getQueryId());
+                QueryContext.current().getQueryId(), KylinConfig.getInstanceFromEnv().getQueryCoprocessorSpillEnabled(), KylinConfig.getInstanceFromEnv().getPartitionMaxScanBytes());
         logger.info("Filter: {}", scanRequest.getFilterPushDown());
 
         if (BackdoorToggles.getDumpedPartitionDir() != null) {

@@ -81,6 +81,8 @@ public class RawTableStorageQuery implements IStorageQuery {
         buildDimensionsAndMetrics(sqlDigest, dimensions, metrics);
 
         enableStorageLimitIfPossible(sqlDigest, sqlDigest.filter, context);
+        // set query deadline
+        context.setDeadline(rawTableInstance);
 
         List<RawTableSegmentScanner> scanners = Lists.newArrayList();
         for (RawTableSegment rawTableSegment : rawTableInstance.getSegments(SegmentStatusEnum.READY)) {
@@ -115,7 +117,7 @@ public class RawTableStorageQuery implements IStorageQuery {
             possible = false;
             logger.info("Storage limit push down is impossible because the filter is unevaluatable");
         }
-
+        
         boolean goodSort = !context.hasSort();
         if (!goodSort) {
             possible = false;

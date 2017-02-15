@@ -31,6 +31,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.gridtable.GTRecord;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -55,8 +56,13 @@ public class SequentialRawTableTupleIterator implements ITupleIterator {
     private Iterator<GTRecord> combinedGTItr;
     private Tuple tuple;
 
+    protected StorageContext context;
+    private int scanCount;
+    private int scanCountDelta;
+
     public SequentialRawTableTupleIterator(List<RawTableSegmentScanner> scanners, RawTableInstance rawTableInstance, Set<TblColRef> selectedDimensions, //
                                            Set<FunctionDesc> selectedMetrics, TupleInfo returnTupleInfo, StorageContext context) {
+        this.context = context;
         this.converter = new RawTableTupleConverter(rawTableInstance, selectedDimensions, selectedMetrics, returnTupleInfo);
         this.scanners = scanners;
         Iterator<Iterator<GTRecord>> transformed = Iterators.transform(scanners.iterator(), new Function<RawTableSegmentScanner, Iterator<GTRecord>>() {
@@ -88,6 +94,13 @@ public class SequentialRawTableTupleIterator implements ITupleIterator {
 
     @Override
     public ITuple next() {
+        if (scanCount++ % 100 == 1 && System.currentTimeMillis() > context.getDeadline()) {
+            throw new KylinTimeoutException("Query timeout after \"kylin.query.timeout-seconds\" seconds");
+        }
+
+        if (++scanCountDelta >= 1000)
+            flushScanCountDelta();
+        
         GTRecord temp = this.combinedGTItr.next();
         this.converter.translateResult(temp, tuple);
         return tuple;
@@ -96,5 +109,10 @@ public class SequentialRawTableTupleIterator implements ITupleIterator {
     @Override
     public void remove() {
         throw new UnsupportedOperationException();
+    }
+
+    private void flushScanCountDelta() {
+        context.increaseProcessedRowCount(scanCountDelta);
+        scanCountDelta = 0;
     }
 }

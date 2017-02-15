@@ -45,6 +45,8 @@ message SparkJobRequestPayload {
     repeated int32 parquetColumns = 8;
     required bool useII = 9;
     required string queryId = 10;
+    optional bool spillEnabled = 11 [default = true];
+    optional int64 maxScanBytes = 12; // 0 means no limit
 }
 
 message SparkJobResponse {
