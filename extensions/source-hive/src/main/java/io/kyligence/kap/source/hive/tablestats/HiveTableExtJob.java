@@ -53,7 +53,7 @@ public class HiveTableExtJob extends AbstractHadoopJob {
 
     @SuppressWarnings("static-access")
     protected static final Option OPTION_TABLE = OptionBuilder.withArgName("table name").hasArg().isRequired(true).withDescription("The hive table name").create("table");
-    protected static final Option OPTION_PARTIAL = OptionBuilder.withArgName("partial table data").hasArg().isRequired(true).withDescription("Does it scan partial table data").create("partial");
+    protected static final Option OPTION_FULL_TABLE = OptionBuilder.withArgName("full table data").hasArg().isRequired(true).withDescription("Does it scan full table").create("fullTable");
 
     public HiveTableExtJob() {
     }
@@ -64,7 +64,7 @@ public class HiveTableExtJob extends AbstractHadoopJob {
         Options options = new Options();
 
         options.addOption(OPTION_TABLE);
-        options.addOption(OPTION_PARTIAL);
+        options.addOption(OPTION_FULL_TABLE);
         options.addOption(OPTION_OUTPUT_PATH);
 
         parseOptions(options, args);
@@ -79,7 +79,7 @@ public class HiveTableExtJob extends AbstractHadoopJob {
         conf.addResource(new Path(jobEngineConfig.getHadoopJobConfFilePath(null)));
 
         String table = getOptionValue(OPTION_TABLE);
-        boolean isPartial = Boolean.parseBoolean(getOptionValue(OPTION_PARTIAL));
+        boolean fullTable = Boolean.parseBoolean(getOptionValue(OPTION_FULL_TABLE));
         TableDesc tableDesc = MetadataManager.getInstance(kylinConfig).getTableDesc(table);
         TableExtDesc tableExtDesc = MetadataManager.getInstance(kylinConfig).getTableExt(table);
         String skipHeaderLineCount = tableExtDesc.getDataSourceProp().get("skip_header_line_count");
@@ -99,7 +99,7 @@ public class HiveTableExtJob extends AbstractHadoopJob {
         job.getConfiguration().set("mapreduce.output.fileoutputformat.compress", "false");
 
         // Mapper
-        IMRInput.IMRTableInputFormat tableInputFormat = MRUtil.getTableInputFormat(table, isPartial);
+        IMRInput.IMRTableInputFormat tableInputFormat = MRUtil.getTableInputFormat(table, fullTable);
         tableInputFormat.configureJob(job);
 
         job.setMapperClass(HiveTableExtMapper.class);

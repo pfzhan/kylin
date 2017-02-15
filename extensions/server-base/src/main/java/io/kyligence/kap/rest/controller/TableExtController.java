@@ -34,7 +34,6 @@ import org.apache.kylin.job.exception.JobException;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.controller.TableController;
-import org.apache.kylin.rest.request.HiveTableRequest;
 import org.apache.kylin.rest.service.JobService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -95,9 +94,8 @@ public class TableExtController extends BasicController {
     public Map<String, String[]> loadHiveTable(@PathVariable String tables, @PathVariable String project, @RequestBody HiveTableExtRequest request) throws IOException, JobException {
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
         boolean isCalculate = request.isCalculate();
-        HiveTableRequest request1 = new HiveTableRequest();
-        request1.setCalculate(false);
-        Map<String, String[]> loadResult = tableController.loadHiveTables(tables, project, request1);
+        request.setCalculate(false);
+        Map<String, String[]> loadResult = tableController.loadHiveTables(tables, project, request);
         if (isCalculate) {
             String[] loadedTables = loadResult.get("result.loaded");
             tableExtService.extractTableExt(project, submitter, request.getRowSize(), loadedTables);

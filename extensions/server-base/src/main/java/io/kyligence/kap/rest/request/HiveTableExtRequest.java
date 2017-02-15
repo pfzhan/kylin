@@ -24,30 +24,13 @@
 
 package io.kyligence.kap.rest.request;
 
-public class HiveTableExtRequest {
+import org.apache.kylin.rest.request.HiveTableRequest;
+
+public class HiveTableExtRequest extends HiveTableRequest {
     public HiveTableExtRequest() {
     }
 
-    private boolean isPartial = false;
     private long rowSize = Long.MAX_VALUE;
-
-    private boolean calculate = true;
-
-    public boolean isCalculate() {
-        return calculate;
-    }
-
-    public void setCalculate(boolean calculate) {
-        this.calculate = calculate;
-    }
-
-    public void setPartial(boolean isPartial) {
-        this.isPartial = isPartial;
-    }
-
-    public boolean getPartial() {
-        return this.isPartial;
-    }
 
     public void setRowSize(long rowSize) {
         this.rowSize = rowSize;

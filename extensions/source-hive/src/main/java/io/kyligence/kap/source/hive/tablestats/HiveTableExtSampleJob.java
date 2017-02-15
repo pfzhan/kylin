@@ -31,10 +31,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HiveCmdBuilder;
-import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.JobBuilderSupport;
 import org.apache.kylin.engine.mr.common.HadoopShellExecutable;
@@ -106,9 +104,9 @@ public class HiveTableExtSampleJob extends CubingJob {
             throw new IllegalArgumentException("Cannot find table descriptor " + tableName);
         }
 
-        boolean isPartial = (rowSize < Long.MAX_VALUE);
+        boolean isFullTable = (rowSize == Long.MAX_VALUE);
 
-        if (table.isView() || isPartial ) {
+        if (table.isView() || !isFullTable) {
             JobEngineConfig jobConf = new JobEngineConfig(config);
             String checkParam = "-output " + getViewPath(jobConf, sampleJob.getId(), table);
             HadoopShellExecutable prestep = new HadoopShellExecutable();
@@ -116,11 +114,11 @@ public class HiveTableExtSampleJob extends CubingJob {
             prestep.setJobClass(CheckHdfsPath.class);
             prestep.setJobParams(checkParam);
             sampleJob.addTask(prestep);
-            sampleJob.addTask(materializedView(table, sampleJob.getId(), jobConf, isPartial? "limit " + rowSize : ""));
+            sampleJob.addTask(materializedView(table, sampleJob.getId(), jobConf, isFullTable ? "limit " + rowSize : ""));
         }
 
         String samplesOutPath = getOutputPath(config, sampleJob.getId(), HiveTableExtSampleJob.SAMPLES) + table.getIdentity();
-        String step1_Param = "-table " + tableName + " -output " + samplesOutPath + " -partial " + isPartial ;
+        String step1_Param = "-table " + tableName + " -output " + samplesOutPath + " -fullTable " + isFullTable;
 
         MapReduceExecutable step1 = new MapReduceExecutable();
 
@@ -132,7 +130,7 @@ public class HiveTableExtSampleJob extends CubingJob {
 
         HadoopShellExecutable step2 = new HadoopShellExecutable();
 
-        String step2_Param = "-table " + tableName + " -output " + samplesOutPath ;
+        String step2_Param = "-table " + tableName + " -output " + samplesOutPath;
         step2.setName("Move " + tableName + " Samples to MetaData");
         step2.setJobClass(HiveTableExtUpdate.class);
         step2.setJobParams(step2_Param);
