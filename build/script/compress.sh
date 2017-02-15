@@ -31,6 +31,7 @@ mkdir ${package_name}
 
 # add apache kylin files
 cp -rf ../kylin/build/bin ../kylin/build/conf ../kylin/examples/sample_cube ${package_name}
+cp -r ../extensions/examples/sample_cube ${package_name}
 if [ -f "kybot/diag.sh" ]; then
     mv kybot/diag.sh ${package_name}/bin
 fi
