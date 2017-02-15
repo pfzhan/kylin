@@ -79,7 +79,9 @@ KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, 
         }
         angular.forEach(modelsManager.selectedModel.dimensions, function (dim) {
             angular.forEach(dim.columns, function (column) {
-                $scope.selectedColumns[dim.table][column].selected=true;
+                if($scope.selectedColumns[dim.table][column]){
+                  $scope.selectedColumns[dim.table][column].selected=true;
+                }
             });
         });
         angular.forEach($scope.usedDimensionsCubeMap, function (dim,dimension) {

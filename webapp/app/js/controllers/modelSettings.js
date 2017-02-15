@@ -22,6 +22,7 @@ KylinApp.controller('ModelSettingsCtrl', function ($scope, $modal, MetaModel, mo
    $scope.modelsManager = modelsManager;
    $scope.availableFactTables = [];
    $scope.initSetting = function (){
+     $scope.factTable={root:VdmUtil.removeNameSpace($scope.modelsManager.selectedModel.fact_table)};
      $scope.selectedTables={fact:VdmUtil.getNameSpace($scope.modelsManager.selectedModel.partition_desc.partition_date_column)}
      $scope.selectedTablesForPartitionTime={fact:VdmUtil.getNameSpace($scope.modelsManager.selectedModel.partition_desc.partition_time_column)}
      $scope.availableFactTables.push(VdmUtil.removeNameSpace($scope.modelsManager.selectedModel.fact_table));
