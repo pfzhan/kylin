@@ -45,6 +45,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import io.kyligence.kap.rest.request.HiveTableExtRequest;
 import io.kyligence.kap.rest.service.TableExtService;
 import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampleJob;
 
@@ -68,11 +69,11 @@ public class TableExtController extends BasicController {
         return tableExtDesc;
     }
 
-    @RequestMapping(value = "/{project}/{tableName}/sample_job", method = { RequestMethod.POST })
+    @RequestMapping(value = "/{project}/{tableName}/sample_job", method = { RequestMethod.PUT })
     @ResponseBody
-    public List<JobInstance> sampleTable(@PathVariable String project, @PathVariable String tableName) throws IOException, JobException {
+    public List<JobInstance> sample(@PathVariable String project, @PathVariable String tableName, @RequestBody HiveTableExtRequest request) throws IOException, JobException {
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
-        List<String> jobIDs = tableExtService.extractTableExt(project, submitter, tableName);
+        List<String> jobIDs = tableExtService.extractTableExt(project, submitter, request.getRowSize(), tableName);
         List<JobInstance> jobInstanceList = new ArrayList<>();
         for (String jobID : jobIDs) {
             jobInstanceList.add(jobService.getJobInstance(jobID));
@@ -91,14 +92,15 @@ public class TableExtController extends BasicController {
 
     @RequestMapping(value = "/{tables}/{project}", method = { RequestMethod.POST })
     @ResponseBody
-    public Map<String, String[]> loadHiveTable(@PathVariable String tables, @PathVariable String project, @RequestBody HiveTableRequest request) throws IOException, JobException {
+    public Map<String, String[]> loadHiveTable(@PathVariable String tables, @PathVariable String project, @RequestBody HiveTableExtRequest request) throws IOException, JobException {
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
         boolean isCalculate = request.isCalculate();
-        request.setCalculate(false);
-        Map<String, String[]> loadResult = tableController.loadHiveTables(tables, project, request);
+        HiveTableRequest request1 = new HiveTableRequest();
+        request1.setCalculate(false);
+        Map<String, String[]> loadResult = tableController.loadHiveTables(tables, project, request1);
         if (isCalculate) {
             String[] loadedTables = loadResult.get("result.loaded");
-            List<String> jobIDs = tableExtService.extractTableExt(project, submitter, loadedTables);
+            tableExtService.extractTableExt(project, submitter, request.getRowSize(), loadedTables);
         }
         return loadResult;
     }

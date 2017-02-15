@@ -22,37 +22,38 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.service;
+package io.kyligence.kap.rest.request;
 
-import java.io.IOException;
-import java.util.List;
-
-import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.service.BasicService;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.stereotype.Component;
-
-import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampleJob;
-
-@Component("tableExtService")
-public class TableExtService extends BasicService {
-
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public List<String> extractTableExt(String project, String submitter, long rowSize, String... tables) throws IOException {
-        return HiveTableExtSampleJob.createSampleJob(project, submitter, rowSize, tables);
+public class HiveTableExtRequest {
+    public HiveTableExtRequest() {
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public String getJobByTableName(String tableName) {
-        return getMetadataManager().getTableExt(tableName).getJodID();
+    private boolean isPartial = false;
+    private long rowSize = Long.MAX_VALUE;
+
+    private boolean calculate = true;
+
+    public boolean isCalculate() {
+        return calculate;
     }
 
-    public TableExtDesc getTableExt(String tableName) {
-        return getMetadataManager().getTableExt(tableName);
+    public void setCalculate(boolean calculate) {
+        this.calculate = calculate;
     }
 
-    public void removeTableExt(String tableName) throws IOException {
-        getMetadataManager().removeTableExt(tableName);
+    public void setPartial(boolean isPartial) {
+        this.isPartial = isPartial;
+    }
+
+    public boolean getPartial() {
+        return this.isPartial;
+    }
+
+    public void setRowSize(long rowSize) {
+        this.rowSize = rowSize;
+    }
+
+    public long getRowSize() {
+        return this.rowSize;
     }
 }

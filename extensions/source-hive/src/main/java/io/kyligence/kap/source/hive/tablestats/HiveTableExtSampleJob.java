@@ -34,6 +34,7 @@ import java.util.TimeZone;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HiveCmdBuilder;
+import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.JobBuilderSupport;
 import org.apache.kylin.engine.mr.common.HadoopShellExecutable;
@@ -57,13 +58,22 @@ public class HiveTableExtSampleJob extends CubingJob {
     public static List<String> createSampleJob(String project, String submitter, String... tables) throws IOException {
         List<String> jobIDs = new ArrayList<>();
         for (String table : tables) {
-            String jobID = initSampleJob(project, submitter, table);
+            String jobID = initSampleJob(project, submitter, table, Long.MAX_VALUE);
             jobIDs.add(jobID);
         }
         return jobIDs;
     }
 
-    private static String initSampleJob(String project, String submitter, String table) throws IOException {
+    public static List<String> createSampleJob(String project, String submitter, long rowSize, String... tables) throws IOException {
+        List<String> jobIDs = new ArrayList<>();
+        for (String table : tables) {
+            String jobID = initSampleJob(project, submitter, table, rowSize);
+            jobIDs.add(jobID);
+        }
+        return jobIDs;
+    }
+
+    private static String initSampleJob(String project, String submitter, String table, long rowSize) throws IOException {
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
 
@@ -71,14 +81,14 @@ public class HiveTableExtSampleJob extends CubingJob {
         if (runningJobID != null)
             return runningJobID;
 
-        HiveTableExtSampleJob sampleJob = createSamplesJob(project, table, submitter, config);
+        HiveTableExtSampleJob sampleJob = createSamplesJob(project, table, submitter, config, rowSize);
 
         ExecutableManager.getInstance(config).addJob(sampleJob);
         logger.info("Start HiveTableExt job: " + sampleJob.getId());
         return sampleJob.getId();
     }
 
-    private static HiveTableExtSampleJob createSamplesJob(String project, String tableName, String submitter, KylinConfig config) throws IOException {
+    private static HiveTableExtSampleJob createSamplesJob(String project, String tableName, String submitter, KylinConfig config, long rowSize) throws IOException {
         HiveTableExtSampleJob sampleJob = new HiveTableExtSampleJob();
 
         SimpleDateFormat format = new SimpleDateFormat("z yyyy-MM-dd HH:mm:ss");
@@ -96,12 +106,9 @@ public class HiveTableExtSampleJob extends CubingJob {
             throw new IllegalArgumentException("Cannot find table descriptor " + tableName);
         }
 
-        boolean isScanWhole = KapConfig.wrap(config).IsTableStatsScanWholeTable();
-        table.setWholeScan(isScanWhole);
-        metaMgr.saveSourceTable(table);
+        boolean isPartial = (rowSize < Long.MAX_VALUE);
 
-        if (table.isView() || !table.getWholeScan()) {
-            String limitRowSize = KapConfig.wrap(config).getTableStatusLimitRowSize();
+        if (table.isView() || isPartial ) {
             JobEngineConfig jobConf = new JobEngineConfig(config);
             String checkParam = "-output " + getViewPath(jobConf, sampleJob.getId(), table);
             HadoopShellExecutable prestep = new HadoopShellExecutable();
@@ -109,26 +116,26 @@ public class HiveTableExtSampleJob extends CubingJob {
             prestep.setJobClass(CheckHdfsPath.class);
             prestep.setJobParams(checkParam);
             sampleJob.addTask(prestep);
-            sampleJob.addTask(materializedView(table, sampleJob.getId(), jobConf, "limit " + limitRowSize));
-            logger.info("The View: " + tableName + " will be materialized in maximum" + limitRowSize + "lines!");
+            sampleJob.addTask(materializedView(table, sampleJob.getId(), jobConf, isPartial? "limit " + rowSize : ""));
         }
 
         String samplesOutPath = getOutputPath(config, sampleJob.getId(), HiveTableExtSampleJob.SAMPLES) + table.getIdentity();
-        String samplesParam = "-table " + tableName + " -output " + samplesOutPath;
+        String step1_Param = "-table " + tableName + " -output " + samplesOutPath + " -partial " + isPartial ;
 
         MapReduceExecutable step1 = new MapReduceExecutable();
 
         step1.setName("Extract Samples from " + tableName);
         step1.setMapReduceJobClass(HiveTableExtJob.class);
-        step1.setMapReduceParams(samplesParam);
+        step1.setMapReduceParams(step1_Param);
 
         sampleJob.addTask(step1);
 
         HadoopShellExecutable step2 = new HadoopShellExecutable();
 
+        String step2_Param = "-table " + tableName + " -output " + samplesOutPath ;
         step2.setName("Move " + tableName + " Samples to MetaData");
         step2.setJobClass(HiveTableExtUpdate.class);
-        step2.setJobParams(samplesParam);
+        step2.setJobParams(step2_Param);
         sampleJob.addTask(step2);
 
         if (table.isView())
