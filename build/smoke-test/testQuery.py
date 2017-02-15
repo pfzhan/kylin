@@ -30,6 +30,7 @@ class testQuery(unittest.TestCase):
             index += 1
             if IS_PLUS =='0' and sql_file.endswith('-plus.sql'):
                 print 'Skip Plus SQL file: ' + sql_file
+                continue
 
             sql_fp = open(sql_file)
             sql_statement = ''
