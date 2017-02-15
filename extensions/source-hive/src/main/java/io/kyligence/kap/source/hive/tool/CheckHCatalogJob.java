@@ -106,8 +106,16 @@ public class CheckHCatalogJob extends AbstractHadoopJob implements IKeep {
     }
 
     public static void main(String[] args) throws Exception {
+        if (args.length != 3) {
+            usage();
+            System.exit(1);
+        }
         int exitCode = ToolRunner.run(new CheckHCatalogJob(), args);
         logger.info("exitCode: " + exitCode);
         System.exit(exitCode);
+    }
+
+    private static void usage() {
+        System.out.println("Usage: CheckHCatalogJob dataBase tableName outPut");
     }
 }
