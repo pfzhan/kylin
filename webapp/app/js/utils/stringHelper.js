@@ -12,6 +12,20 @@ KylinApp.factory('StringHelper', function ($modal, $timeout, $location, $anchorS
         return '';
       }
     },
+    getNameSpaceTopName:function(str){
+      if(str){
+        return str.replace(/(\.[^.]+)+/,'');
+      }else{
+        return '';
+      }
+    },
+    getNameSpace:function(str){
+      if(str){
+        return str.replace(/(\.[^.]+)$/,'');
+      }else{
+        return '';
+      }
+    },
     cutStr:function(str,len,replaceStr){
       if(str){
         if(str.length>len){

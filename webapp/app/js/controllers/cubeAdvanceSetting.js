@@ -18,10 +18,9 @@
 
 'use strict';
 
-KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,cubesManager,CubeDescModel,SweetAlert, TableModel,TableExtService,VdmUtil,CubeService) {
+KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,cubesManager,CubeDescModel,SweetAlert, TableModel,TableExtService,VdmUtil,CubeService,modelsManager) {
   $scope.cubesManager = cubesManager;
   $scope.TableModel=TableModel;
-
   //calc cuboid
   $scope.cuboidList=[];
   $scope.calcCuboidNumber=function(aggregation_group,index){
@@ -41,7 +40,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     item.encoding=$scope.removeVersion(item.encoding);
     var _valueLength;
     var tableName=VdmUtil.getNameSpaceTopName(item.column);
-    var databaseName=$scope.getDatabaseByColumnName(item.column);
+    var databaseName=modelsManager.getDatabaseByColumnName(item.column);
     var baseKey=item.encoding.replace(/:\d+/,'');
     if(needLengthKeyList.indexOf(baseKey)>-1){
       var result=/:(\d+)/.exec(item.encoding);

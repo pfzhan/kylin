@@ -16,7 +16,7 @@
  * limitations under the License.
 */
 
-KylinApp.service('modelsManager',function(ModelService,CubeService,$q,AccessService,ProjectModel,$log,TableService){
+KylinApp.service('modelsManager',function(ModelService,CubeService,$q,AccessService,ProjectModel,StringHelper,TableModel){
     var _this = this;
     this.models=[];
     this.modelNameList = [];
@@ -191,6 +191,39 @@ KylinApp.service('modelsManager',function(ModelService,CubeService,$q,AccessServ
 
       return tags;
     }
+    //init alias map
+    this.tableAliasMap={};
+    this.aliasTableMap={};
+    this.availableFactTables=[];
+    this.availableLookupTables=[];
+    this.aliasName=[];
 
+    this.initAliasMapByModelSchema=function(metaModel){
+      var rootFactTable = StringHelper.removeNameSpace(metaModel.model.fact_table);
+      this.availableFactTables.push(rootFactTable);
+      this.aliasName.push(rootFactTable);
+      this.aliasTableMap[rootFactTable]=metaModel.model.fact_table;
+      this.tableAliasMap[metaModel.model.fact_table]=rootFactTable;
+      var _this=this;
+      angular.forEach(metaModel.model.lookups,function(joinTable){
+        if(!joinTable.alias){
+          joinTable.alias=StringHelper.removeNameSpace(joinTable.table);
+        }
+        if(joinTable.kind=="FACT"){
+          _this.availableFactTables.push(joinTable.alias);
+        }else{
+          _this.availableLookupTables.push(joinTable.alias);
+        }
+        _this.aliasTableMap[joinTable.alias]=joinTable.table;
+        _this.tableAliasMap[joinTable.table]=joinTable.alias;
+        _this.aliasName.push(joinTable.alias);
+      });
+    }
+    this.getDatabaseByColumnName=function(column){
+      return  StringHelper.getNameSpaceTopName(this.aliasTableMap[StringHelper.getNameSpaceTopName(column)])
+    }
+    this.getColumnTypeByColumnName=function(column){
+      return TableModel.columnNameTypeMap[this.aliasTableMap[StringHelper.getNameSpaceTopName(column)]+'.'+StringHelper.removeNameSpace(column)];
+    }
 
 });
