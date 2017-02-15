@@ -80,7 +80,7 @@ ${KYLIN_HOME}/bin/spark_client.sh start
 echo "sleep one minute before exit, allowing spark fully start"
 sleep 1m
 
-python testQuery.py                                     || { exit 1; }
+python testQuery.py 1                                   || { exit 1; }
 ${KYLIN_HOME}/bin/spark_client.sh stop
 
 python testDiag.py                                      || { exit 1; }

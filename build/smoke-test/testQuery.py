@@ -4,7 +4,9 @@ import unittest
 import requests
 import json
 import glob
+import sys
 
+IS_PLUS = 1
 
 class testQuery(unittest.TestCase):
     def setUp(self):
@@ -26,6 +28,9 @@ class testQuery(unittest.TestCase):
         index = 0
         for sql_file in sql_files:
             index += 1
+            if IS_PLUS =='0' and sql_file.endswith('-plus.sql'):
+                print 'Skip Plus SQL file: ' + sql_file
+
             sql_fp = open(sql_file)
             sql_statement = ''
             sql_statement_lines = open(sql_file).readlines()
@@ -52,4 +57,5 @@ class testQuery(unittest.TestCase):
 
 if __name__ == '__main__':
     print 'Test Query for Kylin sample.'
+    IS_PLUS = sys.argv.pop()
     unittest.main()
