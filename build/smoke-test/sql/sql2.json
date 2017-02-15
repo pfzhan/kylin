@@ -1,0 +1,35 @@
+{
+  "columnMetas":[
+    {
+      "isNullable":1,
+      "displaySize":19,
+      "label":"PRICE",
+      "name":"PRICE",
+      "schemaName":"DEFAULT",
+      "catelogName":null,
+      "tableName":"KYLIN_SALES",
+      "precision":19,
+      "scale":4,
+      "columnType":3,
+      "columnTypeName":"DECIMAL",
+      "readOnly":true,
+      "autoIncrement":false,
+      "caseSensitive":true,
+      "searchable":false,
+      "currency":false,
+      "definitelyWritable":false,
+      "writable":false,
+      "signed":true
+    }
+  ],
+  "results":[
+    [
+      "99.9908"
+    ]
+  ],
+  "cube":"kylin_sales_cube",
+  "affectedRowCount":0,
+  "isException":false,
+  "exceptionMessage":null,
+  "partial":false
+}

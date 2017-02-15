@@ -1,0 +1,1 @@
+select price from kylin_sales order by price desc limit 1
