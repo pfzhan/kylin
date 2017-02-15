@@ -135,47 +135,101 @@ KylinApp
         }
       });
     };
+    var inputCollectRowCountCtrl=function($scope,language,okcallback,$modalInstance){
+       $scope.dataKylin = language.getDataKylin();
+       $scope.rowCount='';
+       $scope.isConfirm=true;
+       $scope.validError=false;
+       $scope.loadTable=function(isConfirm,rowCount){
+         if(rowCount!=''&&isConfirm=='1'){
+           if(!/^[1-9]\d*$/.test(rowCount)){
+             $scope.validError=true;
+             return;
+           }
+         }
+         $scope.validError=false;
+         if(isConfirm=='0'){
+           rowCount='';
+         }
+         okcallback(isConfirm,rowCount?+rowCount:'');
+         $modalInstance.dismiss('cancel');
+       };
+
+       $scope.changeVal=function(newVal){
+         if(newVal!=''&&!/^[1-9]\d*$/.test(newVal)){
+           $scope.validError=true;
+         }else{
+           $scope.validError=false;
+         }
+       }
+       $scope.cancel=function(){
+         $modalInstance.dismiss('cancel');
+       }
+    }
+    $scope.loadTableInputCollectRowCountAlert=function(okcallback){
+      $modal.open({
+        templateUrl: 'partials/tables/load_table.html',
+        controller: inputCollectRowCountCtrl,
+        windowClass:"tableFromTree",
+        resolve: {
+          okcallback: function () {
+            return okcallback;
+          },
+          scope: function () {
+            return $scope;
+          }
+        }
+      });
+    }
+    $scope.collectStatisticsinputCollectRowCountAlert=function(okcallback){
+      $modal.open({
+        templateUrl: 'partials/tables/collect_statistics.html',
+        controller: inputCollectRowCountCtrl,
+        windowClass:"tableFromTree",
+        resolve: {
+          okcallback: function () {
+            return okcallback;
+          },
+          scope: function () {
+            return $scope;
+          }
+        }
+      });
+    }
     $scope.reloadTable = function (tableNames){
       var delay = $q.defer();
-      SweetAlert.swal({
-        title: "",
-        text: $scope.dataKylin.alert.loadTableWidthCollectConfirm,
-        showCancelButton: true,
-        confirmButtonColor: '#DD6B55',
-        confirmButtonText: "Yes",
-        cancelButtonText: "No",
-        closeOnConfirm: true
-      }, function (isConfirm) {
-        loadingRequest.show();
-        TableExtService.loadHiveTable({tableName: tableNames, action: $scope.projectModel.selectedProject}, {
-          calculate:isConfirm
-        }, function (result) {
-          var loadTableInfo = "";
-          angular.forEach(result['result.loaded'], function (table) {
-            loadTableInfo += "\n" + table;
-          });
-          var unloadedTableInfo = "";
-          angular.forEach(result['result.unloaded'], function (table) {
-            unloadedTableInfo += "\n" + table;
-          });
-          if (result['result.unloaded'].length != 0 && result['result.loaded'].length == 0) {
-            SweetAlert.swal('Failed!', 'Failed to load following table(s): ' + unloadedTableInfo, 'error');
-          }
-          if (result['result.loaded'].length != 0 && result['result.unloaded'].length == 0) {
-            SweetAlert.swal('Success!', 'The following table(s) have been successfully loaded: ' + loadTableInfo, 'success');
-          }
-          if (result['result.loaded'].length != 0 && result['result.unloaded'].length != 0) {
-            SweetAlert.swal('Partial loaded!', 'The following table(s) have been successfully loaded: ' + loadTableInfo + "\n\n Failed to load following table(s):" + unloadedTableInfo, 'warning');
-          }
-          loadingRequest.hide();
+        $scope.loadTableInputCollectRowCountAlert(function(isConfirm,rowCount){
+          loadingRequest.show();
+          TableExtService.loadHiveTable({tableName: tableNames, action: $scope.projectModel.selectedProject}, {
+            calculate:!!+isConfirm,
+            rowSize:rowCount
+          }, function (result) {
+            var loadTableInfo = "";
+            angular.forEach(result['result.loaded'], function (table) {
+              loadTableInfo += "\n" + table;
+            });
+            var unloadedTableInfo = "";
+            angular.forEach(result['result.unloaded'], function (table) {
+              unloadedTableInfo += "\n" + table;
+            });
+            if (result['result.unloaded'].length != 0 && result['result.loaded'].length == 0) {
+              SweetAlert.swal('Failed!', 'Failed to load following table(s): ' + unloadedTableInfo, 'error');
+            }
+            if (result['result.loaded'].length != 0 && result['result.unloaded'].length == 0) {
+              SweetAlert.swal('Success!', 'The following table(s) have been successfully loaded: ' + loadTableInfo, 'success');
+            }
+            if (result['result.loaded'].length != 0 && result['result.unloaded'].length != 0) {
+              SweetAlert.swal('Partial loaded!', 'The following table(s) have been successfully loaded: ' + loadTableInfo + "\n\n Failed to load following table(s):" + unloadedTableInfo, 'warning');
+            }
+            loadingRequest.hide();
 
-          delay.resolve("");
-        }, function (e) {
-          kylinCommon.error_default(e);
-          loadingRequest.hide();
+            delay.resolve("");
+          }, function (e) {
+            kylinCommon.error_default(e);
+            loadingRequest.hide();
+          })
         })
-      })
-      return delay.promise;
+        return delay.promise;
     }
 
     $scope.unloadTable = function (tableNames) {
@@ -746,25 +800,30 @@ KylinApp
       $scope.calcSampleData = function () {
         loadingRequest.show();
         var tableName = $scope.tableModel.selectedSrcTable.database + '.' + $scope.tableModel.selectedSrcTable.name;
-
         $scope.getSampleJobStatus(tableName, function () {
-          TableExtService.doSample({
-            projectName: $scope.projectModel.selectedProject,
-            tableName: tableName,
-            action: 'sample_job'
-          }, {}, function () {
-            loadingRequest.hide();
-            SweetAlert.swal('', $scope.dataKylin.alert.collectStaticsSuccess, 'success');
-          }, function (e) {
-            var message;
-            if (e.data && e.data.exception) {
-              message = e.data.exception;
-            } else {
-              message = $scope.dataKylin.alert.error_info;
-            }
-            loadingRequest.hide();
-            SweetAlert.swal('', message, 'error');
+          loadingRequest.hide();
+          $scope.collectStatisticsinputCollectRowCountAlert(function(isConfirm,rowCount){
+            TableExtService.doSample({
+              projectName: $scope.projectModel.selectedProject,
+              tableName: tableName,
+              action: 'sample_job'
+            }, {
+              rowSize:rowCount
+            }, function () {
+              loadingRequest.hide();
+              SweetAlert.swal('', $scope.dataKylin.alert.collectStaticsSuccess, 'success');
+            }, function (e) {
+              var message;
+              if (e.data && e.data.exception) {
+                message = e.data.exception;
+              } else {
+                message = $scope.dataKylin.alert.error_info;
+              }
+              loadingRequest.hide();
+              SweetAlert.swal('', message, 'error');
+            })
           })
+
         })
 
       }

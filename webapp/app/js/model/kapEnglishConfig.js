@@ -816,7 +816,13 @@ KylinApp.constant('kapEnglishConfig', {
     loadingCluster:'Loading Cluster Info',
     useLessTopic:'The Topic is temporarily unavailable！',
     clusterFormError:'Make sure you are not repeat or empty the broker info！',
-    collectKafkaSampleData:'Collect Streaming Sample Data'
+    collectKafkaSampleData:'Collect Streaming Sample Data',
+    rowCountMustInputNumber:'Only numbers greater than 0 allowed!',
+    rowCountPlaceHolder:'Enter the number of scan lines,full table scan if you have no enter',
+    yesOfStartCollect:'Yes',
+    noOfStartCollect:'No',
+    collectStatisticsConfig:'Collect statistics config',
+    statistics:'Statistics'
   },
   system:{
     system: 'System',
@@ -955,7 +961,7 @@ KylinApp.constant('kapEnglishConfig', {
     tip_to_remove_cluster: 'Are you sure to remove this cluster ?',
     getNoMessages:'Failed to load Streaming Sample Data!',
     streamingSaveMsg:'Get Sample Data successfully！',
-    loadTableWidthCollectConfirm:'Do you want to automatically run the statistics job at the same time',
+    loadTableWidthCollectConfirm:'Do you want to automatically run the statistics job at the same time?',
     unloadTableTip:'Are you sure to unload this table?',
     streamingSaveMsgError:'Failed to Get  Sample Data！',
     tip_model_be_used:'This model is still used by ',

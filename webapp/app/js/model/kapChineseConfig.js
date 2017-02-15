@@ -816,7 +816,13 @@ KylinApp.constant('kapChineseConfig', {
     loadingCluster:'正在加载集群信息',
     useLessTopic:'该Topic暂时无法使用',
     clusterFormError:'请填写完整的broker信息，且确保不要和已填的重复!',
-    collectKafkaSampleData:'收集流采样数据'
+    collectKafkaSampleData:'收集流采样数据',
+    rowCountMustInputNumber:'扫描表行数必须为大于0的数字!',
+    rowCountPlaceHolder:'请输入采样扫描的行数，如果不填默认将全局扫描',
+    yesOfStartCollect:'是',
+    noOfStartCollect:'否',
+    collectStatisticsConfig:'采样配置',
+    statistics:'采样'
   },
   system:{
     system: '系统',
@@ -833,7 +839,7 @@ KylinApp.constant('kapChineseConfig', {
     setConfig: '设置配置',
     tip_setConfig: '更新服务器配置',
     diagnosis: '诊断',
-    
+
     diagnosisIntroduce:'通过分析KAP生成的诊断包，提供KAP在线诊断、优化及服务',
     diagnosisTimeDis:'生成的诊断包时间范围为生成时间前三天',
     diagnosisUploadBtn:'一键生成诊断包至KYBOT',
