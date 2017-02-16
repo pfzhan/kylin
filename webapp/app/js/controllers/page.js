@@ -24,7 +24,7 @@
 
 'use strict';
 
-KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $location, $rootScope, $routeParams, $http, UserService, ProjectService, SweetAlert, $cookieStore, language,$log, kylinConfig, ProjectModel, KapSystemService, TableModel,kapEnglishConfig,kapChineseConfig,kylinCommon) {
+KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $location, $rootScope, $routeParams, $http, UserService, ProjectService, SweetAlert, $cookieStore, language,$log, kylinConfig, ProjectModel, KapSystemService, TableModel,kapEnglishConfig,kapChineseConfig,kylinCommon, LicenseService) {
 
   //init kylinConfig to get kylin.Propeties
   kylinConfig.init().$promise.then(function (data) {
@@ -78,13 +78,7 @@ KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $lo
   $scope.activeTab = "";
   $scope.projectModel = ProjectModel;
   $scope.tableModel = TableModel;
-  KapSystemService.license({},function(data){
-    if(data['kap.version']){
-      $scope.config.version=data['kap.version'];
-    }
-  },function(e){
-    kylinCommon.error_default(e);
-  })
+  LicenseService.init();
 
   // Set up common methods
   $scope.logout = function () {
@@ -237,41 +231,9 @@ KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $lo
 
 });
 
-var aboutKapCtrl = function($scope,KapSystemService,language,$modalInstance){
+var aboutKapCtrl = function($scope,KapSystemService,language,$modalInstance, LicenseService){
   $scope.dataKylin = language.getDataKylin();
-  $scope.license = {};
-  KapSystemService.license({},function(data){
-    if(!data['kap.version']){
-      data['kap.version'] = 'N/A';
-    }
-    if(!data['kap.license.statement']){
-      data['kap.license.statement'] = 'N/A';
-    }
-    if(!data['kap.dates']){
-      data['kap.dates'] = 'N/A';
-    }
-    if(!data['kap.commit']){
-      data['kap.commit'] = 'N/A';
-    }
-    if(!data['kylin.commit']){
-      data['kylin.commit'] = 'N/A';
-    }
-    if(!data['kap.license.isEvaluation']){
-      data['kap.license.isEvaluation'] = "false";
-    }
-    if(!data['kap.license.serviceEnd']){
-      data['kap.license.serviceEnd'] = "N/A";
-    }
-    if(!data['kylin.commit']){
-      data['kylin.commit'] = 'N/A';
-    }
-
-
-    $scope.license = data;
-  },function(){
-
-  })
-
+  $scope.license = LicenseService.license;
   $scope.cancel = function () {
     $modalInstance.dismiss('cancel');
   };

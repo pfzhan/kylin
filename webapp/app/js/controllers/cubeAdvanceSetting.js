@@ -18,9 +18,10 @@
 
 'use strict';
 
-KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,cubesManager,CubeDescModel,SweetAlert, TableModel,TableExtService,VdmUtil,CubeService,modelsManager) {
+KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,cubesManager,CubeDescModel,SweetAlert, TableModel,TableExtService,VdmUtil,CubeService,modelsManager, LicenseService) {
   $scope.cubesManager = cubesManager;
   $scope.TableModel=TableModel;
+  $scope.license = LicenseService.license;
   //calc cuboid
   $scope.cuboidList=[];
   $scope.calcCuboidNumber=function(aggregation_group,index){

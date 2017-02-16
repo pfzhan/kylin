@@ -451,19 +451,17 @@
       </ng-form>
 
       <!--Edit ColumnFamily-->
-      <div class="form-group large-popover" style="overflow:auto" ng-if="config.version.indexOf('Plus')==-1">
+      <div class="form-group large-popover" ng-if="license['kap.version'].indexOf('Plus')==-1">
         <h3 style="margin-left:42px">{{dataKylin.cube.cubeASAdvancedColumnFamily}}  <i kylinpopover placement="right" ng-title="{{dataKylin.cube.cubeASAdvancedColumnFamily}}" template="AdvancedColumnFamilyTip.html" class="fa fa-info-circle"></i></h3>
         <div style="margin-left:42px">
           <div class="box-body">
             <!-- VIEW MODE -->
             <div class="row"  ng-if="state.mode=='view'&& cubeMetaFrame.hbase_mapping.column_family.length > 0">
               <table class="table table-striped table-hover">
-                <thead>
                 <tr>
                   <th class="col-xs-1">{{dataKylin.cube.cubeASColumnFamily}}</th>
                   <th class="col-xs-11">{{dataKylin.cube.cubeASMeasure}}</th>
                 </tr>
-                </thead>
                 <tbody class="cube-dimension">
                 <tr ng-repeat="colFamily in cubeMetaFrame.hbase_mapping.column_family | filter:dimState.filter track by $index">
                   <!--ID -->
@@ -472,7 +470,11 @@
                   </td>
                   <!--Name -->
                   <td class="col-xs-11">
-                    <span>{{colFamily.columns[0].measure_refs}}</span>
+                    <div>
+                      <span ng-repeat="mr in colFamily.columns[0].measure_refs">
+                        <label class="label label-info" >{{mr}}</label>
+                      </span>
+                    </div>
                   </td>
                 </tr>
                 </tbody>
@@ -488,10 +490,10 @@
                   <th class="col-xs-1">Actions</th>
                 </tr>
                 <tr ng-repeat="colFamily in cubeMetaFrame.hbase_mapping.column_family track by $index"  class="row">
-                <td class="col-xs-1">
+                <td >
                   <b>{{colFamily.name}}</b>
                 </td>
-                  <td class="col-xs-10">
+                  <td>
                   <ui-select  style="width: 100%"
                     close-on-select="false" ng-model="colFamily.columns[0].measure_refs" multiple>
                     <ui-select-match placeholder="Select Measure...">{{$item}}</ui-select-match>
@@ -500,7 +502,7 @@
                     </ui-select-choices>
                   </ui-select>
                   </td>
-                  <td class="col-xs-1">
+                  <td>
                     <!--Remove Button -->
                     <button class="btn btn-xs btn-info" ng-if="colFamily.columns[0].measure_refs.length == 0"
                             ng-click="removeElement(cubeMetaFrame.hbase_mapping.column_family, colFamily)">
