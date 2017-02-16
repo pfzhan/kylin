@@ -131,14 +131,14 @@
 
 <script type="text/ng-template" id="actionDiagnosis.html">
   <ng-form name="config_update_form"  >
-    <div ng-if="loading"> <loading  text="{{ dataKylin.system.diagnosisFactoryPackage }}" seq="true"></loading></div>
+    <div ng-if="loading&&!endLoad"> <loading  text="{{ dataKylin.system.diagnosisFactoryPackage }}" seq="true"></loading></div>
     <span class="kylinDialog_close" ng-click="cancel()"></span>
-    <div class="modal-header" ng-if="!loading">
-      <h4>{{ dataKylin.diagnosis }}</h4>
+    <div class="modal-header" ng-if="!loading&&!endLoad">
+      <h4>{{ dataKylin.system.diagnosis }}</h4>
     </div>
-    <div class="modal-body" ng-if="!loading">
+    <div class="modal-body" ng-if="!loading&&!endLoad">
       <div class="form-group dialog_content">
-         <p><a>kybot</a>{{ dataKylin.system.diagnosisIntroduce }}（<span>{{ dataKylin.system.diagnosisTimeDis }}</span>）</p>
+         <p><a>kybot </a> {{ dataKylin.system.diagnosisIntroduce }}（<span>{{ dataKylin.system.diagnosisTimeDis }}</span>）</p>
       </div>
       <div class="form-group dialog_btn">
         <button class="btn btn-primary" ng-click="upload()">{{ dataKylin.system.diagnosisUploadBtn }}</button>

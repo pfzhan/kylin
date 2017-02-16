@@ -1006,6 +1006,12 @@ KylinApp.constant('kapChineseConfig', {
     rawTableSaveError:'Raw Table设置内容保存失败!',
     collectStaticsSuccess:'收集作业已经开始，您可以去Monitor页面查看进度!',
     hasCollectJob: '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!',
+    complete:'完成',
+    goToKybot:'请登录KyBot查看',
+    goToKybotBtn:'立即访问Kybot网站',
+    close:'关闭',
+    failUpload:'上传失败'
+
   },
   license:{
     aboutkap:'关于 KAP',

@@ -173,10 +173,36 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
     };
     $scope.upload=function(){
       $scope.loading=true;
-      KybotDiagnosisService.uploadPackage(function(){
-
-      },function(){
-        //$scope.loading=false;
+      KybotDiagnosisService.uploadPackage(function(data){
+        if(data&&data.code=='000'){
+          SweetAlert.swal({
+            title:$scope.dataKylin.alert.complete,
+            text:$scope.dataKylin.alert.goToKybot,
+            type: 'success',
+            showCancelButton:'true',
+            confirmButtonColor: '#DD6B55',
+            confirmButtonText:$scope.dataKylin.alert.goToKybotBtn,
+            cancelButtonText:$scope.dataKylin.alert.close,
+            closeOnConfirm: true
+          }, function (isConfirm) {
+            if(isConfirm){
+              $window.open('http://www.kybot.io');
+            }
+          })
+        }
+        $scope.loading=false;
+        $scope.cancel();
+      },function(e){
+        $scope.loading=false;
+        $scope.cancel();
+        SweetAlert.swal({
+          title:$scope.dataKylin.alert.failUpload,// '上传失败',
+          text:e&& e.data&&e.data.exception||$scope.dataKylin.alert.error_info,
+          type: 'error',
+          confirmButtonColor: '#DD6B55',
+          confirmButtonText: "ok",
+          closeOnConfirm: true
+        }, function (isConfirm) {})
       })
     }
     $scope.dowloadLink=Config.service.url+"kybot/dump"

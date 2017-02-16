@@ -1006,6 +1006,11 @@ KylinApp.constant('kapEnglishConfig', {
     rawTableSaveError:'Failed to save the raw table setting!',
     collectStaticsSuccess:'Collect job start running!You can go to Monitor page to watch the progress!',
     hasCollectJob: 'There has been a running collect job!You can go to Monitor page to watch the progress!',
+    complete:'Complete',
+    goToKybot:'please got to the kybot site to view the result',
+    goToKybotBtn:'Go to Kybot site now!',
+    close:'Close',
+    failUpload:'Upload failed'
   },
   license:{
     aboutkap:"About KAP",
