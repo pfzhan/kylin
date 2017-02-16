@@ -67,7 +67,6 @@
         <module>extensions/tool-assembly</module>
         <module>extensions/kap-it</module>
         <module>extensions/auto-modeling</module>
-        <module>kybot</module>
     </modules>
 
     <dependencyManagement>
