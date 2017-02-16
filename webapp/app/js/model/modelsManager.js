@@ -200,6 +200,11 @@ KylinApp.service('modelsManager',function(ModelService,CubeService,$q,AccessServ
 
     this.initAliasMapByModelSchema=function(metaModel){
       var rootFactTable = StringHelper.removeNameSpace(metaModel.model.fact_table);
+      this.tableAliasMap={};
+      this.aliasTableMap={};
+      this.availableFactTables=[];
+      this.availableLookupTables=[];
+      this.aliasName=[];
       this.availableFactTables.push(rootFactTable);
       this.aliasName.push(rootFactTable);
       this.aliasTableMap[rootFactTable]=metaModel.model.fact_table;
