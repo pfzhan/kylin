@@ -18,7 +18,7 @@
 
 'use strict';
 
-KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,MetaModel,cubesManager,CubeDescModel, CubeConfigService, cubeConfig, SweetAlert,kylinCommon,VdmUtil,StringHelper) {
+KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,MetaModel,cubesManager,CubeDescModel, CubeConfigService, cubeConfig, SweetAlert,kylinCommon,VdmUtil,StringHelper,modelsManager) {
   $scope.TableModel=TableModel;
   $scope.num=0;
   $scope.convertedColumns=[];
@@ -62,7 +62,7 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
   var needLengthKeyList=cubeConfig.needSetLengthEncodingList;
   $scope.getEncodings =function (name){
     //var database=$scope.getDatabaseByColumnName(name);
-    var columnType = $scope.getColumnTypeByAliasName(name);
+    var columnType = modelsManager.getColumnTypeByColumnName(name);
     var encodings =$scope.store.supportedEncoding,filterEncoding=[];
     var matchList=VdmUtil.getObjValFromLikeKey($scope.store.encodingMaps,columnType);
     if($scope.isEdit) {
@@ -285,6 +285,7 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
      $scope.updateMeasureStatus.isEdit = true;
      // Make a copy of model will be editing.
      $scope.newMeasure = angular.copy(measure);
+     $scope.newMeasure.function.returntype=$scope.newMeasure.function.returntype.replace(/\,\d+/,'');
      $scope.addEditMeasureEncoding($scope.newMeasure,$scope.updateMeasureStatus.editIndex);
      $scope.openMeasureModal();
   };
