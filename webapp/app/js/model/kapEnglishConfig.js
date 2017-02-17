@@ -516,6 +516,7 @@ KylinApp.constant('kapEnglishConfig', {
     rawtableASTableName:'Table Name',
     rawtableASEncoding:'Encoding',
     rawtableASIndex:'Index',
+    rawtableASType:'Data Type',
     rawtableMustSetSorted:'You must set one column with an index value of sorted!',
     rawtableMustSetSortedWidthDateEncoding:'Only columns with the date or time encoding are allowed to set with an index value of sorted',
     rawtableMustSetSingleSorted:'Only one column is allowed to set with an index value of sorted!',

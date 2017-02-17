@@ -32,6 +32,7 @@
           <tr>
             <th>{{dataKylin.cube.cubeASID}}</th>
             <th style="width:30%;">{{dataKylin.cube.rawtableASColumn}}</th>
+            <th style="width:10%;">{{dataKylin.cube.rawtableASType}}</th>
             <th style="width:25%;">{{dataKylin.cube.rawtableASTableName}}</th>
             <th style="width:10%;">{{dataKylin.cube.rawtableASEncoding}}</th>
             <th style="width:10%;">{{dataKylin.cube.cubeASLength}}</th>
@@ -51,6 +52,10 @@
             <td>
 
               <span >{{col.column}}</span>
+            </td>
+            <td>
+
+              <span >{{metaModel.model.aliasColumnMap[col.table+'.'+col.column].datatype}}</span>
             </td>
             <td>{{col.table}}</td>
             <td>

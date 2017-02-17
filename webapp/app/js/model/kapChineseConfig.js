@@ -516,6 +516,7 @@ KylinApp.constant('kapChineseConfig', {
     rawtableASEncoding:'编码',
     rawtableASTableName:'表名',
     rawtableASIndex:'索引',
+    rawtableASType:'数据类型',
     rawtableMustSetSorted:'必须设置一个列的index的值为sorted！',
     rawtableMustSetSortedWidthDateEncoding:'只允许编码为date或time的列才能设置index的值为sorted',
     rawtableMustSetSingleSorted:'只允许设置一个列的index的值为sorted',
