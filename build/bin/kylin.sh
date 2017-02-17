@@ -3,14 +3,13 @@
 
 # set verbose=true to print more logs in scripts
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh $@
-if [ "$verbose" = true ]; then
+
+if [ "$1" == "-v" ]; then
     shift
 fi
 
 if [ "${ENABLE_CHECK_ENV}" != false ]; then
     source ${dir}/check-env.sh "if-not-yet"
-    mkdir -p ${KYLIN_HOME}/logs
-    mkdir -p ${KYLIN_HOME}/ext
 fi
 
 function retrieveDependency() {
@@ -34,6 +33,9 @@ function retrieveDependency() {
         export HBASE_CLASSPATH=${HBASE_CLASSPATH}:${kafka_dependency}
     fi
 }
+
+mkdir -p ${KYLIN_HOME}/logs
+mkdir -p ${KYLIN_HOME}/ext
 
 # start command
 if [ "$1" == "start" ]

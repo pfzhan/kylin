@@ -21,10 +21,12 @@ if [ "${HIVE_CLIENT_TYPE}" = "cli" ]
 then
     hive -e "drop table if exists ${HIVE_TEST_TABLE}; create external table ${HIVE_TEST_TABLE} (name STRING,age INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE location '$HIVE_TEST_TABLE_LOCATION'; insert into table ${HIVE_TEST_TABLE} values ('"kylin"',1);"
     [[ $? == 0 ]] || quit "ERROR: Hive have no permission to create table in working directory: ${WORKING_DIR}"
+    
     echo "Checking HCat Available"
     export ENABLE_CHECK_ENV=false
-    bash ${dir}/kylin.sh io.kyligence.kap.source.hive.tool.CheckHCatalogJob ${HIVE_TEST_DB} ${RANDNAME} /tmp/kylin/check_hcatalog
-    [[ $? == 0 ]] || quit "ERROR: Can not get Hive table data via HCatInputFormat"
+    ${dir}/kylin.sh io.kyligence.kap.source.hive.tool.CheckHCatalogJob ${HIVE_TEST_DB} ${RANDNAME} /tmp/kylin/check_hcatalog
+    [[ $? == 0 ]] || quit "ERROR: Cannot get Hive table data via HCatInputFormat"
+    
     hive -e "drop table ${HIVE_TEST_TABLE};"
     hadoop fs -rm -R -skipTrash ${HIVE_TEST_TABLE_LOCATION}
 elif [ ${HIVE_CLIENT_TYPE} = "beeline" ]
@@ -47,8 +49,9 @@ then
 
     echo "Checking HCat Available"
     export ENABLE_CHECK_ENV=false
-    bash ${dir}/kylin.sh io.kyligence.kap.source.hive.tool.CheckHCatalogJob ${HIVE_TEST_DB} ${RANDNAME} /tmp/kylin/check_hcatalog
-    [[ $? == 0 ]] || quit "ERROR: Can not get Hive table data via HCatInputFormat"
+    ${dir}/kylin.sh io.kyligence.kap.source.hive.tool.CheckHCatalogJob ${HIVE_TEST_DB} ${RANDNAME} /tmp/kylin/check_hcatalog
+    [[ $? == 0 ]] || quit "ERROR: Cannot get Hive table data via HCatInputFormat"
+    
     beeline ${HIVE_BEELINE_PARAM} -e "drop table ${HIVE_TEST_TABLE};"
     rm -f ${HQL_TMP_FILE}
     hadoop fs -rm -R -skipTrash ${HIVE_TEST_TABLE_LOCATION}
@@ -57,7 +60,7 @@ else
 fi
 
 # safeguard cleanup
-verbose "Safeguard Cleanup..."
+verbose "Safeguard cleanup..."
 hive -e "use ${HIVE_TEST_DB}; show tables 'chkenv__*';" | xargs -I '{}' hive -e "use ${HIVE_TEST_DB}; drop table {};"
 hadoop fs -rm -R -skipTrash "${WORKING_DIR}/chkenv__*"
 exit 0

@@ -57,7 +57,7 @@ public class CheckHCatalogJob extends AbstractHadoopJob implements IKeep {
         int age;
 
         @Override
-        protected void map(WritableComparable key, HCatRecord value, org.apache.hadoop.mapreduce.Mapper<WritableComparable, HCatRecord, IntWritable, IntWritable>.Context context) throws IOException, InterruptedException {
+        protected void map(WritableComparable key, HCatRecord value, Mapper<WritableComparable, HCatRecord, IntWritable, IntWritable>.Context context) throws IOException, InterruptedException {
             age = (Integer) value.get(1);
             context.write(new IntWritable(age), new IntWritable(1));
         }
@@ -66,7 +66,7 @@ public class CheckHCatalogJob extends AbstractHadoopJob implements IKeep {
     public static class Reduce extends Reducer<IntWritable, IntWritable, IntWritable, IntWritable> {
 
         @Override
-        protected void reduce(IntWritable key, java.lang.Iterable<IntWritable> values, org.apache.hadoop.mapreduce.Reducer<IntWritable, IntWritable, IntWritable, IntWritable>.Context context) throws IOException, InterruptedException {
+        protected void reduce(IntWritable key, Iterable<IntWritable> values, Reducer<IntWritable, IntWritable, IntWritable, IntWritable>.Context context) throws IOException, InterruptedException {
             int sum = 0;
             Iterator<IntWritable> iter = values.iterator();
             while (iter.hasNext()) {
@@ -83,7 +83,7 @@ public class CheckHCatalogJob extends AbstractHadoopJob implements IKeep {
 
         String dbName = args[0];
         String tableName = args[1];
-        String outPut = args[2];
+        String output = args[2];
 
         Job job = Job.getInstance(conf, "Check HCatInputFormat Available");
         setJobClasspath(job, KylinConfig.getInstanceFromEnv());
@@ -99,7 +99,7 @@ public class CheckHCatalogJob extends AbstractHadoopJob implements IKeep {
         job.setOutputKeyClass(IntWritable.class);
         job.setOutputValueClass(IntWritable.class);
         job.setOutputFormatClass(TextOutputFormat.class);
-        Path path = new Path(outPut);
+        Path path = new Path(output);
         HadoopUtil.deletePath(job.getConfiguration(), path);
         FileOutputFormat.setOutputPath(job, path);
         return (job.waitForCompletion(true) ? 0 : 1);
@@ -116,6 +116,6 @@ public class CheckHCatalogJob extends AbstractHadoopJob implements IKeep {
     }
 
     private static void usage() {
-        System.out.println("Usage: CheckHCatalogJob dataBase tableName outPut");
+        System.out.println("Usage: CheckHCatalogJob database tableName output");
     }
 }
