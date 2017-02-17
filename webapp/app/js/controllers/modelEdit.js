@@ -39,15 +39,15 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
     $scope.usedMeasuresCubeMap = {};
     $scope.cubeConfig = cubeConfig;
 
-    $scope.getColumnsByTable = function (tableName) {
-        var temp = [];
-        angular.forEach(TableModel.selectProjectTables, function (table) {
-            if (table.database+'.'+table.name == tableName) {
-                temp = table.columns;
-            }
-        });
-        return temp;
-    };
+    //$scope.getColumnsByTable = function (tableName) {
+    //    var temp = [];
+    //    angular.forEach(TableModel.selectProjectTables, function (table) {
+    //        if (table.database+'.'+table.name == tableName) {
+    //            temp = table.columns;
+    //        }
+    //    });
+    //    return temp;
+    //};
 
     $scope.getColumnsByAlias = function (aliasName) {
         var temp = [];
@@ -83,7 +83,7 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
      };
 
     $scope.getColumnType = function (_column,table){
-        var columns = $scope.getColumnsByTable(table);
+        var columns = TableModel.getColumnsByTable(table);
         var type;
         angular.forEach(columns,function(column){
             if(_column === column.name){
