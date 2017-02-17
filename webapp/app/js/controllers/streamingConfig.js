@@ -223,11 +223,14 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
     })
   }
   $scope.currentCheck=-1;
+  $scope.addTag=true;
   $scope.addBroker = function (cluster,broker,index) {
+
     $scope.currentCheck=index;
     $scope.fromError=false;
     //$scope.modelsManager.selectedModel = model;
     cluster.newBroker=(!!broker)?broker:StreamingModel.createBrokerConfig();
+    $scope.addTag=!broker;
   };
   if($scope.state.mode=='edit'&&!$scope.state.target){
     $scope.addCluster();
@@ -250,7 +253,7 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
     var checkResult=false;
     cluster.brokers.forEach(function(item,index){
       if(index!=$scope.currentCheck){
-        if(item.port==cluster.newBroker.port&&item.host==cluster.newBroker.host){
+        if(item.port==cluster.newBroker.port&&item.host==cluster.newBroker.host||item.id==cluster.newBroker.id){
           checkResult=true;
         }
       }
@@ -265,12 +268,16 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
         cluster.brokers.push(cluster.newBroker);
       }
     }
+    $scope.addTag=false;
+    $scope.currentCheck=-1;
     delete cluster.newBroker;
 
   }
 
   $scope.clearNewBroker = function(cluster){
     $scope.fromError=false;
+    $scope.addTag=false;
+    $scope.currentCheck=-1;
     delete cluster.newBroker;
   }
 

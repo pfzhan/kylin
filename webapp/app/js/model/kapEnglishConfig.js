@@ -822,7 +822,8 @@ KylinApp.constant('kapEnglishConfig', {
     yesOfStartCollect:'Yes',
     noOfStartCollect:'No',
     collectStatisticsConfig:'Collect statistics config',
-    statistics:'Statistics'
+    statistics:'Statistics',
+    getClusterInfo:'Get cluster info'
   },
   system:{
     system: 'System',

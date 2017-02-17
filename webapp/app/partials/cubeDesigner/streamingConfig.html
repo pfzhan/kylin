@@ -31,44 +31,43 @@
         <table class="table table-condensed" ng-if="cluster.brokers.length||cluster.newBroker">
           <thead>
           <tr>
-            <th>ID</th>
-            <th>{{dataKylin.cube.kaHost}}</th>
-            <th>{{dataKylin.cube.kaPort}}</th>
-            <th ng-if="state.mode=='edit'">{{dataKylin.cube.kaActions}}</th>
+            <th width="20%">ID</th>
+            <th width="40%">{{dataKylin.cube.kaHost}}</th>
+            <th width="20">{{dataKylin.cube.kaPort}}</th>
+            <th width="20%" ng-if="state.mode=='edit'">{{dataKylin.cube.kaActions}}</th>
           </tr>
           </thead>
           <tbody>
           <tr ng-repeat="broker in cluster.brokers| filter: state.measureFilter track by $index">
-            <td>{{broker.id}}</td>
-            <td>{{broker.host}}</td>
-            <td>{{broker.port}}</td>
+            <td><input ng-if="currentCheck===$index" class="form-control" type="text" ng-model="cluster.newBroker.id" name="broker_id" placeholder="{{dataKylin.cube.tip_input_broker}}"/><span ng-if="currentCheck!==$index">{{broker.id}}</span></td>
+            <td><input ng-if="currentCheck===$index" class="form-control" type="text" ng-model="cluster.newBroker.host" name="broker_host" placeholder="{{dataKylin.cube.tip_input_broker_host}}"><span ng-if="currentCheck!==$index">{{broker.host}}</span></td>
+            <td><input ng-if="currentCheck===$index" class="form-control" type="text" ng-model="cluster.newBroker.port" name="broker_port" placeholder="{{dataKylin.cube.tip_input_broker_port}}"><span ng-if="currentCheck!==$index">{{broker.port}}</span> </td>
             <td ng-if="state.mode=='edit'">
               <!--Edit Button -->
-              <button class="btn btn-xs btn-info" ng-click="addBroker(cluster,broker,$index)">
+              <button ng-show="currentCheck===$index" class="btn btn-xs btn-info" ng-click="saveNewBroker(cluster);">
+                <i class="fa fa-check"></i>
+              </button>
+              <button ng-show="currentCheck!==$index" class="btn btn-xs btn-info" ng-click="addBroker(cluster,broker,$index)">
                 <i class="fa fa-pencil"></i>
               </button>
 
-              <button class="btn btn-xs btn-danger" ng-click="removeElement(cluster,broker);loadClusterInfo()"><i class="fa fa-trash-o"></i>
+              <button  class="btn btn-xs btn-danger" ng-click="removeElement(cluster,broker);"><i class="fa fa-trash-o"></i>
               </button>
             </td>
           </tr>
-          <tr ng-if="cluster.newBroker">
+          <tr ng-if="cluster.newBroker&&addTag">
             <td>
-              <div class="input-group">
                 <input class="form-control" type="text" ng-model="cluster.newBroker.id" name="broker_id" placeholder="{{dataKylin.cube.tip_input_broker}}"/>
-              </div>
             </td>
             <td>
-              <div class="input-group">
                 <input class="form-control" type="text" ng-model="cluster.newBroker.host" name="broker_host" placeholder="{{dataKylin.cube.tip_input_broker_host}}">
-              </div>
             </td>
             <td>
-              <div class="input-group">
                 <input class="form-control" type="text" ng-model="cluster.newBroker.port" name="broker_port" placeholder="{{dataKylin.cube.tip_input_broker_port}}">
-              </div>
             </td>
             <td>
+              <button  class="btn btn-xs btn-info" ng-click="saveNewBroker(cluster);">
+                <i class="fa fa-check"></i> </button>
               <button class="btn btn-xs btn-danger" ng-click="removeNewBroker(cluster);"><i class="fa fa-trash-o"></i>
               </button>
             </td>
@@ -78,15 +77,17 @@
       </div>
       <div class="box-footer">
         <div>
-          <button class="btn btn-sm btn-success" ng-click="addBroker(cluster);" ng-show="state.mode=='edit'&&!cluster.newBroker">
+          <button class="btn btn-sm btn-success" ng-click="addBroker(cluster);" >
             <i class="fa fa-plus"></i> {{dataKylin.cube.kaBroker}}
           </button>
-          <button class="btn btn-sm btn-info" ng-click="saveNewBroker(cluster);loadClusterInfo()" ng-show="state.mode=='edit'&&cluster.newBroker">
-            <i class="fa fa-saved"></i> {{dataKylin.cube.kaSave}}
-          </button>
-          <button class="btn btn-link" ng-click="clearNewBroker(cluster);loadClusterInfo()"  ng-show="state.mode=='edit'&&cluster.newBroker">{{dataKylin.cube.kaCancel}}</button>
+
           <span ng-if="fromError" style="color:red">{{dataKylin.data_source.clusterFormError}}</span>
 
+        </div>
+        <div style="margin-top: 20px" ng-show="cluster.brokers.length">
+          <button class="btn btn-sm btn-info" ng-click="loadClusterInfo()" ng-show="state.mode=='edit'&&!cluster.newBroker">
+            <i class="fa fa-refresh"></i> {{dataKylin.data_source.getClusterInfo}}
+          </button>
         </div>
       </div>
     </div>

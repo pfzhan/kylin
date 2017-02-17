@@ -822,7 +822,8 @@ KylinApp.constant('kapChineseConfig', {
     yesOfStartCollect:'是',
     noOfStartCollect:'否',
     collectStatisticsConfig:'采样配置',
-    statistics:'采样'
+    statistics:'采样',
+    getClusterInfo:'获取该集群信息'
   },
   system:{
     system: '系统',
