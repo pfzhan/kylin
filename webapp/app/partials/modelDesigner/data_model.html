@@ -27,7 +27,7 @@
             </label>
             <div class="col-xs-12 col-sm-6" ng-class="{'has-error':forms.data_model_form.table_name.$invalid && (forms.data_model_form.table_name.$dirty||forms.data_model_form.$submitted)}">
               <select chosen ng-model="modelsManager.selectedModel.fact_table" ng-if="state.mode=='edit'"
-                      ng-options="table.name as table.name for table in tableModel.selectProjectTables"
+                      ng-options="table.database+'.'+table.name as table.database+'.'+table.name for table in tableModel.selectProjectTables |orderBy: 'name'| orderBy: 'database' "
                       style="width:100%;"   ng-disabled="cubesLength>0" ng-change="changeFactTable()"
                       name="table_name"
                       ng-required="true"
@@ -191,7 +191,7 @@
                           </select>
                           <label class="control-label  font-color-default " style="width:6%;text-align:center;" ><b>{{dataKylin.model.gridDMJoinType}}</b></label>
                           <select chosen ng-model="newLookup.table" style="width:40%;"
-                                  ng-options="table.name as table.name for table in tableModel.selectProjectTables"
+                                  ng-options="table.database+'.'+table.name as table.database+'.'+table.name for table in tableModel.selectProjectTables "
                                   name="table_name"  ng-disabled="lookupState.editing"
                                   ng-required="true"  ng-change="changeJoinTable()"
                                   class="chosen-select ">
@@ -208,7 +208,7 @@
                         <div ng-class="{'has-error':lookup_form.table_name.$invalid && (lookup_form.table_name.$dirty||forms.model_info_form.$submitted)}">
                           <div class="col-xs-12 col-sm-6">
                             <select chosen ng-model="newLookup.table"
-                                    ng-options="table.name as table.name for table in tableModel.selectProjectTables"
+                                    ng-options="table.database+'.'+table.name as table.database+'.'+table.name for table in tableModel.selectProjectTables |orderBy: 'name'| orderBy: 'database' "
                                     style="width:100%;"
                                     name="table_name"
                                     ng-required="true" ng-change="changeJoinTable()"

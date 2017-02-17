@@ -52,7 +52,7 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
     $scope.getColumnsByAlias = function (aliasName) {
         var temp = [];
         angular.forEach(TableModel.selectProjectTables, function (table) {
-            if (table.name ==  $scope.aliasTableMap[aliasName]) {
+            if (table.database+'.'+table.name ==  $scope.aliasTableMap[aliasName]) {
                 temp = table.columns;
                 angular.forEach(temp,function(column){
                      column.cardinality=table.cardinality[column.name];
@@ -311,10 +311,10 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
           TableModel.initTables();
           TableService.list(param, function (tables) {
             angular.forEach(tables, function (table) {
-              table.name = table.database+"."+table.name;
+              var tableName = table.database+"."+table.name;
               TableModel.addTable(table);
               if(table.source_type!=1){
-                ModelService.suggestion({table:table.name},function(data){
+                ModelService.suggestion({table:tableName},function(data){
                   for(var i=0;i<table.columns.length;i++){
                     for(var m in data){
                       if(m=table.columns[i].name){

@@ -45,7 +45,7 @@
                         ng-model="modelsManager.selectedModel.partition_desc.partition_date_column"
                         ng-change="partitionChange(modelsManager.selectedModel.partition_desc.partition_date_column)"
                         ng-disabled="cubesLength>0"
-                        ng-options="factTable.root+'.'+columns.name as columns.name for columns in getPartitonColumns(availableFactTables[0])" >
+                        ng-options="factTable.root+'.'+columns.name as factTable.root+'.'+columns.name for columns in getPartitonColumns(availableFactTables[0])" >
                   <option value="">{{dataKylin.model.gridSTPartitionDateSelect}}</option>
                 </select>
 
@@ -109,7 +109,7 @@
                         ng-model="modelsManager.selectedModel.partition_desc.partition_time_column"
                         ng-if="state.mode=='edit'"
                         data-placement=""      ng-disabled="cubesLength>0"
-                        ng-options="factTable.root+'.'+columns.name as columns.name for columns in getPartitonTimeColumns(availableFactTables[0],modelsManager.selectedModel.partition_desc.partition_date_column)">
+                        ng-options="factTable.root+'.'+columns.name as factTable.root+'.'+columns.name for columns in getPartitonTimeColumns(availableFactTables[0],modelsManager.selectedModel.partition_desc.partition_date_column)">
                   <option value="">{{dataKylin.model.gridHasSepTimeColumnSelect}}</option>
                 </select>
 

@@ -67,7 +67,7 @@ KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, 
           $scope.initStatus.dimensions=true;
           angular.forEach(modelsManager.selectedModel.dimensions,function(dimTable,index){
             angular.forEach(TableModel.selectProjectTables,function(table){
-              if($scope.aliasTableMap[dimTable.table]==table.name){
+              if($scope.aliasTableMap[dimTable.table]==table.database+"."+table.name){
                 angular.forEach(table.columns,function(column){
                   if(column.kind=="dimension"){
                     modelsManager.selectedModel.dimensions[index].columns.push(column.name);

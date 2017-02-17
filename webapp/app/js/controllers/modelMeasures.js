@@ -66,7 +66,7 @@ KylinApp.controller('ModelMeasuresCtrl', function ($scope, $modal,MetaModel,mode
         angular.forEach(table.columns,function(column){
           if(column.kind=="measure"){
             angular.forEach($scope.availableFactTables,function(alias){
-              if($scope.aliasTableMap[alias]==table.name){
+              if($scope.aliasTableMap[alias]==table.database+"."+table.name){
                 modelsManager.selectedModel.metrics.push(alias+"."+column.name);
               }
             });
