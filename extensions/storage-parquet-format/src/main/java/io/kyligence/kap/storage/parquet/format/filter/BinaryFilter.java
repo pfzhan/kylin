@@ -22,21 +22,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.storage.parquet.format;
+package io.kyligence.kap.storage.parquet.format.filter;
 
-import com.google.common.primitives.Longs;
+import java.nio.ByteBuffer;
 
-public interface ParquetFormatConstants {
-    String KYLIN_OUTPUT_DIR = "io.kylin.job.output.path";
+import org.apache.kylin.metadata.filter.TupleFilter;
 
-    String KYLIN_SCAN_PROPERTIES = "io.kylin.storage.parquet.scan.properties";
-    String KYLIN_SCAN_REQUEST_BYTES = "io.kylin.storage.parquet.scan.request";
-    String KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS = "io.kylin.storage.parquet.scan.parquetcolumns";
-    String KYLIN_GT_MAX_LENGTH = "io.kylin.storage.parquet.scan.gtrecord.maxlength";
-    String KYLIN_USE_INVERTED_INDEX = "io.kylin.storage.parquet.scan.useii";
-    String KYLIN_TARBALL_READ_STRATEGY = "io.kylin.storage.parquet.read.strategy";
-    String KYLIN_REQUIRED_CUBOIDS = "io.kylin.storage.parquet.read.required-cuboids";
-    String KYLIN_BINARY_FILTER = "io.kylin.storage.parquet.read.binary-filter";
+public interface BinaryFilter {
+    boolean isMatch(byte[] value);
 
-    int KYLIN_PARQUET_TARBALL_HEADER_SIZE = Longs.BYTES;
+    TupleFilter.FilterOperatorEnum getOperator();
+
+    void serialize(ByteBuffer buffer);
+
+    void deserialize(ByteBuffer buffer);
 }

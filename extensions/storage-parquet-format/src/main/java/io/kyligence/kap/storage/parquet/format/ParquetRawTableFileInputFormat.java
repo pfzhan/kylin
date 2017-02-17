@@ -25,11 +25,9 @@
 package io.kyligence.kap.storage.parquet.format;
 
 import java.io.IOException;
-import java.io.StringReader;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
-import java.util.Properties;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -123,9 +121,7 @@ public class ParquetRawTableFileInputFormat extends FileInputFormat<Text, Text> 
                 logger.warn("Creating an empty KylinConfig");
             }
             logger.info("Creating KylinConfig from conf");
-            Properties kylinProps = new Properties();
-            kylinProps.load(new StringReader(kylinPropsStr));
-            KylinConfig.setKylinConfigInEnvIfMissing(kylinProps);
+            KylinConfig.setKylinConfigInEnvIfMissing(kylinPropsStr);
 
             // read index file
             FileSystem fileSystem = HadoopUtil.getFileSystem(parquetPath, conf);

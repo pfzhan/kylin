@@ -27,6 +27,7 @@ package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -45,6 +46,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.spark.Accumulator;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -63,6 +65,9 @@ import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetSpliceTarballFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
+import io.kyligence.kap.storage.parquet.format.filter.BinaryFilter;
+import io.kyligence.kap.storage.parquet.format.filter.BinaryFilterConverter;
+import io.kyligence.kap.storage.parquet.format.filter.BinaryFilterSerializer;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 import io.kyligence.kap.storage.parquet.steps.ParquetCubeInfoCollectionStep;
 import scala.Tuple4;
@@ -77,6 +82,7 @@ public class SparkParquetVisit implements Serializable {
     private final transient Set<String> parquetPathCollection;
     private final transient String realizationType;
     private final transient String dataFolderName;
+    private transient byte[] binaryFilterSerialized = null;
 
     private final static ExecutorService cachedRDDCleaner = Executors.newSingleThreadExecutor();
     private final static ConcurrentLinkedDeque<Tuple4<String, Iterator<RDDPartitionData>, JavaRDD<byte[]>, Long>> cachedRDDs = new ConcurrentLinkedDeque<>();//queryid,iterator,rdd,inqueue time
@@ -127,9 +133,10 @@ public class SparkParquetVisit implements Serializable {
         try {
             this.sc = sc;
             this.request = request;
-            this.kylinConfig = KylinConfig.createKylinConfig(request.getKylinProperties());
             this.realizationType = request.getRealizationType();
             this.dataFolderName = request.getDataFolderName();
+            KylinConfig.setKylinConfigInEnvIfMissing(request.getKylinProperties());
+            this.kylinConfig = KylinConfig.getInstanceFromEnv();
 
             if (RealizationType.CUBE.toString().equals(this.realizationType)) {
                 Map<Long, Set<String>> cubeMapping = readCubeMappingInfo();
@@ -143,6 +150,12 @@ public class SparkParquetVisit implements Serializable {
                             append(request.getSegmentId()).append("/").//
                             append(request.getDataFolderName()).//
                             append("/*.parquettar").toString());
+                    // try to convert binary filter
+                    GTScanRequest scanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(request.getGtScanRequest().toByteArray()));
+                    if (scanRequest != null && scanRequest.getFilterPushDown() != null && !BinaryFilterConverter.containsSpecialFilter(scanRequest.getFilterPushDown())) {
+                        BinaryFilter binaryFilter = new BinaryFilterConverter(scanRequest.getInfo()).toBinaryFilter(scanRequest.getFilterPushDown());
+                        binaryFilterSerialized = BinaryFilterSerializer.serialize(binaryFilter);
+                    }
                 } else {
                     // Engine 99
                     this.isSplice = true;
@@ -192,6 +205,7 @@ public class SparkParquetVisit implements Serializable {
         conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES, new String(this.request.getGtScanRequest().toByteArray(), "ISO-8859-1")); //so that ParquetRawInputFormat can use the scan request
         conf.set(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX, String.valueOf(request.getUseII())); //whether to use II
         conf.set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileInputFormat.ParquetTarballFileReader.ReadStrategy.COMPACT.toString()); //read fashion
+        conf.set(ParquetFormatConstants.KYLIN_BINARY_FILTER, new String(binaryFilterSerialized == null ? new byte[0] : binaryFilterSerialized, "ISO-8859-1")); //read fashion
 
         StringBuilder pathBuilder = new StringBuilder();
         for (String p : parquetPathCollection) {
@@ -221,7 +235,7 @@ public class SparkParquetVisit implements Serializable {
         JavaPairRDD<Text, Text> seed = sc.union(rdds);
 
         final Iterator<RDDPartitionData> partitionResults;
-        JavaRDD<byte[]> cached = seed.mapPartitions(new SparkExecutorPreAggFunction(request.getQueryId(), realizationType, scannedRecords, collectedRecords, isSplice, request.getSpillEnabled(), request.getMaxScanBytes())).cache();
+        JavaRDD<byte[]> cached = seed.mapPartitions(new SparkExecutorPreAggFunction(request.getQueryId(), realizationType, scannedRecords, collectedRecords, isSplice, hasPreFiltered(), request.getSpillEnabled(), request.getMaxScanBytes())).cache();
         cached.count();//trigger lazy materialization
         long scanCount = collectedRecords.value();
         long threshold = (long) kylinConfig.getLargeQueryThreshold();
@@ -249,6 +263,10 @@ public class SparkParquetVisit implements Serializable {
                 return new RDDPartitionData(bytes);
             }
         });
+    }
+
+    private boolean hasPreFiltered() {
+        return binaryFilterSerialized != null;
     }
 
     public class RDDPartitionData {

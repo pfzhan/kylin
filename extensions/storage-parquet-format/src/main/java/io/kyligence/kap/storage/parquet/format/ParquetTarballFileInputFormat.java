@@ -25,10 +25,8 @@
 package io.kyligence.kap.storage.parquet.format;
 
 import java.io.IOException;
-import java.io.StringReader;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.Properties;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -61,6 +59,8 @@ import com.google.common.primitives.Longs;
 import com.google.common.primitives.Shorts;
 
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
+import io.kyligence.kap.storage.parquet.format.filter.BinaryFilter;
+import io.kyligence.kap.storage.parquet.format.filter.BinaryFilterSerializer;
 import io.kyligence.kap.storage.parquet.format.filter.MassInValueProviderFactoryImpl;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
@@ -91,13 +91,17 @@ public class ParquetTarballFileInputFormat extends FileInputFormat<Text, Text> {
         protected Configuration conf;
 
         private ParquetBundleReader reader = null;
-        ParquetPageIndexTable indexTable = null;
+        private ParquetPageIndexTable indexTable = null;
+        private BinaryFilter binaryFilter = null;
         private Text key = null; //key will be fixed length,
         private Text val = null; //reusing the val bytes, the returned bytes might contain useless tail, but user will use it as bytebuffer, so it's okay
 
         private ReadStrategy readStrategy;
         private long cuboidId;
         private short shardId;
+        // profile
+        private long totalScanCnt = 0;
+        private long totalSkipCnt = 0;
 
         long profileStartTime = 0;
 
@@ -116,15 +120,19 @@ public class ParquetTarballFileInputFormat extends FileInputFormat<Text, Text> {
                 logger.warn("Creating an empty KylinConfig");
             }
             logger.info("Creating KylinConfig from conf");
-            Properties kylinProps = new Properties();
-            kylinProps.load(new StringReader(kylinPropsStr));
-            KylinConfig.setKylinConfigInEnvIfMissing(kylinProps);
+            KylinConfig.setKylinConfigInEnvIfMissing(kylinPropsStr);
 
             FileSystem fileSystem = HadoopUtil.getFileSystem(shardPath);
             FSDataInputStream inputStream = fileSystem.open(shardPath);
             long fileOffset = inputStream.readLong();//read the offset
             int indexOffset = ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE;
             indexTable = new ParquetPageIndexTable(fileSystem, shardPath, inputStream, indexOffset);
+
+            String binaryFilterStr = conf.get(ParquetFormatConstants.KYLIN_BINARY_FILTER);
+            if (binaryFilterStr != null && binaryFilterStr.trim().length() != 0) {
+                binaryFilter = BinaryFilterSerializer.deserialize(ByteBuffer.wrap(binaryFilterStr.getBytes("ISO-8859-1")));
+            }
+            logger.info("Binary Filter: {}", binaryFilter);
 
             String scanReqStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES);
             ImmutableRoaringBitmap pageBitmap = null;
@@ -191,9 +199,18 @@ public class ParquetTarballFileInputFormat extends FileInputFormat<Text, Text> {
                 return false;
             }
 
-            List<Object> data = reader.read();
-            if (data == null) {
-                return false;
+            List<Object> data = null;
+            while (true) {
+                data = reader.read();
+                if (data == null) {
+                    return false;
+                }
+                totalScanCnt++;
+                if (binaryFilter != null && !binaryFilter.isMatch(((Binary) data.get(0)).getBytes())) {
+                    totalSkipCnt++;
+                    continue;
+                }
+                break;
             }
 
             if (readStrategy == ReadStrategy.KV) {
@@ -263,6 +280,7 @@ public class ParquetTarballFileInputFormat extends FileInputFormat<Text, Text> {
         @Override
         public void close() throws IOException {
             logger.info("read file takes {} ms", System.currentTimeMillis() - profileStartTime);
+            logger.info("total scan {} rows, skip {} rows", totalScanCnt, totalSkipCnt);
             if (reader != null) {
                 reader.close();
             }

@@ -22,21 +22,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.storage.parquet.format;
+package io.kyligence.kap.storage.parquet.format.filter;
 
-import com.google.common.primitives.Longs;
+import org.junit.Assert;
+import org.junit.Test;
 
-public interface ParquetFormatConstants {
-    String KYLIN_OUTPUT_DIR = "io.kylin.job.output.path";
-
-    String KYLIN_SCAN_PROPERTIES = "io.kylin.storage.parquet.scan.properties";
-    String KYLIN_SCAN_REQUEST_BYTES = "io.kylin.storage.parquet.scan.request";
-    String KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS = "io.kylin.storage.parquet.scan.parquetcolumns";
-    String KYLIN_GT_MAX_LENGTH = "io.kylin.storage.parquet.scan.gtrecord.maxlength";
-    String KYLIN_USE_INVERTED_INDEX = "io.kylin.storage.parquet.scan.useii";
-    String KYLIN_TARBALL_READ_STRATEGY = "io.kylin.storage.parquet.read.strategy";
-    String KYLIN_REQUIRED_CUBOIDS = "io.kylin.storage.parquet.read.required-cuboids";
-    String KYLIN_BINARY_FILTER = "io.kylin.storage.parquet.read.binary-filter";
-
-    int KYLIN_PARQUET_TARBALL_HEADER_SIZE = Longs.BYTES;
+public class BinaryConstantFilterTest {
+    @Test
+    public void isMatch() throws Exception {
+        Assert.assertTrue(new BinaryConstantFilter(true).isMatch(null));
+        Assert.assertFalse(new BinaryConstantFilter(false).isMatch(null));
+    }
 }

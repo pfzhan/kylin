@@ -28,11 +28,9 @@ import static io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceOutputFor
 import static io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceOutputFormat.ParquetCubeSpliceWriter.getShardidFromDiv;
 
 import java.io.IOException;
-import java.io.StringReader;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -131,9 +129,7 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
                 logger.warn("Creating an empty KylinConfig");
             }
             logger.info("Creating KylinConfig from conf");
-            Properties kylinProps = new Properties();
-            kylinProps.load(new StringReader(kylinPropsStr));
-            KylinConfig.setKylinConfigInEnvIfMissing(kylinProps);
+            KylinConfig.setKylinConfigInEnvIfMissing(kylinPropsStr);
 
             // Column bitmap
             columnBitmap = RoaringBitmaps.readFromString(conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS));

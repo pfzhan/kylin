@@ -30,6 +30,7 @@ import java.util.Iterator;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ResourceTrackingGTScanner;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.util.ByteArray;
@@ -49,7 +50,6 @@ import com.google.common.collect.Iterators;
 import io.kyligence.kap.common.obf.IKeepClassMembers;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner4Cube;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner4Raw;
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ResourceTrackingGTScanner;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetSpliceTarballFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
@@ -63,20 +63,21 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
     private final String realizationType;
     private final String queryId;
     private final boolean isSplice;
+    private final boolean hasPreFiltered;
     private final boolean spillEnabled;
     private final long maxScanBytes;
 
     public SparkExecutorPreAggFunction(String queryId, String realizationType, Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords) {
-        this(queryId, realizationType, scannedRecords, collectedRecords, false, true, Long.MAX_VALUE);
+        this(queryId, realizationType, scannedRecords, collectedRecords, false, false, true, Long.MAX_VALUE);
     }
 
-    //TODO: too long parameter
-    public SparkExecutorPreAggFunction(String queryId, String realizationType, Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords, boolean isSplice, boolean spillEnabled, long maxScanBytes) {
+    public SparkExecutorPreAggFunction(String queryId, String realizationType, Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords, boolean isSplice, boolean hasPreFiltered, boolean spillEnabled, long maxScanBytes) {
         this.queryId = queryId;
         this.realizationType = realizationType;
         this.scannedRecords = scannedRecords;
         this.collectedRecords = collectedRecords;
         this.isSplice = isSplice;
+        this.hasPreFiltered = hasPreFiltered;
         this.spillEnabled = spillEnabled;
         this.maxScanBytes = maxScanBytes;
     }
@@ -116,7 +117,7 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
 
         logger.info("Start latency is: {}", System.currentTimeMillis() - gtScanRequest.getStartTime());
 
-        IGTScanner preAggred = gtScanRequest.decorateScanner(new ResourceTrackingGTScanner(scanner, gtScanRequest.getTimeout()), behavior.filterToggledOn(), behavior.aggrToggledOn(), false, spillEnabled);
+        IGTScanner preAggred = gtScanRequest.decorateScanner(new ResourceTrackingGTScanner(scanner, gtScanRequest.getTimeout()), behavior.filterToggledOn(), behavior.aggrToggledOn(), hasPreFiltered, spillEnabled);
 
         SparkExecutorGTRecordSerializer function = new SparkExecutorGTRecordSerializer(gtScanRequest, gtScanRequest.getColumns());
 
