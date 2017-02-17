@@ -25,6 +25,7 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
     $scope.tableAliasMap={};
     $scope.aliasTableMap={};
     $scope.aliasName=[];
+    $scope.tableModel = TableModel;
     $scope.initStatus={dimensions:false,measures:false};
     $scope.route={params:$routeParams.modelName};
     $scope.modelMode = absUrl.indexOf("/models/add")!=-1?'addNewModel':absUrl.indexOf("/models/edit")!=-1?'editExistModel':'default';

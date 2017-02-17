@@ -280,13 +280,13 @@
                               </select>-->
                               <select style="width: 45%" chosen data-placeholder="Fact Table Column"
                                       ng-model="newLookup.join.foreign_key[$index]"    ng-change="changeKey($index)"
-                                      ng-options="FactTable.root+'.'+columns.name as columns.name for columns in getColumnsByTable(modelsManager.selectedModel.fact_table)" >
+                                      ng-options="FactTable.root+'.'+columns.name as columns.name for columns in tableModel.getColumnsByTable(modelsManager.selectedModel.fact_table)" >
                                 <option value=""></option>
                               </select>
                               <b>=</b>
                               <select style="width: 45%" chosen data-placeholder="Lookup Table Column"
                                       ng-model="newLookup.join.primary_key[$index]"    ng-change="changeKey($index)"
-                                      ng-options="newLookup.alias+'.'+columns.name as columns.name for columns in getColumnsByTable(newLookup.table)" >
+                                      ng-options="newLookup.alias+'.'+columns.name as columns.name for columns in tableModel.getColumnsByTable(newLookup.table)" >
                                 <option value=""></option>
                               </select>
                               <button class="pull-right btn btn-xs btn-danger" style="cursor: pointer" tooltip="{{dataKylin.model.tip_join_delete}}"
