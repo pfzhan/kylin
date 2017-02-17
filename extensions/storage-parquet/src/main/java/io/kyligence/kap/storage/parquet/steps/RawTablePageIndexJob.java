@@ -68,7 +68,7 @@ public class RawTablePageIndexJob extends AbstractHadoopJob {
         return skipped;
     }
 
-    protected void setSkipped() {
+    protected void setSkippedIfPossible() {
     }
 
     @Override
@@ -91,7 +91,7 @@ public class RawTablePageIndexJob extends AbstractHadoopJob {
             RawTableInstance raw = rawMgr.getRawTableInstance(cubeName);
 
             desc = raw.getRawTableDesc();
-            setSkipped();
+            setSkippedIfPossible();
             if (isSkipped()) {
                 logger.info("Skip job " + getOptionValue(OPTION_JOB_NAME) + " for " + raw.getSegmentById(segmentID));
                 return 0;

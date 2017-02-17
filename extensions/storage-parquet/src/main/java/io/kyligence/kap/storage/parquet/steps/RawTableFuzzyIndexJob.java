@@ -34,7 +34,7 @@ public class RawTableFuzzyIndexJob extends RawTablePageIndexJob {
     }
 
     @Override
-    protected void setSkipped() {
+    protected void setSkippedIfPossible() {
         if (desc == null) {
             skipped = false;
             return;
