@@ -198,11 +198,10 @@ KylinApp
     }
     $scope.reloadTable = function (tableNames){
       var delay = $q.defer();
-        $scope.loadTableInputCollectRowCountAlert(function(isConfirm,rowCount){
+        //$scope.loadTableInputCollectRowCountAlert(function(isConfirm,rowCount){
           loadingRequest.show();
           TableExtService.loadHiveTable({tableName: tableNames, action: $scope.projectModel.selectedProject}, {
-            calculate:!!+isConfirm,
-            rowSize:rowCount
+            calculate:false
           }, function (result) {
             var loadTableInfo = "";
             angular.forEach(result['result.loaded'], function (table) {
@@ -228,7 +227,6 @@ KylinApp
             kylinCommon.error_default(e);
             loadingRequest.hide();
           })
-        })
         return delay.promise;
     }
 
