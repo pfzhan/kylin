@@ -848,6 +848,7 @@ KylinApp.constant('kapEnglishConfig', {
     diagnosisForPoorNetwork:'If there is no public network access, can choose manual upload, operation steps are as follows：',
     diagnosisForPoorNetworkActionSeq:['1.Download diagnostic package','2.Login KYBOT','3.Click the upload button on the top left corner of the home page and upload the selected diagnostic package on the upload page'],
     diagnosisFactoryPackage:'Generate diagnostic package',
+    diagnosisDownloadTip:'Close this dialog when it was done，it will cost you serveral mimutes...',
 
     tip_diagnosis: 'Download Diagnosis Info For Current Project',
     backup:'Backup',
@@ -1010,7 +1011,8 @@ KylinApp.constant('kapEnglishConfig', {
     goToKybot:'please got to the kybot site to view the result',
     goToKybotBtn:'Go to Kybot site now!',
     close:'Close',
-    failUpload:'Upload failed'
+    failUpload:'Upload failed',
+    failDownload:'Download failed'
   },
   license:{
     aboutkap:"About KAP",

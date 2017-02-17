@@ -205,7 +205,23 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
         }, function (isConfirm) {})
       })
     }
-    $scope.dowloadLink=Config.service.url+"kybot/dump"
+    $scope.dowloadLink=function(){
+       $scope.loading=true;
+       VdmUtil.loadFileFromService(Config.service.url+"kybot/dump",function(){
+         $scope.cancel();
+       },function(e){
+         $scope.cancel();
+         SweetAlert.swal({
+           title:$scope.dataKylin.alert.failDownload,
+           text:e&&e.exception||$scope.dataKylin.alert.error_info,
+           type: 'error',
+           confirmButtonColor: '#DD6B55',
+           confirmButtonText: "ok",
+           closeOnConfirm: true
+         }, function (isConfirm) {})
+       })
+    }
+
   }
   $scope.downloadBadQueryFiles = function(){
     //var _project = ProjectModel.selectedProject;

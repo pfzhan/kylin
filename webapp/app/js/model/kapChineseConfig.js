@@ -848,7 +848,7 @@ KylinApp.constant('kapChineseConfig', {
     diagnosisForPoorNetwork:'如无公网访问权限，可选择手动上传，操作步骤如下：',
     diagnosisForPoorNetworkActionSeq:['1.点击下载诊断包','2.登录KYBOT','3.在首页左上角点击上传按钮，在上传页面选择已下载的诊断包上传'],
     diagnosisFactoryPackage:'生成诊断包',
-
+    diagnosisDownloadTip:'下载完成后请自行关闭该弹窗，下载过程需要消耗若干分钟,请耐心等待...',
     tip_diagnosis: '为当前项目创建并下载诊断包',
     backup:'备份',
     tip_backup:'全局备份',
@@ -1010,7 +1010,8 @@ KylinApp.constant('kapChineseConfig', {
     goToKybot:'请登录KyBot查看',
     goToKybotBtn:'立即访问Kybot网站',
     close:'关闭',
-    failUpload:'上传失败'
+    failUpload:'上传失败',
+    failDownload:'下载失败'
 
   },
   license:{

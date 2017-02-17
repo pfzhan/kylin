@@ -221,6 +221,38 @@ KylinApp.factory('VdmUtil', function ($modal, $timeout, $location, $anchorScroll
     },
     isNotExtraKey:function(obj,key){
       return obj&&key&&key!="$promise"&&key!='$resolved'&&obj.hasOwnProperty(key);
+    },
+    loadFileFromService:function(url,callback,errorcallback){
+      var hasInIframe=$("#_download");
+      if(hasInIframe){
+        hasInIframe.remove();
+      }
+      var iframe = document.createElement("iframe");
+      iframe.id='_download';
+      iframe.width="1px";
+      iframe.height="1px"
+      iframe.src = url;
+      if (iframe.attachEvent){
+        iframe.attachEvent("onload", function(e){
+          handler(e);
+        });
+      } else {
+        iframe.onload = function(e){
+          handler(e);
+        };
+      }
+      function handler(e){
+        var target= e.target|| e.srcElement;
+        var backInner=target.contentDocument.body.innerHTML;
+        var msg=angular.fromJson($(e.target.contentDocument).find("pre").html());
+        document.body.removeChild(iframe);
+        if(/code[^\w]*?999/.test(backInner)){
+          errorcallback(msg);
+          return;
+        }
+        callback(e);
+      }
+      document.body.appendChild(iframe);
     }
   }
 });
