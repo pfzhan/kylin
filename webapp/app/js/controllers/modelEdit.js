@@ -42,7 +42,7 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
     $scope.getColumnsByTable = function (tableName) {
         var temp = [];
         angular.forEach(TableModel.selectProjectTables, function (table) {
-            if (table.name == tableName) {
+            if (table.database+'.'+table.name == tableName) {
                 temp = table.columns;
             }
         });

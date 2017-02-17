@@ -218,7 +218,7 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,String
     this.getColumnsByTable = function (tableName) {
         var temp = [];
         angular.forEach(_this.selectProjectTables, function (table) {
-            if (table.name == tableName) {
+            if (table.database+'.'+table.name == tableName) {
                 temp = table.columns;
             }
         });
