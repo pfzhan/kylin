@@ -211,6 +211,7 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
         var modalInstance = $modal.open({
             templateUrl: 'editDimension.html',
             controller: cubeDimModalCtrl,
+            windowClass:"edit_dimensions",
             backdrop: 'static',
             scope: $scope,
             resolve: {

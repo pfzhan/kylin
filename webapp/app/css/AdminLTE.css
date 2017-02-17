@@ -4310,3 +4310,11 @@ Gradient Background colors
   margin-left: -20px;
 }
 
+.edit_dimensions {
+
+  width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  overflow-y:hidden;
+
+}
