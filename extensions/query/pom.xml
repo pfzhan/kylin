@@ -27,6 +27,13 @@
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-query</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>

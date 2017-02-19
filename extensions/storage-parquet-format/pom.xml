@@ -86,6 +86,11 @@
             <artifactId>hadoop-mapreduce-client-app</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>com.esotericsoftware</groupId>
+            <artifactId>kryo-shaded</artifactId>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <properties>

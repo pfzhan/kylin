@@ -33,7 +33,16 @@
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-cube</artifactId>
         </dependency>
+
+        <!-- Provided -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+        </dependency>
+
     </dependencies>
-
-
 </project>

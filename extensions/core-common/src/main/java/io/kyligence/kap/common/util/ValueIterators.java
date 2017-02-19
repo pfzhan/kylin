@@ -24,10 +24,9 @@
 
 package io.kyligence.kap.common.util;
 
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-
-import com.google.common.collect.Sets;
 
 public class ValueIterators {
 
@@ -41,7 +40,7 @@ public class ValueIterators {
     }
 
     public static <T> T checkSame(Iterator<T> iterator) {
-        Set<T> values = Sets.newHashSet();
+        Set<T> values = new HashSet<>();
         while (iterator.hasNext()) {
             T element = iterator.next();
             values.add(element);

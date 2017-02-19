@@ -25,14 +25,13 @@
 package io.kyligence.kap.metadata.datatype;
 
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Maps;
 
 import io.kyligence.kap.hbase.orderedbytes.OrderedBytesBase;
 import io.kyligence.kap.hbase.orderedbytes.util.PositionedByteRange;
@@ -42,7 +41,7 @@ public abstract class OrderedBytesSerializer<T> extends DataTypeSerializer<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(OrderedBytesSerializer.class);
 
-    final static Map<String, Class<?>> orderedImplementations = Maps.newHashMap();
+    final static Map<String, Class<?>> orderedImplementations = new HashMap<>();
     final DataType type;
 
     static {
