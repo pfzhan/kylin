@@ -39,6 +39,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kylin.source.kafka.config.BrokerConfig;
 import org.apache.kylin.source.kafka.config.KafkaClusterConfig;
 import org.apache.kylin.source.kafka.config.KafkaConfig;
@@ -64,7 +65,7 @@ public class CollectKafkaStats {
                 Properties property = new Properties();
                 //this property must greater than 10000
                 property.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, LIST_TOPIC_TIMEOUT);
-                Consumer consumer = KafkaClient.getKafkaConsumer(broker, "test", property);
+                Consumer consumer = KafkaClient.getKafkaConsumer(broker, "sample", property);
                 logger.info("Trying to get messages from broker: " + broker);
                 if (null == consumer)
                     throw new IllegalArgumentException("The given cluster: " + broker + "is not found");
@@ -122,7 +123,6 @@ public class CollectKafkaStats {
         Map<String, List<String>> clustersMap = getCluster(kafkaConfig);
         Map<String, List<String>> topicsMap = getBrokers(kafkaConfig);
 
-        List<String> msgList = null;
         List<String> availableBrokers = new ArrayList<>();
         List<String> brokersByTopic = topicsMap.get(topic);
         if (null == brokersByTopic)
@@ -135,61 +135,45 @@ public class CollectKafkaStats {
                 availableBrokers.add(broker);
         }
 
-        Consumer consumer = null;
-        ConsumerRecords<String, String> records = null;
-        for (String broker : availableBrokers) {
-            consumer = KafkaClient.getKafkaConsumer(broker, "test", null);
-            consumer.subscribe(Arrays.asList(topic));
-            records = consumer.poll(FETCH_MSG_TIMEOUT);
-            if (records.isEmpty())
-                continue;
-            else {
-                msgList = collectSamples(consumer);
-                break;
-            }
-        }
-
-        consumer.close();
-        return msgList;
+        return collectSamples(topic, availableBrokers);
     }
 
     public static List<String> getMessageByTopic(KafkaConfig kafkaConfig) {
         Map<String, List<String>> topicsMap = getBrokers(kafkaConfig);
 
         String topic = kafkaConfig.getTopic();
-        List<String> msgList = null;
         List<String> brokersByTopic = topicsMap.get(topic);
         if (null == brokersByTopic)
             throw new IllegalArgumentException("There are no available brokers for the given topic: " + topic);
 
+        return collectSamples(topic, brokersByTopic);
+    }
+
+    private static List<String> collectSamples(String topic, List<String> brokersByTopic) {
+        List<String> samples = new ArrayList<>();
+
         Consumer consumer = null;
         ConsumerRecords<String, String> records = null;
         for (String broker : brokersByTopic) {
-            consumer = KafkaClient.getKafkaConsumer(broker, "test", null);
-            consumer.subscribe(Arrays.asList(topic));
+            consumer = KafkaClient.getKafkaConsumer(broker, "sample", null);
+
+            final List<PartitionInfo> partitionInfos = consumer.partitionsFor(topic);
+            int id = partitionInfos.get(0).partition();
+            consumer.assign(Arrays.asList(new TopicPartition(topic, id)));
+            consumer.seekToEnd(Arrays.asList(new TopicPartition(topic, id)));
+            long pos = consumer.position(new TopicPartition(topic, id));
+            consumer.seek(new TopicPartition(topic, id), pos - MSG_AMOUNT);
+
             records = consumer.poll(FETCH_MSG_TIMEOUT);
             if (records.isEmpty())
-                continue;
+                throw new IllegalStateException("There are no available messages in this topic: " + topic);
             else {
-                msgList = collectSamples(consumer);
-                break;
+                for (ConsumerRecord<String, String> record : records) {
+                    samples.add(record.value());
+                }
             }
         }
-
         consumer.close();
-        return msgList;
-    }
-
-    private static List<String> collectSamples(Consumer consumer) {
-        List<String> samples = new ArrayList<>();
-        int nTryTimes = 0;
-        while (samples.size() < MSG_AMOUNT || nTryTimes > 10) {
-            ConsumerRecords<String, String> records = consumer.poll(FETCH_MSG_TIMEOUT);
-            for (ConsumerRecord<String, String> record : records) {
-                samples.add(record.value());
-            }
-            nTryTimes++;
-        }
         return samples;
     }
 
