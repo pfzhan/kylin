@@ -391,6 +391,7 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
               $scope.kafkaMeta.topic=branch.data;
               $scope.loadTopicSampleData(branch.pdata,branch.data,function(data){
                 if(!data||data&&data.length==0){
+                  $scope.streaming.sourceSchema="";
                   SweetAlert.swal('', $scope.dataKylin.data_source.useLessTopic, 'error');
                 }else{
                   $scope.streaming.sourceSchema= data[0]||'';
