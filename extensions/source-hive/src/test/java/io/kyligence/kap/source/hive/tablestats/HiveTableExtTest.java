@@ -47,9 +47,9 @@ public class HiveTableExtTest extends TestCase {
         sampler.getBuffer().flip();
         sampler.decode(sampler.getBuffer());
 
-        assertEquals(sampler.getMax(), "麒麟最牛逼啊");
-        assertEquals(sampler.getMinLenValue().length(), 0);
-        assertEquals(sampler.getMaxLenValue(), "麒麟最牛逼啊");
+        assertEquals("麒麟最牛逼啊", sampler.getMax());
+        assertEquals(0, sampler.getMinLenValue().length());
+        assertEquals("麒麟最牛逼啊", sampler.getMaxLenValue());
         sampler.clean();
 
         sampler = new HiveTableExtSampler();
@@ -64,9 +64,9 @@ public class HiveTableExtTest extends TestCase {
         sampler.getBuffer().flip();
         sampler.decode(sampler.getBuffer());
 
-        assertEquals(sampler.getMax(), "434.223232");
-        assertEquals(sampler.getMinLenValue().length(), 7);
-        assertEquals(sampler.getNullCounter(), "0");
+        assertEquals("434.223232", sampler.getMax());
+        assertEquals(7, sampler.getMinLenValue().length());
+        assertEquals("0", sampler.getNullCounter());
         sampler.clean();
     }
 
@@ -85,6 +85,6 @@ public class HiveTableExtTest extends TestCase {
             counter++;
         }
         String value = sampler.getRawSampleValue("1");
-        assertNotSame(value, "");
+        assertNotSame("", value);
     }
 }

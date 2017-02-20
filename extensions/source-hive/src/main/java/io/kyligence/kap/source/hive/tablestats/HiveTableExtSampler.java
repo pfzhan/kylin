@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.measure.hllc.HLLCSerializer;
 import org.apache.kylin.measure.hllc.HLLCounter;
 import org.apache.kylin.metadata.datatype.DataType;
@@ -284,13 +285,13 @@ public class HiveTableExtSampler implements Serializable {
     }
 
     public void sampleMaxLength(String value) {
-        if (getMaxLenValue() == null || value.getBytes().length > getMaxLenValue().getBytes().length) {
+        if (getMaxLenValue() == null || StringUtil.utf8Length(value) > StringUtil.utf8Length(getMaxLenValue())) {
             setMaxLenValue(value);
         }
     }
 
     public void sampleMinLength(String value) {
-        if (getMinLenValue() == null || value.getBytes().length < getMinLenValue().getBytes().length) {
+        if (getMinLenValue() == null || StringUtil.utf8Length(value) < StringUtil.utf8Length(getMinLenValue())) {
             setMinLenValue(value);
         }
     }
