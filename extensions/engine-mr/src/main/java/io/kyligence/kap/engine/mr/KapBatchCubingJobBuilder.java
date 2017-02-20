@@ -56,7 +56,6 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
 
     private static final Logger logger = LoggerFactory.getLogger(KapBatchCubingJobBuilder.class);
 
-    private final String LayeredCubeTmpFolderPrefix = "level-";
     private final String InmemCubeTmpFolderPrefix = "inmem";
     protected final IMRInput.IMRBatchCubingInputSide inputSide;
     protected final IMROutput2.IMRBatchCubingOutputSide2 outputSide;
@@ -137,7 +136,7 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
     private UpdateOutputDirStep createUpdateLayerOutputDirStep(final String cubeRootPath, final String jobId) {
         UpdateOutputDirStep updateDirStep = new UpdateOutputDirStep();
         updateDirStep.setOutputDir(cubeRootPath);
-        updateDirStep.setSubdirFilter(LayeredCubeTmpFolderPrefix);
+        updateDirStep.setSubdirFilter(LayeredCuboidFolderPrefix);
         updateDirStep.setJobId(jobId);
         updateDirStep.setCheckSkip(true);
         updateDirStep.setCheckAlgorithm("LAYER");
