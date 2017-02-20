@@ -30,7 +30,6 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
     $scope.cubeManager = cubesManager;
     // Available columns list derived from cube data model.
     $scope.availableColumns = {};
-
     // Columns selected and disabled status bound to UI, group by table.
     $scope.selectedColumns = {};
 
@@ -53,20 +52,6 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
     // Dump available columns plus column table name, whether is from lookup table.
     $scope.initColumns = function () {
         var rootFactTable = StringHelper.removeNameSpace($scope.metaModel.model.fact_table);
-
-        if($scope.aliasName.length==0){
-          $scope.aliasName.push(rootFactTable);
-          $scope.aliasTableMap[rootFactTable]=$scope.metaModel.model.fact_table;
-          $scope.tableAliasMap[$scope.metaModel.model.fact_table]=rootFactTable;
-          angular.forEach($scope.metaModel.model.lookups,function(joinTable){
-            if(!joinTable.alias){
-              joinTable.alias=VdmUtil.removeNameSpace(joinTable.table);
-            }
-            $scope.aliasTableMap[joinTable.alias]=joinTable.table;
-            $scope.tableAliasMap[joinTable.table]=joinTable.alias;
-            $scope.aliasName.push(joinTable.alias);
-          });
-        }
 
         // At first dump the columns of fact table.
         var cols = $scope.getDimColumnsByAlias(rootFactTable);
@@ -393,7 +378,7 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
         var selectedCols = $scope.getSelectedCols();
         dimList=[];
         angular.forEach(selectedCols, function (cols, table) {
-            if ($scope.availableFactTables.indexOf(table)!=-1) {
+            if ($scope.modelsManager.availableFactTables.indexOf(table)!=-1) {
                 // Fact table: for each selected column, create one normal dimension.
                 for (var i = 0; i < cols.length; i++) {
                     dimList.push(Dimension(cols[i].name, table, [cols[i].col], 'normal'));
@@ -414,7 +399,7 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
     };
 
     $scope.autoChange= function(table,name){
-        if($scope.availableFactTables.indexOf(table)!=-1){
+        if($scope.modelsManager.availableFactTables.indexOf(table)!=-1){
             if($scope.selectedColumns[table][name].selected==false){
                 $scope.selectedColumns[table].all=false;
             }else{
@@ -446,7 +431,7 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
         }
     }
     $scope.autoChangeAll= function(table){
-        if($scope.availableFactTables.indexOf(table)!=-1){
+        if($scope.modelsManager.availableFactTables.indexOf(table)!=-1){
             if($scope.selectedColumns[table].all==true){
                 angular.forEach($scope.selectedColumns[table],function(col){
                     if(typeof col==="object"){

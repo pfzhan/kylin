@@ -230,5 +230,7 @@ KylinApp.service('modelsManager',function(ModelService,CubeService,$q,AccessServ
     this.getColumnTypeByColumnName=function(column){
       return TableModel.columnNameTypeMap[this.aliasTableMap[StringHelper.getNameSpaceTopName(column)]+'.'+StringHelper.removeNameSpace(column)];
     }
-
+    this.getColumnsByAlias=function(alias){
+      return TableModel.getColumnsByTable(this.aliasTableMap[alias]);
+    }
 });

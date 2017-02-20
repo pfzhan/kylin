@@ -32,12 +32,6 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
   $scope.metaModel = {};
   $scope.modelsManager = modelsManager;
 
-  $scope.tableAliasMap=$scope.modelsManager.tableAliasMap;
-  $scope.aliasTableMap=$scope.modelsManager.aliasTableMap;
-  $scope.availableFactTables =$scope.modelsManager.availableFactTables;
-  $scope.availableLookupTables =$scope.modelsManager.availableLookupTables;
-  $scope.aliasName=$scope.modelsManager.aliasName;
-
   TableModel.aceSrcTbLoaded();
   //add or edit ?
   var absUrl = $location.absUrl();
@@ -50,31 +44,13 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
   }
 
 
-  $scope.getColumnsByAlias = function (alias) {
-    var temp = [];
-    angular.forEach(TableModel.selectProjectTables, function (table) {
-      if (table.database+"."+table.name ==$scope.aliasTableMap[alias]) {
-        temp = table.columns;
-      }
-    });
-    return temp;
-  };
-  //$scope.getColumnsByTable = function (tableName) {
-  //  var temp = [];
-  //  angular.forEach(TableModel.selectProjectTables, function (table) {
-  //    if (table.database+"."+table.name == tableName) {
-  //      temp = table.columns;
-  //    }
-  //  });
-  //  return temp;
-  //};
 
   //get columns from model
   $scope.getDimColumnsByAlias = function (alias) {
     if (!alias) {
       return [];
     }
-    var tableColumns = $scope.getColumnsByAlias(alias);
+    var tableColumns = $scope.modelsManager.getColumnsByAlias(alias);
     var tableDim = _.find($scope.metaModel.model.dimensions, function (dimension) {
       return dimension.table == alias
     });
@@ -158,7 +134,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
     var me_columns = [];
     //add cube dimension column for specific measure
     angular.forEach($scope.cubeMetaFrame.dimensions,function(dimension,index){
-      if($scope.availableFactTables.indexOf(dimension.table)==-1){
+      if($scope.modelsManager.availableFactTables.indexOf(dimension.table)==-1){
         return;
       }
       if(dimension.column && dimension.derived == null){
@@ -186,13 +162,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
         me_columns.push(measure.function.parameter.value);
       }
     });
-    var unique = []
-    angular.forEach(me_columns, function (column) {
-      if (unique.indexOf(column) === -1) {
-        unique.push(column);
-      }
-    });
-    return unique;
+    return distinct_array(me_columns);
   };
 
   $scope.getColumnType = function (_column, table) {
@@ -207,7 +177,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
     return type;
   };
   $scope.getColumnTypeByAlias = function (_column, alias) {
-    var columns = $scope.getColumnsByAlias(alias);
+    var columns = $scope.modelsManager.getColumnsByAlias(alias);
     var type;
     angular.forEach(columns, function (column) {
       if (_column === column.name) {

@@ -169,9 +169,9 @@
                         <div class="chosen-search" ng-click="$event.stopPropagation();">
                           <input type="text" ng-model="colsFilter" >
                         </div>
-                        <a ng-repeat="column in measureParamValueColumn|filter:colsFilter" class="active-result"
+                        <a ng-repeat="column in measureParamValueColumn|filter:colsFilter" class="active-result" title="{{column}}"
                            ng-click="newMeasure.function.parameter.value=column;measureReturnTypeUpdate();" >
-                          <span>{{column}}</span>
+                      <span style="text-overflow:ellipsis;width:70%;display:inline-block;overflow:hidden;">{{column}}</span>
                           <span style="float:right;" >{{metaModel.model.aliasColumnMap[column].datatype}}</span>
                         </a>
                       </li>

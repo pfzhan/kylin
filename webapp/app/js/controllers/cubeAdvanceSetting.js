@@ -390,7 +390,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     })
   }
   $scope.getFullTaleNameByColumnName=function(columnName){
-    return  $scope.aliasTableMap[VdmUtil.getNameSpace(columnName)];
+    return  $scope.modelsManager.aliasTableMap[VdmUtil.getNameSpace(columnName)];
   }
 
   function autoScroll(container,scrollTo){
