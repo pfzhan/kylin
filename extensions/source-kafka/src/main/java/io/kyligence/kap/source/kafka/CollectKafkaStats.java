@@ -162,7 +162,12 @@ public class CollectKafkaStats {
             consumer.assign(Arrays.asList(new TopicPartition(topic, id)));
             consumer.seekToEnd(Arrays.asList(new TopicPartition(topic, id)));
             long pos = consumer.position(new TopicPartition(topic, id));
-            consumer.seek(new TopicPartition(topic, id), pos - MSG_AMOUNT);
+            if (pos <= 0)
+                throw new IllegalStateException("There are no available messages in this topic: " + topic);
+            else if (pos < MSG_AMOUNT)
+                consumer.seek(new TopicPartition(topic, id), 0);
+            else
+                consumer.seek(new TopicPartition(topic, id), pos - MSG_AMOUNT);
 
             records = consumer.poll(FETCH_MSG_TIMEOUT);
             if (records.isEmpty())
