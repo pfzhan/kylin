@@ -18,7 +18,7 @@ function add_or_reset()
 
 #def constant var
 spark_executor_cores=4
-override_file="../conf/kylin.properties"
+override_file="${KYLIN_HOME}/conf/kylin.properties"
 
 if [ ! -f ${override_file} ]; then
         echo "${override_file} not exist. Please check"
