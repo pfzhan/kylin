@@ -41,12 +41,11 @@ import io.kyligence.kap.source.kafka.CollectKafkaStats;
 public class KafkaService extends BasicService {
 
     public Map<String, List<String>> getTopics(KafkaConfig kafkaConfig) {
-        //Consumer consumer = KafkaClient.getKafkaConsumer("10.1.1.69:9092", "test", null);
         return CollectKafkaStats.getTopics(kafkaConfig);
     }
 
-    public List<String> getMessageByTopic(String cluster, String topic, KafkaConfig kafkaConfig) {
-        return CollectKafkaStats.getMessageByTopic(cluster, topic, kafkaConfig);
+    public List<String> getMessages(KafkaConfig kafkaConfig) {
+        return CollectKafkaStats.getMessages(kafkaConfig);
     }
 
     public String saveSamplesToStreamingTable(String identity, List<String> messages) throws IOException {
@@ -59,7 +58,7 @@ public class KafkaService extends BasicService {
 
     public List<String> updateSamplesByTableName(String tableName) throws IOException {
         KafkaConfig kafkaConfig = getKafkaManager().getKafkaConfig(tableName);
-        return CollectKafkaStats.getMessageByTopic(kafkaConfig);
+        return CollectKafkaStats.getMessages(kafkaConfig);
     }
 
     private List<String[]> convertMessagesToSamples(List<String> messages) throws IOException {
@@ -84,7 +83,7 @@ public class KafkaService extends BasicService {
         }
         List<String[]> samples = new ArrayList<>();
         for (List<String> values : messageTable.values()) {
-            samples.add((String[]) values.toArray(new String[values.size()]));
+            samples.add(values.toArray(new String[values.size()]));
         }
         return samples;
     }

@@ -67,7 +67,7 @@ public class KafkaController extends BasicController {
     @ResponseBody
     public List<String> getMessages(@PathVariable String cluster, @PathVariable String topic, @RequestBody StreamingRequest streamingRequest) {
         KafkaConfig kafkaConfig = deserializeKafkaSchemalDesc(streamingRequest);
-        return kafkaService.getMessageByTopic(cluster, topic, kafkaConfig);
+        return kafkaService.getMessages(kafkaConfig);
     }
 
     @RequestMapping(value = "{database}.{tablename}/samples", method = { RequestMethod.POST })

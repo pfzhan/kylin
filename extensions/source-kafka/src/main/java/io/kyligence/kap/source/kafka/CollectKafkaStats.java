@@ -40,8 +40,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kylin.source.kafka.config.BrokerConfig;
-import org.apache.kylin.source.kafka.config.KafkaClusterConfig;
 import org.apache.kylin.source.kafka.config.KafkaConfig;
 import org.apache.kylin.source.kafka.util.KafkaClient;
 import org.slf4j.Logger;
@@ -56,149 +54,79 @@ public class CollectKafkaStats {
     final static int LIST_TOPIC_TIMEOUT = 12000;
     final static int MSG_AMOUNT = 10;
 
+    //List topics
     public static Map<String, List<String>> getTopics(KafkaConfig kafkaConfig) {
+
         Map<String, List<String>> topicsMap = new HashMap<>();
-        Map<String, List<String>> clustersMap = getCluster(kafkaConfig);
+        String brokers = KafkaClient.getKafkaBrokers(kafkaConfig);
+        for (String broker : brokers.split(",")) {
+            Properties property = new Properties();
+            //this property must be greater than 10000
+            property.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, LIST_TOPIC_TIMEOUT);
+            Consumer consumer = KafkaClient.getKafkaConsumer(broker, "sample", property);
 
-        for (Map.Entry<String, List<String>> cluster : clustersMap.entrySet()) {
-            for (String broker : cluster.getValue()) {
-                Properties property = new Properties();
-                //this property must greater than 10000
-                property.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, LIST_TOPIC_TIMEOUT);
-                Consumer consumer = KafkaClient.getKafkaConsumer(broker, "sample", property);
-                logger.info("Trying to get messages from broker: " + broker);
-                if (null == consumer)
-                    throw new IllegalArgumentException("The given cluster: " + broker + "is not found");
+            Map<String, List<PartitionInfo>> topics = consumer.listTopics();
 
-                Map<String, List<PartitionInfo>> topics = consumer.listTopics();
-                if (0 == topics.size())
-                    logger.info("There are no topics in the given broker: " + broker + ", please check if the broker is reasonable!");
-                for (Map.Entry<String, List<PartitionInfo>> topic : topics.entrySet()) {
-                    if (!isUsefulTopic(topic.getKey()))
-                        continue;
-                    if (topicsMap.get(cluster.getKey()) == null) {
-                        List<String> topicNames = new ArrayList<>();
-                        topicNames.add(topic.getKey());
-                        topicsMap.put(cluster.getKey(), topicNames);
-                    } else {
-                        if (!topicsMap.get(cluster.getKey()).contains(topic.getKey()))
-                            topicsMap.get(cluster.getKey()).add(topic.getKey());
-                    }
+            String key = identifyClusterByBrokers(brokers);
+            for (Map.Entry<String, List<PartitionInfo>> topic : topics.entrySet()) {
+                if (!isUsefulTopic(topic.getKey()))
+                    continue;
+                if (topicsMap.get(key) == null) {
+                    List<String> topicNames = new ArrayList<>();
+                    topicNames.add(topic.getKey());
+                    topicsMap.put(key, topicNames);
+                } else {
+                    if (!topicsMap.get(key).contains(topic.getKey()))
+                        topicsMap.get(key).add(topic.getKey());
                 }
-                consumer.close();
             }
+            consumer.close();
+            break;
         }
         return topicsMap;
     }
 
-    public static Map<String, List<String>> getBrokers(KafkaConfig kafkaConfig) {
-        Map<String, List<String>> topicBrokerMap = new HashMap<>();
-        Map<String, List<String>> clustersMap = getCluster(kafkaConfig);
-
-        for (Map.Entry<String, List<String>> cluster : clustersMap.entrySet()) {
-            for (String broker : cluster.getValue()) {
-                Consumer consumer = KafkaClient.getKafkaConsumer(broker, "test", null);
-                if (null == consumer)
-                    throw new IllegalArgumentException("The given cluster: " + broker + "is not found");
-
-                Map<String, List<PartitionInfo>> topics = consumer.listTopics();
-                for (Map.Entry<String, List<PartitionInfo>> topic : topics.entrySet()) {
-                    if (!isUsefulTopic(topic.getKey()))
-                        continue;
-                    if (topicBrokerMap.get(topic.getKey()) == null) {
-                        List<String> brokerList = new ArrayList<>();
-                        brokerList.add(broker);
-                        topicBrokerMap.put(topic.getKey(), brokerList);
-                    } else {
-                        if (!topicBrokerMap.get(topic.getKey()).contains(broker))
-                            topicBrokerMap.get(topic.getKey()).add(broker);
-                    }
-                }
-            }
-        }
-        return topicBrokerMap;
-    }
-
-    public static List<String> getMessageByTopic(String cluster, String topic, KafkaConfig kafkaConfig) {
-        Map<String, List<String>> clustersMap = getCluster(kafkaConfig);
-        Map<String, List<String>> topicsMap = getBrokers(kafkaConfig);
-
-        List<String> availableBrokers = new ArrayList<>();
-        List<String> brokersByTopic = topicsMap.get(topic);
-        if (null == brokersByTopic)
-            throw new IllegalArgumentException("There are no available brokers for the given topic: " + topic);
-
-        List<String> brokersByCluster = clustersMap.get(cluster);
-
-        for (String broker : brokersByTopic) {
-            if (brokersByCluster.contains(broker))
-                availableBrokers.add(broker);
-        }
-
-        return collectSamples(topic, availableBrokers);
-    }
-
-    public static List<String> getMessageByTopic(KafkaConfig kafkaConfig) {
-        Map<String, List<String>> topicsMap = getBrokers(kafkaConfig);
+    public static List<String> getMessages(KafkaConfig kafkaConfig) {
 
         String topic = kafkaConfig.getTopic();
-        List<String> brokersByTopic = topicsMap.get(topic);
-        if (null == brokersByTopic)
-            throw new IllegalArgumentException("There are no available brokers for the given topic: " + topic);
-
-        return collectSamples(topic, brokersByTopic);
-    }
-
-    private static List<String> collectSamples(String topic, List<String> brokersByTopic) {
+        String brokers = KafkaClient.getKafkaBrokers(kafkaConfig);
         List<String> samples = new ArrayList<>();
-
-        Consumer consumer = null;
-        ConsumerRecords<String, String> records = null;
-        for (String broker : brokersByTopic) {
+        for (String broker : brokers.split(",")) {
+            Consumer consumer;
+            ConsumerRecords<String, String> records;
             consumer = KafkaClient.getKafkaConsumer(broker, "sample", null);
 
             final List<PartitionInfo> partitionInfos = consumer.partitionsFor(topic);
+
+            if (partitionInfos.size() <= 0) {
+                logger.info("There are no partitions in topic: " + topic);
+                break;
+            }
+
             int id = partitionInfos.get(0).partition();
             consumer.assign(Arrays.asList(new TopicPartition(topic, id)));
             consumer.seekToEnd(Arrays.asList(new TopicPartition(topic, id)));
             long pos = consumer.position(new TopicPartition(topic, id));
-            if (pos <= 0)
-                throw new IllegalStateException("There are no available messages in this topic: " + topic);
-            else if (pos < MSG_AMOUNT)
+            if (pos <= 0) {
+                continue;
+            } else if (pos < MSG_AMOUNT)
                 consumer.seek(new TopicPartition(topic, id), 0);
             else
                 consumer.seek(new TopicPartition(topic, id), pos - MSG_AMOUNT);
 
             records = consumer.poll(FETCH_MSG_TIMEOUT);
+            consumer.close();
             if (records.isEmpty())
-                throw new IllegalStateException("There are no available messages in this topic: " + topic);
+                continue;
             else {
                 for (ConsumerRecord<String, String> record : records) {
                     samples.add(record.value());
                 }
+                break;
             }
         }
-        consumer.close();
-        return samples;
-    }
 
-    private static Map<String, List<String>> getCluster(KafkaConfig kafkaConfig) {
-        Map<String, List<String>> clustersMap = new HashMap<>();
-        for (KafkaClusterConfig kafkaClusterConfig : kafkaConfig.getKafkaClusterConfigs()) {
-            String clusterName = IdentifyClusterByBrokers(kafkaClusterConfig.getBrokerConfigs());
-            for (BrokerConfig brokerConfig : kafkaClusterConfig.getBrokerConfigs()) {
-                String brokerUrl = brokerConfig.getHost() + ":" + brokerConfig.getPort();
-                if (null == clustersMap.get(clusterName)) {
-                    List<String> brokerList = new ArrayList<>();
-                    brokerList.add(brokerUrl);
-                    clustersMap.put(clusterName, brokerList);
-                } else {
-                    if (!clustersMap.get(clusterName).contains(brokerUrl))
-                        clustersMap.get(clusterName).add(brokerUrl);
-                }
-            }
-        }
-        return clustersMap;
+        return samples;
     }
 
     private static boolean isUsefulTopic(String topic) {
@@ -213,14 +141,14 @@ public class CollectKafkaStats {
         return true;
     }
 
-    private static String IdentifyClusterByBrokers(List<BrokerConfig> brokerConfigList) {
+    private static String identifyClusterByBrokers(String brokers) {
         StringBuffer clusterName = new StringBuffer();
-        for (BrokerConfig brokerConfig : brokerConfigList) {
-            String host = brokerConfig.getHost();
+        for (String broker : brokers.split(",")) {
+            String host = broker.substring(0, broker.lastIndexOf(":"));
             if (!StringUtils.isEmpty(host) && isIp(host))
                 host = host.replace('.', '-');
             clusterName.append(host);
-            clusterName.append("|");
+            clusterName.append(",");
         }
         String ret = clusterName.toString();
         if (ret.isEmpty())
