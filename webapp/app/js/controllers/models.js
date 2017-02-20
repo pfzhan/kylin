@@ -274,14 +274,13 @@ KylinApp.controller('ModelsCtrl', function ($scope, $q, $routeParams, $location,
 });
 
 
-var modelCloneCtrl = function ($scope, $modalInstance, CubeService, MessageService, $location, model, MetaModel, SweetAlert,ProjectModel, loadingRequest,ModelService,language,kylinCommon) {
+var modelCloneCtrl = function ($scope, $modalInstance, CubeService, MessageService, $location, model, MetaModel, SweetAlert,ProjectModel, loadingRequest,ModelService,language,kylinCommon,modelsManager) {
   $scope.projectModel = ProjectModel;
   $scope.dataKylin = language.getDataKylin();
   $scope.targetObj={
     modelName:model.name+"_clone",
     targetProject:model.project
   }
-  console.log(model);
   $scope.cancel = function () {
     $modalInstance.dismiss('cancel');
   };
@@ -314,7 +313,8 @@ var modelCloneCtrl = function ($scope, $modalInstance, CubeService, MessageServi
           SweetAlert.swal({title:$scope.dataKylin.alert.success, text:$scope.dataKylin.alert.success_clone_model,type: 'success'},function(){
              $scope.hasOpen.close();
           });
-          $scope.list();
+          modelsManager.removeAll();
+          $scope.reload();
         }, function (e) {
           loadingRequest.hide();
           kylinCommon.error_default(e);
