@@ -114,7 +114,7 @@ public class HiveTableExtSampleJob extends CubingJob {
             prestep.setJobClass(CheckHdfsPath.class);
             prestep.setJobParams(checkParam);
             sampleJob.addTask(prestep);
-            sampleJob.addTask(materializedView(table, sampleJob.getId(), jobConf, isFullTable ? "limit " + rowSize : ""));
+            sampleJob.addTask(materializedView(table, sampleJob.getId(), jobConf, !isFullTable ? "limit " + rowSize : ""));
         }
 
         String samplesOutPath = getOutputPath(config, sampleJob.getId(), HiveTableExtSampleJob.SAMPLES) + table.getIdentity();
@@ -136,7 +136,7 @@ public class HiveTableExtSampleJob extends CubingJob {
         step2.setJobParams(step2_Param);
         sampleJob.addTask(step2);
 
-        if (table.isView())
+        if (table.isView() || !isFullTable)
             sampleJob.addTask(deleteMaterializedView(table, config));
 
         table_ext.setJodID(sampleJob.getId());
