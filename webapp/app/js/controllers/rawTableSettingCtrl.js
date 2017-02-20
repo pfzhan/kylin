@@ -203,7 +203,7 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
 
   $scope.getRawTableEncodings =function (tableAlias,columnName){
     var filterName=name;
-    var columnType=$scope.getColumnTypeByAlias(columnName,tableAlias)||'';
+    var columnType=modelsManager.getColumnTypeByColumnName(tableAlias+'.'+columnName)||'';
     var filterEncoding;
     encodings=VdmUtil.removeFilterObjectList(encodings,'baseValue','dict');
     var matchList=VdmUtil.getObjValFromLikeKey($scope.store.encodingMaps,columnType);
