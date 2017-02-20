@@ -373,7 +373,7 @@ KylinApp.controller('streamingConfigCtrl', function ($scope,StreamingService, $q
       for(var i in data){
         if(VdmUtil.isNotExtraKey(data,i)){
           var obj={}
-          obj.label= i.replace(/-/g,'.');
+          obj.label=$scope.dataKylin.cube.kaCluster+'-1('+i.replace(/-/g,'.')+')';
           obj.data=i;
           obj.children=[];
           for(var k=0;k<data[i].length;k++){
