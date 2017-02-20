@@ -80,7 +80,6 @@ KylinApp.controller('CubeDimensionsCtrl', function ($scope, $modal,MetaModel,cub
             var lookupSelectAvailable = {};
             for (var k = 0; k < cols2.length; k++) {
               cols2[k].table = lookups[j].alias;
-              cols2[k].isLookup = true;
               // Default not selected and not disabled.
               lookupSelectAvailable[cols2[k].name] = {name:cols2[k].name,selected: false};
             }
