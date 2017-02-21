@@ -81,11 +81,6 @@ public class RawTableSegmentScanner implements IGTScanner {
     }
 
     @Override
-    public long getScannedRowCount() {
-        return scanner.getScannedRowCount();
-    }
-
-    @Override
     public void close() throws IOException {
         scanner.close();
     }

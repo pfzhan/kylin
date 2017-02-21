@@ -34,6 +34,7 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 
@@ -42,6 +43,7 @@ import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
+import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +61,6 @@ import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkConfRequest;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobRequest;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobResponse;
-import kap.google.protobuf.ByteString;
 
 public class SparkDriverClient {
     private static final Logger logger = LoggerFactory.getLogger(SparkDriverClient.class);
@@ -98,22 +99,15 @@ public class SparkDriverClient {
 
     }
 
-    public IStorageVisitResponseStreamer submit(GTScanRequest scanRequest, SparkDriverClientParams sparkDriverClientParams) {
+    public IStorageVisitResponseStreamer submit(GTScanRequest scanRequest, SparkJobProtos.SparkJobRequestPayload payload, long queryMaxScanBytes) {
         final long startTime = System.currentTimeMillis();
         final String scanReqId = Integer.toHexString(System.identityHashCode(scanRequest));
-        final SparkJobProtos.SparkJobRequestPayload payload = SparkJobProtos.SparkJobRequestPayload.newBuilder().setGtScanRequest(ByteString.copyFrom(scanRequest.toByteArray())).//
-                setKylinProperties(sparkDriverClientParams.getKylinProperties()).setRealizationId(sparkDriverClientParams.getRealizationId()).//
-                setSegmentId(sparkDriverClientParams.getSegmentId()).setDataFolderName(sparkDriverClientParams.getCuboidId()).//
-                setMaxRecordLength(sparkDriverClientParams.getMaxGTLength()).addAllParquetColumns(sparkDriverClientParams.getParquetColumns()).//
-                setUseII(sparkDriverClientParams.isUseII()).setRealizationType(sparkDriverClientParams.getRealizationType()).//
-                setQueryId(sparkDriverClientParams.getQueryId()).setSpillEnabled(sparkDriverClientParams.isSpillEnabled()).setMaxScanBytes(sparkDriverClientParams.getPartitionMaxScanBytes()).//
-                build();
         final SparkJobRequest initialRequest = SparkJobRequest.newBuilder().setPayload(payload).build();
         final JobServiceGrpc.JobServiceStub asyncStub = JobServiceGrpc.newStub(channel);
 
         final List<SparkJobResponse> responses = new LinkedList<>();
         final AtomicBoolean serverSideCompleted = new AtomicBoolean(false);
-        final AtomicBoolean serverSideError = new AtomicBoolean(false);
+        final AtomicReference<String> serverSideError = new AtomicReference<>();
         final Semaphore semaphore = new Semaphore(0);
 
         final StreamObserver<SparkJobRequest> requestObserver = asyncStub.submitJob(new StreamObserver<SparkJobResponse>() {
@@ -127,7 +121,7 @@ public class SparkDriverClient {
             public void onError(Throwable throwable) {
                 Status status = Status.fromThrowable(throwable);
                 logger.error("grpc client side receive error: " + status);
-                serverSideError.set(true);
+                serverSideError.set(status.getDescription() == null ? "Unkown error! Please make sure the spark driver is working by running \"bin/spark_client.sh start\"" : status.getDescription());
                 semaphore.release();
             }
 
@@ -142,7 +136,7 @@ public class SparkDriverClient {
         //start
         requestObserver.onNext(initialRequest);
 
-        return new KyStorageVisitResponseStreamer(semaphore, serverSideCompleted, serverSideError, responses, requestObserver, scanReqId, startTime);
+        return new KyStorageVisitResponseStreamer(semaphore, serverSideCompleted, serverSideError, responses, requestObserver, scanReqId, startTime, queryMaxScanBytes);
     }
 
     public String getSparkConf(String confName) {
@@ -154,15 +148,16 @@ public class SparkDriverClient {
 
         private final Semaphore semaphore;
         private final AtomicBoolean serverSideCompleted;
-        private final AtomicBoolean serverSideError;
+        private final AtomicReference<String> serverSideError;
         private final List<SparkJobResponse> responses;
         private final StreamObserver<SparkJobRequest> requestObserver;
         private final String scanRequestId;
         private final long startTime;
+        private final long queryMaxScanBytes;
         SparkJobRequest subsequentRequest;
         private boolean fetched;
 
-        public KyStorageVisitResponseStreamer(Semaphore semaphore, AtomicBoolean serverSideCompleted, AtomicBoolean serverSideError, List<SparkJobResponse> responses, StreamObserver<SparkJobRequest> requestObserver, String scanRequestId, long startTime) {
+        public KyStorageVisitResponseStreamer(Semaphore semaphore, AtomicBoolean serverSideCompleted, AtomicReference<String> serverSideError, List<SparkJobResponse> responses, StreamObserver<SparkJobRequest> requestObserver, String scanRequestId, long startTime, long queryMaxScanBytes) {
             this.semaphore = semaphore;
             this.serverSideCompleted = serverSideCompleted;
             this.serverSideError = serverSideError;
@@ -170,6 +165,7 @@ public class SparkDriverClient {
             this.requestObserver = requestObserver;
             this.scanRequestId = scanRequestId;
             this.startTime = startTime;
+            this.queryMaxScanBytes = queryMaxScanBytes;
             subsequentRequest = null;
             fetched = false;
         }
@@ -185,8 +181,10 @@ public class SparkDriverClient {
                 if (serverSideCompleted.get()) {
                     return false;
                 }
-                if (serverSideError.get()) {
-                    throw new RuntimeException("Failed to visit KyStorage! check logs/spark-driver.log for more details");
+
+                if (serverSideError.get() != null) {
+                    throw new RuntimeException(serverSideError.get());
+                    //throw new RuntimeException("Failed to visit KyStorage! check logs/spark-driver.log for more details");
                 }
 
                 if (responses.size() != 1) {
@@ -239,22 +237,29 @@ public class SparkDriverClient {
             final MutableInt responseCount = new MutableInt(0);
             Iterator<byte[]> transform = Iterators.transform(//
                     Iterators.concat(//
-                            Iterators.transform(this, new Function<SparkJobResponse, Iterator<SparkJobResponse.ShardBlob>>() {
+                            Iterators.transform(this, new Function<SparkJobResponse, Iterator<SparkJobResponse.PartitionResponse>>() {
                                 @Override
-                                public Iterator<SparkJobResponse.ShardBlob> apply(@Nullable SparkJobResponse sparkJobResponse) {
+                                public Iterator<SparkJobResponse.PartitionResponse> apply(@Nullable SparkJobResponse sparkJobResponse) {
                                     logger.info("Time for the {}th gRPC response message of query {} scan-request {} from spark instance {} visit is {}, {} shard blobs retrieved.", //
-                                            responseCount, QueryContext.current().getQueryId(), scanRequestId, sparkJobResponse.getSparkInstanceIdentifier(), (System.currentTimeMillis() - startTime),
-                                            sparkJobResponse.getShardBlobsList().size());
+                                            responseCount, QueryContext.current().getQueryId(), scanRequestId, sparkJobResponse.getSparkInstanceIdentifier(), (System.currentTimeMillis() - startTime), sparkJobResponse.getPartitionResponseList().size());
                                     responseCount.increment();
-                                    return sparkJobResponse.getShardBlobsList().iterator();
+                                    return sparkJobResponse.getPartitionResponseList().iterator();
                                 }
                             })),
-                    new Function<SparkJobResponse.ShardBlob, byte[]>() {
+                    new Function<SparkJobResponse.PartitionResponse, byte[]>() {
                         @Override
-                        public byte[] apply(@Nullable SparkJobResponse.ShardBlob shardBlob) {
+                        public byte[] apply(@Nullable SparkJobResponse.PartitionResponse shardBlob) {
 
                             byte[] bytes = shardBlob.getBlob().toByteArray();
-                            logger.info("size of partition: {}", bytes.length);
+                            logger.info("size of partition result: {}, scanned rows: {}, scanned bytes: {},  returned rows {}", //
+                                    bytes.length, shardBlob.getScannedRows(), shardBlob.getScannedBytes(), shardBlob.getReturnedRows());
+
+                            QueryContext.current().addAndGetScannedRows(shardBlob.getScannedRows());
+                            QueryContext.current().addAndGetScannedBytes(shardBlob.getScannedBytes());
+
+                            if (QueryContext.current().getScannedBytes() > queryMaxScanBytes) {
+                                throw new ResourceLimitExceededException("Query scanned " + QueryContext.current().getScannedBytes() + " bytes exceeds threshold " + queryMaxScanBytes);
+                            }
 
                             //only for debug/profile purpose
                             if (BackdoorToggles.getPartitionDumpDir() != null) {

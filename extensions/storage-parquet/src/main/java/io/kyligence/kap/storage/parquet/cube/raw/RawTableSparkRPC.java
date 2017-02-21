@@ -47,7 +47,8 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.IStorageVisitResponseStreamer;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClientParams;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
+import kap.google.protobuf.ByteString;
 
 public class RawTableSparkRPC implements IGTStorage {
 
@@ -88,15 +89,17 @@ public class RawTableSparkRPC implements IGTStorage {
 
         scanRequest.setTimeout(KapConfig.getInstanceFromEnv().getSparkVisitTimeout());
         logger.info("Spark visit timeout is set to " + scanRequest.getTimeout());
-
-        final long startTime = System.currentTimeMillis();
-        SparkDriverClientParams sparkDriverClientParams = new SparkDriverClientParams(KylinConfig.getInstanceFromEnv().getConfigAsString(), //
-                RealizationType.INVERTED_INDEX.toString(), rawTableSegment.getRawTableInstance().getUuid(), rawTableSegment.getUuid(), "RawTable", // 
-                scanRequest.getInfo().getMaxLength(), getRequiredParquetColumns(scanRequest), KapConfig.getInstanceFromEnv().isUsingInvertedIndex(), //
-                QueryContext.current().getQueryId(), KylinConfig.getInstanceFromEnv().getQueryCoprocessorSpillEnabled(), KylinConfig.getInstanceFromEnv().getPartitionMaxScanBytes());
         logger.info("Filter: {}", scanRequest.getFilterPushDown());
 
-        final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest, sparkDriverClientParams);
-        return new StorageResponseGTScatter(info, storageVisitResponseStreamer, scanRequest.getColumns(), 0, scanRequest.getStoragePushDownLimit());
+        SparkJobProtos.SparkJobRequestPayload payload = SparkJobProtos.SparkJobRequestPayload.newBuilder().setGtScanRequest(ByteString.copyFrom(scanRequest.toByteArray())).//
+                setKylinProperties(KylinConfig.getInstanceFromEnv().getConfigAsString()).setRealizationId(rawTableSegment.getRawTableInstance().getUuid()).//
+                setSegmentId(rawTableSegment.getUuid()).setDataFolderName(String.valueOf("RawTable")).//
+                setMaxRecordLength(scanRequest.getInfo().getMaxLength()).addAllParquetColumns(getRequiredParquetColumns(scanRequest)).//
+                setUseII(KapConfig.getInstanceFromEnv().isUsingInvertedIndex()).setRealizationType(RealizationType.INVERTED_INDEX.toString()).//
+                setQueryId(QueryContext.current().getQueryId()).setSpillEnabled(rawTableSegment.getConfig().getQueryCoprocessorSpillEnabled()).setMaxScanBytes(rawTableSegment.getConfig().getPartitionMaxScanBytes()).//
+                build();
+
+        final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest, payload, rawTableSegment.getConfig().getQueryMaxScanBytes());
+        return new StorageResponseGTScatter(info, storageVisitResponseStreamer, scanRequest.getColumns(), scanRequest.getStoragePushDownLimit());
     }
 }

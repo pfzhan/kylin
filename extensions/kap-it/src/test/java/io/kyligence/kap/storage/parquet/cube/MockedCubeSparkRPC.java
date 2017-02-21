@@ -29,6 +29,8 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -53,6 +55,8 @@ import org.apache.kylin.storage.gtrecord.StorageResponseGTScatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkExecutorPreAggFunction;
@@ -60,6 +64,7 @@ import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 import scala.Tuple2;
+import scala.Tuple4;
 
 @SuppressWarnings("unused")
 public class MockedCubeSparkRPC extends CubeSparkRPC {
@@ -109,7 +114,13 @@ public class MockedCubeSparkRPC extends CubeSparkRPC {
             for (int i = 0; i < splits.size(); i++) {
                 ParquetRecordIterator iterator = new ParquetRecordIterator(job, inputFormat, splits.get(i));
                 SparkExecutorPreAggFunction function = new SparkExecutorPreAggFunction("queryonmockedrpc", RealizationType.CUBE.toString(), null, null);
-                Iterable<byte[]> ret = function.call(iterator);
+                Iterable<byte[]> ret = Iterables.transform(function.call(iterator), new Function<Tuple4<byte[], Long, Long, Long>, byte[]>() {
+                    @Nullable
+                    @Override
+                    public byte[] apply(@Nullable Tuple4<byte[], Long, Long, Long> input) {
+                        return input._1();
+                    }
+                });
                 shardRecords.add(ret);
                 parquetRecordIterators.add(iterator);
             }
@@ -124,7 +135,7 @@ public class MockedCubeSparkRPC extends CubeSparkRPC {
                 closeable.close();
             }
 
-            return new StorageResponseGTScatter(info, new DummyPartitionStreamer(mockedShardBlobs.iterator()), scanRequest.getColumns(), 0, scanRequest.getStoragePushDownLimit());
+            return new StorageResponseGTScatter(info, new DummyPartitionStreamer(mockedShardBlobs.iterator()), scanRequest.getColumns(), scanRequest.getStoragePushDownLimit());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

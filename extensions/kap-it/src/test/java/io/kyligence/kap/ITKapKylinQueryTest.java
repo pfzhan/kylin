@@ -33,7 +33,6 @@ import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
-import org.apache.kylin.common.util.HBaseMetadataTestCase;
 import org.apache.kylin.gridtable.StorageSideBehavior;
 import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.query.ITKylinQueryTest;
@@ -46,6 +45,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.raw.RawTableInstance;
@@ -101,15 +101,6 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
 
         //uncomment this to use MockedRawTableTableRPC instead of real spark
         //config.setProperty("kap.storage.columnar.spark-rawtable-gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
-    }
-
-    protected static void clean() {
-        if (cubeConnection != null)
-            closeConnection(cubeConnection);
-        if (h2Connection != null)
-            closeConnection(h2Connection);
-
-        HBaseMetadataTestCase.staticCleanupTestMetadata();
     }
 
     //inherit query tests from ITKylinQueryTest
@@ -177,7 +168,8 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
             try {
                 runSQL(sqlFile, false, false);
             } catch (SQLException e) {
-                if (findRoot(e) instanceof RuntimeException) {
+                String x = Throwables.getStackTraceAsString(e);
+                if (x.contains("KylinTimeoutException")) {
                     //expected
                     continue;
                 }
@@ -285,15 +277,4 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
             super.testSnowflakeQuery();
         }
     }
-
-    @Test
-    public void testLikeQuery() throws Exception {
-        execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_like", null, true);
-    }
-
-    @Test
-    public void testRawQuery() throws Exception {
-        this.execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_raw", null, true);
-    }
-
 }

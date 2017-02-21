@@ -54,7 +54,8 @@ import com.google.common.collect.UnmodifiableIterator;
 
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.IStorageVisitResponseStreamer;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClientParams;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
+import kap.google.protobuf.ByteString;
 
 public class CubeSparkRPC implements IGTStorage {
 
@@ -98,22 +99,26 @@ public class CubeSparkRPC implements IGTStorage {
     public IGTScanner getGTScanner(GTScanRequest scanRequest) throws IOException {
 
         scanRequest.setTimeout(KapConfig.getInstanceFromEnv().getSparkVisitTimeout());
-        logger.info("Spark visit timeout is set to " + scanRequest.getTimeout());
 
-        SparkDriverClientParams sparkDriverClientParams = new SparkDriverClientParams(KylinConfig.getInstanceFromEnv().getConfigAsString(), //
-                RealizationType.CUBE.toString(), cubeSegment.getCubeInstance().getUuid(), cubeSegment.getUuid(), String.valueOf(cuboid.getId()), // 
-                scanRequest.getInfo().getMaxLength(), getRequiredParquetColumns(scanRequest), KapConfig.getInstanceFromEnv().isUsingInvertedIndex(), //
-                QueryContext.current().getQueryId(), KylinConfig.getInstanceFromEnv().getQueryCoprocessorSpillEnabled(), KylinConfig.getInstanceFromEnv().getPartitionMaxScanBytes());
+        logger.info("Spark visit timeout is set to " + scanRequest.getTimeout());
         logger.info("Filter: {}", scanRequest.getFilterPushDown());
+
+        SparkJobProtos.SparkJobRequestPayload payload = SparkJobProtos.SparkJobRequestPayload.newBuilder().setGtScanRequest(ByteString.copyFrom(scanRequest.toByteArray())).//
+                setKylinProperties(KylinConfig.getInstanceFromEnv().getConfigAsString()).setRealizationId(cubeSegment.getCubeInstance().getUuid()).//
+                setSegmentId(cubeSegment.getUuid()).setDataFolderName(String.valueOf(cuboid.getId())).//
+                setMaxRecordLength(scanRequest.getInfo().getMaxLength()).addAllParquetColumns(getRequiredParquetColumns(scanRequest)).//
+                setUseII(KapConfig.getInstanceFromEnv().isUsingInvertedIndex()).setRealizationType(RealizationType.CUBE.toString()).//
+                setQueryId(QueryContext.current().getQueryId()).setSpillEnabled(cubeSegment.getConfig().getQueryCoprocessorSpillEnabled()).setMaxScanBytes(cubeSegment.getConfig().getPartitionMaxScanBytes()).//
+                build();
 
         if (BackdoorToggles.getDumpedPartitionDir() != null) {
             logger.info("debugging: use previously dumped partition from {} instead of real requesting from storage", BackdoorToggles.getDumpedPartitionDir());
-            return new StorageResponseGTScatter(info, new DummyPartitionStreamer(new PartitionIteratorFromDir(BackdoorToggles.getDumpedPartitionDir())), scanRequest.getColumns(), 0, scanRequest.getStoragePushDownLimit());
+            return new StorageResponseGTScatter(info, new DummyPartitionStreamer(new PartitionIteratorFromDir(BackdoorToggles.getDumpedPartitionDir())), scanRequest.getColumns(), scanRequest.getStoragePushDownLimit());
         }
 
         logger.info("The scan {} for segment {} is ready to be submitted to spark client", Integer.toHexString(System.identityHashCode(scanRequest)), cubeSegment);
-        final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest, sparkDriverClientParams);
-        return new StorageResponseGTScatter(info, storageVisitResponseStreamer, scanRequest.getColumns(), 0, scanRequest.getStoragePushDownLimit());
+        final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest, payload, cubeSegment.getConfig().getQueryMaxScanBytes());
+        return new StorageResponseGTScatter(info, storageVisitResponseStreamer, scanRequest.getColumns(), scanRequest.getStoragePushDownLimit());
 
     }
 

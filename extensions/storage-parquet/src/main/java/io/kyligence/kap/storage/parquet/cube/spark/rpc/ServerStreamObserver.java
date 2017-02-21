@@ -31,6 +31,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -45,6 +46,8 @@ import com.google.common.cache.RemovalNotification;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.StorageVisitState.ResultPackStatus;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.StorageVisitState.TransferPack;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 import kap.google.protobuf.ByteString;
 
@@ -56,7 +59,7 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
             new RemovalListener<String, StorageVisitState>() {
                 @Override
                 public void onRemoval(RemovalNotification<String, StorageVisitState> notification) {
-                    SparkAppClientService.logger.info("StorageVisitState with streamIdentifier {} createTime {}(GMT) is removed due to {} ", notification.getKey(), //
+                    ServerStreamObserver.logger.info("StorageVisitState with streamIdentifier {} createTime {}(GMT) is removed due to {} ", notification.getKey(), //
                             DateFormat.formatToTimeStr(checkNotNull(notification.getValue()).getCreateTime()), notification.getCause());
                 }
             }).build();
@@ -65,6 +68,7 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
     private final String streamIdentifier = UUID.randomUUID().toString();// it will stay during the stream session
     private final StreamObserver<SparkJobProtos.SparkJobResponse> responseObserver;
     private final JavaSparkContext sc;
+    private final AtomicBoolean lastMessageSent = new AtomicBoolean(false);
 
     public ServerStreamObserver(final StreamObserver<SparkJobProtos.SparkJobResponse> responseObserver, JavaSparkContext sc) {
         this.responseObserver = responseObserver;
@@ -117,7 +121,6 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
     }
 
     private void doStorageVisit(SparkJobProtos.SparkJobRequestPayload request) {
-
         final StorageVisitState state = storageVisitStates.getIfPresent(streamIdentifier);
         if (state == null) {
             logger.error("StorageVisitState does not exist!");
@@ -125,22 +128,20 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
             return;
         }
 
+        SynchronousQueue<TransferPack> synchronousQueue = null;
         try {
             long startTime = System.currentTimeMillis();
+            synchronousQueue = state.getSynchronousQueue();
+            RDDPartitionResult current = null;
 
             SparkParquetVisit submit = new SparkParquetVisit(sc, request);
-            Iterator<SparkParquetVisit.RDDPartitionData> resultPartitions = submit.executeTask();
+            Iterator<RDDPartitionResult> resultPartitions = submit.executeTask();
 
             logger.info("Time for spark parquet visit execution (may not include result fetch if it's large result) is " + (System.currentTimeMillis() - startTime));
 
-            SynchronousQueue<SparkParquetVisit.RDDPartitionData> synchronousQueue = state.getSynchronousQueue();
-            SparkParquetVisit.RDDPartitionData current = null;
-
-            boolean normalFinish = false;
             while (true) {
                 if (current == null) {
                     if (!resultPartitions.hasNext()) {
-                        normalFinish = true;
                         break;
                     }
                     current = resultPartitions.next();
@@ -152,70 +153,94 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
                     break;
                 }
 
-                if (state.isUserCanceled()) {
-                    logger.info("Skip offering rest RDDPartitionData because client cancelled");
-                    break;
+                TransferPack transferPack = resultPartitions.hasNext() ? TransferPack.createNormalPack(current) : TransferPack.createLastPack(current);
+                boolean success = synchronousQueue.offer(transferPack, 1, TimeUnit.MINUTES);
+                if (success) {
+                    current = null;
                 } else {
                     logger.info("storage visit producer for streamIdentifier {} continue to try...", streamIdentifier);
                 }
 
-                boolean success = synchronousQueue.offer(current, 1, TimeUnit.MINUTES);
-                if (success) {
-                    current = null;
+                if (state.isUserCanceled()) {
+                    logger.info("Skip offering rest RDDPartitionData because client cancelled");
+                    break;
                 }
             }
-
-            if (normalFinish) {
-                state.setNoMore(true);
-                logger.info("Storage visit thread has transferred all partitions");
-            }
-
         } catch (Exception e) {
-            state.setVisitThreadFailCause(e);
+            logger.warn("Error in doStorageVisit, notifying the root cause");
+            if (synchronousQueue != null) {
+                try {
+                    boolean offer = synchronousQueue.offer(TransferPack.createErrorPack(e), 1, TimeUnit.MINUTES);
+                    if (!offer) {
+                        logger.error("Failed to transfer the error pack");
+                    }
+                } catch (InterruptedException e1) {
+                    logger.error("InterruptedException when transfer the error pack", e1);
+                }
+            }
         }
     }
 
     private void getRDDPartitionData(StorageVisitState state) {
         try {
+            if (lastMessageSent.get()) {
+                responseObserver.onCompleted();
+                logger.info("Finish sending last empty message for stream {}", state.incAndGetMessageNum(), streamIdentifier);
+                return;
+            }
+
             //loop check results
-            SparkParquetVisit.RDDPartitionData resultPartition = null;
+            TransferPack transferPack = null;
+            int retry = 0;
+
             while (true) {
-                if (state.isNoMore()) {
-                    responseObserver.onCompleted();
-                    break;
+
+                if (++retry > 60) {
+                    throw new GetRDDPartitionFailureException("Exceed max retry time");
                 }
 
-                if (state.isVisitThreadFailed()) {
-                    throw new GetRDDPartitionFailureException(state.getVisitThreadFailCause());
-                } else {
-                    logger.info("storage visit consumer for streamIdentifier {} continue to try...", streamIdentifier);
+                if (retry > 1) {
+                    logger.info("storage visit consumer for streamIdentifier {} trying {}th time...", streamIdentifier, retry);
                 }
 
                 try {
-                    resultPartition = state.getSynchronousQueue().poll(1, TimeUnit.MINUTES);
+                    transferPack = state.getSynchronousQueue().poll(1, TimeUnit.MINUTES);
                 } catch (InterruptedException e) {
                     //seldom happens
                     throw new GetRDDPartitionFailureException(e);
                 }
 
-                if (resultPartition != null) {
-                    SparkJobProtos.SparkJobResponse.Builder builder = SparkJobProtos.SparkJobResponse.newBuilder().setSparkInstanceIdentifier(sparkInstanceIdentifier).setStreamIdentifier(streamIdentifier)//
-                            .addShardBlobs(SparkJobProtos.SparkJobResponse.ShardBlob.newBuilder().setBlob(ByteString.copyFrom(resultPartition.getData())).build());
-                    responseObserver.onNext(builder.build());
-                    break;
+                if (transferPack != null) {
+                    if (transferPack.status == ResultPackStatus.ERROR) {
+                        throw new GetRDDPartitionFailureException(transferPack.visitThreadFailCause);
+                    } else {
+                        RDDPartitionResult resultPartition = transferPack.rddPartitionResult;
+                        SparkJobProtos.SparkJobResponse.Builder builder = SparkJobProtos.SparkJobResponse.newBuilder().setSparkInstanceIdentifier(sparkInstanceIdentifier).setStreamIdentifier(streamIdentifier).addPartitionResponse(//
+                                SparkJobProtos.SparkJobResponse.PartitionResponse.newBuilder().//
+                                        setBlob(ByteString.copyFrom(resultPartition.getData())).//
+                                        setScannedRows(resultPartition.getScannedRows()).//
+                                        setScannedBytes(resultPartition.getScannedBytes()).//
+                                        setReturnedRows(resultPartition.getReturnedRows()).//
+                                        build());
+                        responseObserver.onNext(builder.build());
+
+                        if (transferPack.status == ResultPackStatus.LAST) {
+                            lastMessageSent.set(true);
+                        }
+                        logger.info("Finish sending back {}th message for stream {}", state.incAndGetMessageNum(), streamIdentifier);
+                        break;
+                    }
                 }
             }
 
-            logger.info("Finish sending back {}th message for stream {}", state.incAndGetMessageNum(), streamIdentifier);
-
         } catch (GetRDDPartitionFailureException e) {
-            logger.error("Meet GetRDDPartitionFailureException", e);
+            logger.error("Details of the GetRDDPartitionFailureException:", e);
             onFail(responseObserver, streamIdentifier, e);
         }
     }
 
     private void onFail(final StreamObserver<SparkJobProtos.SparkJobResponse> responseObserver, String streamIdentifier, Throwable cause) {
-        StatusRuntimeException statusRuntimeException = Status.INTERNAL.withDescription("Storage visit failed due to: " + cause.getMessage()).withCause(cause).asRuntimeException();
+        StatusRuntimeException statusRuntimeException = Status.INTERNAL.withDescription("KyStorage failure due to: " + cause.getMessage()).withCause(cause).asRuntimeException();
         responseObserver.onError(statusRuntimeException);
 
         storageVisitStates.invalidate(streamIdentifier);//clean the state explicitly

@@ -30,6 +30,7 @@ import java.util.Iterator;
 
 import javax.annotation.Nullable;
 
+import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.gridtable.GTInfo;
@@ -39,23 +40,36 @@ import org.apache.kylin.gridtable.IGTScanner;
 
 import com.google.common.collect.Iterators;
 
+/**
+ * this class tracks resource 
+ */
 public abstract class ParquetBytesGTScanner implements IGTScanner {
 
     private Iterator<ByteBuffer> iterator;
     private GTInfo info;
-    private GTRecord temp;
+    private GTRecord gtrecord;
     private ImmutableBitSet columns;
-    private int maxScanCount = Integer.MAX_VALUE;
-    private boolean withDelay;
-    private long counter = 0L;
 
-    public ParquetBytesGTScanner(GTInfo info, Iterator<ByteBuffer> iterator, GTScanRequest scanRequest, boolean withDelay) {
+    private long maxScannedBytes;
+    private long timeout;
+    private long deadline;
+
+    private long scannedRows;
+    private long scannedBytes;
+
+    //for debug
+    private boolean withDelay;
+
+    public ParquetBytesGTScanner(GTInfo info, Iterator<ByteBuffer> iterator, GTScanRequest scanRequest, long maxScannedBytes, long timeout, boolean withDelay) {
         this.iterator = iterator;
         this.info = info;
-        this.temp = new GTRecord(info);
+        this.gtrecord = new GTRecord(info);
         this.columns = getParquetCoveredColumns(scanRequest);
-        this.maxScanCount = scanRequest.getStorageScanRowNumThreshold();
         this.withDelay = withDelay;
+
+        this.maxScannedBytes = maxScannedBytes;
+        this.timeout = timeout;
+        this.deadline = System.currentTimeMillis() + timeout;
     }
 
     @Override
@@ -64,12 +78,15 @@ public abstract class ParquetBytesGTScanner implements IGTScanner {
     }
 
     @Override
-    public long getScannedRowCount() {
-        return counter;
+    public void close() throws IOException {
     }
 
-    @Override
-    public void close() throws IOException {
+    public long getTotalScannedRowCount() {
+        return scannedRows;
+    }
+
+    public long getTotalScannedRowBytes() {
+        return scannedBytes;
     }
 
     @Override
@@ -88,12 +105,18 @@ public abstract class ParquetBytesGTScanner implements IGTScanner {
                     }
                 }
 
-                if (++counter > maxScanCount) {
-                    throw new ResourceLimitExceededException("Exceed scan threshold at " + counter + ", consider increasing kylin.storage.partition.max-scan-bytes");
+                int currentPos = input.position();
+                gtrecord.loadColumns(ParquetBytesGTScanner.this.columns, input);
+                scannedBytes += input.position() - currentPos;
+                if (scannedBytes > maxScannedBytes) {
+                    throw new ResourceLimitExceededException("Partition scanned bytes " + scannedBytes + " exceeds threshold " + maxScannedBytes
+                        + ", consider increase kylin.storage.partition.max-scan-bytes");
+                }
+                if ((++scannedRows % GTScanRequest.terminateCheckInterval == 1) && System.currentTimeMillis() > deadline) {
+                    throw new KylinTimeoutException("coprocessor timeout after " + timeout + " ms");
                 }
 
-                temp.loadColumns(ParquetBytesGTScanner.this.columns, input);
-                return temp;
+                return gtrecord;
             }
         });
     }

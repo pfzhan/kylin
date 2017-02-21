@@ -37,8 +37,6 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import javax.annotation.Nullable;
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -55,8 +53,6 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -85,7 +81,7 @@ public class SparkParquetVisit implements Serializable {
     private transient byte[] binaryFilterSerialized = null;
 
     private final static ExecutorService cachedRDDCleaner = Executors.newSingleThreadExecutor();
-    private final static ConcurrentLinkedDeque<Tuple4<String, Iterator<RDDPartitionData>, JavaRDD<byte[]>, Long>> cachedRDDs = new ConcurrentLinkedDeque<>();//queryid,iterator,rdd,inqueue time
+    private final static ConcurrentLinkedDeque<Tuple4<String, Iterator<RDDPartitionResult>, JavaRDD<RDDPartitionResult>, Long>> cachedRDDs = new ConcurrentLinkedDeque<>();//queryid,iterator,rdd,inqueue time
     private final static Map<String, Map<Long, Set<String>>> cubeMappingCache;
     static {
         //cuboid to file mapping for each cube
@@ -94,17 +90,17 @@ public class SparkParquetVisit implements Serializable {
         cachedRDDCleaner.submit(new Runnable() {
             @Override
             public void run() {
-                List<Tuple4<String, Iterator<RDDPartitionData>, JavaRDD<byte[]>, Long>> pendingList = new ArrayList<>();
+                List<Tuple4<String, Iterator<RDDPartitionResult>, JavaRDD<RDDPartitionResult>, Long>> pendingList = new ArrayList<>();
                 while (true) {
-                    for (Tuple4<String, Iterator<RDDPartitionData>, JavaRDD<byte[]>, Long> t : pendingList) {
+                    for (Tuple4<String, Iterator<RDDPartitionResult>, JavaRDD<RDDPartitionResult>, Long> t : pendingList) {
                         logger.info("unpersist cached RDD {} from query {}", t._3(), t._1());
                         t._3().unpersist();
                     }
                     pendingList.clear();
 
-                    Iterator<Tuple4<String, Iterator<RDDPartitionData>, JavaRDD<byte[]>, Long>> iterator = cachedRDDs.iterator();
+                    Iterator<Tuple4<String, Iterator<RDDPartitionResult>, JavaRDD<RDDPartitionResult>, Long>> iterator = cachedRDDs.iterator();
                     while (iterator.hasNext()) {
-                        Tuple4<String, Iterator<RDDPartitionData>, JavaRDD<byte[]>, Long> next = iterator.next();
+                        Tuple4<String, Iterator<RDDPartitionResult>, JavaRDD<RDDPartitionResult>, Long> next = iterator.next();
                         if (!next._2().hasNext()) {
                             logger.info("add RDD {} from query {} to unpersist list because its iterator is drained", next._3(), next._1());
                             pendingList.add(next);
@@ -197,7 +193,7 @@ public class SparkParquetVisit implements Serializable {
         }
     }
 
-    Iterator<RDDPartitionData> executeTask() throws Exception {
+    Iterator<RDDPartitionResult> executeTask() throws Exception {
         Configuration conf = new Configuration();
         conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS, RoaringBitmaps.writeToString(request.getParquetColumnsList())); // which columns are required
         conf.set(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH, String.valueOf(request.getMaxRecordLength())); // max gt length
@@ -234,50 +230,32 @@ public class SparkParquetVisit implements Serializable {
         }
         JavaPairRDD<Text, Text> seed = sc.union(rdds);
 
-        final Iterator<RDDPartitionData> partitionResults;
-        JavaRDD<byte[]> cached = seed.mapPartitions(new SparkExecutorPreAggFunction(request.getQueryId(), realizationType, scannedRecords, collectedRecords, isSplice, hasPreFiltered(), request.getSpillEnabled(), request.getMaxScanBytes())).cache();
+        final Iterator<RDDPartitionResult> partitionResults;
+        JavaRDD<RDDPartitionResult> cached = seed.mapPartitions(new SparkExecutorPreAggFunction(request.getQueryId(), request.getMaxScanBytes(), realizationType, scannedRecords, collectedRecords, isSplice, hasPreFiltered(), request.getSpillEnabled())).cache();
+
         cached.count();//trigger lazy materialization
         long scanCount = collectedRecords.value();
         long threshold = (long) kylinConfig.getLargeQueryThreshold();
         logger.info("The threshold for large result set is {}, current count is {}", threshold, scanCount);
         if (scanCount > threshold) {
             logger.info("returning large result set");
-            partitionResults = wrap(cached.toLocalIterator());
+            partitionResults = cached.toLocalIterator();
             cachedRDDs.add(new Tuple4<>(request.getQueryId(), partitionResults, cached, System.currentTimeMillis())); //will be cleaned later
         } else {
             logger.info("returning normal result set");
-            partitionResults = wrap(cached.collect().iterator());
+            partitionResults = cached.collect().iterator();
             cached.unpersist();
         }
 
-        logger.info(">>>>>> End of visiting cube data with Spark");
-        logger.info("The result blob count is {}, the scanned count is {} and the collected count is {}", scanCount, scannedRecords.value(), collectedRecords.value());
+        logger.info("==========================================================");
+        logger.info("end of visiting cube data with Spark");
+        logger.info("the scanned row count is {} and the collected row count is {}", scanCount, scannedRecords.value(), collectedRecords.value());
+        logger.info("==========================================================");
         return partitionResults;
-    }
-
-    private Iterator<RDDPartitionData> wrap(Iterator<byte[]> bytesIter) {
-        return Iterators.transform(bytesIter, new Function<byte[], RDDPartitionData>() {
-            @Nullable
-            @Override
-            public RDDPartitionData apply(@Nullable byte[] bytes) {
-                return new RDDPartitionData(bytes);
-            }
-        });
     }
 
     private boolean hasPreFiltered() {
         return binaryFilterSerialized != null;
     }
 
-    public class RDDPartitionData {
-        private final byte[] data;
-
-        public RDDPartitionData(byte[] data) {
-            this.data = data;
-        }
-
-        public byte[] getData() {
-            return data;
-        }
-    }
 }

@@ -21,15 +21,40 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.storage.parquet.cube.spark.rpc;
+package io.kyligence.kap;
 
-public class GetRDDPartitionFailureException extends Exception {
+import java.util.Arrays;
+import java.util.Collection;
 
-    public GetRDDPartitionFailureException(Throwable cause) {
-        super("(wrapped as GetRDDPartitionFailureException) " + cause.getMessage(), cause);
+import org.apache.kylin.query.routing.Candidate;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+@RunWith(Parameterized.class)
+public class ITKapFailfastTest extends ITKapFailfastTestBase {
+
+    @BeforeClass
+    public static void setUp() throws Exception {
+        printInfo("setUp in ITKapFailfastTest");
+        ITKapFailfastTestBase.setupAll();
+
     }
 
-    public GetRDDPartitionFailureException(String message) {
-        super("(wrapped as GetRDDPartitionFailureException) " + message);
+    @AfterClass
+    public static void tearDown() {
+        printInfo("tearDown in ITKapFailfastTest");
+        clean();
+        Candidate.restorePriorities();
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> configs() {
+        return Arrays.asList(new Object[][] { { true }, { false } });
+    }
+
+    public ITKapFailfastTest(boolean testRaw) throws Exception {
+        ITKapFailfastTestBase.configure(testRaw);
     }
 }

@@ -27,15 +27,47 @@ import java.util.concurrent.SynchronousQueue;
 
 public class StorageVisitState {
 
-    private volatile boolean noMore = false;
-    private volatile SynchronousQueue<SparkParquetVisit.RDDPartitionData> synchronousQueue = new SynchronousQueue<>();
+    public enum ResultPackStatus {
+        NORMAL, LAST, ERROR
+    }
+
+    public static class TransferPack {
+        public ResultPackStatus status;
+        public RDDPartitionResult rddPartitionResult;//for ResultPackStatus.NORMAL and ResultPackStatus.LAST
+        public Throwable visitThreadFailCause;//for ResultPackStatus.ERROR
+
+        private TransferPack() {
+        }
+
+        public static TransferPack createNormalPack(RDDPartitionResult result) {
+            TransferPack ret = new TransferPack();
+            ret.status = ResultPackStatus.NORMAL;
+            ret.rddPartitionResult = result;
+            return ret;
+        }
+
+        public static TransferPack createLastPack(RDDPartitionResult result) {
+            TransferPack ret = new TransferPack();
+            ret.status = ResultPackStatus.LAST;
+            ret.rddPartitionResult = result;
+            return ret;
+        }
+
+        public static TransferPack createErrorPack(Throwable throwable) {
+            TransferPack ret = new TransferPack();
+            ret.status = ResultPackStatus.ERROR;
+            ret.visitThreadFailCause = throwable;
+            return ret;
+        }
+    }
+
+    private volatile SynchronousQueue<TransferPack> synchronousQueue = new SynchronousQueue<>();
 
     private volatile long createTime = System.currentTimeMillis();
     private volatile int messageNum = -1;//a complete storage visit may contain multiple streams
     private volatile boolean userCanceled = false;
-    private volatile Throwable visitThreadFailCause;
 
-    public SynchronousQueue<SparkParquetVisit.RDDPartitionData> getSynchronousQueue() {
+    public SynchronousQueue<TransferPack> getSynchronousQueue() {
         return synchronousQueue;
     }
 
@@ -47,18 +79,6 @@ public class StorageVisitState {
         this.userCanceled = userCanceled;
     }
 
-    public boolean isVisitThreadFailed() {
-        return visitThreadFailCause != null;
-    }
-
-    public Throwable getVisitThreadFailCause() {
-        return visitThreadFailCause;
-    }
-
-    public void setVisitThreadFailCause(Throwable visitThreadFailCause) {
-        this.visitThreadFailCause = visitThreadFailCause;
-    }
-
     public long getCreateTime() {
         return createTime;
     }
@@ -67,11 +87,4 @@ public class StorageVisitState {
         return ++this.messageNum;
     }
 
-    public boolean isNoMore() {
-        return noMore;
-    }
-
-    public void setNoMore(boolean noMore) {
-        this.noMore = noMore;
-    }
 }

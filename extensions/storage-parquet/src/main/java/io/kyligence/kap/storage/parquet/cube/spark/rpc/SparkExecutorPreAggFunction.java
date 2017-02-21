@@ -30,7 +30,6 @@ import java.util.Iterator;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ResourceTrackingGTScanner;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.util.ByteArray;
@@ -48,6 +47,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 
 import io.kyligence.kap.common.obf.IKeepClassMembers;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner4Cube;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner4Raw;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableFileInputFormat;
@@ -55,23 +55,25 @@ import io.kyligence.kap.storage.parquet.format.ParquetSpliceTarballFileInputForm
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 import scala.Tuple2;
 
-public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFunction<Iterator<Tuple2<Text, Text>>, byte[]> {
+public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFunction<Iterator<Tuple2<Text, Text>>, RDDPartitionResult> {
     private static final Logger logger = LoggerFactory.getLogger(SparkExecutorPreAggFunction.class);
 
     private final Accumulator<Long> scannedRecords;
     private final Accumulator<Long> collectedRecords;
     private final String realizationType;
     private final String queryId;
+    private final long maxScannedBytes;
     private final boolean isSplice;
     private final boolean hasPreFiltered;
     private final boolean spillEnabled;
-    private final long maxScanBytes;
 
     public SparkExecutorPreAggFunction(String queryId, String realizationType, Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords) {
-        this(queryId, realizationType, scannedRecords, collectedRecords, false, false, true, Long.MAX_VALUE);
+        this(queryId, Long.MAX_VALUE, realizationType, scannedRecords, collectedRecords, false, false, true);
+
     }
 
-    public SparkExecutorPreAggFunction(String queryId, String realizationType, Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords, boolean isSplice, boolean hasPreFiltered, boolean spillEnabled, long maxScanBytes) {
+    //TODO: too long parameter
+    public SparkExecutorPreAggFunction(String queryId, long maxScannedBytes, String realizationType, Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords, boolean isSplice, boolean hasPreFiltered, boolean spillEnabled) {
         this.queryId = queryId;
         this.realizationType = realizationType;
         this.scannedRecords = scannedRecords;
@@ -79,11 +81,11 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
         this.isSplice = isSplice;
         this.hasPreFiltered = hasPreFiltered;
         this.spillEnabled = spillEnabled;
-        this.maxScanBytes = maxScanBytes;
+        this.maxScannedBytes = maxScannedBytes;
     }
 
     @Override
-    public Iterable<byte[]> call(Iterator<Tuple2<Text, Text>> tuple2Iterator) throws Exception {
+    public Iterable<RDDPartitionResult> call(Iterator<Tuple2<Text, Text>> tuple2Iterator) throws Exception {
 
         logger.info("Working for query with id {}", queryId);
 
@@ -98,7 +100,7 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
         GTScanRequest gtScanRequest = null;
         StorageSideBehavior behavior = null;
 
-        IGTScanner scanner;
+        ParquetBytesGTScanner scanner;
         if (RealizationType.CUBE.toString().equals(realizationType)) {
             if (isSplice) {
                 gtScanRequest = ParquetSpliceTarballFileInputFormat.ParquetTarballFileReader.gtScanRequestThreadLocal.get();
@@ -106,35 +108,35 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
                 gtScanRequest = ParquetTarballFileInputFormat.ParquetTarballFileReader.gtScanRequestThreadLocal.get();
             }
             behavior = StorageSideBehavior.valueOf(gtScanRequest.getStorageBehavior());
-            scanner = new ParquetBytesGTScanner4Cube(gtScanRequest.getInfo(), iterator, gtScanRequest, behavior.delayToggledOn());//in
+            scanner = new ParquetBytesGTScanner4Cube(gtScanRequest.getInfo(), iterator, gtScanRequest, maxScannedBytes, behavior.delayToggledOn());//in
         } else if (RealizationType.INVERTED_INDEX.toString().equals(realizationType)) {
             gtScanRequest = ParquetRawTableFileInputFormat.ParquetRawTableFileReader.gtScanRequestThreadLocal.get();
             behavior = StorageSideBehavior.valueOf(gtScanRequest.getStorageBehavior());
-            scanner = new ParquetBytesGTScanner4Raw(gtScanRequest.getInfo(), iterator, gtScanRequest, behavior.delayToggledOn());//in
+            scanner = new ParquetBytesGTScanner4Raw(gtScanRequest.getInfo(), iterator, gtScanRequest, maxScannedBytes, behavior.delayToggledOn());//in
         } else {
             throw new IllegalArgumentException("Unsupported realization type " + realizationType);
         }
 
         logger.info("Start latency is: {}", System.currentTimeMillis() - gtScanRequest.getStartTime());
 
-        IGTScanner preAggred = gtScanRequest.decorateScanner(new ResourceTrackingGTScanner(scanner, gtScanRequest.getTimeout()), behavior.filterToggledOn(), behavior.aggrToggledOn(), hasPreFiltered, spillEnabled);
+        IGTScanner preAggred = gtScanRequest.decorateScanner(scanner, behavior.filterToggledOn(), behavior.aggrToggledOn(), hasPreFiltered, spillEnabled);
 
         SparkExecutorGTRecordSerializer function = new SparkExecutorGTRecordSerializer(gtScanRequest, gtScanRequest.getColumns());
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Iterator<GTRecord> gtIterator = preAggred.iterator();
-        long counter = 0;
+        long resultCounter = 0;
         while (gtIterator.hasNext()) {
 
             GTRecord row = gtIterator.next();
             ByteArray byteArray = function.apply(row);
             baos.write(byteArray.array(), 0, byteArray.length());
 
-            counter++;
+            resultCounter++;
 
             if (!gtScanRequest.isDoingStorageAggregation()) {
                 //if it's doing storage aggr, then should rely on GTAggregateScanner's limit check
-                if (counter >= gtScanRequest.getStoragePushDownLimit()) {
+                if (resultCounter >= gtScanRequest.getStoragePushDownLimit()) {
                     //read one more record than limit
                     logger.info("The finalScanner aborted because storagePushDownLimit is satisfied");
                     break;
@@ -142,15 +144,13 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
             }
         }
 
-        logger.info("Current task scanned {} raw records", preAggred.getScannedRowCount());
-        logger.info("Current task contributing {} results", counter);
+        logger.info("Current task scanned {} raw rows and {} raw bytes, contributing {} result rows", scanner.getTotalScannedRowCount(), scanner.getTotalScannedRowBytes(), resultCounter);
 
         if (scannedRecords != null)
-            scannedRecords.add(preAggred.getScannedRowCount());
+            scannedRecords.add(scanner.getTotalScannedRowCount());
         if (collectedRecords != null)
-            collectedRecords.add(counter);
+            collectedRecords.add(resultCounter);
 
-        byte[] ret = baos.toByteArray();
-        return Collections.singleton(ret);
+        return Collections.singleton(new RDDPartitionResult(baos.toByteArray(), scanner.getTotalScannedRowCount(), scanner.getTotalScannedRowBytes(), resultCounter));
     }
 }

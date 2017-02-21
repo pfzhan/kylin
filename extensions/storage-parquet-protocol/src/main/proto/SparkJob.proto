@@ -50,12 +50,15 @@ message SparkJobRequestPayload {
 }
 
 message SparkJobResponse {
-    repeated ShardBlob shardBlobs = 1;
+    repeated PartitionResponse partitionResponse = 1;
     required string sparkInstanceIdentifier = 2;
     required string streamIdentifier = 3;
 
-    message ShardBlob {
+    message PartitionResponse {
         required bytes blob = 1;
+        required int64 scannedRows = 2;
+        required int64 scannedBytes = 3;
+        required int64 returnedRows = 4;
     }
 }
 

@@ -23,13 +23,28 @@
  */
 package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
-public class GetRDDPartitionFailureException extends Exception {
+import scala.Tuple4;
 
-    public GetRDDPartitionFailureException(Throwable cause) {
-        super("(wrapped as GetRDDPartitionFailureException) " + cause.getMessage(), cause);
+//data,scannedrows,scannedbytes,returnedrows
+public class RDDPartitionResult extends Tuple4<byte[], Long, Long, Long> {
+
+    public RDDPartitionResult(byte[] data, long scannedRows, long scannedBytes, long returnedRows) {
+        super(data, scannedRows, scannedBytes, returnedRows);
     }
 
-    public GetRDDPartitionFailureException(String message) {
-        super("(wrapped as GetRDDPartitionFailureException) " + message);
+    public byte[] getData() {
+        return _1();
+    }
+
+    public long getScannedRows() {
+        return _2();
+    }
+
+    public long getScannedBytes() {
+        return _3();
+    }
+
+    public long getReturnedRows() {
+        return _4();
     }
 }
