@@ -50,8 +50,8 @@ public class CollectKafkaStats {
     private static final Logger logger = LoggerFactory.getLogger(CollectKafkaStats.class);
     final static String uuidPattern = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
     final static String ipPattern = "\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}";
-    final static long FETCH_MSG_TIMEOUT = 20000;
-    final static int LIST_TOPIC_TIMEOUT = 12000;
+    final static long FETCH_MSG_TIMEOUT = 60000;
+    final static int LIST_TOPIC_TIMEOUT = 60000;
     final static int MSG_AMOUNT = 10;
 
     //List topics
