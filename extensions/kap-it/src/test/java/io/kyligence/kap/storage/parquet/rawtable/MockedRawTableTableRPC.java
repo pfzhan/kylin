@@ -60,13 +60,13 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.storage.parquet.cube.raw.RawTableSparkRPC;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.RDDPartitionResult;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkExecutorPreAggFunction;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 import scala.Tuple2;
-import scala.Tuple4;
 
 @SuppressWarnings("unused")
 public class MockedRawTableTableRPC extends RawTableSparkRPC {
@@ -113,12 +113,12 @@ public class MockedRawTableTableRPC extends RawTableSparkRPC {
 
             for (int i = 0; i < splits.size(); i++) {
                 ParquetRecordIterator iterator = new ParquetRecordIterator(job, inputFormat, splits.get(i));
-                SparkExecutorPreAggFunction function = new SparkExecutorPreAggFunction("queryonmockedrpc", RealizationType.INVERTED_INDEX.toString(), null, null);
-                Iterable<byte[]> ret = Iterables.transform(function.call(iterator), new Function<Tuple4<byte[], Long, Long, Long>, byte[]>() {
+                SparkExecutorPreAggFunction function = new SparkExecutorPreAggFunction(null, null, RealizationType.INVERTED_INDEX.toString(), "queryonmockedrpc");
+                Iterable<byte[]> ret = Iterables.transform(function.call(iterator), new Function<RDDPartitionResult, byte[]>() {
                     @Nullable
                     @Override
-                    public byte[] apply(@Nullable Tuple4<byte[], Long, Long, Long> input) {
-                        return input._1();
+                    public byte[] apply(@Nullable RDDPartitionResult input) {
+                        return input.getData();
                     }
                 });
                 shardRecords.add(ret);

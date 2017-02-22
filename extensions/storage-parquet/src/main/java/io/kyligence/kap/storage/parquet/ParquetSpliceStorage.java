@@ -29,6 +29,7 @@ import org.apache.kylin.engine.mr.IMROutput2;
 import io.kyligence.kap.storage.parquet.steps.ParquetSpliceMROutput2;
 
 public class ParquetSpliceStorage extends ParquetStorage {
+    
     @SuppressWarnings("unchecked")
     @Override
     public <I> I adaptToBuildEngine(Class<I> engineInterface) {

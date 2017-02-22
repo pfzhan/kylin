@@ -221,6 +221,9 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
                                         setScannedRows(resultPartition.getScannedRows()).//
                                         setScannedBytes(resultPartition.getScannedBytes()).//
                                         setReturnedRows(resultPartition.getReturnedRows()).//
+                                        setHostname(resultPartition.getHostname()).//
+                                        setTotalDuration(resultPartition.getTotalDuration()).//
+                                        setStartLatency(resultPartition.getStartLatency()).//
                                         build());
                         responseObserver.onNext(builder.build());
 

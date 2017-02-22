@@ -96,7 +96,8 @@ public class RawTableSparkRPC implements IGTStorage {
                 setSegmentId(rawTableSegment.getUuid()).setDataFolderName(String.valueOf("RawTable")).//
                 setMaxRecordLength(scanRequest.getInfo().getMaxLength()).addAllParquetColumns(getRequiredParquetColumns(scanRequest)).//
                 setUseII(KapConfig.getInstanceFromEnv().isUsingInvertedIndex()).setRealizationType(RealizationType.INVERTED_INDEX.toString()).//
-                setQueryId(QueryContext.current().getQueryId()).setSpillEnabled(rawTableSegment.getConfig().getQueryCoprocessorSpillEnabled()).setMaxScanBytes(rawTableSegment.getConfig().getPartitionMaxScanBytes()).//
+                setQueryId(QueryContext.current().getQueryId()).setSpillEnabled(rawTableSegment.getConfig().getQueryCoprocessorSpillEnabled()).//
+                setMaxScanBytes(rawTableSegment.getConfig().getPartitionMaxScanBytes()).setStartTime(scanRequest.getStartTime()).setStorageType(-1).//
                 build();
 
         final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest, payload, rawTableSegment.getConfig().getQueryMaxScanBytes());

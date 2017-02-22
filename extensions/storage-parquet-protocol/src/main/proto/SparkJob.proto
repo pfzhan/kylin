@@ -45,8 +45,10 @@ message SparkJobRequestPayload {
     repeated int32 parquetColumns = 8;
     required bool useII = 9;
     required string queryId = 10;
-    optional bool spillEnabled = 11 [default = true];
-    optional int64 maxScanBytes = 12; // 0 means no limit
+    required bool spillEnabled = 11 [default = true];
+    required int64 maxScanBytes = 12; // must be positive
+    required int64 startTime = 13;
+    required int32 storageType = 14; // -1 if realizationType is not cube
 }
 
 message SparkJobResponse {
@@ -59,6 +61,9 @@ message SparkJobResponse {
         required int64 scannedRows = 2;
         required int64 scannedBytes = 3;
         required int64 returnedRows = 4;
+        required string hostname = 5;
+        required int64 startLatency = 6;
+        required int64 totalDuration = 7;
     }
 }
 

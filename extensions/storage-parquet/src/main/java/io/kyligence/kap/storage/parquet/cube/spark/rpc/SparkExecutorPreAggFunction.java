@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Iterator;
@@ -66,14 +67,15 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
     private final boolean isSplice;
     private final boolean hasPreFiltered;
     private final boolean spillEnabled;
+    private final long startTime;
 
-    public SparkExecutorPreAggFunction(String queryId, String realizationType, Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords) {
-        this(queryId, Long.MAX_VALUE, realizationType, scannedRecords, collectedRecords, false, false, true);
-
+    public SparkExecutorPreAggFunction(Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords, String realizationType, String queryId) {
+        this(scannedRecords, collectedRecords, realizationType, false, false, queryId, true, Long.MAX_VALUE, System.currentTimeMillis());
     }
 
     //TODO: too long parameter
-    public SparkExecutorPreAggFunction(String queryId, long maxScannedBytes, String realizationType, Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords, boolean isSplice, boolean hasPreFiltered, boolean spillEnabled) {
+    public SparkExecutorPreAggFunction(Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords, String realizationType, //
+            boolean isSplice, boolean hasPreFiltered, String queryId, boolean spillEnabled, long maxScannedBytes, long startTime) {
         this.queryId = queryId;
         this.realizationType = realizationType;
         this.scannedRecords = scannedRecords;
@@ -82,11 +84,13 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
         this.hasPreFiltered = hasPreFiltered;
         this.spillEnabled = spillEnabled;
         this.maxScannedBytes = maxScannedBytes;
+        this.startTime = startTime;
     }
 
     @Override
     public Iterable<RDDPartitionResult> call(Iterator<Tuple2<Text, Text>> tuple2Iterator) throws Exception {
 
+        long localStartTime = System.currentTimeMillis();
         logger.info("Working for query with id {}", queryId);
 
         Iterator<ByteBuffer> iterator = Iterators.transform(tuple2Iterator, new Function<Tuple2<Text, Text>, ByteBuffer>() {
@@ -151,6 +155,7 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
         if (collectedRecords != null)
             collectedRecords.add(resultCounter);
 
-        return Collections.singleton(new RDDPartitionResult(baos.toByteArray(), scanner.getTotalScannedRowCount(), scanner.getTotalScannedRowBytes(), resultCounter));
+        return Collections.singleton(new RDDPartitionResult(baos.toByteArray(), scanner.getTotalScannedRowCount(), scanner.getTotalScannedRowBytes(), resultCounter, //
+                InetAddress.getLocalHost().getHostName(), localStartTime - startTime, System.currentTimeMillis() - localStartTime));
     }
 }

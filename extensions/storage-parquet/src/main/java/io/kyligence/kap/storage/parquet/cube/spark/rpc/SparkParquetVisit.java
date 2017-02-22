@@ -36,7 +36,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.metadata.model.IKapStorageAware;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -53,7 +55,10 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Maps;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
@@ -77,15 +82,22 @@ public class SparkParquetVisit implements Serializable {
     private final transient boolean isSplice;
     private final transient Set<String> parquetPathCollection;
     private final transient String realizationType;
+    private final transient int storageType;
     private final transient String dataFolderName;
     private transient byte[] binaryFilterSerialized = null;
 
     private final static ExecutorService cachedRDDCleaner = Executors.newSingleThreadExecutor();
     private final static ConcurrentLinkedDeque<Tuple4<String, Iterator<RDDPartitionResult>, JavaRDD<RDDPartitionResult>, Long>> cachedRDDs = new ConcurrentLinkedDeque<>();//queryid,iterator,rdd,inqueue time
-    private final static Map<String, Map<Long, Set<String>>> cubeMappingCache;
+
+    private final static Cache<String, Map<Long, Set<String>>> cubeMappingCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(1, TimeUnit.HOURS).removalListener(//
+            new RemovalListener<String, Map<Long, Set<String>>>() {
+                @Override
+                public void onRemoval(RemovalNotification<String, Map<Long, Set<String>>> notification) {
+                    SparkParquetVisit.logger.info("cubeMappingCache entry with key {} is removed due to {} ", notification.getKey(), notification.getCause());
+                }
+            }).build();
+
     static {
-        //cuboid to file mapping for each cube
-        cubeMappingCache = Maps.newConcurrentMap();
         //avoid cached RDD to occupy executor heap for too long
         cachedRDDCleaner.submit(new Runnable() {
             @Override
@@ -130,14 +142,14 @@ public class SparkParquetVisit implements Serializable {
             this.sc = sc;
             this.request = request;
             this.realizationType = request.getRealizationType();
+            this.storageType = request.getStorageType();
             this.dataFolderName = request.getDataFolderName();
             KylinConfig.setKylinConfigInEnvIfMissing(request.getKylinProperties());
             this.kylinConfig = KylinConfig.getInstanceFromEnv();
 
             if (RealizationType.CUBE.toString().equals(this.realizationType)) {
-                Map<Long, Set<String>> cubeMapping = readCubeMappingInfo();
 
-                if (cubeMapping == null) {
+                if (IKapStorageAware.ID_SPLICE_PARQUET != this.storageType) {
                     // Engine 100
                     this.isSplice = false;
                     this.parquetPathCollection = Sets.newHashSet();
@@ -146,6 +158,7 @@ public class SparkParquetVisit implements Serializable {
                             append(request.getSegmentId()).append("/").//
                             append(request.getDataFolderName()).//
                             append("/*.parquettar").toString());
+
                     // try to convert binary filter
                     GTScanRequest scanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(request.getGtScanRequest().toByteArray()));
                     if (scanRequest != null && scanRequest.getFilterPushDown() != null && !BinaryFilterConverter.containsSpecialFilter(scanRequest.getFilterPushDown())) {
@@ -155,6 +168,7 @@ public class SparkParquetVisit implements Serializable {
                 } else {
                     // Engine 99
                     this.isSplice = true;
+                    Map<Long, Set<String>> cubeMapping = readCubeMappingInfo();
                     this.parquetPathCollection = cubeMapping.get(Long.parseLong(request.getDataFolderName()));
                 }
             } else {
@@ -176,8 +190,10 @@ public class SparkParquetVisit implements Serializable {
                 .append(request.getRealizationId()).append("/")//
                 .append(request.getSegmentId()).append("/")//
                 .append(ParquetCubeInfoCollectionStep.CUBE_INFO_NAME).toString();
-        if (cubeMappingCache.containsKey(cubeInfoPath)) {
-            return cubeMappingCache.get(cubeInfoPath);
+
+        Map<Long, Set<String>> ifPresent = cubeMappingCache.getIfPresent(cubeInfoPath);
+        if (ifPresent != null) {
+            return ifPresent;
         }
 
         FileSystem fs = HadoopUtil.getFileSystem(cubeInfoPath);
@@ -189,7 +205,7 @@ public class SparkParquetVisit implements Serializable {
             }
             return map;
         } else {
-            return null;
+            throw new RuntimeException("Cannot find CubeMappingInfo");
         }
     }
 
@@ -231,7 +247,8 @@ public class SparkParquetVisit implements Serializable {
         JavaPairRDD<Text, Text> seed = sc.union(rdds);
 
         final Iterator<RDDPartitionResult> partitionResults;
-        JavaRDD<RDDPartitionResult> cached = seed.mapPartitions(new SparkExecutorPreAggFunction(request.getQueryId(), request.getMaxScanBytes(), realizationType, scannedRecords, collectedRecords, isSplice, hasPreFiltered(), request.getSpillEnabled())).cache();
+        JavaRDD<RDDPartitionResult> cached = seed.mapPartitions(new SparkExecutorPreAggFunction(scannedRecords, collectedRecords, realizationType, isSplice, hasPreFiltered(), //
+                request.getQueryId(), request.getSpillEnabled(), request.getMaxScanBytes(), request.getStartTime())).cache();
 
         cached.count();//trigger lazy materialization
         long scanCount = collectedRecords.value();

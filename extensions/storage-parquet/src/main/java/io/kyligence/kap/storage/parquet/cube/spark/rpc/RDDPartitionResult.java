@@ -23,28 +23,54 @@
  */
 package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
-import scala.Tuple4;
+import scala.Serializable;
 
-//data,scannedrows,scannedbytes,returnedrows
-public class RDDPartitionResult extends Tuple4<byte[], Long, Long, Long> {
+public class RDDPartitionResult implements Serializable {
 
-    public RDDPartitionResult(byte[] data, long scannedRows, long scannedBytes, long returnedRows) {
-        super(data, scannedRows, scannedBytes, returnedRows);
+    private byte[] data;
+    private long scannedRows;
+    private long scannedBytes;
+    private long returnedRows;
+    private String hostname;
+    private long startLatency;
+    private long totalDuration;
+
+    public RDDPartitionResult(byte[] data, long scannedRows, long scannedBytes, long returnedRows,
+        String hostname, long startLatency, long totalDuration) {
+        this.data = data;
+        this.scannedRows = scannedRows;
+        this.scannedBytes = scannedBytes;
+        this.returnedRows = returnedRows;
+        this.hostname = hostname;
+        this.startLatency = startLatency;
+        this.totalDuration = totalDuration;
     }
 
     public byte[] getData() {
-        return _1();
+        return data;
     }
 
     public long getScannedRows() {
-        return _2();
+        return scannedRows;
     }
 
     public long getScannedBytes() {
-        return _3();
+        return scannedBytes;
     }
 
     public long getReturnedRows() {
-        return _4();
+        return returnedRows;
+    }
+
+    public String getHostname() {
+        return hostname;
+    }
+
+    public long getStartLatency() {
+        return startLatency;
+    }
+
+    public long getTotalDuration() {
+        return totalDuration;
     }
 }

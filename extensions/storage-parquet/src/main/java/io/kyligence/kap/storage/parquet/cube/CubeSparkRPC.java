@@ -108,7 +108,8 @@ public class CubeSparkRPC implements IGTStorage {
                 setSegmentId(cubeSegment.getUuid()).setDataFolderName(String.valueOf(cuboid.getId())).//
                 setMaxRecordLength(scanRequest.getInfo().getMaxLength()).addAllParquetColumns(getRequiredParquetColumns(scanRequest)).//
                 setUseII(KapConfig.getInstanceFromEnv().isUsingInvertedIndex()).setRealizationType(RealizationType.CUBE.toString()).//
-                setQueryId(QueryContext.current().getQueryId()).setSpillEnabled(cubeSegment.getConfig().getQueryCoprocessorSpillEnabled()).setMaxScanBytes(cubeSegment.getConfig().getPartitionMaxScanBytes()).//
+                setQueryId(QueryContext.current().getQueryId()).setSpillEnabled(cubeSegment.getConfig().getQueryCoprocessorSpillEnabled()).//
+                setMaxScanBytes(cubeSegment.getConfig().getPartitionMaxScanBytes()).setStartTime(scanRequest.getStartTime()).setStorageType(cubeSegment.getStorageType()).//
                 build();
 
         if (BackdoorToggles.getDumpedPartitionDir() != null) {

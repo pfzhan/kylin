@@ -240,7 +240,7 @@ public class SparkDriverClient {
                             Iterators.transform(this, new Function<SparkJobResponse, Iterator<SparkJobResponse.PartitionResponse>>() {
                                 @Override
                                 public Iterator<SparkJobResponse.PartitionResponse> apply(@Nullable SparkJobResponse sparkJobResponse) {
-                                    logger.info("Time for the {}th gRPC response message of query {} scan-request {} from spark instance {} visit is {}, {} shard blobs retrieved.", //
+                                    logger.info("{}th gRPC response message of query {} scan-request {} from spark instance {} is returned, wall time duration is: {}, partition count: {}", //
                                             responseCount, QueryContext.current().getQueryId(), scanRequestId, sparkJobResponse.getSparkInstanceIdentifier(), (System.currentTimeMillis() - startTime), sparkJobResponse.getPartitionResponseList().size());
                                     responseCount.increment();
                                     return sparkJobResponse.getPartitionResponseList().iterator();
@@ -248,14 +248,14 @@ public class SparkDriverClient {
                             })),
                     new Function<SparkJobResponse.PartitionResponse, byte[]>() {
                         @Override
-                        public byte[] apply(@Nullable SparkJobResponse.PartitionResponse shardBlob) {
+                        public byte[] apply(@Nullable SparkJobResponse.PartitionResponse partitionResponse) {
 
-                            byte[] bytes = shardBlob.getBlob().toByteArray();
-                            logger.info("size of partition result: {}, scanned rows: {}, scanned bytes: {},  returned rows {}", //
-                                    bytes.length, shardBlob.getScannedRows(), shardBlob.getScannedBytes(), shardBlob.getReturnedRows());
+                            byte[] bytes = partitionResponse.getBlob().toByteArray();
+                            logger.info("[Partition Response Metrics] result bytes: {}, scanned rows: {}, scanned bytes: {},  returned rows: {} , start latency: {}, partition duration: {}, partition calculated on {}", //
+                                    bytes.length, partitionResponse.getScannedRows(), partitionResponse.getScannedBytes(), partitionResponse.getReturnedRows(), partitionResponse.getStartLatency(), partitionResponse.getTotalDuration(), partitionResponse.getHostname());
 
-                            QueryContext.current().addAndGetScannedRows(shardBlob.getScannedRows());
-                            QueryContext.current().addAndGetScannedBytes(shardBlob.getScannedBytes());
+                            QueryContext.current().addAndGetScannedRows(partitionResponse.getScannedRows());
+                            QueryContext.current().addAndGetScannedBytes(partitionResponse.getScannedBytes());
 
                             if (QueryContext.current().getScannedBytes() > queryMaxScanBytes) {
                                 throw new ResourceLimitExceededException("Query scanned " + QueryContext.current().getScannedBytes() + " bytes exceeds threshold " + queryMaxScanBytes);
