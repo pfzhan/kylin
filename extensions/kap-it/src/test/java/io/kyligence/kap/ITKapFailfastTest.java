@@ -31,20 +31,24 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RunWith(Parameterized.class)
 public class ITKapFailfastTest extends ITKapFailfastTestBase {
 
+    private static final Logger logger = LoggerFactory.getLogger(ITKapFailfastTest.class);
+
     @BeforeClass
     public static void setUp() throws Exception {
-        printInfo("setUp in ITKapFailfastTest");
+        logger.info("setUp in ITKapFailfastTest");
         ITKapFailfastTestBase.setupAll();
 
     }
 
     @AfterClass
     public static void tearDown() {
-        printInfo("tearDown in ITKapFailfastTest");
+        logger.info("tearDown in ITKapFailfastTest");
         clean();
         Candidate.restorePriorities();
     }

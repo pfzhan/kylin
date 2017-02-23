@@ -33,21 +33,25 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  */
 @RunWith(Parameterized.class)
 public class ITKapCombinationTest extends ITKapKylinQueryTest {
 
+    private static final Logger logger = LoggerFactory.getLogger(ITKapCombinationTest.class);
+
     @BeforeClass
     public static void setUp() throws SQLException {
 
-        printInfo("setUp in ITCombinationTest");
+        logger.info("setUp in ITCombinationTest");
     }
 
     @AfterClass
     public static void tearDown() {
-        printInfo("tearDown in ITCombinationTest");
+        logger.info("tearDown in ITCombinationTest");
         clean();
         Candidate.restorePriorities();
     }
@@ -65,7 +69,7 @@ public class ITKapCombinationTest extends ITKapKylinQueryTest {
     public ITKapCombinationTest(String joinType, Boolean rawTableFirst) throws Exception {
 
         ITKapKylinQueryTest.configure(joinType, rawTableFirst);
-        
+
         ITKapKylinQueryTest.clean();
 
         ITKapKylinQueryTest.setupAll();

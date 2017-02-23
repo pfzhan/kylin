@@ -43,12 +43,16 @@ import org.dbunit.dataset.ITable;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.rest.service.MassInService;
 
 public class ITKapMassinQueryTest extends ITMassInQueryTest {
+    private static final Logger logger = LoggerFactory.getLogger(ITKapMassinQueryTest.class);
+
     private static String filterName1;
     private static String filterName2;
     private static List<List<String>> testData1;
@@ -99,7 +103,7 @@ public class ITKapMassinQueryTest extends ITMassInQueryTest {
     }
 
     protected void compare(String queryFolder, String[] exclusiveQuerys, boolean needSort) throws Exception {
-        printInfo("---------- test folder: " + queryFolder);
+        logger.info("---------- test folder: " + queryFolder);
         Set<String> exclusiveSet = buildExclusiveSet(exclusiveQuerys);
 
         List<File> sqlFiles = getFilesFromFolder(new File(queryFolder), ".sql");
@@ -113,20 +117,20 @@ public class ITKapMassinQueryTest extends ITMassInQueryTest {
             // execute Kylin
             sqls[0] = sqls[0].replace("%filter1%", filterName1);
             sqls[0] = sqls[0].replace("%filter2%", filterName2);
-            printInfo("Query Result from Kylin - " + queryName + "  (" + queryFolder + ")");
+            logger.info("Query Result from Kylin - " + queryName + "  (" + queryFolder + ")");
             IDatabaseConnection kylinConn = new DatabaseConnection(cubeConnection);
             ITable kylinTable = executeQuery(kylinConn, queryName, sqls[0], needSort);
 
             // execute H2
-            printInfo("Query Result from H2 - " + queryName);
-            printInfo("Query for H2 - " + sqls[1]);
+            logger.info("Query Result from H2 - " + queryName);
+            logger.info("Query for H2 - " + sqls[1]);
             ITable h2Table = executeQuery(newH2Connection(), queryName, sqls[1], needSort);
 
             try {
                 // compare the result
                 assertTableEquals(h2Table, kylinTable);
             } catch (Throwable t) {
-                printInfo("execAndCompQuery failed on: " + sqlFile.getAbsolutePath());
+                logger.error("execAndCompQuery failed on: " + sqlFile.getAbsolutePath());
                 throw t;
             }
         }

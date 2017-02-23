@@ -36,22 +36,26 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ITKapLimitEnabledTest extends KylinTestBase {
+
+    private static final Logger logger = LoggerFactory.getLogger(ITKapLimitEnabledTest.class);
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
     @BeforeClass
     public static void setUp() throws Exception {
-        printInfo("setUp in ITLimitEnabledTest");
+        logger.info("setUp in ITLimitEnabledTest");
         joinType = "inner";
         setupAll();
     }
 
     @AfterClass
     public static void tearDown() throws Exception {
-        printInfo("tearDown in ITLimitEnabledTest");
+        logger.info("tearDown in ITLimitEnabledTest");
         clean();
     }
 

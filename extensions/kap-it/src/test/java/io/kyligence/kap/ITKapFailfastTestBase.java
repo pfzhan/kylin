@@ -39,12 +39,16 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 
 @Ignore("Contained by ITKapFailfastTest")
 public class ITKapFailfastTestBase extends KylinTestBase {
+
+    private static final Logger logger = LoggerFactory.getLogger(ITKapFailfastTestBase.class);
 
     //inherit query tests from ITKylinQueryTest
     protected String getQueryFolderPrefix() {
@@ -56,7 +60,7 @@ public class ITKapFailfastTestBase extends KylinTestBase {
 
     protected static void configure(boolean testRaw) {
         if (testRaw) {
-            printInfo("configure in ITKapFailfastTestBase");
+            logger.info("configure in ITKapFailfastTestBase");
 
             Map<RealizationType, Integer> priorities = Maps.newHashMap();
             priorities.put(RealizationType.HYBRID, 1);
@@ -65,7 +69,7 @@ public class ITKapFailfastTestBase extends KylinTestBase {
             Candidate.setPriorities(priorities);
 
         } else {
-            printInfo("setUp in ITKapKylinQueryTest");
+            logger.info("setUp in ITKapKylinQueryTest");
 
             Map<RealizationType, Integer> priorities = Maps.newHashMap();
             priorities.put(RealizationType.HYBRID, 0);
@@ -76,12 +80,12 @@ public class ITKapFailfastTestBase extends KylinTestBase {
 
         joinType = "left";
 
-        printInfo("Into combination testRaw=" + testRaw);
+        logger.info("Into combination testRaw=" + testRaw);
     }
 
     @BeforeClass
     public static void setUp() throws Exception {
-        printInfo("setUp in ITKapKylinQueryTest");
+        logger.info("setUp in ITKapKylinQueryTest");
 
         Map<RealizationType, Integer> priorities = Maps.newHashMap();
         priorities.put(RealizationType.HYBRID, 0);
@@ -101,7 +105,7 @@ public class ITKapFailfastTestBase extends KylinTestBase {
 
     @AfterClass
     public static void tearDown() throws Exception {
-        printInfo("tearDown in ITKapKylinQueryTest");
+        logger.info("tearDown in ITKapKylinQueryTest");
         Candidate.restorePriorities();
         clean();
     }

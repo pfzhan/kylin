@@ -44,6 +44,8 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
@@ -53,11 +55,13 @@ import io.kyligence.kap.cube.raw.RawTableInstance;
 @Ignore("KAPITKylinQueryTest is contained by KAPITCombinationTest")
 public class ITKapKylinQueryTest extends ITKylinQueryTest {
 
+    private static final Logger logger = LoggerFactory.getLogger(ITKapKylinQueryTest.class);
+
     protected static boolean rawTableFirst = false;
 
     @BeforeClass
     public static void setUp() throws Exception {
-        printInfo("setUp in ITKapKylinQueryTest");
+        logger.info("setUp in ITKapKylinQueryTest");
 
         configure("left", false);
 
@@ -66,7 +70,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
 
     @AfterClass
     public static void tearDown() throws Exception {
-        printInfo("tearDown in ITKapKylinQueryTest");
+        logger.info("tearDown in ITKapKylinQueryTest");
         Candidate.restorePriorities();
         clean();
     }
@@ -90,7 +94,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
 
         ITKapKylinQueryTest.joinType = joinType;
 
-        printInfo("Into combination joinType=" + joinType + ", rawTableFirst=" + rawTableFirst);
+        logger.info("Into combination joinType=" + joinType + ", rawTableFirst=" + rawTableFirst);
     }
 
     protected static void setupAll() throws Exception {
