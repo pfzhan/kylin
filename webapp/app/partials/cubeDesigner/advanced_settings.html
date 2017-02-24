@@ -288,7 +288,7 @@
                 <span>{{metaModel.model.aliasColumnMap[rowkey_column.column].datatype}}</span>
               </td>
               <td>
-                <span>{{metaModel.model.aliasColumnMap[rowkey_column.column].cardinality}}</span>
+                <span>{{TableModel.tableColumnMap[modelsManager.aliasTableMap[VdmUtil.getNameSpace(rowkey_column.column)]][VdmUtil.removeNameSpace(rowkey_column.column)].cardinality}}</span>
               </td>
             </tr>
           </tbody>

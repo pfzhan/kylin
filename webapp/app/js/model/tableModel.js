@@ -54,7 +54,6 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,String
       };
       if(angular.equals({}, _this.columnNameTypeMap)) {
         TableService.list(param, function (tables) {
-
           angular.forEach(tables, function (table) {
             angular.forEach(table.columns, function (column) {
               var tableName=table.database+"."+table.name;
@@ -123,7 +122,7 @@ KylinApp.service('TableModel', function(ProjectModel,$q,TableService,$log,String
                         datatype:column.datatype,
                         cardinality:table.cardinality[column.name],
                         comment:column.comment};
-                     if(table.cardinality[column.name]) {
+                    if(table.cardinality[column.name]!=null&&table.cardinality[column.name]!=undefined) {
                         column.cardinality = table.cardinality[column.name];
                     }else{
                         column.cardinality = null;

@@ -383,6 +383,12 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
         sampleData=sampleData.concat(VdmUtil.changeDataAxis(data.sample_rows,true));
       }
       $scope.specialData=data.columns_stats;
+      if(data.columns_stats.length>0){
+        var col=TableModel.getColumnsByTable(tableName);
+        for(var i=0;i<col.length;i++){
+          TableModel.tableColumnMap[tableName][col[i].name].cardinality = data.columns_stats[i].cardinality;
+        }
+      }
       $scope.sampleData=sampleData;
       if(typeof callback=='function'){
         callback();

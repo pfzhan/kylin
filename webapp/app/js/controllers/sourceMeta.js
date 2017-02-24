@@ -832,6 +832,11 @@ KylinApp
             sampleData = sampleData.concat(VdmUtil.changeDataAxis(data.sample_rows, true));
           }
           $scope.specialData = data.columns_stats;
+          if(data.columns_stats.length>0){
+            for(var i=0;i<$scope.tableModel.selectedSrcTable.columns.length;i++){
+               $scope.tableModel.selectedSrcTable.columns[i].cardinality=data.columns_stats[i].cardinality;
+            }
+          }
           $scope.sampleData = sampleData;
           $scope.last_modified = data.last_modified_time;
           $scope.total_rows = data.total_rows;

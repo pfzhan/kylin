@@ -24,7 +24,7 @@
 
 KylinApp.factory('TableService', ['$resource', function ($resource, config) {
   return $resource(Config.service.url + 'tables/:tableName/:action/:database', {}, {
-    list: {method: 'GET', params: {}, cache: true, isArray: true},
+    list: {method: 'GET', params: {}, cache: false, isArray: true},
     get: {method: 'GET', params: {}, isArray: false},
     loadHiveTable: {method: 'POST', params: {}, isArray: false},
     unLoadHiveTable: {method: 'DELETE', params: {}, isArray: false},
