@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
@@ -63,15 +64,15 @@ import com.google.common.collect.Sets;
 public class MassinFilterManager {
     public static final Logger logger = LoggerFactory.getLogger(MassinFilterManager.class);
 
-    private static final ConcurrentHashMap<KylinConfig, MassinFilterManager> CACHE = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<KylinConfig, ResourceStore> RESOURCE_STORE_CACHE = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<KylinConfig, MassinFilterManager> CACHE = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<KylinConfig, ResourceStore> RESOURCE_STORE_CACHE = new ConcurrentHashMap<>();
     private final static Cache<String, Pair<Long, Set<ByteArray>>> HDFS_CACHES = CacheBuilder.newBuilder().maximumSize(3).removalListener(new RemovalListener<Object, Object>() {
         @Override
         public void onRemoval(RemovalNotification<Object, Object> notification) {
             logger.debug(String.valueOf(notification.getCause()));
         }
     }).build();
-    private static final ConcurrentHashMap<String, DimensionEncoding> EncodingMapping = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, DimensionEncoding> EncodingMapping = new ConcurrentHashMap<>();
 
     private KylinConfig kylinConfig;
 

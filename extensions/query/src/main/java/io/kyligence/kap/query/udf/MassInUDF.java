@@ -27,6 +27,7 @@ package io.kyligence.kap.query.udf;
 import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.kylin.common.KapConfig;
@@ -41,7 +42,7 @@ import io.kyligence.kap.metadata.filter.MassinFilterManager;
 
 public class MassInUDF implements IKeep {
     private static final Logger logger = LoggerFactory.getLogger(MassInUDF.class);
-    private static final ConcurrentHashMap<String, Set<ByteArray>> FILTER_RESULT_CACHE = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, Set<ByteArray>> FILTER_RESULT_CACHE = new ConcurrentHashMap<>();
 
     public boolean eval(@Parameter(name = "col") Object col, @Parameter(name = "filterTable") String filterTable) {
         Set<ByteArray> set = FILTER_RESULT_CACHE.get(filterTable);

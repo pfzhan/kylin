@@ -26,6 +26,7 @@ package io.kyligence.kap.source.hive.modelstats;
 
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
@@ -39,7 +40,7 @@ public class ModelStatsManager {
 
     private static final Logger logger = LoggerFactory.getLogger(ModelStatsManager.class);
     public static final Serializer<ModelStats> MODEL_STATISTICS_SERIALIZER = new JsonSerializer<>(ModelStats.class);
-    private static final ConcurrentHashMap<KylinConfig, ModelStatsManager> CACHE = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<KylinConfig, ModelStatsManager> CACHE = new ConcurrentHashMap<>();
     private KylinConfig kylinConfig;
 
     public static final String MODEL_STATISTICS_ROOT = "/model_stats";

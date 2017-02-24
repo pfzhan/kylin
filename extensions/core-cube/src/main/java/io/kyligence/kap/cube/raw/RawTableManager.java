@@ -33,6 +33,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -66,7 +67,7 @@ public class RawTableManager implements IRealizationProvider {
     public static final Serializer<RawTableInstance> INSTANCE_SERIALIZER = new JsonSerializer<RawTableInstance>(RawTableInstance.class);
 
     // static cached instances
-    private static final ConcurrentHashMap<KylinConfig, RawTableManager> CACHE = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<KylinConfig, RawTableManager> CACHE = new ConcurrentHashMap<>();
 
     public static RawTableManager getInstance(KylinConfig config) {
         RawTableManager r = CACHE.get(config);

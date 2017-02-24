@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -54,7 +55,7 @@ public class RawTableDescManager {
     public static final Serializer<RawTableDesc> DESC_SERIALIZER = new JsonSerializer<RawTableDesc>(RawTableDesc.class);
 
     // static cached instances
-    private static final ConcurrentHashMap<KylinConfig, RawTableDescManager> CACHE = new ConcurrentHashMap<KylinConfig, RawTableDescManager>();
+    private static final ConcurrentMap<KylinConfig, RawTableDescManager> CACHE = new ConcurrentHashMap<KylinConfig, RawTableDescManager>();
 
     public static RawTableDescManager getInstance(KylinConfig config) {
         RawTableDescManager r = CACHE.get(config);
@@ -94,14 +95,14 @@ public class RawTableDescManager {
         logger.info("Initializing RawTableDescManager with config " + config);
         this.config = config;
         this.rawTableDescMap = new CaseInsensitiveStringCache<RawTableDesc>(config, "raw_table_desc");
-        
+
         // touch lower level metadata before registering my listener
         reloadAllRawTableDesc();
         Broadcaster.getInstance(config).registerListener(new RawTableDescSyncListener(), "raw_table_desc");
     }
 
     private class RawTableDescSyncListener extends Broadcaster.Listener {
-        
+
         @Override
         public void onClearAll(Broadcaster broadcaster) throws IOException {
             clearCache();
@@ -122,12 +123,12 @@ public class RawTableDescManager {
             String descName = cacheKey;
             RawTableDesc desc = getRawTableDesc(descName);
             String modelName = desc == null ? null : desc.getModel().getName();
-            
+
             if (event == Event.DROP)
                 removeRawTableDescLocal(descName);
             else
                 reloadRawTableDescLocal(descName);
-            
+
             for (ProjectInstance prj : ProjectManager.getInstance(config).findProjectsByModel(modelName)) {
                 broadcaster.notifyProjectSchemaUpdate(prj.getName());
             }
