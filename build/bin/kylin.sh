@@ -32,6 +32,8 @@ function retrieveDependency() {
         source ${dir}/find-kafka-dependency.sh
         export HBASE_CLASSPATH=${HBASE_CLASSPATH}:${kafka_dependency}
     fi
+    
+    source ${dir}/find-hadoop-conf-dir.sh
 }
 
 mkdir -p ${KYLIN_HOME}/logs
@@ -54,6 +56,7 @@ then
     columnarEnabled=`bash ${dir}/get-properties.sh kap.storage.columnar.start-own-spark`
     if [ "${columnarEnabled}" == "true" ]
     then
+        echo "Calling spark client start..."
         bash ${dir}/spark_client.sh start
     fi
     
@@ -110,6 +113,7 @@ then
     -Dkylin.hive.dependency=${hive_dependency} \
     -Dkylin.hbase.dependency=${hbase_dependency} \
     -Dkylin.kafka.dependency=${kafka_dependency} \
+    -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} \
     -Dkap.job.helix.host-address=${kylin_rest_address} \
     -Dspring.profiles.active=${spring_profile} \
     org.apache.hadoop.util.RunJar ${tomcat_root}/bin/bootstrap.jar  org.apache.catalina.startup.Bootstrap start >> ${KYLIN_HOME}/logs/kylin.out 2>&1 & echo $! > ${KYLIN_HOME}/pid &

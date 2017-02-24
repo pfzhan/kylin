@@ -40,6 +40,7 @@ else
     fi
 fi
 
+source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/find-hadoop-conf-dir.sh
 export KAP_SPARK_IDENTIFIER=$RANDOM
 export KAP_HDFS_APPENDER_JAR=`basename ${KYLIN_SPARK_JAR_PATH}`
 
@@ -93,8 +94,8 @@ then
         existingValue=`printenv ${key}`
         if [ -z "$existingValue" ]
         then
-            verbose "$key is not set, running: export $kv"
-            export $kv
+            verbose "export" `eval "verbose $kv"`
+            eval "export $kv"
         else
             verbose "$key already has value: $existingValue, use it"
         fi
