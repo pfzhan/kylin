@@ -62,7 +62,7 @@ else
 fi
 
 echo "BUILD STAGE 5 - Prepare and compress package..."
-sh build/script/prepare.sh              || { exit 1; }
-sh build/script/compress.sh             || { exit 1; }
+sh build/script/prepare.sh ${MVN_PROFILE} || { exit 1; }
+sh build/script/compress.sh               || { exit 1; }
 
 echo "BUILD FINISHED!"

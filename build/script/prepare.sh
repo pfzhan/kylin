@@ -7,7 +7,19 @@ source build/script/functions.sh
 exportProjectVersions
 
 sh build/script/prepare_libs.sh || { exit 1; }
-sh build/script/prepare_kybot.sh || { exit 1; }
+
+for PARAM in $@; do
+    if [ "$PARAM" == "cdh5.7" ]; then
+        CDH=1
+        break
+    fi
+done
+
+if [ "$CDH" == "1" ]; then
+    sh build/script/prepare_kybot_cdh.sh || { exit 1; }
+else
+	sh build/script/prepare_kybot.sh || { exit 1; }
+fi
 
 if [ "$SKIP_OBF" != "1" ]; then
     build/script/obfuscate.sh       || { exit 1; }
