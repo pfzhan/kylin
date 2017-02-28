@@ -57,7 +57,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.storage.parquet.format.ParquetCubeOutputFormat;
-import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 
 public class KapInMemCuboidJob extends AbstractHadoopJob {
 
@@ -122,11 +121,6 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
             job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, cubeName);
             job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_ID, segmentID);
 
-            // set path for output
-            job.getConfiguration().set(ParquetFormatConstants.KYLIN_OUTPUT_DIR, getWorkingDir(config, cube, cubeSeg));
-            cubeSeg.setStorageLocationIdentifier(getWorkingDir(config, cube, cubeSeg));
-            logger.info("Kylin Working directory: " + getWorkingDir(config, cube, cubeSeg));
-
             // set input
             IMRInput.IMRTableInputFormat flatTableInputFormat = MRUtil.getBatchCubingInputSide(cubeSeg).getFlatTableInputFormat();
             flatTableInputFormat.configureJob(job);
@@ -160,11 +154,6 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
             if (job != null)
                 cleanupTempConfFile(job.getConfiguration());
         }
-    }
-
-    protected String getWorkingDir(KylinConfig config, CubeInstance cube, CubeSegment cubeSegment) {
-        logger.info("get Hdfs Working Directory: " + config.getHdfsWorkingDirectory());
-        return new StringBuffer(config.getHdfsWorkingDirectory()).append("parquet/").append(cube.getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
     }
 
     private int calculateReducerNum(CubeSegment cubeSeg) throws IOException {

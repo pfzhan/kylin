@@ -59,6 +59,14 @@ public class KapConfig {
         return config.isDevEnv();
     }
 
+    public boolean getParquetSeparateFsEnabled() {
+        return Boolean.parseBoolean(config.getOptional("kylin.storage.columnar.separate-fs-enable", "false"));
+    }
+
+    public String getParquetFileSystem() {
+        return config.getOptional("kylin.storage.columnar.file-system", "");
+    }
+
     public int getParquetFuzzyIndexLength() {
         return Integer.parseInt(config.getOptional("kap.storage.columnar.ii-fuzzy-length", String.valueOf(6)));
     }

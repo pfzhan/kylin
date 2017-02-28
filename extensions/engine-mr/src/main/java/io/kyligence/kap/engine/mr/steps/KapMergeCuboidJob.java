@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.engine.mr.steps;
 
+import java.util.List;
+
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
@@ -44,8 +46,6 @@ import org.apache.kylin.engine.mr.steps.LayerReducerNumSizing;
 import io.kyligence.kap.storage.parquet.format.ParquetCubeOutputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
-
-import java.util.List;
 
 public class KapMergeCuboidJob extends KapCuboidJob {
     private boolean skipped = false;
@@ -112,9 +112,6 @@ public class KapMergeCuboidJob extends KapCuboidJob {
 
             // add metadata to distributed cache
             attachCubeMetadataWithDict(cube, job.getConfiguration());
-
-            // set path for output
-            job.getConfiguration().set(ParquetFormatConstants.KYLIN_OUTPUT_DIR, getWorkingDir(cube.getDescriptor().getConfig(), cube, cubeSeg));
 
             //push down kylin config
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, KylinConfig.getInstanceFromEnv().getConfigAsString());

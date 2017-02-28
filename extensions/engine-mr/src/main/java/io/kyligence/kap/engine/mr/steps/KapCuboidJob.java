@@ -35,7 +35,6 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
@@ -150,10 +149,6 @@ public class KapCuboidJob extends AbstractHadoopJob {
             job.getConfiguration().setInt(BatchConstants.CFG_CUBE_CUBOID_LEVEL, nCuboidLevel);
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS, "All");
 
-            // set path for output
-            job.getConfiguration().set(ParquetFormatConstants.KYLIN_OUTPUT_DIR, getWorkingDir(config, cube, cubeSeg));
-            cubeSeg.setStorageLocationIdentifier(getWorkingDir(config, cube, cubeSeg));
-
             // add metadata to distributed cache
             attachSegmentMetadataWithDict(cubeSeg, job.getConfiguration());
 
@@ -174,10 +169,6 @@ public class KapCuboidJob extends AbstractHadoopJob {
             if (job != null)
                 cleanupTempConfFile(job.getConfiguration());
         }
-    }
-
-    public static String getWorkingDir(KylinConfig config, CubeInstance cube, CubeSegment cubeSegment) {
-        return new StringBuffer(KapConfig.wrap(config).getParquetStoragePath()).append(cube.getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
     }
 
     private int configureMapperInputFormat(CubeSegment cubeSeg) throws IOException {

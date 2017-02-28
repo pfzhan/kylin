@@ -52,7 +52,6 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableSegment;
-import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableOutputFormat;
 
 public class KapRawTableJob extends AbstractHadoopJob {
@@ -114,15 +113,14 @@ public class KapRawTableJob extends AbstractHadoopJob {
             job.setOutputFormatClass(ParquetRawTableOutputFormat.class);
             job.setOutputKeyClass(Text.class);
             job.setOutputValueClass(Text.class);
-            
+
             FileOutputFormat.setOutputPath(job, output);
-            
+
             // set job configuration
             job.getConfiguration().setInt("dfs.blocksize", KapConfig.getInstanceFromEnv().getParquetStorageBlockSize());
             job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, rawTableName);
             job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_ID, segmentID);
-            job.getConfiguration().set(ParquetFormatConstants.KYLIN_OUTPUT_DIR, getWorkingDir(config, rawInstance, rawSeg));
-            
+
             // add metadata to distributed cache
             attachKylinPropsAndMetadata(rawSeg, job.getConfiguration());
 
@@ -136,10 +134,6 @@ public class KapRawTableJob extends AbstractHadoopJob {
             if (job != null)
                 cleanupTempConfFile(job.getConfiguration());
         }
-    }
-
-    public static String getWorkingDir(KylinConfig config, RawTableInstance instance, RawTableSegment seg) {
-        return new StringBuffer(KapConfig.wrap(config).getParquetStoragePath()).append(instance.getUuid()).append("/").append(seg.getUuid()).append("/").toString();
     }
 
     private int configureMapperInputFormat(RawTableSegment seg) throws IOException {

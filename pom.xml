@@ -35,6 +35,7 @@
         <tomcat.version>8.5.9</tomcat.version>
         <spark.version>1.6.3</spark.version>
         <jackson.version>2.6.3</jackson.version>
+        <hadoop2.version>2.7.1</hadoop2.version>
 
         <!-- Sonar -->
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
@@ -231,6 +232,11 @@
                 <groupId>me.lemire.integercompression</groupId>
                 <artifactId>JavaFastPFOR</artifactId>
                 <version>${fastPFOR.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-distcp</artifactId>
+                <version>${hadoop2.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.helix</groupId>
@@ -675,6 +681,11 @@
                     <dependency>
                         <groupId>org.apache.hadoop</groupId>
                         <artifactId>hadoop-auth</artifactId>
+                        <version>${hadoop2.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.apache.hadoop</groupId>
+                        <artifactId>hadoop-distcp</artifactId>
                         <version>${hadoop2.version}</version>
                     </dependency>
                     <dependency>

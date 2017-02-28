@@ -27,7 +27,6 @@ package io.kyligence.kap.storage.parquet.steps;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
@@ -363,6 +362,17 @@ public class ParquetMRSteps extends JobBuilderSupport {
         return result;
     }
 
+
+    public StorageDuplicateStep createStorageDuplicateStep(String jobId) {
+        final StorageDuplicateStep result = new StorageDuplicateStep();
+
+        result.setName("Duplicate Files to Remote Cluster");
+        CubingExecutableUtil.setCubeName(seg.getRealization().getName(), result.getParams());
+        CubingExecutableUtil.setSegmentId(seg.getUuid(), result.getParams());
+        CubingExecutableUtil.setCubingJobId(jobId, result.getParams());
+        return result;
+    }
+
     protected String getRawtableFuzzyIndexTmpFolderPath(CubeSegment cubeSegment) {
         return getRawTableFolderPath(cubeSegment) + "/" + RawtableFuzzyIndexTmpFolderPrefix;
     }
@@ -394,15 +404,15 @@ public class ParquetMRSteps extends JobBuilderSupport {
     protected String getRawTableFolderPath(CubeSegment cubeSegment) {
         RawTableInstance instance = detectRawTable(cubeSegment);
         RawTableSegment rawSeg = instance.getSegmentById(cubeSegment.getUuid());
-        return getRawTableFolderPath(rawSeg);
+        return ColumnarStorageUtils.getSegmentDir(config.getConfig(), instance, rawSeg);
     }
 
     protected String getRawTableFolderPath(RawTableSegment rawSegment) {
-        return new StringBuffer(KapConfig.wrap(config.getConfig()).getParquetStoragePath()).append(rawSegment.getRawTableInstance().getUuid()).append("/").append(rawSegment.getUuid()).append("/").toString();
+        return ColumnarStorageUtils.getSegmentDir(config.getConfig(), rawSegment.getRawTableInstance(), rawSegment);
     }
 
     protected String getCubeFolderPath(CubeSegment cubeSegment) {
-        return new StringBuffer(KapConfig.wrap(config.getConfig()).getParquetStoragePath()).append(cubeSegment.getCubeInstance().getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
+        return ColumnarStorageUtils.getSegmentDir(config.getConfig(), cubeSegment.getCubeInstance(), cubeSegment);
     }
 
     protected RawTableInstance detectRawTable(CubeSegment cubeSegment) {

@@ -45,6 +45,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.rest.response.ColumnarResponse;
 import io.kyligence.kap.rest.service.KapCubeService;
+import io.kyligence.kap.storage.parquet.steps.ColumnarStorageUtils;
 
 @Controller
 @RequestMapping(value = "/cubes")
@@ -74,17 +75,14 @@ public class KapCubeController extends BasicController {
         }
 
         for (CubeSegment segment : cube.getSegments()) {
-            String storagePath = segment.getStorageLocationIdentifier();
-            if (!storagePath.startsWith("/")) {
-                final KylinConfig config = KylinConfig.getInstanceFromEnv();
-                storagePath = getWorkingDir(config, cube, segment);
-            }
+            final KylinConfig config = KylinConfig.getInstanceFromEnv();
+            String storagePath = ColumnarStorageUtils.getSegmentDir(config, cube, segment);
 
-            ColumnarResponse info = null;
+            ColumnarResponse info;
             try {
                 info = kapCubeService.getColumnarInfo(storagePath, segment);
             } catch (IOException ex) {
-                logger.error("Can't get columnar info:");
+                logger.error("Can't get columnar info, cube {}, segment {}:", cube, segment);
                 logger.error("{}", ex);
                 continue;
             }
@@ -93,9 +91,5 @@ public class KapCubeController extends BasicController {
         }
 
         return columnar;
-    }
-
-    private String getWorkingDir(KylinConfig config, CubeInstance cube, CubeSegment cubeSegment) {
-        return new StringBuffer(config.getHdfsWorkingDirectory()).append("parquet/").append(cube.getUuid()).append("/").append(cubeSegment.getUuid()).append("/").toString();
     }
 }

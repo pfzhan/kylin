@@ -38,7 +38,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.StringSplitter;
@@ -123,16 +122,13 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
             job.setOutputFormatClass(ParquetRawTableOutputFormat.class);
             job.setOutputKeyClass(Text.class);
             job.setOutputValueClass(Text.class);
-            
+
             // set job configuration
             job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, cubeName);
             job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_ID, segmentID);
 
             // add metadata to distributed cache
             attachKylinPropsAndMetadata(rawSeg, cube, job.getConfiguration());
-
-            // set path for output
-            job.getConfiguration().set(ParquetFormatConstants.KYLIN_OUTPUT_DIR, getWorkingDir(raw.getConfig(), raw, rawSeg));
 
             //push down kylin config
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, KylinConfig.getInstanceFromEnv().getConfigAsString());
@@ -166,10 +162,6 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
             dumpList.addAll(dependentResources);
         }
         dumpKylinPropsAndMetadata(dumpList, instance.getConfig(), conf);
-    }
-
-    public static String getWorkingDir(KylinConfig config, RawTableInstance raw, RawTableSegment rawSegment) {
-        return new StringBuffer(KapConfig.wrap(config).getParquetStoragePath()).append(raw.getUuid()).append("/").append(rawSegment.getUuid()).append("/").toString();
     }
 
     public int addRawInputDirs(String input, Job job) throws IOException {

@@ -74,6 +74,7 @@ public class ParquetMROutput2 implements IMROutput2 {
                     jobFlow.addTask(steps.createRawtableFuzzyIndexStep(jobFlow.getId()));
                     jobFlow.addTask(steps.createRawtableFuzzyIndexCleanupStep(jobFlow.getId()));
                 }
+                jobFlow.addTask(steps.createStorageDuplicateStep(jobFlow.getId()));
             }
 
             @Override
@@ -112,6 +113,7 @@ public class ParquetMROutput2 implements IMROutput2 {
                     jobFlow.addTask(steps.createRawtableFuzzyIndexStep(jobFlow.getId()));
                     jobFlow.addTask(steps.createRawtableFuzzyIndexCleanupStep(jobFlow.getId()));
                 }
+                jobFlow.addTask(steps.createStorageDuplicateStep(jobFlow.getId()));
             }
 
             @Override
