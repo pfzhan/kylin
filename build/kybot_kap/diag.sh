@@ -52,7 +52,7 @@ then
             KYBOT_OPTS="-uploadToServer true"
         fi
         # will use kybot as system diagnosis
-        sh ${KYLIN_HOME}/kybot/kybot.sh $KYBOT_OPTS -destDir $destDir
+        sh ${KYLIN_HOME}/kybot/kybot.sh $KYBOT_OPTS -destDir $destDir || exit 1
     fi
 
     exit 0
