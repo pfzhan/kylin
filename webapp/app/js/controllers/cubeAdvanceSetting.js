@@ -486,7 +486,11 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
    }
    $scope.addColumnFamily = function () {
      var length = $scope.cubeMetaFrame.hbase_mapping.column_family.length;
-     var newFamilyIndex=parseInt($scope.cubeMetaFrame.hbase_mapping.column_family[length - 1].name.substring(1))+1;
+     if(length>0){
+       var newFamilyIndex=parseInt($scope.cubeMetaFrame.hbase_mapping.column_family[length - 1].name.substring(1))+1;
+     }else{
+       var newFamilyIndex= 1;
+     }
      var colFamily = $scope.newColFamily(newFamilyIndex);
      $scope.cubeMetaFrame.hbase_mapping.column_family.push(colFamily);
    };
