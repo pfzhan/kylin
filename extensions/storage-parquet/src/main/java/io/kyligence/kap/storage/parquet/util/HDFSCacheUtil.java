@@ -62,25 +62,34 @@ public class HDFSCacheUtil {
         if (args.length == 0) {
             System.out.println("Usage: HDFSCacheUtil cache  CUBE_NAME");
             System.out.println("Usage: HDFSCacheUtil remove_cache  CUBE_NAME");
+            System.out.println("Usage: HDFSCacheUtil check  CUBE_NAME");
+            System.out.println("Usage: HDFSCacheUtil list ");
             return;
         }
         String cmd = args[0];
-        String cubeName = args[1];
+
         HDFSCacheUtil cacheUtil = new HDFSCacheUtil();
+        String cubeName = null;
         switch (cmd) {
         case "cache":
+            cubeName = args[1];
             cacheUtil.cache(cubeName);
             break;
         case "remove_cache":
+            cubeName = args[1];
             cacheUtil.removeCache(cubeName);
             break;
         case "check":
+            cubeName = args[1];
             if (cacheUtil.existPool(cubeName)) {
                 System.out.println("Pool exist");
                 cacheUtil.dumpPool(cacheUtil.getDfs(), cacheUtil.getPoolName(cubeName));
             } else {
                 System.out.println("Pool not exist");
             }
+            break;
+        case "list":
+            cacheUtil.list(cacheUtil.getDfs());
             break;
         default:
             throw new Exception("Unrecognized arguments.");
@@ -110,6 +119,20 @@ public class HDFSCacheUtil {
         removePoolByCubeName(cubeName, dfs);
     }
 
+    public void list(DistributedFileSystem dfs) throws IOException {
+        List<String> allPools = new ArrayList<>();
+        RemoteIterator<CachePoolEntry> pools = dfs.listCachePools();
+        while (pools.hasNext()) {
+            CachePoolEntry pool = pools.next();
+            if (pool.getInfo().getPoolName().startsWith(CACHE_POOL_PREFIX)) {
+                //allPools.add(pool.getInfo().getPoolName());
+                String poolName = pool.getInfo().getPoolName();
+                poolName.substring(CACHE_POOL_PREFIX.length() + 1);
+            }
+        }
+        logger.info("All the cubes that have been cached : " + allPools.toString());
+    }
+
     public boolean existPool(String cubeName) throws IOException {
         String poolName = getPoolName(cubeName);
         return existPool(getDfs(), poolName);
@@ -135,7 +158,7 @@ public class HDFSCacheUtil {
                 return pool;
             }
         }
-       return null;
+        return null;
     }
 
     public void dumpPool(DistributedFileSystem dfs, String poolName) throws IOException {
@@ -232,7 +255,6 @@ public class HDFSCacheUtil {
         }
         throw new IOException("Fail to get DistributedFileSystem");
     }
-
 
     private String getStatDumpString(CachePoolStats stats) {
         return formatString(stats.getBytesNeeded(), stats.getBytesCached(), stats.getFilesNeeded(), stats.getFilesCached());
