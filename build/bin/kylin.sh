@@ -53,11 +53,11 @@ then
     
     retrieveDependency
 
-    columnarEnabled=`bash ${dir}/get-properties.sh kap.storage.columnar.start-own-spark`
+    columnarEnabled=`${dir}/get-properties.sh kap.storage.columnar.start-own-spark`
     if [ "${columnarEnabled}" == "true" ]
     then
         echo "Calling spark client start..."
-        bash ${dir}/spark_client.sh start
+        ${dir}/spark_client.sh start
     fi
     
     tomcat_root=${dir}/../tomcat
@@ -72,7 +72,7 @@ then
     #In this way we no longer need to explicitly configure hadoop/hbase related classpath for tomcat,
     #hbase command will do all the dirty tasks for us:
 
-    spring_profile=`bash ${dir}/get-properties.sh kylin.security.profile`
+    spring_profile=`${dir}/get-properties.sh kylin.security.profile`
     if [ -z "$spring_profile" ]
     then
         quit 'please set kylin.security.profile in kylin.properties, options are: testing, ldap, saml.'
@@ -128,10 +128,10 @@ then
 elif [ "$1" == "stop" ]
 then
 
-    columnarEnabled=`bash $KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.start-own-spark`
+    columnarEnabled=`$KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.start-own-spark`
     if [ "${columnarEnabled}" == "true" ]
     then
-        bash ${dir}/spark_client.sh stop
+        ${dir}/spark_client.sh stop
     fi
     
     if [ -f "${KYLIN_HOME}/pid" ]

@@ -7,8 +7,8 @@ source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/find-hadoop-conf-dir.sh
 echo "Checking HDFS working dir..."
 
 RANDNAME=chkenv__${RANDOM}
-WORKING_DIR=`bash $KYLIN_HOME/bin/get-properties.sh kylin.env.hdfs-working-dir`
-ENABLE_FS_SEPARATE=`bash $KYLIN_HOME/bin/get-properties.sh kylin.storage.columnar.separate-fs-enable | tr '[A-Z]' '[a-z]'`
+WORKING_DIR=`$KYLIN_HOME/bin/get-properties.sh kylin.env.hdfs-working-dir`
+ENABLE_FS_SEPARATE=`$KYLIN_HOME/bin/get-properties.sh kylin.storage.columnar.separate-fs-enable | tr '[A-Z]' '[a-z]'`
 TEST_FILE=${WORKING_DIR}/${RANDNAME}
 
 if [ -z "${kylin_hadoop_conf_dir}" ]; then
@@ -31,7 +31,7 @@ hadoop ${hadoop_conf_param} fs -rm -skipTrash ${TEST_FILE}
 # test remote hdfs if necessary
 ## in read-write separation mode this is query cluster
 if [ -n ${ENABLE_FS_SEPARATE} ] && [ ${ENABLE_FS_SEPARATE} == 'true' ]; then
-    remote_working_dir=`bash $KYLIN_HOME/bin/get-properties.sh kylin.storage.columnar.file-system`${WORKING_DIR#*://}
+    remote_working_dir=`$KYLIN_HOME/bin/get-properties.sh kylin.storage.columnar.file-system`${WORKING_DIR#*://}
     $(hadoop ${hadoop_conf_param} fs -test -d ${remote_working_dir}) || quit "ERROR: Please create working directory '${remote_working_dir}' and grant access permission."
 
     touch ./${RANDNAME}
