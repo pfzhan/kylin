@@ -135,35 +135,40 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
             RDDPartitionResult current = null;
 
             SparkParquetVisit submit = new SparkParquetVisit(sc, request);
-            Iterator<RDDPartitionResult> resultPartitions = submit.executeTask();
-
-            logger.info("Time for spark parquet visit execution (may not include result fetch if it's large result) is " + (System.currentTimeMillis() - startTime));
 
             while (true) {
-                if (current == null) {
-                    if (!resultPartitions.hasNext()) {
-                        break;
+                if (!submit.hasNext()) {
+                    return;
+                }
+                Iterator<RDDPartitionResult> resultPartitions = submit.executeTask();
+                logger.info("Time for spark parquet visit execution (may not include result fetch if it's large result) is " + (System.currentTimeMillis() - startTime));
+
+                while (true) {
+                    if (current == null) {
+                        if (!resultPartitions.hasNext()) {
+                            break;
+                        }
+                        current = resultPartitions.next();
                     }
-                    current = resultPartitions.next();
-                }
 
-                StorageVisitState temp = storageVisitStates.getIfPresent(streamIdentifier);
-                if (temp == null) {
-                    logger.info("Skip offering rest RDDPartitionData because current session with streamIdentifier {} does not seem active anymore", streamIdentifier);
-                    break;
-                }
+                    StorageVisitState temp = storageVisitStates.getIfPresent(streamIdentifier);
+                    if (temp == null) {
+                        logger.info("Skip offering rest RDDPartitionData because current session with streamIdentifier {} does not seem active anymore", streamIdentifier);
+                        return;
+                    }
 
-                TransferPack transferPack = resultPartitions.hasNext() ? TransferPack.createNormalPack(current) : TransferPack.createLastPack(current);
-                boolean success = synchronousQueue.offer(transferPack, 1, TimeUnit.MINUTES);
-                if (success) {
-                    current = null;
-                } else {
-                    logger.info("storage visit producer for streamIdentifier {} continue to try...", streamIdentifier);
-                }
+                    TransferPack transferPack = resultPartitions.hasNext() ? TransferPack.createNormalPack(current) : TransferPack.createLastPack(current);
+                    boolean success = synchronousQueue.offer(transferPack, 1, TimeUnit.MINUTES);
+                    if (success) {
+                        current = null;
+                    } else {
+                        logger.info("storage visit producer for streamIdentifier {} continue to try...", streamIdentifier);
+                    }
 
-                if (state.isUserCanceled()) {
-                    logger.info("Skip offering rest RDDPartitionData because client cancelled");
-                    break;
+                    if (state.isUserCanceled()) {
+                        logger.info("Skip offering rest RDDPartitionData because client cancelled");
+                        return;
+                    }
                 }
             }
         } catch (Exception e) {

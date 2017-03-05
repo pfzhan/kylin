@@ -38,12 +38,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.metadata.model.IKapStorageAware;
+import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.gridtable.GTScanRequest;
@@ -61,6 +63,7 @@ import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.model.IKapStorageAware;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableFileInputFormat;
@@ -81,10 +84,16 @@ public class SparkParquetVisit implements Serializable {
     private final transient KylinConfig kylinConfig;
     private final transient boolean isSplice;
     private final transient Set<String> parquetPathCollection;
+    private final transient Iterator<String> parquetPathIter;
     private final transient String realizationType;
     private final transient int storageType;
     private final transient String dataFolderName;
     private transient byte[] binaryFilterSerialized = null;
+    private final transient Class inputFormatClass;
+    private final transient Configuration conf;
+    private final transient int parallel;
+    private final transient boolean needLazy;
+    private transient List<JavaPairRDD> batchRdd = Lists.newArrayList();
 
     private final static ExecutorService cachedRDDCleaner = Executors.newSingleThreadExecutor();
     private final static ConcurrentLinkedDeque<Tuple4<String, Iterator<RDDPartitionResult>, JavaRDD<RDDPartitionResult>, Long>> cachedRDDs = new ConcurrentLinkedDeque<>();//queryid,iterator,rdd,inqueue time
@@ -137,7 +146,7 @@ public class SparkParquetVisit implements Serializable {
         });
     }
 
-    public SparkParquetVisit(JavaSparkContext sc, SparkJobProtos.SparkJobRequestPayload request) throws ClassNotFoundException {
+    public SparkParquetVisit(JavaSparkContext sc, SparkJobProtos.SparkJobRequestPayload request) {
         try {
             this.sc = sc;
             this.request = request;
@@ -146,21 +155,24 @@ public class SparkParquetVisit implements Serializable {
             this.dataFolderName = request.getDataFolderName();
             KylinConfig.setKylinConfigInEnvIfMissing(request.getKylinProperties());
             this.kylinConfig = KylinConfig.getInstanceFromEnv();
+            this.conf = new Configuration();
+            KapConfig kapConfig = KapConfig.wrap(kylinConfig);
+            GTScanRequest scanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(request.getGtScanRequest().toByteArray()));
+            this.needLazy = scanRequest.getStoragePushDownLimit() != Integer.MAX_VALUE;
+            this.parallel = kapConfig.getParquetSparkExecutorCore() * kapConfig.getParquetSparkExecutorInstance();
 
             if (RealizationType.CUBE.toString().equals(this.realizationType)) {
 
                 if (IKapStorageAware.ID_SPLICE_PARQUET != this.storageType) {
                     // Engine 100
                     this.isSplice = false;
-                    this.parquetPathCollection = Sets.newHashSet();
-                    this.parquetPathCollection.add(new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
+                    this.parquetPathCollection = listFiles(new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
                             append(request.getRealizationId()).append("/").//
                             append(request.getSegmentId()).append("/").//
-                            append(request.getDataFolderName()).//
-                            append("/*.parquettar").toString());
+                            append(request.getDataFolderName()).toString(), "parquettar");
+                    this.inputFormatClass = ParquetTarballFileInputFormat.class;
 
                     // try to convert binary filter
-                    GTScanRequest scanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(request.getGtScanRequest().toByteArray()));
                     if (scanRequest != null && scanRequest.getFilterPushDown() != null && !BinaryFilterConverter.containsSpecialFilter(scanRequest.getFilterPushDown())) {
                         BinaryFilter binaryFilter = new BinaryFilterConverter(scanRequest.getInfo()).toBinaryFilter(scanRequest.getFilterPushDown());
                         binaryFilterSerialized = BinaryFilterSerializer.serialize(binaryFilter);
@@ -170,19 +182,56 @@ public class SparkParquetVisit implements Serializable {
                     this.isSplice = true;
                     Map<Long, Set<String>> cubeMapping = readCubeMappingInfo();
                     this.parquetPathCollection = cubeMapping.get(Long.parseLong(request.getDataFolderName()));
+                    this.inputFormatClass = ParquetSpliceTarballFileInputFormat.class;
+                    conf.set(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS, this.dataFolderName);
                 }
             } else {
                 this.isSplice = false;
-                this.parquetPathCollection = Sets.newHashSet();
-                this.parquetPathCollection.add(new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
+                this.parquetPathCollection = listFiles(new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
                         append(request.getRealizationId()).append("/").//
                         append(request.getSegmentId()).append("/").//
-                        append(request.getDataFolderName()).//
-                        append("/*.parquet.inv").toString());
+                        append(request.getDataFolderName()).toString(), "parquet.inv");
+                this.inputFormatClass = ParquetRawTableFileInputFormat.class;
             }
+
+            this.parquetPathIter = parquetPathCollection.iterator();
+            conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS, RoaringBitmaps.writeToString(request.getParquetColumnsList())); // which columns are required
+            conf.set(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH, String.valueOf(request.getMaxRecordLength())); // max gt length
+            conf.set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, request.getKylinProperties()); //push down kylin config
+            conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES, new String(this.request.getGtScanRequest().toByteArray(), "ISO-8859-1")); //so that ParquetRawInputFormat can use the scan request
+            conf.set(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX, String.valueOf(request.getUseII())); //whether to use II
+            conf.set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileInputFormat.ParquetTarballFileReader.ReadStrategy.COMPACT.toString()); //read fashion
+            conf.set(ParquetFormatConstants.KYLIN_BINARY_FILTER, new String(binaryFilterSerialized == null ? new byte[0] : binaryFilterSerialized, "ISO-8859-1")); //read fashion
+
+            StringBuilder pathBuilder = new StringBuilder();
+            for (String p : parquetPathCollection) {
+                pathBuilder.append(p).append(";");
+            }
+            logger.info("Columnar path is " + pathBuilder.toString());
+            logger.info("Required Measures: " + StringUtils.join(request.getParquetColumnsList(), ","));
+            logger.info("Max GT length: " + request.getMaxRecordLength());
+            logger.info("Current queryId: " + request.getQueryId());
         } catch (IOException e) {
             throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
+
+    }
+
+    private Set<String> listFiles(String directory, final String suffix) throws IOException {
+        FileSystem fs = HadoopUtil.getFileSystem(directory);
+        final FileStatus[] fileStatuses = fs.listStatus(new Path(directory));
+
+        Set<String> result = Sets.newHashSet();
+        for (int i = 0; i < fileStatuses.length; i++) {
+            String path = fileStatuses[i].getPath().toString();
+            if (path.endsWith(suffix)) {
+                result.add(path);
+            }
+        }
+
+        return result;
     }
 
     private Map<Long, Set<String>> readCubeMappingInfo() throws IOException, ClassNotFoundException {
@@ -210,41 +259,11 @@ public class SparkParquetVisit implements Serializable {
     }
 
     Iterator<RDDPartitionResult> executeTask() throws Exception {
-        Configuration conf = new Configuration();
-        conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS, RoaringBitmaps.writeToString(request.getParquetColumnsList())); // which columns are required
-        conf.set(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH, String.valueOf(request.getMaxRecordLength())); // max gt length
-        conf.set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, request.getKylinProperties()); //push down kylin config
-        conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES, new String(this.request.getGtScanRequest().toByteArray(), "ISO-8859-1")); //so that ParquetRawInputFormat can use the scan request
-        conf.set(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX, String.valueOf(request.getUseII())); //whether to use II
-        conf.set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileInputFormat.ParquetTarballFileReader.ReadStrategy.COMPACT.toString()); //read fashion
-        conf.set(ParquetFormatConstants.KYLIN_BINARY_FILTER, new String(binaryFilterSerialized == null ? new byte[0] : binaryFilterSerialized, "ISO-8859-1")); //read fashion
-
-        StringBuilder pathBuilder = new StringBuilder();
-        for (String p : parquetPathCollection) {
-            pathBuilder.append(p).append(";");
-        }
-        logger.info("Columnar path is " + pathBuilder.toString());
-        logger.info("Required Measures: " + StringUtils.join(request.getParquetColumnsList(), ","));
-        logger.info("Max GT length: " + request.getMaxRecordLength());
-        logger.info("Current queryId: " + request.getQueryId());
         logger.info("Start to visit cube data with Spark <<<<<<");
-
         final Accumulator<Long> scannedRecords = sc.accumulator(0L, "Scanned Records", LongAccumulableParam.INSTANCE);
         final Accumulator<Long> collectedRecords = sc.accumulator(0L, "Collected Records", LongAccumulableParam.INSTANCE);
 
-        // visit parquet data file
-        Class inputFormatClass = RealizationType.CUBE.toString().equals(this.realizationType) ? ParquetTarballFileInputFormat.class : ParquetRawTableFileInputFormat.class;
-        if (isSplice && RealizationType.CUBE.toString().equals(this.realizationType)) {
-            inputFormatClass = ParquetSpliceTarballFileInputFormat.class;
-            conf.set(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS, this.dataFolderName);
-        }
-
-        JavaPairRDD[] rdds = new JavaPairRDD[parquetPathCollection.size()];
-        int index = 0;
-        for (String p : parquetPathCollection) {
-            rdds[index++] = sc.newAPIHadoopFile(p, inputFormatClass, Text.class, Text.class, conf);
-        }
-        JavaPairRDD<Text, Text> seed = sc.union(rdds);
+        JavaPairRDD<Text, Text> seed = sc.union(batchRdd.toArray(new JavaPairRDD[0]));
 
         final Iterator<RDDPartitionResult> partitionResults;
         JavaRDD<RDDPartitionResult> cached = seed.mapPartitions(new SparkExecutorPreAggFunction(scannedRecords, collectedRecords, realizationType, isSplice, hasPreFiltered(), //
@@ -269,6 +288,31 @@ public class SparkParquetVisit implements Serializable {
         logger.info("the scanned row count is {} and the collected row count is {}", scanCount, scannedRecords.value(), collectedRecords.value());
         logger.info("==========================================================");
         return partitionResults;
+    }
+
+    public boolean hasNext() {
+        batchRdd.clear();
+        if (needLazy) {
+            for (int i = 0; i < parallel; i++) {
+                if (parquetPathIter.hasNext()) {
+                    batchRdd.add(sc.newAPIHadoopFile(parquetPathIter.next(), inputFormatClass, Text.class, Text.class, conf));
+                } else {
+                    break;
+                }
+            }
+        } else {
+            while (parquetPathIter.hasNext()) {
+                batchRdd.add(sc.newAPIHadoopFile(parquetPathIter.next(), inputFormatClass, Text.class, Text.class, conf));
+            }
+        }
+
+        if (batchRdd.size() != 0) {
+            logger.info("has next return true");
+            return true;
+        }
+
+        logger.info("has next return false");
+        return false;
     }
 
     private boolean hasPreFiltered() {

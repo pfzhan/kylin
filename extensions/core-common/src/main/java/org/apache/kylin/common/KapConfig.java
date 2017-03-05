@@ -107,6 +107,14 @@ public class KapConfig {
         return Double.parseDouble(config.getOptional("kap.storage.columnar.ii-spill-threshold-mb", "128"));
     }
 
+    public int getParquetSparkExecutorInstance() {
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.spark-conf.spark.executor.instances", String.valueOf(1)));
+    }
+
+    public int getParquetSparkExecutorCore() {
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.spark-conf.spark.executor.cores", String.valueOf(1)));
+    }
+
     public String getSparkClientHost() {
         return config.getOptional("kap.storage.columnar.spark-driver-host", "localhost");
     }
