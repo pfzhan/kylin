@@ -24,28 +24,47 @@
 
 package io.kyligence.kap.engine.mr.tool;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
-import org.apache.hadoop.util.Tool;
-import org.apache.hadoop.util.ToolRunner;
+import java.io.File;
 
-public class CheckHadoopConfDir extends Configured implements Tool {
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocalFileSystem;
+import org.apache.hadoop.fs.Path;
+
+public class CheckHadoopConfDir {
 
     public static void main(String[] args) throws Exception {
-        int exitCode = ToolRunner.run(new CheckHadoopConfDir(), args);
-        System.exit(exitCode);
-    }
+        Configuration conf = new Configuration(false); // don't load defaults, we are only interested in the specified conf dir
+        File hadoopConfDir = new File(args[0]).getCanonicalFile();
 
-    @Override
-    public int run(String[] args) throws Exception {
-        Configuration conf = this.getConf();
-        String hadoopConfDir = args[0];
+        System.out.println("Checking hadoop conf dir " + hadoopConfDir);
         
+        if (hadoopConfDir.exists() == false) {
+            System.err.println("ERROR: Hadoop conf dir '" + hadoopConfDir + "' does not exist");
+            System.exit(1);
+        }
+
+        if (hadoopConfDir.isDirectory() == false) {
+            System.err.println("ERROR: Hadoop conf dir '" + hadoopConfDir + "' is not a directory");
+            System.exit(1);
+        }
+        
+        LocalFileSystem localfs = FileSystem.getLocal(conf);
+        for (File f : hadoopConfDir.listFiles()) {
+            if (f.getName().endsWith("-site.xml")) {
+                Path p = new Path(f.toString());
+                p = localfs.makeQualified(p);
+                conf.addResource(p);
+                System.out.println("Load " + p);
+            }
+        }
+        conf.reloadConfiguration();
+
         boolean shortcircuit = conf.getBoolean("dfs.client.read.shortcircuit", false);
         if (shortcircuit == false) {
             System.out.println("WARN: 'dfs.client.read.shortcircuit' is not enabled. Check " + hadoopConfDir + "/hdfs-site.xml");
         }
         
-        return 0;
+        System.exit(0);
     }
 }
