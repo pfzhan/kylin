@@ -139,7 +139,7 @@ then
         fi
 
     else
-        quit "Spark Client is not running"
+        quit "Spark client pid is not found"
     fi
 else
     quit "Usage: 'spark_client.sh [-v] start' or 'spark_clint.sh [-v] stop'"
