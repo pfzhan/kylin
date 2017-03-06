@@ -76,7 +76,7 @@
         </table>
       </div>
       <div class="box-footer">
-        <div>
+        <div ng-if="state.mode!=='view'">
           <button class="btn btn-sm btn-success" ng-click="addBroker(cluster);" >
             <i class="fa fa-plus"></i> {{dataKylin.cube.kaBroker}}
           </button>
@@ -84,7 +84,7 @@
           <span ng-if="fromError" style="color:#b94a48">{{dataKylin.data_source.clusterFormError}}</span>
 
         </div>
-        <div style="margin-top: 20px" ng-show="cluster.brokers.length">
+        <div style="margin-top: 20px" ng-show="cluster.brokers.length&&state.mode!=='view'&&!state.target">
           <button class="btn btn-sm btn-info" ng-click="loadClusterInfo()" ng-show="state.mode=='edit'&&!cluster.newBroker">
             <i class="fa fa-refresh"></i> {{dataKylin.data_source.getClusterInfo}}
           </button>
