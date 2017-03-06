@@ -513,7 +513,7 @@ KylinApp.constant('kapEnglishConfig', {
     needConfigRawTable:'Config Raw Table',
     cubeOfRawTable: 'Raw Table',
     rawtableASColumn:'Column',
-    rawtableASTableName:'Table Name',
+    rawtableASTableName:'Table Alias',
     rawtableASEncoding:'Encoding',
     rawtableASIndex:'Index',
     rawtableASType:'Data Type',

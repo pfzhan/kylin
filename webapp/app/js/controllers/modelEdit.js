@@ -40,16 +40,6 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
     $scope.usedMeasuresCubeMap = {};
     $scope.cubeConfig = cubeConfig;
 
-    //$scope.getColumnsByTable = function (tableName) {
-    //    var temp = [];
-    //    angular.forEach(TableModel.selectProjectTables, function (table) {
-    //        if (table.database+'.'+table.name == tableName) {
-    //            temp = table.columns;
-    //        }
-    //    });
-    //    return temp;
-    //};
-
     $scope.getColumnsByAlias = function (aliasName) {
         var temp = [];
         angular.forEach(TableModel.selectProjectTables, function (table) {

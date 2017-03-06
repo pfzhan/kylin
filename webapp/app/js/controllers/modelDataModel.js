@@ -61,7 +61,7 @@ KylinApp.controller('ModelDataModelCtrl', function ($location,$scope, $modal,cub
         return {
             table: '',
             alias: '',
-//          joinTable:,
+            joinTable: '',
             kind:'LOOKUP',
             join: {
                 type: '',
@@ -115,6 +115,13 @@ KylinApp.controller('ModelDataModelCtrl', function ($location,$scope, $modal,cub
             $modalInstance.dismiss('cancel');
         };
     };
+
+    $scope.$watch('newLookup.alias',function(newValue,oldValue){
+      for(var i=0;i<$scope.newLookup.join.primary_key.length;i++){
+          $scope.newLookup.join.primary_key[i] = $scope.newLookup.join.primary_key[i].replace(/^.*?\./,newValue+'.');
+        }
+    });
+
     $scope.editLookup = function (lookup) {
         $scope.lookupState.editingIndex = lookupList.indexOf(lookup);
         $scope.lookupState.editing = true;
@@ -123,7 +130,7 @@ KylinApp.controller('ModelDataModelCtrl', function ($location,$scope, $modal,cub
         $scope.newLookup.join.pk_type = [];
         $scope.newLookup.join.fk_type = [];
         $scope.newLookup.join.isCompatible=[];
-//    $scope.newLookup.joinTable=VdmUtil.getNameSpaceTopName($scope.newLookup.join.foreign_key[0]);
+        $scope.newLookup.joinTable=VdmUtil.getNameSpaceTopName($scope.newLookup.join.foreign_key[0]);
         angular.forEach($scope.newLookup.join.primary_key,function(pk,index){
             $scope.newLookup.join.pk_type[index] = TableModel.getColumnType(VdmUtil.removeNameSpace(pk),$scope.newLookup.table);
             $scope.newLookup.join.fk_type[index] = TableModel.getColumnType(VdmUtil.removeNameSpace($scope.newLookup.join.foreign_key[index]),$scope.aliasTableMap[$scope.newLookup.joinTable]);
@@ -235,14 +242,13 @@ KylinApp.controller('ModelDataModelCtrl', function ($location,$scope, $modal,cub
     };
 
     $scope.changeKey = function(index){
-//         var join_table = $scope.newLookup.joinTable;
-         var join_table = $scope.FactTable.root;
+         var join_table = $scope.newLookup.joinTable;
          var lookup_table = $scope.newLookup.table;
          var pk_column = $scope.newLookup.join.primary_key[index];
          var fk_column = $scope.newLookup.join.foreign_key[index];
          if(pk_column!=='null'&&fk_column!=='null'){
             $scope.newLookup.join.pk_type[index] = TableModel.getColumnType(VdmUtil.removeNameSpace(pk_column),$scope.newLookup.table);
-//            $scope.newLookup.join.fk_type[index] = TableModel.getColumnType(VdmUtil.removeNameSpace(fk_column),$scope.aliasTableMap[$scope.newLookup.joinTable]);
+            $scope.newLookup.join.fk_type[index] = TableModel.getColumnType(VdmUtil.removeNameSpace(fk_column),$scope.aliasTableMap[$scope.newLookup.joinTable]);
             $scope.newLookup.join.fk_type[index] = TableModel.getColumnType(VdmUtil.removeNameSpace(fk_column),$scope.aliasTableMap[$scope.FactTable.root]);
             if($scope.newLookup.join.pk_type[index]!==$scope.newLookup.join.fk_type[index]){
                $scope.newLookup.join.isCompatible[index]=false;

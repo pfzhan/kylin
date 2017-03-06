@@ -33,7 +33,6 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
   $scope.newDimension = null;
   $scope.newMeasure = null;
   $scope.forms={};
-  $scope.VdmUtil=VdmUtil;
 
   $scope.dataKylin =  language.getDataKylin();
   $scope.wizardSteps = [
