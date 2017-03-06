@@ -174,6 +174,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
     $scope.upload=function(){
       $scope.loading=true;
       KybotDiagnosisService.uploadPackage(function(data){
+        $scope.cancel();
         if(data&&data.code=='000'){
           SweetAlert.swal({
             title:$scope.dataKylin.alert.complete,
@@ -191,7 +192,6 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
           })
         }
         $scope.loading=false;
-        $scope.cancel();
       },function(e){
         $scope.loading=false;
         $scope.cancel();
