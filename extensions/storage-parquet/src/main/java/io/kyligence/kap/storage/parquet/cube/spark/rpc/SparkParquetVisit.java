@@ -38,7 +38,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -50,6 +49,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.metadata.realization.RealizationType;
+import org.apache.kylin.storage.StorageContext;
 import org.apache.spark.Accumulator;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -61,6 +61,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.IKapStorageAware;
@@ -92,7 +93,7 @@ public class SparkParquetVisit implements Serializable {
     private final transient Class inputFormatClass;
     private final transient Configuration conf;
     private final transient int parallel;
-    private final transient boolean needLazy;
+    private transient boolean needLazy;
     private transient List<JavaPairRDD> batchRdd = Lists.newArrayList();
 
     private final static ExecutorService cachedRDDCleaner = Executors.newSingleThreadExecutor();
@@ -158,7 +159,7 @@ public class SparkParquetVisit implements Serializable {
             this.conf = new Configuration();
             KapConfig kapConfig = KapConfig.wrap(kylinConfig);
             GTScanRequest scanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(request.getGtScanRequest().toByteArray()));
-            this.needLazy = scanRequest.getStoragePushDownLimit() != Integer.MAX_VALUE;
+            this.needLazy = false;
             this.parallel = kapConfig.getParquetSparkExecutorCore() * kapConfig.getParquetSparkExecutorInstance();
 
             if (RealizationType.CUBE.toString().equals(this.realizationType)) {
@@ -192,6 +193,7 @@ public class SparkParquetVisit implements Serializable {
                         append(request.getSegmentId()).append("/").//
                         append(request.getDataFolderName()).toString(), "parquet.inv");
                 this.inputFormatClass = ParquetRawTableFileInputFormat.class;
+                this.needLazy = StorageContext.isValidPushDownLimit(scanRequest.getStoragePushDownLimit());
             }
 
             this.parquetPathIter = parquetPathCollection.iterator();
@@ -211,6 +213,7 @@ public class SparkParquetVisit implements Serializable {
             logger.info("Required Measures: " + StringUtils.join(request.getParquetColumnsList(), ","));
             logger.info("Max GT length: " + request.getMaxRecordLength());
             logger.info("Current queryId: " + request.getQueryId());
+            logger.info("needLazy: " + needLazy);
         } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (ClassNotFoundException e) {
