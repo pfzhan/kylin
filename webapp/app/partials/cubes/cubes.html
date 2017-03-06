@@ -100,13 +100,13 @@
                         <li ng-if="(userService.hasRole('ROLE_ADMIN') || hasPermission(cube, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask))">
                           <a ng-click="cubeEdit(cube)" tooltip="{{dataKylin.cube.tip_edit_cube}}">{{dataKylin.cube.cubeActions[1]}}</a>
                         </li>
-                        <li>
+                        <li ng-if="cube.status!='DESCBROKEN'">
                           <a ng-click="startJobSubmit(cube, $index)" tooltip="{{dataKylin.cube.tip_build_cube}}">{{dataKylin.cube.cubeActions[2]}}</a>
                         </li>
-                        <li ng-if="cube.status!='DISABLED'">
+                        <li ng-if="cube.status!='DISABLED'&&cube.status!='DESCBROKEN'">
                           <a ng-click="startRefresh(cube, $index)" tooltip="{{dataKylin.cube.tip_refresh_cube}}">{{dataKylin.cube.cubeActions[3]}}</a>
                         </li>
-                        <li>
+                        <li ng-if="cube.status!='DESCBROKEN'">
                           <a ng-click="startMerge(cube, $index)" tooltip="{{dataKylin.cube.tip_merge_cube}}">{{dataKylin.cube.cubeActions[4]}}</a>
                         </li>
                         <li ng-if="cube.status!='DISABLED'">
@@ -118,7 +118,7 @@
                         <li ng-if="cube.status=='DISABLED'">
                           <a ng-click="purge(cube, $index)" tooltip="{{dataKylin.cube.tip_purge_cube}}">{{dataKylin.cube.cubeActions[7]}}</a>
                         </li>
-                        <li>
+                        <li ng-if="cube.status!='DESCBROKEN'">
                           <a ng-click="cloneCube(cube)"  tooltip="{{dataKylin.cube.tip_clone_cube}}">{{dataKylin.cube.cubeActions[8]}}</a>
                         </li>
                     </ul>
