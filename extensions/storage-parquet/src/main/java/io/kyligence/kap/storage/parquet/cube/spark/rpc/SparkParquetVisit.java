@@ -269,6 +269,7 @@ public class SparkParquetVisit implements Serializable {
         final Accumulator<Long> collectedRecords = sc.accumulator(0L, "Collected Records", LongAccumulableParam.INSTANCE);
 
         JavaPairRDD<Text, Text> seed = sc.union(batchRdd.toArray(new JavaPairRDD[0]));
+        batchRdd.clear();
 
         final Iterator<RDDPartitionResult> partitionResults;
         JavaRDD<RDDPartitionResult> cached = seed.mapPartitions(new SparkExecutorPreAggFunction(scannedRecords, collectedRecords, realizationType, isSplice, hasPreFiltered(), //
@@ -296,7 +297,10 @@ public class SparkParquetVisit implements Serializable {
     }
 
     public boolean moreRDDExists() {
-        batchRdd.clear();
+        if (batchRdd.size() != 0) {
+            return true;
+        }
+
         if (needLazy) {
             for (int i = 0; i < parallel; i++) {
                 if (parquetPathIter.hasNext()) {
