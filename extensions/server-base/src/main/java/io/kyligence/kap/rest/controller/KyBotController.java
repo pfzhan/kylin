@@ -29,6 +29,7 @@ import java.io.IOException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -60,13 +61,19 @@ public class KyBotController extends BasicController {
 
     @RequestMapping(value = "/kybot/upload", method = { RequestMethod.GET })
     @ResponseBody
-    public EnvelopeResponse uploadToKybot() {
+    public EnvelopeResponse uploadToKybot(final HttpServletResponse response) {
         try {
-            kybotService.dumpLocalKyBotPackage(true);
+            String retCode = kybotService.checkServiceConnection();
+            boolean retVal = false;
+            if (retCode.equals(KyBotService.SUCC_CODE)) {
+                String path = kybotService.dumpLocalKyBotPackage(true);
+                retVal = !StringUtils.isEmpty(path);
+            } else {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            }
+            return new EnvelopeResponse(retCode, retVal, null);
         } catch (IOException e) {
-            throw new InternalErrorException("Failed to dump kybot package. " + e.getMessage(), e);
+            throw new InternalErrorException("Failed to dump kybot package. ", e);
         }
-
-        return new EnvelopeResponse("000", true, "Uploaded to kybot Successfully.");
     }
 }

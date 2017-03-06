@@ -26,9 +26,17 @@ package io.kyligence.kap.rest.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.params.ConnRoutePNames;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.Pair;
@@ -43,6 +51,10 @@ import com.google.common.io.Files;
 
 @Component("kyBotService")
 public class KyBotService extends BasicService {
+    public static final String SUCC_CODE = "000";
+    public static final String USERNAME_PASSWORD_EMPTY = "401";
+    public static final String AUTH_FAILURE = "402";
+
     private static final Logger logger = LoggerFactory.getLogger(KyBotService.class);
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -72,6 +84,7 @@ public class KyBotService extends BasicService {
             }
         });
 
+        logger.info("Cmdoutput: " + cmdOutput.getKey());
         if (cmdOutput.getKey() != 0) {
             throw new RuntimeException("Failed to generate KyBot package.");
         }
@@ -92,5 +105,45 @@ public class KyBotService extends BasicService {
             }
         }
         throw new RuntimeException("KyBot package not found in directory: " + destDir.getAbsolutePath());
+    }
+
+    public String checkServiceConnection() {
+        KapConfig kapConfig = KapConfig.getInstanceFromEnv();
+        String username = kapConfig.getKyAccountUsename();
+        String password = kapConfig.getKyAccountPassword();
+
+        if (StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) {
+            return USERNAME_PASSWORD_EMPTY;
+        }
+
+        String proxyServer = kapConfig.getHttpProxyHost();
+        int proxyPort = kapConfig.getHttpProxyPort();
+
+        byte[] encodedAuth = Base64.encodeBase64((username + ":" + password).getBytes(Charset.forName("ISO-8859-1")));
+        String authHeader = "Basic " + new String(encodedAuth);
+        String url = kapConfig.getKyBotSiteUrl() + "/api/user/authentication";
+
+        HttpPost request = new HttpPost(url);
+        DefaultHttpClient client = new DefaultHttpClient();
+
+        if (proxyServer != null && proxyPort > 0) {
+            HttpHost proxy = new HttpHost(proxyServer, proxyPort);
+            client.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY, proxy);
+        }
+
+        try {
+            request.setHeader("authorization", authHeader);
+            HttpResponse response = client.execute(request);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                logger.error("Authentication failed. URL={}, ProxyHost={}, ProxyPort={}, Username={}", url, proxyServer, proxyPort, username);
+                return AUTH_FAILURE;
+            }
+            return SUCC_CODE;
+        } catch (Exception ex) {
+            logger.error("Authentication failed due to exception: " + ex.getMessage());
+            return AUTH_FAILURE;
+        } finally {
+            request.releaseConnection();
+        }
     }
 }
