@@ -34,11 +34,17 @@ import org.apache.hadoop.fs.Path;
 public class CheckHadoopConfDir {
 
     public static void main(String[] args) throws Exception {
+
+        if (1 != args.length) {
+            usage();
+            System.exit(1);
+        }
+
         Configuration conf = new Configuration(false); // don't load defaults, we are only interested in the specified conf dir
         File hadoopConfDir = new File(args[0]).getCanonicalFile();
 
         System.out.println("Checking hadoop conf dir " + hadoopConfDir);
-        
+
         if (hadoopConfDir.exists() == false) {
             System.err.println("ERROR: Hadoop conf dir '" + hadoopConfDir + "' does not exist");
             System.exit(1);
@@ -48,7 +54,7 @@ public class CheckHadoopConfDir {
             System.err.println("ERROR: Hadoop conf dir '" + hadoopConfDir + "' is not a directory");
             System.exit(1);
         }
-        
+
         LocalFileSystem localfs = FileSystem.getLocal(conf);
         for (File f : hadoopConfDir.listFiles()) {
             if (f.getName().endsWith("-site.xml")) {
@@ -64,7 +70,11 @@ public class CheckHadoopConfDir {
         if (shortcircuit == false) {
             System.out.println("WARN: 'dfs.client.read.shortcircuit' is not enabled. Check " + hadoopConfDir + "/hdfs-site.xml");
         }
-        
+
         System.exit(0);
+    }
+
+    private static void usage() {
+        System.out.println("Usage: CheckHadoopConfDir hadoopConfDir");
     }
 }
