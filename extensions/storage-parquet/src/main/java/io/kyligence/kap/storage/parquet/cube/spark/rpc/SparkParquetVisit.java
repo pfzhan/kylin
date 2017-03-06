@@ -64,6 +64,7 @@ import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.filter.TupleFilterSerializerRawTableExt;
 import io.kyligence.kap.metadata.model.IKapStorageAware;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
@@ -158,6 +159,7 @@ public class SparkParquetVisit implements Serializable {
             this.kylinConfig = KylinConfig.getInstanceFromEnv();
             this.conf = new Configuration();
             KapConfig kapConfig = KapConfig.wrap(kylinConfig);
+            TupleFilterSerializerRawTableExt.getExtendedTupleFilters();//touch static initialization
             GTScanRequest scanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(request.getGtScanRequest().toByteArray()));
             this.needLazy = false;
             this.parallel = kapConfig.getParquetSparkExecutorCore() * kapConfig.getParquetSparkExecutorInstance();
@@ -293,7 +295,7 @@ public class SparkParquetVisit implements Serializable {
         return partitionResults;
     }
 
-    public boolean hasNext() {
+    public boolean moreRDDExists() {
         batchRdd.clear();
         if (needLazy) {
             for (int i = 0; i < parallel; i++) {
@@ -310,11 +312,9 @@ public class SparkParquetVisit implements Serializable {
         }
 
         if (batchRdd.size() != 0) {
-            logger.info("has next return true");
             return true;
         }
 
-        logger.info("has next return false");
         return false;
     }
 

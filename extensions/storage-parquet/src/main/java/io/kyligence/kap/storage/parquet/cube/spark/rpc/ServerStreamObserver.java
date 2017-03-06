@@ -134,14 +134,15 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
             synchronousQueue = state.getSynchronousQueue();
             RDDPartitionResult current = null;
 
-            SparkParquetVisit submit = new SparkParquetVisit(sc, request);
+            SparkParquetVisit visit = new SparkParquetVisit(sc, request);
 
             while (true) {
-                if (!submit.hasNext()) {
+                if (!visit.moreRDDExists()) {
                     return;
                 }
-                Iterator<RDDPartitionResult> resultPartitions = submit.executeTask();
+                Iterator<RDDPartitionResult> resultPartitions = visit.executeTask();
                 logger.info("Time for spark parquet visit execution (may not include result fetch if it's large result) is " + (System.currentTimeMillis() - startTime));
+                boolean moreRDDStillExists = visit.moreRDDExists();
 
                 while (true) {
                     if (current == null) {
@@ -157,7 +158,7 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
                         return;
                     }
 
-                    TransferPack transferPack = resultPartitions.hasNext() ? TransferPack.createNormalPack(current) : TransferPack.createLastPack(current);
+                    TransferPack transferPack = (moreRDDStillExists || resultPartitions.hasNext()) ? TransferPack.createNormalPack(current) : TransferPack.createLastPack(current);
                     boolean success = synchronousQueue.offer(transferPack, 1, TimeUnit.MINUTES);
                     if (success) {
                         current = null;
