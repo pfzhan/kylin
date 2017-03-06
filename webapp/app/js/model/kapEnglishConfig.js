@@ -850,7 +850,8 @@ KylinApp.constant('kapEnglishConfig', {
     diagnosisForPoorNetwork:'If there is no public network access, diagnostic package can be upload manually as following:',
     diagnosisForPoorNetworkActionSeq:['1.Download diagnostic package','2.Login on KyBot','3.Click upload button on the top left of KyBot home page, and select the diagnostic package desired on the upload page to upload'],
     diagnosisFactoryPackage:'Generate diagnostic package',
-    diagnosisDownloadTip:'It will cost you serveral mimutes...',
+    diagnosisCloseDialog:'Close this dialog when download is over!',
+    diagnosisDownloadTip:'It will cost you serveral mimutes!',
 
     tip_diagnosis: 'Download Diagnosis Info For Current Project',
     backup:'Backup',

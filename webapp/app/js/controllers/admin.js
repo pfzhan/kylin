@@ -173,6 +173,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
     };
     $scope.upload=function(){
       $scope.loading=true;
+      $scope.downloadtip=false;
       KybotDiagnosisService.uploadPackage(function(data){
         $scope.cancel();
         if(data&&data.code=='000'){
@@ -220,6 +221,7 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
     }
     $scope.dowloadLink=function(){
        $scope.loading=true;
+       $scope.downloadtip=true;
        VdmUtil.loadFileFromService(Config.service.url+"kybot/dump",function(){
          $scope.cancel();
        },function(e){

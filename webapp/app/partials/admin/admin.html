@@ -133,7 +133,7 @@
   <ng-form name="config_update_form"  >
     <div ng-if="loading&&!endLoad">
       <loading  text="{{ dataKylin.system.diagnosisFactoryPackage }}" seq="true"></loading>
-      <span style="position: absolute;bottom: 20px;margin: 0 auto;text-align: center;width: 100%;">{{ dataKylin.system.diagnosisDownloadTip }}</span>
+      <span style="position: absolute;bottom: 20px;margin: 0 auto;text-align: center;width: 100%;">{{ dataKylin.system.diagnosisDownloadTip }} <i ng-show="downloadtip">{{dataKylin.system.diagnosisCloseDialog}}</i></span>
     </div>
     <span class="kylinDialog_close" ng-click="cancel()"></span>
     <div class="modal-header" ng-if="!loading&&!endLoad">
