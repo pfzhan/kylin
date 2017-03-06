@@ -842,7 +842,7 @@ KylinApp.constant('kapChineseConfig', {
     tip_setConfig: '更新服务器配置',
     diagnosis: '诊断',
 
-    diagnosisIntroduce:'<a target="_blank" href="https://kybot.io">Kybot</a>通过分析KAP生成的诊断包，提供KAP在线诊断、优化及服务',
+    diagnosisIntroduce:'<a target="_blank" href="https://kybot.io">KyBot</a>通过分析KAP生成的诊断包，提供KAP在线诊断、优化及服务',
     diagnosisTimeDis:'生成的诊断包将覆盖生成时间前72小时的信息',
     diagnosisUploadBtn:'一键生成诊断包至KyBot',
     diagnosisDownloadBtn:'下载诊断包',
@@ -1011,7 +1011,7 @@ KylinApp.constant('kapChineseConfig', {
     hasCollectJob: '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!',
     complete:'完成',
     goToKybot:'请登录KyBot查看',
-    goToKybotBtn:'立即访问Kybot网站',
+    goToKybotBtn:'立即访问KyBot网站',
     close:'关闭',
     failUpload:'上传失败',
     failDownload:'下载失败'

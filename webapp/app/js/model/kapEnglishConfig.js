@@ -1011,8 +1011,8 @@ KylinApp.constant('kapEnglishConfig', {
     collectStaticsSuccess:'Collect job start running!You can go to Monitor page to watch the progress!',
     hasCollectJob: 'There has been a running collect job!You can go to Monitor page to watch the progress!',
     complete:'Complete',
-    goToKybot:'please got to the kybot site to view the result',
-    goToKybotBtn:'Go to Kybot site now!',
+    goToKybot:'please got to the KyBot site to view the result',
+    goToKybotBtn:'Go to KyBot site now!',
     close:'Close',
     failUpload:'Upload failed',
     failDownload:'Download failed'
