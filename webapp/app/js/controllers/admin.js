@@ -193,11 +193,24 @@ KylinApp.controller('AdminCtrl', function ($scope, AdminService, CacheService, T
         }
         $scope.loading=false;
       },function(e){
+        var errorMsg='';
+        if(e&&e.data){
+          if(e.status==400) {
+            if (e.data.code == '402') {
+              errorMsg = 'Authentication failed. Please check your network connection availability to https://kybot.io';
+            } else if (e.data.code == '401') {
+              errorMsg = 'Please set kap.kyaccount.username and kap.kyaccount.password in kylin.properties.'
+            }
+          }else{
+            errorMsg=e.data.exception||'';
+          }
+        }
+
         $scope.loading=false;
         $scope.cancel();
         SweetAlert.swal({
           title:$scope.dataKylin.alert.failUpload,// '上传失败',
-          text:e&& e.data&&e.data.exception||$scope.dataKylin.alert.error_info,
+          text:errorMsg||$scope.dataKylin.alert.error_info,
           type: 'error',
           confirmButtonColor: '#DD6B55',
           confirmButtonText: "ok",

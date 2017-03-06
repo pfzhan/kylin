@@ -141,13 +141,13 @@
     </div>
     <div class="modal-body" ng-if="!loading&&!endLoad">
       <div class="form-group dialog_content">
-         <p><a>kybot </a> {{ dataKylin.system.diagnosisIntroduce }}（<span>{{ dataKylin.system.diagnosisTimeDis }}</span>）</p>
+         <p><span style="color:#333" ng-bind-html="dataKylin.system.diagnosisIntroduce"></span>（<span>{{ dataKylin.system.diagnosisTimeDis }}</span>）</span>
       </div>
       <div class="form-group dialog_btn">
         <button class="btn btn-primary" ng-click="upload()">{{ dataKylin.system.diagnosisUploadBtn }}</button>
       </div>
       <div class="form-group dialog_content dialog_footer">
-       <p><a ng-click="dowloadLink()" target="_blank">{{ dataKylin.system.diagnosisDownloadBtn }}</a>，{{ dataKylin.system.diagnosisUploadByHand }} <i class="fa fa-question-circle"  kylinpopover="" placement="right" ng-title="{{ dataKylin.system.diagnosisForPoorNetwork }}"  template="actionDiagnosisTips.html" ></i></p>
+       <p><a ng-click="dowloadLink()" target="_blank">{{ dataKylin.system.diagnosisDownloadBtn }}</a>{{ dataKylin.system.diagnosisUploadByHand }} <i class="fa fa-question-circle"  kylinpopover="" placement="right" ng-title="{{ dataKylin.system.diagnosisForPoorNetwork }}"  template="actionDiagnosisTips.html" ></i></p>
       </div>
     </div>
     <!--<div class="modal-footer">-->
