@@ -104,7 +104,7 @@ public class HiveTableExtSampleJob extends CubingJob {
             throw new IllegalArgumentException("Cannot find table descriptor " + tableName);
         }
 
-        boolean isFullTable = (rowSize == Long.MAX_VALUE);
+        boolean isFullTable = (rowSize == 0);
 
         if (table.isView() || !isFullTable) {
             JobEngineConfig jobConf = new JobEngineConfig(config);
