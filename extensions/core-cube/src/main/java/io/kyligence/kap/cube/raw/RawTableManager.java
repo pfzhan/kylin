@@ -153,6 +153,7 @@ public class RawTableManager implements IRealizationProvider {
             if (event == Event.DROP)
                 return;
 
+            //By design. Make rawtable be consistence with cube, but only in cache. In merge step, rawtable' segment info in hbase is still useful.
             if (rawTableInstanceMap.containsKey(cubeName)) {
                 reloadRawTableInstanceLocal(cubeName);
             }
