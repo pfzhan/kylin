@@ -95,6 +95,8 @@ public class SparkParquetVisit implements Serializable {
     private final transient Configuration conf;
     private final transient int parallel;
     private transient boolean needLazy;
+    private transient int limit = 0;
+    private transient long accumulateCnt = 0;
     private transient List<JavaPairRDD> batchRdd = Lists.newArrayList();
 
     private final static ExecutorService cachedRDDCleaner = Executors.newSingleThreadExecutor();
@@ -196,6 +198,7 @@ public class SparkParquetVisit implements Serializable {
                         append(request.getDataFolderName()).toString(), "parquet.inv");
                 this.inputFormatClass = ParquetRawTableFileInputFormat.class;
                 this.needLazy = StorageContext.isValidPushDownLimit(scanRequest.getStoragePushDownLimit());
+                this.limit = scanRequest.getStoragePushDownLimit();
             }
 
             this.parquetPathIter = parquetPathCollection.iterator();
@@ -279,6 +282,7 @@ public class SparkParquetVisit implements Serializable {
         long scanCount = collectedRecords.value();
         long threshold = (long) kylinConfig.getLargeQueryThreshold();
         logger.info("The threshold for large result set is {}, current count is {}", threshold, scanCount);
+        accumulateCnt += scanCount;
         if (scanCount > threshold) {
             logger.info("returning large result set");
             partitionResults = cached.toLocalIterator();
@@ -297,6 +301,11 @@ public class SparkParquetVisit implements Serializable {
     }
 
     public boolean moreRDDExists() {
+        // cut stream when limit is met
+        if (needLazy && accumulateCnt >= limit) {
+            return false;
+        }
+
         if (batchRdd.size() != 0) {
             return true;
         }
