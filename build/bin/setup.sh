@@ -29,6 +29,11 @@ fi
 echo "start setup procedure"
 echo "please enter the number of spark vcore. You'd better make sure that it's multiple of ${spark_executor_cores}"
 read spark_vcore
+expr ${spark_vcore} "+" 10 &> /dev/null
+if [ $? -ne 0 ];then
+  echo "please enter a number"
+  exit 1
+fi
 spark_executor_instances=`expr ${spark_vcore} / ${spark_executor_cores} `
 
 echo "auto config properties below"
