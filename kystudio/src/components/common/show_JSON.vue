@@ -1,14 +1,14 @@
 <template>
 <div>
 <el-card class="box-card">
-  {{model}}
+  {{json}}
 </el-card>
 </div>
 </template>
 <script>
 export default {
-  name: 'showJSON',
-  props: ['model']
+  name: 'showjson',
+  props: ['json']
 }
 </script>
 <style scoped="">

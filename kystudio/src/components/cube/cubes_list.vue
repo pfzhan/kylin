@@ -6,7 +6,7 @@
       <template scope="props">
          <el-tabs v-model="activeName" type="card" >
            <el-tab-pane label="Grid" name="first">
-                GRID
+                <cube_desc :cube="props.row"></cube_desc>
            </el-tab-pane>
            <el-tab-pane label="JSON" name="second">
             <show_JSON :model="props.row"></show_JSON>
@@ -57,6 +57,7 @@
 <script>
 import { mapActions } from 'vuex'
 import showJSON from '../common/show_JSON'
+import cubeDesc from './cube_desc'
 export default {
   name: 'cubeslist',
   methods: {
@@ -76,7 +77,8 @@ export default {
     }
   },
   components: {
-    'show_JSON': showJSON
+    'show_JSON': showJSON,
+    'cube_desc': cubeDesc
   },
   created () {
     this.loadCubes()

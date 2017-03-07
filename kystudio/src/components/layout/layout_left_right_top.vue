@@ -40,11 +40,10 @@
 					</el-col>
 				</div>
 
-<!-- 				<project_list>
-			            </project_list> -->
+				<project_list></project_list>
 <!-- 			            <total name="Projects"></total> -->
 <!--                                                   <model_list></model_list> -->
-                                                 <cubes_list></cubes_list>
+ <!--                                                 <cubes_list></cubes_list> -->
 			</section>
 			<!--</el-col>-->
 		</el-col>
