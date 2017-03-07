@@ -56,7 +56,7 @@ public class HiveTableExtSampleJob extends CubingJob {
     public static List<String> createSampleJob(String project, String submitter, String... tables) throws IOException {
         List<String> jobIDs = new ArrayList<>();
         for (String table : tables) {
-            String jobID = initSampleJob(project, submitter, table, Long.MAX_VALUE);
+            String jobID = initSampleJob(project, submitter, table, 0);
             jobIDs.add(jobID);
         }
         return jobIDs;
@@ -109,32 +109,32 @@ public class HiveTableExtSampleJob extends CubingJob {
         if (table.isView() || !isFullTable) {
             JobEngineConfig jobConf = new JobEngineConfig(config);
             String checkParam = "-output " + getViewPath(jobConf, sampleJob.getId(), table);
-            HadoopShellExecutable prestep = new HadoopShellExecutable();
-            prestep.setName("Check Hdfs Path");
-            prestep.setJobClass(CheckHdfsPath.class);
-            prestep.setJobParams(checkParam);
-            sampleJob.addTask(prestep);
+            HadoopShellExecutable checkHdfsPathStep = new HadoopShellExecutable();
+            checkHdfsPathStep.setName("Check Hdfs Path");
+            checkHdfsPathStep.setJobClass(CheckHdfsPath.class);
+            checkHdfsPathStep.setJobParams(checkParam);
+            sampleJob.addTask(checkHdfsPathStep);
             sampleJob.addTask(materializedView(table, sampleJob.getId(), jobConf, !isFullTable ? "limit " + rowSize : ""));
         }
 
         String samplesOutPath = getOutputPath(config, sampleJob.getId(), HiveTableExtSampleJob.SAMPLES) + table.getIdentity();
-        String step1_Param = "-table " + tableName + " -output " + samplesOutPath + " -fullTable " + isFullTable;
+        String statsStepParam = "-table " + tableName + " -output " + samplesOutPath + " -fullTable " + isFullTable;
 
-        MapReduceExecutable step1 = new MapReduceExecutable();
+        MapReduceExecutable collectStatsStep = new MapReduceExecutable();
 
-        step1.setName("Extract Samples from " + tableName);
-        step1.setMapReduceJobClass(HiveTableExtJob.class);
-        step1.setMapReduceParams(step1_Param);
+        collectStatsStep.setName("Extract Samples from " + tableName);
+        collectStatsStep.setMapReduceJobClass(HiveTableExtJob.class);
+        collectStatsStep.setMapReduceParams(statsStepParam);
 
-        sampleJob.addTask(step1);
+        sampleJob.addTask(collectStatsStep);
 
-        HadoopShellExecutable step2 = new HadoopShellExecutable();
+        HadoopShellExecutable updateStatsStep = new HadoopShellExecutable();
 
-        String step2_Param = "-table " + tableName + " -output " + samplesOutPath;
-        step2.setName("Move " + tableName + " Samples to MetaData");
-        step2.setJobClass(HiveTableExtUpdate.class);
-        step2.setJobParams(step2_Param);
-        sampleJob.addTask(step2);
+        String updateStatsParam = "-table " + tableName + " -output " + samplesOutPath;
+        updateStatsStep.setName("Move " + tableName + " Samples to MetaData");
+        updateStatsStep.setJobClass(HiveTableExtUpdate.class);
+        updateStatsStep.setJobParams(updateStatsParam);
+        sampleJob.addTask(updateStatsStep);
 
         if (table.isView() || !isFullTable)
             sampleJob.addTask(deleteMaterializedView(table, config));
