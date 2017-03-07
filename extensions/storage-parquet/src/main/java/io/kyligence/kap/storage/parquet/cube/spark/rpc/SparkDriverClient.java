@@ -251,8 +251,8 @@ public class SparkDriverClient {
                         public byte[] apply(@Nullable SparkJobResponse.PartitionResponse partitionResponse) {
 
                             byte[] bytes = partitionResponse.getBlob().toByteArray();
-                            logger.info("[Partition Response Metrics] result bytes: {}, scanned rows: {}, scanned bytes: {},  returned rows: {} , start latency: {}, partition duration: {}, partition calculated on {}", //
-                                    bytes.length, partitionResponse.getScannedRows(), partitionResponse.getScannedBytes(), partitionResponse.getReturnedRows(), partitionResponse.getStartLatency(), partitionResponse.getTotalDuration(), partitionResponse.getHostname());
+                            logger.info("[Partition Response Metrics] scan-request {}, result bytes: {}, scanned rows: {}, scanned bytes: {},  returned rows: {} , start latency: {}, partition duration: {}, partition calculated on {}", //
+                                    scanRequestId, bytes.length, partitionResponse.getScannedRows(), partitionResponse.getScannedBytes(), partitionResponse.getReturnedRows(), partitionResponse.getStartLatency(), partitionResponse.getTotalDuration(), partitionResponse.getHostname());
 
                             QueryContext.current().addAndGetScannedRows(partitionResponse.getScannedRows());
                             QueryContext.current().addAndGetScannedBytes(partitionResponse.getScannedBytes());
