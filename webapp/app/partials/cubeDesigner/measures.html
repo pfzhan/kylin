@@ -296,7 +296,7 @@
                               </button>
                               <ul class="dropdown-menu my-dropdown" role="menu"  style="width:100%;" >
                                 <li>
-                                  <a middle-popover ng-repeat="encoding in getEncodings(groupby_column.name)" ng-click="groupby_column.encoding=encoding.value;groupby_column.encodingName=encoding.name;"
+                                  <a middle-popover ng-repeat="encoding in getEncodings(groupby_column.name)" ng-click="groupby_column.encoding=encoding.value;groupby_column.encodingName=encoding.name;groupby_column.valueLength=(groupby_column.encodingName=='integer')?4:0;"
                                      kylinpopover placement="right" ng-version="{{encoding.version}}"
                                      ng-title="{{(encoding.value=='dict[v1]'||encoding.value=='fixed_length[v1]'||encoding.value=='int[v1]'||encoding.value=='integer[v1]'||encoding.value=='integer[v2]'||encoding.value=='fixed_length_hex[v1]'||encoding.value=='date[v1]'||encoding.value=='time[v1]'||encoding.value=='boolean[v1]')?encoding.name:''}}" ng-value="{{encoding.value}}" ng-watch="{{dataKylin.cube.tip_encoding}}" template="encodingTip.html">
                                     {{encoding.name}}
