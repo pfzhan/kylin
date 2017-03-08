@@ -1,8 +1,7 @@
 <template>
 <div>
   <el-steps :active="activeStep"  finish-status="finish" process-status="wait" center align-center>
-    <el-step title="Model Info" @click.native="step(1)">
-    </el-step>
+    <el-step title="Model Info" @click.native="step(1)"></el-step>
     <el-step title="Data Mode" @click.native="step(2)"></el-step>
     <el-step title="Dimensions"  @click.native="step(3)"></el-step>
     <el-step title="Measures" @click.native="step(4)"></el-step>

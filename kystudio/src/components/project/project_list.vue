@@ -1,4 +1,5 @@
 <template>
+  <div>
   <el-table
     :data="projectList"
     style="width: 100%">
@@ -6,7 +7,7 @@
       <template scope="props">
          <el-tabs v-model="activeName" type="card" >
            <el-tab-pane label="Cubes" name="first">
-             {{props.row}}
+             <cube_list :cubeList="props.row.realizations"></cube_list>
            </el-tab-pane>
            <el-tab-pane label="Access" name="second">Access
          </el-tab-pane>
@@ -40,30 +41,59 @@
         <i class="el-icon-more"></i>
       </el-button >
       <el-dropdown-menu slot="dropdown">
-        <el-dropdown-item>Edit</el-dropdown-item>
+        <el-dropdown-item @click.native="selectProject(scope.row)">Edit</el-dropdown-item>      
         <el-dropdown-item>Backup</el-dropdown-item>
-        <el-dropdown-item>Drop</el-dropdown-item>
+        <el-dropdown-item @click.native="dialogVisible=true">Delete</el-dropdown-item>
       </el-dropdown-menu>
       </el-dropdown>
       </template>      
     </el-table-column>     
-  </el-table>
+    </el-table>
+
+    <el-dialog title="Project" v-model="dialogFormVisible">
+      <project_edit :project="project"></project_edit>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="dialogFormVisible = false">取 消</el-button>
+        <el-button type="primary" @click="dialogFormVisible = false">确 定</el-button>
+      </div>
+    </el-dialog>  
+    <el-dialog title="提示" v-model="dialogVisible" size="tiny">
+      <span>Are you sure to delete this project.</span>
+      <span slot="footer" class="dialog-footer">
+       <el-button @click="dialogVisible = false">取 消</el-button>
+       <el-button type="primary" @click="dialogVisible = false">确 定</el-button>
+     </span>
+</el-dialog>    
+</div>
 </template>
 
 <script>
 import { mapActions } from 'vuex'
+import cubeList from './cube_list'
+import projectEdit from './project_edit'
 export default {
   name: 'projectlist',
   methods: {
     ...mapActions({
       loadProjects: 'LOAD_PROJECT_LIST'
-    })
+    }),
+    selectProject (project) {
+      this.dialogFormVisible = true
+      this.project = project
+      console.log(project)
+    }
   },
   data () {
     return {
-      activeName: 'first',
+      project: {},
+      dialogFormVisible: false,
+      dialogVisible: false,
       selected_project: localStorage.getItem('selected_project')
     }
+  },
+  components: {
+    'cube_list': cubeList,
+    'project_edit': projectEdit
   },
   computed: {
     projectList () {
