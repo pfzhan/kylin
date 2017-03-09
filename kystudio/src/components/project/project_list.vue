@@ -10,10 +10,10 @@
              <cube_list :cubeList="props.row.realizations"></cube_list>
            </el-tab-pane>
            <el-tab-pane label="Access" name="second">Access
-         </el-tab-pane>
+           </el-tab-pane>
            <el-tab-pane label="External Filters" name="third">
             External Filters
-         </el-tab-pane>
+           </el-tab-pane>
         </el-tabs>
       </template>
     </el-table-column>
@@ -41,29 +41,25 @@
         <i class="el-icon-more"></i>
       </el-button >
       <el-dropdown-menu slot="dropdown">
-        <el-dropdown-item @click.native="selectProject(scope.row)">Edit</el-dropdown-item>      
-        <el-dropdown-item>Backup</el-dropdown-item>
-        <el-dropdown-item @click.native="dialogVisible=true">Delete</el-dropdown-item>
+        <el-dropdown-item @click.native="editProject(scope.row)">Edit</el-dropdown-item>      
+        <el-dropdown-item @click.native="editProject({})">Backup</el-dropdown-item>
+        <el-dropdown-item @click.native="showDeleteTip(scope.row)">Delete</el-dropdown-item>
       </el-dropdown-menu>
       </el-dropdown>
       </template>      
     </el-table-column>     
     </el-table>
-
-    <el-dialog title="Project" v-model="dialogFormVisible">
-      <project_edit :project="project"></project_edit>
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="dialogFormVisible = false">取 消</el-button>
-        <el-button type="primary" @click="dialogFormVisible = false">确 定</el-button>
-      </div>
+    <el-dialog title="Project" v-model="FormVisible">
+      <project_edit :project="project" :showTip="FormVisible"></project_edit>
     </el-dialog>  
-    <el-dialog title="提示" v-model="dialogVisible" size="tiny">
+
+    <el-dialog title="提示" v-model="deleteTip" size="tiny">
       <span>Are you sure to delete this project.</span>
       <span slot="footer" class="dialog-footer">
-       <el-button @click="dialogVisible = false">取 消</el-button>
-       <el-button type="primary" @click="dialogVisible = false">确 定</el-button>
-     </span>
-</el-dialog>    
+         <el-button @click="deleteTip = false">取 消</el-button>
+         <el-button type="primary" @click="removeProject()">确 定</el-button>
+      </span>
+    </el-dialog>    
 </div>
 </template>
 
@@ -75,19 +71,38 @@ export default {
   name: 'projectlist',
   methods: {
     ...mapActions({
-      loadProjects: 'LOAD_PROJECT_LIST'
+      loadProjects: 'LOAD_PROJECT_LIST',
+      deleteProject: 'DELETE_PROJECT',
+      updateProject: 'UPDATE_PROJECT',
+      saveProject: 'SAVE_PROJECT'
     }),
-    selectProject (project) {
-      this.dialogFormVisible = true
+    editProject (project) {
+      this.FormVisible = true
       this.project = project
-      console.log(project)
+    },
+    showDeleteTip (project) {
+      this.deleteTip = true
+      this.project = project
+    },
+    removeProject () {
+      this.deleteTip = false
+      this.deleteProject(this.project.name)
+    },
+    updateProject (project) {
+      this.FormVisible = false
+      this.updateProject(project)
+    },
+    saveProject (project) {
+      this.FormVisible = false
+      this.saveProject(project)
     }
   },
   data () {
     return {
       project: {},
-      dialogFormVisible: false,
-      dialogVisible: false,
+      activeName: 'first',
+      FormVisible: false,
+      deleteTip: false,
       selected_project: localStorage.getItem('selected_project')
     }
   },

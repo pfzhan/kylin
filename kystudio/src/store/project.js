@@ -6,7 +6,6 @@ export default {
   },
   mutations: {
     [types.SAVE_PROJECT_LIST]: function (state, { list }) {
-      console.log(1)
       state.projectList = list
     }
   },
@@ -16,6 +15,15 @@ export default {
         commit(types.SAVE_PROJECT_LIST, { list: response.data })
       }, () => {
       })
+    },
+    [types.DELETE_PROJECT]: function ({ commit }, projectName) {
+      api.project.deleteProject(projectName)
+    },
+    [types.UPDATE_PROJECT]: function ({ commit }, project) {
+      api.project.updateProject(project)
+    },
+    [types.SAVE_PROJECT]: function ({ commit }, project) {
+      api.project.saveProject(project)
     }
   },
   getters: {}

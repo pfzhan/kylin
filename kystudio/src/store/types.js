@@ -1,6 +1,9 @@
 // project actions mutations
 export const LOAD_PROJECT_LIST = 'LOAD_PROJECT_LIST'
 export const SAVE_PROJECT_LIST = 'SAVE_PROJECT_LIST'
+export const DELETE_PROJECT = 'DELETE_PROJECT'
+export const UPDATE_PROJECT = 'UPDATE_PROJECT'
+export const SAVE_PROJECT = 'SAVE_PROJECT'
 
 // model actions mutations
 export const LOAD_MODEL_LIST = 'LOAD_MODEL_LIST'

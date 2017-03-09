@@ -7,5 +7,14 @@ Vue.use(VueResource)
 export default {
   getProjectList: (params) => {
     return Vue.resource(apiUrl + 'projects/readable').get(params)
+  },
+  deleteProject: (projectName) => {
+    return Vue.resource(apiUrl + 'projects/' + projectName).remove({})
+  },
+  updateProject: (project) => {
+    return Vue.resource(apiUrl + 'projects').update({}, { formerProjectName: project.name, projectDescData: project })
+  },
+  saveProject: (project) => {
+    return Vue.resource(apiUrl + 'projects').save({}, {projectDescData: project})
   }
 }
