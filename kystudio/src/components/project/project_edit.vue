@@ -2,13 +2,13 @@
   <div>
     <el-form label-position="top">
     <el-form-item label="Project Name" >
-      <el-input v-model="project.name" auto-complete="off"></el-input>
+      <el-input v-model="projectDesc.name" auto-complete="off"></el-input>
     </el-form-item>
     <el-form-item label="Description" >
-      <el-input v-model="project.description" auto-complete="off"></el-input>
+      <el-input v-model="projectDesc.description" auto-complete="off"></el-input>
     </el-form-item>
     <el-form-item
-    v-for=" (value, key, index) in project.override_kylin_properties"
+    v-for=" (value, key, index) in projectDesc.override_kylin_properties"
     label="Project Config">
     <el-row :gutter="20">
       <el-col :span="10"><el-input v-model="convertedProperties[index].key"></el-input></el-col>
@@ -18,11 +18,7 @@
   </el-form-item> 
   <el-form-item>
     <el-button @click="addNewProperty">Property</el-button>
-  </el-form-item>
-  <el-form-item>
-   <el-button type="primary" @click="updateProject (project) ">确定</el-button>   
-   <el-button @click="showTip = false">取消</el-button>
-  </el-form-item>     
+  </el-form-item>    
   </el-form>
 </div>
 </template>
@@ -32,7 +28,8 @@ export default {
   props: ['project', 'showTip'],
   data () {
     return {
-      convertedProperties: [ ]
+      convertedProperties: [ ],
+      projectDesc: this.project
     }
   },
   methods: {
