@@ -217,20 +217,20 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
     }
   };
 
-  $scope.removeHierarchy = function(arr,element){
+  $scope.removeHierarchy = function(arr,element,groupIndex){
     var index = arr.select_rule.hierarchy_dims.indexOf(element);
     if(index>-1){
       arr.select_rule.hierarchy_dims.splice(index,1);
     }
-
+    $scope.calcCuboidNumber(arr,groupIndex);
   }
 
-  $scope.removeJointDims = function(arr,element){
+  $scope.removeJointDims = function(arr,element,groupIndex){
     var index = arr.select_rule.joint_dims.indexOf(element);
     if(index>-1){
       arr.select_rule.joint_dims.splice(index,1);
     }
-
+    $scope.calcCuboidNumber(arr,groupIndex);
   }
 
 
