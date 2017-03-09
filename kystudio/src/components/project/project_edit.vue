@@ -42,7 +42,7 @@ export default {
       this.$dispatch('updateProject', this.showTip)
     },
     saveProject (project) {
-      this.showTip = false
+//      this.showTip = false
 //      this.saveProject(project)
     },
     removeProperty (item) {

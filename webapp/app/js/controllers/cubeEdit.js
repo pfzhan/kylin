@@ -258,7 +258,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
 
   $scope.prepareCube = function () {
     //generate rowkey
-    reGenerateRowKey();
+    reGenerateRowKey('isSave');
 
     if ($scope.metaModel.model.partition_desc.partition_date_column && ($scope.cubeMetaFrame.partition_date_start | $scope.cubeMetaFrame.partition_date_start == 0)) {
 
@@ -564,7 +564,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
     }
   }
 
-  function reGenerateRowKey() {
+  function reGenerateRowKey(isSave) {
     var tmpRowKeyColumns = [];
     var tmpAggregationItems = [];//put all aggregation item
     //var hierarchyItemArray = [];//put all hierarchy items
@@ -674,16 +674,19 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
       });
 
       $scope.cubeMetaFrame.aggregation_groups = [];
-      var initJointGroups = [];
-      var newGroup =  CubeDescModel.createAggGroup();
-      newGroup.includes = newUniqAggregationItem;
-      for(var i=1;i<initJointGroups.length;i++){
-        if(initJointGroups[i].length>1){
-          newGroup.select_rule.joint_dims[i-1] = initJointGroups[i];
+      if(isSave=='isSave'){
+        return
+      }else{
+        var initJointGroups = [];
+        var newGroup =  CubeDescModel.createAggGroup();
+        newGroup.includes = newUniqAggregationItem;
+        for(var i=1;i<initJointGroups.length;i++){
+          if(initJointGroups[i].length>1){
+            newGroup.select_rule.joint_dims[i-1] = initJointGroups[i];
+          }
         }
+        $scope.cubeMetaFrame.aggregation_groups.push(newGroup);
       }
-      $scope.cubeMetaFrame.aggregation_groups.push(newGroup);
-
     }
   }
 
