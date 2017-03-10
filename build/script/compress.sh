@@ -35,7 +35,7 @@ cp -r ../extensions/examples/sample_cube ${package_name}
 if [ -f "kybot/diag.sh" ]; then
     mv kybot/diag.sh ${package_name}/bin
 fi
-cp -rf commit_SHA1 lib kybot tomcat spark ${package_name}/
+cp -rf commit_SHA1 lib tool kybot tomcat spark ${package_name}/
 
 # Add min/prod profiles
 cp -rf conf/profile_min ${package_name}/conf
@@ -89,7 +89,7 @@ if [ "$SKIP_OBF" != "1" ]; then
     mv ../tmp/kylin-coprocessor-kap-${release_version}-obf.jar ${package_name}/lib/kylin-coprocessor-kap-${release_version}.jar
     mv ../tmp/kylin-storage-parquet-kap-${release_version}-obf.jar ${package_name}/lib/kylin-storage-parquet-kap-${release_version}.jar
     mv ../tmp/kylin-job-kap-${release_version}-obf.jar ${package_name}/lib/kylin-job-kap-${release_version}.jar
-    mv ../tmp/kylin-tool-kap-${release_version}-obf.jar ${package_name}/lib/kylin-tool-kap-${release_version}.jar
+    mv ../tmp/kylin-tool-kap-${release_version}-obf.jar ${package_name}/tool/kylin-tool-kap-${release_version}.jar
     tar -cvzf ${package_name}.tar.gz ${package_name}
 
     rm -r ../tmp

@@ -31,7 +31,7 @@ if [[ $CI_MODE == 'true' ]]; then
     cd $dir
     tool_jar=$(ls ../../kylin/tool-assembly/target/kylin-tool-*-assembly.jar)
 else
-    tool_jar=$(ls $KYLIN_HOME/lib/kylin-tool-*.jar)
+    tool_jar=$(ls $KYLIN_HOME/tool/kylin-tool-*.jar)
 fi
 
 kylin_conf_opts=
