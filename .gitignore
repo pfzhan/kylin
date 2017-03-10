@@ -11,10 +11,10 @@ tmp/
 local.properties
 release.properties
 .loadpath
+.settings
 
 #IDEA
 *.iml
-#.settings
 
 # External tool builders
 .externalToolBuilders/
