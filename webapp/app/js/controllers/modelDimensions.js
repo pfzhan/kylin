@@ -54,7 +54,7 @@ KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, 
             var SelectAvailable = {};
             for (var k = 0; k < cols2.length; k++) {
             // Default not selected and not disabled.
-                SelectAvailable[cols2[k].name] = {name:cols2[k].name,selected: false,disabled:false};
+                SelectAvailable[cols2[k].name] = {name:cols2[k].name,selected: false,disabled:false,inMetrics: false};
             }
             SelectAvailable.all=false;
             SelectAvailable.disabled=false;
@@ -83,6 +83,13 @@ KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, 
                   $scope.selectedColumns[dim.table][column].selected=true;
                 }
             });
+        });
+        angular.forEach(modelsManager.selectedModel.metrics, function(metric){
+            var colName = VdmUtil.removeNameSpace(metric);
+            var tableName = VdmUtil.getNameSpace(metric);
+            if($scope.selectedColumns[tableName][colName]){
+                $scope.selectedColumns[tableName][colName].inMetrics = true;
+            }
         });
         angular.forEach($scope.usedDimensionsCubeMap, function (dim,dimension) {
             angular.forEach(dim, function (col,column) {
@@ -143,7 +150,7 @@ KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, 
             if($scope.cubesLength>0){
                 if(typeof col==="object"&&col.disabled==false){
                     var local=modelsManager.selectedModel.dimensions[index].columns.indexOf(col.name);
-                    if($scope.selectedColumns[table].all==true&&col.selected==false){
+                    if($scope.selectedColumns[table].all==true&&col.selected==false&&col.inMetrics==false){
                         col.selected=true;
                         modelsManager.selectedModel.dimensions[index].columns.push(col.name);
                     }
@@ -155,7 +162,7 @@ KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, 
             }else{
                 if(typeof col==="object"){
                     if($scope.selectedColumns[table].all==true){
-                        if(col.selected == false){
+                        if(col.selected == false&&col.inMetrics==false){
                            col.selected=true;
                            modelsManager.selectedModel.dimensions[index].columns.push(col.name);
                         }

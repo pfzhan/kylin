@@ -78,8 +78,9 @@
                 <tr ng-repeat="column in getColumnsByAlias(dimension.table) | orderObjectBy:state[dimension.table].filterAttr:state[dimension.table].filterReverse " class="row">
                   <td><label class="dim-checkbox-label">
                     <input type="checkbox" ng-change="Change(dimension.table,column.name,outindex)" ng-model="selectedColumns[dimension.table][column.name].selected"
-                           ng-disabled="selectedColumns[dimension.table][column.name].disabled&&cubesLength>0" >
+                           ng-disabled="(selectedColumns[dimension.table][column.name].disabled&&cubesLength>0)||selectedColumns[dimension.table][column.name].inMetrics" >
                     <i class="fa fa-info-circle" ng-if="selectedColumns[dimension.table][column.name].disabled&&cubesLength>0" kylinpopover placement="right" ng-title="{{dataKylin.model.gridInUseTip}}"  ng-cube="{{usedDimensionsCubeMap[dimension.table][column.name]}}" template="modelDimensions.html" ></i>
+                    <i class="fa fa-lock" style="color:darkgoldenrod;" ng-if="selectedColumns[dimension.table][column.name].inMetrics" kylinpopover placement="right" ng-title="{{dataKylin.model.gridInUseTip}}"  template="colInMeasures.html"></i>
                     </label>
                   </td>
                   <td>{{column.name}}</td>
@@ -100,5 +101,10 @@
     {{dataKylin.model.gridColumnInUse_part_one}}
     {{cube}}
     {{dataKylin.model.gridColumnInUse_part_two}}
+  </div>
+</script>
+<script type="text/ng-template" id="colInMeasures.html">
+  <div>
+    {{dataKylin.model.gridColInMeasures}}
   </div>
 </script>

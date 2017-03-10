@@ -246,6 +246,8 @@ KylinApp.constant('kapEnglishConfig', {
     gridColumnInUse_part_two: '',
     gridTableInUse_part_one: 'This table is in use in Cube',
     gridTableInUse_part_two: '',
+    gridColInDimensions: 'This column is selected in dimensions.If you want to select this column ,please cancel in dimensions first.',
+    gridColInMeasures: 'This column is selected in measures.If you want to select this column ,please cancel it in measures first.',
     gridMIModelName: 'Model Name',
     tip_title: 'gridMIModelName',
     tip_body_model_name: '<li>Model name is unique name of entire system.</li><li>Can not edit model name after created.</li>',

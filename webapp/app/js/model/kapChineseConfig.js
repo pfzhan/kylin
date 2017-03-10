@@ -246,6 +246,8 @@ KylinApp.constant('kapChineseConfig', {
     gridColumnInUse_part_two: '正在使用该列。',
     gridTableInUse_part_one: 'Cube',
     gridTableInUse_part_two: ' 正在使用该表。',
+    gridColInDimensions: '该列已经在维度中被使用了.如果你想使用该列，请先在维度中取消使用该列.',
+    gridColInMeasures: '该列已经在度量中被使用了.如果你想使用该列，请先在度量中取消使用该列.',
     gridMIModelName: '模型名称',
     tip_title: 'gridMIModelName',
     tip_body_model_name: '<li>模型名称需要是所有项目中是唯一的.</li><li>模型创建后将不能重命名.</li>',
