@@ -34,6 +34,14 @@ export default new Router({
       name: 'welcome',
       component: hello
     }, {
+      path: '/dashbord',
+      name: 'Dashbord',
+      component: topLeftRightView,
+      children: [{
+        name: 'Index',
+        path: 'index'
+      }]
+    }, {
       path: '/model',
       name: 'model',
       component: topLeftRightView,

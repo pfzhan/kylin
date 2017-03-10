@@ -1,19 +1,11 @@
 <template>
 	<el-row class="panel">
-		<el-col :span="24" class="panel-top">
-			<el-col :span="20" style="font-size:26px;">
-				<img src="../../assets/logo.png" class="logo"> <span>KY<i style="color:#20a0ff">Studio</i></span>
-			</el-col>
-			<el-col :span="4">
-				<el-tooltip class="item tip-logout" effect="dark" content="退出" placement="bottom" style="padding:0px;">
-					<!--<i class="logout" v-on:click="logout"></i>-->
-					<i class="fa fa-sign-out" aria-hidden="true" v-on:click="logout"></i>
-				</el-tooltip>
-			</el-col>
-		</el-col>
+		
 		<el-col :span="24" class="panel-center">
+
 			<!--<el-col :span="4">-->
-			<aside style="width:230px;">
+			<aside style="width:230px;" class="left_menu">
+			    <img src="../../assets/logo.png" class="logo">
 				<el-menu style="border-top: 1px solid #475669;" default-active="/table" class="el-menu-vertical-demo" @open="handleopen"
 					@close="handleclose" @select="handleselect" theme="dark" unique-opened router>
 					<template v-for="(item,index) in menus" >
@@ -23,7 +15,9 @@
 			</aside>
 			<!--</el-col>-->
 			<!--<el-col :span="20" class="panel-c-c">-->
+			<div class="topbar"><icon name="sync" scale="2" spin></icon></div>
 			<section class="panel-c-c">
+			    
 				<div class="grid-content bg-purple-light">
 					<el-col :span="24" style="margin-bottom:15px;">
 						<strong style="width:200px;float:left;color: #475669;">{{currentPathName}}</strong>
@@ -51,6 +45,7 @@
 </template>
 
 <script>
+  import icon from 'vue-awesome/components/Icon.vue'
   import projectList from '../project/project_list'
   import total from '../common/total'
   import modelList from '../model/model_list'
@@ -71,8 +66,8 @@
           desc: ''
         },
         menus: [
-          {name: 'Dashbord', path: '/model'},
-          {name: 'KyStudio', path: '/hehe'},
+          {name: 'Dashbord', path: '/dashbord/index'},
+          {name: 'KyStudio', path: '/model'},
           {name: 'KyAnalyzer', path: ''},
           {name: 'KyManager', path: ''},
           {name: 'System', path: ''}
@@ -83,10 +78,12 @@
       'project_list': projectList,
       'total': total,
       'model_list': modelList,
-      'cubes_list': cubesList
+      'cubes_list': cubesList,
+      icon
     },
     watch: {
       '$route' (to, from) { // 监听路由改变
+        console.log(to)
         this.currentPathName = to.name
         this.currentPathNameParent = to.matched[0].name
       }
@@ -141,7 +138,8 @@
 	.panel-center {
 		background: #324057;
 		position: absolute;
-		top: 60px;
+		
+		top: 0px;
 		bottom: 0px;
 		overflow: hidden;
 	}
@@ -150,7 +148,7 @@
 		background: #f1f2f7;
 		position: absolute;
 		right: 0px;
-		top: 0px;
+		top: 66px;
 		bottom: 0px;
 		left: 230px;
 		overflow-y: scroll;
@@ -167,7 +165,7 @@
 	
 	.logo {
 		height: 40px;
-		float: left;
+		
 		margin: 10px 10px 10px 18px;
 	}
 	
@@ -185,6 +183,16 @@
 		color: #c0ccda;
 		text-align: center;
 	}
+	.topbar{
+		height: 66px;
+		width: 100%;
+		background-color: #fff;
+		margin-left: 230px;
+		position: fixed;
+        top:0;
+
+	}
+	
 
 
 	

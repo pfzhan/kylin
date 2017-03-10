@@ -13,6 +13,8 @@ import fullLayout from './components/layout/layout_full'
 import router from './router'
 import mock from '../mock'
 import filter from './filter'
+import Icon from 'vue-awesome/components/Icon.vue'
+Vue.component('icon', Icon)
 mock()
 Vue.use(VueI18n)
 Vue.use(ElementUI)
