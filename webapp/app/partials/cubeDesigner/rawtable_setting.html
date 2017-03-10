@@ -87,14 +87,21 @@
               <span ng-if="state.mode=='view'">{{col.valueLength}}</span>
             </td>
             <td>
-              <!--Column Length -->
-              <select ng-if="state.mode=='edit'" style="width:180px;"
-                      chosen ng-model="col.index"
-                      tooltip="{{dataKylin.cube.tip_false_by_default}}"
-                      data-placeholder="false by default"
-                      ng-options="dt as dt for dt in cubeConfig.rawTableIndexOptions">
-                <option value=""></option>
-              </select>
+              <!--Index -->
+              <div  style="width:100%;" class="chosen-container chosen-container-single " ng-if="state.mode=='edit'">
+                <button style="width:100%;" type="button" class="chosen-single dropdown-toggle" data-toggle="dropdown">
+                  <span style="float:left;" >{{col.index}}</span>
+                </button>
+                <ul class="dropdown-menu my-dropdown" role="menu"  style="width:100%;" >
+                  <li>
+                    <a middle-popover ng-repeat="indexType in cubeConfig.rawTableIndexOptions" ng-click="col.index=indexType;"
+                       kylinpopover placement="left"
+                       ng-title="{{indexType}}" ng-value="{{encoding.value}}" ng-watch="{{dataKylin.cube.tip_encoding}}" template="indexTip.html">
+                      {{indexType}}
+                    </a>
+                  </li>
+                </ul>
+              </div>
               <span ng-if="state.mode=='view'">{{col.index}}</span>
             </td>
           </tr>
@@ -163,6 +170,19 @@
       {{dataKylin.cube.tip_length_fixed_length_hex_part_one}}
       {{value*2}}
       {{dataKylin.cube.tip_length_fixed_length_hex_part_two}}
+    </div>
+  </div>
+</script>
+<script type="text/ng-template" id="indexTip.html">
+  <div >
+    <div ng-if="title=='discrete'">
+      {{dataKylin.cube.tip_rawtable_discrete}}
+    </div>
+    <div ng-if="title=='fuzzy'">
+      {{dataKylin.cube.tip_rawtable_fuzzy}}
+    </div>
+    <div ng-if="title=='sorted'">
+      {{dataKylin.cube.tip_rawtable_sorted}}
     </div>
   </div>
 </script>
