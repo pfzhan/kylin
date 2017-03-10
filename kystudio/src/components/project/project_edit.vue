@@ -25,7 +25,7 @@
 <script>
 export default {
   name: 'project_edit',
-  props: ['project', 'showTip'],
+  props: ['project'],
   data () {
     return {
       convertedProperties: [ ],
@@ -35,8 +35,7 @@ export default {
   methods: {
     updateProject (project) {
       this.showTip = false
-//      this.updateProject(project)
-      this.$dispatch('updateProject', this.showTip)
+      this.$dispatch('updateProject')
     },
     saveProject (project) {
 //      this.showTip = false

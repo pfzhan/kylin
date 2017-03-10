@@ -42,7 +42,7 @@
       </el-button >
       <el-dropdown-menu slot="dropdown">
         <el-dropdown-item @click.native="editProject(scope.row)">Edit</el-dropdown-item>      
-        <el-dropdown-item @click.native="editProject({})">Backup</el-dropdown-item>
+        <el-dropdown-item @click.native="addProject">Backup</el-dropdown-item>
         <el-dropdown-item @click.native="deleteProject">Delete</el-dropdown-item>
       </el-dropdown-menu>
       </el-dropdown>
@@ -50,10 +50,10 @@
     </el-table-column>     
     </el-table>
     <el-dialog title="Project" v-model="FormVisible">
-      <project_edit :project="project" :showTip="FormVisible"></project_edit>
+      <project_edit :project="project"></project_edit>
       <span slot="footer" class="dialog-footer">
-         <el-button @click="deleteTip = false">取 消</el-button>
-         <el-button type="primary" @click="removeProject()">确 定</el-button>
+         <el-button @click="FormVisible = false">取 消</el-button>
+         <el-button type="primary" @click="updateOrSave(project)">确 定</el-button>
       </span>     
     </el-dialog>  
  
@@ -75,23 +75,24 @@ export default {
     }),
     editProject (project) {
       this.FormVisible = true
+      this.isEdit = true
       this.project = project
+    },
+    addProject () {
+      this.FormVisible = true
+      this.isEdit = false
+      this.project = {}
+    },
+    updateOrSave (project) {
+      if (this.isEdit) {
+        this.updateProject(project)
+      } else {
+        this.saveProject(project)
+      }
     },
     showDeleteTip (project) {
       this.deleteTip = true
       this.project = project
-    },
-    removeProject () {
-      this.deleteTip = false
-      this.deleteProject(this.project.name)
-    },
-    updateProject (project) {
-      this.FormVisible = false
-      this.updateProject(project)
-    },
-    saveProject (project) {
-      this.FormVisible = false
-      this.saveProject(project)
     },
     deleteProject () {
       this.$confirm('此操作将永久删除, 是否继续?', '提示', {
@@ -114,6 +115,7 @@ export default {
   data () {
     return {
       project: {},
+      isEdit: false,
       activeName: 'first',
       FormVisible: false,
       deleteTip: false,
