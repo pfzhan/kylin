@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
@@ -36,11 +37,13 @@
         <spark.version>1.6.3</spark.version>
         <jackson.version>2.6.3</jackson.version>
         <hadoop2.version>2.7.1</hadoop2.version>
+        <mockito.version>2.7.14</mockito.version>
 
         <!-- Sonar -->
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
         <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
-        <sonar.jacoco.reportPath>${project.basedir}/../../target/jacoco.exec</sonar.jacoco.reportPath>
+        <sonar.jacoco.reportPath>${project.basedir}/../../target/jacoco.exec
+        </sonar.jacoco.reportPath>
         <sonar.language>java</sonar.language>
 
         <!-- JVM Args for Testing -->
@@ -215,6 +218,13 @@
                 <artifactId>kap-assembly</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
+            </dependency>
+
+            <!-- more test -->
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
             </dependency>
 
             <!-- Sorted by groupId, artifactId; kylin and KAP dependencies first. -->
@@ -438,7 +448,8 @@
                             <phase>validate</phase>
                             <configuration>
                                 <configLocation>dev-support/checkstyle.xml</configLocation>
-                                <suppressionsLocation>dev-support/checkstyle-suppressions.xml</suppressionsLocation>
+                                <suppressionsLocation>dev-support/checkstyle-suppressions.xml
+                                </suppressionsLocation>
                                 <includeTestSourceDirectory>true</includeTestSourceDirectory>
                                 <consoleOutput>true</consoleOutput>
                                 <failsOnError>true</failsOnError>
@@ -565,7 +576,8 @@
                         <artifactId>maven-surefire-plugin</artifactId>
                         <version>2.16</version>
                         <configuration>
-                            <reportsDirectory>${project.basedir}/../../target/surefire-reports</reportsDirectory>
+                            <reportsDirectory>${project.basedir}/../../target/surefire-reports
+                            </reportsDirectory>
                             <excludes>
                                 <exclude>**/IT*.java</exclude>
                             </excludes>
@@ -576,7 +588,9 @@
                                 </property>
                                 <property>
                                     <name>log4j.configuration</name>
-                                    <value>file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties</value>
+                                    <value>
+                                        file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties
+                                    </value>
                                 </property>
                             </systemProperties>
                             <argLine>${argLine} ${surefireArgLine}</argLine>
@@ -790,7 +804,8 @@
                         <artifactId>maven-surefire-plugin</artifactId>
                         <version>2.16</version>
                         <configuration>
-                            <reportsDirectory>${project.basedir}/../../target/surefire-reports</reportsDirectory>
+                            <reportsDirectory>${project.basedir}/../../target/surefire-reports
+                            </reportsDirectory>
                             <excludes>
                                 <exclude>**/IT*.java</exclude>
                             </excludes>
@@ -801,7 +816,9 @@
                                 </property>
                                 <property>
                                     <name>log4j.configuration</name>
-                                    <value>file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties</value>
+                                    <value>
+                                        file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties
+                                    </value>
                                 </property>
                             </systemProperties>
                             <argLine>${argLine} ${surefireArgLine}</argLine>

@@ -33,7 +33,7 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import io.kyligence.kap.cube.raw.RawTableDesc;
-import io.kyligence.kap.rest.ServiceTestBase;
+import io.kyligence.kap.rest.service.ServiceTestBase;
 import io.kyligence.kap.rest.service.RawTableService;
 
 /**
