@@ -1,8 +1,6 @@
 <template>
 	<el-row class="panel">
-		
 		<el-col :span="24" class="panel-center">
-
 			<!--<el-col :span="4">-->
 			<aside style="width:230px;" class="left_menu">
 			    <img src="../../assets/logo.png" class="logo">
@@ -15,7 +13,36 @@
 			</aside>
 			<!--</el-col>-->
 			<!--<el-col :span="20" class="panel-c-c">-->
-			<div class="topbar"><icon name="sync" scale="2" spin></icon></div>
+			<div class="topbar">
+				<icon name="bars"></icon>
+			    <!-- <div class="topbar_option"> -->
+					<!-- <el-dropdown>
+					  <span class="el-dropdown-link">
+					    bob<i class="el-icon-caret-bottom el-icon--right"></i>
+					  </span>
+					  <el-dropdown-menu slot="dropdown">
+					    <el-dropdown-item>黄金糕</el-dropdown-item>
+					    <el-dropdown-item>狮子头</el-dropdown-item>
+					    <el-dropdown-item>螺蛳粉</el-dropdown-item>
+					    <el-dropdown-item disabled>双皮奶</el-dropdown-item>
+					    <el-dropdown-item divided>蚵仔煎</el-dropdown-item>
+					  </el-dropdown-menu>
+					</el-dropdown> -->
+					<ul>
+						<li>bingo</li>
+						<li>
+							<el-dropdown>
+							  <span class="el-dropdown-link">
+							    bob<icon name="angle-down"></icon>
+							  </span>
+							  <el-dropdown-menu slot="dropdown">
+							    <el-dropdown-item>注销</el-dropdown-item>
+							  </el-dropdown-menu>
+							</el-dropdown>
+						</li>
+					</ul>
+				<!-- </div> -->
+			</div>
 			<section class="panel-c-c">
 			    
 				<div class="grid-content bg-purple-light">
@@ -34,7 +61,7 @@
 					</el-col>
 				</div>
 
-				<project_list></project_list>
+				<!-- <project_list></project_list> -->
 <!-- 			            <total name="Projects"></total> -->
 <!--                                                   <model_list></model_list> -->
  <!--                                                 <cubes_list></cubes_list> -->
@@ -45,7 +72,6 @@
 </template>
 
 <script>
-  import icon from 'vue-awesome/components/Icon.vue'
   import projectList from '../project/project_list'
   import total from '../common/total'
   import modelList from '../model/model_list'
@@ -78,8 +104,7 @@
       'project_list': projectList,
       'total': total,
       'model_list': modelList,
-      'cubes_list': cubesList,
-      icon
+      'cubes_list': cubesList
     },
     watch: {
       '$route' (to, from) { // 监听路由改变
@@ -110,7 +135,7 @@
   }
 </script>
 
-<style scoped>
+<style lang="less" scoped>
 	.fade-enter-active,
 	.fade-leave-active {
 		transition: opacity .5s
@@ -165,7 +190,7 @@
 	
 	.logo {
 		height: 40px;
-		
+		z-index:999;
 		margin: 10px 10px 10px 18px;
 	}
 	
@@ -187,18 +212,53 @@
 		height: 66px;
 		width: 100%;
 		background-color: #fff;
-		margin-left: 230px;
+		
 		position: fixed;
         top:0;
+        >svg{
+        	margin-left:245px;
+        	margin-top:24px;
+        	cursor:pointer;
+        }
+        .el-dropdown{
+        	cursor:pointer;
+          svg{
+        	vertical-align:middle;
+        	margin-left:2px;
+          }
+        }
+        ul{
+        	float:right;
+        	li{
+        		min-width:150px;
+        		display:inline-block;
+        		border-left:solid 1px #ccc;
+        		height:66px;
+        		line-height:66px;
+        		text-align:center;
+        	}
+
+        }
+        
 
 	}
-	
-
-
-	
-</style>
-<style lang="less">
-	.el-icon-arrow-down:before{
+	.el-menu{
+		li{
+			text-align:center;
+		}
+		.is-active{
+			background-color:#58b7ff;
+			color:#fff;
+		}
+	}
+	.left_menu{
+		position:relative;
+		z-index:999;
+		background-color: #324157;
+	}
+    .el-icon-arrow-down:before{
 		content: ''
 	}
+	
 </style>
+

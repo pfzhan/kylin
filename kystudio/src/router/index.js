@@ -5,6 +5,9 @@ import demo from '../components/demo'
 import button from '../components/demo/button'
 import naming from '../components/demo/naming'
 import topLeftRightView from '../components/layout/layout_left_right_top'
+
+import dashbord from '../components/dashbord'
+
 Vue.use(Router)
 
 export default new Router({
@@ -39,7 +42,8 @@ export default new Router({
       component: topLeftRightView,
       children: [{
         name: 'Index',
-        path: 'index'
+        path: 'index',
+        component: dashbord
       }]
     }, {
       path: '/model',

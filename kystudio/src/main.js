@@ -13,9 +13,14 @@ import fullLayout from './components/layout/layout_full'
 import router from './router'
 import mock from '../mock'
 import filter from './filter'
+
 import Icon from 'vue-awesome/components/Icon.vue'
+import 'vue-awesome/icons'
+if (process.env.NODE_ENV !== 'production') {
+  mock()
+}
+
 Vue.component('icon', Icon)
-mock()
 Vue.use(VueI18n)
 Vue.use(ElementUI)
 
