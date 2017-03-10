@@ -32,6 +32,7 @@ import org.apache.kylin.common.util.BytesSerializer;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.dimension.DateDimEnc;
 import org.apache.kylin.dimension.DictionaryDimEnc;
 import org.apache.kylin.dimension.DimensionEncoding;
 import org.apache.kylin.dimension.DimensionEncodingFactory;
@@ -107,6 +108,8 @@ public class RawTableCodeSystem implements IGTCodeSystem {
                 if (DictionaryDimEnc.ENCODING_NAME.equals(encodingName)) {
                     throw new IllegalArgumentException("Dict encoding is not allowed for raw tables");
                 }
+
+                encodingArgs = DateDimEnc.replaceEncodingArgs(encoding, encodingArgs, encodingName, info.getColumnType(i));
 
                 DimensionEncoding dimensionEncoding = DimensionEncodingFactory.create(encodingName, encodingArgs, encodingVersion);
                 serializers[i] = dimensionEncoding.asDataTypeSerializer();
