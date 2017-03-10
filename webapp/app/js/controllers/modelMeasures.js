@@ -79,7 +79,7 @@ KylinApp.controller('ModelMeasuresCtrl', function ($scope, $modal,MetaModel,mode
     });
     angular.forEach(modelsManager.selectedModel.dimensions, function (dim) {
       angular.forEach(dim.columns, function (column) {
-        if($scope.selectedColumns[dim.table][column]){
+        if($scope.selectedColumns[dim.table]&&$scope.selectedColumns[dim.table][column]){
           $scope.selectedColumns[dim.table][column].inDimensions=true;
         }
       });
