@@ -17,7 +17,7 @@
 				<el-menu style="border-top: 1px solid #475669;" default-active="/table" class="el-menu-vertical-demo" @open="handleopen"
 					@close="handleclose" @select="handleselect" theme="dark" unique-opened router>
 					<template v-for="(item,index) in menus" >
-						<el-menu-item :index="item.path"  v-for="(item,index) in menus" >{{item.name}}</el-menu-item>
+						<el-menu-item :index="item.path"  >{{item.name}}</el-menu-item>
 					</template>
 				</el-menu>
 			</aside>
@@ -71,8 +71,8 @@
           desc: ''
         },
         menus: [
-          {name: 'Dashbord', path: ''},
-          {name: 'KyStudio', path: ''},
+          {name: 'Dashbord', path: '/model'},
+          {name: 'KyStudio', path: '/hehe'},
           {name: 'KyAnalyzer', path: ''},
           {name: 'KyManager', path: ''},
           {name: 'System', path: ''}
