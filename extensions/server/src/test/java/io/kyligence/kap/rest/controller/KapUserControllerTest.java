@@ -34,8 +34,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import io.kyligence.kap.rest.ServiceTestBase;
 import io.kyligence.kap.rest.controller.KapUserController.UserObj;
+import io.kyligence.kap.rest.service.ServiceTestBase;
 
 /**
  */
