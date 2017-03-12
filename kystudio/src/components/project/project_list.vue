@@ -50,10 +50,10 @@
     </el-table-column>     
     </el-table>
     <el-dialog title="Project" v-model="FormVisible">
-      <project_edit :project="project"></project_edit>
+      <project_edit :project="project" ref="projectForm"></project_edit>
       <span slot="footer" class="dialog-footer">
          <el-button @click="FormVisible = false">取 消</el-button>
-         <el-button type="primary" @click="updateOrSave(project)">确 定</el-button>
+         <el-button type="primary" @click.native="updateOrSave">确 定</el-button>
       </span>     
     </el-dialog>  
  
@@ -83,11 +83,11 @@ export default {
       this.isEdit = false
       this.project = {}
     },
-    updateOrSave (project) {
+    updateOrSave () {
       if (this.isEdit) {
-        this.updateProject(project)
+        this.$refs.projectForm.$emit('project_update')
       } else {
-        this.saveProject(project)
+        this.$refs.projectForm.$emit('project_save')
       }
     },
     showDeleteTip (project) {

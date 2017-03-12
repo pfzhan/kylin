@@ -23,24 +23,26 @@
 </div>
 </template>
 <script>
+import { mapActions } from 'vuex'
 export default {
   name: 'project_edit',
   props: ['project'],
   data () {
     return {
       convertedProperties: [ ],
-      projectDesc: this.project
+      projectDesc: Object.assign({}, this.project)
+    }
+  },
+  watch: {
+    project (project) {
+      this.projectDesc = Object.assign({}, project)
     }
   },
   methods: {
-    updateProject (project) {
-      this.showTip = false
-      this.$dispatch('updateProject')
-    },
-    saveProject (project) {
-//      this.showTip = false
-//      this.saveProject(project)
-    },
+    ...mapActions({
+      updateProject: 'UPDATE_PROJECT',
+      saveProject: 'SAVE_PROJECT'
+    }),
     removeProperty (item) {
 //      var index = this.dynamicValidateForm.domains.indexOf(item)
 //      if (index !== -1) {
@@ -56,6 +58,15 @@ export default {
       // });
       console.log(2)
     }
+  },
+  created () {
+    var _this = this
+    this.$on('project_update', () => {
+      _this.updateProject(_this.projectDesc)
+    })
+    this.$on('project_save', () => {
+      _this.saveProject(_this.projectDesc)
+    })
   }
 }
 </script>

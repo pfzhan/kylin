@@ -20,6 +20,7 @@ export default {
       api.project.deleteProject(projectName)
     },
     [types.UPDATE_PROJECT]: function ({ commit }, project) {
+      console.log(project)
       api.project.updateProject(project)
     },
     [types.SAVE_PROJECT]: function ({ commit }, project) {
