@@ -5,7 +5,7 @@
     style="width: 100%">
     <el-table-column type="expand">
       <template scope="props">
-         <el-tabs v-model="activeName" type="card" >
+         <el-tabs activeName="first" type="card" >
            <el-tab-pane label="Cubes" name="first">
              <cube_list :cubeList="props.row.realizations"></cube_list>
            </el-tab-pane>
@@ -116,7 +116,6 @@ export default {
     return {
       project: {},
       isEdit: false,
-      activeName: 'first',
       FormVisible: false,
       deleteTip: false,
       selected_project: localStorage.getItem('selected_project')

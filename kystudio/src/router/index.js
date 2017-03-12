@@ -7,7 +7,8 @@ import naming from '../components/demo/naming'
 import topLeftRightView from '../components/layout/layout_left_right_top'
 
 import dashbord from '../components/dashbord'
-
+import projectList from '../components/project/project_list'
+import modelList from '../components/model/model_list'
 Vue.use(Router)
 
 export default new Router({
@@ -20,6 +21,14 @@ export default new Router({
         name: 'Dashbord',
         path: 'dashbord',
         component: dashbord
+      }, {
+        name: 'Project',
+        path: 'project',
+        component: projectList
+      }, {
+        name: 'Model',
+        path: 'model',
+        component: modelList
       }]
     }, {
       path: '/demo',
@@ -41,13 +50,6 @@ export default new Router({
       path: '/hello',
       name: 'welcome',
       component: hello
-    }, {
-      path: '/model',
-      name: 'model',
-      component: topLeftRightView,
-      children: [{
-        path: 'list'
-      }]
     }
   ]
 })
