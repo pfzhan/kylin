@@ -357,7 +357,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
      $scope.getSampleDataByTableName(tableName,function(){
        $scope.tableName=tableName;
        $scope.columnName=columnName;
-       $scope.columnType= TableModel.columnNameTypeMap[columnName]||''
+       $scope.columnType= TableModel.getColumnType(VdmUtil.removeNameSpace(columnName),tableName)||'';
        $scope.columnList=TableModel.getColumnsByTable(tableName);
         $scope.columnList.map(function(obj,k){
          if(VdmUtil.removeNameSpace(tableName)+'.'+obj.name==columnName){
