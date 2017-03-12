@@ -15,7 +15,12 @@ export default new Router({
     {
       path: '/',
       name: 'default',
-      component: hello
+      component: topLeftRightView,
+      children: [{
+        name: 'Dashbord',
+        path: 'dashbord',
+        component: dashbord
+      }]
     }, {
       path: '/demo',
       name: 'demo',
@@ -36,15 +41,6 @@ export default new Router({
       path: '/hello',
       name: 'welcome',
       component: hello
-    }, {
-      path: '/dashbord',
-      name: 'Dashbord',
-      component: topLeftRightView,
-      children: [{
-        name: 'Index',
-        path: 'index',
-        component: dashbord
-      }]
     }, {
       path: '/model',
       name: 'model',

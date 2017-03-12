@@ -92,7 +92,7 @@
           desc: ''
         },
         menus: [
-          {name: 'Dashbord', path: '/dashbord/index'},
+          {name: 'Dashbord', path: '/dashbord'},
           {name: 'KyStudio', path: '/model'},
           {name: 'KyAnalyzer', path: ''},
           {name: 'KyManager', path: ''},
