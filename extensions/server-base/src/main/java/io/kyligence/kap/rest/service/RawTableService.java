@@ -67,7 +67,7 @@ public class RawTableService extends BasicService {
 
     @Autowired
     private JobService jobService;
-    
+
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#raw, 'ADMINISTRATION') or hasPermission(#raw, 'MANAGEMENT')")
     public RawTableInstance updateRawCost(RawTableInstance raw, int cost) throws IOException {
 
@@ -121,7 +121,7 @@ public class RawTableService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'MANAGEMENT')")
     public void deleteRaw(RawTableInstance raw) throws IOException, JobException {
-        final List<CubingJob> cubingJobs = jobService.listAllCubingJobs(raw.getName(), null, EnumSet.of(ExecutableState.READY, ExecutableState.RUNNING));
+        final List<CubingJob> cubingJobs = jobService.listAllCubingJobs(raw.getName(), null, EnumSet.of(ExecutableState.READY, ExecutableState.RUNNING), true);
         if (!cubingJobs.isEmpty()) {
             throw new JobException("The raw " + raw.getName() + " has running job, please discard it and try again.");
         }
@@ -162,7 +162,7 @@ public class RawTableService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#raw, 'ADMINISTRATION') or hasPermission(#raw, 'MANAGEMENT')")
     public RawTableDesc updateRawTableInstanceAndDesc(RawTableInstance raw, RawTableDesc desc, String newProjectName, boolean forceUpdate) throws IOException, JobException {
 
-        final List<CubingJob> cubingJobs = jobService.listAllCubingJobs(raw.getName(), null, EnumSet.of(ExecutableState.READY, ExecutableState.RUNNING));
+        final List<CubingJob> cubingJobs = jobService.listAllCubingJobs(raw.getName(), null, EnumSet.of(ExecutableState.READY, ExecutableState.RUNNING), true);
         if (!cubingJobs.isEmpty()) {
             throw new JobException("RawTable schema shouldn't be changed with running job.");
         }
@@ -196,7 +196,7 @@ public class RawTableService extends BasicService {
             throw new InternalErrorException("Raw " + cubeName + " dosen't contain any READY segment");
         }
 
-        final List<CubingJob> cubingJobs = jobService.listAllCubingJobs(raw.getName(), null, EnumSet.of(ExecutableState.READY, ExecutableState.RUNNING));
+        final List<CubingJob> cubingJobs = jobService.listAllCubingJobs(raw.getName(), null, EnumSet.of(ExecutableState.READY, ExecutableState.RUNNING), true);
         if (!cubingJobs.isEmpty()) {
             throw new JobException("Enable is not allowed with a running job.");
         }
