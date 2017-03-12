@@ -20,11 +20,10 @@ export default {
       api.project.deleteProject(projectName)
     },
     [types.UPDATE_PROJECT]: function ({ commit }, project) {
-      console.log(project)
-      api.project.updateProject(project)
+      return api.project.updateProject(project)
     },
     [types.SAVE_PROJECT]: function ({ commit }, project) {
-      api.project.saveProject(project)
+      return api.project.saveProject(project)
     }
   },
   getters: {}

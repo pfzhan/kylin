@@ -1,7 +1,7 @@
 <template>
   <div>
-    <el-form label-position="top">
-    <el-form-item label="Project Name" >
+    <el-form label-position="top" :model="projectDesc" :rules="rules" ref="projectForm">
+    <el-form-item label="Project Name" prop="name">
       <el-input v-model="projectDesc.name" auto-complete="off"></el-input>
     </el-form-item>
     <el-form-item label="Description" >
@@ -23,14 +23,18 @@
 </div>
 </template>
 <script>
-import { mapActions } from 'vuex'
 export default {
   name: 'project_edit',
   props: ['project'],
   data () {
     return {
       convertedProperties: [ ],
-      projectDesc: Object.assign({}, this.project)
+      projectDesc: Object.assign({}, this.project),
+      rules: {
+        name: [
+          { required: true, message: '请输入项目名称', trigger: 'blur' }
+        ]
+      }
     }
   },
   watch: {
@@ -39,30 +43,24 @@ export default {
     }
   },
   methods: {
-    ...mapActions({
-      updateProject: 'UPDATE_PROJECT',
-      saveProject: 'SAVE_PROJECT'
-    }),
     removeProperty (item) {
-//      var index = this.dynamicValidateForm.domains.indexOf(item)
-//      if (index !== -1) {
-//        this.dynamicValidateForm.domains.splice(index, 1)
-//      }
       console.log(item)
     },
     addNewProperty () {
       this.project.override_kylin_properties[' '] = ' '
-      // this.dynamicValidateForm.domains.push({
-      //   value: '',
-      //   key: Date.now()
-      // });
-      console.log(2)
     }
   },
   created () {
     var _this = this
-    this.$on('project_update', () => {
-      _this.updateProject(_this.projectDesc)
+    this.$on('project_update', (t) => {
+      _this.$refs['projectForm'].validate((valid) => {
+        if (valid) {
+          _this.$emit('validSuccess', _this.projectDesc)
+        } else {
+          _this.$emit('validFailed')
+          return false
+        }
+      })
     })
     this.$on('project_save', () => {
       _this.saveProject(_this.projectDesc)

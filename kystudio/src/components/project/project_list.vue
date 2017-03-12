@@ -50,7 +50,7 @@
     </el-table-column>     
     </el-table>
     <el-dialog title="Project" v-model="FormVisible">
-      <project_edit :project="project" ref="projectForm"></project_edit>
+      <project_edit :project="project" ref="projectForm" v-on:validSuccess="validSuccess" v-on:validFailed='validFailed'></project_edit>
       <span slot="footer" class="dialog-footer">
          <el-button @click="FormVisible = false">取 消</el-button>
          <el-button type="primary" @click.native="updateOrSave">确 定</el-button>
@@ -85,10 +85,29 @@ export default {
     },
     updateOrSave () {
       if (this.isEdit) {
-        this.$refs.projectForm.$emit('project_update')
+        this.$refs.projectForm.$emit('project_update', this)
       } else {
-        this.$refs.projectForm.$emit('project_save')
+        this.$refs.projectForm.$emit('project_save', this)
       }
+    },
+    validSuccess (data) {
+      let _this = this
+      this.updateProject(data).then((result) => {
+        this.$message({
+          type: 'success',
+          message: '保存成功!'
+        })
+        _this.loadProjects()
+      }, (result) => {
+        this.$message({
+          type: 'info',
+          message: '保存失败!'
+        })
+      })
+      this.FormVisible = false
+    },
+    validFailed (data) {
+      // this.FormVisible = false
     },
     showDeleteTip (project) {
       this.deleteTip = true
