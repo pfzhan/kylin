@@ -104,6 +104,15 @@ public class AsyncQueryController extends BasicController {
                 "");
     }
 
+    @RequestMapping(value = "/async_query", method = RequestMethod.DELETE)
+    @ResponseBody
+    public EnvelopeResponse clean() throws IOException {
+        boolean b = asyncQueryService.cleanFolder();
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, //
+                b, //
+                "");
+    }
+
     @RequestMapping(value = "/async_query/{query_id}/status", method = RequestMethod.GET)
     @ResponseBody
     public EnvelopeResponse inqueryStatus(@PathVariable String query_id) throws IOException {

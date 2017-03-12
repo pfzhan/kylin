@@ -69,6 +69,7 @@ public class AsyncQueryService extends QueryService {
     }
 
     public void flushResultToHdfs(SQLResponse result, String queryId) throws IOException {
+        logger.info("Flushing results to hdfs...");
         FileSystem fileSystem = getFileSystem();
         Path asyncQueryResultDir = getAsyncQueryResultDir();
         fileSystem.mkdirs(asyncQueryResultDir);
@@ -82,6 +83,7 @@ public class AsyncQueryService extends QueryService {
 
             Path failureFlagPath = new Path(asyncQueryResultDir, getFailureFlagFileName(queryId));
             fileSystem.createNewFile(failureFlagPath);
+            logger.info("failed result flushed");
         } else {
             try (FSDataOutputStream os = fileSystem.create(outputPath); //
                     OutputStreamWriter osw = new OutputStreamWriter(os); //
@@ -103,6 +105,7 @@ public class AsyncQueryService extends QueryService {
 
             Path successFlagPath = new Path(asyncQueryResultDir, getSuccessFlagFileName(queryId));
             fileSystem.createNewFile(successFlagPath);
+            logger.info("successful result flushed");
         }
 
     }
@@ -124,8 +127,8 @@ public class AsyncQueryService extends QueryService {
             IOUtils.copyLarge(inputStream, outputStream);
         }
 
-        //cleaning
-        cleanFiles(fileSystem, asyncQueryResultDir, queryId);
+        //        //cleaning
+        //        cleanFiles(fileSystem, asyncQueryResultDir, queryId);
     }
 
     public String retrieveSavedQueryException(String queryId) throws IOException {
@@ -144,11 +147,15 @@ public class AsyncQueryService extends QueryService {
         try (FSDataInputStream inputStream = fileSystem.open(dataPath); InputStreamReader reader = new InputStreamReader(inputStream)) {
             List<String> strings = IOUtils.readLines(reader);
 
-            //cleaning 
-            cleanFiles(fileSystem, asyncQueryResultDir, queryId);
-            
+            //            //cleaning 
+            //            cleanFiles(fileSystem, asyncQueryResultDir, queryId);
+
             return StringUtils.join(strings, "");
         }
+    }
+
+    public boolean cleanFolder() throws IOException {
+        return getFileSystem().delete(getAsyncQueryResultDir(), true);
     }
 
     private void cleanFiles(FileSystem fileSystem, Path asyncQueryResultDir, String queryId) throws IOException {
