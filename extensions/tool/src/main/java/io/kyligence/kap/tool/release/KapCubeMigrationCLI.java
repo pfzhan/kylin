@@ -40,7 +40,7 @@ import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 
-public class KapCubeReleaseCLI extends CubeMigrationCLI {
+public class KapCubeMigrationCLI extends CubeMigrationCLI {
 
     @Override
     protected void renameFoldersInHdfs(CubeInstance cube) throws IOException {
@@ -85,7 +85,7 @@ public class KapCubeReleaseCLI extends CubeMigrationCLI {
 
     public static void main(String[] args) throws IOException, InterruptedException {
 
-        KapCubeReleaseCLI cli = new KapCubeReleaseCLI();
+        KapCubeMigrationCLI cli = new KapCubeMigrationCLI();
         if (args.length != 8) {
             cli.usage();
             System.exit(1);
