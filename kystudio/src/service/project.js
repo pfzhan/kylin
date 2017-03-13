@@ -12,7 +12,7 @@ export default {
     return Vue.resource(apiUrl + 'projects/' + projectName).remove({})
   },
   updateProject: (project) => {
-    return Vue.resource(apiUrl + 'projects').update({}, { formerProjectName: project.name, projectDescData: project })
+    return Vue.resource(apiUrl + 'projects').update({}, { formerProjectName: project.name, projectDescData: project.desc })
   },
   saveProject: (project) => {
     return Vue.resource(apiUrl + 'projects').save({}, {projectDescData: project})

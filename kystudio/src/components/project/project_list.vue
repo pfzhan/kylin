@@ -43,7 +43,7 @@
       <el-dropdown-menu slot="dropdown">
         <el-dropdown-item @click.native="editProject(scope.row)">Edit</el-dropdown-item>      
         <el-dropdown-item @click.native="addProject">Backup</el-dropdown-item>
-        <el-dropdown-item @click.native="deleteProject">Delete</el-dropdown-item>
+        <el-dropdown-item @click.native="removeProject(scope.row)">Delete</el-dropdown-item>
       </el-dropdown-menu>
       </el-dropdown>
       </template>      
@@ -81,7 +81,7 @@ export default {
     addProject () {
       this.FormVisible = true
       this.isEdit = false
-      this.project = {}
+      this.project = {name: '', description: '', override_kylin_properties: {}}
     },
     updateOrSave () {
       this.$refs.projectForm.$emit('projectFormValid')
@@ -89,7 +89,20 @@ export default {
     validSuccess (data) {
       let _this = this
       if (this.isEdit) {
-        this.updateProject(data).then((result) => {
+        this.updateProject({name: this.project.name, desc: data}).then((result) => {
+          this.$message({
+            type: 'success',
+            message: '保存成功!'
+          })
+          _this.loadProjects()
+        }, (result) => {
+          this.$message({
+            type: 'info',
+            message: '保存失败!'
+          })
+        })
+      } else {
+        this.saveProject(data).then((result) => {
           this.$message({
             type: 'success',
             message: '保存成功!'
@@ -107,19 +120,24 @@ export default {
     validFailed (data) {
       // this.FormVisible = false
     },
-    showDeleteTip (project) {
-      this.deleteTip = true
+    removeProject (project) {
       this.project = project
-    },
-    deleteProject () {
       this.$confirm('此操作将永久删除, 是否继续?', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        this.$message({
-          type: 'success',
-          message: '删除成功!'
+        this.deleteProject(this.project.name).then((result) => {
+          this.$message({
+            type: 'success',
+            message: '保存成功!'
+          })
+          this.loadProjects()
+        }, (result) => {
+          this.$message({
+            type: 'info',
+            message: '保存失败!'
+          })
         })
       }).catch(() => {
         this.$message({

@@ -8,11 +8,11 @@
       <el-input v-model="projectDesc.description" auto-complete="off"></el-input>
     </el-form-item>
     <el-form-item
-    v-for=" (value, key, index) in projectDesc.override_kylin_properties"
+    v-for=" property in convertedProperties"
     label="Project Config">
     <el-row :gutter="20">
-      <el-col :span="10"><el-input v-model="convertedProperties[index].key"></el-input></el-col>
-      <el-col :span="10"><el-input v-model="convertedProperties[index].value"></el-input></el-col>
+      <el-col :span="10"><el-input v-model="property.key"></el-input></el-col>
+      <el-col :span="10"><el-input v-model="property.value"></el-input></el-col>
       <el-col :span="4"><el-button @click.prevent="removeProperty(property)">删除</el-button></el-col>
     </el-row>    
   </el-form-item> 
@@ -37,11 +37,6 @@ export default {
       }
     }
   },
-  watch: {
-    project (project) {
-      this.projectDesc = Object.assign({}, project)
-    }
-  },
   methods: {
     removeProperty (item) {
       console.log(item)
@@ -50,8 +45,29 @@ export default {
       this.project.override_kylin_properties[' '] = ' '
     }
   },
+  // computed: {
+  //   getProperties: function () {
+  //     for (let property of this.projectDesc.override_kylin_properties) {
+  //       console.log(property)
+  //       this.convertedProperties.push(property)
+  //     }
+  //     return this.convertedProperties
+  //   }
+  // },
+  watch: {
+    project (project) {
+      this.projectDesc = Object.assign({}, this.project)
+      for (let key of this.projectDesc.override_kylin_properties) {
+        console.log(property)
+        this.convertedProperties.push({
+          name: key,
+        value: this.projectDesc.override_kylin_properties[key]
+        })
+      }    
+    }
+  },
   created () {
-    var _this = this
+    let _this = this
     this.$on('projectFormValid', (t) => {
       _this.$refs['projectForm'].validate((valid) => {
         if (valid) {
