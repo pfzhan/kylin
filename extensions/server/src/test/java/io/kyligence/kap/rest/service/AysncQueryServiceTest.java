@@ -101,7 +101,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
         String ret = asyncQueryService.retrieveSavedQueryException(queryId);
         assertEquals("some error!!!", ret);
-        assertEquals(0, countFileNum());
+        assertEquals(2, countFileNum());
     }
 
     @Test
@@ -158,7 +158,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         asyncQueryService.retrieveSavedQueryResult(queryId, response);
 
         assertEquals("A,B,C\r\n" + "a1,b1,c1\r\n" + "a2,b2,c2\r\n", baos.toString());
-        assertEquals(0, countFileNum());
+        assertEquals(2, countFileNum());
 
     }
 
