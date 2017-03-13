@@ -856,8 +856,7 @@ KylinApp.constant('kapEnglishConfig', {
     diagnosisForPoorNetworkActionSeq: [ '1. Download diagnostic package', '2. Login on KyBot', '3. Click upload button on the top left of KyBot home page, and select the diagnostic package desired on the upload page to upload'],
     diagnosisFactoryPackage: 'Generate diagnostic package',
     diagnosisCloseDialog: 'Close this dialog when download is over! ',
-    diagnosisDownloadTip: 'It will cost you serveral mimutes! ',
-
+    diagnosisDownloadTip: 'It will cost you serveral minutes! ',
     tip_diagnosis: 'Download Diagnosis Info For Current Project',
     backup: 'Backup',
     tip_backup: 'Global Backup',
