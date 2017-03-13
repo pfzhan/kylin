@@ -16,7 +16,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <shadeBase>io.kyligence.job.shaded</shadeBase>
+        <shadeBase>io.kyligence.kap.job.shaded</shadeBase>
     </properties>
 
     <dependencies>
