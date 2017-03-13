@@ -108,6 +108,11 @@ elif [ "$1" == "clean" ]
 then
 
     ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.tool.MetadataCleanupJob  "${@:2}"
+    
+elif [ "$1" == "refresh-cube-signature" ]
+then
+
+    ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.cube.cli.CubeSignatureRefresher
 
 elif [ "$1" == "backup-project" ]
 then
