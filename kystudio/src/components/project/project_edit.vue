@@ -52,7 +52,7 @@ export default {
   },
   created () {
     var _this = this
-    this.$on('project_update', (t) => {
+    this.$on('projectFormValid', (t) => {
       _this.$refs['projectForm'].validate((valid) => {
         if (valid) {
           _this.$emit('validSuccess', _this.projectDesc)
@@ -61,9 +61,6 @@ export default {
           return false
         }
       })
-    })
-    this.$on('project_save', () => {
-      _this.saveProject(_this.projectDesc)
     })
   }
 }

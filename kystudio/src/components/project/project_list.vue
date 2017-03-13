@@ -84,26 +84,24 @@ export default {
       this.project = {}
     },
     updateOrSave () {
-      if (this.isEdit) {
-        this.$refs.projectForm.$emit('project_update', this)
-      } else {
-        this.$refs.projectForm.$emit('project_save', this)
-      }
+      this.$refs.projectForm.$emit('projectFormValid')
     },
     validSuccess (data) {
       let _this = this
-      this.updateProject(data).then((result) => {
-        this.$message({
-          type: 'success',
-          message: '保存成功!'
+      if (this.isEdit) {
+        this.updateProject(data).then((result) => {
+          this.$message({
+            type: 'success',
+            message: '保存成功!'
+          })
+          _this.loadProjects()
+        }, (result) => {
+          this.$message({
+            type: 'info',
+            message: '保存失败!'
+          })
         })
-        _this.loadProjects()
-      }, (result) => {
-        this.$message({
-          type: 'info',
-          message: '保存失败!'
-        })
-      })
+      }
       this.FormVisible = false
     },
     validFailed (data) {
