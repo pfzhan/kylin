@@ -157,7 +157,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
         });
       }
     });
-    angular.forEach($scope.cubeMetaFrame.measure,function(measure){
+    angular.forEach($scope.cubeMetaFrame.measures,function(measure){
       if(measure.function.parameter.type=="column"){
         me_columns.push(measure.function.parameter.value);
       }

@@ -63,13 +63,21 @@ KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, 
             SelectAvailable.sortIcon = 'fa fa-unsorted';
             $scope.selectedColumns[$scope.availableTables[j]] = SelectAvailable;
         }
+        angular.forEach(modelsManager.selectedModel.metrics, function(metric){
+            var colName = VdmUtil.removeNameSpace(metric);
+            var tableName = VdmUtil.getNameSpace(metric);
+            if($scope.selectedColumns[tableName][colName]){
+                $scope.selectedColumns[tableName][colName].inMetrics = true;
+            }
+        });
+
         if(!$scope.initStatus.dimensions){
           $scope.initStatus.dimensions=true;
           angular.forEach(modelsManager.selectedModel.dimensions,function(dimTable,index){
             angular.forEach(TableModel.selectProjectTables,function(table){
               if($scope.aliasTableMap[dimTable.table]==table.database+"."+table.name){
                 angular.forEach(table.columns,function(column){
-                  if(column.kind=="dimension"){
+                  if((column.kind=="dimension")&&($scope.selectedColumns[dimTable.table][column.name].inMetrics==false)){
                     modelsManager.selectedModel.dimensions[index].columns.push(column.name);
                   }
                 });
@@ -84,13 +92,7 @@ KylinApp.controller('ModelDimensionsCtrl', function ($scope, $modal, MetaModel, 
                 }
             });
         });
-        angular.forEach(modelsManager.selectedModel.metrics, function(metric){
-            var colName = VdmUtil.removeNameSpace(metric);
-            var tableName = VdmUtil.getNameSpace(metric);
-            if($scope.selectedColumns[tableName][colName]){
-                $scope.selectedColumns[tableName][colName].inMetrics = true;
-            }
-        });
+
         angular.forEach($scope.usedDimensionsCubeMap, function (dim,dimension) {
             angular.forEach(dim, function (col,column) {
                  $scope.selectedColumns[dimension][column].disabled=true;

@@ -60,13 +60,22 @@ KylinApp.controller('ModelMeasuresCtrl', function ($scope, $modal,MetaModel,mode
       SelectAvailable.sortIcon = 'fa fa-unsorted';
       $scope.selectedColumns[$scope.availableFactTables[j]] = SelectAvailable;
     }
+
+    angular.forEach(modelsManager.selectedModel.dimensions, function (dim) {
+      angular.forEach(dim.columns, function (column) {
+        if($scope.selectedColumns[dim.table]&&$scope.selectedColumns[dim.table][column]){
+          $scope.selectedColumns[dim.table][column].inDimensions=true;
+        }
+      });
+    });
+
     if(!$scope.initStatus.measures){
       $scope.initStatus.measures=true;
       angular.forEach(TableModel.selectProjectTables,function(table){
         angular.forEach(table.columns,function(column){
           if(column.kind=="measure"){
             angular.forEach($scope.availableFactTables,function(alias){
-              if($scope.aliasTableMap[alias]==table.database+"."+table.name){
+              if(($scope.aliasTableMap[alias]==table.database+"."+table.name)&&($scope.selectedColumns[alias][column.name].inDimensions==false)){
                 modelsManager.selectedModel.metrics.push(alias+"."+column.name);
               }
             });
@@ -77,13 +86,7 @@ KylinApp.controller('ModelMeasuresCtrl', function ($scope, $modal,MetaModel,mode
     angular.forEach(modelsManager.selectedModel.metrics, function (column) {
       $scope.selectedColumns[VdmUtil.getNameSpace(column)][VdmUtil.removeNameSpace(column)].selected=true;
     });
-    angular.forEach(modelsManager.selectedModel.dimensions, function (dim) {
-      angular.forEach(dim.columns, function (column) {
-        if($scope.selectedColumns[dim.table]&&$scope.selectedColumns[dim.table][column]){
-          $scope.selectedColumns[dim.table][column].inDimensions=true;
-        }
-      });
-    });
+
     angular.forEach($scope.usedMeasuresCubeMap, function (column,columnName) {
       $scope.selectedColumns[VdmUtil.getNameSpace(columnName)][VdmUtil.removeNameSpace(columnName)].disabled=true;
       angular.forEach(column,function(cube){
