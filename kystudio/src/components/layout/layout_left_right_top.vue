@@ -15,23 +15,13 @@
 			<!--<el-col :span="20" class="panel-c-c">-->
 			<div class="topbar">
 				<icon name="bars"></icon>
-			    <!-- <div class="topbar_option"> -->
-					<!-- <el-dropdown>
-					  <span class="el-dropdown-link">
-					    bob<i class="el-icon-caret-bottom el-icon--right"></i>
-					  </span>
-					  <el-dropdown-menu slot="dropdown">
-					    <el-dropdown-item>黄金糕</el-dropdown-item>
-					    <el-dropdown-item>狮子头</el-dropdown-item>
-					    <el-dropdown-item>螺蛳粉</el-dropdown-item>
-					    <el-dropdown-item disabled>双皮奶</el-dropdown-item>
-					    <el-dropdown-item divided>蚵仔煎</el-dropdown-item>
-					  </el-dropdown-menu>
-					</el-dropdown> -->
-					<ul>
-						<li>bingo</li>
-						<li>
-							<el-dropdown>
+                                                   <project_select></project_select>
+                                                   <el-button icon="icon-copy"></el-button>               
+                                                   <el-button icon="plus" @click="addProject"></el-button>
+				<ul>
+					<li>bingo</li>
+					<li>
+						<el-dropdown>
 							  <span class="el-dropdown-link">
 							    bob<icon name="angle-down"></icon>
 							  </span>
@@ -59,26 +49,29 @@
 							<router-view></router-view>
 						<!--</transition>-->
 					</el-col>
+					                                                     <el-dialog title="Project" v-model="FormVisible">
+      <project_edit :project="project" ref="projectForm" v-on:validSuccess="validSuccess"></project_edit>
+      <span slot="footer" class="dialog-footer">
+         <el-button @click="FormVisible = false">取 消</el-button>
+         <el-button type="primary" @click.native="Save">确 定</el-button>
+      </span>     
+    </el-dialog>  
 				</div>
-
-				<!-- <project_list></project_list> -->
-<!-- 			            <total name="Projects"></total> -->
-<!--                                                   <model_list></model_list> -->
- <!--                                                 <cubes_list></cubes_list> -->
 			</section>
 			<!--</el-col>-->
 		</el-col>
 	</el-row>
+
 </template>
 
 <script>
-  import projectList from '../project/project_list'
-  import total from '../common/total'
-  import modelList from '../model/model_list'
-  import cubesList from '../cube/cubes_list'
+  import projectSelect from '../project/project_select'
+  import projectEdit from '../project/project_edit'
   export default {
     data () {
       return {
+        project: {},
+        FormVisible: false,
         currentPathName: 'DesignModel',
         currentPathNameParent: 'Model',
         form: {
@@ -101,10 +94,8 @@
       }
     },
     components: {
-      'project_list': projectList,
-      'total': total,
-      'model_list': modelList,
-      'cubes_list': cubesList
+      'project_select': projectSelect,
+      'project_edit': projectEdit
     },
     watch: {
       '$route' (to, from) { // 监听路由改变
@@ -114,6 +105,29 @@
       }
     },
     methods: {
+      addProject () {
+        this.FormVisible = true
+        this.project = {name: '', description: '', override_kylin_properties: {}}
+      },
+      Save () {
+        this.$refs.projectForm.$emit('projectFormValid')
+      },
+      validSuccess (data) {
+        let _this = this
+        this.saveProject(data).then((result) => {
+          this.$message({
+            type: 'success',
+            message: '保存成功!'
+          })
+          _this.loadProjects()
+        }, (result) => {
+          this.$message({
+            type: 'info',
+            message: '保存失败!'
+          })
+        })
+        this.FormVisible = false
+      },
       onSubmit () {
         console.log('submit!')
       },

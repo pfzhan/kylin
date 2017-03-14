@@ -41,8 +41,8 @@
         <i class="el-icon-more"></i>
       </el-button >
       <el-dropdown-menu slot="dropdown">
-        <el-dropdown-item @click.native="editProject(scope.row)">Edit</el-dropdown-item>      
-        <el-dropdown-item @click.native="addProject">Backup</el-dropdown-item>
+        <el-dropdown-item @click.native="editProject(scope.row)">Edit</el-dropdown-item> 
+        <el-dropdown-item @click.native="backup">Backup</el-dropdown-item>
         <el-dropdown-item @click.native="removeProject(scope.row)">Delete</el-dropdown-item>
       </el-dropdown-menu>
       </el-dropdown>
@@ -56,10 +56,8 @@
          <el-button type="primary" @click.native="updateOrSave">确 定</el-button>
       </span>     
     </el-dialog>  
- 
-</div>
+ </div>
 </template>
-
 <script>
 import { mapActions } from 'vuex'
 import cubeList from './cube_list'
@@ -145,6 +143,9 @@ export default {
           message: '已取消删除'
         })
       })
+    },
+    backup () {
+      console.log('1')
     }
   },
   data () {
