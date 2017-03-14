@@ -48,15 +48,21 @@ function help {
 if [ "$1" == "backup" ]
 then
 
-    mkdir -p ${KYLIN_HOME}/meta_backups
+    if [ "$#" == "2"  ] && [ "$2" == "--noSeg" ]
+    then
+        ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.tool.CubeMetaExtractor -compress false -allProjects -destDir ${KYLIN_HOME}/meta_backups -includeSegments false
+    else
+        mkdir -p ${KYLIN_HOME}/meta_backups
 
-    _now=$(date +"%Y_%m_%d_%H_%M_%S")
-    _file="${KYLIN_HOME}/meta_backups/meta_${_now}"
-    echo "Starting backup to ${_file}"
-    mkdir -p ${_file}
+        _now=$(date +"%Y_%m_%d_%H_%M_%S")
+        _file="${KYLIN_HOME}/meta_backups/meta_${_now}"
+        echo "Starting backup to ${_file}"
+        mkdir -p ${_file}
 
-    ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.common.persistence.ResourceTool download ${_file}
-    echo "metadata store backed up to ${_file}"
+        ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.common.persistence.ResourceTool download ${_file}
+        echo "metadata store backed up to ${_file}"
+    fi
+
 
 elif [ "$1" == "fetch" ]
 then
@@ -121,7 +127,7 @@ then
         help
     fi
 
-    ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.tool.CubeMetaExtractor -compress false -project $2 -destDir $3
+    ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.tool.CubeMetaExtractor -compress false -project $2 -destDir $3 -includeSegments false
 
 elif [ "$1" == "backup-cube" ]
 then
@@ -129,7 +135,7 @@ then
         help
     fi
 
-    ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.tool.CubeMetaExtractor -compress false -cube $2 -destDir $3
+    ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.tool.CubeMetaExtractor -compress false -cube $2 -destDir $3 -includeSegments false
 
 elif [ "$1" == "restore-project" ]
 then
