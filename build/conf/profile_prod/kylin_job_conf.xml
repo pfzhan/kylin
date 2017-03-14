@@ -75,6 +75,7 @@
         <description></description>
     </property>
 
+    <!-- Keep mapreduce.reduce.java.opts be half of mapreduce.reduce.memory.mb -->
     <property>
         <name>mapreduce.reduce.java.opts</name>
         <value>-Xmx1024m -XX:OnOutOfMemoryError='kill -9 %p'</value>
