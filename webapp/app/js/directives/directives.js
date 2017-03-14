@@ -275,15 +275,15 @@ KylinApp.directive('kylinPagination', function ($parse, $q, language) {
         }
 
         //return value;
-        var newDate = new Date(value + (60000 * new Date().getTimezoneOffset()));
+        var newDate = new Date(value);
 
-        var year = newDate.getFullYear();
-        var month = (newDate.getMonth()+1)<10?'0'+(newDate.getMonth()+1):(newDate.getMonth()+1);
-        var date = newDate.getDate()<10?'0'+newDate.getDate():newDate.getDate();
+        var year = newDate.getUTCFullYear();
+        var month = (newDate.getUTCMonth()+1)<10?'0'+(newDate.getUTCMonth()+1):(newDate.getUTCMonth()+1);
+        var date = newDate.getUTCDate()<10?'0'+newDate.getUTCDate():newDate.getUTCDate();
 
-        var hour = newDate.getHours()<10?'0'+newDate.getHours():newDate.getHours();
-        var mins = newDate.getMinutes()<10?'0'+newDate.getMinutes():newDate.getMinutes();
-        var seconds = newDate.getSeconds()<10?'0'+newDate.getSeconds():newDate.getSeconds();
+        var hour = newDate.getUTCHours()<10?'0'+newDate.getUTCHours():newDate.getUTCHours();
+        var mins = newDate.getUTCMinutes()<10?'0'+newDate.getUTCMinutes():newDate.getUTCMinutes();
+        var seconds = newDate.getUTCSeconds()<10?'0'+newDate.getUTCSeconds():newDate.getUTCSeconds();
 
         var viewVal = year+"-"+month+"-"+date+" "+hour+":"+mins+":"+seconds;
         return viewVal;
@@ -296,7 +296,7 @@ KylinApp.directive('kylinPagination', function ($parse, $q, language) {
           if(!date||date&&!date.getTime()){
             return value;
           }else{
-            return date.getTime()-(60000 * date.getTimezoneOffset());
+            return date.getTime();
           }
         }else{
           return value;
