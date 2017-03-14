@@ -1,88 +1,49 @@
 <template>
-  <el-table
-    :data="modelList"
-    style="width: 100%">
-    <el-table-column type="expand">
-      <template scope="props">
-         <el-tabs v-model="activeName" type="card" >
-           <el-tab-pane label="Grid" name="first">
-             <model_view :model="props.row"></model_view>
-           </el-tab-pane>
-           <el-tab-pane label="Visualization" name="second">Visualization
-         </el-tab-pane>
-           <el-tab-pane label="JSON" name="third">
-            <show_JSON :model="props.row"></show_JSON>
-         </el-tab-pane>
-        </el-tabs>
-      </template>
-    </el-table-column>
-    <el-table-column
-      label="Name"
-      prop="name">
-    </el-table-column>
-    <el-table-column
-      label="Project">
-        <template scope="scope">
-        <span style="margin-left: 10px">{{ selected_project }}</span>
-      </template>
-    </el-table-column>
-    <el-table-column
-      label="Owner"
-      prop="owner">
-    </el-table-column>
-    <el-table-column
-      label="Fact Table"
-      prop="fact_table">
-    </el-table-column>
-    <el-table-column
-      label="Last Modified Time"
-      prop="last_modified">
-    </el-table-column>   
-        <el-table-column
-      label="Action">
-      <template scope="scope">
-      <el-dropdown trigger="click">
-      <el-button class="el-dropdown-link">
-        <i class="el-icon-more"></i>
-      </el-button >
-      <el-dropdown-menu slot="dropdown">
-        <el-dropdown-item>Edit</el-dropdown-item>
-        <el-dropdown-item>Clone</el-dropdown-item>
-        <el-dropdown-item>Drop</el-dropdown-item>
-      </el-dropdown-menu>
-      </el-dropdown>
-      </template>      
-    </el-table-column>     
-  </el-table>
+	<div>
+		<el-row :gutter="20">
+		  <el-col :span="8"  v-for="(o, index) in 12" >
+		    <el-card :body-style="{ padding: '0px' }">
+		      <p>Last updated by</p>
+		      <div style="padding: 14px;">
+		        <span>model</span>
+		        <div class="bottom clearfix">
+		          <time class="time">{{ currentDate }}</time>
+		          <el-button type="text" class="button">...</el-button>
+		        </div>
+		      </div>
+		    </el-card>
+		  </el-col>
+		</el-row>
+		<pager :pageSize="pageSize" :totalSize="totalSize" :currentPage='currentPage' v-on:handleCurrentChange='pageCurrentChange' v-on:handleSizeChange='sizeChange'></pager>
+	</div>
 </template>
-
 <script>
 import { mapActions } from 'vuex'
-import modelView from './model_view'
-import modelVisualization from './model_visualization'
-import showJSON from '../common/show_JSON'
+
+import pager from '../common/pager'
+
 export default {
-  name: 'modellist',
-  methods: {
-    ...mapActions({
-      loadModels: 'LOAD_MODEL_LIST'
-    })
-  },
   data () {
     return {
-      activeName: 'first',
-      selected_project: localStorage.getItem('selected_project')
-    }
-  },
-  computed: {
-    modelList () {
-      return this.$store.state.model.modelsList
+      currentDate: new Date(),
+      pageSize: 12,
+      totalSize: 100,
+      currentPage: 1
     }
   },
   components: {
-    'model_view': modelView,
-    'model_visualization': modelVisualization,
-    'show_JSON': showJSON
+    pager
+  },
+  methods: {
+    ...mapActions({
+      loadModels: 'LOAD_MODEL_LIST'
+    }),
+    pageCurrentChange () {
+      alert(1)
+    },
+    sizeChange () {
+      alert(2)
+    }
   },
   created () {
     this.loadModels()
@@ -90,19 +51,39 @@ export default {
 }
 </script>
 <style scoped="">
-  .demo-table-expand {
-    font-size: 0;
+ .el-col {
+    margin-bottom: 20px;
+    &:last-child {
+      margin-bottom: 0;
+    }
   }
-  .demo-table-expand label {
-    width: 90px;
-    color: #99a9bf;
+ .time {
+    font-size: 13px;
+    color: #999;
   }
-  .demo-table-expand .el-form-item {
-    margin-right: 0;
-    margin-bottom: 0;
-    width: 50%;
+  
+  .bottom {
+    margin-top: 13px;
+    line-height: 12px;
   }
-  .el-dropdown-link {
 
+  .button {
+    padding: 0;
+    float: right;
+  }
+
+  .image {
+    width: 100%;
+    display: block;
+  }
+
+  .clearfix:before,
+  .clearfix:after {
+      display: table;
+      content: "";
+  }
+  
+  .clearfix:after {
+      clear: both
   }
 </style>

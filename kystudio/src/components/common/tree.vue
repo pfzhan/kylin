@@ -24,7 +24,7 @@
         this.$refs.tree2.filter(val)
       }
     },
-    props: ['treedata', 'showfilter', 'nodeclick'],
+    props: ['treedata', 'showfilter'],
     methods: {
       filterNode (value, data) {
         if (!value) return true
