@@ -121,7 +121,9 @@ then
     echo ""
     echo "A new Kylin instance is started by $USER. To stop it, run 'kylin.sh stop'"
     echo "Check the log at ${KYLIN_HOME}/logs/kylin.log"
-    echo "Web UI is at http://<hostname>:7070/kylin"
+    config_file_path=${KYLIN_HOME}/conf/kylin.properties
+    kylin_server_url=`sed -n "s/kylin.server.cluster-servers=\(.*\)/\1/"p ${config_file_path}`
+    echo "Web UI is at http://${kylin_server_url}/kylin"
     exit 0
 
 # stop command
