@@ -35,6 +35,8 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.controller.TableController;
 import org.apache.kylin.rest.service.JobService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -51,6 +53,7 @@ import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampleJob;
 @Controller
 @RequestMapping(value = "/table_ext")
 public class TableExtController extends BasicController {
+    private static final Logger logger = LoggerFactory.getLogger(TableExtController.class);
 
     @Autowired
     private TableExtService tableExtService;
@@ -86,7 +89,16 @@ public class TableExtController extends BasicController {
         String jobID = tableExtService.getJobByTableName(tableName);
         if (jobID == null || jobID.isEmpty())
             return null;
-        return jobService.getJobInstance(jobID);
+        try {
+            return jobService.getJobInstance(jobID);
+        } catch (RuntimeException e) {
+            /*
+            By design, HiveTableExtSampleJob is moved form kap-engine-mr to kap-source-hive in kap2.2,
+            therefore, kap2.3 or higher version can not parse kap2.2 stats job info.
+             */
+            logger.warn("Can not parse old version job info!");
+        }
+        return null;
     }
 
     @RequestMapping(value = "/{tables}/{project}", method = { RequestMethod.POST })

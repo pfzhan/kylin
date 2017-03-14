@@ -145,7 +145,7 @@ public class HiveTableExtSampleJob extends CubingJob {
         return sampleJob;
     }
 
-    public static String findRunningJob(String table, KylinConfig config) throws IOException {
+    public static String findRunningJob(String table, KylinConfig config) {
 
         MetadataManager metaMgr = MetadataManager.getInstance(config);
         TableExtDesc tableExtDesc = metaMgr.getTableExt(table);
@@ -155,8 +155,18 @@ public class HiveTableExtSampleJob extends CubingJob {
             return null;
         }
 
+        AbstractExecutable job = null;
         ExecutableManager exeMgt = ExecutableManager.getInstance(config);
-        AbstractExecutable job = exeMgt.getJob(jobID);
+        try {
+            job = exeMgt.getJob(jobID);
+        } catch (RuntimeException e) {
+            /*
+            By design, HiveTableExtSampleJob is moved form kap-engine-mr to kap-source-hive in kap2.2,
+            therefore, kap2.3 or higher version can not parse kap2.2 stats job info.
+             */
+            logger.warn("Can not parse old version job info!");
+        }
+
         if (null == job) {
             return null;
         }
