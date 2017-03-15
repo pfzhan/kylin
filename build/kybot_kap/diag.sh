@@ -41,7 +41,7 @@ then
         export HBASE_CLASSPATH=${HBASE_CLASSPATH}:${hive_dependency}
 
         hbase ${KYLIN_EXTRA_START_OPTS} \
-        -Dlog4j.configuration=kylin-tool-log4j.properties \
+        -Dlog4j.configuration=file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties \
         -Dcatalina.home=${tomcat_root} \
         org.apache.kylin.tool.JobDiagnosisInfoCLI \
         -jobId $patient \
