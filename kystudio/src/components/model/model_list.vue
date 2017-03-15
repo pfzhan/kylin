@@ -3,12 +3,12 @@
 		<el-row :gutter="20">
 		  <el-col :span="8"  v-for="(o, index) in 12" >
 		    <el-card :body-style="{ padding: '0px' }">
-		      <p>Last updated by</p>
+		      <p class="title">Last updated by<el-button type="text" class="button">...</el-button></p>
 		      <div style="padding: 14px;">
-		        <span>model</span>
+		        <h2>model</h2>
 		        <div class="bottom clearfix">
-		          <time class="time">{{ currentDate }}</time>
-		          <el-button type="text" class="button">...</el-button>
+		          <time class="time">Admin</time>
+		          
 		        </div>
 		      </div>
 		    </el-card>
@@ -51,6 +51,14 @@ export default {
 }
 </script>
 <style scoped="">
+ h2{
+ 	color:#58b7ff;
+ }
+ .title{
+ 	 margin-left: 20px;
+ 	 margin-top: 10px;
+ 	 color: #383838;
+ }
  .el-col {
     margin-bottom: 20px;
     &:last-child {
@@ -63,14 +71,21 @@ export default {
   }
   
   .bottom {
-    margin-top: 13px;
+    margin-top: 10px;
+    margin-right: 10px;
     line-height: 12px;
   }
 
   .button {
     padding: 0;
     float: right;
+    margin-top: 0px;
+    margin-right: 10px;
+   
   }
+  .button span{
+      font-size: 14px;
+    }
 
   .image {
     width: 100%;
