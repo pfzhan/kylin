@@ -161,10 +161,10 @@ public class HiveTableExtSampleJob extends CubingJob {
             job = exeMgt.getJob(jobID);
         } catch (RuntimeException e) {
             /*
-            By design, HiveTableExtSampleJob is moved form kap-engine-mr to kap-source-hive in kap2.2,
+            By design, HiveTableExtSampleJob is moved from kap-engine-mr to kap-source-hive in kap2.3,
             therefore, kap2.3 or higher version can not parse kap2.2 stats job info.
              */
-            logger.warn("Can not parse old version job info!");
+            logger.warn("Could not parse old version table stats job. job_id:{}, table_name:{}" + jobID + table);
         }
 
         if (null == job) {
