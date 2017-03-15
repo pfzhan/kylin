@@ -24,24 +24,24 @@
     <div class="boxed-group">
       <h3>{{dataKylin.user.changePassword}}</h3>
       <div class="boxed-group-inner">
-        <form >
+        <ng-form name="password" novalidate>
           <dl class="form-group" ng-if="!userService.hasRole('ROLE_ADMIN')">
             <dt><label>{{dataKylin.user.oldPassword}}</label></dt>
             <dd><input class="form-control" ng-model="user.password" type="password"></dd>
           </dl>
           <dl class="form-group">
             <dt><label>{{dataKylin.user.newPassword}}</label></dt>
-            <dd><input class="form-control" ng-model="user.newPassword" type="password">
+            <dd><input class="form-control" ng-model="user.newPassword" type="password" name="newPassword" required>
             </dd>
           </dl>
           <dl class="form-group">
             <dt><label>{{dataKylin.user.confirmNewPassword}}</label></dt>
-            <dd><input class="form-control" ng-model="confirmPassword" type="password"></dd>
+            <dd><input class="form-control" ng-model="confirmPassword" type="password" name="confirmNewPassword" required></dd>
           </dl>
           <p>
-            <button class="btn" ng-click="resetPassword()">{{dataKylin.user.updatePassword}}</button>
+            <button class="btn btn-success" ng-click="resetPassword()" ng-disabled="password.$invalid">{{dataKylin.user.updatePassword}}</button>
           </p>
-        </form>
+        </ng-form>
       </div>
 
     </div>
