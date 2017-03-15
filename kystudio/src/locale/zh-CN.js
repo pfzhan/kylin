@@ -17,6 +17,9 @@ exports.default = {
   cube: {
 
   },
+  project: {
+
+  },
   dataSource: {
 
   },
