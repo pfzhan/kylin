@@ -387,6 +387,7 @@ KylinApp.controller('CubeEditCtrl', function ($scope,$rootScope, $q, $routeParam
           for(var i=0;i<$scope.cubeMetaFrame.rowkey.rowkey_columns.length;i++){
             $scope.cubeMetaFrame.rowkey.rowkey_columns[i].index='eq';
           }
+          delete $scope.cubeMetaFrame.last_modified
           $scope.state.cubeSchema = angular.toJson($scope.cubeMetaFrame, true);
           CubeService.save({}, {
             cubeDescData: VdmUtil.filterNullValInObj($scope.state.cubeSchema),
