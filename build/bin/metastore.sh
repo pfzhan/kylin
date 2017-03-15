@@ -32,6 +32,7 @@ function help {
     echo "usage: metastore.sh backup"
     echo "       metastore.sh fetch DATA"
     echo "       metastore.sh reset"
+    echo "       metastore.sh refresh-cube-signature"
     echo "       metastore.sh restore PATH_TO_LOCAL_META"
     echo "       metastore.sh list RESOURCE_PATH"
     echo "       metastore.sh cat RESOURCE_PATH"
