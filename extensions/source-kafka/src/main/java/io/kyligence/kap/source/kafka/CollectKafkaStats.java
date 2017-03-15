@@ -40,6 +40,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.source.kafka.config.KafkaConfig;
 import org.apache.kylin.source.kafka.util.KafkaClient;
 import org.slf4j.Logger;
@@ -48,11 +49,8 @@ import org.slf4j.LoggerFactory;
 public class CollectKafkaStats {
 
     private static final Logger logger = LoggerFactory.getLogger(CollectKafkaStats.class);
-    final static String uuidPattern = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
-    final static String ipPattern = "\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}";
-    final static long FETCH_MSG_TIMEOUT = 60000;
-    final static int LIST_TOPIC_TIMEOUT = 60000;
-    final static int MSG_AMOUNT = 10;
+    final static String UUIDPATTERN = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+    final static String IPPATTERN = "\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}";
 
     //List topics
     public static Map<String, List<String>> getTopics(KafkaConfig kafkaConfig) {
@@ -62,7 +60,9 @@ public class CollectKafkaStats {
         for (String broker : brokers.split(",")) {
             Properties property = new Properties();
             //this property must be greater than 10000
-            property.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, LIST_TOPIC_TIMEOUT);
+            int timeOut = KapConfig.getInstanceFromEnv().getKafkaListTopicsTimeOut();
+            logger.info("request.timeout.ms is: {}" + timeOut);
+            property.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, timeOut);
             Consumer consumer = KafkaClient.getKafkaConsumer(broker, "sample", property);
 
             Map<String, List<PartitionInfo>> topics = consumer.listTopics();
@@ -90,6 +90,7 @@ public class CollectKafkaStats {
 
         String topic = kafkaConfig.getTopic();
         String brokers = KafkaClient.getKafkaBrokers(kafkaConfig);
+        int sampleMsgCount = KapConfig.getInstanceFromEnv().getKafkaSampleMessageCount();
         List<String> samples = new ArrayList<>();
         for (String broker : brokers.split(",")) {
             Consumer consumer;
@@ -109,12 +110,14 @@ public class CollectKafkaStats {
             long pos = consumer.position(new TopicPartition(topic, id));
             if (pos <= 0) {
                 continue;
-            } else if (pos < MSG_AMOUNT)
+            } else if (pos < sampleMsgCount)
                 consumer.seek(new TopicPartition(topic, id), 0);
             else
-                consumer.seek(new TopicPartition(topic, id), pos - MSG_AMOUNT);
+                consumer.seek(new TopicPartition(topic, id), pos - sampleMsgCount);
 
-            records = consumer.poll(FETCH_MSG_TIMEOUT);
+            int timeOut = KapConfig.getInstanceFromEnv().getKafkaFetchMessageTimeOut();
+            logger.info("Consumer poll message timeout is: {}" + timeOut);
+            records = consumer.poll(timeOut);
             consumer.close();
             if (records.isEmpty())
                 continue;
@@ -130,7 +133,7 @@ public class CollectKafkaStats {
     }
 
     private static boolean isUsefulTopic(String topic) {
-        final Pattern UUId_PATTERN = Pattern.compile(uuidPattern);
+        final Pattern UUId_PATTERN = Pattern.compile(UUIDPATTERN);
         if (UUId_PATTERN.matcher(topic).matches()) {
             return false;
         }
@@ -158,7 +161,7 @@ public class CollectKafkaStats {
     }
 
     private static boolean isIp(String ipAddress) {
-        Pattern pattern = Pattern.compile(ipPattern);
+        Pattern pattern = Pattern.compile(IPPATTERN);
         Matcher matcher = pattern.matcher(ipAddress);
         return matcher.find();
     }

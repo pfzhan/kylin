@@ -218,8 +218,24 @@ public class KapConfig {
     public String getTableStatusLimitRowSize() {
         return config.getOptional("kap.table.stats.limit.row.size", "10000000");
     }
+
     public boolean IsTableStatsScanWholeTable() {
         return Boolean.parseBoolean(config.getOptional("kap.table.stats.scan.whole.table.enabled", "true"));
+    }
+
+    /**
+     * Kafka config
+     */
+    public int getKafkaListTopicsTimeOut() {
+        return Integer.parseInt(config.getOptional("kap.kafka.list.topics.timeout", "20000"));
+    }
+
+    public int getKafkaFetchMessageTimeOut() {
+        return Integer.parseInt(config.getOptional("kap.kafka.fetch.message.timeout", "10000"));
+    }
+
+    public int getKafkaSampleMessageCount() {
+        return Integer.parseInt(config.getOptional("kap.kafka.sample.message.count", "10"));
     }
 
     /**
