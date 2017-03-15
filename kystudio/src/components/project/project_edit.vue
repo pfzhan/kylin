@@ -16,7 +16,7 @@
     </el-row>    
   </el-form-item> 
   <el-form-item>
-    <el-button @click="addNewProperty">{{$t('propertye')}}</el-button>
+    <el-button @click="addNewProperty">{{$t('property')}}</el-button>
   </el-form-item>    
   </el-form>
 </div>

@@ -1,72 +1,69 @@
 <template>
-	<el-row class="panel">
-		<el-col :span="24" class="panel-center">
-			<!--<el-col :span="4">-->
-			<aside style="width:230px;" class="left_menu">
-			    <img src="../../assets/logo.png" class="logo">
-				<el-menu style="border-top: 1px solid #475669;" default-active="/table" class="el-menu-vertical-demo" @open="handleopen"
-					@close="handleclose" @select="handleselect" theme="dark" unique-opened router>
-					<template v-for="(item,index) in menus" >
-						<el-menu-item :index="item.path"  >{{item.name}}</el-menu-item>
-					</template>
-				</el-menu>
-			</aside>
-			<!--</el-col>-->
-			<!--<el-col :span="20" class="panel-c-c">-->
-			<div class="topbar">
-				<icon name="bars"></icon>
-                                                   <project_select></project_select>
-                                                   <el-button icon="icon-copy"></el-button>               
-                                                   <el-button icon="plus" @click="addProject"></el-button>
-				<ul>
-					<li>bingo</li>
-					<li>
-						<el-dropdown>
-							  <span class="el-dropdown-link">
-							    bob<icon name="angle-down"></icon>
-							  </span>
-							  <el-dropdown-menu slot="dropdown">
-							    <el-dropdown-item>注销</el-dropdown-item>
-							  </el-dropdown-menu>
-							</el-dropdown>
-						</li>
-					</ul>
-				<!-- </div> -->
-			</div>
-			<section class="panel-c-c">
-			    
-				<div class="grid-content bg-purple-light">
-					<el-col :span="24" style="margin-bottom:15px;">
-						<strong style="width:200px;float:left;color: #475669;">{{currentPathName}}</strong>
-						<el-breadcrumb separator="/" style="float:right;">
-							<el-breadcrumb-item :to="{ path: '/table' }">首页</el-breadcrumb-item>
-							<el-breadcrumb-item v-if="currentPathNameParent!=''">{{currentPathNameParent}}</el-breadcrumb-item>
-							<el-breadcrumb-item v-if="currentPathName!=''">{{currentPathName}}</el-breadcrumb-item>
-						</el-breadcrumb>
-					</el-col>
-					<el-col :span="24" style="box-sizing: border-box;">
-						<!--<transition name="fade">-->
-							<router-view></router-view>
-						<!--</transition>-->
-					</el-col>
-					                                                     <el-dialog title="Project" v-model="FormVisible">
-      <project_edit :project="project" ref="projectForm" v-on:validSuccess="validSuccess"></project_edit>
-      <span slot="footer" class="dialog-footer">
-         <el-button @click="FormVisible = false">取 消</el-button>
-         <el-button type="primary" @click.native="Save">确 定</el-button>
-      </span>     
-    </el-dialog>  
-				</div>
-			</section>
-			<!--</el-col>-->
-		</el-col>
-	</el-row>
-
+<el-row class="panel">
+  <el-col :span="24" class="panel-center">
+    <!--<el-col :span="4">-->
+    <aside style="width:230px;" class="left_menu">
+      <img src="../../assets/logo.png" class="logo">
+      <el-menu style="border-top: 1px solid #475669;" default-active="/table" class="el-menu-vertical-demo" @open="handleopen" @close="handleclose" @select="handleselect" theme="dark" unique-opened router>
+        <template v-for="(item,index) in menus" >
+          <el-menu-item :index="item.path"  >{{item.name}}</el-menu-item>
+        </template>
+      </el-menu>
+    </aside>
+    <!--</el-col>-->			
+    <!--<el-col :span="20" class="panel-c-c">-->
+    <div class="topbar">
+      <icon name="bars"></icon>
+      <project_select></project_select>
+      <el-button icon="icon-copy"></el-button>               
+      <el-button icon="plus" @click="addProject"></el-button>
+      <change_lang></change_lang>
+      <ul>
+        <li>bingo</li>
+        <li>
+          <el-dropdown>
+            <span class="el-dropdown-link">bob<icon name="angle-down"></icon>
+            </span>
+            <el-dropdown-menu slot="dropdown">
+              <el-dropdown-item>注销</el-dropdown-item>
+            </el-dropdown-menu>
+          </el-dropdown>
+        </li>
+      </ul>
+    </div>
+    <section class="panel-c-c">
+      <div class="grid-content bg-purple-light">
+        <el-col :span="24" style="margin-bottom:15px;">					
+          <strong style="width:200px;float:left;color: #475669;">{{currentPathName}}</strong>
+          <el-breadcrumb separator="/" style="float:right;">
+            <el-breadcrumb-item :to="{ path: '/table' }">首页</el-breadcrumb-item>
+            <el-breadcrumb-item v-if="currentPathNameParent!=''">{{currentPathNameParent}}</el-breadcrumb-item>						
+            <el-breadcrumb-item v-if="currentPathName!=''">{{currentPathName}}</el-breadcrumb-item>
+          </el-breadcrumb>
+        </el-col>				
+        <el-col :span="24" style="box-sizing: border-box;">
+          <!--<transition name="fade">-->	
+          <router-view></router-view>
+          <!--</transition>-->
+        </el-col>
+        <el-dialog title="Project" v-model="FormVisible">
+          <project_edit :project="project" ref="projectForm" v-on:validSuccess="validSuccess">
+          </project_edit>
+          <span slot="footer" class="dialog-footer">
+            <el-button @click="FormVisible = false">取 消</el-button>
+            <el-button type="primary" @click.native="Save">确 定</el-button>
+          </span>     
+        </el-dialog>  
+      </div>
+    </section>
+  </el-col>
+</el-row>
 </template>
 
 <script>
   import projectSelect from '../project/project_select'
   import projectEdit from '../project/project_edit'
+  import changeLang from '../common/change_lang'
   export default {
     data () {
       return {
@@ -95,7 +92,8 @@
     },
     components: {
       'project_select': projectSelect,
-      'project_edit': projectEdit
+      'project_edit': projectEdit,
+      'change_lang': changeLang
     },
     watch: {
       '$route' (to, from) { // 监听路由改变

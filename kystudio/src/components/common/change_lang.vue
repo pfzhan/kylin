@@ -1,12 +1,6 @@
 <template>
-   <el-select  placeholder="" v-model="lang">
-    <el-option
-      v-for="item in options"
-      :label="item.label"
-      :value="item.value"
-      >
-    </el-option>
-  </el-select>
+<el-button v-if="lang=='en'" @click="changeLang">E</el-button>
+<el-button v-else @click="changeLang">中</el-button>
 </template>
 <script>
   import router from '../../router'
@@ -24,6 +18,15 @@
       return {
         lang: localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : 'zh-cn',
         options: [{label: '中文', value: 'zh-cn'}, {label: 'English', value: 'en'}]
+      }
+    },
+    methods: {
+      changeLang () {
+        if (this.lang === 'en') {
+          this.lang = 'zh-cn'
+        } else {
+          this.lang = 'en'
+        }
       }
     }
   }
