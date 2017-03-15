@@ -296,7 +296,12 @@ KylinApp.directive('kylinPagination', function ($parse, $q, language) {
           if(!date||date&&!date.getTime()){
             return value;
           }else{
-            return date.getTime();
+            var dateSplit=value.replace(/^\s+|\s+$/,'').replace(/\s+/,'-').split(/[:-]/);
+            var resultDate=[];
+            for(var i=0;i<6;i++){
+              resultDate[i]=dateSplit[i]||0;
+            }
+            return Date.UTC(resultDate[0],resultDate[1]-1,resultDate[2],resultDate[3],resultDate[4],resultDate[5]);
           }
         }else{
           return value;
