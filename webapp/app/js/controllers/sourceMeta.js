@@ -142,7 +142,7 @@ KylinApp
        $scope.validError=false;
        $scope.loadTable=function(isConfirm,rowCount){
          if(rowCount!=''&&isConfirm=='1'){
-           if(!/^[1-9]\d*$/.test(rowCount)){
+           if(!/^[1-9]\d*$/.test(rowCount)||rowCount>2147483647){
              $scope.validError=true;
              return;
            }

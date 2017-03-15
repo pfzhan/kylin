@@ -823,7 +823,7 @@ KylinApp.constant('kapChineseConfig', {
     useLessTopic: '该Topic暂时无法使用',
     clusterFormError: '请填写完整的broker信息, 且确保不要和已填的重复! ',
     collectKafkaSampleData: '收集流采样数据',
-    rowCountMustInputNumber: '扫描表行数必须为大于0的数字! ',
+    rowCountMustInputNumber: '扫描表行数必须为大于0小于等于2147483647的数字! ',
     rowCountPlaceHolder: '请输入采样扫描的行数, 如果不填默认将全局扫描',
     yesOfStartCollect: '是',
     noOfStartCollect: '否',

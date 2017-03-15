@@ -823,7 +823,7 @@ KylinApp.constant('kapEnglishConfig', {
     useLessTopic: 'The Topic is temporarily unavailable! ',
     clusterFormError: 'Make sure you are not repeat or empty the broker info! ',
     collectKafkaSampleData: 'Collect Streaming Sample Data',
-    rowCountMustInputNumber: 'Only numbers greater than 0 allowed! ',
+    rowCountMustInputNumber: 'Digital range of 0~2147483647! ',
     rowCountPlaceHolder: 'Enter the number of scan lines, full table scan if you have no enter',
     yesOfStartCollect: 'Yes',
     noOfStartCollect: 'No',
