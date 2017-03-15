@@ -1,20 +1,32 @@
 <template>
 	<div>
 		<el-row :gutter="20">
-		  <el-col :span="8"  v-for="(o, index) in 12" >
+		  <el-col :span="8"  v-for="(o, index) in modelsList" >
 		    <el-card :body-style="{ padding: '0px' }">
-		      <p class="title">Last updated by<el-button type="text" class="button">...</el-button></p>
+		      <p class="title">Last updated {{o.last_modified | utcTime}}<el-button type="text" class="button">
+					<el-dropdown @command="handleCommand">
+					  <span class="el-dropdown-link">
+					    <icon name="ellipsis-h"></icon>
+					  </span>
+					  <el-dropdown-menu slot="dropdown">
+					    <el-dropdown-item command="a">Edit</el-dropdown-item>
+					    <el-dropdown-item command="b">Clone</el-dropdown-item>
+					    <el-dropdown-item command="c">Drop</el-dropdown-item>
+					  </el-dropdown-menu>
+					</el-dropdown>
+
+		      </el-button></p>
 		      <div style="padding: 14px;">
-		        <h2>model</h2>
+		        <h2>{{o.name}}</h2>
 		        <div class="bottom clearfix">
-		          <time class="time">Admin</time>
-		          
+		          <time class="time">{{o.owner}}</time>
+		          <div class="view_btn"><icon name="long-arrow-right" style="font-size:20px"></icon></div>
 		        </div>
 		      </div>
 		    </el-card>
 		  </el-col>
 		</el-row>
-		<pager :pageSize="pageSize" :totalSize="totalSize" :currentPage='currentPage' v-on:handleCurrentChange='pageCurrentChange' v-on:handleSizeChange='sizeChange'></pager>
+		<pager :pageSize="pageSize" :totalSize="modelsTotal" :currentPage='currentPage' v-on:handleCurrentChange='pageCurrentChange' v-on:handleSizeChange='sizeChange'></pager>
 	</div>
 </template>
 <script>
@@ -27,7 +39,6 @@ export default {
     return {
       currentDate: new Date(),
       pageSize: 12,
-      totalSize: 100,
       currentPage: 1
     }
   },
@@ -39,14 +50,21 @@ export default {
       loadModels: 'LOAD_MODEL_LIST'
     }),
     pageCurrentChange () {
-      alert(1)
+      this.loadModels({limit: this.pageSize, current: this.currentPage, projectName: localStorage.getItem('selected_project')})
     },
     sizeChange () {
-      alert(2)
+    }
+  },
+  computed: {
+    modelsList () {
+      return this.$store.state.model.modelsList
+    },
+    modelsTotal () {
+      return this.$store.state.model.modelsTotal
     }
   },
   created () {
-    this.loadModels()
+    this.loadModels({limit: this.pageSize, current: this.currentPage, projectName: localStorage.getItem('selected_project')})
   }
 }
 </script>
@@ -58,6 +76,7 @@ export default {
  	 margin-left: 20px;
  	 margin-top: 10px;
  	 color: #383838;
+ 	 font-size: 14px;
  }
  .el-col {
     margin-bottom: 20px;
@@ -75,18 +94,27 @@ export default {
     margin-right: 10px;
     line-height: 12px;
   }
-
+  .view_btn{
+  	float: right;
+  	/*margin-right: 10px;*/
+  	color:#58b7ff;
+  }
   .button {
     padding: 0;
     float: right;
-    margin-top: 0px;
+    margin-top: -4px;
     margin-right: 10px;
-   
+    color:#ccc;
+  }
+  .button:hover{
+    color:#58b7ff;
   }
   .button span{
       font-size: 14px;
     }
-
+   .view_btn{
+   	font-size: 20px;
+   }
   .image {
     width: 100%;
     display: block;

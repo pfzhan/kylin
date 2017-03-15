@@ -1,0 +1,7 @@
+.generate-attr(@n,@attr, @i: 1) when (@i =< @n) {
+  .@{attr}-@{i} {
+    width: (@i * 2);
+  }
+  .generate-attr(@n,@attr, (@i + 1));
+}
+.generate-attr(12,ksd-ml);
