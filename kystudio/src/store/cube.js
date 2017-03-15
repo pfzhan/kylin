@@ -14,7 +14,12 @@ export default {
       api.cube.getCubesList({limit: 15, offset: 0, projectName: localStorage.getItem('selected_project')}).then((response) => {
         commit(types.SAVE_CUBES_LIST, { list: response.data })
       })
-    }
+    },
+    [types.LOAD_CUBE_DESC]: function ({ commit }, cubeName) {
+      api.cube.getCubeDesc(cubeName).then((response) => {
+         response.data
+      })
+    }    
   },
   getters: {}
 }

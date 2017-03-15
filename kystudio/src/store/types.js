@@ -12,3 +12,4 @@ export const SAVE_MODEL_LIST = 'SAVE_MODEL_LIST'
 // model actions mutations
 export const LOAD_CUBES_LIST = 'LOAD_CUBES_LIST'
 export const SAVE_CUBES_LIST = 'SAVE_CUBES_LIST'
+export const LOAD_CUBE_DESC = 'LOAD_CUBE_DESC'

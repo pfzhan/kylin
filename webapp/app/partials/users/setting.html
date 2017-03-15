@@ -27,7 +27,7 @@
         <ng-form name="password" novalidate>
           <dl class="form-group" ng-if="!userService.hasRole('ROLE_ADMIN')">
             <dt><label>{{dataKylin.user.oldPassword}}</label></dt>
-            <dd><input class="form-control" ng-model="user.password" type="password"></dd>
+            <dd><input class="form-control" ng-model="user.password" type="password" name="oldPassword" required></dd>
           </dl>
           <dl class="form-group">
             <dt><label>{{dataKylin.user.newPassword}}</label></dt>

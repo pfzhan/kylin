@@ -9,6 +9,7 @@ import topLeftRightView from '../components/layout/layout_left_right_top'
 import dashbord from '../components/dashbord'
 import projectList from '../components/project/project_list'
 import modelTab from '../components/model/model_tab'
+import cubeList from '../components/cube/cube_list'
 Vue.use(Router)
 
 export default new Router({
@@ -29,6 +30,10 @@ export default new Router({
         name: 'Model',
         path: 'model',
         component: modelTab
+      }, {
+        name: 'Cube',
+        path: 'cube',
+        component: cubeList
       }]
     }, {
       path: '/demo',
