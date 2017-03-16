@@ -147,8 +147,18 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
                     });
                   }
                   for(var i=0;i<each[0].measures.length;i++){
-                    if(each[0].measures[i].function.parameter.type=="column"){
-                      $scope.iteration($scope.usedMeasuresCubeMap,each[0].measures[i].function.parameter,cube.name);
+                    if(each[0].measures[i].function.parameter.type=="column" ){
+                      if($scope.modelsManager.selectedModel.metrics.indexOf(each[0].measures[i].function.parameter.value) != -1){
+                        $scope.iteration($scope.usedMeasuresCubeMap,each[0].measures[i].function.parameter,cube.name);
+                      }else{
+                        var colName= VdmUtil.removeNameSpace(each[0].measures[i].function.parameter.value);
+                        var tableName = VdmUtil.getNameSpace(each[0].measures[i].function.parameter.value);
+                        $scope.usedDimensionsCubeMap[tableName][colName]= $scope.usedDimensionsCubeMap[tableName][colName]||[];
+                        if($scope.usedDimensionsCubeMap[tableName][colName].indexOf(cube.name)==-1){
+                          $scope.usedDimensionsCubeMap[tableName][colName].push(cube.name);
+                        }
+
+                      }
                     }
                   }
                 });

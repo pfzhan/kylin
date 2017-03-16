@@ -120,6 +120,16 @@ KylinApp.service('CubeDescModel', function (kylinConfig, modelsManager, TableMod
       if(!arr.filter(function(element,pos){return element.name==metric}).length){
         var dataType=model.aliasColumnMap[metric].datatype;
         if((numbertype.indexOf(dataType)!=-1)||(dataType.substring(0,7)==="decimal")){
+          var columnType;
+          if(bigintType.indexOf(dataType)!=-1){
+            columnType = 'bigint';
+          }else{
+            if(dataType.indexOf('decimal')!=-1){
+              columnType = colType;
+            }else{
+              columnType = 'decimal';
+            }
+          }
           arr.push(
             {"name": metric,
              "function": {
@@ -129,7 +139,7 @@ KylinApp.service('CubeDescModel', function (kylinConfig, modelsManager, TableMod
                "value": metric,
                "next_parameter": null
              },
-               "returntype": bigintType.indexOf(dataType)!=-1?"bigint":"decimal"
+               "returntype": columnType
              },
            });
         }
