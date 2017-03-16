@@ -1,7 +1,25 @@
-.generate-attr(@n,@attr, @i: 1) when (@i =< @n) {
-  .@{attr}-@{i} {
-    width: (@i * 2);
+//common css
+.generate-attr(@n,@attr, @attrName, @i: 1,@k:@i*2) when (@i =< @n) {
+  .@{attr}-@{k} {
+    @{attrName}: (@i * 2);
   }
-  .generate-attr(@n,@attr, (@i + 1));
+  .generate-attr(@n,@attr, @attrName,(@i + 1));
 }
-.generate-attr(12,ksd-ml);
+.generate-attr(20,ksd-ml,margin-left);
+.generate-attr(20,ksd-mr,margin-right);
+.generate-attr(20,ksd-mt,margin-top);
+.generate-attr(20,ksd-mb,margin-bottom);
+.generate-attr(20,ksd-top,top);
+.generate-attr(20,ksd-left,left);
+.generate-attr(20,ksd-right,right);
+.generate-attr(20,ksd-bottom,bottom);
+
+.fright{float: right;}
+.fleft{float: left;}
+
+
+// .generate-attr(20,ksd-mb);
+// .generate-attr(20,ksd-mt);
+
+// .generate-attr(20,ksd-w);
+// .generate-attr(20,ksd-h);
