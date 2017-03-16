@@ -9,6 +9,6 @@ export default {
     return Vue.resource(apiUrl + 'cubes').get(params)
   },
   getCubeDesc: (cubeName) => {
-    return Vue.resource(apiUrl + 'cube_desc'+cubeName).get()
+    return Vue.resource(apiUrl + 'cube_desc/' + cubeName).get({})
   }
 }

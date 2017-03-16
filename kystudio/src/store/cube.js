@@ -17,9 +17,9 @@ export default {
     },
     [types.LOAD_CUBE_DESC]: function ({ commit }, cubeName) {
       api.cube.getCubeDesc(cubeName).then((response) => {
-         response.data
+        response.data
       })
-    }    
+    }
   },
   getters: {}
 }
