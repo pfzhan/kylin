@@ -249,7 +249,6 @@ KylinApp.controller('ModelDataModelCtrl', function ($location,$scope, $modal,cub
          if(pk_column!=='null'&&fk_column!=='null'){
             $scope.newLookup.join.pk_type[index] = TableModel.getColumnType(VdmUtil.removeNameSpace(pk_column),$scope.newLookup.table);
             $scope.newLookup.join.fk_type[index] = TableModel.getColumnType(VdmUtil.removeNameSpace(fk_column),$scope.aliasTableMap[$scope.newLookup.joinTable]);
-            $scope.newLookup.join.fk_type[index] = TableModel.getColumnType(VdmUtil.removeNameSpace(fk_column),$scope.aliasTableMap[$scope.FactTable.root]);
             if($scope.newLookup.join.pk_type[index]!==$scope.newLookup.join.fk_type[index]){
                $scope.newLookup.join.isCompatible[index]=false;
             }else{
