@@ -360,7 +360,7 @@ KylinApp.controller('CubeAdvanceSettingCtrl', function ($scope, $modal,cubeConfi
        $scope.columnType= TableModel.getColumnType(VdmUtil.removeNameSpace(columnName),tableName)||'';
        $scope.columnList=TableModel.getColumnsByTable(tableName);
         $scope.columnList.map(function(obj,k){
-         if(VdmUtil.removeNameSpace(tableName)+'.'+obj.name==columnName){
+         if(obj.name==VdmUtil.removeNameSpace(columnName)){
            $scope.columnIndex=k;
            return false;
          }
