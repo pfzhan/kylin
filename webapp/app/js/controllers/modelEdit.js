@@ -63,15 +63,27 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
         return n;
     };
 
-    $scope.iteration =function (object,parameter,cube){
-        object[parameter.value]=object[parameter.value]||[];
-        object[parameter.value].push(cube);
-        if(parameter.next_parameter==null){
-            return;
-        }else{
-            $scope.iteration(object,parameter.next_parameter,cube);
+    $scope.iteration =function (parameter,cube){
+      var colName = VdmUtil.removeNameSpace(parameter.value);
+      var tableName = VdmUtil.getNameSpace(parameter.value);
+      if($scope.modelsManager.selectedModel.metrics.indexOf(parameter.value) != -1){
+        $scope.usedMeasuresCubeMap[parameter.value] = $scope.usedMeasuresCubeMap[parameter.value]||[];
+        if($scope.usedMeasuresCubeMap[parameter.value].indexOf(cube)==-1){
+          $scope.usedMeasuresCubeMap[parameter.value].push(cube);
         }
-     };
+      }else{
+        $scope.usedDimensionsCubeMap[tableName] = $scope.usedDimensionsCubeMap[tableName]||{};
+        $scope.usedDimensionsCubeMap[tableName][colName]= $scope.usedDimensionsCubeMap[tableName][colName]||[];
+        if($scope.usedDimensionsCubeMap[tableName][colName].indexOf(cube)==-1){
+          $scope.usedDimensionsCubeMap[tableName][colName].push(cube);
+        }
+      }
+      if(parameter.next_parameter==null){
+        return;
+      }else{
+        $scope.iteration(parameter.next_parameter,cube);
+      }
+    };
 
     $scope.getColumnType = function (_column,table){
         var columns = TableModel.getColumnsByTable(table);
@@ -148,17 +160,7 @@ KylinApp.controller('ModelEditCtrl', function ($scope, $q, $routeParams, $locati
                   }
                   for(var i=0;i<each[0].measures.length;i++){
                     if(each[0].measures[i].function.parameter.type=="column" ){
-                      if($scope.modelsManager.selectedModel.metrics.indexOf(each[0].measures[i].function.parameter.value) != -1){
-                        $scope.iteration($scope.usedMeasuresCubeMap,each[0].measures[i].function.parameter,cube.name);
-                      }else{
-                        var colName= VdmUtil.removeNameSpace(each[0].measures[i].function.parameter.value);
-                        var tableName = VdmUtil.getNameSpace(each[0].measures[i].function.parameter.value);
-                        $scope.usedDimensionsCubeMap[tableName][colName]= $scope.usedDimensionsCubeMap[tableName][colName]||[];
-                        if($scope.usedDimensionsCubeMap[tableName][colName].indexOf(cube.name)==-1){
-                          $scope.usedDimensionsCubeMap[tableName][colName].push(cube.name);
-                        }
-
-                      }
+                      $scope.iteration(each[0].measures[i].function.parameter,cube.name);
                     }
                   }
                 });
