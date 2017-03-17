@@ -285,7 +285,9 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
      $scope.updateMeasureStatus.isEdit = true;
      // Make a copy of model will be editing.
      $scope.newMeasure = angular.copy(measure);
-     $scope.newMeasure.function.returntype=$scope.newMeasure.function.returntype.replace(/\,\d+/,'');
+     if($scope.newMeasure.function.expression == 'TOP_N'){
+       $scope.newMeasure.function.returntype=$scope.newMeasure.function.returntype.replace(/\,\d+/,'');
+     }
      $scope.addEditMeasureEncoding($scope.newMeasure,$scope.updateMeasureStatus.editIndex);
      $scope.openMeasureModal();
   };
