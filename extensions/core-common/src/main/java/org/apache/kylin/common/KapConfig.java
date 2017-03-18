@@ -245,4 +245,15 @@ public class KapConfig {
     public int getHttpProxyPort() {
         return Integer.parseInt(config.getOptional("kap.external.http.proxy.port", "-1"));
     }
+
+    /**
+     * Spark configuration
+     */
+    public String getColumnarSparkEnv(String conf) {
+        return config.getPropertiesByPrefix("kap.storage.columnar.spark-env.").get(conf);
+    }
+
+    public String getColumnarSparkConf(String conf) {
+        return config.getPropertiesByPrefix("kap.storage.columnar.spark-conf.").get(conf);
+    }
 }
