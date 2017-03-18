@@ -47,8 +47,7 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase imp
     private JavaSparkContext sc;
 
     public SparkAppClientService() {
-        conf = new SparkConf().setAppName("Kyligence Columnar Storage Query Driver");
-        //conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
+        conf = new SparkConf().setAppName("KAP Query Driver");
         conf.set("spark.scheduler.mode", "FAIR");
         sc = new JavaSparkContext(conf);
 
