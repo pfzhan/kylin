@@ -4,7 +4,7 @@
     <!--<el-col :span="4">-->
     <aside style="width:230px;" class="left_menu">
       <img src="../../assets/logo.png" class="logo">
-      <el-menu style="border-top: 1px solid #475669;" default-active="/table" class="el-menu-vertical-demo" @open="handleopen" @close="handleclose" @select="handleselect" theme="dark" unique-opened router>
+      <el-menu style="border-top: 1px solid #475669;" :default-active="defaultActive" class="el-menu-vertical-demo" @open="handleopen" @close="handleclose" @select="handleselect" theme="dark" unique-opened router>
         <template v-for="(item,index) in menus" >
           <el-menu-item :index="item.path"  >{{item.name}}</el-menu-item>
         </template>
@@ -34,11 +34,12 @@
     <section class="panel-c-c">
       <div class="grid-content bg-purple-light">
         <el-col :span="24" style="margin-bottom:15px;">					
-          <strong style="width:200px;float:left;color: #475669;">{{currentPathName}}</strong>
-          <el-breadcrumb separator="/" style="float:right;">
-            <el-breadcrumb-item :to="{ path: '/table' }">首页</el-breadcrumb-item>
-            <el-breadcrumb-item v-if="currentPathNameParent!=''">{{currentPathNameParent}}</el-breadcrumb-item>						
-            <el-breadcrumb-item v-if="currentPathName!=''">{{currentPathName}}</el-breadcrumb-item>
+          
+          <el-breadcrumb separator="/" >
+            <el-breadcrumb-item :to="{ path: '/dashbord' }"><icon class="home_icon" name="home" ></icon></el-breadcrumb-item>
+             <el-breadcrumb-item v-if="currentPathName!=''">{{currentPathName}}</el-breadcrumb-item>
+            <!-- <el-breadcrumb-item v-if="currentPathNameParent!=''" >{{currentPathNameParent}}</el-breadcrumb-item>	 -->					
+           
           </el-breadcrumb>
         </el-col>				
         <el-col :span="24" style="box-sizing: border-box;">
@@ -71,6 +72,7 @@
         FormVisible: false,
         currentPathName: 'DesignModel',
         currentPathNameParent: 'Model',
+        defaultActive: '/dashbord',
         form: {
           name: '',
           region: '',
@@ -99,7 +101,17 @@
       '$route' (to, from) { // 监听路由改变
         console.log(to)
         this.currentPathName = to.name
-        this.currentPathNameParent = to.matched[0].name
+        // this.currentPathNameParent = to.matched[0].name
+        this.defaultActive = to.path
+      }
+    },
+    created () {
+      let hash = location.hash.replace(/#/, '')
+      for (let i = 0; i < this.menus.length; i++) {
+        if (this.menus[i].path === hash) {
+          this.currentPathName = this.menus[i].name
+          this.defaultActive = hash
+        }
       }
     },
     methods: {
@@ -220,39 +232,43 @@
 		color: #c0ccda;
 		text-align: center;
 	}
+  .home_icon{
+      margin-top: -4px;
+    }
 	.topbar{
 		height: 66px;
 		width: 100%;
 		background-color: #fff;
 		
 		position: fixed;
-        top:0;
-        >svg{
-        	margin-left:254px;
-        	margin-top:24px;
-        	cursor:pointer;
-        }
-        .project_select{
-        	margin-left: 20px;
-        }
-        .el-dropdown{
-        	cursor:pointer;
-          svg{
-        	vertical-align:middle;
-        	margin-left:2px;
-          }
-        }
-        ul{
-        	float:right;
-        	li{
-        		min-width:150px;
-        		display:inline-block;
-        		height:66px;
-        		line-height:66px;
-        		text-align:center;
-        	}
+    top:0;
+    >svg{
+    	margin-left:254px;
+    	margin-top:24px;
+    	cursor:pointer;
+    }
+    
+    .project_select{
+    	margin-left: 20px;
+    }
+    .el-dropdown{
+    	cursor:pointer;
+      svg{
+    	vertical-align:middle;
+    	margin-left:2px;
+      }
+    }
+    ul{
+    	float:right;
+    	li{
+    		min-width:150px;
+    		display:inline-block;
+    		height:66px;
+    		line-height:66px;
+    		text-align:center;
+    	}
 
-        }
+    }
         
 
 	}
