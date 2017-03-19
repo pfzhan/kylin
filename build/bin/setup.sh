@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# set verbose=true to print more logs in scripts
+source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh $@
+
 #three args $key $value $filename
 function add_or_reset()
 {
@@ -26,17 +29,24 @@ if [ ! -f ${override_file} ]; then
 fi
 
 
-echo "start setup procedure"
-echo "please enter the number of spark vcore. You'd better make sure that it's multiple of ${spark_executor_cores}"
+echo "start setup procedure:"
+
+echo "please enter the TOTAL number of spark vcores. Suggest to be multiple of ${spark_executor_cores}, and at least 4"
 read spark_vcore
 expr ${spark_vcore} "+" 10 &> /dev/null
 if [ $? -ne 0 ];then
   echo "please enter a number"
   exit 1
 fi
+
+if [ ${spark_vcore}  -lt ${spark_executor_cores} ];then
+  echo "spark_vcore is less than ${spark_executor_cores}, round up to ${spark_executor_cores} automatically" 
+  spark_vcore=${spark_executor_cores}
+fi
+
 spark_executor_instances=`expr ${spark_vcore} / ${spark_executor_cores} `
 
-echo "auto config properties below"
+echo "auto config properties below: "
 echo "kap.storage.columnar.spark-conf.spark.executor.instances=${spark_executor_instances}"
 echo "kap.storage.columnar.spark-conf.spark.executor.cores=${spark_executor_cores}"
 
