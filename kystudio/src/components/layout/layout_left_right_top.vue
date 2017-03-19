@@ -14,12 +14,12 @@
     <!--<el-col :span="20" class="panel-c-c">-->
     <div class="topbar">
       <icon name="bars"></icon>
-      <project_select></project_select>
+      <project_select class="project_select"></project_select>
       <el-button icon="icon-copy"></el-button>               
       <el-button icon="plus" @click="addProject"></el-button>
-      <change_lang></change_lang>
+      
       <ul>
-        <li>bingo</li>
+        <li style="min-width:0"><change_lang></change_lang></li>
         <li>
           <el-dropdown>
             <span class="el-dropdown-link">bob<icon name="angle-down"></icon>
@@ -228,9 +228,12 @@
 		position: fixed;
         top:0;
         >svg{
-        	margin-left:245px;
+        	margin-left:254px;
         	margin-top:24px;
         	cursor:pointer;
+        }
+        .project_select{
+        	margin-left: 20px;
         }
         .el-dropdown{
         	cursor:pointer;
@@ -244,7 +247,6 @@
         	li{
         		min-width:150px;
         		display:inline-block;
-        		border-left:solid 1px #ccc;
         		height:66px;
         		line-height:66px;
         		text-align:center;

@@ -1,17 +1,24 @@
 <template>
-<el-button v-if="lang=='en'" @click="changeLang">E</el-button>
+<el-button v-if="lang!=='en'" @click="changeLang">EN</el-button>
 <el-button v-else @click="changeLang">中</el-button>
 </template>
 <script>
-  import router from '../../router'
+  import Vue from 'vue'
+  import VueI18n from 'vue-i18n'
+  import enLocale from 'element-ui/lib/locale/lang/en'
+  import zhLocale from 'element-ui/lib/locale/lang/zh-CN'
+  import enKylinLocale from '../../locale/en'
+  import zhKylinLocale from '../../locale/zh-CN'
+  Vue.use(VueI18n)
+  Vue.config.lang = localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : 'zh-cn'
+  enLocale.kylinLang = enKylinLocale.default
+  zhLocale.kylinLang = zhKylinLocale.default
   export default {
     name: 'changelang',
     watch: {
       lang (val) {
-        if (localStorage.getItem('kystudio_lang') !== this.lang) {
-          router.go('/')
-        }
-        localStorage.setItem('kystudio_lang', this.lang)
+        Vue.config.lang = val
+        localStorage.setItem('kystudio_lang', val)
       }
     },
     data () {
@@ -32,5 +39,7 @@
   }
 </script>
 <style scoped="">
-
+ .el-button{
+  border:none;
+ }
 </style>
