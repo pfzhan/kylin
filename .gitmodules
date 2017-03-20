@@ -1,3 +1,0 @@
-[submodule "kylin"]
-	path = kylin
-	url = https://github.com/apache/kylin.git
