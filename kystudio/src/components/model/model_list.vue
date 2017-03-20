@@ -20,7 +20,7 @@
 		        <h2>{{o.name}}</h2>
 		        <div class="bottom clearfix">
 		          <time class="time">{{o.owner}}</time>
-		          <div class="view_btn"><icon name="long-arrow-right" style="font-size:20px"></icon></div>
+		          <div class="view_btn" v-on:click="editModel(o.name)"><icon name="long-arrow-right" style="font-size:20px"></icon></div>
 		        </div>
 		      </div>
 		    </el-card>
@@ -53,6 +53,9 @@ export default {
       this.loadModels({limit: this.pageSize, current: this.currentPage, projectName: localStorage.getItem('selected_project')})
     },
     sizeChange () {
+    },
+    editModel (modelName) {
+      this.$emit('addtabs', 'Edit' + modelName, 'projectList')
     }
   },
   computed: {
@@ -61,6 +64,9 @@ export default {
     },
     modelsTotal () {
       return this.$store.state.model.modelsTotal
+    },
+    handleCommand () {
+      alert(1)
     }
   },
   created () {

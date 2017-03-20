@@ -1,5 +1,4 @@
 <template>
-  <div>
  <!--  <div style="margin-bottom: 20px;">
     <el-button
       size="small"
@@ -8,7 +7,7 @@
       add tab
     </el-button>
   </div> -->
-  <el-tabs v-model="editableTabsValue2" type="card" closable @tab-remove="removeTab">
+  <!-- <el-tabs v-model="editableTabsValue2"  closable @tab-remove="removeTab">
     <el-tab-pane
       v-for="(item, index) in editableTabs2"
       :label="item.title"
@@ -19,60 +18,105 @@
     <div>
       <component :is="currentView" keep-alive></component>
     </div>
-  </el-tabs>
-</div>
+  </el-tabs> -->
+  <div>
+    <tab :isedit="editable"  :tabslist="editableTabs"  :active="activeName" v-on:clicktab="checkTab" v-on:removetab="delTab"></tab>
+    <div>
+        <component :is="currentView" v-on:addtabs="addTab" keep-alive></component>
+    </div>
+  </div>
 </template>
 <script>
+  import tab from '../common/tab'
   import modelList from '../model/model_list'
+  import projectList from '../project/project_list'
   export default {
     data () {
       return {
-        editableTabsValue2: '1',
-        editableTabs2: [{
+        editable: true,
+        editableTabs: [{
           title: 'OverView',
-          name: '1',
-          content: '<component :is="currentView" keep-alive></component>'
+          name: 'OverView',
+          content: 'modelList',
+          closable: false
         }],
-        currentView: 'model_ist',
+        currentView: 'modelList',
+        activeName: 'OverView',
         tabIndex: 1
       }
     },
     methods: {
-      addTab (targetName) {
-        let newTabName = ++this.tabIndex + ''
-        this.editableTabs2.push({
-          title: 'New Tab',
-          name: newTabName,
-          content: ''
+      addTab (targetName, componentName) {
+        let tabs = this.editableTabs
+        let hasTab = false
+        console.log(tabs)
+        tabs.forEach((tab, index) => {
+          if (tab.name === targetName) {
+            this.activeName = targetName
+            this.currentView = tab.content
+            hasTab = true
+          }
         })
-        this.editableTabsValue2 = newTabName
+        if (!hasTab) {
+          this.tabIndex = this.tabIndex + 1
+          this.editableTabs.push({
+            title: targetName,
+            name: targetName,
+            content: componentName
+          })
+          this.currentView = componentName
+          this.activeName = targetName
+        }
       },
-      removeTab (targetName) {
-        let tabs = this.editableTabs2
-        let activeName = this.editableTabsValue2
+      delTab (targetName) {
+        let tabs = this.editableTabs
+        let activeName = this.activeName
+        let activeView = this.currentView
+        if (targetName === 'OverView') {
+          return
+        }
         if (activeName === targetName) {
           tabs.forEach((tab, index) => {
             if (tab.name === targetName) {
               let nextTab = tabs[index + 1] || tabs[index - 1]
               if (nextTab) {
                 activeName = nextTab.name
+                activeView = nextTab.content
               }
             }
           })
         }
-  
-        this.editableTabsValue2 = activeName
-        this.editableTabs2 = tabs.filter(tab => tab.name !== targetName)
+        this.activeName = activeName
+        this.currentView = activeView
+        this.editableTabs = tabs.filter(tab => tab.name !== targetName)
+        // this.editableTabs = Object.assign([], this.editableTabs)
+      },
+      checkTab (name) {
+        let tabs = this.editableTabs
+        tabs.forEach((tab, index) => {
+          if (tab.name === name) {
+            this.currentView = tab.content
+            this.activeName = name
+          }
+        })
       }
     },
     components: {
-      'model_ist': modelList
+      'modelList': modelList,
+      'projectList': projectList,
+      'tab': tab
+    },
+    created () {
     }
+
   }
 </script>
 <style >
   .el-tabs__item.is-active{
     background-color: #475568;
     color:#fff;
+  }
+  .el-tabs__nav div:nth-child(2) .el-icon-close{
+    visibility: hidden;
   }
 </style>
