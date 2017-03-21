@@ -14,15 +14,13 @@ export default {
   name: 'projectselect',
   watch: {
     selected_project (val) {
-      if (localStorage.getItem('selected_project') !== this.selected_project) {
-
-      }
-      localStorage.setItem('selected_project', this.selected_project)
+      localStorage.setItem('selected_project', val)
+      this.$store.state.project.selected_project = val
     }
   },
   data () {
     return {
-      selected_project: localStorage.getItem('selected_project')
+      selected_project: this.$store.state.project.selected_project
     }
   },
   methods: {
@@ -37,12 +35,6 @@ export default {
   },
   created () {
     this.loadProjects()
-  },
-  mounted () {
-    console.log(2)
-  },
-  updated () {
-    console.log(3)
   }
 }
 </script>

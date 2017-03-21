@@ -2,7 +2,8 @@ import api from './../service/api'
 import * as types from './types'
 export default {
   state: {
-    projectList: []
+    projectList: [],
+    selected_project: localStorage.getItem('selected_project')
   },
   mutations: {
     [types.SAVE_PROJECT_LIST]: function (state, { list }) {

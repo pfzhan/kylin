@@ -31,8 +31,8 @@ export default new Router({
         path: 'model',
         component: modelTab
       }, {
-        name: 'Cube',
-        path: 'cube',
+        name: 'Cubes',
+        path: 'cubes',
         component: cubeList
       }]
     }, {

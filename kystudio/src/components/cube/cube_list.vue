@@ -6,7 +6,7 @@
       <template scope="props">
         <el-tabs activeName="first" type="card" >
           <el-tab-pane label="Grid" name="first">
-            <cube_desc :cube="props.row"></cube_desc>
+            <cube_desc :cube="props.row" :index="props.$index"></cube_desc>
           </el-tab-pane>
           <el-tab-pane label="SQL" name="second">
           </el-tab-pane>
@@ -44,6 +44,14 @@
       :label="$t('sourceRecords')"
       prop="input_records_count">
     </el-table-column>
+    <el-table-column
+      :label="$t('lastBuildTime')"
+      prop="last_build_time">
+    </el-table-column>  
+    <el-table-column
+      :label="$t('owner')"
+      prop="owner">
+    </el-table-column>  
     <el-table-column
       :label="$t('createTime')"
       prop="create_time_utc">
@@ -96,12 +104,12 @@ export default {
   name: 'cubeslist',
   methods: {
     ...mapActions({
-      loadCubes: 'LOAD_CUBES_LIST'
+      loadCubesList: 'LOAD_CUBES_LIST'
     })
   },
   data () {
     return {
-      selected_project: localStorage.getItem('selected_project')
+      selected_project: this.$store.state.project.selected_project
     }
   },
   computed: {
@@ -109,12 +117,17 @@ export default {
       return this.$store.state.cube.cubesList
     }
   },
+  watch: {
+    selected_project (val) {
+      this.loadCubesList()
+    }
+  },
   components: {
     'show_json': showJSON,
     'cube_desc': cubeDesc
   },
   created () {
-    this.loadCubes()
+    this.loadCubesList()
   },
   locales: {
     'en': {name: 'Name', model: 'Model', status: 'Status', cubeSize: 'Cube Size', sourceRecords: 'Source Records', lastBuildTime: 'Last Build Time', owner: 'Owner', createTime: 'Create Time', actions: 'Action', drop: 'Drop', edit: 'Edit', build: 'Build', merge: 'Merge', enable: 'Enable', purge: 'Purge', clone: 'Clone', disabled: 'Disabled', editCubeDesc: 'Edit CubeDesc', viewCube: 'View Cube', backupCube: 'Backup Cube', storage: 'Storage'},
