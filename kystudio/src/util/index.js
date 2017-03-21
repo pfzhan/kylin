@@ -15,3 +15,9 @@ export function fromArrToObj (arr) {
   }
   return obj
 }
+//
+
+export function sampleGuid () {
+  let randomNumber = ('' + Math.random()).replace(/\./, '')
+  return (new Date()).getTime() + '_' + randomNumber
+}

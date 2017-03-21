@@ -4,14 +4,14 @@
 		  <el-col :span="8"  v-for="(o, index) in modelsList" >
 		    <el-card :body-style="{ padding: '0px' }">
 		      <p class="title">Last updated {{o.last_modified | utcTime}}<el-button type="text" class="button">
-					<el-dropdown @command="handleCommand">
+					<el-dropdown @command="handleCommand" :id="o.name">
 					  <span class="el-dropdown-link">
 					    <icon name="ellipsis-h"></icon>
 					  </span>
 					  <el-dropdown-menu slot="dropdown">
-					    <el-dropdown-item command="a">Edit</el-dropdown-item>
-					    <el-dropdown-item command="b">Clone</el-dropdown-item>
-					    <el-dropdown-item command="c">Drop</el-dropdown-item>
+					    <el-dropdown-item command="edit" :data="o.name">Edit</el-dropdown-item>
+					    <el-dropdown-item command="clone" :data="o.name">Clone</el-dropdown-item>
+					    <el-dropdown-item command="drop" :data="o.name">Drop</el-dropdown-item>
 					  </el-dropdown-menu>
 					</el-dropdown>
 
@@ -20,7 +20,7 @@
 		        <h2>{{o.name}}</h2>
 		        <div class="bottom clearfix">
 		          <time class="time">{{o.owner}}</time>
-		          <div class="view_btn" v-on:click="editModel(o.name)"><icon name="long-arrow-right" style="font-size:20px"></icon></div>
+		          <div class="view_btn" v-on:click="viewModel(o.name)"><icon name="long-arrow-right" style="font-size:20px"></icon></div>
 		        </div>
 		      </div>
 		    </el-card>
@@ -55,7 +55,15 @@ export default {
     sizeChange () {
     },
     editModel (modelName) {
-      this.$emit('addtabs', 'Edit' + modelName, 'projectList')
+      this.$emit('addtabs', '[Edit]' + modelName, 'editModel')
+    },
+    viewModel (modelName) {
+      this.$emit('addtabs', '[View]' + modelName, 'viewModel')
+    },
+    handleCommand (command, component) {
+      if (command === 'edit') {
+        this.$emit('addtabs', '[Edit]' + component.$el.getAttribute('data'), 'modelEdit')
+      }
     }
   },
   computed: {
@@ -64,9 +72,6 @@ export default {
     },
     modelsTotal () {
       return this.$store.state.model.modelsTotal
-    },
-    handleCommand () {
-      alert(1)
     }
   },
   created () {

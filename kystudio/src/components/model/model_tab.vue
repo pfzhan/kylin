@@ -29,7 +29,7 @@
 <script>
   import tab from '../common/tab'
   import modelList from '../model/model_list'
-  import projectList from '../project/project_list'
+  import modelEdit from '../model/model_edit'
   export default {
     data () {
       return {
@@ -103,7 +103,7 @@
     },
     components: {
       'modelList': modelList,
-      'projectList': projectList,
+      'modelEdit': modelEdit,
       'tab': tab
     },
     created () {

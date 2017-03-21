@@ -7,7 +7,7 @@
     <el-row :gutter="20">
       <el-col :span="8" v-for="(o, index) in productions" >
         <el-card :body-style="{ padding: '0px' }">
-          <img src="../assets/test.png" class="image">
+          <img src="../assets/img/test.png" class="image">
           <div style="padding: 14px;">
             <span><router-link :to="{name:o.link}">{{o.name}}</router-link></span>
             <p>{{o.discribe}}</p>

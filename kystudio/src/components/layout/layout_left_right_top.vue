@@ -3,7 +3,7 @@
   <el-col :span="24" class="panel-center">
     <!--<el-col :span="4">-->
     <aside style="width:230px;" class="left_menu">
-      <img src="../../assets/logo.png" class="logo">
+      <img src="../../assets/img/logo.png" class="logo">
       <el-menu style="border-top: 1px solid #475669;" :default-active="defaultActive" class="el-menu-vertical-demo" @open="handleopen" @close="handleclose" @select="handleselect" theme="dark" unique-opened router>
         <template v-for="(item,index) in menus" >
           <el-menu-item :index="item.path"  >{{item.name}}</el-menu-item>
