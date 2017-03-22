@@ -5,7 +5,7 @@
    <changeproject></changeproject>
   </el-select>
     <el-row :gutter="20">
-      <el-col :span="8" v-for="(o, index) in productions" >
+      <el-col :span="8" v-for="(o, index) in productions" :key="index " >
         <el-card :body-style="{ padding: '0px' }">
           <img src="../assets/img/test.png" class="image">
           <div style="padding: 14px;">

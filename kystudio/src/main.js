@@ -3,10 +3,11 @@
 import Vue from 'vue'
 
 import ElementUI from 'element-ui'
-
 import store from './store'
+
 import 'less/index.less'
 import 'element-ui/lib/theme-default/index.css'
+import 'smooth-scrollbar/dist/smooth-scrollbar.css'
 
 import fullLayout from './components/layout/layout_full'
 import router from './router'

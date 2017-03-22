@@ -9,7 +9,7 @@
     </el-form-item>
     <el-form-item
     :label="$t('projectConfig')">
-    <el-row :gutter="20"  v-for="(property,index) in convertedProperties ">
+    <el-row :gutter="20"  v-for="(property,index) in convertedProperties " :key="index">
       <el-col :span="10"><el-input v-model="property.key"></el-input></el-col>
       <el-col :span="10"><el-input v-model="property.value"></el-input></el-col>
       <el-col :span="4"><el-button @click.prevent="removeProperty(index)">{{$t('delete')}}</el-button></el-col>

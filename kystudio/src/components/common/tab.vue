@@ -9,7 +9,7 @@
   </div> -->
   <el-tabs v-model="activeName"  :editable="editable" @tab-click="handleClick" @edit="handleTabsEdit">
     <el-tab-pane
-      v-for="(item, index) in tabs"
+      v-for="(item, index) in tabs" :key="index"
       :label="item.title"
       :name="item.name"
       :closable=item.closable

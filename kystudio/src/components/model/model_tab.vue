@@ -53,6 +53,7 @@
         tabs.forEach((tab, index) => {
           if (tab.name === targetName) {
             this.activeName = targetName
+            this.currentView = ''
             this.currentView = tab.content
             hasTab = true
           }
@@ -64,6 +65,7 @@
             name: targetName,
             content: componentName
           })
+          this.currentView = ''
           this.currentView = componentName
           this.activeName = targetName
         }
@@ -95,6 +97,7 @@
         let tabs = this.editableTabs
         tabs.forEach((tab, index) => {
           if (tab.name === name) {
+            this.currentView = ''
             this.currentView = tab.content
             this.activeName = name
           }

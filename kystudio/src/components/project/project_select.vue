@@ -1,7 +1,7 @@
 <template>
    <el-select  placeholder="" v-model="selected_project">
     <el-option
-      v-for="item in projectList"
+      v-for="item in projectList" :key="item.name"
       :label="item.name"
       :value="item.name"
       >

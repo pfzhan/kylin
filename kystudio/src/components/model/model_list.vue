@@ -1,7 +1,7 @@
 <template>
 	<div>
 		<el-row :gutter="20">
-		  <el-col :span="8"  v-for="(o, index) in modelsList" >
+		  <el-col :span="8"  v-for="(o, index) in modelsList" :key="o.uuid" >
 		    <el-card :body-style="{ padding: '0px' }">
 		      <p class="title">Last updated {{o.last_modified | utcTime}}<el-button type="text" class="button">
 					<el-dropdown @command="handleCommand" :id="o.name">
