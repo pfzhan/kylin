@@ -35,7 +35,7 @@ export default {
   name: 'cubeDescEdit',
   data () {
     return {
-      activeStep: 1,
+      activeStep: 3,
       isEdit: true,
       model: {
         'uuid': '72ab4ee2-2cdb-4b07-b39e-4c298563ae27',
@@ -49,6 +49,7 @@ export default {
           {
             'table': 'DEFAULT.TEST_ORDER',
             'kind': 'FACT',
+            'alias': 'TEST_ORDER',
             'join': {
               'type': 'INNER',
               'primary_key': [
@@ -76,6 +77,7 @@ export default {
           {
             'table': 'EDW.TEST_CAL_DT',
             'kind': 'LOOKUP',
+            'alias': 'TEST_CAL_DT',
             'join': {
               'type': 'INNER',
               'primary_key': [

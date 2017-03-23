@@ -50,14 +50,14 @@
     <el-table-column
       :label="$t('action')">
       <template scope="scope">
-        <el-button type="success" icon="edit"></el-button>
-        <el-button type="danger" icon="delete"></el-button>
+        <el-button type="success"  size="small" icon="edit"></el-button>
+        <el-button type="danger"  size="small" icon="delete"></el-button>
       </template>
     </el-table-column>               
   </el-table>
 
-  <el-dialog :title="$t('addDimensions')" v-model="FormVisible">
-    <add_dimensions  ref="dimensionsForm" :modelDimensions="modelDesc.dimensions" :cubeDimensions="cubeDesc.dimensions"></add_dimensions>
+  <el-dialog :title="$t('addDimensions')" v-model="FormVisible" top="5%" size="large">
+    <add_dimensions  ref="dimensionsForm" :modelDesc="modelDesc" :cubeDimensions="cubeDesc.dimensions"></add_dimensions>
     <span slot="footer" class="dialog-footer">
       <el-button @click="FormVisible = false">{{$t('cancel')}}</el-button>
       <el-button type="primary" >{{$t('yes')}}</el-button>

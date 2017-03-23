@@ -8,6 +8,7 @@ export function fromObjToArr (obj) {
   }
   return arr
 }
+
 export function fromArrToObj (arr) {
   let obj = {}
   for (let item of arr) {
@@ -15,9 +16,32 @@ export function fromArrToObj (arr) {
   }
   return obj
 }
-//
 
 export function sampleGuid () {
   let randomNumber = ('' + Math.random()).replace(/\./, '')
   return (new Date()).getTime() + '_' + randomNumber
+}
+
+export function removeNameSpace (str) {
+  if (str) {
+    return str.replace(/([^.\s]+\.)+/, '')
+  } else {
+    return ''
+  }
+}
+
+export function getNameSpaceTopName (str) {
+  if (str) {
+    return str.replace(/(\.[^.]+)+/, '')
+  } else {
+    return ''
+  }
+}
+
+export function getNameSpace (str) {
+  if (str) {
+    return str.replace(/(\.[^.]+)$/, '')
+  } else {
+    return ''
+  }
 }
