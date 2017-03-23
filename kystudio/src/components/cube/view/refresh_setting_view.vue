@@ -21,7 +21,7 @@
 
 <script>
 export default {
-  name: 'cubedesc',
+  name: 'refreshSetting',
   props: ['desc'],
   data () {
     return {

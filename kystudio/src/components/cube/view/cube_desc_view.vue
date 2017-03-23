@@ -1,4 +1,4 @@
-e<template>
+<template>
 <div>
   <el-steps :active="activeStep"  finish-status="finish" process-status="wait" center >
     <el-step :title="$t('cubeInfo')" @click.native="step(1)"></el-step>

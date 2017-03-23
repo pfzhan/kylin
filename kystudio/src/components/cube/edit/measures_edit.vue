@@ -16,16 +16,16 @@
       <template scope="scope">
         <div class="paraTree">
           <ul >
-            <li class="parent_li">Value:<b>{{scope.row.function.parameter.value}}</b>, Type:<b>{{ scope.row.function.parameter.type }}</b></li>
+            <parameter_tree :expression="scope.row.function.expression" :nextpara="scope.row.function.parameter" ></parameter_tree>
           </ul>
-        </div>
+        </div>  
       </template>
     </el-table-column>
     <el-table-column
-      :label="$t('datatype')">
+      :label="$t('datatype')">      
     </el-table-column>  
     <el-table-column
-      :label="$t('comment')">
+      :label="$t('comment')">   
     </el-table-column>
     <el-table-column
       property="function.returntype"    
@@ -34,13 +34,12 @@
   </el-table>
 </template>
 <script>
+import parameterTree from '../../common/parameter_tree'
 export default {
-  name: 'cubedesc',
+  name: 'measures',
   props: ['desc'],
-  data () {
-    return {
-      selected_project: localStorage.getItem('selected_project')
-    }
+  components: {
+    'parameter_tree': parameterTree
   },
   locales: {
     'en': {name: 'Name', expression: 'Expression', parameters: 'Parameters', datatype: 'Datatype', comment: 'Comment', returnType: 'Return Type'},

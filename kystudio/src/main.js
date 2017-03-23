@@ -23,7 +23,6 @@ if (process.env.NODE_ENV !== 'production') {
 Vue.component('icon', Icon)
 
 Vue.use(ElementUI)
-
 /* eslint-disable no-new */
 new Vue({
   el: '#app',

@@ -10,6 +10,7 @@ import dashbord from '../components/dashbord'
 import projectList from '../components/project/project_list'
 import modelTab from '../components/model/model_tab'
 import cubeList from '../components/cube/cube_list'
+import cubeEdit from '../components/cube/edit/cube_desc_edit'
 Vue.use(Router)
 
 export default new Router({
@@ -34,6 +35,10 @@ export default new Router({
         name: 'Cubes',
         path: 'cubes',
         component: cubeList
+      }, {
+        name: 'CubeEdit',
+        path: 'cubeEdit',
+        component: cubeEdit
       }]
     }, {
       path: '/demo',

@@ -1,10 +1,13 @@
 <template>
-  <el-table
+<div>  
+  <el-table  v-for="table in modelDimensions"
     :data="desc.dimensions"
-    style="width: 100%">
+    style="width: 100%"
+    @selection-change="handleSelectionChange">
     <el-table-column
-      type="index">
-    </el-table-column>    
+      type="selection"
+      width="55">
+    </el-table-column> 
     <el-table-column
       property="name"
       :label="$t('name')">
@@ -37,15 +40,19 @@
       :label="$t('comment')">
     </el-table-column>            
   </el-table>
+</div>  
 </template>
 <script>
 export default {
-  name: 'cubedesc',
-  props: ['desc'],
+  name: 'dimensions',
+  props: ['modelDimensions', 'cubeDimensions'],
   data () {
     return {
       selected_project: localStorage.getItem('selected_project')
     }
+  },
+  computed: {
+    
   },
   locales: {
     'en': {name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment'},

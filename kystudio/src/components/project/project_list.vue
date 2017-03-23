@@ -98,13 +98,12 @@ export default {
       // this.FormVisible = false
     },
     removeProject (project) {
-      this.project = project
       this.$confirm('此操作将永久删除, 是否继续?', '提示', {
         confirmButtonText: this.$t('yes'),
         cancelButtonText: this.$t('cancel'),
         type: 'warning'
       }).then(() => {
-        this.deleteProject(this.project.name).then((result) => {
+        this.deleteProject(project.name).then((result) => {
           this.$message({
             type: 'success',
             message: this.$t('saveSuccessful')
@@ -144,8 +143,8 @@ export default {
     this.loadProjects()
   },
   locales: {
-    'en': {project: '项目', name: 'Name', owner: 'Owner', description: 'Description', createTime: 'Create Time', action: 'Action', access: 'Access', externalFilters: 'External Filters', edit: 'Edit', backup: 'Backup', delete: 'Delete', cancel: 'Cancel', yes: 'Yes', saveSuccessful: 'Saved the project successful!', saveFailed: 'Save Failed!', deleteProject: '删除后, 项目定义及数据会被清除, 且不能恢复. '},
-    'zh-cn': {project: 'Project', name: '名称', owner: '所有者', description: '描述', createTime: '创建时间', action: '操作', access: '权限', externalFilters: '其他过滤', edit: '编辑', backup: '备份', delete: '删除', cancel: '取消', yes: '确定', saveSuccessful: '保存项目成功!', saveFailed: '保存失败!', deleteProject: 'Once it\'s deleted, your project\'s metadata and data will be cleaned up and can\'t be restored back. '}
+    'en': {project: '项目', name: 'Name', owner: 'Owner', description: 'Description', createTime: 'Create Time', action: 'Action', access: 'Access', externalFilters: 'External Filters', edit: 'Edit', backup: 'Backup', delete: 'Delete', cancel: 'Cancel', yes: 'Yes', saveSuccessful: 'Saved the project successful!', saveFailed: 'Save Failed!', deleteProject: 'Once it\'s deleted, your project\'s metadata and data will be cleaned up and can\'t be restored back.  '},
+    'zh-cn': {project: 'Project', name: '名称', owner: '所有者', description: '描述', createTime: '创建时间', action: '操作', access: '权限', externalFilters: '其他过滤', edit: '编辑', backup: '备份', delete: '删除', cancel: '取消', yes: '确定', saveSuccessful: '保存项目成功!', saveFailed: '保存失败!', deleteProject: '删除后, 项目定义及数据会被清除, 且不能恢复.'}
   }
 }
 </script>

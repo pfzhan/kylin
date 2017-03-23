@@ -10,5 +10,11 @@ export default {
   },
   getCubeDesc: (cubeName) => {
     return Vue.resource(apiUrl + 'cube_desc/' + cubeName).get({})
+  },
+  deleteCube: (cubeName) => {
+    return Vue.resource(apiUrl + 'cubes/' + cubeName).delete({})
+  },
+  rebuildCube: (cubeName) => {
+    return Vue.resource(apiUrl + 'cubes/' + cubeName + '/rebuild').update({})
   }
 }

@@ -17,9 +17,9 @@
 </template>
 
 <script>
-import { fromObjToArr } from '../../util/index'
+import { fromObjToArr } from '../../../util/index'
 export default {
-  name: 'cubedesc',
+  name: 'configurationOverwrites',
   props: ['desc'],
   data () {
     return {

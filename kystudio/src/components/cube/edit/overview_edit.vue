@@ -9,14 +9,6 @@
     <el-col :span="16">{{desc.name}}</el-col>
   </el-row>
   <el-row>
-    <el-col :span="8">{{$t('notificationEmailList')}}</el-col>
-    <el-col :span="16">{{desc.notify_list}}</el-col>
-  </el-row>
-  <el-row>
-    <el-col :span="8">{{$t('notificationEvents')}}</el-col>
-    <el-col :span="16">{{desc.status_need_notify}}</el-col>
-  </el-row>
-  <el-row>
     <el-col :span="8">{{$t('description')}}</el-col>
     <el-col :span="16">{{desc.description}}</el-col>
   </el-row>        
@@ -25,7 +17,7 @@
 
 <script>
 export default {
-  name: 'cubedesc',
+  name: 'overview',
   props: ['desc'],
   data () {
     return {

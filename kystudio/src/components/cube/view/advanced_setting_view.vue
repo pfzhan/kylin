@@ -128,7 +128,7 @@
 </template>
 <script>
 export default {
-  name: 'cubedesc',
+  name: 'AdvancedSetting',
   props: ['desc'],
   data () {
     return {

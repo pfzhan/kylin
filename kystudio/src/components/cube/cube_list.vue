@@ -6,7 +6,7 @@
       <template scope="props">
         <el-tabs activeName="first" type="card" >
           <el-tab-pane label="Grid" name="first">
-            <cube_desc :cube="props.row" :index="props.$index"></cube_desc>
+            <cube_desc_view :cube="props.row" :index="props.$index"></cube_desc_view>
           </el-tab-pane>
           <el-tab-pane label="SQL" name="second">
           </el-tab-pane>
@@ -64,13 +64,14 @@
             <i class="el-icon-more"></i>
           </el-button >
           <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item>{{$t('drop')}}</el-dropdown-item>
-            <el-dropdown-item>{{$t('edit')}}</el-dropdown-item>
-            <el-dropdown-item>{{$t('build')}}</el-dropdown-item>
-            <el-dropdown-item>{{$t('merge')}}</el-dropdown-item>
-            <el-dropdown-item>{{$t('enable')}}</el-dropdown-item>
-            <el-dropdown-item>{{$t('purge')}}</el-dropdown-item>
-            <el-dropdown-item>{{$t('clone')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="dropCube(scope.row.name)">{{$t('drop')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="editCube">{{$t('edit')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="buildCube(scope.row.name)">{{$t('build')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="mergeCube">{{$t('merge')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="enableCube">{{$t('enable')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="disableCube">{{$t('disable')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="purgeCube">{{$t('purge')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="cloneCube">{{$t('clone')}}</el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
       </template>
@@ -83,9 +84,9 @@
             <i class="el-icon-more"></i>
           </el-button >
           <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item>{{$t('editCubeDesc')}}</el-dropdown-item>
-            <el-dropdown-item>{{$t('viewCube')}}</el-dropdown-item>
-            <el-dropdown-item>{{$t('backupCube')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="editCubeDesc">{{$t('editCubeDesc')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="viewCube">{{$t('viewCube')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="backupCube">{{$t('backupCube')}}</el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
       </template>
@@ -99,13 +100,21 @@
 <script>
 import { mapActions } from 'vuex'
 import showJSON from '../common/show_json'
-import cubeDesc from './cube_desc'
+import cubeDescView from './view/cube_desc_view'
 export default {
   name: 'cubeslist',
   methods: {
     ...mapActions({
-      loadCubesList: 'LOAD_CUBES_LIST'
-    })
+      loadCubesList: 'LOAD_CUBES_LIST',
+      deleteCube: 'DELETE_CUBE',
+      rebuildCube: 'REBUILD_CUBE'
+    }),
+    dropCube (cubeName) {
+      this.deleteCube(cubeName)
+    },
+    buildCube (cubeName) {
+      this.rebuildCube(cubeName)
+    }
   },
   data () {
     return {
@@ -124,14 +133,14 @@ export default {
   },
   components: {
     'show_json': showJSON,
-    'cube_desc': cubeDesc
+    'cube_desc_view': cubeDescView
   },
   created () {
     this.loadCubesList()
   },
   locales: {
-    'en': {name: 'Name', model: 'Model', status: 'Status', cubeSize: 'Cube Size', sourceRecords: 'Source Records', lastBuildTime: 'Last Build Time', owner: 'Owner', createTime: 'Create Time', actions: 'Action', drop: 'Drop', edit: 'Edit', build: 'Build', merge: 'Merge', enable: 'Enable', purge: 'Purge', clone: 'Clone', disabled: 'Disabled', editCubeDesc: 'Edit CubeDesc', viewCube: 'View Cube', backupCube: 'Backup Cube', storage: 'Storage'},
-    'zh-cn': {name: '名称', model: '模型', status: '状态', cubeSize: 'Cube大小', sourceRecords: '源数据条目', lastBuildTime: '最后构建时间', owner: '所有者', createTime: '创建时间', actions: '操作', drop: '删除', edit: '编辑', build: '构建', merge: '合并', enable: '启用', purge: '清理', clone: '克隆', disabled: '禁用', editCubeDesc: '编辑 Cube详细信息', viewCube: '查看 Cube', backupCube: '备份cube', storage: '存储'}
+    'en': {name: 'Name', model: 'Model', status: 'Status', cubeSize: 'Cube Size', sourceRecords: 'Source Records', lastBuildTime: 'Last Build Time', owner: 'Owner', createTime: 'Create Time', actions: 'Action', drop: 'Drop', edit: 'Edit', build: 'Build', merge: 'Merge', enable: 'Enable', purge: 'Purge', clone: 'Clone', disabled: 'Disabled', editCubeDesc: 'Edit CubeDesc', viewCube: 'View Cube', backupCube: 'Backup Cube', storage: 'Storage', cancel: 'Cancel', yes: 'Yes'},
+    'zh-cn': {name: '名称', model: '模型', status: '状态', cubeSize: 'Cube大小', sourceRecords: '源数据条目', lastBuildTime: '最后构建时间', owner: '所有者', createTime: '创建时间', actions: '操作', drop: '删除', edit: '编辑', build: '构建', merge: '合并', enable: '启用', purge: '清理', clone: '克隆', disabled: '禁用', editCubeDesc: '编辑 Cube详细信息', viewCube: '查看 Cube', backupCube: '备份cube', storage: '存储', cancel: 'Cancel', yes: 'Yes'}
   }
 }
 </script>

@@ -4,15 +4,21 @@ import * as types from './types'
 export default {
   state: {
     cubesList: [],
-    cubesDescList: []
+    cubesDescList: [],
+    cubesEditList: [],
+    cubeAdd: {}
   },
   mutations: {
     [types.SAVE_CUBES_LIST]: function (state, { list }) {
       state.cubesList = list
       state.cubesDescList = Object.assign({}, list)
+      state.cubesEditList = Object.assign({}, list)
     },
     [types.SAVE_CUBE_DESC]: function (state, { desc, index }) {
       vue.set(state.cubesDescList, index, desc[0])
+    },
+    [types.SAVE_CUBE_EDIT]: function (state, { desc, index }) {
+      vue.set(state.cubesEditList, index, desc[0])
     }
   },
   actions: {
@@ -25,6 +31,17 @@ export default {
       api.cube.getCubeDesc(cube.name).then((response) => {
         commit(types.SAVE_CUBE_DESC, { desc: response.data, index: cube.index })
       })
+    },
+    [types.LOAD_CUBE_EDIT]: function ({ commit }, cube) {
+      api.cube.getCubeDesc(cube.name).then((response) => {
+        commit(types.SAVE_CUBE_EDIT, { desc: response.data, index: cube.index })
+      })
+    },
+    [types.DELETE_CUBE]: function ({ commit }, cubeName) {
+      api.cube.deleteCube(cubeName)
+    },
+    [types.REBUILD_CUBE]: function ({ commit }, cubeName) {
+      api.cube.rebuildCube(cubeName)
     }
   },
   getters: {}
