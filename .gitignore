@@ -92,7 +92,6 @@ webapp/app/kylin-servlet.xml
 webapp/app/web.xml
 
 #kylin
-kylin/
 extensions/examples/test_metadata/*
 
 #kybot
