@@ -11,8 +11,8 @@
   </el-steps>
   <info v-if="activeStep===1" :cubeDesc="selected_cube" :isEdit="isEdit"></info>
   <dimensions v-if="activeStep===2" :cubeDesc="selected_cube" :modelDesc="model" :isEdit="isEdit"></dimensions>
-  <measures v-if="activeStep===3" :cubeDesc="selected_cube" :isEdit="isEdit"></measures>
-  <refresh_setting v-if="activeStep===4" :cubeDesc="selected_cube" :isEdit="isEdit"></refresh_setting>
+  <measures v-if="activeStep===3" :cubeDesc="selected_cube" :modelDesc="model" :isEdit="isEdit"></measures>
+  <refresh_setting v-if="activeStep===4" :cubeDesc="selected_cube" :isEdit="isEdit" modelDesc="model"></refresh_setting>
   <advanced_setting v-if="activeStep===5" :cubeDesc="selected_cube" :isEdit="isEdit"></advanced_setting>
   <configuration_overwrites v-if="activeStep===6" :cubeDesc="selected_cube" :isEdit="isEdit"></configuration_overwrites>
   <overview v-if="activeStep===7" :cubeDesc="selected_cube" :isEdit="isEdit"></overview>
@@ -35,7 +35,7 @@ export default {
   name: 'cubeDescEdit',
   data () {
     return {
-      activeStep: 3,
+      activeStep: 6,
       isEdit: true,
       model: {
         'uuid': '72ab4ee2-2cdb-4b07-b39e-4c298563ae27',

@@ -1,22 +1,42 @@
 <template>
-  <div>
-    <el-form label-position="top" :model="measureDesc" :rules="rules" ref="projectForm">
-    <el-form-item :label="$t('')" prop="name">
-      <el-input v-model="measureDesc.name" auto-complete="off"></el-input>
+  <el-form label-position="left" >
+    <el-form-item :label="$t('name')">
+      <el-input  v-model="measure.name"></el-input>
     </el-form-item>
-  <el-form-item>
-    <el-button @click="addNewProperty">{{$t('property')}}</el-button>
-  </el-form-item>    
+    <el-form-item :label="$t('expression')">
+      <el-select v-model="measure.function.expression">
+        <el-option
+          v-for="item in expressionsConf"
+          :label="item"
+          :value="item">
+        </el-option>
+      </el-select>
+    </el-form-item>
+    <el-form-item :label="$t('paramType')" >
+      <el-tag>{{measure.function.parameter.type}}</el-tag>
+    </el-form-item>
+    <el-form-item :label="$t('paramValue')" >
+      <el-select v-model="measure.function.parameter.value">
+        <el-option
+          v-for="item in expressionsConf"
+          :label="item"
+          :value="item">
+        </el-option>
+      </el-select>
+    </el-form-item>   
+    <el-form-item :label="$t('returnType')" >
+      <el-tag>{{measure.function.returntype}}</el-tag>
+    </el-form-item>          
   </el-form>
-</div>
 </template>
 <script>
 export default {
-  name: 'add_measures',
-  props: ['measureDesc'],
+  name: 'add_measure',
+  props: ['measureDesc', 'modelDesc'],
   data () {
     return {
-      convertedProperties: []
+      measure: Object.assign({}, this.measureDesc),
+      expressionsConf: ['SUM', 'MIN', 'MAX', 'COUNT', 'COUNT_DISTINCT', 'TOP_N', 'RAW', 'EXTENDED_COLUMN', 'PERCENTILE']
     }
   },
   methods: {
@@ -27,12 +47,17 @@ export default {
       console.log('222')
     }
   },
+  watch: {
+    measureDesc (measureDesc) {
+      this.measure = Object.assign({}, this.measureDesc)
+    }
+  },
   created () {
-    console.log('11')
+    console.log(this.measure)
   },
   locales: {
     'en': {name: 'Name', expression: 'Expression', paramType: 'Param Type', paramValue: 'Param Value', returnType: 'Return Type', includeDimensions: 'Include Dimensions'},
-    'zh-cn': {name: '', expression: '', paramType: '', paramValue: '', returnType: '', includeDimensions: ''}
+    'zh-cn': {name: '名称', expression: '表达式', paramType: '参数类型', paramValue: '参数值', returnType: '返回类型', includeDimensions: '包含维度'}
   }
 }
 </script>

@@ -5,10 +5,13 @@ Vue.use(Vuex)
 import model from './model'
 import project from './project'
 import cube from './cube'
+import config from './config'
+
 export default new Vuex.Store({
   modules: {
     model: model,
     project: project,
-    cube: cube
+    cube: cube,
+    config: config
   }
 })

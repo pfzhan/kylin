@@ -34,14 +34,15 @@
     <el-table-column
       :label="$t('action')">
       <template scope="scope">
-        <el-button type="success"  size="small" icon="edit"></el-button>
+        <el-button type="success"  size="small" icon="edit" @click.native="editMeasure(scope.row)"></el-button>
         <el-button type="danger"  size="small" icon="delete"></el-button>
       </template>
     </el-table-column>                         
   </el-table>
-  <el-button type="primary" @click="">{{$t('addMeasures')}}</el-button>
+  <el-button type="primary" @click.native="addMeasure">{{$t('addMeasure')}}</el-button>
 
-  <el-dialog :title="$t('addMeasures')" v-model="FormVisible" top="5%" size="small">
+
+  <el-dialog :title="$t('editMeasure')" v-model="FormVisible" top="5%" size="small">
     <add_measures  ref="measuresForm" :modelDesc="modelDesc" :measureDesc="measureDesc"></add_measures>
     <span slot="footer" class="dialog-footer">
       <el-button @click="FormVisible = false">{{$t('cancel')}}</el-button>
@@ -55,14 +56,30 @@ import addMeasures from '../dialog/add_measures'
 import parameterTree from '../../common/parameter_tree'
 export default {
   name: 'measures',
-  props: ['cubeDesc'],
+  props: ['cubeDesc', 'modelDesc'],
   data () {
     return {
-      FormVisible: true
+      FormVisible: false,
+      measureDesc: {}
     }
   },
   methods: {
-    addMeasures: function () {
+    addMeasure: function () {
+      this.measureDesc = {
+        name: ' ',
+        function: {
+          expression: 'SUM',
+          parameter: {
+            type: ' ',
+            value: ' '
+          },
+          returntype: ''
+        }
+      }
+      this.FormVisible = true
+    },
+    editMeasure: function (measure) {
+      this.measureDesc = measure
       this.FormVisible = true
     }
   },
@@ -71,8 +88,8 @@ export default {
     'add_measures': addMeasures
   },
   locales: {
-    'en': {name: 'Name', expression: 'Expression', parameters: 'Parameters', datatype: 'Datatype', comment: 'Comment', returnType: 'Return Type', action: 'Action', addMeasures: 'Add Measures'},
-    'zh-cn': {name: '名称', expression: '表达式', parameters: '参数', datatype: '数据类型', comment: '注释', returnType: '返回类型', action: '操作', addMeasures: '添加度量'}
+    'en': {name: 'Name', expression: 'Expression', parameters: 'Parameters', datatype: 'Datatype', comment: 'Comment', returnType: 'Return Type', action: 'Action', addMeasure: 'Add Measure', editMeasure: 'Edit Measure', cancel: 'Cancel', yes: 'Yes'},
+    'zh-cn': {name: '名称', expression: '表达式', parameters: '参数', datatype: '数据类型', comment: '注释', returnType: '返回类型', action: '操作', addMeasure: '添加度量', editMeasure: '编辑度量', cancel: '取消', yes: '确定'}
   }
 }
 </script>

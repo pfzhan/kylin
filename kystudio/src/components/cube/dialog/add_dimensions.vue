@@ -1,12 +1,12 @@
 <template>
 <div >  
-  <div v-for="table in factTableColumn"  >
+  <div v-for="table in factTableColumns"  >
     <el-tag>{{table.tableName}} </el-tag>
     <el-tag>FactTable </el-tag>    
     <el-table  
-      :data="table.column"
-      style="width: 100%"
-      @select-all="selectionAllChange"
+      :data="table.columns"
+      style="width: 100%" :ref="table.tableName"
+      @select-all="selectionAllChange(table.tableName)"
       @select="selectionChange">
       <el-table-column
         type="selection"
@@ -33,13 +33,13 @@
     </el-table>
   </div> 
 
-  <div v-for="table in lookupTableColumn">
+  <div v-for="table in lookupTableColumns">
     <el-tag>{{table.tableName}} </el-tag>
     <el-tag>LookupTable </el-tag>       
     <el-table  
-      :data="table.column"
+      :data="table.columns" :ref="table.tableName"
       style="width: 100%"
-      @select-all="selectionAllChange"      
+      @select-all="selectionAllChange(table.tableName)"      
       @select="selectionChange">
       <el-table-column
         type="selection"
@@ -83,9 +83,9 @@ export default {
     return {
       rootFactTable: null,
       factTable: [],
-      factTableColumn: [],
+      factTableColumns: [],
       lookupTable: [],
-      lookupTableColumn: [],
+      lookupTableColumns: [],
       multipleSelection: {},
       selected_project: localStorage.getItem('selected_project')
     }
@@ -94,7 +94,7 @@ export default {
     getRootFactTable: function () {
       this.rootFactTable = removeNameSpace(this.modelDesc.fact_table)
     },
-    getFactTable: function () {
+    getTable: function () {
       let _this = this
       _this.factTable.push(this.rootFactTable)
       _this.multipleSelection[this.rootFactTable] = []
@@ -114,59 +114,63 @@ export default {
         }
       })
     },
-    getFactTableColumn: function () {
+    getTableColumns: function () {
       let _this = this
       _this.modelDesc.dimensions.forEach(function (dimension) {
         if (_this.factTable.indexOf(dimension.table) !== -1) {
           let colArr = []
-          let tableObj = {tableName: dimension.table, column: colArr}
+          let tableObj = {tableName: dimension.table, columns: colArr}
           dimension.columns.forEach(function (col) {
             colArr.push({table: dimension.table, column: col, name: col, isSelected: false})
           })
-          _this.factTableColumn.push(tableObj)
+          _this.factTableColumns.push(tableObj)
         } else {
           let colArr = []
           let tableObj = {tableName: dimension.table, column: colArr}
           dimension.columns.forEach(function (col) {
             colArr.push({table: dimension.table, column: col, name: col, derived: 'true', isSelected: false})
           })
-          _this.lookupTableColumn.push(tableObj)
+          _this.lookupTableColumns.push(tableObj)
         }
       })
     },
     selectionChange: function (val, row) {
       this.multipleSelection[row.table] = val
       this.$set(row, 'isSelected', !row.isSelected)
-    },
-    selectionAllChange: function (val) {
-      let _this = this
-      let tableName = ''
-      if (val.length > 0) {
-        tableName = val[0].table
-        val.forEach(function (selection) {
-          if (!selection.isSelected) {
-            _this.$set(selection, 'isSelected', !selection.isSelected)
-          }
-        })
-        _this.multipleSelection[tableName] = val
-      } else {
-        val.forEach(function (selection) {
-          if (selection.isSelected) {
-            _this.$set(selection, 'isSelected', 'false')
-          }
-        })
+      if (!row.isSelected && row.derived) {
+        this.$set(row, 'derived', 'true')
       }
+      this.$refs[row.table][0].toggleRowSelection({column: 'TRANS_ID', isSelected: false, name: 'TRANS_ID', table: 'TEST_KYLIN_FACT'}, true)
+      console.log(this.$refs[row.table][0].data[0])
+    },
+    selectionAllChange: function (tableName) {
+      let _this = this
+      if (_this.$refs[tableName][0].store.states.selection.length > 0) {
+        _this.$refs[tableName][0].data.forEach(function (selection) {
+          _this.$set(selection, 'isSelected', true)
+        })
+        _this.multipleSelection[tableName] = _this.$refs[tableName][0].data
+      } else {
+        _this.$refs[tableName][0].data.forEach(function (selection) {
+          _this.$set(selection, 'isSelected', false)
+          if (selection.derived) {
+            _this.$set(selection, 'derived', 'true')
+          }
+        })
+        _this.multipleSelection[tableName] = []
+      }
+      console.log(_this.multipleSelection[tableName])
     }
   },
   computed: {
-    getLookupTableColumn: function () {
+    getLookupTableColumns: function () {
       console.log('33f')
     }
   },
   created () {
     this.getRootFactTable()
-    this.getFactTable()
-    this.getFactTableColumn()
+    this.getTable()
+    this.getTableColumns()
   },
   locales: {
     'en': {name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment'},
