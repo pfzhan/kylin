@@ -34,6 +34,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.kylin.common.util.DateFormat;
+import org.apache.kylin.common.util.Pair;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,7 +142,11 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
                 if (!visit.moreRDDExists()) {
                     return;
                 }
-                Iterator<RDDPartitionResult> resultPartitions = visit.executeTask();
+
+                Pair<Iterator<RDDPartitionResult>, JavaRDD<RDDPartitionResult>> pair = visit.executeTask();
+                Iterator<RDDPartitionResult> resultPartitions = pair.getFirst();
+                JavaRDD<RDDPartitionResult> baseRDD = pair.getSecond();
+
                 logger.info("Time for spark parquet visit execution (may not include result fetch if it's large result) is " + (System.currentTimeMillis() - startTime));
                 boolean moreRDDStillExists = visit.moreRDDExists();
 
@@ -159,6 +165,7 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
                     }
 
                     TransferPack transferPack = (moreRDDStillExists || resultPartitions.hasNext()) ? TransferPack.createNormalPack(current) : TransferPack.createLastPack(current);
+
                     boolean success = synchronousQueue.offer(transferPack, 1, TimeUnit.MINUTES);
                     if (success) {
                         current = null;
@@ -171,6 +178,8 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
                         return;
                     }
                 }
+
+                baseRDD.unpersist();
             }
         } catch (Exception e) {
             logger.warn("Error in doStorageVisit, notifying the root cause");
@@ -191,7 +200,7 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
         try {
             if (lastMessageSent.get()) {
                 responseObserver.onCompleted();
-                logger.info("Finish sending last empty message for stream {}", state.incAndGetMessageNum(), streamIdentifier);
+                logger.info("Finish sending last empty message for stream {}, total number of non-empty messages: {}", streamIdentifier, state.incAndGetMessageNum());
                 return;
             }
 

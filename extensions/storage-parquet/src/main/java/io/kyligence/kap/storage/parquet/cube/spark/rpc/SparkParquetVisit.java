@@ -28,14 +28,10 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
@@ -47,6 +43,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.storage.StorageContext;
@@ -76,7 +73,6 @@ import io.kyligence.kap.storage.parquet.format.filter.BinaryFilterConverter;
 import io.kyligence.kap.storage.parquet.format.filter.BinaryFilterSerializer;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 import io.kyligence.kap.storage.parquet.steps.ParquetCubeInfoCollectionStep;
-import scala.Tuple4;
 
 public class SparkParquetVisit implements Serializable {
     public static final Logger logger = LoggerFactory.getLogger(SparkParquetVisit.class);
@@ -99,9 +95,6 @@ public class SparkParquetVisit implements Serializable {
     private transient long accumulateCnt = 0;
     private transient List<JavaPairRDD> batchRdd = Lists.newArrayList();
 
-    private final static ExecutorService cachedRDDCleaner = Executors.newSingleThreadExecutor();
-    private final static ConcurrentLinkedDeque<Tuple4<String, Iterator<RDDPartitionResult>, JavaRDD<RDDPartitionResult>, Long>> cachedRDDs = new ConcurrentLinkedDeque<>();//queryid,iterator,rdd,inqueue time
-
     private final static Cache<String, Map<Long, Set<String>>> cubeMappingCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(1, TimeUnit.HOURS).removalListener(//
             new RemovalListener<String, Map<Long, Set<String>>>() {
                 @Override
@@ -109,46 +102,6 @@ public class SparkParquetVisit implements Serializable {
                     SparkParquetVisit.logger.info("cubeMappingCache entry with key {} is removed due to {} ", notification.getKey(), notification.getCause());
                 }
             }).build();
-
-    static {
-        //avoid cached RDD to occupy executor heap for too long
-        cachedRDDCleaner.submit(new Runnable() {
-            @Override
-            public void run() {
-                List<Tuple4<String, Iterator<RDDPartitionResult>, JavaRDD<RDDPartitionResult>, Long>> pendingList = new ArrayList<>();
-                while (true) {
-                    for (Tuple4<String, Iterator<RDDPartitionResult>, JavaRDD<RDDPartitionResult>, Long> t : pendingList) {
-                        logger.info("unpersist cached RDD {} from query {}", t._3(), t._1());
-                        t._3().unpersist();
-                    }
-                    pendingList.clear();
-
-                    Iterator<Tuple4<String, Iterator<RDDPartitionResult>, JavaRDD<RDDPartitionResult>, Long>> iterator = cachedRDDs.iterator();
-                    while (iterator.hasNext()) {
-                        Tuple4<String, Iterator<RDDPartitionResult>, JavaRDD<RDDPartitionResult>, Long> next = iterator.next();
-                        if (!next._2().hasNext()) {
-                            logger.info("add RDD {} from query {} to unpersist list because its iterator is drained", next._3(), next._1());
-                            pendingList.add(next);
-                            iterator.remove();
-                        }
-
-                        //protect against potential memory leak
-                        if (System.currentTimeMillis() - next._4() > 600000) {
-                            logger.info("add RDD {} from query {} to unpersist list because it has been inqueued for too long", next._3(), next._1());
-                            pendingList.add(next);
-                            iterator.remove();
-                        }
-                    }
-
-                    try {
-                        Thread.sleep(60000);
-                    } catch (InterruptedException e) {
-                        logger.error("error sleeping", e);
-                    }
-                }
-            }
-        });
-    }
 
     public SparkParquetVisit(JavaSparkContext sc, SparkJobProtos.SparkJobRequestPayload request) {
         try {
@@ -266,7 +219,7 @@ public class SparkParquetVisit implements Serializable {
         }
     }
 
-    Iterator<RDDPartitionResult> executeTask() throws Exception {
+    Pair<Iterator<RDDPartitionResult>, JavaRDD<RDDPartitionResult>> executeTask() throws Exception {
         logger.info("Start to visit cube data with Spark <<<<<<");
         final Accumulator<Long> scannedRecords = sc.accumulator(0L, "Scanned Records", LongAccumulableParam.INSTANCE);
         final Accumulator<Long> collectedRecords = sc.accumulator(0L, "Collected Records", LongAccumulableParam.INSTANCE);
@@ -275,29 +228,27 @@ public class SparkParquetVisit implements Serializable {
         batchRdd.clear();
 
         final Iterator<RDDPartitionResult> partitionResults;
-        JavaRDD<RDDPartitionResult> cached = seed.mapPartitions(new SparkExecutorPreAggFunction(scannedRecords, collectedRecords, realizationType, isSplice, hasPreFiltered(), //
+        JavaRDD<RDDPartitionResult> baseRDD = seed.mapPartitions(new SparkExecutorPreAggFunction(scannedRecords, collectedRecords, realizationType, isSplice, hasPreFiltered(), //
                 request.getQueryId(), request.getSpillEnabled(), request.getMaxScanBytes(), request.getStartTime())).cache();
 
-        cached.count();//trigger lazy materialization
+        baseRDD.count();//trigger lazy materialization
         long scanCount = collectedRecords.value();
         long threshold = (long) kylinConfig.getLargeQueryThreshold();
         logger.info("The threshold for large result set is {}, current count is {}", threshold, scanCount);
         accumulateCnt += scanCount;
         if (scanCount > threshold) {
             logger.info("returning large result set");
-            partitionResults = cached.toLocalIterator();
-            cachedRDDs.add(new Tuple4<>(request.getQueryId(), partitionResults, cached, System.currentTimeMillis())); //will be cleaned later
+            partitionResults = baseRDD.toLocalIterator();
         } else {
             logger.info("returning normal result set");
-            partitionResults = cached.collect().iterator();
-            cached.unpersist();
+            partitionResults = baseRDD.collect().iterator();
         }
 
         logger.info("==========================================================");
         logger.info("end of visiting cube data with Spark");
         logger.info("the scanned row count is {} and the collected row count is {}", scanCount, scannedRecords.value(), collectedRecords.value());
         logger.info("==========================================================");
-        return partitionResults;
+        return Pair.newPair(partitionResults, baseRDD);
     }
 
     public boolean moreRDDExists() {

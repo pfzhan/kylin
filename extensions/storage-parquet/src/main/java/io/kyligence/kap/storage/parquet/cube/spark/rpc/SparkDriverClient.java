@@ -111,6 +111,7 @@ public class SparkDriverClient {
         final Semaphore semaphore = new Semaphore(0);
 
         final StreamObserver<SparkJobRequest> requestObserver = asyncStub.submitJob(new StreamObserver<SparkJobResponse>() {
+
             @Override
             public void onNext(SparkJobResponse sparkJobResponse) {
                 responses.add(sparkJobResponse);
@@ -121,7 +122,7 @@ public class SparkDriverClient {
             public void onError(Throwable throwable) {
                 Status status = Status.fromThrowable(throwable);
                 logger.error("grpc client side receive error: " + status);
-                serverSideError.set(status.getDescription() == null ? "Unkown error! Please make sure the spark driver is working by running \"bin/spark_client.sh start\"" : status.getDescription());
+                serverSideError.set(status.getDescription() == null ? "Unknown error! Please make sure the spark driver is working by running \"bin/spark_client.sh start\"" : status.getDescription());
                 semaphore.release();
             }
 
