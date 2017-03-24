@@ -99,6 +99,10 @@ public class KapConfig {
         return Integer.parseInt(config.getOptional("kap.storage.columnar.ii-io-buffer-bytes", String.valueOf(1024 * 1024)));
     }
 
+    public int getParquetPageIndexMaxSeeks() {
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.ii-max-seeks", String.valueOf(1024)));
+    }
+
     public String getParquetPageCompression() {
         return config.getOptional("kap.storage.columnar.page-compression", "");
     }

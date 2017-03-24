@@ -36,7 +36,6 @@ import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.ConstantTupleFilter;
-import io.kyligence.kap.metadata.filter.EvaluatableFunctionTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.filter.UDF.MassInTupleFilter;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
@@ -48,6 +47,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.filter.EvaluatableFunctionTupleFilter;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexReader;
 import io.kyligence.kap.storage.parquet.format.raw.RawTableUtils;
 
@@ -284,6 +284,11 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
                 }
             }
 
+            if (conditionVals.size() > KapConfig.getInstanceFromEnv().getParquetPageIndexMaxSeeks()) {
+                logger.info("lookupChildFilter returning full bitmap because too many seeks {}", conditionVals.size());
+                return getFullBitmap().toMutableRoaringBitmap();
+            }
+
             return lookColumnIndex(col, compareTupleFilter.getOperator(), conditionVals);
         } else if (filter instanceof EvaluatableFunctionTupleFilter) {
             EvaluatableFunctionTupleFilter likeFunction = (EvaluatableFunctionTupleFilter) filter;
@@ -304,12 +309,12 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
 
             return lookColumnIndex(col, likeFunction.getOperator(), Sets.newHashSet(patternBytes));
         } else if (filter instanceof MassInTupleFilter) {
-//            MassInTupleFilter massInTupleFilter = (MassInTupleFilter) filter;
-//            int col = massInTupleFilter.getColumn().getColumnDesc().getZeroBasedIndex();
-//            Set<ByteArray> conditionValues = (Set<ByteArray>) massInTupleFilter.getValues();
-//
-//            CompareTupleFilter inFilter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.IN);
-//            return lookColumnIndex(col, inFilter.getOperator(), conditionValues);
+            //            MassInTupleFilter massInTupleFilter = (MassInTupleFilter) filter;
+            //            int col = massInTupleFilter.getColumn().getColumnDesc().getZeroBasedIndex();
+            //            Set<ByteArray> conditionValues = (Set<ByteArray>) massInTupleFilter.getValues();
+            //
+            //            CompareTupleFilter inFilter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.IN);
+            //            return lookColumnIndex(col, inFilter.getOperator(), conditionValues);
             logger.info("full bitmap for massin");
             return getFullBitmap().toMutableRoaringBitmap();
         }
