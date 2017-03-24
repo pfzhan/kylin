@@ -21,7 +21,7 @@
   </el-tabs> -->
   <div>
     <tab :isedit="editable"  :tabslist="editableTabs"  :active="activeName" v-on:clicktab="checkTab" v-on:removetab="delTab"></tab>
-    <div>
+    <div id="tagBox">
         <component :is="currentView" v-on:addtabs="addTab" keep-alive></component>
     </div>
   </div>
@@ -109,7 +109,8 @@
       'modelEdit': modelEdit,
       'tab': tab
     },
-    created () {
+    mounted () {
+      console.log(this)
     }
 
   }
@@ -121,5 +122,9 @@
   }
   .el-tabs__nav div:nth-child(2) .el-icon-close{
     visibility: hidden;
+  }
+  #tagBox{
+    width: 100%;
+    height: 100%;
   }
 </style>

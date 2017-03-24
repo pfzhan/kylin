@@ -31,13 +31,13 @@ export default {
         'name': 'test1',
         'database': 'default',
         'alias': 'User_Profile',
-        'guid': sampleGuid(),
+        'guid': '123',
         'columns': [{'id': '1', 'name': 'A', 'datatype': 'bigint'}, {'id': '2', 'name': 'B', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '1', 'name': 'LEAF_CATEG_ID', 'datatype': 'bigint'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'TEST', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}]
       }, {
         'name': 'test2',
         'database': 'default',
         'alias': 'Product',
-        'guid': sampleGuid(),
+        'guid': '456',
         'columns': [{'id': '1', 'name': 'LEAF_CATEG_ID1', 'datatype': 'bigint'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '1', 'name': 'LEAF_CATEG_ID', 'datatype': 'bigint'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '1', 'name': 'LEAF_CATEG_ID1', 'datatype': 'bigint'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '1', 'name': 'LEAF_CATEG_ID', 'datatype': 'bigint'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}]
       }, {
         'name': 'test22',
@@ -50,16 +50,12 @@ export default {
         var connectorPaintStyle = {
           strokeWidth: 2,
           stroke: '#61B7CF',
-          joinstyle: 'round',
-          outlineStroke: 'white',
-          outlineWidth: 2
+          joinstyle: 'round'
         }
     // .. and this is the hover style.
         var connectorHoverStyle = {
           strokeWidth: 3,
-          stroke: '#216477',
-          outlineWidth: 5,
-          outlineStroke: 'white'
+          stroke: '#216477'
         }
         var endpointHoverStyle = {
           fill: '#216477',
@@ -74,19 +70,12 @@ export default {
             strokeWidth: 1
           },
           isSource: true,
-          connector: [ 'Flowchart', { stub: [40, 60], gap: 10, cornerRadius: 5, alwaysRespectStubs: true } ],
+          connector: [ 'Bezier', { curviness: -13 } ], // 设置连线为贝塞尔曲线
+          // connector: [ 'Flowchart', { stub: [40, 60], gap: 10, cornerRadius: 5, alwaysRespectStubs: true } ],
           connectorStyle: connectorPaintStyle,
           hoverPaintStyle: endpointHoverStyle,
           connectorHoverStyle: connectorHoverStyle,
-          dragOptions: {},
-          overlays: [
-            [ 'Label', {
-              location: [0.5, 1.5],
-              label: 'Drag',
-              cssClass: 'endpointSourceLabel',
-              visible: false
-            } ]
-          ]
+          dragOptions: {}
         }
     // the definition of target endpoints (will appear when the user drags a connection)
         var targetEndpoint = {
@@ -95,10 +84,7 @@ export default {
           hoverPaintStyle: endpointHoverStyle,
           maxConnections: -1,
           dropOptions: { hoverClass: 'hover', activeClass: 'active' },
-          isTarget: true,
-          overlays: [
-                [ 'Label', { location: [0.5, -0.5], label: 'Drop', cssClass: 'endpointTargetLabel', visible: false } ]
-          ]
+          isTarget: true
         }
         if (type === 'source') {
           return sourceEndpoint
@@ -208,7 +194,7 @@ export default {
       var anchor = [[1.0, 0.4, 1.5, 0], [0, 0.4, -1, 0]]
       var scope = 'link'
       if (topPoint) {
-        anchor = [[0.5, 0, 0.6, 0]]
+        anchor = [[0.5, 0, 0.6, 0], [0.5, 1, 0.6, 1], [0, 0.5, 0, 0.6], [1, 0.5, 1, 0.6]]
         scope = 'showlink'
       }
       jsplumb.addEndpoint(guid, {anchor: anchor}, this.createEndpointConfig({
@@ -223,7 +209,7 @@ export default {
         },
         uuid: guid + columnName
       }, pointType))
-      // this.draggleTable([guid])
+      this.draggleTable([guid])
       this.refreshPlumbObj(jsplumb)
     },
     /*
@@ -231,9 +217,42 @@ export default {
     *  ==========================================================================
     */
     connect: function (p1, p2, jsplumb, otherProper) {
-      var defaultPata = {uuids: [p1, p2], editable: true}
+      var defaultPata = {uuids: [p1, p2],
+        editable: true,
+        overlays: ['Arrow', ['Label', {id: p1 + (p2 + 'label'),
+          label: 'foo',
+          location: 60,
+          events: {
+            tap: function () { alert('hey') }
+          } }]]}
       $.extend(defaultPata, otherProper)
       jsplumb.connect(defaultPata)
+    },
+    addConnect: function (p1, p2, col1, col2, type) {
+      var links = this.links
+      console.log(p1, p2, col1, col2, type)
+      var hasSame = false
+      for (var i = 0; i < links.length; i++) {
+        if (links[i][0] === p1 && links[i][1] === p2 && links[i][2] === col1 && links[i][3] === col2) {
+          links[i][4] = type
+          hasSame = true
+        }
+      }
+      console.log(hasSame)
+      if (!hasSame) {
+        console.log(111)
+        console.log(this.links)
+        this.links.push([p1, p2, col1, col2, type])
+      }
+    },
+    getConnectByTableIds: function (p1, p2) {
+      var count = 0
+      for (var i = 0; i < this.links.length; i++) {
+        if (this.links[i][0] === p1 && this.links[i][1] === p2) {
+          count = count + 1
+        }
+      }
+      return count
     },
     addShowLink: function (p1, p2, count) {
       this.connect(p1, p2, this.plumbInstance)
@@ -261,32 +280,29 @@ export default {
             events: {
               click: function () { alert('you clicked on the arrow overlay') }
             }
-          } ],
-          [ 'Label', {
-            location: 0.1,
-            id: 'label',
-            cssClass: 'aLabel',
-            events: {
-              tap: function () { alert('hey') }
-            }
-          }]
-        ],
-        Container: 'canvas'
+          } ]],
+        Container: 'model_edit'
       })
-      var basicType = {
-        connector: 'StateMachine',
-        paintStyle: { stroke: 'red', strokeWidth: 4 },
-        hoverPaintStyle: { stroke: 'blue' },
-        overlays: [
-          'Arrow'
-        ]
-      }
-      _this.plumbInstance.registerConnectionType('basic', basicType)
-      _this.draggleTable(_this.tableIdList)
+      // var basicType = {
+      //   connector: 'StateMachine',
+      //   paintStyle: { stroke: 'red', strokeWidth: 4 },
+      //   hoverPaintStyle: { stroke: 'blue' },
+      //   overlays: [
+      //     'Arrow'
+      //   ]
+      // }
+      _this.draggleTable(jsPlumb.getSelector('.table_box'))
+      // _this.plumbInstance.draggable(jsPlumb.getSelector('.table_box'), { grid: [20, 20] })
+      // _this.plumbInstance.registerConnectionType('basic', basicType)
+      // // _this.draggleTable(_this.tableIdList, {
+      // //   drag: function (e) {
+      // //     return true
+      // //   }
+      // // })
       _this.plumbInstance.bind('connection', function (info, originalEvent) {
         console.log(info.sourceEndpoint.getUuid())
         if (info.connection.scope !== 'showlink') {
-          _this.links[info.connection.id] = [info.sourceEndpoint.getParameters().data, info.targetEndpoint.getParameters().data]
+          _this.addConnect(info.connection.sourceId, info.connection.targetId, info.sourceEndpoint.getParameters().data.column.columnName, info.targetEndpoint.getParameters().data.column.columnName, 'left')
           // _this.removeAllEndpoints(_this.plumbInstance)
           _this.plumbInstance.deleteEndpoint(info.sourceEndpoint.getUuid())
           _this.plumbInstance.deleteEndpoint(info.targetEndpoint.getUuid())
@@ -299,6 +315,10 @@ export default {
             _this.cancelFilterColumn(info.connection.targetId)
             _this.addShowLink(info.connection.sourceId, info.connection.targetId, _this.connectsCount)
           })
+        } else {
+          console.log(_this.links)
+          console.log(info.connection.getOverlay(info.connection.sourceId + (info.connection.targetId + 'label')))
+          info.connection.getOverlay(info.connection.sourceId + (info.connection.targetId + 'label')).setLabel('' + _this.getConnectByTableIds(info.connection.sourceId, info.connection.targetId))
         }
       })
     })
@@ -337,6 +357,14 @@ export default {
 <style lang="less">
    [data-scrollbar] .scrollbar-track-y, [scrollbar] .scrollbar-track-y, scrollbar .scrollbar-track-y{
      right: 4px;
+   }
+   #model_edit{
+    position: relative;
+    background-color: #475568;
+    background-image: url('../../assets/img/jsplumb.png');
+    background-repeat:repeat;
+    width: 1000000px;
+    height: 100000px;
    }
    .table_box{
        width: 250px;
@@ -422,4 +450,19 @@ export default {
         }
        }
    }
+   .jtk-overlay {
+    background-color: white;
+    padding: 0.4em;
+    font: 12px sans-serif;
+    color: #444;
+    z-index: 21;
+    border: 2px solid #f5a623;
+    opacity: 0.8;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    text-align: center;
+    line-height: 20px;
+}
 </style>
