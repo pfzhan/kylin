@@ -12,7 +12,75 @@
         </section>
         <div class="more_tool"><i class="el-icon-d-caret"></i></div>
       </div>
+
+
+
+
+      <el-dialog title="外键关系" v-model="dialogVisible" size="tiny">
+        <span>
+          
+           <el-table
+              :data="currentTableLinks"
+              border
+              style="width: 100%">
+              <el-table-column
+                label="主键"
+                width="180">
+                 <template scope="scope">
+                  <el-popover trigger="hover" placement="top">
+                    <p>{{ getTableInfoByGuid(scope.row[0]).name + '.' + scope.row[2] }}</p>
+                    <div slot="reference" class="name-wrapper">
+                      <el-tag type="success">{{ getTableInfoByGuid(scope.row[0]).name + '.' + scope.row[2] }}</el-tag>
+                    </div>
+                  </el-popover>
+                </template>
+              </el-table-column>
+              <el-table-column
+                label="关系"
+                width="80">
+                <template scope="scope">
+                  <div slot="reference" class="name-wrapper">
+                    <el-tag>{{ scope.row[4] }}</el-tag>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column
+                label="外键"
+                width="180">
+                <template scope="scope">
+                  <el-popover trigger="hover" placement="top">
+                    <p>{{ getTableInfoByGuid(scope.row[1]).name + '.' + scope.row[3]}}</p>
+                    <div slot="reference" class="name-wrapper">
+                      <el-tag type="primary">{{ getTableInfoByGuid(scope.row[1]).name + '.' + scope.row[3]}}</el-tag>
+                    </div>
+                  </el-popover>
+                </template>
+              </el-table-column>
+              
+              <el-table-column label="操作" >
+
+                <template scope="scope">
+
+                  <el-popover ref="{{labelDialog}}" placement="top" width="160" v-model="labelDialogVisible">
+                    <p>这是一段内容这是一段内容确定删除吗？</p>
+                    <div style="text-align: right; margin: 0">
+                      <el-button size="mini" type="text" @click="labelDialogVisible = false">取消</el-button>
+                      <el-button type="primary" size="mini" @click="labelDialogVisible = false;delConnect(scope.row)">确定</el-button>
+                    </div>
+                  </el-popover>
+                  <el-button size="small" type="danger" v-popover:{{labelDialog}} >删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+
+        </span>
+        <!-- <span slot="footer" class="dialog-footer">
+          <el-button @click="dialogVisible = false">取 消</el-button>
+          <el-button type="primary" @click="dialogVisible = false">确 定</el-button>
+        </span> -->
+      </el-dialog>
     </div>
+
 </template>
 <script>
 import { jsPlumb } from 'jsplumb'
@@ -22,13 +90,18 @@ import Scrollbar from 'smooth-scrollbar'
 export default {
   data () {
     return {
+      dialogVisible: false,
+      labelDialog: 'hh',
+      labelDialogVisible: false,
       selectColumn: {},
       plumbInstance: null,
       plumbInstanceForShowLink: null,
       links: [],
+      currentTableLinks: [],
+      pointType: 'source',
       tableList: [{
         'filterName': '',
-        'name': 'test1',
+        'name': 'User_ProfileUser_ProfileUser_ProfileUser_Profile',
         'database': 'default',
         'alias': 'User_Profile',
         'guid': '123',
@@ -113,10 +186,11 @@ export default {
       // this.removeAllEndpoints(this.plumbInstance)
     },
     selectFilterColumn: function (id, columnName, columnType, pointType) {
-      pointType = pointType || 'source'
+      this.pointType = this.pointType === 'source' ? 'target' : 'source'
       if (columnName) {
         this.$set(this.selectColumn, id, {columnName: columnName, columnType: columnType})
-        this.addSelectPoints(id, this.plumbInstance, pointType, columnName, columnType)
+        this.removePoint(id + columnName)
+        this.addSelectPoints(id, this.plumbInstance, this.pointType, columnName, columnType)
       } else {
         this.cancelFilterColumn(id)
       }
@@ -180,6 +254,14 @@ export default {
     draggleTable: function (idList) {
       this.plumbInstance.draggable(idList)
     },
+    getTableInfoByGuid: function (guid) {
+      var len = this.tableList && this.tableList.length || 0
+      for (var i = 0; i < len; i++) {
+        if (this.tableList[i].guid === '' + guid) {
+          return this.tableList[i]
+        }
+      }
+    },
     /*
     *  Endpoint Func
     *  ==========================================================================
@@ -212,51 +294,80 @@ export default {
       this.draggleTable([guid])
       this.refreshPlumbObj(jsplumb)
     },
+    removePoint: function (uuid) {
+      this.plumbInstance.deleteEndpoint(uuid)
+    },
     /*
     *  Connect Func
     *  ==========================================================================
     */
     connect: function (p1, p2, jsplumb, otherProper) {
+      var _this = this
       var defaultPata = {uuids: [p1, p2],
         editable: true,
         overlays: ['Arrow', ['Label', {id: p1 + (p2 + 'label'),
           label: 'foo',
           location: 60,
           events: {
-            tap: function () { alert('hey') }
+            tap: function () {
+              _this.showLinkGrid(p1, p2)
+            }
           } }]]}
       $.extend(defaultPata, otherProper)
       jsplumb.connect(defaultPata)
     },
     addConnect: function (p1, p2, col1, col2, type) {
       var links = this.links
-      console.log(p1, p2, col1, col2, type)
       var hasSame = false
       for (var i = 0; i < links.length; i++) {
-        if (links[i][0] === p1 && links[i][1] === p2 && links[i][2] === col1 && links[i][3] === col2) {
+        if (links[i][0] === '' + p1 && links[i][1] === '' + p2 && links[i][2] === col1 && links[i][3] === col2) {
           links[i][4] = type
           hasSame = true
         }
       }
-      console.log(hasSame)
       if (!hasSame) {
-        console.log(111)
-        console.log(this.links)
         this.links.push([p1, p2, col1, col2, type])
       }
     },
-    getConnectByTableIds: function (p1, p2) {
+    delConnect: function (connect) {
+      console.log(connect)
+      var links = this.links
+      for (var i = 0; i < links.length; i++) {
+        if (links[i][0] === connect[0] && links[i][1] === connect[1] && links[i][2] === connect[2] && links[i][3] === connect[3]) {
+          this.links.splice(i, 1)
+          break
+        }
+      }
+      this.getConnectsByTableIds(connect[0], connect[1])
+      console.log(this.links)
+    },
+    setConnectLabelText: function (conn, p1, p2, text) {
+      conn.getOverlay(p1 + (p2 + 'label')).setLabel('' + text)
+    },
+    getConnectCountByTableIds: function (p1, p2) {
       var count = 0
       for (var i = 0; i < this.links.length; i++) {
-        if (this.links[i][0] === p1 && this.links[i][1] === p2) {
+        if (this.links[i][0] === '' + p1 && this.links[i][1] === '' + p2) {
           count = count + 1
         }
       }
       return count
     },
+    getConnectsByTableIds: function (p1, p2) {
+      this.currentTableLinks = []
+      for (var i = 0; i < this.links.length; i++) {
+        if (this.links[i][0] === p1 && this.links[i][1] === p2) {
+          this.currentTableLinks.push(this.links[i])
+        }
+      }
+    },
     addShowLink: function (p1, p2, count) {
       this.connect(p1, p2, this.plumbInstance)
       // conn.getOverlay('label').setLabel(count)
+    },
+    showLinkGrid: function (p1, p2) {
+      this.dialogVisible = true
+      this.getConnectsByTableIds(p1, p2)
     },
     refreshPlumbObj: function (plumb) {
       plumb = plumb || jsPlumb
@@ -300,12 +411,11 @@ export default {
       // //   }
       // // })
       _this.plumbInstance.bind('connection', function (info, originalEvent) {
-        console.log(info.sourceEndpoint.getUuid())
         if (info.connection.scope !== 'showlink') {
           _this.addConnect(info.connection.sourceId, info.connection.targetId, info.sourceEndpoint.getParameters().data.column.columnName, info.targetEndpoint.getParameters().data.column.columnName, 'left')
           // _this.removeAllEndpoints(_this.plumbInstance)
-          _this.plumbInstance.deleteEndpoint(info.sourceEndpoint.getUuid())
-          _this.plumbInstance.deleteEndpoint(info.targetEndpoint.getUuid())
+          _this.removePoint(info.sourceEndpoint.getUuid())
+          _this.removePoint(info.targetEndpoint.getUuid())
 
           _this.addSelectPoints(info.connection.sourceId, _this.plumbInstance, 'source', '', '', true)
           _this.addSelectPoints(info.connection.targetId, _this.plumbInstance, 'target', '', '', true)
@@ -316,9 +426,7 @@ export default {
             _this.addShowLink(info.connection.sourceId, info.connection.targetId, _this.connectsCount)
           })
         } else {
-          console.log(_this.links)
-          console.log(info.connection.getOverlay(info.connection.sourceId + (info.connection.targetId + 'label')))
-          info.connection.getOverlay(info.connection.sourceId + (info.connection.targetId + 'label')).setLabel('' + _this.getConnectByTableIds(info.connection.sourceId, info.connection.targetId))
+          _this.setConnectLabelText(info.connection, info.connection.sourceId, info.connection.targetId, _this.getConnectCountByTableIds(info.connection.sourceId, info.connection.targetId))
         }
       })
     })
@@ -423,6 +531,7 @@ export default {
           height: 30px;
           line-height: 30px;
           color:#fff;
+          cursor: pointer;
           span{
             display: inline-block;
           }
