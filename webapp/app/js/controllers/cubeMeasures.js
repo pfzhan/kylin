@@ -395,10 +395,10 @@ KylinApp.controller('CubeMeasuresCtrl', function ($scope, $modal,TableModel,Meta
           if(colType==="smallint"||colType==="int"||colType==="bigint"||colType==="integer"){
             $scope.newMeasure.function.returntype= 'bigint';
           }else{
-            if(colType.indexOf('decimal')!=-1){
-              $scope.newMeasure.function.returntype= colType;
+            if(colType.indexOf('decimal')!=-1||colType==="double"||colType==="float"){
+              $scope.newMeasure.function.returntype= 'decimal(19,4)';
             }else{
-              $scope.newMeasure.function.returntype= 'decimal';
+              $scope.newMeasure.function.returntype= 'decimal(14,0)';
             }
           }
           break;
