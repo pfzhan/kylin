@@ -3,6 +3,7 @@
       <div class="table_box" v-for="table in tableList" :id="table.guid" >
         <span class="tool_box"><i class="el-icon-setting"></i></span>
         <p class="table_name">{{table.alias||table.name}}</p>
+        <input type="text" />
         <div class="link_box" v-if="selectColumn[table.guid]"><i class="el-icon-close" v-on:click="cancelFilterColumn(table.guid)"></i>{{selectColumn[table.guid]&&selectColumn[table.guid].columnName}}</div>
         <p class="filter_box"><el-input v-model="table.filterName" v-on:change="filterColumnByInput(table.filterName,table.guid)"  size="small" placeholder="enter filter..."></el-input></p>
         <section data-scrollbar class="columns_box">
@@ -16,7 +17,7 @@
 
 
 
-      <el-dialog title="外键关系" v-model="dialogVisible" size="tiny">
+      <el-dialog title="外键关系" v-model="dialogVisible" size="small">
         <span>
           
            <el-table
@@ -25,7 +26,7 @@
               style="width: 100%">
               <el-table-column
                 label="主键"
-                width="180">
+                >
                  <template scope="scope">
                   <el-popover trigger="hover" placement="top">
                     <p>{{ getTableInfoByGuid(scope.row[0]).name + '.' + scope.row[2] }}</p>
@@ -37,16 +38,25 @@
               </el-table-column>
               <el-table-column
                 label="关系"
-                width="80">
+                width="140">
                 <template scope="scope">
                   <div slot="reference" class="name-wrapper">
-                    <el-tag>{{ scope.row[4] }}</el-tag>
+                    <el-switch
+                      @change="switchJointType(scope.row[0], scope.row[1], scope.row[4])"
+                      :width="switchWidth"
+                      on-text="Left Join"
+                      off-text="Right Join"
+                      v-model="scope.row[4]"
+                      on-color="#13ce66"
+                      off-color="#ff4949">
+                    </el-switch>
+                    <!-- <el-tag>{{ scope.row[4] }}</el-tag> -->
                   </div>
                 </template>
               </el-table-column>
               <el-table-column
                 label="外键"
-                width="180">
+                >
                 <template scope="scope">
                   <el-popover trigger="hover" placement="top">
                     <p>{{ getTableInfoByGuid(scope.row[1]).name + '.' + scope.row[3]}}</p>
@@ -57,7 +67,7 @@
                 </template>
               </el-table-column>
               
-              <el-table-column label="操作" >
+              <el-table-column label="操作" width="80">
                 <template scope="scope">
                   <confirm-btn v-on:okFunc='delConnect(scope.row)' :tips="deleteLinkTips"><el-button size="small"
           type="danger">删除</el-button></confirm-btn>
@@ -86,6 +96,8 @@ export default {
   name: 'modeledit',
   data () {
     return {
+      joinType: false,
+      switchWidth: 100,
       dialogVisible: false,
       deleteLinkTips: '你确认要删除该连接吗？',
       selectColumn: {},
@@ -185,14 +197,16 @@ export default {
       this.selectFilterColumn(id, suggestObj.className, suggestObj.columnType, 'target')
     },
     cancelFilterColumn: function (id) {
+      this.removePoint(id + this.selectColumn[id].columnName)
       this.$set(this.selectColumn, id, '')
-      // this.removeAllEndpoints(this.plumbInstance)
     },
     selectFilterColumn: function (id, columnName, columnType, pointType) {
       this.pointType = this.pointType === 'source' ? 'target' : 'source'
       if (columnName) {
+        if (this.selectColumn[id]) {
+          this.removePoint(id + this.selectColumn[id].columnName)
+        }
         this.$set(this.selectColumn, id, {columnName: columnName, columnType: columnType})
-        this.removePoint(id + columnName)
         this.addSelectPoints(id, this.plumbInstance, this.pointType, columnName, columnType)
       } else {
         this.cancelFilterColumn(id)
@@ -232,7 +246,6 @@ export default {
           })
         }
       })
-      // instance.stop()
     },
     linkFilterColumnAnimate (sourceId, targetId, callback) {
       $('#' + sourceId).find('.link_box').animate({
@@ -298,6 +311,7 @@ export default {
       this.refreshPlumbObj(jsplumb)
     },
     removePoint: function (uuid) {
+      console.log(uuid)
       this.plumbInstance.deleteEndpoint(uuid)
     },
     /*
@@ -330,7 +344,11 @@ export default {
         }
       }
       if (!hasSame) {
-        this.links.push([p1, p2, col1, col2, type, con])
+        if (links && links.length) {
+          this.links.push([p1, p2, col1, col2, links[0][4], con])
+        } else {
+          this.links.push([p1, p2, col1, col2, type, con])
+        }
       }
     },
     delConnect: function (connect) {
@@ -352,12 +370,20 @@ export default {
       }
       console.log(this.links)
     },
+    switchJointType: function (p1, p2, status) {
+      for (var i = 0; i < this.links.length; i++) {
+        if (this.links[i][0] === p1 && this.links[i][1] === p2) {
+          this.links[i][4] = status
+        }
+      }
+    },
     setConnectLabelText: function (conn, p1, p2, text) {
       conn.getOverlay(p1 + (p2 + 'label')).setLabel('' + text)
       this.showLinkCons[p1 + '' + p2] = conn
     },
     getConnectCountByTableIds: function (p1, p2) {
       var count = 0
+      console.log(this.links)
       for (var i = 0; i < this.links.length; i++) {
         if (this.links[i][0] === '' + p1 && this.links[i][1] === '' + p2) {
           count = count + 1
@@ -424,13 +450,13 @@ export default {
       // //   }
       // // })
       _this.plumbInstance.bind('connection', function (info, originalEvent) {
+        console.log('conn' + info.connection.scope)
         if (info.connection.scope !== 'showlink') {
-          _this.addConnect(info.connection.sourceId, info.connection.targetId, info.sourceEndpoint.getParameters().data.column.columnName, info.targetEndpoint.getParameters().data.column.columnName, 'left', info.connection)
+          _this.addConnect(info.connection.sourceId, info.connection.targetId, info.sourceEndpoint.getParameters().data.column.columnName, info.targetEndpoint.getParameters().data.column.columnName, true, info.connection)
           // _this.removeAllEndpoints(_this.plumbInstance)
           _this.removePoint(info.sourceEndpoint.getUuid())
           _this.removePoint(info.targetEndpoint.getUuid())
           var hisConn = _this.showLinkCons[info.connection.sourceId + '' + info.connection.targetId]
-          console.log(hisConn)
           if (!hisConn) {
             console.log('start link')
             _this.addSelectPoints(info.connection.sourceId, _this.plumbInstance, 'source', '', '', true)
@@ -441,6 +467,10 @@ export default {
             _this.cancelFilterColumn(info.connection.sourceId)
             _this.cancelFilterColumn(info.connection.targetId)
           })
+          var showLinkCon = _this.showLinkCons[info.connection.sourceId + '' + info.connection.targetId]
+          if (showLinkCon) {
+            _this.setConnectLabelText(showLinkCon, info.connection.sourceId, info.connection.targetId, _this.getConnectCountByTableIds(info.connection.sourceId, info.connection.targetId))
+          }
         } else {
           _this.setConnectLabelText(info.connection, info.connection.sourceId, info.connection.targetId, _this.getConnectCountByTableIds(info.connection.sourceId, info.connection.targetId))
         }
