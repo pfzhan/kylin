@@ -13,6 +13,7 @@ import fullLayout from './components/layout/layout_full'
 import router from './router'
 import mock from '../mock'
 import filter from './filter'
+import confirmBtn from './components/common/confirm_btn'
 
 import Icon from 'vue-awesome/components/Icon.vue'
 import 'vue-awesome/icons'
@@ -21,8 +22,10 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 Vue.component('icon', Icon)
+Vue.component('confirm-btn', confirmBtn)
 
 Vue.use(ElementUI)
+
 /* eslint-disable no-new */
 new Vue({
   el: '#app',

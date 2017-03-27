@@ -58,17 +58,9 @@
               </el-table-column>
               
               <el-table-column label="操作" >
-
                 <template scope="scope">
-
-                  <el-popover ref="{{labelDialog}}" placement="top" width="160" v-model="labelDialogVisible">
-                    <p>这是一段内容这是一段内容确定删除吗？</p>
-                    <div style="text-align: right; margin: 0">
-                      <el-button size="mini" type="text" @click="labelDialogVisible = false">取消</el-button>
-                      <el-button type="primary" size="mini" @click="labelDialogVisible = false;delConnect(scope.row)">确定</el-button>
-                    </div>
-                  </el-popover>
-                  <el-button size="small" type="danger" v-popover:{{labelDialog}} >删除</el-button>
+                  <confirm-btn v-on:okFunc='delConnect(scope.row)' :tips="deleteLinkTips"><el-button size="small"
+          type="danger">删除</el-button></confirm-btn>
                 </template>
               </el-table-column>
             </el-table>
@@ -78,25 +70,29 @@
           <el-button @click="dialogVisible = false">取 消</el-button>
           <el-button type="primary" @click="dialogVisible = false">确 定</el-button>
         </span> -->
+
       </el-dialog>
+
     </div>
 
 </template>
 <script>
 import { jsPlumb } from 'jsplumb'
 import { sampleGuid } from '../../util/index'
+
 import $ from 'jquery'
 import Scrollbar from 'smooth-scrollbar'
 export default {
+  name: 'modeledit',
   data () {
     return {
       dialogVisible: false,
-      labelDialog: 'hh',
-      labelDialogVisible: false,
+      deleteLinkTips: '你确认要删除该连接吗？',
       selectColumn: {},
       plumbInstance: null,
       plumbInstanceForShowLink: null,
       links: [],
+      showLinkCons: {},
       currentTableLinks: [],
       pointType: 'source',
       tableList: [{
@@ -119,7 +115,7 @@ export default {
         'guid': sampleGuid(),
         'columns': [{'id': '1', 'name': 'LEAF_CATEG_ID1', 'datatype': 'bigint'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '1', 'name': 'LEAF_CATEG_ID', 'datatype': 'bigint'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '1', 'name': 'LEAF_CATEG_ID1', 'datatype': 'bigint'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '1', 'name': 'LEAF_CATEG_ID', 'datatype': 'bigint'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}]
       }],
-      endpointConfig: function (type) {
+      endpointConfig: function (type, isShowLinkPoint) {
         var connectorPaintStyle = {
           strokeWidth: 2,
           stroke: '#61B7CF',
@@ -159,9 +155,16 @@ export default {
           dropOptions: { hoverClass: 'hover', activeClass: 'active' },
           isTarget: true
         }
+        console.log(isShowLinkPoint)
         if (type === 'source') {
+          if (isShowLinkPoint) {
+            sourceEndpoint.paintStyle.radius = 1
+          }
           return sourceEndpoint
         } else {
+          if (isShowLinkPoint) {
+            targetEndpoint.paintStyle.radius = 1
+          }
           return targetEndpoint
         }
       }
@@ -266,16 +269,16 @@ export default {
     *  Endpoint Func
     *  ==========================================================================
     */
-    createEndpointConfig: function (newEndpointconfig, type) {
-      return Object.assign({}, this.endpointConfig(type), newEndpointconfig)
+    createEndpointConfig: function (newEndpointconfig, type, isShowLinkPoint) {
+      return Object.assign({}, this.endpointConfig(type, isShowLinkPoint), newEndpointconfig)
     },
     removeAllEndpoints (plumb) {
       plumb.deleteEveryEndpoint()
     },
-    addSelectPoints: function (guid, jsplumb, pointType, columnName, columnType, topPoint) {
+    addSelectPoints: function (guid, jsplumb, pointType, columnName, columnType, isShowLinkPoint) {
       var anchor = [[1.0, 0.4, 1.5, 0], [0, 0.4, -1, 0]]
       var scope = 'link'
-      if (topPoint) {
+      if (isShowLinkPoint) {
         anchor = [[0.5, 0, 0.6, 0], [0.5, 1, 0.6, 1], [0, 0.5, 0, 0.6], [1, 0.5, 1, 0.6]]
         scope = 'showlink'
       }
@@ -290,7 +293,7 @@ export default {
             }}
         },
         uuid: guid + columnName
-      }, pointType))
+      }, pointType, isShowLinkPoint))
       this.draggleTable([guid])
       this.refreshPlumbObj(jsplumb)
     },
@@ -316,21 +319,21 @@ export default {
       $.extend(defaultPata, otherProper)
       jsplumb.connect(defaultPata)
     },
-    addConnect: function (p1, p2, col1, col2, type) {
+    addConnect: function (p1, p2, col1, col2, type, con) {
       var links = this.links
       var hasSame = false
       for (var i = 0; i < links.length; i++) {
         if (links[i][0] === '' + p1 && links[i][1] === '' + p2 && links[i][2] === col1 && links[i][3] === col2) {
           links[i][4] = type
+          links[i][5] = con
           hasSame = true
         }
       }
       if (!hasSame) {
-        this.links.push([p1, p2, col1, col2, type])
+        this.links.push([p1, p2, col1, col2, type, con])
       }
     },
     delConnect: function (connect) {
-      console.log(connect)
       var links = this.links
       for (var i = 0; i < links.length; i++) {
         if (links[i][0] === connect[0] && links[i][1] === connect[1] && links[i][2] === connect[2] && links[i][3] === connect[3]) {
@@ -339,10 +342,19 @@ export default {
         }
       }
       this.getConnectsByTableIds(connect[0], connect[1])
+      var showLinkCon = this.showLinkCons[connect[0] + '' + connect[1]]
+      console.log(showLinkCon)
+      if (this.currentTableLinks.length === 0) {
+        delete this.showLinkCons[connect[0] + '' + connect[1]]
+        this.plumbInstance.detach(showLinkCon)
+      } else {
+        this.setConnectLabelText(showLinkCon, connect[0], connect[1], '' + this.currentTableLinks.length)
+      }
       console.log(this.links)
     },
     setConnectLabelText: function (conn, p1, p2, text) {
       conn.getOverlay(p1 + (p2 + 'label')).setLabel('' + text)
+      this.showLinkCons[p1 + '' + p2] = conn
     },
     getConnectCountByTableIds: function (p1, p2) {
       var count = 0
@@ -360,10 +372,11 @@ export default {
           this.currentTableLinks.push(this.links[i])
         }
       }
+      console.log(444)
+      console.log(this.currentTableLinks)
     },
-    addShowLink: function (p1, p2, count) {
+    addShowLink: function (p1, p2) {
       this.connect(p1, p2, this.plumbInstance)
-      // conn.getOverlay('label').setLabel(count)
     },
     showLinkGrid: function (p1, p2) {
       this.dialogVisible = true
@@ -412,18 +425,21 @@ export default {
       // // })
       _this.plumbInstance.bind('connection', function (info, originalEvent) {
         if (info.connection.scope !== 'showlink') {
-          _this.addConnect(info.connection.sourceId, info.connection.targetId, info.sourceEndpoint.getParameters().data.column.columnName, info.targetEndpoint.getParameters().data.column.columnName, 'left')
+          _this.addConnect(info.connection.sourceId, info.connection.targetId, info.sourceEndpoint.getParameters().data.column.columnName, info.targetEndpoint.getParameters().data.column.columnName, 'left', info.connection)
           // _this.removeAllEndpoints(_this.plumbInstance)
           _this.removePoint(info.sourceEndpoint.getUuid())
           _this.removePoint(info.targetEndpoint.getUuid())
-
-          _this.addSelectPoints(info.connection.sourceId, _this.plumbInstance, 'source', '', '', true)
-          _this.addSelectPoints(info.connection.targetId, _this.plumbInstance, 'target', '', '', true)
-
+          var hisConn = _this.showLinkCons[info.connection.sourceId + '' + info.connection.targetId]
+          console.log(hisConn)
+          if (!hisConn) {
+            console.log('start link')
+            _this.addSelectPoints(info.connection.sourceId, _this.plumbInstance, 'source', '', '', true)
+            _this.addSelectPoints(info.connection.targetId, _this.plumbInstance, 'target', '', '', true)
+            _this.addShowLink(info.connection.sourceId, info.connection.targetId)
+          }
           _this.linkFilterColumnAnimate(info.connection.sourceId, info.connection.targetId, function () {
             _this.cancelFilterColumn(info.connection.sourceId)
             _this.cancelFilterColumn(info.connection.targetId)
-            _this.addShowLink(info.connection.sourceId, info.connection.targetId, _this.connectsCount)
           })
         } else {
           _this.setConnectLabelText(info.connection, info.connection.sourceId, info.connection.targetId, _this.getConnectCountByTableIds(info.connection.sourceId, info.connection.targetId))
