@@ -69,6 +69,14 @@ KylinApp.controller('UserSettingCtrl', function ($scope, $rootScope, $location, 
       $scope.error = $scope.dataKylin.user.tip_password_invalid;
       return;
     }
+    if($scope.user.newPassword.length<8){
+      $scope.error = $scope.dataKylin.user.tip_password_length;
+      return;
+    }
+    if(!/^(?=.*\d)(?=.*[a-z])(?=.*[~!@#$%^&*(){}|:"<>?[\];',.\/`]).{8,}$/gi.test($scope.user.newPassword)){
+      $scope.error = $scope.dataKylin.user.tip_password_unsafe;
+      return;
+    }
 
     KapUserService.reset({},$scope.user,function(){
       kylinCommon.success_alert($scope.dataKylin.alert.success,$scope.dataKylin.user.success_resetSuccess);

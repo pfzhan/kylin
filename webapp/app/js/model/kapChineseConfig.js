@@ -42,6 +42,8 @@ KylinApp.constant('kapChineseConfig', {
     updatePassword: '更新密码',
     tip_username_invalid: '用户名不合法. ',
     tip_password_invalid: '密码不合法. ',
+    tip_password_length: '密码长度至少8位',
+    tip_password_unsafe: '密码包含至少一个数字、字母及特殊字符（~!@#$%^&*(){}|:"<>?[];\'\,./`)',
     success_resetSuccess: '重置密码成功',
     failed_reset: '重置密码失败',
     users: '用户',

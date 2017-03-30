@@ -274,6 +274,14 @@ var addUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService, 
       $scope.error = $scope.dataKylin.user.tip_password_invalid;
       return;
     }
+    if($scope.newUser.password.length<8){
+      $scope.error = $scope.dataKylin.user.tip_password_length;
+      return;
+    }
+    if(!/^(?=.*\d)(?=.*[a-z])(?=.*[~!@#$%^&*(){}|:"<>?[\];',.\/`]).{8,}$/gi.test($scope.newUser.password)){
+      $scope.error = $scope.dataKylin.user.tip_password_unsafe;
+      return;
+    }
 
     var userDetail = userToUserDetail($scope.newUser);
     KapUserService.save({id:userDetail.username},userDetail,function(user){
@@ -343,7 +351,15 @@ var resetUserCtrl = function ($scope, $modalInstance, SweetAlert, KapUserService
       $scope.error = $scope.dataKylin.user.tip_error_not_same;
       return;
     }
+    if($scope.resetUser.newPassword.length<8){
+      $scope.error = $scope.dataKylin.user.tip_password_length;
+      return;
+    }
 
+    if(!/^(?=.*\d)(?=.*[a-z])(?=.*[~!@#$%^&*(){}|:"<>?[\];',.\/`]).{8,}$/gi.test($scope.resetUser.newPassword)){
+      $scope.error = $scope.dataKylin.user.tip_password_unsafe;
+      return;
+    }
     var userDetail = userToUserDetail($scope.resetUser);
     KapUserService.reset({},userDetail,function(user){
       $modalInstance.dismiss('cancel');
