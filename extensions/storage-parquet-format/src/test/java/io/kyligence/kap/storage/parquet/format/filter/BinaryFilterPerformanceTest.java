@@ -32,7 +32,9 @@ import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.cube.gridtable.CubeGridTable;
+import org.apache.kylin.cube.kv.CubeDimEncMap;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTRecord;
@@ -62,7 +64,7 @@ public class BinaryFilterPerformanceTest extends LocalFileMetadataTestCase {
         cube.getModel().setPartitionDesc(new PartitionDesc());
         CubeSegment seg = mgr.appendSegment(cube);
         CubeDesc desc = seg.getCubeDesc();
-        GTInfo gtInfo = CubeGridTable.newGTInfo(seg, 0xffL);
+        GTInfo gtInfo = CubeGridTable.newGTInfo(Cuboid.findById(seg.getCubeDesc(), 0xffL), new CubeDimEncMap(seg));
         final GTRecord gtRecord = new GTRecord(gtInfo);
         final Random random = new Random();
 
@@ -105,7 +107,8 @@ public class BinaryFilterPerformanceTest extends LocalFileMetadataTestCase {
         CubeInstance cube = mgr.getCube("test_kylin_cube_without_slr_empty");
         cube.getModel().setPartitionDesc(new PartitionDesc());
         CubeSegment seg = mgr.appendSegment(cube);
-        GTInfo gtInfo = CubeGridTable.newGTInfo(seg, 0xffL);
+
+        GTInfo gtInfo = CubeGridTable.newGTInfo(Cuboid.findById(seg.getCubeDesc(), 0xffL), new CubeDimEncMap(seg));
         final GTRecord gtRecord = new GTRecord(gtInfo);
         final Random random = new Random();
 

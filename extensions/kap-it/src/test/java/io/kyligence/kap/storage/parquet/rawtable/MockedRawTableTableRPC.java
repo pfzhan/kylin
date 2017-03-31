@@ -50,6 +50,7 @@ import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.realization.RealizationType;
+import org.apache.kylin.storage.StorageContext;
 import org.apache.kylin.storage.gtrecord.DummyPartitionStreamer;
 import org.apache.kylin.storage.gtrecord.StorageResponseGTScatter;
 import org.slf4j.Logger;
@@ -72,8 +73,8 @@ import scala.Tuple2;
 public class MockedRawTableTableRPC extends RawTableSparkRPC {
     private static final Logger logger = LoggerFactory.getLogger(MockedRawTableTableRPC.class);
 
-    public MockedRawTableTableRPC(ISegment segment, Cuboid cuboid, GTInfo info) {
-        super(segment, cuboid, info);
+    public MockedRawTableTableRPC(ISegment segment, Cuboid cuboid, GTInfo info, StorageContext context) {
+        super(segment, cuboid, info, context);
     }
 
     protected void init() {
@@ -136,7 +137,7 @@ public class MockedRawTableTableRPC extends RawTableSparkRPC {
                 closeable.close();
             }
 
-            return new StorageResponseGTScatter(info, new DummyPartitionStreamer(mockedShardBlobs.iterator()), scanRequest.getColumns(), scanRequest.getStoragePushDownLimit());
+            return new StorageResponseGTScatter(scanRequest, new DummyPartitionStreamer(mockedShardBlobs.iterator()), context);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

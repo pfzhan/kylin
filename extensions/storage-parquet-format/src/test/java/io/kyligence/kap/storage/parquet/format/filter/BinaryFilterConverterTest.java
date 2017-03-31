@@ -33,6 +33,7 @@ import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.cube.gridtable.CubeGridTable;
+import org.apache.kylin.cube.kv.CubeDimEncMap;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.metadata.filter.ColumnTupleFilter;
@@ -146,7 +147,7 @@ public class BinaryFilterConverterTest extends LocalFileMetadataTestCase {
     @Test
     public void toInBinaryFilter() throws Exception {
         List<TblColRef> mapping = cuboid.getCuboidToGridTableMapping().getCuboidDimensionsInGTOrder();
-        GTInfo gtInfo = CubeGridTable.newGTInfo(seg, cuboid.getId());
+        GTInfo gtInfo = CubeGridTable.newGTInfo(cuboid, new CubeDimEncMap(seg));
         int index = mapping.indexOf(desc.getRowkey().getRowKeyColumns()[5].getColRef());
 
         ByteArray expectedValue2 = new ByteArray(new byte[] { 0x05, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f });
@@ -165,7 +166,7 @@ public class BinaryFilterConverterTest extends LocalFileMetadataTestCase {
     @Test
     public void toNotInBinaryFilter() throws Exception {
         List<TblColRef> mapping = cuboid.getCuboidToGridTableMapping().getCuboidDimensionsInGTOrder();
-        GTInfo gtInfo = CubeGridTable.newGTInfo(seg, cuboid.getId());
+        GTInfo gtInfo = CubeGridTable.newGTInfo(cuboid, new CubeDimEncMap(seg));
         int index = mapping.indexOf(desc.getRowkey().getRowKeyColumns()[5].getColRef());
 
         ByteArray expectedValue2 = new ByteArray(new byte[] { 0x05, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f });
@@ -182,7 +183,7 @@ public class BinaryFilterConverterTest extends LocalFileMetadataTestCase {
     @Test
     public void toAndBinaryFilter() throws Exception {
         List<TblColRef> mapping = cuboid.getCuboidToGridTableMapping().getCuboidDimensionsInGTOrder();
-        GTInfo gtInfo = CubeGridTable.newGTInfo(seg, cuboid.getId());
+        GTInfo gtInfo = CubeGridTable.newGTInfo(cuboid, new CubeDimEncMap(seg));
 
         byte[] evaluateValue = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10 };
         TupleFilter eqfilter1 = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.EQ);
@@ -211,7 +212,7 @@ public class BinaryFilterConverterTest extends LocalFileMetadataTestCase {
     @Test
     public void toOrBinaryFilter() throws Exception {
         List<TblColRef> mapping = cuboid.getCuboidToGridTableMapping().getCuboidDimensionsInGTOrder();
-        GTInfo gtInfo = CubeGridTable.newGTInfo(seg, cuboid.getId());
+        GTInfo gtInfo = CubeGridTable.newGTInfo(cuboid, new CubeDimEncMap(seg));
 
         byte[] evaluateValue = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10 };
         TupleFilter eqfilter1 = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.EQ);
@@ -242,7 +243,7 @@ public class BinaryFilterConverterTest extends LocalFileMetadataTestCase {
 
     private void binaryAssert(byte[] evaluateValue, byte[] failEvaluateValue, TupleFilter.FilterOperatorEnum filterOp) throws UnsupportedEncodingException {
         List<TblColRef> mapping = cuboid.getCuboidToGridTableMapping().getCuboidDimensionsInGTOrder();
-        GTInfo gtInfo = CubeGridTable.newGTInfo(seg, cuboid.getId());
+        GTInfo gtInfo = CubeGridTable.newGTInfo(cuboid, new CubeDimEncMap(seg));
         int index = mapping.indexOf(desc.getRowkey().getRowKeyColumns()[5].getColRef());
 
         TupleFilter filter = new CompareTupleFilter(filterOp);

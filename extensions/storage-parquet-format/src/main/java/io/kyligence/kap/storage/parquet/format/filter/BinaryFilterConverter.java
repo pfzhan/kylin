@@ -34,6 +34,7 @@ import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.cube.gridtable.CubeGridTable;
+import org.apache.kylin.cube.kv.CubeDimEncMap;
 import org.apache.kylin.cube.kv.RowKeyEncoder;
 import org.apache.kylin.cube.model.RowKeyColDesc;
 import org.apache.kylin.gridtable.GTInfo;
@@ -48,8 +49,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import static io.kyligence.kap.storage.parquet.format.filter.BinaryFilterConverter.containsSpecialFilter;
-
 public class BinaryFilterConverter {
     public static final Logger logger = LoggerFactory.getLogger(BinaryFilterConverter.class);
     private Map<TblColRef, Integer> offsetMap;
@@ -57,7 +56,7 @@ public class BinaryFilterConverter {
 
     public BinaryFilterConverter(CubeSegment cubeSeg, Cuboid cuboid) {
         RowKeyEncoder encoder = new RowKeyEncoder(cubeSeg, cuboid);
-        GTInfo gtInfo = CubeGridTable.newGTInfo(cubeSeg, cuboid.getId());
+        GTInfo gtInfo = CubeGridTable.newGTInfo(cuboid, new CubeDimEncMap(cubeSeg));
         List<TblColRef> mapping = cuboid.getCuboidToGridTableMapping().getCuboidDimensionsInGTOrder();
 
         offsetMap = Maps.newHashMap();
@@ -165,7 +164,7 @@ public class BinaryFilterConverter {
             return true;
         }
 
-        for (TupleFilter child: filter.getChildren()) {
+        for (TupleFilter child : filter.getChildren()) {
             if (containsSpecialFilter(child)) {
                 return true;
             }

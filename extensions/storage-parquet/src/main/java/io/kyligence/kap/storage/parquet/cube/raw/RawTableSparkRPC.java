@@ -38,6 +38,7 @@ import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.kylin.gridtable.IGTStorage;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.realization.RealizationType;
+import org.apache.kylin.storage.StorageContext;
 import org.apache.kylin.storage.gtrecord.StorageResponseGTScatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,12 +58,14 @@ public class RawTableSparkRPC implements IGTStorage {
     protected RawTableSegment rawTableSegment;
     protected Cuboid cuboid;
     protected GTInfo info;
+    protected StorageContext context;
     private SparkDriverClient client;
 
-    public RawTableSparkRPC(ISegment segment, Cuboid cuboid, GTInfo info) {
+    public RawTableSparkRPC(ISegment segment, Cuboid cuboid, GTInfo info, StorageContext context) {
         this.rawTableSegment = (RawTableSegment) segment;
         this.cuboid = cuboid;
         this.info = info;
+        this.context = context;
         this.init();
     }
 
@@ -101,6 +104,6 @@ public class RawTableSparkRPC implements IGTStorage {
                 build();
 
         final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest, payload, rawTableSegment.getConfig().getQueryMaxScanBytes());
-        return new StorageResponseGTScatter(info, storageVisitResponseStreamer, scanRequest.getColumns(), scanRequest.getStoragePushDownLimit());
+        return new StorageResponseGTScatter(scanRequest, storageVisitResponseStreamer, context);
     }
 }

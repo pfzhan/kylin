@@ -43,6 +43,7 @@ import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.kylin.gridtable.IGTStorage;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.realization.RealizationType;
+import org.apache.kylin.storage.StorageContext;
 import org.apache.kylin.storage.gtrecord.DummyPartitionStreamer;
 import org.apache.kylin.storage.gtrecord.StorageResponseGTScatter;
 import org.slf4j.Logger;
@@ -64,13 +65,15 @@ public class CubeSparkRPC implements IGTStorage {
     protected CubeSegment cubeSegment;
     protected Cuboid cuboid;
     protected GTInfo info;
+    protected StorageContext context;
 
     private SparkDriverClient client;
 
-    public CubeSparkRPC(ISegment segment, Cuboid cuboid, GTInfo info) {
+    public CubeSparkRPC(ISegment segment, Cuboid cuboid, GTInfo info, StorageContext context) {
         this.cubeSegment = (CubeSegment) segment;
         this.cuboid = cuboid;
         this.info = info;
+        this.context = context;
 
         init();
     }
@@ -114,12 +117,12 @@ public class CubeSparkRPC implements IGTStorage {
 
         if (BackdoorToggles.getDumpedPartitionDir() != null) {
             logger.info("debugging: use previously dumped partition from {} instead of real requesting from storage", BackdoorToggles.getDumpedPartitionDir());
-            return new StorageResponseGTScatter(info, new DummyPartitionStreamer(new PartitionIteratorFromDir(BackdoorToggles.getDumpedPartitionDir())), scanRequest.getColumns(), scanRequest.getStoragePushDownLimit());
+            return new StorageResponseGTScatter(scanRequest, new DummyPartitionStreamer(new PartitionIteratorFromDir(BackdoorToggles.getDumpedPartitionDir())), context);
         }
 
         logger.info("The scan {} for segment {} is ready to be submitted to spark client", Integer.toHexString(System.identityHashCode(scanRequest)), cubeSegment);
         final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest, payload, cubeSegment.getConfig().getQueryMaxScanBytes());
-        return new StorageResponseGTScatter(info, storageVisitResponseStreamer, scanRequest.getColumns(), scanRequest.getStoragePushDownLimit());
+        return new StorageResponseGTScatter(scanRequest, storageVisitResponseStreamer, context);
 
     }
 
