@@ -33,13 +33,14 @@ import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.tuple.TupleInfo;
+import org.apache.kylin.storage.gtrecord.CubeTupleConverter;
 import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryBase;
 import org.apache.kylin.storage.gtrecord.ITupleConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CubeStorageQuery extends GTCubeStorageQueryBase {
-    
+
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(CubeStorageQuery.class);
 
