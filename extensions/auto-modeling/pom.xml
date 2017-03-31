@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <artifactId>kap-auto-modeling</artifactId>
@@ -6,6 +7,10 @@
     <name>KAP - Auto Modeling</name>
     <url>http://kyligence.io</url>
     <description>Kyligence Auto Modeling</description>
+
+    <properties>
+        <shadeBase>io.kyligence.kap.modeling.auto.shaded</shadeBase>
+    </properties>
 
     <parent>
         <groupId>io.kyligence.kap</groupId>
@@ -62,7 +67,7 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        
+
         <!--Env & Test-->
         <dependency>
             <groupId>io.kyligence.kap</groupId>
@@ -107,6 +112,16 @@
                                     <include>org.apache.calcite.avatica:avatica</include>
                                 </includes>
                             </artifactSet>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.apache.kylin</pattern>
+                                    <shadedPattern>${shadeBase}.org.apache.kylin</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.calcite</pattern>
+                                    <shadedPattern>${shadeBase}.org.apache.calcite</shadedPattern>
+                                </relocation>
+                            </relocations>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
