@@ -99,21 +99,8 @@ public class ParquetRawTableFileInputFormat extends FileInputFormat<Text, Text> 
             conf = context.getConfiguration();
             Path indexPath = fileSplit.getPath();
             Path parquetPath = new Path(indexPath.getParent(), indexPath.getName().substring(0, indexPath.getName().length() - 4));
-            //        Path parquetPath = fileSplit.getPath();
-            //        Path indexPath = new Path(parquetPath.toString() + ".inv");
 
             logger.info("data file: {}, index file: {}", parquetPath, indexPath);
-
-            //            // determine the running node
-            //            Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces();
-            //            while (e.hasMoreElements()) {
-            //                NetworkInterface n = e.nextElement();
-            //                Enumeration<InetAddress> ee = n.getInetAddresses();
-            //                while (ee.hasMoreElements()) {
-            //                    InetAddress ia = ee.nextElement();
-            //                    logger.info("Hostname: {}", ia.getHostName());
-            //                }
-            //            }
 
             long startTime = System.currentTimeMillis();
             String kylinPropsStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, "");
@@ -171,7 +158,7 @@ public class ParquetRawTableFileInputFormat extends FileInputFormat<Text, Text> 
             val = new Text();
             val.set(new byte[gtMaxLength]);
 
-            if (columnBitmap != null && columnBitmap.isEmpty()) {
+            if (pageBitmap != null && pageBitmap.isEmpty()) {
                 reader = null;
             } else {
                 // init with first shard file
