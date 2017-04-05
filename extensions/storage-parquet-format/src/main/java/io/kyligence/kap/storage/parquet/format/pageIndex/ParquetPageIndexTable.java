@@ -33,7 +33,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.ByteArray;
-import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.ConstantTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
@@ -326,35 +325,10 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
         return false;
     }
 
+    // change nothing, keep false positive values
     private ByteArray incrementByteArray(ByteArray val, int c) {
-        if (val.length() > 4) {
-            long v = BytesUtil.readLong(val.array(), val.offset(), val.length()) + c;
-            v = Math.max(v, 0);
-            v = Math.min(Long.MAX_VALUE, v);
-            ByteArray result = ByteArray.allocate(val.length());
-            BytesUtil.writeLong(v, result.array(), result.offset(), result.length());
-            return result;
-        } else {
-            int v = BytesUtil.readUnsigned(val.array(), val.offset(), val.length()) + c;
-            v = Math.max(v, 0);
-            v = Math.min(Integer.MAX_VALUE, v);
-            ByteArray result = ByteArray.allocate(val.length());
-            BytesUtil.writeUnsigned(v, result.array(), result.offset(), result.length());
-            return result;
-        }
+        return val;
     }
-
-    //    private void collectCompareTupleFilter(TupleFilter rootFilter) {
-    //        for (TupleFilter childFilter : rootFilter.getChildren()) {
-    //            for (TupleFilter columnFilter : childFilter.getChildren()) {
-    //                columnFilterSet.add((CompareTupleFilter) columnFilter);
-    //            }
-    //        }
-    //
-    //        for (CompareTupleFilter filter : columnFilterSet) {
-    //            filterIndexMap.put(filter, lookupChildFilter(filter));
-    //        }
-    //    }
 
     @Override
     protected ImmutableRoaringBitmap lookupFlattenFilter(TupleFilter filter) {

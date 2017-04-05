@@ -451,7 +451,7 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
      var sortedCount= 0,setTypeError=false;
      for(var i=0;i<$scope.RawTables.columns.length;i++){
        if($scope.RawTables.columns[i].index=='sorted'){
-         if(['date','time'].indexOf($scope.RawTables.columns[i].encodingName)<0){
+         if(['date','time', 'integer'].indexOf($scope.RawTables.columns[i].encodingName)<0){
            setTypeError=true;
          }
          sortedCount++;
