@@ -260,4 +260,23 @@ public class KapConfig {
     public String getColumnarSparkConf(String conf) {
         return config.getPropertiesByPrefix("kap.storage.columnar.spark-conf.").get(conf);
     }
+
+    /**
+     *  Advanced Flat Table
+     */
+    public boolean isAdvancedFlatTableByRowNum() {
+        return getAdvancedFlatTableType().equals("rownum");
+    }
+
+    public String getAdvancedFlatTableType() {
+        return config.getOptional("kap.job.advanced-flat-table.type", "percentage");
+    }
+
+    public int getAdvancedFlatTableRowNum() {
+        return Integer.parseInt(config.getOptional("kap.job.advanced-flat-table.row-num", "1000"));
+    }
+
+    public int getAdvancedFlatTablePercentage() {
+        return Integer.parseInt(config.getOptional("kap.job.advanced-flat-table.percentage", "10"));
+    }
 }
