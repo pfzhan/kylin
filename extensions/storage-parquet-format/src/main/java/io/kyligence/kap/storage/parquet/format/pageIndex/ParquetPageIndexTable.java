@@ -92,13 +92,9 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             result = ImmutableRoaringBitmap.or(columnIndexReader.lookupEqIndex(vals).values().iterator());
             break;
         case NOTIN:
-            for (ByteArray inVal : vals) {
-                if (result == null) {
-                    result = MutableRoaringBitmap.or(lookupGt(column, inVal), lookupLt(column, inVal));
-                } else {
-                    result.and(MutableRoaringBitmap.or(lookupGt(column, inVal), lookupLt(column, inVal)));
-                }
-            }
+            columnIndexReader = indexReader.readColumnIndex(column);
+            result = ImmutableRoaringBitmap.or(columnIndexReader.lookupEqIndex(vals).values().iterator());
+            result = ImmutableRoaringBitmap.xor(result, getFullBitmap());
             break;
         case EQ:
             val = Iterables.getOnlyElement(vals);
@@ -107,7 +103,9 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             break;
         case NEQ:
             val = Iterables.getOnlyElement(vals);
-            result = MutableRoaringBitmap.or(lookupGt(column, val), lookupLt(column, val));
+            columnIndexReader = indexReader.readColumnIndex(column);
+            result = columnIndexReader.lookupEqIndex(val).toMutableRoaringBitmap();
+            result = ImmutableRoaringBitmap.xor(result, getFullBitmap());
             break;
         case GT:
             val = Iterables.getOnlyElement(vals);
@@ -201,11 +199,13 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
         return ret;
     }
 
+    // works as LTE
     private MutableRoaringBitmap lookupLt(int column, ByteArray val) {
         ByteArray newVal = incrementByteArray(val, -1);
         return lookupLte(column, newVal);
     }
 
+    // works as GTE
     private MutableRoaringBitmap lookupGt(int column, ByteArray val) {
         ByteArray newVal = incrementByteArray(val, 1);
         return lookupGte(column, newVal);
@@ -227,11 +227,13 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
         return columnIndexResult.toMutableRoaringBitmap();
     }
 
+    // works as LTE
     private MutableRoaringBitmap lookupOrderedLt(int column, ByteArray val) {
         ByteArray newVal = incrementByteArray(val, -1);
         return lookupOrderedLte(column, newVal);
     }
 
+    // works as GTE
     private MutableRoaringBitmap lookupOrderedGt(int column, ByteArray val) {
         ByteArray newVal = incrementByteArray(val, 1);
         return lookupOrderedGte(column, newVal);
