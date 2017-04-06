@@ -25,6 +25,7 @@
 package io.kyligence.kap.tool.general;
 
 import org.apache.commons.codec.binary.Base64;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
@@ -46,7 +47,7 @@ public class CryptTool {
 
     private static void printUsage() {
         System.out.println("Usage: java io.kyligence.kap.tool.general.CryptTool <EncryptMethod> <your_password>");
-        System.out.println("EncryptMethod: AES");
+        System.out.println("EncryptMethod: AES or BCrypt");
     }
 
     public static void main(String[] args) {
@@ -62,6 +63,10 @@ public class CryptTool {
             // for encrypt password like LDAP password
             System.out.println(encryptMethod + " encrypted password is: ");
             System.out.println(encrypt(passwordTxt));
+        } else if ("BCrypt".equalsIgnoreCase(encryptMethod)) {
+            // for encrypt the predefined user password, like ADMIN, MODELER.
+            BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+            System.out.println(bCryptPasswordEncoder.encode(passwordTxt));
         } else {
             printUsage();
             System.exit(1);
