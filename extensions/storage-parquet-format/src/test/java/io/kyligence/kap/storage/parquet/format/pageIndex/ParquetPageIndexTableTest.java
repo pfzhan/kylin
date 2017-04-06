@@ -231,24 +231,6 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
     }
 
     @Test
-    public void testNEQ1() throws IOException {
-        for (int i = 1; i < dataSize; i++) {
-            TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.NEQ, colRef1, data1[i]);
-            ImmutableRoaringBitmap result = indexTable.lookup(filter);
-            assertArrayEquals(rangeInts(0, dataSize - 1, i), result.toArray());
-        }
-    }
-
-    @Test
-    public void testNEQ2() throws IOException {
-        for (int i = 0; i < dataSize; i++) {
-            TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.NEQ, colRef2, data2[i]);
-            ImmutableRoaringBitmap result = indexTable.lookup(filter);
-            assertArrayEquals(rangeInts(0, dataSize - 1, i), result.toArray());
-        }
-    }
-
-    @Test
     public void testISNULL() throws IOException {
         TupleFilter filter = makeFilter(TupleFilter.FilterOperatorEnum.ISNULL, colRef1, data1[0]);
         ImmutableRoaringBitmap result = indexTable.lookup(filter);
@@ -451,20 +433,6 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         int[] expected = new int[1];
         expected[0] = 0;
         assertArrayEquals(expected, result.toArray());
-    }
-
-    @Test
-    public void testNotIn() throws IOException {
-        TupleFilter filter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.NOTIN);
-        filter.addChild(new ColumnTupleFilter(colRef1));
-        byte[] buffer1 = new byte[columnLength];
-        BytesUtil.writeUnsigned(50, buffer1, 0, buffer1.length);
-        filter.addChild(new ConstantTupleFilter(new ByteArray(buffer1)));
-        byte[] buffer2 = new byte[columnLength];
-        BytesUtil.writeUnsigned(28, buffer2, 0, buffer2.length);
-        filter.addChild(new ConstantTupleFilter(new ByteArray(buffer2)));
-        ImmutableRoaringBitmap result = indexTable.lookup(filter);
-        assertArrayEquals(rangeInts(0, dataSize - 1, 50 / 2, 28 / 2), result.toArray());
     }
 
     @Test

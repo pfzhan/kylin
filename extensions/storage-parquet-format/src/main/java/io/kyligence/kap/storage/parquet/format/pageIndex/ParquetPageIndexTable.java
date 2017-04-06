@@ -83,29 +83,18 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             result = columnIndexReader.lookupEqIndex(val).toMutableRoaringBitmap();
             break;
         case ISNOTNULL:
-            columnIndexReader = indexReader.readColumnIndex(column);
-            val = columnIndexReader.getNullValue();
-            result = MutableRoaringBitmap.or(lookupGt(column, val), lookupLt(column, val));
+        case NOTIN:
+        case NEQ:
+            result = getFullBitmap().toMutableRoaringBitmap();
             break;
         case IN:
             columnIndexReader = indexReader.readColumnIndex(column);
             result = ImmutableRoaringBitmap.or(columnIndexReader.lookupEqIndex(vals).values().iterator());
             break;
-        case NOTIN:
-            columnIndexReader = indexReader.readColumnIndex(column);
-            result = ImmutableRoaringBitmap.or(columnIndexReader.lookupEqIndex(vals).values().iterator());
-            result = ImmutableRoaringBitmap.xor(result, getFullBitmap());
-            break;
         case EQ:
             val = Iterables.getOnlyElement(vals);
             columnIndexReader = indexReader.readColumnIndex(column);
             result = columnIndexReader.lookupEqIndex(val).toMutableRoaringBitmap();
-            break;
-        case NEQ:
-            val = Iterables.getOnlyElement(vals);
-            columnIndexReader = indexReader.readColumnIndex(column);
-            result = columnIndexReader.lookupEqIndex(val).toMutableRoaringBitmap();
-            result = ImmutableRoaringBitmap.xor(result, getFullBitmap());
             break;
         case GT:
             val = Iterables.getOnlyElement(vals);
