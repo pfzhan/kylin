@@ -119,29 +119,34 @@ public class SparkParquetVisit implements Serializable {
             this.needLazy = false;
             this.parallel = kapConfig.getParquetSparkExecutorCore() * kapConfig.getParquetSparkExecutorInstance();
 
+            long startTime = System.currentTimeMillis();
             if (RealizationType.CUBE.toString().equals(this.realizationType)) {
 
                 if (IKapStorageAware.ID_SPLICE_PARQUET != this.storageType) {
                     // Engine 100
                     this.isSplice = false;
+                    long listFileStartTime = System.currentTimeMillis();
                     this.parquetPathCollection = listFiles(new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
                             append(request.getRealizationId()).append("/").//
                             append(request.getSegmentId()).append("/").//
                             append(request.getDataFolderName()).toString(), "parquettar");
+                    logger.info("listFile takes {} ms", System.currentTimeMillis() - listFileStartTime);
                     this.inputFormatClass = ParquetTarballFileInputFormat.class;
-
-                    // try to convert binary filter
-                    if (scanRequest != null && scanRequest.getFilterPushDown() != null && !BinaryFilterConverter.containsSpecialFilter(scanRequest.getFilterPushDown())) {
-                        BinaryFilter binaryFilter = new BinaryFilterConverter(scanRequest.getInfo()).toBinaryFilter(scanRequest.getFilterPushDown());
-                        binaryFilterSerialized = BinaryFilterSerializer.serialize(binaryFilter);
-                    }
                 } else {
                     // Engine 99
                     this.isSplice = true;
+                    long readCubeMappingStartTime = System.currentTimeMillis();
                     Map<Long, Set<String>> cubeMapping = readCubeMappingInfo();
                     this.parquetPathCollection = cubeMapping.get(Long.parseLong(request.getDataFolderName()));
+                    logger.info("readCubeMapping takes {} ms", System.currentTimeMillis() - readCubeMappingStartTime);
                     this.inputFormatClass = ParquetSpliceTarballFileInputFormat.class;
                     conf.set(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS, this.dataFolderName);
+                }
+
+                // try to convert binary filter
+                if (scanRequest != null && scanRequest.getFilterPushDown() != null && !BinaryFilterConverter.containsSpecialFilter(scanRequest.getFilterPushDown())) {
+                    BinaryFilter binaryFilter = new BinaryFilterConverter(scanRequest.getInfo()).toBinaryFilter(scanRequest.getFilterPushDown());
+                    binaryFilterSerialized = BinaryFilterSerializer.serialize(binaryFilter);
                 }
             } else {
                 this.isSplice = false;
@@ -163,6 +168,7 @@ public class SparkParquetVisit implements Serializable {
             conf.set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileInputFormat.ParquetTarballFileReader.ReadStrategy.COMPACT.toString()); //read fashion
             conf.set(ParquetFormatConstants.KYLIN_BINARY_FILTER, new String(binaryFilterSerialized == null ? new byte[0] : binaryFilterSerialized, "ISO-8859-1")); //read fashion
 
+            logger.info("SparkVisit Init takes {} ms", System.currentTimeMillis() - startTime);
             StringBuilder pathBuilder = new StringBuilder();
             for (String p : parquetPathCollection) {
                 pathBuilder.append(p).append(";");
@@ -206,6 +212,7 @@ public class SparkParquetVisit implements Serializable {
             return ifPresent;
         }
 
+        logger.info("not hit cube mapping");
         FileSystem fs = HadoopUtil.getFileSystem(cubeInfoPath);
         if (fs.exists(new Path(cubeInfoPath))) {
             Map<Long, Set<String>> map;

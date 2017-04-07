@@ -70,6 +70,8 @@ import com.google.common.primitives.Shorts;
 
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
 import io.kyligence.kap.storage.parquet.format.file.ParquetSpliceReader;
+import io.kyligence.kap.storage.parquet.format.filter.BinaryFilter;
+import io.kyligence.kap.storage.parquet.format.filter.BinaryFilterSerializer;
 import io.kyligence.kap.storage.parquet.format.filter.MassInValueProviderFactoryImpl;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexSpliceReader;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
@@ -100,6 +102,7 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
 
         protected Configuration conf;
 
+        private BinaryFilter binaryFilter = null;
         private ParquetBundleReader reader = null;
         private ParquetPageIndexTable indexTable = null;
         private Text key = null; //key will be fixed length,
@@ -138,6 +141,12 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
             } else {
                 logger.info("All columns read by parquet is not set");
             }
+
+            String binaryFilterStr = conf.get(ParquetFormatConstants.KYLIN_BINARY_FILTER);
+            if (binaryFilterStr != null && !binaryFilterStr.trim().isEmpty()) {
+                binaryFilter = BinaryFilterSerializer.deserialize(ByteBuffer.wrap(binaryFilterStr.getBytes("ISO-8859-1")));
+            }
+            logger.info("Binary Filter: {}", binaryFilter);
 
             // Index length (parquet file start offset)
             FileSystem fileSystem = HadoopUtil.getFileSystem(path, conf);
@@ -218,10 +227,6 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
             if (pageBitmap != null) {
                 reader = new ParquetBundleReader.Builder().setConf(conf).setPath(path).setColumnsBitmap(columnBitmap).setPageBitset(pageBitmap.toImmutableRoaringBitmap()).setFileOffset(indexLength).build();
             } else {
-                logger.info("divs:");
-                for (String d : divs) {
-                    logger.info("\t {}", d);
-                }
                 reader = spliceReader.getDivReader(divs);
             }
 
@@ -278,9 +283,16 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
                 return false;
             }
 
-            List<Object> data = reader.read();
-            if (data == null) {
-                return false;
+            List<Object> data = null;
+            while (data == null) {
+                data = reader.read();
+                if (data == null) {
+                    return false;
+                }
+
+                if (binaryFilter != null && !binaryFilter.isMatch(((Binary) data.get(0)).getBytes())) {
+                    data = null;
+                }
             }
 
             if (readStrategy == ReadStrategy.KV) {
