@@ -86,7 +86,7 @@
 			<property name="password" value="${kylin.security.ldap.connection-password}" />
 		</bean>
 		
-		<bean id="kylinUserAuthProvider" class="org.apache.kylin.rest.security.KylinAuthenticationProvider">
+		<bean id="kylinUserAuthProvider" class="io.kyligence.kap.rest.security.KapAuthenticationProvider">
 			<constructor-arg>
 				<bean id="ldapUserAuthenticationProvider" class="org.springframework.security.ldap.authentication.LdapAuthenticationProvider">
 					<constructor-arg>
@@ -113,7 +113,7 @@
 			</constructor-arg>
 		</bean>
 
-		<bean id="kylinServiceAccountAuthProvider" class="org.apache.kylin.rest.security.KylinAuthenticationProvider">
+		<bean id="kylinServiceAccountAuthProvider" class="io.kyligence.kap.rest.security.KapAuthenticationProvider">
 			<constructor-arg>
 				<bean id="ldapServiceAuthenticationProvider" class="org.springframework.security.ldap.authentication.LdapAuthenticationProvider">
 					<constructor-arg>
@@ -156,7 +156,7 @@
 	<beans profile="testing">
 		<!-- user auth -->
 		<bean id="passwordEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
-		<bean id="authenProvider" class="org.springframework.security.authentication.dao.DaoAuthenticationProvider">
+		<bean id="authenProvider" class="io.kyligence.kap.rest.security.LimitLoginAuthenticationProvider">
 			<property name="userDetailsService" ref="kapUserController" />
 			<property name="passwordEncoder" ref="passwordEncoder" />
 		</bean>
@@ -168,7 +168,7 @@
 	
 	<beans profile="testing,ldap">
 		<scr:http auto-config="true" use-expressions="true">
-			<scr:http-basic entry-point-ref="unauthorisedEntryPoint" />
+			<scr:http-basic entry-point-ref="kapUnauthorisedEntryPoint" />
 
 			<!--KAP API-->
 			<scr:intercept-url pattern="/api/kap/system/license" access="permitAll" />
@@ -220,7 +220,7 @@
 
 		<!-- Secured Rest API urls with LDAP basic authentication -->
 		<scr:http pattern="/api/**" use-expressions="true" authentication-manager-ref="apiAccessAuthenticationManager">
-			<scr:http-basic entry-point-ref="unauthorisedEntryPoint" />
+			<scr:http-basic entry-point-ref="kapUnauthorisedEntryPoint" />
 
 			<!--KAP API-->
 			<scr:intercept-url pattern="/api/kap/system/license" access="permitAll" />
@@ -392,7 +392,7 @@
 			</constructor-arg>
 		</bean>
 		
-		<bean id="kylinSAMLAuthenticationProvider" class="org.apache.kylin.rest.security.KylinAuthenticationProvider">
+		<bean id="kylinSAMLAuthenticationProvider" class="io.kyligence.kap.rest.security.KapAuthenticationProvider">
 			<constructor-arg>
 				<!-- SAML Authentication Provider responsible for validating of received SAML messages -->
 				<bean id="samlAuthenticationProvider" class="org.springframework.security.saml.SAMLAuthenticationProvider">

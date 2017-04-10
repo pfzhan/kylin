@@ -1020,7 +1020,8 @@ KylinApp.constant('kapChineseConfig', {
     goToKybotBtn: '立即访问KyBot网站',
     close: '关闭',
     failUpload: '上传失败',
-    failDownload: '下载失败'
+    failDownload: '下载失败',
+    warning_default_password: '系统默认密码, 请及时修改密码'
 
   },
   license: {

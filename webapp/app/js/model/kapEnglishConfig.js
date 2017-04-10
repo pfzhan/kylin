@@ -1020,7 +1020,9 @@ KylinApp.constant('kapEnglishConfig', {
     goToKybotBtn: 'Go to KyBot site now! ',
     close: 'Close',
     failUpload: 'Upload failed',
-    failDownload: 'Download failed'
+    failDownload: 'Download failed',
+    warning_default_password: 'User with default password, please reset it. '
+
   },
   license: {
     aboutkap: "About KAP",

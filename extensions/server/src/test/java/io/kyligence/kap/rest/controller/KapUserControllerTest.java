@@ -51,23 +51,24 @@ public class KapUserControllerTest extends ServiceTestBase {
         kapUserController.delete("TEST");
 
         // save
-        UserObj u = kapUserController.save("TEST", new UserObj("TEST", "pwd", "R1", "R2", "R3"));
+        UserObj u = kapUserController.save("TEST", new UserObj("TEST", "pwd", true, "R1", "R2", "R3"));
         assertEquals(u, "TEST", "pwd", false, "R1", "R2", "R3");
 
         // update
-        u = kapUserController.save("TEST", new UserObj("TEST", "pwd22", "R4", "R5"));
+        u = kapUserController.save("TEST", new UserObj("TEST", "pwd22", true, "R4", "R5"));
         assertEquals(u, "TEST", "pwd22", false, "R4", "R5");
 
         // disable
         UserObj disable = new UserObj();
         disable.setDisabled(true);
+        disable.setPassword("abc.1234");
         u = kapUserController.save("TEST", disable);
-        assertEquals(u, "TEST", "pwd22", true, "R4", "R5");
+        assertEquals(u, "TEST", "abc.1234", true, "R4", "R5");
 
         // list all
         for (UserObj uu : kapUserController.listAllUsers()) {
             if ("TEST".equals(uu.getUsername())) {
-                assertEquals(u, "TEST", "pwd22", true, "R4", "R5");
+                assertEquals(u, "TEST", "abc.1234", true, "R4", "R5");
             }
         }
 

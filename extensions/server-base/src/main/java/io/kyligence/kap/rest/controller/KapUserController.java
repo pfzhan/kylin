@@ -25,7 +25,9 @@
 package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import javax.annotation.PostConstruct;
@@ -67,23 +69,29 @@ public class KapUserController extends BasicController implements UserDetailsSer
     @Autowired
     private UserService userService;
 
+    private Pattern passwordPattern;
     private Pattern bcryptPattern;
     private BCryptPasswordEncoder pwdEncoder;
+    private Map<String, UserObj> userObjMap;
 
     @PostConstruct
     public void init() throws IOException {
+        passwordPattern = Pattern.compile("^(?=.*\\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*(){}|:\"<>?\\[\\];',./`]).{8,}$");
         bcryptPattern = Pattern.compile("\\A\\$2a?\\$\\d\\d\\$[./0-9A-Za-z]{53}");
         pwdEncoder = new BCryptPasswordEncoder();
+        userObjMap = new HashMap<String, UserObj>();
 
         List<UserObj> all = listAllUsers();
         logger.info("All " + all.size() + " users");
         if (all.isEmpty()) {
-            save("ADMIN", new UserObj("ADMIN", "KYLIN", "ROLE_MODELER", "ROLE_ANALYST", "ROLE_ADMIN"));
-            save("ANALYST", new UserObj("ANALYST", "ANALYST", "ROLE_ANALYST"));
-            save("MODELER", new UserObj("MODELER", "MODELER", "ROLE_MODELER"));
+            save("ADMIN", new UserObj("ADMIN", "KYLIN", true, "ROLE_MODELER", "ROLE_ANALYST", "ROLE_ADMIN"));
+            save("ANALYST", new UserObj("ANALYST", "ANALYST", true, "ROLE_ANALYST"));
+            save("MODELER", new UserObj("MODELER", "MODELER", true, "ROLE_MODELER"));
         }
-        for (UserObj u : all)
+        for (UserObj u : all) {
+            userObjMap.put(u.getUsername(), u);
             logger.info(u.toString());
+        }
     }
 
     @Override
@@ -97,6 +105,16 @@ public class KapUserController extends BasicController implements UserDetailsSer
         checkUserName(userName);
 
         user.setUsername(userName);
+
+        if (!user.defaultPassword) {
+            if (!checkPasswordLength(user.getPassword())) {
+                throw new IllegalStateException("The password should contain more than 8 characters!");
+            }
+
+            if (!checkPasswordCharacter(user.getPassword())) {
+                throw new IllegalStateException("The password should contain at least one numbers, letters and special characters（~!@#$%^&*(){}|:\"<>?[];\\'\\,./`)");
+            }
+        }
 
         // merge with existing user
         try {
@@ -127,14 +145,24 @@ public class KapUserController extends BasicController implements UserDetailsSer
         }
         checkUserName(user.getUsername());
 
+        if (!checkPasswordLength(user.getNewPassword())) {
+            throw new IllegalStateException("The password should contain more than 8 characters!");
+        }
+
+        if (!checkPasswordCharacter(user.getNewPassword())) {
+            throw new IllegalStateException("The password should contain at least one numbers, letters and special characters（~!@#$%^&*(){}|:\"<>?[];\\'\\,./`)");
+        }
+
         UserObj existing = get(user.getUsername());
         if (!isAdmin() && !pwdEncoder.matches(user.getPassword(), existing.getPassword())) {
             throw new IllegalStateException("Old password is not correct!");
         }
 
         existing.setPassword(pwdEncode(user.getNewPassword()));
+        existing.setDefaultPassword(false);
 
         logger.info("update password for user " + user);
+
 
         UserDetails details = userObjToDetails(existing);
         userService.updateUser(details);
@@ -152,6 +180,16 @@ public class KapUserController extends BasicController implements UserDetailsSer
     private void checkUserName(String userName) {
         if (userName == null || userName.isEmpty())
             throw new IllegalArgumentException();
+    }
+
+    private boolean checkPasswordLength(String password) {
+        if (password == null || password.length() < 8)
+            return false;
+        return true;
+    }
+
+    private boolean checkPasswordCharacter(String password) {
+        return passwordPattern.matcher(password).matches();
     }
 
     @RequestMapping(value = "/{userName}", method = { RequestMethod.GET })
@@ -251,6 +289,59 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return isAdmin;
     }
 
+    public boolean isUserLocked(String userName) {
+        boolean locked = false;
+        if(userObjMap.get(userName) != null)
+            locked = userObjMap.get(userName).locked;
+        return locked;
+    }
+
+    public void lockUser(String userName) {
+        UserObj user = userObjMap.get(userName);
+        if (user != null)
+            user.setLocked(true);
+    }
+
+    public void unlockUser(String userName) {
+        UserObj user = userObjMap.get(userName);
+        if (user != null)
+            user.setLocked(false);
+    }
+
+    public long getLockedTime(String userName) {
+        long lockedTime = 0L;
+        if(userObjMap.get(userName) != null)
+            lockedTime = userObjMap.get(userName).getLockedTime();
+        return lockedTime;
+    }
+
+    public void setLockedTime(String userName) {
+        UserObj user = userObjMap.get(userName);
+        if (user != null)
+            user.setLockedTime(System.currentTimeMillis());
+    }
+
+    public int getWrongTime(String userName) {
+        int wrongTime = 0;
+        if(userObjMap.get(userName) != null)
+            wrongTime = userObjMap.get(userName).getWrongTime();
+        return wrongTime;
+    }
+
+    public void increaseWrongTime(String userName) {
+        UserObj user = userObjMap.get(userName);
+        if (user != null) {
+            int wrongTime = user.getWrongTime();
+            if (wrongTime == 2) {
+                lockUser(userName);
+                user.setLockedTime(System.currentTimeMillis());
+                user.setWrongTime(0);
+            } else {
+                user.setWrongTime(wrongTime + 1);
+            }
+        }
+    }
+
     public static class UserObj implements UserDetails {
         private static final long serialVersionUID = 1L;
 
@@ -258,6 +349,10 @@ public class KapUserController extends BasicController implements UserDetailsSer
         private String password;
         private List<UserGrantedAuthority> authorities;
         private boolean disabled;
+        private boolean defaultPassword;
+        private boolean locked;
+        private long lockedTime;
+        private int wrongTime;
 
         public UserObj() {
         }
@@ -265,7 +360,26 @@ public class KapUserController extends BasicController implements UserDetailsSer
         public UserObj(String username, String password, String... authorities) {
             this.username = username;
             this.password = password;
+            this.setDefaultPassword(false);
+            this.setLocked(false);
+            this.setLockedTime(0L);
+            this.setWrongTime(0);
             this.authorities = Lists.newArrayList();
+
+            for (String a : authorities) {
+                this.authorities.add(new UserGrantedAuthority(a));
+            }
+        }
+
+        public UserObj(String username, String password, Boolean defaultPassword, String... authorities) {
+            this.username = username;
+            this.password = password;
+            this.defaultPassword = defaultPassword;
+            this.setLocked(false);
+            this.setLockedTime(0L);
+            this.setWrongTime(0);
+            this.authorities = Lists.newArrayList();
+
             for (String a : authorities) {
                 this.authorities.add(new UserGrantedAuthority(a));
             }
@@ -303,6 +417,38 @@ public class KapUserController extends BasicController implements UserDetailsSer
             this.disabled = disabled;
         }
 
+        public boolean isDefaultPassword() {
+            return defaultPassword;
+        }
+
+        public void setDefaultPassword(boolean defaultPassword) {
+            this.defaultPassword = defaultPassword;
+        }
+
+        public boolean isLocked() {
+            return locked;
+        }
+
+        public void setLocked(boolean locked) {
+            this.locked = locked;
+        }
+
+        public int getWrongTime() {
+            return wrongTime;
+        }
+
+        public void setWrongTime(int wrongTime) {
+            this.wrongTime = wrongTime;
+        }
+
+        public long getLockedTime() {
+            return lockedTime;
+        }
+
+        public void setLockedTime(long lockedTime) {
+            this.lockedTime = lockedTime;
+        }
+
         @Override
         public boolean isAccountNonExpired() {
             return true;
@@ -310,7 +456,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
 
         @Override
         public boolean isAccountNonLocked() {
-            return true;
+            return !locked;
         }
 
         @Override

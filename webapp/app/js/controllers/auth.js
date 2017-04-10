@@ -24,7 +24,7 @@
 
 'use strict';
 
-KylinApp.controller('LoginCtrl', function ($scope, $rootScope, $location, $base64, AuthenticationService, UserService,ProjectService,ProjectModel) {
+KylinApp.controller('LoginCtrl', function ($scope, $rootScope, $location, $base64, AuthenticationService, UserService,ProjectService, MessageService, ProjectModel) {
   $scope.username = null;
   $scope.password = null;
   $scope.loading = false;
@@ -40,6 +40,9 @@ KylinApp.controller('LoginCtrl', function ($scope, $rootScope, $location, $base6
       $rootScope.$broadcast('event:loginConfirmed');
       UserService.setCurUser(data);
       $location.path(UserService.getHomePage());
+      if(data.userDetails.defaultPassword) {
+        MessageService.sendMsg($scope.dataKylin.alert.warning_default_password, 'warning', {}, 5);
+      }
     }, function (error) {
       $scope.loading = false;
       $scope.error = "Unable to login, please check your username/password.";
