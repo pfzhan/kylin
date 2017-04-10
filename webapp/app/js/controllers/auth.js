@@ -44,8 +44,13 @@ KylinApp.controller('LoginCtrl', function ($scope, $rootScope, $location, $base6
         MessageService.sendMsg($scope.dataKylin.alert.warning_default_password, 'warning', {}, 5);
       }
     }, function (error) {
+      var match = /\<u\>User.*?(\d+).*?\<\/u\>/.exec(error.data);
       $scope.loading = false;
-      $scope.error = "Unable to login, please check your username/password.";
+      $scope.errorType = match&&match[1]? 'lock':'error';
+      $scope.reTryTime = match&&match[1]||0
+      $scope.$watch('dataKylin.login.lock', function(){
+        $scope.lockMsg=$scope.dataKylin.login.lock.replace(/\$1/,$scope.username).replace(/\$2/,''+$scope.reTryTime)
+      })
     });
   };
 });

@@ -84,7 +84,9 @@ KylinApp.constant('kapEnglishConfig', {
     loginIssue: 'Login Issue? ',
     loginIn: 'Log In',
     loginInNow: 'Login In... ',
-    error: 'Unable to login, please check your username/password. '
+    error: 'Unable to login, please check your username/password. ',
+    lock:'User $1 is locked, please wait for $2 seconds.'
+
   },
   header: {
   chooseProject: 'Choose Project',

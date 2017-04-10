@@ -84,7 +84,9 @@ KylinApp.constant('kapChineseConfig', {
     loginIssue: '登录遇到问题? ',
     loginIn: '登录',
     loginInNow: '登录中... ',
-    error: '登录失败, 请检查用户名/密码'
+    error: '登录失败, 请检查用户名/密码',
+    lock:'用户$1已被锁定，请$2秒后再试！'
+
   },
   header: {
   chooseProject: '选择项目',

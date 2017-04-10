@@ -28,7 +28,8 @@
                             </div>
                         </div>
                         <div class="box-body">
-                            <div class="alert alert-danger animated fadeIn" ng-if="error">{{dataKylin.login.error}}</div>
+                            <div class="alert alert-danger" ng-if="errorType=='error'">{{dataKylin.login.error}}</div>
+                          <div class="alert alert-danger" ng-if="errorType=='lock'">{{lockMsg}}</div>
                             <form name="login_form" ng-submit="login()">
                                 <div class="form-group">
                                     <span class="width-100 input-icon input-icon-right">
