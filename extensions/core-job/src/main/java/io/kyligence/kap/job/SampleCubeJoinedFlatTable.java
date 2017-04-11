@@ -39,7 +39,6 @@ public class SampleCubeJoinedFlatTable extends JoinedFlatTable {
     public static String generateInsertDataStatement(IJoinedFlatTableDesc flatDesc, JobEngineConfig engineConfig) {
         StringBuilder sql = new StringBuilder();
 
-        sql.append(generateHiveSetStatements(engineConfig));
         sql.append("INSERT OVERWRITE TABLE " + flatDesc.getTableName() + " " + generateSelectDataStatement(flatDesc));
         appendAdvancedHiveStatement(flatDesc, sql);
         sql.append(";\n");

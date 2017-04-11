@@ -141,18 +141,14 @@ public class CollectModelStatsJob extends CubingJob {
     }
 
     public static AbstractExecutable createStatsFlatTableStep(JobEngineConfig conf, IJoinedFlatTableDesc flatTableDesc, String jobId) {
-        StringBuilder hiveInitBuf = new StringBuilder();
-        hiveInitBuf.append(JoinedFlatTable.generateHiveSetStatements(conf));
-        final KylinConfig kylinConfig = conf.getConfig();
-        appendHiveOverrideProperties(kylinConfig, hiveInitBuf);
-        final String useDatabaseHql = "USE " + conf.getConfig().getHiveDatabaseForIntermediateTable() + ";\n";
+        String initStatements = JoinedFlatTable.generateHiveInitStatements(conf.getConfig().getHiveDatabaseForIntermediateTable(), conf.getHiveConfFilePath(), conf.getConfig().getHiveConfigOverride());
         final String dropTableHql = JoinedFlatTable.generateDropTableStatement(flatTableDesc);
         final String createTableHql = JoinedFlatTable.generateCreateTableStatement(flatTableDesc, JobBuilderSupport.getJobWorkingDir(conf, jobId));
-        String insertDataHqls = JoinedFlatTable.generateInsertDataStatement(flatTableDesc, conf);
+        String insertDataHqls = JoinedFlatTable.generateInsertDataStatement(flatTableDesc);
 
         ModelStatsFlatTableStep step = new ModelStatsFlatTableStep();
-        step.setInitStatement(hiveInitBuf.toString());
-        step.setCreateTableStatement(useDatabaseHql + dropTableHql + createTableHql + insertDataHqls);
+        step.setInitStatement(initStatements);
+        step.setCreateTableStatement(dropTableHql + createTableHql + insertDataHqls);
         step.setName(ExecutableConstants.STEP_NAME_CREATE_FLAT_HIVE_TABLE);
         return step;
     }
