@@ -124,7 +124,7 @@ KylinApp.service('CubeDescModel', function (kylinConfig, modelsManager, TableMod
           if(bigintType.indexOf(dataType)!=-1){
             columnType = 'bigint';
           }else{
-            if(colType.indexOf('decimal')!=-1||colType==="double"||colType==="float"){
+            if(dataType.indexOf('decimal')!=-1||dataType==="double"||dataType==="float"){
               columnType = 'decimal(19,4)';
             }else{
               columnType = 'decimal(14,0)';
