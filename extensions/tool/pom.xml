@@ -30,10 +30,6 @@
             <artifactId>kap-core-common</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-auto-modeling</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-client</artifactId>
             <scope>provided</scope>

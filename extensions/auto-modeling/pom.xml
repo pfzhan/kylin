@@ -9,7 +9,7 @@
     <description>Kyligence Auto Modeling</description>
 
     <properties>
-        <shadeBase>io.kyligence.kap.modeling.auto.shaded</shadeBase>
+        <shadeBase>io.kyligence.kap.modeling.smart.shaded</shadeBase>
     </properties>
 
     <parent>
