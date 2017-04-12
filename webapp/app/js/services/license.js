@@ -50,6 +50,9 @@ KylinApp.service("LicenseService", function (kylinCommon,KapSystemService){
         if(!data['kylin.commit']){
           data['kylin.commit'] = 'N/A';
         }
+       if(!data['kap.kyaccount.username']){
+         data['kap.kyaccount.username'] = 'N/A';
+       }
         _this.license = data;
         },function(e){
           kylinCommon.error_default(e);
