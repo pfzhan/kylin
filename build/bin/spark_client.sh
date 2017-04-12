@@ -15,6 +15,7 @@ then
     export KYLIN_CONF=$CONF_DIR
     export LOG4J_DIR=${KYLIN_HOME}/build/conf
     export SPARK_DIR=${KYLIN_HOME}/build/spark/
+    export KYLIN_SPARK_TEST_JAR_PATH=`ls $KYLIN_HOME/extensions/tool-assembly/target/kap-tool-assembly-*.jar`
     export KYLIN_SPARK_JAR_PATH=`ls $KYLIN_HOME/extensions/storage-parquet/target/kap-storage-parquet-*-spark.jar`
     export KAP_HDFS_WORKING_DIR=`$KYLIN_HOME/build/bin/get-properties.sh kylin.env.hdfs-working-dir`
     export KAP_METADATA_URL=`$KYLIN_HOME/build/bin/get-properties.sh kylin.metadata.url`
@@ -27,6 +28,7 @@ else
     export CONF_DIR=${KYLIN_HOME}/conf
     export LOG4J_DIR=${KYLIN_HOME}/conf
     export SPARK_DIR=${KYLIN_HOME}/spark/
+    export KYLIN_SPARK_TEST_JAR_PATH=`ls $KYLIN_HOME/tool/kylin-tool-kap-*.jar`
     export KYLIN_SPARK_JAR_PATH=`ls $KYLIN_HOME/lib/kylin-storage-parquet-kap-*.jar`
     export KAP_HDFS_WORKING_DIR=`$KYLIN_HOME/bin/get-properties.sh kylin.env.hdfs-working-dir`
     export KAP_METADATA_URL=`$KYLIN_HOME/bin/get-properties.sh kylin.metadata.url`
@@ -63,6 +65,47 @@ then
 fi
 echo "SPARK_HOME is set to ${SPARK_HOME}"
 
+function retrieveSparkEnvProps()
+{
+ # spark envs
+    for kv in `echo "$SPARK_ENV_PROPS"`
+    do
+        key=`echo "$kv" |  awk '{ n = index($0,"="); print substr($0,0,n-1)}'`
+        existingValue=`printenv ${key}`
+        if [ -z "$existingValue" ]
+        then
+            verbose "export" `eval "verbose $kv"`
+            eval "export $kv"
+        else
+            verbose "$key already has value: $existingValue, use it"
+        fi
+    done
+
+    # spark conf
+    confStr=`echo "$SPARK_CONF_PROPS" |  awk '{ print "--conf " "\"" $0 "\""}' | tr '\n' ' ' `
+    verbose "additional confs spark-submit: $confStr"
+}
+
+if [ "$1" == "test" ]
+then
+    echo "Starting test spark with conf"
+    retrieveSparkEnvProps
+    ${dir}/hdfs-op.sh put kap_test_spark
+    kapTestSparkDfsFile=`cat kap_test_spark`
+    kapTestSparkDfsDir="hdfs://"
+    kapTestSparkDfsDir=${kapTestSparkDfsDir}${kapTestSparkDfsFile}
+    submitCommand='$SPARK_HOME/bin/spark-submit --class io.kyligence.kap.tool.setup.KapSparkTaskTestCLI --name Test  $KYLIN_SPARK_TEST_JAR_PATH ${kapTestSparkDfsDir} '
+    submitCommand=${submitCommand}${confStr}
+    verbose "The submit command is: $submitCommand"
+    eval $submitCommand
+    if [ $? == 0 ];then
+        ${dir}/hdfs-op.sh rm kap_test_spark
+    else
+        ${dir}/hdfs-op.sh rm kap_test_spark
+        quit "ERROR: error when testing spark with spark configurations in KAP!"
+    fi
+    exit 0
+fi
 # start command
 if [ "$1" == "start" ] # ./spark_client.sh start [port]
 then
@@ -86,25 +129,7 @@ then
     if [ $nc_result -eq 0 ]; then
         quit "Port ${driverPort} is not available, could not start Spark Client"
     fi
-
-    # spark envs
-    for kv in `echo "$SPARK_ENV_PROPS"`
-    do
-        key=`echo "$kv" |  awk '{ n = index($0,"="); print substr($0,0,n-1)}'`
-        existingValue=`printenv ${key}`
-        if [ -z "$existingValue" ]
-        then
-            verbose "export" `eval "verbose $kv"`
-            eval "export $kv"
-        else
-            verbose "$key already has value: $existingValue, use it"
-        fi
-    done
-
-    # spark conf
-    confStr=`echo "$SPARK_CONF_PROPS" |  awk '{ print "--conf " "\"" $0 "\""}' | tr '\n' ' ' `
-    verbose "additional confs spark-submit: $confStr"
-
+    retrieveSparkEnvProps
     submitCommand='$SPARK_HOME/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry --master yarn --deploy-mode client --verbose --files "${LOG4J_DIR}/spark-executor-log4j.properties,${KYLIN_SPARK_JAR_PATH}" '
     submitCommand=${submitCommand}${confStr}
     submitCommand=${submitCommand}' ${KYLIN_SPARK_JAR_PATH} -className io.kyligence.kap.storage.parquet.cube.spark.SparkQueryDriver --port ${driverPort} > ${KYLIN_HOME}/logs/spark-driver.out 2>&1 & echo $! > ${KYLIN_HOME}/spark_client_pid &'

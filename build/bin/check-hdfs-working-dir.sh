@@ -30,7 +30,7 @@ hadoop ${hadoop_conf_param} fs -rm -skipTrash ${TEST_FILE}
 
 # test remote hdfs if necessary
 ## in read-write separation mode this is query cluster
-if [ -n ${ENABLE_FS_SEPARATE} ] && [ ${ENABLE_FS_SEPARATE} == 'true' ]; then
+if [ -n ${ENABLE_FS_SEPARATE} ] && [ "${ENABLE_FS_SEPARATE}" == "true" ]; then
     remote_working_dir=`$KYLIN_HOME/bin/get-properties.sh kylin.storage.columnar.file-system`${WORKING_DIR#*://}
     $(hadoop ${hadoop_conf_param} fs -test -d ${remote_working_dir}) || quit "ERROR: Please create working directory '${remote_working_dir}' and grant access permission."
 
