@@ -34,11 +34,14 @@
 <div class="models-main dataTables_wrapper"  style="padding-top:10px;">
   <div ng-class="row">
     <tabset ng-if="userService.hasRole('ROLE_ADMIN')">
-      <tab heading="{{dataKylin.monitor.jobs}}" select="jobTabSelected('jobs')" active="tabs[2].active">
+      <tab heading="{{dataKylin.monitor.jobs}}" select="jobTabSelected('jobs')" active="tabs[0].active">
         <div  ng-include src="'partials/jobs/jobList.html'"></div>
       </tab>
       <tab heading="{{dataKylin.monitor.slowQueries}}" select="jobTabSelected('query')" active="tabs[1].active">
         <div  ng-include src="'partials/jobs/badQuery.html'"></div>
+      </tab>
+      <tab heading="{{dataKylin.monitor.schedulers}}" select="jobTabSelected('schedulers')" active="tabs[2].active">
+        <div  ng-include src="'partials/scheduler/schedulerList.html'"></div>
       </tab>
     </tabset>
     <div ng-if="!userService.hasRole('ROLE_ADMIN')" class="col-xs-12" ng-include src="'partials/jobs/jobList.html'"></div>

@@ -121,6 +121,9 @@
                         <li ng-if="cube.status!='DESCBROKEN'">
                           <a ng-click="cloneCube(cube)"  tooltip="{{dataKylin.cube.tip_clone_cube}}">{{dataKylin.cube.cubeActions[8]}}</a>
                         </li>
+                        <li ng-if="cube.status!='DESCBROKEN'">
+                          <a ng-click="scheduleCube(cube)"  tooltip="{{dataKylin.cube.tip_schedule_cube}}">{{dataKylin.cube.cubeActions[9]}}</a>
+                        </li>
                     </ul>
                 </div>
                 <span ng-if="!(userService.hasRole('ROLE_ADMIN') || hasPermission(cube, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask))">
@@ -174,5 +177,5 @@
 <div ng-include="'partials/projects/project_create.html'"></div>
 <div ng-include="'partials/models/model_detail.html'"></div>
 <div ng-include="'partials/cubes/cube_clone.html'"></div>
-
+<div ng-include="'partials/scheduler/scheduler_submit.html'"></div>
 </div>

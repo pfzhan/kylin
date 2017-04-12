@@ -520,8 +520,32 @@ KylinApp.controller('CubesCtrl', function ($scope, $q, $routeParams, $location, 
           }
         });
       });
-    }
+    };
 
+    $scope.scheduleCube = function (cube) {
+      $scope.loadDetail(cube).then(function () {
+        $scope.metaModel={
+          model:cube.model
+        };
+        if ($scope.metaModel.model.name) {
+          $modal.open({
+            templateUrl: 'schedulerSubmit.html',
+            controller: schedulerCtrl,
+            resolve: {
+              cube: function () {
+                return cube;
+              },
+              scope:function(){
+                return $scope;
+              },
+              metaModel:function(){
+                return $scope.metaModel;
+              }
+            }
+          });
+        }
+      })
+    };
 
     $scope.cubeEdit = function (cube) {
       $location.path("cubes/edit/" + cube.name);
@@ -728,6 +752,120 @@ var jobSubmitCtrl = function ($scope,scope, $modalInstance, CubeService, Message
 
 
 };
+
+var schedulerCtrl = function ($scope,scope, $modalInstance, SchedulerJobService, MessageService, $location, cube, metaModel, ProjectModel, SweetAlert, loadingRequest, CubeList,language,kylinCommon,$filter) {
+  $scope.dataKylin = language.getDataKylin();
+  $scope.cubeList = CubeList;
+  $scope.cube = cube;
+  $scope.metaModel = metaModel;
+  $scope.scheduleRequest = {
+    triggerTime: 0,
+    startTime: 0,
+    repeatCount: 1,
+    repeatInterval: 1,
+    partitionInterval: 1
+  };
+  $scope.state = {
+    intervalType: 'Days',
+    appendType: 'Days',
+    tillTriggerTime: true
+  };
+
+  $scope.message = "";
+  var startTime;
+  if (cube.segments.length == 0) {
+    startTime = (!!cube.detail.partition_date_start) ? cube.detail.partition_date_start : 0;
+  } else {
+    startTime = cube.segments[cube.segments.length - 1].date_range_end;
+  }
+  $scope.scheduleRequest.startTime = startTime;
+
+  $scope.schedule = function () {
+
+    $scope.message = "";
+
+    var tempDate = new Date();
+
+    if(ProjectModel.getSelectedProject() == null) {
+      $scope.message = "WARNING: " + $scope.dataKylin.project.checkInfo_require_addProjectName;
+      return;
+    }
+
+    if(tempDate.getTime() >= $scope.scheduleRequest.triggerTime) {
+      $scope.message = "WARNING: " + $scope.dataKylin.monitor.tip_invalid_trigger_time;
+      return;
+    }
+
+    if(parseInt($scope.scheduleRequest.repeatCount) == NaN || $scope.scheduleRequest.repeatCount <= 0) {
+      $scope.message = "WARNING: " + $scope.dataKylin.monitor.tip_invalid_repeat_times;
+      return;
+    }
+
+    if(parseInt($scope.scheduleRequest.repeatInterval) == NaN || $scope.scheduleRequest.repeatInterval <= 0) {
+      $scope.message = "WARNING: " + $scope.dataKylin.monitor.tip_invalid_repeat_interval;
+      return;
+    }
+
+    if(parseInt($scope.scheduleRequest.partitionInterval) == NaN || $scope.scheduleRequest.partitionInterval <= 0) {
+      $scope.message = "WARNING: " + $scope.dataKylin.monitor.tip_invalid_partition_interval;
+      return;
+    }
+
+    switch($scope.state.intervalType){
+      case $scope.dataKylin.monitor.schedulerIntervalOptions[0]:
+        $scope.scheduleRequest.repeatInterval = 60 * 60 * 1000 * $scope.scheduleRequest.repeatInterval;
+        break;
+      case $scope.dataKylin.monitor.schedulerIntervalOptions[1]:
+        $scope.scheduleRequest.repeatInterval = 60 * 60 * 1000 * 24 * $scope.scheduleRequest.repeatInterval;
+        break;
+      case $scope.dataKylin.monitor.schedulerIntervalOptions[2]:
+        $scope.scheduleRequest.repeatInterval = 60 * 60 * 1000 * 24 * 7 * $scope.scheduleRequest.repeatInterval;
+        break;
+      default:
+        $scope.scheduleRequest.repeatInterval = -1 * $scope.scheduleRequest.repeatInterval;
+    }
+
+    if($scope.state.tillTriggerTime) {
+      $scope.scheduleRequest.partitionInterval = $scope.scheduleRequest.repeatInterval;
+    } else {
+      switch($scope.state.appendType){
+        case $scope.dataKylin.monitor.schedulerIntervalOptions[0]:
+          $scope.scheduleRequest.partitionInterval = 60 * 60 * 1000 * $scope.scheduleRequest.partitionInterval;
+          break;
+        case $scope.dataKylin.monitor.schedulerIntervalOptions[1]:
+          $scope.scheduleRequest.partitionInterval = 60 * 60 * 1000 * 24 * $scope.scheduleRequest.partitionInterval;
+          break;
+        case $scope.dataKylin.monitor.schedulerIntervalOptions[2]:
+          $scope.scheduleRequest.partitionInterval = 60 * 60 * 1000 * 24 * 7 * $scope.scheduleRequest.partitionInterval;
+          break;
+        default:
+          $scope.scheduleRequest.partitionInterval = -1 * $scope.scheduleRequest.partitionInterval;
+      }
+    }
+
+    loadingRequest.show();
+
+    SchedulerJobService.schedule({name: (cube.name + tempDate.getTime()), project: ProjectModel.getSelectedProject(), cubeName: cube.name}, $scope.scheduleRequest, function (schedulerJob) {
+      loadingRequest.hide();
+      $modalInstance.dismiss('cancel');
+      SweetAlert.swal($scope.dataKylin.alert.success, $scope.dataKylin.alert.success_schedule_job, 'success');
+    }, function (e) {
+      loadingRequest.hide();
+      if (e.data && e.data.exception) {
+        var message = e.data.exception;
+
+        var msg = !!(message) ? message : $scope.dataKylin.alert.error_info;
+        SweetAlert.swal($scope.dataKylin.alert.oops, msg, 'error');
+      } else {
+        SweetAlert.swal($scope.dataKylin.alert.oops, $scope.dataKylin.alert.error_info, 'error');
+      }
+    });
+  };
+
+  $scope.cancel = function () {
+    $modalInstance.dismiss('cancel');
+  }
+}
 
 
 var streamingBuildCtrl = function ($scope, $modalInstance,kylinConfig,kylinCommon) {

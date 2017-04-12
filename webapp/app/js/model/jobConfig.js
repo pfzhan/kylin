@@ -57,6 +57,17 @@ KylinApp.constant('jobConfig', {
     {attr: 'start_time', name: 'Start Time'},
     {attr: 'last_modified', name: 'Last Modified'},
     {attr: 'thread', name: 'Thread'}
+  ],
+  scheduleritems: [
+    // {attr: 'name', name: 'Scheduler Name'},
+    {attr: 'relatedCube', name: 'Cube'},
+    {attr: 'nextRunTime', name: 'Next Run Time'},
+    {attr: 'partitionEnd', name: 'Current Partition End'},
+    {attr: 'repeatCount', name: 'Repeat Count'},
+    {attr: 'curRepeatCount', name: 'Current Repeat Count'},
+    {attr: 'repeatInterval', name: 'Repeat Interval'},
+    // {attr: 'partitionInterval', name: 'Partition Interval'},
+    {attr: 'actions', name: 'Actions'}
   ]},
   dataChinese:{
     allStatus: [
@@ -92,8 +103,18 @@ KylinApp.constant('jobConfig', {
       {attr: 'start_time', name: '开始时间'},
       {attr: 'last_modified', name: '最后修改时间'},
       {attr: 'thread', name: '线程'}
+    ],
+    scheduleritems: [
+      // {attr: 'name', name: '任务名'},
+      {attr: 'relatedCube', name: 'Cube'},
+      {attr: 'nextRunTime', name: '下次运行时间'},
+      {attr: 'partitionEnd', name: '当前build节点'},
+      {attr: 'repeatCount', name: '总build次数'},
+      {attr: 'curRepeatCount', name: '已build次数'},
+      {attr: 'repeatInterval', name: '重复频率'},
+      // {attr: 'partitionInterval', name: '追加build时间'},
+      {attr: 'actions', name: '操作'}
     ]
-
   }
 
 });

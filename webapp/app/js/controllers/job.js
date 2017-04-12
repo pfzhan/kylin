@@ -54,6 +54,10 @@ KylinApp
         {
           "title": "Slow Queries",
           "active": false
+        },
+        {
+          "title": "Scheduled Jobs",
+          "active": false
         }
       ]
 
