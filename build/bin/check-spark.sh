@@ -49,8 +49,8 @@ spark_executor_cores=`getValueByKey ${key_executor_cores} ${override_file}`
 spark_executor_memory=`getValueByKey ${key_executor_memory} ${override_file}`
 spark_executor_instance=`getValueByKey ${key_executor_instance} ${override_file}`
 
-[[ ! -z ${spark_total_cores} ]] || quit ">   : Can not get Yarn RM's number of cores"
-[[ ! -z ${spark_total_memory} ]] || quit ">   : Can not get Yarn RM's size of memory"
+[[ ! -z ${spark_total_cores} ]] || echo ">   : Can not get Yarn RM's number of cores" && exit 0
+[[ ! -z ${spark_total_memory} ]] || echo ">   : Can not get Yarn RM's size of memory" && exit 0
 
 echo "${key_executor_cores}=`setColor 36 ${spark_executor_cores}`"
 echo "${key_executor_memory}=`setColor 36 ${spark_executor_memory}`"
@@ -64,7 +64,7 @@ if [ "${unit}" == "M" ];then
 elif [ "${unit}" == "G" ];then
     spark_executor_memory=`expr 1024 \* ${spark_executor_memory%?}`
 else
-    exit 1;
+    quit "ERROR: Unrecognized memory unit in ${spark_executor_memory}";
 fi
 
 [[ ${spark_total_cores} -gt ${spark_executor_cores} ]] || quit "ERROR: Spark executor's cores(`setColor 36 ${spark_executor_cores}`) are too many, greater than spark total cores(`setColor 36 ${spark_total_cores}`)!"
@@ -83,7 +83,7 @@ if [ -z ${spark_executor_instance} ]; then
 elif [ ${spark_executor_instance} -gt ${recommend} ]; then
     quit "ERROR: The configured spark executor instance(`setColor 31 ${spark_executor_instance}`) should not be greater than the max(`setColor 36 ${recommend}`)."
 elif [ `expr ${recommend} / ${spark_executor_instance}` -gt 5 ]; then
-    quit ">   `setColor 31 WARN:` The configured spark executor instance: `setColor 31 ${spark_executor_instance}` is set too small, the max could be `setColor 36 ${recommend}`"
+    echo ">   `setColor 31 WARN:` The configured spark executor instance: `setColor 31 ${spark_executor_instance}` is set too small, the max could be `setColor 36 ${recommend}`"
 else
-    quit ">   The max configurable yarn executor instances: `setColor 36 ${recommend}`"
+    echo ">   The max configurable yarn executor instances: `setColor 36 ${recommend}`"
 fi
