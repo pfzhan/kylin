@@ -234,7 +234,7 @@ KylinApp.controller('PageCtrl', function ($scope, $q, AccessService, $modal, $lo
 var aboutKapCtrl = function($scope,KapSystemService,language,$modalInstance, LicenseService, kylinConfig){
   $scope.dataKylin = language.getDataKylin();
   $scope.license = LicenseService.license;
-  $scope.account = kylinConfig.getProperty('kap.kyaccount.username')
+  $scope.account = kylinConfig.getProperty('kap.kyaccount.username')|| 'N/A'
   $scope.cancel = function () {
     $modalInstance.dismiss('cancel');
   };
