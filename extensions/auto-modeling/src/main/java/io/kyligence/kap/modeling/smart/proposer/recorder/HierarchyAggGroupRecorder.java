@@ -73,12 +73,16 @@ public class HierarchyAggGroupRecorder {
         }
 
         // order by elements number desc
-        return Collections.max(candidates, new Comparator<List<String>>() {
-            @Override
-            public int compare(List<String> o1, List<String> o2) {
-                return o1.size() - o2.size();
-            }
-        });
+        if (candidates.isEmpty()) {
+            return null;
+        } else {
+            return Collections.max(candidates, new Comparator<List<String>>() {
+                @Override
+                public int compare(List<String> o1, List<String> o2) {
+                    return o1.size() - o2.size();
+                }
+            });
+        }
     }
 
     public List<List<String>> getResult() {
