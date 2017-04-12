@@ -1032,7 +1032,8 @@ KylinApp.constant('kapChineseConfig', {
     dates: '使用期限',
     statement: '许可声明',
     commit: 'KAP Commit',
-    kylincommit: 'Kylin Commit'
+    kylincommit: 'Kylin Commit',
+    unsetAccount: '未在Kylin properties中配置KyAccount账号'
   },
   snowModel: {
     delSnowModelTableTips: '你确认要删除该表吗? 删除前请确认该表没有和其他表有任何关联! ',

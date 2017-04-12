@@ -1032,7 +1032,8 @@ KylinApp.constant('kapEnglishConfig', {
     dates: "Valid Period",
     statement: "License Statement",
     commit: "KAP Commit",
-    kylincommit: "Kylin Commit"
+    kylincommit: "Kylin Commit",
+    unsetAccount: 'No account is configured in Kylin properties'
   },
   snowModel: {
     delSnowModelTableTips: 'Are you sure to delete this table? Please confirm that the table is not associated with other tables before deleting! ',
