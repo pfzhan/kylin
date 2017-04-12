@@ -47,8 +47,8 @@ public class HierarchyAggGroupRecorderTest {
 
         List<List<String>> result = recorder.getResult();
         Assert.assertEquals(2, result.size());
-        Assert.assertArrayEquals(new String[] { "A", "B", "C", "D" }, result.get(0).toArray());
-        Assert.assertArrayEquals(new String[] { "E", "F" }, result.get(1).toArray());
+        Assert.assertEquals(4, result.get(0).size());
+        Assert.assertEquals(2, result.get(1).size());
     }
 
     @Test
@@ -59,16 +59,19 @@ public class HierarchyAggGroupRecorderTest {
         recorder.add("A", "B");
         recorder.add("A", "C");
         recorder.add("A", "D");
+        recorder.add("A", "F");
         recorder.add("B", "C");
         recorder.add("B", "D");
+        recorder.add("B", "F");
         recorder.add("C", "D");
         recorder.add("E", "B");
-        recorder.add("B", "F");
+        recorder.add("E", "C");
+        recorder.add("E", "D");
         recorder.add("E", "F");
 
         List<List<String>> result = recorder.getResult();
         Assert.assertEquals(2, result.size());
-        Assert.assertArrayEquals(new String[] { "A", "B", "C", "D" }, result.get(0).toArray());
-        Assert.assertArrayEquals(new String[] { "E", "F" }, result.get(1).toArray());
+        Assert.assertEquals(4, result.get(0).size());
+        Assert.assertEquals(2, result.get(1).size());
     }
 }
