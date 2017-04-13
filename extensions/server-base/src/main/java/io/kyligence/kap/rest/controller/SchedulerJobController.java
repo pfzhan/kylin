@@ -84,12 +84,6 @@ public class SchedulerJobController extends BasicController implements Initializ
         scheduler = createScheduler();
         scheduler.start();
 
-        //Clean scheduler's meta after start
-        List<SchedulerJobInstance> schedulerJobList = schedulerJobService.listAllSchedulerJobs(null, null, Integer.MAX_VALUE, 0);
-        for(SchedulerJobInstance scheduler : schedulerJobList) {
-            schedulerJobService.deleteSchedulerJob(scheduler.getName());
-        }
-
         //Create a faked job to record each cube's latest building job
         JobDetailImpl jobDetail = new JobDetailImpl();
         jobDetail.setName("building_jobs");
