@@ -15,6 +15,7 @@
 -keepnames class * extends org.apache.kylin.measure.MeasureTypeFactory
 -keepnames class * extends org.apache.kylin.engine.mr.common.AbstractHadoopJob
 -keepnames class * extends org.apache.kylin.job.execution.AbstractExecutable
+-keepnames class * implements org.springframework.security.web.AuthenticationEntryPoint
 
 -keepclassmembers class * implements java.io.Serializable {
 	static final long serialVersionUID;
