@@ -3,6 +3,9 @@
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
+columnarEnabled=`${dir}/get-properties.sh kap.storage.columnar.start-own-spark`
+[[ "${columnarEnabled}" == "true" ]] || exit 0
+
 function getValueByKey()
 {
     while read line;
