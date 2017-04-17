@@ -49,8 +49,15 @@ spark_executor_cores=`getValueByKey ${key_executor_cores} ${override_file}`
 spark_executor_memory=`getValueByKey ${key_executor_memory} ${override_file}`
 spark_executor_instance=`getValueByKey ${key_executor_instance} ${override_file}`
 
-[[ ! -z ${spark_total_cores} ]] || echo ">   : Can not get Yarn RM's number of cores" && exit 0
-[[ ! -z ${spark_total_memory} ]] || echo ">   : Can not get Yarn RM's size of memory" && exit 0
+if [ -z ${spark_total_cores} ]; then
+    echo ">   : Can not get Yarn RM's number of cores"
+    exit 0
+fi
+
+if [ -z ${spark_total_memory} ]; then
+    echo ">   : Can not get Yarn RM's size of memory"
+    exit 0
+fi
 
 echo "${key_executor_cores}=`setColor 36 ${spark_executor_cores}`"
 echo "${key_executor_memory}=`setColor 36 ${spark_executor_memory}`"
@@ -69,6 +76,7 @@ fi
 
 [[ ${spark_total_cores} -gt ${spark_executor_cores} ]] || quit "ERROR: Spark executor's cores(`setColor 36 ${spark_executor_cores}`) are too many, greater than spark total cores(`setColor 36 ${spark_total_cores}`)!"
 [[ ${spark_total_memory} -gt ${spark_executor_memory} ]] || quit "ERROR: Spark executor's memory(`setColor 36 ${spark_executor_memory}M`) is too much, more than spark total memory(`setColor 36 ${spark_total_memory}M`)!"
+
 ins1=`expr ${spark_total_memory} / ${spark_executor_memory}`
 ins2=`expr ${spark_total_cores} / ${spark_executor_cores}`
 
