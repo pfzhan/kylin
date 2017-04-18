@@ -29,7 +29,7 @@
 
 KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,MetaModel,RawTablesService,cubesManager,modelsManager,SweetAlert,kylinConfig,VdmUtil,TableModel, StringHelper) {
   $scope.availableColumns = {};
-  $scope.selectedColumns = {};
+  //$scope.selectedColumns = {};
   $scope.wantSetting=false;
   if($scope.state.mode=="view"){
     $scope.wantSetting=true;
@@ -62,7 +62,7 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
         factSelectAvailable[cols[i].name] = {selected: false, disabled: false};
       }
       $scope.availableColumns[factTable] = cols;
-      $scope.selectedColumns[factTable] = factSelectAvailable;
+      //$scope.selectedColumns[factTable] = factSelectAvailable;
       $scope.availableTables.push(factTable);
       var lookups = $scope.metaModel.model.lookups;
       for (var j = 0; j < lookups.length; j++) {
@@ -74,7 +74,7 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
           lookupSelectAvailable[cols2[k].name] = {selected: false, disabled: false};
         }
         $scope.availableColumns[lookups[j].alias] = cols2;
-        $scope.selectedColumns[lookups[j].alias] = lookupSelectAvailable;
+        //$scope.selectedColumns[lookups[j].alias] = lookupSelectAvailable;
         if ($scope.availableTables.indexOf(lookups[j].alias) == -1) {
           $scope.availableTables.push(lookups[j].alias);
         }
@@ -126,10 +126,16 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
     RawTablesService.getRawTableInfo({rawTableName: $scope.state.cubeName}, {}, function (request) {
       if(request&&request.columns&&request.columns.length){
         request.columns= $scope.changeRawTableDataFromServer(request.columns);
-        $scope.rawTableColumns = request;
-        $scope.hisRawTableData=request.columns;
+        getBaseColumnsData();
+        //$scope.rawTableColumns = request;
+        //$scope.hisRawTableData=request.columns;
+        //var columnsLen = request.columns.length;
+        $scope.hisRawTableData=$.extend(true,$scope.rawTableColumns.columns,request.columns)
+        request.columns=$scope.hisRawTableData
+        $scope.rawTableColumns=request;
         $scope.hasConfig=true;
         $scope.isSupportRawTable=$scope.checkIsSupportRawTable();
+
       }else{
         $scope.wantSetting=false;
         getBaseColumnsData();
@@ -152,6 +158,7 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
       $scope.isSupportRawTable=$scope.checkIsSupportRawTable();
     })
   }
+  var perStep=30
   if($scope.RawTables&&$scope.RawTables.columns&&$scope.RawTables.columns.length>=0){
     $scope.rawTableColumns={};
     $scope.rawTableColumns.columns=$scope.changeRawTableDataFromServer($scope.RawTables.columns);
@@ -160,17 +167,23 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
 
     });*/
     $scope.isSupportRawTable=$scope.checkIsSupportRawTable();
+    $scope.tempColumns = $scope.rawTableColumns.columns.slice(0,perStep)
   }else{
     if($scope.state.mode=="view"||$scope.isEdit){
-      loadRawTable();
+      loadRawTable(function(){
+        $scope.tempColumns = $scope.rawTableColumns.columns.slice(0,perStep)
+      });
     }else{
       getBaseColumnsData();
       $scope.isSupportRawTable=$scope.checkIsSupportRawTable();
       $scope.wantSetting=false;
+      $scope.tempColumns = $scope.rawTableColumns.columns.slice(0,perStep)
     }
   }
   //数据推送给父Controller
   function transferRawTableData(){
+
+
     if($scope.wantSetting&&$scope.isSupportRawTable){
       $scope.$emit('RawTableEdited', $scope.rawTableColumns);
     }else{
@@ -180,7 +193,19 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
     }
   }
   $scope.$watch("rawTableColumns",transferRawTableData,true)
-
+  var loadIndex = perStep
+  $scope.startRender=true
+  $scope.renderFinish=function(){
+    $scope.startRender=false
+  }
+  $scope.loadMore=function (){
+    if($scope.rawTableColumns.columns.length<loadIndex|| $scope.startRender) {
+      return
+    }
+    $scope.startRender=true
+    $scope.tempColumns=$scope.tempColumns.concat($scope.rawTableColumns.columns.slice(loadIndex,loadIndex+perStep))
+    loadIndex+=perStep
+  }
 
   var encodings =[];
   if($scope.state.mode!="view"){
@@ -200,10 +225,13 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
       'suggest':true
     })
   }
-
+  var encodingCache = {}
   $scope.getRawTableEncodings =function (tableAlias,columnName){
     var filterName=name;
     var columnType=modelsManager.getColumnTypeByColumnName(tableAlias+'.'+columnName)||'';
+    if(columnType&&encodingCache[columnType]) {
+      return encodingCache[columnType]
+    }
     var filterEncoding;
     encodings=VdmUtil.removeFilterObjectList(encodings,'baseValue','dict');
     var matchList=VdmUtil.getObjValFromLikeKey($scope.store.encodingMaps,columnType);
@@ -225,10 +253,7 @@ KylinApp.controller('RawTableSettingCtrl', function ($scope, $modal,cubeConfig,M
       filterEncoding=VdmUtil.getFilterObjectListByOrFilterVal(encodings,'suggest',true);
       filterEncoding=VdmUtil.getObjectList(filterEncoding,'baseValue',matchList)
     }
+    encodingCache[columnType]=filterEncoding
     return filterEncoding;
   }
-
-
-
-
 });

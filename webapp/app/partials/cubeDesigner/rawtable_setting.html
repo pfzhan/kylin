@@ -22,7 +22,7 @@
     <div>
       <h4 style="margin-left:42px" ng-if="state.mode!='view'&&!isSupportRawTable">{{dataKylin.cube.unSupportRawTable}}</h4>
       <div ng-if="state.mode!='view'&&isSupportRawTable"><input type="checkbox" style="margin-left: 40px" ng-model="wantSetting" ng-change="checkNeedSet()"  id="wantSet"><label for="wantSet" style="margin-left:10px;">{{dataKylin.cube.needConfigRawTable}}</label></div>
-      <div class="form-group large-popover"  ng-if="rawTableColumns.columns.length > 0&&wantSetting&&isSupportRawTable">
+      <div  infinite-scroll='loadMore()' infinite-scroll-distance='2' class="form-group large-popover"  ng-if="rawTableColumns.columns.length > 0&&wantSetting&&isSupportRawTable">
         <h3 style="margin-left:42px">{{dataKylin.cube.cubeOfRawTable}}</h3>
         <table style="margin-left:42px; width:92%"
 
@@ -40,10 +40,9 @@
           </tr>
           </thead>
 
-          <tbody >
-
+          <tbody>
           <tr
-            ng-repeat="col in rawTableColumns.columns track by $index" ng-class="col.index=='sorted'?'sortedrow':''">
+            ng-repeat="col in tempColumns track by $index" ng-class="col.index=='sorted'?'sortedrow':''" repeat-finish="renderFinish()">
 
             <td>
               <!-- ID -->

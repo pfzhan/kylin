@@ -115,6 +115,24 @@ KylinApp.controller('CubeSchemaCtrl', function ($scope, QueryService, UserServic
   },function(e){
     $scope.store.supportedEncoding = $scope.cubeConfig.encodings;
   })
+  //get columns from model
+  $scope.getDimColumnsByAlias = function (alias) {
+    if (!alias) {
+      return [];
+    }
+    var tableColumns = $scope.modelsManager.getColumnsByAlias(alias);
+    var tableDim = _.find($scope.metaModel.model.dimensions, function (dimension) {
+      return dimension.table == alias
+    });
+    if(!tableDim){
+      return [];
+    }
+    var tableDimColumns = tableDim.columns;
+    var avaColObject = _.filter(tableColumns, function (col) {
+      return tableDimColumns.indexOf(col.name) != -1;
+    });
+    return angular.copy(avaColObject);
+  };
   $scope.getEncodings =function (name){
     var filterName=name;
     var columnType= $scope.modelsManager.getColumnTypeByColumnName(filterName);

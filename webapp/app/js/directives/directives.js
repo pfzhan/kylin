@@ -309,7 +309,17 @@ KylinApp.directive('kylinPagination', function ($parse, $q, language) {
       });
     }
   };
-}).directive("parametertree", function($compile) {
+}).directive('repeatFinish',function(){
+    return {
+      link: function(scope,element,attr){
+        console.log(scope.$index)
+        if(scope.$last == true){
+          scope.$eval( attr.repeatFinish )
+        }
+      }
+    }
+  })
+  .directive("parametertree", function($compile) {
     return {
       restrict: "E",
       transclude: true,

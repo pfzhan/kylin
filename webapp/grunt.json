@@ -12,6 +12,7 @@
                 "app/components/bootstrap/dist/js/bootstrap.min.js",
                 "app/components/angular/angular.js",
                 "app/components/angular-animate/angular-animate.min.js",
+                "app/components/ngInfiniteScroll/build/ng-infinite-scroll.js",
                 "app/components/angular-route/angular-route.min.js",
                 "app/components/angular-resource/angular-resource.js",
                 "app/components/angular-bootstrap/ui-bootstrap-tpls.min.js",
