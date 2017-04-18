@@ -68,6 +68,11 @@ public class SchedulerJobControllerTest extends ServiceTestBase {
 
     @After
     public void after() {
+        List<SchedulerJobInstance> jobList = schedulerJobController.getSchedulerJobs(null, null, Integer.MAX_VALUE, 0);
+        for (SchedulerJobInstance instance : jobList) {
+            schedulerJobController.delete(instance.getName());
+        }
+
         super.cleanupTestMetadata();
     }
 
