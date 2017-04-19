@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
+import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -54,7 +55,7 @@ public class ServiceTestBase extends LocalFileMetadataTestCase {
     @BeforeClass
     public static void setupResource() throws Exception {
         staticCreateTestMetadata();
-        Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", "ROLE_ADMIN");
+        Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 

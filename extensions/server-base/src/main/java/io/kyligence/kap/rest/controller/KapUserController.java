@@ -73,10 +73,9 @@ public class KapUserController extends BasicController implements UserDetailsSer
     private Pattern bcryptPattern;
     private BCryptPasswordEncoder pwdEncoder;
     private Map<String, UserObj> userObjMap;
-    private static final UserGrantedAuthority ADMIN_AUTH = new UserGrantedAuthority("ROLE_ADMIN");
-    private static final UserGrantedAuthority ANALYST_AUTH = new UserGrantedAuthority("ROLE_ANALYST");
-    private static final UserGrantedAuthority MODELER_AUTH = new UserGrantedAuthority("ROLE_MODELER");
-
+    private static final UserGrantedAuthority ADMIN_AUTH = new UserGrantedAuthority(Constant.ROLE_ADMIN);
+    private static final UserGrantedAuthority ANALYST_AUTH = new UserGrantedAuthority(Constant.ROLE_ANALYST);
+    private static final UserGrantedAuthority MODELER_AUTH = new UserGrantedAuthority(Constant.ROLE_MODELER);
 
     @PostConstruct
     public void init() throws IOException {
@@ -88,9 +87,9 @@ public class KapUserController extends BasicController implements UserDetailsSer
         List<UserObj> all = listAllUsers();
         logger.info("All " + all.size() + " users");
         if (all.isEmpty()) {
-            save("ADMIN", new UserObj("ADMIN", "KYLIN", true, "ROLE_MODELER", "ROLE_ANALYST", "ROLE_ADMIN"));
-            save("ANALYST", new UserObj("ANALYST", "ANALYST", true, "ROLE_ANALYST"));
-            save("MODELER", new UserObj("MODELER", "MODELER", true, "ROLE_MODELER"));
+            save("ADMIN", new UserObj("ADMIN", "KYLIN", true, Constant.ROLE_ADMIN, Constant.ROLE_ANALYST, Constant.ROLE_MODELER));
+            save("ANALYST", new UserObj("ANALYST", "ANALYST", true, Constant.ROLE_ANALYST));
+            save("MODELER", new UserObj("MODELER", "MODELER", true, Constant.ROLE_MODELER, Constant.ROLE_MODELER));
         }
         for (UserObj u : all) {
             userObjMap.put(u.getUsername(), u);
@@ -103,7 +102,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return get(username);
     }
 
-    @RequestMapping(value = "/{userName}", method = {RequestMethod.POST, RequestMethod.PUT})
+    @RequestMapping(value = "/{userName}", method = { RequestMethod.POST, RequestMethod.PUT })
     @ResponseBody
     public UserObj save(@PathVariable("userName") String userName, @RequestBody UserObj user) {
         checkUserName(userName);
@@ -141,7 +140,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return get(userName);
     }
 
-    @RequestMapping(value = "/password", method = {RequestMethod.PUT})
+    @RequestMapping(value = "/password", method = { RequestMethod.PUT })
     @ResponseBody
     public UserObj save(@RequestBody UserRequest user) {
         if (!isAdmin() && !getPrincipal().equals(user.getUsername())) {
@@ -166,7 +165,6 @@ public class KapUserController extends BasicController implements UserDetailsSer
         existing.setDefaultPassword(false);
 
         logger.info("update password for user " + user);
-
 
         UserDetails details = userObjToDetails(existing);
         userService.updateUser(details);
@@ -196,7 +194,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return passwordPattern.matcher(password).matches();
     }
 
-    @RequestMapping(value = "/{userName}", method = {RequestMethod.GET})
+    @RequestMapping(value = "/{userName}", method = { RequestMethod.GET })
     @ResponseBody
     public UserObj get(@PathVariable("userName") String userName) throws UsernameNotFoundException {
         checkUserName(userName);
@@ -206,7 +204,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return user;
     }
 
-    @RequestMapping(value = "/users", method = {RequestMethod.GET})
+    @RequestMapping(value = "/users", method = { RequestMethod.GET })
     @ResponseBody
     public List<UserObj> listAllUsers() {
         List<UserObj> result = Lists.newArrayList();
@@ -216,7 +214,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return result;
     }
 
-    @RequestMapping(value = "/{userName}", method = {RequestMethod.DELETE})
+    @RequestMapping(value = "/{userName}", method = { RequestMethod.DELETE })
     @ResponseBody
     public void delete(@PathVariable("userName") String userName) {
         checkUserName(userName);
@@ -224,7 +222,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
         userService.deleteUser(userName);
     }
 
-    @RequestMapping(value = "/userAuhtorities", method = {RequestMethod.GET})
+    @RequestMapping(value = "/userAuhtorities", method = { RequestMethod.GET })
     @ResponseBody
     public List<String> listAllAuthorities() {
         List<String> result = userService.listUserAuthorities();
