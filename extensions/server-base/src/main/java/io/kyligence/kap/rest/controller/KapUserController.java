@@ -73,6 +73,10 @@ public class KapUserController extends BasicController implements UserDetailsSer
     private Pattern bcryptPattern;
     private BCryptPasswordEncoder pwdEncoder;
     private Map<String, UserObj> userObjMap;
+    private static final UserGrantedAuthority ADMIN_AUTH = new UserGrantedAuthority("ROLE_ADMIN");
+    private static final UserGrantedAuthority ANALYST_AUTH = new UserGrantedAuthority("ROLE_ANALYST");
+    private static final UserGrantedAuthority MODELER_AUTH = new UserGrantedAuthority("ROLE_MODELER");
+
 
     @PostConstruct
     public void init() throws IOException {
@@ -99,7 +103,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return get(username);
     }
 
-    @RequestMapping(value = "/{userName}", method = { RequestMethod.POST, RequestMethod.PUT })
+    @RequestMapping(value = "/{userName}", method = {RequestMethod.POST, RequestMethod.PUT})
     @ResponseBody
     public UserObj save(@PathVariable("userName") String userName, @RequestBody UserObj user) {
         checkUserName(userName);
@@ -137,7 +141,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return get(userName);
     }
 
-    @RequestMapping(value = "/password", method = { RequestMethod.PUT })
+    @RequestMapping(value = "/password", method = {RequestMethod.PUT})
     @ResponseBody
     public UserObj save(@RequestBody UserRequest user) {
         if (!isAdmin() && !getPrincipal().equals(user.getUsername())) {
@@ -192,7 +196,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return passwordPattern.matcher(password).matches();
     }
 
-    @RequestMapping(value = "/{userName}", method = { RequestMethod.GET })
+    @RequestMapping(value = "/{userName}", method = {RequestMethod.GET})
     @ResponseBody
     public UserObj get(@PathVariable("userName") String userName) throws UsernameNotFoundException {
         checkUserName(userName);
@@ -202,7 +206,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return user;
     }
 
-    @RequestMapping(value = "/users", method = { RequestMethod.GET })
+    @RequestMapping(value = "/users", method = {RequestMethod.GET})
     @ResponseBody
     public List<UserObj> listAllUsers() {
         List<UserObj> result = Lists.newArrayList();
@@ -212,7 +216,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return result;
     }
 
-    @RequestMapping(value = "/{userName}", method = { RequestMethod.DELETE })
+    @RequestMapping(value = "/{userName}", method = {RequestMethod.DELETE})
     @ResponseBody
     public void delete(@PathVariable("userName") String userName) {
         checkUserName(userName);
@@ -220,7 +224,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
         userService.deleteUser(userName);
     }
 
-    @RequestMapping(value = "/userAuhtorities", method = { RequestMethod.GET })
+    @RequestMapping(value = "/userAuhtorities", method = {RequestMethod.GET})
     @ResponseBody
     public List<String> listAllAuthorities() {
         List<String> result = userService.listUserAuthorities();
@@ -232,6 +236,19 @@ public class KapUserController extends BasicController implements UserDetailsSer
 
     private UserDetails userObjToDetails(UserObj obj) {
         List<UserGrantedAuthority> detailRoles = Lists.newArrayList(obj.getAuthorities());
+        if (detailRoles.contains(ADMIN_AUTH)) {
+            if (!detailRoles.contains(MODELER_AUTH)) {
+                logger.info("For ADMIN authority, add MODELER authority automatically");
+                detailRoles.add(MODELER_AUTH);
+            }
+
+        }
+        if (detailRoles.contains(MODELER_AUTH)) {
+            if (!detailRoles.contains(ANALYST_AUTH)) {
+                logger.info("For MODELER authority, add ANALYST authority automatically");
+                detailRoles.add(ANALYST_AUTH);
+            }
+        }
         if (obj.isDisabled()) {
             detailRoles.add(new UserGrantedAuthority(DISABLED_ROLE));
         }
@@ -291,7 +308,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
 
     public boolean isUserLocked(String userName) {
         boolean locked = false;
-        if(userObjMap.get(userName) != null)
+        if (userObjMap.get(userName) != null)
             locked = userObjMap.get(userName).locked;
         return locked;
     }
@@ -310,7 +327,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
 
     public long getLockedTime(String userName) {
         long lockedTime = 0L;
-        if(userObjMap.get(userName) != null)
+        if (userObjMap.get(userName) != null)
             lockedTime = userObjMap.get(userName).getLockedTime();
         return lockedTime;
     }
@@ -323,7 +340,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
 
     public int getWrongTime(String userName) {
         int wrongTime = 0;
-        if(userObjMap.get(userName) != null)
+        if (userObjMap.get(userName) != null)
             wrongTime = userObjMap.get(userName).getWrongTime();
         return wrongTime;
     }
