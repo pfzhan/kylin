@@ -8,21 +8,21 @@ exportProjectVersions
 
 # use hbase1.x version
 if [ "$1" == "hbase1.x" ]; then
-    pkg_name="kybot-client-1.0-SNAPSHOT-hbase1.x-bin.tar.gz"
-    pkg_asset_id="3256561"
-    pkg_md5="8303886baf32231a664af28b0b80fb6f"
+    pkg_name="kybot-client-1.1.2-hbase1.x-bin.tar.gz"
+    pkg_asset_id="3681576"
+    pkg_md5="f76dac35a959f4f7cb17663caef2b8ef"
 fi  
 # use hbase0.98 version
 if [ "$1" == "hbase0.98" ]; then
-    pkg_name="kybot-client-1.0-SNAPSHOT-hbase0.98-bin.tar.gz"
-    pkg_asset_id="3256606"
-    pkg_md5="20863f758abdc4fb95662580a5e86169"
+    pkg_name="kybot-client-1.1.2-hbase0.98-bin.tar.gz"
+    pkg_asset_id="3680319"
+    pkg_md5="6c0044487c33ec8e2a3b2251868380e6"
 fi
 # use cdh5.7 version
 if [ "$1" == "cdh5.7" ]; then
-    pkg_name="kybot-client-1.0-SNAPSHOT-cdh5.7-bin.tar.gz"
-    pkg_asset_id="3282956"
-    pkg_md5="3d526ad9315fe213b25f615ba5b8a507"
+    pkg_name="kybot-client-1.1.2-cdh5.7-bin.tar.gz"
+    pkg_asset_id="3681605"
+    pkg_md5="5e61d2e014871be231c7f5af7c230a45"
 fi
 
 if [[ -z "${pkg_name}" ]]; then
@@ -60,6 +60,14 @@ cp -r build/kybot-client-*-bin/kybot build/kybot
 cp build/kybot_kap/diag.sh build/kybot/diag.sh
 cp build/bin/header.sh build/kybot/header.sh
 rm -rf build/kybot-client-*-bin
+
+echo "Registering kybot agent..."
+cd build/kybot
+mkdir -p WEB-INF/lib
+cp kybot-client-agent-runner-lib.jar WEB-INF/lib
+jar -uf ../../extensions/server/target/kap-server-${kap_version}.war WEB-INF/lib/kybot-client-agent-runner-lib.jar
+rm -rf WEB-INF
+cd ../..
 
 # Copied file becomes 000 for some env (e.g. Cygwin)
 chmod 644 build/kybot/kybot-client-lib.jar
