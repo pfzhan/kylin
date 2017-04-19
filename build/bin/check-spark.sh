@@ -42,8 +42,12 @@ key_executor_instance="kap.storage.columnar.spark-conf.spark.executor.instances"
 
 saveFileName="${KYLIN_HOME}/logs/cluster.info"
 export ENABLE_CHECK_ENV=false
-${dir}/kylin.sh io.kyligence.kap.tool.setup.KapGetClusterInfo ${saveFileName} &> /dev/null
-[[ $? == 0 ]] || quit "ERROR: failed to get cluster cores and memory!"
+${dir}/kylin.sh io.kyligence.kap.tool.setup.KapGetClusterInfo ${saveFileName}
+
+if [ $? != 0 ]; then
+    echo ">   ERROR: failed to get cluster cores and memory, quit the spark config suggestion!"
+    exit 0
+fi
 
 #def constant var
 spark_total_cores=`getValueByKey availableVirtualCores ${saveFileName}`
