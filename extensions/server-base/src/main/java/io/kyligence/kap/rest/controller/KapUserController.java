@@ -136,6 +136,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
 
         UserDetails details = userObjToDetails(user);
         userService.updateUser(details);
+        userObjMap.put(userName, user);
 
         return get(userName);
     }
