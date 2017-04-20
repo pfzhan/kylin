@@ -8,21 +8,21 @@ exportProjectVersions
 
 # use hbase1.x version
 if [ "$1" == "hbase1.x" ]; then
-    pkg_name="kybot-client-1.1.2-hbase1.x-bin.tar.gz"
-    pkg_asset_id="3681576"
-    pkg_md5="f76dac35a959f4f7cb17663caef2b8ef"
+    pkg_name="kybot-client-1.1.3-hbase1.x-bin.tar.gz"
+    pkg_asset_id="3697204"
+    pkg_md5="9477ad8742eee482ce1a81c63f54708a"
 fi  
 # use hbase0.98 version
 if [ "$1" == "hbase0.98" ]; then
-    pkg_name="kybot-client-1.1.2-hbase0.98-bin.tar.gz"
-    pkg_asset_id="3680319"
-    pkg_md5="6c0044487c33ec8e2a3b2251868380e6"
+    pkg_name="kybot-client-1.1.3-hbase0.98-bin.tar.gz"
+    pkg_asset_id="3697256"
+    pkg_md5="d351bf7cfec002f59c903c9b499bf6ed"
 fi
 # use cdh5.7 version
 if [ "$1" == "cdh5.7" ]; then
-    pkg_name="kybot-client-1.1.2-cdh5.7-bin.tar.gz"
-    pkg_asset_id="3681605"
-    pkg_md5="5e61d2e014871be231c7f5af7c230a45"
+    pkg_name="kybot-client-1.1.3-cdh5.7-bin.tar.gz"
+    pkg_asset_id="3697294"
+    pkg_md5="00fcc3fe5c459a58c38a3285ace8d5b6"
 fi
 
 if [[ -z "${pkg_name}" ]]; then
