@@ -84,7 +84,7 @@ public class ModelStatsUpdate extends AbstractHadoopJob {
 
             parseOptions(options, args);
 
-            this.model = getOptionValue(OPTION_MODEL).toUpperCase();
+            this.model = getOptionValue(OPTION_MODEL);
 
             DataModelDesc dataModelDesc = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv()).getDataModelDesc(model);
 
@@ -109,18 +109,26 @@ public class ModelStatsUpdate extends AbstractHadoopJob {
 
         samplers = read(new Path(outPath), config);
 
-        ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(KylinConfig.getInstanceFromEnv());
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(kylinConfig);
         ModelStats modelStats = modelStatsManager.getModelStats(model);
         Map<String, Long> singleCardMap = new HashMap<>();
         Map<String, Long> combinationCardMap = new HashMap<>();
+        Map<String, Long> columnNullMap = new HashMap<>();
+        String counter = "0";
         for (Map.Entry<Integer, HiveTableExtSampler> sampler : samplers.entrySet()) {
             singleCardMap.put(columnIndexMap.get(sampler.getKey()), sampler.getValue().getCardinality());
             combinationCardMap.putAll(convertCombinationCardMap(sampler.getValue().getCombinationCardinality()));
+            counter = sampler.getValue().getCounter();
+            columnNullMap.put(sampler.getValue().getColumnName(), Long.parseLong(sampler.getValue().getNullCounter()));
             sampler.getValue().clean();
         }
+        modelStats.setColumnNullMap(columnNullMap);
+        modelStats.setCounter(Long.parseLong(counter));
         modelStats.setDoubleColumnCardinality(combinationCardMap);
         modelStats.setSingleColumnCardinality(singleCardMap);
         modelStatsManager.saveModelStats(modelStats);
+        ModelDiagnose.checkJointResult(flatTableDesc.getDataModel(), modelStats, kylinConfig);
     }
 
     private Map<String, Long> convertCombinationCardMap(Map<String, Long> combinationCardMap) {

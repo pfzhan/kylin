@@ -219,12 +219,8 @@ public class KapConfig {
      * Sample Table
      */
 
-    public String getTableStatusLimitRowSize() {
-        return config.getOptional("kap.table.stats.limit.row.size", "10000000");
-    }
-
-    public boolean IsTableStatsScanWholeTable() {
-        return Boolean.parseBoolean(config.getOptional("kap.table.stats.scan.whole.table.enabled", "true"));
+    public int getStatsSampleFrequency() {
+        return Integer.parseInt(config.getOptional("kap.source.hive.tablestats.sample-frequency", "1"));
     }
 
     /**

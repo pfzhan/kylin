@@ -41,6 +41,7 @@ import org.apache.kylin.engine.mr.steps.CubingExecutableUtil;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.MetadataManager;
@@ -52,15 +53,6 @@ import org.slf4j.LoggerFactory;
 public class HiveTableExtSampleJob extends CubingJob {
     private static final Logger logger = LoggerFactory.getLogger(HiveTableExtSampleJob.class);
     private static final String SAMPLES = "samples";
-
-    public static List<String> createSampleJob(String project, String submitter, String... tables) throws IOException {
-        List<String> jobIDs = new ArrayList<>();
-        for (String table : tables) {
-            String jobID = initSampleJob(project, submitter, table, 0);
-            jobIDs.add(jobID);
-        }
-        return jobIDs;
-    }
 
     public static List<String> createSampleJob(String project, String submitter, long rowSize, String... tables) throws IOException {
         List<String> jobIDs = new ArrayList<>();
@@ -96,7 +88,12 @@ public class HiveTableExtSampleJob extends CubingJob {
         sampleJob.setName("Collect " + tableName + " statistics " + format.format(new Date(System.currentTimeMillis())));
         sampleJob.setSubmitter(submitter);
         sampleJob.setParam(CubingExecutableUtil.CUBE_NAME, tableName);
+        addStatsSteps(tableName, config, rowSize, sampleJob);
+        return sampleJob;
 
+    }
+
+    public static void addStatsSteps(String tableName, KylinConfig config, long rowSize, DefaultChainedExecutable statsJob) throws IOException {
         MetadataManager metaMgr = MetadataManager.getInstance(config);
         TableDesc table = metaMgr.getTableDesc(tableName);
         TableExtDesc table_ext = metaMgr.getTableExt(tableName);
@@ -104,45 +101,57 @@ public class HiveTableExtSampleJob extends CubingJob {
             throw new IllegalArgumentException("Cannot find table descriptor " + tableName);
         }
 
+        String samplesOutPath = getOutputPath(config, statsJob.getId(), HiveTableExtSampleJob.SAMPLES) + table.getIdentity();
+
         boolean isFullTable = (rowSize == 0);
 
         if (table.isView() || !isFullTable) {
-            JobEngineConfig jobConf = new JobEngineConfig(config);
-            String checkParam = "-output " + getViewPath(jobConf, sampleJob.getId(), table);
-            HadoopShellExecutable checkHdfsPathStep = new HadoopShellExecutable();
-            checkHdfsPathStep.setName("Check Hdfs Path");
-            checkHdfsPathStep.setJobClass(CheckHdfsPath.class);
-            checkHdfsPathStep.setJobParams(checkParam);
-            sampleJob.addTask(checkHdfsPathStep);
-            sampleJob.addTask(materializedView(table, sampleJob.getId(), jobConf, !isFullTable ? "limit " + rowSize : ""));
+            addMaterializeViewSteps(statsJob, table, config, isFullTable, rowSize);
         }
 
-        String samplesOutPath = getOutputPath(config, sampleJob.getId(), HiveTableExtSampleJob.SAMPLES) + table.getIdentity();
-        String statsStepParam = "-table " + tableName + " -output " + samplesOutPath + " -fullTable " + isFullTable;
+        addExtractStatsStep(config, statsJob, table, isFullTable, samplesOutPath);
+
+        addUpdateStatsMetaStep(statsJob, tableName, samplesOutPath);
+
+        if (table.isView() || !isFullTable)
+            statsJob.addTask(deleteMaterializedView(table, config));
+
+        table_ext.setJodID(statsJob.getId());
+        metaMgr.saveTableExt(table_ext);
+    }
+
+    private static void addMaterializeViewSteps(DefaultChainedExecutable statsJob, TableDesc table, KylinConfig config, boolean isFullTable, long rowSize) throws IOException {
+        JobEngineConfig jobConf = new JobEngineConfig(config);
+        String checkParam = "-output " + getViewPath(jobConf, statsJob.getId(), table);
+        HadoopShellExecutable checkHdfsPathStep = new HadoopShellExecutable();
+        checkHdfsPathStep.setName("Check Dfs Path");
+        checkHdfsPathStep.setJobClass(CheckHdfsPath.class);
+        checkHdfsPathStep.setJobParams(checkParam);
+        statsJob.addTask(checkHdfsPathStep);
+        statsJob.addTask(materializedView(table, statsJob.getId(), jobConf, !isFullTable ? "limit " + rowSize : ""));
+    }
+
+    private static void addExtractStatsStep(KylinConfig config, DefaultChainedExecutable statsJob, TableDesc table, boolean isFullTable, String samplesOutPath) {
+
+        String statsStepParam = "-table " + table.getIdentity() + " -output " + samplesOutPath + " -fullTable " + isFullTable;
 
         MapReduceExecutable collectStatsStep = new MapReduceExecutable();
 
-        collectStatsStep.setName("Extract Samples from " + tableName);
+        collectStatsStep.setName("Extract Stats from Table: " + table.getIdentity());
         collectStatsStep.setMapReduceJobClass(HiveTableExtJob.class);
         collectStatsStep.setMapReduceParams(statsStepParam);
 
-        sampleJob.addTask(collectStatsStep);
+        statsJob.addTask(collectStatsStep);
+    }
 
+    private static void addUpdateStatsMetaStep(DefaultChainedExecutable statsJob, String tableName, String samplesOutPath) {
         HadoopShellExecutable updateStatsStep = new HadoopShellExecutable();
 
         String updateStatsParam = "-table " + tableName + " -output " + samplesOutPath;
-        updateStatsStep.setName("Move " + tableName + " Samples to MetaData");
+        updateStatsStep.setName("Save Table's Stats");
         updateStatsStep.setJobClass(HiveTableExtUpdate.class);
         updateStatsStep.setJobParams(updateStatsParam);
-        sampleJob.addTask(updateStatsStep);
-
-        if (table.isView() || !isFullTable)
-            sampleJob.addTask(deleteMaterializedView(table, config));
-
-        table_ext.setJodID(sampleJob.getId());
-        metaMgr.saveTableExt(table_ext);
-
-        return sampleJob;
+        statsJob.addTask(updateStatsStep);
     }
 
     public static String findRunningJob(String table, KylinConfig config) {
@@ -160,9 +169,11 @@ public class HiveTableExtSampleJob extends CubingJob {
         try {
             job = exeMgt.getJob(jobID);
         } catch (RuntimeException e) {
-            /*
-            By design, HiveTableExtSampleJob is moved from kap-engine-mr to kap-source-hive in kap2.3,
-            therefore, kap2.3 or higher version can not parse kap2.2 stats job info.
+            /****
+             *
+             * By design, HiveTableExtSampleJob is moved from kap-engine-mr to kap-source-hive in kap2.3,
+             * therefore, kap2.3 or higher version can not parse kap2.2 stats job info.
+             *
              */
             logger.warn("Could not parse old version table stats job. job_id:{}, table_name:{}" + jobID + table);
         }
@@ -171,7 +182,7 @@ public class HiveTableExtSampleJob extends CubingJob {
             return null;
         }
         ExecutableState state = exeMgt.getOutput(jobID).getState();
-        if (ExecutableState.RUNNING == state || ExecutableState.READY == state) {
+        if (ExecutableState.RUNNING == state || ExecutableState.READY == state || ExecutableState.STOPPED == state) {
             return jobID;
         }
         return null;

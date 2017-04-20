@@ -58,7 +58,7 @@ import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
 
 public class ModelStatsJob extends AbstractHadoopJob {
     private static final Logger logger = LoggerFactory.getLogger(ModelStatsJob.class);
-    
+
     public static final String JOB_TITLE = "KAP DataModel stats job";
 
     @SuppressWarnings("static-access")
@@ -99,8 +99,7 @@ public class ModelStatsJob extends AbstractHadoopJob {
 
         Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
         FileOutputFormat.setOutputPath(job, output);
-        job.getConfiguration().set("dfs.block.size", "67108864");
-
+        job.getConfiguration().set("mapreduce.output.fileoutputformat.compress", "false");
         // Mapper
         String fullTableName = kylinConfig.getHiveDatabaseForIntermediateTable() + "." + flatTableDesc.getTableName();
         IMRInput.IMRTableInputFormat tableInputFormat = new HiveMRInput.HiveTableInputFormat(fullTableName);

@@ -24,28 +24,37 @@
 
 package io.kyligence.kap.source.hive.tablestats;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.Test;
 
 import junit.framework.TestCase;
 
-public class HiveTableExtTest extends TestCase {
+public class HiveTableExtSamplerTest extends TestCase {
     @Test
     public void testHiveSample() {
-        String[] stringValues = { "I love China", "", "麒麟最牛逼啊", "USA", "what is your name", "yes, I like it", "true", "Dinner is perfect", "Not very good" };
+        String[] stringValues = { "I love China", "", "麒麟最牛逼啊", "USA", "what is your name", "USA", "yes, I like it", "true", "Dinner is perfect", "Not very good" };
         String[] decimalValues = { "1.232323232434", "3.23232323", "-1.3232", "434.223232", "232.22323" };
         HiveTableExtSampler sampler = new HiveTableExtSampler();
         sampler.setDataType("varchar");
 
         for (int i = 0; i < stringValues.length; i++) {
-            sampler.samples(stringValues[i], 1);
+            sampler.samples(stringValues[i]);
         }
-        sampler.sync(0);
-        sampler.code();
-        sampler.getBuffer().flip();
-        sampler.decode(sampler.getBuffer());
+
+        List<Long> mapperRows = new ArrayList<>();
+        for (int i = 0; i < 10000; i++) {
+            mapperRows.add((long) i);
+        }
+
+        sampler.setMapperRows(mapperRows);
+        sampler.sync();
+        ByteBuffer buf = sampler.code();
+        buf.flip();
+        sampler.decode(buf);
 
         assertEquals("麒麟最牛逼啊", sampler.getMax());
         assertEquals(0, sampler.getMinLenValue().length());
@@ -56,13 +65,13 @@ public class HiveTableExtTest extends TestCase {
         sampler.setDataType("decimal");
 
         for (int i = 0; i < decimalValues.length; i++) {
-            sampler.samples(decimalValues[i], 0);
+            sampler.samples(decimalValues[i]);
         }
 
-        sampler.sync(0);
-        sampler.code();
-        sampler.getBuffer().flip();
-        sampler.decode(sampler.getBuffer());
+        sampler.sync();
+        buf = sampler.code();
+        buf.flip();
+        sampler.decode(buf);
 
         assertEquals("434.223232", sampler.getMax());
         assertEquals(7, sampler.getMinLenValue().length());
@@ -79,12 +88,50 @@ public class HiveTableExtTest extends TestCase {
         for (int i = 0; i < 1000000; i++) {
             rawList.add(String.valueOf(i));
         }
-        int counter = 0;
         for (String element : rawList) {
-            sampler.samples(element, counter);
-            counter++;
+            sampler.samples(element);
         }
         String value = sampler.getRawSampleValue("1");
         assertNotSame("", value);
+    }
+
+    @Test
+    public void testDataSkew() {
+        List<String> skewSamples = new ArrayList<>();
+        int counter = 5000000;
+        for (int i = 0; i < counter; i++) {
+            if (i > counter / 2)
+                skewSamples.add(String.valueOf(0));
+            else {
+                String v = UUID.randomUUID().toString();
+                skewSamples.add(v);
+            }
+        }
+        HiveTableExtSampler sampler = new HiveTableExtSampler();
+        sampler.setDataType("varchar");
+
+        for (String e : skewSamples) {
+            sampler.samples(e);
+        }
+        sampler.sync();
+        ByteBuffer buf = sampler.code();
+        buf.flip();
+        sampler.decode(buf);
+        assertEquals(counter / 2 - 1, (long) sampler.getTopN().getTopNCounter().get("0"));
+    }
+
+    @Test
+    public void testModelStats() {
+        HiveTableExtSampler sampler = new HiveTableExtSampler(0, 3);
+        sampler.setDataType("varchar");
+
+        String[][] sampleValues = { { "1", "2", "3" }, { "4", "5", "6" }, { "7", "8", "9" } };
+
+        for (int i = 0; i < sampleValues.length; i++)
+            sampler.samples(sampleValues[i]);
+
+        ByteBuffer buf = sampler.code();
+        buf.flip();
+        sampler.decode(buf);
     }
 }

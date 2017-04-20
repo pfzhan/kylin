@@ -99,8 +99,7 @@ public class ModelStatsReducer extends KylinReducer<IntWritable, BytesWritable, 
         while (it.hasNext()) {
             int key = it.next();
             HiveTableExtSampler sampler = samplerMap.get(key);
-            sampler.code();
-            context.write(new IntWritable(key), new BytesWritable(sampler.getBuffer().array(), sampler.getBuffer().limit()));
+            context.write(new IntWritable(key), new BytesWritable(sampler.code().array(), sampler.code().limit()));
             sampler.clean();
         }
     }

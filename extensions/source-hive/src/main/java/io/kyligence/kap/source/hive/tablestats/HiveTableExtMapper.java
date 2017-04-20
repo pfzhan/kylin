@@ -25,6 +25,7 @@
 package io.kyligence.kap.source.hive.tablestats;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -34,6 +35,7 @@ import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapred.FileSplit;
 import org.apache.hive.hcatalog.mapreduce.HCatSplit;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.mr.IMRInput;
 import org.apache.kylin.engine.mr.KylinMapper;
@@ -66,6 +68,8 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
 
         bindCurrentConfiguration(conf);
         KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
+        KapConfig kapConfig = KapConfig.getInstanceFromEnv();
+        int sampleFrequency = kapConfig.getStatsSampleFrequency();
 
         String tableName = conf.get(BatchConstants.CFG_TABLE_NAME);
         tableDesc = MetadataManager.getInstance(config).getTableDesc(tableName);
@@ -75,6 +79,7 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
             HiveTableExtSampler sampler = new HiveTableExtSampler();
             sampler.setDataType(columns[i].getType().getName());
             sampler.setColumnName(columns[i].getName());
+            sampler.setStatsSampleFrequency(sampleFrequency);
             samplerMap.put(i, sampler);
         }
     }
@@ -89,7 +94,7 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
         String[] values = tableInputFormat.parseMapperInput(value);
         for (int m = 0; m < columns.length; m++) {
             String fieldValue = values[m];
-            samplerMap.get(m).samples(fieldValue, counter);
+            samplerMap.get(m).samples(fieldValue);
         }
         counter++;
     }
@@ -100,9 +105,9 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
         while (it.hasNext()) {
             int key = it.next();
             HiveTableExtSampler sampler = samplerMap.get(key);
-            sampler.sync(counter);
-            sampler.code();
-            context.write(new IntWritable(key), new BytesWritable(sampler.getBuffer().array(), sampler.getBuffer().limit()));
+            sampler.sync();
+            ByteBuffer buf = sampler.code();
+            context.write(new IntWritable(key), new BytesWritable(buf.array(), buf.position()));
             sampler.clean();
         }
     }

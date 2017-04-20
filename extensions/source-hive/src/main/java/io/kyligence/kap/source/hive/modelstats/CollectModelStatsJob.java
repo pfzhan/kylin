@@ -47,10 +47,12 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
+import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampleJob;
 
 public class CollectModelStatsJob extends CubingJob {
     private static final Logger logger = LoggerFactory.getLogger(CollectModelStatsJob.class);
@@ -87,34 +89,66 @@ public class CollectModelStatsJob extends CubingJob {
         IJoinedFlatTableDesc flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc);
         JobEngineConfig jobConf = new JobEngineConfig(config);
 
-        //Step1 Create Flat Table
+        String factTableName = dataModelDesc.getRootFactTable().getTableIdentity();
+        TableExtDesc factTableExtDesc = MetadataManager.getInstance(config).getTableExt(factTableName);
+
+        // Do table stats firstly
+        if (factTableExtDesc.getColumnStats().size() == 0) {
+            HiveTableExtSampleJob.addStatsSteps(factTableName, config, 0, modelStatsJob);
+        }
+
+        //Step1: check duplicate key
+        checkDuplicateKeyStep(modelStatsJob, modelName);
+        //Step2: check data skew
+        checkDataSkewStep(modelStatsJob, modelName);
+        //step3: create flat table
         modelStatsJob.addTask(createStatsFlatTableStep(jobConf, flatTableDesc, modelStatsJob.getId()));
-
-        String samplesOutPath = getOutputPath(config, modelStatsJob.getId()) + modelName;
-        String samplesParam = "-model " + modelName + " -output " + samplesOutPath;
-        MapReduceExecutable step1 = new MapReduceExecutable();
-        step1.setName("Extract stats from model " + modelName);
-        step1.setMapReduceJobClass(ModelStatsJob.class);
-        step1.setMapReduceParams(samplesParam);
-
-        //Step2 Collect Stats
-        modelStatsJob.addTask(step1);
-
-        HadoopShellExecutable step2 = new HadoopShellExecutable();
-
-        //String updateParam = "-table " + flatTableDesc.getTableName() + " -output " + samplesOutPath + " -columnsize " + flatTableDesc.getAllColumns().size();
-        step2.setName("Move " + modelName + " stats to MetaData");
-        step2.setJobClass(ModelStatsUpdate.class);
-        step2.setJobParams(samplesParam);
-        modelStatsJob.addTask(step2);
-
-        //Step3 Delete Flat Table
+        //step4: extract model stats
+        extractModelStatsStep(modelStatsJob, config, modelName);
+        //step5: update model stats metadata
+        updateMetaStep(modelStatsJob, config, modelName);
+        //step6: clean up intermediate table
         modelStatsJob.addTask(deleteFlatTable(flatTableDesc.getTableName(), config));
 
         modelStats.setJodID(modelStatsJob.getId());
         modelStatsManager.saveModelStats(modelStats);
 
         return modelStatsJob;
+    }
+
+    private static void checkDuplicateKeyStep(CollectModelStatsJob modelStatsJob, String modelName) {
+        CheckLookupStep checkLookupStep = new CheckLookupStep();
+        checkLookupStep.setName("Check Duplicate Key");
+        checkLookupStep.setParam(CheckLookupStep.MODEL_NAME, modelName);
+        modelStatsJob.addTask(checkLookupStep);
+    }
+
+    private static void checkDataSkewStep(CollectModelStatsJob modelStatsJob, String modelName) {
+        CheckDataSkewStep checkDataSkewStep = new CheckDataSkewStep();
+        checkDataSkewStep.setName("Check Data Skew");
+        checkDataSkewStep.setParam(CheckLookupStep.MODEL_NAME, modelName);
+        modelStatsJob.addTask(checkDataSkewStep);
+
+    }
+
+    private static void extractModelStatsStep(CollectModelStatsJob modelStatsJob, KylinConfig config, String modelName) {
+        String outPath = getOutputPath(config, modelStatsJob.getId()) + modelName;
+        String param = "-model " + modelName + " -output " + outPath;
+        MapReduceExecutable extractStatsStep = new MapReduceExecutable();
+        extractStatsStep.setName("Extract Stats from Model: " + modelName);
+        extractStatsStep.setMapReduceJobClass(ModelStatsJob.class);
+        extractStatsStep.setMapReduceParams(param);
+        modelStatsJob.addTask(extractStatsStep);
+    }
+
+    private static void updateMetaStep(CollectModelStatsJob modelStatsJob, KylinConfig config, String modelName) {
+        String outPath = getOutputPath(config, modelStatsJob.getId()) + modelName;
+        HadoopShellExecutable updateMetaStep = new HadoopShellExecutable();
+        String param = "-model " + modelName + " -output " + outPath;
+        updateMetaStep.setName("Save Model' Stats");
+        updateMetaStep.setJobClass(ModelStatsUpdate.class);
+        updateMetaStep.setJobParams(param);
+        modelStatsJob.addTask(updateMetaStep);
     }
 
     public static String findRunningJob(String model, KylinConfig config) throws IOException {
@@ -133,7 +167,7 @@ public class CollectModelStatsJob extends CubingJob {
             return null;
         }
         ExecutableState state = exeMgt.getOutput(jobID).getState();
-        if (ExecutableState.RUNNING == state || ExecutableState.READY == state) {
+        if (ExecutableState.RUNNING == state || ExecutableState.READY == state || ExecutableState.STOPPED == state) {
             return jobID;
         }
 
@@ -179,5 +213,4 @@ public class CollectModelStatsJob extends CubingJob {
     private static String getOutputPath(KylinConfig config, String jobID) {
         return config.getHdfsWorkingDirectory() + "modelstats/" + jobID + "/";
     }
-
 }

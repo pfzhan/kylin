@@ -26,6 +26,7 @@ package io.kyligence.kap.cube.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
@@ -34,6 +35,9 @@ import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
 /*
 Used to create a flat table only contains dimensions for data model stats.
@@ -45,6 +49,7 @@ public class DataModelStatsFlatTableDesc implements IJoinedFlatTableDesc {
 
     private DataModelDesc dataModelDesc;
     private List<TblColRef> columnList = new ArrayList<>();
+    private Map<TblColRef, Integer> columnIndexMap = Maps.newHashMap();
 
     public DataModelStatsFlatTableDesc(DataModelDesc dataModelDesc) {
         this.dataModelDesc = dataModelDesc;
@@ -58,9 +63,19 @@ public class DataModelStatsFlatTableDesc implements IJoinedFlatTableDesc {
                 if (tblColRef == null) {
                     logger.error("Dimension: table name: {}; col name: {}", mdDesc.getTable(), col);
                 }
-                columnList.add(tblColRef);
+                addColumn(tblColRef);
             }
         }
+    }
+
+    private void addColumn(TblColRef col) {
+        if (columnIndexMap.containsKey(col))
+            return;
+
+        int columnIndex = columnIndexMap.size();
+        columnIndexMap.put(col, columnIndex);
+        columnList.add(col);
+        Preconditions.checkState(columnIndexMap.size() == columnList.size());
     }
 
     @Override
@@ -80,7 +95,11 @@ public class DataModelStatsFlatTableDesc implements IJoinedFlatTableDesc {
 
     @Override
     public int getColumnIndex(TblColRef colRef) {
-        return 0;
+        Integer index = columnIndexMap.get(colRef);
+        if (index == null)
+            return -1;
+
+        return index.intValue();
     }
 
     @Override
@@ -98,7 +117,8 @@ public class DataModelStatsFlatTableDesc implements IJoinedFlatTableDesc {
         return null;
     }
 
-    @Override public TblColRef getClusterBy() {
+    @Override
+    public TblColRef getClusterBy() {
         return null;
     }
 

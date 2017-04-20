@@ -25,6 +25,7 @@
 package io.kyligence.kap.source.hive.modelstats;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -82,9 +83,7 @@ public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, Byt
     public void doMap(T key, Object value, Context context) throws IOException, InterruptedException {
         String[] values = tableInputFormat.parseMapperInput(value);
         for (int m = 0; m < flatTableDesc.getAllColumns().size(); m++) {
-            String fieldValue = values[m];
-            if (fieldValue != null)
-                samplerMap.get(m).samples(values);
+            samplerMap.get(m).samples(values);
         }
         counter++;
     }
@@ -95,9 +94,9 @@ public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, Byt
         while (it.hasNext()) {
             int key = it.next();
             HiveTableExtSampler sampler = samplerMap.get(key);
-            sampler.setCounter(String.valueOf(counter));
-            sampler.code();
-            context.write(new IntWritable(key), new BytesWritable(sampler.getBuffer().array(), sampler.getBuffer().limit()));
+            sampler.sync();
+            ByteBuffer buf = sampler.code();
+            context.write(new IntWritable(key), new BytesWritable(buf.array(), buf.position()));
         }
     }
 }
