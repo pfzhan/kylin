@@ -73,10 +73,10 @@ public class ParquetRawReaderTest extends AbstractParquetFormatTest {
 
     @Test
     public void testReadPageByGroupAndPageIndex() throws Exception {
-        writeRows(groupSize);
+        writeRows(groupSize, false);
         ParquetRawReader reader = new ParquetRawReader.Builder().setPath(path).setConf(new Configuration()).build();
-        GeneralValuesReader valuesReader = reader.getValuesReader(0, 0, 1);
-        Assert.assertArrayEquals(valuesReader.readBytes().getBytes(), new byte[] { 2, 3 });
+        GeneralValuesReader valuesReader = reader.getValuesReader(0, 2, 1);
+        Assert.assertArrayEquals(valuesReader.readBytes().getBytes(), new byte[] { 2 });
         for (int i = 0; i < (ParquetConfig.RowsPerPage - 1); ++i) {
             Assert.assertNotNull(valuesReader.readBytes());
         }

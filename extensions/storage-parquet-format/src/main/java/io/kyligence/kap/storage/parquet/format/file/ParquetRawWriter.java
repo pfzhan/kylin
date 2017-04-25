@@ -249,9 +249,10 @@ public class ParquetRawWriter {
         for (int i = 0; i < columnCnt; ++i) {
             writer.startColumn(schema.getColumns().get(i), currentRowCntInGroup, codecName);
             for (int j = 0; j < currentPageCntInGroup; ++j) {
-                addIndex(currentRowGroup, i, j, writer.getPos());
                 if (onIndexV2) {
                     addGlobalPageIndex(currentRowGroup, i, totalPageCntToFile + j, writer.getPos());
+                } else {
+                    addIndex(currentRowGroup, i, j, writer.getPos());
                 }
                 BytesInput bi = pageBuffer[i][j].getBi();
                 CompressionCodec compressionCodec = CodecFactory.getCodec(codecName, conf);

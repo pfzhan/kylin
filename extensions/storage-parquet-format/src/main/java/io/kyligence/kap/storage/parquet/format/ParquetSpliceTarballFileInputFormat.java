@@ -56,7 +56,6 @@ import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.filter.UDF.MassInTupleFilter;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.parquet.io.api.Binary;
-import org.roaringbitmap.RoaringBitmap;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 import org.slf4j.Logger;
@@ -73,6 +72,7 @@ import io.kyligence.kap.storage.parquet.format.file.ParquetSpliceReader;
 import io.kyligence.kap.storage.parquet.format.filter.BinaryFilter;
 import io.kyligence.kap.storage.parquet.format.filter.BinaryFilterSerializer;
 import io.kyligence.kap.storage.parquet.format.filter.MassInValueProviderFactoryImpl;
+import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexReader;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexSpliceReader;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
@@ -109,10 +109,10 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
         private Text val = null; //reusing the val bytes, the returned bytes might contain useless tail, but user will use it as bytebuffer, so it's okay
 
         private ImmutableRoaringBitmap columnBitmap;
-        private Set<String> divs;
         private ReadStrategy readStrategy;
         private Map<Integer, Short> page2ShardMap;
         private Map<Integer, Long> page2CuboidMap;
+        private long cuboidId = -1;
         private long curPageIndex = -1;
         private int curKeyByteLength = -1;
 
@@ -153,25 +153,22 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
             FSDataInputStream inputStream = fileSystem.open(path);
             long indexLength = inputStream.readLong();
 
-            // Splice reader
-            ParquetSpliceReader spliceReader = new ParquetSpliceReader.Builder().setConf(conf).setPath(path).setColumnsBitmap(columnBitmap).setFileOffset(indexLength).build();
-
             // Required divs
             if (conf.get(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS) != null) {
-                String[] requiredCuboids = conf.get(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS).split(",");
-                divs = requiredDivs(requiredCuboids, spliceReader.getDivs());
-            } else {
-                divs = spliceReader.getDivs();
+                cuboidId = Long.valueOf(conf.get(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS));
             }
 
             // ReadStrategy
             readStrategy = ReadStrategy.valueOf(conf.get(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY));
             logger.info("Read Strategy is {}", readStrategy.toString());
+
+            // This block is not access in query
             if (readStrategy == ReadStrategy.KV) {
                 logger.info("Build page to shardId map");
+                ParquetSpliceReader spliceReader = new ParquetSpliceReader.Builder().setConf(conf).setPath(path).setColumnsBitmap(columnBitmap).setFileOffset(indexLength).build();
                 page2ShardMap = Maps.newHashMap();
                 page2CuboidMap = Maps.newHashMap();
-                for (String d : divs) {
+                for (String d : spliceReader.getDivs()) {
                     long cuboidId = getCuboididFromDiv(d);
                     short shardId = getShardidFromDiv(d);
                     Pair<Integer, Integer> range = spliceReader.getDivPageRange(d);
@@ -182,9 +179,16 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
                 }
             }
 
-            // Read page index if necessary
+            // Read page index if necessary, this block is only accessed in query
             String scanReqStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES);
-            MutableRoaringBitmap pageBitmap = null;
+            ImmutableRoaringBitmap pageBitmap = null;
+            ParquetPageIndexSpliceReader pageIndexSpliceReader;
+            try {
+                pageIndexSpliceReader = new ParquetPageIndexSpliceReader(inputStream, indexLength, ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE);
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+
             if (scanReqStr != null) {
                 final GTScanRequest gtScanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(scanReqStr.getBytes("ISO-8859-1")));
                 gtScanRequestThreadLocal.set(gtScanRequest);//for later use convenience
@@ -197,39 +201,31 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
 
                 TupleFilter filter = gtScanRequest.getFilterPushDown();
                 if (Boolean.valueOf(conf.get(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX)) && !filterIsNull(filter)) {
-                    ParquetPageIndexSpliceReader pageIndexSpliceReader;
-                    try {
-                        pageIndexSpliceReader = new ParquetPageIndexSpliceReader(inputStream, indexLength, ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE);
-                    } catch (ClassNotFoundException e) {
-                        throw new IOException(e);
-                    }
-
-                    for (String d : divs) {
-                        indexTable = new ParquetPageIndexTable(fileSystem, path, pageIndexSpliceReader.getIndexReader(d));
-                        logger.info("Starting to lookup inverted index");
-                        if (pageBitmap == null) {
-                            ImmutableRoaringBitmap localBitmap = indexTable.lookup(filter);
-                            logger.info("div {} bitmap {} filter {}", d, localBitmap, filter);
-                            pageBitmap = new MutableRoaringBitmap(new RoaringBitmap(localBitmap));
+                    MutableRoaringBitmap mutableRoaringBitmap = null;
+                    for (ParquetPageIndexReader divIndexReader : pageIndexSpliceReader.getIndexReaderByCuboid(cuboidId)) {
+                        indexTable = new ParquetPageIndexTable(fileSystem, path, divIndexReader);
+                        if (mutableRoaringBitmap == null) {
+                            mutableRoaringBitmap = new MutableRoaringBitmap(indexTable.lookup(filter).toRoaringBitmap());
                         } else {
-                            ImmutableRoaringBitmap localBitmap = indexTable.lookup(filter);
-                            logger.info("div {} bitmap {} filter {}", d, localBitmap, filter);
-                            pageBitmap.or(localBitmap);
+                            mutableRoaringBitmap.and(indexTable.lookup(filter));
                         }
                         indexTable.closeWithoutStream();
                     }
+                    pageBitmap = mutableRoaringBitmap.toImmutableRoaringBitmap();
+
                     logger.info("Inverted Index bitmap: {}", pageBitmap);
                     logger.info("read index takes: {} ms", (System.currentTimeMillis() - startTime));
                 }
             }
 
-            // bundle reader
-            if (pageBitmap != null) {
-                reader = new ParquetBundleReader.Builder().setConf(conf).setPath(path).setColumnsBitmap(columnBitmap).setPageBitset(pageBitmap.toImmutableRoaringBitmap()).setFileOffset(indexLength).build();
-            } else {
-                reader = spliceReader.getDivReader(divs);
+            // query whole cuboid
+            if (pageBitmap == null && cuboidId >= 0) {
+                pageBitmap = pageIndexSpliceReader.getFullBitmap(cuboidId);
             }
 
+            reader = new ParquetBundleReader.Builder().setConf(conf).setPath(path).setColumnsBitmap(columnBitmap).setPageBitset(pageBitmap).setFileOffset(indexLength).build();
+
+            // init val
             String gtMaxLengthStr = conf.get(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH);
             int gtMaxLength = gtMaxLengthStr == null ? 1024 : Integer.valueOf(gtMaxLengthStr);
             val = new Text();

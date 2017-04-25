@@ -62,7 +62,7 @@ public class ParquetSplicePageIndexMapper extends KylinMapper<ByteArrayListWrita
     protected String cubeName;
     protected String segmentID;
     protected long curCuboidId = -1;
-    protected short curShardId = -1;
+    protected String curDiv;
     protected CubeInstance cube;
     protected CubeDesc cubeDesc;
     protected CubeSegment cubeSegment;
@@ -105,11 +105,11 @@ public class ParquetSplicePageIndexMapper extends KylinMapper<ByteArrayListWrita
     public void doMap(ByteArrayListWritable key, IntWritable value, Context context) throws IOException {
         List<byte[]> keys = key.get();
         String div = new String(keys.get(0));
+
         long cuboidId = ParquetCubeSpliceOutputFormat.ParquetCubeSpliceWriter.getCuboididFromDiv(div);
-        short shardId = ParquetCubeSpliceOutputFormat.ParquetCubeSpliceWriter.getShardidFromDiv(div);
-        if (cuboidId != curCuboidId || shardId != curShardId) {
+        if (!div.equals(curDiv)) {
+            curDiv = div;
             curCuboidId = cuboidId;
-            curShardId = shardId;
             refreshWriter();
         }
 
@@ -155,7 +155,7 @@ public class ParquetSplicePageIndexMapper extends KylinMapper<ByteArrayListWrita
             logger.debug("Column Length:" + columnName[col] + "=" + columnLength[col]);
         }
 
-        indexSpliceWriter.startDiv(curCuboidId + "-" + curShardId, columnName, columnLength, cardinality, onlyEQIndex);
+        indexSpliceWriter.startDiv(curCuboidId, columnName, columnLength, cardinality, onlyEQIndex);
     }
 
     @Override

@@ -26,6 +26,7 @@ package io.kyligence.kap.common.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
@@ -38,7 +39,7 @@ public class LocalTempMetadata {
     public static final String KAP_META_TEST_DATA = "../examples/test_case_data/localmeta";
     public static final String KYLIN_META_TEST_DATA = "../../kylin/examples/test_case_data/localmeta";
     public static final String TEMP_TEST_METADATA = "../examples/test_metadata";
-    
+
     private static final Logger logger = LoggerFactory.getLogger(LocalTempMetadata.class);
 
     private static boolean debug = false;
@@ -51,7 +52,7 @@ public class LocalTempMetadata {
             debug = false;
         }
     }
-    
+
     public static String prepareLocalTempMetadata() {
         try {
             if (debug) {
@@ -60,7 +61,7 @@ public class LocalTempMetadata {
                 logger.info("KAP_META_TEST_DATA=" + new File(KAP_META_TEST_DATA).getCanonicalPath());
                 logger.info("TEMP_TEST_METADATA=" + new File(TEMP_TEST_METADATA).getCanonicalPath());
             }
-            
+
             FileUtils.deleteDirectory(new File(TEMP_TEST_METADATA));
 
             // KAP files will overwrite Kylin files
@@ -68,8 +69,13 @@ public class LocalTempMetadata {
             FileUtils.copyDirectory(new File(KAP_META_TEST_DATA), new File(TEMP_TEST_METADATA));
 
             appendKylinProperties(TEMP_TEST_METADATA);
-            overrideEngineTypeAndStorageType(TEMP_TEST_METADATA);
-            
+            overrideEngineTypeAndStorageType(TEMP_TEST_METADATA, grabDefaultEngineTypes(TEMP_TEST_METADATA), null);
+
+            // It's a hack for engine 99
+            List<String> engine99File = new ArrayList<>();
+            engine99File.add("ci_left_join_cube.json");
+            overrideEngineTypeAndStorageType(TEMP_TEST_METADATA, new Pair<>(99, 99), engine99File);
+
             if (debug) {
                 File copy = new File(TEMP_TEST_METADATA + ".debug");
                 FileUtils.deleteDirectory(copy);
@@ -90,18 +96,17 @@ public class LocalTempMetadata {
             if (debug) {
                 logger.info("Appending kylin.properties from " + appendFile.getCanonicalPath());
             }
-            
+
             String appendStr = FileUtils.readFileToString(appendFile, "UTF-8");
             FileUtils.writeStringToFile(new File(tempMetadataDir, "kylin.properties"), appendStr, "UTF-8", true);
             appendFile.delete();
         }
     }
 
-    private static void overrideEngineTypeAndStorageType(String tempMetadataDir) throws IOException {
-        Pair<Integer, Integer> pair = grabDefaultEngineTypes(tempMetadataDir);
-        int engineType = pair.getFirst();
-        int storageType = pair.getSecond();
-        
+    private static void overrideEngineTypeAndStorageType(String tempMetadataDir, Pair<Integer, Integer> typePair, List<String> includeFiles) throws IOException {
+        int engineType = typePair.getFirst();
+        int storageType = typePair.getSecond();
+
         if (debug) {
             logger.info("Override engine type to be " + engineType);
             logger.info("Override storage type to be " + storageType);
@@ -110,6 +115,9 @@ public class LocalTempMetadata {
         // re-write cube_desc/*.json
         File cubeDescDir = new File(tempMetadataDir, "cube_desc");
         for (File f : cubeDescDir.listFiles()) {
+            if (includeFiles != null && !includeFiles.contains(f.getName())) {
+                continue;
+            }
             if (debug) {
                 logger.info("Process override " + f.getCanonicalPath());
             }
@@ -130,7 +138,7 @@ public class LocalTempMetadata {
     private static Pair<Integer, Integer> grabDefaultEngineTypes(String tempMetadataDir) throws IOException {
         int engineType = -1;
         int storageType = -1;
-        
+
         List<String> lines = FileUtils.readLines(new File(tempMetadataDir, "kylin.properties"), "UTF-8");
         for (String l : lines) {
             if (l.startsWith("kylin.engine.default")) {
@@ -140,12 +148,12 @@ public class LocalTempMetadata {
                 storageType = Integer.parseInt(l.substring(l.lastIndexOf('=') + 1).trim());
             }
         }
-        
+
         if (debug) {
             logger.info("Grap from kylin.properties, engine type is " + engineType);
             logger.info("Grap from kylin.properties, storage type is " + storageType);
         }
-        
+
         String tmp = System.getProperty("kylin.engine");
         if (!StringUtils.isBlank(tmp)) {
             engineType = Integer.parseInt(tmp.trim());
@@ -160,10 +168,10 @@ public class LocalTempMetadata {
                 logger.info("By system property, storage type is " + storageType);
             }
         }
-        
+
         if (engineType < 0 || storageType < 0)
             throw new IllegalStateException();
-        
+
         return Pair.newPair(engineType, storageType);
     }
 

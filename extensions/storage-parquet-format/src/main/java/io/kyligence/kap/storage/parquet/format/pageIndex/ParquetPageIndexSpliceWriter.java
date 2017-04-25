@@ -29,30 +29,29 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.List;
-import java.util.Map;
-
-import com.google.common.collect.Maps;
 
 public class ParquetPageIndexSpliceWriter implements Closeable {
     private boolean divStarted;
-    private String curDivision;
+    private long curCuboid;
     private DataOutputStream outputStream;
     private ParquetPageIndexWriter writer;
-    private Map<String, Long> divisionCache;
+    private ParquetPageIndexSpliceMeta cuboidMeta;
     private long size = 0;
+    private int pageStart = -1;
+    private int pageEnd = -1;
 
     public ParquetPageIndexSpliceWriter(DataOutputStream outputStream) {
         this.outputStream = outputStream;
-        divisionCache = Maps.newHashMap();
+        cuboidMeta = new ParquetPageIndexSpliceMeta();
     }
 
     public boolean isDivStarted() {
         return divStarted;
     }
 
-    public void startDiv(String division, String[] columnNames, int[] columnLength, int[] cardinality, boolean[] onlyEQIndex) throws IOException {
+    public void startDiv(long cuboid, String[] columnNames, int[] columnLength, int[] cardinality, boolean[] onlyEQIndex) throws IOException {
         divStarted = true;
-        curDivision = division;
+        curCuboid = cuboid;
         writer = new ParquetPageIndexWriter(columnNames, columnLength, cardinality, onlyEQIndex, outputStream);
     }
 
@@ -62,25 +61,40 @@ public class ParquetPageIndexSpliceWriter implements Closeable {
         }
         divStarted = false;
         writer.closeWithoutStream();
-        divisionCache.put(curDivision, size);
+        // the range is [pageStart, pageEnd + 1) == [pageStart, pageEnd]
+        cuboidMeta.put(curCuboid, size, pageStart, pageEnd + 1);
         size += writer.getCurOffset();
+        pageStart = -1;
+        pageEnd = -1;
     }
 
     public void write(byte[] rowKey, int pageId) {
         if (divStarted && null != writer) {
             writer.write(rowKey, pageId);
+            if (pageStart < 0) {
+                pageStart = pageId;
+            }
+            pageEnd = pageId;
         }
     }
 
     public void write(byte[] rowKey, int startOffset, int pageId) {
         if (divStarted && null != writer) {
             writer.write(rowKey, startOffset, pageId);
+            if (pageStart < 0) {
+                pageStart = pageId;
+            }
+            pageEnd = pageId;
         }
     }
 
     public void write(List<byte[]> rowKeys, int pageId) {
         if (divStarted && null != writer) {
             writer.write(rowKeys, pageId);
+            if (pageStart < 0) {
+                pageStart = pageId;
+            }
+            pageEnd = pageId;
         }
     }
 
@@ -101,7 +115,7 @@ public class ParquetPageIndexSpliceWriter implements Closeable {
         }
 
         ObjectOutputStream oos = new ObjectOutputStream(outputStream);
-        oos.writeObject(divisionCache);
+        oos.writeObject(cuboidMeta);
         oos.flush();
         outputStream.writeLong(size);
         outputStream.flush();

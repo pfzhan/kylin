@@ -26,14 +26,19 @@ package io.kyligence.kap.storage.parquet.format.pageIndex;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.util.Map;
+import java.util.List;
 
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.kylin.common.util.Pair;
+import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
+import org.roaringbitmap.buffer.MutableRoaringBitmap;
+
+import com.google.common.collect.Lists;
 
 public class ParquetPageIndexSpliceReader {
     private FSDataInputStream inputStream;
     private long startOffset;
-    private Map<String, Long> divisionCache;
+    private ParquetPageIndexSpliceMeta cuboidMeta;
 
     /**
      * Parquet index file splice reader
@@ -50,10 +55,22 @@ public class ParquetPageIndexSpliceReader {
         inputStream.seek(fileSize - 8);
         inputStream.seek(inputStream.readLong() + startOffset);
         ObjectInputStream ois = new ObjectInputStream(inputStream);
-        divisionCache = (Map<String, Long>) ois.readObject();
+        cuboidMeta = (ParquetPageIndexSpliceMeta) ois.readObject();
     }
 
-    public ParquetPageIndexReader getIndexReader(String div) throws IOException {
-        return new ParquetPageIndexReader(inputStream, divisionCache.get(div) + startOffset);
+    public List<ParquetPageIndexReader> getIndexReaderByCuboid(Long cuboid) throws IOException {
+        List<ParquetPageIndexReader> readerList = Lists.newArrayList();
+        for (ParquetPageIndexSpliceMeta.CuboidSpliceInfo offsetInfo: cuboidMeta.get(cuboid)) {
+            readerList.add(new ParquetPageIndexReader(inputStream, offsetInfo.getDivOffset() + startOffset, new Pair<>(offsetInfo.getDivPageRangeStart(), offsetInfo.getDivPageRangeEnd())));
+        }
+        return readerList;
+    }
+
+    public ImmutableRoaringBitmap getFullBitmap(long cuboid) {
+        MutableRoaringBitmap bitmap = new MutableRoaringBitmap();
+        for (ParquetPageIndexSpliceMeta.CuboidSpliceInfo pageRangeInfo: this.cuboidMeta.get(cuboid)) {
+            bitmap.add(pageRangeInfo.getDivPageRangeStart(), pageRangeInfo.getDivPageRangeEnd());
+        }
+        return bitmap.toImmutableRoaringBitmap();
     }
 }

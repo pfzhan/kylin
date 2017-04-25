@@ -45,8 +45,11 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.spi.LoggingEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HdfsAppender extends AppenderSkeleton {
+    public static final Logger logger = LoggerFactory.getLogger(HdfsAppender.class);
 
     private static long A_DAY_MILLIS = 24 * 60 * 60 * 1000;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -108,7 +111,7 @@ public class HdfsAppender extends AppenderSkeleton {
         this.executorId = UUID.randomUUID().toString();
         if (null == this.applicationId || this.applicationId.trim().isEmpty())
             this.applicationId = "default";
-        System.out.println("HdfsAppender Start with App ID: " + applicationId);
+        logger.info("HdfsAppender Start with App ID: " + applicationId);
 
         logBufferQue = new LinkedBlockingDeque<>(logQueueCapacity);
 
@@ -152,14 +155,14 @@ public class HdfsAppender extends AppenderSkeleton {
 
                         // Security framework already loaded the tokens into current ugi
                         Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
-                        System.out.println("Executing with tokens:");
+                        logger.info("Executing with tokens:");
                         for (Token<?> token : credentials.getAllTokens()) {
-                            System.out.println(token);
+                            logger.info("{}", token);
                         }
 
                         String sparkuser = System.getenv("SPARK_USER");
                         String user = System.getenv("USER");
-                        System.out.println("login user is " + UserGroupInformation.getLoginUser() + " SPARK_USER is " + sparkuser + " USER is " + user);
+                        logger.info("login user is " + UserGroupInformation.getLoginUser() + " SPARK_USER is " + sparkuser + " USER is " + user);
                         UserGroupInformation childUGI = UserGroupInformation.createRemoteUser(user);
                         // Add tokens to new user so that it may execute its task correctly.
                         childUGI.addCredentials(credentials);
@@ -222,13 +225,14 @@ public class HdfsAppender extends AppenderSkeleton {
                 outStream = fileSystem.create(outPath, true);
                 break;
             } catch (Exception e) {
-                System.err.println("fail to create stream for path: " + outPath);
+                logger.error("fail to create stream for path: " + outPath);
+                logger.error("", e);
             }
 
             try {
                 Thread.sleep(1000);//waiting for acl to turn to current user
             } catch (InterruptedException e) {
-                System.err.println("InterruptedException");
+                logger.error("InterruptedException {}", e);
             }
         }
         bufferedWriter = new BufferedWriter(new OutputStreamWriter(outStream));

@@ -28,6 +28,7 @@ import java.io.Closeable;
 import java.io.IOException;
 
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.kylin.common.util.Pair;
 
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexReader;
 
@@ -36,10 +37,15 @@ public class ParquetPageIndexReader implements Closeable {
     private int columnNum;
     private long[] startOffsets;
     private FSDataInputStream inputStream;
+    private Pair<Integer, Integer> pageRange;
 
     private int lastestUsedColumn = -1;
 
     public ParquetPageIndexReader(FSDataInputStream inputStream, long startOffset) throws IOException {
+        this(inputStream, startOffset, null);
+    }
+
+    public ParquetPageIndexReader(FSDataInputStream inputStream, long startOffset, Pair<Integer, Integer> pageRange) throws IOException{
         this.inputStream = inputStream;
         inputStream.seek(startOffset);
         this.columnNum = inputStream.readInt();
@@ -53,6 +59,8 @@ public class ParquetPageIndexReader implements Closeable {
         for (int i = 0; i < columnNum; i++) {
             columnIndexReaders[i] = new ColumnIndexReader(inputStream, startOffsets[i] + startOffset);
         }
+
+        this.pageRange = pageRange;
     }
 
     @Override
@@ -78,5 +86,9 @@ public class ParquetPageIndexReader implements Closeable {
 
     public int getPageTotalNum(int col) {
         return columnIndexReaders[col].getPageNum();
+    }
+
+    public Pair<Integer, Integer> getPageRange() {
+        return pageRange;
     }
 }

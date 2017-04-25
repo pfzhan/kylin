@@ -33,6 +33,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.ByteArray;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.ConstantTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
@@ -57,6 +58,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
     private Map<Integer, ParquetPageIndexReader> likeIndexReaders = Maps.newHashMap();
     private FileSystem fileSystem = null;
     private Path parquetIndexPath = null;
+    private Pair<Integer, Integer> pageRange = null;
 
     public ParquetPageIndexTable(FileSystem fileSystem, Path parquetIndexPath, FSDataInputStream inputStream, int startOffset) throws IOException {
         this.fileSystem = fileSystem;
@@ -68,6 +70,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
         this.fileSystem = fileSystem;
         this.parquetIndexPath = parquetIndexPath;
         this.indexReader = indexReader;
+        this.pageRange = indexReader.getPageRange();
     }
 
     // TODO: should use batch lookup
@@ -355,7 +358,11 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
     protected ImmutableRoaringBitmap getFullBitmap() {
         int totalPageNum = getPageTotalNum();
         MutableRoaringBitmap result = new MutableRoaringBitmap();
-        result.add(0L, (long) totalPageNum); // [0,totalPageNum)
+        if (pageRange == null) {
+            result.add(0, (long) totalPageNum); // [0,totalPageNum)
+        } else {
+            result.add(pageRange.getFirst(), pageRange.getSecond());
+        }
         return result;
     }
 
