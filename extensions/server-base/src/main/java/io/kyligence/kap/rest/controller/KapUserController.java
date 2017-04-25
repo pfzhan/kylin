@@ -219,6 +219,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
     @ResponseBody
     public void delete(@PathVariable("userName") String userName) {
         checkUserName(userName);
+        userObjMap.remove(userName);
 
         userService.deleteUser(userName);
     }
