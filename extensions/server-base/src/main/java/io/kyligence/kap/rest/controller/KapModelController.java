@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.job.JobInstance;
@@ -75,5 +76,11 @@ public class KapModelController extends BasicController {
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
         String jobId = CollectModelStatsJob.initCollectJob(project, modelName, submitter);
         return jobService.getJobInstance(jobId);
+    }
+
+    @RequestMapping(value = "{project}/{modelName}/diagnose", method = { RequestMethod.GET })
+    @ResponseBody
+    public Map<KapModelService.HEALTH_STATUS, List<String>> getModelDiagnosis(@PathVariable("project") String project, @PathVariable("modelName") String modelName) throws IOException {
+        return kapModelService.getDiagnoseResult(modelName);
     }
 }

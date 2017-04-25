@@ -60,7 +60,7 @@ public class ModelStats extends RootPersistentEntity {
     @JsonProperty("data_skew")
     private Map<String, List<SkewResult>> dataSkew = new HashMap<>();
     @JsonProperty("joint_result")
-    private Map<String, JoinResult> joinResult = new HashMap<>();
+    private List<JoinResult> joinResult = new ArrayList<>();
     @JsonProperty("duplicate_primary_keys")
     private List<DuplicatePK> duplicatePrimaryKeys = new ArrayList<>();
 
@@ -83,11 +83,11 @@ public class ModelStats extends RootPersistentEntity {
         return this.dataSkew;
     }
 
-    public void setJoinResult(Map<String, JoinResult> joinResult) {
+    public void setJoinResult(List<JoinResult> joinResult) {
         this.joinResult = joinResult;
     }
 
-    public Map<String, JoinResult> getJoinResult() {
+    public List<JoinResult> getJoinResult() {
         return joinResult;
     }
 
@@ -160,7 +160,7 @@ public class ModelStats extends RootPersistentEntity {
         return -1;
     }
 
-    String getDuplicationResult() {
+    public String getDuplicationResult() {
         StringBuilder ret = new StringBuilder();
         for (DuplicatePK dp : duplicatePrimaryKeys) {
             if (dp.getDuplication().size() > 0) {
@@ -168,11 +168,33 @@ public class ModelStats extends RootPersistentEntity {
                 ret.append(",");
                 ret.append(dp.getPrimaryKeys());
                 ret.append(",");
-                ret.append(dp.duplicationAsString());
+                ret.append(dp.toString());
                 ret.append(",");
                 ret.append(dp.getDuplication());
                 ret.append("\r\n");
             }
+        }
+        return ret.toString();
+    }
+
+    public String getJointResult() {
+        StringBuilder ret = new StringBuilder();
+        for (JoinResult e : joinResult) {
+            ret.append(e.toString());
+            ret.append("\r\n");
+        }
+        return ret.toString();
+    }
+
+    public String getSkewResult() {
+        StringBuilder ret = new StringBuilder();
+        for (Map.Entry<String, List<SkewResult>> e : dataSkew.entrySet()) {
+            ret.append(e.getKey());
+            ret.append(": ");
+            for (SkewResult s : e.getValue()) {
+                ret.append(s.toString());
+            }
+            ret.append("\r\n");
         }
         return ret.toString();
     }
@@ -187,11 +209,33 @@ public class ModelStats extends RootPersistentEntity {
         @JsonBackReference
         private ModelStats modelStats;
 
+        @JsonProperty("join_table_name")
+        private String joinTableName;
+
+        @JsonProperty("primary_key")
+        private String primaryKey;
+
         @JsonProperty("join_result_valid_count")
         private long joinResultValidCount;
 
         @JsonProperty("join_result_valid_ratio")
         private float joinResultValidRatio;
+
+        public void setPrimaryKey(String primaryKey) {
+            this.primaryKey = primaryKey;
+        }
+
+        public String getPrimaryKey() {
+            return this.primaryKey;
+        }
+
+        public void setJoinTableName(String joinTableName) {
+            this.joinTableName = joinTableName;
+        }
+
+        public String getJoinTableName() {
+            return this.joinTableName;
+        }
 
         public void setJoinResultValidCount(long joinResultValidCount) {
             this.joinResultValidCount = joinResultValidCount;
@@ -207,6 +251,18 @@ public class ModelStats extends RootPersistentEntity {
 
         public float getJoinResultRatio() {
             return this.joinResultValidRatio;
+        }
+
+        public String toString() {
+            StringBuilder s = new StringBuilder();
+            s.append(joinTableName);
+            s.append(", ");
+            s.append(primaryKey);
+            s.append(", ");
+            s.append(joinResultValidCount);
+            s.append(", ");
+            s.append(joinResultValidRatio);
+            return s.toString();
         }
     }
 
@@ -236,6 +292,14 @@ public class ModelStats extends RootPersistentEntity {
 
         public long getDataSkewCount() {
             return this.dataSkewCount;
+        }
+
+        public String toString() {
+            StringBuilder s = new StringBuilder();
+            s.append(dataSkewValue);
+            s.append(", ");
+            s.append(dataSkewCount);
+            return s.toString();
         }
     }
 
@@ -278,7 +342,7 @@ public class ModelStats extends RootPersistentEntity {
             return this.duplication;
         }
 
-        public String duplicationAsString() {
+        public String toString() {
             StringBuilder s = new StringBuilder();
             for (Map.Entry<String, Integer> e : this.duplication.entrySet()) {
                 s.append(e.getKey());

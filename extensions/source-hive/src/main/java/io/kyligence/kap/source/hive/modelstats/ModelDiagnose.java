@@ -205,14 +205,14 @@ public class ModelDiagnose {
             return;
         }
 
-        Map<String, ModelStats.JoinResult> joinResults = new HashMap<>();
+        List<ModelStats.JoinResult> joinResults = new ArrayList<>();
         float countFlatTable = (float) modelStats.getCounter();
         if (countFlatTable / countFact < FLAT_TABLE_RECORDS_RATION) {
             logger.warn("The records of model's flat table is too few, please check the join details");
             ModelStats.JoinResult joinResult = new ModelStats.JoinResult();
             joinResult.setJoinResultValidCount(modelStats.getCounter());
             joinResult.setJoinResultRatio(countFlatTable / countFact);
-            joinResults.put(ModelStats.JOIN_RESULT_OVERALL, joinResult);
+            joinResults.add(joinResult);
             modelStats.setJoinResult(joinResults);
             ModelStatsManager.getInstance(config).saveModelStats(modelStats);
             return;
@@ -232,9 +232,11 @@ public class ModelDiagnose {
             float ratio = (countFlatTable - (float) null_counter) / countFlatTable;
             if (ratio < LEFT_JOIN_NULL_TOLERANCE) {
                 ModelStats.JoinResult joinResult = new ModelStats.JoinResult();
+                joinResult.setJoinTableName(fTable.getAlias());
+                joinResult.setPrimaryKey(pkName);
                 joinResult.setJoinResultValidCount(modelStats.getCounter() - null_counter);
                 joinResult.setJoinResultRatio(ratio);
-                joinResults.put(pkName, joinResult);
+                joinResults.add(joinResult);
                 logger.warn("There are too many null value on fact table: {} left join lookup table: {}", factTableName, fTable.getTable());
             }
         }
