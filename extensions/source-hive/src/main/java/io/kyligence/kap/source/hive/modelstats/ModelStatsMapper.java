@@ -34,6 +34,7 @@ import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.mr.IMRInput;
 import org.apache.kylin.engine.mr.KylinMapper;
@@ -69,12 +70,15 @@ public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, Byt
         flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc);
         String fullTableName = config.getHiveDatabaseForIntermediateTable() + "." + flatTableDesc.getTableName();
         tableInputFormat = new HiveMRInput.HiveTableInputFormat(fullTableName);
+        KapConfig kapConfig = KapConfig.getInstanceFromEnv();
+        int sampleFrequency = kapConfig.getStatsSampleFrequency();
 
         List<TblColRef> columns = flatTableDesc.getAllColumns();
         for (int i = 0; i < columns.size(); i++) {
             HiveTableExtSampler sampler = new HiveTableExtSampler(i, columns.size());
             sampler.setDataType(columns.get(i).getType().getName());
             sampler.setColumnName(columns.get(i).getCanonicalName());
+            sampler.setStatsSampleFrequency(sampleFrequency);
             samplerMap.put(i, sampler);
         }
     }
