@@ -371,6 +371,9 @@ public class HiveTableExtSampler implements Serializable {
 
         counter++;
 
+        if (0 != counter % statsSampleFrequency)
+            return;
+
         int i = 1;
 
         if (isNullValue(values[curIndex]))
