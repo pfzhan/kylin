@@ -65,10 +65,16 @@ public class ModelDiagnose {
      */
     public static void checkDuplicatePKOnLookups(ModelStats modelStats, DataModelDesc dataModelDesc, KylinConfig config) throws IOException {
         List<ModelStats.DuplicatePK> dupPKList = new ArrayList<>();
+        MetadataManager metadataManager = MetadataManager.getInstance(config);
         for (JoinTableDesc fTable : dataModelDesc.getJoinTables()) {
+            TableDesc tableDesc = metadataManager.getTableDesc(fTable.getTable());
+            if (tableDesc.isView()) {
+                String tableName = tableDesc.getMaterializedName();
+                tableDesc.setDatabase(config.getHiveDatabaseForIntermediateTable());
+                tableDesc.setName(tableName);
+            }
             List<TblColRef> primaryKeys = new ArrayList<>();
             primaryKeys.addAll(Arrays.asList(fTable.getJoin().getPrimaryKeyColumns()));
-            TableDesc tableDesc = MetadataManager.getInstance(config).getTableDesc(fTable.getTable());
             ReadableTable hiveTable = SourceFactory.createReadableTable(tableDesc);
             SnapshotTable snapshot = SnapshotManager.getInstance(config).buildSnapshot(hiveTable, tableDesc);
             ModelStats.DuplicatePK dupPK = checkLookup(tableDesc, primaryKeys, snapshot);
@@ -162,7 +168,10 @@ public class ModelDiagnose {
             // Only process foreignKeys.size = 1
             if (foreignKeys.size() != 1)
                 continue;
-            String fkColName = foreignKeys.get(0).getIdentity();
+            TblColRef tblColRef = foreignKeys.get(0);
+            String fkColName = tblColRef.getIdentity();
+            if (null == tableDesc.findColumnByName(fkColName))
+                continue;
             int fkColIndex = tableDesc.findColumnByName(fkColName).getZeroBasedIndex();
             List<ModelStats.SkewResult> skewList = new ArrayList<>();
             Long null_count = tableExtDesc.getColumnStats().get(fkColIndex).getNullCount();

@@ -81,8 +81,6 @@ public class ModelStatsReducer extends KylinReducer<IntWritable, BytesWritable, 
                 samplerMap.get(skey);
             }
             sampler.setDataType(columns.get(skey).getType().getName());
-            sampler.setColumnName(columns.get(skey).getCanonicalName());
-
             samplerMap.get(skey).merge(sampler);
         }
     }

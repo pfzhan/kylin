@@ -31,6 +31,7 @@ import java.util.Map;
 import org.apache.kylin.job.JobInstance;
 import org.apache.kylin.job.exception.JobException;
 import org.apache.kylin.rest.controller.BasicController;
+import org.apache.kylin.rest.request.JobBuildRequest;
 import org.apache.kylin.rest.service.JobService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -72,9 +74,10 @@ public class KapModelController extends BasicController {
 
     @RequestMapping(value = "{project}/{modelName}/stats", method = { RequestMethod.POST })
     @ResponseBody
-    public JobInstance getModelStats(@PathVariable("project") String project, @PathVariable("modelName") String modelName) throws IOException, JobException {
+    public JobInstance getModelStats(@PathVariable("project") String project, @PathVariable("modelName") String modelName, @RequestBody JobBuildRequest req) throws IOException, JobException {
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
-        String jobId = CollectModelStatsJob.initCollectJob(project, modelName, submitter);
+        CollectModelStatsJob job = new CollectModelStatsJob(project, modelName, submitter, req.getStartTime(), req.getEndTime());
+        String jobId = job.initCollectJob();
         return jobService.getJobInstance(jobId);
     }
 

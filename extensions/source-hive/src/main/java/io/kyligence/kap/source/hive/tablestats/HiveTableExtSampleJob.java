@@ -194,6 +194,7 @@ public class HiveTableExtSampleJob extends CubingJob {
         step.setName("Materialized View " + desc.getName());
         HiveCmdBuilder hiveCmdBuilder = new HiveCmdBuilder();
 
+        hiveCmdBuilder.setHiveConfProps(conf.getHivePropsFromFile());
         StringBuilder createIntermediateTableHql = new StringBuilder();
         createIntermediateTableHql.append("USE " + desc.getDatabase() + ";").append("\n");
         createIntermediateTableHql.append("DROP TABLE IF EXISTS " + desc.getMaterializedName() + ";\n");
@@ -216,6 +217,7 @@ public class HiveTableExtSampleJob extends CubingJob {
         step.setName("Drop Intermediate Table " + desc.getMaterializedName());
         HiveCmdBuilder hiveCmdBuilder = new HiveCmdBuilder();
 
+        hiveCmdBuilder.setHiveConfProps(new JobEngineConfig(config).getHivePropsFromFile());
         StringBuilder createIntermediateTableHql = new StringBuilder();
         createIntermediateTableHql.append("USE " + desc.getDatabase() + ";\n");
         createIntermediateTableHql.append("DROP TABLE IF EXISTS " + desc.getMaterializedName() + ";\n");
