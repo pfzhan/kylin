@@ -82,6 +82,6 @@ public class DerivedDimensionProposerTest {
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
         newCubeDesc.init(kylinConfig);
         System.out.println(JsonUtil.writeValueAsIndentString(newCubeDesc));
-        Assert.assertEquals(20, newCubeDesc.getDimensions().size());
+        Assert.assertEquals(18, newCubeDesc.getDimensions().size());
     }
 }

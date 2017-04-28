@@ -34,10 +34,12 @@ import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.junit.AfterClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.query.mockup.Utils;
 
+@Ignore
 public class ModelingMasterTest {
     @AfterClass
     public static void afterClass() {
