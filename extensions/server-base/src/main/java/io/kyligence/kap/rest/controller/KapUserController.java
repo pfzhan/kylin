@@ -35,7 +35,6 @@ import javax.annotation.PostConstruct;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.service.UserService;
-import org.apache.kylin.rest.service.UserService.UserGrantedAuthority;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,9 +72,12 @@ public class KapUserController extends BasicController implements UserDetailsSer
     private Pattern bcryptPattern;
     private BCryptPasswordEncoder pwdEncoder;
     private Map<String, UserObj> userObjMap;
-    private static final UserGrantedAuthority ADMIN_AUTH = new UserGrantedAuthority(Constant.ROLE_ADMIN);
-    private static final UserGrantedAuthority ANALYST_AUTH = new UserGrantedAuthority(Constant.ROLE_ANALYST);
-    private static final UserGrantedAuthority MODELER_AUTH = new UserGrantedAuthority(Constant.ROLE_MODELER);
+    private static final UserService.UserGrantedAuthority
+        ADMIN_AUTH = new UserService.UserGrantedAuthority(Constant.ROLE_ADMIN);
+    private static final UserService.UserGrantedAuthority
+        ANALYST_AUTH = new UserService.UserGrantedAuthority(Constant.ROLE_ANALYST);
+    private static final UserService.UserGrantedAuthority
+        MODELER_AUTH = new UserService.UserGrantedAuthority(Constant.ROLE_MODELER);
 
     @PostConstruct
     public void init() throws IOException {
@@ -235,7 +237,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
     private static final String DISABLED_ROLE = "--disabled--";
 
     private UserDetails userObjToDetails(UserObj obj) {
-        List<UserGrantedAuthority> detailRoles = Lists.newArrayList(obj.getAuthorities());
+        List<UserService.UserGrantedAuthority> detailRoles = Lists.newArrayList(obj.getAuthorities());
         if (detailRoles.contains(ADMIN_AUTH)) {
             if (!detailRoles.contains(MODELER_AUTH)) {
                 logger.info("For ADMIN authority, add MODELER authority automatically");
@@ -250,7 +252,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
             }
         }
         if (obj.isDisabled()) {
-            detailRoles.add(new UserGrantedAuthority(DISABLED_ROLE));
+            detailRoles.add(new UserService.UserGrantedAuthority(DISABLED_ROLE));
         }
         return new User(obj.getUsername(), obj.getPassword(), detailRoles);
     }
@@ -261,14 +263,14 @@ public class KapUserController extends BasicController implements UserDetailsSer
         obj.setUsername(details.getUsername());
         obj.setPassword(details.getPassword());
 
-        List<UserGrantedAuthority> roles = Lists.newArrayList();
+        List<UserService.UserGrantedAuthority> roles = Lists.newArrayList();
         if (details.getAuthorities() != null) {
             for (GrantedAuthority a : details.getAuthorities()) {
                 if (DISABLED_ROLE.equals(a.getAuthority())) {
                     obj.setDisabled(true);
                     continue;
                 }
-                roles.add(new UserGrantedAuthority(a.getAuthority()));
+                roles.add(new UserService.UserGrantedAuthority(a.getAuthority()));
             }
         }
 
@@ -364,7 +366,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
 
         private String username;
         private String password;
-        private List<UserGrantedAuthority> authorities;
+        private List<UserService.UserGrantedAuthority> authorities;
         private boolean disabled;
         private boolean defaultPassword;
         private boolean locked;
@@ -384,7 +386,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
             this.authorities = Lists.newArrayList();
 
             for (String a : authorities) {
-                this.authorities.add(new UserGrantedAuthority(a));
+                this.authorities.add(new UserService.UserGrantedAuthority(a));
             }
         }
 
@@ -398,7 +400,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
             this.authorities = Lists.newArrayList();
 
             for (String a : authorities) {
-                this.authorities.add(new UserGrantedAuthority(a));
+                this.authorities.add(new UserService.UserGrantedAuthority(a));
             }
         }
 
@@ -418,11 +420,11 @@ public class KapUserController extends BasicController implements UserDetailsSer
             this.password = password;
         }
 
-        public List<UserGrantedAuthority> getAuthorities() {
+        public List<UserService.UserGrantedAuthority> getAuthorities() {
             return authorities;
         }
 
-        public void setAuthorities(List<UserGrantedAuthority> authorities) {
+        public void setAuthorities(List<UserService.UserGrantedAuthority> authorities) {
             this.authorities = authorities;
         }
 

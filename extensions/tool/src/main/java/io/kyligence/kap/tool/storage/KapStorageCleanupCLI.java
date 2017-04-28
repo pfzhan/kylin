@@ -43,7 +43,7 @@ import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.steps.CubingExecutableUtil;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.tool.StorageCleanupJob;
+import org.apache.kylin.rest.job.StorageCleanupJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

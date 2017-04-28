@@ -28,6 +28,10 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-tool</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-assembly</artifactId>
         </dependency>
         <dependency>
