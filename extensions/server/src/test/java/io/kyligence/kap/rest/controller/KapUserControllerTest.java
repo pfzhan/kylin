@@ -27,7 +27,7 @@ package io.kyligence.kap.rest.controller;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.kylin.rest.service.UserService.UserGrantedAuthority;
+import org.apache.kylin.rest.service.UserGrantedAuthority;
 import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
