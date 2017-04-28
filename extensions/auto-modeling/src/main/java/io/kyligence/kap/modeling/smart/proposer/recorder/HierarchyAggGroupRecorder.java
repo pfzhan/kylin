@@ -52,6 +52,20 @@ public class HierarchyAggGroupRecorder {
         parentNode.addNext(getNode(child));
     }
 
+    private void remove(String col) {
+        Node node = nodeMap.get(col);
+        if (node != null) {
+            for (Node n : node.children) {
+                n.parent.addAll(node.parent);
+            }
+            for (Node n : node.parent) {
+                n.children.remove(node);
+            }
+            node.parent.addAll(node.children);
+            nodeMap.remove(col);
+        }
+    }
+
     private List<String> findLongestPath(Collection<Node> nodes) {
         // find heads
         Set<Node> nodeHeads = Sets.newHashSet();
@@ -85,7 +99,17 @@ public class HierarchyAggGroupRecorder {
         }
     }
 
-    public List<List<String>> getResult() {
+    public List<List<String>> getResult(List<List<String>>... ignored) {
+        if (ignored != null) {
+            for (List<List<String>> l1 : ignored) {
+                for (List<String> l2 : l1) {
+                    for (String l3 : l2) {
+                        remove(l3);
+                    }
+                }
+            }
+        }
+
         List<List<String>> result = Lists.newArrayList();
         while (!nodeMap.isEmpty()) {
             List<String> longestPath = findLongestPath(nodeMap.values());

@@ -140,7 +140,11 @@ public class ModelStats extends RootPersistentEntity {
     }
 
     public long getSingleColumnCardinalityVal(String col) {
-        return singleColumnCardinality.get(col);
+        if (singleColumnCardinality.containsKey(col)) {
+            return singleColumnCardinality.get(col);
+        } else {
+            return -1;
+        }
     }
 
     public long getDoubleColumnCardinalityVal(String col1, String col2) {

@@ -1,0 +1,9 @@
+{
+  "uuid" : null,
+  "last_modified" : 1492916031313,
+  "version" : "2.0.0",
+  "model_name" : "customer_vorder_model",
+  "last_build_job_id" : "83ac5415-a106-44f0-beaa-5076e763a148",
+  "single_column_cardinality" : { },
+  "double_columns_cardinality" : { }
+}

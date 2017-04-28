@@ -84,7 +84,6 @@ public class MockupQueryExecutorTest extends LocalFileMetadataTestCase {
             validateResult(cubeInstance, gtRequest);
         }
 
-        @Override
         public Object[] getResult() {
             return new Object[] { cubeInstance, gtRequest };
         }

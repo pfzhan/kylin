@@ -1,0 +1,21 @@
+{
+  "uuid" : "2fbca32a-a33e-4b69-83dd-0bb8b1f8c91b",
+  "version" : "1.6.1",
+  "name" : "learn_kylin",
+  "tables" : [ "DEFAULT.KYLIN_CAL_DT", "DEFAULT.KYLIN_CATEGORY_GROUPINGS", "DEFAULT.KYLIN_SALES" ],
+  "owner" : null,
+  "status" : null,
+  "description" : null,
+  "models" : [ "kylin_sales_model" ],
+  "last_modified" : 1492071244904,
+  "create_time_utc" : 0,
+  "last_update_time" : null,
+  "realizations" : [ {
+    "type" : "CUBE",
+    "realization" : "kylin_sales_cube"
+  }, {
+    "type" : "CUBE",
+    "realization" : "test"
+  } ],
+  "ext_filters" : [ ]
+}

@@ -73,7 +73,11 @@ public class QueryStatsExtractor {
                 KylinConfig.setKylinConfigThreadLocal(config);
                 try (MockupQueryExecutor queryExecutor = new MockupQueryExecutor(queryRecorder)) {
                     for (String sql : sqls) {
-                        queryExecutor.execute(projectName, sql);
+                        try {
+                            queryExecutor.execute(projectName, sql);
+                        } catch (Exception e) {
+                            // ignore
+                        }
                     }
                     KylinConfig.destroyInstance();
                     return queryRecorder.getResult();

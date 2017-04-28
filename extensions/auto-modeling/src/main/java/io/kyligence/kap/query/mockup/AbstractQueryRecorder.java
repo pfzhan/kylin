@@ -31,6 +31,4 @@ public abstract class AbstractQueryRecorder<T> {
     public static ThreadLocal<AbstractQueryRecorder> CURRENT = new ThreadLocal<>();
 
     public abstract void record(CubeInstance cubeInstance, GTCubeStorageQueryRequest gtRequest);
-
-    public abstract T getResult();
 }

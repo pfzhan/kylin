@@ -69,7 +69,6 @@ public class QueryStatsRecorder extends AbstractQueryRecorder<QueryStats> {
         queryStats.addTotalQueries();
     }
 
-    @Override
     public QueryStats getResult() {
         return queryStats;
     }

@@ -31,15 +31,16 @@ public class Constants {
     public final static int DIM_ENCODING_DICT_CARDINALITY_MAX = 1000000;
     public final static int DIM_ENCODING_FIXLEN_LENGTH_MAX = Integer.MAX_VALUE;
     public final static int DIM_UHC_MIN = 1000000;
-    public final static int DIM_JOINT_FORCE_CARDINALITY_GROUP_MAX = 100;
+    public final static int DIM_JOINT_FORCE_CARDINALITY_GROUP_MAX = 64;
     public final static int DIM_JOINT_FORCE_CARDINALITY_COL_MAX = 20;
-    public final static double DIM_DERIVED_PK_RATIO = 0.5;
+    public final static double DIM_DERIVED_PK_RATIO = 0.5; // 2~3
     public final static int DIM_MANDATORY_FORCE_CARDINALITY_MAX = 1;
-    public final static double DIM_AGG_GROUP_APPROX_EQUAL_MAX = 1.15;
-    public final static double DIM_AGG_GROUP_APPROX_EQUAL_MIN = 0.85;
+    public final static double DIM_AGG_GROUP_APPROX_EQUAL_MAX = 1.1;
+    public final static double DIM_AGG_GROUP_APPROX_EQUAL_MIN = 0.9;
     public final static int DIM_AGG_GROUP_JOINT_ELEMENTS_MAX = 5;
     public final static int DIM_AGG_GROUP_MANDATORY_QUERY_MIN = 15;
-    public final static double DIM_ROWKEY_FILRER_PROMOTION_TIMES = 1.2;
+    public final static double DIM_ROWKEY_FILRER_PROMOTION_TIMES = 100000;
+    public final static double DIM_AGG_GROUP_DIFF_MIN = 0.01;
 
     // values
     public final static String DIM_DEREIVED_COLUMN_NAME = "{FK}";
@@ -49,4 +50,6 @@ public class Constants {
     // coe
     public final static int COE_PHYSCAL = 1;
     public final static int COE_BUSINESS = 1;
+
+    public final static boolean DOMAIN_USE_QUERY = false;
 }

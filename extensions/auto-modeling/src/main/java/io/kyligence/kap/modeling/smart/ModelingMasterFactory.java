@@ -28,6 +28,9 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 
+import io.kyligence.kap.modeling.smart.query.QueryStats;
+import io.kyligence.kap.modeling.smart.stats.ICubeStats;
+
 public class ModelingMasterFactory {
     public static ModelingMaster create(KylinConfig kylinConfig, DataModelDesc modelDesc) {
         return create(kylinConfig, modelDesc, null);
@@ -47,6 +50,12 @@ public class ModelingMasterFactory {
     public static ModelingMaster create(KylinConfig kylinConfig, CubeDesc cubeDesc, String[] sqls) {
         ModelingContextBuilder contextBuilder = new ModelingContextBuilder(kylinConfig);
         ModelingContext context = contextBuilder.buildFromCubeDesc(cubeDesc, sqls);
+        return new ModelingMaster(context);
+    }
+
+    public static ModelingMaster create(KylinConfig kylinConfig, CubeDesc cubeDesc, ICubeStats cubeStats, QueryStats queryStats) {
+        ModelingContextBuilder contextBuilder = new ModelingContextBuilder(kylinConfig);
+        ModelingContext context = contextBuilder.buildFromCubeDesc(cubeDesc, cubeStats, queryStats);
         return new ModelingMaster(context);
     }
 }

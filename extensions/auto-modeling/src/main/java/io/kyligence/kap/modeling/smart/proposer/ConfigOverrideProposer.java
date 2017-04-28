@@ -49,7 +49,7 @@ public class ConfigOverrideProposer extends AbstractProposer {
         }
         combinationMax = Long.highestOneBit(combinationMax) << 1;
 
-        int defaultMax = KylinConfig.createKylinConfig(new Properties()).getCubeAggrGroupMaxCombination();
+        long defaultMax = KylinConfig.createKylinConfig(new Properties()).getCubeAggrGroupMaxCombination();
         if (combinationMax > defaultMax) {
             workCubeDesc.getOverrideKylinProps().put("kylin.cube.aggrgroup.max-combination", Long.toString(combinationMax));
         }

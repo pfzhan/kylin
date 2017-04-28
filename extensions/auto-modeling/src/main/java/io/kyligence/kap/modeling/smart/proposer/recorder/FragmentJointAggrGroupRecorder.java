@@ -41,13 +41,23 @@ import io.kyligence.kap.modeling.smart.util.Constants;
 
 public class FragmentJointAggrGroupRecorder {
     private static final Logger logger = LoggerFactory.getLogger(FragmentJointAggrGroupRecorder.class);
-    private Set<Column> candidates = Sets.newHashSet();
+    private Map<String, Column> candidates = Maps.newHashMap();
 
     public void add(String col, double score) {
-        candidates.add(new Column(col, score));
+        candidates.put(col, new Column(col, score));
     }
 
-    public List<List<String>> getResult() {
+    public List<List<String>> getResult(List<List<String>>... ignored) {
+        if (ignored != null) {
+            for (List<List<String>> l1 : ignored) {
+                for (List<String> l2 : l1) {
+                    for (String l3 : l2) {
+                        candidates.remove(l3);
+                    }
+                }
+            }
+        }
+
         List<List<String>> result = Lists.newArrayList();
         result.addAll(groupByName());
         result.addAll(groupRandom());
@@ -61,11 +71,11 @@ public class FragmentJointAggrGroupRecorder {
         // TODO: In future, we can use DP to find the optimized solution.
         List<List<String>> result = Lists.newArrayList();
 
-        Iterator<Column> columnIter = candidates.iterator();
+        Iterator<Map.Entry<String, Column>> columnIter = candidates.entrySet().iterator();
         List<String> currGroup = Lists.newArrayList();
         double currScore = 1;
         while (columnIter.hasNext()) {
-            Column column = columnIter.next();
+            Column column = columnIter.next().getValue();
             if (currScore * column.score > Constants.DIM_JOINT_FORCE_CARDINALITY_GROUP_MAX || currGroup.size() >= Constants.DIM_AGG_GROUP_JOINT_ELEMENTS_MAX) {
                 if (currGroup.size() > 1) {
                     result.add(currGroup);
@@ -95,9 +105,9 @@ public class FragmentJointAggrGroupRecorder {
         Map<String, List<String>> prefixClustered = Maps.newHashMap();
         Map<String, List<String>> postfixClustered = Maps.newHashMap();
 
-        Iterator<Column> columnIter = candidates.iterator();
+        Iterator<Map.Entry<String, Column>> columnIter = candidates.entrySet().iterator();
         while (columnIter.hasNext()) {
-            Column column = columnIter.next();
+            Column column = columnIter.next().getValue();
             String columnName = column.name;
             String tblName = "";
             if (columnName.contains(".")) {

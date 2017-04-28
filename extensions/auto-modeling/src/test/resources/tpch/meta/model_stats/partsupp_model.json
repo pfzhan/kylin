@@ -1,0 +1,9 @@
+{
+  "uuid" : null,
+  "last_modified" : 1492916037795,
+  "version" : "2.0.0",
+  "model_name" : "partsupp_model",
+  "last_build_job_id" : "91d3b9ce-b7a8-44ce-ad05-846614291246",
+  "single_column_cardinality" : { },
+  "double_columns_cardinality" : { }
+}

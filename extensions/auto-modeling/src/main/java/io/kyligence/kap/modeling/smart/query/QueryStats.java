@@ -88,6 +88,19 @@ public class QueryStats {
         }
     }
 
+    public void putOneColumn(String colName, int filter, int groupBy, int appear) {
+        filters.put(colName, filter);
+        groupBys.put(colName, groupBy);
+        appears.put(colName, appear);
+    }
+
+    public void putPairColumn(String col1, String col2, int num) {
+        SortedSet<String> key = Sets.newTreeSet();
+        key.add(col1);
+        key.add(col2);
+        coocurrences.put(key, num);
+    }
+
     private void incMapVal(Map<String, Integer> map, String key) {
         Integer val = map.get(key);
         if (val == null) {
@@ -100,6 +113,10 @@ public class QueryStats {
         for (FunctionDesc measureFunc : measureFuncs) {
             measures.add(measureFunc);
         }
+    }
+
+    public void addMeasure(FunctionDesc measureFunc) {
+        measures.add(measureFunc);
     }
 
     public void addCuboid(long cuboidId) {

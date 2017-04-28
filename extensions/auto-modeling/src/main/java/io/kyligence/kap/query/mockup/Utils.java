@@ -31,7 +31,7 @@ import org.apache.kylin.common.KylinConfig;
 public class Utils {
     public static KylinConfig newKylinConfig(String metadataUrl) {
         Properties props = new Properties();
-        props.setProperty("kylin.cube.aggrgroup.max.combination", Integer.toString(Integer.MAX_VALUE - 1));
+        props.setProperty("kylin.cube.aggrgroup.max-combination", Long.toString(Long.MAX_VALUE - 1));
         props.setProperty("kylin.storage.provider.0", MockupStorage.class.getName());
         props.setProperty("kylin.storage.provider.1", MockupStorage.class.getName());
         props.setProperty("kylin.storage.provider.2", MockupStorage.class.getName());

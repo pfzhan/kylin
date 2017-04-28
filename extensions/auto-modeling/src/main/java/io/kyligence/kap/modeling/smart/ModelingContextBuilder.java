@@ -25,25 +25,35 @@
 package io.kyligence.kap.modeling.smart;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.cube.model.RowKeyColDesc;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.modeling.smart.domain.Domain;
 import io.kyligence.kap.modeling.smart.domain.ModelDomainBuilder;
 import io.kyligence.kap.modeling.smart.query.QueryDomainBuilder;
 import io.kyligence.kap.modeling.smart.query.QueryStats;
 import io.kyligence.kap.modeling.smart.query.QueryStatsExtractor;
+import io.kyligence.kap.modeling.smart.stats.ICubeStats;
+import io.kyligence.kap.modeling.smart.util.Constants;
 import io.kyligence.kap.source.hive.modelstats.ModelStats;
 import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
 
@@ -63,30 +73,85 @@ public class ModelingContextBuilder {
     }
 
     public ModelingContext buildFromCubeDesc(CubeDesc cubeDesc, String[] sqls) {
-        return internalBuild(cubeDesc, null, sqls);
+        return buildFromCubeDesc(cubeDesc, null, sqls);
+    }
+
+    public ModelingContext buildFromCubeDesc(CubeDesc cubeDesc, ICubeStats cubeStats, String[] sqls) {
+        ModelingContext context = internalBuild(cubeDesc, null, sqls);
+        if (cubeStats != null) {
+            context.setCubeStats(cubeDesc, cubeStats);
+        }
+        return context;
+    }
+
+    public ModelingContext buildFromCubeDesc(CubeDesc cubeDesc, ICubeStats cubeStats, QueryStats queryStats) {
+        ModelingContext context = internalBuild(cubeDesc, null, queryStats);
+        if (cubeStats != null) {
+            context.setCubeStats(cubeDesc, cubeStats);
+        }
+        return context;
     }
 
     private ModelingContext internalBuild(CubeDesc initCubeDesc, Domain initDomain, String[] sqls) {
-        ModelingContext context = new ModelingContext();
-
         QueryStats queryStats = null;
-        Domain usedDomain = initDomain;
         if (sqls != null && sqls.length > 0) {
             QueryStatsExtractor extractor = new QueryStatsExtractor(initCubeDesc, sqls);
             try {
                 queryStats = extractor.extract();
 
-                QueryDomainBuilder domainBuilder = new QueryDomainBuilder(queryStats, initCubeDesc);
-                usedDomain = domainBuilder.build();
             } catch (Exception e) {
                 logger.error("Failed to extract query stats. ", e);
             }
+        }
+        return internalBuild(initCubeDesc, initDomain, queryStats);
+    }
+
+    private Domain getOutputDomain(CubeDesc origCubeDesc, QueryStats queryStats) {
+        // setup dimensions
+        DataModelDesc modelDesc = origCubeDesc.getModel();
+        RowKeyColDesc[] rowKeyCols = origCubeDesc.getRowkey().getRowKeyColumns();
+        List<TblColRef> dimensionCols = new ArrayList<>();
+        for (int i = 0; i < rowKeyCols.length; i++) {
+            dimensionCols.add(rowKeyCols[rowKeyCols.length - i - 1].getColRef());
+        }
+
+        // setup measures
+        List<TblColRef> measureCols = new ArrayList<>();
+        for (String col : modelDesc.getMetrics()) {
+            TblColRef colRef = modelDesc.findColumn(col);
+            if (colRef != null) {
+                measureCols.add(colRef);
+            }
+        }
+        Set<FunctionDesc> measureFuncs = Sets.newHashSet();
+        if (queryStats != null) {
+            measureFuncs.addAll(queryStats.getMeasures());
+        }
+        for (TblColRef colRef : measureCols) {
+            if (colRef.getType().isNumberFamily()) {
+                // SUM
+                measureFuncs.add(FunctionDesc.newInstance("SUM", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
+            }
+        }
+
+        return new Domain(origCubeDesc.getModel(), dimensionCols, measureFuncs);
+    }
+
+    private ModelingContext internalBuild(CubeDesc initCubeDesc, Domain initDomain, QueryStats queryStats) {
+        ModelingContext context = new ModelingContext();
+
+        Domain usedDomain = initDomain;
+        if (!Constants.DOMAIN_USE_QUERY) {
+            usedDomain = getOutputDomain(initCubeDesc, queryStats);
+        } else if (queryStats != null) {
+            usedDomain = new QueryDomainBuilder(queryStats, initCubeDesc).build();
         }
 
         MetadataManager metadataManager = MetadataManager.getInstance(kylinConfig);
         ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(kylinConfig);
         DataModelDesc modelDesc = initCubeDesc.getModel();
 
+        // set model stats
         ModelStats modelStats = null;
         try {
             modelStats = modelStatsManager.getModelStats(modelDesc.getName());
@@ -94,15 +159,18 @@ public class ModelingContextBuilder {
             logger.error("Failed to get model stats. ", e);
         }
 
+        // set table stats
         Map<String, TableDesc> tableDescMap = Maps.newHashMap();
         Map<String, TableExtDesc> tableExtDescMap = Maps.newHashMap();
         for (TableRef tableRef : modelDesc.getAllTables()) {
             String tblRefId = tableRef.getTableIdentity();
             TableDesc tableDesc = tableRef.getTableDesc();
-            TableExtDesc tableExtDesc = metadataManager.getTableExt(tableDesc.getName());
-
             tableDescMap.put(tblRefId, tableDesc);
-            tableExtDescMap.put(tblRefId, tableExtDesc);
+
+            TableExtDesc tableExtDesc = metadataManager.getTableExt(tblRefId);
+            if (tableExtDesc != null && !tableExtDesc.getColumnStats().isEmpty()) {
+                tableExtDescMap.put(tblRefId, tableExtDesc);
+            }
         }
 
         context.setDomain(usedDomain);

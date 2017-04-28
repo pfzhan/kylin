@@ -79,7 +79,6 @@ public class AggrGroupProposer extends AbstractProposer {
         final CubeDesc workCubeDesc;
         final AggregationGroup aggGroup;
         final Map<String, TableExtDesc.ColumnStats> colStatsMap;
-        final Map<String, String> colIdentityMap;
         final List<String> aggGroupCandidates;
 
         final List<String> mandatoryCandidates = Lists.newArrayList();
@@ -93,20 +92,19 @@ public class AggrGroupProposer extends AbstractProposer {
 
             String[] includes = aggGroup.getIncludes();
             colStatsMap = Maps.newHashMapWithExpectedSize(includes.length);
-            colIdentityMap = Maps.newHashMapWithExpectedSize(includes.length); // DEFAULT.FACT.COL => FACT.COL
-            for (String include : includes) {
-                RowKeyColDesc rowKeyColDesc = CubeDescUtil.getRowKeyColDescByName(workCubeDesc, include);
-                TableExtDesc.ColumnStats columnStats = context.getRowKeyColumnStats(rowKeyColDesc);
-                colStatsMap.put(rowKeyColDesc.getColumn(), columnStats);
-                colIdentityMap.put(rowKeyColDesc.getColRef().getCanonicalName(), rowKeyColDesc.getColumn());
+            if (context.hasTableStats()) {
+                for (String include : includes) {
+                    RowKeyColDesc rowKeyColDesc = CubeDescUtil.getRowKeyColDescByName(workCubeDesc, include);
+                    colStatsMap.put(rowKeyColDesc.getColumn(), context.getRowKeyColumnStats(rowKeyColDesc));
+                }
             }
 
             aggGroupCandidates = Lists.newArrayList(colStatsMap.keySet());
             Collections.sort(aggGroupCandidates, new Comparator<String>() {
                 @Override
                 public int compare(String o1, String o2) {
-                    long c1 = colStatsMap.get(o1).getCardinality();
-                    long c2 = colStatsMap.get(o2).getCardinality();
+                    long c1 = colStatsMap.get(o1) == null ? colStatsMap.get(o1).getCardinality() : 0;
+                    long c2 = colStatsMap.get(o2) == null ? colStatsMap.get(o1).getCardinality() : 0;
                     if (c1 == c2) {
                         return o1.hashCode() - o2.hashCode();
                     } else {
@@ -118,85 +116,97 @@ public class AggrGroupProposer extends AbstractProposer {
 
         private void buildMandatory() {
             Iterator<String> candidatesItr = aggGroupCandidates.iterator();
-            while (candidatesItr.hasNext()) {
-                String rowKeyColName = candidatesItr.next();
-                if (colStatsMap.get(rowKeyColName).getCardinality() <= Constants.DIM_MANDATORY_FORCE_CARDINALITY_MAX) {
-                    mandatoryCandidates.add(rowKeyColName);
-                    candidatesItr.remove();
+            // according to table stats
+            if (context.hasTableStats()) {
+                while (candidatesItr.hasNext()) {
+                    String rowKeyColName = candidatesItr.next();
+                    if (colStatsMap.get(rowKeyColName) != null && colStatsMap.get(rowKeyColName).getCardinality() <= Constants.DIM_MANDATORY_FORCE_CARDINALITY_MAX) {
+                        mandatoryCandidates.add(rowKeyColName);
+                        candidatesItr.remove();
+                    }
                 }
+                logger.debug("Added {} mandatory dimension from cardinality.", mandatoryCandidates.size());
             }
-            logger.debug("Added {} mandatory dimension from cardinality.", mandatoryCandidates.size());
 
-            QueryStats queryStats = context.getQueryStats();
-            if (queryStats != null && queryStats.getTotalQueries() > Constants.DIM_AGG_GROUP_MANDATORY_QUERY_MIN) {
-                for (Map.Entry<String, Integer> appear : queryStats.getAppears().entrySet()) {
-                    if (appear.getValue() >= queryStats.getTotalQueries()) {
-                        String colId = colIdentityMap.get(appear.getKey());
-                        mandatoryCandidates.add(colId);
-                        aggGroupCandidates.remove(colId);
+            // according to query stats
+            if (context.hasQueryStats()) {
+                QueryStats queryStats = context.getQueryStats();
+                if (queryStats.getTotalQueries() > Constants.DIM_AGG_GROUP_MANDATORY_QUERY_MIN) {
+                    for (Map.Entry<String, Integer> appear : queryStats.getAppears().entrySet()) {
+                        if (appear.getValue() >= queryStats.getTotalQueries()) {
+                            String colName = appear.getKey();
+                            mandatoryCandidates.add(colName);
+                            aggGroupCandidates.remove(colName);
+                        }
                     }
                 }
             }
         }
 
         private void buildWithModelStats() {
-            ModelStats modelStats = context.getModelStats();
-            if (modelStats != null && modelStats.getDoubleColumnCardinality() != null) {
-                for (Map.Entry<String, Long> entry : modelStats.getDoubleColumnCardinality().entrySet()) {
-                    String[] idxPair = entry.getKey().split(",");
-                    String colName1 = idxPair[0].trim();
-                    String colName2 = idxPair[1].trim();
-                    String colId1 = colIdentityMap.get(colName1);
-                    String colId2 = colIdentityMap.get(colName2);
+            if (context.hasModelStats()) {
+                ModelStats modelStats = context.getModelStats();
+                if (modelStats.getDoubleColumnCardinality() != null) {
+                    for (Map.Entry<String, Long> entry : modelStats.getDoubleColumnCardinality().entrySet()) {
+                        if (entry.getKey().equals("SSB.CUSTOMER.C_CITY,SSB.CUSTOMER.C_NATION")) {
+                            //                            System.out.println("a");
+                        }
+                        String[] idxPair = entry.getKey().split(",");
+                        String colName1 = idxPair[0].trim();
+                        String colName2 = idxPair[1].trim();
 
-                    if (!aggGroupCandidates.contains(colId1) || !aggGroupCandidates.contains(colId2)) {
-                        continue;
+                        if (!aggGroupCandidates.contains(colName1) || !aggGroupCandidates.contains(colName2)) {
+                            continue;
+                        }
+
+                        double cardPair = entry.getValue();
+
+                        double cardCol1 = (double) modelStats.getSingleColumnCardinalityVal(colName1);
+                        double cardCol2 = (double) modelStats.getSingleColumnCardinalityVal(colName2);
+
+                        if (cardCol1 < cardCol2 * Constants.DIM_AGG_GROUP_DIFF_MIN || cardCol2 < cardCol1 * Constants.DIM_AGG_GROUP_DIFF_MIN) {
+                            // skip due to cardinality diff too big between these 2 columns
+                            continue;
+                        }
+
+                        double score1 = (cardCol1 / cardPair) * context.getBusinessCoe();
+                        double score2 = (cardCol2 / cardPair) * context.getBusinessCoe();
+
+                        boolean equal1 = approxEquals(score1);
+                        boolean equal2 = approxEquals(score2);
+
+                        //                        logger.debug("Checking column pair from model stats: column1={}({}), column2={}({}), cardPair={}", colName1, cardCol1, colName2, cardCol2, cardPair);
+
+                        if (equal1 && equal2) {
+                            relationJointAggRecorder.add(colName1, score1, colName2, score2);
+                            logger.debug("Found relation joint pair from model stats: {}={}, {}={}", colName1, score1, colName2, score2);
+                        } else if (!approxEquals(modelStats.getCounter() / cardPair)) {
+                            // for hierarchy, need to check if column's cardinality equals to model rows, if so do not consider as hierarchy.
+                            if (equal1 && !equal2 && score1 > score2) {
+                                hierAggRecorder.add(colName2, colName1);
+                                logger.debug("Found hierarchy pair from model stats: {}={}, {}={}", colName2, score2, colName1, score1);
+                            } else if (!equal1 && equal2 && score1 < score2) {
+                                hierAggRecorder.add(colName1, colName2);
+                                logger.debug("Found hierarchy pair from model stats: {}={}, {}={}", colName1, score1, colName2, score2);
+                            }
+                        }
                     }
-
-                    double cardPair = entry.getValue();
-
-                    double cardCol1 = (double) modelStats.getSingleColumnCardinalityVal(colName1);
-                    double cardCol2 = (double) modelStats.getSingleColumnCardinalityVal(colName2);
-
-                    double score1 = (cardCol1 / cardPair) * context.getBusinessCoe();
-                    double score2 = (cardCol2 / cardPair) * context.getBusinessCoe();
-
-                    boolean equal1 = approxEquals(score1);
-                    boolean equal2 = approxEquals(score2);
-
-                    logger.debug("Checking column pair: column1={}({}), column2={}({}), cardPair={}", colName1, cardCol1, colName2, cardCol2, cardPair);
-
-                    if (equal1 && equal2) {
-                        relationJointAggRecorder.add(colId1, score1, colId2, score2);
-                    } else if (equal1 && !equal2) {
-                        hierAggRecorder.add(colId1, colId2);
-                    } else if (!equal1 && equal2) {
-                        hierAggRecorder.add(colId2, colId1);
-                    }
-
-                    if (equal1 || equal2) {
-                        aggGroupCandidates.remove(colId1);
-                        aggGroupCandidates.remove(colId2);
-                    }
+                } else {
+                    logger.debug("ModelStats not found and skip joint/hierarchy agg group.");
                 }
-            } else {
-                logger.debug("ModelStats not found and skip joint/hierarchy agg group.");
             }
         }
 
         private void buildWithQueryStats() {
-            QueryStats queryStats = context.getQueryStats();
-            if (queryStats != null) {
+            if (context.hasQueryStats()) {
+                QueryStats queryStats = context.getQueryStats();
                 Map<String, Integer> appears = queryStats.getAppears();
                 Map<SortedSet<String>, Integer> coocurrences = queryStats.getCoocurrences();
                 for (Map.Entry<SortedSet<String>, Integer> coocurrence : coocurrences.entrySet()) {
                     String colName1 = coocurrence.getKey().first();
                     String colName2 = coocurrence.getKey().last();
 
-                    String colId1 = colIdentityMap.get(colName1);
-                    String colId2 = colIdentityMap.get(colName2);
-
-                    if (!aggGroupCandidates.contains(colId1) || !aggGroupCandidates.contains(colId2)) {
+                    if (!aggGroupCandidates.contains(colName1) || !aggGroupCandidates.contains(colName2)) {
                         continue;
                     }
 
@@ -206,31 +216,25 @@ public class AggrGroupProposer extends AbstractProposer {
                     boolean equal1 = approxEquals(score1);
                     boolean equal2 = approxEquals(score2);
 
-                    logger.debug("Checking column pair: column1={}({}), column2={}({}), cardPair={}", colName1, appears.get(colName1), colName2, appears.get(colName2), coocurrence.getValue());
+                    //                    logger.debug("Checking column pair from query stats: column1={}({}), column2={}({}), cardPair={}", colName1, appears.get(colName1), colName2, appears.get(colName2), coocurrence.getValue());
 
                     if (equal1 && equal2) {
-                        relationJointAggRecorder.add(colId1, score1, colId2, score2);
-                    } else if (equal1 && !equal2) {
-                        hierAggRecorder.add(colId1, colId2);
-                    } else if (!equal1 && equal2) {
-                        hierAggRecorder.add(colId2, colId1);
-                    }
-
-                    if (equal1 || equal2) {
-                        aggGroupCandidates.remove(colId1);
-                        aggGroupCandidates.remove(colId2);
+                        relationJointAggRecorder.add(colName1, score1, colName2, score2);
+                        logger.debug("Found relation joint pair from query stats: {}={}, {}={}", colName1, score1, colName2, score2);
                     }
                 }
             }
         }
 
         private void buildSmallJointGroup() {
-            Iterator<String> candidatesItr = aggGroupCandidates.iterator();
-            while (candidatesItr.hasNext()) {
-                String rowKeyColName = candidatesItr.next();
-                double score = context.getColumnPairCardinality(Lists.newArrayList(rowKeyColName));
-                if (score <= Constants.DIM_JOINT_FORCE_CARDINALITY_COL_MAX) {
-                    fragmentRecorder.add(rowKeyColName, score);
+            if (context.hasTableStats() || context.hasModelStats()) {
+                Iterator<String> candidatesItr = aggGroupCandidates.iterator();
+                while (candidatesItr.hasNext()) {
+                    String rowKeyColName = candidatesItr.next();
+                    double score = context.getColumnsCardinality(Lists.newArrayList(rowKeyColName));
+                    if (score > 0 && score <= Constants.DIM_JOINT_FORCE_CARDINALITY_COL_MAX) {
+                        fragmentRecorder.add(rowKeyColName, score);
+                    }
                 }
             }
         }
@@ -241,10 +245,13 @@ public class AggrGroupProposer extends AbstractProposer {
             buildWithQueryStats();
             buildSmallJointGroup();
 
-            List<List<String>> hierList = hierAggRecorder.getResult();
+            List<List<String>> relationJointList = relationJointAggRecorder.getResult(null);
+            List<List<String>> hierList = hierAggRecorder.getResult(relationJointList);
+            List<List<String>> fragementJointList = fragmentRecorder.getResult(hierList, relationJointList);
+
             List<List<String>> jointList = Lists.newArrayList();
-            jointList.addAll(relationJointAggRecorder.getResult());
-            jointList.addAll(fragmentRecorder.getResult());
+            jointList.addAll(relationJointList);
+            jointList.addAll(fragementJointList);
 
             SelectRule selectRule = aggGroup.getSelectRule();
             selectRule.mandatory_dims = mandatoryCandidates.toArray(new String[mandatoryCandidates.size()]);

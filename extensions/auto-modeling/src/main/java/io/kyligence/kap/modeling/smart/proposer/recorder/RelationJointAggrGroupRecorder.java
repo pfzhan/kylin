@@ -63,7 +63,28 @@ public class RelationJointAggrGroupRecorder {
         node2.neighbor.add(node1);
     }
 
-    public List<List<String>> getResult() {
+    private void remove(String col) {
+        Node node = nodeMap.get(col);
+        if (node != null) {
+            for (Node n : node.neighbor) {
+                n.neighbor.remove(node);
+            }
+            node.neighbor.clear();
+            nodeMap.remove(col);
+        }
+    }
+
+    public List<List<String>> getResult(List<List<String>>... ignored) {
+        if (ignored != null) {
+            for (List<List<String>> l1 : ignored) {
+                for (List<String> l2 : l1) {
+                    for (String l3 : l2) {
+                        remove(l3);
+                    }
+                }
+            }
+        }
+
         Collection<Node> nodes = nodeMap.values();
         Iterator<Node> itr = nodes.iterator();
         Set<SortedSet<Node>> candidates = Sets.newHashSet();
