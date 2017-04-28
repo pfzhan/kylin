@@ -43,6 +43,7 @@ import org.apache.hive.hcatalog.mapreduce.HCatInputFormat;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
+import org.apache.kylin.job.engine.JobEngineConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,8 +86,11 @@ public class CheckHCatalogJob extends AbstractHadoopJob implements IKeep {
         String tableName = args[1];
         String output = args[2];
 
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        JobEngineConfig jobEngineConfig = new JobEngineConfig(kylinConfig);
+        conf.addResource(new Path(jobEngineConfig.getHadoopJobConfFilePath(null)));
         Job job = Job.getInstance(conf, "Check HCatInputFormat Available");
-        setJobClasspath(job, KylinConfig.getInstanceFromEnv());
+        setJobClasspath(job, kylinConfig);
         HCatInputFormat.setInput(job, dbName, tableName);
         // initialize HCatOutputFormat
 
