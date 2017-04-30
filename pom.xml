@@ -72,7 +72,7 @@
         <module>extensions/tool</module>
         <module>extensions/tool-assembly</module>
         <module>extensions/kap-it</module>
-        <module>extensions/auto-modeling</module>
+        <module>extensions/smart</module>
     </modules>
 
     <dependencyManagement>
@@ -181,7 +181,7 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
-                <artifactId>kap-auto-modeling</artifactId>
+                <artifactId>kap-smart</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
