@@ -25,7 +25,6 @@
 package io.kyligence.kap.modeling.smart.proposer;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
@@ -65,7 +64,6 @@ public class DerivedDimensionProposerTest {
         DerivedDimensionProposer proposer = new DerivedDimensionProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
         newCubeDesc.init(kylinConfig);
-        System.out.println(JsonUtil.writeValueAsIndentString(newCubeDesc));
         Assert.assertEquals(18, newCubeDesc.getDimensions().size());
     }
 
@@ -81,7 +79,6 @@ public class DerivedDimensionProposerTest {
         DerivedDimensionProposer proposer = new DerivedDimensionProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
         newCubeDesc.init(kylinConfig);
-        System.out.println(JsonUtil.writeValueAsIndentString(newCubeDesc));
         Assert.assertEquals(18, newCubeDesc.getDimensions().size());
     }
 }
