@@ -24,25 +24,40 @@
 
 package io.kyligence.kap.modeling.smart.query;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 import org.apache.kylin.metadata.model.FunctionDesc;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-public class QueryStats {
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
+public class QueryStats implements Serializable {
+    @JsonProperty("total_queries")
     private int totalQueries;
+
+    @JsonProperty("column_bitmap")
     private long columnBitmap;
+
+    @JsonProperty("group_by")
     private Map<String, Integer> groupBys = Maps.newHashMap();
+
+    @JsonProperty("filter")
     private Map<String, Integer> filters = Maps.newHashMap();
+
+    @JsonProperty("appear")
     private Map<String, Integer> appears = Maps.newHashMap();
+
+    @JsonProperty("measure")
     private Set<FunctionDesc> measures = Sets.newHashSet();
-    private Map<SortedSet<String>, Integer> coocurrences = Maps.newHashMap();
+
+    @JsonProperty("coocurrence")
+    private Map<String, Integer> coocurrences = Maps.newHashMap();
 
     public int getTotalQueries() {
         return totalQueries;
@@ -50,6 +65,15 @@ public class QueryStats {
 
     public void addTotalQueries() {
         totalQueries++;
+    }
+
+    private String createCoocurrenceKey(String col1, String col2) {
+        int compare = col1.compareTo(col2);
+        if (compare > 0) {
+            return String.format("%s,%s", col1, col2);
+        } else {
+            return String.format("%s,%s", col2, col1);
+        }
     }
 
     public void addColPairs(Collection<String>... cols) {
@@ -61,10 +85,7 @@ public class QueryStats {
         String[] colNameArr = colNames.toArray(new String[0]);
         for (int i = 0; i < colNames.size(); i++) {
             for (int j = i + 1; j < colNames.size(); j++) {
-                TreeSet<String> key = Sets.newTreeSet();
-                key.add(colNameArr[i]);
-                key.add(colNameArr[j]);
-
+                String key = createCoocurrenceKey(colNameArr[i], colNameArr[j]);
                 int val = 0;
                 if (coocurrences.containsKey(key)) {
                     val = coocurrences.get(key);
@@ -95,9 +116,7 @@ public class QueryStats {
     }
 
     public void putPairColumn(String col1, String col2, int num) {
-        SortedSet<String> key = Sets.newTreeSet();
-        key.add(col1);
-        key.add(col2);
+        String key = createCoocurrenceKey(col1, col2);
         coocurrences.put(key, num);
     }
 
@@ -143,7 +162,7 @@ public class QueryStats {
         return measures;
     }
 
-    public Map<SortedSet<String>, Integer> getCoocurrences() {
+    public Map<String, Integer> getCoocurrences() {
         return coocurrences;
     }
 }

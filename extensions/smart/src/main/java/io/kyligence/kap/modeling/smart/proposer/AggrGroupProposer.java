@@ -207,10 +207,11 @@ public class AggrGroupProposer extends AbstractProposer {
             if (context.hasQueryStats()) {
                 QueryStats queryStats = context.getQueryStats();
                 Map<String, Integer> appears = queryStats.getAppears();
-                Map<SortedSet<String>, Integer> coocurrences = queryStats.getCoocurrences();
-                for (Map.Entry<SortedSet<String>, Integer> coocurrence : coocurrences.entrySet()) {
-                    String colName1 = coocurrence.getKey().first();
-                    String colName2 = coocurrence.getKey().last();
+                Map<String, Integer> coocurrences = queryStats.getCoocurrences();
+                for (Map.Entry<String, Integer> coocurrence : coocurrences.entrySet()) {
+                    String[] colPair = coocurrence.getKey().split(",");
+                    String colName1 = colPair[0].trim();
+                    String colName2 = colPair[1].trim();
 
                     if (!aggGroupCandidates.contains(colName1) || !aggGroupCandidates.contains(colName2)) {
                         continue;
