@@ -28,7 +28,6 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.Sets;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.metadata.filter.TupleFilter.FilterOperatorEnum;
@@ -36,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class BinaryCompareFilter implements BinaryFilter {
     public static final Logger logger = LoggerFactory.getLogger(BinaryCompareFilter.class);
@@ -86,6 +86,14 @@ public class BinaryCompareFilter implements BinaryFilter {
 
     @Override
     public boolean isMatch(byte[] value) {
+        if (bytesIsNull(value, operandOff, operandLen)) {
+            if (type == FilterOperatorEnum.ISNULL) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
         switch (type) {
         case EQ:
             if (operandVal.size() > 0) {
@@ -122,9 +130,9 @@ public class BinaryCompareFilter implements BinaryFilter {
         case NOTIN:
             return !bytesIn(value, operandOff, operandLen, operandVal, 0, operandLen);
         case ISNULL:
-            return bytesIsNull(value, operandOff, operandLen);
+            return false;
         case ISNOTNULL:
-            return !bytesIsNull(value, operandOff, operandLen);
+            return true;
         default:
             throw new IllegalArgumentException("Type " + type + " is not supported");
         }
