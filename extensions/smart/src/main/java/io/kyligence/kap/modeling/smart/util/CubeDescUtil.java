@@ -36,6 +36,7 @@ import org.apache.kylin.cube.model.DimensionDesc;
 import org.apache.kylin.cube.model.RowKeyColDesc;
 import org.apache.kylin.cube.model.RowKeyDesc;
 import org.apache.kylin.cube.model.SelectRule;
+import org.apache.kylin.dimension.DictionaryDimEnc;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.Lists;
@@ -62,7 +63,7 @@ public class CubeDescUtil {
             for (String col : required) {
                 RowKeyColDesc rowKeyCol = new RowKeyColDesc();
                 rowKeyCol.setColumn(col);
-                rowKeyCol.setEncoding(Constants.DIM_ENCODING_DEFAULT);
+                rowKeyCol.setEncoding(DictionaryDimEnc.ENCODING_NAME);
                 rowKeyCol.setShardBy(false);
                 rowKeyCols.add(rowKeyCol);
             }

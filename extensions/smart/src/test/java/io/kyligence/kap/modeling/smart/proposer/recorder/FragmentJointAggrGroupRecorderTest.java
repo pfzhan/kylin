@@ -26,13 +26,32 @@ package io.kyligence.kap.modeling.smart.proposer.recorder;
 
 import java.util.List;
 
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
-public class FragmentJointAggrGroupRecorderTest {
+import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
+import io.kyligence.kap.modeling.smart.common.ModelingConfig;
+
+public class FragmentJointAggrGroupRecorderTest extends LocalFileMetadataTestCase {
+    private static ModelingConfig modelingConfig;
+
+    @Before
+    public void setup() throws Exception {
+        createTestMetadata();
+
+        modelingConfig = ModelingConfig.getInstanceFromEnv();
+    }
+
+    @After
+    public void after() throws Exception {
+        cleanAfterClass();
+    }
+
     @Test
     public void testByName() {
-        FragmentJointAggrGroupRecorder recorder = new FragmentJointAggrGroupRecorder();
+        FragmentJointAggrGroupRecorder recorder = new FragmentJointAggrGroupRecorder(modelingConfig);
         recorder.add("IS_A", 100);
         recorder.add("IS_B", 100);
         recorder.add("IS_C", 100);
@@ -42,7 +61,7 @@ public class FragmentJointAggrGroupRecorderTest {
         recorder.add("C_TYPE", 100);
         recorder.add("IS_TYPE", 100);
 
-        List<List<String>> result = recorder.getResult();
+        List<List<String>> result = recorder.getResult(0);
         Assert.assertEquals(2, result.size());
         Assert.assertEquals(5, result.get(0).size());
         Assert.assertEquals(3, result.get(1).size());
@@ -50,7 +69,7 @@ public class FragmentJointAggrGroupRecorderTest {
 
     @Test
     public void testRandom() {
-        FragmentJointAggrGroupRecorder recorder = new FragmentJointAggrGroupRecorder();
+        FragmentJointAggrGroupRecorder recorder = new FragmentJointAggrGroupRecorder(modelingConfig);
         recorder.add("A", 2);
         recorder.add("B", 2);
         recorder.add("C", 3);
@@ -60,7 +79,7 @@ public class FragmentJointAggrGroupRecorderTest {
         recorder.add("G", 7);
         recorder.add("H", 8);
 
-        List<List<String>> result = recorder.getResult();
+        List<List<String>> result = recorder.getResult(0);
         Assert.assertFalse(result.isEmpty());
     }
 }

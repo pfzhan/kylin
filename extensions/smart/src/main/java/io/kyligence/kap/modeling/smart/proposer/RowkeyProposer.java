@@ -47,7 +47,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.modeling.smart.ModelingContext;
-import io.kyligence.kap.modeling.smart.util.Constants;
 
 public class RowkeyProposer extends AbstractProposer {
     private static final Logger logger = LoggerFactory.getLogger(RowkeyProposer.class);
@@ -66,7 +65,7 @@ public class RowkeyProposer extends AbstractProposer {
         // score = cardinality * DIM_ROWKEY_FILRER_PROMOTION_TIMES
         double score = 1;
 
-        if (context.hasModelStats() && context.getPhyscalCoe() > 0) {
+        if (context.hasModelStats() && modelingConfig.getPhyscalWeight() > 0) {
             score += context.getColumnsCardinality(r.getColRef().getIdentity());
         }
 
@@ -78,7 +77,7 @@ public class RowkeyProposer extends AbstractProposer {
 
             if (filters.containsKey(n) && appears.containsKey(n)) {
                 double filterScore1 = ((double) filters.get(n)) / ((double) appears.get(n));
-                score *= filterScore1 * Constants.DIM_ROWKEY_FILRER_PROMOTION_TIMES;
+                score *= filterScore1 * modelingConfig.getRowkeyFilterPromotionTimes();
             }
         }
         return score;
@@ -156,10 +155,10 @@ public class RowkeyProposer extends AbstractProposer {
         }
 
         // select dict or fixlen for other type columns according to cardinality
-        if (context.hasTableStats() && cardinality > Constants.DIM_ENCODING_DICT_CARDINALITY_MAX) {
+        if (context.hasTableStats() && cardinality > modelingConfig.getRowkeyDictEncCardinalityMax()) {
             TableExtDesc.ColumnStats colStats = context.getTableColumnStats(colDesc.getColRef());
             // TODO: currently used max length, better to use 95%ile length
-            int length = Math.min(colStats.getMaxLengthValue().getBytes().length, Constants.DIM_ENCODING_FIXLEN_LENGTH_MAX);
+            int length = Math.min(colStats.getMaxLengthValue().getBytes().length, modelingConfig.getRowkeyFixLenLengthMax());
             return String.format("%s:%d", FixedLenDimEnc.ENCODING_NAME, length);
         }
 
@@ -168,7 +167,7 @@ public class RowkeyProposer extends AbstractProposer {
             return colDesc.getEncoding();
         }
 
-        return DictionaryDimEnc.ENCODING_NAME;
+        return modelingConfig.getRowkeyDefaultEnc();
     }
 
     private void updateAttributes(CubeDesc workCubeDesc) {
@@ -190,7 +189,7 @@ public class RowkeyProposer extends AbstractProposer {
             }
         }
 
-        if (maxCardRowKey != null && maxCardinality > Constants.DIM_UHC_MIN) {
+        if (maxCardRowKey != null && maxCardinality > modelingConfig.getRowkeyUHCCardinalityMin()) {
             maxCardRowKey.setShardBy(true);
             logger.debug("Found shard by dimension: column={}, cardinality={}", maxCardRowKey.getColumn(), maxCardinality);
         }

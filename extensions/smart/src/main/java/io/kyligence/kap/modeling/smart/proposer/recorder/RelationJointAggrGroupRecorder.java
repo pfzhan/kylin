@@ -42,9 +42,15 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.modeling.smart.util.Constants;
+import io.kyligence.kap.modeling.smart.common.ModelingConfig;
 
 public class RelationJointAggrGroupRecorder {
+    private ModelingConfig modelingConfig;
+
+    public RelationJointAggrGroupRecorder(ModelingConfig modelingConfig) {
+        this.modelingConfig = modelingConfig;
+    }
+
     Map<String, Node> nodeMap = Maps.newHashMap();
 
     private Node getNode(String dim, double cost) {
@@ -156,7 +162,7 @@ public class RelationJointAggrGroupRecorder {
                 }
             });
 
-            if (children.isEmpty() && path.size() > 1 && path.size() <= Constants.DIM_AGG_GROUP_JOINT_ELEMENTS_MAX) {
+            if (children.isEmpty() && path.size() > 1 && path.size() <= modelingConfig.getJointColNumMax()) {
                 result.add(Sets.newTreeSet(path));
             }
 

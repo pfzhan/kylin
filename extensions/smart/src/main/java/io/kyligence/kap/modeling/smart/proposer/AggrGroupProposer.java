@@ -48,7 +48,6 @@ import io.kyligence.kap.modeling.smart.proposer.recorder.FragmentJointAggrGroupR
 import io.kyligence.kap.modeling.smart.proposer.recorder.HierarchyAggGroupRecorder;
 import io.kyligence.kap.modeling.smart.proposer.recorder.RelationJointAggrGroupRecorder;
 import io.kyligence.kap.modeling.smart.query.QueryStats;
-import io.kyligence.kap.modeling.smart.util.Constants;
 import io.kyligence.kap.modeling.smart.util.CubeDescUtil;
 import io.kyligence.kap.modeling.smart.util.RangeUtil;
 import io.kyligence.kap.source.hive.modelstats.ModelStats;
@@ -72,25 +71,25 @@ public class AggrGroupProposer extends AbstractProposer {
     }
 
     private void optimizeAggrGroup(CubeDesc workCubeDesc, AggregationGroup aggGroup) {
-        new AggGroupBuilder(workCubeDesc, aggGroup).build();
+        new AggrGroupBuilder(workCubeDesc, aggGroup).build();
     }
 
     private boolean approxEquals(double score) {
-        return RangeUtil.inRange(score, Constants.DIM_AGG_GROUP_APPROX_EQUAL_MIN, Constants.DIM_AGG_GROUP_APPROX_EQUAL_MAX);
+        return RangeUtil.inRange(score, modelingConfig.getApproxEqualMin(), modelingConfig.getApproxEqualMax());
     }
 
-    private class AggGroupBuilder {
+    private class AggrGroupBuilder {
         final CubeDesc workCubeDesc;
         final AggregationGroup aggGroup;
         final Map<String, TableExtDesc.ColumnStats> colStatsMap;
         final List<String> aggGroupCandidates;
 
         final List<String> mandatoryCandidates = Lists.newArrayList();
-        final RelationJointAggrGroupRecorder relationJointAggRecorder = new RelationJointAggrGroupRecorder();
+        final RelationJointAggrGroupRecorder relationJointAggRecorder = new RelationJointAggrGroupRecorder(modelingConfig);
         final HierarchyAggGroupRecorder hierAggRecorder = new HierarchyAggGroupRecorder();
-        final FragmentJointAggrGroupRecorder fragmentRecorder = new FragmentJointAggrGroupRecorder();
+        final FragmentJointAggrGroupRecorder fragmentRecorder = new FragmentJointAggrGroupRecorder(modelingConfig);
 
-        private AggGroupBuilder(CubeDesc workCubeDesc, AggregationGroup aggGroup) {
+        private AggrGroupBuilder(CubeDesc workCubeDesc, AggregationGroup aggGroup) {
             this.aggGroup = aggGroup;
             this.workCubeDesc = workCubeDesc;
 
@@ -125,7 +124,7 @@ public class AggrGroupProposer extends AbstractProposer {
             if (context.hasTableStats()) {
                 while (candidatesItr.hasNext()) {
                     String rowKeyColName = candidatesItr.next();
-                    if (colStatsMap.get(rowKeyColName) != null && colStatsMap.get(rowKeyColName).getCardinality() <= Constants.DIM_MANDATORY_FORCE_CARDINALITY_MAX) {
+                    if (colStatsMap.get(rowKeyColName) != null && colStatsMap.get(rowKeyColName).getCardinality() <= modelingConfig.getMandatoryCardinalityMax()) {
                         mandatoryCandidates.add(rowKeyColName);
                         candidatesItr.remove();
                     }
@@ -136,7 +135,7 @@ public class AggrGroupProposer extends AbstractProposer {
             // according to query stats
             if (context.hasQueryStats()) {
                 QueryStats queryStats = context.getQueryStats();
-                if (queryStats.getTotalQueries() > Constants.DIM_AGG_GROUP_MANDATORY_QUERY_MIN) {
+                if (queryStats.getTotalQueries() > modelingConfig.getMandatoryEnableQueryMin()) {
                     for (Map.Entry<String, Integer> appear : queryStats.getAppears().entrySet()) {
                         if (appear.getValue() >= queryStats.getTotalQueries()) {
                             String colName = appear.getKey();
@@ -169,13 +168,13 @@ public class AggrGroupProposer extends AbstractProposer {
                         double cardCol1 = (double) modelStats.getSingleColumnCardinalityVal(colName1);
                         double cardCol2 = (double) modelStats.getSingleColumnCardinalityVal(colName2);
 
-                        if (cardCol1 < cardCol2 * Constants.DIM_AGG_GROUP_DIFF_MIN || cardCol2 < cardCol1 * Constants.DIM_AGG_GROUP_DIFF_MIN) {
+                        if (cardCol1 < cardCol2 * modelingConfig.getApproxDiffMax() || cardCol2 < cardCol1 * modelingConfig.getApproxDiffMax()) {
                             // skip due to cardinality diff too big between these 2 columns
                             continue;
                         }
 
-                        double score1 = (cardCol1 / cardPair) * context.getBusinessCoe();
-                        double score2 = (cardCol2 / cardPair) * context.getBusinessCoe();
+                        double score1 = (cardCol1 / cardPair) * modelingConfig.getBusinessWeight();
+                        double score2 = (cardCol2 / cardPair) * modelingConfig.getBusinessWeight();
 
                         boolean equal1 = approxEquals(score1);
                         boolean equal2 = approxEquals(score2);
@@ -216,8 +215,8 @@ public class AggrGroupProposer extends AbstractProposer {
                         continue;
                     }
 
-                    double score1 = ((double) coocurrence.getValue()) / ((double) appears.get(colName1)) * context.getBusinessCoe();
-                    double score2 = ((double) coocurrence.getValue()) / ((double) appears.get(colName2)) * context.getBusinessCoe();
+                    double score1 = ((double) coocurrence.getValue()) / ((double) appears.get(colName1)) * modelingConfig.getBusinessWeight();
+                    double score2 = ((double) coocurrence.getValue()) / ((double) appears.get(colName2)) * modelingConfig.getBusinessWeight();
 
                     boolean equal1 = approxEquals(score1);
                     boolean equal2 = approxEquals(score2);
@@ -232,16 +231,17 @@ public class AggrGroupProposer extends AbstractProposer {
             }
         }
 
-        private void buildSmallJointGroup() {
+        private void buildSmallJointGroup(int retry) {
             if (context.hasTableStats() || context.hasModelStats()) {
                 Iterator<String> candidatesItr = aggGroupCandidates.iterator();
                 while (candidatesItr.hasNext()) {
                     String rowKeyColName = candidatesItr.next();
                     double cardinality = context.getColumnsCardinality(Lists.newArrayList(rowKeyColName));
-                    if (cardinality > 0 && cardinality <= Constants.DIM_JOINT_FORCE_CARDINALITY_COL_MAX) {
+                    if (cardinality > 0 && cardinality <= modelingConfig.getJointGroupCardinalityMax() * Math.pow(10, retry)) {
                         fragmentRecorder.add(rowKeyColName, cardinality);
                     }
                 }
+                logger.debug("Try to find small joint groups: retry={}", retry);
             }
         }
 
@@ -249,7 +249,7 @@ public class AggrGroupProposer extends AbstractProposer {
             List<List<String>> resultJoint = Lists.newArrayList();
             List<List<String>> resultHier = Lists.newArrayList();
 
-            if (Constants.DIM_AGG_GROUP_KEEP_LEGACY) {
+            if (modelingConfig.getAggGroupKeepLegacy()) {
                 // keep old select_rule
                 SelectRule selectRule = aggGroup.getSelectRule();
                 List<String> mandatoryOld = Arrays.asList(selectRule.mandatory_dims);
@@ -271,11 +271,12 @@ public class AggrGroupProposer extends AbstractProposer {
             buildMandatory();
             buildWithModelStats();
             buildWithQueryStats();
-            buildSmallJointGroup();
 
             List<List<String>> relationJointList = relationJointAggRecorder.getResult(null);
             List<List<String>> hierList = hierAggRecorder.getResult(relationJointList);
-            List<List<String>> fragementJointList = fragmentRecorder.getResult(hierList, relationJointList);
+
+            buildSmallJointGroup(0);
+            List<List<String>> fragementJointList = fragmentRecorder.getResult(0, hierList, relationJointList);
 
             resultJoint.addAll(relationJointList);
             resultJoint.addAll(fragementJointList);
@@ -285,6 +286,20 @@ public class AggrGroupProposer extends AbstractProposer {
             selectRule.mandatory_dims = mandatoryCandidates.toArray(new String[mandatoryCandidates.size()]);
             selectRule.joint_dims = ArrayUtils.to2DArray(resultJoint);
             selectRule.hierarchy_dims = ArrayUtils.to2DArray(resultHier);
+
+            long cuboidNum = aggGroup.calculateCuboidCombination();
+            int retry = 0;
+            while (modelingConfig.getAggGroupStrictEnabled() && cuboidNum > modelingConfig.getAggGroupStrictCombinationMax() && retry++ <= modelingConfig.getAggGroupStrictRetryMax()) {
+                resultJoint.removeAll(fragementJointList);
+
+                buildSmallJointGroup(retry);
+                fragementJointList = fragmentRecorder.getResult(retry, hierList, relationJointList);
+                resultJoint.addAll(fragementJointList);
+
+                selectRule.joint_dims = ArrayUtils.to2DArray(resultJoint);
+
+                cuboidNum = aggGroup.calculateCuboidCombination();
+            }
         }
     }
 }

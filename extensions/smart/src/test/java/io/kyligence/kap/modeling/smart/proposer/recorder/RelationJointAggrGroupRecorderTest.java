@@ -26,15 +26,34 @@ package io.kyligence.kap.modeling.smart.proposer.recorder;
 
 import java.util.List;
 
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
-public class RelationJointAggrGroupRecorderTest {
+import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
+import io.kyligence.kap.modeling.smart.common.ModelingConfig;
+
+public class RelationJointAggrGroupRecorderTest extends LocalFileMetadataTestCase {
+    private static ModelingConfig modelingConfig;
+
+    @Before
+    public void setup() throws Exception {
+        createTestMetadata();
+
+        modelingConfig = ModelingConfig.getInstanceFromEnv();
+    }
+
+    @After
+    public void after() throws Exception {
+        cleanAfterClass();
+    }
+
     @Test
     public void test1() {
         // A-B-C-D
         // A-E-F
-        RelationJointAggrGroupRecorder recorder = new RelationJointAggrGroupRecorder();
+        RelationJointAggrGroupRecorder recorder = new RelationJointAggrGroupRecorder(modelingConfig);
         recorder.add("A", 0, "B", 0);
         recorder.add("A", 0, "C", 0);
         recorder.add("A", 0, "D", 0);
@@ -54,7 +73,7 @@ public class RelationJointAggrGroupRecorderTest {
     public void test2() {
         // A-B-C-D-F
         // B-E-F-G
-        RelationJointAggrGroupRecorder recorder = new RelationJointAggrGroupRecorder();
+        RelationJointAggrGroupRecorder recorder = new RelationJointAggrGroupRecorder(modelingConfig);
         recorder.add("A", 0, "B", 0);
         recorder.add("A", 0, "C", 0);
         recorder.add("A", 0, "D", 0);

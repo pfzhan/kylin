@@ -37,17 +37,23 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.modeling.smart.util.Constants;
+import io.kyligence.kap.modeling.smart.common.ModelingConfig;
 
 public class FragmentJointAggrGroupRecorder {
+    private ModelingConfig modelingConfig;
+
     private static final Logger logger = LoggerFactory.getLogger(FragmentJointAggrGroupRecorder.class);
     private Map<String, Column> candidates = Maps.newHashMap();
+
+    public FragmentJointAggrGroupRecorder(ModelingConfig modelingConfig) {
+        this.modelingConfig = modelingConfig;
+    }
 
     public void add(String col, double score) {
         candidates.put(col, new Column(col, score));
     }
 
-    public List<List<String>> getResult(List<List<String>>... ignored) {
+    public List<List<String>> getResult(int scaleTimes, List<List<String>>... ignored) {
         if (ignored != null) {
             for (List<List<String>> l1 : ignored) {
                 for (List<String> l2 : l1) {
@@ -59,14 +65,16 @@ public class FragmentJointAggrGroupRecorder {
         }
 
         List<List<String>> result = Lists.newArrayList();
-        result.addAll(groupByName());
-        result.addAll(groupRandom());
+        if (scaleTimes <= modelingConfig.getAggGroupStrictRetryMax() / 2) {
+            result.addAll(groupByName());
+        }
+        result.addAll(groupRandom(scaleTimes));
 
         Preconditions.checkArgument(candidates.isEmpty());
         return result;
     }
 
-    private List<List<String>> groupRandom() {
+    private List<List<String>> groupRandom(int scaleTimes) {
         // Candidates with different name pattern will form groups randomly, with the MAX of multiply of cardinality.
         // TODO: In future, we can use DP to find the optimized solution.
         List<List<String>> result = Lists.newArrayList();
@@ -76,7 +84,7 @@ public class FragmentJointAggrGroupRecorder {
         double currScore = 1;
         while (columnIter.hasNext()) {
             Column column = columnIter.next().getValue();
-            if (currScore * column.score > Constants.DIM_JOINT_FORCE_CARDINALITY_GROUP_MAX || currGroup.size() >= Constants.DIM_AGG_GROUP_JOINT_ELEMENTS_MAX) {
+            if (currScore * column.score > modelingConfig.getJointGroupCardinalityMax() * Math.pow(10, scaleTimes) || currGroup.size() >= modelingConfig.getJointColNumMax() * (scaleTimes / 3 + 1)) {
                 if (currGroup.size() > 1) {
                     result.add(currGroup);
                 }
@@ -172,7 +180,7 @@ public class FragmentJointAggrGroupRecorder {
         List<List<String>> results = Lists.newArrayList();
         List<String> currentResult = Lists.newArrayList();
         for (int i = 0; i < list.size(); i++) {
-            if (currentResult.size() >= Constants.DIM_AGG_GROUP_JOINT_ELEMENTS_MAX) {
+            if (currentResult.size() >= modelingConfig.getJointColNumMax()) {
                 results.add(currentResult);
                 currentResult = Lists.newArrayList();
             }

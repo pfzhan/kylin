@@ -47,22 +47,24 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.modeling.smart.common.ModelingConfig;
 import io.kyligence.kap.modeling.smart.domain.Domain;
 import io.kyligence.kap.modeling.smart.domain.ModelDomainBuilder;
 import io.kyligence.kap.modeling.smart.query.QueryDomainBuilder;
 import io.kyligence.kap.modeling.smart.query.QueryStats;
 import io.kyligence.kap.modeling.smart.query.QueryStatsExtractor;
 import io.kyligence.kap.modeling.smart.stats.ICubeStats;
-import io.kyligence.kap.modeling.smart.util.Constants;
 import io.kyligence.kap.source.hive.modelstats.ModelStats;
 import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
 
 public class ModelingContextBuilder {
     private static final Logger logger = LoggerFactory.getLogger(ModelingContextBuilder.class);
     private KylinConfig kylinConfig;
+    private ModelingConfig modelingConfig;
 
     public ModelingContextBuilder(KylinConfig kylinConfig) {
         this.kylinConfig = kylinConfig;
+        this.modelingConfig = ModelingConfig.wrap(kylinConfig);
     }
 
     public ModelingContext buildFromModelDesc(DataModelDesc modelDesc, String[] sqls) {
@@ -138,10 +140,10 @@ public class ModelingContextBuilder {
     }
 
     private ModelingContext internalBuild(CubeDesc initCubeDesc, Domain initDomain, QueryStats queryStats) {
-        ModelingContext context = new ModelingContext();
+        ModelingContext context = new ModelingContext(modelingConfig);
 
         Domain usedDomain = initDomain;
-        if (!Constants.DOMAIN_USE_QUERY) {
+        if (!modelingConfig.getDomainQueryEnabled()) {
             usedDomain = getOutputDomain(initCubeDesc, queryStats);
         } else if (queryStats != null) {
             usedDomain = new QueryDomainBuilder(queryStats, initCubeDesc).build();

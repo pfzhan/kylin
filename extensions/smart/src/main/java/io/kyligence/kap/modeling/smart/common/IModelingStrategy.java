@@ -22,30 +22,46 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.modeling.smart.proposer;
+package io.kyligence.kap.modeling.smart.common;
 
-import org.apache.kylin.cube.model.CubeDesc;
+interface IModelingStrategy {
+    int getRowkeyDictEncCardinalityMax();
 
-import io.kyligence.kap.modeling.smart.ModelingContext;
-import io.kyligence.kap.modeling.smart.common.ModelingConfig;
+    int getRowkeyFixLenLengthMax();
 
-public abstract class AbstractProposer {
-    final ModelingContext context;
-    final ModelingConfig modelingConfig;
+    long getRowkeyUHCCardinalityMin();
 
-    AbstractProposer(ModelingContext context) {
-        this.context = context;
-        this.modelingConfig = context.getModelingConfig();
-    }
+    int getJointGroupCardinalityMax();
 
-    public CubeDesc propose(CubeDesc sourceCubeDesc) {
-        CubeDesc workCubeDesc = CubeDesc.getCopyOf(sourceCubeDesc);
-        workCubeDesc.init(context.getKylinConfig());
+    int getJointColNumMax();
 
-        doPropose(workCubeDesc);
+    double getDimDerivedRatio();
 
-        return workCubeDesc;
-    }
+    int getMandatoryCardinalityMax();
 
-    abstract void doPropose(CubeDesc workCubeDesc);
+    double getApproxEqualMax();
+
+    double getApproxEqualMin();
+
+    int getMandatoryEnableQueryMin();
+
+    int getRowkeyFilterPromotionTimes();
+
+    double getApproxDiffMax();
+
+    String getRowkeyDefaultEnc();
+
+    double getPhyscalWeight();
+
+    double getBusinessWeight();
+
+    boolean getDomainQueryEnabled();
+
+    boolean getAggGroupKeepLegacy();
+
+    boolean getAggGroupStrictEnabled();
+
+    int getAggGroupStrictCombinationMax();
+
+    int getAggGroupStrictRetryMax();
 }

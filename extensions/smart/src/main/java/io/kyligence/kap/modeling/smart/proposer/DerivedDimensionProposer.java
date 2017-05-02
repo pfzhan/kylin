@@ -45,7 +45,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.modeling.smart.ModelingContext;
-import io.kyligence.kap.modeling.smart.util.Constants;
 import io.kyligence.kap.modeling.smart.util.CubeDescUtil;
 
 public class DerivedDimensionProposer extends AbstractProposer {
@@ -203,7 +202,7 @@ public class DerivedDimensionProposer extends AbstractProposer {
                 } else {
                     long colCardinality = context.getColumnsCardinality(dimColRef.getIdentity());
                     double colCardRatio = (double) colCardinality / (double) pKeyCardinality;
-                    if (colCardRatio > Constants.DIM_DERIVED_PK_RATIO) {
+                    if (colCardRatio > modelingConfig.getDimDerivedRatio()) {
                         logger.debug("Found one derived dimension: column={}, cardinality={}, pkCardinality={}, cardinalityRatio={}", tblDim.getColumn(), colCardinality, pKeyCardinality, colCardRatio);
                         derivedDimNames.add(tblDim.getColumn());
                     } else {
@@ -214,8 +213,8 @@ public class DerivedDimensionProposer extends AbstractProposer {
 
             if (!derivedDimNames.isEmpty()) {
                 // only add one derived dim, ignore all PK and FK dims
-                String dimName = String.format("%s_%s", tblAlias, Constants.DIM_DEREIVED_NAME_SUFFIX);
-                workDimensions.add(newDimensionDesc(cubeDesc, Constants.DIM_DEREIVED_COLUMN_NAME, tblAlias, dimName, derivedDimNames.toArray(new String[0])));
+                String dimName = String.format("%s_%s", tblAlias, "DERIVED");
+                workDimensions.add(newDimensionDesc(cubeDesc, "{FK}", tblAlias, dimName, derivedDimNames.toArray(new String[0])));
             } else if (!pKeyDimsBackup.isEmpty()) {
                 workDimensions.addAll(fkDimsByTbl.get(tblRef));
                 workDimensions.addAll(pKeyDimsBackup);

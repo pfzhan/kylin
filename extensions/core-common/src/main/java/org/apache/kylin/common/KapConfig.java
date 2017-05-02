@@ -275,4 +275,15 @@ public class KapConfig {
     public int getAdvancedFlatTablePercentage() {
         return Integer.parseInt(config.getOptional("kap.job.advanced-flat-table.percentage", "10"));
     }
+
+    /**
+     *  Smart modeling
+     */
+    public String getSmartModelingConf(String conf) {
+        return config.getOptional("kap.smart.conf." + conf, null);
+    }
+
+    public String getSmartModelingStrategy() {
+        return config.getOptional("kap.smart.strategy", "default");
+    }
 }

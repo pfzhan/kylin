@@ -41,13 +41,15 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.modeling.smart.common.ModelingConfig;
 import io.kyligence.kap.modeling.smart.domain.Domain;
 import io.kyligence.kap.modeling.smart.query.QueryStats;
 import io.kyligence.kap.modeling.smart.stats.ICubeStats;
-import io.kyligence.kap.modeling.smart.util.Constants;
 import io.kyligence.kap.source.hive.modelstats.ModelStats;
 
 public class ModelingContext {
+    private ModelingConfig modelingConfig;
+
     private Map<String, TableExtDesc> tableExtDescs;
     private Map<String, TableDesc> tableDescs;
     private ModelStats modelStats;
@@ -58,9 +60,13 @@ public class ModelingContext {
     private String cubeName;
     private ICubeStats cubeStats;
 
-    // config, such as weight value of different opt methods
-    private double physcalCoe = Constants.COE_PHYSCAL;
-    private double businessCoe = Constants.COE_BUSINESS;
+    ModelingContext(ModelingConfig modelingConfig) {
+        this.modelingConfig = modelingConfig;
+    }
+
+    public ModelingConfig getModelingConfig() {
+        return modelingConfig;
+    }
 
     public ICubeStats getCubeStats() {
         return cubeStats;
@@ -179,22 +185,6 @@ public class ModelingContext {
 
     public void setTableDescs(Map<String, TableDesc> tableDescs) {
         this.tableDescs = tableDescs;
-    }
-
-    public double getPhyscalCoe() {
-        return physcalCoe;
-    }
-
-    public void setPhyscalCoe(double physcalCoe) {
-        this.physcalCoe = physcalCoe;
-    }
-
-    public double getBusinessCoe() {
-        return businessCoe;
-    }
-
-    public void setBusinessCoe(double businessCoe) {
-        this.businessCoe = businessCoe;
     }
 
     public boolean hasModelStats() {
