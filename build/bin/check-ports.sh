@@ -3,6 +3,8 @@
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
+[[ -z $KYLIN_CONF ]] || quit "KYLIN_CONF should not be set. Please do: export KYLIN_CONF="
+
 spark_client_port=`$KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.spark-driver-port`
 [[ -n ${spark_client_port} ]] || spark_client_port=7071
 kylin_port=`$KYLIN_HOME/bin/get-properties.sh kylin.server.cluster-servers`
