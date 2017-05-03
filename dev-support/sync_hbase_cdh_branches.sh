@@ -51,7 +51,7 @@ git checkout -b tmp
 git reset ${kap_remote}/$kapbase --hard
 
 git am -3 --ignore-whitespace 0001-Support-HBase-0.98.patch
-mvn clean compile -DskipTests
+mvn clean package -DskipTests
 if [[ "${push_remote}" == "true" ]]; then
     git push ${kap_remote} tmp:$kapbase-hbase0.98 -f
 fi
