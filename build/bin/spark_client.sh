@@ -89,7 +89,10 @@ function retrieveSparkEnvProps()
 if [ "$1" == "test" ]
 then
     echo "Starting test spark with conf"
+
     retrieveSparkEnvProps
+    echo "HADOOP_CONF_DIR=$HADOOP_CONF_DIR"
+
     ${dir}/hdfs-op.sh put kap_test_spark
     kapTestSparkDfsFile=`cat kap_test_spark`
     kapTestSparkDfsDir="hdfs://"
