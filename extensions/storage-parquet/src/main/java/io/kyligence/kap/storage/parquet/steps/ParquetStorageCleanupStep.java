@@ -82,28 +82,24 @@ public class ParquetStorageCleanupStep extends AbstractExecutable {
     }
 
     private void dropHdfsPathOnCluster(List<String> folderPaths, List<String> fileSuffixs, FileSystem fileSystem) throws IOException {
-        logger.info("folderPaths is {}", folderPaths);
-        logger.info("fileSuffixs is {}", fileSuffixs);
         if (folderPaths != null && folderPaths.size() > 0) {
-            logger.debug("Drop HDFS path on FileSystem: " + fileSystem.getUri());
+            logger.info("Drop HDFS path on FileSystem: " + fileSystem.getUri());
             output.append("Drop HDFS path on FileSystem: \"" + fileSystem.getUri() + "\" \n");
             for (String folder : folderPaths) {
                 Path folderPath = new Path(folder);
                 if (fileSystem.exists(folderPath) && fileSystem.isDirectory(folderPath)) {
                     if (fileSuffixs != null && fileSuffixs.size() > 0) {
-                        logger.info("Selectively delete some files");
+                        logger.info("Selectively delete some files: folderPath={}, fileSuffix={}", folderPaths, fileSuffixs);
                         dropCuboidPath(fileSystem, folderPath, fileSuffixs);
                     } else {
-                        logger.info("Delete entire folders");
+                        logger.info("Delete entire folders.");
                         //if no file suffix provided, delete the whole folder
                         logger.debug("working on HDFS folder " + folder);
                         output.append("working on HDFS folder " + folder + "\n");
                         fileSystem.delete(folderPath, true);
-                        logger.debug("Successfully dropped.");
-                        output.append("Successfully dropped.\n");
                     }
                 } else {
-                    logger.debug("Folder " + folder + " not exists.");
+                    logger.warn("Folder " + folder + " not exists.");
                     output.append("Folder " + folder + " not exists.\n");
                 }
             }
@@ -136,11 +132,8 @@ public class ParquetStorageCleanupStep extends AbstractExecutable {
             String currentFileName = path.toString();
             if (matchFileSuffix(currentFileName, fileSuffixs)) {
                 long size = fs.getContentSummary(path).getLength();
-                logger.debug("working on HDFS file " + currentFileName + " with size " + size);
                 output.append("working on HDFS file " + currentFileName + " with size " + size + "\n");
                 fs.delete(path, false);
-                logger.debug("Successfully deleted.");
-                output.append("Successfully deleted.\n");
             }
         }
     }

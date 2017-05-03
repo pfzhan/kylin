@@ -51,7 +51,6 @@ public class ParquertMRJobUtils {
         } else if (fs.isFile(path)) {
             if (isParquetFile(path)) {
                 FileInputFormat.addInputPath(job, path);
-                logger.debug("Input Path: " + path);
                 ret++;
             }
         }

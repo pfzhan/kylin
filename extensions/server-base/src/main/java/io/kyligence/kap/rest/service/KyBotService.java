@@ -67,9 +67,9 @@ public class KyBotService extends BasicService {
 
     private void runKyBotCLI(String[] args) throws IOException {
         File cwd = new File("");
-        logger.info("Current path: " + cwd.getAbsolutePath());
+        logger.debug("Current path: " + cwd.getAbsolutePath());
 
-        logger.info("KybotClientCLI args: " + Arrays.toString(args));
+        logger.debug("KybotClientCLI args: " + Arrays.toString(args));
         File script = new File(KylinConfig.getKylinHome() + File.separator + "bin", "diag.sh");
         if (!script.exists()) {
             throw new RuntimeException("diag.sh not found at " + script.getAbsolutePath());
@@ -77,14 +77,9 @@ public class KyBotService extends BasicService {
 
         String diagCmd = script.getAbsolutePath() + " " + StringUtils.join(args, " ");
         CliCommandExecutor executor = KylinConfig.getInstanceFromEnv().getCliCommandExecutor();
-        Pair<Integer, String> cmdOutput = executor.execute(diagCmd, new org.apache.kylin.common.util.Logger() {
-            @Override
-            public void log(String message) {
-                logger.info(message);
-            }
-        });
+        Pair<Integer, String> cmdOutput = executor.execute(diagCmd);
 
-        logger.info("Cmdoutput: " + cmdOutput.getKey());
+        logger.debug("Cmdoutput: " + cmdOutput.getKey());
         if (cmdOutput.getKey() != 0) {
             throw new RuntimeException("Failed to generate KyBot package.");
         }
