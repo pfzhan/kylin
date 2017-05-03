@@ -637,11 +637,13 @@ KylinApp.constant('kapEnglishConfig', {
     jobResume: 'Resume',
     jobDiscard: 'Discard',
     jobPause: 'Pause',
+    jobDrop: 'Drop',
     jobDiagnosis: 'Diagnosis',
     tip_jobDiagnosis: 'Download Diagnosis Info For This Job',
     tip_jobResume: 'Resume the Job',
     tip_jobPause: 'Pause the Job',
     tip_jobDiscard: 'Discard the Job',
+    tip_jobDrop: 'Delete the Job',
     jobsDetailInfo: 'Detail Information', //job detail begin
     tip_jobsDetailInfo: 'Collapse',
     jobsJobName: 'Job Name',

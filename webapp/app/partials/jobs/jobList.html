@@ -65,6 +65,7 @@
         <tbody  class="odd table table-striped table-bordered table-hover dataTable no-footer">
         <tr
           ng-repeat="(uuid,job) in jobList.jobs | orderObjectBy:state.filterAttr:state.filterReverse"
+          ng-if="!job.dropped"
           ng-class="{accordion:true}" ng-click="state.selectedJob = job"
           ng-dblclick="state.showSteps= !state.showSteps; state.selectedJob = job"
           style="cursor: pointer"
@@ -129,6 +130,9 @@
                   <a ng-click="pause(job)" tooltip="{{dataKylin.monitor.tip_jobPause}}">{{dataKylin.monitor.jobPause}}</a></li>
                 <li ng-if="job.job_status=='RUNNING' || job.job_status=='NEW' || job.job_status=='PENDING' || job.job_status=='ERROR' || job.job_status=='STOPPED'">
                   <a ng-click="cancel(job)" tooltip="{{dataKylin.monitor.tip_jobDiscard}}">{{dataKylin.monitor.jobDiscard}}</a>
+                </li>
+                <li ng-if="job.job_status=='FINISHED' || job.job_status=='ERROR' || job.job_status=='STOPPED' || job.job_status=='DISCARDED'">
+                  <a ng-click="drop(job)" tooltip="{{dataKylin.monitor.tip_jobDrop}}">{{dataKylin.monitor.jobDrop}}</a>
                 </li>
                 <li>
                   <a ng-click="diagnosisJob(job)" tooltip="{{dataKylin.monitor.tip_jobDiagnosis}}">{{dataKylin.monitor.jobDiagnosis}}</a>

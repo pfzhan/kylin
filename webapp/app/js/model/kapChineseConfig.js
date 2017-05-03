@@ -637,11 +637,13 @@ KylinApp.constant('kapChineseConfig', {
     jobResume: '恢复',
     jobDiscard: '终止',
     jobPause: '暂停',
+    jobDrop: '删除',
     jobDiagnosis: '诊断',
     tip_jobDiagnosis: '下载Job诊断包',
     tip_jobResume: '恢复Job',
     tip_jobPause: '暂停Job',
     tip_jobDiscard: '终止Job',
+    tip_jobDrop: '删除Job',
     jobsDetailInfo: '详细信息', //job detail begin
     tip_jobsDetailInfo: '收起',
     jobsJobName: '任务名',
