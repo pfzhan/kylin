@@ -25,44 +25,32 @@
 package io.kyligence.kap.query.mockup;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DBUtils;
-import org.apache.kylin.query.schema.OLAPSchemaFactory;
+import org.apache.kylin.query.QueryDataSource;
 import org.apache.kylin.query.util.QueryUtil;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 public class MockupQueryExecutor implements Closeable {
     private final KylinConfig kylinConfig;
 
-    private Map<String, Connection> connections = Maps.newHashMap();
-    private List<File> usedFiles = Lists.newLinkedList();
+    private QueryDataSource queryDataSource = new QueryDataSource();
+    private List<Connection> connections = new ArrayList<>();
 
-    public MockupQueryExecutor(AbstractQueryRecorder queryRecorder) {
+    public MockupQueryExecutor(AbstractQueryRecorder<?> queryRecorder) {
         this.kylinConfig = KylinConfig.getInstanceFromEnv();
         AbstractQueryRecorder.CURRENT.set(queryRecorder);
     }
 
     public void execute(String projectName, String sql) throws SQLException {
-        // TODO: share same code with kylin after move JDBC datasource from CacheService class
-        Connection conn = connections.get(projectName);
-        if (conn == null || conn.isClosed()) {
-            File olapSchema = OLAPSchemaFactory.createTempOLAPJson(projectName, kylinConfig);
-            usedFiles.add(olapSchema);
-            conn = DriverManager.getConnection("jdbc:calcite:model=" + olapSchema.getAbsolutePath());
-            connections.put(projectName, conn);
-        }
+        Connection conn = queryDataSource.get(projectName, kylinConfig).getConnection();
 
         Statement statement = null;
         ResultSet resultSet = null;
@@ -79,11 +67,9 @@ public class MockupQueryExecutor implements Closeable {
 
     @Override
     public void close() throws IOException {
-        for (Connection conn : connections.values()) {
+        for (Connection conn : connections) {
             DBUtils.closeQuietly(conn);
         }
-        for (File usedFile : usedFiles) {
-            usedFile.delete();
-        }
+        queryDataSource.clearCache();
     }
 }
