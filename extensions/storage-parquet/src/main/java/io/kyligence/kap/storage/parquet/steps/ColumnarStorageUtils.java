@@ -26,7 +26,7 @@ package io.kyligence.kap.storage.parquet.steps;
 
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableSegment;
-import kap.google.common.base.Splitter;
+import io.kyligence.kap.storage.parquet.shaded.com.google.common.base.Splitter;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;

@@ -34,6 +34,7 @@
             <artifactId>hbase-client</artifactId>
             <scope>provided</scope>
         </dependency>
+        
         <!-- Spark dependency -->
         <dependency>
             <groupId>org.apache.spark</groupId>

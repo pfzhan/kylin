@@ -76,7 +76,7 @@ public class HDFSResourceStore extends ResourceStore {
     protected void putResourceImpl(String resPath, InputStream content, long ts) throws IOException {
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
         FSDataOutputStream os = fs.create(hdfsPath(resPath, kylinConfig), false);
-        BufferedOutputStream bos = IOUtils.buffer(os);
+        BufferedOutputStream bos = new BufferedOutputStream(os);
         IOUtils.copy(content, bos);
         bos.close();
     }

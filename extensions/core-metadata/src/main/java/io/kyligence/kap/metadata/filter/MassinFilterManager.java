@@ -123,7 +123,7 @@ public class MassinFilterManager {
             resourcePath = getResourceIdentifier(kapConfig, filterName);
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            BufferedOutputStream bos = IOUtils.buffer(baos);
+            BufferedOutputStream bos = new BufferedOutputStream(baos);
             final Charset cs = Charsets.toCharset("UTF-8");
             for (List<String> line : result) {
                 bos.write(line.get(0).toString().getBytes(cs));

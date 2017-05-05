@@ -51,7 +51,7 @@ import io.grpc.stub.StreamObserver;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.StorageVisitState.ResultPackStatus;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.StorageVisitState.TransferPack;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
-import kap.google.protobuf.ByteString;
+import io.kyligence.kap.storage.parquet.shaded.com.google.protobuf.ByteString;
 
 public class ServerStreamObserver implements StreamObserver<SparkJobProtos.SparkJobRequest> {
 

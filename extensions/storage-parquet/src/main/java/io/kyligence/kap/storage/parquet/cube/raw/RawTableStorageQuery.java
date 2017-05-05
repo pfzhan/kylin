@@ -26,6 +26,7 @@ package io.kyligence.kap.storage.parquet.cube.raw;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -49,7 +50,6 @@ import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.gtrecord.RawTableSegmentScanner;
 import io.kyligence.kap.gtrecord.SequentialRawTableTupleIterator;
-import kap.google.common.collect.Sets;
 
 public class RawTableStorageQuery implements IStorageQuery {
 
@@ -96,7 +96,7 @@ public class RawTableStorageQuery implements IStorageQuery {
                 }
             }
 
-            Set<TblColRef> groups = Sets.newHashSet();
+            Set<TblColRef> groups = new HashSet<>();
             scanner = new RawTableSegmentScanner(rawTableSegment, dimensions, groups, Collections.<FunctionDesc> emptySet(), sqlDigest.filter, context);
             scanners.add(scanner);
         }
@@ -117,7 +117,7 @@ public class RawTableStorageQuery implements IStorageQuery {
             possible = false;
             logger.info("Storage limit push down is impossible because the filter is unevaluatable");
         }
-        
+
         boolean goodSort = !context.hasSort();
         if (!goodSort) {
             possible = false;

@@ -17,7 +17,8 @@
   ~ limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <artifactId>kap-storage-parquet-protocol</artifactId>
@@ -35,10 +36,11 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <shadeBase>io.kyligence.kap.storage.parquet.shaded</shadeBase>
     </properties>
 
 
-    <!--overwrite parent-->
+    <!--overwrite parent, need to upgrade this when upgrade grpc-->
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -60,7 +62,7 @@
             <groupId>io.grpc</groupId>
             <artifactId>grpc-all</artifactId>
         </dependency>
-     
+
     </dependencies>
 
     <build>
@@ -77,9 +79,12 @@
                 <artifactId>protobuf-maven-plugin</artifactId>
                 <version>0.5.0</version>
                 <configuration>
-                    <protocArtifact>com.google.protobuf:protoc:3.0.2:exe:${os.detected.classifier}</protocArtifact>
+                    <protocArtifact>com.google.protobuf:protoc:3.0.2:exe:${os.detected.classifier}
+                    </protocArtifact>
                     <pluginId>grpc-java</pluginId>
-                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.0.2:exe:${os.detected.classifier}</pluginArtifact>
+                    <pluginArtifact>
+                        io.grpc:protoc-gen-grpc-java:1.0.2:exe:${os.detected.classifier}
+                    </pluginArtifact>
                 </configuration>
                 <executions>
                     <execution>
@@ -102,18 +107,34 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>commons-logging:commons-logging</exclude>
+                                    <exclude>org.slf4j:*</exclude>
+                                    <exclude>org.apache.zookeeper:*</exclude>
+                                    <exclude>net.sf.ehcache:*</exclude>
+                                    <exclude>org.apache.httpcomponents:*</exclude>
+                                    <exclude>org.apache.commons:commons-email:*</exclude>
+                                    <exclude>com.sun.mail:javax.mail:*</exclude>
+                                    <exclude>javax.activation:activation:*</exclude>
+                                </excludes>
+                            </artifactSet>
                             <relocations>
                                 <relocation>
                                     <pattern>io.netty</pattern>
-                                    <shadedPattern>kap.netty</shadedPattern>
+                                    <shadedPattern>${shadeBase}.io.netty</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>com.google</pattern>
-                                    <shadedPattern>kap.google</shadedPattern>
+                                    <shadedPattern>${shadeBase}.com.google</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>com.fasterxml</pattern>
-                                    <shadedPattern>kap.fasterxml</shadedPattern>
+                                    <pattern>com.squareup</pattern>
+                                    <shadedPattern>${shadeBase}.com.squareup</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>okio</pattern>
+                                    <shadedPattern>${shadeBase}.okio</shadedPattern>
                                 </relocation>
                             </relocations>
                             <transformers>
@@ -122,7 +143,6 @@
                             </transformers>
                             <minimizeJar>false</minimizeJar>
                             <shadedArtifactAttached>false</shadedArtifactAttached>
-                            <!--<shadedClassifierName>spark</shadedClassifierName>-->
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>

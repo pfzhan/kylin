@@ -179,6 +179,10 @@
                                     <exclude>io.netty:*</exclude>
                                     <exclude>org.apache.zookeeper:*</exclude>
                                     <exclude>net.sf.ehcache:*</exclude>
+                                    <exclude>org.apache.httpcomponents:*</exclude>
+                                    <exclude>org.apache.commons:commons-email:*</exclude>
+                                    <exclude>com.sun.mail:javax.mail:*</exclude>
+                                    <exclude>javax.activation:activation:*</exclude>
                                 </excludes>
                             </artifactSet>
                             <relocations>
@@ -199,10 +203,6 @@
                                     <shadedPattern>${shadeBase}.org.apache.commons.codec</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>org.apache.commons.collections</pattern>
-                                    <shadedPattern>${shadeBase}.org.apache.commons.collections</shadedPattern>
-                                </relocation>
-                                <relocation>
                                     <pattern>org.apache.commons.lang3</pattern>
                                     <shadedPattern>${shadeBase}.org.apache.commons.lang3</shadedPattern>
                                 </relocation>
@@ -213,6 +213,16 @@
                                 <relocation>
                                     <pattern>org.roaringbitmap</pattern>
                                     <shadedPattern>${shadeBase}.org.roaringbitmap</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.parquet</pattern>
+                                    <shadedPattern>${shadeBase}.org.apache.parquet
+                                    </shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>shaded.parquet.org</pattern>
+                                    <shadedPattern>${shadeBase}.shaded.parquet.org
+                                    </shadedPattern>
                                 </relocation>
                             </relocations>
                             <filters>

@@ -40,10 +40,11 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableSegment;
-import kap.google.common.collect.Lists;
 
 public class StorageDuplicateStep extends AbstractExecutable {
     /**

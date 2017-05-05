@@ -249,6 +249,7 @@
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-distcp</artifactId>
                 <version>${hadoop2.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.helix</groupId>
@@ -315,6 +316,11 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <!--for transitive dependencies like commons-collectinos, commons-lang -->
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
         </dependency>
     </dependencies>
 
@@ -400,10 +406,6 @@
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-dependency-plugin</artifactId>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-antrun-plugin</artifactId>
                 </plugin>
                 <plugin>
@@ -478,6 +480,11 @@
                         <failOnError>false</failOnError>
                     </configuration>
                 </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>2.10</version>
+                </plugin>
             </plugins>
         </pluginManagement>
 
@@ -489,6 +496,21 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>findbugs-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>analyze</id>
+                        <goals>
+                            <goal>analyze-only</goal>
+                        </goals>
+                        <!--<configuration>-->
+                        <!--<failOnWarning>true</failOnWarning>-->
+                        <!--</configuration>-->
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
