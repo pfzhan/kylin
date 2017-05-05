@@ -24,12 +24,13 @@
 
 package io.kyligence.kap.modeling.smart.query;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Set;
 
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.cube.model.RowKeyColDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.modeling.smart.domain.Domain;
 import io.kyligence.kap.modeling.smart.domain.IDomainBuilder;
@@ -48,7 +49,7 @@ public class QueryDomainBuilder implements IDomainBuilder {
         long allColumnMask = queryStats.getColumnBitmap();
         RowKeyColDesc[] rowKeyCols = origCubeDesc.getRowkey().getRowKeyColumns();
 
-        List<TblColRef> dimensionCols = new ArrayList<>();
+        Set<TblColRef> dimensionCols = Sets.newHashSet();
         for (int i = 0; allColumnMask > 0 && i < rowKeyCols.length; i++) {
             if ((allColumnMask & 1) == 1) {
                 dimensionCols.add(rowKeyCols[rowKeyCols.length - i - 1].getColRef());

@@ -25,7 +25,6 @@
 package io.kyligence.kap.modeling.smart.domain;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -39,6 +38,7 @@ import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 
 public class ModelDomainBuilder implements IDomainBuilder {
     private final DataModelDesc modelDesc;
@@ -52,34 +52,29 @@ public class ModelDomainBuilder implements IDomainBuilder {
 
     @Override
     public Domain build() {
-        // Prepare columns info
-        Set<TblColRef> primaryKeys = new HashSet<>();
-        Set<TblColRef> foreignKeys = new HashSet<>();
-        for (JoinTableDesc fTable : modelDesc.getJoinTables()) {
-            primaryKeys.addAll(Arrays.asList(fTable.getJoin().getPrimaryKeyColumns()));
-            foreignKeys.addAll(Arrays.asList(fTable.getJoin().getForeignKeyColumns()));
-        }
-
         // Setup dimensions
-        List<TblColRef> dimensionCols = new ArrayList<>();
+        Set<TblColRef> dimensionCols = Sets.newHashSet();
         for (ModelDimensionDesc dim : modelDesc.getDimensions()) {
             TableRef lookupTable = modelDesc.findTable(dim.getTable());
-            if (lookupTable == null) {
-                continue;
-            }
             for (String col : dim.getColumns()) {
                 TblColRef colRef = lookupTable.getColumn(col);
-                if (primaryKeys.contains(colRef) || foreignKeys.contains(colRef)) {
-                    // Skip, add it later
-                    continue;
-                }
                 if (colRef != null) {
                     dimensionCols.add(colRef);
                 }
             }
         }
-        for (TblColRef foreignKey : foreignKeys) {
-            dimensionCols.add(foreignKey);
+
+        // Remove duplicated PK-FK for inner-join
+        for (JoinTableDesc fTable : modelDesc.getJoinTables()) {
+            if (fTable.getJoin().isInnerJoin()) {
+                TblColRef[] fkColRefs = fTable.getJoin().getForeignKeyColumns();
+                TblColRef[] pkColRefs = fTable.getJoin().getPrimaryKeyColumns();
+                for (int i = 0; i < pkColRefs.length; i++) {
+                    if (dimensionCols.contains(pkColRefs[i]) && dimensionCols.contains(fkColRefs[i])) {
+                        dimensionCols.remove(pkColRefs[i]);
+                    }
+                }
+            }
         }
 
         // Setup measures

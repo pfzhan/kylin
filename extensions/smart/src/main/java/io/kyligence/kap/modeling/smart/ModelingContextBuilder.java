@@ -112,7 +112,7 @@ public class ModelingContextBuilder {
         // setup dimensions
         DataModelDesc modelDesc = origCubeDesc.getModel();
         RowKeyColDesc[] rowKeyCols = origCubeDesc.getRowkey().getRowKeyColumns();
-        List<TblColRef> dimensionCols = new ArrayList<>();
+        Set<TblColRef> dimensionCols = Sets.newHashSet();
         for (int i = 0; i < rowKeyCols.length; i++) {
             dimensionCols.add(rowKeyCols[rowKeyCols.length - i - 1].getColRef());
         }

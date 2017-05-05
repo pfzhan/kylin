@@ -30,8 +30,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DBUtils;
@@ -42,7 +40,6 @@ public class MockupQueryExecutor implements Closeable {
     private final KylinConfig kylinConfig;
 
     private QueryDataSource queryDataSource = new QueryDataSource();
-    private List<Connection> connections = new ArrayList<>();
 
     public MockupQueryExecutor(AbstractQueryRecorder<?> queryRecorder) {
         this.kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -62,14 +59,12 @@ public class MockupQueryExecutor implements Closeable {
         } finally {
             DBUtils.closeQuietly(statement);
             DBUtils.closeQuietly(resultSet);
+            DBUtils.closeQuietly(conn);
         }
     }
 
     @Override
     public void close() throws IOException {
-        for (Connection conn : connections) {
-            DBUtils.closeQuietly(conn);
-        }
         queryDataSource.clearCache();
     }
 }

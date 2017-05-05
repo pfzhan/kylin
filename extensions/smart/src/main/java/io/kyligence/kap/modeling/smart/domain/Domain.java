@@ -46,10 +46,10 @@ import io.kyligence.kap.modeling.smart.util.CubeDescUtil;
 
 public class Domain {
     private DataModelDesc model;
-    private List<TblColRef> dimensions;
+    private Set<TblColRef> dimensions;
     private Set<FunctionDesc> measures;
 
-    public Domain(DataModelDesc model, List<TblColRef> dimensions, Set<FunctionDesc> measures) {
+    public Domain(DataModelDesc model, Set<TblColRef> dimensions, Set<FunctionDesc> measures) {
         this.model = model;
         this.dimensions = dimensions;
         this.measures = measures;
@@ -63,11 +63,11 @@ public class Domain {
         this.model = model;
     }
 
-    public List<TblColRef> getDimensions() {
+    public Set<TblColRef> getDimensions() {
         return dimensions;
     }
 
-    public void setDimensions(List<TblColRef> dimensions) {
+    public void setDimensions(Set<TblColRef> dimensions) {
         this.dimensions = dimensions;
     }
 
