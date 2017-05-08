@@ -41,6 +41,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.security.PasswordPlaceholderConfigurer;
 import org.apache.kylin.rest.service.BasicService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +53,7 @@ import com.google.common.io.Files;
 @Component("kyBotService")
 public class KyBotService extends BasicService {
     public static final String SUCC_CODE = "000";
-    public static final String USERNAME_PASSWORD_EMPTY = "401";
+    public static final String NO_ACCOUNT = "401";
     public static final String AUTH_FAILURE = "402";
 
     private static final Logger logger = LoggerFactory.getLogger(KyBotService.class);
@@ -106,37 +107,54 @@ public class KyBotService extends BasicService {
         KapConfig kapConfig = KapConfig.getInstanceFromEnv();
         String username = kapConfig.getKyAccountUsename();
         String password = kapConfig.getKyAccountPassword();
+        String token = kapConfig.getKyAccountToken();
 
-        if (StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) {
-            return USERNAME_PASSWORD_EMPTY;
+        if ((StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) && StringUtils.isEmpty(token)) {
+            return NO_ACCOUNT;
         }
 
         String proxyServer = kapConfig.getHttpProxyHost();
         int proxyPort = kapConfig.getHttpProxyPort();
 
-        byte[] encodedAuth = Base64.encodeBase64((username + ":" + password).getBytes(Charset.forName("ISO-8859-1")));
-        String authHeader = "Basic " + new String(encodedAuth);
-        String url = kapConfig.getKyBotSiteUrl() + "/api/user/authentication";
-
-        HttpPost request = new HttpPost(url);
         DefaultHttpClient client = new DefaultHttpClient();
-
         if (proxyServer != null && proxyPort > 0) {
             HttpHost proxy = new HttpHost(proxyServer, proxyPort);
             client.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY, proxy);
         }
 
+        String url = kapConfig.getKyBotSiteUrl() + "/api/user/authentication";
+
+        boolean isSucc = false;
+
+        // try username & password firstly
+        if (!StringUtils.isEmpty(username) && !StringUtils.isEmpty(password)) {
+            password = PasswordPlaceholderConfigurer.decrypt(password);
+            byte[] encodedAuth = Base64.encodeBase64((username + ":" + password).getBytes(Charset.forName("ISO-8859-1")));
+            String authHeader = "Basic " + new String(encodedAuth);
+            isSucc = testServerConnection(client, url, authHeader);
+            logger.debug("Check authentication with username: URL={}, ProxyHost={}, ProxyPort={}, Username={}", url, proxyServer, proxyPort, username);
+        }
+
+        // try token
+        if (!StringUtils.isEmpty(token) && !isSucc) {
+            String authHeader = "bearer " + token;
+            isSucc = testServerConnection(client, url, authHeader);
+            logger.debug("Check authentication with token: URL={}, ProxyHost={}, ProxyPort={}, Token={}", url, proxyServer, proxyPort, token);
+        }
+
+        return isSucc ? SUCC_CODE : AUTH_FAILURE;
+    }
+
+    private boolean testServerConnection(DefaultHttpClient client, String url, String authHeader) {
+        HttpPost request = new HttpPost(url);
+
         try {
             request.setHeader("authorization", authHeader);
             HttpResponse response = client.execute(request);
-            if (response.getStatusLine().getStatusCode() != 200) {
-                logger.error("Authentication failed. URL={}, ProxyHost={}, ProxyPort={}, Username={}", url, proxyServer, proxyPort, username);
-                return AUTH_FAILURE;
-            }
-            return SUCC_CODE;
+            return response.getStatusLine().getStatusCode() == 200;
         } catch (Exception ex) {
             logger.error("Authentication failed due to exception: " + ex.getMessage());
-            return AUTH_FAILURE;
+            return false;
         } finally {
             request.releaseConnection();
         }

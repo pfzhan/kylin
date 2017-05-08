@@ -234,6 +234,10 @@ public class KapConfig {
         return config.getOptional("kap.kyaccount.password");
     }
 
+    public String getKyAccountToken() {
+        return config.getOptional("kap.kyaccount.token");
+    }
+
     public String getKyBotSiteUrl() {
         return config.getOptional("kap.external.kybot.url", "https://kybot.io");
     }
