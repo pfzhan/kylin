@@ -31,8 +31,12 @@
 -keepclassmembers class io.kyligence.kap.rest.request.** {*;}
 -keepclassmembers class io.kyligence.kap.rest.response.** {*;}
 -keepclassmembers class * implements org.apache.kylin.gridtable.IGTCodeSystem {*;}
--keepclassmembers class io.kyligence.kap.job.shaded.** {*;}
 -keepclassmembers class io.kyligence.kap.job.SampleCubeJoinedFlatTable {*;}
+
+-keep class io.kyligence.kap.modeling.smart.shaded.** {*;}
+-keep class io.kyligence.kap.tool.shaded.** {*;}
+-keep class io.kyligence.kap.job.shaded.** {*;}
+-keep class io.kyligence.kap.storage.parquet.shaded.** {*;}
 
 -keep class * extends org.apache.log4j.AppenderSkeleton {*;}
 -keep class * extends org.apache.kylin.rest.controller.BasicController {*;}
