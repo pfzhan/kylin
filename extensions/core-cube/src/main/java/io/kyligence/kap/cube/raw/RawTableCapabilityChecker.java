@@ -29,7 +29,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.cube.JoinChecker;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -47,12 +46,7 @@ public class RawTableCapabilityChecker {
         CapabilityResult result = new CapabilityResult();
         result.capable = false;
 
-        // match joins
-        boolean isJoinMatch = JoinChecker.isJoinMatch(digest.joinDescs, rawTable);
-        if (!isJoinMatch) {
-            logger.info("Exclude RawTableInstance " + rawTable.getName() + " because unmatched joins");
-            return result;
-        }
+        // match joins is ensured by model check
 
         //raw table cannot handle lookup queries
         if (!StringUtils.equals(digest.factTable, rawTable.getRootFactTable())) {

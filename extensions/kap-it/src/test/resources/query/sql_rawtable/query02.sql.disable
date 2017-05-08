@@ -16,4 +16,6 @@
 -- limitations under the License.
 --
 
+-- disable this query due to #441
+
 select * from test_kylin_fact where cal_dt=date'2012-01-01'
