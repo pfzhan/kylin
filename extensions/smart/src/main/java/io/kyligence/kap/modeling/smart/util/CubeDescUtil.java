@@ -85,6 +85,8 @@ public class CubeDescUtil {
 
         cubeDesc.setRowkey(rowkey);
         cubeDesc.setAggregationGroups(Lists.newArrayList(aggregationGroup));
+
+        cubeDesc.getOverrideKylinProps().put("kylin.cube.aggrgroup.max-combination", Long.toString(Long.MAX_VALUE));
     }
 
     public static void addRowKeyToAggGroup(AggregationGroup aggGroup, String rowKeyName) {
