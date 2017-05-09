@@ -32,6 +32,8 @@ import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 
 public class CheckHadoopConfDir {
+    
+    public static String CHECKENV_REPORT_PFX = ">   ";
 
     public static void main(String[] args) throws Exception {
 
@@ -40,18 +42,18 @@ public class CheckHadoopConfDir {
             System.exit(1);
         }
 
-        Configuration conf = new Configuration(false); // don't load defaults, we are only interested in the specified conf dir
+        Configuration conf = new Configuration(false); // don't load defaults, we are only interested in the specified config dir
         File hadoopConfDir = new File(args[0]).getCanonicalFile();
 
-        System.out.println("Checking hadoop conf dir " + hadoopConfDir);
+        System.out.println("Checking hadoop config dir " + hadoopConfDir);
 
         if (hadoopConfDir.exists() == false) {
-            System.err.println("ERROR: Hadoop conf dir '" + hadoopConfDir + "' does not exist");
+            System.err.println("ERROR: Hadoop config dir '" + hadoopConfDir + "' does not exist");
             System.exit(1);
         }
 
         if (hadoopConfDir.isDirectory() == false) {
-            System.err.println("ERROR: Hadoop conf dir '" + hadoopConfDir + "' is not a directory");
+            System.err.println("ERROR: Hadoop config dir '" + hadoopConfDir + "' is not a directory");
             System.exit(1);
         }
 
@@ -68,7 +70,7 @@ public class CheckHadoopConfDir {
 
         boolean shortcircuit = conf.getBoolean("dfs.client.read.shortcircuit", false);
         if (shortcircuit == false) {
-            System.out.println("WARN: 'dfs.client.read.shortcircuit' is not enabled. Check " + hadoopConfDir + "/hdfs-site.xml");
+            System.out.println(CHECKENV_REPORT_PFX + "WARN: 'dfs.client.read.shortcircuit' is not enabled which could impact query performance. Check " + hadoopConfDir + "/hdfs-site.xml");
         }
 
         System.exit(0);

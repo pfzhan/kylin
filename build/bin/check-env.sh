@@ -12,6 +12,8 @@ if [[ "$1" != "if-not-yet" || ! -f ${BYPASS} ]]; then
     echo "Checking environment, log is at ${LOG}"
     echo ""
     rm -f ${LOG}
+    
+    export CHECKENV_REPORT_PFX=">   "
 
     for f in ${dir}/check-*.sh
     do
@@ -34,7 +36,7 @@ if [[ "$1" != "if-not-yet" || ! -f ${BYPASS} ]]; then
     done
     echo ""
     echo "----------------------- Report ------------------------"
-    cat ${LOG} | grep ">   "
+    cat ${LOG} | grep ${CHECKENV_REPORT_PFX}
     
     touch ${BYPASS}
     echo "Checking environment was successful and is now suppressed. To check again, run 'bin/check-env.sh' manually."

@@ -9,13 +9,13 @@ TESTTABLE=chkenv__${RANDOM}
 
 a=$(echo "create '$TESTTABLE', 'f1'" | hbase shell 2>&1)
 echo "$a"
-[[ $a == *"0 row(s) in"*seconds* ]]               || quit "ERROR: Cannot create HTable '$TESTTABLE'. Please check HBase permission."
+[[ $a == *"0 row(s) in"*seconds* ]]               || quit "ERROR: Cannot create HTable '$TESTTABLE'. Please check HBase permissions and verify if current user can create HTable in 'hbase shell'."
 
 a=$(echo "disable '$TESTTABLE'" | hbase shell 2>&1)
 echo "$a"
-[[ $a == *"0 row(s) in"*seconds* ]]               || echo "WARN: Cannot disable HTable '$TESTTABLE'."
+[[ $a == *"0 row(s) in"*seconds* ]]               || echo "${CHECKENV_REPORT_PFX}WARN: Cannot disable HTable '$TESTTABLE'."
 
 a=$(echo "drop '$TESTTABLE'" | hbase shell 2>&1)
 echo "$a"
-[[ $a == *"0 row(s) in"*seconds* ]]               || echo "WARN: Cannot drop HTable '$TESTTABLE'."
+[[ $a == *"0 row(s) in"*seconds* ]]               || echo "${CHECKENV_REPORT_PFX}WARN: Cannot drop HTable '$TESTTABLE'."
 

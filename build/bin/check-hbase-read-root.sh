@@ -9,4 +9,4 @@ jobjar=`find ${KYLIN_HOME}/lib -name '*job*.jar'`
 export HBASE_CLASSPATH=${jobjar}
 hbaseroot=$(hbase  org.apache.kylin.storage.hbase.util.PrintHBaseConfig  "hbase.rootdir")
 
-hdfs dfs -ls $hbaseroot    || echo ">   : Cannot access $hbaseroot. Some diagnosis feature will be disabled."
+hdfs dfs -ls $hbaseroot    || echo "${CHECKENV_REPORT_PFX}WARN: Cannot access $hbaseroot. Some diagnosis feature will be disabled."

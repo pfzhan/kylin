@@ -22,7 +22,7 @@ source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 if [[ "$kylin_hadoop_conf_dir" == "" ]]
 then
 
-    echo Retrieving hadoop conf dir...
+    verbose Retrieving hadoop config dir...
     
     if [[ $CI_MODE == 'true' ]]; then
         override_hadoop_conf_dir=`${KYLIN_HOME}/build/bin/get-properties.sh kylin.env.hadoop-conf-dir`

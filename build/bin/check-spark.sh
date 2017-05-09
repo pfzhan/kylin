@@ -45,7 +45,7 @@ export ENABLE_CHECK_ENV=false
 ${dir}/kylin.sh io.kyligence.kap.tool.setup.KapGetClusterInfo ${saveFileName}
 
 if [ $? != 0 ]; then
-    echo ">   ERROR: failed to get cluster cores and memory, quit the spark config suggestion!"
+    echo "${CHECKENV_REPORT_PFX}WARN: Failed to get cluster cores and memory, skip the spark config suggestion."
     exit 0
 fi
 
@@ -57,19 +57,19 @@ spark_executor_memory=`getValueByKey ${key_executor_memory} ${override_file}`
 spark_executor_instance=`getValueByKey ${key_executor_instance} ${override_file}`
 
 if [ -z ${spark_total_cores} ]; then
-    echo ">   : Can not get Yarn RM's number of cores"
+    echo "${CHECKENV_REPORT_PFX}WARN: Cannot get Yarn RM's number of cores, skip the spark config suggestion."
     exit 0
 fi
 
 if [ -z ${spark_total_memory} ]; then
-    echo ">   : Can not get Yarn RM's size of memory"
+    echo "${CHECKENV_REPORT_PFX}WARN: Cannot get Yarn RM's size of memory, skip the spark config suggestion."
     exit 0
 fi
 
 echo "${key_executor_cores}=`setColor 36 ${spark_executor_cores}`"
 echo "${key_executor_memory}=`setColor 36 ${spark_executor_memory}`"
-echo ">   The total yarn RM cores: `setColor 36 ${spark_total_cores}`"
-echo ">   The total yarn RM memory: `setColor 36 ${spark_total_memory}M`"
+echo "${CHECKENV_REPORT_PFX}The total yarn RM cores: `setColor 36 ${spark_total_cores}`"
+echo "${CHECKENV_REPORT_PFX}The total yarn RM memory: `setColor 36 ${spark_total_memory}M`"
 unit=${spark_executor_memory: -1}
 unit=$(echo ${unit} | tr [a-z] [A-Z])
 
@@ -94,11 +94,11 @@ else
 fi
 
 if [ -z ${spark_executor_instance} ]; then
-    echo ">   `setColor 31 WARN:` ${key_executor_instance} is not set."
+    echo "${CHECKENV_REPORT_PFX}`setColor 31 WARN:` ${key_executor_instance} is not set."
 elif [ ${spark_executor_instance} -gt ${recommend} ]; then
     quit "ERROR: The configured spark executor instance(`setColor 31 ${spark_executor_instance}`) should not be greater than the max(`setColor 36 ${recommend}`)."
 elif [ `expr ${recommend} / ${spark_executor_instance}` -gt 5 ]; then
-    echo ">   `setColor 31 WARN:` The configured spark executor instance: `setColor 31 ${spark_executor_instance}` is set too small, the max could be `setColor 36 ${recommend}`"
+    echo "${CHECKENV_REPORT_PFX}`setColor 31 WARN:` The configured spark executor instance: `setColor 31 ${spark_executor_instance}` is set too small, the max could be `setColor 36 ${recommend}`"
 else
-    echo ">   The max configurable yarn executor instances: `setColor 36 ${recommend}`"
+    echo "${CHECKENV_REPORT_PFX}The max configurable yarn executor instances: `setColor 36 ${recommend}`"
 fi
