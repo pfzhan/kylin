@@ -250,6 +250,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     @Ignore
     @Test
     public void testKAPSinglePublicQuery() throws Exception {
+        System.setProperty("log4j.configuration", "file:../../build/conf/kylin-tools-log4j.properties");
 
         String queryFileName = getQueryFolderPrefix() + "src/test/resources/query/sql_raw/query03.sql";
         //String queryFileName =  "src/test/resources/query/temp/temp.sql";
