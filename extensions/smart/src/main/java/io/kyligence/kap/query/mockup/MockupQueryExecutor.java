@@ -34,9 +34,14 @@ import java.sql.Statement;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DBUtils;
 import org.apache.kylin.query.QueryDataSource;
+import org.apache.kylin.query.enumerator.LookupTableEnumerator;
 import org.apache.kylin.query.util.QueryUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MockupQueryExecutor implements Closeable {
+    private static final Logger logger = LoggerFactory.getLogger(MockupQueryExecutor.class);
+
     private final KylinConfig kylinConfig;
 
     private QueryDataSource queryDataSource = new QueryDataSource();
@@ -56,6 +61,16 @@ public class MockupQueryExecutor implements Closeable {
             statement = conn.createStatement();
             sql = QueryUtil.massageSql(sql);
             resultSet = statement.executeQuery(sql);
+        } catch (Exception e) {
+            if (e.getCause() != null && e.getCause() instanceof com.google.common.cache.CacheLoader.InvalidCacheLoadException) {
+                StackTraceElement[] stackTrace = e.getCause().getStackTrace();
+                for (StackTraceElement s : stackTrace) {
+                    if (s.toString().contains(LookupTableEnumerator.class.getName())) {
+                        logger.info("Skip dry run because this query only hits lookup tables.");
+                        break;
+                    }
+                }
+            }
         } finally {
             DBUtils.closeQuietly(statement);
             DBUtils.closeQuietly(resultSet);
