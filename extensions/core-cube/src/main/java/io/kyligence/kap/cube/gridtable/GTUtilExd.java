@@ -25,6 +25,7 @@
 package io.kyligence.kap.cube.gridtable;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.kylin.common.util.ByteArray;
@@ -55,13 +56,15 @@ public class GTUtilExd extends GTUtil {
             final List<TblColRef> colMapping, final boolean encodeConstants, //
             final Set<TblColRef> unevaluatableColumnCollector) {
 
+        Map<TblColRef, Integer> map = colListToMap(colMapping);
+        
         IFilterCodeSystem<ByteArray> filterCodeSystem = wrap(info.getCodeSystem().getComparator());
-        byte[] bytes = TupleFilterSerializerRawTableExt.serialize(rootFilter, new RawTableGTConvertDecorator(unevaluatableColumnCollector, colMapping, info, encodeConstants), filterCodeSystem);
+        byte[] bytes = TupleFilterSerializerRawTableExt.serialize(rootFilter, new RawTableGTConvertDecorator(unevaluatableColumnCollector, map, info, encodeConstants), filterCodeSystem);
         return TupleFilterSerializerRawTableExt.deserialize(bytes, filterCodeSystem);
     }
 
     private static class RawTableGTConvertDecorator extends GTConvertDecorator {
-        public RawTableGTConvertDecorator(Set<TblColRef> unevaluatableColumnCollector, List<TblColRef> colMapping, GTInfo info, boolean encodeConstants) {
+        public RawTableGTConvertDecorator(Set<TblColRef> unevaluatableColumnCollector, Map<TblColRef, Integer> colMapping, GTInfo info, boolean encodeConstants) {
             super(unevaluatableColumnCollector, colMapping, info, encodeConstants);
         }
 
@@ -85,7 +88,7 @@ public class GTUtilExd extends GTUtil {
             // map to column onto grid table
             if (colMapping != null && filter instanceof ColumnTupleFilter) {
                 ColumnTupleFilter colFilter = (ColumnTupleFilter) filter;
-                int gtColIdx = colMapping.indexOf(colFilter.getColumn());
+                int gtColIdx = mapCol(colFilter.getColumn());
                 return new ColumnTupleFilter(info.colRef(gtColIdx));
             }
 
@@ -118,7 +121,7 @@ public class GTUtilExd extends GTUtil {
             newFuncFilter.setReversed(funcFilter.isReversed());
 
             TblColRef externalCol = funcFilter.getColumn();
-            int col = colMapping == null ? externalCol.getColumnDesc().getZeroBasedIndex() : colMapping.indexOf(externalCol);
+            int col = colMapping == null ? externalCol.getColumnDesc().getZeroBasedIndex() : mapCol(externalCol);
 
             ByteArray code;
 
