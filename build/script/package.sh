@@ -49,6 +49,9 @@ if [ -z "$BUILD_SYSTEM" ]; then
 fi
 echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit_SHA1
 
+echo "${release_version}" > build/VERSION
+echo "VERSION file content:" ${release_version}
+
 echo "BUILD STAGE 2 - Build binaries..."
 sh build/script/build.sh $@             || { exit 1; }
 

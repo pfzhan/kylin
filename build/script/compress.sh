@@ -35,7 +35,7 @@ cp -r ../extensions/examples/sample_cube ${package_name}
 if [ -f "kybot/diag.sh" ]; then
     mv kybot/diag.sh ${package_name}/bin
 fi
-cp -rf commit_SHA1 lib tool kybot tomcat spark ${package_name}/
+cp -rf VERSION commit_SHA1 lib tool kybot tomcat spark ${package_name}/
 
 # Add min/prod profiles
 cp -rf conf/profile_min ${package_name}/conf
@@ -55,6 +55,8 @@ cp -rf bin/* ${package_name}/bin/
 if [ "${PACKAGE_PLUS}" != "0" ]; then
     cat conf/profile_min/kap-plus.properties >> ${package_name}/conf/profile_min/kylin.properties
     cat conf/profile_prod/kap-plus.properties >> ${package_name}/conf/profile_prod/kylin.properties
+    echo "kap.version=${release_version}" >> ${package_name}/conf/profile_min/kylin.properties
+    echo "kap.version=${release_version}" >> ${package_name}/conf/profile_prod/kylin.properties
 fi
 
 # update symblink, use production profile as default
@@ -69,7 +71,7 @@ mv kylin_job_conf.xml ${package_name}/conf/
 ln -sfn profile/kylin_job_conf_inmem.xml kylin_job_conf_inmem.xml
 mv kylin_job_conf_inmem.xml ${package_name}/conf/
 
-rm -rf lib tomcat commit_SHA1 # keep the spark folder on purpose
+rm -rf lib tomcat commit_SHA1 VERSION # keep the spark folder on purpose
 find ${package_name} -type d -exec chmod 755 {} \;
 find ${package_name} -type f -exec chmod 644 {} \;
 find ${package_name} -type f -name "*.sh" -exec chmod 755 {} \;

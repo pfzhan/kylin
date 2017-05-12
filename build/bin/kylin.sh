@@ -51,6 +51,14 @@ then
         fi
     fi
     
+    kapVersion=`${dir}/get-properties.sh kap.version` 
+    fileVersion=`cat ${KYLIN_HOME}/VERSION`
+    
+    if [ "${kapVersion}" != "${fileVersion}" ]
+    then
+        quit 'Did you copied and replaced conf/kylin.properties from somewhere else (when upgrading)? It is not supported. Please strictly follow upgrade manual to apply previous changes to shipped kylin.properties in this version'
+    fi
+    
     retrieveDependency
 
     columnarEnabled=`${dir}/get-properties.sh kap.storage.columnar.start-own-spark`

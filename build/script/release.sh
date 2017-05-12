@@ -2,7 +2,7 @@
 
 # set release version, default value is from pom.xml
 if [ -z ${release_version} ]; then
-    release_version=2.1-staging
+    release_version='staging' # since every release has a version, it's almost useless
 fi
 export release_version
 
