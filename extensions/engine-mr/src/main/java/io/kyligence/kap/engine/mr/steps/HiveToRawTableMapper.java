@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.mr.steps;
 
 import java.io.IOException;
+import java.util.Collection;
 
 import org.apache.kylin.common.util.BytesSplitter;
 import org.apache.kylin.engine.mr.IMRInput;
@@ -44,22 +45,22 @@ public class HiveToRawTableMapper<KEYIN> extends RawTableMapperBase<KEYIN, Objec
 
     @Override
     public void doMap(KEYIN key, Object value, Context context) throws IOException, InterruptedException {
+        Collection<String[]> rowCollection = flatTableInputFormat.parseMapperInput(value);
 
-        try {
+        for (String[] row: rowCollection) {
             //put a record into the shared bytesSplitter
-            String[] row = flatTableInputFormat.parseMapperInput(value);
-
-            // If split size is not enough
-            if (row.length > bytesSplitter.getSplitBuffers().length) {
-                logger.info("byteSplitter is not enough, expand to {} columns", row.length);
-                bytesSplitter = new BytesSplitter(row.length, bytesSplitter.getSplitBuffers()[0].length);
+            try {
+                // If split size is not enough
+                if (row.length > bytesSplitter.getSplitBuffers().length) {
+                    logger.info("byteSplitter is not enough, expand to {} columns", row.length);
+                    bytesSplitter = new BytesSplitter(row.length, bytesSplitter.getSplitBuffers()[0].length);
+                }
+                bytesSplitter.setBuffers(convertUTF8Bytes(row));
+                //take care of the data in bytesSplitter
+                outputKV(context);
+            } catch (Exception ex) {
+                handleErrorRecord(bytesSplitter, ex);
             }
-            bytesSplitter.setBuffers(convertUTF8Bytes(row));
-            //take care of the data in bytesSplitter
-            outputKV(context);
-
-        } catch (Exception ex) {
-            handleErrorRecord(bytesSplitter, ex);
         }
     }
 

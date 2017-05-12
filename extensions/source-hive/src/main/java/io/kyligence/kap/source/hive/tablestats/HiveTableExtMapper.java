@@ -26,6 +26,7 @@ package io.kyligence.kap.source.hive.tablestats;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -91,12 +92,15 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
             return;
         }
         ColumnDesc[] columns = tableDesc.getColumns();
-        String[] values = tableInputFormat.parseMapperInput(value);
-        for (int m = 0; m < columns.length; m++) {
-            String fieldValue = values[m];
-            samplerMap.get(m).samples(fieldValue);
+        Collection<String[]> valuesCollection = tableInputFormat.parseMapperInput(value);
+
+        for (String[] values: valuesCollection) {
+            for (int m = 0; m < columns.length; m++) {
+                String fieldValue = values[m];
+                samplerMap.get(m).samples(fieldValue);
+            }
+            counter++;
         }
-        counter++;
     }
 
     @Override
