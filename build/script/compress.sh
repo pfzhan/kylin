@@ -55,9 +55,10 @@ cp -rf bin/* ${package_name}/bin/
 if [ "${PACKAGE_PLUS}" != "0" ]; then
     cat conf/profile_min/kap-plus.properties >> ${package_name}/conf/profile_min/kylin.properties
     cat conf/profile_prod/kap-plus.properties >> ${package_name}/conf/profile_prod/kylin.properties
-    echo "kap.version=${release_version}" >> ${package_name}/conf/profile_min/kylin.properties
-    echo "kap.version=${release_version}" >> ${package_name}/conf/profile_prod/kylin.properties
 fi
+
+echo "kap.version=${release_version}" >> ${package_name}/conf/profile_min/kylin.properties
+echo "kap.version=${release_version}" >> ${package_name}/conf/profile_prod/kylin.properties
 
 # update symblink, use production profile as default
 ln -sfn profile_prod profile

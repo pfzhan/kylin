@@ -27,7 +27,6 @@ cd -
 # switch to min profile
 cd ${KYLIN_HOME}/conf/
 ln -sfn profile_min profile
-sed -i "s/your-namenode/sandbox.hortonworks.com/g" kylin.properties
 cd -
 
 ${KYLIN_HOME}/bin/metastore.sh reset
@@ -59,7 +58,6 @@ export KYLIN_HOME=`pwd`
 # switch to min profile
 cd ${KYLIN_HOME}/conf/
 ln -sfn profile_min profile
-sed -i "s/your-namenode/sandbox.hortonworks.com/g" kylin.properties
 cd -
 
 ${KYLIN_HOME}/bin/kylin.sh start
