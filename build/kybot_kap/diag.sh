@@ -28,32 +28,18 @@ then
     fi
     needUpload="$3"
 
-    if [ ${#patient} -eq 36 ]; then
-        source ${dir}/find-hive-dependency.sh
-
-        #retrive $KYLIN_EXTRA_START_OPTS
-        if [ -f "${dir}/setenv-tool.sh" ]
-            then source ${dir}/setenv-tool.sh
-        fi
-
-        mkdir -p ${KYLIN_HOME}/ext
-        export HBASE_CLASSPATH_PREFIX=${KYLIN_HOME}/conf:${KYLIN_HOME}/tool/*:${KYLIN_HOME}/ext/*:${HBASE_CLASSPATH_PREFIX}
-        export HBASE_CLASSPATH=${HBASE_CLASSPATH}:${hive_dependency}
-
-        hbase ${KYLIN_EXTRA_START_OPTS} \
-        -Dlog4j.configuration=file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties \
-        -Dcatalina.home=${tomcat_root} \
-        org.apache.kylin.tool.JobDiagnosisInfoCLI \
-        -jobId $patient \
-        -destDir $destDir || exit 1
-    else
-        KYBOT_OPTS=""
-        if [ $needUpload = "true" ]; then
-            KYBOT_OPTS="-uploadToServer true"
-        fi
-        # will use kybot as system diagnosis
-        sh ${KYLIN_HOME}/kybot/kybot.sh $KYBOT_OPTS -destDir $destDir || exit 1
+    KYBOT_OPTS=""
+    if [ "$needUpload" == "true" ]; then
+        KYBOT_OPTS="-uploadToServer true"
     fi
+
+
+    if [ ${#patient} -eq 36 ]; then
+        KYBOT_OPTS="${KYBOT_OPTS} -jobId ${patient}"
+    fi
+
+    # will use kybot as system diagnosis
+    sh ${KYLIN_HOME}/kybot/kybot.sh $KYBOT_OPTS -destDir $destDir || exit 1
 
     exit 0
 else
