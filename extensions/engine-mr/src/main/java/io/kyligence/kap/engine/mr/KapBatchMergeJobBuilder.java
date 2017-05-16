@@ -31,7 +31,6 @@ import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.IMROutput2;
 import org.apache.kylin.engine.mr.JobBuilderSupport;
 import org.apache.kylin.engine.mr.MRUtil;
-import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.steps.CubingExecutableUtil;
 import org.apache.kylin.engine.mr.steps.MergeStatisticsStep;
 import org.apache.kylin.job.constant.ExecutableConstants;
@@ -43,7 +42,6 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
-import io.kyligence.kap.engine.mr.steps.KapMergeCuboidJob;
 import io.kyligence.kap.engine.mr.steps.UpdateRawTableInfoAfterMergeStep;
 
 public class KapBatchMergeJobBuilder extends JobBuilderSupport {
@@ -115,9 +113,5 @@ public class KapBatchMergeJobBuilder extends JobBuilderSupport {
         CubingExecutableUtil.setCubingJobId(jobId, result.getParams());
         CubingExecutableUtil.setMergingSegmentIds(mergingSegmentIds, result.getParams());
         return result;
-    }
-
-    protected Class<? extends AbstractHadoopJob> getMergeCuboidJob() {
-        return KapMergeCuboidJob.class;
     }
 }

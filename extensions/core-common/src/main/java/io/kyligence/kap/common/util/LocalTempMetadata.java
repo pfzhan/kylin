@@ -74,7 +74,7 @@ public class LocalTempMetadata {
             // It's a hack for engine 99
             List<String> engine99File = new ArrayList<>();
             engine99File.add("ci_left_join_cube.json");
-            overrideEngineTypeAndStorageType(TEMP_TEST_METADATA, new Pair<>(99, 99), engine99File);
+            overrideEngineTypeAndStorageType(TEMP_TEST_METADATA, new Pair<>(100, 99), engine99File);
 
             if (debug) {
                 File copy = new File(TEMP_TEST_METADATA + ".debug");

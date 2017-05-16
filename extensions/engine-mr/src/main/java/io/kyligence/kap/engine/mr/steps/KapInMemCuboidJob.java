@@ -24,39 +24,27 @@
 
 package io.kyligence.kap.engine.mr.steps;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.cli.Options;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Partitioner;
-import org.apache.hadoop.mapreduce.Reducer.Context;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.cube.cuboid.CuboidScheduler;
 import org.apache.kylin.engine.mr.ByteArrayWritable;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.IMRInput;
+import org.apache.kylin.engine.mr.IMROutput2;
 import org.apache.kylin.engine.mr.MRUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
-import org.apache.kylin.engine.mr.common.CubeStatsReader;
 import org.apache.kylin.engine.mr.steps.InMemCuboidJob;
 import org.apache.kylin.engine.mr.steps.InMemCuboidMapper;
 import org.apache.kylin.engine.mr.steps.InMemCuboidReducer;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.kyligence.kap.storage.parquet.format.ParquetCubeOutputFormat;
 
 public class KapInMemCuboidJob extends AbstractHadoopJob {
 
@@ -82,7 +70,6 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
     @Override
     public int run(String[] args) throws Exception {
         Options options = new Options();
-        int reduceNum = 1;
 
         try {
             options.addOption(OPTION_JOB_NAME);
@@ -121,83 +108,29 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
             job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, cubeName);
             job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_ID, segmentID);
 
-            // set input
-            IMRInput.IMRTableInputFormat flatTableInputFormat = MRUtil.getBatchCubingInputSide(cubeSeg).getFlatTableInputFormat();
-            flatTableInputFormat.configureJob(job);
-
             // set mapper
             job.setMapperClass(InMemCuboidMapper.class);
             job.setMapOutputKeyClass(ByteArrayWritable.class);
             job.setMapOutputValueClass(ByteArrayWritable.class);
 
-            // set partitioner
-            job.setPartitionerClass(getPartitioner());
-
-            // set output
+            // set reducer
             job.setReducerClass(InMemCuboidReducer.class);
-            reduceNum = calculateReducerNum(cubeSeg);
-            job.setNumReduceTasks(reduceNum);
-            setPartitionMapping(job, config, cubeSeg, reduceNum);
-
-            // the cuboid file and KV class must be compatible with 0.7 version for smooth upgrade
-            job.setOutputFormatClass(getOutputFormat());
             job.setOutputKeyClass(Text.class);
             job.setOutputValueClass(Text.class);
 
-            Path outputPath = new Path(output);
-            FileOutputFormat.setOutputPath(job, outputPath);
+            // set input
+            IMRInput.IMRTableInputFormat flatTableInputFormat = MRUtil.getBatchCubingInputSide(cubeSeg).getFlatTableInputFormat();
+            flatTableInputFormat.configureJob(job);
 
-            HadoopUtil.deletePath(job.getConfiguration(), outputPath);
+            // set output
+            IMROutput2.IMROutputFormat outputFormat = MRUtil.getBatchCubingOutputSide2(cubeSeg).getOuputFormat();
+            outputFormat.configureJobOutput(job, output, cubeSeg, 0);
 
             return waitForCompletion(job);
         } finally {
             if (job != null)
                 cleanupTempConfFile(job.getConfiguration());
         }
-    }
-
-    private int calculateReducerNum(CubeSegment cubeSeg) throws IOException {
-        KylinConfig kylinConfig = cubeSeg.getConfig();
-
-        Map<Long, Double> cubeSizeMap = new CubeStatsReader(cubeSeg, kylinConfig).getCuboidSizeMap();
-        double totalSizeInM = 0;
-        for (Double cuboidSize : cubeSizeMap.values()) {
-            totalSizeInM += cuboidSize;
-        }
-
-        double perReduceInputMB = kylinConfig.getDefaultHadoopJobReducerInputMB();
-
-        // number of reduce tasks
-        int numReduceTasks = (int) Math.round(totalSizeInM / perReduceInputMB);
-
-        // at least 1 reducer
-        numReduceTasks = Math.max(1, numReduceTasks);
-        // no more than 5000 reducer by default
-        numReduceTasks = Math.min(kylinConfig.getHadoopJobMaxReducerNumber(), numReduceTasks);
-
-        // at least more than largest cuboid shard number
-        List<Long> allCuboidIds = new CuboidScheduler(cubeSeg.getCubeDesc()).getAllCuboidIds();
-        for (Long cuboidId : allCuboidIds) {
-            numReduceTasks = Math.max(numReduceTasks, cubeSeg.getCuboidShardNum(cuboidId));
-        }
-
-        logger.info("Having total map input MB " + Math.round(totalSizeInM));
-        logger.info("Having per reduce MB " + perReduceInputMB);
-        logger.info("Setting " + Context.NUM_REDUCES + "=" + numReduceTasks);
-        return numReduceTasks;
-    }
-
-    protected Class<? extends FileOutputFormat> getOutputFormat() {
-        return ParquetCubeOutputFormat.class;
-    }
-
-    protected Class<? extends Partitioner> getPartitioner() {
-        return ByteArrayShardCuboidPartitioner.class;
-    }
-
-    protected void setPartitionMapping(Job job, KylinConfig config, CubeSegment cubeSeg, int reduceNum) throws IOException {
-        logger.info("setPartitionMapping in KapInMemCuboidJob");
-        // Do nothing
     }
 
     public static void main(String[] args) throws Exception {

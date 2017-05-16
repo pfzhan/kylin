@@ -26,30 +26,44 @@ package io.kyligence.kap.storage.parquet.steps;
 
 import java.util.List;
 
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.cube.cuboid.CuboidScheduler;
 import org.apache.kylin.engine.mr.IMROutput2;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
+import org.apache.kylin.engine.mr.steps.HiveToBaseCuboidMapper;
+import org.apache.kylin.engine.mr.steps.InMemCuboidMapper;
+import org.apache.kylin.engine.mr.steps.NDCuboidMapper;
+import org.apache.kylin.engine.mr.steps.ReducerNumSizing;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
+import io.kyligence.kap.engine.mr.steps.ByteArrayShardCuboidPartitioner;
 import io.kyligence.kap.engine.mr.steps.KapMergeCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapMergeRawTableJob;
+import io.kyligence.kap.engine.mr.steps.ShardCuboidPartitioner;
+import io.kyligence.kap.storage.parquet.format.ParquetCubeInputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetCubeOutputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 
 public class ParquetMROutput2 implements IMROutput2 {
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(ParquetMROutput2.class);
 
-    protected ParquetMRSteps createParquetMRSteps(CubeSegment seg) {
-        return new ParquetMRSteps(seg);
-    }
-
     @Override
     public IMROutput2.IMRBatchCubingOutputSide2 getBatchCubingOutputSide(final CubeSegment seg) {
         return new IMROutput2.IMRBatchCubingOutputSide2() {
-            ParquetMRSteps steps = createParquetMRSteps(seg);
+            ParquetMRSteps steps = new ParquetMRSteps(seg);
             RawTableInstance raw = RawTableManager.getInstance(seg.getConfig()).getAccompanyRawTable(seg.getCubeInstance());
             boolean isRawTableEnable = (null != raw);
 
@@ -81,13 +95,52 @@ public class ParquetMROutput2 implements IMROutput2 {
             public void addStepPhase4_Cleanup(DefaultChainedExecutable jobFlow) {
                 steps.addCubeGarbageCollectionSteps(jobFlow);
             }
+
+            @Override
+            public IMROutputFormat getOuputFormat() {
+                return new ParquetMROutputFormat();
+            }
         };
+    }
+
+    public static class ParquetMROutputFormat implements IMROutputFormat {
+
+        @Override
+        public void configureJobInput(Job job, String input) throws Exception {
+            job.setInputFormatClass(ParquetCubeInputFormat.class);
+        }
+
+        @Override
+        public void configureJobOutput(Job job, String output, CubeSegment segment, int level) throws Exception {
+            int reducerNum = 1;
+            Class mapperClass = job.getMapperClass();
+            // set partitioner
+            if (mapperClass == InMemCuboidMapper.class) {
+                // inmem
+                job.setPartitionerClass(ByteArrayShardCuboidPartitioner.class);
+                reducerNum = ReducerNumSizing.getInmemCubingReduceTaskNum(segment);
+            } else if (mapperClass == NDCuboidMapper.class || mapperClass == HiveToBaseCuboidMapper.class) {
+                // layer
+                job.setPartitionerClass(ShardCuboidPartitioner.class);
+                reducerNum = ReducerNumSizing.getLayeredCubingReduceTaskNum(segment, AbstractHadoopJob.getTotalMapInputMB(job), level);
+                List<List<Long>> layeredCuboids = new CuboidScheduler(segment.getCubeDesc()).getCuboidsByLayer();
+                for (Long cuboidId : layeredCuboids.get(level)) {
+                    reducerNum = Math.max(reducerNum, segment.getCuboidShardNum(cuboidId));
+                }
+            }
+            job.setNumReduceTasks(reducerNum);
+
+            Path outputPath = new Path(output);
+            HadoopUtil.deletePath(job.getConfiguration(), outputPath);
+            FileOutputFormat.setOutputPath(job, outputPath);
+            job.setOutputFormatClass(ParquetCubeOutputFormat.class);
+        }
     }
 
     @Override
     public IMROutput2.IMRBatchMergeOutputSide2 getBatchMergeOutputSide(final CubeSegment seg) {
         return new IMROutput2.IMRBatchMergeOutputSide2() {
-            ParquetMRSteps steps = createParquetMRSteps(seg);
+            ParquetMRSteps steps = new ParquetMRSteps(seg);
             RawTableInstance raw = RawTableManager.getInstance(seg.getConfig()).getAccompanyRawTable(seg.getCubeInstance());
             boolean isRawTableEnable = (null != raw);
 
@@ -98,7 +151,7 @@ public class ParquetMROutput2 implements IMROutput2 {
 
             @Override
             public void addStepPhase2_BuildCube(CubeSegment seg, List<CubeSegment> mergingSegments, DefaultChainedExecutable jobFlow) {
-                jobFlow.addTask(steps.createCubeMergeStep(seg, mergingSegments, jobFlow.getId(), getCubeMergeJobClass()));
+                jobFlow.addTask(steps.createCubeMergeStep(seg, mergingSegments, jobFlow.getId(), KapMergeCuboidJob.class));
                 jobFlow.addTask(steps.createCubeMergeCleanupStep(jobFlow.getId(), seg));
                 jobFlow.addTask(steps.createCubePageIndexStep(jobFlow.getId()));
                 jobFlow.addTask(steps.createCubePageIndexCleanupStep(jobFlow.getId()));
@@ -121,10 +174,55 @@ public class ParquetMROutput2 implements IMROutput2 {
                 steps.addCubeGarbageCollectionSteps(jobFlow);
                 steps.addMergeGarbageCollectionSteps(jobFlow);
             }
+
+            @Override
+            public IMRMergeOutputFormat getOuputFormat() {
+                return new ParquetMRMergeOutputFormat();
+            }
         };
     }
 
-    protected Class<? extends AbstractHadoopJob> getCubeMergeJobClass() {
-        return KapMergeCuboidJob.class;
+
+    public static class ParquetMRMergeOutputFormat implements IMRMergeOutputFormat{
+
+        @Override
+        public void configureJobInput(Job job, String input) throws Exception {
+            job.setInputFormatClass(ParquetTarballFileInputFormat.class);
+            FileInputFormat.setInputPathFilter(job, CuboidPathFilter.class);
+        }
+
+        @Override
+        public void configureJobOutput(Job job, String output, CubeSegment segment) throws Exception {
+            int reducerNum = ReducerNumSizing.getLayeredCubingReduceTaskNum(segment, AbstractHadoopJob.getTotalMapInputMB(job), -1);
+            job.setPartitionerClass(ShardCuboidPartitioner.class);
+            List<Long> allCuboids = new CuboidScheduler(segment.getCubeDesc()).getAllCuboidIds();
+            for (Long cuboidId : allCuboids) {
+                reducerNum = Math.max(reducerNum, segment.getCuboidShardNum(cuboidId));
+            }
+            job.setNumReduceTasks(reducerNum);
+
+            Path outputPath = new Path(output);
+            FileOutputFormat.setOutputPath(job, outputPath);
+            job.setOutputFormatClass(ParquetCubeOutputFormat.class);
+            HadoopUtil.deletePath(job.getConfiguration(), outputPath);
+        }
+
+        @Override
+        public CubeSegment findSourceSegment(FileSplit fileSplit, CubeInstance cube) {
+            Path path = fileSplit.getPath();
+            String segmentID = path.getParent().getParent().getName();
+            logger.info("Identified segment id for current input split is " + segmentID);
+            return cube.getSegmentById(segmentID);
+        }
+
+        public static class CuboidPathFilter implements PathFilter {
+            @Override
+            public boolean accept(Path path) {
+                String name = path.getName();
+                boolean ret = !(name.endsWith(".parquet") || name.endsWith(".inv"));
+                return ret;
+            }
+
+        }
     }
 }

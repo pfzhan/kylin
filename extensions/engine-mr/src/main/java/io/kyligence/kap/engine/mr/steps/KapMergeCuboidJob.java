@@ -24,26 +24,19 @@
 
 package io.kyligence.kap.engine.mr.steps;
 
-import java.util.List;
-
 import org.apache.commons.cli.Options;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.cube.cuboid.CuboidScheduler;
+import org.apache.kylin.engine.mr.IMROutput2;
+import org.apache.kylin.engine.mr.MRUtil;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.steps.CuboidReducer;
-import org.apache.kylin.engine.mr.steps.LayerReducerNumSizing;
+import org.apache.kylin.engine.mr.steps.MergeCuboidMapper;
 
-import io.kyligence.kap.storage.parquet.format.ParquetCubeOutputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 
@@ -78,8 +71,26 @@ public class KapMergeCuboidJob extends KapCuboidJob {
             String jobName = getOptionValue(OPTION_JOB_NAME);
             logger.info("Starting: " + jobName);
             job = Job.getInstance(getConf(), jobName);
-
             setJobClasspath(job, cube.getConfig());
+
+            // set job configuration
+            job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, cubeName);
+            job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_ID, segmentID);
+            job.getConfiguration().set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, KylinConfig.getInstanceFromEnv().getConfigAsString());
+            job.getConfiguration().set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileInputFormat.ParquetTarballFileReader.ReadStrategy.KV.toString());
+
+            // add metadata to distributed cache
+            attachCubeMetadataWithDict(cube, job.getConfiguration());
+
+            // Mapper
+            job.setMapperClass(MergeCuboidMapper.class);
+            job.setMapOutputKeyClass(Text.class);
+            job.setMapOutputValueClass(Text.class);
+
+            // Reducer
+            job.setReducerClass(CuboidReducer.class);
+            job.setOutputKeyClass(Text.class);
+            job.setOutputValueClass(Text.class);
 
             // set inputs
             int folderNum = addInputDirs(getOptionValue(OPTION_INPUT_PATH), job);
@@ -88,73 +99,16 @@ public class KapMergeCuboidJob extends KapCuboidJob {
                 logger.info("{} is skipped because there's no input folder", getOptionValue(OPTION_JOB_NAME));
                 return 0;
             }
-            FileInputFormat.setInputPathFilter(job, CuboidPathFilter.class);
+            IMROutput2.IMRMergeOutputFormat outputFormat = MRUtil.getBatchMergeOutputSide2(cubeSeg).getOuputFormat();
+            outputFormat.configureJobInput(job, getOptionValue(OPTION_INPUT_PATH));
 
-            Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
-            FileOutputFormat.setOutputPath(job, output);
-
-            // Mapper
-            job.setInputFormatClass(getInputFormat());
-            job.getConfiguration().set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileInputFormat.ParquetTarballFileReader.ReadStrategy.KV.toString());
-            job.setMapperClass(getMapperClass());
-            job.setMapOutputKeyClass(Text.class);
-            job.setMapOutputValueClass(Text.class);
-            job.setPartitionerClass(ShardCuboidPartitioner.class);
-
-            job.setReducerClass(CuboidReducer.class);
-            job.setOutputFormatClass(getOutputFormat());
-            job.setOutputKeyClass(Text.class);
-            job.setOutputValueClass(Text.class);
-
-            // set job configuration
-            job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, cubeName);
-            job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_ID, segmentID);
-
-            // add metadata to distributed cache
-            attachCubeMetadataWithDict(cube, job.getConfiguration());
-
-            //push down kylin config
-            job.getConfiguration().set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, KylinConfig.getInstanceFromEnv().getConfigAsString());
-
-            int numReduceTasks = LayerReducerNumSizing.getReduceTaskNum(cube.getSegmentById(segmentID), getTotalMapInputMB(), -1);
-            // at least more than largest cuboid shard number
-            List<Long> allCuboidIds = new CuboidScheduler(cubeSeg.getCubeDesc()).getAllCuboidIds();
-            for (Long cuboidId : allCuboidIds) {
-                numReduceTasks = Math.max(numReduceTasks, cubeSeg.getCuboidShardNum(cuboidId));
-            }
-            job.setNumReduceTasks(numReduceTasks);
-
-            this.deletePath(job.getConfiguration(), output);
+            // set output
+            outputFormat.configureJobOutput(job, getOptionValue(OPTION_OUTPUT_PATH), cubeSeg);
 
             return waitForCompletion(job);
         } finally {
             if (job != null)
                 cleanupTempConfFile(job.getConfiguration());
         }
-    }
-
-    public static class CuboidPathFilter implements PathFilter {
-        public CuboidPathFilter() {
-        }
-
-        @Override
-        public boolean accept(Path path) {
-            String name = path.getName();
-            boolean ret = !(name.endsWith(".parquet") || name.endsWith("CUBE_INFO") || name.endsWith(".inv"));
-            return ret;
-        }
-
-    }
-
-    protected Class<? extends Mapper> getMapperClass() {
-        return KapMergeCuboidMapper.class;
-    }
-
-    protected Class<? extends FileInputFormat> getInputFormat() {
-        return ParquetTarballFileInputFormat.class;
-    }
-
-    protected Class<? extends FileOutputFormat> getOutputFormat() {
-        return ParquetCubeOutputFormat.class;
     }
 }

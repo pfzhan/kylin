@@ -47,7 +47,7 @@ public class ConfigurationBasedPartitioner extends Partitioner<Text, Text> imple
     private Configuration conf = null;
     private Map<Pair<Long, Short>, Integer> partitionMap = null;
 
-    protected int mod(byte[] src, int start, int end, int total) {
+    protected static int mod(byte[] src, int start, int end, int total) {
         int sum = Bytes.hashBytes(src, start, end - start);
         int mod = sum % total;
         if (mod < 0)
@@ -56,15 +56,18 @@ public class ConfigurationBasedPartitioner extends Partitioner<Text, Text> imple
         return mod;
     }
 
-    @Override
-    public int getPartition(Text key, Text value, int numReduceTasks) {
-        // TODO: no copy here
-        short shardId = (short) BytesUtil.readShort(key.getBytes(), 0, RowConstants.ROWKEY_SHARDID_LEN);
-        long cuboidId = BytesUtil.readLong(key.getBytes(), RowConstants.ROWKEY_SHARDID_LEN, RowConstants.ROWKEY_CUBOIDID_LEN);
+    public static int getByteArrayPartition(byte[] key, byte[] value, int numReduceTasks, Map<Pair<Long, Short>, Integer> partitionMap) {
+        short shardId = (short) BytesUtil.readShort(key, 0, RowConstants.ROWKEY_SHARDID_LEN);
+        long cuboidId = BytesUtil.readLong(key, RowConstants.ROWKEY_SHARDID_LEN, RowConstants.ROWKEY_CUBOIDID_LEN);
         if (partitionMap == null) {
-            return mod(key.getBytes(), 0, RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN, numReduceTasks);
+            return mod(key, 0, RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN, numReduceTasks);
         }
         return partitionMap.get(new Pair<>(cuboidId, shardId));
+    }
+
+    @Override
+    public int getPartition(Text key, Text value, int numReduceTasks) {
+        return getByteArrayPartition(key.getBytes(), value.getBytes(), numReduceTasks, partitionMap);
     }
 
     @Override

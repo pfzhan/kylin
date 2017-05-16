@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.engine.mr.steps;
 
+import static io.kyligence.kap.engine.mr.steps.ConfigurationBasedPartitioner.getByteArrayPartition;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -33,10 +35,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Partitioner;
-import org.apache.kylin.common.util.Bytes;
-import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.cube.kv.RowConstants;
 import org.apache.kylin.engine.mr.ByteArrayWritable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,24 +47,9 @@ public class ByteArrayConfigurationBasedPartitioner extends Partitioner<ByteArra
     private Configuration conf = null;
     private Map<Pair<Long, Short>, Integer> partitionMap = null;
 
-    protected int mod(byte[] src, int start, int end, int total) {
-        int sum = Bytes.hashBytes(src, start, end - start);
-        int mod = sum % total;
-        if (mod < 0)
-            mod += total;
-
-        return mod;
-    }
-
     @Override
     public int getPartition(ByteArrayWritable key, ByteArrayWritable value, int numReduceTasks) {
-        // TODO: no copy here
-        short shardId = (short) BytesUtil.readShort(key.array(), 0, RowConstants.ROWKEY_SHARDID_LEN);
-        long cuboidId = BytesUtil.readLong(key.array(), RowConstants.ROWKEY_SHARDID_LEN, RowConstants.ROWKEY_CUBOIDID_LEN);
-        if (partitionMap == null) {
-            return mod(key.array(), 0, RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN, numReduceTasks);
-        }
-        return partitionMap.get(new Pair<>(cuboidId, shardId));
+        return getByteArrayPartition(key.array(), value.array(), numReduceTasks, partitionMap);
     }
 
     @Override

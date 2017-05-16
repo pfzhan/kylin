@@ -24,35 +24,26 @@
 
 package io.kyligence.kap.engine.mr.steps;
 
-import java.io.IOException;
-import java.util.List;
-
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.Partitioner;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.cube.cuboid.CuboidScheduler;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.IMRInput;
+import org.apache.kylin.engine.mr.IMROutput2;
 import org.apache.kylin.engine.mr.MRUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.steps.CuboidReducer;
-import org.apache.kylin.engine.mr.steps.LayerReducerNumSizing;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.storage.parquet.format.ParquetCubeInputFormat;
-import io.kyligence.kap.storage.parquet.format.ParquetCubeOutputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 
 public class KapCuboidJob extends AbstractHadoopJob {
@@ -97,7 +88,7 @@ public class KapCuboidJob extends AbstractHadoopJob {
             options.addOption(OPTION_CUBING_JOB_ID);
             parseOptions(options, args);
 
-            Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
+            String output = getOptionValue(OPTION_OUTPUT_PATH);
             String cubeName = getOptionValue(OPTION_CUBE_NAME).toUpperCase();
             int nCuboidLevel = Integer.parseInt(getOptionValue(OPTION_NCUBOID_LEVEL));
             String segmentID = getOptionValue(OPTION_SEGMENT_ID);
@@ -119,14 +110,10 @@ public class KapCuboidJob extends AbstractHadoopJob {
 
             setJobClasspath(job, cube.getConfig());
 
-            // Mapper
-            int numFiles = configureMapperInputFormat(cube.getSegmentById(segmentID));
-            if (numFiles == 0) {
-                skipped = true;
-                logger.info("{} is skipped because there's no input file", getOptionValue(OPTION_JOB_NAME));
-                return 0;
-            }
+            // add metadata to distributed cache
+            attachSegmentMetadataWithDict(cubeSeg, job.getConfiguration());
 
+            // Mapper
             job.setMapperClass(this.mapperClass);
             job.setMapOutputKeyClass(Text.class);
             job.setMapOutputValueClass(Text.class);
@@ -134,14 +121,8 @@ public class KapCuboidJob extends AbstractHadoopJob {
 
             // Reducer
             job.setReducerClass(CuboidReducer.class);
-            job.setOutputFormatClass(getCubeOutputFormat());
             job.setOutputKeyClass(Text.class);
             job.setOutputValueClass(Text.class);
-
-            // Partitioner
-            job.setPartitionerClass(getPartitioner());
-
-            FileOutputFormat.setOutputPath(job, output);
 
             // set job configuration
             job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, cubeName);
@@ -149,20 +130,17 @@ public class KapCuboidJob extends AbstractHadoopJob {
             job.getConfiguration().setInt(BatchConstants.CFG_CUBE_CUBOID_LEVEL, nCuboidLevel);
             job.getConfiguration().set(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS, "All");
 
-            // add metadata to distributed cache
-            attachSegmentMetadataWithDict(cubeSeg, job.getConfiguration());
-
-            int numReduceTasks = LayerReducerNumSizing.getReduceTaskNum(cubeSeg, getTotalMapInputMB(), nCuboidLevel);
-            // at least bigger than the largest shard number in this layer
-            List<List<Long>> layeredCuboids = new CuboidScheduler(cubeSeg.getCubeDesc()).getCuboidsByLayer();
-            for (Long cuboidId : layeredCuboids.get(nCuboidLevel)) {
-                numReduceTasks = Math.max(numReduceTasks, cubeSeg.getCuboidShardNum(cuboidId));
+            // set input
+            int numFiles = configureMapperInputFormat(cube.getSegmentById(segmentID));
+            if (numFiles == 0) {
+                skipped = true;
+                logger.info("{} is skipped because there's no input file", getOptionValue(OPTION_JOB_NAME));
+                return 0;
             }
-            job.setNumReduceTasks(numReduceTasks);
 
-            setPartitionMapping(job, config, cubeSeg, job.getNumReduceTasks());
-
-            this.deletePath(job.getConfiguration(), output);
+            // set output
+            IMROutput2.IMROutputFormat outputFormat = MRUtil.getBatchCubingOutputSide2(cubeSeg).getOuputFormat();
+            outputFormat.configureJobOutput(job, output, cubeSeg, nCuboidLevel);
 
             return waitForCompletion(job);
         } finally {
@@ -171,7 +149,7 @@ public class KapCuboidJob extends AbstractHadoopJob {
         }
     }
 
-    private int configureMapperInputFormat(CubeSegment cubeSeg) throws IOException {
+    private int configureMapperInputFormat(CubeSegment cubeSeg) throws Exception {
         String input = getOptionValue(OPTION_INPUT_PATH);
 
         if ("FLAT_TABLE".equals(input)) {
@@ -180,40 +158,20 @@ public class KapCuboidJob extends AbstractHadoopJob {
             flatTableInputFormat.configureJob(job);
             return 1; //return a non-zero value
         } else {
+            // default input is parquet file
             // n-dimension cuboid case
-            if (hasOption(OPTION_INPUT_FORMAT) && ("textinputformat".equalsIgnoreCase(getOptionValue(OPTION_INPUT_FORMAT)))) {
-                throw new IllegalStateException();
-            } else {
-                // default intput is parquet file
-                int numFiles = ParquertMRJobUtils.addParquetInputFile(job, new Path(input));
-                job.setInputFormatClass(getCubeInputFormat());
-                return numFiles;
-            }
+            IMROutput2.IMROutputFormat outputFormat = MRUtil.getBatchCubingOutputSide2(cubeSeg).getOuputFormat();
+            outputFormat.configureJobInput(job, input);
+            int numFiles = ParquertMRJobUtils.addParquetInputFile(job, new Path(input));
+            return numFiles;
         }
     }
 
-    protected void setPartitionMapping(Job job, KylinConfig config, CubeSegment cubeSeg, int reduceNum) throws IOException {
-        // Do nothing
-    }
-
     /**
-     * @param mapperClass
-     *            the mapperClass to set
+     * @param mapperClass the mapperClass to set
      */
     @SuppressWarnings("rawtypes")
     public void setMapperClass(Class<? extends Mapper> mapperClass) {
         this.mapperClass = mapperClass;
-    }
-
-    protected Class<? extends Partitioner> getPartitioner() {
-        return ShardCuboidPartitioner.class;
-    }
-
-    protected Class<? extends FileInputFormat> getCubeInputFormat() {
-        return ParquetCubeInputFormat.class;
-    }
-
-    protected Class<? extends FileOutputFormat> getCubeOutputFormat() {
-        return ParquetCubeOutputFormat.class;
     }
 }

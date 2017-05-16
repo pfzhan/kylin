@@ -24,14 +24,15 @@
 
 package io.kyligence.kap.engine.mr.steps;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceOutputFormat;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.util.Comparator;
+import java.util.Map;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.collections.buffer.PriorityBuffer;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Partitioner;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.cube.CubeSegment;
@@ -39,19 +40,13 @@ import org.apache.kylin.engine.mr.common.CubeStatsReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceInputFormat;
+import com.google.common.collect.Maps;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.util.Comparator;
-import java.util.Map;
+public class PartitionPreparer {
+    protected static final Logger logger = LoggerFactory.getLogger(PartitionPreparer.class);
 
-public class KapSpliceCuboidJob extends KapCuboidJob {
-    protected static final Logger logger = LoggerFactory.getLogger(KapSpliceCuboidJob.class);
-    @Override
-    protected void setPartitionMapping(Job job, KylinConfig config, CubeSegment cubeSeg, int reduceNum) throws IOException {
-        logger.info("setPartitionMapping in KapSpliceInMemCuboidJob");
+    public static void preparePartitionMapping(Job job, KylinConfig config, CubeSegment cubeSeg, int reduceNum) throws IOException {
+        logger.info("preparePartitionMapping in KapSpliceInMemCuboidJob");
         Map<Pair<Long, Short>, Integer> partitionMap = Maps.newHashMap();
         PriorityBuffer bucketPriorityQueue = new PriorityBuffer(new Comparator() {
             @Override
@@ -108,10 +103,10 @@ public class KapSpliceCuboidJob extends KapCuboidJob {
         oos.writeObject(partitionMap);
         oos.close();
         byte[] serialized = baos.toByteArray();
-        job.getConfiguration().set(ConfigurationBasedPartitioner.CUBOID_SHARD_REDUCE_MAPPING, new String(Base64.encodeBase64(serialized)));
+        job.getConfiguration().set(ByteArrayConfigurationBasedPartitioner.CUBOID_SHARD_REDUCE_MAPPING, new String(Base64.encodeBase64(serialized)));
     }
 
-    private class SizeBucket {
+    private static class SizeBucket {
         private long size;
         private int reduceId;
 
@@ -140,20 +135,5 @@ public class KapSpliceCuboidJob extends KapCuboidJob {
         public String toString() {
             return "size=" + size + ", reduceId=" + reduceId;
         }
-    }
-
-    @Override
-    protected Class<? extends Partitioner> getPartitioner() {
-        return ConfigurationBasedPartitioner.class;
-    }
-
-    @Override
-    protected Class<? extends FileInputFormat> getCubeInputFormat() {
-        return ParquetCubeSpliceInputFormat.class;
-    }
-
-    @Override
-    protected Class<? extends FileOutputFormat> getCubeOutputFormat() {
-        return ParquetCubeSpliceOutputFormat.class;
     }
 }
