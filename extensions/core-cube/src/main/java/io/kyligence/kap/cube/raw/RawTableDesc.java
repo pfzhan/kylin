@@ -25,9 +25,11 @@
 package io.kyligence.kap.cube.raw;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -58,13 +60,6 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     private static final Logger logger = LoggerFactory.getLogger(RawTableDesc.class);
     public static final String RAW_TABLE_DESC_RESOURCE_ROOT = "/raw_table_desc";
 
-    public static final String INDEX_DISCRETE = "discrete";
-    public static final String INDEX_FUZZY = "fuzzy";
-    public static final String INDEX_SORTED = "sorted";
-
-    public static final String RAWTABLE_ENCODING_VAR = "var";
-    public static final String RAWTABLE_ENCODING_ORDEREDBYTES = "orderedbytes";
-
     @JsonProperty("name")
     private String name;
     @JsonProperty("model_name")
@@ -82,6 +77,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     private KylinConfig config;
     private DataModelDesc model;
     private Map<TblColRef, RawTableColumnDesc> columnMap;
+    private Set<TblColRef> shardbyColumns;
     private HashSet<TblColRef> fuzzyColumnSet;
 
     // for Jackson
@@ -96,7 +92,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     public void validate() {
         boolean meetSorted = false;
         for (RawTableColumnDesc colDesc : columns) {
-            if (INDEX_SORTED.equals(colDesc.getIndex())) {
+            if (RawTableColumnDesc.INDEX_SORTED.equals(colDesc.getIndex())) {
                 if (meetSorted) {
                     throw new IllegalStateException(this + " contains more than one ordered column");
                 } else {
@@ -112,7 +108,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
 
     public TblColRef getOrderedColumn() {
         for (RawTableColumnDesc colDesc : columns) {
-            if (INDEX_SORTED.equals(colDesc.getIndex()))
+            if (RawTableColumnDesc.INDEX_SORTED.equals(colDesc.getIndex()))
                 return colDesc.getColumn();
         }
 
@@ -126,7 +122,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     public List<TblColRef> getColumnsExcludingOrdered() {
         List<TblColRef> cols = new ArrayList<>();
         for (RawTableColumnDesc colDesc : columns) {
-            if (INDEX_SORTED.equals(colDesc.getIndex()))
+            if (RawTableColumnDesc.INDEX_SORTED.equals(colDesc.getIndex()))
                 continue;
             cols.add(colDesc.getColumn());
         }
@@ -135,6 +131,10 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
 
     public Boolean isNeedFuzzyIndex(TblColRef colRef) {
         return fuzzyColumnSet.contains(colRef);
+    }
+
+    public Boolean isShardby(TblColRef colRef) {
+        return shardbyColumns.contains(colRef);
     }
 
     public int getEstimateRowSize() {
@@ -192,10 +192,14 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         this.config = config;
         this.model = metaMgr.getDataModelDesc(modelName);
         this.columnMap = Maps.newHashMap();
+        this.shardbyColumns = new HashSet<>();
         this.fuzzyColumnSet = Sets.newHashSet();
 
         for (RawTableColumnDesc colDesc : columns) {
             colDesc.init(model);
+            if (colDesc.isShardby()) {
+                shardbyColumns.add(colDesc.getColumn());
+            }
             if (colDesc.getFuzzyIndex()) {
                 fuzzyColumnSet.add(colDesc.getColumn());
             }
@@ -284,6 +288,10 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
 
     public void setModelName(String modelName) {
         this.modelName = modelName;
+    }
+
+    public Collection<TblColRef> getShardbyColumns() {
+        return shardbyColumns;
     }
 
     public static RawTableDesc getCopyOf(RawTableDesc desc) {

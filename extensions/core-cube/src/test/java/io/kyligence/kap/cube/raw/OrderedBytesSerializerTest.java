@@ -149,7 +149,7 @@ public class OrderedBytesSerializerTest {
 
         List<Pair<String, Integer>> encodings = Lists.newArrayList();
         for (int i = 0; i < columns.size(); i++) {
-            encodings.add(Pair.newPair(RawTableDesc.RAWTABLE_ENCODING_ORDEREDBYTES, 1));
+            encodings.add(Pair.newPair(RawTableColumnDesc.RAWTABLE_ENCODING_ORDEREDBYTES, 1));
         }
         builder.setCodeSystem(new RawTableCodeSystem(encodings));
         List<DataType> types = Lists.newArrayList();

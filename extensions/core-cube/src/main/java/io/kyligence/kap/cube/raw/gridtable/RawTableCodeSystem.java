@@ -27,6 +27,7 @@ package io.kyligence.kap.cube.raw.gridtable;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import io.kyligence.kap.cube.raw.RawTableColumnDesc;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.BytesSerializer;
 import org.apache.kylin.common.util.BytesUtil;
@@ -48,7 +49,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.metadata.datatype.OrderedBytesSerializer;
 
 public class RawTableCodeSystem implements IGTCodeSystem {
@@ -91,10 +91,10 @@ public class RawTableCodeSystem implements IGTCodeSystem {
                 encodingVersion = encodings.get(i).getSecond();
             }
 
-            if (encoding == null || RawTableDesc.RAWTABLE_ENCODING_VAR.equals(encoding)) {
+            if (encoding == null || RawTableColumnDesc.RAWTABLE_ENCODING_VAR.equals(encoding)) {
                 logBuffer.append("(" + i + ") type: " + info.getColumnType(i) + " enc: var, ");
                 serializers[i] = DataTypeSerializer.create(info.getColumnType(i));
-            } else if (RawTableDesc.RAWTABLE_ENCODING_ORDEREDBYTES.equals(encoding)) {
+            } else if (RawTableColumnDesc.RAWTABLE_ENCODING_ORDEREDBYTES.equals(encoding)) {
                 logBuffer.append("(" + i + ") type: " + info.getColumnType(i) + " enc: orderedbytes, ");
                 serializers[i] = OrderedBytesSerializer.createOrdered(info.getColumnType(i));
             } else {

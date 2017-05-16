@@ -34,6 +34,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class RawTableColumnDesc {
 
+    public static final String INDEX_DISCRETE = "discrete";
+    public static final String INDEX_FUZZY = "fuzzy";
+    public static final String INDEX_SORTED = "sorted";
+    public static final String RAWTABLE_ENCODING_VAR = "var";
+    public static final String RAWTABLE_ENCODING_ORDEREDBYTES = "orderedbytes";
+
     @JsonProperty("table")
     private String tableName;
     @JsonProperty("column")
@@ -47,6 +53,9 @@ public class RawTableColumnDesc {
     @JsonProperty("encoding_version")
     @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     private int encodingVersion = 1;
+    @JsonProperty("shardby")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Boolean shardby;
 
     // computed
     private TblColRef column;
@@ -59,6 +68,11 @@ public class RawTableColumnDesc {
         tableName = tableName.toUpperCase();
         columnName = columnName.toUpperCase();
         column = model.findColumn(tableName, columnName);
+
+        // backward compatibility
+        if (shardby == null) {
+            shardby = encoding.equals(INDEX_SORTED) ? true : false;
+        }
     }
 
     // ============================================================================
@@ -88,7 +102,11 @@ public class RawTableColumnDesc {
     }
 
     public Boolean getFuzzyIndex() {
-        return RawTableDesc.INDEX_FUZZY.equals(index);
+        return INDEX_FUZZY.equals(index);
+    }
+
+    public Boolean isShardby() {
+        return shardby == null ? false : shardby;
     }
 
     @Override

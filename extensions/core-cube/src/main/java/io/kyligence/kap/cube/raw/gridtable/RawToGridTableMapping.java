@@ -44,16 +44,21 @@ public class RawToGridTableMapping {
     private List<TblColRef> gtOrderColumns = Lists.newArrayList();
     private ImmutableBitSet gtPrimaryKey;
     private ImmutableBitSet gtNonPKKey;
+    private ImmutableBitSet shardbyKey;
 
     public RawToGridTableMapping(RawTableInstance rawTableInstance) {
         int gtColIdx = 0;
         TblColRef orderedCol = rawTableInstance.getRawTableDesc().getOrderedColumn();
         orderedColumns.add(orderedCol);
 
+        BitSet shardby = new BitSet();
         BitSet pk = new BitSet();
         for (TblColRef o : orderedColumns) {
             gtOrderColumns.add(orderedCol);
             gtDataTypes.add(o.getType());
+            if (rawTableInstance.getRawTableDesc().isShardby(o)) {
+                shardby.set(gtColIdx);
+            }
             pk.set(gtColIdx++);
         }
         gtPrimaryKey = new ImmutableBitSet(pk);
@@ -63,10 +68,14 @@ public class RawToGridTableMapping {
             if (!orderedColumns.contains(columnRef)) {
                 gtOrderColumns.add(columnRef);
                 gtDataTypes.add(columnRef.getType());
+                if (rawTableInstance.getRawTableDesc().isShardby(columnRef)) {
+                    shardby.set(gtColIdx);
+                }
                 nonPK.set(gtColIdx++);
             }
         }
         gtNonPKKey = new ImmutableBitSet(nonPK);
+        shardbyKey = new ImmutableBitSet(shardby);
     }
 
     public DataType[] getDataTypes() {
@@ -79,6 +88,10 @@ public class RawToGridTableMapping {
 
     public ImmutableBitSet getOrderedColumnSet() {
         return gtPrimaryKey;
+    }
+
+    public ImmutableBitSet getShardbyKey() {
+        return shardbyKey;
     }
 
     public ImmutableBitSet getNonOrderedColumnSet() {

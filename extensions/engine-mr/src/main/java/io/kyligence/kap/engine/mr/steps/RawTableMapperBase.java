@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import org.apache.hadoop.io.Text;
@@ -78,6 +79,8 @@ abstract public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEY
     private RawTableDesc rawTableDesc;
     private BufferedRawColumnCodec rawColumnCodec;
     private String[] codecBuffer;
+    private int[] shardbyColIdxInSource;
+    private int[] shardbyColIdxInRawTable;
     private int orderColIdxInSource;
     private int orderColIdxInRawTable;
     private int[] nonOrderColInxInSource;// array index=> IdxInRawTable, array value=> IdxInSource
@@ -102,12 +105,22 @@ abstract public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEY
 
         GTInfo gtInfo = RawTableGridTable.newGTInfo(rawTableInstance);
         rawColumnCodec = new BufferedRawColumnCodec((RawTableCodeSystem) gtInfo.getCodeSystem());
-        codecBuffer = new String[rawColumnCodec.getColumnsCount()];
+        codecBuffer = new String[rawColumnCodec.getColumnsCount()]; // stored encoded value
 
         bytesSplitter = new BytesSplitter(kapConfig.getRawTableColumnCountMax(), kapConfig.getRawTableColumnLengthMax());
         initNullBytes();
 
-        //precalculate index mappings for perf
+        //pre-calculate index mappings for perf
+        Collection<TblColRef> shardbyCols = rawTableDesc.getShardbyColumns();
+        shardbyColIdxInSource = new int[shardbyCols.size()];
+        shardbyColIdxInRawTable = new int[shardbyCols.size()];
+        int index = 0;
+        for (TblColRef shardColRef : shardbyCols) {
+            shardbyColIdxInRawTable[index] = rawTableInstance.getRawToGridTableMapping().getIndexOf(shardColRef);
+            shardbyColIdxInSource[index] = intermediateTableDesc.getColumnIndex(shardColRef);
+            index++;
+        }
+
         TblColRef orderCol = rawTableDesc.getOrderedColumn();//TODO: assuming only one sorted column here
         orderColIdxInSource = intermediateTableDesc.getColumnIndex(orderCol);
         orderColIdxInRawTable = rawTableInstance.getRawToGridTableMapping().getIndexOf(orderCol);
@@ -168,10 +181,22 @@ abstract public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEY
         int bodyLength = buffer.position();
         byte[] colValue = new byte[bodyLength + RowConstants.ROWKEY_SHARDID_LEN];
         System.arraycopy(buffer.array(), 0, colValue, RowConstants.ROWKEY_SHARDID_LEN, bodyLength);
+
         //then write shard
-        short shardId = ShardingHash.getShard(colValue, RowConstants.ROWKEY_SHARDID_LEN, bodyLength, shardNum);
+        ByteBuffer shardValue = getShardValue(splitBuffers);
+        short shardId = ShardingHash.getShard(shardValue.array(), 0, shardValue.position(), shardNum);
         BytesUtil.writeShort(shardId, colValue, 0, RowConstants.ROWKEY_SHARDID_LEN);
         return colValue;
+    }
+
+    protected ByteBuffer getShardValue(SplittedBytes[] splitBuffers) {
+        for (int i = 0; i < shardbyColIdxInSource.length; i++) {
+            int idInSource = shardbyColIdxInSource[i];
+            int idInRawTable = shardbyColIdxInRawTable[i];
+            codecBuffer[idInRawTable] = Bytes.toString(splitBuffers[idInSource].value, 0, splitBuffers[idInSource].length);
+        }
+        Object[] values = RawValueIngester.buildObjectOf(codecBuffer, rawColumnCodec, rawTableInstance.getRawToGridTableMapping().getShardbyKey());
+        return rawColumnCodec.encode(values, rawTableInstance.getRawToGridTableMapping().getShardbyKey());
     }
 
     protected ByteBuffer buildValue(SplittedBytes[] splitBuffers) {
