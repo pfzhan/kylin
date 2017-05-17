@@ -94,6 +94,10 @@ public class BinaryFilterConverter {
     }
 
     public BinaryFilter toBinaryFilter(TupleFilter tupleFilter) throws UnsupportedEncodingException {
+        if (tupleFilter == null || isSpecialFilter(tupleFilter)) {
+            throw new IllegalArgumentException("input filter invalid: " + tupleFilter);
+        }
+
         if (tupleFilter instanceof CompareTupleFilter) {
             CompareTupleFilter compareFilter = (CompareTupleFilter) tupleFilter;
             switch (compareFilter.getOperator()) {
@@ -118,7 +122,7 @@ public class BinaryFilterConverter {
             case NOTIN:
                 return transferNotin(tupleFilter);
             default:
-                return null;
+                throw new IllegalStateException("operator not supported: " + compareFilter.getOperator() + " in " + tupleFilter);
             }
         } else if (tupleFilter instanceof LogicalTupleFilter) {
             List<BinaryFilter> binaryChildren = Lists.newArrayList();
@@ -126,6 +130,8 @@ public class BinaryFilterConverter {
                 BinaryFilter child = toBinaryFilter(filter);
                 if (child != null) {
                     binaryChildren.add(child);
+                } else {
+                    throw new IllegalStateException("filter " + filter + " cannot be converted to binary filter");
                 }
             }
 
@@ -145,11 +151,7 @@ public class BinaryFilterConverter {
             }
         }
 
-        if (tupleFilter == null || isSpecialFilter(tupleFilter)) {
-            return null;
-        }
-
-        throw new IllegalArgumentException("Tuplefilter " + tupleFilter + " is not supported");
+        throw new IllegalArgumentException("Tuple Filter " + tupleFilter + " is not supported");
     }
 
     private static boolean isSpecialFilter(TupleFilter tupleFilter) {
@@ -198,11 +200,11 @@ public class BinaryFilterConverter {
     }
 
     private BinaryFilter transferIsnull(TupleFilter filter) throws UnsupportedEncodingException {
-        return transferOneValue(filter, TupleFilter.FilterOperatorEnum.ISNULL);
+        return transferZeroValue(filter, TupleFilter.FilterOperatorEnum.ISNULL);
     }
 
     private BinaryFilter transferIsnotnull(TupleFilter filter) throws UnsupportedEncodingException {
-        return transferOneValue(filter, TupleFilter.FilterOperatorEnum.ISNOTNULL);
+        return transferZeroValue(filter, TupleFilter.FilterOperatorEnum.ISNOTNULL);
     }
 
     private BinaryFilter transferIn(TupleFilter filter) throws UnsupportedEncodingException {
@@ -211,6 +213,16 @@ public class BinaryFilterConverter {
 
     private BinaryFilter transferNotin(TupleFilter filter) throws UnsupportedEncodingException {
         return transferMultiValue(filter, TupleFilter.FilterOperatorEnum.NOTIN);
+    }
+
+    private BinaryFilter transferZeroValue(TupleFilter filter, TupleFilter.FilterOperatorEnum op) throws UnsupportedEncodingException {
+        if (filter instanceof CompareTupleFilter) {
+            CompareTupleFilter compareTupleFilter = (CompareTupleFilter) filter;
+            TblColRef column = compareTupleFilter.getColumn();
+            return new BinaryCompareFilter(op, null, offsetMap.get(column), lengthMap.get(column));
+        }
+        logger.warn("{} is not CompareTupleFilter type", filter);
+        return null;
     }
 
     private BinaryFilter transferOneValue(TupleFilter filter, TupleFilter.FilterOperatorEnum op) throws UnsupportedEncodingException {

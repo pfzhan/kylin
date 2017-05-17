@@ -63,10 +63,16 @@ public class BinaryCompareFilter implements BinaryFilter {
     @Override
     public void serialize(ByteBuffer buffer) {
         BytesUtil.writeUTFString(type.name(), buffer);
-        BytesUtil.writeVInt(operandVal.size(), buffer);
-        for (byte[] val : operandVal) {
-            BytesUtil.writeByteArray(val, buffer);
+
+        if (operandVal == null) {
+            BytesUtil.writeVInt(-1, buffer);
+        } else {
+            BytesUtil.writeVInt(operandVal.size(), buffer);
+            for (byte[] val : operandVal) {
+                BytesUtil.writeByteArray(val, buffer);
+            }
         }
+        
         BytesUtil.writeVInt(operandOff, buffer);
         BytesUtil.writeVInt(operandLen, buffer);
     }
@@ -75,9 +81,11 @@ public class BinaryCompareFilter implements BinaryFilter {
     public void deserialize(ByteBuffer buffer) {
         // "type" should be deserialized first to create an instance
         int operandValSize = BytesUtil.readVInt(buffer);
-        operandVal = Lists.newArrayList();
-        for (int i = 0; i < operandValSize; i++) {
-            operandVal.add(BytesUtil.readByteArray(buffer));
+        if (operandValSize != -1) {
+            operandVal = Lists.newArrayList();
+            for (int i = 0; i < operandValSize; i++) {
+                operandVal.add(BytesUtil.readByteArray(buffer));
+            }
         }
 
         operandOff = BytesUtil.readVInt(buffer);
