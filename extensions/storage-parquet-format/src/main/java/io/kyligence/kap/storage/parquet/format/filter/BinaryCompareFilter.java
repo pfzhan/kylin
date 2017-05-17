@@ -72,7 +72,7 @@ public class BinaryCompareFilter implements BinaryFilter {
                 BytesUtil.writeByteArray(val, buffer);
             }
         }
-        
+
         BytesUtil.writeVInt(operandOff, buffer);
         BytesUtil.writeVInt(operandLen, buffer);
     }
@@ -100,6 +100,11 @@ public class BinaryCompareFilter implements BinaryFilter {
             } else {
                 return false;
             }
+        } else {
+            if (type == FilterOperatorEnum.ISNOTNULL)
+                return true;
+            else if (type == FilterOperatorEnum.ISNULL)
+                return false;
         }
 
         switch (type) {
@@ -137,10 +142,6 @@ public class BinaryCompareFilter implements BinaryFilter {
             return bytesIn(value, operandOff, operandLen, operandVal, 0, operandLen);
         case NOTIN:
             return !bytesIn(value, operandOff, operandLen, operandVal, 0, operandLen);
-        case ISNULL:
-            return false;
-        case ISNOTNULL:
-            return true;
         default:
             throw new IllegalArgumentException("Type " + type + " is not supported");
         }
@@ -161,11 +162,13 @@ public class BinaryCompareFilter implements BinaryFilter {
         builder.append("operandOff : " + operandOff + ",");
         builder.append("operandLen : " + operandLen + ",");
         builder.append("operandVal : [");
-        for (byte[] val : operandVal) {
-            for (byte v : val) {
-                builder.append(String.valueOf(v) + "_");
+        if (operandVal != null) {
+            for (byte[] val : operandVal) {
+                for (byte v : val) {
+                    builder.append(String.valueOf(v) + "_");
+                }
+                builder.append(",");
             }
-            builder.append(",");
         }
         builder.append("]");
         builder.append("}");
