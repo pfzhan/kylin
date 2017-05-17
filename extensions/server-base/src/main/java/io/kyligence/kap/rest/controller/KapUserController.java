@@ -25,13 +25,12 @@
 package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 
 import javax.annotation.PostConstruct;
 
+import io.kyligence.kap.rest.security.KapAuthenticationManager;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.service.UserGrantedAuthority;
@@ -69,10 +68,12 @@ public class KapUserController extends BasicController implements UserDetailsSer
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private KapAuthenticationManager kapAuthenticationManager;
+
     private Pattern passwordPattern;
     private Pattern bcryptPattern;
     private BCryptPasswordEncoder pwdEncoder;
-    private Map<String, UserObj> userObjMap;
     private static final UserGrantedAuthority ADMIN_AUTH = new UserGrantedAuthority(Constant.ROLE_ADMIN);
     private static final UserGrantedAuthority ANALYST_AUTH = new UserGrantedAuthority(Constant.ROLE_ANALYST);
     private static final UserGrantedAuthority MODELER_AUTH = new UserGrantedAuthority(Constant.ROLE_MODELER);
@@ -82,7 +83,6 @@ public class KapUserController extends BasicController implements UserDetailsSer
         passwordPattern = Pattern.compile("^(?=.*\\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*(){}|:\"<>?\\[\\];',./`]).{8,}$");
         bcryptPattern = Pattern.compile("\\A\\$2a?\\$\\d\\d\\$[./0-9A-Za-z]{53}");
         pwdEncoder = new BCryptPasswordEncoder();
-        userObjMap = new HashMap<String, UserObj>();
 
         List<UserObj> all = listAllUsers();
         logger.info("All " + all.size() + " users");
@@ -91,10 +91,8 @@ public class KapUserController extends BasicController implements UserDetailsSer
             save("ANALYST", new UserObj("ANALYST", "ANALYST", true, Constant.ROLE_ANALYST));
             save("MODELER", new UserObj("MODELER", "MODELER", true, Constant.ROLE_MODELER, Constant.ROLE_MODELER));
         }
-        for (UserObj u : all) {
-            userObjMap.put(u.getUsername(), u);
-            logger.info(u.toString());
-        }
+
+        kapAuthenticationManager.addUser(all);
     }
 
     @Override
@@ -136,7 +134,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
 
         UserDetails details = userObjToDetails(user);
         userService.updateUser(details);
-        userObjMap.put(userName, user);
+        kapAuthenticationManager.addUser(user);
 
         return get(userName);
     }
@@ -219,7 +217,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
     @ResponseBody
     public void delete(@PathVariable("userName") String userName) {
         checkUserName(userName);
-        userObjMap.remove(userName);
+        kapAuthenticationManager.removeUser(userName);
 
         userService.deleteUser(userName);
     }
@@ -304,59 +302,6 @@ public class KapUserController extends BasicController implements UserDetailsSer
             }
         }
         return isAdmin;
-    }
-
-    public boolean isUserLocked(String userName) {
-        boolean locked = false;
-        if (userObjMap.get(userName) != null)
-            locked = userObjMap.get(userName).locked;
-        return locked;
-    }
-
-    public void lockUser(String userName) {
-        UserObj user = userObjMap.get(userName);
-        if (user != null)
-            user.setLocked(true);
-    }
-
-    public void unlockUser(String userName) {
-        UserObj user = userObjMap.get(userName);
-        if (user != null)
-            user.setLocked(false);
-    }
-
-    public long getLockedTime(String userName) {
-        long lockedTime = 0L;
-        if (userObjMap.get(userName) != null)
-            lockedTime = userObjMap.get(userName).getLockedTime();
-        return lockedTime;
-    }
-
-    public void setLockedTime(String userName) {
-        UserObj user = userObjMap.get(userName);
-        if (user != null)
-            user.setLockedTime(System.currentTimeMillis());
-    }
-
-    public int getWrongTime(String userName) {
-        int wrongTime = 0;
-        if (userObjMap.get(userName) != null)
-            wrongTime = userObjMap.get(userName).getWrongTime();
-        return wrongTime;
-    }
-
-    public void increaseWrongTime(String userName) {
-        UserObj user = userObjMap.get(userName);
-        if (user != null) {
-            int wrongTime = user.getWrongTime();
-            if (wrongTime == 2) {
-                lockUser(userName);
-                user.setLockedTime(System.currentTimeMillis());
-                user.setWrongTime(0);
-            } else {
-                user.setWrongTime(wrongTime + 1);
-            }
-        }
     }
 
     public static class UserObj implements UserDetails {

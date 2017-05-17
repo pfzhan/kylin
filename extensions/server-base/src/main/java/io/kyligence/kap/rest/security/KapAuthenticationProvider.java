@@ -28,7 +28,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
-import io.kyligence.kap.rest.controller.KapUserController;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +53,7 @@ public class KapAuthenticationProvider implements AuthenticationProvider {
     private static final Logger logger = LoggerFactory.getLogger(KapAuthenticationProvider.class);
 
     @Autowired
-    KapUserController kapUserController;
+    private KapAuthenticationManager kapAuthenticationManager;
 
     @Autowired
     UserService userService;
@@ -85,6 +84,7 @@ public class KapAuthenticationProvider implements AuthenticationProvider {
         md.reset();
         byte[] hashKey = md.digest((authentication.getName() + authentication.getCredentials()).getBytes());
         String userKey = Arrays.toString(hashKey);
+        String userName = null;
 
         Element authedUser = userCache.get(userKey);
         if (null != authedUser) {
@@ -92,16 +92,15 @@ public class KapAuthenticationProvider implements AuthenticationProvider {
             SecurityContextHolder.getContext().setAuthentication(authed);
         } else {
             try {
-                String userName = null;
                 if (authentication instanceof UsernamePasswordAuthenticationToken)
                     userName = (String) authentication.getPrincipal();
 
-                if (kapUserController.isUserLocked(userName)) {
-                    long lockedTime = kapUserController.getLockedTime(userName);
+                if (kapAuthenticationManager.isUserLocked(userName)) {
+                    long lockedTime = kapAuthenticationManager.getLockedTime(userName);
                     long timeDiff = System.currentTimeMillis() - lockedTime;
 
                     if (timeDiff > 30000) {
-                        kapUserController.unlockUser(userName);
+                        kapAuthenticationManager.unlockUser(userName);
                     } else {
                         int leftSeconds = (30 - timeDiff / 1000) <= 0 ? 1 : (int) (30 - timeDiff / 1000);
                         String msg = "User " + userName + " is locked, please wait for " + leftSeconds + " seconds.";
@@ -112,6 +111,9 @@ public class KapAuthenticationProvider implements AuthenticationProvider {
                 authed = authenticationProvider.authenticate(authentication);
                 userCache.put(new Element(userKey, authed));
             } catch (AuthenticationException e) {
+                if(userName != null) {
+                    kapAuthenticationManager.increaseWrongTime(userName);
+                }
                 logger.error("Failed to auth user: " + authentication.getName(), e);
                 throw e;
             }

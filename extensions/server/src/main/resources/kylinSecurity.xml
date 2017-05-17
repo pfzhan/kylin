@@ -85,6 +85,9 @@
 			<property name="userDn" value="${kylin.security.ldap.connection-username}" />
 			<property name="password" value="${kylin.security.ldap.connection-password}" />
 		</bean>
+
+        <bean id="authenticationUsersManager" class="io.kyligence.kap.rest.security.KapAuthenticationManager" scope="singleton">
+        </bean>
 		
 		<bean id="kylinUserAuthProvider" class="io.kyligence.kap.rest.security.KapAuthenticationProvider">
 			<constructor-arg>
@@ -160,6 +163,9 @@
 			<property name="userDetailsService" ref="kapUserController" />
 			<property name="passwordEncoder" ref="passwordEncoder" />
 		</bean>
+
+        <bean id="authenticationUsersManager" class="io.kyligence.kap.rest.security.KapAuthenticationManager" scope="singleton">
+        </bean>
 		
 		<scr:authentication-manager alias="testingAuthenticationManager">
 			<scr:authentication-provider ref="authenProvider" />

@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.rest.security;
 
-import io.kyligence.kap.rest.controller.KapUserController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,21 +40,22 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
     private static final Logger logger = LoggerFactory.getLogger(LimitLoginAuthenticationProvider.class);
 
     @Autowired
-    KapUserController kapUserController;
-
+    private KapAuthenticationManager kapAuthenticationManager;
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         String userName = null;
         Authentication auth = null;
+
         try {
             if (authentication instanceof UsernamePasswordAuthenticationToken)
                 userName = (String) authentication.getPrincipal();
-            if (kapUserController.isUserLocked(userName)) {
-                long lockedTime = kapUserController.getLockedTime(userName);
+            if (kapAuthenticationManager.isUserLocked(userName)) {
+                long lockedTime = kapAuthenticationManager.getLockedTime(userName);
                 long timeDiff = System.currentTimeMillis() - lockedTime;
+
                 if (timeDiff > 30000) {
-                    kapUserController.unlockUser(userName);
+                    kapAuthenticationManager.unlockUser(userName);
                 } else {
                     int leftSeconds = (30 - timeDiff / 1000) <= 0 ? 1 : (int) (30 - timeDiff / 1000);
                     String msg = "User " + userName + " is locked, please wait for " + leftSeconds + " seconds.";
@@ -64,10 +64,9 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
             }
 
             auth = super.authenticate(authentication);
-
             return auth;
         } catch (BadCredentialsException e) {
-            kapUserController.increaseWrongTime(userName);
+            kapAuthenticationManager.increaseWrongTime(userName);
             throw e;
         }
     }

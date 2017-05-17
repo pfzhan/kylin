@@ -30,7 +30,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.rest.controller.KapUserController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.AuthenticationException;
@@ -41,14 +40,14 @@ import org.springframework.stereotype.Component;
 public class KapUnauthorisedEntryPoint implements AuthenticationEntryPoint {
 
     @Autowired
-    private KapUserController userController;
+    private KapAuthenticationManager kapAuthenticationManager;
 
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
         String userName = null;
         if (exception instanceof LockedException)
             userName = exception.getCause().getMessage();
 
-        if (userController.isUserLocked(userName)) {
+        if (kapAuthenticationManager.isUserLocked(userName)) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, exception.getMessage());
             return;
         }
