@@ -63,13 +63,18 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     @Autowired
     AsyncQueryService asyncQueryService;
 
-    private static final String TEST_ROOT_DIR = "/tmp/kylin/kylin_metadata/";
-    private static final String TEST_BASE_DIR = TEST_ROOT_DIR + AsyncQueryService.BASE_FOLDER;
-    private static final File base = new File(TEST_BASE_DIR);
+    private static String TEST_ROOT_DIR;
+    private static String TEST_BASE_DIR;
+    private static File base;
 
     @Before
     public void setup() throws Exception {
         super.setup();
+        
+        TEST_ROOT_DIR = getLocalWorkingDirectory();
+        TEST_BASE_DIR = TEST_ROOT_DIR + AsyncQueryService.BASE_FOLDER;
+        base = new File(TEST_BASE_DIR);
+        
         FileUtil.setWritable(base, true);
         FileUtil.fullyDelete(base);
         assertTrue(!base.exists());

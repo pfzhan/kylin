@@ -49,15 +49,16 @@ public class MockupQueryExecutorTest extends LocalFileMetadataTestCase {
         createTestMetadata();
 
         KylinConfig mockupConfig = KylinConfig.getInstanceFromEnv();
-        mockupConfig = Utils.newKylinConfig(mockupConfig.getMetadataUrl());
+        mockupConfig = Utils.newKylinConfig(mockupConfig.getMetadataUrl().toString());
         KylinConfig.setKylinConfigThreadLocal(mockupConfig);
     }
 
     @Test
-    public void test() throws SQLException {
+    public void test() throws SQLException, IOException {
         TestQueryRecorder queryRecorder = new TestQueryRecorder();
         MockupQueryExecutor executor = new MockupQueryExecutor(queryRecorder);
         executor.execute("default", "select count(*) from STREAMING_TABLE where DAY_START is not null");
+        executor.close();
 
         Object[] result = queryRecorder.getResult();
         validateResult((CubeInstance) result[0], (GTCubeStorageQueryRequest) result[1]);
