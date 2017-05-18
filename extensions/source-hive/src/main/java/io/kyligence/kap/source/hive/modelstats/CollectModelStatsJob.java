@@ -205,8 +205,6 @@ public class CollectModelStatsJob extends CubingJob {
         ShellExecutable step = new ShellExecutable();
         step.setName("Drop Intermediate Flat Table " + flatTableName);
         HiveCmdBuilder hiveCmdBuilder = new HiveCmdBuilder();
-
-        hiveCmdBuilder.setHiveConfProps(new JobEngineConfig(config).getHivePropsFromFile());
         StringBuilder createIntermediateTableHql = new StringBuilder();
         createIntermediateTableHql.append("USE " + config.getHiveDatabaseForIntermediateTable() + ";\n");
         createIntermediateTableHql.append("DROP TABLE IF EXISTS " + flatTableName + ";\n");
