@@ -1,5 +1,6 @@
 #!/bin/bash
 # Kyligence Inc. License
+#title=Checking Hive Classpath
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
@@ -11,4 +12,5 @@ fi
 
 jobjar=`find ${KYLIN_HOME}/lib -name '*job*.jar'`
 java -cp ${hive_dependency}:${jobjar}  org.apache.kylin.common.util.ClasspathScanner  HCatInputFormat.class
-[[ $? == 0 ]]         || quit "ERROR: Class HCatInputFormat is not found on hive dependency. Please check bin/find-hive-dependency.sh is setup correctly."
+
+[[ $? == 0 ]]         || quit "ERROR: Class HCatInputFormat is not found on hive dependency. Please check 'bin/find-hive-dependency.sh' reports the correct Hive classpath."

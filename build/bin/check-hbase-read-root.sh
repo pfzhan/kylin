@@ -1,5 +1,6 @@
 #!/bin/bash
 # Kyligence Inc. License
+#title=Checking Permission of HBase's Root Dir
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 

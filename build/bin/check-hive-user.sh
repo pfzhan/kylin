@@ -1,5 +1,6 @@
 #!/bin/bash
 # Kyligence Inc. License
+#title=Checking Hive Usages
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/find-hadoop-conf-dir.sh
@@ -8,6 +9,7 @@ source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/load-hive-conf.sh
 echo "Checking Hive write permission..."
 
 # test hive or beeline has write permission
+
 HIVE_CLIENT_TYPE=`$KYLIN_HOME/bin/get-properties.sh kylin.source.hive.client`
 HIVE_TEST_DB=`$KYLIN_HOME/bin/get-properties.sh kylin.source.hive.database-for-flat-table`
 WORKING_DIR=`$KYLIN_HOME/bin/get-properties.sh kylin.env.hdfs-working-dir`
@@ -28,12 +30,12 @@ fi
 if [ "${HIVE_CLIENT_TYPE}" = "cli" ]
 then
     hive ${hive_conf_properties} -e "drop table if exists ${HIVE_TEST_TABLE}; create external table ${HIVE_TEST_TABLE} (name STRING,age INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE location '$HIVE_TEST_TABLE_LOCATION'; insert into table ${HIVE_TEST_TABLE} values ('"kylin"',1);"
-    [[ $? == 0 ]] || quit "ERROR: Hive have no permission to create table in working directory: ${WORKING_DIR}"
+    [[ $? == 0 ]] || quit "ERROR: Current user has no permission to create Hive table in working directory: ${WORKING_DIR}"
 
     echo "Checking HCat Available"
     export ENABLE_CHECK_ENV=false
     ${dir}/kylin.sh io.kyligence.kap.source.hive.tool.CheckHCatalogJob ${HIVE_TEST_DB} ${RANDNAME} /tmp/kylin/check_hcatalog
-    [[ $? == 0 ]] || quit "ERROR: Cannot get Hive table data via HCatInputFormat"
+    [[ $? == 0 ]] || quit "ERROR: Cannot read Hive table (${HIVE_TEST_TABLE}) via HCatInputFormat API. Please check 'logs/check-env.out' for details."
 elif [ ${HIVE_CLIENT_TYPE} = "beeline" ]
 then
     HQL_TMP_FILE=hql_tmp__${RANDOM}
@@ -41,23 +43,23 @@ then
 
     echo "set;" > ${HQL_TMP_FILE}
     beeline ${hive_conf_properties} ${HIVE_BEELINE_PARAM} -f ${HQL_TMP_FILE} >/dev/null
-    [[ $? == 0 ]] || { rm -f ${HQL_TMP_FILE}; quit "ERROR: Beeline cannot connect with parameter \"${HIVE_BEELINE_PARAM}\". Please configure \"kylin.source.hive.beeline-params\" in conf/kylin.properties"; }
+    [[ $? == 0 ]] || { rm -f ${HQL_TMP_FILE}; quit "ERROR: Beeline cannot connect with parameter \"${HIVE_BEELINE_PARAM}\". Please configure \"kylin.source.hive.beeline-params\" in 'conf/kylin.properties'"; }
 
     echo "drop table if exists ${HIVE_TEST_TABLE};" > ${HQL_TMP_FILE}
     beeline ${hive_conf_properties} ${HIVE_BEELINE_PARAM} -f ${HQL_TMP_FILE}
-    [[ $? == 0 ]] || { rm -f ${HQL_TMP_FILE}; quit "ERROR: Beeline have no permission to create/drop table in Hive database '${HIVE_TEST_DB}'"; }
+    [[ $? == 0 ]] || { rm -f ${HQL_TMP_FILE}; quit "ERROR: Current user has no permission to create/drop table in Hive database '${HIVE_TEST_DB}'"; }
 
     echo "create external table ${HIVE_TEST_TABLE} (name STRING,age INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE location '$HIVE_TEST_TABLE_LOCATION';" > ${HQL_TMP_FILE}
     echo "insert overwrite table ${HIVE_TEST_TABLE} values ('"kylin"',1);" >> ${HQL_TMP_FILE}
     beeline ${hive_conf_properties} ${HIVE_BEELINE_PARAM} -f ${HQL_TMP_FILE}
-    [[ $? == 0 ]] || { rm -f ${HQL_TMP_FILE}; quit "ERROR: Beeline have no permission to create table in working directory: ${WORKING_DIR}"; }
+    [[ $? == 0 ]] || { rm -f ${HQL_TMP_FILE}; quit "ERROR: Current user has no permission to create table in working directory: ${WORKING_DIR}"; }
 
     echo "Checking HCat Available"
     export ENABLE_CHECK_ENV=false
     ${dir}/kylin.sh io.kyligence.kap.source.hive.tool.CheckHCatalogJob ${HIVE_TEST_DB} ${RANDNAME} /tmp/kylin/check_hcatalog
-    [[ $? == 0 ]] || quit "ERROR: Cannot get Hive table data via HCatInputFormat"
+    [[ $? == 0 ]] || quit "ERROR: Cannot read Hive table (${HIVE_TEST_TABLE}) via HCatInputFormat API. Please check 'logs/check-env.out' for details."
 else
-    quit "ERROR: Only support 'cli' or 'beeline' hive client"
+    quit "ERROR: Only support 'cli' or 'beeline' hive client. Please correct 'kylin.source.hive.client' in 'conf/kylin.properties'."
 fi
 
 # safeguard cleanup

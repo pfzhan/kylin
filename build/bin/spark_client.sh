@@ -93,18 +93,19 @@ then
     retrieveSparkEnvProps
     echo "HADOOP_CONF_DIR=$HADOOP_CONF_DIR"
 
-    ${dir}/hdfs-op.sh put kap_test_spark
-    kapTestSparkDfsFile=`cat kap_test_spark`
-    kapTestSparkDfsDir="hdfs://"
-    kapTestSparkDfsDir=${kapTestSparkDfsDir}${kapTestSparkDfsFile}
-    submitCommand='$SPARK_HOME/bin/spark-submit --class io.kyligence.kap.tool.setup.KapSparkTaskTestCLI --name Test  $KYLIN_SPARK_TEST_JAR_PATH ${kapTestSparkDfsDir} '
+    input_file=${KYLIN_HOME}/logs/spark_client_test_input
+    [[ ! -f ${input_file} ]] || rm -f ${input_file}
+    echo "Hello Spark Client" >> ${input_file};
+    source ${dir}/hdfs-op.sh put ${input_file}
+
+    submitCommand='$SPARK_HOME/bin/spark-submit --class io.kyligence.kap.tool.setup.KapSparkTaskTestCLI --name Test  $KYLIN_SPARK_TEST_JAR_PATH ${TARGET_HDFS_FILE} '
     submitCommand=${submitCommand}${confStr}
     verbose "The submit command is: $submitCommand"
     eval $submitCommand
     if [ $? == 0 ];then
-        ${dir}/hdfs-op.sh rm kap_test_spark
+        ${dir}/hdfs-op.sh rm ${input_file}
     else
-        ${dir}/hdfs-op.sh rm kap_test_spark
+        ${dir}/hdfs-op.sh rm ${input_file}
         quit "ERROR: error when testing spark with spark configurations in KAP!"
     fi
     exit 0

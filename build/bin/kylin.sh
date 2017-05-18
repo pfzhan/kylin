@@ -83,7 +83,7 @@ then
     spring_profile=`${dir}/get-properties.sh kylin.security.profile`
     if [ -z "$spring_profile" ]
     then
-        quit 'please set kylin.security.profile in kylin.properties, options are: testing, ldap, saml.'
+        quit "please set kylin.security.profile in kylin.properties, options are: testing, ldap, saml."
     else
         verbose "kylin.security.profile is set to $spring_profile"
     fi

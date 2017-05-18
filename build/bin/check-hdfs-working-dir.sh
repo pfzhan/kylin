@@ -1,5 +1,6 @@
 #!/bin/bash
 # Kyligence Inc. License
+#title=Checking Permission of HDFS Working Dir
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/find-hadoop-conf-dir.sh
@@ -19,11 +20,11 @@ fi
 
 # test local hdfs
 ## in read-write separation mode this is build cluster
-$(hadoop ${hadoop_conf_param} fs -test -d ${WORKING_DIR}) || quit "ERROR: Please create working directory '${WORKING_DIR}' and grant access permission."
+hadoop ${hadoop_conf_param} fs -test -d ${WORKING_DIR} || quit_check  ${CURRENT} "ERROR: Please create working directory '${WORKING_DIR}' and grant access permission to current user."
 
 # test if kylin user (current user) has write permission to working directory
 touch ./${RANDNAME}
-hadoop ${hadoop_conf_param} fs -put -f ./${RANDNAME} ${TEST_FILE} || quit "ERROR: Have no permission to create/modify file in working directory: ${WORKING_DIR}"
+hadoop ${hadoop_conf_param} fs -put -f ./${RANDNAME} ${TEST_FILE} || quit_check  ${CURRENT} "ERROR: Have no permission to create/modify file in working directory '${WORKING_DIR}'. Please grant permission to current user."
 
 rm -f ./${RANDNAME}
 hadoop ${hadoop_conf_param} fs -rm -skipTrash ${TEST_FILE}
@@ -32,11 +33,11 @@ hadoop ${hadoop_conf_param} fs -rm -skipTrash ${TEST_FILE}
 ## in read-write separation mode this is query cluster
 if [ -n ${ENABLE_FS_SEPARATE} ] && [ "${ENABLE_FS_SEPARATE}" == "true" ]; then
     remote_working_dir=`$KYLIN_HOME/bin/get-properties.sh kylin.storage.columnar.file-system`${WORKING_DIR#*://}
-    $(hadoop ${hadoop_conf_param} fs -test -d ${remote_working_dir}) || quit "ERROR: Please create working directory '${remote_working_dir}' and grant access permission."
+    hadoop ${hadoop_conf_param} fs -test -d ${remote_working_dir} || quit_check  ${CURRENT} "ERROR: Please create working directory '${remote_working_dir}' and grant access permission to current user."
 
     touch ./${RANDNAME}
     TEST_FILE=${remote_working_dir}/${RANDNAME}
-    hadoop ${hadoop_conf_param} fs -put -f ./${RANDNAME} ${TEST_FILE} || quit "ERROR: Have no permission to create/modify file in working directory: ${remote_working_dir}"
+    hadoop ${hadoop_conf_param} fs -put -f ./${RANDNAME} ${TEST_FILE} || quit_check  ${CURRENT} "ERROR: Have no permission to create/modify file in working directory '${remote_working_dir}'. Please grant permission to current user."
 
     rm -f ./${RANDNAME}
     hadoop ${hadoop_conf_param} fs -rm -skipTrash ${TEST_FILE}

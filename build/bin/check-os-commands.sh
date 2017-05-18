@@ -1,5 +1,6 @@
 #!/bin/bash
 # Kyligence Inc. License
+#title=Checking OS Commands
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
