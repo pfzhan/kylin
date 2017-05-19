@@ -55,12 +55,14 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import com.google.common.collect.Lists;
 
 public class AysncQueryServiceTest extends ServiceTestBase {
 
     @Autowired
+    @Qualifier("asyncQueryService")
     AsyncQueryService asyncQueryService;
 
     private static String TEST_ROOT_DIR;
@@ -72,7 +74,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         super.setup();
         
         TEST_ROOT_DIR = getLocalWorkingDirectory();
-        TEST_BASE_DIR = TEST_ROOT_DIR + AsyncQueryService.BASE_FOLDER;
+        TEST_BASE_DIR = TEST_ROOT_DIR + "/" + AsyncQueryService.BASE_FOLDER;
         base = new File(TEST_BASE_DIR);
         
         FileUtil.setWritable(base, true);
