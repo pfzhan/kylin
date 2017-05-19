@@ -58,7 +58,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 import com.google.common.collect.Lists;
-import org.springframework.beans.factory.annotation.Qualifier;
 
 public class AysncQueryServiceTest extends ServiceTestBase {
 
@@ -73,11 +72,11 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     @Before
     public void setup() throws Exception {
         super.setup();
-        
+
         TEST_ROOT_DIR = getLocalWorkingDirectory();
         TEST_BASE_DIR = TEST_ROOT_DIR + "/" + AsyncQueryService.BASE_FOLDER;
         base = new File(TEST_BASE_DIR);
-        
+
         FileUtil.setWritable(base, true);
         FileUtil.fullyDelete(base);
         assertTrue(!base.exists());

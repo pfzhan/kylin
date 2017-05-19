@@ -26,11 +26,10 @@ package io.kyligence.kap.source.hive.tablestats;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.TimeZone;
 
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HiveCmdBuilder;
 import org.apache.kylin.engine.mr.CubingJob;
@@ -41,7 +40,6 @@ import org.apache.kylin.engine.mr.steps.CubingExecutableUtil;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.MetadataManager;
@@ -54,110 +52,115 @@ public class HiveTableExtSampleJob extends CubingJob {
     private static final Logger logger = LoggerFactory.getLogger(HiveTableExtSampleJob.class);
     private static final String SAMPLES = "samples";
 
-    public static List<String> createSampleJob(String project, String submitter, long rowSize, String... tables) throws IOException {
-        List<String> jobIDs = new ArrayList<>();
-        for (String table : tables) {
-            String jobID = initSampleJob(project, submitter, table, rowSize);
-            jobIDs.add(jobID);
-        }
-        return jobIDs;
+    private String project;
+    private String submitter;
+    private String tableName;
+    private int frequency;
+    KylinConfig config;
+
+    public HiveTableExtSampleJob() {
     }
 
-    private static String initSampleJob(String project, String submitter, String table, long rowSize) throws IOException {
+    public HiveTableExtSampleJob(String tableName, int frequency) {
+        this.tableName = tableName;
+        this.frequency = frequency;
+        config = KylinConfig.getInstanceFromEnv();
+    }
 
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
+    public HiveTableExtSampleJob(String project, String submitter, String tableName, int frequency) {
+        this.project = project;
+        this.submitter = submitter;
+        this.tableName = tableName;
+        this.frequency = frequency;
+        config = KylinConfig.getInstanceFromEnv();
+    }
 
-        String runningJobID = findRunningJob(table, config);
+    public String start() throws IOException {
+
+        logger.info("Start HiveTableExt job: " + getId());
+
+        String runningJobID = findRunningJob(config, tableName);
         if (runningJobID != null)
             return runningJobID;
 
-        HiveTableExtSampleJob sampleJob = createSamplesJob(project, table, submitter, config, rowSize);
+        InitJob();
 
-        ExecutableManager.getInstance(config).addJob(sampleJob);
-        logger.info("Start HiveTableExt job: " + sampleJob.getId());
-        return sampleJob.getId();
+        addSteps(this);
+
+        ExecutableManager.getInstance(config).addJob(this);
+
+        return getId();
     }
 
-    private static HiveTableExtSampleJob createSamplesJob(String project, String tableName, String submitter, KylinConfig config, long rowSize) throws IOException {
-        HiveTableExtSampleJob sampleJob = new HiveTableExtSampleJob();
-
+    private void InitJob() {
         SimpleDateFormat format = new SimpleDateFormat("z yyyy-MM-dd HH:mm:ss");
         format.setTimeZone(TimeZone.getTimeZone(config.getTimeZone()));
-        sampleJob.setDeployEnvName(config.getDeployEnv());
-        sampleJob.setProjectName(project);
-        sampleJob.setName("Collect " + tableName + " statistics " + format.format(new Date(System.currentTimeMillis())));
-        sampleJob.setSubmitter(submitter);
-        sampleJob.setParam(CubingExecutableUtil.CUBE_NAME, tableName);
-        addStatsSteps(tableName, config, rowSize, sampleJob);
-        return sampleJob;
-
+        setDeployEnvName(config.getDeployEnv());
+        setProjectName(project);
+        setName("Collect " + tableName + " statistics " + format.format(new Date(System.currentTimeMillis())));
+        setSubmitter(submitter);
+        setParam(CubingExecutableUtil.CUBE_NAME, tableName);
     }
 
-    public static void addStatsSteps(String tableName, KylinConfig config, long rowSize, DefaultChainedExecutable statsJob) throws IOException {
+    public void addSteps(CubingJob parent) throws IOException {
         MetadataManager metaMgr = MetadataManager.getInstance(config);
-        TableDesc table = metaMgr.getTableDesc(tableName);
+        TableDesc desc = metaMgr.getTableDesc(tableName);
         TableExtDesc table_ext = metaMgr.getTableExt(tableName);
-        if (table == null) {
+        if (desc == null) {
             throw new IllegalArgumentException("Cannot find table descriptor " + tableName);
         }
 
-        String samplesOutPath = getOutputPath(config, statsJob.getId(), HiveTableExtSampleJob.SAMPLES) + table.getIdentity();
+        String samplesOutPath = getOutputPath(HiveTableExtSampleJob.SAMPLES, parent.getId()) + desc.getIdentity();
 
-        boolean isFullTable = (rowSize == 0);
-
-        if (table.isView() || !isFullTable) {
-            addMaterializeViewSteps(statsJob, table, config, isFullTable, rowSize);
+        if (desc.isView()) {
+            addMaterializeViewSteps(parent, desc);
         }
 
-        addExtractStatsStep(config, statsJob, table, isFullTable, samplesOutPath);
+        addExtractStatsStep(parent, desc, samplesOutPath);
 
-        addUpdateStatsMetaStep(statsJob, tableName, samplesOutPath);
+        addUpdateStatsMetaStep(parent, samplesOutPath);
 
-        if (table.isView() || !isFullTable)
-            statsJob.addTask(deleteMaterializedView(table, config));
+        if (desc.isView())
+            parent.addTask(deleteMaterializedView(desc));
 
-        table_ext.setJodID(statsJob.getId());
+        table_ext.setJodID(parent.getId());
         metaMgr.saveTableExt(table_ext);
     }
 
-    private static void addMaterializeViewSteps(DefaultChainedExecutable statsJob, TableDesc table, KylinConfig config, boolean isFullTable, long rowSize) throws IOException {
+    private void addMaterializeViewSteps(CubingJob parent, TableDesc desc) throws IOException {
         JobEngineConfig jobConf = new JobEngineConfig(config);
-        String checkParam = "-output " + getViewPath(jobConf, statsJob.getId(), table);
+        String checkParam = "-output " + getViewPath(jobConf, desc);
         HadoopShellExecutable checkHdfsPathStep = new HadoopShellExecutable();
         checkHdfsPathStep.setName("Check Dfs Path");
         checkHdfsPathStep.setJobClass(CheckHdfsPath.class);
         checkHdfsPathStep.setJobParams(checkParam);
-        statsJob.addTask(checkHdfsPathStep);
-        statsJob.addTask(materializedView(table, statsJob.getId(), jobConf, !isFullTable ? "limit " + rowSize : ""));
+        parent.addTask(checkHdfsPathStep);
+        parent.addTask(materializedView(desc, jobConf));
     }
 
-    private static void addExtractStatsStep(KylinConfig config, DefaultChainedExecutable statsJob, TableDesc table, boolean isFullTable, String samplesOutPath) {
-
-        String statsStepParam = "-table " + table.getIdentity() + " -output " + samplesOutPath + " -fullTable " + isFullTable;
-
+    private void addExtractStatsStep(CubingJob parent, TableDesc table, String samplesOutPath) {
+        String statsStepParam = "-table " + table.getIdentity() + " -output " + samplesOutPath + " -frequency " + frequency;
         MapReduceExecutable collectStatsStep = new MapReduceExecutable();
-
         collectStatsStep.setName("Extract Stats from Table: " + table.getIdentity());
         collectStatsStep.setMapReduceJobClass(HiveTableExtJob.class);
         collectStatsStep.setMapReduceParams(statsStepParam);
-
-        statsJob.addTask(collectStatsStep);
+        parent.addTask(collectStatsStep);
     }
 
-    private static void addUpdateStatsMetaStep(DefaultChainedExecutable statsJob, String tableName, String samplesOutPath) {
+    private void addUpdateStatsMetaStep(CubingJob parent, String samplesOutPath) {
         HadoopShellExecutable updateStatsStep = new HadoopShellExecutable();
 
         String updateStatsParam = "-table " + tableName + " -output " + samplesOutPath;
         updateStatsStep.setName("Save Table's Stats");
         updateStatsStep.setJobClass(HiveTableExtUpdate.class);
         updateStatsStep.setJobParams(updateStatsParam);
-        statsJob.addTask(updateStatsStep);
+        parent.addTask(updateStatsStep);
     }
 
-    public static String findRunningJob(String table, KylinConfig config) {
+    public String findRunningJob(KylinConfig config, String tableName) {
 
         MetadataManager metaMgr = MetadataManager.getInstance(config);
-        TableExtDesc tableExtDesc = metaMgr.getTableExt(table);
+        TableExtDesc tableExtDesc = metaMgr.getTableExt(tableName);
         String jobID = tableExtDesc.getJodID();
 
         if (null == jobID || jobID.isEmpty()) {
@@ -175,7 +178,7 @@ public class HiveTableExtSampleJob extends CubingJob {
              * therefore, kap2.3 or higher version can not parse kap2.2 stats job info.
              *
              */
-            logger.warn("Could not parse old version table stats job. job_id:{}, table_name:{}" + jobID + table);
+            logger.warn("Could not parse old version table stats job. job_id:{}, table_name:{}" + jobID + tableName);
         }
 
         if (null == job) {
@@ -188,17 +191,24 @@ public class HiveTableExtSampleJob extends CubingJob {
         return null;
     }
 
-    private static ShellExecutable materializedView(TableDesc desc, String jobId, JobEngineConfig conf, String condition) throws IOException {
+    private ShellExecutable materializedView(TableDesc desc, JobEngineConfig conf) throws IOException {
 
         ShellExecutable step = new ShellExecutable();
         step.setName("Materialized View " + desc.getName());
         HiveCmdBuilder hiveCmdBuilder = new HiveCmdBuilder();
 
+        String condition = "";
+        KapConfig kapConfig = KapConfig.wrap(config);
+        long viewCounter = kapConfig.getViewMaterializeRowLimit();
+        if (viewCounter != -1) {
+            condition = "limit " + viewCounter;
+        }
+
         StringBuilder createIntermediateTableHql = new StringBuilder();
         createIntermediateTableHql.append("USE " + desc.getDatabase() + ";").append("\n");
         createIntermediateTableHql.append("DROP TABLE IF EXISTS " + desc.getMaterializedName() + ";\n");
         createIntermediateTableHql.append("CREATE TABLE IF NOT EXISTS " + desc.getMaterializedName() + "\n");
-        createIntermediateTableHql.append("LOCATION '" + getViewPath(conf, jobId, desc) + "'\n");
+        createIntermediateTableHql.append("LOCATION '" + getViewPath(conf, desc) + "'\n");
         createIntermediateTableHql.append("AS SELECT * FROM " + desc.getIdentity() + " " + condition + ";\n");
         hiveCmdBuilder.addStatement(createIntermediateTableHql.toString());
 
@@ -206,11 +216,11 @@ public class HiveTableExtSampleJob extends CubingJob {
         return step;
     }
 
-    private static String getViewPath(JobEngineConfig conf, String jobId, TableDesc desc) {
-        return JobBuilderSupport.getJobWorkingDir(conf, jobId) + "/" + desc.getMaterializedName();
+    private String getViewPath(JobEngineConfig conf, TableDesc desc) {
+        return JobBuilderSupport.getJobWorkingDir(conf, getId()) + "/" + desc.getMaterializedName();
     }
 
-    private static ShellExecutable deleteMaterializedView(TableDesc desc, KylinConfig config) throws IOException {
+    private ShellExecutable deleteMaterializedView(TableDesc desc) throws IOException {
 
         ShellExecutable step = new ShellExecutable();
         step.setName("Drop Intermediate Table " + desc.getMaterializedName());
@@ -224,8 +234,8 @@ public class HiveTableExtSampleJob extends CubingJob {
         return step;
     }
 
-    private static String getOutputPath(KylinConfig config, String jobID, String tag) {
-        return config.getHdfsWorkingDirectory() + "tablestats/" + jobID + "/" + tag + "/";
+    private String getOutputPath(String tag, String jobId) {
+        return config.getHdfsWorkingDirectory() + "tablestats/" + jobId + "/" + tag + "/";
     }
 
 }
