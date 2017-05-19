@@ -24,9 +24,11 @@
 
 package io.kyligence.kap.rest.security;
 
-import io.kyligence.kap.rest.controller.KapUserController.UserObj;
+import com.google.common.collect.Lists;
+import org.apache.kylin.rest.service.UserGrantedAuthority;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.HashMap;
 import java.util.List;
@@ -117,6 +119,164 @@ public class KapAuthenticationManager {
             } else {
                 user.setWrongTime(wrongTime + 1);
             }
+        }
+    }
+
+    public static class UserObj implements UserDetails {
+        private static final long serialVersionUID = 1L;
+
+        private String username;
+        private String password;
+        private List<UserGrantedAuthority> authorities;
+        private boolean disabled;
+        private boolean defaultPassword;
+        private boolean locked;
+        private long lockedTime;
+        private int wrongTime;
+
+        public UserObj() {
+        }
+
+        public UserObj(String username, String password, String... authorities) {
+            this.username = username;
+            this.password = password;
+            this.setDefaultPassword(false);
+            this.setLocked(false);
+            this.setLockedTime(0L);
+            this.setWrongTime(0);
+            this.authorities = Lists.newArrayList();
+
+            for (String a : authorities) {
+                this.authorities.add(new UserGrantedAuthority(a));
+            }
+        }
+
+        public UserObj(String username, String password, Boolean defaultPassword, String... authorities) {
+            this.username = username;
+            this.password = password;
+            this.defaultPassword = defaultPassword;
+            this.setLocked(false);
+            this.setLockedTime(0L);
+            this.setWrongTime(0);
+            this.authorities = Lists.newArrayList();
+
+            for (String a : authorities) {
+                this.authorities.add(new UserGrantedAuthority(a));
+            }
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String userName) {
+            this.username = userName;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
+
+        public List<UserGrantedAuthority> getAuthorities() {
+            return authorities;
+        }
+
+        public void setAuthorities(List<UserGrantedAuthority> authorities) {
+            this.authorities = authorities;
+        }
+
+        public boolean isDisabled() {
+            return disabled;
+        }
+
+        public void setDisabled(boolean disabled) {
+            this.disabled = disabled;
+        }
+
+        public boolean isDefaultPassword() {
+            return defaultPassword;
+        }
+
+        public void setDefaultPassword(boolean defaultPassword) {
+            this.defaultPassword = defaultPassword;
+        }
+
+        public boolean isLocked() {
+            return locked;
+        }
+
+        public void setLocked(boolean locked) {
+            this.locked = locked;
+        }
+
+        public int getWrongTime() {
+            return wrongTime;
+        }
+
+        public void setWrongTime(int wrongTime) {
+            this.wrongTime = wrongTime;
+        }
+
+        public long getLockedTime() {
+            return lockedTime;
+        }
+
+        public void setLockedTime(long lockedTime) {
+            this.lockedTime = lockedTime;
+        }
+
+        @Override
+        public boolean isAccountNonExpired() {
+            return true;
+        }
+
+        @Override
+        public boolean isAccountNonLocked() {
+            return !locked;
+        }
+
+        @Override
+        public boolean isCredentialsNonExpired() {
+            return true;
+        }
+
+        @Override
+        public boolean isEnabled() {
+            return !disabled;
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + ((username == null) ? 0 : username.hashCode());
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            UserObj other = (UserObj) obj;
+            if (username == null) {
+                if (other.username != null)
+                    return false;
+            } else if (!username.equals(other.username))
+                return false;
+            return true;
+        }
+
+        @Override
+        public String toString() {
+            return "UserObj [username=" + username + ", authorities=" + authorities + "]";
         }
     }
 }

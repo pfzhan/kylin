@@ -26,6 +26,7 @@ package io.kyligence.kap.cube.raw;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -60,8 +61,12 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     private static final Logger logger = LoggerFactory.getLogger(RawTableDesc.class);
     public static final String RAW_TABLE_DESC_RESOURCE_ROOT = "/raw_table_desc";
 
+    public static final String STATUS_DRAFT = "DRAFT";
+
     @JsonProperty("name")
     private String name;
+    @JsonProperty("status")
+    private String status;
     @JsonProperty("model_name")
     private String modelName;
     @JsonProperty("columns")
@@ -165,7 +170,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     }
 
     public List<RawTableColumnDesc> getAllColumns() {
-        return this.columns;
+        return this.columns == null ? null : Collections.unmodifiableList(this.columns);
     }
 
     public List<TblColRef> getColumns() {
@@ -209,6 +214,13 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         this.validate();
     }
 
+    // init config only for draft
+    void initConfig(KylinConfig config) {
+        MetadataManager metaMgr = MetadataManager.getInstance(config);
+
+        this.config = config;
+    }
+
     // ============================================================================
 
     public KylinConfig getConfig() {
@@ -225,6 +237,14 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     @Override
@@ -297,6 +317,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     public static RawTableDesc getCopyOf(RawTableDesc desc) {
         RawTableDesc rawTableDesc = new RawTableDesc();
         rawTableDesc.setName(desc.getName());
+        rawTableDesc.setStatus(desc.getStatus());
         rawTableDesc.setModelName(desc.getModelName());
         rawTableDesc.setAllColumns(desc.getAllColumns());
         rawTableDesc.setAutoMergeTimeRanges(desc.getAutoMergeTimeRanges());

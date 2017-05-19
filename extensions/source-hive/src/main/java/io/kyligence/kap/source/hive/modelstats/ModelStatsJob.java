@@ -63,6 +63,7 @@ public class ModelStatsJob extends AbstractHadoopJob {
 
     @SuppressWarnings("static-access")
     protected static final Option OPTION_MODEL = OptionBuilder.withArgName("model name").hasArg().isRequired(true).withDescription("data model name").create("model");
+    protected static final Option OPTION_FREQUENCY = OptionBuilder.withArgName("sample frequency").hasArg().isRequired(true).withDescription("The sample frequency").create("frequency");
 
     public ModelStatsJob() {
     }
@@ -74,6 +75,7 @@ public class ModelStatsJob extends AbstractHadoopJob {
 
         options.addOption(OPTION_MODEL);
         options.addOption(OPTION_OUTPUT_PATH);
+        options.addOption(OPTION_FREQUENCY);
 
         parseOptions(options, args);
 
@@ -100,6 +102,7 @@ public class ModelStatsJob extends AbstractHadoopJob {
         Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
         FileOutputFormat.setOutputPath(job, output);
         job.getConfiguration().set("mapreduce.output.fileoutputformat.compress", "false");
+        job.getConfiguration().set("stats.sample.frequency", getOptionValue(OPTION_FREQUENCY));
         // Mapper
         String fullTableName = kylinConfig.getHiveDatabaseForIntermediateTable() + "." + flatTableDesc.getTableName();
         IMRInput.IMRTableInputFormat tableInputFormat = new HiveMRInput.HiveTableInputFormat(fullTableName);

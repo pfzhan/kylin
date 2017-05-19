@@ -199,7 +199,11 @@ public class RawTableManager implements IRealizationProvider {
         ResourceStore store = getStore();
         RawTableInstance instance = store.getResource(path, RawTableInstance.class, INSTANCE_SERIALIZER);
 
-        instance.init(config);
+        instance.initConfig(config);
+        RawTableDesc desc = instance.getRawTableDesc();
+        if (desc.getStatus() == null)
+            instance.init(config);
+
         if (StringUtils.isBlank(instance.getName())) {
             throw new IllegalStateException("RawTable name must not be blank");
         }
@@ -213,7 +217,10 @@ public class RawTableManager implements IRealizationProvider {
         // save rawtable resource
         RawTableInstance raw = RawTableInstance.create(cubeName, desc);
         raw.setOwner(owner);
-        raw.init(desc.getConfig());
+        if (desc.getStatus() == null)
+            raw.init(desc.getConfig());
+        else
+            raw.initConfig(desc.getConfig());
         updateRawTable(new RawTableUpdate(raw));
         ProjectManager.getInstance(config).moveRealizationToProject(RealizationType.INVERTED_INDEX, cubeName, projectName, owner);
         return raw;

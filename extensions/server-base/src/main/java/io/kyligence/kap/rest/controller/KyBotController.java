@@ -34,6 +34,7 @@ import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -44,9 +45,10 @@ import io.kyligence.kap.rest.service.KyBotService;
 @Controller
 public class KyBotController extends BasicController {
     @Autowired
+    @Qualifier("kyBotService")
     private KyBotService kybotService;
 
-    @RequestMapping(value = "/kybot/dump", method = { RequestMethod.GET })
+    @RequestMapping(value = "/kybot/dump", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
     public void localDumpKyBotPackage(final HttpServletRequest request, final HttpServletResponse response) {
         String filePath;
@@ -59,7 +61,7 @@ public class KyBotController extends BasicController {
         setDownloadResponse(filePath, response);
     }
 
-    @RequestMapping(value = "/kybot/upload", method = { RequestMethod.GET })
+    @RequestMapping(value = "/kybot/upload", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
     public EnvelopeResponse uploadToKybot(final HttpServletResponse response) {
         try {

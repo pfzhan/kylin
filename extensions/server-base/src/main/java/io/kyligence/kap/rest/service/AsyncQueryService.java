@@ -56,7 +56,7 @@ public class AsyncQueryService extends QueryService {
     public static final String BASE_FOLDER = "async_query_result";
     private static final Logger logger = LoggerFactory.getLogger(AsyncQueryService.class);
 
-    private FileSystem getFileSystem() throws IOException {
+    protected FileSystem getFileSystem() throws IOException {
         return HadoopUtil.getWorkingFileSystem();
     }
 
@@ -186,7 +186,7 @@ public class AsyncQueryService extends QueryService {
         return fileSystem.exists(failureFlagPath);
     }
 
-    private Path getAsyncQueryResultDir() {
+    protected Path getAsyncQueryResultDir() {
         String hdfsWorkingDirectory = KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory();
         Path asyncQueryResultDir = new Path(hdfsWorkingDirectory, BASE_FOLDER);
         return asyncQueryResultDir;

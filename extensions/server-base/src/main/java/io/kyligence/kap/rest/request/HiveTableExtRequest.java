@@ -30,6 +30,23 @@ public class HiveTableExtRequest extends HiveTableRequest {
     public HiveTableExtRequest() {
     }
 
+    private float ratio = 1.0f;
+
+    public void setRatio(float ratio) {
+        this.ratio = ratio;
+    }
+
+    public float getRatio() {
+        return this.ratio;
+    }
+
+    public int getFrequency() {
+        if (Math.abs(ratio) < 1e-6)
+            return 1;
+
+        return (int) (1 / ratio);
+    }
+
     private long rowSize = Long.MAX_VALUE;
 
     public void setRowSize(long rowSize) {

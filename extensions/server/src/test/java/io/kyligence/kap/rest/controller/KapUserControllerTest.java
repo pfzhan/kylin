@@ -27,14 +27,15 @@ package io.kyligence.kap.rest.controller;
 import java.io.IOException;
 import java.util.List;
 
+import io.kyligence.kap.rest.security.KapAuthenticationManager.UserObj;
 import org.apache.kylin.rest.service.UserGrantedAuthority;
 import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import io.kyligence.kap.rest.controller.KapUserController.UserObj;
 import io.kyligence.kap.rest.service.ServiceTestBase;
 
 /**
@@ -42,6 +43,7 @@ import io.kyligence.kap.rest.service.ServiceTestBase;
 public class KapUserControllerTest extends ServiceTestBase {
 
     @Autowired
+    @Qualifier("kapUserController")
     KapUserController kapUserController;
 
     BCryptPasswordEncoder pwdEncoder = new BCryptPasswordEncoder();

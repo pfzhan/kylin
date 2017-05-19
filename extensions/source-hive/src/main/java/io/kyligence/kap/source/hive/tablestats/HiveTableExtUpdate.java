@@ -98,7 +98,7 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
         TableExtDesc tableSample = metaMgr.getTableExt(tableName);
         List<TableExtDesc.ColumnStats> columnStatsList = new ArrayList<>();
         List<String[]> sampleRows = new ArrayList<>();
-        String counter = "0";
+        boolean once = true;
 
         for (HiveTableExtSampler sampler : samplers.values()) {
             TableExtDesc.ColumnStats columnStats = new TableExtDesc.ColumnStats();
@@ -109,13 +109,16 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
             columnStats.setDataSkewSamples(sampler.getTopN().getTopNCounter());
             sampleRows.add(sampler.getRawSampleValues());
             columnStatsList.add(columnStats);
-            counter = sampler.getCounter();
-            tableSample.setMapRecords(sampler.getMapperRows());
+            if (once) {
+                tableSample.setTotalRows(Long.parseLong(sampler.getCounter()));
+                tableSample.setMapRecords(sampler.getMapperRows());
+                tableSample.setFrequency(sampler.getStatsSampleFrequency());
+                once = false;
+            }
             sampler.clean();
         }
         tableSample.setColumnStats(columnStatsList);
         tableSample.setSampleRows(sampleRows);
-        tableSample.setTotalRows(Long.parseLong(counter));
         metaMgr.saveTableExt(tableSample);
     }
 

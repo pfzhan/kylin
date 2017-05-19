@@ -35,6 +35,7 @@ import org.apache.kylin.rest.service.QueryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -50,11 +51,12 @@ public class MassInController extends BasicController{
     private MassInService massInService;
 
     @Autowired
+    @Qualifier("queryService")
     private QueryService queryService;
 
     private static final Logger logger = LoggerFactory.getLogger(MassInController.class);
 
-    @RequestMapping(value = "/query", method = RequestMethod.POST)
+    @RequestMapping(value = "/query", method = RequestMethod.POST, produces = { "application/json" })
     @ResponseBody
     public String queryMassin(@RequestBody SQLRequest sqlRequest) {
         SQLResponse queryResult = queryService.doQueryWithCache(sqlRequest);

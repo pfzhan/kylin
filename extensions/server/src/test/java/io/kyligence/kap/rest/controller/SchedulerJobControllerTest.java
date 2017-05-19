@@ -35,6 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.quartz.SchedulerException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -47,9 +48,11 @@ public class SchedulerJobControllerTest extends ServiceTestBase {
     private SchedulerJobController schedulerJobController;
 
     @Autowired
+    @Qualifier("schedulerJobService")
     private SchedulerJobService schedulerJobService;
 
     @Autowired
+    @Qualifier("jobService")
     private JobService jobService;
 
     @Before

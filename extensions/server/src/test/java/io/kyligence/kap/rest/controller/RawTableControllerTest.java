@@ -35,6 +35,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.rest.service.ServiceTestBase;
 import io.kyligence.kap.rest.service.RawTableService;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 /**
  * Created by wangcheng on 9/27/16.
@@ -45,8 +46,10 @@ public class RawTableControllerTest extends ServiceTestBase {
     private RawTableDescController descController;
 
     @Autowired
+    @Qualifier("rawTableService")
     RawTableService rawService;
     @Autowired
+    @Qualifier("jobService")
     JobService jobService;
 
     @Before

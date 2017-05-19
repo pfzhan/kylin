@@ -25,7 +25,6 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.constant.Constant;
@@ -39,8 +38,9 @@ import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampleJob;
 public class TableExtService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public List<String> extractTableExt(String project, String submitter, long rowSize, String... tables) throws IOException {
-        return HiveTableExtSampleJob.createSampleJob(project, submitter, rowSize, tables);
+    public String extractTableExt(String project, String submitter, int frequency, String tableName) throws IOException {
+        HiveTableExtSampleJob hiveTableExtSampleJob = new HiveTableExtSampleJob(project, submitter, tableName, frequency);
+        return hiveTableExtSampleJob.start();
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)

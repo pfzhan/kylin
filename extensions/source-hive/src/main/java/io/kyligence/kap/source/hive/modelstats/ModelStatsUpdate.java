@@ -115,16 +115,20 @@ public class ModelStatsUpdate extends AbstractHadoopJob {
         Map<String, Long> singleCardMap = new HashMap<>();
         Map<String, Long> combinationCardMap = new HashMap<>();
         Map<String, Long> columnNullMap = new HashMap<>();
-        String counter = "0";
+        boolean once = true;
         for (Map.Entry<Integer, HiveTableExtSampler> sampler : samplers.entrySet()) {
             singleCardMap.put(columnIndexMap.get(sampler.getKey()), sampler.getValue().getCardinality());
             combinationCardMap.putAll(convertCombinationCardMap(sampler.getValue().getCombinationCardinality()));
-            counter = sampler.getValue().getCounter();
             columnNullMap.put(sampler.getValue().getColumnName(), Long.parseLong(sampler.getValue().getNullCounter()));
+
+            if (once) {
+                modelStats.setCounter(Long.parseLong(sampler.getValue().getCounter()));
+                modelStats.setFrequency(sampler.getValue().getStatsSampleFrequency());
+                once = false;
+            }
             sampler.getValue().clean();
         }
         modelStats.setColumnNullMap(columnNullMap);
-        modelStats.setCounter(Long.parseLong(counter));
         modelStats.setDoubleColumnCardinality(combinationCardMap);
         modelStats.setSingleColumnCardinality(singleCardMap);
         modelStatsManager.saveModelStats(modelStats);

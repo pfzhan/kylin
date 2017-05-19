@@ -63,13 +63,15 @@ public class CollectModelStatsJob extends CubingJob {
     private String project;
     private String modelName;
     private String submitter;
+    private int frequency;
 
-    public CollectModelStatsJob(String project, String modelName, String submitter, long dateStart, long dateEnd) {
+    public CollectModelStatsJob(String project, String modelName, String submitter, long dateStart, long dateEnd, int frequency) {
         this.project = project;
         this.modelName = modelName;
         this.submitter = submitter;
         this.dateStart = dateStart;
         this.dateEnd = dateEnd;
+        this.frequency = frequency;
     }
 
     public CollectModelStatsJob() {
@@ -107,7 +109,7 @@ public class CollectModelStatsJob extends CubingJob {
 
         // Do table stats firstly
         if (factTableExtDesc.getColumnStats().size() == 0) {
-            HiveTableExtSampleJob.addStatsSteps(factTableName, config, 0, this);
+            new HiveTableExtSampleJob(factTableName, frequency).addSteps(this);
         }
 
         //Step1: check duplicate key
@@ -123,6 +125,8 @@ public class CollectModelStatsJob extends CubingJob {
         //step6: clean up intermediate table
         addTask(deleteFlatTable(flatTableDesc.getTableName()));
 
+        modelStats.setStartTime(dateStart);
+        modelStats.setEndTime(dateEnd);
         modelStats.setJodID(getId());
         modelStatsManager.saveModelStats(modelStats);
 
@@ -147,7 +151,7 @@ public class CollectModelStatsJob extends CubingJob {
 
     private void extractModelStatsStep() {
         String outPath = getOutputPath(getId()) + modelName;
-        String param = "-model " + modelName + " -output " + outPath;
+        String param = "-model " + modelName + " -output " + outPath + " -frequency " + frequency;
         MapReduceExecutable extractStatsStep = new MapReduceExecutable();
         extractStatsStep.setName("Extract Stats from Model: " + modelName);
         extractStatsStep.setMapReduceJobClass(ModelStatsJob.class);
@@ -191,7 +195,8 @@ public class CollectModelStatsJob extends CubingJob {
         String initStatements = JoinedFlatTable.generateHiveInitStatements(conf.getConfig().getHiveDatabaseForIntermediateTable());
         final String dropTableHql = JoinedFlatTable.generateDropTableStatement(flatTableDesc);
         final String createTableHql = JoinedFlatTable.generateCreateTableStatement(flatTableDesc, JobBuilderSupport.getJobWorkingDir(conf, jobId));
-        String insertDataHqls = JoinedFlatTable.generateInsertPartialDataStatement(flatTableDesc, appendWhereStatement(flatTableDesc, dateStart, dateEnd));
+        String whereStatement = dateEnd - dateStart > 0 ? appendWhereStatement(flatTableDesc, dateStart, dateEnd) : "";
+        String insertDataHqls = JoinedFlatTable.generateInsertPartialDataStatement(flatTableDesc, whereStatement);
 
         ModelStatsFlatTableStep step = new ModelStatsFlatTableStep();
         step.setInitStatement(initStatements);

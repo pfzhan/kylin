@@ -42,6 +42,10 @@ public class ModelingMaster {
         this.context = context;
     }
 
+    public ModelingContext getContext() {
+        return this.context;
+    }
+
     public CubeDesc proposeInitialCube() {
         return context.getDomain().buildCubeDesc();
     }

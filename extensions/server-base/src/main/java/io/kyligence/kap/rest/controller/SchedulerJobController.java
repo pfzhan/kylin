@@ -53,6 +53,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 
@@ -69,9 +70,11 @@ public class SchedulerJobController extends BasicController implements Initializ
     private static final Logger logger = LoggerFactory.getLogger(SchedulerJobController.class);
 
     @Autowired
+    @Qualifier("schedulerJobService")
     private SchedulerJobService schedulerJobService;
 
     @Autowired
+    @Qualifier("jobService")
     private JobService jobService;
 
     private Scheduler scheduler;
@@ -129,7 +132,7 @@ public class SchedulerJobController extends BasicController implements Initializ
      * @return
      * @throws IOException
      */
-    @RequestMapping(value = "", method = { RequestMethod.GET })
+    @RequestMapping(value = "", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
     public List<SchedulerJobInstance> getSchedulerJobs(@RequestParam(value = "projectName", required = false) String projectName, @RequestParam(value = "cubeName", required = false) String cubeName, @RequestParam(value = "limit", required = false) Integer limit, @RequestParam(value = "offset", required = false) Integer offset) {
 
@@ -161,7 +164,7 @@ public class SchedulerJobController extends BasicController implements Initializ
      * @return
      * @throws IOException
      */
-    @RequestMapping(value = "/{schedulerName}", method = { RequestMethod.GET })
+    @RequestMapping(value = "/{schedulerName}", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
     public SchedulerJobInstance getSchedulerJob(@PathVariable String schedulerName) {
         SchedulerJobInstance job = null;
@@ -178,7 +181,7 @@ public class SchedulerJobController extends BasicController implements Initializ
     }
 
     /** Schedule a cube build */
-    @RequestMapping(value = "/{name}/{project}/{cubeName}/schedule", method = { RequestMethod.PUT })
+    @RequestMapping(value = "/{name}/{project}/{cubeName}/schedule", method = { RequestMethod.PUT }, produces = { "application/json" })
     @ResponseBody
     public SchedulerJobInstance scheduleJob(@PathVariable String name, @PathVariable String project, @PathVariable String cubeName, @RequestBody ScheduleJobRequest req) throws SchedulerException, ParseException {
 
@@ -229,7 +232,7 @@ public class SchedulerJobController extends BasicController implements Initializ
      * @return
      * @throws IOException
      */
-    @RequestMapping(value = "/{name}/delete", method = { RequestMethod.PUT })
+    @RequestMapping(value = "/{name}/delete", method = { RequestMethod.PUT }, produces = { "application/json" })
     @ResponseBody
     public SchedulerJobInstance delete(@PathVariable String name) {
         SchedulerJobInstance jobInstance;

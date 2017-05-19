@@ -56,13 +56,13 @@ public class KapSystemController extends BasicController {
     @Autowired
     private LicenseInfoService licenseInfoService;
 
-    @RequestMapping(value = "/license", method = { RequestMethod.GET })
+    @RequestMapping(value = "/license", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
     public Map<String, String> listLicense() {
         return licenseInfoService.extractLicenseInfo();
     }
 
-    @RequestMapping(value = "/requestLicense", method = { RequestMethod.GET })
+    @RequestMapping(value = "/requestLicense", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
     public void requestLicense(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
         String info = licenseInfoService.requestLicenseInfo();

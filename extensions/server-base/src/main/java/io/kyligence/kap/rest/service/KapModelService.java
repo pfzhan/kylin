@@ -30,24 +30,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Component;
 
+import io.kyligence.kap.rest.request.ModelStatusRequest;
 import io.kyligence.kap.source.hive.modelstats.ModelStats;
 import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
 
 @Component("kapModelService")
 public class KapModelService extends BasicService {
 
-    public Map<HEALTH_STATUS, List<String>> getDiagnoseResult(String modelName) throws IOException {
-
-        DiagnoseExtractor diagnoseExtractor = new DiagnoseExtractor(modelName);
-        diagnoseExtractor.extract();
-        return diagnoseExtractor.getFinalResult();
+    public ModelStatusRequest getDiagnoseResult(String modelName) throws IOException {
+        ModelStatusRequest modelStatus = extractStatus(modelName);
+        return modelStatus;
     }
 
     public Map<String, MODEL_COLUMN_SUGGESTION> inferSuggestions(String tableName) {
@@ -121,98 +119,55 @@ public class KapModelService extends BasicService {
         DIMENSION_ULTRA_HIGH//cardinality>=100,000
     }
 
-    public enum HEALTH_STATUS {
-        GOOD, WARN, BAD, TERRIBLE
+    private ModelStatusRequest extractStatus(String modelName) throws IOException {
+        ModelStats modelStats = ModelStatsManager.getInstance(getConfig()).getModelStats(modelName);
+        ModelStatusRequest request = new ModelStatusRequest();
+        request.setModelName(modelName);
+        List<String> messages = new ArrayList<>();
+        int sign = 0;
+        if (modelStats.getCounter() == -1) {
+            request.setHeathStatus(judgeHealthStatus(-1));
+            return request;
+        }
+        if (!modelStats.isDupliationHealthy()) {
+            sign++;
+            messages.add(modelStats.getDuplicationResult());
+        }
+        if (!modelStats.isJointHealthy()) {
+            sign++;
+            messages.add(modelStats.getJointResult());
+        }
+        if (!modelStats.isSkewHealthy()) {
+            sign++;
+            messages.add(modelStats.getSkewResult());
+        }
+        request.setHeathStatus(judgeHealthStatus(sign));
+        return request;
     }
 
-    public class DiagnoseExtractor {
-        private final static String DATA_SKEW = "data_skew";
-        private final static String JOIN_RET = "flat_table_join_result";
-        private final static String DUP_PK = "lookup table's duplicate PKs";
-
-        private HEALTH_STATUS heathStatus = HEALTH_STATUS.GOOD;
-
-        private ModelStats modelStats;
-        private List<ItemInfo> itemStatsList = new ArrayList<>();
-
-        public DiagnoseExtractor(String modelName) throws IOException {
-            modelStats = ModelStatsManager.getInstance(getConfig()).getModelStats(modelName);
+    private ModelStatusRequest.HealthStatus judgeHealthStatus(int sign) {
+        ModelStatusRequest.HealthStatus healthStatus;
+        switch (sign) {
+        case 0:
+            healthStatus = ModelStatusRequest.HealthStatus.GOOD;
+            break;
+        case 1:
+            healthStatus = ModelStatusRequest.HealthStatus.WARN;
+            break;
+        case 2:
+            healthStatus = ModelStatusRequest.HealthStatus.BAD;
+            break;
+        case 3:
+            healthStatus = ModelStatusRequest.HealthStatus.TERRIBLE;
+            break;
+        default:
+            healthStatus = ModelStatusRequest.HealthStatus.NONE;
+            break;
         }
-
-        public Map<HEALTH_STATUS, List<String>> getFinalResult() {
-            Map<HEALTH_STATUS, List<String>> ret = new HashMap<>();
-            List<String> l = new ArrayList<>();
-            for (ItemInfo e : itemStatsList) {
-                l.add(e.toString());
-            }
-            ret.put(heathStatus, l);
-            return ret;
-        }
-
-        public void extract() {
-            extract(DUP_PK, modelStats.getDuplicationResult());
-            extract(DATA_SKEW, modelStats.getSkewResult());
-            extract(JOIN_RET, modelStats.getJointResult());
-        }
-
-        public void extract(String type, String ret) {
-            ItemInfo item = new ItemInfo();
-            item.setType(type);
-
-            int sign = 0;
-            if (!StringUtils.isEmpty(ret)) {
-                item.setDetail(ret);
-                itemStatsList.add(item);
-                sign++;
-            }
-            judgeHealthStatus(sign);
-        }
-
-        public void judgeHealthStatus(int sign) {
-            switch (sign) {
-            case 0:
-                heathStatus = HEALTH_STATUS.GOOD;
-                break;
-            case 1:
-                heathStatus = HEALTH_STATUS.WARN;
-                break;
-            case 2:
-                heathStatus = HEALTH_STATUS.BAD;
-                break;
-            case 3:
-                heathStatus = HEALTH_STATUS.TERRIBLE;
-                break;
-            default:
-                break;
-            }
-        }
+        return healthStatus;
     }
 
-    public class ItemInfo {
-        private String type;
-        private String detail;
-
-        public ItemInfo() {
-        }
-
-        public void setType(String type) {
-            this.type = type;
-        }
-
-        public String getType() {
-            return this.getType();
-        }
-
-        public void setDetail(String detail) {
-            this.detail = detail;
-        }
-
-        public String toString() {
-            StringBuilder s = new StringBuilder();
-            s.append(type);
-            s.append(":");
-            s.append(detail);
-            return s.toString();
-        }
+    public ModelStatsManager getModelStatsManager() {
+        return ModelStatsManager.getInstance(getConfig());
     }
 }

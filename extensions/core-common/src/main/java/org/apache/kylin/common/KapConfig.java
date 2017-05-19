@@ -218,9 +218,8 @@ public class KapConfig {
     /**
      * Sample Table
      */
-
-    public int getStatsSampleFrequency() {
-        return Integer.parseInt(config.getOptional("kap.source.hive.tablestats.sample-frequency", "1"));
+    public long getViewMaterializeRowLimit() {
+        return Long.parseLong(config.getOptional("kap.source.hive.tablestats.view-materialize-row-limit", "-1"));
     }
 
     /**

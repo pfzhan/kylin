@@ -48,6 +48,7 @@ import org.apache.kylin.rest.service.QueryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -80,6 +81,7 @@ public class SequenceSQLController extends BasicController {
     private static final Logger logger = LoggerFactory.getLogger(SequenceSQLController.class);
 
     @Autowired
+    @Qualifier("queryService")
     private QueryService queryService;
 
     private static ExecutorService executorService = new LoggableCachedThreadPool();
@@ -100,7 +102,7 @@ public class SequenceSQLController extends BasicController {
         return restClient;
     }
 
-    @RequestMapping(value = "/sequence_sql/execution", method = RequestMethod.POST)
+    @RequestMapping(value = "/sequence_sql/execution", method = RequestMethod.POST, produces = { "application/json" })
     @ResponseBody
     public SequenceSQLResponse doSequenceSql(@RequestBody final SequenceSQLRequest sqlRequest, @RequestHeader("Authorization") String basicAuthen) {
         try {
@@ -216,7 +218,7 @@ public class SequenceSQLController extends BasicController {
 
     }
 
-    @RequestMapping(value = "/shardable_query_worker/execution", method = RequestMethod.POST)
+    @RequestMapping(value = "/shardable_query_worker/execution", method = RequestMethod.POST, produces = { "application/json" })
     @ResponseBody
     public SequenceSQLResponse doShardableQuery(@RequestBody ShardedSequenceSQLRequest shardedSequenceSQLRequest) {
         try {
@@ -303,7 +305,7 @@ public class SequenceSQLController extends BasicController {
         }
     }
 
-    @RequestMapping(value = "/sequence_sql/result/{sequenceID}", method = { RequestMethod.GET })
+    @RequestMapping(value = "/sequence_sql/result/{sequenceID}", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
     public SequenceSQLResponse getSequenceSQLResult(@PathVariable("sequenceID") final long sequenceID, @RequestHeader("Authorization") String basicAuthen) {
         try {
@@ -361,7 +363,7 @@ public class SequenceSQLController extends BasicController {
         }
     }
 
-    @RequestMapping(value = "/shardable_query_worker/result/{sequenceID}/{workerID}", method = { RequestMethod.GET })
+    @RequestMapping(value = "/shardable_query_worker/result/{sequenceID}/{workerID}", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
     public SequenceSQLResponse getShardableQueryResult(@PathVariable("sequenceID") long sequenceID, @PathVariable("workerID") int workerID) {
         try {
@@ -388,7 +390,7 @@ public class SequenceSQLController extends BasicController {
         }
     }
 
-    @RequestMapping(value = "/sequence_sql/topology/{sequenceID}", method = { RequestMethod.GET })
+    @RequestMapping(value = "/sequence_sql/topology/{sequenceID}", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
     public List<String> getTopology(@PathVariable("sequenceID") final long sequenceID, @RequestHeader("Authorization") String basicAuthen) {
 
@@ -422,7 +424,7 @@ public class SequenceSQLController extends BasicController {
 
     }
 
-    @RequestMapping(value = "/shardable_query_worker/topology/{sequenceID}/{workerID}", method = { RequestMethod.GET })
+    @RequestMapping(value = "/shardable_query_worker/topology/{sequenceID}/{workerID}", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
     public String getShardTopology(@PathVariable("sequenceID") final long sequenceID, @PathVariable("workerID") int workerID) {
         SequenceTopology topology = topologyManager.getTopology(sequenceID, workerID);

@@ -24,10 +24,9 @@
 
 package io.kyligence.kap.rest.controller;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
+import io.kyligence.kap.rest.response.ColumnarResponse;
+import io.kyligence.kap.rest.service.KapCubeService;
+import io.kyligence.kap.storage.parquet.steps.ColumnarStorageUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
@@ -37,15 +36,16 @@ import org.apache.kylin.rest.service.CubeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import io.kyligence.kap.rest.response.ColumnarResponse;
-import io.kyligence.kap.rest.service.KapCubeService;
-import io.kyligence.kap.storage.parquet.steps.ColumnarStorageUtils;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 @Controller
 @RequestMapping(value = "/cubes")
@@ -53,9 +53,11 @@ public class KapCubeController extends BasicController {
     private static final Logger logger = LoggerFactory.getLogger(KapCubeController.class);
 
     @Autowired
+    @Qualifier("cubeMgmtService")
     private CubeService cubeService;
 
     @Autowired
+    @Qualifier("kapCubeService")
     private KapCubeService kapCubeService;
 
     /**
@@ -64,7 +66,7 @@ public class KapCubeController extends BasicController {
      * @return true
      * @throws IOException
      */
-    @RequestMapping(value = "/{cubeName}/columnar", method = { RequestMethod.GET })
+    @RequestMapping(value = "/{cubeName}/columnar", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
     public List<ColumnarResponse> getColumnarInfo(@PathVariable String cubeName) {
         List<ColumnarResponse> columnar = new ArrayList<>();
@@ -92,4 +94,5 @@ public class KapCubeController extends BasicController {
 
         return columnar;
     }
+
 }

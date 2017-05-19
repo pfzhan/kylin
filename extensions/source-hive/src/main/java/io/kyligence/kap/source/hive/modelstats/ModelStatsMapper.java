@@ -35,7 +35,6 @@ import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.mr.IMRInput;
 import org.apache.kylin.engine.mr.KylinMapper;
@@ -46,11 +45,15 @@ import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.source.hive.HiveMRInput;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
 import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampler;
 
 public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, BytesWritable> {
+
+    private static final Logger logger = LoggerFactory.getLogger(ModelStatsMapper.class);
 
     private Map<Integer, HiveTableExtSampler> samplerMap = new HashMap<>();
 
@@ -71,15 +74,14 @@ public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, Byt
         flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc);
         String fullTableName = config.getHiveDatabaseForIntermediateTable() + "." + flatTableDesc.getTableName();
         tableInputFormat = new HiveMRInput.HiveTableInputFormat(fullTableName);
-        KapConfig kapConfig = KapConfig.getInstanceFromEnv();
-        int sampleFrequency = kapConfig.getStatsSampleFrequency();
+        int frequency = Integer.parseInt(conf.get("stats.sample.frequency"));
 
         List<TblColRef> columns = flatTableDesc.getAllColumns();
         for (int i = 0; i < columns.size(); i++) {
             HiveTableExtSampler sampler = new HiveTableExtSampler(i, columns.size());
             sampler.setDataType(columns.get(i).getType().getName());
             sampler.setColumnName(columns.get(i).getIdentity());
-            sampler.setStatsSampleFrequency(sampleFrequency);
+            sampler.setStatsSampleFrequency(frequency);
             samplerMap.put(i, sampler);
         }
     }
@@ -105,5 +107,6 @@ public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, Byt
             ByteBuffer buf = sampler.code();
             context.write(new IntWritable(key), new BytesWritable(buf.array(), buf.position()));
         }
+        logger.info("Total row size: " + counter);
     }
 }

@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.controller;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -40,12 +41,13 @@ import io.kyligence.kap.rest.service.MetaStoreService;
 public class MetaStoreController extends BasicController {
 
     @Autowired
+    @Qualifier("metaStoreService")
     private MetaStoreService metaStoreService;
 
     /**
      * Backup the metastore to the current webserver node, for one project or one cube, or global
      */
-    @RequestMapping(value = "backup", method = RequestMethod.POST)
+    @RequestMapping(value = "backup", method = RequestMethod.POST, produces = { "application/json" })
     @ResponseBody
     public String backup(@RequestParam(value = "project", required = false) String project, @RequestParam(value = "cube", required = false) String cube) {
         String resultPath = null;

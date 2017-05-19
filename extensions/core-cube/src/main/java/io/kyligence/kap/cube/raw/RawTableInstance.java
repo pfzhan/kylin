@@ -124,6 +124,13 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
         initMeasures();
     }
 
+    // init config only for draft
+    public void initConfig(KylinConfig config) {
+        if (null == config)
+            throw new IllegalArgumentException("config is null in RawTableInstance Init!");
+        this.config = config;
+    }
+
     public RawTableDesc getRawTableDesc() {
         return RawTableDescManager.getInstance(config).getRawTableDesc(descName);
     }

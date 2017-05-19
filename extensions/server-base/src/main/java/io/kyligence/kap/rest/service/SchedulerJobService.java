@@ -38,6 +38,7 @@ import org.apache.kylin.rest.service.BasicService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 
@@ -49,6 +50,7 @@ public class SchedulerJobService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(SchedulerJobService.class);
 
     @Autowired
+    @Qualifier("accessService")
     private AccessService accessService;
 
     public SchedulerJobManager getSchedulerJobManager() {

@@ -40,6 +40,7 @@ import org.apache.kylin.rest.service.JobService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -63,12 +64,14 @@ public class RawTableController extends BasicController {
     private static final Logger logger = LoggerFactory.getLogger(RawTableController.class);
 
     @Autowired
+    @Qualifier("rawTableService")
     private RawTableService rawTableService;
 
     @Autowired
+    @Qualifier("jobService")
     private JobService jobService;
 
-    @RequestMapping(value = "", method = { RequestMethod.POST })
+    @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/json" })
     @ResponseBody
     public RawTableRequest saveRawTableDesc(@RequestBody RawTableRequest rawRequest) {
 
@@ -115,7 +118,7 @@ public class RawTableController extends BasicController {
         return desc;
     }
 
-    @RequestMapping(value = "", method = { RequestMethod.PUT })
+    @RequestMapping(value = "", method = { RequestMethod.PUT }, produces = { "application/json" })
     @ResponseBody
     public RawTableRequest updateRawTableDesc(@RequestBody RawTableRequest rawRequest) throws JsonProcessingException {
 
@@ -156,7 +159,7 @@ public class RawTableController extends BasicController {
         return rawRequest;
     }
 
-    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.GET })
+    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
     public RawTableDesc getRawTableDesc(@PathVariable String cubeName) {
         RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
@@ -167,7 +170,7 @@ public class RawTableController extends BasicController {
         return raw.getRawTableDesc();
     }
 
-    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.DELETE })
+    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.DELETE }, produces = { "application/json" })
     @ResponseBody
     public void deleteRaw(@PathVariable String cubeName) {
         RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
@@ -183,7 +186,7 @@ public class RawTableController extends BasicController {
         }
     }
 
-    @RequestMapping(value = "/{cubeName}/enable", method = { RequestMethod.PUT })
+    @RequestMapping(value = "/{cubeName}/enable", method = { RequestMethod.PUT }, produces = { "application/json" })
     @ResponseBody
     public RawTableInstance enableRaw(@PathVariable String cubeName) {
         try {
@@ -201,7 +204,7 @@ public class RawTableController extends BasicController {
         }
     }
 
-    @RequestMapping(value = "/{cubeName}/disable", method = { RequestMethod.PUT })
+    @RequestMapping(value = "/{cubeName}/disable", method = { RequestMethod.PUT }, produces = { "application/json" })
     @ResponseBody
     public RawTableInstance disableRaw(@PathVariable String cubeName) {
         try {
@@ -218,7 +221,7 @@ public class RawTableController extends BasicController {
         }
     }
 
-    @RequestMapping(value = "/{cubeName}/clone", method = { RequestMethod.PUT })
+    @RequestMapping(value = "/{cubeName}/clone", method = { RequestMethod.PUT }, produces = { "application/json" })
     @ResponseBody
     public RawTableInstance rawCube(@PathVariable String cubeName, @RequestBody CubeRequest cubeRequest) {
         String newRawName = cubeRequest.getCubeName();

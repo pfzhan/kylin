@@ -45,6 +45,8 @@ import org.apache.kylin.metadata.realization.IRealization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.kyligence.kap.cube.raw.RawTableDesc.STATUS_DRAFT;
+
 /**
  * Manager class for RawTableDesc
  */
@@ -167,7 +169,10 @@ public class RawTableDescManager {
             throw new IllegalStateException("RawTableDesc name must not be blank");
         }
 
-        desc.init(config);
+        if (desc.getStatus() == null)
+            desc.init(config);
+        else if (desc.getStatus().equals(STATUS_DRAFT))
+            desc.initConfig(config);
 
         return desc;
     }
@@ -181,7 +186,10 @@ public class RawTableDescManager {
         if (rawTableDescMap.containsKey(rawTableDesc.getName()))
             throw new IllegalArgumentException("RawTableDesc '" + rawTableDesc.getName() + "' already exists");
 
-        rawTableDesc.init(config);
+        if (rawTableDesc.getStatus() == null)
+            rawTableDesc.init(config);
+        else if (rawTableDesc.getStatus().equals(STATUS_DRAFT))
+            rawTableDesc.initConfig(config);
 
         String path = rawTableDesc.getResourcePath();
         getStore().putResource(path, rawTableDesc, DESC_SERIALIZER);
@@ -243,7 +251,10 @@ public class RawTableDescManager {
             throw new IllegalArgumentException("RawTableDesc '" + name + "' does not exist.");
         }
 
-        desc.init(config);
+        if (desc.getStatus() == null)
+            desc.init(config);
+        else if (desc.getStatus().equals(STATUS_DRAFT))
+            desc.initConfig(config);
 
         // Save Source
         String path = desc.getResourcePath();

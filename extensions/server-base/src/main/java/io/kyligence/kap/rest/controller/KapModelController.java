@@ -25,17 +25,16 @@
 package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.job.JobInstance;
 import org.apache.kylin.job.exception.JobException;
 import org.apache.kylin.rest.controller.BasicController;
-import org.apache.kylin.rest.request.JobBuildRequest;
 import org.apache.kylin.rest.service.JobService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,6 +44,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import io.kyligence.kap.rest.request.KapJobRequest;
+import io.kyligence.kap.rest.request.ModelStatusRequest;
 import io.kyligence.kap.rest.service.KapModelService;
 import io.kyligence.kap.source.hive.modelstats.CollectModelStatsJob;
 
@@ -58,6 +59,7 @@ public class KapModelController extends BasicController {
     private KapModelService kapModelService;
 
     @Autowired
+    @Qualifier("jobService")
     private JobService jobService;
 
     /**
@@ -65,25 +67,25 @@ public class KapModelController extends BasicController {
      *
      * @return suggestion map
      */
-    @RequestMapping(value = "table_suggestions", method = { RequestMethod.GET })
+    @RequestMapping(value = "table_suggestions", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
     public Map<String, KapModelService.MODEL_COLUMN_SUGGESTION> getModelSuggestions(@RequestParam(value = "table") String table) throws IOException {
         Map<String, KapModelService.MODEL_COLUMN_SUGGESTION> result = kapModelService.inferSuggestions(table);
         return result;
     }
 
-    @RequestMapping(value = "{project}/{modelName}/stats", method = { RequestMethod.POST })
+    @RequestMapping(value = "{project}/{modelName}/stats", method = { RequestMethod.POST }, produces = { "application/json" })
     @ResponseBody
-    public JobInstance getModelStats(@PathVariable("project") String project, @PathVariable("modelName") String modelName, @RequestBody JobBuildRequest req) throws IOException, JobException {
+    public JobInstance getModelStats(@PathVariable("project") String project, @PathVariable("modelName") String modelName, @RequestBody KapJobRequest req) throws IOException, JobException {
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
-        CollectModelStatsJob job = new CollectModelStatsJob(project, modelName, submitter, req.getStartTime(), req.getEndTime());
+        CollectModelStatsJob job = new CollectModelStatsJob(project, modelName, submitter, req.getStartTime(), req.getEndTime(), req.getFrequency());
         String jobId = job.initCollectJob();
         return jobService.getJobInstance(jobId);
     }
 
-    @RequestMapping(value = "{project}/{modelName}/diagnose", method = { RequestMethod.GET })
+    @RequestMapping(value = "{project}/{modelName}/diagnose", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
-    public Map<KapModelService.HEALTH_STATUS, List<String>> getModelDiagnosis(@PathVariable("project") String project, @PathVariable("modelName") String modelName) throws IOException {
+    public ModelStatusRequest getModelDiagnosis(@PathVariable("project") String project, @PathVariable("modelName") String modelName) throws IOException {
         return kapModelService.getDiagnoseResult(modelName);
     }
 }

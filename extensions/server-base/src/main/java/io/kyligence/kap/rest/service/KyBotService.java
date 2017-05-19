@@ -66,7 +66,7 @@ public class KyBotService extends BasicService {
         return getKyBotPackagePath(exportPath);
     }
 
-    private void runKyBotCLI(String[] args) throws IOException {
+    protected void runKyBotCLI(String[] args) throws IOException {
         File cwd = new File("");
         logger.debug("Current path: " + cwd.getAbsolutePath());
 
@@ -86,7 +86,7 @@ public class KyBotService extends BasicService {
         }
     }
 
-    private String getKyBotPackagePath(File destDir) {
+    protected String getKyBotPackagePath(File destDir) {
         File[] files = destDir.listFiles();
         if (files == null) {
             throw new RuntimeException("KyBot package is not available in directory: " + destDir.getAbsolutePath());

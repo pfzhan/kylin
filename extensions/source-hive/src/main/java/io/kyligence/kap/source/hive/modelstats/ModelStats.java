@@ -49,8 +49,14 @@ public class ModelStats extends RootPersistentEntity {
     private String modelName;
     @JsonProperty("last_build_job_id")
     private String jodID;
+    @JsonProperty("start_time")
+    private long startTime;
+    @JsonProperty("end_time")
+    private long endTime;
     @JsonProperty("counter")
-    private long counter;
+    private long counter = -1;
+    @JsonProperty("frequency")
+    private int frequency = -1;
     @JsonProperty("single_column_cardinality")
     private Map<String, Long> singleColumnCardinality = new HashMap<>();
     @JsonProperty("double_columns_cardinality")
@@ -95,6 +101,14 @@ public class ModelStats extends RootPersistentEntity {
         this.columnNullMap = columnNullMap;
     }
 
+    public void setFrequency(int frequency) {
+        this.frequency = frequency;
+    }
+
+    public int getFrequency() {
+        return this.frequency;
+    }
+
     public Map<String, Long> getColumnNullMap() {
         return this.columnNullMap;
     }
@@ -121,6 +135,22 @@ public class ModelStats extends RootPersistentEntity {
 
     public String getJodID() {
         return this.jodID;
+    }
+
+    public void setStartTime(long startTime) {
+        this.startTime = startTime;
+    }
+
+    public long getStartTime() {
+        return this.startTime;
+    }
+
+    public void setEndTime(long endTime) {
+        this.endTime = endTime;
+    }
+
+    public long getEndTime() {
+        return this.endTime;
     }
 
     public void setSingleColumnCardinality(Map<String, Long> sCardinality) {
@@ -164,41 +194,62 @@ public class ModelStats extends RootPersistentEntity {
         return -1;
     }
 
-    public String getDuplicationResult() {
-        StringBuilder ret = new StringBuilder();
+    public boolean isDupliationHealthy() {
         for (DuplicatePK dp : duplicatePrimaryKeys) {
             if (dp.getDuplication().size() > 0) {
-                ret.append(dp.getLookUpTable());
-                ret.append(",");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public String getDuplicationResult() {
+        StringBuilder ret = new StringBuilder();
+        ret.append("Check PK Duplication Result: ");
+        for (DuplicatePK dp : duplicatePrimaryKeys) {
+            if (dp.getDuplication().size() > 0) {
+                ret.append("Primary Key: ");
                 ret.append(dp.getPrimaryKeys());
-                ret.append(",");
+                ret.append(" ");
                 ret.append(dp.toString());
-                ret.append(",");
-                ret.append(dp.getDuplication());
-                ret.append("\r\n");
             }
         }
         return ret.toString();
+    }
+
+    public boolean isJointHealthy() {
+        if (joinResult.size() > 0)
+            return false;
+        else
+            return true;
     }
 
     public String getJointResult() {
         StringBuilder ret = new StringBuilder();
+        ret.append("Check Joint Result: ");
         for (JoinResult e : joinResult) {
             ret.append(e.toString());
-            ret.append("\r\n");
         }
         return ret.toString();
     }
 
+    public boolean isSkewHealthy() {
+        if (dataSkew.size() > 0)
+            return false;
+        else
+            return true;
+    }
+
     public String getSkewResult() {
         StringBuilder ret = new StringBuilder();
+        ret.append("Check Data Skew Result: ");
         for (Map.Entry<String, List<SkewResult>> e : dataSkew.entrySet()) {
+            ret.append("Skew FK:");
             ret.append(e.getKey());
-            ret.append(": ");
+            ret.append(" ");
             for (SkewResult s : e.getValue()) {
                 ret.append(s.toString());
             }
-            ret.append("\r\n");
         }
         return ret.toString();
     }
@@ -259,13 +310,12 @@ public class ModelStats extends RootPersistentEntity {
 
         public String toString() {
             StringBuilder s = new StringBuilder();
-            s.append(joinTableName);
-            s.append(", ");
+            s.append("Primary key: ");
             s.append(primaryKey);
-            s.append(", ");
+            s.append(" (valid_row_count=");
             s.append(joinResultValidCount);
-            s.append(", ");
-            s.append(joinResultValidRatio);
+            s.append(", valid_row_ratio=");
+            s.append(joinResultValidRatio).append(")");
             return s.toString();
         }
     }
@@ -300,9 +350,10 @@ public class ModelStats extends RootPersistentEntity {
 
         public String toString() {
             StringBuilder s = new StringBuilder();
+            s.append(" (skew_value=");
             s.append(dataSkewValue);
-            s.append(", ");
-            s.append(dataSkewCount);
+            s.append(", skew_count=");
+            s.append(dataSkewCount).append(")");
             return s.toString();
         }
     }
@@ -349,10 +400,12 @@ public class ModelStats extends RootPersistentEntity {
         public String toString() {
             StringBuilder s = new StringBuilder();
             for (Map.Entry<String, Integer> e : this.duplication.entrySet()) {
+                s.append("pair(dup_value=");
                 s.append(e.getKey());
-                s.append(" : ");
+                s.append(",");
+                s.append("dup_count=");
                 s.append(e.getValue());
-                s.append(" ");
+                s.append(") ");
             }
             return s.toString();
         }

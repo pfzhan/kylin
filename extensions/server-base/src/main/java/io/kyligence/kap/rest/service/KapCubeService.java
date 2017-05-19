@@ -45,7 +45,7 @@ import io.kyligence.kap.rest.response.ColumnarResponse;
 @Component("kapCubeService")
 public class KapCubeService extends BasicService {
 
-    private WeakHashMap<String, ColumnarResponse> columnarInfoCache = new WeakHashMap<>();
+    protected WeakHashMap<String, ColumnarResponse> columnarInfoCache = new WeakHashMap<>();
 
     public ColumnarResponse getColumnarInfo(String segStoragePath, CubeSegment segment) throws IOException {
         String id = segment.getUuid();
@@ -94,7 +94,7 @@ public class KapCubeService extends BasicService {
         return columnarResp;
     }
 
-    private String getRawParquetFolderPath(RawTableSegment rawSegment) {
+    protected String getRawParquetFolderPath(RawTableSegment rawSegment) {
         return new StringBuffer(KapConfig.wrap(rawSegment.getConfig()).getParquetStoragePath()).append(rawSegment.getRawTableInstance().getUuid()).append("/").append(rawSegment.getUuid()).append("/").append("RawTable/").toString();
     }
 }

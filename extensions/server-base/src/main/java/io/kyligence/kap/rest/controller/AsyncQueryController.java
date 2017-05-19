@@ -41,6 +41,7 @@ import org.apache.kylin.rest.service.QueryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -61,14 +62,16 @@ public class AsyncQueryController extends BasicController {
     private static final Logger logger = LoggerFactory.getLogger(AsyncQueryController.class);
 
     @Autowired
+    @Qualifier("queryService")
     private QueryService queryService;
 
     @Autowired
+    @Qualifier("asyncQueryService")
     private AsyncQueryService asyncQueryService;
 
     ExecutorService executorService = Executors.newCachedThreadPool();
 
-    @RequestMapping(value = "/async_query", method = RequestMethod.POST)
+    @RequestMapping(value = "/async_query", method = RequestMethod.POST, produces = { "application/json" })
     @ResponseBody
     public EnvelopeResponse query(@RequestBody final SQLRequest sqlRequest) throws InterruptedException {
         final AtomicReference<String> queryIdRef = new AtomicReference<>();
@@ -104,7 +107,7 @@ public class AsyncQueryController extends BasicController {
                 "");
     }
 
-    @RequestMapping(value = "/async_query", method = RequestMethod.DELETE)
+    @RequestMapping(value = "/async_query", method = RequestMethod.DELETE, produces = { "application/json" })
     @ResponseBody
     public EnvelopeResponse clean() throws IOException {
         boolean b = asyncQueryService.cleanFolder();
@@ -113,7 +116,7 @@ public class AsyncQueryController extends BasicController {
                 "");
     }
 
-    @RequestMapping(value = "/async_query/{query_id}/status", method = RequestMethod.GET)
+    @RequestMapping(value = "/async_query/{query_id}/status", method = RequestMethod.GET, produces = { "application/json" })
     @ResponseBody
     public EnvelopeResponse inqueryStatus(@PathVariable String query_id) throws IOException {
         if (asyncQueryService.isQueryFailed(query_id)) {
@@ -135,7 +138,7 @@ public class AsyncQueryController extends BasicController {
         }
     }
 
-    @RequestMapping(value = "/async_query/{query_id}/result", method = RequestMethod.GET)
+    @RequestMapping(value = "/async_query/{query_id}/result", method = RequestMethod.GET, produces = { "application/json" })
     @ResponseBody
     public void downloadQueryResult(@PathVariable String query_id, HttpServletResponse response) throws IOException {
         response.setContentType("text/csv;charset=utf-8");

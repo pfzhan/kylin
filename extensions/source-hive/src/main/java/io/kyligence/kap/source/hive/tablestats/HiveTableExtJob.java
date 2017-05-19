@@ -53,7 +53,7 @@ public class HiveTableExtJob extends AbstractHadoopJob {
 
     @SuppressWarnings("static-access")
     protected static final Option OPTION_TABLE = OptionBuilder.withArgName("table name").hasArg().isRequired(true).withDescription("The hive table name").create("table");
-    protected static final Option OPTION_FULL_TABLE = OptionBuilder.withArgName("full table data").hasArg().isRequired(true).withDescription("Does it scan full table").create("fullTable");
+    protected static final Option OPTION_FREQUENCY = OptionBuilder.withArgName("sample frequency").hasArg().isRequired(true).withDescription("The sample frequency").create("frequency");
 
     public HiveTableExtJob() {
     }
@@ -64,8 +64,8 @@ public class HiveTableExtJob extends AbstractHadoopJob {
         Options options = new Options();
 
         options.addOption(OPTION_TABLE);
-        options.addOption(OPTION_FULL_TABLE);
         options.addOption(OPTION_OUTPUT_PATH);
+        options.addOption(OPTION_FREQUENCY);
 
         parseOptions(options, args);
 
@@ -79,7 +79,6 @@ public class HiveTableExtJob extends AbstractHadoopJob {
         conf.addResource(new Path(jobEngineConfig.getHadoopJobConfFilePath(null)));
 
         String table = getOptionValue(OPTION_TABLE);
-        boolean fullTable = Boolean.parseBoolean(getOptionValue(OPTION_FULL_TABLE));
         TableDesc tableDesc = MetadataManager.getInstance(kylinConfig).getTableDesc(table);
         TableExtDesc tableExtDesc = MetadataManager.getInstance(kylinConfig).getTableExt(table);
         String skipHeaderLineCount = tableExtDesc.getDataSourceProp().get("skip_header_line_count");
@@ -96,9 +95,9 @@ public class HiveTableExtJob extends AbstractHadoopJob {
         Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
         FileOutputFormat.setOutputPath(job, output);
         job.getConfiguration().set("mapreduce.output.fileoutputformat.compress", "false");
-
+        job.getConfiguration().set("stats.sample.frequency", getOptionValue(OPTION_FREQUENCY));
         // Mapper
-        IMRInput.IMRTableInputFormat tableInputFormat = MRUtil.getTableInputFormat(table, fullTable);
+        IMRInput.IMRTableInputFormat tableInputFormat = MRUtil.getTableInputFormat(table);
         tableInputFormat.configureJob(job);
 
         job.setMapperClass(HiveTableExtMapper.class);

@@ -46,6 +46,7 @@ import org.apache.kylin.rest.service.JobService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -58,14 +59,16 @@ import io.kyligence.kap.cube.raw.RawTableUpdate;
 
 @Component("rawTableService")
 public class RawTableService extends BasicService {
-    private static final String DESC_SUFFIX = "_desc";
+    protected static final String DESC_SUFFIX = "_desc";
 
     private static final Logger logger = LoggerFactory.getLogger(RawTableService.class);
 
     @Autowired
+    @Qualifier("accessService")
     private AccessService accessService;
 
     @Autowired
+    @Qualifier("jobService")
     private JobService jobService;
     
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#raw, 'ADMINISTRATION') or hasPermission(#raw, 'MANAGEMENT')")
@@ -138,7 +141,7 @@ public class RawTableService extends BasicService {
         return RawTableDescManager.getInstance(getConfig());
     }
 
-    private boolean isRawTableInProject(String projectName, RawTableInstance target) {
+    protected boolean isRawTableInProject(String projectName, RawTableInstance target) {
         ProjectManager projectManager = getProjectManager();
         ProjectInstance project = projectManager.getProject(projectName);
         if (project == null) {

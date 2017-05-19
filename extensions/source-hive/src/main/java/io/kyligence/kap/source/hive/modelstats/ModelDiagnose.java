@@ -33,9 +33,7 @@ import java.util.Map;
 
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.Array;
 import org.apache.kylin.dict.lookup.SnapshotManager;
 import org.apache.kylin.dict.lookup.SnapshotTable;
 import org.apache.kylin.metadata.MetadataManager;
@@ -56,6 +54,8 @@ public class ModelDiagnose {
     private static final long FACT_SKEW_THRESHOLD = 5000000L;
     private static final float FLAT_TABLE_RECORDS_RATION = 0.01F;
     private static final float LEFT_JOIN_NULL_TOLERANCE = 0.1F;
+    private static final float DUPLICATION_TOLERANCE = 0.1F;
+    private static final int DUPLICATION_THRESHOLD = 10;
 
     /**
      *
@@ -82,11 +82,6 @@ public class ModelDiagnose {
         }
         modelStats.setDuplicatePrimaryKeys(dupPKList);
         ModelStatsManager.getInstance(config).saveModelStats(modelStats);
-
-        String ret = modelStats.getDuplicationResult();
-        if (!StringUtils.isEmpty(ret)) {
-            throw new IllegalStateException("Duplicate key found: " + ret);
-        }
     }
 
     private static ModelStats.DuplicatePK checkLookup(TableDesc tableDesc, List<TblColRef> keyColumns, SnapshotTable table) throws IOException {
@@ -94,13 +89,14 @@ public class ModelDiagnose {
         String[] keyValues = new String[keyColumns.size()];
         String[] keyNames = new String[keyColumns.size()];
 
+        long rowCount = 0;
         for (int i = 0; i < keyColumns.size(); i++) {
             String keyName = keyColumns.get(i).getCanonicalName();
             keyNames[i] = keyName;
             keyIndex[i] = tableDesc.findColumnByName(keyName).getZeroBasedIndex();
         }
 
-        Map<String[], MutableInt> dupMap = new HashedMap();
+        Map<String, MutableInt> dupMap = new HashedMap();
         ModelStats.DuplicatePK dupPK = new ModelStats.DuplicatePK();
         dupPK.setLookUpTable(tableDesc.getName());
         dupPK.setPrimaryKeys(toString(keyNames));
@@ -110,23 +106,41 @@ public class ModelDiagnose {
                 keyValues[i] = reader.getRow()[keyIndex[i]];
             }
 
-            Array<String> key = new Array<>(keyValues);
+            String key = getUniqueKey(keyValues);
 
             MutableInt m = dupMap.get(key);
             if (null == m) {
-                dupMap.put(keyValues, MutableInt.getInstance());
+                dupMap.put(key, MutableInt.getInstance());
             } else
                 m.increment();
+            rowCount++;
         }
         Map<String, Integer> tmpMap = new HashMap<>();
-        for (Map.Entry<String[], MutableInt> e : dupMap.entrySet()) {
-            if (e.getValue().getCount() > 1) {
-                tmpMap.put(toString(e.getKey()), e.getValue().getCount());
+        for (Map.Entry<String, MutableInt> e : dupMap.entrySet()) {
+            int count = e.getValue().getCount();
+            if (count > 1) {
+                tmpMap.put(e.getKey(), e.getValue().getCount());
+                if ((float) count / (float) rowCount > DUPLICATION_TOLERANCE && count > DUPLICATION_THRESHOLD) {
+                    throw new IllegalStateException("Duplicate key found and can not be tolerant: (Key=" + e.getKey() + ", Value=" + count + ")");
+                }
             }
         }
         dupPK.setDuplication(tmpMap);
         IOUtils.closeQuietly(reader);
         return dupPK;
+    }
+
+    private static String getUniqueKey(String[] cols) {
+        StringBuilder sb = new StringBuilder();
+        int i = 0;
+        for (String s : cols) {
+            s.replace(',', '.');
+            if (i > 0)
+                sb.append(',');
+            sb.append(s);
+            i++;
+        }
+        return sb.toString();
     }
 
     private static String toString(String[] cols) {
@@ -184,10 +198,11 @@ public class ModelDiagnose {
                 skewList.add(skewResult);
             }
             // List all possible data skew column value
+            int frequency = tableExtDesc.getFrequency();
             Map<String, Long> dataSkew = tableExtDesc.getColumnStats().get(fkColIndex).getDataSkewSamples();
             for (Map.Entry<String, Long> ele : dataSkew.entrySet()) {
                 Long estimatedFkOccurrence = ele.getValue();
-                if (estimatedFkOccurrence > FACT_SKEW_THRESHOLD) {
+                if (estimatedFkOccurrence * frequency > FACT_SKEW_THRESHOLD) {
                     logger.warn("There might be data skew on column: " + fkColName);
                     ModelStats.SkewResult skewResult = new ModelStats.SkewResult();
                     skewResult.setDataSkewValue(ele.getKey());
@@ -236,7 +251,7 @@ public class ModelDiagnose {
             if (pkKeys.size() < 1)
                 continue;
 
-            String pkName = pkKeys.get(0).getCanonicalName();
+            String pkName = pkKeys.get(0).getIdentity();
             long null_counter = modelStats.getColumnNullMap().get(pkName);
             float ratio = (countFlatTable - (float) null_counter) / countFlatTable;
             if (ratio < LEFT_JOIN_NULL_TOLERANCE) {

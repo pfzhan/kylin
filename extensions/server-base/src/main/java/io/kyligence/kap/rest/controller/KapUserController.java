@@ -30,7 +30,6 @@ import java.util.regex.Pattern;
 
 import javax.annotation.PostConstruct;
 
-import io.kyligence.kap.rest.security.KapAuthenticationManager;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.service.UserGrantedAuthority;
@@ -38,6 +37,7 @@ import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -57,6 +57,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.rest.request.UserRequest;
+import io.kyligence.kap.rest.security.KapAuthenticationManager;
+import io.kyligence.kap.rest.security.KapAuthenticationManager.UserObj;
 
 @Controller
 @Component("kapUserController")
@@ -66,6 +68,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
     private static final Logger logger = LoggerFactory.getLogger(KapUserController.class);
 
     @Autowired
+    @Qualifier("userService")
     private UserService userService;
 
     @Autowired
@@ -100,14 +103,14 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return get(username);
     }
 
-    @RequestMapping(value = "/{userName}", method = { RequestMethod.POST, RequestMethod.PUT })
+    @RequestMapping(value = "/{userName}", method = { RequestMethod.POST, RequestMethod.PUT }, produces = { "application/json" })
     @ResponseBody
     public UserObj save(@PathVariable("userName") String userName, @RequestBody UserObj user) {
         checkUserName(userName);
 
         user.setUsername(userName);
 
-        if (!user.defaultPassword) {
+        if (!user.isDefaultPassword()) {
             if (!checkPasswordLength(user.getPassword())) {
                 throw new IllegalStateException("The password should contain more than 8 characters!");
             }
@@ -139,7 +142,8 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return get(userName);
     }
 
-    @RequestMapping(value = "/password", method = { RequestMethod.PUT })
+
+    @RequestMapping(value = "/password", method = { RequestMethod.PUT }, produces = { "application/json" })
     @ResponseBody
     public UserObj save(@RequestBody UserRequest user) {
         if (!isAdmin() && !getPrincipal().equals(user.getUsername())) {
@@ -171,6 +175,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return get(user.getUsername());
     }
 
+
     private String pwdEncode(String pwd) {
         if (bcryptPattern.matcher(pwd).matches())
             return pwd;
@@ -193,7 +198,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return passwordPattern.matcher(password).matches();
     }
 
-    @RequestMapping(value = "/{userName}", method = { RequestMethod.GET })
+    @RequestMapping(value = "/{userName}", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
     public UserObj get(@PathVariable("userName") String userName) throws UsernameNotFoundException {
         checkUserName(userName);
@@ -203,9 +208,9 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return user;
     }
 
-    @RequestMapping(value = "/users", method = { RequestMethod.GET })
+    @RequestMapping(value = "/users", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
-    public List<UserObj> listAllUsers() {
+    public List<UserObj> listAllUsers() throws IOException {
         List<UserObj> result = Lists.newArrayList();
         for (UserDetails details : userService.listUsers()) {
             result.add(userDetailsToObj(details));
@@ -213,7 +218,8 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return result;
     }
 
-    @RequestMapping(value = "/{userName}", method = { RequestMethod.DELETE })
+
+    @RequestMapping(value = "/{userName}", method = { RequestMethod.DELETE }, produces = { "application/json" })
     @ResponseBody
     public void delete(@PathVariable("userName") String userName) {
         checkUserName(userName);
@@ -222,13 +228,15 @@ public class KapUserController extends BasicController implements UserDetailsSer
         userService.deleteUser(userName);
     }
 
-    @RequestMapping(value = "/userAuhtorities", method = { RequestMethod.GET })
+
+    @RequestMapping(value = "/userAuhtorities", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
-    public List<String> listAllAuthorities() {
+    public List<String> listAllAuthorities() throws IOException {
         List<String> result = userService.listUserAuthorities();
         result.remove(DISABLED_ROLE);
         return result;
     }
+
 
     private static final String DISABLED_ROLE = "--disabled--";
 
@@ -302,164 +310,6 @@ public class KapUserController extends BasicController implements UserDetailsSer
             }
         }
         return isAdmin;
-    }
-
-    public static class UserObj implements UserDetails {
-        private static final long serialVersionUID = 1L;
-
-        private String username;
-        private String password;
-        private List<UserGrantedAuthority> authorities;
-        private boolean disabled;
-        private boolean defaultPassword;
-        private boolean locked;
-        private long lockedTime;
-        private int wrongTime;
-
-        public UserObj() {
-        }
-
-        public UserObj(String username, String password, String... authorities) {
-            this.username = username;
-            this.password = password;
-            this.setDefaultPassword(false);
-            this.setLocked(false);
-            this.setLockedTime(0L);
-            this.setWrongTime(0);
-            this.authorities = Lists.newArrayList();
-
-            for (String a : authorities) {
-                this.authorities.add(new UserGrantedAuthority(a));
-            }
-        }
-
-        public UserObj(String username, String password, Boolean defaultPassword, String... authorities) {
-            this.username = username;
-            this.password = password;
-            this.defaultPassword = defaultPassword;
-            this.setLocked(false);
-            this.setLockedTime(0L);
-            this.setWrongTime(0);
-            this.authorities = Lists.newArrayList();
-
-            for (String a : authorities) {
-                this.authorities.add(new UserGrantedAuthority(a));
-            }
-        }
-
-        public String getUsername() {
-            return username;
-        }
-
-        public void setUsername(String userName) {
-            this.username = userName;
-        }
-
-        public String getPassword() {
-            return password;
-        }
-
-        public void setPassword(String password) {
-            this.password = password;
-        }
-
-        public List<UserGrantedAuthority> getAuthorities() {
-            return authorities;
-        }
-
-        public void setAuthorities(List<UserGrantedAuthority> authorities) {
-            this.authorities = authorities;
-        }
-
-        public boolean isDisabled() {
-            return disabled;
-        }
-
-        public void setDisabled(boolean disabled) {
-            this.disabled = disabled;
-        }
-
-        public boolean isDefaultPassword() {
-            return defaultPassword;
-        }
-
-        public void setDefaultPassword(boolean defaultPassword) {
-            this.defaultPassword = defaultPassword;
-        }
-
-        public boolean isLocked() {
-            return locked;
-        }
-
-        public void setLocked(boolean locked) {
-            this.locked = locked;
-        }
-
-        public int getWrongTime() {
-            return wrongTime;
-        }
-
-        public void setWrongTime(int wrongTime) {
-            this.wrongTime = wrongTime;
-        }
-
-        public long getLockedTime() {
-            return lockedTime;
-        }
-
-        public void setLockedTime(long lockedTime) {
-            this.lockedTime = lockedTime;
-        }
-
-        @Override
-        public boolean isAccountNonExpired() {
-            return true;
-        }
-
-        @Override
-        public boolean isAccountNonLocked() {
-            return !locked;
-        }
-
-        @Override
-        public boolean isCredentialsNonExpired() {
-            return true;
-        }
-
-        @Override
-        public boolean isEnabled() {
-            return !disabled;
-        }
-
-        @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + ((username == null) ? 0 : username.hashCode());
-            return result;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj)
-                return true;
-            if (obj == null)
-                return false;
-            if (getClass() != obj.getClass())
-                return false;
-            UserObj other = (UserObj) obj;
-            if (username == null) {
-                if (other.username != null)
-                    return false;
-            } else if (!username.equals(other.username))
-                return false;
-            return true;
-        }
-
-        @Override
-        public String toString() {
-            return "UserObj [username=" + username + ", authorities=" + authorities + "]";
-        }
     }
 
 }

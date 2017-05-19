@@ -107,6 +107,7 @@ public class HiveTableExtSampler implements Serializable {
         sampleValues.put("min_length_value", null);
         sampleValues.put("counter", "0");
         sampleValues.put("null_counter", "0");
+        sampleValues.put("statsSampleFrequency", "1");
 
         //raw value samples
         for (int i = 0; i < SAMPLE_RAW_VALUE_NUMBER; i++) {
@@ -186,7 +187,12 @@ public class HiveTableExtSampler implements Serializable {
     }
 
     public void setStatsSampleFrequency(int frequency) {
-        this.statsSampleFrequency = frequency;
+        this.sampleValues.put("statsSampleFrequency", String.valueOf(frequency));
+        statsSampleFrequency = frequency;
+    }
+
+    public int getStatsSampleFrequency() {
+        return Integer.parseInt(this.sampleValues.get("statsSampleFrequency"));
     }
 
     public String getColumnName() {

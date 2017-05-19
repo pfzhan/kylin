@@ -28,6 +28,7 @@ import java.io.IOException;
 
 import org.apache.kylin.rest.controller.BasicController;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -43,6 +44,7 @@ import io.kyligence.kap.rest.service.RawTableService;
 public class RawTableDescController extends BasicController {
 
     @Autowired
+    @Qualifier("rawTableService")
     private RawTableService rawTableService;
 
     /**
@@ -54,7 +56,7 @@ public class RawTableDescController extends BasicController {
      * @return
      * @throws IOException
      */
-    @RequestMapping(value = "/{rawName}", method = { RequestMethod.GET })
+    @RequestMapping(value = "/{rawName}", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
     public RawTableDesc getDesc(@PathVariable String rawName) {
         RawTableInstance rawInstance = rawTableService.getRawTableManager().getRawTableInstance(rawName);

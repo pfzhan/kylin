@@ -56,27 +56,27 @@ public class KafkaController extends BasicController {
     @Autowired
     private KafkaService kafkaService;
 
-    @RequestMapping(value = "", method = { RequestMethod.POST })
+    @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/json" })
     @ResponseBody
     public Map<String, List<String>> getTopics(@RequestBody StreamingRequest streamingRequest) {
         KafkaConfig kafkaConfig = deserializeKafkaSchemalDesc(streamingRequest);
         return kafkaService.getTopics(kafkaConfig);
     }
 
-    @RequestMapping(value = "{cluster}/{topic}", method = { RequestMethod.POST })
+    @RequestMapping(value = "{cluster}/{topic}", method = { RequestMethod.POST }, produces = { "application/json" })
     @ResponseBody
     public List<String> getMessages(@PathVariable String cluster, @PathVariable String topic, @RequestBody StreamingRequest streamingRequest) {
         KafkaConfig kafkaConfig = deserializeKafkaSchemalDesc(streamingRequest);
         return kafkaService.getMessages(kafkaConfig);
     }
 
-    @RequestMapping(value = "{database}.{tablename}/samples", method = { RequestMethod.POST })
+    @RequestMapping(value = "{database}.{tablename}/samples", method = { RequestMethod.POST }, produces = { "application/json" })
     @ResponseBody
     public String getSamples(@PathVariable String database, @PathVariable String tablename, @RequestBody List<String> messages) throws IOException {
         return kafkaService.saveSamplesToStreamingTable(database + "." + tablename, messages);
     }
 
-    @RequestMapping(value = "{database}.{tablename}/update_samples", method = { RequestMethod.GET })
+    @RequestMapping(value = "{database}.{tablename}/update_samples", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
     public List<String> updateSamples(@PathVariable String database, @PathVariable String tablename) throws IOException {
         return kafkaService.updateSamplesByTableName(database + "." + tablename);

@@ -35,6 +35,7 @@ import org.apache.kylin.rest.response.ResponseCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -55,15 +56,16 @@ public class ConfigController extends BasicController {
     private static final Logger logger = LoggerFactory.getLogger(ConfigController.class);
 
     @Autowired
+    @Qualifier("configService")
     private ConfigService configService;
 
-    @RequestMapping(value = "default", method = { RequestMethod.GET })
+    @RequestMapping(value = "default", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
     public String getDefaultValue(@RequestParam("key") String key) {
         return configService.getDefaultConfigMap().get(key);
     }
 
-    @RequestMapping(value = "defaults", method = { RequestMethod.GET })
+    @RequestMapping(value = "defaults", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
     public Map<String, String> getDefaultConfigs() {
         return configService.getDefaultConfigMap();
@@ -75,7 +77,7 @@ public class ConfigController extends BasicController {
      * @return
      * error code 001: feature_name is empty
      */
-    @RequestMapping(value = "hidden_feature", method = { RequestMethod.GET })
+    @RequestMapping(value = "hidden_feature", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
     public EnvelopeResponse isFeatureHidden(@RequestParam("feature_name") String key) {
         if (StringUtils.isEmpty(key)) {
@@ -86,7 +88,7 @@ public class ConfigController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "true".equals(s), "");
     }
 
-    @RequestMapping(value = "spark_status", method = { RequestMethod.GET })
+    @RequestMapping(value = "spark_status", method = { RequestMethod.GET }, produces = { "application/json" })
     @ResponseBody
     public Map<String, String> getSparkExec() {
         int execNum = Integer.parseInt(configService.getSparkDriverConf("spark.executor.instances"));
