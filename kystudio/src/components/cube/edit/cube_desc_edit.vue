@@ -1,358 +1,628 @@
 <template>
-<div>
-  <el-steps :active="activeStep"  finish-status="finish" process-status="wait" center >
+<div class="paddingbox">
+  <el-steps :active="activeStep"  finish-status="finish" process-status="wait" center align-center>
     <el-step :title="$t('cubeInfo')" @click.native="step(1)"></el-step>
-    <el-step :title="$t('dimensions')" @click.native="step(2)"></el-step>
-    <el-step :title="$t('measures')" @click.native="step(3)"></el-step>
-    <el-step :title="$t('refreshSetting')" @click.native="step(4)"></el-step>
-    <el-step :title="$t('advancedSetting')" @click.native="step(5)"></el-step>
-    <el-step :title="$t('configurationOverwrites')" @click.native="step(6)"></el-step>
-    <el-step :title="$t('overview')" @click.native="step(7)"></el-step>
+    <el-step :title="$t('sampleSql')" @click.native="step(2)"></el-step>
+    <el-step :title="$t('dimensions')" @click.native="step(3)"></el-step>
+    <el-step :title="$t('measures')" @click.native="step(4)"></el-step>
+    <el-step :title="$t('refreshSetting')" @click.native="step(5)"></el-step>
+    <el-step :title="$t('tableIndex')" @click.native="step(6)"></el-step>
+    <el-step :title="$t('configurationOverwrites')" @click.native="step(7)"></el-step>
+    <el-step :title="$t('overview')" @click.native="step(8)"></el-step>
   </el-steps>
-  <info v-if="activeStep===1" :cubeDesc="selected_cube" :isEdit="isEdit"></info>
-  <dimensions v-if="activeStep===2" :cubeDesc="selected_cube" :modelDesc="model" :isEdit="isEdit"></dimensions>
-  <measures v-if="activeStep===3" :cubeDesc="selected_cube" :modelDesc="model" :isEdit="isEdit"></measures>
-  <refresh_setting v-if="activeStep===4" :cubeDesc="selected_cube" :isEdit="isEdit" modelDesc="model"></refresh_setting>
-  <advanced_setting v-if="activeStep===5" :cubeDesc="selected_cube" :isEdit="isEdit"></advanced_setting>
-  <configuration_overwrites v-if="activeStep===6" :cubeDesc="selected_cube" :isEdit="isEdit"></configuration_overwrites>
-  <overview v-if="activeStep===7" :cubeDesc="selected_cube" :isEdit="isEdit"></overview>
-  <el-button icon="arrow-left" v-if="activeStep !== 1" @click.native="prev">{{$t('prev')}}</el-button>
-  <el-button type="success" v-if="activeStep !== 7" @click.native="next">{{$t('next')}}<i class="el-icon-arrow-right el-icon--right"></i></el-button>
-  <el-button type="primary" v-if="activeStep === 7" @click.native="save">{{$t('save')}}</el-button>
-</div>
+  <info v-if="activeStep===1" :cubeDesc="cubeDetail" :modelDesc="modelDetail" :isEdit="isEdit"></info>
+  <sample_sql v-if="activeStep===2" :cubeDesc="cubeDetail" :isEdit="isEdit" :sampleSql="sampleSQL"></sample_sql>
+  <dimensions v-if="activeStep===3" :cubeDesc="cubeDetail" :modelDesc="modelDetail" :isEdit="isEdit"></dimensions>
+  <measures v-if="activeStep===4" :cubeDesc="cubeDetail" :modelDesc="modelDetail" :isEdit="isEdit"></measures>
+  <refresh_setting v-if="activeStep===5" :cubeDesc="cubeDetail" :isEdit="isEdit" :modelDesc="modelDetail" :scheduler="scheduler"></refresh_setting>
+  <table_index v-if="activeStep===6" :cubeDesc="cubeDetail" :isEdit="isEdit" :modelDesc="modelDetail"  :rawTable="rawTable"></table_index>
+  <configuration_overwrites v-if="activeStep===7" :cubeDesc="cubeDetail" :isEdit="isEdit"></configuration_overwrites>
+  <overview v-if="activeStep===8" :cubeDesc="cubeDetail" :modelDesc="modelDetail"></overview>
+
+  
+
+  <el-button class="button_right" type="primary" v-if="activeStep !== 8" @click.native="next">{{$t('next')}}<i class="el-icon-arrow-right el-icon--right"></i></el-button>
+  <el-button class="button_right" type="primary" v-if="activeStep === 8" @click.native="saveOrUpdate">{{$t('save')}}</el-button>
+    <el-button class="button_right" icon="arrow-left" v-if="activeStep !== 1" @click.native="prev">{{$t('prev')}}</el-button>
+
+
+    <el-dialog :title="$t('errorMsg')" v-model="showErrorVisible">
+      <el-alert
+        :title="errorMsg"
+        type="error"
+        :closable="false">
+      </el-alert>
+      <json :json="cubeDetail"></json>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="showErrorVisible = false">{{$t('yes')}}</el-button>
+      </div>
+    </el-dialog>
+  </div>
 </template>
 
 <script>
 import { mapActions } from 'vuex'
 import info from './info_edit'
+import sampleSql from './sample_sql_edit'
 import dimensions from './dimensions_edit'
 import measures from './measures_edit'
 import refreshSetting from './refresh_setting_edit'
-import advancedSetting from './advanced_setting_edit'
+import tableIndex from './table_index_edit'
 import configurationOverwrites from './configuration_overwrites_edit'
 import overview from './overview_edit'
+import json from '../json'
+import { removeNameSpace } from '../../../util/index'
+import { handleSuccess, handleError } from '../../../util/business'
 export default {
   name: 'cubeDescEdit',
+  props: ['extraoption'],
   data () {
     return {
-      activeStep: 6,
-      isEdit: true,
-      model: {
-        'uuid': '72ab4ee2-2cdb-4b07-b39e-4c298563ae27',
-        'last_modified': 1485169522000,
-        'version': '2.0.0',
-        'name': 'ci_inner_join_model',
-        'owner': null,
-        'description': null,
-        'fact_table': 'DEFAULT.TEST_KYLIN_FACT',
-        'lookups': [
-          {
-            'table': 'DEFAULT.TEST_ORDER',
-            'kind': 'FACT',
-            'alias': 'TEST_ORDER',
-            'join': {
-              'type': 'INNER',
-              'primary_key': [
-                'TEST_ORDER.ORDER_ID'
-              ],
-              'foreign_key': [
-                'TEST_KYLIN_FACT.ORDER_ID'
-              ]
-            }
-          },
-          {
-            'table': 'DEFAULT.TEST_ACCOUNT',
-            'kind': 'FACT',
-            'alias': 'SELLER_ACCOUNT',
-            'join': {
-              'type': 'INNER',
-              'primary_key': [
-                'SELLER_ACCOUNT.ACCOUNT_ID'
-              ],
-              'foreign_key': [
-                'TEST_KYLIN_FACT.SELLER_ID'
-              ]
-            }
-          },
-          {
-            'table': 'EDW.TEST_CAL_DT',
-            'kind': 'LOOKUP',
-            'alias': 'TEST_CAL_DT',
-            'join': {
-              'type': 'INNER',
-              'primary_key': [
-                'TEST_CAL_DT.CAL_DT'
-              ],
-              'foreign_key': [
-                'TEST_KYLIN_FACT.CAL_DT'
-              ]
-            }
-          },
-          {
-            'table': 'DEFAULT.TEST_CATEGORY_GROUPINGS',
-            'kind': 'LOOKUP',
-            'join': {
-              'type': 'INNER',
-              'primary_key': [
-                'TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID',
-                'TEST_CATEGORY_GROUPINGS.SITE_ID'
-              ],
-              'foreign_key': [
-                'TEST_KYLIN_FACT.LEAF_CATEG_ID',
-                'TEST_KYLIN_FACT.LSTG_SITE_ID'
-              ]
-            }
-          },
-          {
-            'table': 'EDW.TEST_SITES',
-            'kind': 'LOOKUP',
-            'join': {
-              'type': 'INNER',
-              'primary_key': [
-                'TEST_SITES.SITE_ID'
-              ],
-              'foreign_key': [
-                'TEST_KYLIN_FACT.LSTG_SITE_ID'
-              ]
-            }
-          },
-          {
-            'table': 'EDW.TEST_SELLER_TYPE_DIM',
-            'kind': 'LOOKUP',
-            'join': {
-              'type': 'INNER',
-              'primary_key': [
-                'TEST_SELLER_TYPE_DIM.SELLER_TYPE_CD'
-              ],
-              'foreign_key': [
-                'TEST_KYLIN_FACT.SLR_SEGMENT_CD'
-              ]
-            }
-          },
-          {
-            'table': 'DEFAULT.TEST_ACCOUNT',
-            'kind': 'FACT',
-            'alias': 'BUYER_ACCOUNT',
-            'join': {
-              'type': 'INNER',
-              'primary_key': [
-                'BUYER_ACCOUNT.ACCOUNT_ID'
-              ],
-              'foreign_key': [
-                'TEST_ORDER.BUYER_ID'
-              ]
-            }
-          },
-          {
-            'table': 'DEFAULT.TEST_COUNTRY',
-            'kind': 'LOOKUP',
-            'alias': 'SELLER_COUNTRY',
-            'join': {
-              'type': 'INNER',
-              'primary_key': [
-                'SELLER_COUNTRY.COUNTRY'
-              ],
-              'foreign_key': [
-                'SELLER_ACCOUNT.ACCOUNT_COUNTRY'
-              ]
-            }
-          },
-          {
-            'table': 'DEFAULT.TEST_COUNTRY',
-            'kind': 'LOOKUP',
-            'alias': 'BUYER_COUNTRY',
-            'join': {
-              'type': 'INNER',
-              'primary_key': [
-                'BUYER_COUNTRY.COUNTRY'
-              ],
-              'foreign_key': [
-                'BUYER_ACCOUNT.ACCOUNT_COUNTRY'
-              ]
-            }
-          }
-        ],
-        'dimensions': [
-          {
-            'table': 'TEST_KYLIN_FACT',
-            'columns': [
-              'TRANS_ID',
-              'ORDER_ID',
-              'CAL_DT',
-              'LSTG_FORMAT_NAME',
-              'LSTG_SITE_ID',
-              'LEAF_CATEG_ID',
-              'SLR_SEGMENT_CD',
-              'SELLER_ID',
-              'TEST_COUNT_DISTINCT_BITMAP'
-            ]
-          },
-          {
-            'table': 'TEST_ORDER',
-            'columns': [
-              'ORDER_ID',
-              'BUYER_ID',
-              'TEST_DATE_ENC',
-              'TEST_TIME_ENC',
-              'TEST_EXTENDED_COLUMN'
-            ]
-          },
-          {
-            'table': 'BUYER_ACCOUNT',
-            'columns': [
-              'ACCOUNT_ID',
-              'ACCOUNT_BUYER_LEVEL',
-              'ACCOUNT_SELLER_LEVEL',
-              'ACCOUNT_COUNTRY',
-              'ACCOUNT_CONTACT'
-            ]
-          },
-          {
-            'table': 'SELLER_ACCOUNT',
-            'columns': [
-              'ACCOUNT_ID',
-              'ACCOUNT_BUYER_LEVEL',
-              'ACCOUNT_SELLER_LEVEL',
-              'ACCOUNT_COUNTRY',
-              'ACCOUNT_CONTACT'
-            ]
-          },
-          {
-            'table': 'TEST_CATEGORY_GROUPINGS',
-            'columns': [
-              'LEAF_CATEG_ID',
-              'SITE_ID',
-              'META_CATEG_NAME',
-              'CATEG_LVL2_NAME',
-              'CATEG_LVL3_NAME',
-              'USER_DEFINED_FIELD1',
-              'USER_DEFINED_FIELD3',
-              'UPD_DATE',
-              'UPD_USER'
-            ]
-          },
-          {
-            'table': 'TEST_SITES',
-            'columns': [
-              'SITE_ID',
-              'SITE_NAME',
-              'CRE_USER'
-            ]
-          },
-          {
-            'table': 'TEST_SELLER_TYPE_DIM',
-            'columns': [
-              'SELLER_TYPE_CD',
-              'SELLER_TYPE_DESC'
-            ]
-          },
-          {
-            'table': 'TEST_CAL_DT',
-            'columns': [
-              'CAL_DT',
-              'WEEK_BEG_DT'
-            ]
-          },
-          {
-            'table': 'BUYER_COUNTRY',
-            'columns': [
-              'COUNTRY',
-              'NAME'
-            ]
-          },
-          {
-            'table': 'SELLER_COUNTRY',
-            'columns': [
-              'COUNTRY',
-              'NAME'
-            ]
-          }
-        ],
-        'metrics': [
-          'TEST_KYLIN_FACT.PRICE',
-          'TEST_KYLIN_FACT.ITEM_COUNT'
-        ],
-        'filter_condition': null,
-        'partition_desc': {
-          'partition_date_column': 'TEST_KYLIN_FACT.CAL_DT',
-          'partition_time_column': null,
-          'partition_date_start': 0,
-          'partition_date_format': 'yyyy-MM-dd',
-          'partition_time_format': 'HH:mm:ss',
-          'partition_type': 'APPEND',
-          'partition_condition_builder': 'org.apache.kylin.metadata.model.PartitionDesc$DefaultPartitionConditionBuilder'
-        },
-        'capacity': 'MEDIUM'
+      activeStep: 1,
+      isEdit: this.extraoption.isEdit,
+      index: 0,
+      modelDetail: {},
+      cubeDetail: {},
+      rawTable: {
+        needDelete: false,
+        tableDetail: {
+          columns: [],
+          name: '',
+          model_name: '',
+          engine_type: '',
+          storage_type: ''
+        }
       },
-      selected_project: this.$store.state.project.selected_project
+      sampleSQL: {sqlString: ''},
+      scheduler: {
+        cubeName: '',
+        desc: {
+          partitionInterval: 86400000,
+          repeatCount: 65535,
+          repeatInterval: 0,
+          startTime: 0,
+          triggerTime: 0
+        }
+      },
+      selected_project: this.$store.state.project.selected_project,
+      wizardSteps: [
+        {title: 'checkCubeInfo', isComplete: false},
+        {title: 'checkSampleSql', isComplete: false},
+        {title: 'checkDimensions', isComplete: false},
+        {title: 'checkMeasures', isComplete: false},
+        {title: 'checkRefreshSetting', isComplete: false},
+        {title: 'checkTableIndex', isComplete: false},
+        {title: 'checkConfigurationOverwrite', isComplete: false}
+      ],
+      showErrorVisible: false,
+      errorMsg: ''
     }
   },
   components: {
     'info': info,
+    'sample_sql': sampleSql,
     'dimensions': dimensions,
     'measures': measures,
     'refresh_setting': refreshSetting,
-    'advanced_setting': advancedSetting,
+    'table_index': tableIndex,
     'configuration_overwrites': configurationOverwrites,
-    'overview': overview
+    'overview': overview,
+    'json': json
   },
   methods: {
     ...mapActions({
-      loadCubeDesc: 'LOAD_CUBE_DESC'
+      checkCubeNameAvailability: 'CHECK_CUBE_NAME_AVAILABILITY',
+      loadCubeDesc: 'LOAD_CUBE_DESC',
+      updateCube: 'UPDATE_CUBE',
+      saveCube: 'SAVE_CUBE',
+      loadModelInfo: 'LOAD_MODEL_INFO',
+      saveSampleSql: 'SAVE_SAMPLE_SQL',
+      loadRawTable: 'GET_RAW_TABLE',
+      updateRawTable: 'UPDATE_RAW_TABLE',
+      saveRawTable: 'SAVE_RAW_TABLE',
+      deleteRawTable: 'DELETE_RAW_TABLE',
+      getScheduler: 'GET_SCHEDULER',
+      updateScheduler: 'UPDATE_SCHEDULER',
+      deleteScheduler: 'DELETE_SCHEDULER'
     }),
     step: function (num) {
-      this.activeStep = num
+      this.activeStep = this.stepsCheck(num)
     },
     prev: function () {
       this.activeStep = this.activeStep - 1
     },
     next: function () {
-      this.activeStep = this.activeStep + 1
+      this.wizardSteps[this.activeStep - 1].isComplete = this.checkCubeSteps(this.activeStep)
+      if (this.wizardSteps[this.activeStep - 1].isComplete) {
+        this.activeStep = this.activeStep + 1
+      }
+    },
+    stepsCheck: function (num) {
+      for (let i = 1; i < num; i++) {
+        this.wizardSteps[i - 1].isComplete = this.checkCubeSteps(i)
+        if (!this.wizardSteps[i - 1].isComplete) {
+          return i
+        }
+      }
+      return num
+    },
+    checkCubeSteps: function (index) {
+      let _this = this
+      switch (index) {
+        case 1:
+          return _this.checkCubeInfo()
+        case 2:
+          return _this.checkSampleSql()
+        case 3:
+          return _this.checkDimensions()
+        case 4:
+          return _this.checkMeasures()
+        case 5:
+          return _this.checkRefreshSetting()
+        case 6:
+          return _this.checkTableIndex()
+        case 7:
+          return _this.checkConfigurationOverwrite()
+        default:
+          return true
+      }
+    },
+    checkCubeInfo: function () {
+      let _this = this
+      let nameUsed = false
+      if (!_this.isEdit) {
+        this.checkCubeNameAvailability(_this.cubeDetail.name).then((res) => {
+          handleSuccess(res, (data, code, status, msg) => {
+            if (data === false) {
+              this.$message({
+                showClose: true,
+                duration: 3000,
+                message: _this.$t('checkCubeNamePartOne') + this.cubeDetail.name.toUpperCase() + _this.$t('checkCubeNamePartTwo'),
+                type: 'error'
+              })
+              nameUsed = true
+            }
+          })
+        }).catch((res) => {
+          handleError(res, (data, code, status, msg) => {
+            console.log(status, 30000)
+            // if (status === 404) {
+            //   _this.$router.replace('access/login')
+            // }
+          })
+        })
+      }
+      if (nameUsed) {
+        return false
+      } else {
+        return true
+      }
+    },
+    checkSampleSql: function () {
+      let _this = this
+      if (_this.sampleSQL.sqlString !== '') {
+        _this.saveSampleSql({modelName: _this.modelDetail.name, cubeName: _this.cubeDetail.name, sqls: _this.sampleSQL.sqlString.split(/\r?\n/)})
+      }
+      return true
+    },
+    checkDimensions: function () {
+      let _this = this
+      if (_this.cubeDetail.dimensions.length <= 0) {
+        this.$message({
+          showClose: true,
+          duration: 3000,
+          message: _this.$t('checkDimensions'),
+          type: 'error'
+        })
+        return false
+      }
+      for (let j = 0; j < _this.cubeDetail.aggregation_groups.length; j++) {
+        if (!_this.cubeDetail.aggregation_groups[j] || !_this.cubeDetail.aggregation_groups[j].includes || _this.cubeDetail.aggregation_groups[j].includes.length === 0) {
+          this.$message({
+            showClose: true,
+            duration: 3000,
+            message: _this.$t('checkAggGroup'),
+            type: 'error'
+          })
+          return false
+        }
+      }
+      let shardRowkeyList = []
+      for (let i = 0; i < _this.cubeDetail.rowkey.rowkey_columns.length; i++) {
+        if (_this.cubeDetail.rowkey.rowkey_columns[i].isShardBy === true) {
+          shardRowkeyList.push(_this.cubeDetail.rowkey.rowkey_columns[i].column)
+        }
+        if (_this.cubeDetail.rowkey.rowkey_columns[i].encoding.substr(0, 3) === 'int' && (_this.cubeDetail.rowkey.rowkey_columns[i].encoding.substr(4) < 1 || _this.cubeDetail.rowkey.rowkey_columns[i].encoding.substr(4) > 8)) {
+          this.$message({
+            showClose: true,
+            duration: 3000,
+            message: _this.$t('checkRowkeyInt'),
+            type: 'error'
+          })
+          return false
+        }
+      }
+      if (shardRowkeyList.length > 1) {
+        this.$message({
+          showClose: true,
+          message: _this.$t('checkRowkeyShard'),
+          type: 'error'
+        })
+        return false
+      }
+      return true
+    },
+    checkMeasures: function () {
+      let _this = this
+      let existCountExpression = false
+      for (let i = 0; i < _this.cubeDetail.measures.length; i++) {
+        if (_this.cubeDetail.measures[i].function.expression === 'COUNT') {
+          existCountExpression = true
+        }
+      }
+      if (!existCountExpression) {
+        this.$message({
+          showClose: true,
+          duration: 3000,
+          message: _this.$t('checkMeasuresCount'),
+          type: 'error'
+        })
+        return false
+      }
+      let cfMeasures = []
+      _this.cubeDetail.hbase_mapping.column_family.forEach(function (cf) {
+        cf.columns[0].measure_refs.forEach(function (measure, index) {
+          cfMeasures.push(measure)
+        })
+      })
+      if (cfMeasures.length !== _this.cubeDetail.measures.length) {
+        this.$message({
+          showClose: true,
+          duration: 3000,
+          message: _this.$t('checkColumnFamily'),
+          type: 'error'
+        })
+        return false
+      }
+      for (let j = 0; j < _this.cubeDetail.hbase_mapping.column_family.length; j++) {
+        if (_this.cubeDetail.hbase_mapping.column_family[j].columns[0].measure_refs.length === 0) {
+          this.$message({
+            showClose: true,
+            duration: 3000,
+            message: _this.$t('checkColumnFamilyNull'),
+            type: 'error'
+          })
+          return false
+        }
+      }
+      return true
+    },
+    checkRefreshSetting: function () {
+      return true
+    },
+    checkTableIndex: function () {
+      let _this = this
+      if (_this.rawTable.tableDetail.columns.length === 0) {
+        return true
+      }
+      let sortedCount = 0
+      let setTypeError = false
+      for (let i = 0; i < this.rawTable.tableDetail.columns.length; i++) {
+        if (this.rawTable.tableDetail.columns[i].index === 'sorted') {
+          let _encoding = _this.getEncoding(this.rawTable.tableDetail.columns[i].encoding)
+          if (['date', 'time', 'integer'].indexOf(_encoding) < 0) {
+            setTypeError = true
+          }
+          sortedCount++
+        }
+      }
+      if (setTypeError) {
+        this.$message({
+          showClose: true,
+          duration: 3000,
+          message: _this.$t('rawtableSortedWidthDate'),
+          type: 'error'
+        })
+        return false
+      }
+      if (sortedCount === 0) {
+        this.$message({
+          showClose: true,
+          duration: 3000,
+          message: _this.$t('rawtableSetSorted'),
+          type: 'error'
+        })
+        return false
+      }
+      if (sortedCount > 1) {
+        this.$message({
+          showClose: true,
+          duration: 3000,
+          message: _this.$t('rawtableSingleSorted'),
+          type: 'error'
+        })
+        return false
+      } else {
+        return true
+      }
+    },
+    checkConfigurationOverwrite: function () {
+      let _this = this
+      for (var key in _this.cubeDetail.override_kylin_properties) {
+        if (key === '') {
+          this.$message({
+            showClose: true,
+            duration: 3000,
+            message: _this.$t('checkCOKey'),
+            type: 'error'
+          })
+          return false
+        }
+        if (_this.cubeDetail.override_kylin_properties[key] === '') {
+          this.$message({
+            showClose: true,
+            message: _this.$t('checkCOValue'),
+            type: 'error'
+          })
+          return false
+        }
+      }
+      return true
+    },
+    saveOrUpdate: function () {
+      let _this = this
+      console.log(_this.cubeDetail.partition_date_start, 7532149)
+      this.$confirm('确认保存Cube？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        if (this.isEdit) {
+          this.updateCube({cubeDescData: JSON.stringify(_this.cubeDetail), project: _this.selected_project}).then((res) => {
+            handleSuccess(res, (data, code, status, msg) => {
+              this.$message({
+                type: 'success',
+                duration: 3000,
+                message: '保存成功!'
+              })
+              _this.saveOrUpdateRawTable()
+              this.$emit('reload', 'cubeList')
+              this.$emit('removetabs', 'cube' + this.extraoption.cubeName)
+            })
+          }).catch((res) => {
+            handleError(res, (data, code, status, msg) => {
+              _this.showErrorVisible = true
+              _this.errorMsg = msg
+              // if (status === 404) {
+              //   _this.$router.replace('access/login')
+              // }
+            })
+          })
+        } else {
+          this.saveCube({cubeDescData: JSON.stringify(_this.cubeDetail), project: _this.selected_project}).then((res) => {
+            handleSuccess(res, (data, code, status, msg) => {
+              this.$message({
+                type: 'success',
+                duration: 3000,
+                message: '保存成功!'
+              })
+              _this.saveOrUpdateRawTable()
+              this.$emit('reload', 'cubeList')
+              this.$emit('removetabs', 'cube' + this.extraoption.cubeName)
+            })
+          }).catch((res) => {
+            handleError(res, (data, code, status, msg) => {
+              _this.showErrorVisible = true
+              _this.errorMsg = msg
+              // if (status === 404) {
+              //   _this.$router.replace('access/login')
+              // }
+            })
+          })
+        }
+      }).catch((e) => {
+      })
+    },
+    saveOrUpdateRawTable: function () {
+      if (this.cubeDetail.engine_type === 100 || this.cubeDetail.engine_type === 99) {
+        let _this = this
+        _this.rawTable.tableDetail.name = _this.cubeDetail.name
+        _this.rawTable.tableDetail.model_name = _this.cubeDetail.model_name
+        _this.rawTable.tableDetail.engine_type = _this.cubeDetail.engine_type
+        _this.rawTable.tableDetail.storage_type = _this.cubeDetail.storage_type
+        _this.loadRawTable(_this.cubeDetail.name).then((res) => {
+          handleSuccess(res, (data, code, status, msg) => {
+            if (_this.rawTable.tableDetail.columns.length > 0) {
+              _this.updateRawTable({project: this.selected_project, rawTableDescData: JSON.stringify(_this.rawTable.tableDetail), rawTableName: this.cubeDetail.name}).then((res) => {
+                handleSuccess(res, (data, code, status, msg) => {
+                })
+              }).catch((res) => {
+                handleError(res, (data, code, status, msg) => {
+                })
+              })
+            } else {
+              if (_this.rawTable.needDelete) {
+                _this.deleteRawTable(this.cubeDetail.name).then((res) => {
+                  handleSuccess(res, (data, code, status, msg) => {
+                  })
+                }).catch((res) => {
+                  handleError(res, (data, code, status, msg) => {
+                  })
+                })
+              }
+            }
+          })
+        }).catch((res) => {
+          handleError(res, (data, code, status, msg) => {
+            if (_this.rawTable.tableDetail.columns.length > 0) {
+              _this.saveRawTable({project: this.selected_project, rawTableDescData: JSON.stringify(_this.rawTable.tableDetail)}).then((res) => {
+                handleSuccess(res, (data, code, status, msg) => {
+                })
+              }).catch((res) => {
+                handleError(res, (data, code, status, msg) => {
+                })
+              })
+            }
+          })
+        })
+      }
+    },
+    saveOrUpdateScheduler: function () {
+      let _this = this
+      if (_this.isEdit) {
+        _this.updateScheduler(_this.scheduler).then((res) => {
+          handleSuccess(res, (data, code, status, msg) => {
+          })
+        }).catch((res) => {
+          handleError(res, (data, code, status, msg) => {
+            this.$message({
+              type: 'error',
+              message: msg
+            })
+          })
+        })
+      } else {
+        _this.saveScheduler(_this.scheduler).then((res) => {
+          handleSuccess(res, (data, code, status, msg) => {
+          })
+        }).catch((res) => {
+          handleError(res, (data, code, status, msg) => {
+            this.$message({
+              type: 'error',
+              message: msg
+            })
+          })
+        })
+      }
+    },
+    getEncoding: function (encode) {
+      let code = encode.split(':')
+      return code[0]
     },
     createNewCube: function () {
-      this.isEdit = false
-      this.$store.state.cube.cubeAdd = {
-        'name': '',
-        'model_name': '',
-        'description': '',
-        'dimensions': [],
-        'measures': [
-          {
-            'name': '_COUNT_',
-            'function': {
-              'expression': 'COUNT',
-              'returntype': 'bigint',
-              'parameter': {
-                'type': 'constant',
-                'value': '1',
-                'next_parameter': null
-              },
-              'configuration': {}
-            }
-          }
-        ],
-        'rowkey': {
-          'rowkey_columns': []
+      this.cubeDetail = {
+        name: this.extraoption.cubeName,
+        model_name: this.extraoption.modelName,
+        description: '',
+        dimensions: [],
+        measures: [],
+        rowkey: {
+          rowkey_columns: []
         },
-        'aggregation_groups': [],
-        'dictionaries': [],
-        'partition_date_start': 0,
-        'partition_date_end': undefined,
-        'notify_list': [],
-        'hbase_mapping': {
-          'column_family': []
+        aggregation_groups: [],
+        dictionaries: [],
+        partition_date_start: 0,
+        partition_date_end: undefined,
+        notify_list: [],
+        hbase_mapping: {
+          column_family: []
         },
-        'status_need_notify': ['ERROR', 'DISCARDED', 'SUCCEED'],
-        'retention_range': '0',
-        'auto_merge_time_ranges': [604800000, 2419200000],
-        'engine_type': 0,
-        'storage_type': 0,
-        'override_kylin_properties': {}
+        status_need_notify: ['ERROR', 'DISCARDED', 'SUCCEED'],
+        retention_range: '0',
+        auto_merge_time_ranges: [604800000, 2419200000],
+        engine_type: this.getCubeEng(),
+        storage_type: this.getStorageEng(),
+        override_kylin_properties: {}
       }
+    },
+    getProperty: function (name) {
+      let result = (new RegExp(name + '=(.*?)\\n')).exec(this.$store.state.system.serverConfig)
+      return result && result[1] || ''
+    },
+    getCubeEng: function () {
+      let CubeEng = this.getProperty('kylin.engine.default').trim()
+      if (!CubeEng) {
+        return 2
+      }
+      return CubeEng
+    },
+    getStorageEng: function () {
+      let StorageEng = this.getProperty('kylin.storage.default').trim()
+      if (!StorageEng) {
+        return 2
+      }
+      return StorageEng
+    },
+    loadCubeDetail: function () {
+      let _this = this
+      this.loadCubeDesc(_this.extraoption.cubeName).then((res) => {
+        handleSuccess(res, (data, code, status, msg) => {
+          _this.cubeDetail = data[0]
+        })
+      }).catch((res) => {
+        handleError(res, (data, code, status, msg) => {
+          console.log(status, 30000)
+          // if (status === 404) {
+          //   _this.$router.replace('access/login')
+          // }
+        })
+      })
+    },
+    getTables: function () {
+      let _this = this
+      let rootFactTable = removeNameSpace(this.modelDetail.fact_table)
+      let factTables = []
+      let lookupTables = []
+      factTables.push(rootFactTable)
+      _this.$set(_this.modelDetail, 'columnsDetail', {})
+      _this.$store.state.datasource.dataSource[_this.selected_project].forEach(function (table) {
+        if (_this.modelDetail.fact_table === table.database + '.' + table.name) {
+          table.columns.forEach(function (column) {
+            _this.$set(_this.modelDetail.columnsDetail, rootFactTable + '.' + column.name, {
+              name: column.name,
+              datatype: column.datatype,
+              cardinality: table.cardinality[column.name],
+              comment: column.comment})
+          })
+        }
+      })
+      _this.modelDetail.lookups.forEach(function (lookup) {
+        if (lookup.kind === 'FACT') {
+          if (!lookup.alias) {
+            lookup['alias'] = removeNameSpace(lookup.table)
+          }
+          factTables.push(lookup.alias)
+        } else {
+          if (!lookup.alias) {
+            lookup['alias'] = removeNameSpace(lookup.table)
+          }
+          lookupTables.push(lookup.alias)
+        }
+        _this.$store.state.datasource.dataSource[_this.selected_project].forEach(function (table) {
+          if (lookup.table === table.database + '.' + table.name) {
+            table.columns.forEach(function (column) {
+              _this.$set(_this.modelDetail.columnsDetail, lookup.alias + '.' + column.name, {
+                name: column.name,
+                datatype: column.datatype,
+                cardinality: table.cardinality[column.name],
+                comment: column.comment})
+            })
+          }
+        })
+      })
+      _this.$set(this.modelDetail, 'lookupTables', lookupTables)
+      _this.$set(this.modelDetail, 'factTables', factTables)
     }
   },
   created () {
-    this.createNewCube()
+    let _this = this
+    _this.createNewCube()
+    if (_this.isEdit) {
+      _this.loadCubeDetail()
+    }
+    _this.loadModelInfo(_this.extraoption.modelName).then((res) => {
+      handleSuccess(res, (data, code, status, msg) => {
+        _this.modelDetail = data.model
+        _this.getTables()
+      })
+    }).catch((res) => {
+      handleError(res, (data, code, status, msg) => {
+        console.log(status, 30000)
+        // if (status === 404) {
+        //   _this.$router.replace('access/login')
+        // }
+      })
+    })
   },
   computed: {
     selected_cube: function () {
@@ -360,11 +630,15 @@ export default {
     }
   },
   locales: {
-    'en': {cubeInfo: 'Cube Info', dimensions: 'Dimensions', measures: 'Measures', refreshSetting: 'Refresh Setting', advancedSetting: 'Advanced Setting', configurationOverwrites: 'Configuration Overwrites', overview: 'Overview', prev: 'Prev', next: 'Next', save: 'Save'},
-    'zh-cn': {cubeInfo: 'Cube信息', dimensions: '维度', measures: '度量', refreshSetting: '更新配置', advancedSetting: '高级设置', configurationOverwrites: '配置覆盖', overview: '概览', prev: 'Prev', next: 'Next', save: 'Save'}
+    'en': {cubeInfo: 'Cube Info', sampleSql: 'Sample Sql', dimensions: 'Dimensions', measures: 'Measures', refreshSetting: 'Refresh Setting', tableIndex: 'Table Index', configurationOverwrites: 'Configuration Overwrites', overview: 'Overview', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: 'The CUBE named [ ', checkCubeNamePartTwo: ' ] already exists!', checkDimensions: 'Dimension can\'t be null!', checkAggGroup: 'Each aggregation group can\'t be empty!', checkMeasuresCount: '[ COUNT] metric is required!', checkRowkeyInt: 'int encoding column length should between 1 and 8!', checkRowkeyShard: 'At most one \'shard by\' column is allowed!', checkColumnFamily: 'All measures need to be assigned to column family!', checkColumnFamilyNull: 'Each column family can\'t not be empty!', checkCOKey: 'Property name is required!', checkCOValue: 'Property value is required!', rawtableSetSorted: 'You must set one column with an index value of sorted! ', rawtableSortedWidthDate: '"sorted" index is only valid with "integer", "time" or "date" encoding! ', rawtableSingleSorted: 'Only one column is allowed to set with an index value of sorted! ', errorMsg: '错误信息'},
+    'zh-cn': {cubeInfo: 'Cube信息', sampleSql: '查询样例', dimensions: '维度', measures: '度量', refreshSetting: '更新配置', tableIndex: '表索引', configurationOverwrites: '配置覆盖', overview: '概览', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: '名为 [ ', checkCubeNamePartTwo: '] 的CUBE已经存在!', checkDimensions: '维度不能为空!', checkAggGroup: '任意聚合组不能为空!', checkMeasuresCount: '[ COUNT] 度量是必须的!', checkRowkeyInt: '编码为int的列的长度应该在1-8之间!', checkRowkeyShard: '最多只允许一个\'shard by\'的列!', checkColumnFamily: '所有度量都需要被分配到列族中!', checkColumnFamilyNull: '任一列族不能为空!', checkCOKey: '属性名不能为空!', checkCOValue: '属性值不能为空!', rawtableSetSorted: '必须设置一个列的index的值为sorted! ', rawtableSortedWidthDate: '只允许编码为integer、date或time的列才能设置index的值为sorted', rawtableSingleSorted: '只允许设置一个列的index的值为sorted', errorMsg: '错误信息'}
   }
 }
 </script>
 <style scoped="">
-
+ .button_right {
+  float: right;
+  margin-left:10px;
+  margin-bottom: 20px;
+ }
 </style>

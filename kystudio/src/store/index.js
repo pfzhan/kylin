@@ -6,12 +6,22 @@ import model from './model'
 import project from './project'
 import cube from './cube'
 import config from './config'
+import kafka from './kafka'
+import user from './user'
+import datasource from './datasource'
+import system from './system'
+import monitor from './monitor'
 
 export default new Vuex.Store({
   modules: {
     model: model,
     project: project,
     cube: cube,
-    config: config
+    config: config,
+    kafka: kafka,
+    user: user,
+    datasource: datasource,
+    system: system,
+    monitor: monitor
   }
 })

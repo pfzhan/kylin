@@ -1,7 +1,16 @@
+@import 'config.less';
+
+body{
+    font-family: Helvetica Neue,Helvetica,PingFang SC,Hiragino Sans GB,Microsoft YaHei,SimSun,sans-serif;
+    overflow: auto;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    color: #2c3e50;
+}
 //common css
 .generate-attr(@n,@attr, @attrName, @i: 1,@k:@i*2) when (@i =< @n) {
   .@{attr}-@{k} {
-    @{attrName}: (@i * 2);
+    @{attrName}:@i*2px!important;
   }
   .generate-attr(@n,@attr, @attrName,(@i + 1));
 }
@@ -14,12 +23,92 @@
 .generate-attr(20,ksd-right,right);
 .generate-attr(20,ksd-bottom,bottom);
 
-.fright{float: right;}
-.fleft{float: left;}
+.ksd-fright{float: right;}
+.ksd-fleft{float: left;}
+.ksd-center{text-align: center;}
+.ksd-left{text-align: left;}
+.ksd-right{text-align: right;}
+.ksd-inline{display: inline-block;}
+.el-message{top: 158px!important;}
+// layout
+.ksd_left_bar{
+   width: 250px;
+   display: inline-block;
+   border-top: solid 1px #d1dbe5;
+}
+.ksd_right_box{
+   position: absolute;
+   left: 250px;
+   top:0;
+   border-left:solid 1px #d1dbe5;
+   border-top: solid 1px #d1dbe5;
+   min-height: 1000px;
+   right: 0;
+}
+a{cursor: pointer;}
+a:-webkit-any-link{color:@base-color;text-decoration:none;}
+a:visited{color:@base-color;text-decoration:none;}
+a:hover{text-decoration: underline;color:@base-color;}
+a:active{color:@base-color;text-decoration:none;}
+.clear {
+  clear: both;
+}
 
+#nprogress div.bar{background-color: #58b7ff;}
+.unselectable {user-select:none;}
+// kystudio  border型tab
+.ksd-border-tab {
+   .el-tabs--border-card{
+      box-shadow:none;
+      border:none;
+      .el-tabs__content{
+        border:solid 1px #d1dbe5;
+        border:solid 1px #d1dbe5;
+        margin-top: -2px;
+      }
+      &>.el-tabs__header{
+        border-bottom: solid 1px #fff;
+        .el-tabs__nav{
+          margin-left: 1px;
+          z-index: 222;
+          // border-left:solid 1px #d1dbe5;
+        }
+        
+        .el-tabs__item {
+          &.is-active{
+            height: 41px;
+            border-top:solid 1px #d1dbe5;
+            border-left:solid 1px #d1dbe5;
+            border-bottom:#fff;
+          }
+          border-top:solid 1px #f1f2f7;
+          border-radius: 5px 5px 0 0;
+        }
+      }
+      
+    }
+}
 
-// .generate-attr(20,ksd-mb);
-// .generate-attr(20,ksd-mt);
-
-// .generate-attr(20,ksd-w);
-// .generate-attr(20,ksd-h);
+// kystudio 非boder型全局tab
+.ksd-common-tab{
+  .el-tabs--card>.el-tabs__header {
+    .el-tabs__item{
+      background-color: #909eb0;
+      margin-right: 10px;
+      z-index: 99;
+      color:#fff;
+      border-radius: 4px 4px 0 0
+    }
+    .el-tabs__item:hover{
+      color:#fff;
+    }
+    .el-tabs__item.is-active{
+      background-color: #50bfff;
+      color:#fff;
+    }
+    .el-tabs__active-bar {
+      background-color: #f1f2f7;
+      margin-left: 10px;
+    }
+  }
+}

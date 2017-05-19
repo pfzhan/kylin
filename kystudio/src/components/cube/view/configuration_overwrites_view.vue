@@ -2,7 +2,7 @@
 <el-card class="box-card">
   <el-row>
     <el-col :span="18">
-      <el-row v-for="property in properties">
+      <el-row v-for="(property, property_index) in properties">
         <el-col :span="9">{{property.key}}</el-col>
         <el-col :span="9">{{property.value}}</el-col>
       </el-row>

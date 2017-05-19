@@ -1,66 +1,581 @@
 <template>
-  <el-form label-position="left" >
-    <el-form-item :label="$t('name')">
-      <el-input  v-model="measure.name"></el-input>
+  <el-form :model="measure" label-position="right" :rules="rules"  label-width="240px" ref="measureForm">
+
+    <el-form-item :label="$t('name')" prop="name">
+      <el-input  v-model="measure.name" class="input_width"></el-input>
     </el-form-item>
+
     <el-form-item :label="$t('expression')">
-      <el-select v-model="measure.function.expression">
+      <el-select v-model="measure.function.expression" class="input_width" @change="changeExpression">
         <el-option
-          v-for="item in expressionsConf"
+          v-for="(item, index) in expressionsConf"
           :label="item"
           :value="item">
         </el-option>
       </el-select>
     </el-form-item>
+
     <el-form-item :label="$t('paramType')" >
-      <el-tag>{{measure.function.parameter.type}}</el-tag>
-    </el-form-item>
-    <el-form-item :label="$t('paramValue')" >
-      <el-select v-model="measure.function.parameter.value">
+      <el-select v-model="measure.function.parameter.type" v-if="measure.function.expression ==='SUM'" class="input_width">
         <el-option
-          v-for="item in expressionsConf"
+          v-for="(item, index) in type"
+          :label="item"
+          :value="item">
+        </el-option>
+      </el-select>     
+      <el-tag v-else>{{getParameterType}}</el-tag> 
+    </el-form-item>
+
+    <el-form-item :label="getValueLab" >
+      <el-select v-model="measure.function.parameter.value" v-if="measure.function.parameter.type !== 'constant'" class="input_width" @change="changeParamValue">
+        <el-option
+          v-for="(item, index) in getParameterValue"
+          :label="item"
+          :value="item">
+          <span style="float: left">{{ item}}</span>
+          <span style="float: right; color: #8492a6; font-size: 13px">{{modelDesc.columnsDetail[item].datatype}}</span>
+        </el-option>
+      </el-select>
+      <el-tag v-else>{{getParameterValue}}</el-tag>   
+    </el-form-item>
+    <el-form-item>
+      <el-checkbox v-model="showDim" v-if="measure.function.parameter.type !== 'constant'">{{$t('includeDimensions')}}</el-checkbox>
+    </el-form-item>
+
+
+    <el-form-item :label="$t('extendedColumn')" v-if="measure.function.expression === 'EXTENDED_COLUMN'">
+      <el-select v-model="measure.function.parameter.value" >
+        <el-option
+          v-for="(item, index) in getAllModelDimColumns()"
+          :label="item"
+          :value="item">
+        </el-option>
+      </el-select>     
+    </el-form-item>     
+
+
+
+    <el-form-item :label="getReturnTypeLab" >
+      <el-tag v-if="measure.function.expression !== 'TOP_N' && measure.function.expression !== 'COUNT_DISTINCT' && measure.function.expression !== 'EXTENDED_COLUMN' && (measure.function.expression !== 'SUM' || measure.function.returntype.indexOf('decimal') > 0)">
+        {{getReturnType}}
+      </el-tag>
+      <el-select v-model="measure.function.returntype" v-if="measure.function.expression === 'COUNT_DISTINCT'">
+        <el-option
+          v-for="(item, index) in distinctDataTypes"
+          :label="item.name"
+          :value="item.value">
+        </el-option>
+      </el-select>
+      <el-select v-model="measure.function.returntype" v-if="measure.function.expression === 'TOP_N'">
+        <el-option
+          v-for="(item, index) in topNTypes"
+          :label="item.name"
+          :value="item.value">
+        </el-option>
+      </el-select>
+      <el-input v-if="measure.function.expression === 'EXTENDED_COLUMN'" v-model="measure.function.returntype">
+      </el-input>
+      <el-row v-if="measure.function.expression === 'SUM'" >
+        <el-row v-if="sumMeasure.type === 'decimal'">
+          <el-col :span="4" >decimal(</el-col>
+          <el-col :span="2"><el-input v-model="sumMeasure.value.precision" ></el-input></el-col>
+          <el-col :span="1">,</el-col>
+          <el-col :span="2"><el-input v-model="sumMeasure.value.decimalPlace" ></el-input></el-col>
+          <el-col :span="1">)</el-col>
+        </el-row>
+        <el-row v-if="sumMeasure.type === 'bigint'">
+         <el-col  :span="4"><el-tag>bigint</el-tag></el-col>
+        </el-row>
+      </el-row>  
+    </el-form-item> 
+
+    <el-form-item v-if="measure.function.expression === 'COUNT_DISTINCT' && measure.function.returntype === 'bitmap'" >
+      <el-checkbox v-model="isReuse" @change="changeReuse">{{$t('reuse')}}</el-checkbox>
+    </el-form-item> 
+
+    <el-form-item v-if="isReuse && measure.function.expression === 'COUNT_DISTINCT' && measure.function.returntype === 'bitmap'" :label="$t('reuse')" >
+      <el-select v-model="reuseColumn">
+        <el-option
+          v-for="(item, key) in getCountDistinctBitMapColumn()"
           :label="item"
           :value="item">
         </el-option>
       </el-select>
-    </el-form-item>   
-    <el-form-item :label="$t('returnType')" >
-      <el-tag>{{measure.function.returntype}}</el-tag>
-    </el-form-item>          
+    </el-form-item> 
+
+    <el-table v-if="measure.function.expression === 'TOP_N' || (measure.function.expression === 'COUNT_DISTINCT' && measure.function.returntype !== 'bitmap')"
+      style="width: 100%"
+      :data="convertedColumns">
+      <el-table-column
+        :label="$t('ID')"
+        width="50">
+        <template scope="scope">
+          <el-tag>{{scope.$index+1}}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column
+        :label="$t('column')">
+        <template scope="scope">
+          <el-select v-model="scope.row.column">
+           <el-option   
+            v-for="(item, index) in getAllModelDimColumns()"
+            :label="item"
+            :value="item">
+            </el-option>
+          </el-select>
+        </template>
+      </el-table-column>
+      <el-table-column v-if="measure.function.expression === 'TOP_N'"
+        :label="$t('encoding')"
+        width="180">
+        <template scope="scope">
+          <el-select v-model="scope.row.encoding">
+            <el-option
+              v-for="(item, index) in initEncodingType(scope.row)"
+              :label="item.name"
+              :value="item.name + ':' + item.version">
+              <el-tooltip effect="light" :content="$t($store.state.config.encodingTip[item.name])" placement="left">
+                <span style="float: left;width: 90%">{{ item.name }}</span>
+                <span style="float: right;width: 10%; color: #8492a6; font-size: 13px" v-if="item.version>1">{{ item.version }}</span>
+              </el-tooltip>
+          </el-option>              
+        </el-select>
+      </template>
+      </el-table-column>
+      <el-table-column v-if="measure.function.expression === 'TOP_N'"
+        :label="$t('length')"
+        width="100">
+        <template scope="scope">
+          <el-input v-model="scope.row.valueLength"  :disabled="scope.row.encoding.indexOf('dict')>=0||scope.row.encoding.indexOf('date')>=0||scope.row.encoding.indexOf('time')>=0"></el-input>     
+        </template>  
+      </el-table-column>
+      <el-table-column
+        width="50">
+        <template scope="scope">
+          <el-button type="primary" icon="minus" size="mini" @click="removeProperty(scope.$index)"></el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+    <el-row v-if="measure.function.expression === 'TOP_N' || (measure.function.expression === 'COUNT_DISTINCT' && measure.function.returntype !== 'bitmap') ">
+     <el-col :span="24" >
+    <el-button type="primary" icon="plus" size="mini" @click="addNewProperty">
+      {{$t('newColumn')}}
+    </el-button>
+    </el-col>
+  </el-row>
   </el-form>
 </template>
 <script>
+import { loadBaseEncodings } from '../../../util/business'
+import { objectClone } from '../../../util/index'
 export default {
   name: 'add_measure',
-  props: ['measureDesc', 'modelDesc'],
+  props: ['measureDesc', 'modelDesc', 'cubeDesc'],
   data () {
     return {
-      measure: Object.assign({}, this.measureDesc),
-      expressionsConf: ['SUM', 'MIN', 'MAX', 'COUNT', 'COUNT_DISTINCT', 'TOP_N', 'RAW', 'EXTENDED_COLUMN', 'PERCENTILE']
+      measure: objectClone(this.measureDesc),
+      expressionsConf: ['SUM', 'MIN', 'MAX', 'COUNT', 'COUNT_DISTINCT', 'TOP_N', 'RAW', 'EXTENDED_COLUMN', 'PERCENTILE'],
+      type: ['constant', 'column'],
+      showDim: false,
+      isReuse: false,
+      reuseColumn: '',
+      isEdit: 'false',
+      convertedColumns: [],
+      sumMeasure: {
+        type: '',
+        value: {
+          precision: 19,
+          decimalPlace: 4
+        }
+      },
+      distinctDataTypes: [
+        {name: 'Error Rate < 9.75%', value: 'hllc(10)'},
+        {name: 'Error Rate < 4.88%', value: 'hllc(12)'},
+        {name: 'Error Rate < 2.44%', value: 'hllc(14)'},
+        {name: 'Error Rate < 1.72%', value: 'hllc(15)'},
+        {name: 'Error Rate < 1.22%', value: 'hllc(16)'},
+        {name: 'Precisely', value: 'bitmap'}
+      ],
+      topNTypes: [
+        {name: 'Top 10', value: 'topn(10)'},
+        {name: 'Top 100', value: 'topn(100)'},
+        {name: 'Top 1000', value: 'topn(1000)'}
+      ],
+      rules: {
+        name: [
+            { required: true, message: '', trigger: 'blur' }
+        ]
+      }
     }
   },
   methods: {
-    removeProperty (index) {
-      console.log('322')
+    inModelDimensions: function () {
+      let _this = this
+      if (_this.measure.function.parameter.value) {
+        _this.isEdit = true
+        if (_this.modelDesc.metrics && _this.modelDesc.metrics.indexOf(_this.measure.function.parameter.value) !== -1) {
+          _this.showDim = false
+        } else {
+          _this.showDim = true
+        }
+      } else {
+        _this.showDim = false
+        _this.sumMeasure.type = ''
+      }
     },
-    addNewProperty () {
-      console.log('222')
+    getExtendedHostColumn: function () {
+      let columns = []
+      let _this = this
+      _this.cubeDesc.dimensions.forEach(function (dimension, index) {
+        if (_this.modelDesc.factTables.indexOf(dimension.table) === -1) {
+          return
+        }
+        if (dimension.column && dimension.derived == null) {
+          columns.push(dimension.table + '.' + dimension.column)
+        }
+      })
+      return columns
+    },
+    getCommonMetricColumns: function () {
+      let columns = []
+      if (this.modelDesc.metrics) {
+        this.modelDesc.metrics.forEach(function (metric, index) {
+          columns.push(metric)
+        })
+      }
+      return columns
+    },
+    getAllModelDimMeasureColumns: function () {
+      let columns = []
+      this.modelDesc.dimensions.forEach(function (dimension, index) {
+        if (dimension.columns) {
+          dimension.columns.forEach(function (column) {
+            columns = columns.concat(dimension.table + '.' + column)
+          })
+        }
+      })
+      if (this.modelDesc.metricss) {
+        this.modelDesc.metrics.forEach(function (metric, index) {
+          columns.push(metric)
+        })
+      }
+      return columns
+    },
+    getAllModelDimColumns: function () {
+      let columns = []
+      this.modelDesc.dimensions.forEach(function (dimension, index) {
+        if (dimension.columns) {
+          dimension.columns.forEach(function (column) {
+            columns.push(dimension.table + '.' + column)
+          })
+        }
+      })
+      return columns
+    },
+    initExtendedColumn: function () {
+      let _this = this
+      _this.convertedColumns.splice(0, _this.convertedColumns.length)
+      if (_this.measure.function.expression === 'EXTENDED_COLUMN') {
+        let returnValue = (/\((\d+)(,\d+)?\)/).exec(_this.measure.function.returntype)
+        _this.measure.function.returntype = returnValue[1]
+      }
+    },
+    initSumColumn: function () {
+      let _this = this
+      if (_this.measure.function.expression === 'SUM' && _this.measure.function.parameter.type === 'column') {
+        let returnValue = _this.measure.function.returntype.match(RegExp('^.*?\\((\\d+)\\,(\\d+)\\)$'))
+        if (returnValue) {
+          _this.sumMeasure.type = 'decimal'
+          _this.sumMeasure.value.precision = returnValue[1]
+          _this.sumMeasure.value.decimalPlace = returnValue[2]
+        } else {
+          _this.sumMeasure.type = 'bigint'
+        }
+      }
+    },
+    initCountDistinctColumn: function () {
+      let _this = this
+      if (_this.measure.function.expression === 'COUNT_DISTINCT') {
+        if (_this.cubeDesc.dictionaries) {
+          _this.cubeDesc.dictionaries.forEach(function (dictionary) {
+            if (dictionary.reuse && dictionary.column === _this.measure.function.parameter.value) {
+              _this.reuseColumn = dictionary.reuse
+              _this.isReuse = true
+            } else {
+              _this.isReuse = false
+              _this.reuseColumn = ''
+            }
+          })
+        }
+        if (_this.measure.function.parameter.next_parameter) {
+          this.recursion(_this.measure.function.parameter.next_parameter, this.convertedColumns)
+        }
+      }
+    },
+    getCountDistinctBitMapColumn: function () {
+      let columns = []
+      if (this.cubeDesc.measures) {
+        this.cubeDesc.measures.forEach(function (metric, index) {
+          if (metric.function.expression === 'COUNT_DISTINCT' && metric.function.returntype === 'bitmap') {
+            columns.push(metric.function.parameter.value)
+          }
+        })
+      }
+      return columns
+    },
+    initGroupByColumn: function () {
+      let _this = this
+      if (_this.measure.function.configuration && _this.measure.function.expression === 'TOP_N') {
+        let returnValue = (/\((\d+)(,\d+)?\)/).exec(_this.measure.function.returntype)
+        _this.measure.function.returntype = 'topn(' + returnValue[1] + ')'
+        if (_this.measure.function.parameter.next_parameter) {
+          _this.recursion(_this.measure.function.parameter.next_parameter, this.convertedColumns)
+          this.convertedColumns.forEach(function (column) {
+            let item = _this.measure.function.configuration['topn.encoding.' + column.column]
+            let _encoding = _this.getEncoding(item)
+            let _valueLength = _this.getLength(item)
+            let version = _this.measure.function.configuration['topn.encoding_version.' + column.column] || 1
+            _this.$set(column, 'encoding', _encoding + ':' + version)
+            _this.$set(column, 'valueLength', _valueLength)
+          })
+        }
+      }
+    },
+    initEncodingType: function (column) {
+      let _this = this
+      let baseEncodings = loadBaseEncodings(_this.$store.state.datasource)
+      if (column.column) {
+        let _this = this
+        let datatype = _this.modelDesc.columnsDetail[column.column].datatype
+        let filterEncodings = baseEncodings.filterByColumnType(datatype)
+        if (this.isEdit) {
+          let _encoding = _this.getEncoding(column.encoding)
+          let _version = parseInt(_this.getVersion(column.encoding))
+          let addEncodings = baseEncodings.addEncoding(_encoding, _version)
+          return addEncodings
+        } else {
+          return filterEncodings
+        }
+      } else {
+        return [{name: 'dict', version: baseEncodings.getEncodingMaxVersion('dict')}]
+      }
+    },
+    getEncoding: function (encode) {
+      let code = encode.split(':')
+      return code[0]
+    },
+    getLength: function (encode) {
+      let code = encode.split(':')
+      return code[1]
+    },
+    getVersion: function (encode) {
+      let code = encode.split(':')
+      return code[1]
+    },
+    removeProperty: function (index) {
+      this.convertedColumns.splice(index, 1)
+    },
+    addNewProperty: function () {
+      let _this = this
+      if (_this.measure.function.expression === 'TOP_N') {
+        let baseEncodings = loadBaseEncodings(_this.$store.state.datasource)
+        let GroupBy = {
+          column: '',
+          encoding: 'dict:' + baseEncodings.getEncodingMaxVersion('dict'),
+          valueLength: 0
+        }
+        _this.convertedColumns.push(GroupBy)
+      } else {
+        let GroupBy = {
+          column: ''
+        }
+        _this.convertedColumns.push(GroupBy)
+      }
+    },
+    recursion: function (parameter, list) {
+      let _this = this
+      list.push({column: parameter.value})
+      if (parameter.next_parameter) {
+        _this.recursion(parameter.next_parameter, list)
+      } else {
+        return
+      }
+    },
+    changeReuse: function () {
+      if (this.isReuse === false) {
+        this.reuseColumn = ''
+      }
+    },
+    changeExpression: function () {
+      if (this.measure.function.expression === 'TOP_N') {
+        this.measure.function.returntype = 'topn(100)'
+      }
+      if (this.measure.function.expression === 'COUNT_DISTINCT') {
+        this.measure.function.returntype = 'hllc(10)'
+      }
+      if (this.measure.function.expression === 'EXTENDED_COLUMN') {
+        this.measure.function.returntype = '100'
+      }
+      if (this.measure.function.expression === 'EXTENDED_COLUMN') {
+        this.measure.function.returntype = 100
+      }
+      if (this.measure.function.expression === 'SUM') {
+        if (this.measure.function.parameter.value !== '') {
+          let colType = this.modelDesc.columnsDetail[this.measure.function.parameter.value].datatype
+          if (colType === 'smallint' || colType === 'int' || colType === 'bigint' || colType === 'integer' || colType === 'tinyint') {
+            this.sumMeasure.type = 'bigint'
+          } else {
+            this.sumMeasure.type = 'decimal'
+            if (colType.indexOf('decimal') !== -1 || colType === 'double' || colType === 'float') {
+              this.sumMeasure.value.precision = 19
+              this.sumMeasure.value.decimalPlace = 4
+            } else {
+              this.sumMeasure.value.precision = 14
+              this.sumMeasure.value.decimalPlace = 0
+            }
+          }
+        }
+      }
+    },
+    changeParamValue: function () {
+      if (this.measure.function.expression === 'SUM' && this.measure.function.parameter.value !== '' && this.measure.function.parameter.type === 'column') {
+        let colType = this.modelDesc.columnsDetail[this.measure.function.parameter.value].datatype
+        if (colType === 'smallint' || colType === 'int' || colType === 'bigint' || colType === 'integer' || colType === 'tinyint') {
+          this.sumMeasure.type = 'bigint'
+        } else {
+          this.sumMeasure.type = 'decimal'
+          if (colType.indexOf('decimal') !== -1 || colType === 'double' || colType === 'float') {
+            this.sumMeasure.value.precision = 19
+            this.sumMeasure.value.decimalPlace = 4
+          } else {
+            this.sumMeasure.value.precision = 14
+            this.sumMeasure.value.decimalPlace = 0
+          }
+        }
+      }
+    },
+    initHiddenFeature: function () {
+      if (this.$store.state.config.hiddenFeature.raw_measure === true) {
+        this.expressionsConf.splice(this.expressionsConf.indexOf('RAW'), 1)
+      }
+      if (this.$store.state.config.hiddenFeature.extendedcolumn_measure === true) {
+        this.expressionsConf.splice(this.expressionsConf.indexOf('EXTENDED_COLUMN'), 1)
+      }
+    }
+  },
+  computed: {
+    getValueLab: function () {
+      if (this.measure.function.expression === 'EXTENDED_COLUMN') {
+        return this.$t('hostColumn')
+      } else if (this.measure.function.expression === 'TOP_N') {
+        return this.$t('ORDERSUM')
+      } else {
+        return this.$t('paramValue')
+      }
+    },
+    getReturnTypeLab: function () {
+      if (this.measure.function.expression === 'EXTENDED_COLUMN') {
+        return this.$t('extendedColumnLength')
+      } else {
+        return this.$t('returnType')
+      }
+    },
+    getParameterType: function () {
+      if (this.measure.function.expression !== 'COUNT') {
+        this.measure.function.parameter.type = 'column'
+      } else {
+        this.measure.function.parameter.type = 'constant'
+      }
+      return this.measure.function.parameter.type
+    },
+    getParameterValue: function () {
+      if (this.measure.function.parameter.type === 'constant') {
+        this.measure.function.parameter.value = 1
+        return this.measure.function.parameter.value
+      }
+      if (this.measure.function.expression === 'EXTENDED_COLUMN') {
+        return this.getExtendedHostColumn()
+      } else {
+        if (this.showDim === true) {
+          return this.getAllModelDimMeasureColumns()
+        }
+        if (this.showDim === false) {
+          return this.getCommonMetricColumns()
+        }
+      }
+    },
+    getReturnType: function () {
+      if (this.measure.function.parameter.type === 'constant') {
+        switch (this.measure.function.expression) {
+          case 'SUM':
+            this.measure.function.returntype = 'bigint'
+            break
+          case 'COUNT':
+            this.measure.function.returntype = 'bigint'
+            break
+          default:
+            this.measure.function.returntype = ''
+            break
+        }
+      }
+      if (this.measure.function.parameter.value !== '' && this.measure.function.parameter.type === 'column' && this.measure.function.expression !== 'COUNT_DISTINCT') {
+        let colType = this.modelDesc.columnsDetail[this.measure.function.parameter.value].datatype
+        switch (this.measure.function.expression) {
+          case 'MIN':
+            this.measure.function.returntype = colType
+            break
+          case 'MAX':
+            this.measure.function.returntype = colType
+            break
+          case 'RAW':
+            this.measure.function.returntype = 'raw'
+            break
+          case 'PERCENTILE':
+            this.measure.function.returntype = 'percentile(100)'
+            break
+          default:
+            this.measure.function.returntype = ''
+            break
+        }
+      }
+      return this.measure.function.returntype
     }
   },
   watch: {
     measureDesc (measureDesc) {
-      this.measure = Object.assign({}, this.measureDesc)
+      this.measure = objectClone(this.measureDesc)
+      this.inModelDimensions()
+      this.initHiddenFeature()
+      this.initSumColumn()
+      this.initExtendedColumn()
+      this.initGroupByColumn()
+      this.initCountDistinctColumn()
     }
   },
   created () {
-    console.log(this.measure)
+    let _this = this
+    this.inModelDimensions()
+    this.initHiddenFeature()
+    this.initSumColumn()
+    this.initExtendedColumn()
+    this.initGroupByColumn()
+    this.initCountDistinctColumn()
+    this.$on('measureFormValid', (t) => {
+      _this.$refs['measureForm'].validate((valid) => {
+        if (valid) {
+          _this.$emit('validSuccess', {measure: _this.measure, convertedColumns: _this.convertedColumns, reuseColumn: _this.reuseColumn, sumMeasure: _this.sumMeasure})
+        }
+      })
+    })
   },
   locales: {
-    'en': {name: 'Name', expression: 'Expression', paramType: 'Param Type', paramValue: 'Param Value', returnType: 'Return Type', includeDimensions: 'Include Dimensions'},
-    'zh-cn': {name: '名称', expression: '表达式', paramType: '参数类型', paramValue: '参数值', returnType: '返回类型', includeDimensions: '包含维度'}
+    'en': {name: 'Name', expression: 'Expression', paramType: 'Param Type', paramValue: 'Param Value', returnType: 'Return Type', includeDimensions: 'Include Dimensions', ORDERSUM: 'ORDER|SUM by Column', groupByColumn: 'Group by Column', ID: 'ID', column: 'Column', encoding: 'Encoding', length: 'Length', hostColumn: 'Host column On Fact Table', extendedColumn: 'Extended column On Fact Table', extendedColumnLength: 'Maximum length of extended column', reuse: 'Reuse', newColumn: 'New Column'},
+    'zh-cn': {name: '名称', expression: '表达式', paramType: '参数类型', paramValue: '参数值', returnType: '返回类型', includeDimensions: '包含维度', ORDERSUM: 'ORDER|SUM by Column', groupByColumn: 'Group by Column', ID: 'ID', column: '列', encoding: '编码', length: '长度', hostColumn: 'Host column On Fact Table', extendedColumn: 'Extended column On Fact Table', extendedColumnLength: 'Maximum length of extended column', reuse: '复用', newColumn: '新加列'}
   }
 }
 </script>
-<style scoped="">
-
+<style scoped>
+ .input_width{
+  width: 80%
+ }
 </style>

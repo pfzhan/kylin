@@ -1,0 +1,633 @@
+<template>
+<div class="jobs_list" @click.stop>
+  <el-row :gutter="20">
+    <el-col :span="4">
+      <el-input
+        icon="search"
+        v-model="filterCubeName"
+        :on-icon-click="refreshFilter">
+      </el-input>
+    </el-col>
+    <el-col :span="4" :offset="2">
+      <el-select v-model="filterTimeZone" @change="refreshFilter">
+        <el-option
+        v-for="(item, item_index) in timeFilter"
+        :label="$t(item.name)"
+        :value="item.value">
+        </el-option>
+      </el-select>
+    </el-col>
+    <el-col :span="14">
+      <el-checkbox-group v-model="filterStatus" @change="refreshFilter">
+        <el-checkbox :label="status.value" v-for="(status, status_index) in allStatus">{{$t(status.name)}}</el-checkbox>
+      </el-checkbox-group>
+    </el-col>
+  </el-row>
+
+    <el-table
+    border class="table_margin"
+    :data="jobsList"
+    style="width:100%"
+    highlight-current-row
+    @row-click="showLineSteps"
+    >
+      <el-table-column
+      :label="$t('JobName')">
+        <template scope="scope">
+          <i class="el-icon-arrow-right" ></i>{{scope.row.name}}
+        </template>
+      </el-table-column>
+      <el-table-column
+      :label="$t('TableModelCube')"
+      prop="related_cube">
+      </el-table-column>
+      <el-table-column
+      :label="$t('ProgressStatus')"
+      width="180">
+        <template scope="scope">
+          <el-progress  :percentage="scope.row.progress" v-if="scope.row.progress === 100" status="success">
+          </el-progress>
+          <el-progress  :percentage="scope.row.progress"  v-else>
+          </el-progress>
+        </template>
+      </el-table-column>
+      <el-table-column
+        :label="$t('LastModifiedTime')"
+        width="170">
+        <template scope="scope">
+        {{scope.row.last_modified|utcTime}}
+        </template>
+      </el-table-column>
+      <el-table-column
+        :label="$t('Duration')"
+        width="110">
+        <template scope="scope">
+          {{scope.row.duration/60 | number(2) }}  mins
+        </template>
+      </el-table-column>
+      <el-table-column
+        :label="$t('Actions')"
+        width="100">
+        <template scope="scope">
+          <el-dropdown trigger="click">
+            <el-button class="el-dropdown-link" @click.stop>
+              <i class="el-icon-more"></i>
+            </el-button>
+            <el-dropdown-menu slot="dropdown">
+              <el-dropdown-item @click.native="resume(scope.row)">{{$t('jobResume')}}</el-dropdown-item>
+              <el-dropdown-item @click.native="discard(scope.row)">{{$t('jobDiscard')}}</el-dropdown-item>
+              <el-dropdown-item @click.native="pause(scope.row)">{{$t('jobPause')}}</el-dropdown-item>
+              <el-dropdown-item @click.native="diagnosis(scope.row)">{{$t('jobDiagnosis')}}</el-dropdown-item>
+              <el-dropdown-item @click.native="drop(scope.row)">{{$t('jobDrop')}}</el-dropdown-item>
+            </el-dropdown-menu>
+          </el-dropdown>
+        </template>
+      </el-table-column>
+    </el-table>
+
+
+<pager :totalSize="jobTotal"  v-on:handleCurrentChange='currentChange' ref="jobPager" ></pager>
+
+  <el-card v-if="showStep" class="card-width job-step">
+
+          <div class="timeline-item">
+            <div class="timeline-body">
+              <table class="table table-striped table-bordered" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td class="single-line"><b>Job Name</b></td>
+                  <td style="max-width: 180px;word-wrap: break-word;word-break: normal;">
+                    {{selected_job.name}}
+                  </td>
+                </tr>
+                <tr>
+                  <td>Job ID</td>
+                  <td class="single-line">
+                    {{selected_job.uuid}}
+                  </td>
+                </tr>
+                <tr>
+                   <td>Status</td>
+                  <td>
+                    <el-tag 
+                    :type="getJobStatusTag">
+                        {{selected_job.job_status}}
+                      </el-tag>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Duration</td>
+                  <td>{{selected_job.duration/60 | number(2)}}mins</td>
+                </tr>
+                <tr>
+                  <td>MapReduce Waiting</td>
+                  <td>{{selected_job.mr_waiting/60 | number(2)}} mins</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </li>
+    <p class="blue time-hd">
+      Job activity
+    </p>
+    <ul class="timeline">
+      
+        <!--Start Label-->
+        <!-- <li class="time-label">
+            <span class="bg-blue">
+                <b>Start &nbsp;&nbsp;{{(selected_job.steps[0].exec_start_time !=0 ? selected_job.steps[0].exec_start_time :'') | utcTime}}</b>
+            </span>
+        </li> -->
+
+        <li v-for="(step, index) in selected_job.steps">
+          <el-popover
+           placement="left"
+           width="300"
+           trigger="hover">
+            <i slot="reference"
+            :class="{
+              'fa el-icon-more bg-gray' : step.step_status=='PENDING',
+              'fa el-icon-loading bg-aqua' : step.step_status=='WAITING' || step.step_status=='RUNNING',
+              'fa el-icon-check bg-green' : step.step_status=='FINISHED',
+              'fa el-icon-warning bg-red' : step.step_status=='ERROR',
+              'fa el-icon-minus bg-navy' : step.step_status=='DISCARDED'
+            }">
+            </i>
+            <ul >
+              <li>SequenceID: {{step.sequence_id}}</li>
+              <li>Status: {{step.step_status}}</li>
+              <li>Duration: {{timerline_duration(step)}}</li>
+              <li>Waiting: {{ step.exec_wait_time | tofixedTimer(2)}}</li>
+              <li>Start At: {{(step.exec_start_time !=0 ? step.exec_start_time:'') | utcTime}}</li>
+              <li>End At: {{(step.exec_end_time !=0 ? step.exec_end_time :'') | utcTime}}</li>
+              <li v-if="step.info.hdfs_bytes_written">Data Size: <span class="blue">{{ step.info.hdfs_bytes_written}}</span></li>
+              <li v-if="step.info.mr_job_id">MR Job: {{step.info.mr_job_id}}</li>
+            </ul>
+          </el-popover>
+
+          <div class="timeline-item timer-line">
+            <div class="timeline-header ">
+              <p class="stepname single-line">{{step.name}}</p>
+            </div>
+            <div class="timeline-body">
+              <!-- <span style="color: #4383B4">#{{index+1}} Step Name: </span>{{step.name}}<br> -->
+              <p class="steptime">
+                <i class="el-icon-time"></i>
+                {{(step.exec_start_time!=0? step.exec_start_time: '')|utcTime}}
+              </p>
+              
+              <div v-if="step.info.hdfs_bytes_written">
+                <span>Data Size: </span>
+                <span class="blue">{{step.info.hdfs_bytes_written|dataSize}}</span>
+                <!-- <br /> -->
+              </div>
+              <span>Duration: </span>
+                <span class="blue">{{timerline_duration(step)}}</span><br />
+              <span>Waiting: </span>
+                <span class="blue">{{step.exec_wait_time | tofixedTimer(2)}}</span><br />
+            </div>
+            <div class="timeline-footer">
+             <el-button v-if="step.exec_cmd"  :plain="true" @click.native="clickKey(step)" size="mini">
+                <icon name="key" ></icon>
+              </el-button>
+              <el-button v-if="step.step_status!='PENDING'"  :plain="true" @click.native="clickFile(step)" size="mini">
+                <icon name="file" ></icon>
+              </el-button>
+              <el-button v-if="step.info.yarn_application_tracking_url"  :plain="true"  size="mini">
+                <a :href="step.info.yarn_application_tracking_url" target="_blank"
+                       tooltip="MRJob">
+                <icon name="tasks" ></icon>
+              </a>
+              </el-button>
+
+              <a  target="_blank" tooltip="Monitoring">
+                <i class="ace-icon fa fa-chain grey bigger-110"></i>
+              </a>
+            </div>
+          </div>
+        </li>
+        <!-- <li class="time-label">
+          <span class="bg-blue">
+            <b>End &nbsp;&nbsp; {{(selected_job.steps[selected_job.steps.length-1].exec_end_time !=0 ? (selected_job.steps[selected_job.steps.length-1].exec_end_time) :'') | utcTime }}</b>
+          </span>
+        </li> -->
+      </ul>
+      <div class='jobBtn' @click='showStep=false'><i class='el-icon-caret-right' aria-hidden='true'></i>
+      </div>
+    </el-card>
+
+  <el-dialog :title="stepAttrToShow == 'cmd' ? $t('parameters') : $t('output')" v-model="dialogVisible" size="small">
+  <job_dialog :stepDetail="outputDetail"></job_dialog>
+  <span slot="footer" class="dialog-footer">
+    <el-button type="primary" @click="dialogVisible = false">Close</el-button>
+  </span>
+</el-dialog>
+</div>
+</template>
+
+<script>
+import { mapActions } from 'vuex'
+import jobDialog from './job_dialog'
+import { pageCount } from '../../config'
+export default {
+  name: 'jobslist',
+  data () {
+    return {
+      project: localStorage.getItem('selected_project'),
+      filterCubeName: '',
+      filterStatus: [],
+      filterTimeZone: 1,
+      currentPage: 1,
+      interval: null,
+      showStep: false,
+      selected_job: {},
+      dialogVisible: false,
+      outputDetail: '',
+      stepAttrToShow: '',
+      allStatus: [
+        {name: 'NEW', value: 0},
+        {name: 'PENDING', value: 1},
+        {name: 'RUNNING', value: 2},
+        {name: 'FINISHED', value: 4},
+        {name: 'ERROR', value: 8},
+        {name: 'DISCARDED', value: 16},
+        {name: 'STOPPED', value: 32}
+      ],
+      pageSize: 1,
+      timeFilter: [
+        {name: 'LASTONEDAY', value: 0},
+        {name: 'LASTONEWEEK', value: 1},
+        {name: 'LASTONEMONTH', value: 2},
+        {name: 'LASTONEYEAR', value: 3},
+        {name: 'ALL', value: 4}
+      ]
+    }
+  },
+  components: {
+    'job_dialog': jobDialog
+  },
+  created () {
+    let _this = this
+    _this.loadJobsList({pageSize: pageCount, pageOffset: 0, projectName: _this.project, timeFilter: 2}).then(() => {
+  //    _this.interval = setInterval(function () { _this.refreshJobs() }, 5000)
+    }).catch(() => {
+    })
+  },
+  mounted () {
+    window.addEventListener('click', this.closeIt)
+  },
+  beforeDestroy () {
+    window.clearInterval(this.interval)
+    window.removeEventListener('click', this.closeIt)
+  },
+  computed: {
+    jobsList () {
+      return this.$store.state.monitor.jobsList
+    },
+    jobTotal () {
+      return this.$store.state.monitor.totalJobs
+    },
+    getJobStatusTag () {
+      if (this.selected_job.job_status === 'PENDING') {
+        return 'gray'
+      }
+      if (this.selected_job.job_status === 'RUNNING') {
+        return 'primary'
+      }
+      if (this.selected_job.job_status === 'FINISHED') {
+        return 'success'
+      }
+      if (this.selected_job.job_status === 'ERROR') {
+        return 'danger'
+      }
+      if (this.selected_job.job_status === 'DISCARDED') {
+        return ''
+      }
+    }
+  },
+  methods: {
+    ...mapActions({
+      loadJobsList: 'LOAD_JOBS_LIST',
+      loadStepOutputs: 'LOAD_STEP_OUTPUTS',
+      removeJob: 'REMOVE_JOB',
+      pauseJob: 'PAUSE_JOB',
+      cancelJob: 'CANCEL_JOB',
+      resumeJob: 'RESUME_JOB'
+    }),
+    currentChange: function (val) {
+      this.currentPage = val
+      this.refreshFilter()
+    },
+    closeIt () {
+      if (this.showStep) {
+        this.showStep = false
+      }
+    },
+    refreshFilter: function () {
+      let filter = {
+        pageOffset: this.currentPage - 1,
+        pageSize: pageCount,
+        projectName: this.project,
+        timeFilter: this.filterTimeZone
+      }
+      if (this.filterCubeName) {
+        this.$set(filter, 'cubeName', this.filterCubeName)
+      }
+      if (this.filterStatus.length > 0) {
+        this.$set(filter, 'status', this.filterStatus)
+      }
+      this.loadJobsList(filter)
+    },
+    refreshJobs: function () {
+      let setting = {
+        pageOffset: this.currentPage - 1,
+        pageSize: pageCount,
+        projectName: this.project,
+        timeFilter: this.filterTimeZone
+      }
+      if (this.filterCubeName) {
+        this.$set(setting, 'cubeName', this.filterCubeName)
+      }
+      if (this.filterStatus.length > 0) {
+        this.$set(setting, 'status', this.filterStatus)
+      }
+      this.loadJobsList(setting)
+    },
+    resume: function (job) {
+      this.$confirm(this.$t('resumeJob'), '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        this.refreshJob().then(() => {
+        }).catch(() => {
+        })
+      }).catch(() => {
+      })
+    },
+    discard: function (job) {
+      this.$confirm(this.$t('discardJob'), '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        this.cancelJob().then(() => {
+        }).catch(() => {
+        })
+      }).catch(() => {
+      })
+    },
+    pause: function (job) {
+      this.$confirm(this.$t('pauseJob'), '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        this.pauseJob().then(() => {
+        }).catch(() => {
+        })
+      }).catch(() => {
+      })
+    },
+    diagnosis: function (job) {
+      console.log('lll')
+    },
+    drop: function (job) {
+      this.$confirm(this.$t('dropJob'), '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        this.removeJob().then(() => {
+        }).catch(() => {
+        })
+      }).catch(() => {
+      })
+    },
+    showLineSteps: function (row, v1, v2) {
+      this.selected_job = row
+      this.showStep = true
+    },
+    clickKey: function (step) {
+      this.stepAttrToShow = 'cmd'
+      this.outputDetail = step.exec_cmd
+      this.dialogVisible = true
+    },
+    clickFile: function (step) {
+      this.stepAttrToShow = 'output'
+      this.dialogVisible = true
+      this.outputDetail = this.$t('load')
+      this.loadStepOutputs({jobID: this.selected_job.uuid, stepID: step.id}).then((result) => {
+        this.outputDetail = result.body.data.cmd_output
+      }).catch((result) => {
+        this.outputDetail = this.$t('cmdOutput')
+      })
+    },
+    timerline_duration (step) {
+      let min = 0
+      if (!step.exec_start_time || !step.exec_end_time) {
+        return '0 seconds'
+      } else {
+        min = (step.exec_end_time - step.exec_start_time) / 1000 / 60
+        return min.toFixed(2) + ' mins'
+      }
+    }
+  },
+  locales: {
+    'en': {JobName: 'Job Name', TableModelCube: 'Table/Model/Cube', ProgressStatus: 'Progress/Statu', LastModifiedTime: 'Last Modified Time', Duration: 'Duration', Actions: 'Actions', jobResume: 'Resume', jobDiscard: 'Discard', jobPause: 'Pause', jobDiagnosis: 'Diagnosis', jobDrop: 'Drop', tip_jobDiagnosis: 'Download Diagnosis Info For This Job', tip_jobResume: 'Resume the Job', tip_jobPause: 'Pause the Job', tip_jobDiscard: 'Discard the Job', cubeName: 'Cube Name', NEW: 'NEW', PENDING: 'PENDING', RUNNING: 'RUNNING', FINISHED: 'FINISHED', ERROR: 'ERROR', DISCARDED: 'DISCARDED', STOPPED: 'STOPPED', LASTONEDAY: 'LAST ONE DAY', LASTONEWEEK: 'LAST ONE WEEK', LASTONEMONTH: 'LAST ONE MONTH', LASTONEYEAR: 'LAST ONE YEAR', ALL: 'ALL', parameters: 'Parameters', output: 'Output', load: 'Loading ... ', cmdOutput: 'cmd_output', resumeJob: 'Are you sure to resume the job?', discardJob: 'Are you sure to discard the job?', pauseJob: 'Are you sure to pause the job?', dropJob: 'Are you sure to drop the job?'},
+    'zh-cn': {JobName: '任务', TableModelCube: '表/模型/Cube', ProgressStatus: '进度/状态', LastModifiedTime: '最后修改时间', Duration: '耗时', Actions: '操作', jobResume: '恢复', jobDiscard: '终止', jobPause: '暂停', jobDiagnosis: '诊断', jobDrop: '删除', tip_jobDiagnosis: '下载Job诊断包', tip_jobResume: '恢复Job', tip_jobPause: '暂停Job', tip_jobDiscard: '终止Job', cubeName: 'Cube 名称', NEW: '新建', PENDING: '等待', RUNNING: '运行', FINISHED: '完成', ERROR: '错误', DISCARDED: '无效', STOPPED: '暂停', LASTONEDAY: '最近一天', LASTONEWEEK: '最近一周', LASTONEMONTH: '最近一月', LASTONEYEAR: '最近一年', ALL: '所有', parameters: '参数', output: '输出', load: '下载中 ... ', cmdOutput: 'cmd_output', resumeJob: '确定要恢复任务?', discardJob: '确定要抛弃任务?', pauseJob: '确定要暂停任务?', dropJob: '确定要删除任务?'}
+  }
+}
+</script>
+<style lang="less">
+li {
+  list-style-type:none;
+}
+.timeline {
+  position: relative;
+  margin: 0 0 30px 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+.timeline:before {
+  content: '';
+  position: absolute;
+  top: 0px;
+  bottom: 0;
+  width: 4px;
+  background: #ddd;
+  left: 13px;
+  margin: 0;
+  border-radius: 2px;
+}
+
+.timeline > li {
+  position: relative;
+  margin-right: 10px;
+  margin-bottom: 15px;
+}
+.timeline > li:before,
+.timeline > li:after {
+  content: " ";
+  display: table;
+}
+.timeline > li:after {
+  clear: both;
+}
+.timeline > li > .timeline-item {
+  position: relative;
+  margin-top: 0px;
+  margin-left: 60px;
+  padding: 0;
+  background: #fff;
+  color: #444;
+  border-radius: 3px;
+}
+.timeline > li > .timeline-item > .time {
+  float: right;
+  padding: 10px;
+  color: #999;
+  font-size: 12px;
+}
+.timeline > li > .timeline-item > .timeline-header {
+  margin: 0;
+  color: #555;
+  padding: 2x 10px 0;
+  font-size: 16px;
+  line-height: 1.1;
+}
+.timeline > li > .timeline-item > .timeline-header > a {
+  font-weight: 600;
+}
+.timeline > li > .timeline-item > .timeline-body,
+.timeline > li > .timeline-item > .timeline-footer {
+  padding: 4px 10px 10px 0;
+}
+.timeline > li.time-label > span {
+  font-weight: 600;
+  padding: 5px;
+  display: inline-block;
+  background-color: #fff;
+  border-radius: 4px;
+  color: #fff;
+}
+.timeline > li > span > .fa,
+.timeline > li > .fa
+{
+  width: 30px;
+  height: 30px;
+  font-size: 15px;
+  line-height: 30px;
+  position: absolute;
+  color: #fff;
+  background: #d2d6de;
+  border-radius: 50%;
+  text-align: center;
+  left: 0;
+  top: 0;
+}
+.timeline li:last-child {
+  position: relative;
+}
+.timeline li:last-child:before {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 13px;
+  bottom: 0;
+  content: '';
+  width: 4px;
+  background: #fff;
+}
+.bg-blue {
+  background-color: #0073b7 !important;
+}
+
+.bg-gray {
+  color: #000;
+  background-color: #d2d6de !important;
+}
+.bg-red {
+  background-color: #dd4b39 !important;
+}
+.bg-aqua {
+  background-color: #00c0ef !important;
+}
+.bg-green {
+  background-color: #13ce66 !important;
+}
+.bg-navy {
+  background-color: #001f3f !important;
+}
+.el-progress__text {
+  font-size: 15px !important;;
+}
+.table_margin {
+   margin-top: 20px;
+   margin-bottom: 20px;
+}
+.card-width {
+  width: 40%;
+}
+.job-step {
+  z-index: 100;
+  position: absolute;
+  top: -16px;
+  right: -20px;
+}
+.job-step.el-card {border-radius: 0;}
+.job-step .el-card__body {
+  padding: 20px 20px 20px 40px;
+}
+.table {
+    width: 100%;
+    margin-bottom: 20px;
+}
+.table-bordered {
+    border-collapse: collapse;
+    font-size:14px;
+    tr:first-child {background: #eef1f6;}
+    th,
+    td {font-size:14px;
+      padding:8px 18px;
+      border:1px solid #ddd;
+    }
+}
+.jobBtn {
+  position: absolute;
+  left: 0px;
+  top: 240px;
+  height: 48px;
+  padding: 5px;
+  color: #000;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+  background: rgba(228, 232, 241, 0.6);
+ }
+.jobBtn i {
+  position: relative;
+  top: 12px;
+  color: #909eb0;
+  font-size:12px;
+}
+.jobs_list .table_margin .el-table__body tr{
+  td:first-child .cell {position:relative;padding: 10px 10px 10px 50px;}
+}
+.jobs_list .table_margin .el-icon-arrow-right {position:absolute;left:20px;top:50%;transform:translate(0,-50%);font-size:12px;}
+.jobs_list .el-checkbox-group {margin-top:7px;}
+.single-line {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.jobs_list .single-line {max-width: 140px;}
+.jobs_list .blue {color: #20a0ff;}
+.jobs_list .time-hd {height:40px;line-height:40px;margin-bottom:16px;border-bottom: 1px solid #ddd;}
+.timeline {
+  .timeline-header .single-line.stepname {max-width:none;font-size:14px;}
+  .steptime {height:20px;line-height:20px;font-size:14px;color:#666;
+    .el-icon-time {color:#666;}
+  }
+}
+.timer-line {
+  .timeline-body {
+    color: #999;
+  }
+}
+</style>

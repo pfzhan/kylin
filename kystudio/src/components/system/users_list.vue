@@ -1,0 +1,333 @@
+<template>
+<div class="user-list">  
+  <el-row>
+    <el-col :span="1">
+      <el-button type="primary" icon="plus" size="small" @click="addUser">{{$t('user')}}</el-button>
+    </el-col>
+  </el-row>
+  <el-table
+    :data="usersList"
+    border
+    class="table_margin"
+    style="width: 100%"
+    :default-sort = "{prop: 'username', order: 'descending'}">
+    <el-table-column
+      :label="$t('userName')"
+      sortable
+      prop="username">
+    </el-table-column>
+    <el-table-column
+      :label="$t('admin')">
+      <template scope="scope">
+        <i class="el-icon-check" v-if="scope.row.admin"></i>
+      </template>
+    </el-table-column>
+    <el-table-column
+      :label="$t('modeler')">
+      <template scope="scope">
+        <i class="el-icon-check" v-if="scope.row.modeler"></i>
+      </template>
+    </el-table-column>
+    <el-table-column
+      :label="$t('analyst')">
+      <template scope="scope">
+        <i class="el-icon-check" v-if="scope.row.analyst"></i>
+      </template>
+    </el-table-column>
+    <el-table-column
+      :label="$t('status')">
+      <template scope="scope">
+        <el-tag type="primary" v-if="scope.row.disabled">Disabled</el-tag>
+        <el-tag type="success" v-else>Enabled</el-tag>
+      </template>
+    </el-table-column>
+    <el-table-column
+      :label="$t('action')">
+      <template scope="scope">
+        <el-dropdown trigger="click">
+          <el-button class="el-dropdown-link">
+            <i class="el-icon-more"></i>
+          </el-button >
+          <el-dropdown-menu slot="dropdown">
+            <el-dropdown-item @click.native="edit(scope.row)">{{$t('editRole')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="reset(scope.row)">{{$t('resetPassword')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="drop(scope.row.username, scope.row.$index)">{{$t('drop')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="changeStatus(scope.row)" v-if="scope.row.disabled">{{$t('enable')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="changeStatus(scope.row)" v-else>{{$t('disable')}}</el-dropdown-item>
+          </el-dropdown-menu>
+        </el-dropdown>
+      </template>
+    </el-table-column>    
+  </el-table>
+  <pager class="ksd-center" ref="pager" :totalSize="usersListSize"  v-on:handleCurrentChange='pageCurrentChange' ></pager>
+  <el-dialog @close="closeAddUser" :title="$t('addUser')" v-model="addUserFormVisible">
+    <add_user :newUser="selected_user" ref="addUser" v-on:validSuccess="addUserValidSuccess"></add_user>
+    <div slot="footer" class="dialog-footer">
+      <el-button  @click="addUserFormVisible = false">{{$t('cancel')}}</el-button>
+      <el-button type="primary" @click="checkAddUserForm">{{$t('yes')}}</el-button>
+    </div>
+  </el-dialog>
+
+  <el-dialog @close="closeEditRole" :title="$t('editRole')" v-model="editRoleFormVisible">
+    <edit_role :userDetail="selected_user" ref="editRole" v-on:validSuccess="editRoleValidSuccess"></edit_role>
+    <div slot="footer" class="dialog-footer">
+      <el-button @click="editRoleFormVisible = false">{{$t('cancel')}}</el-button>
+      <el-button type="primary" @click="checkEditRoleForm">{{$t('yes')}}</el-button>
+    </div>
+  </el-dialog>
+
+  <el-dialog @close="closeResetPassword" :title="$t('resetPassword')" v-model="resetPasswordFormVisible">
+    <reset_password :userDetail="selected_user" ref="resetPassword" v-on:validSuccess="resetPasswordValidSuccess"></reset_password>
+    <div slot="footer" class="dialog-footer">
+      <el-button @click="resetPasswordFormVisible = false">{{$t('cancel')}}</el-button>
+      <el-button type="primary" @click="checkResetPasswordForm">{{$t('yes')}}</el-button>
+    </div>
+  </el-dialog>
+</div>
+</template>
+
+<script>
+import { mapActions } from 'vuex'
+import addUser from './add_user'
+import editRole from './edit_role'
+import resetPassword from './reset_password'
+export default {
+  name: 'userslist',
+  data () {
+    return {
+      selected_user: {},
+      addUserFormVisible: false,
+      editRoleFormVisible: false,
+      resetPasswordFormVisible: false
+    }
+  },
+  components: {
+    'add_user': addUser,
+    'edit_role': editRole,
+    'reset_password': resetPassword
+  },
+  methods: {
+    ...mapActions({
+      loadUsersList: 'LOAD_USERS_LIST',
+      updateStatus: 'UPDATE_STATUS',
+      saveUser: 'SAVE_USER',
+      editRole: 'EDIT_ROLE',
+      resetPassword: 'RESET_PASSWORD',
+      removeUser: 'REMOVE_USER'
+    }),
+    drop: function (userName, index) {
+      let _this = this
+      _this.removeUser(userName).then((result) => {
+        _this.usersList.splice(index)
+      }).catch((result) => {
+        _this.$message({
+          type: 'error',
+          message: result.statusText
+        })
+      })
+    },
+    pageCurrentChange () {
+      this.loadUsersList({pageSize: this.$refs['pager'].pageSize, pageOffset: this.$refs['pager'].currentPage - 1})
+    },
+    changeStatus: function (user) {
+      let userStatus = {name: user.username, disabled: !user.disabled}
+      this.updateStatus(userStatus).then((result) => {
+        this.loadUsersList()
+      }).catch((result) => {
+        this.$message({
+          type: 'error',
+          message: result.statusText
+        })
+      })
+    },
+    addUser: function () {
+      this.selected_user = {
+        username: '',
+        password: '',
+        disabled: false,
+        admin: false,
+        modeler: false,
+        analyst: true,
+        confirmPassword: ''
+      }
+      this.addUserFormVisible = true
+    },
+    closeAddUser: function () {
+      this.$refs['addUser'].$refs['addUserForm'].resetFields()
+    },
+    checkAddUserForm: function () {
+      this.$refs['addUser'].$emit('addUserFormValid')
+    },
+    addUserValidSuccess: function (data) {
+      let _this = this
+      let user = {
+        name: data.username,
+        detail: {
+          username: data.username,
+          password: data.password,
+          disabled: data.disabled,
+          authorities: []
+        }
+      }
+      if (data.admin) {
+        user.detail.authorities.push('ROLE_ADMIN')
+      }
+      if (data.modeler) {
+        user.detail.authorities.push('ROLE_MODELER')
+      }
+      if (data.analyst) {
+        user.detail.authorities.push('ROLE_ANALYST')
+      }
+      _this.saveUser(user).then((result) => {
+        this.$message({
+          type: 'success',
+          message: result.statusText
+        })
+      }).catch((result) => {
+        this.$message({
+          type: 'error',
+          message: result.statusText
+        })
+      })
+      _this.addUserFormVisible = false
+    },
+    closeEditRole: function () {
+      this.$refs['editRole'].$refs['editRoleForm'].resetFields()
+    },
+    edit: function (userDetail) {
+      this.selected_user = userDetail
+      this.editRoleFormVisible = true
+    },
+    checkEditRoleForm: function () {
+      this.$refs['editRole'].$emit('editRoleFormValid')
+    },
+    editRoleValidSuccess: function (data) {
+      let _this = this
+      let user = {
+        name: data.username,
+        detail: {
+          username: data.username,
+          password: data.password,
+          disabled: data.disabled,
+          authorities: []
+        }
+      }
+      if (data.admin) {
+        user.detail.authorities.push('ROLE_ADMIN')
+      }
+      if (data.modeler) {
+        user.detail.authorities.push('ROLE_MODELER')
+      }
+      if (data.analyst) {
+        user.detail.authorities.push('ROLE_ANALYST')
+      }
+      _this.editRole(user).then((result) => {
+        this.$message({
+          type: 'success',
+          message: result.statusText
+        })
+      }).catch((result) => {
+        this.$message({
+          type: 'error',
+          message: result.statusText
+        })
+      })
+      _this.editRoleFormVisible = false
+    },
+    closeResetPassword: function () {
+      this.$refs['resetPassword'].$refs['resetPasswordForm'].resetFields()
+    },
+    reset: function (userDetail) {
+      console.log('userDetail :', userDetail)
+      this.selected_user = userDetail
+      this.resetPasswordFormVisible = true
+    },
+    checkResetPasswordForm: function () {
+      this.$refs['resetPassword'].$emit('resetPasswordFormValid')
+    },
+    resetPasswordValidSuccess: function (data) {
+      let userPassword = {
+        username: data.username,
+        password: data.oldPassword,
+        newPassword: data.password
+      }
+      this.resetPassword(userPassword).then((result) => {
+        this.$message({
+          type: 'success',
+          message: result.statusText
+        })
+      }).catch((result) => {
+        this.$message({
+          type: 'error',
+          message: result.statusText
+        })
+      })
+      this.resetPasswordFormVisible = false
+    }
+  },
+  computed: {
+    usersListSize () {
+      return this.$store.state.user.usersSize
+    },
+    usersList () {
+      let userData = []
+      this.$store.state.user.usersList.forEach(function (user) {
+        let newUser = {
+          username: user.username,
+          disabled: user.disabled,
+          admin: false,
+          modeler: false,
+          analyst: false
+        }
+        user.authorities.forEach(function (role) {
+          if (role.authority === 'ROLE_ADMIN') {
+            newUser.admin = true
+          }
+          if (role.authority === 'ROLE_MODELER') {
+            newUser.modeler = true
+          }
+          if (role.authority === 'ROLE_ANALYST') {
+            newUser.analyst = true
+          }
+        })
+        userData.push(newUser)
+      })
+      return userData
+    }
+  },
+  created () {
+    this.loadUsersList()
+  },
+  locales: {
+    'en': {user: 'User', userName: 'User Name', admin: 'Admin', modeler: 'Modeler', analyst: 'Analyst', status: 'Status', action: 'Action', editRole: 'Edit Role', resetPassword: 'Reset Password', drop: 'Drop', disable: 'Disable', enable: 'Enable', addUser: 'Add User', yes: 'Yes', cancel: 'Cancel'},
+    'zh-cn': {user: '用户', userName: '用户名', admin: '管理人员', modeler: '建模人员', analyst: '分析人员', status: '状态', action: '操作', editRole: '编辑角色', resetPassword: '重置密码', drop: '删除', disable: '禁用', enable: '启用', addUser: '添加用户', yes: '确定', cancel: '取消'}
+  }
+}
+</script>
+<style lang="less">
+
+.user-list{
+  .table_margin {
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+  .el-icon-check {
+    color: #13ce66;
+  }
+  .el-tag {
+    // color: #fff;
+  }
+  .el-tag--danger {
+      background-color: #ff4949;
+  }
+  .el-tag--success {
+    background-color: #13ce66;
+    color: #fff;
+  }
+  td {
+    height: 50px;
+  }
+  .el-dropdown {
+  }
+}
+</style>

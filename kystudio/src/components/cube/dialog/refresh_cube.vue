@@ -1,0 +1,87 @@
+<template>
+<div v-if="cubeDesc.partitionDateColumn">
+  <el-row :gutter="20">
+    <el-col :span="8">{{$t('partitionDateColumn')}}</el-col>
+    <el-col :span="16">{{cubeDesc.partitionDateColumn}}</el-col>
+  </el-row>
+  <el-row :gutter="20">
+    <el-col :span="8">{{$t('refreshSegment')}}</el-col>
+    <el-col :span="16">  
+      <el-select v-model="selected_segment" class="select" >
+        <el-option 
+          v-for="(item, index) in cubeDesc.segments"
+          :label="item.name"
+          :value="item">
+        </el-option>
+      </el-select>
+    </el-col>
+  </el-row>
+  <el-row :gutter="20">
+    <el-col :span="8">{{$t('segmentDetail')}}</el-col>
+    <el-col :span="16">
+      <el-card>
+        <el-row :gutter="20">
+          <el-col :span="8">{{$t('startDate')}}</el-col>
+          <el-col :span="16">{{selected_segment.date_range_start | utcTime}}</el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="8">{{$t('endDate')}}</el-col>
+          <el-col :span="16">{{selected_segment.date_range_end | utcTime}}</el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="8">{{$t('lastBuildTime')}}</el-col>
+          <el-col :span="16">{{lastBuild}}</el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="8">{{$t('lastBuildID')}}</el-col>
+          <el-col :span="16">{{selected_segment.last_build_job_id}}</el-col>
+        </el-row> 
+      </el-card>                   
+    </el-col>
+  </el-row>    
+</div> 
+<div v-else>
+  {{$t('noPartition')}}
+</div>
+</template>
+<script>
+import { transToGmtTime } from '../../../util/business'
+export default {
+  name: 'refresh_cube',
+  props: ['cubeDesc'],
+  data () {
+    return {
+      _this: this,
+      selected_segment: this.cubeDesc.segments[0]
+    }
+  },
+  methods: {
+    transToGmtTime
+  },
+  created () {
+    let _this = this
+    this.$on('refreshCubeFormValid', (t) => {
+      _this.$emit('validSuccess', this.selected_segment)
+    })
+  },
+  computed: {
+    lastBuild () {
+      return transToGmtTime(this.selected_segment.last_build_time, this)
+    }
+  },
+  watch: {
+    cubeDesc (cubeDesc) {
+      this.selected_segment = this.cubeDesc.segments[0]
+    }
+  },
+  locales: {
+    'en': {partitionDateColumn: 'PARTITION DATE COLUMN', refreshSegment: 'REFRESH SEGMENT', segmentDetail: 'SEGMENT DETAIL', startDate: 'Start Date (Include)', endDate: 'End Date (Exclude)', lastBuildTime: 'Last build Time', lastBuildID: 'Last build ID', noPartition: 'No partition date column defined.'},
+    'zh-cn': {partitionDateColumn: '分区日期列', refreshSegment: '刷新的SEGMENT', segmentDetail: 'SEGMENT详细信息', startDate: '起始日期 (包含)', endDate: '结束日期 (不包含)', lastBuildTime: '上次构建时间', lastBuildID: '上次构建ID', noPartition: '没有定义分区日期列. '}
+  }
+}
+</script>
+<style scoped="">
+.select {
+  width: 100%
+}
+</style>

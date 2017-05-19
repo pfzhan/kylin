@@ -1,25 +1,29 @@
 <template>
-	<div class="block">
+	<div class="block ksd-mt-20 ksd-center" v-show="totalSize">
 	  <el-pagination
-	    layout="prev, pager, next"
+	    layout="total, prev, pager, next, jumper"
 	    :page-size="pageSize"
 	    :total="totalSize"
 	    :current-page="currentPage"
-	    @current-change="handleCurrentChange"
-	    @size-change="handleSizeChange">
+	    @current-change="currentChange">
 	  </el-pagination>
 	</div>
 </template>
 <script>
+import { pageCount } from '../../config'
 export default {
   name: 'pager',
-  props: ['pageSize', 'totalSize', 'currentPage'],
+  props: ['perPageSize', 'totalSize', 'curPage'],
+  data () {
+    return {
+      pageSize: this.perPageSize || pageCount,
+      currentPage: this.curPage || 1
+    }
+  },
   methods: {
-    handleCurrentChange (value, data) {
-      this.$emit('handleCurrentChange', data)
-    },
-    handleSizeChange (value, data) {
-      this.$emit('handleSizeChange', data)
+    currentChange (value) {
+      // this.currentPage = value
+      this.$emit('handleCurrentChange', value)
     }
   }
 }

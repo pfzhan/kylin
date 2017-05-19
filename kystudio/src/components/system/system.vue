@@ -1,0 +1,259 @@
+<template>
+  <div class="system-wrap">
+    <el-row :gutter="20">
+      <el-col :span="9">  
+            <span class="server-type">{{$t('ServerConfig')}}</span>
+            <el-button  type="primary" class="btn-refresh" @click="refreshConfig" size="mini"><icon name="refresh"></icon></el-button>
+          <el-input class="textarea-wrap"
+          type="textarea"
+          :rows="18"
+          :readonly="true"
+          v-model="getServerConfig">
+          </el-input>
+      </el-col>
+      <el-col :span="9">
+            <span class="server-type">{{$t('ServerEnvironment')}}</span>
+            <el-button  type="primary" class="btn-refresh" @click="refreshEnv" size="mini"><icon name="refresh"></icon></el-button>
+          <el-input
+          type="textarea"
+          :rows="18"
+          :readonly="true"
+          v-model="getServerEnvironment">
+          </el-input>
+      </el-col>
+      <el-col :span="6" class="action-wrap">
+        <p style="font-size:20px;">{{$t('action')}}</p>
+        <el-button class="but-width bg_blue" @click="reload"><p class="p_font">{{$t('reloadMetadata')}}</p></el-button>
+        <el-button class="but-width bg_blue" @click="setConfig"><p class="p_font">{{$t('setConfig')}}</p></el-button>
+        <el-button class="but-width bg_blue" @click="backup">
+          <p class="p_font">
+            <!-- <icon name="cogs"></icon> -->
+            {{$t('backup')}}
+          </p>
+        </el-button>
+        <el-button class="but-width bg_blue" @click="diagnosis" style="margin-bottom:30px;">
+          <p class="p_font">
+            <!-- <icon name="ambulance"></icon> -->
+            {{$t('diagnosis')}}
+          </p>
+        </el-button>
+      </el-col>
+    </el-row>
+
+    <el-dialog @close="closeSetConfig" :title="$t('setConfig')" v-model="setConfigFormVisible">
+      <set_config  ref="setConfigForm" v-on:validSuccess="setConfigValidSuccess"></set_config>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="setConfigFormVisible = false">{{$t('cancel')}}</el-button>
+        <el-button type="primary" @click="checkSetConfigForm">{{$t('yes')}}</el-button>
+      </div>
+    </el-dialog>
+
+    <el-dialog :title="$t('diagnosis')" v-model="diagnosisVisible">
+      <diagnosis></diagnosis>
+    </el-dialog>
+
+  </div>
+</template>
+<script>
+import { mapActions } from 'vuex'
+import { handleSuccess, handleError } from '../../util/business'
+import setConfig from './set_config'
+import diagnosis from './diagnosis'
+export default {
+  data () {
+    return {
+      activeName: 'system',
+      setConfigFormVisible: false,
+      diagnosisVisible: false
+    }
+  },
+  components: {
+    'set_config': setConfig,
+    'diagnosis': diagnosis
+  },
+  methods: {
+    ...mapActions({
+      getEnv: 'GET_ENV',
+      getConf: 'GET_CONF',
+      reloadMetadata: 'RELOAD_METADATA',
+      backupMetadata: 'BACKUP_METADATA',
+      updateConfig: 'UPDATE_CONFIG'
+    }),
+    reload: function () {
+      this.$confirm(this.$t('reloadTip'), this.$t('tip'), {
+        confirmButtonText: this.$t('yes'),
+        cancelButtonText: this.$t('cancel'),
+        type: 'warning'
+      }).then(() => {
+        this.reloadMetadata().then((res) => {
+          handleSuccess(res, (data, code, status, msg) => {
+            this.$message({
+              type: 'success',
+              message: this.$t('reloadSuccessful')
+            })
+          })
+        }).catch((res) => {
+          handleError(res)
+        })
+      }).catch(() => {
+      })
+    },
+    setConfig: function () {
+      this.setConfigFormVisible = true
+    },
+    closeSetConfig: function () {
+      this.$refs['setConfigForm'].$refs['setConfigForm'].resetFields()
+    },
+    checkSetConfigForm: function () {
+      this.$refs['setConfigForm'].$emit('setConfigFormValid')
+    },
+    setConfigValidSuccess: function (data) {
+      let _this = this
+      this.updateConfig({key: data.key, value: data.value}).then((res) => {
+        handleSuccess(res, (data, code, status, msg) => {
+          this.$message({
+            type: 'success',
+            message: this.$t('setConfigSuccessful'),
+            duration: 3000
+          })
+        })
+      }).catch((res) => {
+        handleError(res, (data, code, status, msg) => {
+        })
+      })
+      _this.setConfigFormVisible = false
+    },
+    backup: function () {
+      let _this = this
+      this.backupMetadata().then((res) => {
+        handleSuccess(res, (data, code, status, msg) => {
+          this.$message({
+            type: 'success',
+            message: msg
+          })
+        })
+      }).catch((res) => {
+        handleError(res, (data, code, status, msg) => {
+          this.$message({
+            type: 'error',
+            message: msg
+          })
+          if (status === 404) {
+            _this.$router.replace('access/login')
+          }
+        })
+      })
+    },
+    diagnosis: function () {
+      this.diagnosisVisible = true
+    },
+    refreshEnv: function () {
+      let _this = this
+      _this.getEnv().then((res) => {
+        handleSuccess(res, (data, code, status, msg) => {
+          _this.$notify({
+            title: _this.$t('success'),
+            message: _this.$t('successEnvironment'),
+            type: 'success',
+            duration: 3000
+          })
+        })
+      }).catch((res) => {
+        handleError(res, (data, code, status, msg) => {
+          console.log(status, 30000)
+          if (status === 404) {
+            _this.$router.replace('access/login')
+          }
+        })
+      })
+    },
+    refreshConfig: function () {
+      let _this = this
+      _this.getConf().then((result) => {
+        _this.$notify({
+          title: _this.$t('success'),
+          message: _this.$t('successConfig'),
+          type: 'success',
+          duration: 3000
+        })
+      }).catch((res) => {
+        handleError(res, (data, code, status, msg) => {
+          console.log(status, 30000)
+          if (status === 404) {
+            _this.$router.replace('access/login')
+          }
+        })
+      })
+    }
+  },
+  computed: {
+    getServerConfig () {
+      return JSON.stringify(this.$store.state.system.serverConfig)
+    },
+    getServerEnvironment () {
+      return JSON.stringify(this.$store.state.system.serverEnvironment)
+    }
+  },
+  created () {
+    let _this = this
+    _this.refreshEnv()
+    _this.refreshConfig()
+  },
+  locales: {
+    'en': {ServerConfig: 'Server Config', ServerEnvironment: 'Server Environment', action: 'Actions', reloadMetadata: 'Reload Metadata', setConfig: 'Set Config', backup: 'Backup', diagnosis: 'Diagnosis', link: 'Links', success: 'Success', successEnvironment: 'Server environment get successfully', successConfig: 'Server config get successfully', reloadTip: 'Are you sure to reload metadata and clean cache? ', cancel: 'Cancel', yes: 'Yes', tip: 'Tip', reloadSuccessful: 'Reload metadata successful!', setConfigSuccessful: 'Set config successful!'},
+    'zh-cn': {ServerConfig: '服务器配置', ServerEnvironment: '服务器环境', action: '操作', reloadMetadata: '重载元数据', setConfig: '设置配置', backup: '备份', diagnosis: '诊断', link: '链接', success: '成功', successEnvironment: '成功获取环境信息', successConfig: '成功获取服务器配置', reloadTip: '确定要重载元数据并清理缓存? ', tip: '提示', cancel: '取消', yes: '确定', reloadSuccessful: '重载元数据成功!', setConfigSuccessful: '设置配置成功!'}
+  }
+}
+</script>
+<style lang="less">
+
+  .system-wrap {
+    .box-card{
+    height: 500px;
+  }
+  .but-width{
+    width: 100%;
+    height: 55px;
+    margin: 10px 0px 10px 0px;
+  }
+  .p_font {
+    font-size:16px;
+    color: #fff;
+  }
+  a {
+    font-size:20px;
+    margin: 30px 0px 10px 0px;
+  }
+  .bg_blue {
+    background-color: #20a0ff;
+  }
+  .server-type {
+    line-height: 36px;
+    font-size: 14px;
+    color: #000;
+  }
+  .btn-refresh {
+    margin-left:10px;
+  }
+  .el-textarea__inner {
+    width: 95%;
+    padding: 10px 15px;
+    color: #888;
+  }
+  .action-wrap{
+    .el-button{
+      margin-left: 0;
+    } 
+    .blue {
+      height: 40px;
+      line-height: 40px;
+      font-size: 18px;
+      color: #20a0ff;
+    }
+    .blue:hover {
+      text-decoration: none;
+    }
+  }
+}
+
+</style>

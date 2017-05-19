@@ -1,6 +1,6 @@
 <template>
 <div >  
-  <div v-for="table in factTableColumns"  >
+  <div v-for="(table, index) in factTableColumns"  >
     <el-tag>{{table.tableName}} </el-tag>
     <el-tag>FactTable </el-tag>    
     <el-table  
@@ -15,7 +15,8 @@
       <el-table-column
         :label="$t('name')">
         <template scope="scope">
-          <el-input v-model="scope.row.name" :disabled="!scope.row.isSelected" :placeholder="scope.row.name"></el-input>
+          <el-input v-model="scope.row.name" :disabled="!scope.row.isSelected">
+          </el-input>
         </template>
       </el-table-column>
       <el-table-column
@@ -24,16 +25,22 @@
       </el-table-column>
       <el-table-column
         :label="$t('datatype')">
+        <template scope="scope">
+          {{modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].datatype}}
+        </template>
       </el-table-column>
       <el-table-column
         :label="$t('cardinality')">
+        <template scope="scope">
+          {{modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].cardinality}}
+        </template>
       </el-table-column>      
       <el-table-column>
       </el-table-column>        
     </el-table>
   </div> 
 
-  <div v-for="table in lookupTableColumns">
+  <div v-for="(table, index) in lookupTableColumns">
     <el-tag>{{table.tableName}} </el-tag>
     <el-tag>LookupTable </el-tag>       
     <el-table  
@@ -57,67 +64,48 @@
       </el-table-column>    
       <el-table-column
         :label="$t('datatype')">
+        <template scope="scope">
+          {{modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].datatype}}
+        </template>
       </el-table-column>
       <el-table-column
         :label="$t('cardinality')">
+        <template scope="scope">
+          {{modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].cardinality}}
+        </template>
       </el-table-column>       
       <el-table-column
         :label="$t('type')">
         <template scope="scope">
-          <el-radio-group v-model="scope.row.derived" :disabled="!scope.row.isSelected">
+          <el-radio-group v-model="scope.row.derived" :disabled="!scope.row.isSelected" @change="changeType(scope.row)">
             <el-radio-button label="false">Normal</el-radio-button>
             <el-radio-button label="true">Derived</el-radio-button>
           </el-radio-group>
         </template>
       </el-table-column>          
     </el-table>
-  </div>  
+  </div> 
 </div>  
 </template>
 <script>
-import { removeNameSpace } from '../../../util/index'
 export default {
   name: 'dimensions',
   props: ['modelDesc', 'cubeDimensions'],
   data () {
     return {
       rootFactTable: null,
-      factTable: [],
       factTableColumns: [],
-      lookupTable: [],
       lookupTableColumns: [],
       multipleSelection: {},
       selected_project: localStorage.getItem('selected_project')
     }
   },
   methods: {
-    getRootFactTable: function () {
-      this.rootFactTable = removeNameSpace(this.modelDesc.fact_table)
-    },
-    getTable: function () {
-      let _this = this
-      _this.factTable.push(this.rootFactTable)
-      _this.multipleSelection[this.rootFactTable] = []
-      _this.modelDesc.lookups.forEach(function (lookup) {
-        if (lookup.kind === 'FACT') {
-          if (!lookup.alias) {
-            lookup['alias'] = removeNameSpace(lookup.table)
-          }
-          _this.factTable.push(lookup.alias)
-          _this.multipleSelection[lookup.alias] = []
-        } else {
-          if (!lookup.alias) {
-            lookup['alias'] = removeNameSpace(lookup.table)
-          }
-          _this.lookupTable.push(lookup.alias)
-          _this.multipleSelection[lookup.alias] = []
-        }
-      })
-    },
     getTableColumns: function () {
       let _this = this
       _this.modelDesc.dimensions.forEach(function (dimension) {
-        if (_this.factTable.indexOf(dimension.table) !== -1) {
+        _this.multipleSelection[dimension.table] = []
+        if (_this.modelDesc.factTables.indexOf(dimension.table) !== -1) {
           let colArr = []
           let tableObj = {tableName: dimension.table, columns: colArr}
           dimension.columns.forEach(function (col) {
@@ -126,11 +114,60 @@ export default {
           _this.factTableColumns.push(tableObj)
         } else {
           let colArr = []
-          let tableObj = {tableName: dimension.table, column: colArr}
+          let tableObj = {tableName: dimension.table, columns: colArr}
           dimension.columns.forEach(function (col) {
             colArr.push({table: dimension.table, column: col, name: col, derived: 'true', isSelected: false})
           })
           _this.lookupTableColumns.push(tableObj)
+        }
+      })
+    },
+    getCubeColumnInTable: function () {
+      let _this = this
+      _this.cubeDimensions.forEach(function (dimension) {
+        if (_this.modelDesc.factTables.indexOf(dimension.table) !== -1) {
+          _this.multipleSelection[dimension.table].push({table: dimension.table, column: dimension.column, name: dimension.name, isSelected: true})
+          _this.factTableColumns.forEach(function (table) {
+            if (table.tableName === dimension.table) {
+              table.columns.forEach(function (column) {
+                if (column.column === dimension.column) {
+                  _this.$nextTick(function () {
+                    _this.$refs[dimension.table][0].toggleRowSelection(column, true)
+                  })
+                  _this.$set(column, 'isSelected', true)
+                  _this.$set(column, 'name', dimension.name)
+                }
+              })
+            }
+          })
+        } else {
+          let type = 'true'
+          if (dimension.column) {
+            type = 'false'
+          }
+          _this.lookupTableColumns.forEach(function (table) {
+            if (table.tableName === dimension.table) {
+              table.columns.forEach(function (column) {
+                if ((type === 'false' && column.column === dimension.column) || (type === 'true' && column.column === dimension.derived[0])) {
+                  _this.multipleSelection[dimension.table].push({table: dimension.table, column: column.column, name: dimension.name, isSelected: true, derived: type})
+                  _this.$nextTick(function () {
+                    _this.$refs[dimension.table][0].toggleRowSelection(column, true)
+                  })
+                  _this.$set(column, 'isSelected', true)
+                  _this.$set(column, 'name', dimension.name)
+                  _this.$set(column, 'derived', type)
+                }
+              })
+            }
+          })
+        }
+      })
+    },
+    changeType: function (column) {
+      let _this = this
+      _this.multipleSelection[column.table].forEach(function (col) {
+        if (col.column === column.column) {
+          _this.$set(col, 'derived', column.derived)
         }
       })
     },
@@ -140,8 +177,6 @@ export default {
       if (!row.isSelected && row.derived) {
         this.$set(row, 'derived', 'true')
       }
-      this.$refs[row.table][0].toggleRowSelection({column: 'TRANS_ID', isSelected: false, name: 'TRANS_ID', table: 'TEST_KYLIN_FACT'}, true)
-      console.log(this.$refs[row.table][0].data[0])
     },
     selectionAllChange: function (tableName) {
       let _this = this
@@ -159,18 +194,16 @@ export default {
         })
         _this.multipleSelection[tableName] = []
       }
-      console.log(_this.multipleSelection[tableName])
-    }
-  },
-  computed: {
-    getLookupTableColumns: function () {
-      console.log('33f')
     }
   },
   created () {
-    this.getRootFactTable()
-    this.getTable()
+    console.log(this.modelDesc.columnsDetail)
+    let _this = this
     this.getTableColumns()
+    this.getCubeColumnInTable()
+    this.$on('addDimensionsFormValid', (t) => {
+      _this.$emit('validSuccess', this.multipleSelection)
+    })
   },
   locales: {
     'en': {name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment'},

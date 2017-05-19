@@ -1,5 +1,5 @@
 <template>
-   <el-select  placeholder="" v-model="selected_project">
+   <el-select  placeholder="请选择project" v-model="selected_project">
     <el-option
       v-for="item in projectList" :key="item.name"
       :label="item.name"
@@ -16,6 +16,7 @@ export default {
     selected_project (val) {
       localStorage.setItem('selected_project', val)
       this.$store.state.project.selected_project = val
+      this.$emit('changePro', val)
     }
   },
   data () {
@@ -26,14 +27,19 @@ export default {
   methods: {
     ...mapActions({
       loadProjects: 'LOAD_PROJECT_LIST'
-    })
+    }),
+    clearProject () {
+      localStorage.removeItem('selected_project')
+      this.$store.state.project.selected_project = ''
+    }
   },
   computed: {
     projectList () {
-      return this.$store.state.project.projectList
+      return this.$store.state.project.projectList || ''
     }
   },
   created () {
+    console.log(this.$store.state.project.selected_project, '0101')
     this.loadProjects()
   }
 }

@@ -1,35 +1,46 @@
 <template>
-<el-card class="box-card">
-  <el-row>
-    <el-col :span="8">{{$t('modelName')}}</el-col>
-    <el-col :span="16">{{desc.model_name}}</el-col>
-  </el-row>
-  <el-row>
-    <el-col :span="8">{{$t('cubeName')}}</el-col>
-    <el-col :span="16">{{desc.name}}</el-col>
-  </el-row>
-  <el-row>
-    <el-col :span="8">{{$t('description')}}</el-col>
-    <el-col :span="16">{{desc.description}}</el-col>
-  </el-row>        
-</el-card>
+ <el-table class="table_margin"
+  :data="cubeData"
+  :show-header="false"
+  border
+  style="width: 100%">
+      <el-table-column
+      width="180">
+      <template scope="scope">
+        {{$t(scope.row.label)}}
+      </template>
+    </el-table-column>
+    <el-table-column
+    prop="value">
+    </el-table-column>
+  </el-table>
 </template>
 
 <script>
 export default {
   name: 'overview',
   props: ['desc'],
-  data () {
-    return {
-      selected_project: localStorage.getItem('selected_project')
+  computed: {
+    cubeData: function () {
+      let cubeDetail = [
+        {label: 'modelName', value: this.desc.model_name},
+        {label: 'cubeName', value: this.desc.name},
+        {label: 'factTable', value: this.desc.fact_table},
+        {label: 'lookupTable', value: ''},
+        {label: 'dimensions', value: this.desc.dimensions.length},
+        {label: 'measures', value: this.desc.measures.length}]
+      return cubeDetail
     }
   },
   locales: {
-    'en': {modelName: 'Model Name : ', cubeName: 'Cube Name : ', notificationEmailList: 'Notification Email List : ', notificationEvents: 'Notification Events : ', description: 'Description : '},
-    'zh-cn': {modelName: '模型名称 : ', cubeName: 'Cube名称 : ', notificationEmailList: '通知邮件列表 : ', notificationEvents: '需通知的事件 : ', description: '描述 : '}
+    'en': {modelName: 'Model Name', cubeName: 'Cube Name', factTable: 'Fact Table', lookupTable: 'Lookup Table', dimensions: 'Dimensions', measures: 'Measures'},
+    'zh-cn': {modelName: '模型名称', cubeName: 'Cube名称', factTable: '事实表', lookupTable: '维度表', dimensions: '维度', measures: '度量'}
   }
 }
 </script>
-<style scoped="">
-
+<style scoped>
+ .table_margin {
+   margin-top: 20px;
+   margin-bottom: 20px;
+ }
 </style>

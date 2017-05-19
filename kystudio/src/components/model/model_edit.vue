@@ -1,191 +1,581 @@
 <template>
-    <div id="model_edit">
-      <div class="table_box" v-for="table in tableList" :id="table.guid" >
-        <span class="tool_box"><i class="el-icon-setting"></i></span>
-        <p class="table_name">{{table.alias||table.name}}</p>
-        <input type="text" />
-        <div class="link_box" v-if="selectColumn[table.guid]"><i class="el-icon-close" v-on:click="cancelFilterColumn(table.guid)"></i>{{selectColumn[table.guid]&&selectColumn[table.guid].columnName}}</div>
+<div class="model_edit_box"  @drop='drop($event)' @dragover='allowDrop($event)' :style="{width:dockerScreen.w+'px', height:dockerScreen.h+'px'}">
+
+    <div class="tree_list" >
+<!--     <draggable  @start="drag=true" @end="drag=false"> -->
+      <model-assets  v-on:drag="drag" :project="extraoption.project" @okFunc="serverDataToDragData" ></model-assets>
+      <el-tree v-if="extraoption.uuid" :data="cubeDataTree" style="background-color: #f1f2f7;border:none;" :render-content="renderContent"></el-tree>
+<!--     </draggable> -->
+    </div>
+    <ul class="model_tool">
+        <!-- <li class="toolbtn" @click="saveData" v-unselect><icon name="upload"></icon></li> -->
+        <li class="toolbtn tool_add" @click="addZoom" v-unselect><span></span></li>
+        <li class="toolbtn tool_jian" @click="subZoom" v-unselect><span></span></li>
+        <li class="toolbtn" @click="autoLayerPosition" v-unselect><span>LAYOUT</span></li>
+      </ul>
+    <div class="btn_group">
+      <el-button @click="saveDraft">Draft</el-button>
+      <el-button type="primary" @click="saveCurrentModel">Save</el-button>
+    </div>  
+    <div class="tips_group">
+      
+    </div>
+    <div class="model_edit" :style="{left:docker.x +'px'  ,top:docker.y + 'px'}">
+      <div class="table_box" v-if="table&&table.kind" @drop='dropColumn' @dragover='allowDrop($event)'  v-for="table in tableList" :id="table.guid" v-bind:class="table.kind.toLowerCase()" v-bind:style="{ left: table.pos.x + 'px', top: table.pos.y + 'px' }" >
+        <div class="tool_box">
+            <icon name="table" class="el-icon-menu" style="color:#fff" @click.native="openModelSubMenu('hide', table.database, table.name)"></icon>
+            <icon name="gears"  class="el-icon-share" style="color:#fff" v-on:click.native="addComputedColumn(table.guid)"></icon>
+            <icon name="sort-alpha-asc" v-on:click.native="sortColumns(table.guid, true)"></icon>
+            <i class="fa fa-window-close"></i>
+            <el-dropdown @command="selectTableKind" class="ksd-fright">
+              <span class="el-dropdown-link">
+               <i class="el-icon-setting" style="color:#fff"></i>
+              </span>
+              <el-dropdown-menu slot="dropdown" >
+                <el-dropdown-item command="ROOTFACT" :data="table.guid">Fact</el-dropdown-item>
+                <el-dropdown-item command="LOOKUP" :data="table.guid">Lookup</el-dropdown-item>
+              </el-dropdown-menu>
+              </el-dropdown> 
+        </div>
+        <i class="el-icon-close close_table" v-on:click="removeTable(table.guid)"></i> 
+        <p class="table_name  drag_bar" v-on:dblclick="editAlias(table.guid)" v-visible="aliasEditTableId!=table.guid">
+        <common-tip :tips="table.database+'.'+table.name" class="drag_bar">{{(table.alias)|omit(16,'...')}}</common-tip></p>
+        <el-input v-model="table.alias" v-on:blur="cancelEditAlias(table.guid)" class="alias_input"  size="small" placeholder="enter alias..." v-visible="aliasEdit&&aliasEditTableId==table.guid"></el-input>
         <p class="filter_box"><el-input v-model="table.filterName" v-on:change="filterColumnByInput(table.filterName,table.guid)"  size="small" placeholder="enter filter..."></el-input></p>
         <section data-scrollbar class="columns_box">
           <ul>
-            <li v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)" v-for="column in table.columns" :key="column.guid" :class="column.name" class="column_li"><span class="kind">D</span><span class="column">{{column.name}}</span><span class="column_type">{{column.datatype}}</span></style></li>
+            <li draggable @dragstart="dragColumns" @dragend="dragColumnsEnd"  v-for="column in table.columns" :key="column.guid"  class="column_li"  v-bind:class="{'active_filter':column.isActive}" :data-guid="table.guid" :data-column="column.name" ><span class="kind" :class="{dimension:column.btype=='D',measure:column.btype=='M'}" v-on:click="changeColumnBType(table.guid,column.name,column.btype)">{{column.btype}}</span><span class="column" v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)"><common-tip trigger="click" :tips="column.name" style="font-size:10px;">{{column.name|omit(14,'...')}}</common-tip></span><span class="column_type">{{column.datatype}}</span></style></li>
           </ul>
         </section>
-        <div class="more_tool"><i class="el-icon-d-caret"></i></div>
+        <div class="more_tool"></div>
       </div>
+     
 
-
-
-
-      <el-dialog title="外键关系" v-model="dialogVisible" size="small">
+    </div>
+     <el-dialog title="主外键关系" v-model="dialogVisible" size="small" class="links_dialog">
         <span>
-          
+          <el-row :gutter="20" class="ksd-mb10">
+            <el-col :span="24">
+              <div class="grid-content bg-purple">
+                <a style="color:#56c0fc">{{currentLinkData.source.alias}}</a>
+              </div>
+            </el-col>
+            </el-row>
+            <br/>
+             <el-row :gutter="20" class="ksd-mb10">
+            <el-col :span="24">
+              <div class="grid-content bg-purple">
+                  <el-select v-model="currentLinkData.joinType" :disabled = "checkLock(false)" style="width:400px;" @change="switchJointType(currentLinkData.source.guid,currentLinkData.target.guid, currentLinkData.joinType)" placeholder="请选择连接类型">
+                    <el-option
+                      v-for="item in joinTypes"
+                      :label="item.label"
+                      :value="item.value">
+                    </el-option>
+                  </el-select>
+              </div>
+            </el-col>
+            </el-row>
+            <br/>
+             <el-row :gutter="20">
+            <el-col :span="24">
+              <div class="grid-content bg-purple">
+                <a style="color:#56c0fc">{{currentLinkData.target.alias}}</a>
+              </div>
+            </el-col>
+            </el-row>
+          </el-row>
+          <br/>
            <el-table
               :data="currentTableLinks"
-              border
-              style="width: 100%">
-              <el-table-column
+              :show-header="false"
+              style="width: 100%;border:none" class="linksTable">
+              <el-table-column style="border:none"
                 label="主键"
                 >
-                 <template scope="scope">
-                  <el-popover trigger="hover" placement="top">
-                    <p>{{ getTableInfoByGuid(scope.row[0]).name + '.' + scope.row[2] }}</p>
-                    <div slot="reference" class="name-wrapper">
-                      <el-tag type="success">{{ getTableInfoByGuid(scope.row[0]).name + '.' + scope.row[2] }}</el-tag>
-                    </div>
-                  </el-popover>
-                </template>
-              </el-table-column>
-              <el-table-column
-                label="关系"
-                width="140">
                 <template scope="scope">
-                  <div slot="reference" class="name-wrapper">
-                    <el-switch
-                      @change="switchJointType(scope.row[0], scope.row[1], scope.row[4])"
-                      :width="switchWidth"
-                      on-text="Left Join"
-                      off-text="Right Join"
-                      v-model="scope.row[4]"
-                      on-color="#13ce66"
-                      off-color="#ff4949">
-                    </el-switch>
-                    <!-- <el-tag>{{ scope.row[4] }}</el-tag> -->
-                  </div>
+                <el-select v-model="scope.row[2]" placeholder="请选择" style="width:100%" :disabled = "checkLock(false) && !scope.row[5]">
+                  <el-option
+                    v-for="item in currentLinkData.source.columns"
+                    :label="currentLinkData.source.alias+'.'+item.name"
+                    :value="item.name">
+                  </el-option>
+                </el-select>
                 </template>
               </el-table-column>
-              <el-table-column
+              <el-table-column  style="border:none" label="" align="center" width="40">
+                 <template scope="scope" align="center">＝</template>
+              </el-table-column>
+              <el-table-column style="border:none"
                 label="外键"
                 >
                 <template scope="scope">
-                  <el-popover trigger="hover" placement="top">
-                    <p>{{ getTableInfoByGuid(scope.row[1]).name + '.' + scope.row[3]}}</p>
-                    <div slot="reference" class="name-wrapper">
-                      <el-tag type="primary">{{ getTableInfoByGuid(scope.row[1]).name + '.' + scope.row[3]}}</el-tag>
-                    </div>
-                  </el-popover>
+                <el-select v-model="scope.row[3]" placeholder="请选择" style="width:100%" :disabled = "checkLock(false) && !scope.row[5]">
+                  <el-option
+                    v-for="item in currentLinkData.target.columns"
+                    :label="currentLinkData.target.alias+'.'+item.name"
+                    :value="item.name">
+                  </el-option>
+                </el-select>
                 </template>
               </el-table-column>
-              
-              <el-table-column label="操作" width="80">
-                <template scope="scope">
-                  <confirm-btn v-on:okFunc='delConnect(scope.row)' :tips="deleteLinkTips"><el-button size="small"
+              <br/>
+              <el-table-column style="border:none" label="操作" width="80" >
+                <template scope="scope" >
+                  <confirm-btn v-if="scope.row[5]" v-on:okFunc='delConnect(scope.row)' :tips="deleteLinkTips"><el-button size="small"
           type="danger">删除</el-button></confirm-btn>
                 </template>
               </el-table-column>
             </el-table>
-
+            <br/>
+            <el-button type="primary" @click="addJoinCondition(currentLinkData.source.guid,currentLinkData.target.guid, '', '', currentLinkData.joinType,true)">添加join条件</el-button>
         </span>
-        <!-- <span slot="footer" class="dialog-footer">
-          <el-button @click="dialogVisible = false">取 消</el-button>
-          <el-button type="primary" @click="dialogVisible = false">确 定</el-button>
-        </span> -->
-
+         <span slot="footer" class="dialog-footer">
+            <el-button type="primary" @click="saveLinks(currentLinkData.source.guid,currentLinkData.target.guid)">确 定</el-button>
+          </span> 
       </el-dialog>
-
-    </div>
-
+       <el-dialog title="Computed Column" v-model="computedColumnFormVisible" size="small">
+          <div>
+            <el-form label-position="top"  ref="computedColumnForm">
+              <el-form-item label="name" >
+                <el-input  auto-complete="off" v-model="computedColumn.name"></el-input>
+              </el-form-item>
+              <el-form-item label="expression" >
+                <el-input type="textarea"  auto-complete="off" v-model="computedColumn.expression"></el-input>
+              </el-form-item>
+              <el-form-item label="returnType" >
+                <el-input  auto-complete="off" v-model="computedColumn.returnType"></el-input>
+              </el-form-item>  
+              <el-form-item label="comment" >
+                <el-input type="textarea"  auto-complete="off" v-model="computedColumn.comment"></el-input>
+              </el-form-item>  
+            </el-form>
+          </div>
+          <span slot="footer" class="dialog-footer">
+            <el-button @click="computedColumnFormVisible = false">取 消</el-button>
+            <el-button type="primary" @click="saveComputedColumn">确 定</el-button>
+          </span>     
+        </el-dialog>
+      <model-tool :modelInfo="modelInfo" :editLock="editLock" :columnsForTime="timeColumns" :columnsForDate="dateColumns"  :activeName="submenuInfo.menu1" :activeNameSub="submenuInfo.menu2" :tableList="tableList" :partitionSelect="partitionSelect"  :selectTable="currentSelectTable" ref="modelsubmenu"></model-tool>
+</div>
 </template>
 <script>
 import { jsPlumb } from 'jsplumb'
-import { sampleGuid } from '../../util/index'
-
+import { sampleGuid, indexOfObjWithSomeKey, objectArraySort, objectClone } from '../../util/index'
+import { mapActions } from 'vuex'
 import $ from 'jquery'
 import Scrollbar from 'smooth-scrollbar'
+import modelassets from './model_assets'
+import Draggable from 'draggable'
+import modelEditTool from 'components/model/model_edit_panel'
+import { handleSuccess, handleError } from 'util/business'
 export default {
   name: 'modeledit',
+  components: {
+    'model-assets': modelassets,
+    'model-tool': modelEditTool
+  },
+  props: ['extraoption'],
   data () {
     return {
+      // 编辑锁
+      editLock: false,
+      // 定时保存配置
+      saveConfig: {
+        timer: 0,
+        limitTimer: 5
+      },
+      modelData: null,
+      draftData: null,
+      modelInfo: {
+        uuid: '',
+        last_modified: '',
+        filterStr: '',
+        modelName: '',
+        modelDiscribe: '',
+        computed_columns: [],
+        partition_desc: {
+          partition_date_column: '',
+          partition_time_column: null,
+          partition_date_start: 0,
+          partition_date_format: '',
+          partition_time_format: ''
+        }
+      },
+      partitionSelect: {
+        'date_table': '',
+        'date_column': '',
+        'time_table': '',
+        'time_column': '',
+        'partition_date_column': '',
+        'partition_time_column': '',
+        'partition_date_start': 0,
+        'partition_date_format': '',
+        'partition_time_format': '',
+        'partition_type': 'APPEND'
+      },
+      submenuInfo: {
+        menu1: 'first',
+        menu2: 'first',
+        table: '',
+        column: ''
+      },
+      currentSelectTable: {
+        database: '',
+        tablename: '',
+        columnname: ''
+      },
+      columnSort: ['order', 'reversed', 'restore'],
+      // timer: 0,
+      timerST: null,
+      baseLineL: 20000,
+      baseLineT: 20000,
+      hisModelJsonStr: '',
+      columnBType: ['D', 'M', '－'],
+      modelAssets: [],
+      cubeDataTree: [{
+        id: 1,
+        label: 'Cube',
+        children: [{
+          id: 2,
+          label: 'learn_kylin_cube',
+          children: []
+        }]
+      }],
+      currentZoom: 0.8,
+      currentDragDom: null,
+      dateColumns: {},
+      timeColumns: {},
+      currentDragData: {
+        table: '',
+        columnName: ''
+      },
+      currentDropDom: null,
+      currentDropData: {
+        table: '',
+        columnName: ''
+      },
+      currentLinkData: {
+        source: {
+          guid: '',
+          database: '',
+          name: '',
+          alias: '',
+          columns: []
+        },
+        target: {
+          guid: '',
+          database: '',
+          name: '',
+          alias: '',
+          columns: []
+        },
+        joinType: 'left'
+      },
       joinType: false,
+      aliasEdit: false,
+      aliasEditTableId: '',
       switchWidth: 100,
       dialogVisible: false,
+      computedColumnFormVisible: false,
       deleteLinkTips: '你确认要删除该连接吗？',
       selectColumn: {},
       plumbInstance: null,
       plumbInstanceForShowLink: null,
       links: [],
+      project: '',
       showLinkCons: {},
       currentTableLinks: [],
       pointType: 'source',
-      tableList: [{
-        'filterName': '',
-        'name': 'User_ProfileUser_ProfileUser_ProfileUser_Profile',
-        'database': 'default',
-        'alias': 'User_Profile',
-        'guid': '123',
-        'columns': [{'id': '1', 'name': 'A', 'datatype': 'bigint'}, {'id': '2', 'name': 'B', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '1', 'name': 'LEAF_CATEG_ID', 'datatype': 'bigint'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'TEST', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}]
-      }, {
-        'name': 'test2',
-        'database': 'default',
-        'alias': 'Product',
-        'guid': '456',
-        'columns': [{'id': '1', 'name': 'LEAF_CATEG_ID1', 'datatype': 'bigint'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '1', 'name': 'LEAF_CATEG_ID', 'datatype': 'bigint'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '1', 'name': 'LEAF_CATEG_ID1', 'datatype': 'bigint'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '1', 'name': 'LEAF_CATEG_ID', 'datatype': 'bigint'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}]
-      }, {
-        'name': 'test22',
-        'database': 'default',
-        'alias': 'Product',
-        'guid': sampleGuid(),
-        'columns': [{'id': '1', 'name': 'LEAF_CATEG_ID1', 'datatype': 'bigint'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '1', 'name': 'LEAF_CATEG_ID', 'datatype': 'bigint'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '1', 'name': 'LEAF_CATEG_ID1', 'datatype': 'bigint'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '1', 'name': 'LEAF_CATEG_ID', 'datatype': 'bigint'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}, {'id': '2', 'name': 'LEAF_CATEG_NAME', 'datatype': 'varchar(256)'}]
-      }],
-      endpointConfig: function (type, isShowLinkPoint) {
-        var connectorPaintStyle = {
-          strokeWidth: 2,
-          stroke: '#61B7CF',
-          joinstyle: 'round'
-        }
-    // .. and this is the hover style.
-        var connectorHoverStyle = {
-          strokeWidth: 3,
-          stroke: '#216477'
-        }
-        var endpointHoverStyle = {
-          fill: '#216477',
-          stroke: '#216477'
-        }
-        var sourceEndpoint = {
-          endpoint: 'Dot',
-          paintStyle: {
-            stroke: '#7AB02C',
-            fill: 'transparent',
-            radius: 7,
-            strokeWidth: 1
-          },
-          isSource: true,
-          connector: [ 'Bezier', { curviness: -13 } ], // 设置连线为贝塞尔曲线
-          // connector: [ 'Flowchart', { stub: [40, 60], gap: 10, cornerRadius: 5, alwaysRespectStubs: true } ],
-          connectorStyle: connectorPaintStyle,
-          hoverPaintStyle: endpointHoverStyle,
-          connectorHoverStyle: connectorHoverStyle,
-          dragOptions: {}
-        }
-    // the definition of target endpoints (will appear when the user drags a connection)
-        var targetEndpoint = {
-          endpoint: 'Dot',
-          paintStyle: { fill: '#7AB02C', radius: 7 },
-          hoverPaintStyle: endpointHoverStyle,
-          maxConnections: -1,
-          dropOptions: { hoverClass: 'hover', activeClass: 'active' },
-          isTarget: true
-        }
-        console.log(isShowLinkPoint)
-        if (type === 'source') {
-          if (isShowLinkPoint) {
-            sourceEndpoint.paintStyle.radius = 1
-          }
-          return sourceEndpoint
-        } else {
-          if (isShowLinkPoint) {
-            targetEndpoint.paintStyle.radius = 1
-          }
-          return targetEndpoint
-        }
-      }
+      columnBussiTypeMap: {},
+      tableList: [],
+      dragType: '',
+      joinTypes: [{label: 'Left Join', value: 'left'}, {label: 'Inner Join', value: 'inner'}],
+      tableKind: [],
+      docker: {
+        x: -20000,
+        y: -20000
+      },
+      dockerScreen: {
+        w: 1024,
+        h: 1000
+      },
+      computedColumn: {
+        guid: '',
+        name: '',
+        expression: '',
+        returnType: ''
+      },
+      currentMenuStatus: 'hide',
+      columnUsedInfo: []
     }
   },
   beforeDestroy () {
     this.removeAllEndpoints(this.plumbInstance)
   },
   methods: {
+    ...mapActions({
+      suggestDM: 'SUGGEST_DIMENSION_MEASURE',
+      getModelByModelName: 'LOAD_MODEL_INFO',
+      saveModel: 'SAVE_MODEL',
+      saveModelDraft: 'SAVE_MODEL_DRAFT',
+      updateModel: 'CACHE_UPDATE_MODEL_EDIT',
+      diagnose: 'DIAGNOSE',
+      // 数据缓冲到vuex里
+      cacheModelEdit: 'CACHE_MODEL_EDIT',
+      getUsedCols: 'GET_USED_COLS'
+    }),
+    // 检查是否上锁了
+    checkLock (msg) {
+      if (this.editLock && msg !== false) {
+        this.warnAlert(msg || '编辑模式下不允许该操作')
+      }
+      return this.editLock
+    },
+    // saveDraft () {
+    //   this.$notify({
+    //     title: '成功',
+    //     message: '保存为草稿成功',
+    //     type: 'success'
+    //   })
+    // },
+    saveCurrentModel () {
+      this.$confirm('确认保存Model？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        if (this.modelInfo.uuid) {
+          this.updateModel({
+            project: this.project,
+            modelName: this.modelInfo.modelName,
+            modelDescData: this.DragDataToServerData()
+          }).then(() => {
+            this.$message({
+              type: 'success',
+              message: '保存成功!'
+            })
+            this.$emit('removetabs', 'model' + this.extraoption.modelName)
+          }, (res) => {
+            handleError(res)
+          })
+        } else {
+          this.saveModel({
+            project: this.project,
+            modelDescData: this.DragDataToServerData()
+          }).then(() => {
+            this.$message({
+              type: 'success',
+              message: '保存成功!'
+            })
+            this.$emit('reload', 'modelList')
+            this.$emit('removetabs', 'model' + this.extraoption.modelName)
+          }, (res) => {
+            handleError(res)
+          })
+        }
+      }).catch(() => {
+        this.$message({
+          type: 'info',
+          message: '已取消保存'
+        })
+      })
+    },
+    clickCubeTree () {
+      var _this = this
+      event.stopPropagation()
+      this.$prompt('请输入Cube名称', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消'
+          // inputPattern: /[\w!#$%&'*+/=?^_`{|}~-]+(?:\.[\w!#$%&'*+/=?^_`{|}~-]+)*@(?:[\w](?:[\w-]*[\w])?\.)+[\w](?:[\w-]*[\w])?/,
+          // inputErrorMessage: '邮箱格式不正确'
+      }).then(({ value }) => {
+        _this.$emit('addtabs', 'cube', value, 'cubeEdit', {
+          project: localStorage.getItem('selected_project'),
+          cubeName: value,
+          modelName: this.modelInfo.modelName,
+          isEdit: false
+        })
+      }).catch(() => {
+      })
+    },
+    renderContent (h, {node, data, store}) {
+      var _this = this
+      return this.$createElement('div', {
+        class: [{'el-tree-node__label': true, 'leaf-label': node.isLeaf && node.level !== 1}, node.icon],
+        domProps: {
+          innerHTML: node.level === 1 ? '<span>' + data.label + '</span><span style="width:40px;height:60px; text-align:center;margin-left:30px;font-size:18px;" class="addCube" >+</span>' : '<span>' + data.label + '</span>'
+        },
+        attrs: {
+          title: data.label,
+          class: node.icon || ''
+        },
+        on: {
+          click: function (event) {
+            if (event.target.className === 'addCube') {
+              _this.clickCubeTree(event)
+            }
+          }
+        }
+      })
+    },
+    openModelSubMenu: function (currentMeunStatus, database, tablename) {
+      // this.$refs['modelsubmenu'].menuStatus = this.$refs['modelsubmenu'].menuStatus === 'hide' ? 'show' : 'hide'
+      this.$refs['modelsubmenu'].$emit('menu-toggle', 'hide')
+      this.submenuInfo.menu1 = 'second'
+      this.$set(this.currentSelectTable, 'database', database || '')
+      this.$set(this.currentSelectTable, 'tablename', tablename || '')
+    },
+    addComputedColumn: function (guid) {
+      this.computedColumn.guid = guid
+      this.computedColumnFormVisible = true
+    },
+    saveComputedColumn: function (guid) {
+      var _this = this
+      this.addComputedColumnToDatabase(function (columnName) {
+        _this.$notify({
+          title: '成功',
+          message: columnName + ' 计算列创建成功',
+          type: 'success'
+        })
+      })
+    },
+    sortColumns: function (guid) {
+      var key = 'name'
+      var squence = false
+      var tableInfo = this.getTableInfoByGuid(guid)
+      var columnType
+      if (!tableInfo.sort) {
+        columnType = this.columnSort[0]
+        tableInfo.tempColumns = tableInfo.columns
+      } else {
+        var index = this.columnSort.indexOf(tableInfo.sort)
+        if (index + 1 >= this.columnSort.length) {
+          index = 0
+        } else {
+          index = index + 1
+        }
+        columnType = this.columnSort[index]
+      }
+      tableInfo.sort = columnType
+      if (columnType === 'order') {
+        key = 'name'
+        squence = true
+      } else if (columnType === 'reversed') {
+        key = 'name'
+        squence = false
+      } else {
+        key = 'id'
+        squence = true
+      }
+      var columns = [].concat(tableInfo.columns)
+      objectArraySort(columns, squence, key)
+      tableInfo.columns = columns
+    },
+    getPartitionDateColumns: function () {
+      var canSetDatePartion = ['date', 'timestamp', 'string', 'bigint', 'int', 'integer', 'varchar']
+      var canSetTimePartion = ['time', 'timestamp', 'string', 'varchar']
+      var needNotSetDateFormat = ['bigint', 'int', 'integer']
+      var dateColumns = {}
+      var timeColumns = {}
+      var tableList = this.getTableList('kind', 'ROOTFACT').concat(this.getTableList('kind', 'FACT'))
+      var tableListLen = tableList.length
+      for (var i = 0; i < tableListLen; i++) {
+        if (tableList[i].kind.indexOf('FACT') === -1) {
+          continue
+        }
+        for (var k = 0; k < tableList[i].columns.length; k++) {
+          var datatype = tableList[i].columns[k].datatype.replace(/\(.*?\)/, '')
+          if (canSetDatePartion.indexOf(datatype) >= 0) {
+            var needFormat = true
+            if (needNotSetDateFormat.indexOf(datatype) >= 0) {
+              needFormat = false
+            }
+            var tabeFullName = tableList[i].alias
+            dateColumns[tabeFullName] = dateColumns[tabeFullName] || []
+            dateColumns[tabeFullName].push({name: tableList[i].columns[k].name, isFormat: needFormat})
+          }
+          if (canSetTimePartion.indexOf(datatype) >= 0) {
+            timeColumns[tabeFullName] = timeColumns[tabeFullName] || []
+            timeColumns[tabeFullName].push({name: tableList[i].columns[k].name, isFormat: true})
+          }
+        }
+      }
+      // dateColumns.forEach((dc, index) => {
+      //   this.$set(this.dateColumns, index, dc)
+      // })
+      // timeColumns.forEach((c, index) => {
+      //   this.$set(this.dateColumns, index, dc)
+      // })
+      this.dateColumns = {}
+      this.timeColumns = {}
+      // for (let key in this.dateColumns) {
+      //   this.$delete(this.dateColumns[key])
+      // }
+      // for (let key in this.timeColumns) {
+      //   this.$delete(this.timeColumns[key])
+      // }
+      this.dateColumns = Object.assign({}, this.dateColumns, dateColumns)
+      this.timeColumns = Object.assign({}, this.timeColumns, timeColumns)
+    },
+    addComputedColumnToDatabase: function (callback, isInit) {
+      var guid = this.computedColumn.guid
+      var databaseInfo = this.getTableInfoByGuid(guid)
+      var sameTables = this.getSameOriginTables(databaseInfo.database, databaseInfo.name)
+      if (!this.checkSameColumnName(guid, this.computedColumn.name)) {
+        var columnObj = {
+          name: this.computedColumn.name,
+          datatype: this.computedColumn.returnType,
+          btype: this.computedColumn.columnType || 'D',
+          expression: this.computedColumn.expression
+        }
+        var computedObj = {
+          tableIdentity: databaseInfo.database + '.' + databaseInfo.name,
+          columnName: this.computedColumn.name,
+          expression: this.computedColumn.expression,
+          comment: this.computedColumn.comment || 'D',
+          datatype: this.computedColumn.returnType
+        }
+        sameTables.forEach((table) => {
+          table.columns.push(columnObj)
+        })
+        if (!isInit) {
+          this.modelInfo.computed_columns.push(computedObj)
+        }
+        this.computedColumnFormVisible = false
+        this.computedColumn = {
+          guid: '',
+          name: '',
+          expression: '',
+          returnType: ''
+        }
+        if (typeof callback === 'function') {
+          callback(computedObj.columnName)
+        }
+      } else {
+        this.warnAlert('该计算列的名称已经存在！')
+      }
+    },
+    checkSameColumnName: function (guid, column) {
+      var columns = this.getTableInfoByGuid(guid).columns
+      return indexOfObjWithSomeKey(columns, 'columnName', column) !== -1
+    },
+    // dimension and measure and disable
+    changeColumnBType: function (id, columnName, columnBType) {
+      var alias = this.getTableInfoByGuid(id).alias
+      var usedCubes = this.checkColsUsedStatus(alias, columnName)
+      if (usedCubes && usedCubes.length) {
+        this.warnAlert('已经在名称为' + usedCubes.join(',').replace(/cube\[name=(.*?)\]/gi, '$1') + '的cube中用过该列，不允许修改')
+        return
+      }
+      var columnIndex = 0
+      if (columnBType) {
+        columnIndex = this.columnBType.indexOf(columnBType)
+        columnIndex = columnIndex + 1 >= this.columnBType.length ? 0 : columnIndex + 1
+      } else {
+        columnIndex = 0
+      }
+      this.editTableColumnInfo(id, 'name', columnName, 'btype', this.columnBType[columnIndex])
+    },
     /*
     *  Filter Func
     *  ==========================================================================
@@ -193,31 +583,39 @@ export default {
     filterColumnByInput: function (filter, id) {
       var instance = Scrollbar.get($('#' + id).find('.columns_box')[0])
       var suggestObj = this.getColumnDataByLikeFilter(id, filter)
-      this.autoScroll(instance, suggestObj.index * 30, suggestObj.className, id)
-      this.selectFilterColumn(id, suggestObj.className, suggestObj.columnType, 'target')
+      if (suggestObj.length) {
+        for (var k = 0; k < suggestObj.length; k++) {
+          for (var j = k + 1; j < suggestObj.length; j++) {
+            if (suggestObj[k].startIndex > suggestObj[j].startIndex) {
+              var temp = suggestObj[j]
+              suggestObj[j] = suggestObj[k]
+              suggestObj[k] = temp
+            }
+          }
+        }
+        this.autoScroll(instance, suggestObj[0].index * 30, suggestObj[0].className, id)
+        this.selectFilterColumn(id, suggestObj[0].className, suggestObj[0].columnType)
+      } else {
+        this.selectFilterColumn(id, '', '')
+      }
     },
     cancelFilterColumn: function (id) {
-      this.removePoint(id + this.selectColumn[id].columnName)
       this.$set(this.selectColumn, id, '')
     },
     selectFilterColumn: function (id, columnName, columnType, pointType) {
-      this.pointType = this.pointType === 'source' ? 'target' : 'source'
+      this.editTableColumnsUniqueInfo(id, 'name', columnName, 'isActive', true, false)
       if (columnName) {
-        if (this.selectColumn[id]) {
-          this.removePoint(id + this.selectColumn[id].columnName)
-        }
         this.$set(this.selectColumn, id, {columnName: columnName, columnType: columnType})
-        this.addSelectPoints(id, this.plumbInstance, this.pointType, columnName, columnType)
       } else {
         this.cancelFilterColumn(id)
       }
+      var tableInfo = this.getTableInfoByGuid(id)
+      this.$set(this.currentSelectTable, 'database', tableInfo.database || '')
+      this.$set(this.currentSelectTable, 'tablename', tableInfo.name || '')
+      this.$set(this.currentSelectTable, 'columnname', columnName)
     },
     getColumnDataByLikeFilter: function (guid, filter) {
-      var suggest = {
-        className: '',
-        columnType: '',
-        index: 0
-      }
+      var suggest = []
       if (filter === '') {
         return suggest
       }
@@ -226,10 +624,12 @@ export default {
           for (let i = 0; i < table.columns.length; i++) {
             var col = table.columns[i]
             if (col.name.toUpperCase().indexOf(filter.toUpperCase()) >= 0) {
-              suggest.className = col.name
-              suggest.index = i
-              suggest.columnType = col.datatype
-              break
+              suggest.push({
+                className: col.name,
+                index: i,
+                columnType: col.datatype,
+                startIndex: col.name.toUpperCase().indexOf(filter.toUpperCase())
+              })
             }
           }
         }
@@ -237,51 +637,216 @@ export default {
       return suggest
     },
     autoScroll (instance, topSize, aim, id) {
-      instance.scrollTo(100, topSize, 300, function (scrollbar) {
-        $('#' + id).find('.column_li').removeClass('active_filter')
-        if (aim !== '') {
-          $('#' + id).find('.' + aim).addClass('active_filter')
-          instance.addListener(function (status) {
-            // console.log(status)
-          })
-        }
-      })
+      instance.scrollTo(100, topSize, 300, function (scrollbar) {})
     },
     linkFilterColumnAnimate (sourceId, targetId, callback) {
-      $('#' + sourceId).find('.link_box').animate({
-        'top': '0',
-        'width': '0px',
-        'height': '0',
-        'left': '125px'
-      })
-      $('#' + targetId).find('.link_box').animate({
-        'top': '0',
-        'width': '0px',
-        'height': '0',
-        'left': '125px'
-      }, 'fast', function () {
-        callback()
-      })
+      callback()
     },
     /*
     *  Table Func
     *  ==========================================================================
     */
-    draggleTable: function (idList) {
-      this.plumbInstance.draggable(idList)
-    },
-    getTableInfoByGuid: function (guid) {
-      var len = this.tableList && this.tableList.length || 0
-      for (var i = 0; i < len; i++) {
-        if (this.tableList[i].guid === '' + guid) {
-          return this.tableList[i]
+    createTableData: function (project, database, tableName, other) {
+      var obj = {}
+      var projectDataSource = this.$store.state.datasource.dataSource[project] || []
+      for (var i = 0; i < projectDataSource.length; i++) {
+        if (projectDataSource[i].database === database && projectDataSource[i].name === tableName) {
+          obj = objectClone(projectDataSource[i])
+          obj.guid = sampleGuid()
+          obj.pos = {x: 300, y: 400}
+          obj.alias = obj.alias || obj.name
+          obj.kind = 'LOOKUP'
+          Object.assign(obj, other)
+          break
         }
       }
+      this.tableList.push(obj)
+      var uniqueName = this.createUniqueName(obj.guid, obj.alias)
+      this.$set(obj, 'alias', uniqueName)
+      this.$nextTick(() => {
+        this.draggleTable(jsPlumb.getSelector('.table_box'))
+        Scrollbar.init($('#' + obj.guid).find('section')[0])
+      })
+      return obj
+    },
+    removeTable: function (guid) {
+      if (this.checkLock()) {
+        return
+      }
+      var count = this.getConnectsByTableId(guid)
+      if (count > 0) {
+        this.warnAlert('该table有关联的链接，请先删除连接再删除表！')
+        return
+      }
+      for (var i = 0; i < this.tableList.length; i++) {
+        if (this.tableList[i].guid === guid) {
+          this.tableList.splice(i, 1)
+          this.removePoint(guid)
+          break
+        }
+      }
+    },
+    draggleTable: function (idList) {
+      var _this = this
+      this.plumbInstance.draggable(idList, {
+        handle: '.drag_bar,.drag_bar span',
+        drop: function (e) {
+        },
+        stop: function (e) {
+          _this.editTableInfoByGuid(idList, {
+            pos: {x: e.pos[0], y: e.pos[1]}
+          })
+        }
+      })
+    },
+    getTableInfoByGuid: function (guid) {
+      return this.getTableInfo('guid', guid)
+    },
+    drag: function (target, dragName) {
+      if (target) {
+        this.dragType = 'createTables'
+        this.currentDragDom = target
+        this.currentDragData = {
+          table: dragName.split('$')[0],
+          columnName: dragName.split('$')[1]
+        }
+      }
+    },
+    dragColumns (event) {
+      // event.preventDefault()
+      // event.dataTransfer && event.dataTransfer.setData('Text', '')
+      this.currentDragDom = event.srcElement ? event.srcElement : event.target
+      event.dataTransfer.effectAllowed = 'move'
+      event.dataTransfer.setData('column', this.currentDragDom.innerHTML)
+      event.dataTransfer.setDragImage(this.currentDragDom, 0, 0)
+      this.dragType = 'createLinks'
+      // var dt = event.originalEvent.dataTransfer
+      // dt.effectAllowed = 'copyMove'
+      this.currentDragData = {
+        table: $(this.currentDragDom).attr('data-guid'),
+        columnName: $(this.currentDragDom).attr('data-column')
+      }
+      return true
+    },
+    dragColumnsEnd (event) {
+      event.dataTransfer.clearData('text')
+      // eleDrag = null;/
+      return false
+    },
+    drop: function (event) {
+      // event.preventDefault()
+      if (this.dragType !== 'createTables') {
+        return
+      }
+      var _this = this
+      var target = event.srcElement ? event.srcElement : event.target
+      if (target.className.indexOf('model_edit') >= 0) {
+        var pos = {
+          x: Math.abs(_this.docker.x) + event.pageX - 215,
+          y: Math.abs(_this.docker.y) + event.pageY - 170
+        }
+        var newTableData = this.createTableData(this.extraoption.project, this.currentDragData.table, this.currentDragData.columnName, {pos: pos})
+        this.suggestColumnDtype(newTableData)
+      }
+      return false
+    },
+    suggestColumnDtype (newTableData) {
+      this.suggestDM({'table': newTableData.database + '.' + newTableData.name}).then((response) => {
+        handleSuccess(response, (data) => {
+          for (var i in data) {
+            var setColumnBType
+            if (data[i].indexOf('MEASURE') === 0) {
+              setColumnBType = 'M'
+            } else if (data[i].indexOf('DIMENSION') === 0) {
+              setColumnBType = 'D'
+            }
+            this.editTableColumnInfo(newTableData.guid, 'name', i, 'btype', setColumnBType)
+          }
+        })
+      })
+    },
+    dropColumn: function (event) {
+      // e.preventDefault()
+      if (this.dragType !== 'createLinks') {
+        return
+      }
+      var target = event.srcElement ? event.srcElement : event.target
+      var dataBox = $(target).parents('.table_box')
+      var columnBox = $(target).parents('.column_li')
+      var targetId = dataBox.attr('id')
+      var columnName = columnBox.attr('data-column')
+      if (targetId) {
+        this.currentDropData = {
+          table: targetId,
+          columnName: columnName
+        }
+        if (this.currentDragData.table === this.currentDropData.table) {
+          return
+        }
+        if (this.checkIncorrectLink(this.currentDragData.table, this.currentDropData.table)) {
+          return
+        }
+        this.prepareLinkData(this.currentDragData.table, this.currentDropData.table)
+      }
+      return false
+    },
+    prepareLinkData (p1, p2, justShow) {
+      this.dialogVisible = true
+      var sourceTableInfo = this.getTableInfoByGuid(p1)
+      var targetTableInfo = this.getTableInfoByGuid(p2)
+      this.currentLinkData.source.guid = sourceTableInfo.guid
+      this.currentLinkData.source.database = sourceTableInfo.database
+      this.currentLinkData.source.name = sourceTableInfo.name
+      this.currentLinkData.source.alias = sourceTableInfo.alias
+      this.currentLinkData.source.columns = sourceTableInfo.columns
+
+      this.currentLinkData.target.guid = targetTableInfo.guid
+      this.currentLinkData.target.database = targetTableInfo.database
+      this.currentLinkData.target.name = targetTableInfo.name
+      this.currentLinkData.target.alias = targetTableInfo.alias
+      this.currentLinkData.target.columns = targetTableInfo.columns
+      this.currentLinkData.joinType = this.getConnectType(p1, p2)
+      this.getConnectsByTableIds(p1, p2)
+      if (!justShow) {
+        this.addJoinCondition(sourceTableInfo.guid, targetTableInfo.guid, this.currentDragData.columnName, this.currentDropData.columnName, this.currentLinkData.joinType, true)
+      }
+    },
+    allowDrop: function (event) {
+      event.preventDefault()
     },
     /*
     *  Endpoint Func
     *  ==========================================================================
     */
+    endpointConfig: function (type, isShowLinkPoint) {
+      var connectorPaintStyle = {
+        strokeWidth: 2,
+        stroke: '#f5a623',
+        joinstyle: 'round'
+      }
+      if (type !== 'left') {
+        connectorPaintStyle.stroke = '#f5a623'
+      }
+      var sourceEndpoint = {
+        endpoint: 'Dot',
+        paintStyle: {
+          stroke: '#7AB02C',
+          fill: 'transparent',
+          radius: 7,
+          strokeWidth: 1
+        },
+        isSource: true,
+        isTarget: true,
+        connector: [ 'Bezier', { curviness: -13 } ], // 设置连线为贝塞尔曲线
+          // connector: [ 'Flowchart', { stub: [40, 60], gap: 10, cornerRadius: 5, alwaysRespectStubs: true } ],
+        connectorStyle: connectorPaintStyle,
+        dragOptions: {}
+      }
+      if (isShowLinkPoint) {
+        sourceEndpoint.paintStyle.radius = 1
+      }
+      return sourceEndpoint
+    },
     createEndpointConfig: function (newEndpointconfig, type, isShowLinkPoint) {
       return Object.assign({}, this.endpointConfig(type, isShowLinkPoint), newEndpointconfig)
     },
@@ -289,7 +854,7 @@ export default {
       plumb.deleteEveryEndpoint()
     },
     addSelectPoints: function (guid, jsplumb, pointType, columnName, columnType, isShowLinkPoint) {
-      var anchor = [[1.0, 0.4, 1.5, 0], [0, 0.4, -1, 0]]
+      var anchor = [[1.0, -0.05, 1.5, 0], [0, -0.05, -1, 0]]
       var scope = 'link'
       if (isShowLinkPoint) {
         anchor = [[0.5, 0, 0.6, 0], [0.5, 1, 0.6, 1], [0, 0.5, 0, 0.6], [1, 0.5, 1, 0.6]]
@@ -308,10 +873,9 @@ export default {
         uuid: guid + columnName
       }, pointType, isShowLinkPoint))
       this.draggleTable([guid])
-      this.refreshPlumbObj(jsplumb)
+      // this.refreshPlumbObj(jsplumb)
     },
     removePoint: function (uuid) {
-      console.log(uuid)
       this.plumbInstance.deleteEndpoint(uuid)
     },
     /*
@@ -322,12 +886,11 @@ export default {
       var _this = this
       var defaultPata = {uuids: [p1, p2],
         editable: true,
-        overlays: ['Arrow', ['Label', {id: p1 + (p2 + 'label'),
-          label: 'foo',
-          location: 60,
+        overlays: [['Label', {id: p1 + (p2 + 'label'),
+          // location: 0.1,
           events: {
             tap: function () {
-              _this.showLinkGrid(p1, p2)
+              _this.prepareLinkData(p1, p2, true)
             }
           } }]]}
       $.extend(defaultPata, otherProper)
@@ -344,12 +907,17 @@ export default {
         }
       }
       if (!hasSame) {
-        if (links && links.length) {
-          this.links.push([p1, p2, col1, col2, links[0][4], con])
-        } else {
-          this.links.push([p1, p2, col1, col2, type, con])
+        this.links.push([p1, p2, col1, col2, type, con])
+      }
+    },
+    getConnectJoinType: function (p1, p2) {
+      var links = this.links
+      for (var i = 0; i < links.length; i++) {
+        if (links[i][0] === '' + p1 && links[i][1] === '' + p2) {
+          return links[i][4]
         }
       }
+      return true
     },
     delConnect: function (connect) {
       var links = this.links
@@ -359,31 +927,87 @@ export default {
           break
         }
       }
-      this.getConnectsByTableIds(connect[0], connect[1])
-      var showLinkCon = this.showLinkCons[connect[0] + '' + connect[1]]
-      console.log(showLinkCon)
-      if (this.currentTableLinks.length === 0) {
-        delete this.showLinkCons[connect[0] + '' + connect[1]]
-        this.plumbInstance.detach(showLinkCon)
-      } else {
-        this.setConnectLabelText(showLinkCon, connect[0], connect[1], '' + this.currentTableLinks.length)
+      this.refreshConnectCountText(connect[0], connect[1])
+      var linkCount = this.getConnectsByTableId(connect[0])
+      if (linkCount === 0) {
+        this.dialogVisible = false
       }
-      console.log(this.links)
+    },
+    delBrokenConnect (p1, p2) {
+      var links = this.links
+      for (var i = 0; i < links.length; i++) {
+        if (links[i][0] === p1 && links[i][1] === p2 && (links[i][2] === '' || links[i][3] === '')) {
+          this.links.splice(i, 1)
+          i = i - 1
+        }
+      }
+    },
+    refreshConnectCountText (p1, p2, joinType) {
+      this.getConnectsByTableIds(p1, p2)
+      var showLinkCon = this.showLinkCons[p1 + '$' + p2]
+      if (showLinkCon) {
+        if (this.currentTableLinks.length) {
+          this.setConnectLabelText(showLinkCon, p1, p2, '' + this.currentTableLinks.length)
+        } else {
+          this.plumbInstance.detach(showLinkCon)
+          delete this.showLinkCons[p1 + '$' + p2]
+          this.removePoint(showLinkCon.sourceId)
+        }
+      } else {
+        this.addShowLink(p1, p2, joinType)
+      }
+    },
+    addJoinCondition: function (p1, p2, col1, col2, joinType, newCondition) {
+      var link = [p1, p2, col1, col2, joinType, newCondition]
+      this.links.push(link)
+      this.refreshConnectCountText(p1, p2, joinType)
+    },
+    saveLinks (p1, p2) {
+      this.dialogVisible = false
+      this.delBrokenConnect(p1, p2)
+      this.getConnectsByTableIds(p1, p2)
+      var showLinkCon = this.showLinkCons[p1 + '$' + p2]
+      if (showLinkCon) {
+        this.setConnectLabelText(showLinkCon, p1, p2, '' + this.currentTableLinks.length)
+      } else {
+
+      }
     },
     switchJointType: function (p1, p2, status) {
       for (var i = 0; i < this.links.length; i++) {
         if (this.links[i][0] === p1 && this.links[i][1] === p2) {
           this.links[i][4] = status
+          var connObj = this.showLinkCons[p1 + '$' + p2]
+          var labelObj = connObj.getOverlay(p1 + (p2 + 'label'))
+          var labelDom = $(labelObj.canvas)
+          labelDom.removeClass('label_left').removeClass('label_inner')
+          if (status === 'left') {
+            labelDom.addClass('label_left')
+            labelObj.setLabel(labelObj.labelText.replace(/Inner/, 'Left'))
+          } else {
+            labelDom.addClass('label_inner')
+            labelObj.setLabel(labelObj.labelText.replace(/Left/, 'Inner'))
+          }
+          connObj.setPaintStyle({'stroke': status ? '#f5a623' : '#f5a623'})
         }
       }
     },
     setConnectLabelText: function (conn, p1, p2, text) {
-      conn.getOverlay(p1 + (p2 + 'label')).setLabel('' + text)
-      this.showLinkCons[p1 + '' + p2] = conn
+      var labelObj = conn.getOverlay(p1 + (p2 + 'label'))
+      this.showLinkCons[p1 + '$' + p2] = conn
+      var joinType = this.getConnectJoinType(p1, p2)
+      if (joinType === 'left') {
+        $(labelObj.canvas).addClass('label_left')
+        // labelObj.setLabel('Left: ' + text)
+        labelObj.setLabel('Left')
+      } else {
+        $(labelObj.canvas).addClass('label_inner')
+        // labelObj.setLabel('Inner: ' + text)
+        labelObj.setLabel('Inner')
+      }
     },
     getConnectCountByTableIds: function (p1, p2) {
       var count = 0
-      console.log(this.links)
       for (var i = 0; i < this.links.length; i++) {
         if (this.links[i][0] === '' + p1 && this.links[i][1] === '' + p2) {
           count = count + 1
@@ -398,26 +1022,687 @@ export default {
           this.currentTableLinks.push(this.links[i])
         }
       }
-      console.log(444)
-      console.log(this.currentTableLinks)
     },
-    addShowLink: function (p1, p2) {
-      this.connect(p1, p2, this.plumbInstance)
+    getConnectType: function (p1, p2) {
+      var joinType = 'left'
+      for (var i = 0; i < this.links.length; i++) {
+        if (this.links[i][0] === p1 && this.links[i][1] === p2) {
+          joinType = this.links[i][4]
+          break
+        }
+      }
+      return joinType
     },
-    showLinkGrid: function (p1, p2) {
-      this.dialogVisible = true
-      this.getConnectsByTableIds(p1, p2)
+    getConnectsByTableId: function (guid) {
+      var count = 0
+      for (var i = 0; i < this.links.length; i++) {
+        if (this.links[i][0] === guid || this.links[i][1] === guid) {
+          count = count + 1
+        }
+      }
+      return count
+    },
+    addShowLink: function (p1, p2, joinType) {
+      this.addSelectPoints(p1, this.plumbInstance, joinType, '', '', true)
+      this.addSelectPoints(p2, this.plumbInstance, joinType, '', '', true)
+      this.connect(p1, p2, this.plumbInstance, {})
+    },
+    getConnectsCountByGuid (p1, p2) {
+      var obj = {}
+      var count = 0
+      for (var i = 0; i < this.links.length; i++) {
+        if (this.links[i][0] === p1 && this.links[i][1] !== p2) {
+          obj[this.links[i][1]] = true
+        }
+      }
+      for (var k in obj) {
+        if (k) {
+          count++
+        }
+      }
+      return count
+    },
+    // 检查不合理的链接
+    checkIncorrectLink: function (p1, p2) {
+      // 检查是否是rootfact指向fact和lookup
+      var resultTag = false
+      if (this.checkIsRootFact(p1)) {
+        this.warnAlert('Fact Table不能作为主键表')
+        resultTag = true
+      }
+      // 检查是否有反向链接
+      for (var i = 0; i < this.links.length; i++) {
+        if (this.links[i][0] === p2 && this.links[i][1] === p1) {
+          this.warnAlert('这两个表已经被反向关联过')
+          resultTag = true
+          break
+        }
+      }
+      if (this.getConnectsCountByGuid(p1, p2) >= 1) {
+        this.warnAlert('该表已经关联过其他外键表')
+        resultTag = true
+      }
+      return resultTag
+    },
+    editAlias: function (guid) {
+      this.aliasEdit = true
+      this.aliasEditTableId = guid
+    },
+    checkSameAlias: function (guid, newAlias) {
+      var hasAlias = 0
+      this.tableList.forEach(function (table) {
+        if (table.guid !== guid) {
+          if (table.alias.toUpperCase() === newAlias.toUpperCase()) {
+            hasAlias++
+          }
+        }
+      })
+      return hasAlias
+    },
+    cancelEditAlias: function (guid) {
+      this.aliasEdit = false
+      this.aliasEditTableId = ''
+      var tableInfo = this.getTableInfo('guid', guid)
+      var uniqueName = this.createUniqueName(guid, tableInfo.alias)
+      this.$set(tableInfo, 'alias', uniqueName)
+    },
+    createUniqueName (guid, alias) {
+      var sameCount = this.checkSameAlias(guid, alias)
+      var finalAlias = alias.toUpperCase().replace(/[^a-zA-Z_0-9]/g, '')
+      if (sameCount === 0) {
+        return finalAlias
+      } else {
+        while (this.checkSameAlias(guid, finalAlias + '_' + sameCount)) {
+          sameCount++
+        }
+        return finalAlias + '_' + sameCount
+      }
+    },
+    selectTableKind: function (command, licompon) {
+      var kind = command
+      var guid = licompon.$el.getAttribute('data')
+      if (kind === 'ROOTFACT') {
+        if (this.checkHasFactKindTable(guid)) {
+          this.warnAlert('已经有一个rootfact了')
+          return
+        }
+        for (var i in this.links) {
+          if (this.links[i][0] === guid) {
+            this.warnAlert('有一个连接的主键已经在该表上，该表不能再被设置成rootfact，请删除连接重试！')
+            return
+          }
+        }
+      }
+      var tableInfo = this.getTableInfoByGuid(guid)
+      this.editTableInfoByGuid(guid, 'kind', kind)
+      this.editTableInfoByGuid(guid, 'alias', tableInfo.name)
+      this.getPartitionDateColumns()
+    },
+    checkHasFactKindTable: function (guid) {
+      var hasFact = false
+      this.tableList.forEach(function (table) {
+        if (table.guid !== guid) {
+          if (table.kind === 'ROOTFACT') {
+            hasFact = true
+          }
+        }
+      })
+      return hasFact
+    },
+    getRootFact: function () {
+      return this.getTableList('kind', 'ROOTFACT')
+    },
+    checkIsRootFact: function (guid) {
+      for (var i = 0; i < this.tableList.length; i++) {
+        if (this.tableList[i].guid === guid) {
+          if (this.tableList[i].kind === 'ROOTFACT') {
+            return true
+          }
+        }
+      }
+      return false
     },
     refreshPlumbObj: function (plumb) {
-      plumb = plumb || jsPlumb
+      plumb = plumb || this.plumbInstance
       plumb.repaintEverything()
+    },
+    getTableInfo: function (filterKey, filterValue) {
+      for (var i = 0; i < this.tableList.length; i++) {
+        if (this.tableList[i][filterKey] === filterValue) {
+          return this.tableList[i]
+        }
+      }
+    },
+    getDimensions: function () {
+      var resultArr = []
+      for (var i = 0; i < this.tableList.length; i++) {
+        var obj = {
+          table: this.tableList[i].alias,
+          columns: []
+        }
+        var columns = this.tableList[i].columns
+        var len = columns && columns.length || 0
+        for (var j = 0; j < len; j++) {
+          if (columns[j].btype === 'D') {
+            obj.columns.push(columns[j].name)
+          }
+        }
+        if (obj.columns.length) {
+          resultArr.push(obj)
+        }
+      }
+      return resultArr
+    },
+    getMeasures: function () {
+      var resultArr = []
+      for (var i = 0; i < this.tableList.length; i++) {
+        var columns = this.tableList[i].columns
+        var len = columns && columns.length || 0
+        for (var j = 0; j < len; j++) {
+          if (columns[j].btype === 'M') {
+            resultArr.push(this.tableList[i].alias + '.' + columns[j].name)
+          }
+        }
+      }
+      return resultArr
+    },
+    getTableList: function (filterKey, filterValue) {
+      var resultArr = this.tableList.filter((table) => {
+        return table[filterKey] === filterValue
+      })
+      return resultArr || []
+    },
+    getSameOriginTables: function (database, tableName) {
+      var resultArr = this.tableList.filter((table) => {
+        return table.database === database && table.name === tableName
+      })
+      return resultArr || []
+    },
+    editTableInfoByGuid: function (guid, key, value) {
+      for (var i = 0; i < this.tableList.length; i++) {
+        if (this.tableList[i].guid === guid) {
+          this.tableList[i][key] = value
+          break
+        }
+      }
+    },
+    editTableColumnInfo: function (guid, filterColumnKey, filterColumnVal, columnKey, value) {
+      var _this = this
+      this.tableList.forEach(function (table) {
+        if (table.guid === guid) {
+          var len = table.columns && table.columns.length || 0
+          for (let i = 0; i < len; i++) {
+            var col = table.columns[i]
+            if (col[filterColumnKey] === filterColumnVal || filterColumnVal === '*') {
+              _this.$set(col, columnKey, value)
+            }
+          }
+        }
+      })
+    },
+    // 设置所有列中只有一个列有一种属性，其他都为另一种属性
+    editTableColumnsUniqueInfo: function (guid, filterColumnKey, filterColumnVal, columnKey, value, oppositeValue) {
+      var _this = this
+      this.tableList.forEach(function (table) {
+        if (table.guid === guid) {
+          for (let i = 0; i < table.columns.length; i++) {
+            var col = table.columns[i]
+            if (col[filterColumnKey] === filterColumnVal) {
+              _this.$set(col, columnKey, value)
+            } else {
+              _this.$set(col, columnKey, oppositeValue)
+            }
+          }
+        }
+      })
+    },
+    warnAlert: function (str) {
+      this.$message(str)
+    },
+    // trans Data
+    DragDataToServerData: function (needJson) {
+      var pos = {}
+      var kylinData = {
+        uuid: this.modelInfo.uuid,
+        capacity: 'MEDIUM',
+        owner: 'ADMIN',
+        lookups: [],
+        partition_desc: {},
+        dimensions: [],
+        metrics: [],
+        status: this.modelInfo.status,
+        last_modified: this.modelInfo.last_modified,
+        filter_condition: this.modelInfo.filterStr,
+        name: this.modelInfo.modelName,
+        description: this.modelInfo.modelDiscribe,
+        computed_columns: this.modelInfo.computed_columns
+      }
+      // console.log(this.partitionSelect, '2456')
+      if (this.partitionSelect.date_table && this.partitionSelect.date_column) {
+        kylinData.partition_desc.partition_date_column = this.partitionSelect.date_table + '.' + this.partitionSelect.date_column
+      }
+      if (this.partitionSelect.time_table && this.partitionSelect.time_column) {
+        kylinData.partition_desc.partition_time_column = this.partitionSelect.time_table + '.' + this.partitionSelect.time_column
+      }
+      kylinData.partition_desc.partition_date_format = this.partitionSelect.partition_date_format
+      kylinData.partition_desc.partition_time_format = this.partitionSelect.partition_time_format
+      kylinData.partition_desc.partition_type = 'APPEND'
+      kylinData.partition_desc.partition_date_start = null
+
+      // root table
+      var rootFactTable = this.getRootFact()
+      if (rootFactTable.length) {
+        kylinData.fact_table = rootFactTable[0].database + '.' + rootFactTable[0].name
+        pos[rootFactTable[0].name] = rootFactTable[0].pos
+      }
+      // lookups
+      var linkTables = {}
+      for (var i = 0; i < this.links.length; i++) {
+        var currentLink = this.links[i]
+        var p1 = currentLink[0]
+        var p2 = currentLink[1]
+        var col1 = currentLink[2]
+        var col2 = currentLink[3]
+        var joinType = currentLink[4]
+        var p1TableInfo = this.getTableInfoByGuid(p1)
+        var p2TableInfo = this.getTableInfoByGuid(p2)
+        pos[p1TableInfo.alias] = p1TableInfo.pos
+        if (!linkTables[p1 + '$' + p2]) {
+          linkTables[p1 + '$' + p2] = {
+            table: p1TableInfo.database + '.' + p1TableInfo.name,
+            kind: p1TableInfo.kind,
+            alias: p1TableInfo.alias,
+            join: {
+              type: joinType,
+              primary_key: [p1TableInfo.alias + '.' + col1],
+              foreign_key: [p2TableInfo.alias + '.' + col2]
+            }
+          }
+        } else {
+          linkTables[p1 + '$' + p2].join.primary_key.push(p1TableInfo.alias + '.' + col1)
+          linkTables[p1 + '$' + p2].join.foreign_key.push(p2TableInfo.alias + '.' + col2)
+        }
+      }
+      for (var s in linkTables) {
+        kylinData.lookups.push(linkTables[s])
+      }
+      // dimensions
+      kylinData.dimensions = this.getDimensions()
+      kylinData.pos = pos
+      kylinData.metrics = this.getMeasures()
+      console.log(kylinData, 'out put model')
+      if (needJson) {
+        return kylinData
+      }
+      return JSON.stringify(kylinData)
+    },
+    serverDataToDragData: function () {
+      var _this = this
+      // 添加模式
+      if (!this.extraoption.uuid) {
+        this.$set(this.modelInfo, 'modelDiscribe', this.extraoption.modelDesc)
+        this.$set(this.modelInfo, 'modelName', this.extraoption.modelName)
+        return
+      }
+      // 编辑模式
+      this.getModelByModelName(this.extraoption.modelName).then((response) => {
+        handleSuccess(response, (data) => {
+          this.modelData = data.model
+          this.draftData = data.draft
+          this.editLock = !!(this.modelData && this.modelData.uuid)
+          var modelData = this.extraoption.status === null ? data.model : data.draft
+          if (this.extraoption.status !== null) {
+            modelData.name = modelData.name.replace(/_draft/, '')
+          }
+          if (!modelData.fact_table) {
+            return
+          }
+          _this.modelInfo.uuid = modelData.uuid
+          // this.editLock = modelData.uuid && status
+          this.$set(_this.modelInfo, 'modelDiscribe', modelData.description)
+          this.$set(_this.modelInfo, 'modelName', modelData.name)
+          this.$set(_this.modelInfo, 'status', modelData.status)
+          _this.modelInfo.last_modified = modelData.last_modified
+          // 加载原来设置的partition
+          var partitionDate = modelData.partition_desc.partition_date_column ? modelData.partition_desc.partition_date_column.split('.') : [null, null]
+          var partitionTime = modelData.partition_desc.partition_time_column ? modelData.partition_desc.partition_time_column.split('.') : [null, null]
+          Object.assign(this.partitionSelect, {
+            'date_table': partitionDate[0],
+            'date_column': partitionDate[1],
+            'time_table': partitionTime[0],
+            'time_column': partitionTime[1],
+            'partition_date_column': modelData.partition_desc.partition_date_column,
+            'partition_time_column': modelData.partition_desc.partition_time_column,
+            'partition_date_start': 0,
+            'partition_date_format': modelData.partition_desc.partition_date_format,
+            'partition_time_format': modelData.partition_desc.partition_time_format,
+            'partition_type': 'APPEND'
+          })
+          // 加载原来设置的partition
+          _this.modelInfo.filterStr = modelData.filter_condition
+          _this.modelInfo.computed_columns = modelData.computed_columns || []
+          var lookups = modelData.lookups
+          var baseTables = {}
+          for (var i = 0; i < lookups.length; i++) {
+            baseTables[lookups[i].alias] = {
+              database: lookups[i].table.split('.')[0],
+              table: lookups[i].table.split('.')[1],
+              kind: lookups[i].kind,
+              guid: sampleGuid(),
+              alias: lookups[i].alias
+            }
+          }
+          baseTables[modelData.fact_table.split('.')[1]] = {
+            database: modelData.fact_table.split('.')[0],
+            table: modelData.fact_table.split('.')[1],
+            kind: 'ROOTFACT',
+            guid: sampleGuid(),
+            alias: modelData.fact_table.split('.')[1]
+          }
+          for (var table in baseTables) {
+            _this.createTableData(this.extraoption.project, baseTables[table].database, baseTables[table].table, {
+              pos: modelData.pos && modelData.pos[modelData.fact_table.split('.')[1]] || {x: 20000, y: 20000},
+              kind: baseTables[table].kind,
+              guid: baseTables[table].guid,
+              alias: baseTables[table].alias || baseTables[table].name
+            })
+          }
+          var baseLinks = []
+          for (let i = 0; i < lookups.length; i++) {
+            for (let j = 0; j < lookups[i].join.primary_key.length; j++) {
+              let priFullColumn = lookups[i].join.primary_key[j]
+              let foriFullColumn = lookups[i].join.foreign_key[j]
+              let priAlias = priFullColumn.split('.')[0]
+              let foriAlias = foriFullColumn.split('.')[0]
+              let pcolumn = priFullColumn.split('.')[1]
+              let fcolumn = foriFullColumn.split('.')[1]
+              let bArr = [baseTables[priAlias].guid, baseTables[foriAlias].guid, pcolumn, fcolumn, lookups[i].join.type]
+              baseLinks.push(bArr)
+            }
+          }
+          _this.links = baseLinks
+          this.$nextTick(function () {
+            Scrollbar.initAll()
+            for (let i = 0; i < lookups.length; i++) {
+              let priAlias = lookups[i].alias
+              let foriFullColumn = lookups[i].join.foreign_key[0]
+              var pGuid = baseTables[priAlias].guid
+              var fGuid = baseTables[foriFullColumn.split('.')[0]].guid
+              var hisConn = _this.showLinkCons[pGuid + '$' + fGuid]
+              if (!hisConn) {
+                var joinType = lookups[i].join.type
+                _this.addShowLink(pGuid, fGuid, joinType)
+              }
+            }
+            if (!modelData.pos) {
+              _this.autoLayerPosition()
+            }
+          })
+          // computed column add
+          var computedColumnsLen = modelData.computed_columns && modelData.computed_columns.length || 0
+          for (let i = 0; i < computedColumnsLen; i++) {
+            var fullName = modelData.computed_columns[i].fullName.split('.')
+            var tableList = this.getSameOriginTables(fullName[0], fullName[1])
+            if (tableList && tableList.length) {
+              this.computedColumn = {
+                guid: tableList[0].guid,
+                name: modelData.computed_columns[i].columnName,
+                expression: modelData.computed_columns[i].expression,
+                returnType: modelData.computed_columns[i].datatype,
+                columnType: modelData.computed_columns[i].datatype
+              }
+              this.addComputedColumnToDatabase(() => {}, true)
+            }
+          }
+
+          var modelDimensionsLen = modelData.dimensions && modelData.dimensions.length || 0
+          for (let i = 0; i < modelDimensionsLen; i++) {
+            var currentD = modelData.dimensions[i]
+            for (let j = 0; j < currentD.columns.length; j++) {
+              _this.editTableColumnInfo(baseTables[currentD.table].guid, 'name', currentD.columns[j], 'btype', 'D')
+            }
+          }
+          var modelMetricsLen = modelData.metrics && modelData.metrics.length || 0
+          for (let i = 0; i < modelMetricsLen; i++) {
+            var currentM = modelData.metrics[i]
+            _this.editTableColumnInfo(baseTables[currentM.split('.')[0]].guid, 'name', currentM.split('.')[1], 'btype', 'M')
+          }
+          // partition time setting
+          _this.getPartitionDateColumns()
+          // _this.autoLayerPosition()
+        })
+      })
+    },
+    checkColsUsedStatus (alias, columnName) {
+      if (this.columnUsedInfo) {
+        for (var i in this.columnUsedInfo) {
+          if (alias + '.' + columnName === i) {
+            return this.columnUsedInfo[i]
+          }
+        }
+      }
+    },
+    autoCalcLayer: function (root, result, deep) {
+      var rootGuid = root || this.getRootFact().length && this.getRootFact()[0].guid
+      var index = ++deep || 1
+      var resultArr = result || [[rootGuid]]
+      var tempArr = []
+      for (var i in this.showLinkCons) {
+        if (rootGuid === i.split('$')[1]) {
+          resultArr[index] = resultArr[index] || []
+          resultArr[index].push(i.split('$')[0])
+          tempArr.push(i.split('$')[0])
+        }
+      }
+      for (var s = 0; s < tempArr.length; s++) {
+        this.autoCalcLayer(tempArr[s], resultArr, index)
+      }
+      return resultArr
+    },
+    autoLayerPosition: function (rePosition) {
+      var layers = this.autoCalcLayer()
+      var baseL = this.baseLineL + 400
+      var baseT = this.baseLineT + 100
+      var boxW = 220
+      var boxH = 420
+      var boxML = 100
+      var boxMT = 150
+      var _this = this
+      for (let k = 0; k < layers.length; k++) {
+        for (let m = 0; m < layers[k].length; m++) {
+          var currentT = baseT + (boxH + boxMT) * k
+          var currentL = baseL + (boxW + boxML) * m
+          if (k === 0) {
+            currentL = baseT + $(window).width() / 2 - 90
+          }
+          this.editTableInfoByGuid(layers[k][m], 'pos', {
+            x: currentL,
+            y: currentT
+          })
+          if (rePosition) {
+            $('#' + layers[k][m]).css({
+              left: currentL + 'px',
+              top: currentT + 'px'
+            })
+          }
+          this.$nextTick(function () {
+            _this.refreshPlumbObj()
+          })
+        }
+      }
+      this.refreshPlumbObj()
+    },
+    autoLayerPosition_2: function () {
+
+      // var layers = this.autoCalcLayer()
+      // var baseL = this.baseLineL + 400
+      // var baseT = this.baseLineT + 200
+      // var boxW = 220
+      // var boxH = 420
+      // var boxML = 200
+      // var boxMT = 200
+      // var _this = this
+      // for (let k = 0; k < layers.length; k++) {
+      //   for (let m = 0; m < layers[k].length; m++) {
+      //     var currentT = baseT + (boxH + boxMT) * k
+      //     var currentL = baseL + (boxW + boxML) * m
+      //     this.editTableInfoByGuid(layers[k][m], 'pos', {
+      //       x: currentL,
+      //       y: currentT
+      //     })
+      //     if (rePosition) {
+      //       $('#' + layers[k][m]).css({
+      //         left: currentL + 'px',
+      //         top: currentT + 'px'
+      //       })
+      //     }
+      //     this.$nextTick(function () {
+      //       _this.refreshPlumbObj()
+      //     })
+      //   }
+      // }
+      // this.refreshPlumbObj()
+      // var positionCalcFuncList = [
+      //   function (x, y, space, level) {
+      //     return {x: x - space * level, y: y + space * space}
+      //   },
+      //   function (x, y, space, level) {
+      //     return {x: x, y: y + space * space}
+      //   },
+      //   function (x, y, space, level) {
+      //     return {x: x + space * level, y: y + space * space}
+      //   },
+      //   function (x, y, space, level) {
+      //     return { x: x + space * level, y: y }
+      //   },
+      //   function (x, y, space, level) {
+      //     return {x: x + space * level, y: y - space * space}
+      //   },
+      //   function (x, y, space, level) {
+      //     return {x: x, y: y - space * space}
+      //   },
+      //   function (x, y, space, level) {
+      //     return {x: x - space * level, y: y - space * space}
+      //   },
+      //   function (x, y, space, level) {
+      //     return {x: x - space * level, y: y}
+      //   }
+      // ]
+
+    },
+    saveData: function () {
+      this.DragDataToServerData()
+    },
+    jsplumbZoom: function (zoom, instance, transformOrigin, el) {
+      transformOrigin = transformOrigin || [ 0.5, 0.5 ]
+      instance = instance || jsPlumb
+      el = el || instance.getContainer()
+      var p = [ 'webkit', 'moz', 'ms', 'o' ]
+      var s = 'scale(' + zoom + ')'
+      var oString = (transformOrigin[0] * 100) + '% ' + (transformOrigin[1] * 100) + '%'
+      for (var i = 0; i < p.length; i++) {
+        el.style[p[i] + 'Transform'] = s
+        el.style[p[i] + 'TransformOrigin'] = oString
+      }
+      el.style['transform'] = s
+      el.style['transformOrigin'] = oString
+      instance.setZoom(zoom)
+    },
+    addZoom: function () {
+      this.currentZoom += 0.01
+      this.jsplumbZoom(this.currentZoom, this.plumbInstance)
+    },
+    subZoom: function () {
+      this.currentZoom -= 0.01
+      this.jsplumbZoom(this.currentZoom, this.plumbInstance)
+    },
+    saveDraft: function () {
+      var _this = this
+      if (this.getRootFact().length <= 0) {
+        return
+      }
+      this.saveModelDraft({
+        modelDescData: _this.DragDataToServerData(),
+        project: _this.project,
+        modelName: _this.modelInfo.name
+      }).then((res) => {
+        handleSuccess(res, (data) => {
+          this.modelInfo.uuid = data.uuid
+          this.modelInfo.status = 'DRAFT'
+          this.$notify({
+            title: '成功',
+            message: '定时保存为草稿',
+            type: 'success'
+          })
+        })
+      })
+    },
+    checkModelMetaHasChange () {
+      var jsonData = this.DragDataToServerData(true)
+      delete jsonData.pos
+      jsonData = JSON.stringify(jsonData)
+      if (jsonData !== this.hisModelJsonStr && this.hisModelJsonStr !== '') {
+        this.hisModelJsonStr = jsonData
+        return true
+      }
+      return false
+    },
+    // 定时保存
+    timerSave: function () {
+      this.timerST = setTimeout(() => {
+        this.saveConfig.timer++
+        if (this.saveConfig.timer > this.saveConfig.limitTimer) {
+          if (this.checkModelMetaHasChange()) {
+            this.saveDraft()
+          }
+          this.saveConfig.timer = 0
+        }
+        this.timerSave()
+      }, 1000)
+    },
+    resizeWindow: function (newVal) {
+      var wWidth = $(window).width()
+      var wHeight = $(window).height()
+      var modelEditTool = $(this.$el).find('.model_edit_tool')
+      if (newVal === 'brief_menu') {
+        this.dockerScreen.w = wWidth - 140
+        this.dockerScreen.h = wHeight - 176
+        modelEditTool.addClass('smallScreen')
+      } else {
+        modelEditTool.removeClass('smallScreen')
+        this.dockerScreen.w = wWidth - 240
+        this.dockerScreen.h = wHeight - 176
+      }
+    }
+  },
+  watch: {
+    briefMenu: function (newVal, oldVal) {
+      this.resizeWindow(newVal)
     }
   },
   mounted () {
+    this.project = this.extraoption.project
     let _this = this
+    this.diagnose({project: this.extraoption.project, modelName: this.extraoption.modelName}).then((response) => {
+      console.log(response)
+    })
+    this.resizeWindow(this.briefMenu)
+    _this.timerSave()
+    var lxsSt = null
+    $(window).resize(function () {
+      clearTimeout(lxsSt)
+      lxsSt = setTimeout(() => {
+        _this.resizeWindow(_this.briefMenu)
+      }, 1000)
+    })
+    $(this.$el).on('mousedown', 'input', function (e) {
+      e.stopPropagation()
+    }).on('mousedown', function (e) {
+      if ($(this).attr('class').indexOf('model_edit') >= 0) {
+        document.activeElement.blur()
+      }
+    })
     jsPlumb.ready(() => {
-      // _this.plumbInstance = jsPlumb.getInstance()
-
       _this.plumbInstance = jsPlumb.getInstance({
         DragOptions: { cursor: 'pointer', zIndex: 2000 },
         ConnectionOverlays: [
@@ -428,83 +1713,53 @@ export default {
             length: 11,
             id: 'ARROW',
             events: {
-              click: function () { alert('you clicked on the arrow overlay') }
+              click: function () {}
             }
           } ]],
-        Container: 'model_edit'
+        Container: $(this.$el).find('.model_edit')
       })
-      // var basicType = {
-      //   connector: 'StateMachine',
-      //   paintStyle: { stroke: 'red', strokeWidth: 4 },
-      //   hoverPaintStyle: { stroke: 'blue' },
-      //   overlays: [
-      //     'Arrow'
-      //   ]
-      // }
-      _this.draggleTable(jsPlumb.getSelector('.table_box'))
-      // _this.plumbInstance.draggable(jsPlumb.getSelector('.table_box'), { grid: [20, 20] })
-      // _this.plumbInstance.registerConnectionType('basic', basicType)
-      // // _this.draggleTable(_this.tableIdList, {
-      // //   drag: function (e) {
-      // //     return true
-      // //   }
-      // // })
+      this.jsplumbZoom(this.currentZoom, this.plumbInstance)
+      var draggablePlugin = new Draggable($(this.$el).find('.model_edit')[0], {
+        onDrag: function (s) {
+        },
+        onDragEnd: function (s, x, y) {
+          _this.docker.x = x
+          _this.docker.y = y
+        },
+        filterTarget: function (dom) {
+          if (dom) {
+            if (!dom.className || typeof dom.className !== 'string') {
+              return false
+            }
+            return dom.tagName !== 'INPUT' && dom.tagName !== 'SECTION' && dom.className !== 'toolbtn' && dom.className.indexOf('column_li') < 0 && dom.className.indexOf('column') < 0 && dom.className.indexOf('el-tooltip') < 0
+          }
+        },
+        useGPU: true
+      })
+      console.log(draggablePlugin)
       _this.plumbInstance.bind('connection', function (info, originalEvent) {
-        console.log('conn' + info.connection.scope)
-        if (info.connection.scope !== 'showlink') {
-          _this.addConnect(info.connection.sourceId, info.connection.targetId, info.sourceEndpoint.getParameters().data.column.columnName, info.targetEndpoint.getParameters().data.column.columnName, true, info.connection)
-          // _this.removeAllEndpoints(_this.plumbInstance)
-          _this.removePoint(info.sourceEndpoint.getUuid())
-          _this.removePoint(info.targetEndpoint.getUuid())
-          var hisConn = _this.showLinkCons[info.connection.sourceId + '' + info.connection.targetId]
-          if (!hisConn) {
-            console.log('start link')
-            _this.addSelectPoints(info.connection.sourceId, _this.plumbInstance, 'source', '', '', true)
-            _this.addSelectPoints(info.connection.targetId, _this.plumbInstance, 'target', '', '', true)
-            _this.addShowLink(info.connection.sourceId, info.connection.targetId)
-          }
-          _this.linkFilterColumnAnimate(info.connection.sourceId, info.connection.targetId, function () {
-            _this.cancelFilterColumn(info.connection.sourceId)
-            _this.cancelFilterColumn(info.connection.targetId)
-          })
-          var showLinkCon = _this.showLinkCons[info.connection.sourceId + '' + info.connection.targetId]
-          if (showLinkCon) {
-            _this.setConnectLabelText(showLinkCon, info.connection.sourceId, info.connection.targetId, _this.getConnectCountByTableIds(info.connection.sourceId, info.connection.targetId))
-          }
-        } else {
-          _this.setConnectLabelText(info.connection, info.connection.sourceId, info.connection.targetId, _this.getConnectCountByTableIds(info.connection.sourceId, info.connection.targetId))
-        }
+        _this.setConnectLabelText(info.connection, info.connection.sourceId, info.connection.targetId, _this.getConnectCountByTableIds(info.connection.sourceId, info.connection.targetId))
       })
-    })
-    _this.plumbInstance.bind('connectionDrag', function (connection) {
-      console.log('connection ' + connection.id + ' is being dragged. suspendedElement is ', connection.suspendedElement, ' of type ', connection.suspendedElementType)
-    })
-
-    _this.plumbInstance.bind('connectionDragStop', function (connection) {
-      console.log('connection ' + connection.id + ' was dragged')
-    })
-
-    _this.plumbInstance.bind('connectionMoved', function (params) {
-      console.log('connection ' + params.connection.id + ' was moved')
     })
     jsPlumb.fire('jsPlumbDemoLoaded', this.plumbInstance)
-    Scrollbar.initAll()
   },
   computed: {
-    tableIdList: function () {
-      var tableIdListArr = []
-      this.tableList.forEach(function (table) {
-        tableIdListArr.push(table.guid)
-      })
-      return tableIdListArr
-    },
-    connectsCount: function () {
-      var count = 0
-      this.links.forEach(function () {
-        count = count + 1
-      })
-      return count
+    briefMenu () {
+      return this.$store.state.config.layoutConfig.briefMenu
     }
+  },
+  created () {
+    this.$store.state.model.modelEditCache[this.project + '$' + this.modelGuid] = {}
+    this.getUsedCols(this.extraoption.modelName).then((res) => {
+      handleSuccess(res, (data) => {
+        this.columnUsedInfo = data
+      })
+    })
+  },
+  updated () {
+  },
+  destroyed () {
+    clearTimeout(this.timerST)
   }
 }
 </script>
@@ -512,19 +1767,143 @@ export default {
    [data-scrollbar] .scrollbar-track-y, [scrollbar] .scrollbar-track-y, scrollbar .scrollbar-track-y{
      right: 4px;
    }
-   #model_edit{
+   .linksTable{
+     &.el-table::after {
+       background-color:#fff;
+     }
+   }
+   .model_edit_box {
+    margin-top: 20px;
     position: relative;
     background-color: #475568;
     background-image: url('../../assets/img/jsplumb.png');
     background-repeat:repeat;
-    width: 1000000px;
-    height: 100000px;
+    overflow: hidden;
+   }
+   .tree_list {
+      height: 100%;
+      background-color: #f1f2f7;
+      position: absolute;
+      z-index: 2000;
+      
+   }
+   .model_tool{
+     position: absolute;
+     right: 6px;
+     z-index: 2000;
+     li{
+      -webkit-select:none;
+      user-select:none;
+      -moz-user-select:none;
+      width: 26px;
+      height: 26px;
+      position: relative;
+     box-shadow: 1px 2px 1px rgba(0,0,0,.15);
+    cursor: pointer;
+    overflow: hidden;
+    background-color: #FFF;
+ 
+      span{
+        display: block;
+        width: 10px;
+        height: 10px;
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background-size: 40px 10px;
+      }
+     }
+     .tool_add{
+      span{
+        background-image: url('../../assets/img/outin.png');
+        background-position: 0 0;
+      }
+   
+     }
+     .tool_jian{
+       span {
+        background-image: url('../../assets/img/outin.png');
+        background-position: -10px 0
+       }
+
+     }
+   }
+   .toolbtn{
+      list-style: none;
+      width: 36px;
+      height: 36px;
+      background-color: #6d798a;
+      color: #fff;
+      line-height: 36px;
+      text-align: center;
+      margin-top: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 20px;
+   }
+   .btn_group{
+    position: absolute;
+    bottom: 60px;
+    right: 6px;
+    z-index: 10000;
+   }
+   .model_edit{
+     display: inline-block;
+     position: absolute;
+     width: 100%;
+     height: 100%;
+     z-index: 9!important;
+     width: 40000px;
+     height: 40000px;
+   }
+   .links_dialog{
+     p{
+       color:green;
+     }
    }
    .table_box{
-       width: 250px;
+       .close_table{
+        position: absolute;
+        top: 10px;
+        right: 6px;
+        color:#fff;
+        font-size: 12px;
+        cursor: pointer;
+       }
+       &.rootfact{
+          .table_name{
+            background-color: #2eb3fc;
+          }
+       }
+       &.fact{
+        .table_name{
+         background-color: #52b9dc;
+        } 
+       }
+       &.lookup{
+
+       }
+       .el-input__inner{
+         background-color:#5a6a80;
+         color:#fff;
+       }
+       .alias_input{
+          position: absolute;
+          top:4px;
+          left: 10px;
+          height: 26px;
+          width: 200px;
+          background:none;
+          border:none;
+          color:#fff;
+          font-size: 14px;
+          background-color:#5a6a80;
+       }
+       width: 220px;
+       left: 440px;
        background-color: #64748a; 
        position: absolute;
-       height: 422px;
+       height: 420px;
        .link_box{
          i{
            padding: 5px;
@@ -534,18 +1913,27 @@ export default {
          background-color: #58b7ff;
          height: 40px;
          width: 100%;
-         top:150px;
+         top:-40px;
          color:#fff;
          line-height: 40px;
          // text-align: center;
          z-index: 11;
        }
        .tool_box{
-        position: absolute;
-        right: 6px;
-        top:10px;
-        font-size: 12px;
-        color:#fff;
+          position: absolute;
+          padding:2px 6px;
+          top:36px;
+          left: 0;
+          right: 0;
+          font-size: 12px;
+          color:#fff;
+          i{
+            cursor: pointer;
+          }
+          .fa_icon{
+            cursor: pointer;
+            vertical-align: center;
+          }
        }
        .more_tool{
           text-align: center;
@@ -556,6 +1944,9 @@ export default {
        }
        .filter_box{
         padding: 10px;
+        padding-bottom: 10px;
+        margin-top: 10px;
+        padding-top: 12px;
        }
        .table_name{
          height: 36px;
@@ -578,11 +1969,13 @@ export default {
           line-height: 30px;
           color:#fff;
           cursor: pointer;
+          background-color: #64748a;
           span{
             display: inline-block;
           }
           &.active_filter{
-            // color:red;
+            font-weight: bold;
+            color:#2eb3fc;
           }
           .kind{
             color: #20a0ff;
@@ -590,34 +1983,49 @@ export default {
             height: 20px;
             text-align: center;
             line-height: 20px;
-            margin-left: 5px;
             border-radius: 10px;
             cursor:pointer;
+            font-weight: bold;
+            &.dimension{
+              
+            }
+            &.measure{
+              color: #48b5cd;
+            }
             &:hover{
               background-color:#59697f;
             }
           }
           .column_type{
-            float: right;
-            margin-right: 6px;
+            right:2px;
+            position: absolute;
             color:#ccc;
           }
         }
        }
    }
    .jtk-overlay {
-    background-color: white;
+    background-color: #475568;
     padding: 0.4em;
     font: 12px sans-serif;
     color: #444;
     z-index: 21;
+    font-weight: bold;
     border: 2px solid #f5a623;
-    opacity: 0.8;
     cursor: pointer;
-    width: 20px;
-    height: 20px;
+    min-width: 42px;
+    height: 18px;
     border-radius: 10px;
     text-align: center;
-    line-height: 20px;
-}
+    line-height: 18px;
+    &.label_left{
+      border: 2px solid #f5a623;
+      color:#fff
+    }
+    &.label_inner{
+      border: 2px solid #f5a623;
+      color:#fff
+    }
+  }
 </style>
+

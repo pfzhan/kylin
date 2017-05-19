@@ -1,26 +1,21 @@
 <template>
- <!--  <div style="margin-bottom: 20px;">
-    <el-button
-      size="small"
-      @click="addTab(editableTabsValue2)"
-    >
-      add tab
-    </el-button>
-  </div> -->
-  <el-tabs v-model="activeName"  :editable="editable" @tab-click="handleClick" @edit="handleTabsEdit">
+<div >
+  <el-tabs v-model="activeName" :type="type||'card'" :editable="editable" @tab-click="handleClick" @edit="handleTabsEdit">
     <el-tab-pane
       v-for="(item, index) in tabs" :key="index"
       :label="item.title"
       :name="item.name"
-      :closable=item.closable
-
-    > 
+      v-show="!item.disabled"
+      :closable="item.closable"> 
+      <span slot="label" v-show="!item.disabled"><icon :name="item.icon" :spin="item.spin" scale="0.8"></icon> {{item.title}}</span>
+      <slot :item = "item" v-show="!item.disabled"></slot>
     </el-tab-pane>
   </el-tabs>
+  </div>
 </template>
 <script>
   export default {
-    props: ['tabslist', 'isedit', 'active'],
+    props: ['tabslist', 'isedit', 'active', 'type'],
     data () {
       return {
         currentView: '',
@@ -40,7 +35,6 @@
         this.$emit('clicktab', tab.name)
       },
       handleTabsEdit (targetName, action) {
-        console.log(targetName, action)
         if (action === 'remove') {
           this.$emit('removetab', targetName)
         }
@@ -51,9 +45,6 @@
 
   }
 </script>
-<style >
-  .el-tabs__item.is-active{
-    background-color: #475568;
-    color:#fff;
-  }
+<style lang="less">
+
 </style>

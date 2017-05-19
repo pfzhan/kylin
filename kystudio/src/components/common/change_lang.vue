@@ -21,6 +21,7 @@
     watch: {
       lang (val) {
         Vue.config.lang = val
+        Vue.http.headers.common['Accept-Language'] = val === 'zh-cn' ? 'cn' : 'en'
         localStorage.setItem('kystudio_lang', val)
       }
     },

@@ -1,71 +1,227 @@
 <template>
-<el-card class="box-card">
-  <el-row>
-    <el-col :span="8">{{$t('autoMergeThresholds')}}</el-col>
+<div class="box-card card_margin">
+  <el-row class="border_bottom">
+    <el-col :span="4">{{$t('autoMergeThresholds')}}</el-col>
     <el-col :span="16">
-      <el-row :gutter="20" v-for="(timeRange, index) in cubeDesc.auto_merge_time_ranges">
+      <el-row :gutter="20" class="row_padding" v-for="(timeRange, index) in timeRanges">
         <el-col :span="10">
-          <el-input></el-input>
+          <el-input v-model="timeRange.range" v-if="timeRange.type === 'days'" @change="changeTimeRange(timeRange, index)"></el-input>
+          <el-select  v-model="timeRange.range" style="width:100%" v-else @change="changeTimeRange(timeRange, index)">
+            <el-option
+               v-for="(item, time_index) in timeOptions"
+               :label="item"
+               :value="item">
+            </el-option>
+          </el-select>          
         </el-col>
-        <el-col :span="10">
-            <el-select>
+        <el-col :span="6">
+            <el-select  v-model="timeRange.type" @change="changeTimeRange(timeRange, index)">
               <el-option
-                 v-for="item in timeOptions"
+                 v-for="(item, range_index) in rangesOptions"
                 :label="item"
                 :value="item">
               </el-option>
             </el-select>
         </el-col>
-        <el-col :span="4">
-          <el-button type="primary" icon="minus" @click.native="removeTimeRange(index)"></el-button>
+        <el-col :span="2">
+          <el-button type="primary" icon="minus" size="mini" @click.native="removeTimeRange(index)"></el-button>
         </el-col>                
       </el-row>
-      <el-button type="primary" icon="plus" @click.native="addNewTimeRange">{{$t('newThresholds')}}</el-button>
+      <el-button class="btn_margin"  icon="plus" @click.native="addNewTimeRange">{{$t('newThresholds')}}</el-button>
     </el-col>  
   </el-row>
-  <el-row>
-    <el-col :span="8">{{$t('retentionThreshold')}}</el-col>
+  <el-row class="row_padding">
+    <el-col :span="4">{{$t('buildTrigger')}}</el-col>
     <el-col :span="16">
-      <el-input v-model="cubeDesc.retention_range"></el-input>
+      <el-date-picker class="input_width" @change="changeTriggerTime()"
+        v-model="scheduler.desc.triggerTime"
+        type="datetime"
+        align="right">
+      </el-date-picker>
     </el-col>
   </el-row>
-  <el-row>
-    <el-col :span="8">{{$t('partitionStartDate')}}</el-col>
+  <el-row class="row_padding border_bottom">
+    <el-col :span="4">{{$t('periddicalInterval')}}</el-col>
     <el-col :span="16">
-      <el-date-picker
+      <el-row :gutter="20" class="row_padding">
+        <el-col :span="10">
+          <el-input v-model="intervalRange.range"  @change="changeInterval()"></el-input>          
+        </el-col>
+        <el-col :span="6">
+            <el-select v-model="intervalRange.type" @change="changeInterval()">
+              <el-option
+                 v-for="(item, range_index) in intervalOptions"
+                :label="item"
+                :value="item">
+              </el-option>
+            </el-select>
+          </el-col>
+        </el-row>
+      </el-col>
+  </el-row>
+  <el-row class="row_padding">
+    <el-col :span="4">{{$t('retentionThreshold')}}</el-col>
+    <el-col :span="16">
+      <el-input class="input_width" v-model="cubeDesc.retention_range" ></el-input>
+    </el-col>
+  </el-row>
+  <el-row class="row_padding">
+    <el-col :span="4">{{$t('partitionStartDate')}}</el-col>
+    <el-col :span="16">
+      <el-date-picker class="input_width" @change="changePartitionDateStart"
         v-model="cubeDesc.partition_date_start"
         type="datetime"
         align="right">
       </el-date-picker>
     </el-col>
-  </el-row>        
-</el-card>
+  </el-row>
+</div>
 </template>
 
 <script>
+import { mapActions } from 'vuex'
+import { handleSuccess, handleError } from '../../../util/business'
 export default {
   name: 'refreshSetting',
-  props: ['cubeDesc'],
+  props: ['cubeDesc', 'scheduler'],
   data () {
     return {
-      timeOptions: ['days', 'hours'],
+      timeRanges: [],
+      intervalRange: {range: '', type: ''},
+      timeOptions: [0.5, 1, 2, 4, 8],
+      rangesOptions: ['days', 'hours'],
+      intervalOptions: ['weeks', 'days', 'hours'],
       selected_project: localStorage.getItem('selected_project')
     }
   },
   methods: {
-    removeTimeRange (index) {
+    ...mapActions({
+      getScheduler: 'GET_SCHEDULER'
+    }),
+    conversionTime: function () {
+      let _this = this
+      _this.cubeDesc.auto_merge_time_ranges.forEach(function (item) {
+        let _day = Math.floor(item / 86400000)
+        let _hour = (item % 86400000) / 3600000
+        let rangeObj = {
+          type: 'days',
+          range: 0,
+          mills: 0
+        }
+        if (_day === 0) {
+          rangeObj.type = 'hours'
+          rangeObj.range = _hour
+          rangeObj.mills = rangeObj.range * 3600000
+        } else {
+          rangeObj.type = 'days'
+          rangeObj.range = _day
+          rangeObj.mills = rangeObj.range * 86400000
+        }
+        _this.timeRanges.push(rangeObj)
+      })
+    },
+    removeTimeRange: function (index) {
+      this.timeRanges.splice(index, 1)
       this.cubeDesc.auto_merge_time_ranges.splice(index, 1)
     },
-    addNewTimeRange () {
-      this.cubeDesc.auto_merge_time_ranges.push('')
+    initRepeatInterval: function (data) {
+      let _week = Math.floor(data.repeatInterval / 604800000)
+      let _day = Math.floor(data.repeatInterval / 86400000)
+      let _hour = Math.floor(data.repeatInterval / 3600000)
+      if (_week === 0) {
+        if (_day === 0) {
+          this.intervalRange.type = 'hours'
+          this.intervalRange.range = _hour
+        } else {
+          this.intervalRange.type = 'days'
+          this.intervalRange.range = _day
+        }
+      } else {
+        this.intervalRange.type = 'weeks'
+        this.intervalRange.range = _week
+      }
+    },
+    changePartitionDateStart: function () {
+      this.cubeDesc.partition_date_start = this.cubeDesc.partition_date_start.getTime()
+    },
+    changeTriggerTime: function () {
+      this.scheduler.desc.triggerTime = this.scheduler.desc.triggerTime.getTime()
+    },
+    changeTimeRange: function (timeRange, index) {
+      let time = 0
+      if (timeRange.type === 'hours') {
+        time = timeRange.range * 3600000
+      } else {
+        time = timeRange.range * 86400000
+      }
+      this.cubeDesc.auto_merge_time_ranges[index] = time
+    },
+    initScheduler: function () {
+      let _this = this
+      this.getScheduler(_this.cubeDesc.name).then((res) => {
+        handleSuccess(res, (data, code, status, msg) => {
+          _this.initRepeatInterval(data)
+          _this.scheduler.desc.triggerTime = data.triggerTime
+          _this.scheduler.desc.repeatInterval = data.repeatInterval
+        })
+      }).catch((res) => {
+        handleError(res, (data, code, status, msg) => {
+          console.log(status, 30000)
+          if (status === 404) {
+    //        _this.$router.replace('access/login')
+          }
+        })
+      })
+    },
+    changeInterval: function () {
+      let time = 0
+      if (this.intervalRange.type === 'hours') {
+        time = this.intervalRange.range * 3600000
+      }
+      if (this.intervalRange.type === 'days') {
+        time = this.intervalRange.range * 86400000
+      }
+      if (this.intervalRange.type === 'weeks') {
+        time = this.intervalRange.range * 604800000
+      }
+      this.scheduler.desc.repeatInterval = time
+    },
+    addNewTimeRange: function () {
+      this.timeRanges.push({type: 'days', range: 0, mills: 0})
+      this.cubeDesc.auto_merge_time_ranges.push(0)
+    }
+  },
+  created: function () {
+    if (this.cubeDesc.auto_merge_time_ranges) {
+      this.conversionTime()
+    }
+    if (this.scheduler.desc.triggerTime && this.scheduler.desc.repeatInterval) {
+      this.initRepeatInterval(this.scheduler.desc)
+    } else {
+      this.initScheduler()
     }
   },
   locales: {
-    'en': {autoMergeThresholds: 'Auto Merge Thresholds', retentionThreshold: 'Retention Threshold', partitionStartDate: 'Partition Start Date', newThresholds: 'New Thresholds'},
-    'zh-cn': {autoMergeThresholds: '触发自动合并的时间阈值', retentionThreshold: '保留时间阈值', partitionStartDate: '起始日期', newThresholds: '新建阈值'}
+    'en': {autoMergeThresholds: 'Auto Merge Thresholds', retentionThreshold: 'Retention Threshold', partitionStartDate: 'Partition Start Date', newThresholds: 'New Thresholds', buildTrigger: 'Auto Build Trigger', periddicalInterval: 'Periddical Interval'},
+    'zh-cn': {autoMergeThresholds: '触发自动合并的时间阈值', retentionThreshold: '保留时间阈值', partitionStartDate: '起始日期', newThresholds: '新建阈值', buildTrigger: '自动构建触发时间', periddicalInterval: '重复间隔'}
   }
 }
 </script>
-<style scoped="">
-
+<style scoped>
+ .card_margin {
+   margin-bottom: 20px;
+ }
+ .btn_margin {
+  margin-bottom: 4px;
+ }
+ .row_padding {
+  padding-top: 5px;
+  padding-bottom: 5px;
+ }
+  .input_width {
+  width: 40%
+ }
+.border_bottom {
+  border-bottom: 2px solid #ddd;
+ }
 </style>

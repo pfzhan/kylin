@@ -1,113 +1,110 @@
 <template>
+<div> 
   <el-table
-    :data="desc.measures"
+    :data="cubeDesc.desc.measures"
+    border stripe 
     style="width: 100%">
     <el-table-column
       property="name"
-      :label="$t('name')">
+      :label="$t('name')"
+      header-align="center"
+      align="center">
     </el-table-column>
     <el-table-column
       property="function.expression"
-      :label="$t('expression')">
+      :label="$t('expression')"
+      align="center"
+      header-align="center"
+      width="180">
     </el-table-column>    
     <el-table-column
       :label="$t('parameters')"
-      width="500">
+      header-align="center"
+      align="center">
       <template scope="scope">
-        <div class="paraTree">
-          <ul >
-            <parameter_tree :expression="scope.row.function.expression" :nextpara="scope.row.function.parameter" ></parameter_tree>
-          </ul>
-        </div>  
+        <parameter_tree :measure="scope.row">
+        </parameter_tree>  
       </template>
     </el-table-column>
     <el-table-column
-      :label="$t('datatype')">      
+      :label="$t('datatype')"
+      header-align="center"
+      align="center"
+      width="110"> 
+      <template scope="scope">
+        <span v-if="cubeDesc.modelDesc.columnsDetail[scope.row.function.parameter.value]">
+          {{cubeDesc.modelDesc.columnsDetail[scope.row.function.parameter.value].datatype}}
+        </span>
+      </template>  
     </el-table-column>  
     <el-table-column
-      :label="$t('comment')">   
+      :label="$t('comment')"
+      header-align="center"
+      align="center"
+      width="110">   
+      <template scope="scope">
+        <span v-if="cubeDesc.modelDesc.columnsDetail[scope.row.function.parameter.value]">
+          {{cubeDesc.modelDesc.columnsDetail[scope.row.function.parameter.value].comment}}
+        </span>
+      </template>  
     </el-table-column>
     <el-table-column
       property="function.returntype"    
-      :label="$t('returnType')">
+      :label="$t('returnType')"
+      header-align="center"
+      align="center"
+      width="120">
     </el-table-column>                  
   </el-table>
+  <el-row>
+    <el-col :span="24">{{$t('advancedColumnFamily')}}</el-col>
+  </el-row> 
+  <el-table
+    :data="cubeDesc.desc.hbase_mapping.column_family"
+    style="width: 100%">
+    <el-table-column
+        property="name"
+        :label="$t('columnFamily')"
+        width="150">
+    </el-table-column>       
+    <el-table-column
+        :label="$t('measures')">
+        <template scope="scope">
+          <el-col :span="24">
+            <el-tag class="tag_margin" type="primary" v-for="mr in scope.row.columns[0].measure_refs">{{mr}}</el-tag>
+          </el-col>
+        </template>
+    </el-table-column>                                             
+  </el-table>  
+</div>
 </template>
 <script>
 import parameterTree from '../../common/parameter_tree'
 export default {
   name: 'measures',
-  props: ['desc'],
+  props: ['cubeDesc'],
   components: {
     'parameter_tree': parameterTree
   },
   locales: {
-    'en': {name: 'Name', expression: 'Expression', parameters: 'Parameters', datatype: 'Datatype', comment: 'Comment', returnType: 'Return Type'},
-    'zh-cn': {name: '名称', expression: '表达式', parameters: '参数', datatype: '数据类型', comment: '注释', returnType: '返回类型'}
+    'en': {name: 'Name', expression: 'Expression', parameters: 'Parameters', datatype: 'Datatype', comment: 'Comment', returnType: 'Return Type', advancedDictionaries: 'Advanced Dictionaries', builderClass: 'Builder Class', reuse: 'Reuse', advancedColumnFamily: 'Advanced ColumnFamily', columnFamily: 'ColumnFamily', measures: 'Measures'},
+    'zh-cn': {name: '名称', expression: '表达式', parameters: '参数', datatype: '数据类型', comment: '注释', returnType: '返回类型', advancedDictionaries: '高级字典', builderClass: '构造类', reuse: '复用', advancedColumnFamily: '高级列族', columnFamily: '列族', measures: '度量'}
   }
 }
 </script>
 <style scoped="">
-.paraTree {
-  padding: 3px;
-  -webkit-border-radius: 4px;
-  -moz-border-radius: 4px;
-  border-radius: 4px;
-  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05);
-  -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05);
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05)
-}
-
-.paraTree li {
-  list-style-type: none;
-  margin: 0;
-  padding: 10px 5px 0 5px;
-  position: relative
-}
-
-.paraTree li::before, .paraTree li::after {
-  content: '';
-  left: -20px;
-  position: absolute;
-  right: auto
-}
-
-.paraTree li::before {
-  border-left: 1px solid #999;
-  bottom: 50px;
-  height: 100%;
-  top: 0;
-  width: 1px
-}
-
-.paraTree li::after {
-  border-top: 1px solid #999;
-  height: 20px;
-  top: 25px;
-  width: 25px
-}
-
-.paraTree li span {
-  -moz-border-radius: 5px;
-  -webkit-border-radius: 5px;
-  border: 1px solid #999;
-  border-radius: 5px;
-  display: inline-block;
-  padding: 3px 8px;
-  text-decoration: none
-}
-
-.paraTree li.sub_li > span {
-  cursor: pointer
-}
-
-.paraTree li:last-child::before {
-  height: 30px
-}
-
-.paraTree li.sub_li > span:hover, .paraTree li.sub_li > span:hover + ul li span {
-  background: #eee;
-  border: 1px solid #94a0b4;
-  color: #000
-}
+ .row_padding {
+  padding-top: 5px;
+  padding-bottom: 5px;
+ }
+ .tag_margin {
+  margin-left: 4px;
+  margin-bottom: 2px;
+  margin-top: 2px;
+  margin-right: 4px;
+ }
+ .dropdown ul {
+  height: 150px;
+  overflow: scroll;
+ }
 </style>

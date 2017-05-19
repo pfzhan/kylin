@@ -1,13 +1,31 @@
 // see http://vuejs-templates.github.io/webpack for documentation.
 var path = require('path')
-
+// var cmdArg = process.argv.splice(2) && process.argv.splice(2)[0] || ''
+var proxyTable = {}
+var argvs = process.argv.slice(2)
+if (argvs && argvs.indexOf('proxy') !== -1) {
+  proxyTable = {
+    '/kylin/api': {
+      target: 'http://localhost:7070',
+      pathRewrite: {
+        '^/kylin': '/kylin'
+      }
+    },
+    '/kylin/j_spring_security_logout': {
+      target: 'http://localhost:8080',
+      pathRewrite: {
+        '^/kylin': '#/kylin'
+      }
+    }
+  }
+}
 module.exports = {
   build: {
     env: require('./prod.env'),
     index: path.resolve(__dirname, '../dist/index.html'),
     assetsRoot: path.resolve(__dirname, '../dist'),
     assetsSubDirectory: 'static',
-    assetsPublicPath: '/',
+    assetsPublicPath: '',
     productionSourceMap: true,
     // Gzip off by default as many popular static hosts such as
     // Surge or Netlify already gzip all static assets for you.
@@ -27,7 +45,7 @@ module.exports = {
     autoOpenBrowser: true,
     assetsSubDirectory: 'static',
     assetsPublicPath: '/',
-    proxyTable: {},
+    proxyTable: proxyTable,
     // CSS Sourcemaps off by default because relative paths are "buggy"
     // with this option, according to the CSS-Loader README
     // (https://github.com/webpack/css-loader#sourcemaps)

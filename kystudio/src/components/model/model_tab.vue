@@ -1,76 +1,66 @@
 <template>
- <!--  <div style="margin-bottom: 20px;">
-    <el-button
-      size="small"
-      @click="addTab(editableTabsValue2)"
-    >
-      add tab
-    </el-button>
-  </div> -->
-  <!-- <el-tabs v-model="editableTabsValue2"  closable @tab-remove="removeTab">
-    <el-tab-pane
-      v-for="(item, index) in editableTabs2"
-      :label="item.title"
-      :name="item.name"
-    >
-     
-    </el-tab-pane>
-    <div>
-      <component :is="currentView" keep-alive></component>
-    </div>
-  </el-tabs> -->
-  <div>
-    <tab :isedit="editable"  :tabslist="editableTabs"  :active="activeName" v-on:clicktab="checkTab" v-on:removetab="delTab"></tab>
-    <div id="tagBox">
-        <component :is="currentView" v-on:addtabs="addTab" keep-alive></component>
-    </div>
+  <div class="modeltab">
+    <tab class="modeltab ksd-common-tab" v-on:addtab="addTab" v-on:reload="reloadTab" :isedit="editable" v-on:removetab="delTab"   :tabslist="editableTabs"  :active="activeName" v-on:clicktab="checkTab" >
+       <template scope="props">
+        <component :is="props.item.content" v-on:addtabs="addTab" v-on:reload="reloadTab" v-on:removetabs="delTab" :extraoption="props.item.extraoption" :ref="props.item.content"></component>
+       </template>
+    </tab>
   </div>
 </template>
 <script>
   import tab from '../common/tab'
   import modelList from '../model/model_list'
+  import modelSubMenu from '../model/model_sub_menu'
   import modelEdit from '../model/model_edit'
+  import cubeEdit from 'components/cube/edit/cube_desc_edit'
+  import cubeMetadata from 'components/cube/cube_metadata'
+  import { sampleGuid } from '../../util/index'
   export default {
     data () {
       return {
         editable: true,
         editableTabs: [{
-          title: 'OverView',
-          name: 'OverView',
-          content: 'modelList',
-          closable: false
+          title: 'Overview',
+          name: 'Overview',
+          content: 'modelSubMenu',
+          closable: false,
+          guid: sampleGuid()
         }],
+        extraoption: {},
         currentView: 'modelList',
-        activeName: 'OverView',
+        activeName: 'Overview',
         tabIndex: 1
       }
     },
     methods: {
-      addTab (targetName, componentName) {
+      addTab (tabType, title, componentName, extraData) {
+        console.log(arguments)
         let tabs = this.editableTabs
         let hasTab = false
-        console.log(tabs)
         tabs.forEach((tab, index) => {
-          if (tab.name === targetName) {
-            this.activeName = targetName
-            this.currentView = ''
-            this.currentView = tab.content
+          if (tab.name === tabType + title && index !== 0) {
             hasTab = true
           }
         })
         if (!hasTab) {
           this.tabIndex = this.tabIndex + 1
           this.editableTabs.push({
-            title: targetName,
-            name: targetName,
-            content: componentName
+            title: title,
+            name: tabType + title,
+            content: componentName,
+            extraoption: extraData,
+            guid: sampleGuid(),
+            icon: tabType === 'model' ? 'cube' : 'cubes'
           })
-          this.currentView = ''
-          this.currentView = componentName
-          this.activeName = targetName
         }
+        this.activeName = tabType + title
+        console.log(this.activeName)
+      },
+      reloadTab (moduleName) {
+        this.$refs.modelSubMenu.reload(moduleName)
       },
       delTab (targetName) {
+        console.log(targetName)
         let tabs = this.editableTabs
         let activeName = this.activeName
         let activeView = this.currentView
@@ -91,23 +81,18 @@
         this.activeName = activeName
         this.currentView = activeView
         this.editableTabs = tabs.filter(tab => tab.name !== targetName)
-        // this.editableTabs = Object.assign([], this.editableTabs)
       },
       checkTab (name) {
-        let tabs = this.editableTabs
-        tabs.forEach((tab, index) => {
-          if (tab.name === name) {
-            this.currentView = ''
-            this.currentView = tab.content
-            this.activeName = name
-          }
-        })
+        this.activeName = name
       }
     },
     components: {
       'modelList': modelList,
       'modelEdit': modelEdit,
-      'tab': tab
+      'tab': tab,
+      'modelSubMenu': modelSubMenu,
+      'cubeEdit': cubeEdit,
+      'cubeMetadata': cubeMetadata
     },
     mounted () {
       console.log(this)
@@ -115,16 +100,22 @@
 
   }
 </script>
-<style >
-  .el-tabs__item.is-active{
-    background-color: #475568;
-    color:#fff;
+<style lang="less" scope="">
+.modeltab{
+  .el-tabs--card>.el-tabs__header{
+    .el-tabs__nav div:nth-child(1){
+      &.is-active{
+       background-color: #475568
+      }
+      background-color: #475568
+    }
   }
-  .el-tabs__nav div:nth-child(2) .el-icon-close{
+  .el-tabs__nav div:nth-child(1) .el-icon-close{
     visibility: hidden;
+    display: none;
   }
-  #tagBox{
-    width: 100%;
-    height: 100%;
+  .el-tabs__nav{
+    margin-left: 26px;
   }
+} 
 </style>

@@ -2,20 +2,53 @@ import api from './../service/api'
 import * as types from './types'
 export default {
   state: {
-    defaultConfig: {}
+    encodingTip: {
+      dict: 'dicTip',
+      fixed_length: 'fixedLengthTip:',
+      int: 'intTip',
+      integer: 'integerTip',
+      fixed_length_hex: 'fixedLengthHexTip',
+      date: 'dataTip',
+      time: 'timeTip',
+      boolean: 'booleanTip'
+    },
+    defaultConfig: {},
+    layoutConfig: {
+      briefMenu: localStorage.getItem('menu_type'),
+      gloalProjectSelectShow: true
+    },
+    routerConfig: {
+      currentPathName: ''
+    },
+    hiddenFeature: {
+      raw_measure: false,
+      extendedcolumn_measure: false
+    }
   },
   mutations: {
     [types.SAVE_DEFAULT_CONFIG]: function (state, { list }) {
       state.defaultConfig = list
+    },
+    [types.SAVE_HIDDEN_FEATURE]: function (state, {value, name}) {
+      state.hiddenFeature[name] = value
     }
   },
   actions: {
     [types.LOAD_DEFAULT_CONFIG]: function ({ commit }) {
-      api.config.getDefaults().then((response) => {
-        commit(types.SAVE_DEFAULT_CONFIG, { list: response.data })
+      return api.config.getDefaults().then((response) => {
+        commit(types.SAVE_DEFAULT_CONFIG, { list: response.data.data })
+      })
+    },
+    [types.LOAD_HIDDEN_FEATURE]: function ({ commit }, feature) {
+      return api.config.hiddenMeasure(feature).then((response) => {
+        commit(types.SAVE_HIDDEN_FEATURE, {value: response.data.data, name: feature.feature_name})
       })
     }
   },
-  getters: {}
+  getters: {
+    briefMenuGet (state) {
+      return state.layoutConfig.briefMenu
+    }
+  }
 }
 

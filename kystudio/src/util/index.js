@@ -45,3 +45,135 @@ export function getNameSpace (str) {
     return ''
   }
 }
+
+export function changeDataAxis (data) {
+  var len = data && data.length || 0
+  var newArr = []
+  var sublen = data && data.length && data[0].length || 0
+  for (var i = 0; i < sublen; i++) {
+    var subArr = []
+    for (var j = 0; j < len; j++) {
+      subArr.push(data[j][i])
+    }
+    newArr.push(subArr)
+  }
+  return newArr
+}
+
+// 将对象数组按照某一个key的值生成对象
+export function groupData (data, groupName) {
+  var len = data && data.length || 0
+  var obj = {}
+  for (var k = 0; k < len; k++) {
+    obj[data[k][groupName]] = obj[data[k][groupName]] || []
+    obj[data[k][groupName]].push(data[k])
+  }
+  return obj
+}
+
+export function transDataForTree (data) {
+}
+// 从对象数组中找到某个符合key value 的对象的位置
+export function indexOfObjWithSomeKey (objectArr, key, equalVal) {
+  for (var i = 0; i < objectArr.length; i++) {
+    var filterObj = objectArr[i]
+    if (filterObj[key] === equalVal) {
+      return i
+    }
+  }
+  return -1
+}
+// 对象数组排序 （chrome 对象数组排序原生sort有bug）
+export function objectArraySort (objectArr, sequence, sortKey) {
+  var condition
+  for (var i = 0; i < objectArr.length; i++) {
+    for (var k = i + 1; k < objectArr.length; k++) {
+      if (sequence) {
+        condition = objectArr[i][sortKey] > objectArr[k][sortKey]
+      } else {
+        condition = objectArr[i][sortKey] <= objectArr[k][sortKey]
+      }
+      if (condition) {
+        let temp = objectArr[i]
+        objectArr[i] = objectArr[k]
+        objectArr[k] = temp
+      }
+    }
+  }
+}
+
+export function objectClone (obj) {
+  if (typeof obj !== 'object') {
+    return obj
+  }
+  var s = {}
+  if (!obj) {
+    return obj
+  }
+  if (obj.constructor === Array) {
+    s = []
+  }
+  for (var i in obj) {
+    s[i] = objectClone(obj[i])
+  }
+  return s
+}
+
+export function changeArrObject (arr, key, val, newKey, newVal, _this) {
+  let len = arr && arr.length || 0
+  let setKey = ''
+  let setVal = ''
+  let vue = null
+  if (key === '*') {
+    setKey = val
+    setVal = newKey
+    vue = newVal
+  } else {
+    setKey = newKey
+    setVal = newVal
+    vue = _this
+  }
+  for (let i = 0; i < len; i++) {
+    if (arr[i][key] === val || key === '*') {
+      if (vue) {
+        vue.$set(arr[i], setKey, setVal)
+      } else {
+        arr[i][setKey] = setVal
+      }
+    }
+  }
+}
+
+// 时间转换工具
+import moment from 'moment'
+// test console.log(utcToConfigTimeZome(1494399187389, 'GMT+8'))
+export function utcToConfigTimeZome (item, zone, formatSet) {
+  var timezone = zone || 'PST'
+  var gmttimezone = ''
+  if (item === '' || item === null || item === undefined) {
+    return ''
+  }
+  var format = formatSet || 'YYYY-MM-DD HH:mm:ss'
+  switch (timezone) {
+    // convert PST to GMT
+    case 'PST':
+      gmttimezone = 'GMT-8'
+      break
+    default:
+      gmttimezone = timezone
+  }
+  var localOffset = new Date().getTimezoneOffset()
+  var convertedMillis = item
+  var offset = gmttimezone.substr(4, 1)
+  if (gmttimezone.indexOf('GMT+') !== -1) {
+    convertedMillis = new Date(item).getTime() + offset * 60 * 60000 + localOffset * 60000
+  } else if (gmttimezone.indexOf('GMT-') !== -1) {
+    convertedMillis = new Date(item).getTime() - offset * 60 * 60000 + localOffset * 60000
+  } else {
+    // return PST by default
+    timezone = 'PST'
+    convertedMillis = new Date(item).getTime() - 8 * 60 * 60000 + localOffset * 60000
+  }
+  return moment(convertedMillis).format(format) + ' ' + timezone
+}
+

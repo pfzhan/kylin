@@ -5,14 +5,14 @@
       <el-input v-model="projectDesc.name" auto-complete="off"></el-input>
     </el-form-item>
     <el-form-item :label="$t('description')" >
-      <el-input v-model="projectDesc.description" auto-complete="off"></el-input>
+      <el-input type="textarea" v-model="projectDesc.description" auto-complete="off"></el-input>
     </el-form-item>
     <el-form-item
     :label="$t('projectConfig')">
-    <el-row :gutter="20"  v-for="(property,index) in convertedProperties " :key="index">
+    <el-row :gutter="20" class="ksd-mb-6"  v-for="(property,index) in convertedProperties " :key="index">
       <el-col :span="10"><el-input v-model="property.key"></el-input></el-col>
       <el-col :span="10"><el-input v-model="property.value"></el-input></el-col>
-      <el-col :span="4"><el-button @click.prevent="removeProperty(index)">{{$t('delete')}}</el-button></el-col>
+      <el-col :span="4"><el-button type="danger" @click.prevent="removeProperty(index)">{{$t('delete')}}</el-button></el-col>
     </el-row>    
   </el-form-item> 
   <el-form-item>
@@ -32,12 +32,21 @@ export default {
       projectDesc: Object.assign({}, this.project),
       rules: {
         name: [
-          { required: true, message: this.$t('inputTip'), trigger: 'blur' }
+          { trigger: 'blur', validator: this.validateProjectName }
         ]
       }
     }
   },
   methods: {
+    validateProjectName (rule, value, callback) {
+      if (value === '') {
+        callback(new Error('请输入project名称'))
+      } else if (!/^\w+$/.test(value)) {
+        callback(new Error('名字只能包含数字字母下划线!'))
+      } else {
+        callback()
+      }
+    },
     removeProperty (index) {
       this.convertedProperties.splice(index, 1)
     },

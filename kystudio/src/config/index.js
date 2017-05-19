@@ -4,6 +4,8 @@ let apiUrl
 let baseUrl
 let regexApiUrl
 
+let pageCount = 12
+
 if (process.env.NODE_ENV === 'development') {
   apiUrl = '/kylin/api/'
   baseUrl = '/kylin/'
@@ -13,9 +15,31 @@ if (process.env.NODE_ENV === 'development') {
   baseUrl = '/kylin/'
   regexApiUrl = '\\/kylin\\/api\\/'
 }
-
+const modelHealthStatus = {
+  'GOOD': {
+    icon: 'green'
+  },
+  'WARN': {
+    icon: 'yellow'
+  },
+  'BAD': {
+    icon: 'red'
+  },
+  'TERRIBLE': {
+    icon: 'red'
+  },
+  'NONE': {
+    icon: 'question'
+  }
+}
 export {
+  // http请求
   apiUrl,
   baseUrl,
-  regexApiUrl
+  regexApiUrl,
+  // 分页
+  pageCount,
+  // model健康状态
+  modelHealthStatus
 }
+

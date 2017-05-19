@@ -29,13 +29,13 @@ cp extensions/server/target/kap-server-${kap_version}.war build/tomcat/webapps/k
 chmod 644 build/tomcat/webapps/kylin.war
 
 echo "Start to add js & css to war..."
-if [ ! -d "webapp/dist" ]
+if [ ! -d "kystudio/dist" ]
 then
     echo "Failed to generate js files!"
     exit 1
 fi
 
-cd webapp/dist
+cd kystudio/dist
 for f in * .[!.]*
 do
     echo "Adding $f to war"

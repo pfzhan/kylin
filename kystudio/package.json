@@ -5,7 +5,8 @@
   "author": "luguosheng",
   "private": true,
   "scripts": {
-    "dev": "node build/dev-server.js",
+    "dev": "node build/dev-server.js mock",
+    "devproxy": "node build/dev-server.js proxy",
     "build": "node build/build.js",
     "unit": "cross-env BABEL_ENV=test karma start test/unit/karma.conf.js --single-run",
     "e2e": "node test/e2e/runner.js",
@@ -13,17 +14,24 @@
     "lint": "eslint --ext .js,.vue src test/unit/specs test/e2e/specs"
   },
   "dependencies": {
+    "draggable": "^4.1.2",
+    "echarts": "^3.5.3",
     "element-ui": "^1.2.0",
     "express-http-proxy": "^0.11.0",
+    "jquery": "^3.2.1",
+    "js-base64": "^2.1.9",
     "jsplumb": "^2.3.1",
     "less": "^2.7.2",
     "less-loader": "^2.2.3",
+    "moment": "^2.18.1",
+    "nprogress": "^0.2.0",
     "smooth-scrollbar": "^7.2.10",
     "vue": "^2.1.10",
     "vue-awesome": "^2.1.0",
     "vue-i18n": "^5.0.2",
     "vue-resource": "^1.2.0",
     "vue-router": "^2.2.0",
+    "vue2-ace-editor": "0.0.2",
     "vuex": "^2.1.2"
   },
   "devDependencies": {

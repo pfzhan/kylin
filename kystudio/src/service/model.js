@@ -7,5 +7,45 @@ Vue.use(VueResource)
 export default {
   getModelList: (params) => {
     return Vue.resource(apiUrl + 'models').get(params)
+  },
+  measureDimensionSuggestion: (params) => {
+    return Vue.resource(apiUrl + 'models/table_suggestions').get(params)
+  },
+  getModelByModelName: (modelname) => {
+    return Vue.resource(apiUrl + 'model/' + modelname).get()
+  },
+  deleteModel: (modelname) => {
+    return Vue.resource(apiUrl + 'models/' + modelname).delete()
+  },
+  collectStats: (params) => {
+    return Vue.resource(apiUrl + 'models/' + params.project + '/' + params.modelname + '/stats').save(params.data)
+  },
+  updateModel: (data) => {
+    return Vue.resource(apiUrl + 'models/').update(data)
+  },
+  saveModel: (data) => {
+    return Vue.resource(apiUrl + 'models').update(data)
+  },
+  saveModelDraft: (data) => {
+    return Vue.resource(apiUrl + 'models/draft').update(data)
+  },
+  cloneModel: (para) => {
+    return Vue.resource(apiUrl + 'models/' + para.oldName + '/clone').update(para.data)
+  },
+  diagnose: (project, modelName) => {
+    return Vue.resource(apiUrl + 'models/' + project + '/' + modelName + '/diagnose').get()
+  },
+  diagnoseList: (project, offSet, pageSize) => {
+    return Vue.resource(apiUrl + 'models/get_all_stats').get({
+      projectName: project,
+      pageOffset: offSet,
+      pageSize: pageSize
+    })
+  },
+  checkModelName: (modelName) => {
+    return Vue.resource(apiUrl + 'model/' + modelName).get()
+  },
+  checkUsedCols: (modelName) => {
+    return Vue.resource(apiUrl + '/models/' + modelName + '/usedCols').get()
   }
 }

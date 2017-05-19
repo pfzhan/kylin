@@ -7,5 +7,8 @@ Vue.use(VueResource)
 export default {
   getDefaults: () => {
     return Vue.resource(apiUrl + 'config/defaults').get()
+  },
+  hiddenMeasure: (feature) => {
+    return Vue.resource(apiUrl + 'config/hidden_feature').get(feature)
   }
 }
