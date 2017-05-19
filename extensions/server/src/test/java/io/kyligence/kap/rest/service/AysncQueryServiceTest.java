@@ -58,7 +58,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 import com.google.common.collect.Lists;
-import org.springframework.beans.factory.annotation.Qualifier;
 
 public class AysncQueryServiceTest extends ServiceTestBase {
 
