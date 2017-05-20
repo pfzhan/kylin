@@ -33,9 +33,9 @@ then
     CURRENT=${CURRENT:-"${dir}/../"}
     CURRENT=`cd "$CURRENT"; pwd`
 
-    if [ $CI_MODE != 'true' ]; then
-        [[ -z $KYLIN_CONF ]] || quit "KYLIN_CONF should not be set. Please leave it NULL, i.e. 'export KYLIN_CONF='"
-        [[ -z ${KYLIN_HOME} ]] || [[ ${CURRENT} == ${KYLIN_HOME} ]] || quit "KYLIN_HOME=${KYLIN_HOME}, doesn't set correctly, please make sure it is set as current dir: ${CURRENT}, or leave it NULL, i.e. 'export KYLIN_HOME='"
+    if [[ "$CI_MODE" != "true" ]]; then
+        [[ -z "$KYLIN_CONF" ]] || quit "KYLIN_CONF should not be set. Please leave it NULL, i.e. 'export KYLIN_CONF='"
+        [[ -z "$KYLIN_HOME" ]] || [[ "${CURRENT}" == "${KYLIN_HOME}" ]] || quit "KYLIN_HOME=${KYLIN_HOME}, doesn't set correctly, please make sure it is set as current dir: ${CURRENT}, or leave it NULL, i.e. 'export KYLIN_HOME='"
     fi
 
     export KYLIN_HOME=${CURRENT}
