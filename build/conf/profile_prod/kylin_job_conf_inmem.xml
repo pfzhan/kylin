@@ -97,7 +97,7 @@
 
     <property>
         <name>mapreduce.map.java.opts</name>
-        <value>-Xmx2048m -XX:OnOutOfMemoryError='kill -9 %p'</value>
+        <value>-Xmx2560m -XX:MaxDirectMemorySize=1G -XX:OnOutOfMemoryError='kill -9 %p'</value>
         <description></description>
     </property>
 
@@ -110,7 +110,7 @@
     <!-- Keep mapreduce.reduce.java.opts be half of mapreduce.reduce.memory.mb -->
     <property>
         <name>mapreduce.reduce.java.opts</name>
-        <value>-Xmx1024m -XX:OnOutOfMemoryError='kill -9 %p'</value>
+        <value>-Xmx1024m -XX:MaxDirectMemorySize=512M -XX:OnOutOfMemoryError='kill -9 %p'</value>
         <description></description>
     </property>
 
