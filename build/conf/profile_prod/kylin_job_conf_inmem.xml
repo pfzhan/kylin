@@ -100,6 +100,11 @@
         <value>-Xmx2560m -XX:MaxDirectMemorySize=1G -XX:OnOutOfMemoryError='kill -9 %p'</value>
         <description></description>
     </property>
+    <property>
+        <name>mapreduce.task.io.sort.mb</name>
+        <value>100</value>
+        <description></description>
+    </property>
 
     <property>
         <name>mapreduce.reduce.memory.mb</name>

@@ -84,6 +84,11 @@
         <value>-Xmx700m -XX:MaxDirectMemorySize=200M -XX:OnOutOfMemoryError='kill -9 %p'</value>
         <description></description>
     </property>
+    <property>
+        <name>mapreduce.task.io.sort.mb</name>
+        <value>512</value>
+        <description></description>
+    </property>
 
     <property>
         <name>mapreduce.reduce.memory.mb</name>
