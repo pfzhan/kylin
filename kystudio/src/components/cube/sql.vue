@@ -16,7 +16,7 @@ export default {
   props: ['cube'],
   computed: {
     getJSON () {
-      return JSON.stringify(this.cube.sql)
+      return this.cube.sql
     }
   },
   methods: {

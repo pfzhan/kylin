@@ -1,6 +1,6 @@
 <template>
  <div>
-  <p v-if="!cubeDesc.rawTable">{{$t('noRawTable')}}</p>
+  <p v-if="!cubeDesc.rawTable" class="noRawTable">{{$t('noRawTable')}}</p>
   <el-table  v-else
     :data="cubeDesc.rawTable.columns"
     border stripe
@@ -119,5 +119,12 @@ export default {
  .dropdown ul {
   height: 150px;
   overflow: scroll;
+ }
+ .noRawTable {
+  height: 60px;
+  line-height: 60px;
+  border:1px solid #ddd;
+  border-radius: 2px;
+  text-align: center;
  }
 </style>

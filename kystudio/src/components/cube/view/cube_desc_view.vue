@@ -139,6 +139,7 @@ export default {
 <style lang="less">
 .cube_desc_view {
   line-height: 30px;
+  font-size: 14px;
   .el-col-4 {
     padding-right: 10px;
     text-align: right;

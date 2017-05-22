@@ -14,7 +14,7 @@ export default {
   props: ['json', 'index'],
   computed: {
     getJSON () {
-      return JSON.stringify(this.json)
+      return JSON.stringify(this.json, '', 4)
     }
   }
 }

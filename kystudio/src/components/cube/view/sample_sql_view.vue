@@ -5,7 +5,7 @@
       v-model="cubeDesc.desc.sampleSql"
       :readonly="true">
   </el-input>
-  <p v-else>{{$t('noSampleSql')}}</p>
+  <p v-else class="noSampleSql">{{$t('noSampleSql')}}</p>
 </template>
 <script>
 import { mapActions } from 'vuex'
@@ -56,5 +56,13 @@ p {
 a {
   font-size:20px;
   margin: 30px 0px 10px 0px;
+}
+.noSampleSql {
+  height: 60px;
+  line-height: 60px;
+  font-size: 14px;
+  text-align: center;
+  border:1px solid #ddd;
+  border-radius: 2px;
 }
 </style>
