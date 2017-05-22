@@ -2,7 +2,7 @@
 <div class="paddingbox ksd-border-tab">
   <el-table
     :data="cubesList"
-    :default-expand-all="false"
+    :default-expand-all="true"
     style="width: 100%!important">
     <el-table-column type="expand">
       <template scope="props" >
@@ -98,7 +98,6 @@
       </template>
     </el-table-column>
   </el-table>
-   <pager ref="pager"  :totalSize="totalCubes"  v-on:handleCurrentChange='currentChange' ></pager>
 
   <el-dialog :title="$t('cubeBuildConfirm')" v-model="buildCubeFormVisible">
     <build_cube :cubeDesc="selected_cube" ref="buildCubeForm" v-on:validSuccess="buildCubeValidSuccess"></build_cube>
@@ -137,7 +136,6 @@
 
 <script>
 import { mapActions } from 'vuex'
-import { pageCount } from '../../config'
 import showJson from './json'
 import showSql from './sql'
 import segments from './segments'
@@ -149,11 +147,10 @@ import refreshCube from './dialog/refresh_cube'
 import { handleSuccess, handleError, transToGmtTime } from '../../util/business'
 export default {
   name: 'cubeslist',
+  props: ['extraoption'],
   data () {
     return {
       cubesList: [],
-      currentPage: 1,
-      totalCubes: 0,
       buildCubeFormVisible: false,
       cloneCubeFormVisible: false,
       mergeCubeFormVisible: false,
@@ -183,28 +180,27 @@ export default {
       purgeCube: 'PURGE_CUBE',
       cloneCube: 'CLONE_CUBE',
       backupCube: 'BACKUP_CUBE',
-      getCubeSql: 'GET_CUBE_SQL'
+      getCubeSql: 'GET_CUBE_SQL',
+      deleteRawTable: 'DELETE_RAW_TABLE',
+      deleteScheduler: 'DELETE_SCHEDULER'
     }),
     transToGmtTime,
-    loadCubesList: function (curPage) {
+    loadCubesList: function () {
       let _this = this
-      this.getCubesList({pageSize: pageCount, pageOffset: curPage, projectName: localStorage.getItem('selected_project')}).then((res) => {
+      this.getCubesList({pageSize: 65535, pageOffset: 0, projectName: localStorage.getItem('selected_project')}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
-          this.cubesList = data.cubes.map((p) => {
-            p.createGMTTime = transToGmtTime(p.create_time_utc, _this)
-            if (p.segments.length > 0) {
-              p.buildGMTTime = transToGmtTime(p.segments[p.segments.length - 1].last_build_time, _this)
+          data.cubes.map((p) => {
+            if (p.name === _this.extraoption.cubeName) {
+              p.createGMTTime = transToGmtTime(p.create_time_utc, _this)
+              if (p.segments.length > 0) {
+                p.buildGMTTime = transToGmtTime(p.segments[p.segments.length - 1].last_build_time, _this)
+              }
+              this.cubesList.push(p)
             }
-            return p
           })
-          this.totalCubes = data.size
         })
       }).catch((res) => {
         handleError(res, (data, code, status, msg) => {
-          console.log(status, 30000)
-          // if (status === 404) {
-          //   _this.$router.replace('access/login')
-          // }
         })
       })
     },
@@ -222,7 +218,21 @@ export default {
               duration: 3000
             })
           })
-          this.loadCubesList(this.$ref['pager'].currentPage - 1)
+          this.deleteRawTable(cubeName).then((res) => {
+            handleSuccess(res, (data, code, status, msg) => {
+            })
+          }).catch((res) => {
+            handleError(res, (data, code, status, msg) => {
+            })
+          })
+          this.deleteScheduler(cubeName).then((res) => {
+            handleSuccess(res, (data, code, status, msg) => {
+            })
+          }).catch((res) => {
+            handleError(res, (data, code, status, msg) => {
+            })
+          })
+          this.loadCubesList()
         }).catch((res) => {
           handleError(res, (data, code, status, msg) => {
             this.$message({
@@ -230,9 +240,9 @@ export default {
               message: msg,
               duration: 3000
             })
-            // if (status === 404) {
-            //   this.$router.replace('access/login')
-            // }
+            if (status === 404) {
+              this.$router.replace('access/login')
+            }
           })
         })
       }).catch(() => {
@@ -262,7 +272,7 @@ export default {
                 message: this.$t('buildSuccessful'),
                 duration: 3000
               })
-              _this.loadCubesList(this.$ref['pager'].currentPage - 1)
+              _this.loadCubesList()
             })
           }).catch((res) => {
             handleError(res, (data, code, status, msg) => {
@@ -271,9 +281,9 @@ export default {
                 message: msg,
                 duration: 3000
               })
-              // if (status === 404) {
-              //   _this.$router.replace('access/login')
-              // }
+              if (status === 404) {
+                _this.$router.replace('access/login')
+              }
             })
           })
         }).catch(() => {
@@ -295,7 +305,7 @@ export default {
                   message: this.$t('buildSuccessful'),
                   duration: 3000
                 })
-                _this.loadCubesList(this.$ref['pager'].currentPage - 1)
+                _this.loadCubesList()
               })
             }).catch((res) => {
               handleError(res, (data, code, status, msg) => {
@@ -304,9 +314,9 @@ export default {
                   message: msg,
                   duration: 3000
                 })
-                // if (status === 404) {
-                //   _this.$router.replace('access/login')
-                // }
+                if (status === 404) {
+                  _this.$router.replace('access/login')
+                }
               })
             })
           }).catch(() => {
@@ -327,7 +337,7 @@ export default {
             message: this.$t('buildSuccessful'),
             duration: 3000
           })
-          _this.loadCubesList(this.$ref['pager'].currentPage - 1)
+          _this.loadCubesList()
         })
       }).catch((res) => {
         handleError(res, (data, code, status, msg) => {
@@ -336,9 +346,9 @@ export default {
             message: msg,
             duration: 3000
           })
-          // if (status === 404) {
-          //   _this.$router.replace('access/login')
-          // }
+          if (status === 404) {
+            _this.$router.replace('access/login')
+          }
         })
       })
       this.buildCubeFormVisible = false
@@ -360,7 +370,7 @@ export default {
             message: this.$t('refreshSuccessful'),
             duration: 3000
           })
-          _this.loadCubesList(this.$ref['pager'].currentPage - 1)
+          _this.loadCubesList()
         })
       }).catch((res) => {
         handleError(res, (data, code, status, msg) => {
@@ -369,9 +379,9 @@ export default {
             message: msg,
             duration: 3000
           })
-          // if (status === 404) {
-          //   _this.$router.replace('access/login')
-          // }
+          if (status === 404) {
+            _this.$router.replace('access/login')
+          }
         })
       })
       _this.refreshCubeFormVisible = false
@@ -393,7 +403,7 @@ export default {
             message: this.$t('mergeSuccessful'),
             duration: 3000
           })
-          _this.loadCubesList(this.$ref['pager'].currentPage - 1)
+          _this.loadCubesList()
         })
       }).catch((res) => {
         handleError(res, (data, code, status, msg) => {
@@ -402,9 +412,9 @@ export default {
             message: msg,
             duration: 3000
           })
-          // if (status === 404) {
-          //   _this.$router.replace('access/login')
-          // }
+          if (status === 404) {
+            _this.$router.replace('access/login')
+          }
         })
       })
       _this.mergeCubeFormVisible = false
@@ -423,7 +433,7 @@ export default {
               message: this.$t('enableSuccessful'),
               duration: 3000
             })
-            _this.loadCubesList(this.$ref['pager'].currentPage - 1)
+            _this.loadCubesList()
           })
         }).catch((res) => {
           handleError(res, (data, code, status, msg) => {
@@ -432,9 +442,9 @@ export default {
               message: msg,
               duration: 3000
             })
-            // if (status === 404) {
-            //   _this.$router.replace('access/login')
-            // }
+            if (status === 404) {
+              _this.$router.replace('access/login')
+            }
           })
         })
       }).catch(() => {
@@ -454,7 +464,7 @@ export default {
               message: this.$t('disableSuccessful'),
               duration: 3000
             })
-            _this.loadCubesList(this.$ref['pager'].currentPage - 1)
+            _this.loadCubesList()
           })
         }).catch((res) => {
           handleError(res, (data, code, status, msg) => {
@@ -463,9 +473,9 @@ export default {
               message: msg,
               duration: 3000
             })
-            // if (status === 404) {
-            //   _this.$router.replace('access/login')
-            // }
+            if (status === 404) {
+              _this.$router.replace('access/login')
+            }
           })
         })
       }).catch(() => {
@@ -485,7 +495,7 @@ export default {
               message: this.$t('purgeSuccessful'),
               duration: 3000
             })
-            _this.loadCubesList(this.$ref['pager'].currentPage - 1)
+            _this.loadCubesList()
           })
         }).catch((res) => {
           handleError(res, (data, code, status, msg) => {
@@ -494,9 +504,9 @@ export default {
               message: msg,
               duration: 3000
             })
-            // if (status === 404) {
-            //   _this.$router.replace('access/login')
-            // }
+            if (status === 404) {
+              _this.$router.replace('access/login')
+            }
           })
         })
       }).catch(() => {
@@ -518,7 +528,7 @@ export default {
             message: this.$t('cloneSuccessful'),
             duration: 3000
           })
-          _this.loadCubesList(this.$ref['pager'].currentPage - 1)
+          _this.loadCubesList()
         })
       }).catch((res) => {
         handleError(res, (data, code, status, msg) => {
@@ -527,9 +537,9 @@ export default {
             message: msg,
             duration: 3000
           })
-          // if (status === 404) {
-          //   _this.$router.replace('access/login')
-          // }
+          if (status === 404) {
+            _this.$router.replace('access/login')
+          }
         })
       })
       _this.cloneCubeFormVisible = false
@@ -560,7 +570,7 @@ export default {
             type: 'success',
             message: this.$t('backupSuccessful')
           })
-          this.loadCubesList(this.$ref['pager'].currentPage - 1)
+          this.loadCubesList()
         }).catch((result) => {
           this.$message({
             type: 'error',
@@ -569,9 +579,6 @@ export default {
         })
       }).catch(() => {
       })
-    },
-    currentChange: function (value) {
-      this.loadCubesList(value - 1)
     },
     changeTab: function (tab) {
       if (tab.$data.index === '1') {
@@ -583,7 +590,7 @@ export default {
     }
   },
   created () {
-    this.loadCubesList(0)
+    this.loadCubesList()
   },
   locales: {
     'en': {name: 'Name', model: 'Model', status: 'Status', cubeSize: 'Cube Size', sourceRecords: 'Source Records', lastBuildTime: 'Last Build Time', owner: 'Owner', createTime: 'Create Time', actions: 'Action', drop: 'Drop', edit: 'Edit', build: 'Build', merge: 'Merge', refresh: 'Refresh', enable: 'Enable', purge: 'Purge', clone: 'Clone', disable: 'Disable', editCubeDesc: 'Edit CubeDesc', viewCube: 'View Cube', backup: 'Backup Cube', storage: 'Storage', cancel: 'Cancel', yes: 'Yes', tip: 'Tip', deleteSuccessful: 'Delete the cube successful!', deleteCube: 'Once it\'s deleted, your cube\'s metadata and data will be cleaned up and can\'t be restored back. ', enableCube: 'Are you sure to enable the cube? Please note: if cube schema is changed in the disabled period, all segments of the cube will be discarded due to data and schema mismatch.', enableSuccessful: 'Enable the cube successful!', disableCube: 'Are you sure to disable the cube?', disableSuccessful: 'Disable the cube successful!', purgeCube: 'Are you sure to purge the cube? ', purgeSuccessful: 'Purge the cube successful!', backupCube: 'Are you sure to backup ?', backupSuccessful: 'Backup the cube successful!', buildCube: 'Are you sure to start the build?', buildSuccessful: 'Build the cube successful!', cubeBuildConfirm: 'CUBE BUILD CONFIRM', cubeRefreshConfirm: 'CUBE Refresh Confirm', refreshSuccessful: 'Refresh the cube successful!', cubeMergeConfirm: 'CUBE Merge Confirm', mergeSuccessful: 'Merge the cube successful!', cubeCloneConfirm: 'CUBE Clone Confirm', cloneSuccessful: 'Clone the cube successful!'},

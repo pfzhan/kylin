@@ -2,7 +2,7 @@
 <template>
   <div class="tree_box">
   <el-input
-    placeholder="输入关键字进行过滤"
+    :placeholder="placeholder"
     v-model="filterText" v-if="showfilter">
   </el-input>
   <el-tree
@@ -33,7 +33,7 @@
         this.$refs.tree2.filter(val)
       }
     },
-    props: ['treedata', 'showfilter', 'allowdrag', 'showCheckbox', 'lazy', 'expandall', 'maxlevel', 'maxLabelLen', 'titleLabel', 'emptytext', 'indent'],
+    props: ['treedata', 'renderTree', 'placeholder', 'showfilter', 'allowdrag', 'showCheckbox', 'lazy', 'expandall', 'maxlevel', 'maxLabelLen', 'titleLabel', 'emptytext', 'indent'],
     methods: {
       filterNode (value, data) {
         if (!value) {
@@ -62,6 +62,9 @@
         return dom.join('') + Vue.filter('omit')(data.label, this.maxLabelLen || 0, '...') + (data.subLabel ? ' <span class="sublabel" title="' + data.subLabel + '">' + data.subLabel + '</span>' : '')
       },
       renderContent (h, { node, data, store }) {
+        if (this.renderTree) {
+          return this.renderTree(h, { node, data, store })
+        }
         var _this = this
         if (node.level === +this.maxlevel) {
           node.isLeaf = true

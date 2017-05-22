@@ -11,17 +11,17 @@
 					    <icon name="ellipsis-h"></icon>
 					  </span>
 					  <el-dropdown-menu slot="dropdown"  :uuid='o.uuid'>
-              <el-dropdown-item command="cube">Add Cube</el-dropdown-item>
+              <el-dropdown-item command="cube" v-if="!o.status">Add Cube</el-dropdown-item>
 					    <el-dropdown-item command="edit">Edit</el-dropdown-item>
-					    <el-dropdown-item command="clone">Clone</el-dropdown-item>
-					    <el-dropdown-item command="stats">Stats</el-dropdown-item>
-              <el-dropdown-item command="drop">Drop</el-dropdown-item>
+					    <el-dropdown-item command="clone" v-if="!o.status">Clone</el-dropdown-item>
+					    <el-dropdown-item command="stats" v-if="!o.status">Stats</el-dropdown-item>
+              <el-dropdown-item command="drop" >Drop</el-dropdown-item>
 					  </el-dropdown-menu>
 					</el-dropdown>
 
 		    </p>
 		      <div style="padding: 20px;">
-		        <h2 :title="o.name">{{o.name|omit(24, '...')}}<i class="el-icon-circle-check"></i></h2>
+		        <h2 :title="o.name" @click="viewModel(o)">{{o.name|omit(24, '...')}} <icon v-if="!o.status" :name="getModelStatusIcon(o)&&getModelStatusIcon(o).icon" :style="{color:getModelStatusIcon(o) && getModelStatusIcon(o).color}"></icon> </h2>
             <el-progress v-visible="getHelthInfo(o.name).progress" :percentage="(getHelthInfo(o.name).progress||0)*100" style="width:150px;"></el-progress>
 		        <div class="bottom clearfix">
 		          <time class="time">{{o.owner}}</time>
@@ -102,7 +102,7 @@
 <script>
 import { mapActions } from 'vuex'
 import cubeList from '../cube/cube_list'
-import { pageCount } from '../../config'
+import { pageCount, modelHealthStatus } from '../../config'
 import { transToGmtTime, handleError } from 'util/business'
 export default {
   data () {
@@ -178,12 +178,23 @@ export default {
     },
     pageCurrentChange (currentPage) {
       this.currentPage = currentPage
-      this.loadModels({pageSize: this.$refs['pager'].pageSize, pageOffset: currentPage - 1, projectName: localStorage.getItem('selected_project')})
+      this.loadModels({pageSize: pageCount, pageOffset: currentPage - 1, projectName: localStorage.getItem('selected_project')})
+      this.loadModelDiagnoseList({project: this.project, pageOffset: currentPage - 1, pageSize: pageCount})
     },
     sizeChange () {
     },
-    editModel (modelName) {
-      this.$emit('addtabs', '[Edit]' + modelName, 'editModel')
+    getModelStatusIcon (modelInfo) {
+      var helthInfo = this.getHelthInfo(modelInfo.name)
+      return modelHealthStatus[helthInfo.heathStatus]
+    },
+    viewModel (modelInfo) {
+      this.$emit('addtabs', 'viewmodel', '[view] ' + modelInfo.name, 'modelEdit', {
+        project: modelInfo.project,
+        modelName: modelInfo.name,
+        uuid: modelInfo.uuid,
+        status: modelInfo.status,
+        mode: 'view'
+      })
     },
     addModel () {
       this.createModelVisible = true
@@ -255,9 +266,6 @@ export default {
           })
         }
       })
-    },
-    viewModel (modelName) {
-      // this.$emit('addtabs', '[View]' + modelName, 'viewModel')
     },
     initCloneMeta () {
       this.cloneModelMeta = {
@@ -371,7 +379,7 @@ export default {
       })
     },
     drop (modelName) {
-      this.delModel(this.cloneModelMeta.oldName).then(() => {
+      this.delModel(this.currentModelData.modelName).then(() => {
         this.$message({
           type: 'success',
           message: '删除成功!'
@@ -408,7 +416,7 @@ export default {
       return []
     },
     getHelthInfo (modelName) {
-      var len = this.modelHelth && this.modelHelth || 0
+      var len = this.modelHelth && this.modelHelth.length || 0
       for (var i = 0; i < len; i++) {
         if (this.modelHelth[i].modelName === modelName) {
           return this.modelHelth[i]
@@ -453,6 +461,7 @@ export default {
  h2{
  	color:#475669;
   font-weight: normal;
+  cursor:pointer;
   i{
     color:#13ce66;
     font-size: 18px; 

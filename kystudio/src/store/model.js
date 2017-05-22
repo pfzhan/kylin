@@ -33,10 +33,7 @@ export default {
       return api.model.measureDimensionSuggestion(para)
     },
     [types.LOAD_MODEL_INFO]: function ({ commit }, para) {
-      return api.model.getModelByModelName(para).then((response) => {
-        commit(types.CACHE_MODEL_EDIT, response.data.data.draft || response.data.data.model)
-        return response
-      })
+      return api.model.getModelByModelName(para)
     },
     [types.DELETE_MODEL]: function ({ commit }, para) {
       return api.model.deleteModel(para)

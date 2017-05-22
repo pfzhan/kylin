@@ -190,7 +190,7 @@
 		</el-row>
 		  <div slot="footer" class="dialog-footer">
 		    <el-button @click="load_hive_dalog_visible = false">取 消</el-button>
-		    <el-button type="primary" @click="loadHiveList">确 定</el-button>
+		    <el-button type="primary" @click="loadHiveList" :loading="loadHiveLoad">确 定</el-button>
 		  </div>
 	    </el-dialog>
      
@@ -289,6 +289,7 @@ export default {
       scanSampleRatioDialogVisible: false,
       tableStaticsRange: 0,
       openCollectRange: false,
+      loadHiveLoad: false,
       defaultProps: {
         children: 'children',
         label: 'label',
@@ -323,7 +324,9 @@ export default {
     'view-kafka': viewKafka
   },
   created () {
-    this.loadHiveTree()
+    if (this.project) {
+      this.loadHiveTree()
+    }
   },
   methods: {
     ...mapActions({
@@ -633,6 +636,7 @@ export default {
     loadHiveList () {
       this.currentAction = '加载'
       if (this.selectTables.length > 0) {
+        this.loadHiveLoad = true
         this.loadHiveInProject({
           project: this.project,
           tables: this.selectTablesNames.join(','),
@@ -652,7 +656,9 @@ export default {
           this.loadResultVisible = true
           this.selectTables = []
           this.selectTablesNames = []
+          this.loadHiveLoad = false
         }, (res) => {
+          this.loadHiveLoad = false
           handleError(res)
           this.load_hive_dalog_visible = false
         })

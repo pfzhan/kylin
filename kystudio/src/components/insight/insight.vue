@@ -333,6 +333,9 @@ export default {
     }
   },
   mounted () {
+    if (!this.project) {
+      return
+    }
     this.loadBuildCompleteTables(this.project).then((res) => {
       handleSuccess(res, (data, code, status, msg) => {
         var databaseObj = groupData(data, 'table_SCHEM')

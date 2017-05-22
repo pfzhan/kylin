@@ -1,5 +1,5 @@
 <template>
-	<tree :treedata="modelAssets" maxLabelLen="20" showfilter= "true" :expandall="true" v-on:treedrag="drag" allowdrag=true emptytext="无数据" v-unselect ></tree>
+	<tree :treedata="modelAssets" placeholder="输入关键字过滤Data Source" maxLabelLen="20" showfilter= "true" :expandall="true" v-on:treedrag="drag" allowdrag=true emptytext="无数据" v-unselect ></tree>
 </template>
 <script>
 import { mapActions } from 'vuex'

@@ -84,7 +84,8 @@ export function indexOfObjWithSomeKey (objectArr, key, equalVal) {
   return -1
 }
 // 对象数组排序 （chrome 对象数组排序原生sort有bug）
-export function objectArraySort (objectArr, sequence, sortKey) {
+export function objectArraySort (objArr, sequence, sortKey) {
+  var objectArr = objectClone(objArr)
   var condition
   for (var i = 0; i < objectArr.length; i++) {
     for (var k = i + 1; k < objectArr.length; k++) {
@@ -100,6 +101,7 @@ export function objectArraySort (objectArr, sequence, sortKey) {
       }
     }
   }
+  return objectArr
 }
 
 export function objectClone (obj) {
@@ -118,8 +120,9 @@ export function objectClone (obj) {
   }
   return s
 }
-
-export function changeArrObject (arr, key, val, newKey, newVal, _this) {
+// 改变对象数组里对象的某个属性
+export function changeObjectArrProperty (objectArr, key, val, newKey, newVal, _this) {
+  var arr = objectClone(objectArr)
   let len = arr && arr.length || 0
   let setKey = ''
   let setVal = ''
@@ -143,7 +146,27 @@ export function changeArrObject (arr, key, val, newKey, newVal, _this) {
     }
   }
 }
-
+// 获取对象数组对象属性符合条件的对象
+export function filterObjectArray (objectArr, key, val) {
+  objectArr = objectArr || []
+  var resultArr = objectArr.filter((obj) => {
+    return obj[key] === val
+  })
+  return resultArr
+}
+// 获取数组中指定元素的下一个元素
+export function getNextValInArray (arr, current) {
+  var arrLen = arr && arr.length || 0
+  if (arrLen) {
+    var index = arr.indexOf(current)
+    if (index === -1) {
+      return arr[0]
+    }
+    var next = index + 1 >= arrLen ? 0 : index + 1
+    return arr[next]
+  }
+  return null
+}
 // 时间转换工具
 import moment from 'moment'
 // test console.log(utcToConfigTimeZome(1494399187389, 'GMT+8'))

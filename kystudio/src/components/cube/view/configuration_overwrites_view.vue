@@ -20,10 +20,10 @@
 import { fromObjToArr } from '../../../util/index'
 export default {
   name: 'configurationOverwrites',
-  props: ['desc'],
+  props: ['cubeDesc'],
   data () {
     return {
-      properties: fromObjToArr(this.desc.override_kylin_properties)
+      properties: fromObjToArr(this.cubeDesc.desc.override_kylin_properties)
     }
   },
   locales: {

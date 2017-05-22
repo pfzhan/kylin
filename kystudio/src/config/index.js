@@ -17,19 +17,24 @@ if (process.env.NODE_ENV === 'development') {
 }
 const modelHealthStatus = {
   'GOOD': {
-    icon: 'green'
+    icon: 'check-circle-o',
+    color: 'green'
   },
   'WARN': {
-    icon: 'yellow'
+    icon: 'exclamation-circle',
+    color: 'yellow'
   },
   'BAD': {
-    icon: 'red'
+    icon: 'times-circle',
+    color: 'red'
   },
   'TERRIBLE': {
-    icon: 'red'
+    icon: 'times-circle',
+    color: 'red'
   },
   'NONE': {
-    icon: 'question'
+    icon: 'question-circle',
+    color: 'gray'
   }
 }
 export {

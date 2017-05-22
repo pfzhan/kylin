@@ -8,14 +8,14 @@
                     <table  cellspacing="0" cellpadding="0">
                       <tr>
                         <th>Model Name</th>
-                        <td><el-input v-model="currentModelInfo.modelName" :disabled="editMode"></el-input></td>
+                        <td><el-input v-model="currentModelInfo.modelName" :disabled="editMode || actionMode==='view'"></el-input></td>
                       </tr>
                       <tr>
                         <th>Description</th>
                         <td>
-                            <el-input
+                            <el-input 
                             type="textarea"
-                            :rows="2"
+                            :rows="2" :disabled="actionMode==='view'"
                             placeholder="请输入内容"
                             v-model="currentModelInfo.modelDiscribe">
                           </el-input>
@@ -26,14 +26,14 @@
                 <el-tab-pane label="Partition Setting" name="second">
                   <el-form   label-width="240px">
                     <el-form-item label="Partition Date Column">
-                      <el-select v-model="checkPartition.date_table" placeholder="请选择" :disabled="editMode">
+                      <el-select v-model="checkPartition.date_table" placeholder="请选择" :disabled="editMode || actionMode==='view'">
                         <el-option
                           v-for="(key,value) in dateColumns"
                           :label="value"
                           :value="value">
                         </el-option>
                       </el-select>
-                      <el-select v-model="checkPartition.date_column" @change="changeDateColumn" placeholder="请选择" :disabled="editMode">
+                      <el-select v-model="checkPartition.date_column" @change="changeDateColumn" placeholder="请选择" :disabled="editMode  || actionMode==='view'">
                         <el-option
                           v-for="item in dateColumnsByTable"
                           :label="item.name"
@@ -42,7 +42,7 @@
                       </el-select>
                     </el-form-item>
                     <el-form-item label="Date Format">
-                      <el-select v-model="checkPartition.partition_date_format" placeholder="请选择" :disabled="(!needSetTime || editMode)?'disabled':false">
+                      <el-select v-model="checkPartition.partition_date_format" placeholder="请选择" :disabled="!needSetTime || editMode  || actionMode==='view'">
                         <el-option
                           v-for="item in dateFormat"
                           :label="item.label"
@@ -51,17 +51,17 @@
                       </el-select>
                     </el-form-item>
                     <el-form-item label="separate time of the day column " v-show="needSetTime">
-                    <el-switch v-model="hasSepatate" on-text="" @change="changeSepatate" off-text="" :disabled="editMode"></el-switch>
+                    <el-switch v-model="hasSepatate" on-text="" @change="changeSepatate" off-text="" :disabled="editMode  || actionMode==='view'"></el-switch>
                     </el-form-item>
                     <el-form-item label="Partition Time Column" v-show="hasSepatate">
-                      <el-select v-model="checkPartition.time_table" placeholder="请选择" :disabled="editMode">
+                      <el-select v-model="checkPartition.time_table" placeholder="请选择" :disabled="editMode  || actionMode==='view'">
                         <el-option
                           v-for="(key,value) in timeColumns"
                           :label="value"
                           :value="value">
                         </el-option>
                       </el-select>
-                      <el-select v-model="checkPartition.time_column" placeholder="请选择" v-show="hasSepatate" :disabled="editMode">
+                      <el-select v-model="checkPartition.time_column" placeholder="请选择" v-show="hasSepatate" :disabled="editMode  || actionMode==='view'">
                         <el-option
                           v-for="item in timeColumnsByTable"
                           :label="item.name"
@@ -70,7 +70,7 @@
                       </el-select>
                     </el-form-item>
                      <el-form-item label="Time Format" v-show="hasSepatate">
-                      <el-select v-model="checkPartition.partition_time_format" placeholder="请选择" :disabled="editMode">
+                      <el-select v-model="checkPartition.partition_time_format" placeholder="请选择" :disabled="editMode  || actionMode==='view'">
                         <el-option
                           v-for="item in timeFormat"
                           :label="item.label"
@@ -83,7 +83,7 @@
                 <el-tab-pane label="Filter" name="five">
                   <el-form label-width="240px">
                     <el-form-item label="Filter Setting">
-                       <el-input
+                       <el-input :disabled="actionMode==='view'"
                         type="textarea"
                         :autosize="{ minRows: 2, maxRows: 4}"
                         placeholder="The filter condition, no clause WHERE needed"
@@ -187,7 +187,7 @@ export default {
       statistics: []
     }
   },
-  props: ['modelInfo', 'editLock', 'columnsForTime', 'columnsForDate', 'activeName', 'activeNameSub', 'tableList', 'selectTable', 'partitionSelect'],
+  props: ['modelInfo', 'actionMode', 'editLock', 'columnsForTime', 'columnsForDate', 'activeName', 'activeNameSub', 'tableList', 'selectTable', 'partitionSelect'],
   methods: {
     ...mapActions({
       loadTableExt: 'LOAD_DATASOURCE_EXT'
@@ -238,12 +238,7 @@ export default {
     loadTableStatics (database, tableName) {
       this.loadTableExt(database + '.' + tableName).then((res) => {
         handleSuccess(res, (data) => {
-          // _this.extendData = data
-          // for (var s = 0, len1 = data.columns_stats && data.columns_stats.length || 0; s < len1; s++) {
-          //   data.columns_stats[s].column = this.tableData.columns[s].name
-          // }
           this.statistics = data.columns_stats
-          console.log(data.columns_stats)
           var sampleData = changeDataAxis(data.sample_rows)
           var basicColumn = [[]]
           for (var i = 0, len = sampleData && sampleData.length || 0; i < len; i++) {
@@ -253,7 +248,6 @@ export default {
             break
           }
           this.modelStatics = basicColumn.concat(sampleData)
-          console.log(this.statistics, 112233)
         })
       })
     },

@@ -4,30 +4,30 @@
     <div class="tree_list" >
 <!--     <draggable  @start="drag=true" @end="drag=false"> -->
       <model-assets  v-on:drag="drag" :project="extraoption.project" @okFunc="serverDataToDragData" ></model-assets>
-      <el-tree v-if="extraoption.uuid" :data="cubeDataTree" style="background-color: #f1f2f7;border:none;" :render-content="renderContent"></el-tree>
+      <!-- <el-tree v-if="extraoption.uuid" @nodeclick="clickCube" :data="cubeDataTree" style="background-color: #f1f2f7;border:none;width:250px;" :render-content="renderCubeTree"></el-tree> -->
+      <tree  v-if="extraoption.uuid" style="background-color: #f1f2f7;border:none;width:250px;" :treedata="cubeDataTree" placeholder="输入关键字过滤Data Source" maxLabelLen="20" :showfilter= "false" :expandall="true" @nodeclick="clickCube" emptytext="无数据" v-unselect :renderTree="renderCubeTree"></tree>
 <!--     </draggable> -->
     </div>
     <ul class="model_tool">
-        <!-- <li class="toolbtn" @click="saveData" v-unselect><icon name="upload"></icon></li> -->
         <li class="toolbtn tool_add" @click="addZoom" v-unselect><span></span></li>
         <li class="toolbtn tool_jian" @click="subZoom" v-unselect><span></span></li>
         <li class="toolbtn" @click="autoLayerPosition" v-unselect><span>LAYOUT</span></li>
       </ul>
-    <div class="btn_group">
-      <el-button @click="saveDraft">Draft</el-button>
-      <el-button type="primary" @click="saveCurrentModel">Save</el-button>
+    <div class="btn_group"  v-if="actionMode!=='view'">
+      <el-button @click="saveDraft" :loading="draftBtnLoading">Draft</el-button>
+      <el-button type="primary" @click="saveCurrentModel" :loading="saveBtnLoading">Save</el-button>
     </div>  
     <div class="tips_group">
       
     </div>
     <div class="model_edit" :style="{left:docker.x +'px'  ,top:docker.y + 'px'}">
       <div class="table_box" v-if="table&&table.kind" @drop='dropColumn' @dragover='allowDrop($event)'  v-for="table in tableList" :id="table.guid" v-bind:class="table.kind.toLowerCase()" v-bind:style="{ left: table.pos.x + 'px', top: table.pos.y + 'px' }" >
-        <div class="tool_box">
+        <div class="tool_box" >
             <icon name="table" class="el-icon-menu" style="color:#fff" @click.native="openModelSubMenu('hide', table.database, table.name)"></icon>
-            <icon name="gears"  class="el-icon-share" style="color:#fff" v-on:click.native="addComputedColumn(table.guid)"></icon>
-            <icon name="sort-alpha-asc" v-on:click.native="sortColumns(table.guid, true)"></icon>
+            <icon name="gears" v-if="actionMode!=='view'"  class="el-icon-share" style="color:#fff" v-on:click.native="addComputedColumn(table.guid)"></icon>
+            <icon name="sort-alpha-asc" v-on:click.native="sortColumns(table)"></icon>
             <i class="fa fa-window-close"></i>
-            <el-dropdown @command="selectTableKind" class="ksd-fright">
+            <el-dropdown @command="selectTableKind" class="ksd-fright" v-if="actionMode!=='view'">
               <span class="el-dropdown-link">
                <i class="el-icon-setting" style="color:#fff"></i>
               </span>
@@ -37,7 +37,7 @@
               </el-dropdown-menu>
               </el-dropdown> 
         </div>
-        <i class="el-icon-close close_table" v-on:click="removeTable(table.guid)"></i> 
+        <i class="el-icon-close close_table" v-on:click="removeTable(table.guid)" v-if="actionMode!=='view'"></i> 
         <p class="table_name  drag_bar" v-on:dblclick="editAlias(table.guid)" v-visible="aliasEditTableId!=table.guid">
         <common-tip :tips="table.database+'.'+table.name" class="drag_bar">{{(table.alias)|omit(16,'...')}}</common-tip></p>
         <el-input v-model="table.alias" v-on:blur="cancelEditAlias(table.guid)" class="alias_input"  size="small" placeholder="enter alias..." v-visible="aliasEdit&&aliasEditTableId==table.guid"></el-input>
@@ -54,18 +54,23 @@
     </div>
      <el-dialog title="主外键关系" v-model="dialogVisible" size="small" class="links_dialog">
         <span>
-          <el-row :gutter="20" class="ksd-mb10">
+        <!--   <el-row :gutter="20" class="ksd-mb10">
             <el-col :span="24">
               <div class="grid-content bg-purple">
                 <a style="color:#56c0fc">{{currentLinkData.source.alias}}</a>
               </div>
             </el-col>
-            </el-row>
+            </el-row> -->
             <br/>
-             <el-row :gutter="20" class="ksd-mb10">
-            <el-col :span="24">
+             <el-row :gutter="20" class="ksd-mb10" style="line-height:49px;">
+             <el-col :span="9" style="text-align:center">
               <div class="grid-content bg-purple">
-                  <el-select v-model="currentLinkData.joinType" :disabled = "checkLock(false)" style="width:400px;" @change="switchJointType(currentLinkData.source.guid,currentLinkData.target.guid, currentLinkData.joinType)" placeholder="请选择连接类型">
+                <a style="color:#56c0fc">{{currentLinkData.source.alias}}</a>
+              </div>
+            </el-col>
+            <el-col :span="6" style="text-align:center">
+              <div class="grid-content bg-purple">
+                  <el-select v-model="currentLinkData.joinType" :disabled = "checkLock(false)" style="width:120px;" @change="switchJointType(currentLinkData.source.guid,currentLinkData.target.guid, currentLinkData.joinType)" placeholder="请选择连接类型">
                     <el-option
                       v-for="item in joinTypes"
                       :label="item.label"
@@ -74,15 +79,20 @@
                   </el-select>
               </div>
             </el-col>
-            </el-row>
-            <br/>
-             <el-row :gutter="20">
-            <el-col :span="24">
+            <el-col :span="9" style="text-align:center">
               <div class="grid-content bg-purple">
                 <a style="color:#56c0fc">{{currentLinkData.target.alias}}</a>
               </div>
             </el-col>
             </el-row>
+            <br/>
+            <!--  <el-row :gutter="20">
+            <el-col :span="24">
+              <div class="grid-content bg-purple">
+                <a style="color:#56c0fc">{{currentLinkData.target.alias}}</a>
+              </div>
+            </el-col>
+            </el-row> -->
           </el-row>
           <br/>
            <el-table
@@ -96,7 +106,7 @@
                 <el-select v-model="scope.row[2]" placeholder="请选择" style="width:100%" :disabled = "checkLock(false) && !scope.row[5]">
                   <el-option
                     v-for="item in currentLinkData.source.columns"
-                    :label="currentLinkData.source.alias+'.'+item.name"
+                    :label="item.name"
                     :value="item.name">
                   </el-option>
                 </el-select>
@@ -112,14 +122,14 @@
                 <el-select v-model="scope.row[3]" placeholder="请选择" style="width:100%" :disabled = "checkLock(false) && !scope.row[5]">
                   <el-option
                     v-for="item in currentLinkData.target.columns"
-                    :label="currentLinkData.target.alias+'.'+item.name"
+                    :label="item.name"
                     :value="item.name">
                   </el-option>
                 </el-select>
                 </template>
               </el-table-column>
               <br/>
-              <el-table-column style="border:none" label="操作" width="80" >
+              <el-table-column style="border:none" label="操作" width="80" v-if="actionMode!=='view'">
                 <template scope="scope" >
                   <confirm-btn v-if="scope.row[5]" v-on:okFunc='delConnect(scope.row)' :tips="deleteLinkTips"><el-button size="small"
           type="danger">删除</el-button></confirm-btn>
@@ -127,7 +137,7 @@
               </el-table-column>
             </el-table>
             <br/>
-            <el-button type="primary" @click="addJoinCondition(currentLinkData.source.guid,currentLinkData.target.guid, '', '', currentLinkData.joinType,true)">添加join条件</el-button>
+            <el-button type="primary" v-if="actionMode!=='view'" @click="addJoinCondition(currentLinkData.source.guid,currentLinkData.target.guid, '', '', currentLinkData.joinType,true)">添加join条件</el-button>
         </span>
          <span slot="footer" class="dialog-footer">
             <el-button type="primary" @click="saveLinks(currentLinkData.source.guid,currentLinkData.target.guid)">确 定</el-button>
@@ -155,12 +165,26 @@
             <el-button type="primary" @click="saveComputedColumn">确 定</el-button>
           </span>     
         </el-dialog>
-      <model-tool :modelInfo="modelInfo" :editLock="editLock" :columnsForTime="timeColumns" :columnsForDate="dateColumns"  :activeName="submenuInfo.menu1" :activeNameSub="submenuInfo.menu2" :tableList="tableList" :partitionSelect="partitionSelect"  :selectTable="currentSelectTable" ref="modelsubmenu"></model-tool>
+      <model-tool :modelInfo="modelInfo" :actionMode="actionMode" :editLock="editLock" :columnsForTime="timeColumns" :columnsForDate="dateColumns"  :activeName="submenuInfo.menu1" :activeNameSub="submenuInfo.menu2" :tableList="tableList" :partitionSelect="partitionSelect"  :selectTable="currentSelectTable" ref="modelsubmenu"></model-tool>
+
+       <!-- 添加cube -->
+
+    <el-dialog title="Add Cube" v-model="createCubeVisible" size="tiny">
+      <el-form :model="cubeMeta" :rules="createCubeFormRule" ref="addCubeForm">
+        <el-form-item label="Cube Name" prop="cubeName">
+          <el-input v-model="cubeMeta.cubeName" auto-complete="off"></el-input>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="createCubeVisible = false">取 消</el-button>
+        <el-button type="primary" @click="createCube">添 加</el-button>
+      </div>
+    </el-dialog>
 </div>
 </template>
 <script>
 import { jsPlumb } from 'jsplumb'
-import { sampleGuid, indexOfObjWithSomeKey, objectArraySort, objectClone } from '../../util/index'
+import { sampleGuid, indexOfObjWithSomeKey, filterObjectArray, objectArraySort, objectClone, getNextValInArray } from '../../util/index'
 import { mapActions } from 'vuex'
 import $ from 'jquery'
 import Scrollbar from 'smooth-scrollbar'
@@ -177,13 +201,32 @@ export default {
   props: ['extraoption'],
   data () {
     return {
+      createCubeVisible: false,
+      createCubeFormRule: {
+        cubeName: [
+          {required: true, message: '请输入cube名字', trigger: 'blur'},
+          {validator: this.checkName, trigger: 'blur'}
+        ]
+      },
+      cubeMeta: {
+        cubeName: '',
+        modelName: '',
+        projectName: ''
+      },
+      actionMode: 'edit',
       // 编辑锁
       editLock: false,
+      linksLock: false,
+      columnKindLock: false,
+      // table 添加 修改类型  修改别名
+      tableLock: false,
       // 定时保存配置
       saveConfig: {
         timer: 0,
         limitTimer: 5
       },
+      saveBtnLoading: false,
+      draftBtnLoading: false,
       modelData: null,
       draftData: null,
       modelInfo: {
@@ -215,9 +258,7 @@ export default {
       },
       submenuInfo: {
         menu1: 'first',
-        menu2: 'first',
-        table: '',
-        column: ''
+        menu2: 'first'
       },
       currentSelectTable: {
         database: '',
@@ -225,21 +266,17 @@ export default {
         columnname: ''
       },
       columnSort: ['order', 'reversed', 'restore'],
-      // timer: 0,
+      columnBType: ['D', 'M', '－'],
+      joinTypes: [{label: 'Left Join', value: 'left'}, {label: 'Inner Join', value: 'inner'}],
       timerST: null,
       baseLineL: 20000,
       baseLineT: 20000,
       hisModelJsonStr: '',
-      columnBType: ['D', 'M', '－'],
       modelAssets: [],
       cubeDataTree: [{
         id: 1,
         label: 'Cube',
-        children: [{
-          id: 2,
-          label: 'learn_kylin_cube',
-          children: []
-        }]
+        children: []
       }],
       currentZoom: 0.8,
       currentDragDom: null,
@@ -283,14 +320,13 @@ export default {
       plumbInstanceForShowLink: null,
       links: [],
       project: '',
+      cubesList: [],
       showLinkCons: {},
       currentTableLinks: [],
       pointType: 'source',
       columnBussiTypeMap: {},
       tableList: [],
       dragType: '',
-      joinTypes: [{label: 'Left Join', value: 'left'}, {label: 'Inner Join', value: 'inner'}],
-      tableKind: [],
       docker: {
         x: -20000,
         y: -20000
@@ -322,8 +358,29 @@ export default {
       diagnose: 'DIAGNOSE',
       // 数据缓冲到vuex里
       cacheModelEdit: 'CACHE_MODEL_EDIT',
-      getUsedCols: 'GET_USED_COLS'
+      getUsedCols: 'GET_USED_COLS',
+      getCubesList: 'GET_CUBES_LIST',
+      checkCubeName: 'CHECK_CUBE_NAME_AVAILABILITY'
     }),
+    // 列排序
+    sortColumns: function (tableInfo) {
+      var key = 'name'
+      var squence = false
+      var sortType = getNextValInArray(this.columnSort, tableInfo.sort)
+      tableInfo.sort = sortType
+      if (sortType === 'order') {
+        key = 'name'
+        squence = true
+      } else if (sortType === 'reversed') {
+        key = 'name'
+        squence = false
+      } else {
+        key = 'id'
+        squence = true
+      }
+      var sortedColumns = objectArraySort(tableInfo.columns, squence, key)
+      tableInfo.columns = sortedColumns
+    },
     // 检查是否上锁了
     checkLock (msg) {
       if (this.editLock && msg !== false) {
@@ -331,48 +388,29 @@ export default {
       }
       return this.editLock
     },
-    // saveDraft () {
-    //   this.$notify({
-    //     title: '成功',
-    //     message: '保存为草稿成功',
-    //     type: 'success'
-    //   })
-    // },
+    // 保存正式
     saveCurrentModel () {
       this.$confirm('确认保存Model？', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        if (this.modelInfo.uuid) {
-          this.updateModel({
-            project: this.project,
-            modelName: this.modelInfo.modelName,
-            modelDescData: this.DragDataToServerData()
-          }).then(() => {
-            this.$message({
-              type: 'success',
-              message: '保存成功!'
-            })
-            this.$emit('removetabs', 'model' + this.extraoption.modelName)
-          }, (res) => {
-            handleError(res)
+        this.saveBtnLoading = true
+        this.saveModel({
+          project: this.project,
+          modelDescData: this.DragDataToServerData()
+        }).then(() => {
+          this.saveBtnLoading = false
+          this.$message({
+            type: 'success',
+            message: '保存成功!'
           })
-        } else {
-          this.saveModel({
-            project: this.project,
-            modelDescData: this.DragDataToServerData()
-          }).then(() => {
-            this.$message({
-              type: 'success',
-              message: '保存成功!'
-            })
-            this.$emit('reload', 'modelList')
-            this.$emit('removetabs', 'model' + this.extraoption.modelName)
-          }, (res) => {
-            handleError(res)
-          })
-        }
+          this.$emit('reload', 'modelList')
+          this.$emit('removetabs', 'model' + this.extraoption.modelName)
+        }, (res) => {
+          this.saveBtnLoading = false
+          handleError(res)
+        })
       }).catch(() => {
         this.$message({
           type: 'info',
@@ -380,25 +418,111 @@ export default {
         })
       })
     },
-    clickCubeTree () {
+    // 保存草稿
+    saveDraft: function () {
+      // 正在保存正式的时候不允许保存draft
+      if (this.saveBtnLoading) {
+        return
+      }
       var _this = this
-      event.stopPropagation()
-      this.$prompt('请输入Cube名称', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消'
-          // inputPattern: /[\w!#$%&'*+/=?^_`{|}~-]+(?:\.[\w!#$%&'*+/=?^_`{|}~-]+)*@(?:[\w](?:[\w-]*[\w])?\.)+[\w](?:[\w-]*[\w])?/,
-          // inputErrorMessage: '邮箱格式不正确'
-      }).then(({ value }) => {
-        _this.$emit('addtabs', 'cube', value, 'cubeEdit', {
-          project: localStorage.getItem('selected_project'),
-          cubeName: value,
-          modelName: this.modelInfo.modelName,
-          isEdit: false
+      if (this.getRootFact().length <= 0) {
+        return
+      }
+      if (!this.checkModelMetaHasChange()) {
+        return
+      }
+      if (this.actionMode === 'view') {
+        return
+      }
+      this.draftBtnLoading = true
+      this.saveModelDraft({
+        modelDescData: _this.DragDataToServerData(),
+        project: _this.project,
+        modelName: _this.modelInfo.name
+      }).then((res) => {
+        this.draftBtnLoading = false
+        handleSuccess(res, (data) => {
+          this.modelInfo.uuid = data.uuid
+          this.modelInfo.status = 'DRAFT'
+          this.modelInfo.last_modified = JSON.parse(data.modelDescData).last_modified
+          this.$emit('reload', 'modelList')
+          this.$notify({
+            title: '成功',
+            message: '定时保存为草稿',
+            type: 'success'
+          })
         })
-      }).catch(() => {
+      }, (res) => {
+        handleError(res)
+        this.draftBtnLoading = false
       })
     },
-    renderContent (h, {node, data, store}) {
+    addCube () {
+      this.createCubeVisible = true
+      this.initCubeMeta()
+      this.cubeMeta.projectName = this.project
+      this.cubeMeta.modelName = this.modelInfo.modelName
+      // var _this = this
+      // event.stopPropagation()
+      // this.$prompt('请输入Cube名称', '提示', {
+      //   confirmButtonText: '确定',
+      //   cancelButtonText: '取消'
+      //     // inputPattern: /[\w!#$%&'*+/=?^_`{|}~-]+(?:\.[\w!#$%&'*+/=?^_`{|}~-]+)*@(?:[\w](?:[\w-]*[\w])?\.)+[\w](?:[\w-]*[\w])?/,
+      //     // inputErrorMessage: '邮箱格式不正确'
+      // }).then(({ value }) => {
+      //   _this.$emit('addtabs', 'cube', value, 'cubeEdit', {
+      //     project: localStorage.getItem('selected_project'),
+      //     cubeName: value,
+      //     modelName: this.modelInfo.modelName,
+      //     isEdit: false
+      //   })
+      // }).catch(() => {
+      // })
+    },
+    checkName (rule, value, callback) {
+      if (!/^\w+$/.test(value)) {
+        callback(new Error(this.$t('名字格式有误')))
+      } else {
+        callback()
+      }
+    },
+    initCubeMeta () {
+      this.cubeMeta = {
+        cubeName: '',
+        modelName: '',
+        projectName: ''
+      }
+    },
+    createCube () {
+      this.$refs['addCubeForm'].validate((valid) => {
+        if (valid) {
+          this.checkCubeName(this.cubeMeta.cubeName).then((data) => {
+            this.$message({
+              message: '已经存在同名的Cube了',
+              type: 'warning'
+            })
+          }, (res) => {
+            handleError(res, (data, code, status, msg) => {
+              if (status === 400) {
+                this.createCubeVisible = false
+                this.$emit('addtabs', 'cube', this.cubeMeta.cubeName, 'cubeEdit', {
+                  project: this.cubeMeta.projectName,
+                  cubeName: this.cubeMeta.cubeName,
+                  modelName: this.cubeMeta.modelName,
+                  isEdit: false
+                })
+              } else {
+                this.$message({
+                  message: msg,
+                  type: 'warning'
+                })
+              }
+            })
+          })
+        }
+      })
+    },
+    renderCubeTree (h, {node, data, store}) {
       var _this = this
       return this.$createElement('div', {
         class: [{'el-tree-node__label': true, 'leaf-label': node.isLeaf && node.level !== 1}, node.icon],
@@ -412,7 +536,7 @@ export default {
         on: {
           click: function (event) {
             if (event.target.className === 'addCube') {
-              _this.clickCubeTree(event)
+              _this.addCube(event)
             }
           }
         }
@@ -438,38 +562,6 @@ export default {
           type: 'success'
         })
       })
-    },
-    sortColumns: function (guid) {
-      var key = 'name'
-      var squence = false
-      var tableInfo = this.getTableInfoByGuid(guid)
-      var columnType
-      if (!tableInfo.sort) {
-        columnType = this.columnSort[0]
-        tableInfo.tempColumns = tableInfo.columns
-      } else {
-        var index = this.columnSort.indexOf(tableInfo.sort)
-        if (index + 1 >= this.columnSort.length) {
-          index = 0
-        } else {
-          index = index + 1
-        }
-        columnType = this.columnSort[index]
-      }
-      tableInfo.sort = columnType
-      if (columnType === 'order') {
-        key = 'name'
-        squence = true
-      } else if (columnType === 'reversed') {
-        key = 'name'
-        squence = false
-      } else {
-        key = 'id'
-        squence = true
-      }
-      var columns = [].concat(tableInfo.columns)
-      objectArraySort(columns, squence, key)
-      tableInfo.columns = columns
     },
     getPartitionDateColumns: function () {
       var canSetDatePartion = ['date', 'timestamp', 'string', 'bigint', 'int', 'integer', 'varchar']
@@ -500,20 +592,8 @@ export default {
           }
         }
       }
-      // dateColumns.forEach((dc, index) => {
-      //   this.$set(this.dateColumns, index, dc)
-      // })
-      // timeColumns.forEach((c, index) => {
-      //   this.$set(this.dateColumns, index, dc)
-      // })
       this.dateColumns = {}
       this.timeColumns = {}
-      // for (let key in this.dateColumns) {
-      //   this.$delete(this.dateColumns[key])
-      // }
-      // for (let key in this.timeColumns) {
-      //   this.$delete(this.timeColumns[key])
-      // }
       this.dateColumns = Object.assign({}, this.dateColumns, dateColumns)
       this.timeColumns = Object.assign({}, this.timeColumns, timeColumns)
     },
@@ -532,8 +612,9 @@ export default {
           tableIdentity: databaseInfo.database + '.' + databaseInfo.name,
           columnName: this.computedColumn.name,
           expression: this.computedColumn.expression,
-          comment: this.computedColumn.comment || 'D',
-          datatype: this.computedColumn.returnType
+          comment: this.computedColumn.comment,
+          datatype: this.computedColumn.returnType,
+          disabled: true
         }
         sameTables.forEach((table) => {
           table.columns.push(columnObj)
@@ -561,20 +642,47 @@ export default {
     },
     // dimension and measure and disable
     changeColumnBType: function (id, columnName, columnBType) {
-      var alias = this.getTableInfoByGuid(id).alias
+      if (this.actionMode === 'view') {
+        return
+      }
+      var tableInfo = this.getTableInfoByGuid(id)
+      var alias = tableInfo.alias
       var usedCubes = this.checkColsUsedStatus(alias, columnName)
       if (usedCubes && usedCubes.length) {
         this.warnAlert('已经在名称为' + usedCubes.join(',').replace(/cube\[name=(.*?)\]/gi, '$1') + '的cube中用过该列，不允许修改')
         return
       }
-      var columnIndex = 0
-      if (columnBType) {
-        columnIndex = this.columnBType.indexOf(columnBType)
-        columnIndex = columnIndex + 1 >= this.columnBType.length ? 0 : columnIndex + 1
+      var willSetType = getNextValInArray(this.columnBType, columnBType)
+      this.editTableColumnInfo(id, 'name', columnName, 'btype', willSetType)
+      var fullName = tableInfo.database + tableInfo.name
+      if (willSetType === '－') {
+        this.changeComputedColumnDisable(fullName, columnName, false)
       } else {
-        columnIndex = 0
+        this.changeComputedColumnDisable(fullName, columnName, true)
       }
-      this.editTableColumnInfo(id, 'name', columnName, 'btype', this.columnBType[columnIndex])
+    },
+    changeComputedColumnDisable (fullName, column, status) {
+      var len = this.modelInfo.computed_columns && this.modelInfo.computed_columns.length || 0
+      for (var i = 0; i < len; i++) {
+        var calcColumn = this.modelInfo.computed_columns[i]
+        if (calcColumn.tableIdentity === fullName && calcColumn.columnName === column) {
+          this.modelInfo.computed_columns[i] = status
+          break
+        }
+      }
+    },
+    getDisableComputedColumn () {
+      var result = []
+      var len = this.modelInfo.computed_columns && this.modelInfo.computed_columns.length || 0
+      for (var i = 0; i < len; i++) {
+        var calcColumn = this.modelInfo.computed_columns[i]
+        var obj = {}
+        if (calcColumn.disabled === true) {
+          obj = Object.assign({}, calcColumn)
+          result.push(obj)
+        }
+      }
+      return result
     },
     /*
     *  Filter Func
@@ -837,7 +945,7 @@ export default {
         },
         isSource: true,
         isTarget: true,
-        connector: [ 'Bezier', { curviness: -13 } ], // 设置连线为贝塞尔曲线
+        connector: [ 'Bezier', { curviness: 22 } ], // 设置连线为贝塞尔曲线
           // connector: [ 'Flowchart', { stub: [40, 60], gap: 10, cornerRadius: 5, alwaysRespectStubs: true } ],
         connectorStyle: connectorPaintStyle,
         dragOptions: {}
@@ -1085,6 +1193,9 @@ export default {
       return resultTag
     },
     editAlias: function (guid) {
+      if (this.actionMode === 'view') {
+        return
+      }
       this.aliasEdit = true
       this.aliasEditTableId = guid
     },
@@ -1207,10 +1318,7 @@ export default {
       return resultArr
     },
     getTableList: function (filterKey, filterValue) {
-      var resultArr = this.tableList.filter((table) => {
-        return table[filterKey] === filterValue
-      })
-      return resultArr || []
+      return filterObjectArray(this.tableList, filterKey, filterValue)
     },
     getSameOriginTables: function (database, tableName) {
       var resultArr = this.tableList.filter((table) => {
@@ -1261,6 +1369,7 @@ export default {
     },
     // trans Data
     DragDataToServerData: function (needJson) {
+      var fainalComputed = this.getDisableComputedColumn()
       var pos = {}
       var kylinData = {
         uuid: this.modelInfo.uuid,
@@ -1275,7 +1384,7 @@ export default {
         filter_condition: this.modelInfo.filterStr,
         name: this.modelInfo.modelName,
         description: this.modelInfo.modelDiscribe,
-        computed_columns: this.modelInfo.computed_columns
+        computed_columns: fainalComputed
       }
       // console.log(this.partitionSelect, '2456')
       if (this.partitionSelect.date_table && this.partitionSelect.date_column) {
@@ -1330,7 +1439,9 @@ export default {
       kylinData.dimensions = this.getDimensions()
       kylinData.pos = pos
       kylinData.metrics = this.getMeasures()
-      console.log(kylinData, 'out put model')
+      // console.log(kylinData, 'out put model')
+      for (let i = 0; i < kylinData.computed_columns.length; i++) {
+      }
       if (needJson) {
         return kylinData
       }
@@ -1357,12 +1468,13 @@ export default {
           if (!modelData.fact_table) {
             return
           }
-          _this.modelInfo.uuid = modelData.uuid
-          // this.editLock = modelData.uuid && status
-          this.$set(_this.modelInfo, 'modelDiscribe', modelData.description)
-          this.$set(_this.modelInfo, 'modelName', modelData.name)
-          this.$set(_this.modelInfo, 'status', modelData.status)
-          _this.modelInfo.last_modified = modelData.last_modified
+          Object.assign(_this.modelInfo, {
+            uuid: modelData.uuid,
+            modelDiscribe: modelData.description,
+            modelName: modelData.name,
+            status: modelData.status,
+            last_modified: modelData.last_modified
+          })
           // 加载原来设置的partition
           var partitionDate = modelData.partition_desc.partition_date_column ? modelData.partition_desc.partition_date_column.split('.') : [null, null]
           var partitionTime = modelData.partition_desc.partition_time_column ? modelData.partition_desc.partition_time_column.split('.') : [null, null]
@@ -1441,7 +1553,7 @@ export default {
           // computed column add
           var computedColumnsLen = modelData.computed_columns && modelData.computed_columns.length || 0
           for (let i = 0; i < computedColumnsLen; i++) {
-            var fullName = modelData.computed_columns[i].fullName.split('.')
+            var fullName = modelData.computed_columns[i].tableIdentity.split('.')
             var tableList = this.getSameOriginTables(fullName[0], fullName[1])
             if (tableList && tableList.length) {
               this.computedColumn = {
@@ -1481,6 +1593,17 @@ export default {
           }
         }
       }
+      return null
+    },
+    checkTableUsedStatus (alias) {
+      if (this.columnUsedInfo) {
+        for (var i in this.columnUsedInfo) {
+          if (alias === i.split('.')[0]) {
+            return true
+          }
+        }
+      }
+      return false
     },
     autoCalcLayer: function (root, result, deep) {
       var rootGuid = root || this.getRootFact().length && this.getRootFact()[0].guid
@@ -1533,66 +1656,10 @@ export default {
       this.refreshPlumbObj()
     },
     autoLayerPosition_2: function () {
-
-      // var layers = this.autoCalcLayer()
-      // var baseL = this.baseLineL + 400
-      // var baseT = this.baseLineT + 200
-      // var boxW = 220
-      // var boxH = 420
-      // var boxML = 200
-      // var boxMT = 200
-      // var _this = this
-      // for (let k = 0; k < layers.length; k++) {
-      //   for (let m = 0; m < layers[k].length; m++) {
-      //     var currentT = baseT + (boxH + boxMT) * k
-      //     var currentL = baseL + (boxW + boxML) * m
-      //     this.editTableInfoByGuid(layers[k][m], 'pos', {
-      //       x: currentL,
-      //       y: currentT
-      //     })
-      //     if (rePosition) {
-      //       $('#' + layers[k][m]).css({
-      //         left: currentL + 'px',
-      //         top: currentT + 'px'
-      //       })
-      //     }
-      //     this.$nextTick(function () {
-      //       _this.refreshPlumbObj()
-      //     })
-      //   }
-      // }
-      // this.refreshPlumbObj()
-      // var positionCalcFuncList = [
-      //   function (x, y, space, level) {
-      //     return {x: x - space * level, y: y + space * space}
-      //   },
-      //   function (x, y, space, level) {
-      //     return {x: x, y: y + space * space}
-      //   },
-      //   function (x, y, space, level) {
-      //     return {x: x + space * level, y: y + space * space}
-      //   },
-      //   function (x, y, space, level) {
-      //     return { x: x + space * level, y: y }
-      //   },
-      //   function (x, y, space, level) {
-      //     return {x: x + space * level, y: y - space * space}
-      //   },
-      //   function (x, y, space, level) {
-      //     return {x: x, y: y - space * space}
-      //   },
-      //   function (x, y, space, level) {
-      //     return {x: x - space * level, y: y - space * space}
-      //   },
-      //   function (x, y, space, level) {
-      //     return {x: x - space * level, y: y}
-      //   }
-      // ]
-
     },
-    saveData: function () {
-      this.DragDataToServerData()
-    },
+    // saveData: function () {
+    //   this.DragDataToServerData()
+    // },
     jsplumbZoom: function (zoom, instance, transformOrigin, el) {
       transformOrigin = transformOrigin || [ 0.5, 0.5 ]
       instance = instance || jsPlumb
@@ -1616,32 +1683,18 @@ export default {
       this.currentZoom -= 0.01
       this.jsplumbZoom(this.currentZoom, this.plumbInstance)
     },
-    saveDraft: function () {
-      var _this = this
-      if (this.getRootFact().length <= 0) {
-        return
-      }
-      this.saveModelDraft({
-        modelDescData: _this.DragDataToServerData(),
-        project: _this.project,
-        modelName: _this.modelInfo.name
-      }).then((res) => {
-        handleSuccess(res, (data) => {
-          this.modelInfo.uuid = data.uuid
-          this.modelInfo.status = 'DRAFT'
-          this.$notify({
-            title: '成功',
-            message: '定时保存为草稿',
-            type: 'success'
-          })
-        })
-      })
-    },
+    // 检测数据有没有发生变化
     checkModelMetaHasChange () {
       var jsonData = this.DragDataToServerData(true)
       delete jsonData.pos
+      delete jsonData.uuid
+      delete jsonData.last_modified
       jsonData = JSON.stringify(jsonData)
-      if (jsonData !== this.hisModelJsonStr && this.hisModelJsonStr !== '') {
+      if (jsonData !== this.hisModelJsonStr) {
+        if (this.hisModelJsonStr === '') {
+          this.hisModelJsonStr = jsonData
+          return false
+        }
         this.hisModelJsonStr = jsonData
         return true
       }
@@ -1652,9 +1705,7 @@ export default {
       this.timerST = setTimeout(() => {
         this.saveConfig.timer++
         if (this.saveConfig.timer > this.saveConfig.limitTimer) {
-          if (this.checkModelMetaHasChange()) {
-            this.saveDraft()
-          }
+          this.saveDraft()
           this.saveConfig.timer = 0
         }
         this.timerSave()
@@ -1673,6 +1724,18 @@ export default {
         this.dockerScreen.w = wWidth - 240
         this.dockerScreen.h = wHeight - 176
       }
+    },
+    clickCube: function (leaf) {
+      console.log(leaf, 12220)
+      if (leaf.children) {
+        return
+      }
+      this.$emit('addtabs', 'viewcube', '[view] ' + event.target.textContent, 'cubeView', {
+        project: this.project,
+        cubeName: event.target.textContent,
+        modelName: this.modelInfo.modelName,
+        isEdit: false
+      })
     }
   },
   watch: {
@@ -1682,17 +1745,16 @@ export default {
   },
   mounted () {
     this.project = this.extraoption.project
-    let _this = this
     this.diagnose({project: this.extraoption.project, modelName: this.extraoption.modelName}).then((response) => {
       console.log(response)
     })
     this.resizeWindow(this.briefMenu)
-    _this.timerSave()
+    this.timerSave()
     var lxsSt = null
-    $(window).resize(function () {
+    $(window).resize(() => {
       clearTimeout(lxsSt)
       lxsSt = setTimeout(() => {
-        _this.resizeWindow(_this.briefMenu)
+        this.resizeWindow(this.briefMenu)
       }, 1000)
     })
     $(this.$el).on('mousedown', 'input', function (e) {
@@ -1703,7 +1765,7 @@ export default {
       }
     })
     jsPlumb.ready(() => {
-      _this.plumbInstance = jsPlumb.getInstance({
+      this.plumbInstance = jsPlumb.getInstance({
         DragOptions: { cursor: 'pointer', zIndex: 2000 },
         ConnectionOverlays: [
           [ 'Arrow', {
@@ -1720,25 +1782,26 @@ export default {
       })
       this.jsplumbZoom(this.currentZoom, this.plumbInstance)
       var draggablePlugin = new Draggable($(this.$el).find('.model_edit')[0], {
-        onDrag: function (s) {
+        onDrag: (s) => {
         },
-        onDragEnd: function (s, x, y) {
-          _this.docker.x = x
-          _this.docker.y = y
+        onDragEnd: (s, x, y) => {
+          this.docker.x = x
+          this.docker.y = y
         },
-        filterTarget: function (dom) {
+        filterTarget: (dom) => {
+          console.log(dom.className)
           if (dom) {
             if (!dom.className || typeof dom.className !== 'string') {
               return false
             }
-            return dom.tagName !== 'INPUT' && dom.tagName !== 'SECTION' && dom.className !== 'toolbtn' && dom.className.indexOf('column_li') < 0 && dom.className.indexOf('column') < 0 && dom.className.indexOf('el-tooltip') < 0
+            return dom.tagName !== 'INPUT' && dom.className !== 'tool_box' && dom.tagName !== 'SECTION' && dom.className !== 'toolbtn' && dom.className.indexOf('column_li') < 0 && dom.className.indexOf('column') < 0 && dom.className.indexOf('el-tooltip') < 0
           }
         },
         useGPU: true
       })
       console.log(draggablePlugin)
-      _this.plumbInstance.bind('connection', function (info, originalEvent) {
-        _this.setConnectLabelText(info.connection, info.connection.sourceId, info.connection.targetId, _this.getConnectCountByTableIds(info.connection.sourceId, info.connection.targetId))
+      this.plumbInstance.bind('connection', (info, originalEvent) => {
+        this.setConnectLabelText(info.connection, info.connection.sourceId, info.connection.targetId, this.getConnectCountByTableIds(info.connection.sourceId, info.connection.targetId))
       })
     })
     jsPlumb.fire('jsPlumbDemoLoaded', this.plumbInstance)
@@ -1749,17 +1812,30 @@ export default {
     }
   },
   created () {
-    this.$store.state.model.modelEditCache[this.project + '$' + this.modelGuid] = {}
+    // this.$store.state.model.modelEditCache[this.project + '$' + this.modelGuid] = {}
     this.getUsedCols(this.extraoption.modelName).then((res) => {
       handleSuccess(res, (data) => {
         this.columnUsedInfo = data
       })
     })
-  },
-  updated () {
+    this.actionMode = this.extraoption.mode
+    this.getCubesList({pageSize: 100000, pageOffset: 0, projectName: this.project, modelName: this.extraoption.modelName}).then((res) => {
+      handleSuccess(res, (data, code, status, msg) => {
+        this.cubesList = data.cubes
+        data.cubes.forEach((cube) => {
+          this.cubeDataTree[0].children.push({
+            id: cube.uuid,
+            label: cube.name
+          })
+        })
+      })
+    })
   },
   destroyed () {
     clearTimeout(this.timerST)
+  },
+  updated () {
+    // console.log(1)
   }
 }
 </script>
@@ -1785,6 +1861,7 @@ export default {
       background-color: #f1f2f7;
       position: absolute;
       z-index: 2000;
+      overflow-y: auto;
       
    }
    .model_tool{
@@ -1859,6 +1936,18 @@ export default {
    .links_dialog{
      p{
        color:green;
+     }
+     .el-table { 
+      tr{
+        height: 54px;
+      }
+      border-top:solid 1px #ccc;
+       td {
+         border:none;
+       }
+       table {
+         border:none;
+       }
      }
    }
    .table_box{
