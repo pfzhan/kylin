@@ -1,16 +1,16 @@
 <template>
 <div class="paddingbox ksd-border-tab cube-list">
-  <!-- <el-row>
+  <el-row class="cubeSearch">
     Cubes in:
-    <el-select v-model="value" placeholder="请选择" @change="loadCubesList(0, value)">
+    <el-select v-model="currentModel" :placeholder="$t('chooseModel')">
       <el-option
-        v-for="item in options"
-        :key="item.value"
-        :label="item.label"
-        :value="item.value">
+        v-for="item in modelsList"
+        :key="item.name"
+        :label="item.name"
+        :value="item.name">
       </el-option>
     </el-select>
-  </el-row> -->
+  </el-row>
   <el-table
     :data="cubesList"
     :default-expand-all="false"
@@ -187,7 +187,8 @@ export default {
       refreshCubeFormVisible: false,
       selected_cube: {},
       selected_project: this.$store.state.project.selected_project,
-      filterCube: ''
+      filterCube: '',
+      currentModel: ''
     }
   },
   components: {
@@ -199,6 +200,11 @@ export default {
     'clone_cube': cloneCube,
     'merge_cube': mergeCube,
     'refresh_cube': refreshCube
+  },
+  watch: {
+    currentModel (val) {
+      this.loadCubesList(0, val)
+    }
   },
   methods: {
     ...mapActions({
@@ -213,7 +219,8 @@ export default {
       backupCube: 'BACKUP_CUBE',
       getCubeSql: 'GET_CUBE_SQL',
       deleteRawTable: 'DELETE_RAW_TABLE',
-      deleteScheduler: 'DELETE_SCHEDULER'
+      deleteScheduler: 'DELETE_SCHEDULER',
+      loadModels: 'LOAD_MODEL_LIST'
     }),
     transToGmtTime,
     reloadCubeList () {
@@ -222,9 +229,9 @@ export default {
     loadCubesList: function (curPage, modelName) {
       let _this = this
       let param = {}
-      if (!modelName) {
+      if (!modelName) { // 所有cube列表
         param = {pageSize: pageCount, pageOffset: curPage, projectName: localStorage.getItem('selected_project')}
-      } else {
+      } else { // 筛选model下的cube
         param = {pageSize: pageCount, pageOffset: curPage, projectName: localStorage.getItem('selected_project'), modelName: modelName}
       }
       this.getCubesList(param).then((res) => {
@@ -640,15 +647,27 @@ export default {
   },
   created () {
     this.loadCubesList(0)
+    this.loadModels({pageSize: pageCount, pageOffset: 0, projectName: this.selected_project})
+  },
+  computed: {
+    modelsList () {
+      return this.$store.state.model.modelsList.map((m) => {
+        m.gmtTime = transToGmtTime(m.last_modified, this)
+        return m
+      })
+    }
   },
   locales: {
-    'en': {name: 'Name', model: 'Model', status: 'Status', cubeSize: 'Cube Size', sourceRecords: 'Source Records', lastBuildTime: 'Last Build Time', owner: 'Owner', createTime: 'Create Time', actions: 'Action', drop: 'Drop', edit: 'Edit', build: 'Build', merge: 'Merge', refresh: 'Refresh', enable: 'Enable', purge: 'Purge', clone: 'Clone', disable: 'Disable', editCubeDesc: 'Edit CubeDesc', viewCube: 'View Cube', backup: 'Backup Cube', storage: 'Storage', cancel: 'Cancel', yes: 'Yes', tip: 'Tip', deleteSuccessful: 'Delete the cube successful!', deleteCube: 'Once it\'s deleted, your cube\'s metadata and data will be cleaned up and can\'t be restored back. ', enableCube: 'Are you sure to enable the cube? Please note: if cube schema is changed in the disabled period, all segments of the cube will be discarded due to data and schema mismatch.', enableSuccessful: 'Enable the cube successful!', disableCube: 'Are you sure to disable the cube?', disableSuccessful: 'Disable the cube successful!', purgeCube: 'Are you sure to purge the cube? ', purgeSuccessful: 'Purge the cube successful!', backupCube: 'Are you sure to backup ?', backupSuccessful: 'Backup the cube successful!', buildCube: 'Are you sure to start the build?', buildSuccessful: 'Build the cube successful!', cubeBuildConfirm: 'CUBE BUILD CONFIRM', cubeRefreshConfirm: 'CUBE Refresh Confirm', refreshSuccessful: 'Refresh the cube successful!', cubeMergeConfirm: 'CUBE Merge Confirm', mergeSuccessful: 'Merge the cube successful!', cubeCloneConfirm: 'CUBE Clone Confirm', cloneSuccessful: 'Clone the cube successful!'},
-    'zh-cn': {name: '名称', model: '模型', status: '状态', cubeSize: 'Cube大小', sourceRecords: '源数据条目', lastBuildTime: '最后构建时间', owner: '所有者', createTime: '创建时间', actions: '操作', drop: '删除', edit: '编辑', build: '构建', merge: '合并', refresh: '刷新', enable: '启用', purge: '清理', clone: '克隆', disable: '禁用', editCubeDesc: '编辑 Cube详细信息', viewCube: '查看 Cube', backup: '备份cube', storage: '存储', tip: '提示', cancel: '取消', yes: '确定', deleteSuccessful: '删除cube成功!', deleteCube: '删除后, Cube定义及数据会被清除, 且不能恢复.', enableCube: '请注意, 如果在禁用期间, Cube的元数据发生改变, 所有的Segment会被丢弃. 确定要启用Cube?', enableSuccessful: '启用cube成功!', disableCube: '确定要禁用此Cube? ', disableSuccessful: '禁用cube成功!', purgeCube: '确定要清空此Cube?', purgeSuccessful: '清理cube成功!', backupCube: '确定要备份此Cube? ', backupSuccessful: '备份cube成功!', buildCube: '确定要构建此Cube?', buildSuccessful: '构建cube成功!', cubeBuildConfirm: 'Cube构建确认', cubeRefreshConfirm: 'Cube刷新确认', refreshSuccessful: '刷新Cube成功!', cubeMergeConfirm: 'Cube合并确认', mergeSuccessful: '合并Cube成功!', cubeCloneConfirm: 'Cube克隆确认', cloneSuccessful: '克隆Cube成功!'}
+    'en': {name: 'Name', model: 'Model', status: 'Status', cubeSize: 'Cube Size', sourceRecords: 'Source Records', lastBuildTime: 'Last Build Time', owner: 'Owner', createTime: 'Create Time', actions: 'Action', drop: 'Drop', edit: 'Edit', build: 'Build', merge: 'Merge', refresh: 'Refresh', enable: 'Enable', purge: 'Purge', clone: 'Clone', disable: 'Disable', editCubeDesc: 'Edit CubeDesc', viewCube: 'View Cube', backup: 'Backup Cube', storage: 'Storage', cancel: 'Cancel', yes: 'Yes', tip: 'Tip', deleteSuccessful: 'Delete the cube successful!', deleteCube: 'Once it\'s deleted, your cube\'s metadata and data will be cleaned up and can\'t be restored back. ', enableCube: 'Are you sure to enable the cube? Please note: if cube schema is changed in the disabled period, all segments of the cube will be discarded due to data and schema mismatch.', enableSuccessful: 'Enable the cube successful!', disableCube: 'Are you sure to disable the cube?', disableSuccessful: 'Disable the cube successful!', purgeCube: 'Are you sure to purge the cube? ', purgeSuccessful: 'Purge the cube successful!', backupCube: 'Are you sure to backup ?', backupSuccessful: 'Backup the cube successful!', buildCube: 'Are you sure to start the build?', buildSuccessful: 'Build the cube successful!', cubeBuildConfirm: 'CUBE BUILD CONFIRM', cubeRefreshConfirm: 'CUBE Refresh Confirm', refreshSuccessful: 'Refresh the cube successful!', cubeMergeConfirm: 'CUBE Merge Confirm', mergeSuccessful: 'Merge the cube successful!', cubeCloneConfirm: 'CUBE Clone Confirm', cloneSuccessful: 'Clone the cube successful!', chooseModel: 'choose model'},
+    'zh-cn': {name: '名称', model: '模型', status: '状态', cubeSize: 'Cube大小', sourceRecords: '源数据条目', lastBuildTime: '最后构建时间', owner: '所有者', createTime: '创建时间', actions: '操作', drop: '删除', edit: '编辑', build: '构建', merge: '合并', refresh: '刷新', enable: '启用', purge: '清理', clone: '克隆', disable: '禁用', editCubeDesc: '编辑 Cube详细信息', viewCube: '查看 Cube', backup: '备份cube', storage: '存储', tip: '提示', cancel: '取消', yes: '确定', deleteSuccessful: '删除cube成功!', deleteCube: '删除后, Cube定义及数据会被清除, 且不能恢复.', enableCube: '请注意, 如果在禁用期间, Cube的元数据发生改变, 所有的Segment会被丢弃. 确定要启用Cube?', enableSuccessful: '启用cube成功!', disableCube: '确定要禁用此Cube? ', disableSuccessful: '禁用cube成功!', purgeCube: '确定要清空此Cube?', purgeSuccessful: '清理cube成功!', backupCube: '确定要备份此Cube? ', backupSuccessful: '备份cube成功!', buildCube: '确定要构建此Cube?', buildSuccessful: '构建cube成功!', cubeBuildConfirm: 'Cube构建确认', cubeRefreshConfirm: 'Cube刷新确认', refreshSuccessful: '刷新Cube成功!', cubeMergeConfirm: 'Cube合并确认', mergeSuccessful: '合并Cube成功!', cubeCloneConfirm: 'Cube克隆确认', cloneSuccessful: '克隆Cube成功!', chooseModel: '请选择 model'}
   }
 }
 </script>
 <style lang="less">
   .cube-list {
+    .cubeSearch {
+      margin-bottom: 5px;
+    }
     .el-table {
       font-size: 12px;
       tr th:first-child,

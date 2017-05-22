@@ -1,5 +1,5 @@
 <template>
-<div>
+<div class="cube_desc_view">
   <el-steps :active="activeStep"  finish-status="finish" process-status="wait" center >
     <el-step :title="$t('cubeInfo')" @click.native="step(1)"></el-step>
     <el-step :title="$t('Sql')" @click.native="step(2)"></el-step>
@@ -136,6 +136,12 @@ export default {
   }
 }
 </script>
-<style scoped="">
-
+<style lang="less">
+.cube_desc_view {
+  line-height: 30px;
+  .el-col-4 {
+    padding-right: 10px;
+    text-align: right;
+  }
+}
 </style>
