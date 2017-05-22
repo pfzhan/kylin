@@ -5,7 +5,7 @@
       <el-input v-model="projectDesc.name" auto-complete="off"></el-input>
     </el-form-item>
     <el-form-item :label="$t('description')" >
-      <el-input type="textarea" v-model="projectDesc.description" auto-complete="off"></el-input>
+      <el-input type="textarea" :placeholder="$t('projectDescription')" v-model="projectDesc.description" auto-complete="off"></el-input>
     </el-form-item>
     <el-form-item
     :label="$t('projectConfig')">
@@ -75,8 +75,8 @@ export default {
     })
   },
   locales: {
-    'en': {projectName: 'Project Name', description: 'Description', projectConfig: 'Project Config', delete: 'Delete', property: 'Property', inputTip: 'The project name is required.'},
-    'zh-cn': {projectName: '项目名称', description: '描述', projectConfig: '项目配置', delete: '删除', property: '配置', inputTip: '项目名不能为空'}
+    'en': {projectName: 'Project Name', description: 'Description', projectConfig: 'Project Config', delete: 'Delete', property: 'Property', inputTip: 'The project name is required.', projectDescription: 'projectDescription...'},
+    'zh-cn': {projectName: '项目名称', description: '描述', projectConfig: '项目配置', delete: '删除', property: '配置', inputTip: '项目名不能为空', projectDescription: '项目描述...'}
   }
 }
 </script>

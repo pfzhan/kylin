@@ -17,7 +17,10 @@ exports.default = {
     cubes: 'cubes',
     dataSource: '数据源',
     users: '用户',
-    tip: '提示'
+    tip: '提示',
+    action: '操作',
+    save: '保存',
+    submit: '提交'
   },
   model: {
 

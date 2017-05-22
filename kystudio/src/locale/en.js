@@ -15,7 +15,10 @@ exports.default = {
     models: 'models',
     cubes: 'cubes',
     dataSource: 'datasource',
-    tip: 'tips'
+    tip: 'tips',
+    action: 'action',
+    save: 'save',
+    submit: 'submit'
 
   },
   model: {

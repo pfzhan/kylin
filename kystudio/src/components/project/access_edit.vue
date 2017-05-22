@@ -1,16 +1,16 @@
    <template>
  <div>
-    <el-button class="ksd-mb-20" type="primary" @click="addAccess()"> ＋ Grant</el-button>
+    <el-button class="ksd-mb-20" type="primary" @click="addAccess()"> ＋ {{$t('grant')}}</el-button>
       <div v-if="editAccessVisible">
       <el-form :inline="true" :model="accessMeta"  class="demo-form-inline">
-       <el-form-item label="Type">
+       <el-form-item :label="$t('type')">
           <el-select  placeholder="Type" v-model="accessMeta.principal">
-            <el-option label="User" :value="true"></el-option>
-            <el-option label="Role" :value="false"></el-option>
+            <el-option :label="$t('user')" :value="true"></el-option>
+            <el-option :label="$t('role')" :value="false"></el-option>
           </el-select>
         </el-form-item>
-         <el-form-item label="Name" v-if="accessMeta.principal">
-          <el-input  placeholder="name" v-model="accessMeta.sid"></el-input>
+         <el-form-item :label="$t('name')" v-if="accessMeta.principal">
+          <el-input  :placeholder="$t('nameAccount')" v-model="accessMeta.sid"></el-input>
         </el-form-item>
          <el-form-item label="Role" v-if="!accessMeta.principal">
           <el-select  placeholder="Role" v-model="accessMeta.sid">
@@ -19,17 +19,17 @@
             <el-option label="ANALYST" value="ROLE_ANALYST"></el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="Permission">
-          <el-select  placeholder="Permission" v-model="accessMeta.permission">
-            <el-option label="CUBE ADMIN" :value="16"></el-option>
-            <el-option label="CUBE EDIT" :value="32"></el-option>
-            <el-option label="CUBE OPERATION" :value="64"></el-option>
-            <el-option label="CUBE QUERY" :value="1"></el-option>
+        <el-form-item :label="$t('permission')">
+          <el-select  :placeholder="$t('permission')" v-model="accessMeta.permission">
+            <el-option :label="$t('cubeAdmin')" :value="16"></el-option>
+            <el-option :label="$t('cubeEdit')" :value="32"></el-option>
+            <el-option :label="$t('cubeOpera')" :value="64"></el-option>
+            <el-option :label="$t('cubeQuery')" :value="1"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button  @click="resetAccessEdit">Cancel</el-button>
-          <el-button type="primary" @click="saveAccess">Save</el-button>
+          <el-button  @click="resetAccessEdit">{{$t('kylinLang.common.cancel')}}</el-button>
+          <el-button type="primary" @click="saveAccess">{{$t('kylinLang.common.save')}}</el-button>
         </el-form-item>
       </el-form>
     </div>
@@ -39,17 +39,17 @@
 	    style="width: 100%">
 	    <el-table-column 
 	      prop="roleOrName"
-	      label="Principal"
+	      :label="$t('principal')"
 	     >
 	    </el-table-column>
 	    <el-table-column
 	      prop="type"
-	      label="Type"
+	      :label="$t('type')"
 	      >
 	    </el-table-column>
 	    <el-table-column
 	      prop="promission"
-	      label="Access"
+	      :label="$t('access')"
 	      >
 	    </el-table-column>
 	   <el-table-column 
@@ -184,6 +184,10 @@ export default {
   },
   created () {
     this.loadAccess()
+  },
+  locales: {
+    'en': {grant: 'Grant', type: 'type', user: 'User', role: 'Role', name: 'Name', nameAccount: 'user account', permission: 'Permission', cubeAdmin: 'CUBE ADMIN', cubeEdit: 'Cube Edit', cubeOpera: 'Cube Operation', cubeQuery: 'cubeQuery', principal: 'Principal', access: 'Access'},
+    'zh-cn': {grant: '授权', type: '类型', user: '用户', role: '群组', name: '名称', nameAccount: '用户账号', permission: '许可', cubeAdmin: 'Cube 管理', cubeEdit: 'Cube 编辑', cubeOpera: 'Cube 操作', cubeQuery: 'Cube 查询', principal: '主表', access: '入口'}
   }
 }
 </script>

@@ -5,21 +5,21 @@
     </div>
     <div class="ksd_right_box">
 	 <el-tabs type="border-card" v-model="activeMenu" class="query_box">
-	  <el-tab-pane label="New Query" name="first">
+	  <el-tab-pane :label="$t('newQuery')" name="first">
       <editor v-model="sourceSchema" lang="sql" theme="chrome" width="100%" height="200" useWrapMode="true"></editor>
-      <p class="tips_box">Tips: Ctrl+Shift+Space or Alt+Space(Windows), Command+Option+Space(Mac) to list tables/columns in query box.</p>
+      <p class="tips_box">{{$t('tips')}}</p>
       <p class="ksd-right">
         <el-form :inline="true" class="demo-form-inline">
           <el-form-item label="Limit">
             <el-input  placeholder="" style="width:90px;" v-model="listRows"></el-input>
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" @click="submitQuery">Submit</el-button>
+            <el-button type="primary" @click="submitQuery">{{$t('kylinLang.common.submit')}}</el-button>
           </el-form-item>
         </el-form>
       </p>
     </el-tab-pane>
-	  <el-tab-pane label="Save Queries" name="second">
+	  <el-tab-pane :label="$t('saveQueries')" name="second">
     <kap-nodata v-if="!savedSize"></kap-nodata>
     <div>
        <el-form  label-width="90px"  v-for="savequery in savedList" :key="savequery.name">
@@ -46,7 +46,7 @@
       <!-- <div v-for="(savequery, index) in savedList"> {{savequery.name}}</div> -->
       <pager ref="savedQueryPager" class="ksd-center" :totalSize="savedSize"  v-on:handleCurrentChange='pageCurrentChange' ></pager>
     </el-tab-pane>
-	  <el-tab-pane label="Query History" name="third">
+	  <el-tab-pane :label="$t('queryHistory')" name="third">
     <div>
       <kap-nodata v-if="!cookieQuerySize"></kap-nodata>
       <el-form  label-width="90px"  v-for="query in cookieQueries">
@@ -70,7 +70,7 @@
 	</el-tabs>
   <div class="query_result_box ksd-border-tab">
      <div>
-     <h3 class="ksd-inline">Result</h3>
+     <h3 class="ksd-inline">{{$t('result')}}</h3>
       <!-- <el-form :inline="true" class="demo-form-inline ksd-fright ksd-mr-20 ksd-mt-20">
           <el-form-item label="Status">
            <el-select v-model="defaultQueryStatus" placeholder="请选择" style="width:90px">
@@ -109,7 +109,7 @@ export default {
     this.$on('editRoleFormValid', (t) => {
       this.$emit('validSuccess', this.userDetail)
     })
-    var localCache = JSON.parse(localStorage.getItem('queryCache') || {})
+    var localCache = JSON.parse(localStorage.getItem('queryCache') || '{}')
     this.cacheQuery[this.project] = this.cacheQuery[this.project] || []
     this.$set(this.cacheQuery, this.project, this.cacheQuery[this.project].concat(localCache[this.project] || []))
     this.loadSavedQuery(0)
@@ -380,8 +380,8 @@ export default {
     tab
   },
   locales: {
-    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin'},
-    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员'}
+    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', newQuery: 'New Query', saveQueries: 'Save Queries', queryHistory: 'Query History', tips: 'Tips: Ctrl+Shift+Space or Alt+Space(Windows), Command+Option+Space(Mac) to list tables/columns in query box.', result: 'Result'},
+    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', newQuery: '新查询', saveQueries: '保存的查询', queryHistory: '查询历史', tips: '技巧: Ctrl+Shift+Space 或 Alt+Space(Windows), Command+Option+Space(Mac) 可以在查询框中列出表/列名.', result: '查询结果'}
   }
 }
 </script>

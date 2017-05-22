@@ -4,15 +4,15 @@
     style="width: 100%">
     </el-table-column>
     <el-table-column
-      label="Cube Name"
+      :label="$t('cubeName')"
       prop="realization">
     </el-table-column>
     <el-table-column
-      label="Action">
+      :label="$t('kylinLang.common.action')">
       <template scope="scope">
         detail
       </template>      
-    </el-table-column>     
+    </el-table-column>
   </el-table>
 </template>
 
@@ -24,6 +24,10 @@ export default {
     return {
       selected_project: localStorage.getItem('selected_project')
     }
+  },
+  locales: {
+    'en': {cubeName: 'Cube Name'},
+    'zh-cn': {cubeName: 'Cube 名称'}
   }
 }
 </script>
