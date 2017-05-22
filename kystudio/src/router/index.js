@@ -1,6 +1,6 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import hello from 'components/hello'
+// import hello from 'components/hello'
 import demo from 'components/demo'
 import button from 'components/demo/button'
 import naming from 'components/demo/naming'
@@ -92,10 +92,6 @@ export default new Router({
         component: naming
       }
       ]
-    }, {
-      path: '/hello',
-      name: 'welcome',
-      component: hello
     }
   ]
 })

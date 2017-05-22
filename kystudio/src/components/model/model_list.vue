@@ -178,7 +178,11 @@ export default {
     },
     pageCurrentChange (currentPage) {
       this.currentPage = currentPage
-      this.loadModels({pageSize: pageCount, pageOffset: currentPage - 1, projectName: localStorage.getItem('selected_project')})
+      var params = {pageSize: pageCount, pageOffset: currentPage - 1}
+      if (this.project) {
+        params.projectName = this.project
+      }
+      this.loadModels(params)
       this.loadModelDiagnoseList({project: this.project, pageOffset: currentPage - 1, pageSize: pageCount})
     },
     sizeChange () {
@@ -451,8 +455,16 @@ export default {
     }
   },
   created () {
-    this.loadModels({pageSize: pageCount, pageOffset: 0, projectName: this.project})
-    this.loadModelDiagnoseList({project: this.project, pageOffset: 0, pageSize: pageCount})
+    var params = {pageSize: pageCount, pageOffset: 0}
+    var params1 = {pageSize: pageCount, pageOffset: 0}
+    if (this.project) {
+      params.projectName = this.project
+    }
+    if (this.project) {
+      params1.project = this.project
+    }
+    this.loadModels(params)
+    this.loadModelDiagnoseList(params1)
   }
 }
 </script>

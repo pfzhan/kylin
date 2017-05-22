@@ -183,14 +183,14 @@
         <div class="ksd-mt-20">
           <el-checkbox v-model="openCollectRange">Table Stats</el-checkbox>
           <!-- <span class="demonstration">Sample percentage</span> -->
-          <el-slider :min="1" show-stops :step="20" v-model="tableStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider>
+          <el-slider :min="0" show-stops :step="20" @change="changeBarVal" v-model="tableStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider>
         </div>
 		    </div>
 		  </div></el-col>
 		</el-row>
 		  <div slot="footer" class="dialog-footer">
 		    <el-button @click="load_hive_dalog_visible = false">取 消</el-button>
-		    <el-button type="primary" @click="loadHiveList" :loading="loadHiveLoad">确 定</el-button>
+		    <el-button type="primary" @click="loadHiveList" :loading="loadHiveLoad">加 载</el-button>
 		  </div>
 	    </el-dialog>
      
@@ -201,7 +201,7 @@
             <div class="tree_check_content ksd-mt-20">
               <div class="ksd-mt-20">
                 <el-checkbox v-model="openCollectRange">Table Stats</el-checkbox>
-                 <el-slider v-model="tableStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider>
+                 <el-slider v-model="tableStaticsRange" :min="0" @change="changeBarVal" show-stops :step="20" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider>
               </div>
               </div>
             </div>
@@ -219,7 +219,7 @@
             <div class="tree_check_content ksd-mt-20">
               <div class="ksd-mt-20">
                 <el-checkbox v-model="openCollectRange">Table Stats</el-checkbox>
-                 <el-slider v-model="tableStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider>
+                 <el-slider :min="0" show-stops :step="20" v-model="tableStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider>
               </div>
               </div>
             </div>
@@ -287,7 +287,7 @@ export default {
       loadResultVisible: false,
       scanRatioDialogVisible: false,
       scanSampleRatioDialogVisible: false,
-      tableStaticsRange: 0,
+      tableStaticsRange: 100,
       openCollectRange: false,
       loadHiveLoad: false,
       defaultProps: {
@@ -347,6 +347,11 @@ export default {
     formatTooltip (val) {
       return val + '%'
     },
+    changeBarVal (val) {
+      if (val === 0) {
+        this.openCollectRange = false
+      }
+    },
     // 初始化加载hive列表的弹窗
     openLoadHiveListDialog () {
       if (!this.project) {
@@ -355,7 +360,7 @@ export default {
       }
       this.load_hive_dalog_visible = true
       this.openCollectRange = false
-      this.tableStaticsRange = 0
+      this.tableStaticsRange = 100
     },
     openKafkaDialog () {
       if (!this.project) {
@@ -411,8 +416,8 @@ export default {
     },
     // reload table meta data
     reloadTableDialogVisible () {
-      this.tableStaticsRange = 0
-      this.openCollectRange = 0
+      this.tableStaticsRange = 100
+      this.openCollectRange = 100
       this.scanRatioDialogVisible = false
       this.currentAction = '加载'
       var tableName = this.tableData.database + '.' + this.tableData.name
@@ -447,8 +452,8 @@ export default {
     },
     // 单个采样弹窗初始化
     collectSampleDialogOpen () {
-      this.tableStaticsRange = 0
-      this.openCollectRange = 0
+      this.tableStaticsRange = 100
+      this.openCollectRange = 100
       this.checkTableHasJob(this.tableData.database + '.' + this.tableData.name, () => {
         this.$message.error('该table 已经启用了一个job开始采样')
         this.$refs.sampleBtn.loading = false
@@ -727,6 +732,11 @@ export default {
   watch: {
     'filterVal' (val) {
       this.$refs.subtree.$emit('filter', val)
+    },
+    'openCollectRange' (val) {
+      if (val) {
+        this.tableStaticsRange = 100
+      }
     }
   },
   mounted () {
