@@ -31,7 +31,8 @@ key_executor_cores="kap.storage.columnar.spark-conf.spark.executor.cores"
 key_executor_memory="kap.storage.columnar.spark-conf.spark.executor.memory"
 key_executor_instance="kap.storage.columnar.spark-conf.spark.executor.instances"
 
-saveFileName="${KYLIN_HOME}/logs/cluster.info"
+mkdir -p ${KYLIN_HOME}/var
+saveFileName="${KYLIN_HOME}/var/cluster.info"
 export ENABLE_CHECK_ENV=false
 ${dir}/kylin.sh io.kyligence.kap.tool.setup.KapGetClusterInfo ${saveFileName}
 

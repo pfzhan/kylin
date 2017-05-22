@@ -18,7 +18,8 @@ then
     [[ ${snappy_lib_count} != 0 ]]  || quit "ERROR: Snappy lib is not found. Please double check Snappy is installed, or disable Snappy compression."
 fi
 
-input_file=${KYLIN_HOME}/logs/snappy_test_input
+mkdir -p ${KYLIN_HOME}/var
+input_file=${KYLIN_HOME}/var/snappy_test_input
 [[ ! -f ${input_file} ]] || rm -f ${input_file}
 echo "Hello Snappy" >> ${input_file};
 source ${dir}/hdfs-op.sh put ${input_file}
