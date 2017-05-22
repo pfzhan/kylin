@@ -14,7 +14,7 @@
         <li class="toolbtn" @click="autoLayerPosition" v-unselect><span>LAYOUT</span></li>
       </ul>
     <div class="btn_group"  v-if="actionMode!=='view'">
-      <el-button @click="saveDraft" :loading="draftBtnLoading">Draft</el-button>
+      <el-button @click="saveDraft(true)" :loading="draftBtnLoading">Draft</el-button>
       <el-button type="primary" @click="saveCurrentModel" :loading="saveBtnLoading">Save</el-button>
     </div>  
     <div class="tips_group">
@@ -445,7 +445,7 @@ export default {
       })
     },
     // 保存草稿
-    saveDraft: function () {
+    saveDraft: function (tipChangestate) {
       // 正在保存正式的时候不允许保存draft
       if (this.saveBtnLoading) {
         return
@@ -455,6 +455,12 @@ export default {
         return
       }
       if (!this.checkModelMetaHasChange()) {
+        if (tipChangestate) {
+          this.$message({
+            type: 'warning',
+            message: '未检测到任何改动!'
+          })
+        }
         return
       }
       if (this.actionMode === 'view') {
@@ -1851,7 +1857,7 @@ export default {
       })
     })
     this.actionMode = this.extraoption.mode
-    this.getCubesList({pageSize: 100000, pageOffset: 0, projectName: this.project, modelName: this.extraoption.modelName}).then((res) => {
+    this.getCubesList({pageSize: 100000, pageOffset: 0, projectName: this.extraoption.project, modelName: this.extraoption.modelName}).then((res) => {
       handleSuccess(res, (data, code, status, msg) => {
         this.cubesList = data.cubes
         data.cubes.forEach((cube) => {

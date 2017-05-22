@@ -9,7 +9,7 @@
 		  </div>
 		  <section data-scrollbar id="project_scroll_box">
 		  <a class="btn-addProject" href="javascript:;" @click="addProject">+ Project</a>
-		  <div v-for="o in projectList" class="text item" @click="goto('project')" style="cursor:pointer">
+		  <div v-for="o in projectList" class="text item" @click="goto('Project')" style="cursor:pointer">
 		    {{o.name }}
 		  </div>
 		  </section>

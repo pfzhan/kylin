@@ -197,6 +197,10 @@ export default {
       })
     },
     addModel () {
+      if (!this.project) {
+        this.$message('请先选择一个project')
+        return
+      }
       this.createModelVisible = true
       this.createModelMeta = {
         modelName: '',

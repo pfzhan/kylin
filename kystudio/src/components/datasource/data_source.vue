@@ -3,7 +3,7 @@
       <div class="tree_list">
          <el-radio-group v-model="currentLoadType" class="ksd-mt-30 ksd-ml-30">
 		    <el-radio-button label="Hive" @click.native="openLoadHiveListDialog"><icon name="download" scale="0.8"></icon><span> Hive</span></el-radio-button>
-		    <el-radio-button label="Kfka" @click.native="kafkaFormVisible = true"><icon name="download" scale="0.8"></icon><span> Kafka</span></el-radio-button>
+		    <el-radio-button label="Kfka" @click.native="openKafkaDialog = true"><icon name="download" scale="0.8"></icon><span> Kafka</span></el-radio-button>
 		  </el-radio-group>
 
       <tree :treedata="modelAssets"  maxLabelLen="20" :indent="4" :expandall="true" :showfilter="false" :allowdrag="false" @nodeclick="clickTable"></tree>
@@ -183,7 +183,7 @@
         <div class="ksd-mt-20">
           <el-checkbox v-model="openCollectRange">Table Stats</el-checkbox>
           <!-- <span class="demonstration">Sample percentage</span> -->
-          <el-slider v-model="tableStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider>
+          <el-slider :min="1" show-stops :step="20" v-model="tableStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider>
         </div>
 		    </div>
 		  </div></el-col>
@@ -349,9 +349,20 @@ export default {
     },
     // 初始化加载hive列表的弹窗
     openLoadHiveListDialog () {
+      if (!this.project) {
+        this.$message('请先选择一个project')
+        return
+      }
       this.load_hive_dalog_visible = true
       this.openCollectRange = false
       this.tableStaticsRange = 0
+    },
+    openKafkaDialog () {
+      if (!this.project) {
+        this.$message('请先选择一个project')
+        return
+      }
+      this.kafkaFormVisible = true
     },
     collectKafkaSampleDialogOpen () {
       var tableName = this.tableData.database + '.' + this.tableData.name
