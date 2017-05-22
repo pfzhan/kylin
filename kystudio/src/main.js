@@ -28,6 +28,7 @@ import nprogress from 'nprogress'
 
 import Icon from 'vue-awesome/components/Icon.vue'
 import 'vue-awesome/icons'
+
 Vue.component('icon', Icon)
 Vue.component('confirm-btn', confirmBtn)
 Vue.component('common-tip', commonTip)
@@ -57,12 +58,12 @@ Vue.http.interceptors.push(function (request, next) {
   nprogress.start()
   next(function (response) {
     nprogress.done()
-    console.log(response)
     if (response.status === 401 && router.history.current.name !== 'login') {
       router.replace('/access/login')
     }
   })
 })
+
 router.beforeEach((to, from, next) => {
   if (to.matched && to.matched.length) {
     store.state.config.layoutConfig.gloalProjectSelectShow = to.name !== 'Dashbord'

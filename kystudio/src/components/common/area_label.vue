@@ -25,8 +25,8 @@ export default {
       var arr = []
       for (var k = 0; this.labels && k < this.labels.length || 0; k++) {
         var obj = {
-          label: (this.datamap && this.datamap.label) ? this.labels[k][this.datamap.label] : this.labels[k],
-          value: (this.datamap && this.datamap.value) ? this.labels[k][this.datamap.value] : this.labels[k]
+          label: (this.datamap && this.datamap.label) ? this.labels[k][this.datamap.label] : this.labels[k].label,
+          value: (this.datamap && this.datamap.value) ? this.labels[k][this.datamap.value] : this.labels[k].value
         }
         arr.push(obj)
       }

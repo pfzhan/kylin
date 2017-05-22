@@ -18,9 +18,9 @@ export function handleSuccess (res, callback, errorcallback) {
 export function handleError (res, errorcallback) {
   var responseData = res.data
   if (typeof errorcallback !== 'function' && responseData.msg) {
-    Message.error(responseData.msg)
+    Message.error(responseData.msg || '未知异常')
   }
-  if (responseData.code) {
+  if (responseData && responseData.code) {
     if (typeof errorcallback === 'function') {
       errorcallback(responseData.data, responseData.code, res.status, responseData.msg)
       return

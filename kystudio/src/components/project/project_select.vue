@@ -26,7 +26,7 @@ export default {
   },
   methods: {
     ...mapActions({
-      loadProjects: 'LOAD_PROJECT_LIST'
+      loadAllProjects: 'LOAD_ALL_PROJECT'
     }),
     clearProject () {
       localStorage.removeItem('selected_project')
@@ -35,12 +35,12 @@ export default {
   },
   computed: {
     projectList () {
-      return this.$store.state.project.projectList || ''
+      return this.$store.state.project.allProject || ''
     }
   },
   created () {
-    console.log(this.$store.state.project.selected_project, '0101')
-    this.loadProjects()
+    // console.log(this.$store.state.project.selected_project, '0101')
+    this.loadAllProjects()
   }
 }
 </script>

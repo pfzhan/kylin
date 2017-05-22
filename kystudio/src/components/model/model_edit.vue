@@ -180,6 +180,18 @@
         <el-button type="primary" @click="createCube">添 加</el-button>
       </div>
     </el-dialog>
+
+    <el-dialog title="Confirm Add" v-model="addModelDialogDisable" >
+       <partition-column :modelInfo="modelInfo" :actionMode="actionMode" :editLock="editLock" :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
+
+       <el-checkbox v-model="openModelCheck">Check Model</el-checkbox>
+
+        <el-slider v-model="modelStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openModelCheck'></el-slider>
+       <div slot="footer" class="dialog-footer">
+        <el-button @click="addModelDialogDisable = false">取 消</el-button>
+        <el-button type="primary" @click="saveAndCheckModel">添 加</el-button>
+      </div>
+    </el-dialog>
 </div>
 </template>
 <script>
@@ -191,17 +203,22 @@ import Scrollbar from 'smooth-scrollbar'
 import modelassets from './model_assets'
 import Draggable from 'draggable'
 import modelEditTool from 'components/model/model_edit_panel'
+import partitionColumn from 'components/model/model_partition.vue'
 import { handleSuccess, handleError } from 'util/business'
 export default {
   name: 'modeledit',
   components: {
     'model-assets': modelassets,
-    'model-tool': modelEditTool
+    'model-tool': modelEditTool,
+    'partition-column': partitionColumn
   },
   props: ['extraoption'],
   data () {
     return {
       createCubeVisible: false,
+      openModelCheck: false,
+      modelStaticsRange: 0,
+      addModelDialogDisable: false,
       createCubeFormRule: {
         cubeName: [
           {required: true, message: '请输入cube名字', trigger: 'blur'},
@@ -360,8 +377,12 @@ export default {
       cacheModelEdit: 'CACHE_MODEL_EDIT',
       getUsedCols: 'GET_USED_COLS',
       getCubesList: 'GET_CUBES_LIST',
-      checkCubeName: 'CHECK_CUBE_NAME_AVAILABILITY'
+      checkCubeName: 'CHECK_CUBE_NAME_AVAILABILITY',
+      statsModel: 'COLLECT_MODEL_STATS'
     }),
+    formatTooltip (val) {
+      return val + '%'
+    },
     // 列排序
     sortColumns: function (tableInfo) {
       var key = 'name'
@@ -390,32 +411,37 @@ export default {
     },
     // 保存正式
     saveCurrentModel () {
-      this.$confirm('确认保存Model？', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
+      this.addModelDialogDisable = true
+      this.modelStaticsRange = 0
+      if (this.extraoption.actionMode !== 'add') {
+        this.saveAndCheckModel()
+      }
+    },
+    saveAndCheckModel () {
+      this.saveBtnLoading = true
+      this.saveModel({
+        project: this.project,
+        modelDescData: this.DragDataToServerData()
       }).then(() => {
-        this.saveBtnLoading = true
-        this.saveModel({
-          project: this.project,
-          modelDescData: this.DragDataToServerData()
-        }).then(() => {
-          this.saveBtnLoading = false
-          this.$message({
-            type: 'success',
-            message: '保存成功!'
-          })
-          this.$emit('reload', 'modelList')
-          this.$emit('removetabs', 'model' + this.extraoption.modelName)
-        }, (res) => {
-          this.saveBtnLoading = false
-          handleError(res)
-        })
-      }).catch(() => {
+        this.saveBtnLoading = false
         this.$message({
-          type: 'info',
-          message: '已取消保存'
+          type: 'success',
+          message: '保存成功!'
         })
+        if (this.openModelCheck) {
+          this.statsModel({
+            project: this.project,
+            modelname: this.modelInfo.modelName,
+            data: {
+              ratio: this.modelStaticsRange
+            }
+          })
+        }
+        this.$emit('removetabs', 'model' + this.extraoption.modelName)
+        this.$emit('reload', 'modelList')
+      }, (res) => {
+        this.saveBtnLoading = false
+        handleError(res)
       })
     },
     // 保存草稿
@@ -811,6 +837,9 @@ export default {
       return this.getTableInfo('guid', guid)
     },
     drag: function (target, dragName) {
+      if (this.actionMode === 'view') {
+        return
+      }
       if (target) {
         this.dragType = 'createTables'
         this.currentDragDom = target
@@ -821,6 +850,9 @@ export default {
       }
     },
     dragColumns (event) {
+      if (this.actionMode === 'view') {
+        return
+      }
       // event.preventDefault()
       // event.dataTransfer && event.dataTransfer.setData('Text', '')
       this.currentDragDom = event.srcElement ? event.srcElement : event.target
@@ -843,6 +875,9 @@ export default {
     },
     drop: function (event) {
       // event.preventDefault()
+      if (this.actionMode === 'view') {
+        return
+      }
       if (this.dragType !== 'createTables') {
         return
       }
@@ -1439,9 +1474,6 @@ export default {
       kylinData.dimensions = this.getDimensions()
       kylinData.pos = pos
       kylinData.metrics = this.getMeasures()
-      // console.log(kylinData, 'out put model')
-      for (let i = 0; i < kylinData.computed_columns.length; i++) {
-      }
       if (needJson) {
         return kylinData
       }

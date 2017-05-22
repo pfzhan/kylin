@@ -3,6 +3,7 @@ import * as types from './types'
 export default {
   state: {
     projectList: [],
+    allProject: [],
     projectTotalSize: 0,
     selected_project: localStorage.getItem('selected_project'),
     projectAccess: {}
@@ -14,12 +15,29 @@ export default {
     },
     [types.CACHE_PROJECT_ACCESS]: function (state, { access, projectId }) {
       state.projectAccess[projectId] = access
+    },
+    [types.CACHE_ALL_PROJECTS]: function (state, { list, size }) {
+      state.allProject = list
+      var hasMatch = false
+      list.forEach((p) => {
+        if (p.name === localStorage.getItem('selected_project')) {
+          hasMatch = true
+        }
+      })
+      if (!hasMatch) {
+        localStorage.setItem('selected_project', '')
+      }
     }
   },
   actions: {
     [types.LOAD_PROJECT_LIST]: function ({ commit }, params) {
       return api.project.getProjectList(params).then((response) => {
         commit(types.SAVE_PROJECT_LIST, {list: response.data.data.readableProjects, size: response.data.data.size})
+      })
+    },
+    [types.LOAD_ALL_PROJECT]: function ({ commit }, params) {
+      return api.project.getProjectList(params).then((response) => {
+        commit(types.CACHE_ALL_PROJECTS, {list: response.data.data.readableProjects, size: response.data.data.size})
       })
     },
     [types.DELETE_PROJECT]: function ({ commit }, projectName) {

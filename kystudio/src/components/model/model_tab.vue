@@ -33,6 +33,29 @@
         tabIndex: 1
       }
     },
+    beforeRouteLeave (to, from, next) {
+    // 导航离开该组件的对应路由时调用
+    // 可以访问组件实例 `this`
+      var hasEditTab = false
+      this.editableTabs.forEach((tab) => {
+        if (['cube', 'cubes'].indexOf(tab.icon) !== -1) {
+          hasEditTab = true
+        }
+      })
+      if (hasEditTab) {
+        this.$confirm('将要离开该页面，请保存未完成的编辑?', '提示', {
+          confirmButtonText: '继续跳转',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          next()
+        }).catch(() => {
+          next(false)
+        })
+      } else {
+        next()
+      }
+    },
     methods: {
       addTab (tabType, title, componentName, extraData) {
         console.log(arguments)
@@ -99,7 +122,6 @@
     mounted () {
       console.log(this)
     }
-
   }
 </script>
 <style lang="less" scope="">

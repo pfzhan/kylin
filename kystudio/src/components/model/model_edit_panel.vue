@@ -24,7 +24,8 @@
                     </table>
                 </el-tab-pane>
                 <el-tab-pane label="Partition Setting" name="second">
-                  <el-form   label-width="240px">
+                 <partition-column :modelInfo="modelInfo" :actionMode="actionMode" :editLock="editLock" :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
+                 <!--  <el-form   label-width="240px">
                     <el-form-item label="Partition Date Column">
                       <el-select v-model="checkPartition.date_table" placeholder="请选择" :disabled="editMode || actionMode==='view'">
                         <el-option
@@ -78,7 +79,7 @@
                         </el-option>
                       </el-select>
                     </el-form-item>
-                  </el-form>
+                  </el-form> -->
                 </el-tab-pane>
                 <el-tab-pane label="Filter" name="five">
                   <el-form label-width="240px">
@@ -94,7 +95,7 @@
                 </el-tab-pane>
                 <el-tab-pane label="Dimension" name="third">
                   <div v-for="(key, value) in dimensions">
-                    <el-badge :value="dimensions[value].length" class="item ksd-mt-10">
+                    <el-badge :value="dimensions[value].length" class="item ksd-mt-10" style="background-color:green">
                     <el-button size="small">{{value}}</el-button>
                     </el-badge>
                     <br/>
@@ -167,6 +168,7 @@
 import { mapActions } from 'vuex'
 import { changeDataAxis } from '../../util/index'
 import { handleSuccess } from '../../util/business'
+import partitionColumn from 'components/model/model_partition.vue'
 export default {
   data () {
     return {
@@ -186,6 +188,9 @@ export default {
       hasSepatate: false,
       statistics: []
     }
+  },
+  components: {
+    'partition-column': partitionColumn
   },
   props: ['modelInfo', 'actionMode', 'editLock', 'columnsForTime', 'columnsForDate', 'activeName', 'activeNameSub', 'tableList', 'selectTable', 'partitionSelect'],
   methods: {
@@ -371,6 +376,7 @@ export default {
 }
 </script>
 <style lang="less">
+@import '../../less/config.less';
   .model_edit_tool {
     height: 360px;
   	z-index:2000;
@@ -392,6 +398,9 @@ export default {
       right: 10px;
       cursor: pointer;
       z-index: 1
+    }
+    .el-badge__content {
+      background-color: @base-color;
     }
     table{
       width: 100%;

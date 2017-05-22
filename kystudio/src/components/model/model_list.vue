@@ -3,8 +3,8 @@
     <el-button type="primary" class="ksd-mb-10" @click="addModel">+model</el-button>
     <br/>
 		<el-row :gutter="20">
-		  <el-col :span="8"  v-for="(o, index) in modelsList" :key="o.uuid" >
-		    <el-card :body-style="{ padding: '0px' }">
+		  <el-col :span="8"  v-for="(o, index) in modelsList" :key="o.uuid" :style="{height:'152px'}">
+		    <el-card :body-style="{ padding: '0px'}" style="height:100%">
 		      <p class="title">Last updated {{ o.gmtTime }}
 					<el-dropdown @command="handleCommand" :id="o.name" trigger="click">
 					  <span class="el-dropdown-link">
@@ -24,7 +24,7 @@
 		        <h2 :title="o.name" @click="viewModel(o)">{{o.name|omit(24, '...')}} <icon v-if="!o.status" :name="getModelStatusIcon(o)&&getModelStatusIcon(o).icon" :style="{color:getModelStatusIcon(o) && getModelStatusIcon(o).color}"></icon> </h2>
             <el-progress v-visible="getHelthInfo(o.name).progress" :percentage="(getHelthInfo(o.name).progress||0)*100" style="width:150px;"></el-progress>
 		        <div class="bottom clearfix">
-		          <time class="time">{{o.owner}}</time>
+		          <time class="time" v-visible="o.owner" style="display:block">{{o.owner}}</time>
 		          <!-- <div class="view_btn" v-on:click="viewModel(o.name)"><icon name="long-arrow-right" style="font-size:20px"></icon></div> -->
 		        </div>
 		      </div>
@@ -218,7 +218,8 @@ export default {
                 this.$emit('addtabs', 'model', this.createModelMeta.modelName, 'modelEdit', {
                   project: localStorage.getItem('selected_project'),
                   modelName: this.createModelMeta.modelName,
-                  modelDesc: this.createModelMeta.modelDesc
+                  modelDesc: this.createModelMeta.modelDesc,
+                  actionMode: 'add'
                 })
               } else {
                 this.$message({

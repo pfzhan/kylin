@@ -144,7 +144,10 @@
         setCurUser: 'SAVE_CURRENT_LOGIN_USER'
       }),
       changeProject () {
-        this.$router.go(0)
+        this.$router.replace('')
+        this.$nextTick(() => {
+          this.$router.go(this.$router.currentRoute.fullPath)
+        })
       },
       addProject () {
         this.FormVisible = true
@@ -163,7 +166,6 @@
           _this.loadProjects()
         }, (res) => {
           handleError(res, (data, code, status, msg) => {
-            console.log(data, code, status, msg)
             if (status === 400) {
               this.$message({
                 type: 'success',

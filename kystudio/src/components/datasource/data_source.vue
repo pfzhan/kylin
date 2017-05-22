@@ -527,7 +527,6 @@ export default {
       })
     },
     clickHiveTable (data) {
-      console.log(data, 'sdwe')
       if (data.id && data.id.indexOf('.') > 0) {
         var newArr = this.selectTables.filter(function (item) {
           return item.value === data.id

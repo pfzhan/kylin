@@ -29,8 +29,8 @@ export default {
     'cubeList': cubeList
   },
   beforeRouteUpdate (to, from, next) {
-    console.log(to, from, 'jjjj2')
-    next()
+    // console.log(to, from, 'jjjj2')
+    // next()
   },
   methods: {
     addTab (a, b, c, d) {
