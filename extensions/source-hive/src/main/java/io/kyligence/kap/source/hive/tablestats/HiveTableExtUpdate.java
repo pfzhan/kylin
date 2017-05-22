@@ -101,16 +101,19 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
         boolean once = true;
 
         for (HiveTableExtSampler sampler : samplers.values()) {
+            int frequency = sampler.getStatsSampleFrequency();
+            long cardinality = sampler.getCardinality();
+            long counter = Long.parseLong(sampler.getCounter());
             TableExtDesc.ColumnStats columnStats = new TableExtDesc.ColumnStats();
             columnStats.setColumnName(sampler.getColumnName());
             columnStats.setColumnSamples(sampler.getMax(), sampler.getMin(), sampler.getMaxLenValue(), sampler.getMinLenValue());
             columnStats.setNullCount(Long.parseLong(sampler.getNullCounter()));
-            columnStats.setCardinality(sampler.getCardinality());
+            columnStats.setCardinality(getEstimateCardinality(frequency, cardinality, counter));
             columnStats.setDataSkewSamples(sampler.getTopN().getTopNCounter());
             sampleRows.add(sampler.getRawSampleValues());
             columnStatsList.add(columnStats);
             if (once) {
-                tableSample.setTotalRows(Long.parseLong(sampler.getCounter()));
+                tableSample.setTotalRows(counter);
                 tableSample.setMapRecords(sampler.getMapperRows());
                 tableSample.setFrequency(sampler.getStatsSampleFrequency());
                 once = false;
@@ -138,6 +141,18 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
             reader.close();
         }
         return samplers;
+    }
+
+    private long getEstimateCardinality(int frequency, long obCardi, long allRowCount) {
+        if (frequency == 1)
+            return obCardi;
+
+        if (frequency == 0)
+            throw new IllegalArgumentException("The frequency can not be ZERO");
+
+        float ratio = 1.0f / (float) frequency;
+        long estimated = Math.max(obCardi, (long) (Math.pow(obCardi, 3) / (Math.pow(allRowCount, 2) * Math.pow(ratio, 3))));
+        return estimated;
     }
 
     private static List<Path> getAllPaths(Path root, Configuration conf) throws IOException {
