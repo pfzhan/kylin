@@ -119,7 +119,7 @@ public class TableExtControllerV2 extends BasicController {
 
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
         boolean isCalculate = request.isNeedProfile();
-        Map<String, String[]> loadResult = tableServiceV2.loadHiveTables(request.getTables(), request.getProject(), isCalculate);
+        Map<String, String[]> loadResult = tableServiceV2.loadHiveTables(request.getTables(), request.getProject(), false);
         if (isCalculate) {
 
             String[] loadedTables = loadResult.get("result.loaded");
