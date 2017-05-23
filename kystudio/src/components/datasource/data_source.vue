@@ -156,7 +156,7 @@
 			    :data="sampleData.slice(1)"
 			    border
 			    style="width: 100%">
-			    <el-table-column v-for="(val,index) in sampleData[0]"
+			    <el-table-column v-for="(val,index) in sampleData[0]" :key="index"
 			      :prop="''+index"
 			      :label="sampleData[0][index]">
 			    </el-table-column>
@@ -252,15 +252,15 @@
         title="提示"
         v-model="loadResultVisible"
         >
-         <el-alert v-for=" su in loadResult.success"
+         <el-alert v-for=" su in loadResult.success" :key="su"
             :title="'成功'+currentAction+'['+su+']'"
             type="success"
             :closable="false"
             class="ksd-mt-10"
             show-icon>
           </el-alert>
-            <el-alert v-for=" fa in loadResult.fail"
-            :title="'成功'+currentAction+'['+su+']'"
+            <el-alert v-for=" fa in loadResult.fail" :key="fa"
+            :title="'成功'+currentAction+'['+fa+']'"
             type="error"
             :closable="false"
             show-icon>

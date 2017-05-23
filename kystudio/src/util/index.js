@@ -60,6 +60,32 @@ export function changeDataAxis (data) {
   return newArr
 }
 
+export function scToFloat (data) {
+  var resultValue = ''
+  if (data && data.indexOf('E') !== -1) {
+    var regExp = new RegExp('^((\\d+.?\\d+)[Ee]{1}(\\d+))$', 'ig')
+    var result = regExp.exec(data)
+    var power = ''
+    if (result !== null) {
+      resultValue = result[2]
+      power = result[3]
+    }
+    if (resultValue !== '') {
+      if (power !== '') {
+        var powVer = Math.pow(10, power)
+        resultValue = (resultValue * powVer).toFixed(2)
+      }
+    }
+  }
+  return resultValue
+}
+
+export function showNull (val) {
+  if (val === null) {
+    return 'null'
+  }
+  return val
+}
 // 将对象数组按照某一个key的值生成对象
 export function groupData (data, groupName) {
   var len = data && data.length || 0

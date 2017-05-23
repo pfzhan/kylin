@@ -7,7 +7,7 @@
       <img v-show="briefMenu==='brief_menu'" src="../../assets/img/logo.png" class="logo" @click="goHome" style="cursor:pointer;"><span class="logo_text"></span>
       <el-menu style="border-top: 1px solid #475669;" :default-active="defaultActive" class="el-menu-vertical-demo" @open="handleopen" @close="handleclose" @select="handleselect" theme="dark" unique-opened router>
         <template v-for="(item,index) in menus" >
-          <el-menu-item :index="item.path"  ><img :src="item.icon"> <span>{{item.name}}</span></el-menu-item>
+          <el-menu-item :index="item.path" :key="index" ><img :src="item.icon"> <span>{{item.name}}</span></el-menu-item>
         </template>
       </el-menu>
     </aside>

@@ -3,12 +3,13 @@
   <el-row class="border_bottom">
     <el-col :span="4">{{$t('autoMergeThresholds')}}</el-col>
     <el-col :span="16">
-      <el-row :gutter="20" class="row_padding" v-for="(timeRange, index) in timeRanges">
+      <el-row :gutter="20" class="row_padding" v-for="(timeRange, index) in timeRanges" :key="index">
         <el-col :span="10">
           <el-input v-model="timeRange.range" v-if="timeRange.type === 'days'" @change="changeTimeRange(timeRange, index)"></el-input>
           <el-select  v-model="timeRange.range" style="width:100%" v-else @change="changeTimeRange(timeRange, index)">
             <el-option
                v-for="(item, time_index) in timeOptions"
+               :key="time_index"
                :label="item"
                :value="item">
             </el-option>
@@ -18,6 +19,7 @@
             <el-select  v-model="timeRange.type" @change="changeTimeRange(timeRange, index)">
               <el-option
                  v-for="(item, range_index) in rangesOptions"
+                :key="range_index"
                 :label="item"
                 :value="item">
               </el-option>
@@ -50,7 +52,7 @@
         <el-col :span="6">
             <el-select v-model="intervalRange.type" @change="changeInterval()">
               <el-option
-                 v-for="(item, range_index) in intervalOptions"
+                 v-for="(item, range_index) in intervalOptions" :key="range_index"
                 :label="item"
                 :value="item">
               </el-option>

@@ -9,6 +9,7 @@
       <el-select v-model="measure.function.expression" class="input_width" @change="changeExpression">
         <el-option
           v-for="(item, index) in expressionsConf"
+          :key="index"
           :label="item"
           :value="item">
         </el-option>
@@ -19,6 +20,7 @@
       <el-select v-model="measure.function.parameter.type" v-if="measure.function.expression ==='SUM'" class="input_width">
         <el-option
           v-for="(item, index) in type"
+          :key="index"
           :label="item"
           :value="item">
         </el-option>
@@ -30,6 +32,7 @@
       <el-select v-model="measure.function.parameter.value" v-if="measure.function.parameter.type !== 'constant'" class="input_width" @change="changeParamValue">
         <el-option
           v-for="(item, index) in getParameterValue"
+          :key="index"
           :label="item"
           :value="item">
           <span style="float: left">{{ item}}</span>
@@ -47,6 +50,7 @@
       <el-select v-model="measure.function.parameter.value" >
         <el-option
           v-for="(item, index) in getAllModelDimColumns()"
+          :key="index"
           :label="item"
           :value="item">
         </el-option>
@@ -62,6 +66,7 @@
       <el-select v-model="measure.function.returntype" v-if="measure.function.expression === 'COUNT_DISTINCT'">
         <el-option
           v-for="(item, index) in distinctDataTypes"
+          :key="index"
           :label="item.name"
           :value="item.value">
         </el-option>
@@ -69,6 +74,7 @@
       <el-select v-model="measure.function.returntype" v-if="measure.function.expression === 'TOP_N'">
         <el-option
           v-for="(item, index) in topNTypes"
+          :key="index"
           :label="item.name"
           :value="item.value">
         </el-option>
@@ -97,6 +103,7 @@
       <el-select v-model="reuseColumn">
         <el-option
           v-for="(item, key) in getCountDistinctBitMapColumn()"
+          :key="key"
           :label="item"
           :value="item">
         </el-option>
@@ -120,6 +127,7 @@
            <el-option   
             v-for="(item, index) in getAllModelDimColumns()"
             :label="item"
+            :key="index"
             :value="item">
             </el-option>
           </el-select>
@@ -132,6 +140,7 @@
           <el-select v-model="scope.row.encoding">
             <el-option
               v-for="(item, index) in initEncodingType(scope.row)"
+              :key="index"
               :label="item.name"
               :value="item.name + ':' + item.version">
               <el-tooltip effect="light" :content="$t($store.state.config.encodingTip[item.name])" placement="left">

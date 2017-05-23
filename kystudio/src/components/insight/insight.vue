@@ -1,7 +1,7 @@
 <template>
   <div class="insight_box ksd-border-tab">
   	<div class="ksd_left_bar">
-     <tree :treedata="tableData" :indent="4" :expandall="true" :showfilter="true" :allowdrag="false" @nodeclick="clickTable"></tree>
+     <tree :treedata="tableData" placeholder="输入关键字过滤"  :indent="4" :expandall="true" :showfilter="true" :allowdrag="false" @nodeclick="clickTable"></tree>
     </div>
     <div class="ksd_right_box">
 	 <el-tabs type="border-card" v-model="activeMenu" class="query_box">
@@ -49,7 +49,7 @@
 	  <el-tab-pane :label="$t('queryHistory')" name="third">
     <div>
       <kap-nodata v-if="!cookieQuerySize"></kap-nodata>
-      <el-form  label-width="90px"  v-for="query in cookieQueries">
+      <el-form  label-width="90px"  v-for="query in cookieQueries" :key="query.queryTime">
         <el-form-item label="Queried At:" class="ksd-mb-2" >
           {{query.queryTime|gmtTime}} in Project: {{ project }}
          

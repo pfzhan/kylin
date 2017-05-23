@@ -12,6 +12,7 @@
       <el-select v-model="filterTimeZone" @change="refreshFilter">
         <el-option
         v-for="(item, item_index) in timeFilter"
+        :key="item_index"
         :label="$t(item.name)"
         :value="item.value">
         </el-option>
@@ -19,7 +20,7 @@
     </el-col>
     <el-col :span="14">
       <el-checkbox-group v-model="filterStatus" @change="refreshFilter">
-        <el-checkbox :label="status.value" v-for="(status, status_index) in allStatus">{{$t(status.name)}}</el-checkbox>
+        <el-checkbox :label="status.value" v-for="(status, status_index) in allStatus" :key="status_index">{{$t(status.name)}}</el-checkbox>
       </el-checkbox-group>
     </el-col>
   </el-row>

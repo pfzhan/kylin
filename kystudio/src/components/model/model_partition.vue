@@ -5,6 +5,7 @@
           <el-select v-model="checkPartition.date_table" placeholder="请选择" :disabled="editMode || actionMode==='view'">
             <el-option
               v-for="(key,value) in dateColumns"
+              :key="key"
               :label="value"
               :value="value">
             </el-option>
@@ -12,6 +13,7 @@
           <el-select v-model="checkPartition.date_column" @change="changeDateColumn" placeholder="请选择" :disabled="editMode  || actionMode==='view'">
             <el-option
               v-for="item in dateColumnsByTable"
+              :key="item.name"
               :label="item.name"
               :value="item.name">
             </el-option>
@@ -21,6 +23,7 @@
           <el-select v-model="checkPartition.partition_date_format" placeholder="请选择" :disabled="!needSetTime || editMode  || actionMode==='view'">
             <el-option
               v-for="item in dateFormat"
+              :key="item.label"
               :label="item.label"
               :value="item.label">
             </el-option>
@@ -33,6 +36,7 @@
           <el-select v-model="checkPartition.time_table" placeholder="请选择" :disabled="editMode  || actionMode==='view'">
             <el-option
               v-for="(key,value) in timeColumns"
+              :key="key"
               :label="value"
               :value="value">
             </el-option>
@@ -40,6 +44,7 @@
           <el-select v-model="checkPartition.time_column" placeholder="请选择" v-show="hasSepatate" :disabled="editMode  || actionMode==='view'">
             <el-option
               v-for="item in timeColumnsByTable"
+              :key="item.name"
               :label="item.name"
               :value="item.name">
             </el-option>
@@ -49,6 +54,7 @@
           <el-select v-model="checkPartition.partition_time_format" placeholder="请选择" :disabled="editMode  || actionMode==='view'">
             <el-option
               v-for="item in timeFormat"
+              :key="item.label"
               :label="item.label"
               :value="item.label">
             </el-option>

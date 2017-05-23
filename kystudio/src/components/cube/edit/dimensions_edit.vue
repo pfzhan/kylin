@@ -25,6 +25,7 @@
           <el-card >
             <el-tag class="tag_margin"
             v-for="(dimension, index) in cubeDesc.dimensions"
+            :key="index"
             :type="dimension.derived?'gray':'primary'">
             {{dimension.table+'.'+dimension.name}}
             </el-tag>
@@ -38,7 +39,7 @@
         <el-col :span="3">dim_cap:</el-col>
         <el-col :span="3"><el-input v-model="dim_cap" @change="changeDimCap"></el-input></el-col>
       </el-row>
-      <el-row class="row_padding border_bottom" v-for="(group, group_index) in cubeDesc.aggregation_groups">
+      <el-row class="row_padding border_bottom" v-for="(group, group_index) in cubeDesc.aggregation_groups" :key="group_index">
         <el-col :span="24">
           <el-card >
             <el-row>
@@ -72,7 +73,7 @@
                 </el-row>
                 <el-row>
                   <el-col :span="24">
-                    <el-row class="row_padding" :gutter="10" v-for="(hierarchy_dims, hierarchy_index) in group.select_rule.hierarchy_dims">
+                    <el-row class="row_padding" :gutter="10" v-for="(hierarchy_dims, hierarchy_index) in group.select_rule.hierarchy_dims" :key="hierarchy_index">
                        <el-col :span="23" >
                         <area_label :labels="group.includes"  :selectedlabels="hierarchy_dims" @change="refreshAggragation(group, group_index)" @checklabel="selectTagshowDetail($event, hierarchy_dims)"> 
                         </area_label>
@@ -96,7 +97,7 @@
               </el-row>  
               <el-row>
                 <el-col :span="24">
-                  <el-row class="row_padding" :gutter="10" v-for="(joint_dims, joint_index) in group.select_rule.joint_dims">
+                  <el-row class="row_padding" :gutter="10" v-for="(joint_dims, joint_index) in group.select_rule.joint_dims" :key="joint_index">
                     <el-col :span="23" >
                       <area_label :labels="group.includes"  :selectedlabels="joint_dims" @change="refreshAggragation(group, group_index)" @checklabel="selectTagshowDetail($event, joint_dims)"> 
                       </area_label>
@@ -161,6 +162,7 @@
               <el-select v-model="scope.row.encoding" @change="changeRowkey(scope.row, scope.$index)">
                 <el-option
                     v-for="(item, index) in initEncodingType(scope.row)"
+                    :key="index"
                    :label="item.name"
                    :value="item.name + ':' + item.version">
                    <el-tooltip effect="light" :content="$t('kylinLang.cube[$store.state.config.encodingTip[item.name]]')" placement="right">
@@ -189,6 +191,7 @@
             <el-select v-model="scope.row.isShardBy" @change="changeRowkey(scope.row, scope.$index)">
               <el-option
               v-for="item in shardByType"
+              :key="item.name"
               :label="item.name"
               :value="item.value">
               </el-option>

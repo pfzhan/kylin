@@ -10,6 +10,7 @@
       <el-select v-model="startSegment" class="select" >
         <el-option 
           v-for="(item, index) in cubeDesc.segments"
+          :key="index"
           :label="item.name"
           :value="item">
         </el-option>
@@ -22,6 +23,7 @@
       <el-select v-model="endSegment" class="select" >
         <el-option 
           v-for="(item, index) in cubeDesc.segments"
+          :key="index"
           :label="item.name"
           :value="item">
         </el-option>

@@ -3,6 +3,7 @@
   <el-card >
     <el-tag class="tag_margin"
       v-for="(dimension, dim_index) in cubeDesc.desc.dimensions"
+      :key="dim_index"
       :type="dimension.derived?'gray':'primary'"
     >{{dimension.table+'.'+dimension.name}}
     </el-tag>
@@ -25,7 +26,7 @@
           <el-col :span="4">{{$t('Includes')}}</el-col>
           <el-col :span="20">
             <el-card>
-              <el-tag class="tag_margin" type="primary" v-for="(include, include_index) in scope.row.includes">{{include}}</el-tag>
+              <el-tag class="tag_margin" type="primary" v-for="(include, include_index) in scope.row.includes" :key="include_index">{{include}}</el-tag>
             </el-card>
           </el-col>
         </el-row>
@@ -33,16 +34,16 @@
           <el-col :span="4">{{$t('mandatoryDimensions')}}</el-col>
           <el-col :span="20">
             <el-card v-if="scope.row.select_rule.mandatory_dims.length>0">
-              <el-tag class="tag_margin" type="primary" v-for="(dim, dim_index) in scope.row.select_rule.mandatory_dims">{{dim}}</el-tag>
+              <el-tag class="tag_margin" type="primary" v-for="(dim, dim_index) in scope.row.select_rule.mandatory_dims" :key="dim_index">{{dim}}</el-tag>
             </el-card>
             </el-col>
         </el-row>
         <el-row class="row_padding">
           <el-col :span="4">{{$t('hierarchyDimensions')}}</el-col>
           <el-col :span="20">
-            <el-col class="row_padding" :span="24" v-for="(hierarchy_dims, hierarchy_index) in scope.row.select_rule.hierarchy_dims">
+            <el-col class="row_padding" :span="24" v-for="(hierarchy_dims, hierarchy_index) in scope.row.select_rule.hierarchy_dims" :key="hierarchy_index">
               <el-card>
-                <el-tag class="tag_margin" type="primary" v-for="(dim, hierarchy_dims_index) in hierarchy_dims">{{dim}}</el-tag>
+                <el-tag class="tag_margin" type="primary" v-for="(dim, hierarchy_dims_index) in hierarchy_dims" :key="hierarchy_dims_index">{{dim}}</el-tag>
               </el-card>
             </el-col>
           </el-col>
@@ -51,9 +52,9 @@
         <el-row class="row_padding">
           <el-col :span="4">{{$t('jointDimensions')}}</el-col>
           <el-col :span="20">
-            <el-col class="row_padding" :span="24" v-for="(joint_dims, joint_index) in scope.row.select_rule.joint_dims">
+            <el-col class="row_padding" :span="24" v-for="(joint_dims, joint_index) in scope.row.select_rule.joint_dims" :key="joint_index">
               <el-card>
-                <el-tag class="tag_margin" type="primary" v-for="(dim, joint_dims_index) in joint_dims">{{dim}}</el-tag>
+                <el-tag class="tag_margin" type="primary" v-for="(dim, joint_dims_index) in joint_dims" :key="joint_dims_index">{{dim}}</el-tag>
               </el-card>
             </el-col>
           </el-col>                    

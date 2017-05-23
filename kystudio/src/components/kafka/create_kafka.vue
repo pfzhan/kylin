@@ -77,7 +77,7 @@
             </el-col>
             <el-col :span='9'>
               <el-select v-model="database">
-                <el-option v-for="(item, index) in databaseOption"
+                <el-option v-for="(item, index) in databaseOption" :key="index"
                 :label="item"
                 :value="item">
                 </el-option>
@@ -108,6 +108,7 @@
                 <el-select v-model="scope.row.type" >
                   <el-option
                     v-for="(item, index) in dataTypes"
+                    :key="index"
                     :label="item"
                     :value="item"
                     @change="loadColumnZH()">
@@ -135,6 +136,7 @@
             <el-form-item :label="$t('parserTimestampField')">
               <el-select v-model="streamingCfg.parseTsColumn">
                 <el-option v-for="(item, index) in streamingCfg.columnOptions"
+                :key="index"
                 :label="item"
                 :value="item">
                 </el-option>

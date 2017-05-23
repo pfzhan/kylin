@@ -21,9 +21,9 @@
 		    :data="pagerTableData"
 		    border
 		    style="width: 100%">
-		    <el-table-column v-for="(value, index) in tableMeta"
+		    <el-table-column v-for="(value, index) in tableMeta" :key="index"
 		      :prop="''+index"
-		      :label="value.name">
+		      :label="value.label">
 		    </el-table-column>
 		  </el-table>
 
@@ -40,12 +40,12 @@
         </el-form-item>
         <el-form-item label="Dimensions">
           <el-select  placeholder="Dimensions" v-model="selectDimension">
-            <el-option :label="dime.name" :value="dime.name" v-for="dime in dimensionsAndMeasures.d"></el-option>
+            <el-option :label="dime.name" :value="dime.name" v-for="dime in dimensionsAndMeasures.d" :key="dime.name"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="Metrics">
           <el-select  placeholder="Metrics" v-model="selectMetrics">
-            <el-option :label="mea.name" :value="mea.name" v-for="mea in dimensionsAndMeasures.m"></el-option>
+            <el-option :label="mea.name" :value="mea.name" v-for="(mea, index) in dimensionsAndMeasures.m" :key="index"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -78,7 +78,7 @@ import echarts from 'echarts'
 import $ from 'jquery'
 import { mapActions } from 'vuex'
 import pager from '../common/pager'
-import { indexOfObjWithSomeKey } from '../../util/index'
+import { indexOfObjWithSomeKey, scToFloat, showNull } from '../../util/index'
 import { handleError } from '../../util/business'
 import editor from 'vue2-ace-editor'
 export default {
@@ -136,6 +136,15 @@ export default {
         this.tableMeta.push(columnMeata[i])
       }
       this.tableData = data.results
+      for (let i = 0; i < this.tableData.length; i++) {
+        for (var m = 0; m < this.tableData[i].length; m++) {
+          var cur = this.tableData[i][m]
+          var trans = scToFloat(cur)
+          if (trans) {
+            this.tableData[i][m] = showNull(trans)
+          }
+        }
+      }
       this.pageSizeChange(1)
     },
     transDataForGraph (dimension, measure) {

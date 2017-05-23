@@ -94,21 +94,21 @@
                   </el-form>
                 </el-tab-pane>
                 <el-tab-pane label="Dimension" name="third">
-                  <div v-for="(key, value) in dimensions">
+                  <div v-for="(key, value) in dimensions" :key="key">
                     <el-badge :value="dimensions[value].length" class="item ksd-mt-10" style="background-color:green">
                     <el-button size="small">{{value}}</el-button>
                     </el-badge>
                     <br/>
-                    <el-tag class="ksd-ml-10 ksd-mt-6" v-for="i in dimensions[value]">{{i}}</el-tag>&nbsp;&nbsp;
+                    <el-tag class="ksd-ml-10 ksd-mt-6" v-for="i in dimensions[value]" :key="i">{{i}}</el-tag>&nbsp;&nbsp;
                   </div>
                 </el-tab-pane>
                 <el-tab-pane label="Measure" name="fourth">
-                  <div v-for="(key, value) in measures">
+                  <div v-for="(key, value) in measures" :key="key">
                     <el-badge :value="measures[value].length" class="item ksd-mt-10" >
                     <el-button size="small">{{value}}</el-button>
                     </el-badge>
                     <br/>
-                    <el-tag class="ksd-ml-10 ksd-mt-6" v-for="i in measures[value]">{{i}}</el-tag>
+                    <el-tag class="ksd-ml-10 ksd-mt-6" v-for="i in measures[value]" :key="i">{{i}}</el-tag>
                   </div>
                 </el-tab-pane>
                 
@@ -154,7 +154,7 @@
           :data="modelStatics.slice(1)"
           border
           style="width: 100%">
-          <el-table-column v-for="(val,index) in modelStatics[0]"
+          <el-table-column v-for="(val,index) in modelStatics[0]" :key="index"
             :prop="''+index"
             :label="modelStatics[0][index]">
           </el-table-column>

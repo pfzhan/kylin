@@ -4,7 +4,7 @@
     <el-col :span="24">  {{$t('propertyTip')}}</el-col>
       </el-row>
   </el-row>
-  <el-row v-for="(property, index) in convertedProperties" :gutter="20" class="row_padding">
+  <el-row v-for="(property, index) in convertedProperties" :key="index" :gutter="20" class="row_padding">
     <el-col :span="1">
       <el-checkbox v-show="property.isDefault" v-model="property.checked" @change="changeProperty(index)"></el-checkbox>
     </el-col>

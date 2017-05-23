@@ -9,7 +9,7 @@
 		  </div>
 		  <section data-scrollbar id="project_scroll_box">
 		  <a class="btn-addProject" href="javascript:;" @click="addProject">+ Project</a>
-		  <div v-for="o in projectList" class="text item" @click="goto('Project')" style="cursor:pointer">
+		  <div v-for="o in projectList" :key="o.uuid" class="text item" @click="goto('Project')" style="cursor:pointer">
 		    {{o.name }}
 		  </div>
 		  </section>
@@ -20,7 +20,7 @@
        <div class="grid-content bg-purple">
     	<div class="block">
 		    <el-carousel trigger="click" height="280px">
-		      <el-carousel-item v-for="img in sliderImgs">
+		      <el-carousel-item v-for="img in sliderImgs" :key="img.src">
 		        <img :src="img.src">
 		      </el-carousel-item>
 		    </el-carousel>
@@ -34,7 +34,7 @@
 		  <div slot="header" class="clearfix">
 		    <span style="line-height: 36px;">Manual</span>
 		  </div>
-		  <div v-for="o in manualList" class="text item">
+		  <div v-for="o in manualList" :key="o.title" class="text item">
 		    <a>{{o.title }}</a>
 		  </div>
 		</el-card>
@@ -90,7 +90,7 @@
 		  <div slot="header" class="clearfix">
 		    <span style="line-height: 36px;">News</span>
 		  </div>
-		  <div v-for="o in newsList" class="text item">
+		  <div v-for="o in newsList" :key="o.title" class="text item">
 		     <a class="single-line">{{o.title }}</a><span class="fright time_box">{{o.time}}</span>
 		  </div>
 		</el-card>
@@ -100,7 +100,7 @@
 		  <div slot="header" class="clearfix">
 		    <span style="line-height: 36px;">Blog</span>
 		  </div>
-		  <div v-for="o in blogsList" class="text item">
+		  <div v-for="o in blogsList" :key="o.title" class="text item">
 		    <a class="single-line">{{o.title }}</a><span class="fright time_box">{{o.time}}</span>
 		  </div>
 		</el-card>

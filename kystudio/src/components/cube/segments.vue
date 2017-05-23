@@ -1,6 +1,6 @@
 <template>
   <div>
-   <el-card v-for="(segment, index) in segments" v-if="type==='hbase'">
+   <el-card v-for="(segment, index) in segments" :key="index" v-if="type==='hbase'">
     <h5><b>{{$t('SegmentID')}}</b> {{segment.segmentUUID}}</h5>
     <ul>
       <li>Htable: <span class="text-red">{{segment.tableName}}</span></li>
@@ -16,7 +16,7 @@
 
     </ul>
   </el-card>
-  <el-card v-if="type==='columnar'" v-for="(segment, index) in segments">
+  <el-card v-if="type==='columnar'" v-for="(segment, index) in segments" :key="index">
     <h5><b>{{$t('SegmentID')}}</b> {{segment.segmentUUID}}</h5>
     <ul>
       <li>{{$t('SegmentName')}}<span class="text-red">{{segment.segmentName}}</span></li>

@@ -492,7 +492,7 @@ export default {
   color:#58b7ff;
  }
  .title{
- 	 margin-left: 20px;
+ 	 margin-left: 10px;
  	 margin-top: 10px;
  	 color: #383838;
  	 font-size: 14px;

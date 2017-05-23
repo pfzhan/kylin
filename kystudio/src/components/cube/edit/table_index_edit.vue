@@ -44,7 +44,7 @@
             <template scope="scope">
               <el-select v-model="scope.row.encoding" @change="changeRawTable(scope.row, scope.$index)">
                 <el-option
-                    v-for="(item, index) in initEncodingType(scope.row)"
+                    v-for="(item, index) in initEncodingType(scope.row)" :key="index"
                    :label="item.name"
                    :value="item.name + ':' + item.version">
                    <el-tooltip effect="light" :content="$t('$store.state.config.encodingTip[item.name]')" placement="right">
@@ -70,7 +70,7 @@
             <template scope="scope">
               <el-select v-model="scope.row.index" @change="changeRawTable(scope.row, scope.$index)">
                 <el-option
-                    v-for="(item, index) in rawTableIndexOptions"
+                    v-for="(item, index) in rawTableIndexOptions" :key="index"
                    :label="item"
                    :value="item">
                 </el-option>              

@@ -71,7 +71,7 @@
         :label="$t('measures')">
         <template scope="scope">
           <el-col :span="24">
-            <el-tag class="tag_margin" type="primary" v-for="mr in scope.row.columns[0].measure_refs">{{mr}}</el-tag>
+            <el-tag class="tag_margin" type="primary" v-for="(mr, index) in scope.row.columns[0].measure_refs" :key="index">{{mr}}</el-tag>
           </el-col>
         </template>
     </el-table-column>                                             

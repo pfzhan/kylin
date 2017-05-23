@@ -21,7 +21,7 @@
       
     </div>
     <div class="model_edit" :style="{left:docker.x +'px'  ,top:docker.y + 'px'}">
-      <div class="table_box" v-if="table&&table.kind" @drop='dropColumn' @dragover='allowDrop($event)'  v-for="table in tableList" :id="table.guid" v-bind:class="table.kind.toLowerCase()" v-bind:style="{ left: table.pos.x + 'px', top: table.pos.y + 'px' }" >
+      <div class="table_box" v-if="table&&table.kind" @drop='dropColumn' @dragover='allowDrop($event)'  v-for="table in tableList" :key="table.guid" :id="table.guid" v-bind:class="table.kind.toLowerCase()" v-bind:style="{ left: table.pos.x + 'px', top: table.pos.y + 'px' }" >
         <div class="tool_box" >
             <icon name="table" class="el-icon-menu" style="color:#fff" @click.native="openModelSubMenu('hide', table.database, table.name)"></icon>
             <icon name="gears" v-if="actionMode!=='view'"  class="el-icon-share" style="color:#fff" v-on:click.native="addComputedColumn(table.guid)"></icon>
@@ -73,6 +73,7 @@
                   <el-select v-model="currentLinkData.joinType" :disabled = "checkLock(false)" style="width:120px;" @change="switchJointType(currentLinkData.source.guid,currentLinkData.target.guid, currentLinkData.joinType)" placeholder="请选择连接类型">
                     <el-option
                       v-for="item in joinTypes"
+                      :key="item.label"
                       :label="item.label"
                       :value="item.value">
                     </el-option>
@@ -106,6 +107,7 @@
                 <el-select v-model="scope.row[2]" placeholder="请选择" style="width:100%" :disabled = "checkLock(false) && !scope.row[5]">
                   <el-option
                     v-for="item in currentLinkData.source.columns"
+                    :key="item.name"
                     :label="item.name"
                     :value="item.name">
                   </el-option>
@@ -122,6 +124,7 @@
                 <el-select v-model="scope.row[3]" placeholder="请选择" style="width:100%" :disabled = "checkLock(false) && !scope.row[5]">
                   <el-option
                     v-for="item in currentLinkData.target.columns"
+                    :key="item.name"
                     :label="item.name"
                     :value="item.name">
                   </el-option>
@@ -1901,6 +1904,7 @@ export default {
       position: absolute;
       z-index: 2000;
       overflow-y: auto;
+      overflow-x: hidden;
       
    }
    .model_tool{
