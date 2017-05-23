@@ -14,5 +14,5 @@ kylin_port=`echo ${kylin_port##*:}`
 kylin_port_in_use=`netstat -tlpn | grep "\b${kylin_port}\b"`
 [[ -z ${kylin_port_in_use} ]] || quit "ERROR: Port ${kylin_port} is in use, another KAP instance is running?"
 
-spark_client_port_in_use=`netstat -tlpn | grep "\b${kylin_port}\b"`
+spark_client_port_in_use=`netstat -tlpn | grep "\b${spark_client_port}\b"`
 [[ -z ${spark_client_port_in_use} ]] || quit "ERROR: Port ${spark_client_port} is in use, spark_client is already running?"
