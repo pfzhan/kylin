@@ -28,12 +28,10 @@ import java.io.IOException;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.request.CubeRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.GeneralResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.JobService;
 import org.slf4j.Logger;
@@ -86,48 +84,6 @@ public class RawTableControllerV2 extends BasicController {
             throw new BadRequestException(msg.getINVALID_RAWTABLE_DEFINITION());
         }
         return desc;
-    }
-
-    @RequestMapping(value = "", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    public EnvelopeResponse updateRawTableDesc(@RequestHeader("Accept-Language") String lang, @RequestBody RawTableRequest rawRequest) throws IOException {
-        KapMsgPicker.setMsg(lang);
-        KapMessage msg = KapMsgPicker.getMsg();
-
-        RawTableDesc desc = deserializeRawTableDesc(rawRequest);
-        rawTableServiceV2.validateRawTableDesc(desc);
-
-        boolean createNew = rawTableServiceV2.unifyRawTableDesc(desc, false);
-
-        String projectName = (null == rawRequest.getProject()) ? ProjectInstance.DEFAULT_PROJECT_NAME : rawRequest.getProject();
-        desc = rawTableServiceV2.updateRawTableToResourceStore(desc, projectName, createNew, false);
-
-        String descData = JsonUtil.writeValueAsIndentString(desc);
-        GeneralResponse data = new GeneralResponse();
-        data.setProperty("uuid", desc.getUuid());
-        data.setProperty("rawTableDescData", descData);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
-    }
-
-    @RequestMapping(value = "/draft", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    public EnvelopeResponse updateRawTableDescDraft(@RequestHeader("Accept-Language") String lang, @RequestBody RawTableRequest rawRequest) throws IOException {
-        KapMsgPicker.setMsg(lang);
-        KapMessage msg = KapMsgPicker.getMsg();
-
-        RawTableDesc desc = deserializeRawTableDesc(rawRequest);
-        rawTableServiceV2.validateRawTableDesc(desc);
-
-        boolean createNew = rawTableServiceV2.unifyRawTableDesc(desc, true);
-
-        String projectName = (null == rawRequest.getProject()) ? ProjectInstance.DEFAULT_PROJECT_NAME : rawRequest.getProject();
-        desc = rawTableServiceV2.updateRawTableToResourceStore(desc, projectName, createNew, true);
-
-        String descData = JsonUtil.writeValueAsIndentString(desc);
-        GeneralResponse data = new GeneralResponse();
-        data.setProperty("uuid", desc.getUuid());
-        data.setProperty("rawTableDescData", descData);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
     @RequestMapping(value = "/{cubeName}", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })

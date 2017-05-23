@@ -28,7 +28,6 @@ import static io.kyligence.kap.cube.raw.RawTableDesc.STATUS_DRAFT;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.engine.mr.CubingJob;
@@ -214,118 +213,69 @@ public class RawTableServiceV2 extends RawTableService {
     }
 
     public boolean unifyRawTableDesc(RawTableDesc desc, boolean isDraft) throws IOException {
-        KapMessage msg = KapMsgPicker.getMsg();
-
         boolean createNew = false;
-        String rawTableName = desc.getName();
-        String originName = null;   // for draft rename check
-        if (desc.getUuid() != null) {
-            originName = getNameByUuid(desc.getUuid());
+        String name = desc.getName();
+        if (isDraft) {
+            name += "_draft";
+            desc.setName(name);
+            desc.setStatus(STATUS_DRAFT);
+        } else {
+            desc.setStatus(null);
         }
 
-        if (!isDraft) { // save as official raw table
-            if (desc.getStatus() != null && desc.getStatus().equals(STATUS_DRAFT)) {  // from draft
-                if (originName == null) {
-                    throw new BadRequestException(msg.getORIGIN_RAWTABLE_NOT_FOUND());
-                }
-                originName = originName.substring(0, originName.lastIndexOf("_draft"));
-                if (!originName.equals(rawTableName)) {     // if rename draft
-                    RawTableDesc parentDesc = getRawTableDescManager().getRawTableDesc(originName);
-                    if (parentDesc == null) {   // only allow rename when official raw table has not been saved
-                        createNew = true;
-                        deleteRawTableByUuid(desc.getUuid());
-                        desc.setStatus(null);
-                        desc.setLastModified(0);
-                        desc.setUuid(UUID.randomUUID().toString());
-                    } else {
-                        throw new BadRequestException(msg.getRAWTABLE_RENAME());
-                    }
-                } else {    // without rename draft
-                    desc.setStatus(null);
-                    RawTableDesc parentDesc = getRawTableDescManager().getRawTableDesc(originName);
-                    if (parentDesc == null) {   // official raw table doesn't exist, create new one
-                        createNew = true;
-                        desc.setLastModified(0);
-                        desc.setUuid(UUID.randomUUID().toString());
-                    } else {    // update existing
-                        desc.setLastModified(parentDesc.getLastModified());
-                        desc.setUuid(parentDesc.getUuid());
-                    }
-                }
-            } else {    // from official
-                if (originName == null) {   // official raw table doesn't exist, create new one
-                    createNew = true;
-                    desc.setLastModified(0);
-                    desc.setUuid(UUID.randomUUID().toString());
-                } else {
-                    if (!originName.equals(rawTableName)) {    // do not allow official raw table rename
-                        throw new BadRequestException(msg.getRAWTABLE_RENAME());
-                    }
-                }
-            }
-        } else {    // save as draft raw table
-            if (desc.getStatus() == null) {    // from official
-                rawTableName += "_draft";
-                desc.setName(rawTableName);
-                desc.setStatus(STATUS_DRAFT);
-                RawTableDesc draftDesc = getRawTableDescManager().getRawTableDesc(rawTableName);
-                if (draftDesc == null) {
-                    createNew = true;
-                    desc.setLastModified(0);
-                    desc.setUuid(UUID.randomUUID().toString());
-                } else if (draftDesc.getStatus() != null && draftDesc.getStatus().equals(STATUS_DRAFT)) {   // update existing
-                        desc.setLastModified(draftDesc.getLastModified());
-                        desc.setUuid(draftDesc.getUuid());
-                } else {    // already exist an official draft with name ends with '_draft'
-                    throw new BadRequestException(String.format(msg.getNON_DRAFT_RAWTABLE_ALREADY_EXIST(), rawTableName));
-                }
-            } else if (desc.getStatus().equals(STATUS_DRAFT)) {    // from draft
-                if (originName == null) {
-                    throw new BadRequestException(msg.getORIGIN_RAWTABLE_NOT_FOUND());
-                }
-                originName = originName.substring(0, originName.lastIndexOf("_draft"));
-                if (!originName.equals(rawTableName)) {    // if rename draft
-                    RawTableDesc parentDesc = getRawTableDescManager().getRawTableDesc(originName);
-                    if (parentDesc == null) {   // only allow rename when official raw table has not been saved
-                        createNew = true;
-                        deleteRawTableByUuid(desc.getUuid());
-                        rawTableName += "_draft";
-                        desc.setName(rawTableName);
-                        desc.setStatus(STATUS_DRAFT);
-                        desc.setLastModified(0);
-                        desc.setUuid(UUID.randomUUID().toString());
-                    } else {
-                        throw new BadRequestException(msg.getRAWTABLE_RENAME());
-                    }
-                } else {    // without rename draft
-                    rawTableName += "_draft";
-                    desc.setName(rawTableName);
-                }
-            }
+        RawTableDesc youngerSelf = killSameUuid(desc.getUuid(), name, isDraft);
+        if (youngerSelf != null) {
+            desc.setLastModified(youngerSelf.getLastModified());
+        } else {
+            createNew = true;
+            desc.setLastModified(0);
         }
+
         return createNew;
     }
 
-    public String getNameByUuid(String uuid) {
+    public RawTableDesc killSameUuid(String uuid, String name, boolean isDraft) throws IOException {
+        KapMessage msg = KapMsgPicker.getMsg();
+
+        RawTableDesc youngerSelf = null, official = null;
+        boolean rename = false;
         List<RawTableInstance> rawTables = getRawTableManager().listAllRawTables();
         for (RawTableInstance rawTable : rawTables) {
-            if (rawTable.getRawTableDesc().getUuid().equals(uuid)) {
-                return rawTable.getName();
+            RawTableDesc rawTableDesc = rawTable.getRawTableDesc();
+            if (rawTableDesc.getUuid().equals(uuid)) {
+                boolean toDrop = true;
+                boolean sameStatus = sameStatus(rawTableDesc.getStatus(), isDraft);
+                if (sameStatus && !rawTableDesc.getName().equals(name)) {
+                    rename = true;
+                }
+                if (sameStatus && rawTableDesc.getName().equals(name)) {
+                    youngerSelf = rawTableDesc;
+                    toDrop = false;
+                }
+                if (rawTableDesc.getStatus() == null) {
+                    official = rawTableDesc;
+                    toDrop = false;
+                }
+                if (toDrop) {
+                    deleteRaw(rawTable);
+                }
             }
         }
-        return null;
+        if (official != null && rename) {
+            throw new BadRequestException(msg.getRAWTABLE_RENAME());
+        }
+        return youngerSelf;
     }
 
-    public void deleteRawTableByUuid(String uuid) throws IOException {
-        List<RawTableInstance> rawTables = getRawTableManager().listAllRawTables();
-        for (RawTableInstance rawTable : rawTables) {
-            if (rawTable.getRawTableDesc().getUuid().equals(uuid)) {
-                deleteRaw(rawTable);
-            }
+    public boolean sameStatus(String status, boolean isDraft) {
+        if (status == null || !status.equals(STATUS_DRAFT)) {
+            return !isDraft;
+        } else {
+            return isDraft;
         }
     }
 
-    public RawTableDesc updateRawTableToResourceStore(RawTableDesc desc, String projectName, boolean createNew, boolean isDraft) throws IOException {
+    public RawTableDesc updateRawTableToResourceStore(RawTableDesc desc, String projectName, boolean createNew) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
         String name = desc.getName();
@@ -349,13 +299,19 @@ public class RawTableServiceV2 extends RawTableService {
                 throw new ForbiddenException(msg.getUPDATE_CUBE_NO_RIGHT());
             }
         }
+        return desc;
+    }
 
-        if (!isDraft) {
-            RawTableInstance draftRawTable = getRawTableManager().getRawTableInstance(name + "_draft");
-            if (null != draftRawTable && draftRawTable.getRawTableDesc().getStatus() != null && draftRawTable.getRawTableDesc().getStatus().equals(STATUS_DRAFT)) {
-                deleteRaw(draftRawTable);
+    public void deleteRawByUuid(String uuid, boolean isDraft) throws IOException {
+        List<RawTableInstance> rawTables = getRawTableManager().listAllRawTables();
+        for (RawTableInstance rawTable : rawTables) {
+            RawTableDesc rawTableDesc = rawTable.getRawTableDesc();
+            if (rawTableDesc.getUuid().equals(uuid)) {
+                boolean sameStatus = sameStatus(rawTableDesc.getStatus(), isDraft);
+                if (!isDraft || sameStatus) {
+                    deleteRaw(rawTable);
+                }
             }
         }
-        return desc;
     }
 }

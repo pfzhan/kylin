@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.rest.msg;
 
-
 /**
  * Created by luwei on 17-5-10.
  */
@@ -57,6 +56,8 @@ public class KapMessage {
     // Cube
     private final String CUBE_NOT_FOUND = "Cannot find cube '%s'.";
     private final String UPDATE_CUBE_NO_RIGHT = "You don't have right to update this cube.";
+    private final String INVALID_CUBE_DEFINITION = "The cube definition is invalid.";
+    private final String DISCARD_JOB_FIRST = "The cube '%s' has running or failed job, please discard it and try again.";
 
     // KAP Cube
     private final String RAW_SEG_SIZE_NOT_ONE = "There should be exactly one rawtable segment.";
@@ -134,9 +135,6 @@ public class KapMessage {
     // KAP Table Ext
     private final String JOB_INSTANCE_NOT_FOUND = "Cannot find job instance.";
 
-
-
-
     public String getCLEAN_FOLDER_FAIL() {
         return CLEAN_FOLDER_FAIL;
     }
@@ -157,7 +155,6 @@ public class KapMessage {
         return QUERY_RESULT_FILE_NOT_FOUND;
     }
 
-
     public String getCUBE_NOT_FOUND() {
         return CUBE_NOT_FOUND;
     }
@@ -166,11 +163,17 @@ public class KapMessage {
         return UPDATE_CUBE_NO_RIGHT;
     }
 
+    public String getINVALID_CUBE_DEFINITION() {
+        return INVALID_CUBE_DEFINITION;
+    }
+
+    public String getDISCARD_JOB_FIRST() {
+        return DISCARD_JOB_FIRST;
+    }
 
     public String getRAW_SEG_SIZE_NOT_ONE() {
         return RAW_SEG_SIZE_NOT_ONE;
     }
-
 
     public String getEMPTY_USER_NAME() {
         return EMPTY_USER_NAME;
@@ -191,7 +194,6 @@ public class KapMessage {
     public String getOLD_PASSWORD_WRONG() {
         return OLD_PASSWORD_WRONG;
     }
-
 
     public String getINVALID_RAWTABLE_DEFINITION() {
         return INVALID_RAWTABLE_DEFINITION;
@@ -265,11 +267,9 @@ public class KapMessage {
         return ORIGIN_RAWTABLE_NOT_FOUND;
     }
 
-
     public String getSCHEDULER_JOB_NOT_FOUND() {
         return SCHEDULER_JOB_NOT_FOUND;
     }
-
 
     public String getUNIQUE_SEQ_ID_REQUIRED() {
         return UNIQUE_SEQ_ID_REQUIRED;
@@ -315,7 +315,6 @@ public class KapMessage {
         return TOPOLOGY_FINAL_RESULT_NOT_FOUND;
     }
 
-
     public String getQUERY_NOT_ALLOWED() {
         return QUERY_NOT_ALLOWED;
     }
@@ -324,16 +323,13 @@ public class KapMessage {
         return NOT_SUPPORTED_SQL;
     }
 
-
     public String getEMPTY_FEATURE_NAME() {
         return EMPTY_FEATURE_NAME;
     }
 
-
     public String getDIAG_NOT_FOUND() {
         return DIAG_NOT_FOUND;
     }
-
 
     public String getGENERATE_KYBOT_PACKAGE_FAIL() {
         return GENERATE_KYBOT_PACKAGE_FAIL;
@@ -359,21 +355,17 @@ public class KapMessage {
         return AUTH_FAIL;
     }
 
-
     public String getKYLIN_HOME_UNDEFINED() {
         return KYLIN_HOME_UNDEFINED;
     }
-
 
     public String getINVALID_KAFKA_DEFINITION() {
         return INVALID_KAFKA_DEFINITION;
     }
 
-
     public String getDOWNLOAD_FILE_CREATE_FAIL() {
         return DOWNLOAD_FILE_CREATE_FAIL;
     }
-
 
     public String getJOB_INSTANCE_NOT_FOUND() {
         return JOB_INSTANCE_NOT_FOUND;
