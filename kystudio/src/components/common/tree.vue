@@ -76,7 +76,7 @@
             innerHTML: this.createLeafContent(data)
           },
           attrs: {
-            title: data.label + '(' + data.subLabel + ')',
+            title: data.label + (data.subLabel ? '(' + data.subLabel + ')' : ''),
             draggable: _this.allowdrag,
             class: node.icon || ''
           },

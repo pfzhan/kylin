@@ -3,7 +3,7 @@
       <div class="tree_list">
          <el-radio-group v-model="currentLoadType" class="ksd-mt-30 ksd-ml-30">
 		    <el-radio-button label="Hive" @click.native="openLoadHiveListDialog"><icon name="download" scale="0.8"></icon><span> Hive</span></el-radio-button>
-		    <el-radio-button label="Kfka" @click.native="openKafkaDialog = true"><icon name="download" scale="0.8"></icon><span> Kafka</span></el-radio-button>
+		    <el-radio-button label="Kfka" @click.native="openKafkaDialog"><icon name="download" scale="0.8"></icon><span> Kafka</span></el-radio-button>
 		  </el-radio-group>
 
       <tree :treedata="modelAssets"  maxLabelLen="20" :indent="4" :expandall="true" :showfilter="false" :allowdrag="false" @nodeclick="clickTable"></tree>

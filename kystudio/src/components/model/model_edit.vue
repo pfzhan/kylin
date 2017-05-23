@@ -9,9 +9,9 @@
 <!--     </draggable> -->
     </div>
     <ul class="model_tool">
-        <li class="toolbtn tool_add" @click="addZoom" v-unselect><span></span></li>
-        <li class="toolbtn tool_jian" @click="subZoom" v-unselect><span></span></li>
-        <li class="toolbtn" @click="autoLayerPosition" v-unselect><span>LAYOUT</span></li>
+        <li class="toolbtn tool_add" @click="addZoom" v-unselect title="放大视图"><span></span></li>
+        <li class="toolbtn tool_jian" @click="subZoom" v-unselect title="缩小视图"><span></span></li>
+        <li class="toolbtn" @click="autoLayerPosition" v-unselect style="line-height:26px;" title="自动布局"><icon style="color:#383838" name="life-bouy"></icon></li>
       </ul>
     <div class="btn_group"  v-if="actionMode!=='view'">
       <el-button @click="saveDraft(true)" :loading="draftBtnLoading">Draft</el-button>
@@ -1731,12 +1731,13 @@ export default {
       delete jsonData.pos
       delete jsonData.uuid
       delete jsonData.last_modified
+      delete jsonData.status
       jsonData = JSON.stringify(jsonData)
       if (jsonData !== this.hisModelJsonStr) {
-        if (this.hisModelJsonStr === '') {
-          this.hisModelJsonStr = jsonData
-          return false
-        }
+        // if (this.hisModelJsonStr === '') {
+        //   this.hisModelJsonStr = jsonData
+        //   return false
+        // }
         this.hisModelJsonStr = jsonData
         return true
       }
