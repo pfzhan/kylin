@@ -43,7 +43,7 @@
       </el-button >
       <el-dropdown-menu slot="dropdown">
         <el-dropdown-item @click.native="editProject(scope.row)">{{$t('edit')}}</el-dropdown-item> 
-        <el-dropdown-item @click.native="backup">{{$t('backup')}}</el-dropdown-item>
+        <el-dropdown-item @click.native="backup(scope.row)">{{$t('backup')}}</el-dropdown-item>
         <el-dropdown-item @click.native="removeProject(scope.row)">{{$t('delete')}}</el-dropdown-item>
       </el-dropdown-menu>
       </el-dropdown>
@@ -78,7 +78,8 @@ export default {
       saveAccess: 'SAVE_PROJECT_ACCESS',
       editAccess: 'EDIT_PROJECT_ACCESS',
       getAccess: 'GET_PROJECT_ACCESS',
-      delAccess: 'DEL_PROJECT_ACCESS'
+      delAccess: 'DEL_PROJECT_ACCESS',
+      backupProject: 'BACKUP_PROJECT'
     }),
     editProject (project) {
       this.FormVisible = true
@@ -167,8 +168,24 @@ export default {
         })
       })
     },
-    backup () {
-      console.log('1')
+    backup (project) {
+      // console.log('1')
+      this.backupProject(project).then((result) => {
+        this.$message({
+          type: 'success',
+          message: this.$t('backupSuccessful')
+        })
+      }, (res) => {
+        handleError(res, (data, code, status, msg) => {
+          console.log(data, code, status, msg)
+          if (status === 400) {
+            this.$message({
+              type: 'error',
+              message: msg
+            })
+          }
+        })
+      })
     },
     initAccessMeta () {
       return {
@@ -229,8 +246,8 @@ export default {
     this.loadProjects({pageOffset: this.currentPage - 1, pageSize: this.pageSize})
   },
   locales: {
-    'en': {project: 'Project', name: 'Name', owner: 'Owner', description: 'Description', createTime: 'Create Time', action: 'Action', access: 'Access', externalFilters: 'External Filters', edit: 'Edit', backup: 'Backup', delete: 'Delete', tip: 'Tip', cancel: 'Cancel', yes: 'Yes', saveSuccessful: 'Saved the project successful!', saveFailed: 'Save Failed!', deleteProject: 'Once it\'s deleted, your project\'s metadata and data will be cleaned up and can\'t be restored back.  '},
-    'zh-cn': {project: '项目', name: '名称', owner: '所有者', description: '描述', createTime: '创建时间', action: '操作', access: '权限', externalFilters: '其他过滤', edit: '编辑', backup: '备份', delete: '删除', tip: '提示', cancel: '取消', yes: '确定', saveSuccessful: '保存项目成功!', saveFailed: '保存失败!', deleteProject: '删除后, 项目定义及数据会被清除, 且不能恢复.'}
+    'en': {project: 'Project', name: 'Name', owner: 'Owner', description: 'Description', createTime: 'Create Time', action: 'Action', access: 'Access', externalFilters: 'External Filters', edit: 'Edit', backup: 'Backup', delete: 'Delete', tip: 'Tip', cancel: 'Cancel', yes: 'Yes', saveSuccessful: 'Saved the project successful!', saveFailed: 'Save Failed!', deleteProject: 'Once it\'s deleted, your project\'s metadata and data will be cleaned up and can\'t be restored back.  ', backupSuccessful: 'backup successful!'},
+    'zh-cn': {project: '项目', name: '名称', owner: '所有者', description: '描述', createTime: '创建时间', action: '操作', access: '权限', externalFilters: '其他过滤', edit: '编辑', backup: '备份', delete: '删除', tip: '提示', cancel: '取消', yes: '确定', saveSuccessful: '保存项目成功!', saveFailed: '保存失败!', deleteProject: '删除后, 项目定义及数据会被清除, 且不能恢复.', backupSuccessful: '备份成功!'}
   }
 }
 </script>

@@ -24,7 +24,6 @@
       </el-checkbox-group>
     </el-col>
   </el-row>
-
     <el-table
     border class="table_margin"
     :data="jobsList"
@@ -48,15 +47,15 @@
         <template scope="scope">
           <el-progress  :percentage="scope.row.progress" v-if="scope.row.progress === 100" status="success">
           </el-progress>
-          <el-progress  :percentage="scope.row.progress"  v-else>
+          <el-progress  :percentage="scope.row.progress | number(2)"  v-else>
           </el-progress>
         </template>
       </el-table-column>
       <el-table-column
         :label="$t('LastModifiedTime')"
-        width="170">
+        width="220">
         <template scope="scope">
-        {{scope.row.last_modified|utcTime}}
+        {{scope.row.gmtTime}}
         </template>
       </el-table-column>
       <el-table-column
@@ -229,6 +228,7 @@
 import { mapActions } from 'vuex'
 import jobDialog from './job_dialog'
 import { pageCount } from '../../config'
+import { transToGmtTime } from 'util/business'
 export default {
   name: 'jobslist',
   data () {
@@ -282,7 +282,10 @@ export default {
   },
   computed: {
     jobsList () {
-      return this.$store.state.monitor.jobsList
+      return this.$store.state.monitor.jobsList.map((m) => {
+        m.gmtTime = transToGmtTime(m.last_modified, this)
+        return m
+      })
     },
     jobTotal () {
       return this.$store.state.monitor.totalJobs

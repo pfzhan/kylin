@@ -66,7 +66,7 @@ Vue.filter('omit', function (value, len, replaceChar) {
 })
 
 Vue.filter('number', function (value, fix) {
-  return value.toFixed(fix)
+  return +value.toFixed(fix)
 })
 
 // the time mins and seconds

@@ -1,6 +1,19 @@
-   <template>
- <div>
+<template>
+<div class="access_edit">
     <el-button class="ksd-mb-20" type="primary" @click="addAccess()"> ＋ {{$t('grant')}}</el-button>
+    <el-popover ref="popoverGrant" placement="right" trigger="click" width="400">
+      <div class="grant-popover">
+        <h4>{{$t('grantTitle')}}</h4>
+        <ul>
+          <li>{{$t('grantDetail1')}}</li>
+          <li>{{$t('grantDetail2')}}</li>
+          <li>{{$t('grantDetail3')}}</li>
+          <li>{{$t('grantDetail4')}}</li>
+        </ul>
+      </div>
+    </el-popover>
+    <el-button v-popover:popoverGrant class="ques">?</el-button>
+
       <div v-if="editAccessVisible">
       <el-form :inline="true" :model="accessMeta"  class="demo-form-inline">
        <el-form-item :label="$t('type')">
@@ -53,20 +66,18 @@
 	      >
 	    </el-table-column>
 	   <el-table-column 
-	      label="操作"
+	      :label="$t('kylinLang.common.action')"
 	      width="120">
 	      <template scope="scope">
 	        <el-button 
 	          @click="removeAccess(scope.row.id)"
-	          type="text"
-	          size="small">
-	          移除
+	          type="text">
+	          {{$t('kylinLang.common.delete')}}
 	        </el-button>
 	        <el-button 
 	          @click="beginEdit(scope.row)"
-	          type="text"
-	          size="small">
-	          编辑
+	          type="text">
+	          {{$t('kylinLang.common.edit')}}
 	        </el-button>
 	      </template>
 	    </el-table-column>
@@ -178,6 +189,9 @@ export default {
           }) || []
         })
       })
+    },
+    grantDetail () {
+
     }
   },
   computed: {
@@ -186,10 +200,35 @@ export default {
     this.loadAccess()
   },
   locales: {
-    'en': {grant: 'Grant', type: 'type', user: 'User', role: 'Role', name: 'Name', nameAccount: 'user account', permission: 'Permission', cubeAdmin: 'CUBE ADMIN', cubeEdit: 'Cube Edit', cubeOpera: 'Cube Operation', cubeQuery: 'cubeQuery', principal: 'Principal', access: 'Access'},
-    'zh-cn': {grant: '授权', type: '类型', user: '用户', role: '群组', name: '名称', nameAccount: '用户账号', permission: '许可', cubeAdmin: 'Cube 管理', cubeEdit: 'Cube 编辑', cubeOpera: 'Cube 操作', cubeQuery: 'Cube 查询', principal: '主表', access: '入口'}
+    'en': {grant: 'Grant', type: 'type', user: 'User', role: 'Role', name: 'Name', nameAccount: 'user account', permission: 'Permission', cubeAdmin: 'CUBE ADMIN', cubeEdit: 'Cube Edit', cubeOpera: 'Cube Operation', cubeQuery: 'cubeQuery', principal: 'Principal', access: 'Access', grantTitle: 'What does access mean to cube?', grantDetail1: 'CUBE QUERY: Access to query cube', grantDetail2: 'CUBE OPERATION: Access to rebuild, resume and cancel jobs. Also include access of CUBE QUERY.', grantDetail3: 'CUBE MANAGEMENT: Access to edit/delete cube. Also include access of CUBE OPERATION.', grantDetail4: 'CUBE ADMIN: Full access to cube and jobs, including access management.'},
+    'zh-cn': {grant: '授权', type: '类型', user: '用户', role: '群组', name: '名称', nameAccount: '用户账号', permission: '许可', cubeAdmin: 'Cube 管理', cubeEdit: 'Cube 编辑', cubeOpera: 'Cube 操作', cubeQuery: 'Cube 查询', principal: '名称', access: '权限', grantTitle: '什么是Cube权限', grantDetail1: 'CUBE QUERY: 查询Cube的权限', grantDetail2: 'CUBE OPERATION: 构建Cube的权限, 包括恢复和取消任务；包含查询权限.', grantDetail3: 'CUBE MANAGEMENT: 编辑和删除Cube的权限, 包含了构建Cube的权限.', grantDetail4: 'CUBE ADMIN: 对Cube拥有所有权限.'}
   }
 }
 </script>
-<style scoped="">
+<style lang="less">
+.grant-popover {
+  h4 {
+    height:30px;
+    line-height: 30px;
+    font-size: 14px;
+  }
+  ul {
+    line-height: 20px;
+    margin-left: 10px;
+    li {
+      position: relative;
+      padding-left: 10px;
+    }
+    li:before {
+      position: absolute;
+      top: 8px;
+      left: 0;
+      content: '';
+      width: 4px;
+      height:4px;
+      border-radius: 50%;
+      background: #333;
+    }
+  }
+}
 </style>

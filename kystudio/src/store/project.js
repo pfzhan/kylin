@@ -75,6 +75,9 @@ export default {
     },
     [types.GET_PROJECT_FILTER]: function ({ commit }, project) {
       return api.project.getProjectFilter(project)
+    },
+    [types.BACKUP_PROJECT]: function ({ commit }, project) {
+      return api.project.backupProject(project)
     }
   },
   getters: {}
