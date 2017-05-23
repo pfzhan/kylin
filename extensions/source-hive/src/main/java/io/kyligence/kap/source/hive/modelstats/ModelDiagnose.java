@@ -42,7 +42,7 @@ import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.source.ReadableTable;
+import org.apache.kylin.source.IReadableTable;
 import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,7 +75,7 @@ public class ModelDiagnose {
             }
             List<TblColRef> primaryKeys = new ArrayList<>();
             primaryKeys.addAll(Arrays.asList(fTable.getJoin().getPrimaryKeyColumns()));
-            ReadableTable hiveTable = SourceFactory.createReadableTable(tableDesc);
+            IReadableTable hiveTable = SourceFactory.createReadableTable(tableDesc);
             SnapshotTable snapshot = SnapshotManager.getInstance(config).buildSnapshot(hiveTable, tableDesc);
             ModelStats.DuplicatePK dupPK = checkLookup(tableDesc, primaryKeys, snapshot);
             dupPKList.add(dupPK);
@@ -100,7 +100,7 @@ public class ModelDiagnose {
         ModelStats.DuplicatePK dupPK = new ModelStats.DuplicatePK();
         dupPK.setLookUpTable(tableDesc.getName());
         dupPK.setPrimaryKeys(toString(keyNames));
-        ReadableTable.TableReader reader = table.getReader();
+        IReadableTable.TableReader reader = table.getReader();
         while (reader.next()) {
             for (int i = 0; i < keyColumns.size(); i++) {
                 keyValues[i] = reader.getRow()[keyIndex[i]];

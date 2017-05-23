@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.kylin.common.util.StringUtil;
-import org.apache.kylin.job.exception.JobException;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -114,7 +113,7 @@ public class TableExtControllerV2 extends BasicController {
 
     @RequestMapping(value = "/{tables}/{project}", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse loadHiveTable(@RequestHeader("Accept-Language") String lang, @RequestBody ExtTableRequest request) throws IOException, JobException {
+    public EnvelopeResponse loadHiveTable(@RequestHeader("Accept-Language") String lang, @RequestBody ExtTableRequest request) throws Exception {
         KapMsgPicker.setMsg(lang);
 
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
