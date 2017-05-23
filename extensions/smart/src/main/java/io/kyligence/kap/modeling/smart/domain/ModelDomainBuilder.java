@@ -85,6 +85,8 @@ public class ModelDomainBuilder implements IDomainBuilder {
                 measureCols.add(colRef);
             }
         }
+        measureCols.addAll(dimensionCols);
+
         Set<FunctionDesc> measureFuncs = new HashSet<>();
         for (TblColRef colRef : measureCols) {
             // Distinct Count

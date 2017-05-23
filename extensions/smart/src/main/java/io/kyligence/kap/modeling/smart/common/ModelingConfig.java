@@ -154,4 +154,8 @@ public class ModelingConfig {
     public int getAggGroupStrictRetryMax() {
         return getOptional("aggGroup.strict.retry-max", strategy.getAggGroupStrictRetryMax());
     }
+
+    public int getDerivedStrictRetryMax() {
+        return getOptional("derived.strict.retry-max", strategy.getDerivedStrictRetryMax());
+    }
 }

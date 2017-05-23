@@ -57,17 +57,26 @@ public class DerivedDimensionProposer extends AbstractProposer {
     @Override
     public void doPropose(CubeDesc workCubeDesc) {
         if (context.hasTableStats() || context.hasModelStats()) { // tableStats and modelStats have cardinality information.
-            buildDerivedDim(workCubeDesc);
-            CubeDescUtil.fillCubeDefaultAdvSettings(workCubeDesc);
+            int lastRowkeyNum = 0;
+            int retry = 1;
+            double derivedRatio = modelingConfig.getDimDerivedRatio();
+            do {
+                lastRowkeyNum = workCubeDesc.getRowkey().getRowKeyColumns().length;
 
-            workCubeDesc.deInit();
-            workCubeDesc.init(context.getKylinConfig());
+                buildDerivedDim(workCubeDesc, derivedRatio);
+                CubeDescUtil.fillCubeDefaultAdvSettings(workCubeDesc);
+
+                workCubeDesc.deInit();
+                workCubeDesc.init(context.getKylinConfig());
+
+                derivedRatio = derivedRatio / 2;
+            } while (workCubeDesc.getRowkey().getRowKeyColumns().length > 63 && workCubeDesc.getRowkey().getRowKeyColumns().length < lastRowkeyNum && retry++ < modelingConfig.getDerivedStrictRetryMax());
         }
     }
 
-    private void buildDerivedDim(CubeDesc workCubeDesc) {
+    private void buildDerivedDim(CubeDesc workCubeDesc, double derivedRatio) {
         Set<DimensionDesc> normalDims = normalizeAllDerived(workCubeDesc);
-        List<DimensionDesc> convertedDims = convertToDerived(workCubeDesc, normalDims);
+        List<DimensionDesc> convertedDims = convertToDerived(workCubeDesc, normalDims, derivedRatio);
         workCubeDesc.setDimensions(convertedDims);
     }
 
@@ -124,7 +133,7 @@ public class DerivedDimensionProposer extends AbstractProposer {
         return result;
     }
 
-    private List<DimensionDesc> convertToDerived(CubeDesc cubeDesc, Collection<DimensionDesc> origDimensions) {
+    private List<DimensionDesc> convertToDerived(CubeDesc cubeDesc, Collection<DimensionDesc> origDimensions, double derivedRatio) {
         Set<DimensionDesc> workDimensions = Sets.newHashSet();
         DataModelDesc modelDesc = context.getModelDesc();
 
@@ -202,7 +211,7 @@ public class DerivedDimensionProposer extends AbstractProposer {
                 } else {
                     long colCardinality = context.getColumnsCardinality(dimColRef.getIdentity());
                     double colCardRatio = (double) colCardinality / (double) pKeyCardinality;
-                    if (colCardRatio > modelingConfig.getDimDerivedRatio()) {
+                    if (colCardRatio > derivedRatio) {
                         logger.debug("Found one derived dimension: column={}, cardinality={}, pkCardinality={}, cardinalityRatio={}", tblDim.getColumn(), colCardinality, pKeyCardinality, colCardRatio);
                         derivedDimNames.add(tblDim.getColumn());
                     } else {

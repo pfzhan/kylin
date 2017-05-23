@@ -64,4 +64,6 @@ interface IModelingStrategy {
     int getAggGroupStrictCombinationMax();
 
     int getAggGroupStrictRetryMax();
+
+    int getDerivedStrictRetryMax();
 }
