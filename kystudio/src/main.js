@@ -22,6 +22,7 @@ import iconBtn from 'components/common/icon_button'
 import commonTip from 'components/common/common_tip'
 import tree from 'components/common/tree'
 import pager from 'components/common/pager'
+import slider from 'components/common/slider'
 import nodata from 'components/common/nodata'
 // import draggable from 'vuedraggable'
 import nprogress from 'nprogress'
@@ -36,6 +37,7 @@ Vue.component('tree', tree)
 Vue.component('pager', pager)
 Vue.component('kap-icon-button', iconBtn)
 Vue.component('kap-nodata', nodata)
+Vue.component('slider', slider)
 // Vue.component('draggable', draggable)
 // Vue.component('introJs', introJs)
 // var cmdArg = process.argv.splice(2) && process.argv.splice(2)[0] || ''

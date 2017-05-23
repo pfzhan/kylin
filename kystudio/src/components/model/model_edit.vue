@@ -183,10 +183,11 @@
 
     <el-dialog title="Confirm Add" v-model="addModelDialogDisable" >
        <partition-column :modelInfo="modelInfo" :actionMode="actionMode" :editLock="editLock" :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
-
+<!-- 
        <el-checkbox v-model="openModelCheck">Check Model</el-checkbox>
 
         <el-slider v-model="modelStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openModelCheck'></el-slider>
+ -->        <slider label="Check Model" @changeBar="changeModelBar" :show="addModelDialogDisable"></slider>
        <div slot="footer" class="dialog-footer">
         <el-button @click="addModelDialogDisable = false">取 消</el-button>
         <el-button type="primary" @click="saveAndCheckModel">添 加</el-button>
@@ -380,9 +381,6 @@ export default {
       checkCubeName: 'CHECK_CUBE_NAME_AVAILABILITY',
       statsModel: 'COLLECT_MODEL_STATS'
     }),
-    formatTooltip (val) {
-      return val + '%'
-    },
     // 列排序
     sortColumns: function (tableInfo) {
       var key = 'name'
@@ -409,10 +407,13 @@ export default {
       }
       return this.editLock
     },
+    changeModelBar (val) {
+      this.modelStaticsRange = val
+      this.openModelCheck = !!val
+    },
     // 保存正式
     saveCurrentModel () {
       this.addModelDialogDisable = true
-      this.modelStaticsRange = 0
       if (this.extraoption.actionMode !== 'add') {
         this.saveAndCheckModel()
       }
@@ -433,7 +434,7 @@ export default {
             project: this.project,
             modelname: this.modelInfo.modelName,
             data: {
-              ratio: this.modelStaticsRange
+              ratio: (this.modelStaticsRange / 100).toFixed(2)
             }
           })
         }

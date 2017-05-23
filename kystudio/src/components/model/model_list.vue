@@ -179,11 +179,13 @@ export default {
     pageCurrentChange (currentPage) {
       this.currentPage = currentPage
       var params = {pageSize: pageCount, pageOffset: currentPage - 1}
+      var params1 = {pageSize: pageCount, pageOffset: currentPage - 1}
       if (this.project) {
         params.projectName = this.project
+        params1.projectName = this.project
       }
       this.loadModels(params)
-      this.loadModelDiagnoseList({project: this.project, pageOffset: currentPage - 1, pageSize: pageCount})
+      this.loadModelDiagnoseList(params1)
     },
     sizeChange () {
     },
@@ -457,6 +459,7 @@ export default {
   created () {
     var params = {pageSize: pageCount, pageOffset: 0}
     var params1 = {pageSize: pageCount, pageOffset: 0}
+    console.log(this.project, 112233)
     if (this.project) {
       params.projectName = this.project
     }

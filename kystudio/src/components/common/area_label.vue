@@ -1,7 +1,7 @@
  <template>
  <div class="area_label" :class="changeable">
   <el-select ref="select"
-    v-model="selectedlabels"
+    v-model="selectedL"
     @remove-tag="removeTag"
     @change="change"
     style="width:100%"
@@ -30,8 +30,10 @@ export default {
         }
         arr.push(obj)
       }
-      console.log(arr, 'arr')
       return arr
+    },
+    selectedL () {
+      return this.selectedlabels
     }
   },
   methods: {
@@ -41,7 +43,8 @@ export default {
       this.$emit('change', target.innerText, target)
     },
     removeTag (data) {
-      for (var k = 0; this.selectedlabels && k < this.selectedlabels.length || 0; k++) {
+      for (var k = 0; k < (this.selectedlabels && this.selectedlabels.length || 0); k++) {
+        console.log(data, 999)
         if (this.selectedlabels[k] === data.value) {
           this.selectedlabels.splice(k, 1)
           break

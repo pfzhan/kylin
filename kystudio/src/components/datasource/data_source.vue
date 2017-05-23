@@ -181,9 +181,10 @@
 		  	<div class="tree_check_content ksd-mt-20">
 		 	  <arealabel :labels="selectTables" changeable="unchange" :selectedlabels="selectTablesNames" placeholder="请在左侧选择要加载的table" ></arealabel>
         <div class="ksd-mt-20">
-          <el-checkbox v-model="openCollectRange">Table Stats</el-checkbox>
+          <!-- <el-checkbox v-model="openCollectRange">Table Stats</el-checkbox> -->
           <!-- <span class="demonstration">Sample percentage</span> -->
-          <el-slider :min="0" show-stops :step="20" @change="changeBarVal" v-model="tableStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider>
+          <!-- <el-slider :min="0" show-stops :step="20" @change="changeBarVal" v-model="tableStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider> -->
+          <slider @changeBar="changeBar" label="Table Stats" :show="load_hive_dalog_visible"></slider>
         </div>
 		    </div>
 		  </div></el-col>
@@ -200,8 +201,9 @@
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">
               <div class="ksd-mt-20">
-                <el-checkbox v-model="openCollectRange">Table Stats</el-checkbox>
-                 <el-slider v-model="tableStaticsRange" :min="0" @change="changeBarVal" show-stops :step="20" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider>
+                <!-- <el-checkbox v-model="openCollectRange">Table Stats</el-checkbox> -->
+               <!--   <el-slider v-model="tableStaticsRange" :min="0"  show-stops :step="20" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider> -->
+                 <slider @changeBar="changeBar" label="Table Stats" :show="scanRatioDialogVisible"></slider>
               </div>
               </div>
             </div>
@@ -218,8 +220,7 @@
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">
               <div class="ksd-mt-20">
-                <el-checkbox v-model="openCollectRange">Table Stats</el-checkbox>
-                 <el-slider :min="0" show-stops :step="20" v-model="tableStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider>
+                 <slider label="Table Stats" @changeBar="changeBar" :show="scanSampleRatioDialogVisible"></slider>
               </div>
               </div>
             </div>
@@ -344,13 +345,9 @@ export default {
       collectKafkaSampleData: 'LOAD_KAFKA_SAMPLEDATA',
       getKafkaTableDetail: 'GET_KAFKA_CONFIG'
     }),
-    formatTooltip (val) {
-      return val + '%'
-    },
-    changeBarVal (val) {
-      if (val === 0) {
-        this.openCollectRange = false
-      }
+    changeBar (val) {
+      this.tableStaticsRange = val
+      this.openCollectRange = !!val
     },
     // 初始化加载hive列表的弹窗
     openLoadHiveListDialog () {
@@ -359,8 +356,6 @@ export default {
         return
       }
       this.load_hive_dalog_visible = true
-      this.openCollectRange = false
-      this.tableStaticsRange = 100
     },
     openKafkaDialog () {
       if (!this.project) {

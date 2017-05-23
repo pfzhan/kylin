@@ -220,7 +220,7 @@ export default {
       getCubeSql: 'GET_CUBE_SQL',
       deleteRawTable: 'DELETE_RAW_TABLE',
       deleteScheduler: 'DELETE_SCHEDULER',
-      loadModels: 'LOAD_MODEL_LIST'
+      loadModels: 'LOAD_ALL_MODEL'
     }),
     transToGmtTime,
     reloadCubeList () {
@@ -647,7 +647,7 @@ export default {
   },
   created () {
     this.loadCubesList(0)
-    this.loadModels({pageSize: pageCount, pageOffset: 0, projectName: this.selected_project})
+    this.loadModels({pageSize: 10000, pageOffset: 0, projectName: this.selected_project})
   },
   computed: {
     modelsList () {

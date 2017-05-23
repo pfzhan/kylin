@@ -369,7 +369,7 @@ export default {
     })
     setTimeout(function (argument) {
       _this.slideSubMenu('show')
-    }, 2000)
+    }, 1000)
   },
   mounted () {
   }

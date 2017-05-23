@@ -29,6 +29,9 @@ export default {
         commit(types.SAVE_MODEL_LIST, { list: response.data.data.models, total: response.data.data.size })
       })
     },
+    [types.LOAD_ALL_MODEL]: function ({ commit }, para) {
+      return api.model.getModelList(para)
+    },
     [types.SUGGEST_DIMENSION_MEASURE]: function ({ commit }, para) {
       return api.model.measureDimensionSuggestion(para)
     },
