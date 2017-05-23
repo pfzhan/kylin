@@ -22,7 +22,7 @@
 		    </p>
 		      <div style="padding: 20px;">
 		        <h2 :title="o.name" @click="viewModel(o)">{{o.name|omit(24, '...')}} <icon v-if="!o.status" :name="getModelStatusIcon(o)&&getModelStatusIcon(o).icon" :style="{color:getModelStatusIcon(o) && getModelStatusIcon(o).color}"></icon> </h2>
-            <el-progress v-visible="getHelthInfo(o.name).progress" :percentage="(getHelthInfo(o.name).progress||0)*100" style="width:150px;"></el-progress>
+            <el-progress class="ksd-fright" :width="40" type="circle" v-visible="getHelthInfo(o.name).progress" :percentage="getHelthInfo(o.name).progress" style="width:150px;"></el-progress>
 		        <div class="bottom clearfix">
 		          <time class="time" v-visible="o.owner" style="display:block">{{o.owner}}</time>
 		          <!-- <div class="view_btn" v-on:click="viewModel(o.name)"><icon name="long-arrow-right" style="font-size:20px"></icon></div> -->
@@ -182,7 +182,7 @@ export default {
       var params1 = {pageSize: pageCount, pageOffset: currentPage - 1}
       if (this.project) {
         params.projectName = this.project
-        params1.projectName = this.project
+        params1.project = this.project
       }
       this.loadModels(params)
       this.loadModelDiagnoseList(params1)
@@ -430,6 +430,7 @@ export default {
       var len = this.modelHelth && this.modelHelth.length || 0
       for (var i = 0; i < len; i++) {
         if (this.modelHelth[i].modelName === modelName) {
+          this.modelHelth[i].progress = this.modelHelth[i].progress ? Number(this.modelHelth[i].progress).toFixed(2) : 0
           return this.modelHelth[i]
         }
       }

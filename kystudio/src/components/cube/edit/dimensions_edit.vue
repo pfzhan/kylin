@@ -135,16 +135,67 @@
       <el-row class="row_padding">
         <el-col :span="24">Rowkeys</el-col>
       </el-row>
+     <!--  <table class="ksd-common-table">
+        <tr> 
+          <th>{{$t('ID')}}</th>
+          <th>{{$t('column')}}</th>
+          <th>{{$t('encoding')}}</th>
+          <th>{{$t('length')}}</th>
+          <th>{{$t('shardBy')}}</th>
+          <th>{{$t('dataType')}}</th>
+          <th>{{$t('cardinality')}}</th>
+        </tr>
+        <tr v-for="(row, index) in convertedRowkeys" :key="row.column" v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }">
+          <td>{{index+1}}</td>
+          <td><common-tip :tips="row.column" class="drag_bar">{{(row.column)|omit(16,'...')}}</common-tip></td>
+          <td>
+              <el-select v-model="row.encoding" @change="changeRowkey(row, index)">
+                <el-option
+                    v-for="(item, encodingindex) in initEncodingType(row)"
+                    :key="encodingindex"
+                   :label="item.name"
+                   :value="item.name + ':' + item.version">
+                   <el-tooltip effect="light" :content="$t('kylinLang.cube[$store.state.config.encodingTip[item.name]]')" placement="right">
+                     <span style="float: left;width: 90%">{{ item.name }}</span>
+                     <span style="float: right;width: 10%; color: #8492a6; font-size: 13px" v-show="item.version>1">{{ item.version }}</span>
+                  </el-tooltip>
+                </el-option>              
+              </el-select>
+          </td>
+          <td> 
+            <el-input v-model="row.valueLength"  :disabled="row.encoding.indexOf('dict')>=0||row.encoding.indexOf('date')>=0||row.encoding.indexOf('time')>=0" @change="changeRowkey(row, index)"></el-input> 
+          </td>
+          <td>
+            <el-select v-model="row.isShardBy" @change="changeRowkey(row, index)">
+              <el-option
+              v-for="item in shardByType"
+              :key="item.name"
+              :label="item.name"
+              :value="item.value">
+              </el-option>
+            </el-select>
+          </td>
+          <td>{{modelDesc.columnsDetail[row.column].datatype}}</td>
+          <td>{{modelDesc.columnsDetail[row.column].cardinality}}</td>
+        </tr>
+      </table> -->
+      <div style="position:relative">
+      <ul class="dragBar">
+         <li v-for="(rowkey, index) in convertedRowkeys" v-dragging="{ item: rowkey, list: convertedRowkeys, group: 'rowkey' }"></li>
+      </ul>
       <el-table class="table_margin"
         :data="convertedRowkeys"
         style="width: 100%">
+
         <el-table-column
           :label="$t('ID')"
           width="55"
+          :allData="convertedRowkeys"
           header-align="center"
           align="center">
-          <template scope="scope">
-            <el-tag>{{scope.$index+1}}</el-tag>
+
+          <template scope="scope" >
+            <el-tag >{{scope.$index+1}}</el-tag>
           </template>
         </el-table-column>
         <el-table-column
@@ -152,6 +203,7 @@
             :label="$t('column')"
             header-align="center"
            align="center">
+           <!-- <template scope="scope" ><common-tip :tips="scope.column">{{(scope.column)|omit(16,'...')}}</common-tip></template> -->
         </el-table-column>       
         <el-table-column
             :label="$t('encoding')"
@@ -217,6 +269,7 @@
            </template>
         </el-table-column>                                        
       </el-table>  
+      </div>
     </el-col>
     <el-col :span="6">
     </el-col>
@@ -416,7 +469,7 @@ export default {
       if (this.isEdit) {
         let _encoding = _this.getEncoding(rowkey.encoding)
         let _version = parseInt(_this.getVersion(rowkey.encoding))
-        console.log(_encoding, _version, 456235587)
+        // console.log(_encoding, _version, 456235587)
         let addEncodings = baseEncodings.addEncoding(_encoding, _version)
         return addEncodings
       } else {
@@ -546,13 +599,12 @@ export default {
     },
     addJointDims: function (jointDims) {
       jointDims.push([])
-    },
-    showDetail: function (event, arr) {
-      if (event.target.innerText !== '') {
-        let str = event.target.innerText.slice(0, -3)
-        console.log(str)
-      }
     }
+  },
+  mounted () {
+    this.$dragging.$on('dragend', ({ value }) => {
+      console.log(value)
+    })
   },
   locales: {
     'en': {dimensions: 'Dimensions', name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment', action: 'Action', addDimensions: 'Add Dimensions', editDimension: 'Edit Dimensions', filter: 'Filter...', cancel: 'Cancel', yes: 'Yes', aggregationGroups: 'Aggregation Groups', Includes: 'Includes', mandatoryDimensions: 'Mandatory Dimensions', hierarchyDimensions: 'Hierarchy Dimensions', jointDimensions: 'Joint Dimensions', addAggregationGroups: 'Aggregation Groups', newHierarchy: 'New Hierarchy', newJoint: 'New Joint', ID: 'ID', encoding: 'Encoding', length: 'Length', shardBy: 'Shard By', dataType: 'Data Type', resetDimensions: 'Reset Dimensions', cubeSuggestion: 'Cube Suggestion'},
@@ -560,7 +612,17 @@ export default {
   }
 }
 </script>
-<style scoped>
+<style lang="less">
+ .dragBar {
+   position: absolute;
+   z-index: 9999;
+   top: 40px;
+   li{
+     height: 40px;
+     line-height: 40px;
+     width: 100px;
+   }
+ }
  .table_margin {
    margin-top: 20px;
    margin-bottom: 20px;

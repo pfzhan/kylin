@@ -30,6 +30,8 @@ import nprogress from 'nprogress'
 import Icon from 'vue-awesome/components/Icon.vue'
 import 'vue-awesome/icons'
 
+import VueDND from 'awe-dnd'
+Vue.use(VueDND)
 Vue.component('icon', Icon)
 Vue.component('confirm-btn', confirmBtn)
 Vue.component('common-tip', commonTip)

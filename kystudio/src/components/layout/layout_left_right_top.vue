@@ -102,7 +102,7 @@
           {name: 'Studio', path: '/studio/datasource', icon: require('../../assets/img/model.png')},
           {name: 'Insight', path: '/insight', icon: require('../../assets/img/insight.png')},
           {name: 'Monitor', path: '/monitor', icon: require('../../assets/img/monitor.png')},
-          {name: 'System', path: '/system', icon: require('../../assets/img/System.png')}
+          {name: 'System', path: '/system', icon: require('../../assets/img/system.png')}
         ],
         resetPasswordFormVisible: false
       }
