@@ -81,7 +81,7 @@
 
     <property>
         <name>mapreduce.map.java.opts</name>
-        <value>-Xmx700m -XX:MaxDirectMemorySize=200M -XX:OnOutOfMemoryError='kill -9 %p'</value>
+        <value>-Xmx640m -XX:MaxDirectMemorySize=256M -XX:OnOutOfMemoryError='kill -9 %p'</value>
         <description></description>
     </property>
     <property>
@@ -98,7 +98,7 @@
 
     <property>
         <name>mapreduce.reduce.java.opts</name>
-        <value>-Xmx700m -XX:MaxDirectMemorySize=200M -XX:OnOutOfMemoryError='kill -9 %p'</value>
+        <value>-Xmx640m -XX:MaxDirectMemorySize=256M -XX:OnOutOfMemoryError='kill -9 %p'</value>
         <description></description>
     </property>
 
