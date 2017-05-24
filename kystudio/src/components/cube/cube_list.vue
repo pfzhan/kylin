@@ -224,7 +224,7 @@ export default {
     }),
     transToGmtTime,
     reloadCubeList () {
-      this.loadCubesList(this.currentPage)
+      this.loadCubesList(this.currentPage - 1)
     },
     loadCubesList: function (curPage, modelName) {
       let _this = this

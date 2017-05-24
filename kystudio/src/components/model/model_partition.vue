@@ -1,23 +1,28 @@
 <template>
-	<div >
-      <el-form   label-width="240px">
+	<div style="overflow:hidden" class="partitionBox">
+      <el-form  label-width="240px">
         <el-form-item label="Partition Date Column">
-          <el-select v-model="checkPartition.date_table" placeholder="请选择" :disabled="editMode || actionMode==='view'">
-            <el-option
-              v-for="(key,value) in dateColumns"
-              :key="key"
-              :label="value"
-              :value="value">
-            </el-option>
-          </el-select>
-          <el-select v-model="checkPartition.date_column" @change="changeDateColumn" placeholder="请选择" :disabled="editMode  || actionMode==='view'">
-            <el-option
-              v-for="item in dateColumnsByTable"
-              :key="item.name"
-              :label="item.name"
-              :value="item.name">
-            </el-option>
-          </el-select>
+          <el-col :span="11">
+                 <el-select v-model="checkPartition.date_table" placeholder="请选择" :disabled="editMode || actionMode==='view'">
+                  <el-option
+                    v-for="(key,value) in dateColumns"
+                    :key="key"
+                    :label="value"
+                    :value="value">
+                  </el-option>
+                </el-select>
+          </el-col>
+          <el-col :span="2"></el-col>
+          <el-col class="line" :span="11">
+             <el-select v-model="checkPartition.date_column" @change="changeDateColumn" placeholder="请选择" :disabled="editMode  || actionMode==='view'">
+                  <el-option
+                    v-for="item in dateColumnsByTable"
+                    :key="item.name"
+                    :label="item.name"
+                    :value="item.name">
+                  </el-option>
+                </el-select>
+          </el-col>
         </el-form-item>
         <el-form-item label="Date Format">
           <el-select v-model="checkPartition.partition_date_format" placeholder="请选择" :disabled="!needSetTime || editMode  || actionMode==='view'">
@@ -33,6 +38,7 @@
         <el-switch v-model="hasSepatate" on-text="" @change="changeSepatate" off-text="" :disabled="editMode  || actionMode==='view'"></el-switch>
         </el-form-item>
         <el-form-item label="Partition Time Column" v-show="hasSepatate">
+        <el-col :span="11">
           <el-select v-model="checkPartition.time_table" placeholder="请选择" :disabled="editMode  || actionMode==='view'">
             <el-option
               v-for="(key,value) in timeColumns"
@@ -41,14 +47,18 @@
               :value="value">
             </el-option>
           </el-select>
-          <el-select v-model="checkPartition.time_column" placeholder="请选择" v-show="hasSepatate" :disabled="editMode  || actionMode==='view'">
-            <el-option
-              v-for="item in timeColumnsByTable"
-              :key="item.name"
-              :label="item.name"
-              :value="item.name">
-            </el-option>
+          </el-col>
+          <el-col :span="2"></el-col>
+          <el-col :span="11">
+            <el-select v-model="checkPartition.time_column" placeholder="请选择" v-show="hasSepatate" :disabled="editMode  || actionMode==='view'">
+              <el-option
+                v-for="item in timeColumnsByTable"
+                :key="item.name"
+                :label="item.name"
+                :value="item.name">
+              </el-option>
           </el-select>
+          </el-col>
         </el-form-item>
          <el-form-item label="Time Format" v-show="hasSepatate">
           <el-select v-model="checkPartition.partition_time_format" placeholder="请选择" :disabled="editMode  || actionMode==='view'">
@@ -164,5 +174,11 @@ export default {
   }
 }
 </script>
-<style lang="less">
+<style lang="less" scoped>
+.partitionBox {
+  .el-form {
+    height: auto;
+    overflow: hidden;
+  }
+}
 </style>

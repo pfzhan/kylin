@@ -1,6 +1,6 @@
 <template>
  <div class="table-index">
-  <p v-if="!rawTableUsable()">{{$t('noSupportRawTable')}}</p>
+  <p v-if="!rawTableUsable">{{$t('noSupportRawTable')}}</p>
   <div v-else>
     <el-checkbox v-model="usedRawTable" @change="changeUsed()">{{$t('ConfigRawTable')}}</el-checkbox>
     <el-table  v-if="usedRawTable"
@@ -197,21 +197,23 @@ export default {
       })
       this.initConvertedRawTable()
     },
-    rawTableUsable: function () {
-      if (this.cubeDesc && this.cubeDesc.engine_type && (this.cubeDesc.engine_type === 100 || this.cubeDesc.engine_type === 99)) {
-        return true
-      } else {
-        return false
-      }
-    },
     currentChange: function (value) {
       this.currentPage = value
       this.initConvertedRawTable()
     }
   },
+  computed: {
+    rawTableUsable () {
+      if (this.cubeDesc && this.cubeDesc.engine_type && (+this.cubeDesc.engine_type === 100 || +this.cubeDesc.engine_type === 99)) {
+        return true
+      } else {
+        return false
+      }
+    }
+  },
   created () {
     let _this = this
-    if (_this.rawTableUsable()) {
+    if (_this.rawTableUsable) {
       if (_this.rawTable.tableDetail.columns.length > 0) {
         _this.usedRawTable = true
         _this.initConvertedRawTable()

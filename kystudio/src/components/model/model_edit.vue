@@ -70,7 +70,7 @@
             </el-col>
             <el-col :span="6" style="text-align:center">
               <div class="grid-content bg-purple">
-                  <el-select v-model="currentLinkData.joinType" :disabled = "checkLock(false)" style="width:120px;" @change="switchJointType(currentLinkData.source.guid,currentLinkData.target.guid, currentLinkData.joinType)" placeholder="请选择连接类型">
+                  <el-select v-model="currentLinkData.joinType" :disabled = "actionMode ==='view'" style="width:120px;" @change="switchJointType(currentLinkData.source.guid,currentLinkData.target.guid, currentLinkData.joinType)" placeholder="请选择连接类型">
                     <el-option
                       v-for="item in joinTypes"
                       :key="item.label"
@@ -104,7 +104,7 @@
                 label="主键"
                 >
                 <template scope="scope">
-                <el-select v-model="scope.row[2]" placeholder="请选择" style="width:100%" :disabled = "checkLock(false) && !scope.row[5]">
+                <el-select v-model="scope.row[2]" placeholder="请选择" style="width:100%" :disabled = "actionMode ==='view'">
                   <el-option
                     v-for="item in currentLinkData.source.columns"
                     :key="item.name"
@@ -121,7 +121,7 @@
                 label="外键"
                 >
                 <template scope="scope">
-                <el-select v-model="scope.row[3]" placeholder="请选择" style="width:100%" :disabled = "checkLock(false) && !scope.row[5]">
+                <el-select v-model="scope.row[3]" placeholder="请选择" style="width:100%" :disabled = "actionMode ==='view'">
                   <el-option
                     v-for="item in currentLinkData.target.columns"
                     :key="item.name"
@@ -168,7 +168,7 @@
             <el-button type="primary" @click="saveComputedColumn">确 定</el-button>
           </span>     
         </el-dialog>
-      <model-tool :modelInfo="modelInfo" :actionMode="actionMode" :editLock="editLock" :columnsForTime="timeColumns" :columnsForDate="dateColumns"  :activeName="submenuInfo.menu1" :activeNameSub="submenuInfo.menu2" :tableList="tableList" :partitionSelect="partitionSelect"  :selectTable="currentSelectTable" ref="modelsubmenu"></model-tool>
+      <model-tool :modelInfo="modelInfo" :actionMode="actionMode" :editLock="editLock" :compeleteModelId="modelData&&modelData.uuid||null" :columnsForTime="timeColumns" :columnsForDate="dateColumns"  :activeName="submenuInfo.menu1" :activeNameSub="submenuInfo.menu2" :tableList="tableList" :partitionSelect="partitionSelect"  :selectTable="currentSelectTable" ref="modelsubmenu"></model-tool>
 
        <!-- 添加cube -->
 
@@ -185,15 +185,15 @@
     </el-dialog>
 
     <el-dialog title="Confirm Add" v-model="addModelDialogDisable" >
-       <partition-column :modelInfo="modelInfo" :actionMode="actionMode" :editLock="editLock" :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
-<!-- 
+       <partition-column :modelInfo="modelInfo" :actionMode="actionMode" :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
+
        <el-checkbox v-model="openModelCheck">Check Model</el-checkbox>
 
-        <el-slider v-model="modelStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openModelCheck'></el-slider>
- -->        <slider label="Check Model" @changeBar="changeModelBar" :show="addModelDialogDisable"></slider>
+     <!--    <el-slider v-model="modelStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openModelCheck'></el-slider> -->
+        <!-- <slider label="Check Model" @changeBar="changeModelBar" :show="addModelDialogDisable"></slider> -->
        <div slot="footer" class="dialog-footer">
         <el-button @click="addModelDialogDisable = false">取 消</el-button>
-        <el-button type="primary" @click="saveAndCheckModel">添 加</el-button>
+        <el-button type="primary" @click="saveAndCheckModel" :loading="saveBtnLoading">添 加</el-button>
       </div>
     </el-dialog>
 </div>
@@ -220,8 +220,8 @@ export default {
   data () {
     return {
       createCubeVisible: false,
-      openModelCheck: false,
-      modelStaticsRange: 0,
+      openModelCheck: true,
+      modelStaticsRange: 100,
       addModelDialogDisable: false,
       createCubeFormRule: {
         cubeName: [
@@ -235,6 +235,7 @@ export default {
         projectName: ''
       },
       actionMode: 'edit',
+      firstRenderServerData: false,
       // 编辑锁
       editLock: false,
       linksLock: false,
@@ -416,10 +417,11 @@ export default {
     },
     // 保存正式
     saveCurrentModel () {
+      // if (this.extraoption.actionMode !== 'add') {
+      //   this.saveAndCheckModel()
+      // } else {
       this.addModelDialogDisable = true
-      if (this.extraoption.actionMode !== 'add') {
-        this.saveAndCheckModel()
-      }
+      // }
     },
     saveAndCheckModel () {
       this.saveBtnLoading = true
@@ -454,6 +456,9 @@ export default {
       if (this.saveBtnLoading) {
         return
       }
+      if (this.actionMode === 'view') {
+        return
+      }
       var _this = this
       if (this.getRootFact().length <= 0) {
         return
@@ -465,9 +470,6 @@ export default {
             message: '未检测到任何改动!'
           })
         }
-        return
-      }
-      if (this.actionMode === 'view') {
         return
       }
       this.draftBtnLoading = true
@@ -1241,6 +1243,11 @@ export default {
       if (this.actionMode === 'view') {
         return
       }
+      var rootFact = this.getRootFact()
+      console.log(rootFact, 'sdde')
+      if (rootFact.length && rootFact[0].guid === guid) {
+        return
+      }
       this.aliasEdit = true
       this.aliasEditTableId = guid
     },
@@ -1279,12 +1286,12 @@ export default {
       var guid = licompon.$el.getAttribute('data')
       if (kind === 'ROOTFACT') {
         if (this.checkHasFactKindTable(guid)) {
-          this.warnAlert('已经有一个rootfact了')
+          this.warnAlert('已经有一个Fact Table了')
           return
         }
         for (var i in this.links) {
           if (this.links[i][0] === guid) {
-            this.warnAlert('有一个连接的主键已经在该表上，该表不能再被设置成rootfact，请删除连接重试！')
+            this.warnAlert('有一个连接的主键已经在该表上，该表不能再被设置成Fact，请删除连接重试！')
             return
           }
         }
@@ -1623,6 +1630,7 @@ export default {
           }
           // partition time setting
           _this.getPartitionDateColumns()
+          _this.firstRenderServerData = true
           // _this.autoLayerPosition()
         })
       })
@@ -1734,11 +1742,11 @@ export default {
       delete jsonData.status
       jsonData = JSON.stringify(jsonData)
       if (jsonData !== this.hisModelJsonStr) {
-        // if (this.hisModelJsonStr === '') {
-        //   this.hisModelJsonStr = jsonData
-        //   return false
-        // }
         this.hisModelJsonStr = jsonData
+        if (this.firstRenderServerData) {
+          this.firstRenderServerData = false
+          return false
+        }
         return true
       }
       return false
@@ -1852,6 +1860,12 @@ export default {
   computed: {
     briefMenu () {
       return this.$store.state.config.layoutConfig.briefMenu
+    },
+    usedInCube () {
+      for (var i in this.columnUsedInfo) {
+        return true
+      }
+      return false
     }
   },
   created () {

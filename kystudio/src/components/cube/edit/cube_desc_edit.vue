@@ -371,55 +371,65 @@ export default {
     },
     saveOrUpdate: function () {
       let _this = this
-      console.log(_this.cubeDetail.partition_date_start, 7532149)
       this.$confirm('确认保存Cube？', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        if (this.isEdit) {
-          this.updateCube({cubeDescData: JSON.stringify(_this.cubeDetail), project: _this.selected_project}).then((res) => {
-            handleSuccess(res, (data, code, status, msg) => {
-              this.$message({
-                type: 'success',
-                duration: 3000,
-                message: '保存成功!'
-              })
-              _this.saveOrUpdateRawTable()
-              this.$emit('reload', 'cubeList')
-              this.$emit('removetabs', 'cube' + this.extraoption.cubeName)
-            })
-          }).catch((res) => {
-            handleError(res, (data, code, status, msg) => {
-              _this.showErrorVisible = true
-              _this.errorMsg = msg
-              // if (status === 404) {
-              //   _this.$router.replace('access/login')
-              // }
-            })
-          })
-        } else {
-          this.saveCube({cubeDescData: JSON.stringify(_this.cubeDetail), project: _this.selected_project}).then((res) => {
-            handleSuccess(res, (data, code, status, msg) => {
-              this.$message({
-                type: 'success',
-                duration: 3000,
-                message: '保存成功!'
-              })
-              _this.saveOrUpdateRawTable()
-              this.$emit('reload', 'cubeList')
-              this.$emit('removetabs', 'cube' + this.extraoption.cubeName)
-            })
-          }).catch((res) => {
-            handleError(res, (data, code, status, msg) => {
-              _this.showErrorVisible = true
-              _this.errorMsg = msg
-              // if (status === 404) {
-              //   _this.$router.replace('access/login')
-              // }
-            })
-          })
+        // if (this.isEdit) {
+        if (this.cubeDetail.engine_type === 100 || this.cubeDetail.engine_type === 99) {
+          this.rawTable.tableDetail.name = this.cubeDetail.name
+          this.rawTable.tableDetail.model_name = this.cubeDetail.model_name
+          this.rawTable.tableDetail.engine_type = this.cubeDetail.engine_type
+          this.rawTable.tableDetail.storage_type = this.cubeDetail.storage_type
         }
+        var saveData = {
+          cubeDescData: JSON.stringify(_this.cubeDetail),
+          project: _this.selected_project,
+          rawTableDescData: JSON.stringify(_this.rawTable.tableDetail)
+        }
+        this.updateCube(saveData).then((res) => {
+          handleSuccess(res, (data, code, status, msg) => {
+            this.$message({
+              type: 'success',
+              duration: 3000,
+              message: '保存成功!'
+            })
+            _this.saveOrUpdateRawTable()
+            this.$emit('reload', 'cubeList')
+            this.$emit('removetabs', 'cube' + this.extraoption.cubeName)
+          })
+        }).catch((res) => {
+          handleError(res, (data, code, status, msg) => {
+            _this.showErrorVisible = true
+            _this.errorMsg = msg
+            // if (status === 404) {
+            //   _this.$router.replace('access/login')
+            // }
+          })
+        })
+        // } else {
+        //   this.saveCube({cubeDescData: JSON.stringify(_this.cubeDetail), project: _this.selected_project}).then((res) => {
+        //     handleSuccess(res, (data, code, status, msg) => {
+        //       this.$message({
+        //         type: 'success',
+        //         duration: 3000,
+        //         message: '保存成功!'
+        //       })
+        //       _this.saveOrUpdateRawTable()
+        //       this.$emit('reload', 'cubeList')
+        //       this.$emit('removetabs', 'cube' + this.extraoption.cubeName)
+        //     })
+        //   }).catch((res) => {
+        //     handleError(res, (data, code, status, msg) => {
+        //       _this.showErrorVisible = true
+        //       _this.errorMsg = msg
+        //       // if (status === 404) {
+        //       //   _this.$router.replace('access/login')
+        //       // }
+        //     })
+        //   })
+        // }
       }).catch((e) => {
       })
     },
@@ -524,6 +534,7 @@ export default {
         storage_type: this.getStorageEng(),
         override_kylin_properties: {}
       }
+      alert(this.getCubeEng())
     },
     getProperty: function (name) {
       let result = (new RegExp(name + '=(.*?)\\n')).exec(this.$store.state.system.serverConfig)

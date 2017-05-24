@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div >
 	<el-checkbox v-model="openCollectRange">{{label}}</el-checkbox>
     <el-slider :min="minConfig" :show-stops="showStop" :step="stepConfig" @change="changeBarVal" v-model="staticsRange" :max="maxConfig" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider> <span>{{staticsRange}}%</span>
   </div>

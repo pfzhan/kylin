@@ -1,6 +1,6 @@
 <template>
 	<div class="paddingbox modelist_box">
-    <el-button type="primary" class="ksd-mb-10" @click="addModel">+model</el-button>
+    <el-button type="primary" class="ksd-mb-10" @click="addModel">+Model</el-button>
     <br/>
 		<el-row :gutter="20">
 		  <el-col :span="8"  v-for="(o, index) in modelsList" :key="o.uuid" :style="{height:'152px'}">
@@ -21,8 +21,8 @@
 
 		    </p>
 		      <div style="padding: 20px;">
-		        <h2 :title="o.name" @click="viewModel(o)">{{o.name|omit(24, '...')}} <icon v-if="!o.status" :name="getModelStatusIcon(o)&&getModelStatusIcon(o).icon" :style="{color:getModelStatusIcon(o) && getModelStatusIcon(o).color}"></icon> </h2>
-            <el-progress class="ksd-fright" :width="40" type="circle" v-visible="getHelthInfo(o.name).progress" :percentage="getHelthInfo(o.name).progress" style="width:150px;"></el-progress>
+		        <h2 :title="o.name" @click="viewModel(o)">{{o.name|omit(24, '...')}} <icon v-if="!o.status" :name="getModelStatusIcon(o)&&getModelStatusIcon(o).icon" :style="{color:getModelStatusIcon(o) && getModelStatusIcon(o).color}"></icon> <el-progress class="ksd-fright" :width="40" type="circle" v-visible="o.diagnose&&o.diagnose.progress!==0&&o.diagnose.progress!==100" :percentage="o.diagnose && o.diagnose.progress || 0" style="width:150px;"></el-progress></h2>
+            
 		        <div class="bottom clearfix">
 		          <time class="time" v-visible="o.owner" style="display:block">{{o.owner}}</time>
 		          <!-- <div class="view_btn" v-on:click="viewModel(o.name)"><icon name="long-arrow-right" style="font-size:20px"></icon></div> -->
@@ -97,18 +97,33 @@
           <el-button type="primary" @click="stats">确 定</el-button>
         </div>
       </el-dialog>
+
+      <el-dialog
+        title="提示"
+        :visible.sync="useCubeDialogVisible"
+        >
+         该Model已经被下列cube使用过，无法编辑！您可以预览该Model！
+         <el-alert :closable="false" :title="tips.name" type="info" v-for="tips in usedCubes" class="ksd-mt-10"></el-alert>
+        <span slot="footer" class="dialog-footer">
+          <el-button @click="useCubeDialogVisible = false">取 消</el-button>
+          <el-button type="primary" @click="gotoView">预览</el-button>
+        </span>
+      </el-dialog>
 	</div>
 </template>
 <script>
 import { mapActions } from 'vuex'
 import cubeList from '../cube/cube_list'
 import { pageCount, modelHealthStatus } from '../../config'
-import { transToGmtTime, handleError } from 'util/business'
+import { transToGmtTime, handleError, handleSuccess } from 'util/business'
+import { changeObjectArrProperty } from 'util/index'
 export default {
   data () {
     return {
+      useCubeDialogVisible: false,
       scanRatioDialogVisible: false,
       openCollectRange: false,
+      usedCubes: [],
       modelStaticsRange: 0,
       currentDate: new Date(),
       currentPage: 1,
@@ -149,7 +164,6 @@ export default {
           {validator: this.checkName, trigger: 'blur'}
         ]
       }
-
     }
   },
   components: {
@@ -163,7 +177,8 @@ export default {
       delModel: 'DELETE_MODEL',
       loadModelDiagnoseList: 'DIAGNOSELIST',
       checkModelName: 'CHECK_MODELNAME',
-      checkCubeName: 'CHECK_CUBE_NAME_AVAILABILITY'
+      checkCubeName: 'CHECK_CUBE_NAME_AVAILABILITY',
+      getCubesList: 'GET_CUBES_LIST'
     }),
     reloadModelList () {
       this.pageCurrentChange(this.currentPage)
@@ -184,8 +199,17 @@ export default {
         params.projectName = this.project
         params1.project = this.project
       }
-      this.loadModels(params)
-      this.loadModelDiagnoseList(params1)
+      // this.loadModels(params)
+      // this.loadModelDiagnoseList(params1)
+      this.loadModels(params).then(() => {
+        this.loadModelDiagnoseList(params1).then(() => {
+          this.$store.state.model.modelsDianoseList.forEach((d) => {
+            d.progress = Number(d.progress).toFixed(2)
+            changeObjectArrProperty(this.modelsList, 'name', d.modelName, 'diagnose', d, this)
+            console.log(this.modelsList, '0p23')
+          })
+        })
+      })
     },
     sizeChange () {
     },
@@ -285,20 +309,35 @@ export default {
         project: ''
       }
     },
+    gotoView () {
+      var modelData = this.currentModelData
+      this.useCubeDialogVisible = false
+      this.viewModel({
+        name: modelData.name,
+        project: modelData.project,
+        status: modelData.status,
+        uuid: modelData.uuid
+      })
+    },
     handleCommand (command, component) {
       var handleData = component.$parent.$el
       var uuid = handleData.getAttribute('uuid')
       var modelData = this.getModelDataByUuid(uuid)
-      this.currentModelData.modelName = modelData.name
-      this.currentModelData.project = modelData.project
+      this.currentModelData = modelData
+      // this.currentModelData.modelName = modelData.name
+      // this.currentModelData.project = modelData.project
       var modelName = modelData.name
       var projectName = modelData.project
       if (command === 'edit') {
-        this.$emit('addtabs', 'model', modelName, 'modelEdit', {
-          project: projectName,
-          modelName: modelName,
-          uuid: uuid,
-          status: modelData.status
+        this.isUsedInCubes(modelName, (res) => {
+          this.useCubeDialogVisible = true
+        }, () => {
+          this.$emit('addtabs', 'model', modelName, 'modelEdit', {
+            project: projectName,
+            modelName: modelName,
+            uuid: uuid,
+            status: modelData.status
+          })
         })
       } else if (command === 'clone') {
         this.initCloneMeta()
@@ -374,10 +413,10 @@ export default {
         }
       })
     },
-    stats (project, modelName) {
+    stats () {
       this.statsModel({
         project: this.currentModelData.project,
-        modelname: this.currentModelData.modelName,
+        modelname: this.currentModelData.name,
         data: {
           ratio: this.modelStaticsRange
         }
@@ -389,8 +428,8 @@ export default {
         this.scanRatioDialogVisible = false
       })
     },
-    drop (modelName) {
-      this.delModel(this.currentModelData.modelName).then(() => {
+    drop () {
+      this.delModel(this.currentModelData.name).then(() => {
         this.$message({
           type: 'success',
           message: '删除成功!'
@@ -441,6 +480,23 @@ export default {
       }
     },
     renderHelthStatusIcon () {
+    },
+    isUsedInCubes (modelName, callback, noUseCallback) {
+      this.getCubesList({
+        pageSize: 10000,
+        pageOffset: 0,
+        projectName: this.project,
+        modelName: modelName
+      }).then((res) => {
+        handleSuccess(res, (data) => {
+          this.usedCubes = data.cubes
+          if (this.usedCubes && this.usedCubes.length) {
+            callback()
+            return
+          }
+          noUseCallback()
+        })
+      })
     }
   },
   computed: {
@@ -460,15 +516,22 @@ export default {
   created () {
     var params = {pageSize: pageCount, pageOffset: 0}
     var params1 = {pageSize: pageCount, pageOffset: 0}
-    console.log(this.project, 112233)
+    // console.log(this.project, 112233)
     if (this.project) {
       params.projectName = this.project
     }
     if (this.project) {
       params1.project = this.project
     }
-    this.loadModels(params)
-    this.loadModelDiagnoseList(params1)
+    this.loadModels(params).then(() => {
+      this.loadModelDiagnoseList(params1).then(() => {
+        this.$store.state.model.modelsDianoseList.forEach((d) => {
+          d.progress = Number(d.progress).toFixed(2)
+          console.log(d, 9999)
+          changeObjectArrProperty(this.modelsList, 'name', d.modelName, 'diagnose', d, this)
+        })
+      })
+    })
   }
 }
 </script>

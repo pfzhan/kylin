@@ -8,7 +8,7 @@
                     <table  cellspacing="0" cellpadding="0">
                       <tr>
                         <th>Model Name</th>
-                        <td><el-input v-model="currentModelInfo.modelName" :disabled="editMode || actionMode==='view'"></el-input></td>
+                        <td><el-input v-model="currentModelInfo.modelName" :disabled="actionMode==='view'|| !!compeleteModelId"></el-input></td>
                       </tr>
                       <tr>
                         <th>Description</th>
@@ -24,7 +24,7 @@
                     </table>
                 </el-tab-pane>
                 <el-tab-pane label="Partition Setting" name="second">
-                 <partition-column :modelInfo="modelInfo" :actionMode="actionMode" :editLock="editLock" :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
+                 <partition-column style="width:800px" :modelInfo="modelInfo" :actionMode="actionMode"  :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
                  <!--  <el-form   label-width="240px">
                     <el-form-item label="Partition Date Column">
                       <el-select v-model="checkPartition.date_table" placeholder="请选择" :disabled="editMode || actionMode==='view'">
@@ -192,7 +192,7 @@ export default {
   components: {
     'partition-column': partitionColumn
   },
-  props: ['modelInfo', 'actionMode', 'editLock', 'columnsForTime', 'columnsForDate', 'activeName', 'activeNameSub', 'tableList', 'selectTable', 'partitionSelect'],
+  props: ['modelInfo', 'compeleteModelId', 'actionMode', 'columnsForTime', 'columnsForDate', 'activeName', 'activeNameSub', 'tableList', 'selectTable', 'partitionSelect'],
   methods: {
     ...mapActions({
       loadTableExt: 'LOAD_DATASOURCE_EXT'
