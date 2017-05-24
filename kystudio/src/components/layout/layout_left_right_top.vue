@@ -48,7 +48,7 @@
           <router-view v-on:addProject="addProject" ></router-view>
           <!--</transition>-->
         </el-col>
-        <el-dialog title="Project" v-model="FormVisible">
+        <el-dialog title="Project" v-model="FormVisible" @close="resetProjectForm">
           <project_edit :project="project" ref="projectForm" v-on:validSuccess="validSuccess">
           </project_edit>
           <span slot="footer" class="dialog-footer">
@@ -235,6 +235,9 @@
         //   })
         // })
         // this.resetPasswordFormVisible = false
+      },
+      resetProjectForm () {
+        this.$refs['projectForm'].$refs['projectForm'].resetFields()
       }
     },
     computed: {

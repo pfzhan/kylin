@@ -1,20 +1,22 @@
 <template>
-  <el-form :model="newUser" label-position="top" :rules="rules"  ref="addUserForm">
-    <el-form-item :label="$t('username')" prop="username">
-      <el-input  v-model="newUser.username"></el-input>
-    </el-form-item>
-    <el-form-item :label="$t('password')" prop="password">
-      <el-input type="password" v-model="newUser.password"></el-input>
-    </el-form-item>
-    <el-form-item :label="$t('confirmNewPassword')" prop="confirmPassword">
-      <el-input type="password" v-model="newUser.confirmPassword"></el-input>
-    </el-form-item>
-    <el-form-item :label="$t('role')">
-      <el-checkbox v-model="newUser.analyst">{{$t('analyst')}}</el-checkbox>
-      <el-checkbox v-model="newUser.modeler">{{$t('modeler')}}</el-checkbox>
-      <el-checkbox v-model="newUser.admin">{{$t('admin')}}</el-checkbox>
-    </el-form-item>
-  </el-form>
+  <div class="add_user">
+    <el-form :model="newUser" label-position="top" :rules="rules"  ref="addUserForm">
+      <el-form-item :label="$t('username')" prop="username">
+        <el-input  v-model="newUser.username"></el-input>
+      </el-form-item>
+      <el-form-item :label="$t('password')" prop="password">
+        <el-input type="password" v-model="newUser.password"></el-input>
+      </el-form-item>
+      <el-form-item :label="$t('confirmNewPassword')" prop="confirmPassword">
+        <el-input type="password" v-model="newUser.confirmPassword"></el-input>
+      </el-form-item>
+      <el-form-item :label="$t('role')">
+        <el-checkbox v-model="newUser.analyst">{{$t('analyst')}}</el-checkbox>
+        <el-checkbox v-model="newUser.modeler">{{$t('modeler')}}</el-checkbox>
+        <el-checkbox v-model="newUser.admin">{{$t('admin')}}</el-checkbox>
+      </el-form-item>
+    </el-form>
+  </div>
 </template>
 <script>
 export default {
@@ -24,22 +26,34 @@ export default {
     return {
       rules: {
         username: [
-        { required: true, message: '', trigger: 'change' }
+        { required: true, message: this.$t('usernameEmpty'), trigger: 'change' },
+        { validator: this.validateUser, trigger: 'blur' }
         ],
         password: [
-        { required: true, message: '', trigger: 'change' },
+        { required: true, message: this.$t('passwordEmpty'), trigger: 'change' },
         {validator: this.validate, trigger: 'blur'}
         ],
         confirmPassword: [
-        { required: true, message: '', trigger: 'change' },
+        { required: true, message: this.$t('passwordEmpty'), trigger: 'change' },
         {validator: this.validatePass, trigger: 'blur'}
         ]
       }
     }
   },
   methods: {
+    validateUser (rule, value, callback) {
+      if (!value) {
+        callback(new Error(this.$t('usernameEmpty')))
+      } else {
+        callback()
+      }
+    },
     validate: function (rule, value, callback) {
-      if (!/^(?=.*\d)(?=.*[a-z])(?=.*[~!@#$%^&*(){}|:"<>?[\];',./`]).{8,}$/gi.test(this.newUser.password)) {
+      if (!value) {
+        callback(new Error(this.$t('passwordEmpty')))
+      } else if (value.length < 8) {
+        callback(new Error(this.$t('passwordLength')))
+      } else if (!/^(?=.*\d)(?=.*[a-z])(?=.*[~!@#$%^&*(){}|:"<>?[\];',./`]).{8,}$/gi.test(this.newUser.password)) {
         callback(new Error(this.$t('tip_password_unsafe')))
       } else {
         callback()
@@ -64,10 +78,11 @@ export default {
     })
   },
   locales: {
-    'en': {username: 'Username', password: 'Password', confirmNewPassword: 'Confirm new password', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', tip_password_unsafe: 'The password should contain at least one numbers, letters and special characters.', passwordConfirm: 'Password and confirm password are not the same.'},
-    'zh-cn': {username: '用户名', password: '密码', confirmNewPassword: '确认密码', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', tip_password_unsafe: '密码包含至少一个数字、字母及特殊字符.', passwordConfirm: '两次密码不一致, 请检查'}
+    'en': {username: 'Username', password: 'Password', confirmNewPassword: 'Confirm new password', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', tip_password_unsafe: 'The password should contain at least one numbers, letters and special characters.', passwordConfirm: 'Password and confirm password are not the same.', usernameEmpty: 'username required', passwordEmpty: 'password required', passwordLength: 'the length of password is at least 8'},
+    'zh-cn': {username: '用户名', password: '密码', confirmNewPassword: '确认密码', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', tip_password_unsafe: '密码包含至少一个数字、字母及特殊字符.', passwordConfirm: '两次密码不一致, 请检查', usernameEmpty: '用户名不能为空', passwordEmpty: '密码不能为空', passwordLength: '密码长度至少8位'}
   }
 }
 </script>
-<style scoped="">
+<style lang="less">
+
 </style>

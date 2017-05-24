@@ -8,7 +8,6 @@
     <el-dropdown-item command="kapmanual">KAP Manual</el-dropdown-item>
     <el-dropdown-item command="kybotservice">KyBot Service</el-dropdown-item>
     <el-dropdown-item command="aboutkap">About KAP</el-dropdown-item>
-    <el-dropdown-item command="aboutus">About Us</el-dropdown-item>
   </el-dropdown-menu>
 </el-dropdown>
 
@@ -56,12 +55,13 @@
             console.log(resp)
           })
           this.aboutKapVisible = true
-        } else if (val === 'aboutus') {
-          this.url = 'http://kyligence.io/'
-          this.$nextTick(function () {
-            _this.$el.getElementsByTagName('a')[0].click()
-          })
         }
+        // else if (val === 'aboutus') {
+        //   this.url = 'http://kyligence.io/'
+        //   this.$nextTick(function () {
+        //     _this.$el.getElementsByTagName('a')[0].click()
+        //   })
+        // }
       }
     },
     computed: {

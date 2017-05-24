@@ -51,12 +51,13 @@
     </el-table-column>     
     </el-table>
     <pager class="ksd-center" :pageSize="pageSize" :totalSize="projectsTotal" :currentPage='currentPage' v-on:handleCurrentChange='pageCurrentChange' ></pager>
-    <el-dialog :title="$t('project')" v-model="FormVisible">
-      <project_edit :project="project" ref="projectForm" v-on:validSuccess="validSuccess" v-on:validFailed='validFailed'></project_edit>
-      <span slot="footer" class="dialog-footer">
-         <el-button @click="FormVisible = false">{{$t('cancel')}}</el-button>
-         <el-button type="primary" @click.native="checkProjectForm">{{$t('yes')}}</el-button>
-      </span>     
+
+    <el-dialog :title="$t('project')" v-model="FormVisible" >
+      <project_edit ref="projectForm" :project="project"  v-on:validSuccess="validSuccess" v-on:validFailed='validFailed'></project_edit>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="FormVisible = false">{{$t('cancel')}}</el-button>
+        <el-button type="primary" @click="checkProjectForm">{{$t('yes')}}</el-button>
+      </div>     
     </el-dialog>  
  </div>
 </template>
@@ -149,24 +150,24 @@ export default {
       // this.FormVisible = false
     },
     removeProject (project) {
-      this.$confirm(this.$t('deleteProject'), this.$t('tip'), {
-        confirmButtonText: this.$t('yes'),
-        cancelButtonText: this.$t('cancel'),
-        type: 'warning'
-      }).then(() => {
-        this.deleteProject(project.name).then((result) => {
-          this.$message({
-            type: 'success',
-            message: this.$t('saveSuccessful')
-          })
-          this.loadProjects()
-        }, (result) => {
-          this.$message({
-            type: 'info',
-            message: this.$t('saveFailed')
-          })
-        })
-      })
+      // this.$confirm(this.$t('deleteProject'), this.$t('tip'), {
+      //   confirmButtonText: this.$t('yes'),
+      //   cancelButtonText: this.$t('cancel'),
+      //   type: 'warning'
+      // }).then(() => {
+      //   this.deleteProject(project.name).then((result) => {
+      //     this.$message({
+      //       type: 'success',
+      //       message: this.$t('saveSuccessful')
+      //     })
+      //     this.loadProjects()
+      //   }, (result) => {
+      //     this.$message({
+      //       type: 'info',
+      //       message: this.$t('saveFailed')
+      //     })
+      //   })
+      // })
     },
     backup (project) {
       // console.log('1')

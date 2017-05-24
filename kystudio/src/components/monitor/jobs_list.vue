@@ -43,7 +43,7 @@
       </el-table-column>
       <el-table-column
       :label="$t('ProgressStatus')"
-      width="180">
+      width="220">
         <template scope="scope">
           <el-progress  :percentage="scope.row.progress" v-if="scope.row.progress === 100" status="success">
           </el-progress>
