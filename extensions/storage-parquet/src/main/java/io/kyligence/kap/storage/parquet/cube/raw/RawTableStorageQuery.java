@@ -70,9 +70,6 @@ public class RawTableStorageQuery implements IStorageQuery {
     @Override
     public ITupleIterator search(StorageContext context, SQLDigest sqlDigest, TupleInfo returnTupleInfo) {
 
-        //deal with participant columns in subquery join
-        sqlDigest.includeSubqueryJoinParticipants();
-
         hackSelectStar(sqlDigest);
 
         // build dimension & metrics
