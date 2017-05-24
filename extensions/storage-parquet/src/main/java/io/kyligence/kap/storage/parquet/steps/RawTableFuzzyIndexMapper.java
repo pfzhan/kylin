@@ -97,7 +97,7 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
 
         rawTableInstance = RawTableManager.getInstance(kylinConfig).getRawTableInstance(cubeName);
         rawTableDesc = rawTableInstance.getRawTableDesc();
-        GTInfo gtInfo = RawTableGridTable.newGTInfo(rawTableInstance);
+        GTInfo gtInfo = RawTableGridTable.newGTInfo(rawTableDesc);
         rawColumnCodec = new BufferedRawColumnCodec((RawTableCodeSystem) gtInfo.getCodeSystem());
         codecBuffer = new String[rawColumnCodec.getColumnsCount()];//a little bit waste
 
@@ -108,7 +108,7 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
     private void initIndexWriters(Context context) throws IOException, InterruptedException {
         fuzzyIndexWriterMap = new HashMap<>();
         fuzzyIndexEncodingMap = new HashMap<>();
-        List<TblColRef> columns = rawTableDesc.getColumns();
+        List<TblColRef> columns = rawTableDesc.getColumnsInOrder();
         for (int i = 0; i < columns.size(); i++) {
             TblColRef column = columns.get(i);
             if (rawTableDesc.isNeedFuzzyIndex(column)) {
@@ -117,7 +117,7 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
                 ColumnSpec columnSpec = new ColumnSpec(column.getName(), RawTableUtils.roundToByte(fuzzyHashLength), 10000, true, i);
                 columnSpec.setValueEncodingIdentifier('s');
                 fuzzyIndexWriterMap.put(i, new ParquetPageIndexWriter(new ColumnSpec[] { columnSpec }, output));
-                fuzzyIndexEncodingMap.put(i, new ImmutableBitSet(rawTableInstance.getRawToGridTableMapping().getIndexOf(column)));
+                fuzzyIndexEncodingMap.put(i, new ImmutableBitSet(rawTableDesc.getRawToGridTableMapping().getIndexOf(column)));
             }
         }
     }

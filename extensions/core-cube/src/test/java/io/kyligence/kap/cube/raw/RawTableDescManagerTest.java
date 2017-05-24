@@ -57,7 +57,7 @@ public class RawTableDescManagerTest extends LocalFileMetadataTestCase {
         // init
         RawTableDesc existing = mgr.getRawTableDesc(name);
         assertTrue(existing != null);
-        Assert.assertEquals(1, existing.getFuzzyColumnSet().size());
+        Assert.assertEquals(1, existing.getFuzzyColumns().size());
 
         // remove
         mgr.removeRawTableDesc(existing);
@@ -71,7 +71,7 @@ public class RawTableDescManagerTest extends LocalFileMetadataTestCase {
         mgr.reloadAllRawTableDesc();
         RawTableDesc toCreate = mgr.getRawTableDesc(name);
         assertTrue(null != toCreate);
-        Assert.assertEquals(1, toCreate.getFuzzyColumnSet().size());
+        Assert.assertEquals(1, toCreate.getFuzzyColumns().size());
 
         // update
         RawTableDesc toUpdate = mgr.getRawTableDesc(name);

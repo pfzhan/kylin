@@ -35,45 +35,41 @@ import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.cube.raw.RawTableDesc;
 
 public class RawToGridTableMapping {
 
     private List<DataType> gtDataTypes = Lists.newArrayList();
-    private List<TblColRef> orderedColumns = Lists.newArrayList();
     private List<TblColRef> gtOrderColumns = Lists.newArrayList();
     private ImmutableBitSet gtPrimaryKey;
     private ImmutableBitSet gtNonPKKey;
     private ImmutableBitSet shardbyKey;
 
-    public RawToGridTableMapping(RawTableInstance rawTableInstance) {
+    public RawToGridTableMapping(RawTableDesc rawTableDesc) {
         int gtColIdx = 0;
-        TblColRef orderedCol = rawTableInstance.getRawTableDesc().getOrderedColumn();
-        orderedColumns.add(orderedCol);
 
-        BitSet shardby = new BitSet();
+        List<TblColRef> allColumns = rawTableDesc.getColumnsInOrder();
         BitSet pk = new BitSet();
-        for (TblColRef o : orderedColumns) {
-            gtOrderColumns.add(orderedCol);
-            gtDataTypes.add(o.getType());
-            if (rawTableInstance.getRawTableDesc().isShardby(o)) {
+        BitSet shardby = new BitSet();
+        BitSet nonPK = new BitSet();
+
+        for (TblColRef col : allColumns) {
+            gtOrderColumns.add(col);
+            gtDataTypes.add(col.getType());
+
+            if (rawTableDesc.isSortby(col)) {
+                pk.set(gtColIdx);
+            } else {
+                nonPK.set(gtColIdx);
+            }
+
+            if (rawTableDesc.isShardby(col)) {
                 shardby.set(gtColIdx);
             }
-            pk.set(gtColIdx++);
+
+            gtColIdx++;
         }
         gtPrimaryKey = new ImmutableBitSet(pk);
-
-        BitSet nonPK = new BitSet();
-        for (TblColRef columnRef : rawTableInstance.getRawTableDesc().getColumns()) {
-            if (!orderedColumns.contains(columnRef)) {
-                gtOrderColumns.add(columnRef);
-                gtDataTypes.add(columnRef.getType());
-                if (rawTableInstance.getRawTableDesc().isShardby(columnRef)) {
-                    shardby.set(gtColIdx);
-                }
-                nonPK.set(gtColIdx++);
-            }
-        }
         gtNonPKKey = new ImmutableBitSet(nonPK);
         shardbyKey = new ImmutableBitSet(shardby);
     }
@@ -86,7 +82,7 @@ public class RawToGridTableMapping {
         return gtPrimaryKey;
     }
 
-    public ImmutableBitSet getOrderedColumnSet() {
+    public ImmutableBitSet getSortbyColumnSet() {
         return gtPrimaryKey;
     }
 
@@ -94,7 +90,7 @@ public class RawToGridTableMapping {
         return shardbyKey;
     }
 
-    public ImmutableBitSet getNonOrderedColumnSet() {
+    public ImmutableBitSet getNonSortbyColumnSet() {
         return gtNonPKKey;
     }
 
@@ -125,20 +121,6 @@ public class RawToGridTableMapping {
             throw new UnsupportedOperationException("Aggr is not supported yet" + metrics);
         }
         return new ImmutableBitSet(new BitSet());
-        //        BitSet result = new BitSet();
-        //        for (FunctionDesc metric : metrics) {
-        //            if (metric.getParameter().getColRefs().size() > 1) {
-        //                throw new IllegalStateException("Currently Raw does not support Functions with more than 1 column ref");
-        //            }
-        //            
-        //            for (TblColRef col : metric.getParameter().getColRefs()) {
-        //                int idx = getIndexOf(col);
-        //                if (idx < 0)
-        //                    throw new IllegalStateException(metric + " not found in " + this);
-        //                result.set(idx);
-        //            }
-        //        }
-        //        return new ImmutableBitSet(result);
     }
 
     public String[] makeAggrFuncs(Collection<FunctionDesc> metrics) {

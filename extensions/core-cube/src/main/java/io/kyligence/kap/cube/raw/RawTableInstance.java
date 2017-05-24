@@ -138,7 +138,7 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
     private void initAllColumns() {
         allColumns = new HashSet<>();
         allColumnDescs = new HashSet<>();
-        for (TblColRef col : getRawTableDesc().getColumns()) {
+        for (TblColRef col : getRawTableDesc().getColumnsInOrder()) {
             allColumns.add(col);
             allColumnDescs.add(col.getColumnDesc());
         }
@@ -146,7 +146,7 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
 
     private void initDimensions() {
         mockupDimensions = new ArrayList<>();
-        TblColRef orderedColumn = getRawTableDesc().getOrderedColumn();
+        TblColRef orderedColumn = getRawTableDesc().getFirstSortbyColumn();
         if (orderedColumn != null)
             mockupDimensions.add(orderedColumn);
     }
@@ -369,13 +369,6 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
 
     public Segments calculateToBeSegments(RawTableSegment newSegment) {
         return segments.calculateToBeSegments(newSegment);
-    }
-
-    public RawToGridTableMapping getRawToGridTableMapping() {
-        if (mapping == null) {
-            mapping = new RawToGridTableMapping(this);
-        }
-        return mapping;
     }
 
     public String getResourcePath() {

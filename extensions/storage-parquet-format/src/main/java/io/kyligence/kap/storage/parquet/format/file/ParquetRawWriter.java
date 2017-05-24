@@ -156,7 +156,7 @@ public class ParquetRawWriter {
     }
 
     // TODO: this writeRow is not pure, should be refactored
-    public void writeRow(byte[] key, int keyOffset, int keyLength, byte[] value, int[] valueLengths) throws Exception {
+    public void writeRow(byte[] key, int keyOffset, int keyLength, byte[] value, int[] valueLengths) throws IOException {
         List<Object> row = new ArrayList<Object>();
         row.add(Binary.fromConstantByteArray(key, keyOffset, keyLength));
 
@@ -169,7 +169,17 @@ public class ParquetRawWriter {
         writeRow(row);
     }
 
-    public void writeRow(List<Object> row) throws Exception {
+    public void writeRow(List<byte[]>... byteArrayLists) throws IOException {
+        List<Object> row = new ArrayList<>();
+        for (List<byte[]> list : byteArrayLists) {
+            for (byte[] array : list) {
+                row.add(Binary.fromConstantByteArray(array, 0, array.length));
+            }
+        }
+        writeRow(row);
+    }
+
+    public void writeRow(List<Object> row) throws IOException {
         // Insert row into buffer
         for (int i = 0; i < row.size(); ++i) {
             rowBuffer[i][currentRowCntInPage] = row.get(i);

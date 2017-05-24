@@ -40,6 +40,10 @@ public class ByteArrayListWritable implements WritableComparable<ByteArrayListWr
 
     private List<byte[]> value;
 
+    public ByteArrayListWritable() {
+        value = new ArrayList<>();
+    }
+
     public ByteArrayListWritable(List<byte[]> value) {
         this.value = value;
     }
@@ -54,6 +58,10 @@ public class ByteArrayListWritable implements WritableComparable<ByteArrayListWr
 
     public List<byte[]> get() {
         return value;
+    }
+
+    public void add(byte[] val) {
+        value.add(val);
     }
 
     @Override

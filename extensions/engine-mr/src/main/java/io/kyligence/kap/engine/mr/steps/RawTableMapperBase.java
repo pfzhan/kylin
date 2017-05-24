@@ -31,17 +31,17 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.common.util.BytesSplitter;
 import org.apache.kylin.common.util.BytesUtil;
+import org.apache.kylin.common.util.ImmutableBitSet;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ShardingHash;
 import org.apache.kylin.common.util.SplittedBytes;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.cube.kv.RowConstants;
 import org.apache.kylin.engine.EngineFactory;
 import org.apache.kylin.engine.mr.KylinMapper;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
@@ -62,8 +62,10 @@ import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.cube.raw.RawValueIngester;
 import io.kyligence.kap.cube.raw.gridtable.RawTableCodeSystem;
 import io.kyligence.kap.cube.raw.gridtable.RawTableGridTable;
+import io.kyligence.kap.cube.raw.gridtable.RawToGridTableMapping;
+import io.kyligence.kap.storage.parquet.format.datatype.ByteArrayListWritable;
 
-abstract public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUEIN, Text, Text> {
+abstract public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUEIN, ByteArrayListWritable, ByteArrayListWritable> {
     protected static final Logger logger = LoggerFactory.getLogger(RawTableMapperBase.class);
     public static final byte[] HIVE_NULL = Bytes.toBytes("\\N");
     public static final byte[] ONE = Bytes.toBytes("1");
@@ -79,14 +81,11 @@ abstract public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEY
     private RawTableDesc rawTableDesc;
     private BufferedRawColumnCodec rawColumnCodec;
     private String[] codecBuffer;
-    private int[] shardbyColIdxInSource;
-    private int[] shardbyColIdxInRawTable;
-    private int orderColIdxInSource;
-    private int orderColIdxInRawTable;
-    private int[] nonOrderColInxInSource;// array index=> IdxInRawTable, array value=> IdxInSource
-
-    protected Text outputKey = new Text();
-    protected Text outputValue = new Text();
+    protected ByteArrayListWritable outputKey;
+    protected ByteArrayListWritable outputValue;
+    private Pair<Integer, Integer>[] shardbyMapping;
+    private Pair<Integer, Integer>[] sortbyMapping;
+    private Pair<Integer, Integer>[] nonSortbyMapping;
 
     @Override
     protected void setup(Context context) throws IOException {
@@ -103,34 +102,32 @@ abstract public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEY
         cubeSegment = CubeManager.getInstance(config).getCube(rawTableName).getSegmentById(segmentID);
         intermediateTableDesc = (DataModelFlatTableDesc) EngineFactory.getJoinedFlatTableDesc(cubeSegment);
 
-        GTInfo gtInfo = RawTableGridTable.newGTInfo(rawTableInstance);
+        GTInfo gtInfo = RawTableGridTable.newGTInfo(rawTableDesc);
         rawColumnCodec = new BufferedRawColumnCodec((RawTableCodeSystem) gtInfo.getCodeSystem());
         codecBuffer = new String[rawColumnCodec.getColumnsCount()]; // stored encoded value
 
         bytesSplitter = new BytesSplitter(kapConfig.getRawTableColumnCountMax(), kapConfig.getRawTableColumnLengthMax());
         initNullBytes();
 
-        //pre-calculate index mappings for perf
-        Collection<TblColRef> shardbyCols = rawTableDesc.getShardbyColumns();
-        shardbyColIdxInSource = new int[shardbyCols.size()];
-        shardbyColIdxInRawTable = new int[shardbyCols.size()];
+        RawToGridTableMapping gridTableMapping = rawTableDesc.getRawToGridTableMapping();
+        shardbyMapping = initIndexMapping(rawTableDesc.getShardbyColumns(), gridTableMapping);
+        sortbyMapping = initIndexMapping(rawTableDesc.getShardbyColumns(), gridTableMapping);
+        nonSortbyMapping = initIndexMapping(rawTableDesc.getNonSortbyColumns(), gridTableMapping);
+    }
+
+    /**
+     * Create index mapping in source and rawtable
+     * @param columns originColumns
+     * @return <Index in source, Index in rawtable> pair
+     */
+    private Pair<Integer, Integer>[] initIndexMapping(Collection<TblColRef> columns, RawToGridTableMapping mapping) {
+        Pair<Integer, Integer>[] indexMapping = new Pair[columns.size()];
         int index = 0;
-        for (TblColRef shardColRef : shardbyCols) {
-            shardbyColIdxInRawTable[index] = rawTableInstance.getRawToGridTableMapping().getIndexOf(shardColRef);
-            shardbyColIdxInSource[index] = intermediateTableDesc.getColumnIndex(shardColRef);
+        for (TblColRef col : columns) {
+            indexMapping[index] = new Pair<>(intermediateTableDesc.getColumnIndex(col), mapping.getIndexOf(col));
             index++;
         }
-
-        TblColRef orderCol = rawTableDesc.getOrderedColumn();//TODO: assuming only one sorted column here
-        orderColIdxInSource = intermediateTableDesc.getColumnIndex(orderCol);
-        orderColIdxInRawTable = rawTableInstance.getRawToGridTableMapping().getIndexOf(orderCol);
-        nonOrderColInxInSource = new int[rawColumnCodec.getColumnsCount()];
-        Arrays.fill(nonOrderColInxInSource, -1);
-        for (TblColRef col : rawTableDesc.getColumnsExcludingOrdered()) {
-            int sourceIdx = intermediateTableDesc.getColumnIndex(col);
-            int rawTableIdx = rawTableInstance.getRawToGridTableMapping().getIndexOf(col);
-            nonOrderColInxInSource[rawTableIdx] = sourceIdx;
-        }
+        return indexMapping;
     }
 
     private void initNullBytes() {
@@ -155,62 +152,81 @@ abstract public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEY
     protected void outputKV(Context context) throws IOException, InterruptedException {
         intermediateTableDesc.sanityCheck(bytesSplitter);
 
-        byte[] rowKey = buildKey(bytesSplitter.getSplitBuffers());
-        outputKey.set(rowKey, 0, rowKey.length);
-
-        ByteBuffer valueBuf = buildValue(bytesSplitter.getSplitBuffers());
-        outputValue.set(valueBuf.array(), 0, valueBuf.position());
+        outputKey = buildKey(bytesSplitter.getSplitBuffers());
+        outputValue = buildValue(bytesSplitter.getSplitBuffers());
         context.write(outputKey, outputValue);
     }
 
-    protected byte[] buildKey(SplittedBytes[] splitBuffers) {
+    /**
+     * Build output key part (shardId + sortby columns)
+     * @param splitBuffers
+     * @return
+     */
+    protected ByteArrayListWritable buildKey(SplittedBytes[] splitBuffers) {
+        ByteArrayListWritable curKey = new ByteArrayListWritable();
 
         int shardNum = rawSegment.getShardNum() == 0 ? 2 : rawSegment.getShardNum();//by default 2 shards for raw table
-        SplittedBytes orderedColSplittedBytes = splitBuffers[orderColIdxInSource];
 
-        if (isNull(orderedColSplittedBytes.value, 0, orderedColSplittedBytes.length)) {
-            codecBuffer[orderColIdxInRawTable] = null;
-        } else {
-            codecBuffer[orderColIdxInRawTable] = Bytes.toString(orderedColSplittedBytes.value, 0, orderedColSplittedBytes.length);
+        // write shard number
+        ByteBuffer shardValue = getShardValue(splitBuffers);
+        Short shardId = ShardingHash.getShard(shardValue.array(), 0, shardValue.position(), shardNum);
+        curKey.add(BytesUtil.writeShort(shardId));
+
+        // write sortby column
+        for (byte[] sortby : encodeSortbyColumn(splitBuffers)) {
+            curKey.add(sortby);
         }
 
-        Object[] values = RawValueIngester.buildObjectOf(codecBuffer, rawColumnCodec, rawTableInstance.getRawToGridTableMapping().getOrderedColumnSet());
-        ByteBuffer buffer = rawColumnCodec.encode(values, rawTableInstance.getRawToGridTableMapping().getOrderedColumnSet());
+        return curKey;
+    }
 
-        //write body first
-        int bodyLength = buffer.position();
-        byte[] colValue = new byte[bodyLength + RowConstants.ROWKEY_SHARDID_LEN];
-        System.arraycopy(buffer.array(), 0, colValue, RowConstants.ROWKEY_SHARDID_LEN, bodyLength);
+    /**
+     * Build output value part (non-sortby columns)
+     * @param splitBuffers
+     * @return
+     */
+    protected ByteArrayListWritable buildValue(SplittedBytes[] splitBuffers) {
+        return new ByteArrayListWritable(encodeNonSortbyColumns(splitBuffers));
+    }
 
-        //then write shard
-        ByteBuffer shardValue = getShardValue(splitBuffers);
-        short shardId = ShardingHash.getShard(shardValue.array(), 0, shardValue.position(), shardNum);
-        BytesUtil.writeShort(shardId, colValue, 0, RowConstants.ROWKEY_SHARDID_LEN);
-        return colValue;
+    protected List<byte[]> encodeSortbyColumn(SplittedBytes[] splitBuffers) {
+        return encodingColumns(splitBuffers, sortbyMapping);
+    }
+
+    protected List<byte[]> encodeNonSortbyColumns(SplittedBytes[] splitBuffers) {
+        return encodingColumns(splitBuffers, nonSortbyMapping);
+    }
+
+    private List<byte[]> encodingColumns(SplittedBytes[] splitBuffers, Pair<Integer, Integer>[] columnMapping) {
+        List<byte[]> result = Lists.newArrayList();
+        for (int i = 0; i < columnMapping.length; i++) {
+            int idInSource = columnMapping[i].getFirst();
+            int idInRawTable = columnMapping[i].getSecond();
+            if (isNull(splitBuffers[idInSource].value, 0, splitBuffers[idInSource].length)) {
+                codecBuffer[idInRawTable] = null;
+            } else {
+                codecBuffer[idInRawTable] = Bytes.toString(splitBuffers[idInSource].value, 0, splitBuffers[idInSource].length);
+            }
+            ImmutableBitSet rawtableIndexBitmap = new ImmutableBitSet(idInRawTable);
+            ByteBuffer buffer = rawColumnCodec.encode(RawValueIngester.buildObjectOf(codecBuffer, rawColumnCodec, rawtableIndexBitmap), rawtableIndexBitmap);
+            result.add(Arrays.copyOfRange(buffer.array(), 0, buffer.position()));
+        }
+
+        return result;
     }
 
     protected ByteBuffer getShardValue(SplittedBytes[] splitBuffers) {
-        for (int i = 0; i < shardbyColIdxInSource.length; i++) {
-            int idInSource = shardbyColIdxInSource[i];
-            int idInRawTable = shardbyColIdxInRawTable[i];
-            codecBuffer[idInRawTable] = Bytes.toString(splitBuffers[idInSource].value, 0, splitBuffers[idInSource].length);
-        }
-        Object[] values = RawValueIngester.buildObjectOf(codecBuffer, rawColumnCodec, rawTableInstance.getRawToGridTableMapping().getShardbyKey());
-        return rawColumnCodec.encode(values, rawTableInstance.getRawToGridTableMapping().getShardbyKey());
-    }
-
-    protected ByteBuffer buildValue(SplittedBytes[] splitBuffers) {
-        for (int i = 0; i < codecBuffer.length; i++) {
-            if (nonOrderColInxInSource[i] != -1) {
-                if (isNull(splitBuffers[nonOrderColInxInSource[i]].value, 0, splitBuffers[nonOrderColInxInSource[i]].length)) {
-                    codecBuffer[i] = null;
-                } else {
-                    codecBuffer[i] = Bytes.toString(splitBuffers[nonOrderColInxInSource[i]].value, 0, splitBuffers[nonOrderColInxInSource[i]].length);
-                }
+        for (int i = 0; i < shardbyMapping.length; i++) {
+            int idInSource = shardbyMapping[i].getFirst();
+            int idInRawTable = shardbyMapping[i].getSecond();
+            if (isNull(splitBuffers[idInSource].value, 0, splitBuffers[idInSource].length)) {
+                codecBuffer[idInRawTable] = null;
+            } else {
+                codecBuffer[idInRawTable] = Bytes.toString(splitBuffers[idInSource].value, 0, splitBuffers[idInSource].length);
             }
         }
-        Object[] values = RawValueIngester.buildObjectOf(codecBuffer, rawColumnCodec, rawTableInstance.getRawToGridTableMapping().getNonOrderedColumnSet());
-        return rawColumnCodec.encode(values, rawTableInstance.getRawToGridTableMapping().getNonOrderedColumnSet());
+        Object[] values = RawValueIngester.buildObjectOf(codecBuffer, rawColumnCodec, rawTableDesc.getRawToGridTableMapping().getShardbyKey());
+        return rawColumnCodec.encode(values, rawTableDesc.getRawToGridTableMapping().getShardbyKey());
     }
 
     protected byte[][] convertUTF8Bytes(String[] row) throws UnsupportedEncodingException {

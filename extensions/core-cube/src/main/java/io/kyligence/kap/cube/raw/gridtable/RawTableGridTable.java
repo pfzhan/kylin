@@ -26,16 +26,16 @@ package io.kyligence.kap.cube.raw.gridtable;
 
 import org.apache.kylin.gridtable.GTInfo;
 
-import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.cube.raw.RawTableDesc;
 
 public class RawTableGridTable {
-    public static GTInfo newGTInfo(RawTableInstance rawTableInstance) {
-        RawToGridTableMapping mapping = rawTableInstance.getRawToGridTableMapping();
+    public static GTInfo newGTInfo(RawTableDesc rawTableDesc) {
+        RawToGridTableMapping mapping = rawTableDesc.getRawToGridTableMapping();
 
         GTInfo.Builder builder = GTInfo.builder();
-        builder.setTableName("RawTable " + rawTableInstance.getName());
+        builder.setTableName("RawTable " + rawTableDesc.getName());
         //TODO: pass in real DimensionEncoding
-        builder.setCodeSystem(new RawTableCodeSystem(rawTableInstance.getRawTableDesc().getEncodings()));
+        builder.setCodeSystem(new RawTableCodeSystem(rawTableDesc.getEncodings()));
         builder.setColumns(mapping.getDataTypes());
         builder.setPrimaryKey(mapping.getPrimaryKey());
         return builder.build();

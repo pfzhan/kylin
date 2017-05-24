@@ -53,9 +53,12 @@ public class RawTableColumnDesc {
     @JsonProperty("encoding_version")
     @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     private int encodingVersion = 1;
-    @JsonProperty("shardby")
+    @JsonProperty("is_shardby")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Boolean shardby;
+    @JsonProperty("is_sortby")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Boolean sortby;
 
     // computed
     private TblColRef column;
@@ -71,7 +74,10 @@ public class RawTableColumnDesc {
 
         // backward compatibility
         if (shardby == null) {
-            shardby = encoding.equals(INDEX_SORTED) ? true : false;
+            shardby = index.equals(INDEX_SORTED) ? true : false;
+        }
+        if (sortby == null) {
+            sortby = index.equals(INDEX_SORTED) ? true : false;
         }
     }
 
@@ -107,6 +113,10 @@ public class RawTableColumnDesc {
 
     public Boolean isShardby() {
         return shardby == null ? false : shardby;
+    }
+
+    public Boolean isSortby() {
+        return sortby == null ? false : sortby;
     }
 
     @Override

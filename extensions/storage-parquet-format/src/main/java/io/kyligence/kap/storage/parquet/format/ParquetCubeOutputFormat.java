@@ -31,8 +31,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import com.google.common.base.Preconditions;
-import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -57,6 +55,10 @@ import org.apache.parquet.schema.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
+
 /**
  * cube build output format
  */
@@ -67,7 +69,7 @@ public class ParquetCubeOutputFormat extends FileOutputFormat<Text, Text> {
         return new ParquetCubeWriter((FileOutputCommitter) this.getOutputCommitter(job), job, job.getOutputKeyClass(), job.getOutputValueClass());
     }
 
-    public static class ParquetCubeWriter extends ParquetOrderedFileWriter {
+    public static class ParquetCubeWriter extends ParquetOrderedFileWriter<Text, Text> {
         private static final Logger logger = LoggerFactory.getLogger(ParquetCubeWriter.class);
 
         private long curCuboidId = -1;
@@ -151,21 +153,17 @@ public class ParquetCubeOutputFormat extends FileOutputFormat<Text, Text> {
             }
 
             MessageType schema = new MessageType(cubeSegment.getName(), types);
-            rawWriter = new ParquetRawWriter.Builder().setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage())//
-                    .setPagesPerGroup(KapConfig.getInstanceFromEnv().getParquetPagesPerGroup()).setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression()).setConf(config).setType(schema).setPath(getOutputPath()).build();
+            rawWriter = new ParquetRawWriter.Builder().setRowsPerPage(KapConfig.wrap(cubeSegment.getConfig()).getParquetRowsPerPage())//
+                    .setPagesPerGroup(KapConfig.wrap(cubeSegment.getConfig()).getParquetPagesPerGroup()).setCodecName(KapConfig.wrap(cubeSegment.getConfig()).getParquetPageCompression()).setConf(config).setType(schema).setPath(getOutputPath()).build();
             return rawWriter;
         }
 
         @Override
-        protected void writeData(Text key, Text value) {
+        protected void writeData(Text key, Text value) throws IOException {
             byte[] valueBytes = value.getBytes().clone(); //on purpose, because parquet writer will cache
-            try {
-                byte[] keyBody = Arrays.copyOfRange(key.getBytes(), RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN, key.getLength());
-                int[] valueLength = measureCodec.getPeekLength(ByteBuffer.wrap(valueBytes));
-                writer.writeRow(keyBody, 0, keyBody.length, valueBytes, valueLength);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            byte[] keyBody = Arrays.copyOfRange(key.getBytes(), RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN, key.getLength());
+            int[] valueLength = measureCodec.getPeekLength(ByteBuffer.wrap(valueBytes));
+            writer.writeRow(keyBody, 0, keyBody.length, valueBytes, valueLength);
         }
 
         @Override

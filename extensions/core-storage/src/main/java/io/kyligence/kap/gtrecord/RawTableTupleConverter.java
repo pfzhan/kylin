@@ -51,7 +51,7 @@ public class RawTableTupleConverter {
     public RawTableTupleConverter(RawTableInstance rawTableInstance, Set<TblColRef> selectedDimensions, Set<FunctionDesc> selectedMetrics, TupleInfo returnTupleInfo) {
         this.tupleInfo = returnTupleInfo;
 
-        RawToGridTableMapping mapping = rawTableInstance.getRawToGridTableMapping();
+        RawToGridTableMapping mapping = rawTableInstance.getRawTableDesc().getRawToGridTableMapping();
 
         nSelectedDims = selectedDimensions.size();
         nSelectedMetrics = selectedMetrics.size();

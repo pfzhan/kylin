@@ -27,7 +27,6 @@ package io.kyligence.kap.storage.parquet.format;
 import java.io.IOException;
 
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.slf4j.Logger;
@@ -35,7 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
 
-public abstract class ParquetOrderedFileWriter extends RecordWriter<Text, Text> {
+public abstract class ParquetOrderedFileWriter<K, V> extends RecordWriter<K, V> {
     private static final Logger logger = LoggerFactory.getLogger(ParquetOrderedFileWriter.class);
 
     /**
@@ -56,7 +55,7 @@ public abstract class ParquetOrderedFileWriter extends RecordWriter<Text, Text> 
      * @param key
      * @param value
      */
-    abstract protected void writeData(Text key, Text value);
+    abstract protected void writeData(K key, V value) throws IOException;
 
     /**
      * Fresh parquet file writer.
@@ -64,10 +63,10 @@ public abstract class ParquetOrderedFileWriter extends RecordWriter<Text, Text> 
      * Otherwise close the
      * @return new parquet writer
      */
-    abstract protected void freshWriter(Text key, Text value) throws IOException, InterruptedException;
+    abstract protected void freshWriter(K key, V value) throws IOException, InterruptedException;
 
     @Override
-    public void write(Text key, Text value) throws IOException, InterruptedException {
+    public void write(K key, V value) throws IOException, InterruptedException {
         freshWriter(key, value);
         writeData(key, value);
     }

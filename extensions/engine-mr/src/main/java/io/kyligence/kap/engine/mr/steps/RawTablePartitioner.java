@@ -22,37 +22,16 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.cube.model;
+package io.kyligence.kap.engine.mr.steps;
 
-import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.cube.model.CubeJoinedFlatTableDesc;
-import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.hadoop.mapreduce.Partitioner;
+import org.apache.kylin.common.util.BytesUtil;
 
-import io.kyligence.kap.cube.raw.RawTableInstance;
-import io.kyligence.kap.cube.raw.RawTableManager;
+import io.kyligence.kap.storage.parquet.format.datatype.ByteArrayListWritable;
 
-public class DataModelFlatTableDesc extends CubeJoinedFlatTableDesc {
-
-    public DataModelFlatTableDesc(CubeSegment cubeSegment) {
-        super(cubeSegment);
+public class RawTablePartitioner extends Partitioner<ByteArrayListWritable, ByteArrayListWritable> {
+    @Override
+    public int getPartition(ByteArrayListWritable key, ByteArrayListWritable value, int i) {
+        return BytesUtil.readShort(key.get().get(0));
     }
-
-    protected void initParseCubeDesc() {
-        // add cube columns
-        super.initParseCubeDesc();
-
-        if (cubeSegment == null)
-            return;
-        
-        // add raw table columns
-        RawTableManager rawTableManager = RawTableManager.getInstance(cubeSegment.getConfig());
-        RawTableInstance rawTable = rawTableManager.getAccompanyRawTable(cubeSegment.getCubeInstance());
-        if (rawTable == null)
-            return;
-        
-        for (TblColRef col : rawTable.getRawTableDesc().getColumnsInOrder()) {
-            initAddColumn(col);
-        }
-    }
-
 }

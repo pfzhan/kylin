@@ -27,7 +27,7 @@ package io.kyligence.kap.cube.raw;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,6 +52,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import io.kyligence.kap.cube.raw.gridtable.RawToGridTableMapping;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
@@ -82,64 +84,82 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     private KylinConfig config;
     private DataModelDesc model;
     private Map<TblColRef, RawTableColumnDesc> columnMap;
-    private Set<TblColRef> shardbyColumns;
-    private HashSet<TblColRef> fuzzyColumnSet;
+    private LinkedHashSet<TblColRef> shardbyColumns;
+    private Set<TblColRef> fuzzyColumns;
+    private LinkedHashSet<TblColRef> sortbyColumns;
+    private RawToGridTableMapping rawToGTMapping;
+
+    private List<TblColRef> columnsInOrder;
 
     // for Jackson
     public RawTableDesc() {
     }
 
-    public HashSet<TblColRef> getFuzzyColumnSet() {
-        return fuzzyColumnSet;
+    public static RawTableDesc getCopyOf(RawTableDesc desc) {
+        RawTableDesc rawTableDesc = new RawTableDesc();
+        rawTableDesc.setName(desc.getName());
+        rawTableDesc.setStatus(desc.getStatus());
+        rawTableDesc.setModelName(desc.getModelName());
+        rawTableDesc.setOriginColumns(desc.getOriginColumns());
+        rawTableDesc.setAutoMergeTimeRanges(desc.getAutoMergeTimeRanges());
+        rawTableDesc.setEngineType(desc.getEngineType());
+        rawTableDesc.setStorageType(desc.getStorageType());
+        rawTableDesc.updateRandomUuid();
+        rawTableDesc.init(desc.getConfig());
+        return rawTableDesc;
     }
 
-    // validate there's at least one and only one ordered column
+    public Set<TblColRef> getFuzzyColumns() {
+        return fuzzyColumns;
+    }
+
+    // validate the first sortby column is data/time/integerDim encoding
     public void validate() {
-        boolean meetSorted = false;
-        for (RawTableColumnDesc colDesc : columns) {
-            if (RawTableColumnDesc.INDEX_SORTED.equals(colDesc.getIndex())) {
-                if (meetSorted) {
-                    throw new IllegalStateException(this + " contains more than one ordered column");
-                } else {
-                    meetSorted = true;
-                }
-            }
+        if (sortbyColumns.isEmpty()) {
+            throw new IllegalStateException(this + " missing sortby column");
         }
 
-        if (!meetSorted) {
-            throw new IllegalStateException(this + " missing ordered column");
+        TblColRef firstSorted = sortbyColumns.iterator().next();
+
+        // FIXME: Dirty code, check encoding in string
+        String encoding = columnMap.get(firstSorted).getEncoding();
+        if (!encoding.equalsIgnoreCase("integer") && !encoding.equalsIgnoreCase("date") && !encoding.equalsIgnoreCase("time")) {
+            throw new IllegalStateException("first sortby column's encoding is" + encoding + ", it should be integer, date or time");
         }
     }
 
-    public TblColRef getOrderedColumn() {
-        for (RawTableColumnDesc colDesc : columns) {
-            if (RawTableColumnDesc.INDEX_SORTED.equals(colDesc.getIndex()))
-                return colDesc.getColumn();
+    public TblColRef getFirstSortbyColumn() {
+        if (sortbyColumns.size() < 1) {
+            throw new IllegalStateException(this + " missing sortby column");
         }
 
-        DataModelDesc model = getModel();
-        if (model.getPartitionDesc().isPartitioned())
-            return model.getPartitionDesc().getPartitionDateColumnRef();
-
-        throw new IllegalStateException(this + " missing ordered column");
+        return sortbyColumns.iterator().next();
     }
 
-    public List<TblColRef> getColumnsExcludingOrdered() {
+    public Collection<TblColRef> getSortbyColumns() {
+        if (sortbyColumns.size() < 1) {
+            throw new IllegalStateException(this + " missing sortby column");
+        }
+
+        return sortbyColumns;
+    }
+
+    public List<TblColRef> getNonSortbyColumns() {
         List<TblColRef> cols = new ArrayList<>();
         for (RawTableColumnDesc colDesc : columns) {
-            if (RawTableColumnDesc.INDEX_SORTED.equals(colDesc.getIndex()))
+            if (sortbyColumns.contains(colDesc.getIndex()))
                 continue;
             cols.add(colDesc.getColumn());
         }
         return cols;
     }
 
-    public Boolean isNeedFuzzyIndex(TblColRef colRef) {
-        return fuzzyColumnSet.contains(colRef);
-    }
-
     public Boolean isShardby(TblColRef colRef) {
         return shardbyColumns.contains(colRef);
+    }
+
+    public Boolean isNeedFuzzyIndex(TblColRef colRef) {
+        return fuzzyColumns.contains(colRef);
     }
 
     public int getEstimateRowSize() {
@@ -150,8 +170,12 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         return size;
     }
 
+    public Boolean isSortby(TblColRef colRef) {
+        return sortbyColumns.contains(colRef);
+    }
+
     public List<Pair<String, Integer>> getEncodings() {
-        List<TblColRef> columnsInOrder = getColumns();
+        List<TblColRef> columnsInOrder = getColumnsInOrder();
         Preconditions.checkNotNull(columnsInOrder);
         Preconditions.checkArgument(columnsInOrder.size() != 0);
         return Lists.transform(columnsInOrder, new Function<TblColRef, Pair<String, Integer>>() {
@@ -165,22 +189,12 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         });
     }
 
-    public void setAllColumns(List<RawTableColumnDesc> columns) {
-        this.columns = columns;
-    }
-
-    public List<RawTableColumnDesc> getAllColumns() {
+    public List<RawTableColumnDesc> getOriginColumns() {
         return this.columns == null ? null : Collections.unmodifiableList(this.columns);
     }
 
-    public List<TblColRef> getColumns() {
-        List<TblColRef> result = Lists.newArrayList();
-        TblColRef ordered = getOrderedColumn();
-        if (ordered != null) {
-            result.add(ordered);
-        }
-        result.addAll(getColumnsExcludingOrdered());
-        return result;
+    public void setOriginColumns(List<RawTableColumnDesc> columns) {
+        this.columns = columns;
     }
 
     public String getResourcePath() {
@@ -191,27 +205,13 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         return RAW_TABLE_DESC_RESOURCE_ROOT + "/" + descName + MetadataConstants.FILE_SURFIX;
     }
 
-    void init(KylinConfig config) {
-        MetadataManager metaMgr = MetadataManager.getInstance(config);
-
-        this.config = config;
-        this.model = metaMgr.getDataModelDesc(modelName);
-        this.columnMap = Maps.newHashMap();
-        this.shardbyColumns = new HashSet<>();
-        this.fuzzyColumnSet = Sets.newHashSet();
-
-        for (RawTableColumnDesc colDesc : columns) {
-            colDesc.init(model);
-            if (colDesc.isShardby()) {
-                shardbyColumns.add(colDesc.getColumn());
-            }
-            if (colDesc.getFuzzyIndex()) {
-                fuzzyColumnSet.add(colDesc.getColumn());
-            }
-            columnMap.put(colDesc.getColumn(), colDesc);
+    public List<TblColRef> getColumnsInOrder() {
+        if (columnsInOrder == null) {
+            columnsInOrder = Lists.newArrayList();
+            columnsInOrder.addAll(getSortbyColumns());
+            columnsInOrder.addAll(getNonSortbyColumns());
         }
-
-        this.validate();
+        return columnsInOrder;
     }
 
     // init config only for draft
@@ -314,18 +314,38 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         return shardbyColumns;
     }
 
-    public static RawTableDesc getCopyOf(RawTableDesc desc) {
-        RawTableDesc rawTableDesc = new RawTableDesc();
-        rawTableDesc.setName(desc.getName());
-        rawTableDesc.setStatus(desc.getStatus());
-        rawTableDesc.setModelName(desc.getModelName());
-        rawTableDesc.setAllColumns(desc.getAllColumns());
-        rawTableDesc.setAutoMergeTimeRanges(desc.getAutoMergeTimeRanges());
-        rawTableDesc.setEngineType(desc.getEngineType());
-        rawTableDesc.setStorageType(desc.getStorageType());
-        rawTableDesc.updateRandomUuid();
-        rawTableDesc.init(desc.getConfig());
-        return rawTableDesc;
+    void init(KylinConfig config) {
+        MetadataManager metaMgr = MetadataManager.getInstance(config);
+
+        this.config = config;
+        this.model = metaMgr.getDataModelDesc(modelName);
+        this.columnMap = Maps.newHashMap();
+        this.shardbyColumns = new LinkedHashSet<>();
+        this.fuzzyColumns = Sets.newHashSet();
+        this.sortbyColumns = new LinkedHashSet<>();
+
+        for (RawTableColumnDesc colDesc : columns) {
+            colDesc.init(model);
+            if (colDesc.isShardby()) {
+                shardbyColumns.add(colDesc.getColumn());
+            }
+            if (colDesc.getFuzzyIndex()) {
+                fuzzyColumns.add(colDesc.getColumn());
+            }
+            if (colDesc.isSortby()) {
+                sortbyColumns.add(colDesc.getColumn());
+            }
+            columnMap.put(colDesc.getColumn(), colDesc);
+        }
+
+        this.validate();
+    }
+
+    public RawToGridTableMapping getRawToGridTableMapping() {
+        if (rawToGTMapping == null) {
+            rawToGTMapping = new RawToGridTableMapping(this);
+        }
+        return rawToGTMapping;
     }
 
 }

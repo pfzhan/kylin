@@ -53,6 +53,7 @@ import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableOutputFormat;
+import io.kyligence.kap.storage.parquet.format.datatype.ByteArrayListWritable;
 
 public class KapRawTableJob extends AbstractHadoopJob {
     protected static final Logger logger = LoggerFactory.getLogger(KapRawTableJob.class);
@@ -103,10 +104,10 @@ public class KapRawTableJob extends AbstractHadoopJob {
             }
 
             job.setMapperClass(HiveToRawTableMapper.class);
-            job.setMapOutputKeyClass(Text.class);
-            job.setMapOutputValueClass(Text.class);
+            job.setMapOutputKeyClass(ByteArrayListWritable.class);
+            job.setMapOutputValueClass(ByteArrayListWritable.class);
             job.setCombinerClass(KylinReducer.class);
-            job.setPartitionerClass(ShardPartitioner.class);
+            job.setPartitionerClass(RawTablePartitioner.class);
 
             // Reducer
             job.setReducerClass(KylinReducer.class);

@@ -25,20 +25,10 @@
 package io.kyligence.kap.storage.parquet.format;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-import io.kyligence.kap.cube.raw.BufferedRawColumnCodec;
-import io.kyligence.kap.cube.raw.RawTableDesc;
-import io.kyligence.kap.cube.raw.RawTableInstance;
-import io.kyligence.kap.cube.raw.RawTableManager;
-import io.kyligence.kap.cube.raw.gridtable.RawTableCodeSystem;
-import io.kyligence.kap.cube.raw.gridtable.RawTableGridTable;
-import io.kyligence.kap.cube.raw.kv.RawTableConstants;
-import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -48,8 +38,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.Bytes;
-import org.apache.kylin.cube.kv.RowConstants;
+import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.gridtable.GTInfo;
@@ -60,13 +49,23 @@ import org.apache.parquet.schema.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ParquetRawTableOutputFormat extends FileOutputFormat<Text, Text> {
+import io.kyligence.kap.cube.raw.BufferedRawColumnCodec;
+import io.kyligence.kap.cube.raw.RawTableDesc;
+import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.cube.raw.RawTableManager;
+import io.kyligence.kap.cube.raw.gridtable.RawTableCodeSystem;
+import io.kyligence.kap.cube.raw.gridtable.RawTableGridTable;
+import io.kyligence.kap.cube.raw.kv.RawTableConstants;
+import io.kyligence.kap.storage.parquet.format.datatype.ByteArrayListWritable;
+import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
+
+public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListWritable, ByteArrayListWritable> {
     @Override
-    public RecordWriter<Text, Text> getRecordWriter(TaskAttemptContext job) throws IOException, InterruptedException {
+    public RecordWriter<ByteArrayListWritable, ByteArrayListWritable> getRecordWriter(TaskAttemptContext job) throws IOException, InterruptedException {
         return new ParquetRawTableFileWriter((FileOutputCommitter) this.getOutputCommitter(job), job, job.getOutputKeyClass(), job.getOutputValueClass());
     }
 
-    public static class ParquetRawTableFileWriter extends ParquetOrderedFileWriter {
+    public static class ParquetRawTableFileWriter extends ParquetOrderedFileWriter<ByteArrayListWritable, ByteArrayListWritable> {
         private static final Logger logger = LoggerFactory.getLogger(ParquetRawTableFileWriter.class);
 
         private short curShardId = -1;
@@ -78,11 +77,6 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<Text, Text> {
         private RawTableDesc rawTableDesc;
         private BufferedRawColumnCodec rawColumnsCodec;
         private Path outputDir = null;
-
-        @Override
-        public void write(Text key, Text value) throws IOException, InterruptedException {
-            super.write(key, value);
-        }
 
         public ParquetRawTableFileWriter(FileOutputCommitter committer, TaskAttemptContext context, Class<?> keyClass, Class<?> valueClass) throws IOException, InterruptedException {
             this.config = context.getConfiguration();
@@ -97,7 +91,7 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<Text, Text> {
             logger.info("RawTableName is " + rawName + " and segmentID is " + segmentID);
             rawTableInstance = RawTableManager.getInstance(kylinConfig).getRawTableInstance(rawName);
             rawTableDesc = rawTableInstance.getRawTableDesc();
-            GTInfo gtInfo = RawTableGridTable.newGTInfo(rawTableInstance);
+            GTInfo gtInfo = RawTableGridTable.newGTInfo(rawTableDesc);
             rawColumnsCodec = new BufferedRawColumnCodec((RawTableCodeSystem) gtInfo.getCodeSystem());
 
             // FIXME: Text involves array copy every time
@@ -109,9 +103,13 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<Text, Text> {
         }
 
         @Override
-        protected void freshWriter(Text key, Text value) throws IOException, InterruptedException {
-            byte[] keyByte = key.getBytes();
-            short shardId = Bytes.toShort(keyByte, 0, RowConstants.ROWKEY_SHARDID_LEN);
+        public void write(ByteArrayListWritable key, ByteArrayListWritable value) throws IOException, InterruptedException {
+            super.write(key, value);
+        }
+
+        @Override
+        protected void freshWriter(ByteArrayListWritable key, ByteArrayListWritable value) throws IOException, InterruptedException {
+            short shardId = BytesUtil.readShort(key.get().get(0));
 
             if (shardId != curShardId) {
                 cleanWriter();
@@ -143,14 +141,10 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<Text, Text> {
         protected ParquetRawWriter newWriter() throws IOException, InterruptedException {
             ParquetRawWriter rawWriter;
             List<Type> types = new ArrayList<Type>();
-            TblColRef orderedColumn = rawTableDesc.getOrderedColumn();
-            List<TblColRef> columns = rawTableDesc.getColumns();
+            List<TblColRef> columns = rawTableDesc.getColumnsInOrder();
 
-            types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, orderedColumn.getName()));
             for (TblColRef column : columns) {
-                if (!column.equals(orderedColumn)) {
-                    types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, column.getName()));
-                }
+                types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, column.getName()));
             }
 
             MessageType schema = new MessageType(rawTableDesc.getName(), types);
@@ -161,15 +155,10 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<Text, Text> {
         }
 
         @Override
-        protected void writeData(Text key, Text value) {
-            byte[] valueBytes = value.getBytes().clone(); //on purpose, because parquet writer will cache
-            try {
-                byte[] keyBody = Arrays.copyOfRange(key.getBytes(), RowConstants.ROWKEY_SHARDID_LEN, key.getLength());
-                int[] valueLengths = rawColumnsCodec.peekLengths(ByteBuffer.wrap(valueBytes), rawTableInstance.getRawToGridTableMapping().getNonOrderedColumnSet());
-                writer.writeRow(keyBody, 0, keyBody.length, valueBytes, valueLengths);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        protected void writeData(ByteArrayListWritable key, ByteArrayListWritable value) throws IOException {
+            List<byte[]> sortby = key.get().subList(1, key.get().size());
+            List<byte[]> nonSortby = value.get();
+            writer.writeRow(sortby, nonSortby);
         }
 
         @Override
