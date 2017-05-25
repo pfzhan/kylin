@@ -23,10 +23,13 @@
  */
 package io.kyligence.kap.rest.controllerV2;
 
-import io.kyligence.kap.rest.msg.KapMessage;
-import io.kyligence.kap.rest.msg.KapMsgPicker;
-import io.kyligence.kap.rest.response.AsyncQueryResponse;
-import io.kyligence.kap.rest.service.AsyncQueryServiceV2;
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
+
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.rest.controller.BasicController;
@@ -35,7 +38,7 @@ import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.response.SQLResponse;
-import org.apache.kylin.rest.service.QueryServiceV2;
+import org.apache.kylin.rest.service.QueryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,11 +54,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
+import io.kyligence.kap.rest.response.AsyncQueryResponse;
+import io.kyligence.kap.rest.service.AsyncQueryServiceV2;
 
 @Controller
 @EnableAsync
@@ -64,8 +66,8 @@ public class AsyncQueryControllerV2 extends BasicController {
     private static final Logger logger = LoggerFactory.getLogger(AsyncQueryControllerV2.class);
 
     @Autowired
-    @Qualifier("queryServiceV2")
-    private QueryServiceV2 queryServiceV2;
+    @Qualifier("queryService")
+    private QueryService queryService;
 
     @Autowired
     @Qualifier("asyncQueryServiceV2")
@@ -90,7 +92,7 @@ public class AsyncQueryControllerV2 extends BasicController {
                 try {
                     asyncQueryServiceV2.createExistFlag(queryContext.getQueryId());
                     try {
-                        SQLResponse response = queryServiceV2.doQueryWithCache(sqlRequest);
+                        SQLResponse response = queryService.doQueryWithCache(sqlRequest);
                         asyncQueryServiceV2.flushResultToHdfs(response, queryContext.getQueryId());
                     } catch (Exception ie) {
                         SQLResponse error = new SQLResponse(null, null, 0, true, ie.getMessage());

@@ -44,7 +44,7 @@ import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.GeneralResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.CacheService;
-import org.apache.kylin.rest.service.CubeServiceV2;
+import org.apache.kylin.rest.service.CubeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,8 +75,8 @@ public class KapCubeControllerV2 extends BasicController {
     private static final Logger logger = LoggerFactory.getLogger(KapCubeControllerV2.class);
 
     @Autowired
-    @Qualifier("cubeMgmtServiceV2")
-    private CubeServiceV2 cubeServiceV2;
+    @Qualifier("cubeMgmtService")
+    private CubeService cubeService;
 
     @Autowired
     @Qualifier("kapCubeServiceV2")
@@ -105,7 +105,7 @@ public class KapCubeControllerV2 extends BasicController {
 
         List<ColumnarResponse> columnar = new ArrayList<>();
 
-        CubeInstance cube = cubeServiceV2.getCubeManager().getCube(cubeName);
+        CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
         if (null == cube) {
             throw new BadRequestException(String.format(msg.getCUBE_NOT_FOUND(), cubeName));
         }
@@ -181,8 +181,8 @@ public class KapCubeControllerV2 extends BasicController {
         ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
         ResourceStore.Checkpoint cp = store.checkpoint();
         try {
-            boolean createNewCube = cubeServiceV2.unifyCubeDesc(cubeDesc, false);
-            cubeDesc = cubeServiceV2.updateCubeToResourceStore(cubeDesc, projectName, createNewCube);
+            boolean createNewCube = cubeService.unifyCubeDesc(cubeDesc, false);
+            cubeDesc = cubeService.updateCubeToResourceStore(cubeDesc, projectName, createNewCube);
 
             if (rawTableDesc != null) {
                 rawTableServiceV2.validateRawTableDesc(rawTableDesc);
@@ -226,8 +226,8 @@ public class KapCubeControllerV2 extends BasicController {
         ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
         ResourceStore.Checkpoint cp = store.checkpoint();
         try {
-            boolean createNewCube = cubeServiceV2.unifyCubeDesc(cubeDesc, true);
-            cubeDesc = cubeServiceV2.updateCubeToResourceStore(cubeDesc, projectName, createNewCube);
+            boolean createNewCube = cubeService.unifyCubeDesc(cubeDesc, true);
+            cubeDesc = cubeService.updateCubeToResourceStore(cubeDesc, projectName, createNewCube);
 
             if (rawTableDesc != null) {
                 rawTableServiceV2.validateRawTableDesc(rawTableDesc);
