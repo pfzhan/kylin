@@ -26,8 +26,15 @@ package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import io.kyligence.kap.storage.parquet.adhoc.SparkSqlClient;
+import io.kyligence.kap.storage.parquet.adhoc.util.KapAdHocUtil;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 import org.apache.kylin.common.util.DateFormat;
+import org.apache.kylin.common.util.Pair;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
@@ -45,11 +52,13 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase imp
 
     private SparkConf conf;
     private JavaSparkContext sc;
+    private Semaphore semaphore;
 
     public SparkAppClientService() {
         conf = new SparkConf().setAppName("KAP Query Driver");
         conf.set("spark.scheduler.mode", "FAIR");
         sc = new JavaSparkContext(conf);
+        semaphore = new Semaphore((int) KapAdHocUtil.memoryStringToMegas(this.conf.get("spark.driver.memory")) / 2);
 
         logger.info("Starting to warm up all executors");
         List<Integer> warmupData = new ArrayList<Integer>();
@@ -65,9 +74,33 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase imp
         if (sc.sc().isStopped()) {
             logger.warn("Current JavaSparkContext(started at {} GMT) is found to be stopped, creating a new one", DateFormat.formatToTimeStr(sc.startTime()));
             sc = new JavaSparkContext(conf);
+            semaphore = new Semaphore((int) KapAdHocUtil.memoryStringToMegas(this.conf.get("spark.driver.memory")) / 2);
         }
 
         return new ServerStreamObserver(responseObserver, sc);
     }
 
+    @Override
+    public void doAdHocQuery(SparkJobProtos.AdHocRequest request, StreamObserver<SparkJobProtos.AdHocResponse> responseObserver) {
+        if (sc.sc().isStopped()) {
+            logger.warn("Current JavaSparkContext(started at {} GMT) is found to be stopped, creating a new one", DateFormat.formatToTimeStr(sc.startTime()));
+            sc = new JavaSparkContext(conf);
+            semaphore = new Semaphore((int) KapAdHocUtil.memoryStringToMegas(this.conf.get("spark.driver.memory")) / 2);
+        }
+
+        logger.info("Starting to do ad hoc query");
+        try {
+            SparkSqlClient sqlClient = new SparkSqlClient(sc,  request, semaphore);
+            Pair<List<SparkJobProtos.Row>, List<SparkJobProtos.StructField>> pair = sqlClient.executeSql();
+
+            responseObserver.onNext(SparkJobProtos.AdHocResponse.newBuilder().addAllRows(pair.getFirst()).addAllColumns(pair.getSecond()).build());
+            responseObserver.onCompleted();
+
+            semaphore.release((int) sqlClient.getEstimateDfSize());
+
+        } catch (Exception e) {
+            logger.error("Ad Hoc Query Error:", e);
+            throw new StatusRuntimeException(Status.INTERNAL.withDescription("Ad hoc query not supported, please check spark-driver.log for details."));
+        }
+    }
 }

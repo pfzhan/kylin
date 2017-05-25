@@ -145,6 +145,15 @@ public class SparkDriverClient {
         return ConfServiceGrpc.newBlockingStub(channel).getConf(request).getValue();
     }
 
+    public SparkJobProtos.AdHocResponse queryWithAdHoc(String sql) throws RuntimeException {
+
+        SparkJobProtos.AdHocRequest request = SparkJobProtos.AdHocRequest.newBuilder().setSql(sql).build();
+
+        final JobServiceGrpc.JobServiceBlockingStub asyncStub = JobServiceGrpc.newBlockingStub(channel);
+
+        return asyncStub.doAdHocQuery(request);
+    }
+
     private static class KyStorageVisitResponseStreamer implements IStorageVisitResponseStreamer {
 
         private final Semaphore semaphore;

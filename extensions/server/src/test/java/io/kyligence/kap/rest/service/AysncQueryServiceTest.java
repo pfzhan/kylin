@@ -46,7 +46,7 @@ import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.rest.model.SelectedColumnMeta;
+import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.junit.After;
 import org.junit.Assert;

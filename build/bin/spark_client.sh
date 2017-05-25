@@ -52,6 +52,7 @@ verbose "SPARK_DIR is set to ${SPARK_DIR}"
 verbose "KYLIN_SPARK_JAR_PATH is set to ${KYLIN_SPARK_JAR_PATH}"
 
 mkdir -p ${KYLIN_HOME}/logs
+ln -sfn ${LOG4J_DIR}/hive-site.xml ${SPARK_DIR}/conf/hive-site.xml
 
 #auto detect SPARK_HOME
 if [ -z "$SPARK_HOME" ]
