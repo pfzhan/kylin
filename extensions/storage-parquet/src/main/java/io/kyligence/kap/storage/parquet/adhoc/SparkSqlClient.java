@@ -107,8 +107,6 @@ public class SparkSqlClient implements Serializable {
 
             List<SparkJobProtos.Row> rowList = rowRdd.collect();
 
-            semaphore.release((int) estimateDfSize);
-
             return Pair.newPair(rowList, fieldList);
 
         } catch (Exception e) {
