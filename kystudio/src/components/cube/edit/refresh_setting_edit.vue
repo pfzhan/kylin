@@ -159,20 +159,15 @@ export default {
       this.cubeDesc.auto_merge_time_ranges[index] = time
     },
     initScheduler: function () {
-      let _this = this
-      this.getScheduler(_this.cubeDesc.name).then((res) => {
+      var schedulerName = this.cubeDesc.name + (this.cubeDesc.status === 'DRAFT' ? '_draft' : '')
+      this.getScheduler(schedulerName).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
-          _this.initRepeatInterval(data)
-          _this.scheduler.desc.triggerTime = data.triggerTime
-          _this.scheduler.desc.repeatInterval = data.repeatInterval
+          this.initRepeatInterval(data)
+          this.scheduler.desc.triggerTime = data.triggerTime
+          this.scheduler.desc.repeatInterval = data.repeatInterval
         })
       }).catch((res) => {
-        handleError(res, (data, code, status, msg) => {
-          console.log(status, 30000)
-          if (status === 404) {
-    //        _this.$router.replace('access/login')
-          }
-        })
+        handleError(res)
       })
     },
     changeInterval: function () {

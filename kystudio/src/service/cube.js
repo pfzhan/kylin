@@ -42,6 +42,9 @@ export default {
   updateCube: (cube) => {
     return Vue.resource(apiUrl + 'cubes').update(cube)
   },
+  draftCube: (cube) => {
+    return Vue.resource(apiUrl + 'cubes/draft').update(cube)
+  },
   getCubeSql: (cubeName) => {
     return Vue.resource(apiUrl + 'cubes/' + cubeName + '/sql').get()
   },

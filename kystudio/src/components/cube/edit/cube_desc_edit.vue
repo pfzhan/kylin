@@ -20,7 +20,7 @@
   <overview v-if="activeStep===8" :cubeDesc="cubeDetail" :modelDesc="modelDetail"></overview>
 
   
-
+<el-button  type="primary"  @click.native="saveDraft(true)">Draft</el-button>
   <el-button class="button_right" type="primary" v-if="activeStep !== 8" @click.native="next">{{$t('next')}}<i class="el-icon-arrow-right el-icon--right"></i></el-button>
   <el-button class="button_right" type="primary" v-if="activeStep === 8" @click.native="saveOrUpdate">{{$t('save')}}</el-button>
     <el-button class="button_right" icon="arrow-left" v-if="activeStep !== 1" @click.native="prev">{{$t('prev')}}</el-button>
@@ -51,16 +51,25 @@ import tableIndex from './table_index_edit'
 import configurationOverwrites from './configuration_overwrites_edit'
 import overview from './overview_edit'
 import json from '../json'
-import { removeNameSpace } from '../../../util/index'
+import { removeNameSpace, objectClone } from '../../../util/index'
 import { handleSuccess, handleError } from '../../../util/business'
 export default {
   name: 'cubeDescEdit',
   props: ['extraoption'],
   data () {
     return {
+      cubeSaveST: null,
       activeStep: 1,
       isEdit: this.extraoption.isEdit,
+      hisCubeMetaStr: '',
+      hisRawTableStr: '',
+      renderCubeFirst: false,
       index: 0,
+      // 定时保存配置
+      saveConfig: {
+        timer: 0,
+        limitTimer: 5
+      },
       modelDetail: {},
       cubeDetail: {},
       rawTable: {
@@ -123,7 +132,8 @@ export default {
       deleteRawTable: 'DELETE_RAW_TABLE',
       getScheduler: 'GET_SCHEDULER',
       updateScheduler: 'UPDATE_SCHEDULER',
-      deleteScheduler: 'DELETE_SCHEDULER'
+      deleteScheduler: 'DELETE_SCHEDULER',
+      draftCube: 'DRAFT_CUBE'
     }),
     step: function (num) {
       this.activeStep = this.stepsCheck(num)
@@ -369,67 +379,126 @@ export default {
       }
       return true
     },
+    saveDraft (tipChangestate) {
+      if (!this.checkHasChanged()) {
+        if (tipChangestate) {
+          this.$message({
+            type: 'warning',
+            message: '未检测到任何改动!'
+          })
+        }
+        return
+      }
+      if (+this.cubeDetail.engine_type === 100 || +this.cubeDetail.engine_type === 99) {
+        this.rawTable.tableDetail.name = this.cubeDetail.name
+        this.rawTable.tableDetail.model_name = this.cubeDetail.model_name
+        this.rawTable.tableDetail.engine_type = this.cubeDetail.engine_type
+        this.rawTable.tableDetail.storage_type = this.cubeDetail.storage_type
+      }
+      var saveData = {
+        cubeDescData: JSON.stringify(this.cubeDetail),
+        project: this.selected_project
+      }
+      if (this.rawTable.tableDetail.columns && this.rawTable.tableDetail.columns.length) {
+        saveData.rawTableDescData = JSON.stringify(this.rawTable.tableDetail)
+      }
+      this.draftCube(saveData).then((res) => {
+        handleSuccess(res, (data, code, status, msg) => {
+          try {
+            var cubeData = JSON.parse(data.cubeDescData)
+            this.cubeDetail.uuid = cubeData.uuid
+            this.cubeDetail.last_modified = cubeData.last_modified
+            this.cubeDetail.status = cubeData.status
+            console.log(this.cubeDetail, 'ffff')
+          } catch (e) {
+          }
+          try {
+            var rawTableData = JSON.parse(data.rawTableDescData)
+            this.rawTable.tableDetail.uuid = rawTableData.uuid
+            this.rawTable.tableDetail.last_modified = rawTableData.last_modified
+            this.rawTable.tableDetail.status = rawTableData.status
+          } catch (e) {
+          }
+          this.$message({
+            type: 'success',
+            duration: 3000,
+            message: '已经自动为您保存为草稿!'
+          })
+          this.$emit('reload', 'cubeList')
+        })
+      }).catch((res) => {
+        handleError(res)
+      })
+    },
+    timerSave () {
+      this.cubeSaveST = setTimeout(() => {
+        this.saveConfig.timer++
+        if (this.saveConfig.timer > this.saveConfig.limitTimer) {
+          this.saveDraft()
+          this.saveConfig.timer = 0
+        }
+        this.timerSave()
+      }, 1000)
+    },
+    filterUnCheckObject (obj) {
+      var newObj = objectClone(obj)
+      delete newObj.last_modified
+      delete newObj.status
+      delete newObj.uuid
+      return JSON.stringify(newObj)
+    },
+    checkHasChanged () {
+      var filterCubeMetaStr = this.filterUnCheckObject(this.cubeDetail)
+      var filterRawTableStr = this.filterUnCheckObject(this.rawTable.tableDetail)
+      if (this.renderCubeFirst) {
+        this.renderCubeFirst = false
+        this.hisCubeMetaStr = filterCubeMetaStr
+        this.hisRawTableStr = filterRawTableStr
+        return false
+      } else {
+        if (this.hisCubeMetaStr === filterCubeMetaStr && this.hisRawTableStr === filterRawTableStr) {
+          return false
+        }
+      }
+      this.hisCubeMetaStr = filterCubeMetaStr
+      this.hisRawTableStr = filterRawTableStr
+      return true
+    },
+    saveCube () {
+      if (+this.cubeDetail.engine_type === 100 || +this.cubeDetail.engine_type === 99) {
+        this.rawTable.tableDetail.name = this.cubeDetail.name
+        this.rawTable.tableDetail.model_name = this.cubeDetail.model_name
+        this.rawTable.tableDetail.engine_type = this.cubeDetail.engine_type
+        this.rawTable.tableDetail.storage_type = this.cubeDetail.storage_type
+      }
+      var saveData = {
+        cubeDescData: JSON.stringify(this.cubeDetail),
+        project: this.selected_project
+      }
+      if (this.rawTable.tableDetail.columns && this.rawTable.tableDetail.columns.length) {
+        saveData.rawTableDescData = JSON.stringify(this.rawTable.tableDetail)
+      }
+      this.updateCube(saveData).then((res) => {
+        handleSuccess(res, (data, code, status, msg) => {
+          this.$message({
+            type: 'success',
+            duration: 3000,
+            message: '保存成功!'
+          })
+          this.$emit('reload', 'cubeList')
+          this.$emit('removetabs', 'cube' + this.extraoption.cubeName)
+        })
+      }).catch((res) => {
+        handleError(res)
+      })
+    },
     saveOrUpdate: function () {
-      let _this = this
       this.$confirm('确认保存Cube？', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        // if (this.isEdit) {
-        if (this.cubeDetail.engine_type === 100 || this.cubeDetail.engine_type === 99) {
-          this.rawTable.tableDetail.name = this.cubeDetail.name
-          this.rawTable.tableDetail.model_name = this.cubeDetail.model_name
-          this.rawTable.tableDetail.engine_type = this.cubeDetail.engine_type
-          this.rawTable.tableDetail.storage_type = this.cubeDetail.storage_type
-        }
-        var saveData = {
-          cubeDescData: JSON.stringify(_this.cubeDetail),
-          project: _this.selected_project,
-          rawTableDescData: JSON.stringify(_this.rawTable.tableDetail)
-        }
-        this.updateCube(saveData).then((res) => {
-          handleSuccess(res, (data, code, status, msg) => {
-            this.$message({
-              type: 'success',
-              duration: 3000,
-              message: '保存成功!'
-            })
-            _this.saveOrUpdateRawTable()
-            this.$emit('reload', 'cubeList')
-            this.$emit('removetabs', 'cube' + this.extraoption.cubeName)
-          })
-        }).catch((res) => {
-          handleError(res, (data, code, status, msg) => {
-            _this.showErrorVisible = true
-            _this.errorMsg = msg
-            // if (status === 404) {
-            //   _this.$router.replace('access/login')
-            // }
-          })
-        })
-        // } else {
-        //   this.saveCube({cubeDescData: JSON.stringify(_this.cubeDetail), project: _this.selected_project}).then((res) => {
-        //     handleSuccess(res, (data, code, status, msg) => {
-        //       this.$message({
-        //         type: 'success',
-        //         duration: 3000,
-        //         message: '保存成功!'
-        //       })
-        //       _this.saveOrUpdateRawTable()
-        //       this.$emit('reload', 'cubeList')
-        //       this.$emit('removetabs', 'cube' + this.extraoption.cubeName)
-        //     })
-        //   }).catch((res) => {
-        //     handleError(res, (data, code, status, msg) => {
-        //       _this.showErrorVisible = true
-        //       _this.errorMsg = msg
-        //       // if (status === 404) {
-        //       //   _this.$router.replace('access/login')
-        //       // }
-        //     })
-        //   })
-        // }
+        this.saveCube()
       }).catch((e) => {
       })
     },
@@ -534,7 +603,6 @@ export default {
         storage_type: this.getStorageEng(),
         override_kylin_properties: {}
       }
-      alert(this.getCubeEng())
     },
     getProperty: function (name) {
       let result = (new RegExp(name + '=(.*?)\\n')).exec(this.$store.state.system.serverConfig)
@@ -555,18 +623,13 @@ export default {
       return StorageEng
     },
     loadCubeDetail: function () {
-      let _this = this
-      this.loadCubeDesc(_this.extraoption.cubeName).then((res) => {
+      this.loadCubeDesc(this.extraoption.cubeName).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
-          _this.cubeDetail = data[0]
+          this.cubeDetail = data[0]
+          this.$set(this.cubeDetail, 'name', this.cubeDetail.name.replace(/_draft$/, ''))
         })
       }).catch((res) => {
-        handleError(res, (data, code, status, msg) => {
-          console.log(status, 30000)
-          // if (status === 404) {
-          //   _this.$router.replace('access/login')
-          // }
-        })
+        handleError(res)
       })
     },
     getTables: function () {
@@ -616,29 +679,30 @@ export default {
     }
   },
   created () {
-    let _this = this
-    _this.createNewCube()
-    if (_this.isEdit) {
-      _this.loadCubeDetail()
+    this.createNewCube()
+    if (this.isEdit) {
+      this.loadCubeDetail()
     }
-    _this.loadModelInfo(_this.extraoption.modelName).then((res) => {
+    this.loadModelInfo(this.extraoption.modelName).then((res) => {
       handleSuccess(res, (data, code, status, msg) => {
-        _this.modelDetail = data.model
-        _this.getTables()
+        this.renderCubeFirst = true
+        this.modelDetail = data.model
+        this.getTables()
       })
     }).catch((res) => {
-      handleError(res, (data, code, status, msg) => {
-        console.log(status, 30000)
-        // if (status === 404) {
-        //   _this.$router.replace('access/login')
-        // }
-      })
+      handleError(res)
     })
   },
   computed: {
     selected_cube: function () {
       return this.$store.state.cube.cubeAdd
     }
+  },
+  mounted () {
+    this.timerSave()
+  },
+  destroyed () {
+    clearTimeout(this.cubeSaveST)
   },
   locales: {
     'en': {cubeInfo: 'Cube Info', sampleSql: 'Sample Sql', dimensions: 'Dimensions', measures: 'Measures', refreshSetting: 'Refresh Setting', tableIndex: 'Table Index', configurationOverwrites: 'Configuration Overwrites', overview: 'Overview', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: 'The CUBE named [ ', checkCubeNamePartTwo: ' ] already exists!', checkDimensions: 'Dimension can\'t be null!', checkAggGroup: 'Each aggregation group can\'t be empty!', checkMeasuresCount: '[ COUNT] metric is required!', checkRowkeyInt: 'int encoding column length should between 1 and 8!', checkRowkeyShard: 'At most one \'shard by\' column is allowed!', checkColumnFamily: 'All measures need to be assigned to column family!', checkColumnFamilyNull: 'Each column family can\'t not be empty!', checkCOKey: 'Property name is required!', checkCOValue: 'Property value is required!', rawtableSetSorted: 'You must set one column with an index value of sorted! ', rawtableSortedWidthDate: '"sorted" index is only valid with "integer", "time" or "date" encoding! ', rawtableSingleSorted: 'Only one column is allowed to set with an index value of sorted! ', errorMsg: '错误信息'},

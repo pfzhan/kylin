@@ -34,7 +34,7 @@
             </el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="separate time of the day column " v-show="needSetTime">
+        <el-form-item label="has separate time of the day column " v-show="needSetTime">
         <el-switch v-model="hasSepatate" on-text="" @change="changeSepatate" off-text="" :disabled="editMode  || actionMode==='view'"></el-switch>
         </el-form-item>
         <el-form-item label="Partition Time Column" v-show="hasSepatate">

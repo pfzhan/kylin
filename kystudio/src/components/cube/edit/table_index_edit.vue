@@ -219,7 +219,8 @@ export default {
         _this.initConvertedRawTable()
       } else {
         if (_this.isEdit) {
-          this.loadRawTable(this.cubeDesc.name).then((res) => {
+          var rawtbaleName = this.cubeDesc.name + (this.cubeDesc.status === 'DRAFT' ? '_draft' : '')
+          this.loadRawTable(rawtbaleName).then((res) => {
             handleSuccess(res, (data, code, status, msg) => {
               if (data) {
                 _this.usedRawTable = true
@@ -228,8 +229,7 @@ export default {
               }
             })
           }).catch((res) => {
-            handleError(res, (data, code, status, msg) => {
-            })
+            handleError(res)
           })
         }
       }

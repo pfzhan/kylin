@@ -1980,7 +1980,7 @@ export default {
     position: absolute;
     bottom: 60px;
     right: 6px;
-    z-index: 10000;
+    z-index: 10;
    }
    .model_edit{
      display: inline-block;

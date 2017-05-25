@@ -73,9 +73,9 @@ export default {
   },
   created () {
     this.loadSlowQueries({
-      projectName: this.project,
       page: {
         pageOffset: 0,
+        projectName: this.project,
         pageSize: pageCount
       }
     })
@@ -94,8 +94,8 @@ export default {
     }),
     pageCurrentChange (val) {
       this.loadSlowQueries({
-        projectName: this.project,
         page: {
+          projectName: this.project,
           pageOffset: val - 1,
           pageSize: pageCount
         }

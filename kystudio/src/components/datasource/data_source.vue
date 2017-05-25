@@ -6,7 +6,7 @@
 		    <el-radio-button label="Kfka" @click.native="openKafkaDialog"><icon name="download" scale="0.8"></icon><span> Kafka</span></el-radio-button>
 		  </el-radio-group>
 
-      <tree :treedata="modelAssets"  maxLabelLen="20" :indent="4" :expandall="true" :showfilter="false" :allowdrag="false" @nodeclick="clickTable"></tree>
+      <tree :treedata="hiveAssets"   maxLabelLen="20" :indent="4" :showfilter="false" :allowdrag="false" @nodeclick="clickTable"></tree>
       </div>
       <div class="table_content" >
        <img class="null_pic" src="../../assets/img/notabledata.png" v-show="!tableData"/>
@@ -169,12 +169,12 @@
         </el-tabs>
       </div>
 
-      <el-dialog title="Load Hive Tables" v-model="load_hive_dalog_visible" class="load_hive_dialog">
+      <el-dialog size="small" title="Load Hive Tables" v-model="load_hive_dalog_visible" class="load_hive_dialog">
         <el-input v-model="filterVal" placeholder="请输入内容"></el-input>
         <el-row :gutter="20">
 		  <el-col :span="8"><div class="grid-content bg-purple">
 		  	 <div class="dialog_tree_box">
-           <tree  @lazyload="loadChildNode" maxlevel="3" :lazy="true" :treedata="hiveData" ref="subtree" :showfilter="false" :allowdrag="false" @nodeclick="clickHiveTable"></tree>
+           <tree  @lazyload="loadChildNode"  @nodeclick="clickHiveTable" :lazy="true" :treedata="hiveData" maxlevel="3" ref="subtree"  :showfilter="false" :allowdrag="false" ></tree>
           </div>
 		  </div></el-col>
 		  <el-col :span="16"><div class="grid-content bg-purple">
@@ -284,7 +284,7 @@ export default {
     return {
       test: ['add'],
       subMenu: 'Model',
-      modelAssets: [],
+      hiveAssets: [],
       loadResultVisible: false,
       scanRatioDialogVisible: false,
       scanSampleRatioDialogVisible: false,
@@ -507,7 +507,7 @@ export default {
         handleSuccess(response, (data, code) => {
           var datasourceData = data
           var datasourceTreeData = {
-            id: 1,
+            id: '1',
             label: 'Tables',
             children: []
           }
@@ -521,17 +521,19 @@ export default {
             obj.id = s
             obj.label = s
             obj.children = []
+
             for (var f = 0; f < databaseData[s].length; f++) {
               var childObj = {}
               childObj.id = s + '$' + databaseData[s][f].name
               childObj.data = databaseData[s][f].name
               childObj.label = databaseData[s][f].name
               childObj.tags = databaseData[s][f].source_type === 0 ? null : ['S']
+              // childObj.checked = true
               obj.children.push(childObj)
             }
             datasourceTreeData.children.push(obj)
           }
-          this.modelAssets = [datasourceTreeData]
+          this.hiveAssets = [datasourceTreeData]
         })
       }, (res) => {
         handleError(res)
@@ -568,6 +570,7 @@ export default {
       }
     },
     loadChildNode (node, resolve) {
+      console.log(node, 'kkk')
       if (node.level === 0) {
         return resolve([{label: 'Hive Tables'}])
       } else if (node.level === 1) {
@@ -847,6 +850,7 @@ export default {
 			overflow: auto;
 			.el-tree {
 			  background-color: #fff;
+        width: auto;
 			}
 		}
 		.tree_check_content{

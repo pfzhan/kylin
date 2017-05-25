@@ -38,7 +38,7 @@
     // 可以访问组件实例 `this`
       var hasEditTab = false
       this.editableTabs.forEach((tab) => {
-        if (['cube', 'cubes'].indexOf(tab.icon) !== -1) {
+        if (['cube', 'cubes'].indexOf(tab.tabType) !== -1) {
           hasEditTab = true
         }
       })
@@ -70,6 +70,7 @@
           this.tabIndex = this.tabIndex + 1
           this.editableTabs.push({
             title: title,
+            tabType: tabType,
             name: tabType + title,
             content: componentName,
             extraoption: extraData,

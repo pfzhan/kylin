@@ -102,8 +102,9 @@
         title="提示"
         :visible.sync="useCubeDialogVisible"
         >
-         该Model已经被下列cube使用过，无法编辑！您可以预览该Model！
-         <el-alert :closable="false" :title="tips.name" type="info" v-for="tips in usedCubes" class="ksd-mt-10"></el-alert>
+         该Model已经被下列cube使用过，无法编辑！您可以预览该Model！<br/>
+         <el-tag type="primary"  v-for="tips in usedCubes" class="ksd-mt-10 ksd-ml-10">{{tips.name}}</el-tag>
+         <!-- <el-alert :closable="false" :title="tips.name" type="info" v-for="tips in usedCubes" class="ksd-mt-10"></el-alert> -->
         <span slot="footer" class="dialog-footer">
           <el-button @click="useCubeDialogVisible = false">取 消</el-button>
           <el-button type="primary" @click="gotoView">预览</el-button>
@@ -206,7 +207,6 @@ export default {
           this.$store.state.model.modelsDianoseList.forEach((d) => {
             d.progress = Number(d.progress).toFixed(2)
             changeObjectArrProperty(this.modelsList, 'name', d.modelName, 'diagnose', d, this)
-            console.log(this.modelsList, '0p23')
           })
         })
       })
@@ -527,7 +527,6 @@ export default {
       this.loadModelDiagnoseList(params1).then(() => {
         this.$store.state.model.modelsDianoseList.forEach((d) => {
           d.progress = Number(d.progress).toFixed(2)
-          console.log(d, 9999)
           changeObjectArrProperty(this.modelsList, 'name', d.modelName, 'diagnose', d, this)
         })
       })

@@ -9,7 +9,7 @@ export default {
     return Vue.resource(apiUrl + 'jobs{?status}').get(params)
   },
   getSlowQueries: (para) => {
-    return Vue.resource(apiUrl + 'diag/' + para.projectName + '/sql').get(para.page)
+    return Vue.resource(apiUrl + 'diag/sql').get(para.page)
   },
   getStepOutputs: (stepDetail) => {
     return Vue.resource(apiUrl + 'jobs/' + stepDetail.jobID + '/steps/' + stepDetail.stepID + '/output').get()

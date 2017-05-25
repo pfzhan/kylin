@@ -7,13 +7,15 @@
   </el-input>
   <el-tree
     :show-checkbox="showCheckbox"
+    node-key="id"
     class="filter-tree"
     :indent="indent"
     :data="treedata"
     :props="defaultProps"
     :render-content="renderContent"
-    :default-expand-all="expandall"
+    :default-expand-all="expandAll"
     :filter-node-method="filterNode"
+    :default-expanded-keys="expandKeys"
     @check-change="nodeClick"
     @node-click='nodeClick'
     :load="loadNode"
@@ -33,7 +35,7 @@
         this.$refs.tree2.filter(val)
       }
     },
-    props: ['treedata', 'renderTree', 'placeholder', 'showfilter', 'allowdrag', 'showCheckbox', 'lazy', 'expandall', 'maxlevel', 'maxLabelLen', 'titleLabel', 'emptytext', 'indent'],
+    props: ['treedata', 'renderTree', 'placeholder', 'multiple', 'expandIdList', 'maxlevel', 'showfilter', 'allowdrag', 'showCheckbox', 'lazy', 'expandall', 'maxLabelLen', 'titleLabel', 'emptytext', 'indent'],
     methods: {
       filterNode (value, data) {
         if (!value) {
@@ -51,7 +53,16 @@
         }
       },
       nodeClick (data) {
+        if (!data.children || data.children.length <= 0) {
+          if (this.lastCheckedNode && !this.multiple) {
+            this.$set(this.lastCheckedNode, 'checked', false)
+          }
+          this.$set(data, 'checked', true)
+          this.lastCheckedNode = data
+        }
         this.$emit('nodeclick', data)
+      },
+      cancelNodeChecked () {
       },
       createLeafContent (data) {
         var len = data.tags && data.tags.length || 0
@@ -71,7 +82,7 @@
         }
         this.nodeCount++
         return this.$createElement('div', {
-          class: [{'el-tree-node__label': true, 'leaf-label': node.isLeaf && node.level !== 1}, node.icon],
+          class: [{'el-tree-node__label': true, 'leaf-label': node.isLeaf && node.level !== 1, 'checked-leaf': data.checked}],
           domProps: {
             innerHTML: this.createLeafContent(data)
           },
@@ -97,6 +108,7 @@
         })
       },
       loadNode (node, resolve) {
+        console.log(node, 'fww')
         this.$emit('lazyload', node, resolve)
       }
     },
@@ -104,10 +116,26 @@
       return {
         filterText: '',
         showNodeCount: 0,
+        lastCheckedNode: null,
+        maxlevel: 0,
         defaultProps: {
           children: 'children',
           label: 'label',
           icon: 'icon'
+        }
+      }
+    },
+    computed: {
+      expandAll () {
+        return this.expandall && !(this.expandIdList && this.expandIdList.length)
+      },
+      expandKeys () {
+        if (this.expandall || (this.expandIdList && this.expandIdList.length)) {
+          return null
+        } else {
+          if (this.treedata && this.treedata.length) {
+            return [this.treedata[0].id]
+          }
         }
       }
     },
@@ -123,6 +151,7 @@
   }
 </script>
 <style  lang="less">
+@import '../../less/config.less';
 .tree_box{
   input {
     width: 80%;
@@ -142,6 +171,7 @@
     text-align: center;
     margin-right: 2px;
   }
+ 
   .empty_text{
     font-size: 14px;
     color:#d1dbe5;
@@ -159,6 +189,9 @@
       &.leaf-label{
         font-size: 12px;
         font-weight: normal;
+      }
+      &.checked-leaf.leaf-label {
+        color:@base-color;
       }
       &:hover{
         text-decoration: none;

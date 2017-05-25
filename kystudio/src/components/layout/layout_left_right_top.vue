@@ -144,10 +144,8 @@
         setCurUser: 'SAVE_CURRENT_LOGIN_USER'
       }),
       changeProject () {
-        this.$router.replace('')
-        this.$nextTick(() => {
-          this.$router.go(this.$router.currentRoute.fullPath)
-        })
+        this.$router.go(0)
+        location.reload()
       },
       addProject () {
         this.FormVisible = true

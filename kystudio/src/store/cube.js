@@ -58,6 +58,9 @@ export default {
     [types.SAVE_CUBE]: function ({ commit }, cube) {
       return api.cube.saveCube(cube)
     },
+    [types.DRAFT_CUBE]: function ({ commit }, cube) {
+      return api.cube.draftCube(cube)
+    },
     [types.CHECK_CUBE_NAME_AVAILABILITY]: function ({ commit }, cubeName) {
       return api.cube.checkCubeNameAvailability(cubeName)
     },

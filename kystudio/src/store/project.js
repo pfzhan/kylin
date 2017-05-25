@@ -36,8 +36,8 @@ export default {
       })
     },
     [types.LOAD_ALL_PROJECT]: function ({ commit }, params) {
-      return api.project.getProjectList(params).then((response) => {
-        commit(types.CACHE_ALL_PROJECTS, {list: response.data.data.readableProjects, size: response.data.data.size})
+      return api.project.getProjectList().then((response) => {
+        commit(types.CACHE_ALL_PROJECTS, {list: response.data.data.readableProjects})
       })
     },
     [types.DELETE_PROJECT]: function ({ commit }, projectName) {
@@ -46,8 +46,11 @@ export default {
     [types.UPDATE_PROJECT]: function ({ commit }, project) {
       return api.project.updateProject(project)
     },
-    [types.SAVE_PROJECT]: function ({ commit }, project) {
-      return api.project.saveProject(project)
+    [types.SAVE_PROJECT]: function ({ dispatch, commit }, project) {
+      return api.project.saveProject(project).then((res) => {
+        dispatch(types.LOAD_ALL_PROJECT)
+        return res
+      })
     },
     [types.SAVE_PROJECT_ACCESS]: function ({ commit }, {accessData, projectId}) {
       return api.project.addProjectAccess(accessData, projectId)
