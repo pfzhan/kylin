@@ -23,22 +23,25 @@
  */
 package io.kyligence.kap.rest.service;
 
-import io.kyligence.kap.metadata.scheduler.SchedulerJobInstance;
+import java.io.IOException;
+import java.util.List;
+
 import org.apache.kylin.rest.constant.Constant;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.util.List;
+import io.kyligence.kap.metadata.scheduler.SchedulerJobInstance;
 
-/**
- * Created by luwei on 17-4-29.
- */
 @Component("schedulerJobServiceV2")
 public class SchedulerJobServiceV2 extends SchedulerJobService {
 
     public List<SchedulerJobInstance> listAllSchedulerJobs(final String projectName, final String cubeName) throws IOException {
         List<SchedulerJobInstance> jobs = getSchedulerJobManager().getSchedulerJobs(projectName, cubeName);
+        return jobs;
+    }
+
+    public List<SchedulerJobInstance> listAllSchedulerJobs() throws IOException {
+        List<SchedulerJobInstance> jobs = getSchedulerJobManager().listAllSchedulerJobs();
         return jobs;
     }
 
@@ -51,8 +54,20 @@ public class SchedulerJobServiceV2 extends SchedulerJobService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
+    public SchedulerJobInstance saveSchedulerJob(SchedulerJobInstance job) throws IOException {
+        getSchedulerJobManager().addSchedulerJob(job);
+        return job;
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
     public SchedulerJobInstance deleteSchedulerJob(String name) throws IOException {
         SchedulerJobInstance job = getSchedulerJobManager().getSchedulerJob(name);
+        getSchedulerJobManager().removeSchedulerJob(job);
+        return job;
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
+    public SchedulerJobInstance deleteSchedulerJob(SchedulerJobInstance job) throws IOException {
         getSchedulerJobManager().removeSchedulerJob(job);
         return job;
     }

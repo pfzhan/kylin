@@ -24,18 +24,17 @@
 
 package io.kyligence.kap.metadata.scheduler;
 
-
 import java.util.Objects;
 
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
-public class SchedulerJobInstance extends RootPersistentEntity implements Comparable<SchedulerJobInstance>  {
+public class SchedulerJobInstance extends RootPersistentEntity implements Comparable<SchedulerJobInstance> {
     public static final String SCHEDULER_RESOURCE_ROOT = "/scheduler";
 
     @JsonProperty("name")
@@ -46,6 +45,9 @@ public class SchedulerJobInstance extends RootPersistentEntity implements Compar
 
     @JsonProperty("related_cube")
     private String relatedCube;
+
+    @JsonProperty("related_cube_uuid")
+    private String relatedCubeUuid;
 
     @JsonProperty("partition_start_time")
     private long partitionStartTime;
@@ -73,7 +75,7 @@ public class SchedulerJobInstance extends RootPersistentEntity implements Compar
         return SCHEDULER_RESOURCE_ROOT + "/" + schedulerJobName + ".json";
     }
 
-    public SchedulerJobInstance(String name, String project, String relatedCube, long partitionStartTime, long scheduledRunTime,  long repeatCount, long curRepeatCount, long repeatInterval, long partitionInterval) {
+    public SchedulerJobInstance(String name, String project, String relatedCube, long partitionStartTime, long scheduledRunTime, long repeatCount, long curRepeatCount, long repeatInterval, long partitionInterval) {
         this.name = name;
         this.project = project;
         this.relatedCube = relatedCube;
@@ -110,6 +112,14 @@ public class SchedulerJobInstance extends RootPersistentEntity implements Compar
 
     public void setRelatedCube(String cube) {
         this.relatedCube = cube;
+    }
+
+    public void setRelatedCubeUuid(String uuid) {
+        this.relatedCubeUuid = uuid;
+    }
+
+    public String getRelatedCubeUuid() {
+        return this.relatedCubeUuid;
     }
 
     public long getPartitionStartTime() {

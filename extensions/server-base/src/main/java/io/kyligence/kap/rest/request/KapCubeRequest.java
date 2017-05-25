@@ -24,13 +24,15 @@
 
 package io.kyligence.kap.rest.request;
 
-/**
- * Created by luwei on 17-5-22.
- */
 public class KapCubeRequest {
     private String cubeDescData;
     private String rawTableDescData;
+    private String schedulerJobData;
     private String project;
+
+    public String getSchedulerJobData() {
+        return schedulerJobData;
+    }
 
     public String getCubeDescData() {
         return cubeDescData;
@@ -50,6 +52,10 @@ public class KapCubeRequest {
 
     public void setRawTableDescData(String rawTableDescData) {
         this.rawTableDescData = rawTableDescData;
+    }
+
+    public void setSchedulerJobData(String schedulerJobData) {
+        this.schedulerJobData = schedulerJobData;
     }
 
     public void setProject(String project) {

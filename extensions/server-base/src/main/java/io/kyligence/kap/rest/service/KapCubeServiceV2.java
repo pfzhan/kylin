@@ -23,26 +23,27 @@
  */
 package io.kyligence.kap.rest.service;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.hadoop.fs.ContentSummary;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.cube.CubeInstance;
+import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.rest.exception.BadRequestException;
+import org.springframework.stereotype.Component;
+
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.response.ColumnarResponse;
-import org.apache.hadoop.fs.ContentSummary;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.rest.exception.BadRequestException;
-import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.util.List;
-
-/**
- * Created by luwei on 17-4-29.
- */
 @Component("kapCubeServiceV2")
 public class KapCubeServiceV2 extends KapCubeService {
     public ColumnarResponse getColumnarInfo(String segStoragePath, CubeSegment segment) throws IOException {
@@ -93,5 +94,17 @@ public class KapCubeServiceV2 extends KapCubeService {
 
         columnarInfoCache.put(id, columnarResp);
         return columnarResp;
+    }
+
+    public List<String> getCubesByUuid(String uuid) {
+        List<String> cubeNames = new ArrayList<>();
+        List<CubeInstance> cubes = getCubeManager().listAllCubes();
+        for (CubeInstance cube : cubes) {
+            CubeDesc cubeDesc = cube.getDescriptor();
+            if (cubeDesc.getUuid().equals(uuid)) {
+                cubeNames.add(cubeDesc.getName());
+            }
+        }
+        return cubeNames;
     }
 }
