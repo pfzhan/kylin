@@ -38,7 +38,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.util.LoggableCachedThreadPool;
-import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.controller.BasicController;
@@ -49,7 +48,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -441,16 +439,16 @@ public class SequenceSQLController extends BasicController {
         sequenceSQLResponse.setExceptionMessage(Throwables.getStackTraceAsString(e));
         return sequenceSQLResponse;
     }
-
-    private void checkQueryAuth(SQLResponse sqlResponse) throws AccessDeniedException {
-        if (!sqlResponse.getIsException() && KylinConfig.getInstanceFromEnv().isQuerySecureEnabled()) {
-            CubeInstance cubeInstance = this.queryService.getCubeManager().getCube(sqlResponse.getCube());
-            queryService.checkAuthorization(cubeInstance.getName());
-        }
-    }
-
-    public void setQueryService(QueryService queryService) {
-        this.queryService = queryService;
-    }
+    //
+    //    private void checkQueryAuth(SQLResponse sqlResponse) throws AccessDeniedException {
+    //        if (!sqlResponse.getIsException() && KylinConfig.getInstanceFromEnv().isQuerySecureEnabled()) {
+    //            CubeInstance cubeInstance = this.queryService.getCubeManager().getCube(sqlResponse.getCube());
+    //            queryService.checkAuthorization(cubeInstance.getName());
+    //        }
+    //    }
+    //
+    //    public void setQueryService(QueryService queryService) {
+    //        this.queryService = queryService;
+    //    }
 
 }

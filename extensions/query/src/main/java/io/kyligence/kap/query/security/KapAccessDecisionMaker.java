@@ -51,10 +51,10 @@ public class KapAccessDecisionMaker implements OLAPContext.IAccessController {
     @Override
     public TupleFilter check(OLAPAuthentication olapAuthentication, Collection<TblColRef> columns, IRealization realization) throws IllegalArgumentException {
 
-        boolean isACLEnable = KapConfig.getInstanceFromEnv().getCellLevelSecurityEnable().equalsIgnoreCase("true");
+        boolean isACLEnable = KapConfig.getInstanceFromEnv().isCellLevelSecurityEnabled().equalsIgnoreCase("true");
 
         if (isACLEnable) {
-            logger.info("User access control is enable!!!!");
+            logger.info("User access control is enabled");
         } else {
             return null;
         }

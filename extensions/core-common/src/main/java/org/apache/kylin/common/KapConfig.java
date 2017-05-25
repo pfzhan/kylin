@@ -189,7 +189,10 @@ public class KapConfig {
         return config.getOptional("kap.security.cell-level-acl-config", "userctrl.acl");
     }
 
-    public String getCellLevelSecurityEnable() {
+    public String isCellLevelSecurityEnabled() {
+        if (config.isAdhocEnabled()) {
+            throw new IllegalStateException("Cell level security breach exists when ad-hoc query is enabled");
+        }
         return config.getOptional("kap.security.cell-level-acl-enabled", "false");
     }
 

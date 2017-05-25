@@ -24,27 +24,20 @@
 
 package io.kyligence.kap.rest.controllerV2;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.common.util.ValueIterators;
-import io.kyligence.kap.rest.client.KAPRESTClient;
-import io.kyligence.kap.rest.msg.KapMessage;
-import io.kyligence.kap.rest.msg.KapMsgPicker;
-import io.kyligence.kap.rest.request.SequenceSQLRequest;
-import io.kyligence.kap.rest.request.ShardedSequenceSQLRequest;
-import io.kyligence.kap.rest.response.SequenceSQLResponse;
-import io.kyligence.kap.rest.sequencesql.DiskResultCache;
-import io.kyligence.kap.rest.sequencesql.SequenceNodeOutput;
-import io.kyligence.kap.rest.sequencesql.SequenceOpt;
-import io.kyligence.kap.rest.sequencesql.topology.SequenceTopology;
-import io.kyligence.kap.rest.sequencesql.topology.SequenceTopologyManager;
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+
+import javax.annotation.Nullable;
+import javax.annotation.PostConstruct;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.util.LoggableCachedThreadPool;
-import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.controller.BasicController;
@@ -58,7 +51,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -67,14 +59,23 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.annotation.Nullable;
-import javax.annotation.PostConstruct;
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.common.util.ValueIterators;
+import io.kyligence.kap.rest.client.KAPRESTClient;
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
+import io.kyligence.kap.rest.request.SequenceSQLRequest;
+import io.kyligence.kap.rest.request.ShardedSequenceSQLRequest;
+import io.kyligence.kap.rest.response.SequenceSQLResponse;
+import io.kyligence.kap.rest.sequencesql.DiskResultCache;
+import io.kyligence.kap.rest.sequencesql.SequenceNodeOutput;
+import io.kyligence.kap.rest.sequencesql.SequenceOpt;
+import io.kyligence.kap.rest.sequencesql.topology.SequenceTopology;
+import io.kyligence.kap.rest.sequencesql.topology.SequenceTopologyManager;
 
 @Controller
 public class SequenceSQLControllerV2 extends BasicController {
@@ -416,15 +417,15 @@ public class SequenceSQLControllerV2 extends BasicController {
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, topology.toString(), "");
     }
-
-    private void checkQueryAuth(SQLResponse sqlResponse) throws AccessDeniedException {
-        if (!sqlResponse.getIsException() && KylinConfig.getInstanceFromEnv().isQuerySecureEnabled()) {
-            CubeInstance cubeInstance = this.queryServiceV2.getCubeManager().getCube(sqlResponse.getCube());
-            queryServiceV2.checkAuthorization(cubeInstance.getName());
-        }
-    }
-
-    public void setQueryService(QueryServiceV2 queryServiceV2) {
-        this.queryServiceV2 = queryServiceV2;
-    }
+    //
+    //    private void checkQueryAuth(SQLResponse sqlResponse) throws AccessDeniedException {
+    //        if (!sqlResponse.getIsException() && KylinConfig.getInstanceFromEnv().isQuerySecureEnabled()) {
+    //            CubeInstance cubeInstance = this.queryServiceV2.getCubeManager().getCube(sqlResponse.getCube());
+    //            queryServiceV2.checkAuthorization(cubeInstance.getName());
+    //        }
+    //    }
+    //
+    //    public void setQueryService(QueryServiceV2 queryServiceV2) {
+    //        this.queryServiceV2 = queryServiceV2;
+    //    }
 }
