@@ -24,7 +24,13 @@
 
 package io.kyligence.kap.query.mockup;
 
+import java.util.Set;
+
 import org.apache.kylin.cube.CubeInstance;
+import org.apache.kylin.cube.cuboid.Cuboid;
+import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.metadata.tuple.ITupleIterator;
 import org.apache.kylin.metadata.tuple.TupleInfo;
@@ -51,5 +57,11 @@ public class MockupStorageQuery extends GTCubeStorageQueryBase {
     @Override
     protected String getGTStorage() {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected Cuboid findCuboid(CubeDesc cubeDesc, Set<TblColRef> dimensionsD, Set<FunctionDesc> metrics) {
+        long cuboidId = Cuboid.identifyCuboidId(cubeDesc, dimensionsD, metrics);
+        return Cuboid.findForFullCube(cubeDesc, cuboidId);
     }
 }
