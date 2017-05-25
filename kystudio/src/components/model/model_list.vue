@@ -14,7 +14,7 @@
               <el-dropdown-item command="cube" v-if="!o.status">Add Cube</el-dropdown-item>
 					    <el-dropdown-item command="edit">Edit</el-dropdown-item>
 					    <el-dropdown-item command="clone" v-if="!o.status">Clone</el-dropdown-item>
-					    <el-dropdown-item command="stats" v-if="!o.status">Stats</el-dropdown-item>
+					    <el-dropdown-item command="stats" v-if="!o.status">Check</el-dropdown-item>
               <el-dropdown-item command="drop" >Drop</el-dropdown-item>
 					  </el-dropdown-menu>
 					</el-dropdown>
@@ -22,7 +22,7 @@
 		    </p>
 		      <div style="padding: 20px;">
 		        <h2 :title="o.name" @click="viewModel(o)">{{o.name|omit(24, '...')}} <icon v-if="!o.status" :name="getModelStatusIcon(o)&&getModelStatusIcon(o).icon" :style="{color:getModelStatusIcon(o) && getModelStatusIcon(o).color}"></icon> <el-progress class="ksd-fright" :width="40" type="circle" v-visible="o.diagnose&&o.diagnose.progress!==0&&o.diagnose.progress!==100" :percentage="o.diagnose && o.diagnose.progress || 0" style="width:150px;"></el-progress></h2>
-            
+
 		        <div class="bottom clearfix">
 		          <time class="time" v-visible="o.owner" style="display:block">{{o.owner}}</time>
 		          <!-- <div class="view_btn" v-on:click="viewModel(o.name)"><icon name="long-arrow-right" style="font-size:20px"></icon></div> -->
@@ -33,7 +33,7 @@
 		</el-row>
 		<pager class="ksd-center" ref="pager"  :totalSize="modelsTotal"  v-on:handleCurrentChange='pageCurrentChange' ></pager>
 
-    <el-dialog title="Model Clone" v-model="cloneFormVisible">
+    <el-dialog title="Clone Model" v-model="cloneFormVisible">
       <el-form :model="cloneModelMeta" :rules="cloneFormRule" ref="cloneForm">
         <el-form-item label="Model Name" prop="newName">
           <el-input v-model="cloneModelMeta.newName" auto-complete="off"></el-input>
@@ -85,7 +85,7 @@
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">
               <div class="ksd-mt-20">
-                <el-checkbox v-model="openCollectRange">Model Stats</el-checkbox>
+                <el-checkbox v-model="openCollectRange">Check Model</el-checkbox>
                  <el-slider v-model="modelStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider>
               </div>
               </div>
@@ -548,7 +548,7 @@ export default {
   cursor:pointer;
   i{
     color:#13ce66;
-    font-size: 18px; 
+    font-size: 18px;
     margin-left: 10px;
   }
  }
@@ -612,7 +612,7 @@ export default {
       display: table;
       content: "";
   }
-  
+
   .clearfix:after {
       clear: both
   }

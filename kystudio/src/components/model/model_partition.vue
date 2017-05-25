@@ -34,10 +34,10 @@
             </el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="has separate time of the day column " v-show="needSetTime">
-        <el-switch v-model="hasSepatate" on-text="" @change="changeSepatate" off-text="" :disabled="editMode  || actionMode==='view'"></el-switch>
+        <el-form-item label="Has separate time column？" v-show="needSetTime">
+        <el-switch v-model="hasSeparate" on-text="" @change="changeSepatate" off-text="" :disabled="editMode  || actionMode==='view'"></el-switch>
         </el-form-item>
-        <el-form-item label="Partition Time Column" v-show="hasSepatate">
+        <el-form-item label="Partition Time Column" v-show="hasSeparate">
         <el-col :span="11">
           <el-select v-model="checkPartition.time_table" placeholder="请选择" :disabled="editMode  || actionMode==='view'">
             <el-option

@@ -14,8 +14,8 @@
           <img src="../../assets/img/logo.png" class="logo">
           <p class="welcome">{{$t('welcome')}}</p>
           <ul>
-            <li><i class="el-icon-date"></i>Kap introduce </li>
-            <li><i class="el-icon-menu"></i>How to use kap</li>
+            <li><i class="el-icon-date"></i>Introduction to KAP</li>
+            <li><i class="el-icon-menu"></i>How to use KAP</li>
             <li><i class="el-icon-message"></i>Contact us</li>
           </ul>
         </div>
@@ -36,13 +36,13 @@
               <kap-icon-button type="primary"  @keyup.native.enter="onLoginSubmit" @click.native="onLoginSubmit" useload="true" ref="loginBtn">{{$t('loginIn')}}</kap-icon-button>
             </el-form-item>
           </el-form>
-          <!-- <a class="forget_pwd">{{$t('forgetPawword')}}</a> -->
+          <!-- <a class="forget_pwd">{{$t('forgetPassword')}}</a> -->
         </div>
       </el-col>
     </el-row>
      <p class="ksd_footer">&copy;2016 <a href="http://kyligence.io/" target="_blank">Kyligence</a> Inc. All rights reserved.</p>
   </div>
- 
+
   </div>
 </template>
 <script>
@@ -111,20 +111,20 @@ export default {
   },
   locales: {
     'en': {
-      welcome: 'Welcome to KAP',
+      welcome: 'Welcome to Kyligence Analytics Platform(KAP)',
       loginIn: 'Login',
       userName: 'Username',
       password: 'Password',
-      forgetPawword: 'Forget your password?',
+      forgetPassword: 'Forget your password?',
       noUserName: 'please enter your username',
       noUserPwd: 'please enter your password'
     },
     'zh-cn': {
-      welcome: '欢迎使用KAP',
+      welcome: '欢迎使用Kyligence Analytics Platform(KAP)',
       loginIn: '登录',
       userName: '用户名',
       password: '密码',
-      forgetPawword: '忘记密码？',
+      forgetPassword: '忘记密码？',
       noUserName: '请输入用户名',
       noUserPwd: '请输入密码'
     }

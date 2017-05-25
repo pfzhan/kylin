@@ -32,7 +32,7 @@
       <div class="grid-content bg-purple">
     	<el-card class="box-card">
 		  <div slot="header" class="clearfix">
-		    <span style="line-height: 36px;">Manual</span>
+		    <span style="line-height: 36px;">Documentation</span>
 		  </div>
 		  <div v-for="o in manualList" :key="o.title" class="text item">
 		    <a>{{o.title }}</a>
@@ -62,21 +62,21 @@
 		     	<tr>
 		     		<td style="border-right:solid 1px #ccd3db;border-bottom:solid 1px #ccd3db">
 		     		  <h2 @click="goto('Project')" style="cursor:pointer">18</h2>
-		       	      <p>Total Projects</p>
+		       	      <p>Projects</p>
 		     		</td>
 		     		<td style="border-bottom:solid 1px #ccd3db">
 		     		  <h2 @click="goto('Studio', 'model')" style="cursor:pointer">89</h2>
-		       	      <p>Total Models</p>
+		       	      <p>Models</p>
 		     		</td>
 		     	</tr>
 		     	<tr>
 		     		<td style="border-right:solid 1px #ccd3db;">
 		     		  <h2 @click="goto('Studio', 'cube')" style="cursor:pointer">15</h2>
-		          	  <p>Total Cubes</p>
+		          	  <p>Cubes</p>
 		     		</td>
 		     		<td >
 		     		<h2 @click="goto('Monitor')" style="cursor:pointer">97</h2>
-		       	      <p>Total Jobs</p>
+		       	      <p>Jobs</p>
 		     		</td>
 		     	</tr>
 		     </table>
@@ -241,7 +241,7 @@ export default {
 	  .el-carousel__item:nth-child(2n) {
 	     background-color: #99a9bf;
 	  }
-	  
+
 	  .el-carousel__item:nth-child(2n+1) {
 	     background-color: #d3dce6;
 	  }

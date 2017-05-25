@@ -48,8 +48,8 @@ export default {
     })
   },
   locales: {
-    'en': {newCubeName: 'New Cube Name', tip: 'Cross project clone is not allowed now, cube will be cloned into current project.', requiredName: 'The cube name is required'},
-    'zh-cn': {newCubeName: '新的Cube名称', tip: '目前尚不支持跨项目克隆,Cube将被克隆到当前项目下', requiredName: '请输入Cube名称'}
+    'en': {newCubeName: 'New Cube Name', tip: 'The clone target should be in current project.', requiredName: 'The cube name is required'},
+    'zh-cn': {newCubeName: '新的Cube名称', tip: '克隆目标只能在当前项目下。', requiredName: '请输入Cube名称'}
   }
 }
 </script>

@@ -13,7 +13,7 @@
                       <tr>
                         <th>Description</th>
                         <td>
-                            <el-input 
+                            <el-input
                             type="textarea"
                             :rows="2" :disabled="actionMode==='view'"
                             placeholder="请输入内容"
@@ -23,7 +23,7 @@
                       </tr>
                     </table>
                 </el-tab-pane>
-                <el-tab-pane label="Partition Setting" name="second">
+                <el-tab-pane label="Partition" name="second">
                  <partition-column style="width:800px" :modelInfo="modelInfo" :actionMode="actionMode"  :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
                  <!--  <el-form   label-width="240px">
                     <el-form-item label="Partition Date Column">
@@ -52,9 +52,9 @@
                       </el-select>
                     </el-form-item>
                     <el-form-item label="separate time of the day column " v-show="needSetTime">
-                    <el-switch v-model="hasSepatate" on-text="" @change="changeSepatate" off-text="" :disabled="editMode  || actionMode==='view'"></el-switch>
+                    <el-switch v-model="hasSeparate" on-text="" @change="changeSeparate" off-text="" :disabled="editMode  || actionMode==='view'"></el-switch>
                     </el-form-item>
-                    <el-form-item label="Partition Time Column" v-show="hasSepatate">
+                    <el-form-item label="Partition Time Column" v-show="hasSeparate">
                       <el-select v-model="checkPartition.time_table" placeholder="请选择" :disabled="editMode  || actionMode==='view'">
                         <el-option
                           v-for="(key,value) in timeColumns"
@@ -62,7 +62,7 @@
                           :value="value">
                         </el-option>
                       </el-select>
-                      <el-select v-model="checkPartition.time_column" placeholder="请选择" v-show="hasSepatate" :disabled="editMode  || actionMode==='view'">
+                      <el-select v-model="checkPartition.time_column" placeholder="请选择" v-show="hasSeparate" :disabled="editMode  || actionMode==='view'">
                         <el-option
                           v-for="item in timeColumnsByTable"
                           :label="item.name"
@@ -70,7 +70,7 @@
                         </el-option>
                       </el-select>
                     </el-form-item>
-                     <el-form-item label="Time Format" v-show="hasSepatate">
+                     <el-form-item label="Time Format" v-show="hasSeparate">
                       <el-select v-model="checkPartition.partition_time_format" placeholder="请选择" :disabled="editMode  || actionMode==='view'">
                         <el-option
                           v-for="item in timeFormat"
@@ -83,7 +83,7 @@
                 </el-tab-pane>
                 <el-tab-pane label="Filter" name="five">
                   <el-form label-width="240px">
-                    <el-form-item label="Filter Setting">
+                    <el-form-item label="Filter Condition">
                        <el-input :disabled="actionMode==='view'"
                         type="textarea"
                         :autosize="{ minRows: 2, maxRows: 4}"
@@ -111,11 +111,11 @@
                     <el-tag class="ksd-ml-10 ksd-mt-6" v-for="i in measures[value]" :key="i">{{i}}</el-tag>
                   </div>
                 </el-tab-pane>
-                
-            </el-tabs>  
+
+            </el-tabs>
         </el-tab-pane>
-		    <!-- <el-tab-pane label="Model Statics" name="second">Model Statics</el-tab-pane> -->
-        <el-tab-pane label="Table Statics" name="second">
+		    <!-- <el-tab-pane label="Model Statistics" name="second">Model Statistics</el-tab-pane> -->
+        <el-tab-pane label="Table Statistics" name="second">
              <el-table
               :data="statistics"
               style="width: 100%">
@@ -161,7 +161,7 @@
         </el-table>
         </el-tab-pane>
 		</el-tabs>
-		
+
 	</div>
 </template>
 <script>
@@ -185,7 +185,7 @@ export default {
       columnsD: this.columnsForDate,
       columnsT: this.columnsForTime,
       needSetTime: true,
-      hasSepatate: false,
+      hasSeparate: false,
       statistics: []
     }
   },
@@ -224,14 +224,14 @@ export default {
                 this.$set(this.checkPartition, 'partition_date_format', 'yyyyMMdd')
                 this.$set(this.checkPartition, 'time_format', null)
                 this.$set(this.checkPartition, 'time_column', null)
-                this.hasSepatate = false
+                this.hasSeparate = false
               }
             }
           }
         }
       }
     },
-    changeSepatate (val) {
+    changeSeparate (val) {
       if (!val && !this.modelInfo.uuid) {
         this.$set(this.checkPartition, 'time_column', '')
         this.$set(this.checkPartition, 'time_format', '')
@@ -276,9 +276,9 @@ export default {
     },
     'partitionSelect.partition_time_column' (val) {
       if (val) {
-        this.hasSepatate = true
+        this.hasSeparate = true
       } else {
-        this.hasSepatate = false
+        this.hasSeparate = false
       }
     }
   },
@@ -304,14 +304,14 @@ export default {
     timeColumns () {
       return this.columnsForTime || []
     },
-    // hassepatate () {
+    // hasseparate () {
     //   if (this.checkPartition.time_column !== null) {
     //     console.log(990)
-    //     this.hasSepatate = true
+    //     this.hasSeparate = true
     //     return true
     //   }
     //   console.log(9190)
-    //   this.hasSepatate = false
+    //   this.hasSeparate = false
     //   return false
     // },
     dateColumnsByTable () {

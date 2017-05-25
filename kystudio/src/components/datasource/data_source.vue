@@ -11,12 +11,12 @@
       <div class="table_content" >
        <img class="null_pic" src="../../assets/img/notabledata.png" v-show="!tableData"/>
        <div class="ksd-fright ksd-mt-20" style="position:relative;z-index:1" v-show="tableData">
-       <kap-icon-button v-if="tableData.source_type === 0" icon="refresh" type="primary" :useload="true" @click.native="reloadTableDialogVisible" ref="reloadBtn">Reload Table</kap-icon-button>
-          <!-- <el-button type="info" icon="eyedropper">Collect Statistics</el-button> -->
-          <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 0" type="info" :useload="true" @click.native="collectSampleDialogOpen" ref="sampleBtn">Collect Statistics</kap-icon-button>
-          <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 1" type="info" :useload="true" @click.native="collectKafkaSampleDialogOpen" ref="kafkaSampleBtn">Collect Straming Sample Data</kap-icon-button>
-<!--           <el-button type="danger" @click.native="unloadTable" icon="delete2">Unload Table</el-button> -->
-           <kap-icon-button icon="trash" type="danger" :useload="true" @click.native="unloadTable" ref="unloadBtn">Unload Table</kap-icon-button>
+       <kap-icon-button v-if="tableData.source_type === 0" icon="refresh" type="primary" :useload="true" @click.native="reloadTableDialogVisible" ref="reloadBtn">Reload</kap-icon-button>
+          <!-- <el-button type="info" icon="eyedropper">Sampling</el-button> -->
+          <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 0" type="info" :useload="true" @click.native="collectSampleDialogOpen" ref="sampleBtn">Sampling</kap-icon-button>
+          <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 1" type="info" :useload="true" @click.native="collectKafkaSampleDialogOpen" ref="kafkaSampleBtn">Sampling(Streaming)</kap-icon-button>
+<!--           <el-button type="danger" @click.native="unloadTable" icon="delete2">Unload</el-button> -->
+           <kap-icon-button icon="trash" type="danger" :useload="true" @click.native="unloadTable" ref="unloadBtn">Unload</kap-icon-button>
           </div>
       	<el-tabs v-model="activeName" class="ksd-mt-20 clear" v-show="tableData">
 		    <el-tab-pane label="Columns" name="first">
@@ -90,7 +90,7 @@
 		    			<th>TOTAL FILE NUMBER:</th>
 		    			<td>{{extendData.data_source_properties.total_file_number}}</td>
 		    		</tr>
-		    		
+
 		    		<tr>
 		    			<th>TOTAL FILE SIZE:</th>
 		    			<td>{{extendData.data_source_properties.total_file_size}}</td>
@@ -106,7 +106,7 @@
 		    	</table>
 		    </el-tab-pane>
 		    <el-tab-pane label="Statistics" name="third" v-if="tableData.source_type === 0">
-		    	 <el-table 
+		    	 <el-table
 			    :data="statistics"
 			    border
 			    style="width:100%"
@@ -129,25 +129,25 @@
 			    <el-table-column
 			      width="100"
 			      prop="max_value"
-			      label="Max Vaule">
+			      label="Maximum">
 			    </el-table-column>
 			    <el-table-column
 			      prop="min_value"
             width="80"
-			      label="Min Value">
+			      label="Minimal">
 			    </el-table-column>
 			    <el-table-column
 			      prop="max_length_value"
-			      label="Max Length Value">
+			      label="Max-Length">
 			    </el-table-column>
 			    <el-table-column
 			      prop="min_length_value"
-			      label="Min Length Value">
+			      label="Min-Length">
 			    </el-table-column>
 			    <el-table-column
 			      width="120"
 			      prop="null_count"
-			      label="Null Count">
+			      label="NULL Count">
 			    </el-table-column>
 			  </el-table>
 		    </el-tab-pane>
@@ -181,10 +181,10 @@
 		  	<div class="tree_check_content ksd-mt-20">
 		 	  <arealabel :labels="selectTables" changeable="unchange" :selectedlabels="selectTablesNames" placeholder="请在左侧选择要加载的table"  :datamap="{label: 'label', value: 'value'}"></arealabel>
         <div class="ksd-mt-20">
-          <!-- <el-checkbox v-model="openCollectRange">Table Stats</el-checkbox> -->
+          <!-- <el-checkbox v-model="openCollectRange">Table Sampling</el-checkbox> -->
           <!-- <span class="demonstration">Sample percentage</span> -->
           <!-- <el-slider :min="0" show-stops :step="20" @change="changeBarVal" v-model="tableStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider> -->
-          <slider @changeBar="changeBar" label="Table Stats" :show="load_hive_dalog_visible"></slider>
+          <slider @changeBar="changeBar" label="Table Sampling" :show="load_hive_dalog_visible"></slider>
         </div>
 		    </div>
 		  </div></el-col>
@@ -194,16 +194,16 @@
 		    <el-button type="primary" @click="loadHiveList" :loading="loadHiveLoad">加 载</el-button>
 		  </div>
 	    </el-dialog>
-     
+
      <!-- reload table dialog -->
      <el-dialog title="设置扫描范围" v-model="scanRatioDialogVisible" >
         <el-row :gutter="20">
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">
               <div class="ksd-mt-20">
-                <!-- <el-checkbox v-model="openCollectRange">Table Stats</el-checkbox> -->
+                <!-- <el-checkbox v-model="openCollectRange">Table Sampling</el-checkbox> -->
                <!--   <el-slider v-model="tableStaticsRange" :min="0"  show-stops :step="20" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider> -->
-                 <slider @changeBar="changeBar" label="Table Stats" :show="scanRatioDialogVisible"></slider>
+                 <slider @changeBar="changeBar" label="Table Sampling" :show="scanRatioDialogVisible"></slider>
               </div>
               </div>
             </div>
@@ -220,7 +220,7 @@
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">
               <div class="ksd-mt-20">
-                 <slider label="Table Stats" @changeBar="changeBar" :show="scanSampleRatioDialogVisible"></slider>
+                 <slider label="Table Sampling" @changeBar="changeBar" :show="scanSampleRatioDialogVisible"></slider>
               </div>
               </div>
             </div>
@@ -232,22 +232,22 @@
         </div>
       </el-dialog>
 
-     <el-dialog :title="$t('loadKafka')" v-model="kafkaFormVisible" top="10%" size="small">
+     <el-dialog title="Load Kafka Topic" v-model="kafkaFormVisible" top="10%" size="small">
         <create_kafka  ref="kafkaForm" v-on:validSuccess="kafkaValidSuccess"></create_kafka>
         <span slot="footer" class="dialog-footer">
           <el-button @click="kafkaFormVisible = false">{{$t('cancel')}}</el-button>
           <el-button type="primary" @click="checkKafkaForm">{{$t('yes')}}</el-button>
         </span>
-      </el-dialog>	    
+      </el-dialog>
 
 
-     <el-dialog :title="$t('loadKafka')" v-model="editKafkaFormVisible" top="10%" size="small">
+     <el-dialog title="Load Kafka Topic" v-model="editKafkaFormVisible" top="10%" size="small">
         <edit_kafka  ref="kafkaFormEdit"  v-on:validEditSuccess="kafkaEditValidSuccess" :tableName="currentStreamingTable" ></edit_kafka>
         <span slot="footer" class="dialog-footer">
           <el-button @click="editKafkaFormVisible = false">{{$t('cancel')}}</el-button>
           <el-button type="primary" @click="checkKafkaFormEdit">{{$t('yes')}}</el-button>
         </span>
-      </el-dialog>  
+      </el-dialog>
       <el-dialog
         title="提示"
         v-model="loadResultVisible"
@@ -805,7 +805,7 @@ export default {
 		display: inline-block;
 		position: relative;
 		top:-15px;
-		
+
 	}
 
 	.table_content{
