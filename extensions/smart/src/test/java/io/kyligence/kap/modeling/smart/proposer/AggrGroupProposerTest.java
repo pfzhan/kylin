@@ -65,7 +65,7 @@ public class AggrGroupProposerTest {
         newCubeDesc.validateAggregationGroups();
 
         SelectRule rule = newCubeDesc.getAggregationGroups().get(0).getSelectRule();
-        Assert.assertTrue(rule.hierarchy_dims.length + rule.joint_dims.length + rule.mandatory_dims.length > 0);
+        Assert.assertTrue(rule.hierarchyDims.length + rule.jointDims.length + rule.mandatoryDims.length > 0);
     }
 
     @Test
@@ -80,6 +80,6 @@ public class AggrGroupProposerTest {
         newCubeDesc.validateAggregationGroups();
 
         SelectRule rule = newCubeDesc.getAggregationGroups().get(0).getSelectRule();
-        Assert.assertTrue(rule.hierarchy_dims.length + rule.joint_dims.length + rule.mandatory_dims.length > 0);
+        Assert.assertTrue(rule.hierarchyDims.length + rule.jointDims.length + rule.mandatoryDims.length > 0);
     }
 }

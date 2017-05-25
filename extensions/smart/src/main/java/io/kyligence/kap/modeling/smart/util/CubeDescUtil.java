@@ -78,9 +78,9 @@ public class CubeDescUtil {
         }
         aggregationGroup.setIncludes(includeCols.toArray(new String[0]));
         SelectRule selectRule = new SelectRule();
-        selectRule.hierarchy_dims = new String[0][0];
-        selectRule.mandatory_dims = new String[0];
-        selectRule.joint_dims = new String[0][0];
+        selectRule.hierarchyDims = new String[0][0];
+        selectRule.mandatoryDims = new String[0];
+        selectRule.jointDims = new String[0][0];
         aggregationGroup.setSelectRule(selectRule);
 
         cubeDesc.setRowkey(rowkey);
@@ -116,16 +116,16 @@ public class CubeDescUtil {
 
             SelectRule selectRule = aggGroup.getSelectRule();
             if (selectRule != null) {
-                if (ArrayUtils.contains(selectRule.mandatory_dims, rowKeyName)) {
-                    ArrayUtils.removeElement(selectRule.mandatory_dims, rowKeyName);
+                if (ArrayUtils.contains(selectRule.mandatoryDims, rowKeyName)) {
+                    ArrayUtils.removeElement(selectRule.mandatoryDims, rowKeyName);
                 } else {
-                    for (String[] joints : selectRule.joint_dims) {
+                    for (String[] joints : selectRule.jointDims) {
                         if (ArrayUtils.contains(joints, rowKeyName)) {
                             ArrayUtils.removeElement(joints, rowKeyName);
                             return;
                         }
                     }
-                    for (String[] hiers : selectRule.hierarchy_dims) {
+                    for (String[] hiers : selectRule.hierarchyDims) {
                         if (ArrayUtils.contains(hiers, rowKeyName)) {
                             ArrayUtils.removeElement(hiers, rowKeyName);
                             return;

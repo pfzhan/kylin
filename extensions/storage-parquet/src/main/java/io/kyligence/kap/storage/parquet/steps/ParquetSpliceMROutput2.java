@@ -120,6 +120,10 @@ public class ParquetSpliceMROutput2 implements IMROutput2 {
                 // inmem
                 job.setPartitionerClass(ByteArrayConfigurationBasedPartitioner.class);
                 reducerNum = ReducerNumSizing.getInmemCubingReduceTaskNum(segment);
+                List<Long> allCuboids = new CuboidScheduler(segment.getCubeDesc()).getAllCuboidIds();
+                for (Long cuboidId : allCuboids) {
+                    reducerNum = Math.max(reducerNum, segment.getCuboidShardNum(cuboidId));
+                }
             } else if (mapperClass == NDCuboidMapper.class || mapperClass == HiveToBaseCuboidMapper.class) {
                 // layer
                 job.setPartitionerClass(ConfigurationBasedPartitioner.class);

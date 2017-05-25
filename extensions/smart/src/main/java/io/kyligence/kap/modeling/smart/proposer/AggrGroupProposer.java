@@ -252,16 +252,16 @@ public class AggrGroupProposer extends AbstractProposer {
             if (modelingConfig.getAggGroupKeepLegacy()) {
                 // keep old select_rule
                 SelectRule selectRule = aggGroup.getSelectRule();
-                List<String> mandatoryOld = Arrays.asList(selectRule.mandatory_dims);
+                List<String> mandatoryOld = Arrays.asList(selectRule.mandatoryDims);
                 aggGroupCandidates.removeAll(mandatoryOld);
                 mandatoryCandidates.addAll(mandatoryOld);
 
-                for (String[] joint_dim : selectRule.joint_dims) {
+                for (String[] joint_dim : selectRule.jointDims) {
                     List<String> jointOld = Arrays.asList(joint_dim);
                     aggGroupCandidates.removeAll(jointOld);
                     resultJoint.add(jointOld);
                 }
-                for (String[] hierarchy_dim : selectRule.hierarchy_dims) {
+                for (String[] hierarchy_dim : selectRule.hierarchyDims) {
                     List<String> hierOld = Arrays.asList(hierarchy_dim);
                     aggGroupCandidates.removeAll(hierOld);
                     resultHier.add(hierOld);
@@ -283,9 +283,9 @@ public class AggrGroupProposer extends AbstractProposer {
             resultHier.addAll(hierList);
 
             SelectRule selectRule = aggGroup.getSelectRule();
-            selectRule.mandatory_dims = mandatoryCandidates.toArray(new String[mandatoryCandidates.size()]);
-            selectRule.joint_dims = ArrayUtils.to2DArray(resultJoint);
-            selectRule.hierarchy_dims = ArrayUtils.to2DArray(resultHier);
+            selectRule.mandatoryDims = mandatoryCandidates.toArray(new String[mandatoryCandidates.size()]);
+            selectRule.jointDims = ArrayUtils.to2DArray(resultJoint);
+            selectRule.hierarchyDims = ArrayUtils.to2DArray(resultHier);
 
             long cuboidNum = aggGroup.calculateCuboidCombination();
             int retry = 0;
@@ -296,7 +296,7 @@ public class AggrGroupProposer extends AbstractProposer {
                 fragementJointList = fragmentRecorder.getResult(retry, hierList, relationJointList);
                 resultJoint.addAll(fragementJointList);
 
-                selectRule.joint_dims = ArrayUtils.to2DArray(resultJoint);
+                selectRule.jointDims = ArrayUtils.to2DArray(resultJoint);
 
                 cuboidNum = aggGroup.calculateCuboidCombination();
             }

@@ -24,12 +24,15 @@
 
 package io.kyligence.kap.rest.controller;
 
-import io.kyligence.kap.rest.response.ColumnarResponse;
-import io.kyligence.kap.rest.service.KapCubeService;
-import io.kyligence.kap.storage.parquet.steps.ColumnarStorageUtils;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.service.CubeService;
@@ -39,13 +42,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+
+import io.kyligence.kap.rest.response.ColumnarResponse;
+import io.kyligence.kap.rest.service.KapCubeService;
+import io.kyligence.kap.storage.parquet.steps.ColumnarStorageUtils;
 
 @Controller
 @RequestMapping(value = "/cubes")
@@ -93,6 +100,38 @@ public class KapCubeController extends BasicController {
         }
 
         return columnar;
+    }
+
+    /**
+     * Calculate Cuboid Combination based on the AggreationGroup definition.
+     *
+     * @param aggregationGroupStr
+     * @return number of cuboid, -1 if failed
+     */
+    @RequestMapping(value = "aggregationgroups/cuboid", method = RequestMethod.POST, produces = { "application/json" })
+    @ResponseBody
+    public long calculateCuboidCombination(@RequestBody String aggregationGroupStr) {
+        AggregationGroup aggregationGroup = deserializeAggregationGroup(aggregationGroupStr);
+        if (aggregationGroup != null) {
+            return aggregationGroup.calculateCuboidCombination();
+        } else
+            return -1;
+    }
+
+    private AggregationGroup deserializeAggregationGroup(String aggregationGroupStr) {
+        AggregationGroup aggreationGroup = null;
+        try {
+            logger.debug("Parsing AggregationGroup " + aggregationGroupStr);
+            aggreationGroup = JsonUtil.readValue(aggregationGroupStr, AggregationGroup.class);
+        } catch (JsonParseException e) {
+            logger.error("The AggregationGroup definition is not valid.", e);
+        } catch (JsonMappingException e) {
+            logger.error("The AggregationGroup definition is not valid.", e);
+        } catch (IOException e) {
+            logger.error("Failed to deal with the request.", e);
+            throw new InternalErrorException("Failed to deal with the request:" + e.getMessage(), e);
+        }
+        return aggreationGroup;
     }
 
 }

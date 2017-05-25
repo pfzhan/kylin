@@ -207,7 +207,7 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
                         if (mutableRoaringBitmap == null) {
                             mutableRoaringBitmap = new MutableRoaringBitmap(indexTable.lookup(filter).toRoaringBitmap());
                         } else {
-                            mutableRoaringBitmap.and(indexTable.lookup(filter));
+                            mutableRoaringBitmap.or(indexTable.lookup(filter));
                         }
                         indexTable.closeWithoutStream();
                     }

@@ -33,10 +33,13 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.msg.Message;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.GeneralResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -125,6 +128,45 @@ public class KapCubeControllerV2 extends BasicController {
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, columnar, "");
     }
+
+    /**
+     * Calculate Cuboid Combination based on the AggreationGroup definition.
+     *
+     * @param cubeDescStr
+     * @return number of cuboid, -1 if failed
+     */
+
+    @RequestMapping(value = "aggregationgroups/{aggIndex}/cuboid", method = RequestMethod.POST, produces = { "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse calculateCuboidCombinationV2(@RequestHeader("Accept-Language") String lang, @PathVariable int aggIndex, @RequestBody String cubeDescStr) throws IOException {
+        MsgPicker.setMsg(lang);
+
+        CubeDesc cubeDesc = deserializeCubeDescV2(cubeDescStr);
+        AggregationGroup aggregationGroup = cubeDesc.getAggregationGroups().get(aggIndex);
+
+        if (aggregationGroup != null) {
+            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, aggregationGroup.calculateCuboidCombination(), "");
+        } else
+            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, -1, "");
+    }
+
+    private CubeDesc deserializeCubeDescV2(String cubeDescStr) throws IOException {
+        Message msg = MsgPicker.getMsg();
+
+        CubeDesc desc = null;
+        try {
+            logger.debug("Saving cube " + cubeDescStr);
+            desc = JsonUtil.readValue(cubeDescStr, CubeDesc.class);
+        } catch (JsonParseException e) {
+            logger.error("The cube definition is not valid.", e);
+            throw new BadRequestException(msg.getINVALID_CUBE_DEFINITION());
+        } catch (JsonMappingException e) {
+            logger.error("The cube definition is not valid.", e);
+            throw new BadRequestException(msg.getINVALID_CUBE_DEFINITION());
+        }
+        return desc;
+    }
+
 
     @RequestMapping(value = "", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
