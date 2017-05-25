@@ -21,31 +21,33 @@
 export default {
   name: 'labelArea',
   props: ['labels', 'selectedlabels', 'placeholder', 'changeable', 'datamap'],
+  data () {
+    return {
+      selectedL: this.selectedlabels
+    }
+  },
   computed: {
     'baseLabel' () {
       var arr = []
       for (var k = 0; this.labels && k < this.labels.length || 0; k++) {
         var obj = {
-          label: (this.datamap && this.datamap.label) ? this.labels[k][this.datamap.label] : this.labels[k].label,
-          value: (this.datamap && this.datamap.value) ? this.labels[k][this.datamap.value] : this.labels[k].value
+          label: (this.datamap && this.datamap.label) ? this.labels[k][this.datamap.label] : this.labels[k],
+          value: (this.datamap && this.datamap.value) ? this.labels[k][this.datamap.value] : this.labels[k]
         }
         arr.push(obj)
       }
       return arr
-    },
-    selectedL () {
-      return this.selectedlabels
     }
   },
   methods: {
     change (e) {
+      console.log(this.selectedlabels, 'seee')
       var ev = ev || window.event
       var target = ev.target || ev.srcElement
       this.$emit('change', target.innerText, target)
     },
     removeTag (data) {
       for (var k = 0; k < (this.selectedlabels && this.selectedlabels.length || 0); k++) {
-        console.log(data, 999)
         if (this.selectedlabels[k] === data.value) {
           this.selectedlabels.splice(k, 1)
           break

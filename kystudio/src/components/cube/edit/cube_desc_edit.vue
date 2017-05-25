@@ -194,12 +194,7 @@ export default {
             }
           })
         }).catch((res) => {
-          handleError(res, (data, code, status, msg) => {
-            console.log(status, 30000)
-            // if (status === 404) {
-            //   _this.$router.replace('access/login')
-            // }
-          })
+          handleError(res)
         })
       }
       if (nameUsed) {
@@ -209,6 +204,7 @@ export default {
       }
     },
     checkSampleSql: function () {
+      console.log(880)
       let _this = this
       if (_this.sampleSQL.sqlString !== '') {
         _this.saveSampleSql({modelName: _this.modelDetail.name, cubeName: _this.cubeDetail.name, sqls: _this.sampleSQL.sqlString.split(/\r?\n/)})
@@ -216,6 +212,7 @@ export default {
       return true
     },
     checkDimensions: function () {
+      console.log(7888)
       let _this = this
       if (_this.cubeDetail.dimensions.length <= 0) {
         this.$message({
@@ -409,7 +406,6 @@ export default {
             this.cubeDetail.uuid = cubeData.uuid
             this.cubeDetail.last_modified = cubeData.last_modified
             this.cubeDetail.status = cubeData.status
-            console.log(this.cubeDetail, 'ffff')
           } catch (e) {
           }
           try {

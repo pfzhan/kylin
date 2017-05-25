@@ -27,7 +27,7 @@
     <el-table
     border class="table_margin"
     :data="jobsList"
-    style="width:100%"
+   
     highlight-current-row
     @row-click="showLineSteps"
     >
@@ -78,7 +78,7 @@
               <el-dropdown-item @click.native="discard(scope.row)">{{$t('jobDiscard')}}</el-dropdown-item>
               <el-dropdown-item @click.native="pause(scope.row)">{{$t('jobPause')}}</el-dropdown-item>
               <el-dropdown-item @click.native="diagnosis(scope.row)">{{$t('jobDiagnosis')}}</el-dropdown-item>
-              <el-dropdown-item @click.native="drop(scope.row)">{{$t('jobDrop')}}</el-dropdown-item>
+              <el-dropdown-item @click.native="drop(scope.row.uuid)">{{$t('jobDrop')}}</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
         </template>
@@ -395,13 +395,18 @@ export default {
     diagnosis: function (job) {
       console.log('lll')
     },
-    drop: function (job) {
+    drop: function (jobId) {
       this.$confirm(this.$t('dropJob'), '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        this.removeJob().then(() => {
+        this.removeJob(jobId).then(() => {
+          this.$message({
+            type: 'success',
+            message: '删除成功!'
+          })
+          this.refreshFilter()
         }).catch(() => {
         })
       }).catch(() => {

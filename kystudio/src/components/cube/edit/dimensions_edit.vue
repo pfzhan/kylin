@@ -55,8 +55,9 @@
                 </el-row> 
                 <el-row> 
                   <el-col :span="24">
-                    <area_label :labels="currentRowkey"  :selectedlabels="group.includes" @change="refreshAggragation(group, group_index)" @checklabel="selectTagshowDetail($event, group.includes)"> 
+                    <area_label :labels="currentRowkey"  :selectedlabels="group.includes" @change="refreshAggragation(group, group_index)" @checklabel="showDetail($event, group.includes)"> 
                     </area_label>
+                    {{group.includes}}
                   </el-col>
                 </el-row>
                 <el-row class="row_padding">
@@ -64,7 +65,7 @@
                 </el-row>  
                 <el-row>
                   <el-col :span="24" >
-                    <area_label :labels="group.includes"  :selectedlabels="group.select_rule.mandatory_dims" @change="refreshAggragation(group, group_index)" @checklabel="selectTagshowDetail($event, group.select_rule.mandatory_dims)"> 
+                    <area_label :labels="group.includes"  :selectedlabels="group.select_rule.mandatory_dims" @change="refreshAggragation(group, group_index)" @checklabel="showDetail($event, group.select_rule.mandatory_dims)"> 
                     </area_label>
                   </el-col>
                 </el-row>
@@ -75,7 +76,7 @@
                   <el-col :span="24">
                     <el-row class="row_padding" :gutter="10" v-for="(hierarchy_dims, hierarchy_index) in group.select_rule.hierarchy_dims" :key="hierarchy_index">
                        <el-col :span="23" >
-                        <area_label :labels="group.includes"  :selectedlabels="hierarchy_dims" @change="refreshAggragation(group, group_index)" @checklabel="selectTagshowDetail($event, hierarchy_dims)"> 
+                        <area_label :labels="group.includes"  :selectedlabels="hierarchy_dims" @change="refreshAggragation(group, group_index)" @checklabel="showDetail($event, hierarchy_dims)"> 
                         </area_label>
                       </el-col>  
                       <el-col :span="1">
@@ -99,7 +100,7 @@
                 <el-col :span="24">
                   <el-row class="row_padding" :gutter="10" v-for="(joint_dims, joint_index) in group.select_rule.joint_dims" :key="joint_index">
                     <el-col :span="23" >
-                      <area_label :labels="group.includes"  :selectedlabels="joint_dims" @change="refreshAggragation(group, group_index)" @checklabel="selectTagshowDetail($event, joint_dims)"> 
+                      <area_label :labels="group.includes"  :selectedlabels="joint_dims" @change="refreshAggragation(group, group_index)" @checklabel="showDetail($event, joint_dims)"> 
                       </area_label>
                     </el-col>
                     <el-col :span="1" >                
@@ -320,12 +321,17 @@ export default {
       getCubeSuggestions: 'GET_CUBE_SUGGESTIONS'
     }),
     resetDimensions: function () {
-      let _this = this
-      _this.cubeDesc.dimensions.splice(0, _this.cubeDesc.dimensions.length)
-      _this.dim_cap = 0
-      _this.cubeDesc.aggregation_groups.splice(0, _this.cubeDesc.aggregation_groups.length)
-      _this.cubeDesc.rowkey.rowkey_columns.splice(0, _this.cubeDesc.rowkey.rowkey_columns.length)
+      this.cubeDesc.dimensions.splice(0, this.cubeDesc.dimensions.length)
+      this.dim_cap = 0
+      this.cubeDesc.aggregation_groups.splice(0, this.cubeDesc.aggregation_groups.length)
+      this.cubeDesc.rowkey.rowkey_columns.splice(0, this.cubeDesc.rowkey.rowkey_columns.length)
       this.initConvertedRowkeys()
+    },
+    showDetail: function (event, arr) {
+      if (event.target.innerText !== '') {
+        let str = event.target.innerText.slice(0, -3)
+        console.log(str)
+      }
     },
     cubeSuggestions: function () {
       this.getCubeSuggestions({cubeDescData: JSON.stringify(this.cubeDesc)}).then((res) => {
@@ -338,12 +344,7 @@ export default {
           this.initConvertedRowkeys()
         })
       }).catch((res) => {
-        handleError(res, (data, code, status, msg) => {
-          console.log(status, 30000)
-          // if (status === 404) {
-          //   _this.$router.replace('access/login')
-          // }
-        })
+        handleError(res)
       })
     },
     addDimensions: function () {
@@ -353,24 +354,24 @@ export default {
       this.$refs['addDimensionsForm'].$emit('addDimensionsFormValid')
     },
     addDimensionsValidSuccess: function (data) {
-      let _this = this
-      _this.cubeDesc.dimensions.splice(0, _this.cubeDesc.dimensions.length)
+      this.cubeDesc.dimensions.splice(0, this.cubeDesc.dimensions.length)
       for (let table in data) {
         if (data[table] && data[table].length > 0) {
-          data[table].forEach(function (column) {
+          data[table].forEach((column) => {
             let colObj = {name: column.name, table: table, column: null, derived: null}
             if (column.derived === 'true') {
-              _this.$set(colObj, 'derived', [column.column])
+              this.$set(colObj, 'derived', [column.column])
             } else {
-              _this.$set(colObj, 'column', column.column)
+              this.$set(colObj, 'column', column.column)
             }
-            _this.cubeDesc.dimensions.push(colObj)
+            console.log(98112)
+            this.cubeDesc.dimensions.push(colObj)
           })
         }
       }
-      _this.initRowkeyColumns()
-      _this.initAggregationGroup()
-      _this.addDimensionsFormVisible = false
+      this.initRowkeyColumns()
+      this.initAggregationGroup()
+      this.addDimensionsFormVisible = false
     },
     editDimension: function (dimension) {
       this.selected_dimension = dimension
@@ -393,48 +394,48 @@ export default {
       this.editDimensionFormVisible = false
     },
     initRowkeyColumns: function () {
-      let _this = this
-      _this.currentRowkey = []
-      _this.oldRowkey = []
-      this.modelDesc.lookups.forEach(function (lookup) {
+      this.currentRowkey = []
+      this.oldRowkey = []
+      this.modelDesc.lookups.forEach((lookup) => {
         let table = lookup.alias
-        _this.pfkMap[table] = {}
-        lookup.join.primary_key.forEach(function (pk, index) {
-          _this.pfkMap[table][pk] = lookup.join.foreign_key[index]
+        this.pfkMap[table] = {}
+        lookup.join.primary_key.forEach((pk, index) => {
+          this.pfkMap[table][pk] = lookup.join.foreign_key[index]
         })
       })
-      this.cubeDesc.dimensions.forEach(function (dimension, index) {
+      console.log(981122)
+      this.cubeDesc.dimensions.forEach((dimension, index) => {
         if (dimension.derived && dimension.derived.length) {
           let lookup = []
-          _this.modelDesc.lookups.forEach(function (lookupTable) {
+          this.modelDesc.lookups.forEach(function (lookupTable) {
             if (lookupTable.alias === dimension.table) {
               lookup = lookupTable
             }
           })
-          lookup.join.foreign_key.forEach(function (fk, index) {
-            if (_this.currentRowkey.indexOf(fk) === -1) {
-              _this.currentRowkey.push(fk)
+          lookup.join.foreign_key.forEach((fk, index) => {
+            if (this.currentRowkey.indexOf(fk) === -1) {
+              this.currentRowkey.push(fk)
             }
           })
         } else if (dimension.column && !dimension.derived) {
           let tableName = dimension.table
           let columnName = dimension.column
           let rowkeyColumn = dimension.table + '.' + dimension.column
-          if (_this.pfkMap[tableName] && _this.pfkMap[tableName][columnName]) {
-            rowkeyColumn = _this.pfkMap[tableName][columnName]
+          if (this.pfkMap[tableName] && this.pfkMap[tableName][columnName]) {
+            rowkeyColumn = this.pfkMap[tableName][columnName]
           }
-          if (_this.currentRowkey.indexOf(rowkeyColumn) === -1) {
-            _this.currentRowkey.push(rowkeyColumn)
+          if (this.currentRowkey.indexOf(rowkeyColumn) === -1) {
+            this.currentRowkey.push(rowkeyColumn)
           }
         }
       })
-      _this.cubeDesc.rowkey.rowkey_columns.forEach(function (rowkeyColumn) {
-        _this.oldRowkey.push(rowkeyColumn.column)
+      this.cubeDesc.rowkey.rowkey_columns.forEach((rowkeyColumn) => {
+        this.oldRowkey.push(rowkeyColumn.column)
       })
-      _this.currentRowkey.forEach(function (rowkey) {
-        if (_this.oldRowkey.indexOf(rowkey) === -1) {
-          let baseEncodings = loadBaseEncodings(_this.$store.state.datasource)
-          _this.cubeDesc.rowkey.rowkey_columns.push({
+      this.currentRowkey.forEach((rowkey) => {
+        if (this.oldRowkey.indexOf(rowkey) === -1) {
+          let baseEncodings = loadBaseEncodings(this.$store.state.datasource)
+          this.cubeDesc.rowkey.rowkey_columns.push({
             column: rowkey,
             encoding: 'dict',
             encoding_version: baseEncodings.getEncodingMaxVersion('dict'),
@@ -442,33 +443,33 @@ export default {
           })
         }
       })
-      _this.oldRowkey.forEach(function (rowkey) {
-        if (_this.currentRowkey.indexOf(rowkey) === -1) {
-          for (let i = 0; i < _this.cubeDesc.rowkey.rowkey_columns.length; i++) {
-            if (_this.cubeDesc.rowkey.rowkey_columns[i].column === rowkey) {
-              _this.cubeDesc.rowkey.rowkey_columns.splice(i, 1)
+      this.oldRowkey.forEach((rowkey) => {
+        if (this.currentRowkey.indexOf(rowkey) === -1) {
+          for (let i = 0; i < this.cubeDesc.rowkey.rowkey_columns.length; i++) {
+            if (this.cubeDesc.rowkey.rowkey_columns[i].column === rowkey) {
+              this.cubeDesc.rowkey.rowkey_columns.splice(i, 1)
             }
           }
         }
       })
-      _this.initConvertedRowkeys()
+      this.initConvertedRowkeys()
     },
     initConvertedRowkeys: function () {
-      let _this = this
-      _this.convertedRowkeys = []
-      _this.cubeDesc.rowkey.rowkey_columns.forEach(function (rowkey) {
+      console.log('fwewe')
+      this.convertedRowkeys = []
+      this.cubeDesc.rowkey.rowkey_columns.forEach((rowkey) => {
         let version = rowkey.encoding_version || 1
-        _this.convertedRowkeys.push({column: rowkey.column, encoding: _this.getEncoding(rowkey.encoding) + ':' + version, valueLength: _this.getLength(rowkey.encoding), isShardBy: rowkey.isShardBy})
+        console.log(123123)
+        this.convertedRowkeys.push({column: rowkey.column, encoding: this.getEncoding(rowkey.encoding) + ':' + version, valueLength: this.getLength(rowkey.encoding), isShardBy: rowkey.isShardBy})
       })
     },
     initEncodingType: function (rowkey) {
-      let _this = this
       let datatype = this.modelDesc.columnsDetail[rowkey.column].datatype
-      let baseEncodings = loadBaseEncodings(_this.$store.state.datasource)
+      let baseEncodings = loadBaseEncodings(this.$store.state.datasource)
       let filterEncodings = baseEncodings.filterByColumnType(datatype)
       if (this.isEdit) {
-        let _encoding = _this.getEncoding(rowkey.encoding)
-        let _version = parseInt(_this.getVersion(rowkey.encoding))
+        let _encoding = this.getEncoding(rowkey.encoding)
+        let _version = parseInt(this.getVersion(rowkey.encoding))
         // console.log(_encoding, _version, 456235587)
         let addEncodings = baseEncodings.addEncoding(_encoding, _version)
         return addEncodings
@@ -477,35 +478,34 @@ export default {
       }
     },
     changeRowkey: function (rowkey, index) {
-      let _this = this
-      _this.$set(_this.cubeDesc.rowkey.rowkey_columns[index], 'isShardBy', rowkey.isShardBy)
-      _this.$set(_this.cubeDesc.rowkey.rowkey_columns[index], 'encoding_version', _this.getVersion(rowkey.encoding))
+      this.$set(this.cubeDesc.rowkey.rowkey_columns[index], 'isShardBy', rowkey.isShardBy)
+      this.$set(this.cubeDesc.rowkey.rowkey_columns[index], 'encoding_version', this.getVersion(rowkey.encoding))
       if (rowkey.valueLength) {
-        _this.$set(_this.cubeDesc.rowkey.rowkey_columns[index], 'encoding', _this.getEncoding(rowkey.encoding) + ':' + rowkey.valueLength)
+        this.$set(this.cubeDesc.rowkey.rowkey_columns[index], 'encoding', this.getEncoding(rowkey.encoding) + ':' + rowkey.valueLength)
       } else {
-        _this.$set(this.cubeDesc.rowkey.rowkey_columns[index], 'encoding', _this.getEncoding(rowkey.encoding))
+        this.$set(this.cubeDesc.rowkey.rowkey_columns[index], 'encoding', this.getEncoding(rowkey.encoding))
       }
       if (rowkey.encoding.indexOf('dict') >= 0 || rowkey.encoding.indexOf('date') >= 0 || rowkey.encoding.indexOf('time') >= 0) {
-        _this.$set(rowkey, 'valueLength', null)
+        this.$set(rowkey, 'valueLength', null)
       }
     },
     changeDimCap: function () {
-      let _this = this
-      this.cubeDesc.aggregation_groups.forEach(function (aggregationGroup) {
-        _this.$set(aggregationGroup, 'dim_cap', _this.dim_cap)
-        _this.refreshAggragation()
+      this.cubeDesc.aggregation_groups.forEach((aggregationGroup) => {
+        this.$set(aggregationGroup, 'dim_cap', this.dim_cap)
+        this.refreshAggragation()
       })
     },
     initAggregationGroup: function () {
-      let _this = this
-      if (!_this.isEdit && _this.currentRowkey.length > 0 && _this.cubeDesc.aggregation_groups.length <= 0) {
-        let newGroup = {includes: _this.currentRowkey, select_rule: {mandatory_dims: [], hierarchy_dims: [], joint_dims: []}}
-        _this.cubeDesc.aggregation_groups.push(newGroup)
-        _this.cuboidList.push(0)
+      console.log(33)
+      if (!this.isEdit && this.currentRowkey.length > 0 && this.cubeDesc.aggregation_groups.length <= 0) {
+        let newGroup = {includes: this.currentRowkey, select_rule: {mandatory_dims: [], hierarchy_dims: [], joint_dims: []}}
+        this.cubeDesc.aggregation_groups.push(newGroup)
+        this.cuboidList.push(0)
       }
-      _this.cubeDesc.aggregation_groups.forEach(function (aggregationGroup, groupIndex) {
+      console.log(1222)
+      this.cubeDesc.aggregation_groups.forEach((aggregationGroup, groupIndex) => {
         for (let i = 0; i < aggregationGroup.includes.length; i++) {
-          if (_this.currentRowkey.indexOf(aggregationGroup.includes[i]) === -1) {
+          if (this.currentRowkey.indexOf(aggregationGroup.includes[i]) === -1) {
             let removeColumn = aggregationGroup.includes[i]
             aggregationGroup.includes.splice(i, 1)
             i--
@@ -544,28 +544,22 @@ export default {
             }
           }
         }
-        _this.refreshAggragation(groupIndex)
+        this.refreshAggragation(groupIndex)
       })
     },
     refreshAggragation: function (index) {
-      let _this = this
-      _this.calCuboid({cubeDescData: JSON.stringify(_this.cubeDesc), aggIndex: index}).then((res) => {
+      this.calCuboid({cubeDescData: JSON.stringify(this.cubeDesc), aggIndex: index}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
-          _this.$set(_this.cuboidList, index, data)
+          this.$set(this.cuboidList, index, data)
         })
       }).catch((res) => {
-        handleError(res, (data, code, status, msg) => {
-          console.log(status, 30000)
-          // if (status === 404) {
-          //   _this.$router.replace('access/login')
-          // }
-        })
+        handleError(res)
       })
     },
     initCalCuboid: function () {
-      let _this = this
-      _this.cubeDesc.aggregation_groups.forEach(function (aggregationGroup, groupIndex) {
-        _this.refreshAggragation(groupIndex)
+      console.log(12345)
+      this.cubeDesc.aggregation_groups.forEach((aggregationGroup, groupIndex) => {
+        this.refreshAggragation(groupIndex)
       })
     },
     getEncoding: function (encode) {
@@ -585,6 +579,7 @@ export default {
       this.cuboidList.splice(index, 1)
     },
     addAggGroup: function () {
+      console.log(981)
       this.cubeDesc.aggregation_groups.push({includes: [], select_rule: {mandatory_dims: [], hierarchy_dims: [], joint_dims: []}})
       this.cuboidList.push(0)
     },
@@ -592,19 +587,21 @@ export default {
       hierarchyDims.splice(index, 1)
     },
     addHierarchyDims: function (hierarchyDims) {
+      console.log(981122)
       hierarchyDims.push([])
     },
     removeJointDims: function (index, jointDims) {
       jointDims.splice(index, 1)
     },
     addJointDims: function (jointDims) {
+      console.log(98112222)
       jointDims.push([])
     }
   },
   mounted () {
-    this.$dragging.$on('dragend', ({ value }) => {
-      console.log(value)
-    })
+    // this.$dragging.$on('dragend', ({ value }) => {
+    //   console.log(value)
+    // })
   },
   locales: {
     'en': {dimensions: 'Dimensions', name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment', action: 'Action', addDimensions: 'Add Dimensions', editDimension: 'Edit Dimensions', filter: 'Filter...', cancel: 'Cancel', yes: 'Yes', aggregationGroups: 'Aggregation Groups', Includes: 'Includes', mandatoryDimensions: 'Mandatory Dimensions', hierarchyDimensions: 'Hierarchy Dimensions', jointDimensions: 'Joint Dimensions', addAggregationGroups: 'Aggregation Groups', newHierarchy: 'New Hierarchy', newJoint: 'New Joint', ID: 'ID', encoding: 'Encoding', length: 'Length', shardBy: 'Shard By', dataType: 'Data Type', resetDimensions: 'Reset', cubeSuggestion: 'Cube Suggestion'},

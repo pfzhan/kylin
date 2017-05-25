@@ -117,7 +117,6 @@
         filterText: '',
         showNodeCount: 0,
         lastCheckedNode: null,
-        maxlevel: 0,
         defaultProps: {
           children: 'children',
           label: 'label',

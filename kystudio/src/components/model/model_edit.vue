@@ -252,7 +252,7 @@ export default {
       modelData: null,
       draftData: null,
       modelInfo: {
-        uuid: '',
+        uuid: null,
         last_modified: '',
         filterStr: '',
         modelName: '',
@@ -1104,7 +1104,7 @@ export default {
         if (this.currentTableLinks.length) {
           this.setConnectLabelText(showLinkCon, p1, p2, '' + this.currentTableLinks.length)
         } else {
-          this.plumbInstance.detach(showLinkCon)
+          jsPlumb.detach(showLinkCon)
           delete this.showLinkCons[p1 + '$' + p2]
           this.removePoint(showLinkCon.sourceId)
         }
@@ -1499,6 +1499,7 @@ export default {
     serverDataToDragData: function () {
       var _this = this
       // 添加模式
+      console.log(this.extraoption, 'ewewe')
       if (!this.extraoption.uuid) {
         this.$set(this.modelInfo, 'modelDiscribe', this.extraoption.modelDesc)
         this.$set(this.modelInfo, 'modelName', this.extraoption.modelName)

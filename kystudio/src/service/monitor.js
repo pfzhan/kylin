@@ -24,6 +24,6 @@ export default {
     return Vue.resource(apiUrl + 'jobs/' + jobID + '/pause').update({})
   },
   removeJob: (jobID) => {
-    return Vue.resource(apiUrl + 'jobs/' + jobID).delete({})
+    return Vue.resource(apiUrl + 'jobs/' + jobID + '/drop').delete({})
   }
 }

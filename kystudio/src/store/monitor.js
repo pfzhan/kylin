@@ -40,8 +40,8 @@ export default {
     [types.PAUSE_JOB]: function ({ commit }, stepDetail) {
       return api.monitor.pauseJob()
     },
-    [types.REMOVE_JOB]: function ({ commit }, stepDetail) {
-      return api.monitor.removeJob()
+    [types.REMOVE_JOB]: function ({ commit }, jobId) {
+      return api.monitor.removeJob(jobId)
     }
   },
   getters: {}

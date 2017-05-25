@@ -6,7 +6,7 @@
 		    <el-radio-button label="Kfka" @click.native="openKafkaDialog"><icon name="download" scale="0.8"></icon><span> Kafka</span></el-radio-button>
 		  </el-radio-group>
 
-      <tree :treedata="hiveAssets"   maxLabelLen="20" :indent="4" :showfilter="false" :allowdrag="false" @nodeclick="clickTable"></tree>
+      <tree :treedata="hiveAssets"  :expandall='true'  maxLabelLen="20" :indent="4" :showfilter="false" :allowdrag="false" @nodeclick="clickTable"></tree>
       </div>
       <div class="table_content" >
        <img class="null_pic" src="../../assets/img/notabledata.png" v-show="!tableData"/>
@@ -179,7 +179,7 @@
 		  </div></el-col>
 		  <el-col :span="16"><div class="grid-content bg-purple">
 		  	<div class="tree_check_content ksd-mt-20">
-		 	  <arealabel :labels="selectTables" changeable="unchange" :selectedlabels="selectTablesNames" placeholder="请在左侧选择要加载的table" ></arealabel>
+		 	  <arealabel :labels="selectTables" changeable="unchange" :selectedlabels="selectTablesNames" placeholder="请在左侧选择要加载的table"  :datamap="{label: 'label', value: 'value'}"></arealabel>
         <div class="ksd-mt-20">
           <!-- <el-checkbox v-model="openCollectRange">Table Stats</el-checkbox> -->
           <!-- <span class="demonstration">Sample percentage</span> -->

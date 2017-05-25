@@ -218,6 +218,7 @@ export default {
       return modelHealthStatus[helthInfo.heathStatus]
     },
     viewModel (modelInfo) {
+      console.log(modelInfo)
       this.$emit('addtabs', 'viewmodel', '[view] ' + modelInfo.name, 'modelEdit', {
         project: modelInfo.project,
         modelName: modelInfo.name,
