@@ -125,6 +125,7 @@ public class KapMessage {
 
     // KAP Metastore
     private final String KYLIN_HOME_UNDEFINED = "KYLIN_HOME undefined.";
+    private final String METADATA_BACKUP_SUCCESS = "Metadata backup successfully at %s";
 
     // KAP Kafka
     private final String INVALID_KAFKA_DEFINITION = "The KafkaConfig definition is invalid.";
@@ -369,5 +370,9 @@ public class KapMessage {
 
     public String getJOB_INSTANCE_NOT_FOUND() {
         return JOB_INSTANCE_NOT_FOUND;
+    }
+
+    public String getMETADATA_BACKUP_SUCCESS() {
+        return METADATA_BACKUP_SUCCESS;
     }
 }

@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.controllerV2;
 
+import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.service.MetaStoreServiceV2;
 import org.apache.kylin.rest.controller.BasicController;
@@ -55,9 +56,10 @@ public class MetaStoreControllerV2 extends BasicController {
     @ResponseBody
     public EnvelopeResponse backup(@RequestHeader("Accept-Language") String lang, @RequestParam(value = "project", required = false) String project, @RequestParam(value = "cube", required = false) String cube) throws IOException {
         KapMsgPicker.setMsg(lang);
+        KapMessage msg = KapMsgPicker.getMsg();
 
         String resultPath = metaStoreServiceV2.backup(project, cube);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, resultPath, "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, resultPath, String.format(msg.getMETADATA_BACKUP_SUCCESS(), resultPath));
     }
 
 }
