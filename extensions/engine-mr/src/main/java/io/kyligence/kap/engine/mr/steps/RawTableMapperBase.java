@@ -111,7 +111,7 @@ abstract public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEY
 
         RawToGridTableMapping gridTableMapping = rawTableDesc.getRawToGridTableMapping();
         shardbyMapping = initIndexMapping(rawTableDesc.getShardbyColumns(), gridTableMapping);
-        sortbyMapping = initIndexMapping(rawTableDesc.getShardbyColumns(), gridTableMapping);
+        sortbyMapping = initIndexMapping(rawTableDesc.getSortbyColumns(), gridTableMapping);
         nonSortbyMapping = initIndexMapping(rawTableDesc.getNonSortbyColumns(), gridTableMapping);
     }
 
@@ -167,15 +167,15 @@ abstract public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEY
 
         int shardNum = rawSegment.getShardNum() == 0 ? 2 : rawSegment.getShardNum();//by default 2 shards for raw table
 
-        // write shard number
-        ByteBuffer shardValue = getShardValue(splitBuffers);
-        Short shardId = ShardingHash.getShard(shardValue.array(), 0, shardValue.position(), shardNum);
-        curKey.add(BytesUtil.writeShort(shardId));
-
         // write sortby column
         for (byte[] sortby : encodeSortbyColumn(splitBuffers)) {
             curKey.add(sortby);
         }
+
+        // write shard number
+        ByteBuffer shardValue = getShardValue(splitBuffers);
+        Short shardId = ShardingHash.getShard(shardValue.array(), 0, shardValue.position(), shardNum);
+        curKey.add(BytesUtil.writeShort(shardId));
 
         return curKey;
     }

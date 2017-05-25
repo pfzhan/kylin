@@ -24,28 +24,34 @@
 
 package io.kyligence.kap.engine.mr.steps;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 
-import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.BytesUtil;
+import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.common.util.ShardingHash;
-import org.apache.kylin.cube.kv.RowConstants;
 import org.apache.kylin.engine.mr.KylinMapper;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
+import io.kyligence.kap.storage.parquet.format.datatype.ByteArrayListWritable;
 
-public class KapMergeRawTableMapper extends KylinMapper<Text, Text, Text, Text> {
+public class KapMergeRawTableMapper extends KylinMapper<ByteArrayListWritable, ByteArrayListWritable, ByteArrayListWritable, ByteArrayListWritable> {
 
     protected static final Logger logger = LoggerFactory.getLogger(KapMergeRawTableMapper.class);
-    protected Text outputKey = new Text();
     protected String rawTableName;
     protected RawTableInstance rawInstance;
+    protected RawTableDesc rawDesc;
+    private ImmutableBitSet shardbyBitmap;
+    private int sortbyCnt;
+    private int allColumnCnt;
 
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
@@ -54,17 +60,29 @@ public class KapMergeRawTableMapper extends KylinMapper<Text, Text, Text, Text> 
         rawTableName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME).toUpperCase();
         KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
         rawInstance = RawTableManager.getInstance(config).getRawTableInstance(rawTableName);
+        rawDesc = rawInstance.getRawTableDesc();
+        shardbyBitmap = rawDesc.getRawToGridTableMapping().getShardbyKey();
+        sortbyCnt = rawDesc.getSortbyColumns().size();
+        allColumnCnt = rawDesc.getColumnsInOrder().size();
     }
 
     @Override
-    public void doMap(Text key, Text value, Context context) throws IOException, InterruptedException {
+    public void doMap(ByteArrayListWritable key, ByteArrayListWritable value, Context context) throws IOException, InterruptedException {
         int shardNum = rawInstance.getShardNumber() == 0 ? 10 : rawInstance.getShardNumber();
-        byte[] k = key.getBytes();
-        short shardId = ShardingHash.getShard(k, 0, k.length, shardNum);
-        byte[] newKey = new byte[k.length + RowConstants.ROWKEY_SHARDID_LEN];
-        BytesUtil.writeShort(shardId, newKey, 0, RowConstants.ROWKEY_SHARDID_LEN);
-        System.arraycopy(k, 0, newKey, RowConstants.ROWKEY_SHARDID_LEN, k.length);
-        outputKey.set(newKey);
-        context.write(outputKey, value);
+        short shardId = getShardId(key, value, shardNum);
+        ByteArrayListWritable newKey = new ByteArrayListWritable(new ArrayList<>(key.get().subList(0, sortbyCnt)));
+        ByteArrayListWritable newVal = new ByteArrayListWritable(key.get().subList(sortbyCnt, allColumnCnt));
+        newKey.add(BytesUtil.writeShort(shardId));
+        context.write(newKey, newVal);
+    }
+
+    protected short getShardId(ByteArrayListWritable key, ByteArrayListWritable value, int shardNum) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        for (int index : shardbyBitmap) {
+            baos.write(key.get().get(index));
+        }
+        baos.close();
+        byte[] shardBytes = baos.toByteArray();
+        return ShardingHash.getShard(shardBytes, 0, shardBytes.length, shardNum);
     }
 }

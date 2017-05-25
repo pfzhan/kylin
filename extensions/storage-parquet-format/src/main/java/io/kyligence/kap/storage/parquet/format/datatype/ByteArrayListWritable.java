@@ -31,10 +31,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
-import org.apache.kylin.engine.mr.ByteArrayWritable;
 
 public class ByteArrayListWritable implements WritableComparable<ByteArrayListWritable> {
 
@@ -142,26 +140,22 @@ public class ByteArrayListWritable implements WritableComparable<ByteArrayListWr
         return this.compareTo(castObj) == 0;
     }
 
-    /** A Comparator optimized for byte array.
-     */
     public static class Comparator extends WritableComparator {
-        private BytesWritable.Comparator comparator = new BytesWritable.Comparator();
-
         /** constructor */
         public Comparator() {
-            super(ByteArrayWritable.class);
+            super(ByteArrayListWritable.class, true);
         }
 
-        /**
-         * @see org.apache.hadoop.io.WritableComparator#compare(byte[], int, int, byte[], int, int)
-         */
         @Override
-        public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
-            return comparator.compare(b1, s1, l1, b2, s2, l2);
+        public int compare(WritableComparable a, WritableComparable b) {
+            if (a instanceof ByteArrayListWritable && b instanceof ByteArrayListWritable) {
+                return ((ByteArrayListWritable) a).compareTo((ByteArrayListWritable) b);
+            }
+            return 0;
         }
     }
 
     static { // register this comparator
-        WritableComparator.define(ByteArrayWritable.class, new ByteArrayWritable.Comparator());
+        WritableComparator.define(ByteArrayListWritable.class, new ByteArrayListWritable.Comparator());
     }
 }

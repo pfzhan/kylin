@@ -124,6 +124,10 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         if (!encoding.equalsIgnoreCase("integer") && !encoding.equalsIgnoreCase("date") && !encoding.equalsIgnoreCase("time")) {
             throw new IllegalStateException("first sortby column's encoding is" + encoding + ", it should be integer, date or time");
         }
+
+        if (shardbyColumns.size() > 1) {
+            throw new IllegalStateException("Only one shardby column is supported. Now shardby columns are " + shardbyColumns);
+        }
     }
 
     public TblColRef getFirstSortbyColumn() {
@@ -153,6 +157,9 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     }
 
     public Boolean isShardby(TblColRef colRef) {
+        if (shardbyColumns.isEmpty()) {
+            return true;
+        }
         return shardbyColumns.contains(colRef);
     }
 
@@ -308,7 +315,11 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         this.modelName = modelName;
     }
 
+    // if no shardby columns set, all columns as shardby
     public Collection<TblColRef> getShardbyColumns() {
+        if (shardbyColumns.isEmpty()) {
+            return getColumnsInOrder();
+        }
         return shardbyColumns;
     }
 

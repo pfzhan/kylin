@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.engine.mr.steps;
 
+import java.util.List;
+
 import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.kylin.common.util.BytesUtil;
 
@@ -32,6 +34,7 @@ import io.kyligence.kap.storage.parquet.format.datatype.ByteArrayListWritable;
 public class RawTablePartitioner extends Partitioner<ByteArrayListWritable, ByteArrayListWritable> {
     @Override
     public int getPartition(ByteArrayListWritable key, ByteArrayListWritable value, int i) {
-        return BytesUtil.readShort(key.get().get(0));
+        List<byte[]> keyList = key.get();
+        return BytesUtil.readShort(keyList.get(keyList.size() - 1));
     }
 }

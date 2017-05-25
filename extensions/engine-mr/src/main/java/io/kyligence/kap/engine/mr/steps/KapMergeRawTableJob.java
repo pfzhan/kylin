@@ -34,7 +34,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -58,6 +57,7 @@ import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableOutputFormat;
+import io.kyligence.kap.storage.parquet.format.datatype.ByteArrayListWritable;
 
 public class KapMergeRawTableJob extends AbstractHadoopJob {
 
@@ -112,16 +112,16 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
             // Mapper
             job.setInputFormatClass(ParquetRawTableInputFormat.class);
             job.setMapperClass(KapMergeRawTableMapper.class);
-            job.setMapOutputKeyClass(Text.class);
-            job.setMapOutputValueClass(Text.class);
+            job.setMapOutputKeyClass(ByteArrayListWritable.class);
+            job.setMapOutputValueClass(ByteArrayListWritable.class);
             job.setCombinerClass(KylinReducer.class);
-            job.setPartitionerClass(ShardPartitioner.class);
+            job.setPartitionerClass(RawTablePartitioner.class);
 
             // Reducer
             job.setReducerClass(KylinReducer.class);
             job.setOutputFormatClass(ParquetRawTableOutputFormat.class);
-            job.setOutputKeyClass(Text.class);
-            job.setOutputValueClass(Text.class);
+            job.setOutputKeyClass(ByteArrayListWritable.class);
+            job.setOutputValueClass(ByteArrayListWritable.class);
 
             // set job configuration
             job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, cubeName);

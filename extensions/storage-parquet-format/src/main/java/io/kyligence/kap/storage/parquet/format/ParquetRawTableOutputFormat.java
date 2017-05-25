@@ -31,7 +31,6 @@ import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
@@ -68,7 +67,7 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
     public static class ParquetRawTableFileWriter extends ParquetOrderedFileWriter<ByteArrayListWritable, ByteArrayListWritable> {
         private static final Logger logger = LoggerFactory.getLogger(ParquetRawTableFileWriter.class);
 
-        private short curShardId = -1;
+        private short curShardId = (short) -1;
         private int curShardCounter = 0;
 
         private Configuration config;
@@ -94,22 +93,17 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
             GTInfo gtInfo = RawTableGridTable.newGTInfo(rawTableDesc);
             rawColumnsCodec = new BufferedRawColumnCodec((RawTableCodeSystem) gtInfo.getCodeSystem());
 
-            // FIXME: Text involves array copy every time
-            if (keyClass == Text.class && valueClass == Text.class) {
-                logger.info("KV class is Text");
+            // FIXME: ByteArrayListWritable involves array copy every time
+            if (keyClass == ByteArrayListWritable.class && valueClass == ByteArrayListWritable.class) {
+                logger.info("KV class is ByteArrayListWritable");
             } else {
-                throw new InvalidParameterException("ParquetRecordWriter only support Text type now");
+                throw new InvalidParameterException("ParquetRecordWriter only supports ByteArrayListWritable type now");
             }
         }
 
         @Override
-        public void write(ByteArrayListWritable key, ByteArrayListWritable value) throws IOException, InterruptedException {
-            super.write(key, value);
-        }
-
-        @Override
         protected void freshWriter(ByteArrayListWritable key, ByteArrayListWritable value) throws IOException, InterruptedException {
-            short shardId = BytesUtil.readShort(key.get().get(0));
+            short shardId = BytesUtil.readShort(key.get().get(key.get().size() - 1));
 
             if (shardId != curShardId) {
                 cleanWriter();
@@ -120,7 +114,6 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
             }
 
             curShardCounter++;
-
 
             if (writer == null) {
                 writer = newWriter();
@@ -156,7 +149,7 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
 
         @Override
         protected void writeData(ByteArrayListWritable key, ByteArrayListWritable value) throws IOException {
-            List<byte[]> sortby = key.get().subList(1, key.get().size());
+            List<byte[]> sortby = key.get().subList(0, key.get().size() - 1);
             List<byte[]> nonSortby = value.get();
             writer.writeRow(sortby, nonSortby);
         }

@@ -32,7 +32,6 @@ import java.util.Set;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
@@ -112,8 +111,8 @@ public class KapRawTableJob extends AbstractHadoopJob {
             // Reducer
             job.setReducerClass(KylinReducer.class);
             job.setOutputFormatClass(ParquetRawTableOutputFormat.class);
-            job.setOutputKeyClass(Text.class);
-            job.setOutputValueClass(Text.class);
+            job.setOutputKeyClass(ByteArrayListWritable.class);
+            job.setOutputValueClass(ByteArrayListWritable.class);
 
             FileOutputFormat.setOutputPath(job, output);
 
