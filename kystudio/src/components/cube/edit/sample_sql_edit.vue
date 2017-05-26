@@ -19,20 +19,13 @@ export default {
     })
   },
   created () {
-    let _this = this
-    if (_this.sampleSql.sqlString === '') {
-      _this.getSampleSql(_this.cubeDesc.name).then((res) => {
+    if (this.sampleSql.sqlString === '') {
+      this.getSampleSql(this.cubeDesc.name).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           this.sampleSql.sqlString = data.join('\r\n')
         })
       }).catch((res) => {
-        handleError(res, (data, code, status, msg) => {
-          _this.showErrorVisible = true
-          _this.errorMsg = msg
-          if (status === 404) {
-            // _this.$router.replace('access/login')
-          }
-        })
+        handleError(res, () => {})
       })
     }
   },

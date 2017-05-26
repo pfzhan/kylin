@@ -1,7 +1,7 @@
 <template>
 <div class="box-card card_margin">
   <el-row class="border_bottom">
-    <el-col :span="4">{{$t('autoMergeThresholds')}}</el-col>
+    <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('autoMergeThresholds')}} </el-col>
     <el-col :span="16">
       <el-row :gutter="20" class="row_padding" v-for="(timeRange, index) in timeRanges" :key="index">
         <el-col :span="10">
@@ -25,15 +25,15 @@
               </el-option>
             </el-select>
         </el-col>
-        <el-col :span="2">
+        <el-col :span="2" class="ksd-lineheight-30 ksd-mr-10">
           <el-button type="primary" icon="minus" size="mini" @click.native="removeTimeRange(index)"></el-button>
         </el-col>                
       </el-row>
-      <el-button class="btn_margin"  icon="plus" @click.native="addNewTimeRange">{{$t('newThresholds')}}</el-button>
+      <el-button class="btn_margin"  icon="plus" @click.native="addNewTimeRange">{{$t('newThresholds')}} </el-button>
     </el-col>  
   </el-row>
   <el-row class="row_padding">
-    <el-col :span="4">{{$t('buildTrigger')}}</el-col>
+    <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('buildTrigger')}} </el-col>
     <el-col :span="16">
       <el-date-picker class="input_width" @change="changeTriggerTime()"
         v-model="scheduler.desc.triggerTime"
@@ -43,7 +43,7 @@
     </el-col>
   </el-row>
   <el-row class="row_padding border_bottom">
-    <el-col :span="4">{{$t('periddicalInterval')}}</el-col>
+    <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('periddicalInterval')}} </el-col>
     <el-col :span="16">
       <el-row :gutter="20" class="row_padding">
         <el-col :span="10">
@@ -62,13 +62,13 @@
       </el-col>
   </el-row>
   <el-row class="row_padding">
-    <el-col :span="4">{{$t('retentionThreshold')}}</el-col>
+    <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('retentionThreshold')}} </el-col>
     <el-col :span="16">
       <el-input class="input_width" v-model="cubeDesc.retention_range" ></el-input>
     </el-col>
   </el-row>
   <el-row class="row_padding">
-    <el-col :span="4">{{$t('partitionStartDate')}}</el-col>
+    <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('partitionStartDate')}} </el-col>
     <el-col :span="16">
       <el-date-picker class="input_width" @change="changePartitionDateStart"
         v-model="cubeDesc.partition_date_start"
@@ -199,13 +199,14 @@ export default {
     }
   },
   locales: {
-    'en': {autoMergeThresholds: 'Auto Merge Thresholds', retentionThreshold: 'Retention Threshold', partitionStartDate: 'Partition Start Date', newThresholds: 'New Thresholds', buildTrigger: 'Auto Build Trigger', periddicalInterval: 'Periddical Interval'},
-    'zh-cn': {autoMergeThresholds: '触发自动合并的时间阈值', retentionThreshold: '保留时间阈值', partitionStartDate: '起始日期', newThresholds: '新建阈值', buildTrigger: '自动构建触发时间', periddicalInterval: '重复间隔'}
+    'en': {autoMergeThresholds: 'Auto Merge Thresholds: ', retentionThreshold: 'Retention Threshold: ', partitionStartDate: 'Partition Start Date: ', newThresholds: 'New Thresholds', buildTrigger: 'Auto Build Trigger: ', periddicalInterval: 'Periddical Interval: '},
+    'zh-cn': {autoMergeThresholds: '触发自动合并的时间阈值：', retentionThreshold: '保留时间阈值：', partitionStartDate: '起始日期：', newThresholds: '新建阈值', buildTrigger: '自动构建触发时间：', periddicalInterval: '重复间隔：'}
   }
 }
 </script>
 <style scoped>
  .card_margin {
+  font-size: 14px;
    margin-bottom: 20px;
  }
  .btn_margin {
@@ -219,6 +220,6 @@ export default {
   width: 40%
  }
 .border_bottom {
-  border-bottom: 2px solid #ddd;
+  border-bottom: 1px solid #ddd;
  }
 </style>

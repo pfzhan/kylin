@@ -20,9 +20,9 @@
         <el-col :span="24">         
          <el-button  icon="plus" @click.native="addDimensions">{{$t('addDimensions')}}</el-button></el-col>
        </el-row>
-       <el-row class="row_padding">
+       <el-row class="row_padding" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
         <el-col  :span="24">
-          <el-card >
+          <el-card  class="ksd_noshadow">
             <el-tag class="tag_margin"
             v-for="(dimension, index) in cubeDesc.dimensions"
             :key="index"
@@ -34,10 +34,9 @@
         </el-row>
       </el-row>
 
-      <el-row class="row_padding border_bottom">
+      <el-row class="row_padding border_bottom" style="line-height:36px;">
         <el-col :span="6">{{$t('aggregationGroups')}}</el-col>
-        <el-col :span="6">Max group by column:</el-col>
-        <el-col :span="3"><el-input v-model="dim_cap" @change="changeDimCap"></el-input></el-col>
+        <el-col :span="18">Max group by column: <el-input v-model="dim_cap" style="width:100px;" @change="changeDimCap"></el-input></el-col>
       </el-row>
       <el-row class="row_padding border_bottom" v-for="(group, group_index) in cubeDesc.aggregation_groups" :key="group_index">
         <el-col :span="24">

@@ -249,7 +249,6 @@
         return this.$store.state.config.routerConfig.currentPathName
       },
       currentUser () {
-        console.log('layout currentUser:', this.$store.state.user.currentUser)
         this.currentUserInfo = this.$store.state.user.currentUser
         let info = Object.create(this.currentUserInfo)
         info.password = ''

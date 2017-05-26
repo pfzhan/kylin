@@ -1,6 +1,6 @@
 <template>
 <div class="paddingbox">
-  <el-steps :active="activeStep"  finish-status="finish" process-status="wait" center align-center>
+  <el-steps :active="activeStep"  finish-status="finish" process-status="wait" center align-center style="width:96%;margin:0 auto">
     <el-step :title="$t('cubeInfo')" @click.native="step(1)"></el-step>
     <el-step :title="$t('sampleSql')" @click.native="step(2)"></el-step>
     <el-step :title="$t('dimensions')" @click.native="step(3)"></el-step>
@@ -10,6 +10,7 @@
     <el-step :title="$t('configurationOverwrites')" @click.native="step(7)"></el-step>
     <el-step :title="$t('overview')" @click.native="step(8)"></el-step>
   </el-steps>
+  <div class="ksd-mt-10 ksd-mb-10">
   <info v-if="activeStep===1" :cubeDesc="cubeDetail" :modelDesc="modelDetail" :isEdit="isEdit"></info>
   <sample_sql v-if="activeStep===2" :cubeDesc="cubeDetail" :isEdit="isEdit" :sampleSql="sampleSQL"></sample_sql>
   <dimensions v-if="activeStep===3" :cubeDesc="cubeDetail" :modelDesc="modelDetail" :isEdit="isEdit"></dimensions>
@@ -18,7 +19,7 @@
   <table_index v-if="activeStep===6" :cubeDesc="cubeDetail" :isEdit="isEdit" :modelDesc="modelDetail"  :rawTable="rawTable"></table_index>
   <configuration_overwrites v-if="activeStep===7" :cubeDesc="cubeDetail" :isEdit="isEdit"></configuration_overwrites>
   <overview v-if="activeStep===8" :cubeDesc="cubeDetail" :modelDesc="modelDetail"></overview>
-
+  </div>
   
 <el-button  type="primary"  @click.native="saveDraft(true)">Draft</el-button>
   <el-button class="button_right" type="primary" v-if="activeStep !== 8" @click.native="next">{{$t('next')}}<i class="el-icon-arrow-right el-icon--right"></i></el-button>
@@ -194,7 +195,7 @@ export default {
             }
           })
         }).catch((res) => {
-          handleError(res)
+          // handleError(res)
         })
       }
       if (nameUsed) {
@@ -625,6 +626,7 @@ export default {
           this.$set(this.cubeDetail, 'name', this.cubeDetail.name.replace(/_draft$/, ''))
         })
       }).catch((res) => {
+        console.log(12322)
         handleError(res)
       })
     },

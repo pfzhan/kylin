@@ -86,8 +86,9 @@
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">
               <div class="ksd-mt-20">
-                <el-checkbox v-model="openCollectRange">Check Model</el-checkbox>
-                 <el-slider v-model="modelStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider>
+               <!--  <el-checkbox v-model="openCollectRange">Check Model</el-checkbox> -->
+                 <!-- <el-slider v-model="modelStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider> -->
+                  <slider @changeBar="changeBar" label="Check Model" :show="scanRatioDialogVisible"></slider>
               </div>
               </div>
             </div>
@@ -190,13 +191,12 @@ export default {
       var params1 = {pageSize: pageCount, pageOffset: this.currentPage - 1}
       return this.loadModelDiagnoseList(params1)
     },
-    formatTooltip (val) {
-      return val + '%'
+    changeBar (val) {
+      this.modelStaticsRange = val
+      this.openCollectRange = !!val
     },
     cancelSetModelStatics () {
-      this.modelStaticsRange = 0
       this.scanRatioDialogVisible = false
-      this.openCollectRange = false
     },
     pageCurrentChange (currentPage) {
       this.currentPage = currentPage
@@ -535,7 +535,12 @@ export default {
       this.loadModels(params)
     })
     var cycleDiagnose = () => {
+      window.clearTimeout(this.stCycleRequest)
       this.stCycleRequest = setTimeout(() => {
+        if (this.$route.path !== '/studio/model') {
+          cycleDiagnose()
+          return
+        }
         this.reloadDiagnoseList().then(() => {
           cycleDiagnose()
         }, () => {
