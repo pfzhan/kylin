@@ -247,6 +247,7 @@ public class KapCubeControllerV2 extends BasicController implements Initializing
         KapMsgPicker.setMsg(lang);
 
         CubeDesc cubeDesc = deserializeCubeDesc(kapCubeRequest);
+        cubeServiceV2.validateCubeDesc(cubeDesc, false);
         RawTableDesc rawTableDesc = deserializeRawTableDesc(kapCubeRequest);
         SchedulerJobInstance schedulerJobInstance = deserializeSchedulerJobInstance(kapCubeRequest);
 
@@ -300,6 +301,7 @@ public class KapCubeControllerV2 extends BasicController implements Initializing
         KapMsgPicker.setMsg(lang);
 
         CubeDesc cubeDesc = deserializeCubeDesc(kapCubeRequest);
+        cubeServiceV2.validateCubeDesc(cubeDesc, true);
         RawTableDesc rawTableDesc = deserializeRawTableDesc(kapCubeRequest);
         SchedulerJobInstance schedulerJobInstance = deserializeSchedulerJobInstance(kapCubeRequest);
 
