@@ -24,29 +24,30 @@
 
 package io.kyligence.kap.rest.controller;
 
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
+import io.kyligence.kap.rest.service.LicenseInfoService;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.kylin.rest.controller.BasicController;
+import org.apache.kylin.rest.exception.InternalErrorException;
+import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.response.ResponseCode;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.kylin.rest.controller.BasicController;
-import org.apache.kylin.rest.exception.InternalErrorException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
-
-import io.kyligence.kap.rest.service.LicenseInfoService;
 
 @Controller
 @Component("kapSystemController")
@@ -56,15 +57,19 @@ public class KapSystemController extends BasicController {
     @Autowired
     private LicenseInfoService licenseInfoService;
 
-    @RequestMapping(value = "/license", method = { RequestMethod.GET }, produces = { "application/json" })
+    @RequestMapping(value = "/license", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public Map<String, String> listLicense() {
-        return licenseInfoService.extractLicenseInfo();
+    public EnvelopeResponse listLicense(@RequestHeader("Accept-Language") String lang) {
+        KapMsgPicker.setMsg(lang);
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
     }
 
-    @RequestMapping(value = "/requestLicense", method = { RequestMethod.GET }, produces = { "application/json" })
+    @RequestMapping(value = "/requestLicense", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public void requestLicense(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
+    public void requestLicense(@RequestHeader("Accept-Language") String lang, final HttpServletResponse response) throws IOException {
+        KapMsgPicker.setMsg(lang);
+
         String info = licenseInfoService.requestLicenseInfo();
         File licenseInfo = File.createTempFile("license", ".info");
         FileUtils.write(licenseInfo, info, Charset.defaultCharset());
@@ -72,6 +77,8 @@ public class KapSystemController extends BasicController {
     }
 
     private void setDownloadResponse(File downloadFile, String filename, final HttpServletResponse response) {
+        KapMessage msg = KapMsgPicker.getMsg();
+
         try (InputStream fileInputStream = new FileInputStream(downloadFile); OutputStream output = response.getOutputStream();) {
             response.reset();
             response.setContentType("application/octet-stream");
@@ -80,7 +87,7 @@ public class KapSystemController extends BasicController {
             IOUtils.copyLarge(fileInputStream, output);
             output.flush();
         } catch (IOException e) {
-            throw new InternalErrorException("Failed to create the file to download. " + e.getMessage(), e);
+            throw new InternalErrorException(msg.getDOWNLOAD_FILE_CREATE_FAIL());
         }
     }
 }

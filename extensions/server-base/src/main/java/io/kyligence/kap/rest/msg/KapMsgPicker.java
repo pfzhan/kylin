@@ -35,7 +35,7 @@ public class KapMsgPicker {
     public static void setMsg(String lang) {
         MsgPicker.setMsg(lang);
 
-        if (lang.equals("cn"))
+        if ("cn".equals(lang))
             msg.set(KapCnMessage.getInstance());
         else
             msg.set(KapMessage.getInstance());

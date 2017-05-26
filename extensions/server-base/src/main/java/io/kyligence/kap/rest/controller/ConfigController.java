@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.controller;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
@@ -38,6 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -45,6 +47,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.service.ConfigService;
 
 @Controller
@@ -59,47 +63,49 @@ public class ConfigController extends BasicController {
     @Qualifier("configService")
     private ConfigService configService;
 
-    @RequestMapping(value = "default", method = { RequestMethod.GET }, produces = { "application/json" })
+    @RequestMapping(value = "default", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public String getDefaultValue(@RequestParam("key") String key) {
-        return configService.getDefaultConfigMap().get(key);
+    public EnvelopeResponse getDefaultValue(@RequestHeader("Accept-Language") String lang, @RequestParam("key") String key) {
+        KapMsgPicker.setMsg(lang);
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, configService.getDefaultConfigMap().get(key), "");
     }
 
-    @RequestMapping(value = "defaults", method = { RequestMethod.GET }, produces = { "application/json" })
+    @RequestMapping(value = "defaults", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public Map<String, String> getDefaultConfigs() {
-        return configService.getDefaultConfigMap();
+    public EnvelopeResponse getDefaultConfigs(@RequestHeader("Accept-Language") String lang) {
+        KapMsgPicker.setMsg(lang);
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, configService.getDefaultConfigMap(), "");
     }
 
     /**
-     * 
+     *
      * @param key the name of the feature
      * @return
      * error code 001: feature_name is empty
      */
-    @RequestMapping(value = "hidden_feature", method = { RequestMethod.GET }, produces = { "application/json" })
+    @RequestMapping(value = "hidden_feature", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse isFeatureHidden(@RequestParam("feature_name") String key) {
+    public EnvelopeResponse isFeatureHidden(@RequestHeader("Accept-Language") String lang, @RequestParam("feature_name") String key) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+        KapMsgPicker.setMsg(lang);
+        KapMessage msg = KapMsgPicker.getMsg();
+
         if (StringUtils.isEmpty(key)) {
-            throw new BadRequestException("request field feature_name cannot be empty", "001");
+            throw new BadRequestException(msg.getEMPTY_FEATURE_NAME());
         }
 
         String s = configService.getAllKylinProperties().getProperty("kap.web.hide-feature." + key);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "true".equals(s), "");
     }
 
-    @RequestMapping(value = "spark_status", method = { RequestMethod.GET }, produces = { "application/json" })
+    @RequestMapping(value = "spark_status", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public Map<String, String> getSparkExec() {
-        boolean dynamic = Boolean.valueOf(configService.getSparkDriverConf("spark.dynamicAllocation.enabled"));
-        int execNum;
-        Map<String, String> ret = Maps.newHashMap();
+    public EnvelopeResponse getSparkExec(@RequestHeader("Accept-Language") String lang) {
+        KapMsgPicker.setMsg(lang);
 
-        if (dynamic) {
-            execNum = Integer.parseInt(configService.getSparkDriverConf("spark.dynamicAllocation.maxExecutors"));
-        } else {
-            execNum = Integer.parseInt(configService.getSparkDriverConf("spark.executor.instances"));
-        }
+        int execNum = Integer.parseInt(configService.getSparkDriverConf("spark.executor.instances"));
+        Map<String, String> ret = Maps.newHashMap();
 
         byte[] bytes = new byte[4];
         BytesUtil.writeUnsigned(execNum, bytes, 0, bytes.length);
@@ -113,6 +119,6 @@ public class ConfigController extends BasicController {
         execNum = Integer.reverse(BytesUtil.readUnsigned(bytes, 0, bytes.length));
 
         ret.put("v", Integer.toString(execNum));
-        return ret;
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, ret, "");
     }
 }

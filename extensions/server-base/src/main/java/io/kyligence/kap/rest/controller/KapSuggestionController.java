@@ -31,6 +31,8 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.request.CubeRequest;
+import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.response.ResponseCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +45,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.service.KapSuggestionService;
 
 @Controller
@@ -54,23 +57,30 @@ public class KapSuggestionController extends BasicController {
     @Qualifier("kapSuggestionService")
     private KapSuggestionService kapSuggestionService;
 
-    @RequestMapping(value = "{modelName}/{cubeName}/collect_sql", method = { RequestMethod.POST }, produces = { "application/json" })
+    @RequestMapping(value = "{modelName}/{cubeName}/collect_sql", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public void collectSampleSqls(@RequestHeader("Accept-Language") String lang, @PathVariable String modelName, @PathVariable String cubeName, @RequestBody List<String> sqls) throws Exception {
+    public EnvelopeResponse collectSampleSqls(@RequestHeader("Accept-Language") String lang, @PathVariable String modelName, @PathVariable String cubeName, @RequestBody List<String> sqls) throws Exception {
+        KapMsgPicker.setMsg(lang);
+
         kapSuggestionService.saveSampleSqls(modelName, cubeName, sqls);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
-    @RequestMapping(value = "{cubeName}/get_sql", method = { RequestMethod.GET }, produces = { "application/json" })
+    @RequestMapping(value = "{cubeName}/get_sql", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public List<String> getSampleSqls(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) throws Exception {
-        return kapSuggestionService.getSampleSqls(cubeName);
+    public EnvelopeResponse getSampleSqls(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) throws Exception {
+        KapMsgPicker.setMsg(lang);
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kapSuggestionService.getSampleSqls(cubeName), "");
     }
 
-    @RequestMapping(value = "suggestions", method = { RequestMethod.POST }, produces = { "application/json" })
+    @RequestMapping(value = "suggestions", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public CubeDesc getSmartSuggestions(@RequestHeader("Accept-Language") String lang, @RequestBody CubeRequest cubeRequest) throws IOException {
+    public EnvelopeResponse getSmartSuggestions(@RequestHeader("Accept-Language") String lang, @RequestBody CubeRequest cubeRequest) throws IOException {
+        KapMsgPicker.setMsg(lang);
+
         CubeDesc cubeDesc = deserializeCubeDesc(cubeRequest);
-        return kapSuggestionService.getSmartSuggestions(cubeDesc);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kapSuggestionService.getSmartSuggestions(cubeDesc), "");
     }
 
     private CubeDesc deserializeCubeDesc(CubeRequest cubeRequest) throws IOException {

@@ -25,36 +25,34 @@
 package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
-import java.util.UUID;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.exception.ForbiddenException;
-import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.request.CubeRequest;
+import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.JobService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 
 import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.request.RawTableRequest;
 import io.kyligence.kap.rest.service.RawTableService;
 
@@ -71,169 +69,97 @@ public class RawTableController extends BasicController {
     @Qualifier("jobService")
     private JobService jobService;
 
-    @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/json" })
-    @ResponseBody
-    public RawTableRequest saveRawTableDesc(@RequestBody RawTableRequest rawRequest) {
+    private RawTableDesc deserializeRawTableDesc(RawTableRequest rawTableRequest) throws IOException {
+        KapMessage msg = KapMsgPicker.getMsg();
 
-        RawTableDesc desc = deserializeRawTableDesc(rawRequest);
-        if (desc == null) {
-            rawRequest.setMessage("RawTableDesc is null.");
-            return rawRequest;
-        }
-        String name = RawTableService.getRawTableNameFromDesc(desc.getName());
-        if (StringUtils.isEmpty(name)) {
-            logger.info("RawTable name should not be empty.");
-            throw new BadRequestException("RawTable name should not be empty.");
-        }
-
-        try {
-            desc.setUuid(UUID.randomUUID().toString());
-            String projectName = (null == rawRequest.getProject()) ? ProjectInstance.DEFAULT_PROJECT_NAME : rawRequest.getProject();
-            rawTableService.createRawTableInstanceAndDesc(name, projectName, desc);
-        } catch (Exception e) {
-            logger.error("Failed to deal with the request.", e);
-            throw new InternalErrorException(e.getLocalizedMessage(), e);
-        }
-
-        rawRequest.setUuid(desc.getUuid());
-        rawRequest.setSuccessful(true);
-        return rawRequest;
-    }
-
-    private RawTableDesc deserializeRawTableDesc(RawTableRequest rawTableRequest) {
         RawTableDesc desc = null;
         try {
             logger.debug("Saving rawtable " + rawTableRequest.getRawTableDescData());
             desc = JsonUtil.readValue(rawTableRequest.getRawTableDescData(), RawTableDesc.class);
         } catch (JsonParseException e) {
             logger.error("The rawtable definition is not valid.", e);
-            updateRequest(rawTableRequest, false, e.getMessage());
+            throw new BadRequestException(msg.getINVALID_RAWTABLE_DEFINITION());
         } catch (JsonMappingException e) {
             logger.error("The rawtable definition is not valid.", e);
-            updateRequest(rawTableRequest, false, e.getMessage());
-        } catch (IOException e) {
-            logger.error("Failed to deal with the request.", e);
-            throw new InternalErrorException("Failed to deal with the request:" + e.getMessage(), e);
+            throw new BadRequestException(msg.getINVALID_RAWTABLE_DEFINITION());
         }
         return desc;
     }
 
-    @RequestMapping(value = "", method = { RequestMethod.PUT }, produces = { "application/json" })
+    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public RawTableRequest updateRawTableDesc(@RequestBody RawTableRequest rawRequest) throws JsonProcessingException {
+    public EnvelopeResponse getRawTableDesc(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) {
+        KapMsgPicker.setMsg(lang);
+        KapMessage msg = KapMsgPicker.getMsg();
 
-        RawTableDesc desc = deserializeRawTableDesc(rawRequest);
-        if (desc == null) {
-            return rawRequest;
-        }
-
-        String projectName = (null == rawRequest.getProject()) ? ProjectInstance.DEFAULT_PROJECT_NAME : rawRequest.getProject();
-        try {
-            RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(rawRequest.getRawTableName());
-
-            if (raw == null) {
-                String error = "The raw named " + rawRequest.getRawTableName() + " does not exist ";
-                updateRequest(rawRequest, false, error);
-                return rawRequest;
-            }
-
-            //cube renaming is not allowed
-            if (!raw.getRawTableDesc().getName().equalsIgnoreCase(desc.getName())) {
-                String error = "Raw Desc renaming is not allowed: desc.getName(): " + desc.getName() + ", rawRequest.getCubeName(): " + rawRequest.getRawTableName();
-                updateRequest(rawRequest, false, error);
-                return rawRequest;
-            }
-
-            desc = rawTableService.updateRawTableInstanceAndDesc(raw, desc, projectName, true);
-
-        } catch (AccessDeniedException accessDeniedException) {
-            throw new ForbiddenException("You don't have right to update this cube.");
-        } catch (Exception e) {
-            logger.error("Failed to deal with the request:" + e.getLocalizedMessage(), e);
-            throw new InternalErrorException("Failed to deal with the request: " + e.getLocalizedMessage());
-        }
-
-        String descData = JsonUtil.writeValueAsIndentString(desc);
-        rawRequest.setRawTableDescData(descData);
-        rawRequest.setSuccessful(true);
-        return rawRequest;
-    }
-
-    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.GET }, produces = { "application/json" })
-    @ResponseBody
-    public RawTableDesc getRawTableDesc(@PathVariable String cubeName) {
         RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
         if (raw == null) {
-            logger.info("raw " + cubeName + " does not exist!");
-            return null;
+            logger.info("raw table" + cubeName + " does not exist!");
+            throw new BadRequestException(String.format(msg.getRAWTABLE_NOT_FOUND(), cubeName));
         }
-        return raw.getRawTableDesc();
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, raw.getRawTableDesc(), "");
     }
 
-    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.DELETE }, produces = { "application/json" })
+    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.DELETE }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public void deleteRaw(@PathVariable String cubeName) {
+    public void deleteRaw(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) throws IOException {
+        KapMsgPicker.setMsg(lang);
+        KapMessage msg = KapMsgPicker.getMsg();
+
         RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
         if (null == raw) {
-            logger.info("raw " + cubeName + " does not exist!");
-            return;
+            logger.info("raw table" + cubeName + " does not exist!");
+            throw new BadRequestException(String.format(msg.getRAWTABLE_NOT_FOUND(), cubeName));
         }
-        try {
-            rawTableService.deleteRaw(raw);
-        } catch (Exception e) {
-            logger.error(e.getLocalizedMessage(), e);
-            throw new InternalErrorException("Failed to delete raw. " + " Caused by: " + e.getMessage(), e);
-        }
+        rawTableService.deleteRaw(raw);
     }
 
-    @RequestMapping(value = "/{cubeName}/enable", method = { RequestMethod.PUT }, produces = { "application/json" })
+    @RequestMapping(value = "/{cubeName}/enable", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public RawTableInstance enableRaw(@PathVariable String cubeName) {
-        try {
-            RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
-            if (null == raw) {
-                logger.info("raw " + cubeName + " does not exist!");
-                return null;
-            }
+    public EnvelopeResponse enableRaw(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) throws IOException {
+        KapMsgPicker.setMsg(lang);
+        KapMessage msg = KapMsgPicker.getMsg();
 
-            return rawTableService.enableRaw(raw);
-        } catch (Exception e) {
-            String message = "Failed to enable raw: " + cubeName;
-            logger.error(message, e);
-            throw new InternalErrorException(message + " Caused by: " + e.getMessage(), e);
+        RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
+        if (null == raw) {
+            logger.info("raw table" + cubeName + " does not exist!");
+            throw new BadRequestException(String.format(msg.getRAWTABLE_NOT_FOUND(), cubeName));
         }
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, rawTableService.enableRaw(raw), "");
     }
 
-    @RequestMapping(value = "/{cubeName}/disable", method = { RequestMethod.PUT }, produces = { "application/json" })
+    @RequestMapping(value = "/{cubeName}/disable", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public RawTableInstance disableRaw(@PathVariable String cubeName) {
-        try {
-            RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
-            if (null == raw) {
-                logger.info("raw " + cubeName + " does not exist!");
-                return null;
-            }
-            return rawTableService.disableRaw(raw);
-        } catch (Exception e) {
-            String message = "Failed to enable raw: " + cubeName;
-            logger.error(message, e);
-            throw new InternalErrorException(message + " Caused by: " + e.getMessage(), e);
+    public EnvelopeResponse disableRaw(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) throws IOException {
+        KapMsgPicker.setMsg(lang);
+        KapMessage msg = KapMsgPicker.getMsg();
+
+        RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
+        if (null == raw) {
+            logger.info("raw table" + cubeName + " does not exist!");
+            throw new BadRequestException(String.format(msg.getRAWTABLE_NOT_FOUND(), cubeName));
         }
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, rawTableService.disableRaw(raw), "");
     }
 
-    @RequestMapping(value = "/{cubeName}/clone", method = { RequestMethod.PUT }, produces = { "application/json" })
+    @RequestMapping(value = "/{cubeName}/clone", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public RawTableInstance rawCube(@PathVariable String cubeName, @RequestBody CubeRequest cubeRequest) {
+    public EnvelopeResponse rawCube(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName, @RequestBody CubeRequest cubeRequest) throws IOException {
+        KapMsgPicker.setMsg(lang);
+        KapMessage msg = KapMsgPicker.getMsg();
+
         String newRawName = cubeRequest.getCubeName();
         String project = cubeRequest.getProject();
 
         RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
         if (raw == null) {
-            return null;
+            throw new BadRequestException(String.format(msg.getRAWTABLE_NOT_FOUND(), cubeName));
         }
 
         RawTableDesc rawDesc = raw.getRawTableDesc();
-        RawTableDesc newRawDesc = rawDesc.getCopyOf(rawDesc);
+        RawTableDesc newRawDesc = RawTableDesc.getCopyOf(rawDesc);
 
         KylinConfig config = rawTableService.getConfig();
         newRawDesc.setName(newRawName);
@@ -241,30 +167,20 @@ public class RawTableController extends BasicController {
         newRawDesc.setStorageType(config.getDefaultStorageEngine());
 
         RawTableInstance newRaw;
-        try {
-            newRaw = rawTableService.createRawTableInstanceAndDesc(newRawName, project, newRawDesc);
 
-            //reload to avoid shallow clone
-            rawTableService.getCubeDescManager().reloadCubeDescLocal(newRawName);
-        } catch (IOException e) {
-            throw new InternalErrorException("Failed to clone cube ", e);
-        }
+        newRaw = rawTableService.createRawTableInstanceAndDesc(newRawName, project, newRawDesc);
 
-        return newRaw;
+        //reload to avoid shallow clone
+        rawTableService.getCubeDescManager().reloadCubeDescLocal(newRawName);
 
-    }
-
-    private void updateRequest(RawTableRequest request, boolean success, String message) {
-        request.setRawTableDescData("");
-        request.setSuccessful(success);
-        request.setMessage(message);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, newRaw, "");
     }
 
     public void setRawTableService(RawTableService rawTableService) {
         this.rawTableService = rawTableService;
     }
 
-    public void setJobService(JobService jobService) {
-        this.jobService = jobService;
+    public void setJobService(JobService jobServiceV2) {
+        this.jobService = jobServiceV2;
     }
 }

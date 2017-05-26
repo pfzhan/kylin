@@ -27,7 +27,6 @@ package io.kyligence.kap.rest.controller;
 import java.io.IOException;
 import java.util.List;
 
-import io.kyligence.kap.rest.security.KapAuthenticationManager.UserObj;
 import org.apache.kylin.rest.service.UserGrantedAuthority;
 import org.junit.Assert;
 import org.junit.Test;
@@ -36,6 +35,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import io.kyligence.kap.rest.security.KapAuthenticationManager.UserObj;
 import io.kyligence.kap.rest.service.ServiceTestBase;
 
 /**
@@ -50,21 +50,21 @@ public class KapUserControllerTest extends ServiceTestBase {
 
     @Test
     public void testBasics() throws IOException {
-        kapUserController.delete("TEST");
+        kapUserController.delete(null, "TEST");
 
         // save
-        UserObj u = kapUserController.save("TEST", new UserObj("TEST", "pwd", true, "R1", "R2", "R3"));
+        UserObj u = kapUserController.save(null, "TEST", new UserObj("TEST", "pwd", true, "R1", "R2", "R3"));
         assertEquals(u, "TEST", "pwd", false, "R1", "R2", "R3");
 
         // update
-        u = kapUserController.save("TEST", new UserObj("TEST", "pwd22", true, "R4", "R5"));
+        u = kapUserController.save(null, "TEST", new UserObj("TEST", "pwd22", true, "R4", "R5"));
         assertEquals(u, "TEST", "pwd22", false, "R4", "R5");
 
         // disable
         UserObj disable = new UserObj();
         disable.setDisabled(true);
         disable.setPassword("abc.1234");
-        u = kapUserController.save("TEST", disable);
+        u = kapUserController.save(null, "TEST", disable);
         assertEquals(u, "TEST", "abc.1234", true, "R4", "R5");
 
         // list all
@@ -75,15 +75,15 @@ public class KapUserControllerTest extends ServiceTestBase {
         }
 
         // list authorities
-        List<String> authorities = kapUserController.listAllAuthorities();
+        List<String> authorities = (List<String>) kapUserController.listAllAuthorities(null).data;
         Assert.assertTrue(authorities.contains("R4"));
         Assert.assertTrue(authorities.contains("R5"));
 
-        kapUserController.delete("TEST");
+        kapUserController.delete(null, "TEST");
 
         // exception getting non-exist user
         try {
-            kapUserController.get("TEST");
+            kapUserController.get(null, "TEST");
             Assert.fail();
         } catch (UsernameNotFoundException e) {
             // expected

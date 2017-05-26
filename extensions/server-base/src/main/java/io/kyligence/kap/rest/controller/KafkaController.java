@@ -24,14 +24,17 @@
 
 package io.kyligence.kap.rest.controller;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
+import io.kyligence.kap.rest.service.KafkaService;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.controller.BasicController;
-import org.apache.kylin.rest.exception.InternalErrorException;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.request.StreamingRequest;
+import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.source.kafka.config.KafkaConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,14 +42,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-
-import io.kyligence.kap.rest.service.KafkaService;
+import java.io.IOException;
+import java.util.List;
 
 @Controller
 @RequestMapping(value = "/kafka")
@@ -56,53 +58,55 @@ public class KafkaController extends BasicController {
     @Autowired
     private KafkaService kafkaService;
 
-    @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/json" })
+    @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public Map<String, List<String>> getTopics(@RequestBody StreamingRequest streamingRequest) {
+    public EnvelopeResponse getTopics(@RequestHeader("Accept-Language") String lang, @RequestBody StreamingRequest streamingRequest) throws IOException {
+        KapMsgPicker.setMsg(lang);
+
         KafkaConfig kafkaConfig = deserializeKafkaSchemalDesc(streamingRequest);
-        return kafkaService.getTopics(kafkaConfig);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kafkaService.getTopics(kafkaConfig), "");
     }
 
-    @RequestMapping(value = "{cluster}/{topic}", method = { RequestMethod.POST }, produces = { "application/json" })
+    @RequestMapping(value = "{cluster}/{topic}", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public List<String> getMessages(@PathVariable String cluster, @PathVariable String topic, @RequestBody StreamingRequest streamingRequest) {
+    public EnvelopeResponse getMessages(@RequestHeader("Accept-Language") String lang, @PathVariable String cluster, @PathVariable String topic, @RequestBody StreamingRequest streamingRequest) throws IOException {
+        KapMsgPicker.setMsg(lang);
+
         KafkaConfig kafkaConfig = deserializeKafkaSchemalDesc(streamingRequest);
-        return kafkaService.getMessages(kafkaConfig);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kafkaService.getMessages(kafkaConfig), "");
     }
 
-    @RequestMapping(value = "{database}.{tablename}/samples", method = { RequestMethod.POST }, produces = { "application/json" })
+    @RequestMapping(value = "{database}.{tablename}/samples", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public String getSamples(@PathVariable String database, @PathVariable String tablename, @RequestBody List<String> messages) throws IOException {
-        return kafkaService.saveSamplesToStreamingTable(database + "." + tablename, messages);
+    public EnvelopeResponse getSamples(@RequestHeader("Accept-Language") String lang, @PathVariable String database, @PathVariable String tablename, @RequestBody List<String> messages) throws IOException {
+        KapMsgPicker.setMsg(lang);
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kafkaService.saveSamplesToStreamingTable(database + "." + tablename, messages), "");
     }
 
-    @RequestMapping(value = "{database}.{tablename}/update_samples", method = { RequestMethod.GET }, produces = { "application/json" })
+    @RequestMapping(value = "{database}.{tablename}/update_samples", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public List<String> updateSamples(@PathVariable String database, @PathVariable String tablename) throws IOException {
-        return kafkaService.updateSamplesByTableName(database + "." + tablename);
+    public EnvelopeResponse updateSamples(@RequestHeader("Accept-Language") String lang, @PathVariable String database, @PathVariable String tablename) throws IOException {
+        KapMsgPicker.setMsg(lang);
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kafkaService.updateSamplesByTableName(database + "." + tablename), "");
     }
 
-    private KafkaConfig deserializeKafkaSchemalDesc(StreamingRequest streamingRequest) {
+    private KafkaConfig deserializeKafkaSchemalDesc(StreamingRequest streamingRequest) throws IOException {
+        KapMessage msg = KapMsgPicker.getMsg();
+
         KafkaConfig desc = null;
         try {
             logger.debug("Saving KafkaConfig " + streamingRequest.getKafkaConfig());
             desc = JsonUtil.readValue(streamingRequest.getKafkaConfig(), KafkaConfig.class);
         } catch (JsonParseException e) {
             logger.error("The KafkaConfig definition is invalid.", e);
-            updateRequest(streamingRequest, false, e.getMessage());
+            throw new BadRequestException(msg.getINVALID_KAFKA_DEFINITION());
         } catch (JsonMappingException e) {
             logger.error("The data KafkaConfig definition is invalid.", e);
-            updateRequest(streamingRequest, false, e.getMessage());
-        } catch (IOException e) {
-            logger.error("Failed to deal with the request.", e);
-            throw new InternalErrorException("Failed to deal with the request:" + e.getMessage(), e);
+            throw new BadRequestException(msg.getINVALID_KAFKA_DEFINITION());
         }
         return desc;
-    }
-
-    private void updateRequest(StreamingRequest request, boolean success, String message) {
-        request.setSuccessful(success);
-        request.setMessage(message);
     }
 
 }

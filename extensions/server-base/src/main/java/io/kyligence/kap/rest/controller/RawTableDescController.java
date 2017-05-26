@@ -24,19 +24,28 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.cube.raw.RawTableDesc.STATUS_DRAFT;
+
 import java.io.IOException;
+import java.util.HashMap;
 
 import org.apache.kylin.rest.controller.BasicController;
+import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.service.RawTableService;
 
 @Controller
@@ -56,19 +65,48 @@ public class RawTableDescController extends BasicController {
      * @return
      * @throws IOException
      */
-    @RequestMapping(value = "/{rawName}", method = { RequestMethod.GET }, produces = { "application/json" })
+    @RequestMapping(value = "/{rawName}", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public RawTableDesc getDesc(@PathVariable String rawName) {
+    public EnvelopeResponse getDesc(@RequestHeader("Accept-Language") String lang, @PathVariable String rawName) {
+        KapMsgPicker.setMsg(lang);
+        KapMessage msg = KapMsgPicker.getMsg();
+
+        HashMap<String, RawTableDesc> data = new HashMap<String, RawTableDesc>();
+
         RawTableInstance rawInstance = rawTableService.getRawTableManager().getRawTableInstance(rawName);
         if (rawInstance == null) {
-            return null;
+            throw new BadRequestException(String.format(msg.getRAWTABLE_NOT_FOUND(), rawName));
         }
-        RawTableDesc cSchema = rawInstance.getRawTableDesc();
-        if (cSchema != null) {
-            return cSchema;
-        } else {
-            return null;
+        RawTableDesc desc = rawInstance.getRawTableDesc();
+        if (desc == null) {
+            throw new BadRequestException(String.format(msg.getRAWTABLE_DESC_NOT_FOUND(), rawName));
         }
+
+        if (desc.getStatus() == null) {
+            data.put("rawTable", desc);
+
+            String draftName = rawName + "_draft";
+            RawTableInstance draftRawTableInstance = rawTableService.getRawTableManager().getRawTableInstance(draftName);
+            if (draftRawTableInstance != null) {
+                RawTableDesc draftRawTableDesc = draftRawTableInstance.getRawTableDesc();
+                if (draftRawTableDesc != null && draftRawTableDesc.getStatus() != null && draftRawTableDesc.getStatus().equals(STATUS_DRAFT)) {
+                    data.put("draft", draftRawTableDesc);
+                }
+            }
+        } else if (desc.getStatus().equals(STATUS_DRAFT)) {
+            data.put("draft", desc);
+
+            String parentName = rawName.substring(0, rawName.lastIndexOf("_draft"));
+            RawTableInstance parentRawTableInstance = rawTableService.getRawTableManager().getRawTableInstance(parentName);
+            if (parentRawTableInstance != null) {
+                RawTableDesc parentRawTableDesc = parentRawTableInstance.getRawTableDesc();
+                if (parentRawTableDesc != null && parentRawTableDesc.getStatus() == null) {
+                    data.put("rawTable", parentRawTableDesc);
+                }
+            }
+        }
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
     public void setRawTableService(RawTableService rawTableService) {

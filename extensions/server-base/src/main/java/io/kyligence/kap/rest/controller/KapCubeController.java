@@ -25,24 +25,49 @@
 package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.AggregationGroup;
+import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.controller.BasicController;
-import org.apache.kylin.rest.exception.InternalErrorException;
-import org.apache.kylin.rest.service.CubeService;
+import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.msg.Message;
+import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.response.GeneralResponse;
+import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.rest.service.CacheService;
+import org.apache.kylin.rest.service.CubeServiceV2;
+import org.apache.kylin.rest.service.JobService;
+import org.quartz.CronExpression;
+import org.quartz.CronScheduleBuilder;
+import org.quartz.CronTrigger;
+import org.quartz.JobDataMap;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.TriggerBuilder;
+import org.quartz.impl.JobDetailImpl;
+import org.quartz.impl.StdSchedulerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -50,22 +75,94 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 
+import io.kyligence.kap.cube.raw.RawTableDesc;
+import io.kyligence.kap.metadata.scheduler.SchedulerJobInstance;
+import io.kyligence.kap.rest.ScheduleBuildJob;
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
+import io.kyligence.kap.rest.request.KapCubeRequest;
 import io.kyligence.kap.rest.response.ColumnarResponse;
 import io.kyligence.kap.rest.service.KapCubeService;
+import io.kyligence.kap.rest.service.RawTableService;
+import io.kyligence.kap.rest.service.SchedulerJobService;
 import io.kyligence.kap.storage.parquet.steps.ColumnarStorageUtils;
 
 @Controller
 @RequestMapping(value = "/cubes")
-public class KapCubeController extends BasicController {
+public class KapCubeController extends BasicController implements InitializingBean {
     private static final Logger logger = LoggerFactory.getLogger(KapCubeController.class);
 
     @Autowired
-    @Qualifier("cubeMgmtService")
-    private CubeService cubeService;
+    @Qualifier("cubeMgmtServiceV2")
+    private CubeServiceV2 cubeServiceV2;
 
     @Autowired
     @Qualifier("kapCubeService")
     private KapCubeService kapCubeService;
+
+    @Autowired
+    @Qualifier("cacheService")
+    private CacheService cacheService;
+
+    @Autowired
+    @Qualifier("schedulerJobService")
+    private SchedulerJobService schedulerJobService;
+
+    @Autowired
+    @Qualifier("rawTableService")
+    private RawTableService rawTableService;
+
+    @Autowired
+    @Qualifier("jobService")
+    private JobService jobService;
+
+    private Scheduler scheduler;
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public void afterPropertiesSet() throws Exception {
+
+        scheduler = createScheduler();
+        scheduler.start();
+
+        //Create a faked job to record each cube's latest building job
+        JobDetailImpl jobDetail = new JobDetailImpl();
+        jobDetail.setName("building_jobs");
+        JobDataMap dataMap = jobDetail.getJobDataMap();
+
+        jobDetail.setJobDataMap(dataMap);
+        scheduler.addJob(jobDetail, true);
+    }
+
+    private Scheduler createScheduler() throws SchedulerException {
+        return StdSchedulerFactory.getDefaultScheduler();
+    }
+
+    private String createCronExpression(long intervalTimeMillis, long firstTriggerTime) {
+        StringBuilder sb = new StringBuilder("");
+
+        Date firstTriggerDate = new Date(firstTriggerTime);
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(firstTriggerDate);
+
+        if (intervalTimeMillis < 0) {
+            sb.append(cal.get(Calendar.SECOND) + " " + cal.get(Calendar.MINUTE) + " " + cal.get(Calendar.HOUR_OF_DAY) + " " + cal.get(Calendar.DAY_OF_MONTH) + " * ?");
+        } else {
+            long minutes = intervalTimeMillis / (60 * 1000);
+            long hours = minutes / 60;
+            long days = hours / 24;
+            if (days > 0) {
+                sb.append(cal.get(Calendar.SECOND) + " " + cal.get(Calendar.MINUTE) + " " + cal.get(Calendar.HOUR_OF_DAY) + " " + cal.get(Calendar.DAY_OF_MONTH) + "/" + days + " * ?");
+            } else if (hours > 0) {
+                sb.append(cal.get(Calendar.SECOND) + " " + cal.get(Calendar.MINUTE) + " " + cal.get(Calendar.HOUR_OF_DAY) + "/" + hours + " *  * ?");
+            } else if (minutes > 0) {
+                sb.append(cal.get(Calendar.SECOND) + " " + cal.get(Calendar.MINUTE) + "/" + minutes + " * * * ?");
+            } else {
+                sb.append(cal.get(Calendar.SECOND) + "/" + intervalTimeMillis / 1000 + " * * * * ?");
+            }
+        }
+        return sb.toString();
+    }
 
     /**
      * get Columnar Info
@@ -73,14 +170,18 @@ public class KapCubeController extends BasicController {
      * @return true
      * @throws IOException
      */
-    @RequestMapping(value = "/{cubeName}/columnar", method = { RequestMethod.GET }, produces = { "application/json" })
+
+    @RequestMapping(value = "/{cubeName}/columnar", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public List<ColumnarResponse> getColumnarInfo(@PathVariable String cubeName) {
+    public EnvelopeResponse getColumnarInfo(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) {
+        KapMsgPicker.setMsg(lang);
+        KapMessage msg = KapMsgPicker.getMsg();
+
         List<ColumnarResponse> columnar = new ArrayList<>();
 
-        CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
+        CubeInstance cube = cubeServiceV2.getCubeManager().getCube(cubeName);
         if (null == cube) {
-            throw new InternalErrorException("Cannot find cube " + cubeName);
+            throw new BadRequestException(String.format(msg.getCUBE_NOT_FOUND(), cubeName));
         }
 
         for (CubeSegment segment : cube.getSegments()) {
@@ -99,39 +200,270 @@ public class KapCubeController extends BasicController {
             columnar.add(info);
         }
 
-        return columnar;
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, columnar, "");
     }
 
     /**
      * Calculate Cuboid Combination based on the AggreationGroup definition.
      *
-     * @param aggregationGroupStr
+     * @param cubeDescStr
      * @return number of cuboid, -1 if failed
      */
-    @RequestMapping(value = "aggregationgroups/cuboid", method = RequestMethod.POST, produces = { "application/json" })
+
+    @RequestMapping(value = "aggregationgroups/{aggIndex}/cuboid", method = RequestMethod.POST, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public long calculateCuboidCombination(@RequestBody String aggregationGroupStr) {
-        AggregationGroup aggregationGroup = deserializeAggregationGroup(aggregationGroupStr);
+    public EnvelopeResponse calculateCuboidCombinationV2(@RequestHeader("Accept-Language") String lang, @PathVariable int aggIndex, @RequestBody String cubeDescStr) throws IOException {
+        MsgPicker.setMsg(lang);
+
+        CubeDesc cubeDesc = deserializeCubeDescV2(cubeDescStr);
+        AggregationGroup aggregationGroup = cubeDesc.getAggregationGroups().get(aggIndex);
+
         if (aggregationGroup != null) {
-            return aggregationGroup.calculateCuboidCombination();
+            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, aggregationGroup.calculateCuboidCombination(), "");
         } else
-            return -1;
+            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, -1, "");
     }
 
-    private AggregationGroup deserializeAggregationGroup(String aggregationGroupStr) {
-        AggregationGroup aggreationGroup = null;
+    private CubeDesc deserializeCubeDescV2(String cubeDescStr) throws IOException {
+        Message msg = MsgPicker.getMsg();
+
+        CubeDesc desc = null;
         try {
-            logger.debug("Parsing AggregationGroup " + aggregationGroupStr);
-            aggreationGroup = JsonUtil.readValue(aggregationGroupStr, AggregationGroup.class);
+            logger.debug("Saving cube " + cubeDescStr);
+            desc = JsonUtil.readValue(cubeDescStr, CubeDesc.class);
         } catch (JsonParseException e) {
-            logger.error("The AggregationGroup definition is not valid.", e);
+            logger.error("The cube definition is not valid.", e);
+            throw new BadRequestException(msg.getINVALID_CUBE_DEFINITION());
         } catch (JsonMappingException e) {
-            logger.error("The AggregationGroup definition is not valid.", e);
-        } catch (IOException e) {
-            logger.error("Failed to deal with the request.", e);
-            throw new InternalErrorException("Failed to deal with the request:" + e.getMessage(), e);
+            logger.error("The cube definition is not valid.", e);
+            throw new BadRequestException(msg.getINVALID_CUBE_DEFINITION());
         }
-        return aggreationGroup;
+        return desc;
     }
 
+    @RequestMapping(value = "", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse updateCubeDescV2(@RequestHeader("Accept-Language") String lang, @RequestBody KapCubeRequest kapCubeRequest) throws IOException, ParseException, SchedulerException {
+        KapMsgPicker.setMsg(lang);
+
+        CubeDesc cubeDesc = deserializeCubeDesc(kapCubeRequest);
+        cubeServiceV2.validateCubeDesc(cubeDesc, false);
+        RawTableDesc rawTableDesc = deserializeRawTableDesc(kapCubeRequest);
+        SchedulerJobInstance schedulerJobInstance = deserializeSchedulerJobInstance(kapCubeRequest);
+
+        String projectName = (null == kapCubeRequest.getProject()) ? ProjectInstance.DEFAULT_PROJECT_NAME : kapCubeRequest.getProject();
+
+        ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
+        ResourceStore.Checkpoint cp = store.checkpoint();
+        try {
+            boolean createNewCube = cubeServiceV2.unifyCubeDesc(cubeDesc, false);
+            cubeDesc = cubeServiceV2.updateCubeToResourceStore(cubeDesc, projectName, createNewCube);
+
+            if (rawTableDesc != null) {
+                rawTableService.validateRawTableDesc(rawTableDesc);
+                rawTableDesc.setUuid(cubeDesc.getUuid());
+                boolean createNewRawTable = rawTableService.unifyRawTableDesc(rawTableDesc, false);
+                rawTableDesc = rawTableService.updateRawTableToResourceStore(rawTableDesc, projectName, createNewRawTable);
+            } else {
+                rawTableService.deleteRawByUuid(cubeDesc.getUuid(), false);
+            }
+
+            bindSchedulerJobWithCube(schedulerJobInstance, cubeDesc.getName(), cubeDesc.getUuid());
+
+        } catch (Exception ex) {
+            cp.rollback();
+            cacheService.wipeAllCache();
+            throw ex;
+        } finally {
+            cp.close();
+        }
+
+        validateSchedulerJobs(cubeDesc.getUuid());
+        enableSchedulerJob(schedulerJobInstance);
+
+        String cubeDescData = JsonUtil.writeValueAsIndentString(cubeDesc);
+        String rawTableDescData = JsonUtil.writeValueAsIndentString(rawTableDesc);
+        GeneralResponse data = new GeneralResponse();
+        data.setProperty("cubeUuid", cubeDesc.getUuid());
+        data.setProperty("cubeDescData", cubeDescData);
+        if (rawTableDesc != null) {
+            data.setProperty("rawTableUuid", rawTableDesc.getUuid());
+            data.setProperty("rawTableDescData", rawTableDescData);
+            data.setProperty("schedulerJobData", kapCubeRequest.getSchedulerJobData());
+        }
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
+    }
+
+    @RequestMapping(value = "/draft", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse updateCubeDescDraftV2(@RequestHeader("Accept-Language") String lang, @RequestBody KapCubeRequest kapCubeRequest) throws IOException {
+        KapMsgPicker.setMsg(lang);
+
+        CubeDesc cubeDesc = deserializeCubeDesc(kapCubeRequest);
+        cubeServiceV2.validateCubeDesc(cubeDesc, true);
+        RawTableDesc rawTableDesc = deserializeRawTableDesc(kapCubeRequest);
+        SchedulerJobInstance schedulerJobInstance = deserializeSchedulerJobInstance(kapCubeRequest);
+
+        String projectName = (null == kapCubeRequest.getProject()) ? ProjectInstance.DEFAULT_PROJECT_NAME : kapCubeRequest.getProject();
+
+        ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
+        ResourceStore.Checkpoint cp = store.checkpoint();
+        try {
+            boolean createNewCube = cubeServiceV2.unifyCubeDesc(cubeDesc, true);
+            cubeDesc = cubeServiceV2.updateCubeToResourceStore(cubeDesc, projectName, createNewCube);
+
+            if (rawTableDesc != null) {
+                rawTableService.validateRawTableDesc(rawTableDesc);
+                rawTableDesc.setUuid(cubeDesc.getUuid());
+                boolean createNewRawTable = rawTableService.unifyRawTableDesc(rawTableDesc, true);
+                rawTableDesc = rawTableService.updateRawTableToResourceStore(rawTableDesc, projectName, createNewRawTable);
+            } else {
+                rawTableService.deleteRawByUuid(cubeDesc.getUuid(), true);
+            }
+
+            SchedulerJobInstance jobInstance = getSchedulerJobByCubeName(cubeDesc.getName());
+            if (null != jobInstance)
+                schedulerJobService.deleteSchedulerJob(jobInstance);
+            schedulerJobInstance.setRelatedCube(cubeDesc.getName());
+            schedulerJobInstance.setRelatedCubeUuid(cubeDesc.getUuid());
+            schedulerJobService.saveSchedulerJob(schedulerJobInstance);
+
+        } catch (Exception ex) {
+            cp.rollback();
+            cacheService.wipeAllCache();
+            throw ex;
+        } finally {
+            cp.close();
+        }
+
+        validateSchedulerJobs(cubeDesc.getUuid());
+
+        String cubeDescData = JsonUtil.writeValueAsIndentString(cubeDesc);
+        String rawTableDescData = JsonUtil.writeValueAsIndentString(rawTableDesc);
+        GeneralResponse data = new GeneralResponse();
+        data.setProperty("cubeUuid", cubeDesc.getUuid());
+        data.setProperty("cubeDescData", cubeDescData);
+        if (rawTableDesc != null) {
+            data.setProperty("rawTableUuid", rawTableDesc.getUuid());
+            data.setProperty("rawTableDescData", rawTableDescData);
+            data.setProperty("schedulerJobData", kapCubeRequest.getSchedulerJobData());
+        }
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
+    }
+
+    private CubeDesc deserializeCubeDesc(KapCubeRequest kapCubeRequest) throws IOException {
+        KapMessage msg = KapMsgPicker.getMsg();
+
+        CubeDesc desc = null;
+        try {
+            logger.debug("Saving cube " + kapCubeRequest.getCubeDescData());
+            desc = JsonUtil.readValue(kapCubeRequest.getCubeDescData(), CubeDesc.class);
+        } catch (JsonParseException e) {
+            logger.error("The cube definition is not valid.", e);
+            throw new BadRequestException(msg.getINVALID_CUBE_DEFINITION());
+        } catch (JsonMappingException e) {
+            logger.error("The cube definition is not valid.", e);
+            throw new BadRequestException(msg.getINVALID_CUBE_DEFINITION());
+        }
+        return desc;
+    }
+
+    private RawTableDesc deserializeRawTableDesc(KapCubeRequest kapCubeRequest) throws IOException {
+        KapMessage msg = KapMsgPicker.getMsg();
+
+        RawTableDesc desc = null;
+        if (kapCubeRequest.getRawTableDescData() == null)
+            return desc;
+
+        try {
+            logger.debug("Saving rawtable " + kapCubeRequest.getRawTableDescData());
+            desc = JsonUtil.readValue(kapCubeRequest.getRawTableDescData(), RawTableDesc.class);
+        } catch (JsonParseException e) {
+            logger.error("The rawtable definition is not valid.", e);
+            throw new BadRequestException(msg.getINVALID_RAWTABLE_DEFINITION());
+        } catch (JsonMappingException e) {
+            logger.error("The rawtable definition is not valid.", e);
+            throw new BadRequestException(msg.getINVALID_RAWTABLE_DEFINITION());
+        }
+        return desc;
+    }
+
+    private SchedulerJobInstance deserializeSchedulerJobInstance(KapCubeRequest kapCubeRequest) throws IOException {
+        KapMessage msg = KapMsgPicker.getMsg();
+
+        SchedulerJobInstance schedulerJob = null;
+        try {
+            logger.debug("Saving scheduler job " + kapCubeRequest.getSchedulerJobData());
+            schedulerJob = JsonUtil.readValue(kapCubeRequest.getSchedulerJobData(), SchedulerJobInstance.class);
+        } catch (JsonParseException e) {
+            logger.error("The SchedulerJobInstance definition is not valid.", e);
+            throw new BadRequestException(msg.getINVALID_CUBE_DEFINITION());
+        } catch (JsonMappingException e) {
+            logger.error("The SchedulerJobInstance definition is not valid.", e);
+            throw new BadRequestException(msg.getINVALID_CUBE_DEFINITION());
+        }
+        return schedulerJob;
+    }
+
+    private void bindSchedulerJobWithCube(SchedulerJobInstance younger, String cubeName, String cubeUuid) throws IOException {
+        SchedulerJobInstance older = getSchedulerJobByCubeName(cubeName);
+        if (null != older)
+            schedulerJobService.deleteSchedulerJob(older);
+        younger.setRelatedCube(cubeName);
+        younger.setRelatedCubeUuid(cubeUuid);
+        schedulerJobService.saveSchedulerJob(younger);
+    }
+
+    // Keep SchedulerJob consistent with cubes.
+    private void validateSchedulerJobs(String uuid) throws IOException {
+        for (SchedulerJobInstance jobInstance : schedulerJobService.listAllSchedulerJobs()) {
+            if (!jobInstance.getRelatedCubeUuid().equalsIgnoreCase(uuid))
+                continue;
+
+            for (String cubeName : kapCubeService.getCubesByUuid(uuid)) {
+                if (!jobInstance.getRelatedCube().equalsIgnoreCase(cubeName)) {
+                    schedulerJobService.deleteSchedulerJob(jobInstance);
+                }
+            }
+        }
+    }
+
+    private SchedulerJobInstance getSchedulerJobByCubeName(String cubeName) throws IOException {
+        for (SchedulerJobInstance jobInstance : schedulerJobService.listAllSchedulerJobs()) {
+            if (jobInstance.getRelatedCube().equalsIgnoreCase(cubeName))
+                return jobInstance;
+
+        }
+        return null;
+    }
+
+    // SchedulerJob will be triggered once its trigger_time is set.
+    private void enableSchedulerJob(SchedulerJobInstance instance) throws ParseException, SchedulerException {
+
+        if (instance.getScheduledRunTime() == 0)
+            return;
+
+        JobDetailImpl jobDetail = new JobDetailImpl();
+        jobDetail.setName(instance.getName());
+        jobDetail.setGroup(Scheduler.DEFAULT_GROUP);
+        jobDetail.setJobClass(ScheduleBuildJob.class);
+
+        JobDataMap dataMap = jobDetail.getJobDataMap();
+        dataMap.put("name", instance.getName());
+        dataMap.put("cube", instance.getRelatedCube());
+        dataMap.put("startTime", instance.getPartitionStartTime());
+        dataMap.put("partitionInterval", instance.getPartitionInterval());
+        dataMap.put("authentication", SecurityContextHolder.getContext().getAuthentication());
+        dataMap.put("schedulerJobService", schedulerJobService);
+        dataMap.put("jobService", jobService);
+        jobDetail.setJobDataMap(dataMap);
+
+        CronExpression cronExp = new CronExpression(createCronExpression(instance.getRepeatInterval(), instance.getScheduledRunTime()));
+        CronScheduleBuilder cronScheduleBuilder = CronScheduleBuilder.cronSchedule(cronExp);
+        CronTrigger trigger = TriggerBuilder.newTrigger().startAt(new Date(instance.getScheduledRunTime())).withSchedule(cronScheduleBuilder).build();
+
+        scheduler.scheduleJob(jobDetail, trigger);
+    }
 }

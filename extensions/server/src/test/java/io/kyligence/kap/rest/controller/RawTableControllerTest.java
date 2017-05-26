@@ -25,17 +25,18 @@
 package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
+import java.util.HashMap;
 
 import org.apache.kylin.rest.service.JobService;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import io.kyligence.kap.cube.raw.RawTableDesc;
-import io.kyligence.kap.rest.service.ServiceTestBase;
 import io.kyligence.kap.rest.service.RawTableService;
-import org.springframework.beans.factory.annotation.Qualifier;
+import io.kyligence.kap.rest.service.ServiceTestBase;
 
 /**
  * Created by wangcheng on 9/27/16.
@@ -67,7 +68,8 @@ public class RawTableControllerTest extends ServiceTestBase {
 
     @Test
     public void testBasics() throws IOException {
-        RawTableDesc desc = descController.getDesc("ci_left_join_cube");
+        HashMap<String, RawTableDesc> data = (HashMap<String, RawTableDesc>) descController.getDesc(null, "ci_left_join_cube").data;
+        RawTableDesc desc = data.get("rawTable");
         Assert.assertNotNull(desc);
         RawTableDesc newDesc = new RawTableDesc();
         String newRawName = desc.getName() + "_test_save";

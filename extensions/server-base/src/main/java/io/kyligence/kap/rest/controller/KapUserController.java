@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -32,6 +33,11 @@ import javax.annotation.PostConstruct;
 
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.controller.BasicController;
+import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.exception.ForbiddenException;
+import org.apache.kylin.rest.exception.InternalErrorException;
+import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.UserGrantedAuthority;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
@@ -50,12 +56,16 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.request.UserRequest;
 import io.kyligence.kap.rest.security.KapAuthenticationManager;
 import io.kyligence.kap.rest.security.KapAuthenticationManager.UserObj;
@@ -90,9 +100,9 @@ public class KapUserController extends BasicController implements UserDetailsSer
         List<UserObj> all = listAllUsers();
         logger.info("All " + all.size() + " users");
         if (all.isEmpty()) {
-            save("ADMIN", new UserObj("ADMIN", "KYLIN", true, Constant.ROLE_ADMIN, Constant.ROLE_ANALYST, Constant.ROLE_MODELER));
-            save("ANALYST", new UserObj("ANALYST", "ANALYST", true, Constant.ROLE_ANALYST));
-            save("MODELER", new UserObj("MODELER", "MODELER", true, Constant.ROLE_MODELER, Constant.ROLE_MODELER));
+            save("en", "ADMIN", new UserObj("ADMIN", "KYLIN", true, Constant.ROLE_ADMIN, Constant.ROLE_ANALYST, Constant.ROLE_MODELER));
+            save("en", "ANALYST", new UserObj("ANALYST", "ANALYST", true, Constant.ROLE_ANALYST));
+            save("en", "MODELER", new UserObj("MODELER", "MODELER", true, Constant.ROLE_MODELER, Constant.ROLE_MODELER));
         }
 
         kapAuthenticationManager.addUser(all);
@@ -103,20 +113,23 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return get(username);
     }
 
-    @RequestMapping(value = "/{userName}", method = { RequestMethod.POST, RequestMethod.PUT }, produces = { "application/json" })
+    @RequestMapping(value = "/{userName}", method = { RequestMethod.POST, RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public UserObj save(@PathVariable("userName") String userName, @RequestBody UserObj user) {
+    public UserObj save(@RequestHeader("Accept-Language") String lang, @PathVariable("userName") String userName, @RequestBody UserObj user) {
+        KapMsgPicker.setMsg(lang);
+        KapMessage msg = KapMsgPicker.getMsg();
+
         checkUserName(userName);
 
         user.setUsername(userName);
 
         if (!user.isDefaultPassword()) {
             if (!checkPasswordLength(user.getPassword())) {
-                throw new IllegalStateException("The password should contain more than 8 characters!");
+                throw new BadRequestException(msg.getSHORT_PASSWORD());
             }
 
             if (!checkPasswordCharacter(user.getPassword())) {
-                throw new IllegalStateException("The password should contain at least one numbers, letters and special characters（~!@#$%^&*(){}|:\"<>?[];\\'\\,./`)");
+                throw new BadRequestException(msg.getINVALID_PASSWORD());
             }
         }
 
@@ -143,25 +156,28 @@ public class KapUserController extends BasicController implements UserDetailsSer
     }
 
 
-    @RequestMapping(value = "/password", method = { RequestMethod.PUT }, produces = { "application/json" })
+    @RequestMapping(value = "/password", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public UserObj save(@RequestBody UserRequest user) {
+    public EnvelopeResponse save(@RequestHeader("Accept-Language") String lang, @RequestBody UserRequest user) {
+        KapMsgPicker.setMsg(lang);
+        KapMessage msg = KapMsgPicker.getMsg();
+
         if (!isAdmin() && !getPrincipal().equals(user.getUsername())) {
-            throw new IllegalStateException("Permission denied!");
+            throw new ForbiddenException(msg.getPERMISSION_DENIED());
         }
         checkUserName(user.getUsername());
 
         if (!checkPasswordLength(user.getNewPassword())) {
-            throw new IllegalStateException("The password should contain more than 8 characters!");
+            throw new BadRequestException(msg.getSHORT_PASSWORD());
         }
 
         if (!checkPasswordCharacter(user.getNewPassword())) {
-            throw new IllegalStateException("The password should contain at least one numbers, letters and special characters（~!@#$%^&*(){}|:\"<>?[];\\'\\,./`)");
+            throw new BadRequestException(msg.getINVALID_PASSWORD());
         }
 
         UserObj existing = get(user.getUsername());
         if (!isAdmin() && !pwdEncoder.matches(user.getPassword(), existing.getPassword())) {
-            throw new IllegalStateException("Old password is not correct!");
+            throw new BadRequestException(msg.getOLD_PASSWORD_WRONG());
         }
 
         existing.setPassword(pwdEncode(user.getNewPassword()));
@@ -172,9 +188,8 @@ public class KapUserController extends BasicController implements UserDetailsSer
         UserDetails details = userObjToDetails(existing);
         userService.updateUser(details);
 
-        return get(user.getUsername());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, get(user.getUsername()), "");
     }
-
 
     private String pwdEncode(String pwd) {
         if (bcryptPattern.matcher(pwd).matches())
@@ -184,8 +199,10 @@ public class KapUserController extends BasicController implements UserDetailsSer
     }
 
     private void checkUserName(String userName) {
+        KapMessage msg = KapMsgPicker.getMsg();
+
         if (userName == null || userName.isEmpty())
-            throw new IllegalArgumentException();
+            throw new BadRequestException(msg.getEMPTY_USER_NAME());
     }
 
     private boolean checkPasswordLength(String password) {
@@ -198,9 +215,16 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return passwordPattern.matcher(password).matches();
     }
 
-    @RequestMapping(value = "/{userName}", method = { RequestMethod.GET }, produces = { "application/json" })
+
+    @RequestMapping(value = "/{userName}", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public UserObj get(@PathVariable("userName") String userName) throws UsernameNotFoundException {
+    public EnvelopeResponse get(@RequestHeader("Accept-Language") String lang, @PathVariable("userName") String userName) throws UsernameNotFoundException {
+        KapMsgPicker.setMsg(lang);
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, get(userName), "");
+    }
+
+    private UserObj get(String userName) {
         checkUserName(userName);
 
         UserDetails details = userService.loadUserByUsername(userName);
@@ -208,20 +232,40 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return user;
     }
 
-    @RequestMapping(value = "/users", method = { RequestMethod.GET }, produces = { "application/json" })
+
+    @RequestMapping(value = "/users", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public List<UserObj> listAllUsers() throws IOException {
+    public EnvelopeResponse listAllUsers(@RequestHeader("Accept-Language") String lang, @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset, @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize) throws IOException {
+        KapMsgPicker.setMsg(lang);
+
+        HashMap<String, Object> data = new HashMap<String, Object>();
         List<UserObj> result = Lists.newArrayList();
         for (UserDetails details : userService.listUsers()) {
             result.add(userDetailsToObj(details));
         }
-        return result;
+        int offset = pageOffset * pageSize;
+        int limit = pageSize;
+
+        if (result.size() <= offset) {
+            offset = result.size();
+            limit = 0;
+        }
+
+        if ((result.size() - offset) < limit) {
+            limit = result.size() - offset;
+        }
+
+        data.put("users", result.subList(offset, offset + limit));
+        data.put("size", result.size());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
 
-    @RequestMapping(value = "/{userName}", method = { RequestMethod.DELETE }, produces = { "application/json" })
+    @RequestMapping(value = "/{userName}", method = { RequestMethod.DELETE }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public void delete(@PathVariable("userName") String userName) {
+    public void delete(@RequestHeader("Accept-Language") String lang, @PathVariable("userName") String userName) {
+        KapMsgPicker.setMsg(lang);
+
         checkUserName(userName);
         kapAuthenticationManager.removeUser(userName);
 
@@ -229,14 +273,19 @@ public class KapUserController extends BasicController implements UserDetailsSer
     }
 
 
-    @RequestMapping(value = "/userAuhtorities", method = { RequestMethod.GET }, produces = { "application/json" })
+    @RequestMapping(value = "/userAuhtorities", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public List<String> listAllAuthorities() throws IOException {
-        List<String> result = userService.listUserAuthorities();
-        result.remove(DISABLED_ROLE);
-        return result;
-    }
+    public EnvelopeResponse listAllAuthorities(@RequestHeader("Accept-Language") String lang) {
+        KapMsgPicker.setMsg(lang);
 
+        try {
+            List<String> result = userService.listUserAuthorities();
+            result.remove(DISABLED_ROLE);
+            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
+        } catch (IOException e) {
+            throw new InternalErrorException(e);
+        }
+    }
 
     private static final String DISABLED_ROLE = "--disabled--";
 
@@ -310,6 +359,14 @@ public class KapUserController extends BasicController implements UserDetailsSer
             }
         }
         return isAdmin;
+    }
+
+    public List<UserObj> listAllUsers() throws IOException {
+        List<UserObj> result = Lists.newArrayList();
+        for (UserDetails details : userService.listUsers()) {
+            result.add(userDetailsToObj(details));
+        }
+        return result;
     }
 
 }
