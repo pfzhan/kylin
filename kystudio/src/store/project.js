@@ -53,11 +53,11 @@ export default {
         return res
       })
     },
-    [types.SAVE_PROJECT_ACCESS]: function ({ commit }, {accessData, projectId}) {
-      return api.project.addProjectAccess(accessData, projectId)
+    [types.SAVE_PROJECT_ACCESS]: function ({ commit }, {accessData, id}) {
+      return api.project.addProjectAccess(accessData, id)
     },
-    [types.EDIT_PROJECT_ACCESS]: function ({ commit }, accessData) {
-      return api.project.editProjectAccess(accessData)
+    [types.EDIT_PROJECT_ACCESS]: function ({ commit }, {accessData, id}) {
+      return api.project.editProjectAccess(accessData, id)
     },
     [types.GET_PROJECT_ACCESS]: function ({ commit }, projectId) {
       return api.project.getProjectAccess(projectId).then((res) => {
@@ -65,8 +65,8 @@ export default {
         return res
       })
     },
-    [types.DEL_PROJECT_ACCESS]: function ({ commit }, {projectId, aid}) {
-      return api.project.delProjectAccess(projectId, aid)
+    [types.DEL_PROJECT_ACCESS]: function ({ commit }, {id, aid}) {
+      return api.project.delProjectAccess(id, aid)
     },
     [types.ADD_PROJECT_FILTER]: function ({ commit }, filterData) {
       return api.project.saveProjectFilter(filterData)

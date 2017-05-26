@@ -20,8 +20,8 @@ export default {
   addProjectAccess: (accessData, projectId) => {
     return Vue.resource(apiUrl + 'access/ProjectInstance/' + projectId).save(accessData)
   },
-  editProjectAccess: (accessData) => {
-    return Vue.resource(apiUrl + 'access/ProjectInstance/' + accessData.pid).update(accessData)
+  editProjectAccess: (accessData, projectId) => {
+    return Vue.resource(apiUrl + 'access/ProjectInstance/' + projectId).update(accessData)
   },
   getProjectAccess: (projectId) => {
     return Vue.resource(apiUrl + 'access/ProjectInstance/' + projectId).get()

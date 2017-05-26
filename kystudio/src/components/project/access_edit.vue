@@ -87,10 +87,10 @@
 
 <script>
 import { mapActions } from 'vuex'
-import { handleSuccess, handleError, hasPermission, hasRole } from '../../util/business'
+import { handleSuccess, handleError, hasPermission, hasPermissionOfCube, hasRole } from '../../util/business'
 export default {
   name: 'access',
-  props: ['projectId'],
+  props: ['accessId', 'own'],
   data () {
     return {
       editAccessVisible: false,
@@ -112,10 +112,14 @@ export default {
   },
   methods: {
     ...mapActions({
-      save: 'SAVE_PROJECT_ACCESS',
-      editAccess: 'EDIT_PROJECT_ACCESS',
-      getAccess: 'GET_PROJECT_ACCESS',
-      delAccess: 'DEL_PROJECT_ACCESS'
+      saveProjectAccess: 'SAVE_PROJECT_ACCESS',
+      editProjectAccess: 'EDIT_PROJECT_ACCESS',
+      getProjectAccess: 'GET_PROJECT_ACCESS',
+      delProjectAccess: 'DEL_PROJECT_ACCESS',
+      saveCubeAccess: 'SAVE_CUBE_ACCESS',
+      editCubeAccess: 'EDIT_CUBE_ACCESS',
+      getCubeAccess: 'GET_CUBE_ACCESS',
+      delCubeAccess: 'DEL_CUBE_ACCESS'
     }),
     initMeta () {
       this.accessMeta = {
@@ -133,15 +137,18 @@ export default {
       this.editAccessVisible = false
     },
     saveAccess () {
+      if (this.accessMeta.accessEntryId >= 0) {
+        this.updateAccess()
+        return
+      }
       this.accessMeta.permission = this.mask[this.accessMeta.permission]
-      this.save({accessData: this.accessMeta, projectId: this.projectId}).then((res) => {
+      var actionType = this.own === 'cube' ? 'saveCubeAccess' : 'saveProjectAccess'
+      this[actionType]({accessData: this.accessMeta, id: this.accessId}).then((res) => {
         this.editAccessVisible = false
         this.loadAccess()
         this.$message('添加成功！')
       }, (res) => {
-        handleError(res, (data, code, status, msg) => {
-          this.$message.error(msg)
-        })
+        handleError(res)
       })
     },
     removeAccess (id) {
@@ -150,37 +157,42 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        this.delAccess({projectId: this.projectId, aid: id}).then((res) => {
+        var actionType = this.own === 'cube' ? 'delCubeAccess' : 'delProjectAccess'
+        this[actionType]({id: this.accessId, aid: id}).then((res) => {
           this.$message({
             type: 'success',
             message: '删除成功!'
           })
           this.loadAccess()
         }, (res) => {
-          handleError(res, (data, code, status, msg) => {
-            this.$message.error(msg)
-          })
+          handleError(res)
         })
       })
     },
     beginEdit (data) {
       this.editAccessVisible = true
       this.initMeta()
+      this.accessMeta.accessEntryId = data.id
       this.accessMeta.permission = data.permission.mask
       this.accessMeta.sid = data.roleOrName
       this.accessMeta.principal = !data.sid.grantedAuthority
       // this.$set(this.permission)
     },
     updateAccess () {
-      this.$emit('updateAccess', this.accessMeta, () => {
+      var actionType = this.own === 'cube' ? 'editCubeAccess' : 'editProjectAccess'
+      this[actionType]({accessData: this.accessMeta, id: this.accessId}).then((res) => {
         this.editAccessVisible = false
+      }, (res) => {
+        handleError(res)
       })
     },
     loadAccess () {
-      this.getAccess(this.projectId).then((res) => {
+      var actionType = this.own === 'cube' ? 'getCubeAccess' : 'getProjectAccess'
+      var checkPermission = this.own === 'cube' ? hasPermissionOfCube : hasPermission
+      this[actionType](this.accessId).then((res) => {
         handleSuccess(res, (data) => {
           this.accessList = data
-          this.hasActionAccess = hasRole(this, 'ROLE_ADMIN') || hasPermission(this, this.projectId, 16)
+          this.hasActionAccess = hasRole(this, 'ROLE_ADMIN') || checkPermission(this, this.accessId, 16)
           this.settleAccessList = data && data.map((access) => {
             access.roleOrName = access.sid.grantedAuthority || access.sid.principal
             access.type = access.sid.principal ? 'User' : 'Role'
@@ -200,8 +212,8 @@ export default {
     this.loadAccess()
   },
   locales: {
-    'en': {grant: 'Grant', type: 'type', user: 'User', role: 'Role', name: 'Name', nameAccount: 'user account', permission: 'Permission', cubeAdmin: 'CUBE ADMIN', cubeEdit: 'Cube Edit', cubeOpera: 'Cube Operation', cubeQuery: 'cubeQuery', principal: 'Principal', access: 'Access', grantTitle: 'What does access mean to cube?', grantDetail1: 'CUBE QUERY: Access to query cube', grantDetail2: 'CUBE OPERATION: Access to rebuild, resume and cancel jobs. Also include access of CUBE QUERY.', grantDetail3: 'CUBE MANAGEMENT: Access to edit/delete cube. Also include access of CUBE OPERATION.', grantDetail4: 'CUBE ADMIN: Full access to cube and jobs, including access management.'},
-    'zh-cn': {grant: '授权', type: '类型', user: '用户', role: '群组', name: '名称', nameAccount: '用户账号', permission: '许可', cubeAdmin: 'Cube 管理', cubeEdit: 'Cube 编辑', cubeOpera: 'Cube 操作', cubeQuery: 'Cube 查询', principal: '名称', access: '权限', grantTitle: '什么是Cube权限', grantDetail1: 'CUBE QUERY: 查询Cube的权限', grantDetail2: 'CUBE OPERATION: 构建Cube的权限, 包括恢复和取消任务；包含查询权限.', grantDetail3: 'CUBE MANAGEMENT: 编辑和删除Cube的权限, 包含了构建Cube的权限.', grantDetail4: 'CUBE ADMIN: 对Cube拥有所有权限.'}
+    'en': {grant: 'Grant', type: 'type', user: 'User', role: 'Role', name: 'Name', nameAccount: 'user account', permission: 'Permission', cubeAdmin: 'ADMIN', cubeEdit: 'Edit', cubeOpera: 'Operation', cubeQuery: 'cubeQuery', principal: 'Principal', access: 'Access', grantTitle: 'What does access mean to cube?', grantDetail1: 'QUERY: Access to query cube', grantDetail2: 'OPERATION: Access to rebuild, resume and cancel jobs. Also include access of CUBE QUERY.', grantDetail3: 'CUBE MANAGEMENT: Access to edit/delete cube. Also include access of CUBE OPERATION.', grantDetail4: 'CUBE ADMIN: Full access to cube and jobs, including access management.'},
+    'zh-cn': {grant: '授权', type: '类型', user: '用户', role: '群组', name: '名称', nameAccount: '用户账号', permission: '许可', cubeAdmin: '管理', cubeEdit: '编辑', cubeOpera: '操作', cubeQuery: '查询', principal: '名称', access: '权限', grantTitle: '什么是Cube权限', grantDetail1: 'CUBE QUERY: 查询Cube的权限', grantDetail2: 'CUBE OPERATION: 构建Cube的权限, 包括恢复和取消任务；包含查询权限.', grantDetail3: 'CUBE MANAGEMENT: 编辑和删除Cube的权限, 包含了构建Cube的权限.', grantDetail4: 'CUBE ADMIN: 对Cube拥有所有权限.'}
   }
 }
 </script>

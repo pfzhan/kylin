@@ -27,7 +27,10 @@
           <el-tab-pane label="JSON" name="third" >
             <show_json :json="props.row.desc" ></show_json>
           </el-tab-pane>
-          <el-tab-pane :label="$t('storage')" name="fourth">
+          <el-tab-pane label="Access" name="fourth" >
+            <access_edit  :accessId="props.row.uuid" own='cube'></access_edit>
+          </el-tab-pane>
+          <el-tab-pane :label="$t('storage')" name="fifth">
             <segments :cube="props.row"></segments>
           </el-tab-pane>
         </el-tabs>
@@ -171,6 +174,7 @@ import cubeDescView from './view/cube_desc_view'
 import buildCube from './dialog/build_cube'
 import cloneCube from './dialog/clone_cube'
 import mergeCube from './dialog/merge_cube'
+import accessEdit from '../project/access_edit'
 import refreshCube from './dialog/refresh_cube'
 import { handleSuccess, handleError, transToGmtTime } from '../../util/business'
 export default {
@@ -198,7 +202,8 @@ export default {
     'build_cube': buildCube,
     'clone_cube': cloneCube,
     'merge_cube': mergeCube,
-    'refresh_cube': refreshCube
+    'refresh_cube': refreshCube,
+    'access_edit': accessEdit
   },
   watch: {
     currentModel (val) {
@@ -638,8 +643,7 @@ export default {
         console.log('tab 1')
         tab.$children[0].loadCubeSql()
       }
-      if (tab.$data.index === '3') {
-        console.log('tab 3')
+      if (tab.$data.index === '4') {
         tab.$children[0].loadSegments()
       }
     }

@@ -10,7 +10,7 @@
              <cube_list :cubeList="props.row.realizations"></cube_list>
            </el-tab-pane>
            <el-tab-pane :label="$t('access')" name="second">
-              <access_edit :projectId="props.row.uuid"></access_edit>
+              <access_edit :accessId="props.row.uuid" own='project'></access_edit>
            </el-tab-pane>
            <el-tab-pane :label="$t('externalFilters')" name="third">
              <filter_edit :project="props.row.name" :projectId="props.row.uuid"></filter_edit>

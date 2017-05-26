@@ -98,5 +98,20 @@ export default {
   },
   deleteScheduler: (cubeName) => {
     return Vue.resource(apiUrl + 'cubes/scheduler/' + cubeName + '/delete').delete()
+  },
+  saveCubeAccess: (accessData, cubeId) => {
+    return Vue.resource(apiUrl + 'access/CubeInstance/' + cubeId).save(accessData)
+  },
+  editCubeAccess: (accessData, cubeId) => {
+    return Vue.resource(apiUrl + 'access/CubeInstance/' + cubeId).update(accessData)
+  },
+  getCubeAccess: (cubeId) => {
+    return Vue.resource(apiUrl + 'access/CubeInstance/' + cubeId).get()
+  },
+  delCubeAccess: (cubeId, aid) => {
+    return Vue.resource(apiUrl + 'access/CubeInstance/' + cubeId).delete({
+      accessEntryId: aid
+    })
   }
+
 }

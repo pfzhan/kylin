@@ -229,7 +229,8 @@ export default {
               }
             })
           }).catch((res) => {
-            handleError(res)
+            handleError(res, () => {
+            })
           })
         }
       }

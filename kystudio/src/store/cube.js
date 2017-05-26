@@ -3,13 +3,17 @@ import * as types from './types'
 export default {
   state: {
     cubesList: [],
-    cubesDescList: []
+    cubesDescList: [],
+    cubeAccess: {}
   },
   mutations: {
     [types.SAVE_CUBES_LIST]: function (state, { list, total }) {
       state.cubesList = list
       state.totalCubes = total
       state.cubesDescList = Object.assign({}, list)
+    },
+    [types.CACHE_CUBE_ACCESS]: function (state, { access, id }) {
+      state.cubeAccess[id] = access
     }
   },
   actions: {
@@ -102,6 +106,21 @@ export default {
     },
     [types.DELETE_SCHEDULER]: function ({ commit }, cubeName) {
       return api.cube.deleteScheduler(cubeName)
+    },
+    [types.SAVE_CUBE_ACCESS]: function ({ commit }, {accessData, id}) {
+      return api.cube.saveCubeAccess(accessData, id)
+    },
+    [types.EDIT_CUBE_ACCESS]: function ({ commit }, {accessData, id}) {
+      return api.cube.editCubeAccess(accessData, id)
+    },
+    [types.GET_CUBE_ACCESS]: function ({ commit }, id) {
+      return api.cube.getCubeAccess(id).then((res) => {
+        commit(types.CACHE_CUBE_ACCESS, {access: res.data.data, id: id})
+        return res
+      })
+    },
+    [types.DEL_CUBE_ACCESS]: function ({ commit }, {id, aid}) {
+      return api.cube.delCubeAccess(id, aid)
     }
   },
   getters: {}
