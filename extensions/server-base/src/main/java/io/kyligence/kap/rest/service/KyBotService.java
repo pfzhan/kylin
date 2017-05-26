@@ -41,6 +41,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.security.PasswordPlaceholderConfigurer;
 import org.apache.kylin.rest.service.BasicService;
 import org.slf4j.Logger;
@@ -49,6 +50,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 
 import com.google.common.io.Files;
+
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
 
 @Component("kyBotService")
 public class KyBotService extends BasicService {
@@ -67,13 +71,15 @@ public class KyBotService extends BasicService {
     }
 
     protected void runKyBotCLI(String[] args) throws IOException {
+        KapMessage msg = KapMsgPicker.getMsg();
+
         File cwd = new File("");
         logger.debug("Current path: " + cwd.getAbsolutePath());
 
         logger.debug("KybotClientCLI args: " + Arrays.toString(args));
         File script = new File(KylinConfig.getKylinHome() + File.separator + "bin", "diag.sh");
         if (!script.exists()) {
-            throw new RuntimeException("diag.sh not found at " + script.getAbsolutePath());
+            throw new BadRequestException(String.format(msg.getDIAG_NOT_FOUND(), script.getAbsolutePath()));
         }
 
         String diagCmd = script.getAbsolutePath() + " " + StringUtils.join(args, " ");
@@ -82,14 +88,16 @@ public class KyBotService extends BasicService {
 
         logger.debug("Cmdoutput: " + cmdOutput.getKey());
         if (cmdOutput.getKey() != 0) {
-            throw new RuntimeException("Failed to generate KyBot package.");
+            throw new BadRequestException(msg.getGENERATE_KYBOT_PACKAGE_FAIL());
         }
     }
 
     protected String getKyBotPackagePath(File destDir) {
+        KapMessage msg = KapMsgPicker.getMsg();
+
         File[] files = destDir.listFiles();
         if (files == null) {
-            throw new RuntimeException("KyBot package is not available in directory: " + destDir.getAbsolutePath());
+            throw new BadRequestException(String.format(msg.getKYBOT_PACKAGE_NOT_AVAILABLE(), destDir.getAbsolutePath()));
         }
         for (File subDir : files) {
             if (subDir.isDirectory()) {
@@ -100,7 +108,7 @@ public class KyBotService extends BasicService {
                 }
             }
         }
-        throw new RuntimeException("KyBot package not found in directory: " + destDir.getAbsolutePath());
+        throw new BadRequestException(String.format(msg.getKYBOT_PACKAGE_NOT_FOUND(), destDir.getAbsolutePath()));
     }
 
     public String checkServiceConnection() {

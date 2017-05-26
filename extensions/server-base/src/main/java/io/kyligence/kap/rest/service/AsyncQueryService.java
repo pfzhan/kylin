@@ -41,6 +41,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.service.QueryService;
 import org.slf4j.Logger;
@@ -49,6 +50,9 @@ import org.springframework.stereotype.Component;
 import org.supercsv.io.CsvListWriter;
 import org.supercsv.io.ICsvListWriter;
 import org.supercsv.prefs.CsvPreference;
+
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
 
 @Component("asyncQueryService")
 public class AsyncQueryService extends QueryService {
@@ -111,8 +115,10 @@ public class AsyncQueryService extends QueryService {
     }
 
     public void retrieveSavedQueryResult(String queryId, HttpServletResponse response) throws IOException {
+        KapMessage msg = KapMsgPicker.getMsg();
+
         if (!isQuerySuccessful(queryId)) {
-            throw new IllegalStateException("No result for this query is available, please check its status first");
+            throw new BadRequestException(msg.getQUERY_RESULT_NOT_FOUND());
         }
 
         FileSystem fileSystem = getFileSystem();
@@ -120,20 +126,19 @@ public class AsyncQueryService extends QueryService {
         Path dataPath = new Path(asyncQueryResultDir, queryId);
 
         if (!fileSystem.exists(dataPath)) {
-            throw new IllegalStateException("The query result file does not exist");
+            throw new BadRequestException(msg.getQUERY_RESULT_FILE_NOT_FOUND());
         }
 
         try (FSDataInputStream inputStream = fileSystem.open(dataPath); ServletOutputStream outputStream = response.getOutputStream()) {
             IOUtils.copyLarge(inputStream, outputStream);
         }
-
-        //        //cleaning
-        //        cleanFiles(fileSystem, asyncQueryResultDir, queryId);
     }
 
     public String retrieveSavedQueryException(String queryId) throws IOException {
+        KapMessage msg = KapMsgPicker.getMsg();
+
         if (!isQueryFailed(queryId)) {
-            throw new IllegalStateException("No exception for this query is available, please check its status first");
+            throw new BadRequestException(msg.getQUERY_EXCEPTION_NOT_FOUND());
         }
 
         FileSystem fileSystem = getFileSystem();
@@ -141,14 +146,11 @@ public class AsyncQueryService extends QueryService {
         Path dataPath = new Path(asyncQueryResultDir, queryId);
 
         if (!fileSystem.exists(dataPath)) {
-            throw new IllegalStateException("The query exception file does not exist");
+            throw new BadRequestException(msg.getQUERY_EXCEPTION_FILE_NOT_FOUND());
         }
 
         try (FSDataInputStream inputStream = fileSystem.open(dataPath); InputStreamReader reader = new InputStreamReader(inputStream)) {
             List<String> strings = IOUtils.readLines(reader);
-
-            //            //cleaning 
-            //            cleanFiles(fileSystem, asyncQueryResultDir, queryId);
 
             return StringUtils.join(strings, "");
         }
@@ -156,13 +158,6 @@ public class AsyncQueryService extends QueryService {
 
     public boolean cleanFolder() throws IOException {
         return getFileSystem().delete(getAsyncQueryResultDir(), true);
-    }
-
-    private void cleanFiles(FileSystem fileSystem, Path asyncQueryResultDir, String queryId) throws IOException {
-        fileSystem.delete(new Path(asyncQueryResultDir, queryId), true);
-        fileSystem.delete(new Path(asyncQueryResultDir, getFailureFlagFileName(queryId)), true);
-        fileSystem.delete(new Path(asyncQueryResultDir, getSuccessFlagFileName(queryId)), true);
-        fileSystem.delete(new Path(asyncQueryResultDir, getExistFlagFileName(queryId)), true);
     }
 
     public boolean isQueryExisting(String queryId) throws IOException {

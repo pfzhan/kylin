@@ -44,13 +44,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
-import io.kyligence.kap.rest.service.KyBotServiceV2;
+import io.kyligence.kap.rest.service.KyBotService;
 
 @Controller
 public class KyBotControllerV2 extends BasicController {
     @Autowired
-    @Qualifier("kyBotServiceV2")
-    private KyBotServiceV2 kybotServiceV2;
+    @Qualifier("kyBotService")
+    private KyBotService kybotService;
 
     @RequestMapping(value = "/kybot/dump", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
@@ -60,7 +60,7 @@ public class KyBotControllerV2 extends BasicController {
 
         String filePath;
         try {
-            filePath = kybotServiceV2.dumpLocalKyBotPackage(false);
+            filePath = kybotService.dumpLocalKyBotPackage(false);
         } catch (IOException e) {
             throw new InternalErrorException(msg.getDUMP_KYBOT_PACKAGE_FAIL());
         }
@@ -72,11 +72,10 @@ public class KyBotControllerV2 extends BasicController {
     @ResponseBody
     public EnvelopeResponse uploadToKybot(@RequestParam(value = "startTime", required = false) Long startTime, @RequestParam(value = "endTime", required = false) Long endTime, @RequestHeader("Accept-Language") String lang) throws IOException {
         KapMsgPicker.setMsg(lang);
-        KapMessage msg = KapMsgPicker.getMsg();
 
-        String retCode = kybotServiceV2.checkServiceConnection();
+        String retCode = kybotService.checkServiceConnection();
 
-        String path = kybotServiceV2.dumpLocalKyBotPackage(true);
+        String path = kybotService.dumpLocalKyBotPackage(true);
         boolean retVal = !StringUtils.isEmpty(path);
         return new EnvelopeResponse(retCode, retVal, null);
     }

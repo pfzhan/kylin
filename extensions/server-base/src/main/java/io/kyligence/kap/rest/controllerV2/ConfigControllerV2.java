@@ -24,10 +24,9 @@
 
 package io.kyligence.kap.rest.controllerV2;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.rest.msg.KapMessage;
-import io.kyligence.kap.rest.msg.KapMsgPicker;
-import io.kyligence.kap.rest.service.ConfigServiceV2;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Map;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.rest.controller.BasicController;
@@ -46,8 +45,11 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.Map;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
+import io.kyligence.kap.rest.service.ConfigService;
 
 @Controller
 @Component("configControllerV2")
@@ -58,15 +60,15 @@ public class ConfigControllerV2 extends BasicController {
     private static final Logger logger = LoggerFactory.getLogger(ConfigControllerV2.class);
 
     @Autowired
-    @Qualifier("configServiceV2")
-    private ConfigServiceV2 configServiceV2;
+    @Qualifier("configService")
+    private ConfigService configService;
 
     @RequestMapping(value = "default", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getDefaultValue(@RequestHeader("Accept-Language") String lang, @RequestParam("key") String key) {
         KapMsgPicker.setMsg(lang);
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, configServiceV2.getDefaultConfigMap().get(key), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, configService.getDefaultConfigMap().get(key), "");
     }
 
     @RequestMapping(value = "defaults", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
@@ -74,7 +76,7 @@ public class ConfigControllerV2 extends BasicController {
     public EnvelopeResponse getDefaultConfigs(@RequestHeader("Accept-Language") String lang) {
         KapMsgPicker.setMsg(lang);
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, configServiceV2.getDefaultConfigMap(), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, configService.getDefaultConfigMap(), "");
     }
 
     /**
@@ -93,7 +95,7 @@ public class ConfigControllerV2 extends BasicController {
             throw new BadRequestException(msg.getEMPTY_FEATURE_NAME());
         }
 
-        String s = configServiceV2.getAllKylinPropertiesV2().getProperty("kap.web.hide-feature." + key);
+        String s = configService.getAllKylinProperties().getProperty("kap.web.hide-feature." + key);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "true".equals(s), "");
     }
 
@@ -102,7 +104,7 @@ public class ConfigControllerV2 extends BasicController {
     public EnvelopeResponse getSparkExec(@RequestHeader("Accept-Language") String lang) {
         KapMsgPicker.setMsg(lang);
 
-        int execNum = Integer.parseInt(configServiceV2.getSparkDriverConf("spark.executor.instances"));
+        int execNum = Integer.parseInt(configService.getSparkDriverConf("spark.executor.instances"));
         Map<String, String> ret = Maps.newHashMap();
 
         byte[] bytes = new byte[4];

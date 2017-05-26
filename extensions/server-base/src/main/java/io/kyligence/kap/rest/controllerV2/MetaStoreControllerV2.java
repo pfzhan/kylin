@@ -24,9 +24,8 @@
 
 package io.kyligence.kap.rest.controllerV2;
 
-import io.kyligence.kap.rest.msg.KapMessage;
-import io.kyligence.kap.rest.msg.KapMsgPicker;
-import io.kyligence.kap.rest.service.MetaStoreServiceV2;
+import java.io.IOException;
+
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -39,15 +38,17 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.io.IOException;
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
+import io.kyligence.kap.rest.service.MetaStoreService;
 
 @Controller
 @RequestMapping(value = "/metastore")
 public class MetaStoreControllerV2 extends BasicController {
 
     @Autowired
-    @Qualifier("metaStoreServiceV2")
-    private MetaStoreServiceV2 metaStoreServiceV2;
+    @Qualifier("metaStoreService")
+    private MetaStoreService metaStoreService;
 
     /**
      * Backup the metastore to the current webserver node, for one project or one cube, or global
@@ -58,7 +59,7 @@ public class MetaStoreControllerV2 extends BasicController {
         KapMsgPicker.setMsg(lang);
         KapMessage msg = KapMsgPicker.getMsg();
 
-        String resultPath = metaStoreServiceV2.backup(project, cube);
+        String resultPath = metaStoreService.backup(project, cube);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, resultPath, String.format(msg.getMETADATA_BACKUP_SUCCESS(), resultPath));
     }
 

@@ -24,11 +24,11 @@
 
 package io.kyligence.kap.rest.controllerV2;
 
-import io.kyligence.kap.cube.raw.RawTableDesc;
-import io.kyligence.kap.cube.raw.RawTableInstance;
-import io.kyligence.kap.rest.msg.KapMessage;
-import io.kyligence.kap.rest.msg.KapMsgPicker;
-import io.kyligence.kap.rest.service.RawTableServiceV2;
+import static io.kyligence.kap.cube.raw.RawTableDesc.STATUS_DRAFT;
+
+import java.io.IOException;
+import java.util.HashMap;
+
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -42,18 +42,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.io.IOException;
-import java.util.HashMap;
-
-import static io.kyligence.kap.cube.raw.RawTableDesc.STATUS_DRAFT;
+import io.kyligence.kap.cube.raw.RawTableDesc;
+import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
+import io.kyligence.kap.rest.service.RawTableService;
 
 @Controller
 @RequestMapping(value = "/raw_desc")
 public class RawTableDescControllerV2 extends BasicController {
 
     @Autowired
-    @Qualifier("rawTableServiceV2")
-    private RawTableServiceV2 rawTableServiceV2;
+    @Qualifier("rawTableService")
+    private RawTableService rawTableService;
 
     /**
      * Get detail information of the "Cube ID"
@@ -72,7 +73,7 @@ public class RawTableDescControllerV2 extends BasicController {
 
         HashMap<String, RawTableDesc> data = new HashMap<String, RawTableDesc>();
 
-        RawTableInstance rawInstance = rawTableServiceV2.getRawTableManager().getRawTableInstance(rawName);
+        RawTableInstance rawInstance = rawTableService.getRawTableManager().getRawTableInstance(rawName);
         if (rawInstance == null) {
             throw new BadRequestException(String.format(msg.getRAWTABLE_NOT_FOUND(), rawName));
         }
@@ -85,7 +86,7 @@ public class RawTableDescControllerV2 extends BasicController {
             data.put("rawTable", desc);
 
             String draftName = rawName + "_draft";
-            RawTableInstance draftRawTableInstance = rawTableServiceV2.getRawTableManager().getRawTableInstance(draftName);
+            RawTableInstance draftRawTableInstance = rawTableService.getRawTableManager().getRawTableInstance(draftName);
             if (draftRawTableInstance != null) {
                 RawTableDesc draftRawTableDesc = draftRawTableInstance.getRawTableDesc();
                 if (draftRawTableDesc != null && draftRawTableDesc.getStatus() != null && draftRawTableDesc.getStatus().equals(STATUS_DRAFT)) {
@@ -96,7 +97,7 @@ public class RawTableDescControllerV2 extends BasicController {
             data.put("draft", desc);
 
             String parentName = rawName.substring(0, rawName.lastIndexOf("_draft"));
-            RawTableInstance parentRawTableInstance = rawTableServiceV2.getRawTableManager().getRawTableInstance(parentName);
+            RawTableInstance parentRawTableInstance = rawTableService.getRawTableManager().getRawTableInstance(parentName);
             if (parentRawTableInstance != null) {
                 RawTableDesc parentRawTableDesc = parentRawTableInstance.getRawTableDesc();
                 if (parentRawTableDesc != null && parentRawTableDesc.getStatus() == null) {
@@ -108,8 +109,8 @@ public class RawTableDescControllerV2 extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
-    public void setRawTableService(RawTableServiceV2 rawTableServiceV2) {
-        this.rawTableServiceV2 = rawTableServiceV2;
+    public void setRawTableService(RawTableService rawTableService) {
+        this.rawTableService = rawTableService;
     }
 
 }

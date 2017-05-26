@@ -57,7 +57,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.response.AsyncQueryResponse;
-import io.kyligence.kap.rest.service.AsyncQueryServiceV2;
+import io.kyligence.kap.rest.service.AsyncQueryService;
 
 @Controller
 @EnableAsync
@@ -70,8 +70,8 @@ public class AsyncQueryControllerV2 extends BasicController {
     private QueryService queryService;
 
     @Autowired
-    @Qualifier("asyncQueryServiceV2")
-    private AsyncQueryServiceV2 asyncQueryServiceV2;
+    @Qualifier("asyncQueryService")
+    private AsyncQueryService asyncQueryService;
 
     ExecutorService executorService = Executors.newCachedThreadPool();
 
@@ -90,13 +90,13 @@ public class AsyncQueryControllerV2 extends BasicController {
                 logger.info("Start a new async query with queryId: " + queryContext.getQueryId());
                 queryIdRef.set(queryContext.getQueryId());
                 try {
-                    asyncQueryServiceV2.createExistFlag(queryContext.getQueryId());
+                    asyncQueryService.createExistFlag(queryContext.getQueryId());
                     try {
                         SQLResponse response = queryService.doQueryWithCache(sqlRequest);
-                        asyncQueryServiceV2.flushResultToHdfs(response, queryContext.getQueryId());
+                        asyncQueryService.flushResultToHdfs(response, queryContext.getQueryId());
                     } catch (Exception ie) {
                         SQLResponse error = new SQLResponse(null, null, 0, true, ie.getMessage());
-                        asyncQueryServiceV2.flushResultToHdfs(error, queryContext.getQueryId());
+                        asyncQueryService.flushResultToHdfs(error, queryContext.getQueryId());
                     }
                 } catch (IOException e) {
                     logger.error("failed to run query " + queryContext.getQueryId(), e);
@@ -117,7 +117,7 @@ public class AsyncQueryControllerV2 extends BasicController {
         KapMsgPicker.setMsg(lang);
         KapMessage msg = KapMsgPicker.getMsg();
 
-        boolean b = asyncQueryServiceV2.cleanFolder();
+        boolean b = asyncQueryService.cleanFolder();
         if (b)
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, b, "");
         else
@@ -129,15 +129,15 @@ public class AsyncQueryControllerV2 extends BasicController {
     public EnvelopeResponse inqueryStatus(@RequestHeader("Accept-Language") String lang, @PathVariable String query_id) throws IOException {
         KapMsgPicker.setMsg(lang);
 
-        if (asyncQueryServiceV2.isQueryFailed(query_id)) {
+        if (asyncQueryService.isQueryFailed(query_id)) {
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, //
-                    new AsyncQueryResponse(query_id, AsyncQueryResponse.Status.FAILED, asyncQueryServiceV2.retrieveSavedQueryException(query_id)), //
+                    new AsyncQueryResponse(query_id, AsyncQueryResponse.Status.FAILED, asyncQueryService.retrieveSavedQueryException(query_id)), //
                     "");
-        } else if (asyncQueryServiceV2.isQuerySuccessful(query_id)) {
+        } else if (asyncQueryService.isQuerySuccessful(query_id)) {
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, //
                     new AsyncQueryResponse(query_id, AsyncQueryResponse.Status.SUCCESSFUL, "await fetching results"), //
                     "");
-        } else if (asyncQueryServiceV2.isQueryExisting(query_id)) {
+        } else if (asyncQueryService.isQueryExisting(query_id)) {
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, //
                     new AsyncQueryResponse(query_id, AsyncQueryResponse.Status.RUNNING, "still running"), //
                     "");
@@ -156,7 +156,7 @@ public class AsyncQueryControllerV2 extends BasicController {
         response.setContentType("text/csv;charset=utf-8");
         response.setHeader("Content-Disposition", "attachment; filename=\"result.csv\"");
 
-        asyncQueryServiceV2.retrieveSavedQueryResult(query_id, response);
+        asyncQueryService.retrieveSavedQueryResult(query_id, response);
     }
 
 }

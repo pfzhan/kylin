@@ -54,7 +54,7 @@ import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.request.RawTableRequest;
-import io.kyligence.kap.rest.service.RawTableServiceV2;
+import io.kyligence.kap.rest.service.RawTableService;
 
 @Controller
 @RequestMapping(value = "/rawtables")
@@ -62,8 +62,8 @@ public class RawTableControllerV2 extends BasicController {
     private static final Logger logger = LoggerFactory.getLogger(RawTableControllerV2.class);
 
     @Autowired
-    @Qualifier("rawTableServiceV2")
-    private RawTableServiceV2 rawTableServiceV2;
+    @Qualifier("rawTableService")
+    private RawTableService rawTableService;
 
     @Autowired
     @Qualifier("jobService")
@@ -92,7 +92,7 @@ public class RawTableControllerV2 extends BasicController {
         KapMsgPicker.setMsg(lang);
         KapMessage msg = KapMsgPicker.getMsg();
 
-        RawTableInstance raw = rawTableServiceV2.getRawTableManager().getRawTableInstance(cubeName);
+        RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
         if (raw == null) {
             logger.info("raw table" + cubeName + " does not exist!");
             throw new BadRequestException(String.format(msg.getRAWTABLE_NOT_FOUND(), cubeName));
@@ -106,12 +106,12 @@ public class RawTableControllerV2 extends BasicController {
         KapMsgPicker.setMsg(lang);
         KapMessage msg = KapMsgPicker.getMsg();
 
-        RawTableInstance raw = rawTableServiceV2.getRawTableManager().getRawTableInstance(cubeName);
+        RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
         if (null == raw) {
             logger.info("raw table" + cubeName + " does not exist!");
             throw new BadRequestException(String.format(msg.getRAWTABLE_NOT_FOUND(), cubeName));
         }
-        rawTableServiceV2.deleteRaw(raw);
+        rawTableService.deleteRaw(raw);
     }
 
     @RequestMapping(value = "/{cubeName}/enable", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
@@ -120,13 +120,13 @@ public class RawTableControllerV2 extends BasicController {
         KapMsgPicker.setMsg(lang);
         KapMessage msg = KapMsgPicker.getMsg();
 
-        RawTableInstance raw = rawTableServiceV2.getRawTableManager().getRawTableInstance(cubeName);
+        RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
         if (null == raw) {
             logger.info("raw table" + cubeName + " does not exist!");
             throw new BadRequestException(String.format(msg.getRAWTABLE_NOT_FOUND(), cubeName));
         }
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, rawTableServiceV2.enableRaw(raw), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, rawTableService.enableRaw(raw), "");
     }
 
     @RequestMapping(value = "/{cubeName}/disable", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
@@ -135,13 +135,13 @@ public class RawTableControllerV2 extends BasicController {
         KapMsgPicker.setMsg(lang);
         KapMessage msg = KapMsgPicker.getMsg();
 
-        RawTableInstance raw = rawTableServiceV2.getRawTableManager().getRawTableInstance(cubeName);
+        RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
         if (null == raw) {
             logger.info("raw table" + cubeName + " does not exist!");
             throw new BadRequestException(String.format(msg.getRAWTABLE_NOT_FOUND(), cubeName));
         }
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, rawTableServiceV2.disableRaw(raw), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, rawTableService.disableRaw(raw), "");
     }
 
     @RequestMapping(value = "/{cubeName}/clone", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
@@ -153,7 +153,7 @@ public class RawTableControllerV2 extends BasicController {
         String newRawName = cubeRequest.getCubeName();
         String project = cubeRequest.getProject();
 
-        RawTableInstance raw = rawTableServiceV2.getRawTableManager().getRawTableInstance(cubeName);
+        RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
         if (raw == null) {
             throw new BadRequestException(String.format(msg.getRAWTABLE_NOT_FOUND(), cubeName));
         }
@@ -161,23 +161,23 @@ public class RawTableControllerV2 extends BasicController {
         RawTableDesc rawDesc = raw.getRawTableDesc();
         RawTableDesc newRawDesc = RawTableDesc.getCopyOf(rawDesc);
 
-        KylinConfig config = rawTableServiceV2.getConfig();
+        KylinConfig config = rawTableService.getConfig();
         newRawDesc.setName(newRawName);
         newRawDesc.setEngineType(config.getDefaultCubeEngine());
         newRawDesc.setStorageType(config.getDefaultStorageEngine());
 
         RawTableInstance newRaw;
 
-        newRaw = rawTableServiceV2.createRawTableInstanceAndDesc(newRawName, project, newRawDesc);
+        newRaw = rawTableService.createRawTableInstanceAndDesc(newRawName, project, newRawDesc);
 
         //reload to avoid shallow clone
-        rawTableServiceV2.getCubeDescManager().reloadCubeDescLocal(newRawName);
+        rawTableService.getCubeDescManager().reloadCubeDescLocal(newRawName);
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, newRaw, "");
     }
 
-    public void setRawTableService(RawTableServiceV2 rawTableServiceV2) {
-        this.rawTableServiceV2 = rawTableServiceV2;
+    public void setRawTableService(RawTableService rawTableService) {
+        this.rawTableService = rawTableService;
     }
 
     public void setJobService(JobService jobServiceV2) {

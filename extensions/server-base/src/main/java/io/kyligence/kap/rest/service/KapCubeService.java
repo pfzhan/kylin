@@ -25,21 +25,27 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.WeakHashMap;
 
-import io.kyligence.kap.cube.raw.RawTableInstance;
-import io.kyligence.kap.cube.raw.RawTableManager;
-import io.kyligence.kap.cube.raw.RawTableSegment;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Component;
 
+import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.cube.raw.RawTableManager;
+import io.kyligence.kap.cube.raw.RawTableSegment;
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.response.ColumnarResponse;
 
 @Component("kapCubeService")
@@ -48,6 +54,8 @@ public class KapCubeService extends BasicService {
     protected WeakHashMap<String, ColumnarResponse> columnarInfoCache = new WeakHashMap<>();
 
     public ColumnarResponse getColumnarInfo(String segStoragePath, CubeSegment segment) throws IOException {
+        KapMessage msg = KapMsgPicker.getMsg();
+
         String id = segment.getUuid();
         if (columnarInfoCache.containsKey(id)) {
             return columnarInfoCache.get(id);
@@ -74,7 +82,8 @@ public class KapCubeService extends BasicService {
 
         if (raw != null) {
             List<RawTableSegment> rawSegs = rawTableManager.getRawtableSegmentByDataRange(raw, segment.getDateRangeStart(), segment.getDateRangeEnd());
-            assert(rawSegs.size() == 1);
+            if (rawSegs.size() != 1)
+                throw new BadRequestException(msg.getRAW_SEG_SIZE_NOT_ONE());
 
             String rawSegmentDir = getRawParquetFolderPath(rawSegs.get(0));
             columnarResp.setRawTableSegmentPath(rawSegmentDir);
@@ -92,6 +101,18 @@ public class KapCubeService extends BasicService {
 
         columnarInfoCache.put(id, columnarResp);
         return columnarResp;
+    }
+
+    public List<String> getCubesByUuid(String uuid) {
+        List<String> cubeNames = new ArrayList<>();
+        List<CubeInstance> cubes = getCubeManager().listAllCubes();
+        for (CubeInstance cube : cubes) {
+            CubeDesc cubeDesc = cube.getDescriptor();
+            if (cubeDesc.getUuid().equals(uuid)) {
+                cubeNames.add(cubeDesc.getName());
+            }
+        }
+        return cubeNames;
     }
 
     protected String getRawParquetFolderPath(RawTableSegment rawSegment) {

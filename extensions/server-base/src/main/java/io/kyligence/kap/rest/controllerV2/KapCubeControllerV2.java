@@ -82,9 +82,9 @@ import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.request.KapCubeRequest;
 import io.kyligence.kap.rest.response.ColumnarResponse;
-import io.kyligence.kap.rest.service.KapCubeServiceV2;
-import io.kyligence.kap.rest.service.RawTableServiceV2;
-import io.kyligence.kap.rest.service.SchedulerJobServiceV2;
+import io.kyligence.kap.rest.service.KapCubeService;
+import io.kyligence.kap.rest.service.RawTableService;
+import io.kyligence.kap.rest.service.SchedulerJobService;
 import io.kyligence.kap.storage.parquet.steps.ColumnarStorageUtils;
 
 @Controller
@@ -97,20 +97,20 @@ public class KapCubeControllerV2 extends BasicController implements Initializing
     private CubeService cubeService;
 
     @Autowired
-    @Qualifier("kapCubeServiceV2")
-    private KapCubeServiceV2 kapCubeServiceV2;
+    @Qualifier("kapCubeService")
+    private KapCubeService kapCubeService;
 
     @Autowired
     @Qualifier("cacheService")
     private CacheService cacheService;
 
     @Autowired
-    @Qualifier("schedulerJobServiceV2")
-    private SchedulerJobServiceV2 schedulerJobServiceV2;
+    @Qualifier("schedulerJobService")
+    private SchedulerJobService schedulerJobService;
 
     @Autowired
-    @Qualifier("rawTableServiceV2")
-    private RawTableServiceV2 rawTableServiceV2;
+    @Qualifier("rawTableService")
+    private RawTableService rawTableService;
 
     @Autowired
     @Qualifier("jobService")
@@ -190,7 +190,7 @@ public class KapCubeControllerV2 extends BasicController implements Initializing
 
             ColumnarResponse info;
             try {
-                info = kapCubeServiceV2.getColumnarInfo(storagePath, segment);
+                info = kapCubeService.getColumnarInfo(storagePath, segment);
             } catch (IOException ex) {
                 logger.error("Can't get columnar info, cube {}, segment {}:", cube, segment);
                 logger.error("{}", ex);
@@ -260,12 +260,12 @@ public class KapCubeControllerV2 extends BasicController implements Initializing
             cubeDesc = cubeService.updateCubeToResourceStore(cubeDesc, projectName, createNewCube);
 
             if (rawTableDesc != null) {
-                rawTableServiceV2.validateRawTableDesc(rawTableDesc);
+                rawTableService.validateRawTableDesc(rawTableDesc);
                 rawTableDesc.setUuid(cubeDesc.getUuid());
-                boolean createNewRawTable = rawTableServiceV2.unifyRawTableDesc(rawTableDesc, false);
-                rawTableDesc = rawTableServiceV2.updateRawTableToResourceStore(rawTableDesc, projectName, createNewRawTable);
+                boolean createNewRawTable = rawTableService.unifyRawTableDesc(rawTableDesc, false);
+                rawTableDesc = rawTableService.updateRawTableToResourceStore(rawTableDesc, projectName, createNewRawTable);
             } else {
-                rawTableServiceV2.deleteRawByUuid(cubeDesc.getUuid(), false);
+                rawTableService.deleteRawByUuid(cubeDesc.getUuid(), false);
             }
 
             bindSchedulerJobWithCube(schedulerJobInstance, cubeDesc.getName(), cubeDesc.getUuid());
@@ -314,20 +314,20 @@ public class KapCubeControllerV2 extends BasicController implements Initializing
             cubeDesc = cubeService.updateCubeToResourceStore(cubeDesc, projectName, createNewCube);
 
             if (rawTableDesc != null) {
-                rawTableServiceV2.validateRawTableDesc(rawTableDesc);
+                rawTableService.validateRawTableDesc(rawTableDesc);
                 rawTableDesc.setUuid(cubeDesc.getUuid());
-                boolean createNewRawTable = rawTableServiceV2.unifyRawTableDesc(rawTableDesc, true);
-                rawTableDesc = rawTableServiceV2.updateRawTableToResourceStore(rawTableDesc, projectName, createNewRawTable);
+                boolean createNewRawTable = rawTableService.unifyRawTableDesc(rawTableDesc, true);
+                rawTableDesc = rawTableService.updateRawTableToResourceStore(rawTableDesc, projectName, createNewRawTable);
             } else {
-                rawTableServiceV2.deleteRawByUuid(cubeDesc.getUuid(), true);
+                rawTableService.deleteRawByUuid(cubeDesc.getUuid(), true);
             }
 
             SchedulerJobInstance jobInstance = getSchedulerJobByCubeName(cubeDesc.getName());
             if (null != jobInstance)
-                schedulerJobServiceV2.deleteSchedulerJob(jobInstance);
+                schedulerJobService.deleteSchedulerJob(jobInstance);
             schedulerJobInstance.setRelatedCube(cubeDesc.getName());
             schedulerJobInstance.setRelatedCubeUuid(cubeDesc.getUuid());
-            schedulerJobServiceV2.saveSchedulerJob(schedulerJobInstance);
+            schedulerJobService.saveSchedulerJob(schedulerJobInstance);
 
         } catch (Exception ex) {
             cp.rollback();
@@ -410,28 +410,28 @@ public class KapCubeControllerV2 extends BasicController implements Initializing
     private void bindSchedulerJobWithCube(SchedulerJobInstance younger, String cubeName, String cubeUuid) throws IOException {
         SchedulerJobInstance older = getSchedulerJobByCubeName(cubeName);
         if (null != older)
-            schedulerJobServiceV2.deleteSchedulerJob(older);
+            schedulerJobService.deleteSchedulerJob(older);
         younger.setRelatedCube(cubeName);
         younger.setRelatedCubeUuid(cubeUuid);
-        schedulerJobServiceV2.saveSchedulerJob(younger);
+        schedulerJobService.saveSchedulerJob(younger);
     }
 
     // Keep SchedulerJob consistent with cubes.
     private void validateSchedulerJobs(String uuid) throws IOException {
-        for (SchedulerJobInstance jobInstance : schedulerJobServiceV2.listAllSchedulerJobs()) {
+        for (SchedulerJobInstance jobInstance : schedulerJobService.listAllSchedulerJobs()) {
             if (!jobInstance.getRelatedCubeUuid().equalsIgnoreCase(uuid))
                 continue;
 
-            for (String cubeName : kapCubeServiceV2.getCubesByUuid(uuid)) {
+            for (String cubeName : kapCubeService.getCubesByUuid(uuid)) {
                 if (!jobInstance.getRelatedCube().equalsIgnoreCase(cubeName)) {
-                    schedulerJobServiceV2.deleteSchedulerJob(jobInstance);
+                    schedulerJobService.deleteSchedulerJob(jobInstance);
                 }
             }
         }
     }
 
     private SchedulerJobInstance getSchedulerJobByCubeName(String cubeName) throws IOException {
-        for (SchedulerJobInstance jobInstance : schedulerJobServiceV2.listAllSchedulerJobs()) {
+        for (SchedulerJobInstance jobInstance : schedulerJobService.listAllSchedulerJobs()) {
             if (jobInstance.getRelatedCube().equalsIgnoreCase(cubeName))
                 return jobInstance;
 
@@ -447,7 +447,7 @@ public class KapCubeControllerV2 extends BasicController implements Initializing
 
         JobDetailImpl jobDetail = new JobDetailImpl();
         jobDetail.setName(instance.getName());
-        jobDetail.setGroup(scheduler.DEFAULT_GROUP);
+        jobDetail.setGroup(Scheduler.DEFAULT_GROUP);
         jobDetail.setJobClass(ScheduleBuildJob.class);
 
         JobDataMap dataMap = jobDetail.getJobDataMap();
@@ -456,7 +456,7 @@ public class KapCubeControllerV2 extends BasicController implements Initializing
         dataMap.put("startTime", instance.getPartitionStartTime());
         dataMap.put("partitionInterval", instance.getPartitionInterval());
         dataMap.put("authentication", SecurityContextHolder.getContext().getAuthentication());
-        dataMap.put("schedulerJobService", schedulerJobServiceV2);
+        dataMap.put("schedulerJobService", schedulerJobService);
         dataMap.put("jobService", jobService);
         jobDetail.setJobDataMap(dataMap);
 
@@ -464,7 +464,6 @@ public class KapCubeControllerV2 extends BasicController implements Initializing
         CronScheduleBuilder cronScheduleBuilder = CronScheduleBuilder.cronSchedule(cronExp);
         CronTrigger trigger = TriggerBuilder.newTrigger().startAt(new Date(instance.getScheduledRunTime())).withSchedule(cronScheduleBuilder).build();
 
-        SchedulerJobInstance jobInstance;
         scheduler.scheduleJob(jobDetail, trigger);
     }
 }

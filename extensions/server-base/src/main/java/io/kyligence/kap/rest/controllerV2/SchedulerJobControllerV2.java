@@ -66,7 +66,7 @@ import io.kyligence.kap.rest.ScheduleBuildJob;
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.request.ScheduleJobRequest;
-import io.kyligence.kap.rest.service.SchedulerJobServiceV2;
+import io.kyligence.kap.rest.service.SchedulerJobService;
 
 @Controller
 @RequestMapping(value = "schedulers")
@@ -74,8 +74,8 @@ public class SchedulerJobControllerV2 extends BasicController implements Initial
     private static final Logger logger = LoggerFactory.getLogger(SchedulerJobControllerV2.class);
 
     @Autowired
-    @Qualifier("schedulerJobServiceV2")
-    private SchedulerJobServiceV2 schedulerJobServiceV2;
+    @Qualifier("schedulerJobService")
+    private SchedulerJobService schedulerJobService;
 
     @Autowired
     @Qualifier("jobService")
@@ -142,7 +142,7 @@ public class SchedulerJobControllerV2 extends BasicController implements Initial
         KapMsgPicker.setMsg(lang);
 
         HashMap<String, Object> data = new HashMap<String, Object>();
-        List<SchedulerJobInstance> jobs = schedulerJobServiceV2.listAllSchedulerJobs(projectName, cubeName);
+        List<SchedulerJobInstance> jobs = schedulerJobService.listAllSchedulerJobs(projectName, cubeName);
 
         int offset = pageOffset * pageSize;
         int limit = pageSize;
@@ -174,7 +174,7 @@ public class SchedulerJobControllerV2 extends BasicController implements Initial
         KapMsgPicker.setMsg(lang);
         KapMessage msg = KapMsgPicker.getMsg();
 
-        SchedulerJobInstance job = schedulerJobServiceV2.getSchedulerJobManager().getSchedulerJob(schedulerName);
+        SchedulerJobInstance job = schedulerJobService.getSchedulerJobManager().getSchedulerJob(schedulerName);
 
         if (job == null) {
             throw new BadRequestException(String.format(msg.getSCHEDULER_JOB_NOT_FOUND(), schedulerName));
@@ -190,7 +190,7 @@ public class SchedulerJobControllerV2 extends BasicController implements Initial
 
         JobDetailImpl jobDetail = new JobDetailImpl();
         jobDetail.setName(name);
-        jobDetail.setGroup(scheduler.DEFAULT_GROUP);
+        jobDetail.setGroup(Scheduler.DEFAULT_GROUP);
         jobDetail.setJobClass(ScheduleBuildJob.class);
 
         JobDataMap dataMap = jobDetail.getJobDataMap();
@@ -199,7 +199,7 @@ public class SchedulerJobControllerV2 extends BasicController implements Initial
         dataMap.put("startTime", req.getStartTime());
         dataMap.put("partitionInterval", req.getPartitionInterval());
         dataMap.put("authentication", SecurityContextHolder.getContext().getAuthentication());
-        dataMap.put("schedulerJobService", schedulerJobServiceV2);
+        dataMap.put("schedulerJobService", schedulerJobService);
         dataMap.put("jobService", jobService);
         jobDetail.setJobDataMap(dataMap);
 
@@ -211,7 +211,7 @@ public class SchedulerJobControllerV2 extends BasicController implements Initial
 
         scheduler.scheduleJob(jobDetail, trigger);
 
-        jobInstance = schedulerJobServiceV2.saveSchedulerJob(name, project, cubeName, req.getTriggerTime(), req.getStartTime(), req.getRepeatCount(), 0, req.getRepeatInterval(), req.getPartitionInterval());
+        jobInstance = schedulerJobService.saveSchedulerJob(name, project, cubeName, req.getTriggerTime(), req.getStartTime(), req.getRepeatCount(), 0, req.getRepeatInterval(), req.getPartitionInterval());
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobInstance, "");
     }
@@ -230,10 +230,10 @@ public class SchedulerJobControllerV2 extends BasicController implements Initial
 
         SchedulerJobInstance jobInstance;
 
-        jobInstance = schedulerJobServiceV2.getSchedulerJob(name);
-        schedulerJobServiceV2.deleteSchedulerJob(jobInstance.getName());
+        jobInstance = schedulerJobService.getSchedulerJob(name);
+        schedulerJobService.deleteSchedulerJob(jobInstance.getName());
 
-        JobKey jobKey = JobKey.jobKey(name, scheduler.DEFAULT_GROUP);
+        JobKey jobKey = JobKey.jobKey(name, Scheduler.DEFAULT_GROUP);
         scheduler.deleteJob(jobKey);
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobInstance, "");
@@ -243,8 +243,8 @@ public class SchedulerJobControllerV2 extends BasicController implements Initial
         this.jobService = jobServiceV2;
     }
 
-    public void setSchedulerJobService(SchedulerJobServiceV2 schedulerJobServiceV2) {
-        this.schedulerJobServiceV2 = schedulerJobServiceV2;
+    public void setSchedulerJobService(SchedulerJobService schedulerJobService) {
+        this.schedulerJobService = schedulerJobService;
     }
 
 }

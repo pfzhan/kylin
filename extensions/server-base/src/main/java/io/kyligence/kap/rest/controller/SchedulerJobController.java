@@ -31,11 +31,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import io.kyligence.kap.metadata.scheduler.SchedulerJobInstance;
-import io.kyligence.kap.rest.ScheduleBuildJob;
-import io.kyligence.kap.rest.request.ScheduleJobRequest;
-import io.kyligence.kap.rest.service.SchedulerJobService;
-import org.apache.kylin.job.exception.JobException;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.service.JobService;
@@ -56,13 +51,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
-
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+
+import io.kyligence.kap.metadata.scheduler.SchedulerJobInstance;
+import io.kyligence.kap.rest.ScheduleBuildJob;
+import io.kyligence.kap.rest.request.ScheduleJobRequest;
+import io.kyligence.kap.rest.service.SchedulerJobService;
 
 @Controller
 @RequestMapping(value = "schedulers")
@@ -187,7 +186,7 @@ public class SchedulerJobController extends BasicController implements Initializ
 
         JobDetailImpl jobDetail = new JobDetailImpl();
         jobDetail.setName(name);
-        jobDetail.setGroup(scheduler.DEFAULT_GROUP);
+        jobDetail.setGroup(Scheduler.DEFAULT_GROUP);
         jobDetail.setJobClass(ScheduleBuildJob.class);
 
         JobDataMap dataMap = jobDetail.getJobDataMap();
@@ -218,9 +217,6 @@ public class SchedulerJobController extends BasicController implements Initializ
         } catch (IOException e) {
             logger.error(e.getLocalizedMessage(), e);
             throw new InternalErrorException(e.getLocalizedMessage());
-        } catch (JobException e) {
-            logger.error(e.getLocalizedMessage(), e);
-            throw new InternalErrorException(e.getLocalizedMessage());
         }
 
         return jobInstance;
@@ -246,7 +242,7 @@ public class SchedulerJobController extends BasicController implements Initializ
         }
 
         try {
-            JobKey  jobKey = JobKey.jobKey(name, scheduler.DEFAULT_GROUP);
+            JobKey  jobKey = JobKey.jobKey(name, Scheduler.DEFAULT_GROUP);
             scheduler.deleteJob(jobKey);
         } catch (SchedulerException e) {
             logger.error(e.getLocalizedMessage(), e);
