@@ -134,6 +134,15 @@ export const GET_ABOUT = 'GET_ABOUT'
 export const GET_KYBOT_UPLOAD = 'GET_KYBOT_UPLOAD'
 export const GET_KYBOT_DUMP = 'GET_KYBOT_DUMP'
 
+// kybot account and upload
+export const GET_KYACCOUNT = 'GET_KYACCOUNT'
+export const GET_KYSTATUS = 'GET_KYSTATUS'
+export const GET_KYBOT_ACCOUNT = 'GET_KYBOT_ACCOUNT'
+export const LOGIN_KYBOT = 'LOGIN_KYBOT'
+export const GET_KYBOT_STATUS = 'GET_KYBOT_STATUS'
+export const START_KYBOT = 'START_KYBOT'
+export const STOP_KYBOT = 'STOP_KYBOT'
+
 // monitor actions mutations
 export const LOAD_JOBS_LIST = 'LOAD_JOBS_LIST'
 export const SAVE_JOBS_LIST = 'SAVE_JOBS_LIST'

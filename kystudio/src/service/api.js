@@ -9,6 +9,7 @@ import userApi from './user'
 import systemApi from './system'
 import datasourceApi from './datasource'
 import monitorApi from './monitor'
+import kybot from './kybot'
 // console.log(base64)
 Vue.use(VueResource)
 export default {
@@ -20,5 +21,6 @@ export default {
   user: userApi,
   system: systemApi,
   datasource: datasourceApi,
-  monitor: monitorApi
+  monitor: monitorApi,
+  kybot: kybot
 }

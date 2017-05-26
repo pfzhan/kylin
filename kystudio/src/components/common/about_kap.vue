@@ -1,7 +1,9 @@
 <template>
 	<div class="about-kap">
 		<div class="header">
-			<img src="../../assets/img/test.png" alt="" />
+			<a href="http://kyligence.io/" target="_blank">
+				<img src="../../assets/img/test.png" alt="" />
+			</a>
 			<el-row><label for="">版本：</label>{{license(serverAboutKap['kap.version'])}}</el-row>
 					<el-row><label for="">使用期限：</label>{{license(serverAboutKap['kap.dates'])}}</el-row>
 			<el-row><label for="">许可声明：</label>{{license(serverAboutKap['kap.license.statement'])}}</el-row>		
@@ -48,6 +50,7 @@
 	.about-kap {
 		line-height:30px;
 		font-size:14px;
+		text-align: center;
 		img {width: 100px;height:100px;}
 		label {font-weight:bold;}
 		.header, 

@@ -108,6 +108,7 @@ export default {
       })
     },
     dump: function () {
+      this.startTime = +new Date(this.startTime)
       this.getKybotDump({startTime: this.startTime, endTime: this.endTime}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
         })

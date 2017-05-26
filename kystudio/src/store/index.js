@@ -11,6 +11,7 @@ import user from './user'
 import datasource from './datasource'
 import system from './system'
 import monitor from './monitor'
+import kybot from './kybot'
 
 export default new Vuex.Store({
   modules: {
@@ -22,6 +23,7 @@ export default new Vuex.Store({
     user: user,
     datasource: datasource,
     system: system,
-    monitor: monitor
+    monitor: monitor,
+    kybot: kybot
   }
 })

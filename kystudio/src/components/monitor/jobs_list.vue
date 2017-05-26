@@ -30,15 +30,21 @@
     style="width:100%"
     highlight-current-row
     @row-click="showLineSteps"
+    @sort-change="sortJobList"
+    :default-sort="{prop: 'jobname', order: 'descending'}"
     >
       <el-table-column
-      :label="$t('JobName')" width="220">
+      :label="$t('JobName')"
+      sortable
+      prop="jobname"
+      width="220">
         <template scope="scope">
           <i class="el-icon-arrow-right" ></i> {{scope.row.name}}
         </template>
       </el-table-column>
       <el-table-column
       :label="$t('TableModelCube')"
+      sortable
       prop="related_cube">
       </el-table-column>
       <el-table-column
@@ -52,8 +58,8 @@
         </template>
       </el-table-column>
       <el-table-column
-        :label="$t('LastModifiedTime')"
-        >
+      :label="$t('LastModifiedTime')"
+      sortable>
         <template scope="scope">
         {{scope.row.gmtTime}}
         </template>
@@ -446,6 +452,31 @@ export default {
         min = (step.exec_end_time - step.exec_start_time) / 1000 / 60
         return min.toFixed(2) + ' mins'
       }
+    },
+    sortJobList (column, prop, order) {
+      console.log('sort by job name', column, prop, order)
+      let _column = column.column
+      let filter = {
+        pageOffset: this.currentPage - 1,
+        pageSize: pageCount,
+        projectName: this.project,
+        timeFilter: this.filterTimeZone,
+        reverse: true
+      }
+      if (_column.order === 'ascending') {
+        filter.reverse = false
+      }
+      if (_column.label === this.$t('JobName')) {
+        // console.log('jobName sort')
+        filter.sortby = 'job_name'
+      } else if (_column.label === this.$t('TableModelCube')) {
+        // console.log('TableModelCube sort')
+        filter.sortby = 'cube_name'
+      } else if (_column.label === this.$t('LastModifiedTime')) {
+        // console.log('LastModifiedTime sort')
+        filter.sortby = 'last_modify'
+      }
+      this.loadJobsList(filter)
     }
   },
   locales: {
@@ -455,195 +486,198 @@ export default {
 }
 </script>
 <style lang="less">
-li {
-  list-style-type:none;
-}
-.timeline {
-  position: relative;
-  margin: 0 0 30px 0;
-  padding: 0;
-  list-style: none;
-  font-size: 12px;
-}
-.timeline:before {
-  content: '';
-  position: absolute;
-  top: 0px;
-  bottom: 0;
-  width: 4px;
-  background: #ddd;
-  left: 13px;
-  margin: 0;
-  border-radius: 2px;
-}
-
-.timeline > li {
-  position: relative;
-  margin-right: 10px;
-  margin-bottom: 15px;
-}
-.timeline > li:before,
-.timeline > li:after {
-  content: " ";
-  display: table;
-}
-.timeline > li:after {
-  clear: both;
-}
-.timeline > li > .timeline-item {
-  position: relative;
-  margin-top: 0px;
-  margin-left: 60px;
-  padding: 0;
-  background: #fff;
-  color: #444;
-  border-radius: 3px;
-}
-.timeline > li > .timeline-item > .time {
-  float: right;
-  padding: 10px;
-  color: #999;
-  font-size: 12px;
-}
-.timeline > li > .timeline-item > .timeline-header {
-  margin: 0;
-  color: #555;
-  padding: 2x 10px 0;
-  font-size: 16px;
-  line-height: 1.1;
-}
-.timeline > li > .timeline-item > .timeline-header > a {
-  font-weight: 600;
-}
-.timeline > li > .timeline-item > .timeline-body,
-.timeline > li > .timeline-item > .timeline-footer {
-  padding: 4px 10px 10px 0;
-}
-.timeline > li.time-label > span {
-  font-weight: 600;
-  padding: 5px;
-  display: inline-block;
-  background-color: #fff;
-  border-radius: 4px;
-  color: #fff;
-}
-.timeline > li > span > .fa,
-.timeline > li > .fa
-{
-  width: 30px;
-  height: 30px;
-  font-size: 15px;
-  line-height: 30px;
-  position: absolute;
-  color: #fff;
-  background: #d2d6de;
-  border-radius: 50%;
-  text-align: center;
-  left: 0;
-  top: 0;
-}
-.timeline li:last-child {
-  position: relative;
-}
-.timeline li:last-child:before {
-  display: block;
-  position: absolute;
-  top: 0;
-  left: 13px;
-  bottom: 0;
-  content: '';
-  width: 4px;
-  background: #fff;
-}
-.bg-blue {
-  background-color: #0073b7 !important;
-}
-
-.bg-gray {
-  color: #000;
-  background-color: #d2d6de !important;
-}
-.bg-red {
-  background-color: #dd4b39 !important;
-}
-.bg-aqua {
-  background-color: #00c0ef !important;
-}
-.bg-green {
-  background-color: #13ce66 !important;
-}
-.bg-navy {
-  background-color: #001f3f !important;
-}
-.el-progress__text {
-  font-size: 15px !important;;
-}
-.table_margin {
-   margin-top: 20px;
-   margin-bottom: 20px;
-}
-.card-width {
-  width: 40%;
-}
-.job-step {
-  z-index: 100;
-  position: absolute;
-  top: -16px;
-  right: -20px;
-}
-.job-step.el-card {border-radius: 0;}
-.job-step .el-card__body {
-  padding: 20px 20px 20px 40px;
-}
-.table {
-    width: 100%;
-    margin-bottom: 20px;
-}
-.table-bordered {
-    border-collapse: collapse;
-    font-size:14px;
-    tr:first-child {background: #eef1f6;}
-    th,
-    td {font-size:14px;
-      padding:8px 18px;
-      border:1px solid #ddd;
-    }
-}
-.jobBtn {
-  position: absolute;
-  left: 0px;
-  top: 240px;
-  height: 48px;
-  padding: 5px;
-  color: #000;
-  border-radius: 0 4px 4px 0;
-  cursor: pointer;
-  background: rgba(228, 232, 241, 0.6);
- }
-.jobBtn i {
-  position: relative;
-  top: 12px;
-  color: #909eb0;
-  font-size:12px;
-}
-.jobs_list .table_margin .el-table__body tr{
-  td:first-child .cell {position:relative;padding: 10px 10px 10px 50px;}
-}
-.jobs_list .table_margin .el-icon-arrow-right {position:absolute;left:20px;top:50%;transform:translate(0,-50%);font-size:12px;}
-.jobs_list .el-checkbox-group {margin-top:7px;}
-.single-line {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.jobs_list .single-line {max-width: 140px;}
-.jobs_list .blue {color: #20a0ff;}
-.jobs_list .time-hd {height:40px;line-height:40px;margin-bottom:16px;border-bottom: 1px solid #ddd;}
-.timeline {
-  .timeline-header .single-line.stepname {max-width:none;font-size:14px;}
-  .steptime {height:20px;line-height:20px;font-size:14px;color:#666;
-    .el-icon-time {color:#666;}
+.jobs_list {
+  li {
+    list-style-type:none;
   }
-}
-.timer-line {
-  .timeline-body {
+  .timeline {
+    position: relative;
+    margin: 0 0 30px 0;
+    padding: 0;
+    list-style: none;
+    font-size: 12px;
+  }
+  .timeline:before {
+    content: '';
+    position: absolute;
+    top: 0px;
+    bottom: 0;
+    width: 4px;
+    background: #ddd;
+    left: 13px;
+    margin: 0;
+    border-radius: 2px;
+  }
+
+  .timeline > li {
+    position: relative;
+    margin-right: 10px;
+    margin-bottom: 15px;
+  }
+  .timeline > li:before,
+  .timeline > li:after {
+    content: " ";
+    display: table;
+  }
+  .timeline > li:after {
+    clear: both;
+  }
+  .timeline > li > .timeline-item {
+    position: relative;
+    margin-top: 0px;
+    margin-left: 60px;
+    padding: 0;
+    background: #fff;
+    color: #444;
+    border-radius: 3px;
+  }
+  .timeline > li > .timeline-item > .time {
+    float: right;
+    padding: 10px;
     color: #999;
+    font-size: 12px;
+  }
+  .timeline > li > .timeline-item > .timeline-header {
+    margin: 0;
+    color: #555;
+    padding: 2x 10px 0;
+    font-size: 16px;
+    line-height: 1.1;
+  }
+  .timeline > li > .timeline-item > .timeline-header > a {
+    font-weight: 600;
+  }
+  .timeline > li > .timeline-item > .timeline-body,
+  .timeline > li > .timeline-item > .timeline-footer {
+    padding: 4px 10px 10px 0;
+  }
+  .timeline > li.time-label > span {
+    font-weight: 600;
+    padding: 5px;
+    display: inline-block;
+    background-color: #fff;
+    border-radius: 4px;
+    color: #fff;
+  }
+  .timeline > li > span > .fa,
+  .timeline > li > .fa
+  {
+    width: 30px;
+    height: 30px;
+    font-size: 15px;
+    line-height: 30px;
+    position: absolute;
+    color: #fff;
+    background: #d2d6de;
+    border-radius: 50%;
+    text-align: center;
+    left: 0;
+    top: 0;
+  }
+  .timeline li:last-child {
+    position: relative;
+  }
+  .timeline li:last-child:before {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 13px;
+    bottom: 0;
+    content: '';
+    width: 4px;
+    background: #fff;
+  }
+  .bg-blue {
+    background-color: #0073b7 !important;
+  }
+
+  .bg-gray {
+    color: #000;
+    background-color: #d2d6de !important;
+  }
+  .bg-red {
+    background-color: #dd4b39 !important;
+  }
+  .bg-aqua {
+    background-color: #00c0ef !important;
+  }
+  .bg-green {
+    background-color: #13ce66 !important;
+  }
+  .bg-navy {
+    background-color: #001f3f !important;
+  }
+  .el-progress__text {
+    font-size: 15px !important;;
+  }
+  .table_margin {
+     margin-top: 20px;
+     margin-bottom: 20px;
+  }
+  .card-width {
+    width: 40%;
+  }
+  .job-step {
+    z-index: 100;
+    position: absolute;
+    top: -16px;
+    right: -20px;
+  }
+  .job-step.el-card {border-radius: 0;}
+  .job-step .el-card__body {
+    padding: 20px 20px 20px 40px;
+  }
+  .table {
+      width: 100%;
+      margin-bottom: 20px;
+  }
+  .table-bordered {
+      border-collapse: collapse;
+      font-size:14px;
+      tr:first-child {background: #eef1f6;}
+      th,
+      td {font-size:14px;
+        padding:8px 18px;
+        border:1px solid #ddd;
+      }
+  }
+  .jobBtn {
+    position: absolute;
+    left: 0px;
+    top: 240px;
+    height: 48px;
+    padding: 5px;
+    color: #000;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+    background: rgba(228, 232, 241, 0.6);
+   }
+  .jobBtn i {
+    position: relative;
+    top: 12px;
+    color: #909eb0;
+    font-size:12px;
+  }
+  .table_margin .el-table__body tr{
+    td:first-child .cell {position:relative;padding: 10px 10px 10px 50px;}
+  }
+  .table_margin .el-icon-arrow-right {position:absolute;left:20px;top:50%;transform:translate(0,-50%);font-size:12px;}
+  .el-checkbox-group {margin-top:7px;}
+  .single-line {max-width: 140px;}
+  .blue {color: #20a0ff;}
+  .time-hd {height:40px;line-height:40px;margin-bottom:16px;border-bottom: 1px solid #ddd;}
+  .timeline {
+    .timeline-header .single-line.stepname {max-width:none;font-size:14px;}
+    .steptime {height:20px;line-height:20px;font-size:14px;color:#666;
+      .el-icon-time {color:#666;}
+    }
+  }
+  .timer-line {
+    .timeline-body {
+      color: #999;
+    }
   }
 }
+.single-line {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
 </style>

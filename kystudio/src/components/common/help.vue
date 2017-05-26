@@ -9,10 +9,10 @@
     <el-dropdown-item command="kybot">
       KyBot自动上传
       <el-switch
+        v-if="switchVisible"
         v-model="isopend"
         on-color="#13ce66"
         off-color="#ff4949"
-        @change
         @click.native.stop>
       </el-switch>
 
@@ -69,12 +69,18 @@
         },
         infoKybotVisible: false,
         agreeKyBot: false,
-        isopend: false
+        isopend: false, // 是否已开启
+        switchVisible: false // 是否显示switch 按钮
       }
     },
     methods: {
       ...mapActions({
-        getAboutKap: 'GET_ABOUTKAP'
+        getAboutKap: 'GET_ABOUTKAP',
+        getKybotAccount: 'GET_KYBOT_ACCOUNT',
+        loginKybot: 'LOGIN_KYBOT',
+        getKyStatys: 'GET_KYBOT_STATUS',
+        startKybot: 'START_KYBOT',
+        stopKybot: 'STOP_KYBOT'
       }),
       handleCommand (val) {
         var _this = this
@@ -119,6 +125,9 @@
       serverAbout () {
         return this.$store.state.system.serverAboutKap
       }
+    },
+    created () {
+      this.getKybotAccount()
     },
     components: {
       'about_kap': aboutKap
