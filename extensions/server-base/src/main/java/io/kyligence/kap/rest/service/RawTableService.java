@@ -75,7 +75,8 @@ public class RawTableService extends BasicService {
     @Qualifier("jobService")
     private JobService jobService;
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#raw, 'ADMINISTRATION') or hasPermission(#raw, 'MANAGEMENT')")
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
+            + " or hasPermission(#raw, 'ADMINISTRATION') or hasPermission(#raw, 'MANAGEMENT')")
     public RawTableInstance updateRawCost(RawTableInstance raw, int cost) throws IOException {
 
         if (raw.getCost() == cost) {
@@ -93,7 +94,8 @@ public class RawTableService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or " + Constant.ACCESS_HAS_ROLE_MODELER)
-    public RawTableInstance createRawTableInstanceAndDesc(String rawName, String projectName, RawTableDesc desc) throws IOException {
+    public RawTableInstance createRawTableInstanceAndDesc(String rawName, String projectName, RawTableDesc desc)
+            throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
         if (getRawTableManager().getRawTableInstance(rawName) != null) {
@@ -128,11 +130,13 @@ public class RawTableService extends BasicService {
         return createdRaw;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'MANAGEMENT')")
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
+            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'MANAGEMENT')")
     public void deleteRaw(RawTableInstance raw) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
-        final List<CubingJob> cubingJobs = jobService.listAllCubingJobs(raw.getName(), null, EnumSet.of(ExecutableState.READY, ExecutableState.RUNNING));
+        final List<CubingJob> cubingJobs = jobService.listAllCubingJobs(raw.getName(), null,
+                EnumSet.of(ExecutableState.READY, ExecutableState.RUNNING));
         if (!cubingJobs.isEmpty()) {
             throw new BadRequestException(String.format(msg.getRAWTABLE_HAS_RUNNING_JOB(), raw.getName()));
         }
@@ -159,7 +163,8 @@ public class RawTableService extends BasicService {
             if (projectDataModel.getType() == RealizationType.INVERTED_INDEX) {
                 RawTableInstance raw = getRawTableManager().getRawTableInstance(projectDataModel.getRealization());
                 if (raw == null) {
-                    logger.error("Project " + projectName + " contains realization " + projectDataModel.getRealization() + " which is not found by RawTableManager");
+                    logger.error("Project " + projectName + " contains realization " + projectDataModel.getRealization()
+                            + " which is not found by RawTableManager");
                     continue;
                 }
                 if (raw.equals(target)) {
@@ -170,11 +175,14 @@ public class RawTableService extends BasicService {
         return false;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#raw, 'ADMINISTRATION') or hasPermission(#raw, 'MANAGEMENT')")
-    public RawTableDesc updateRawTableInstanceAndDesc(RawTableInstance raw, RawTableDesc desc, String newProjectName, boolean forceUpdate) throws IOException {
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
+            + " or hasPermission(#raw, 'ADMINISTRATION') or hasPermission(#raw, 'MANAGEMENT')")
+    public RawTableDesc updateRawTableInstanceAndDesc(RawTableInstance raw, RawTableDesc desc, String newProjectName,
+            boolean forceUpdate) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
-        final List<CubingJob> cubingJobs = jobService.listAllCubingJobs(raw.getName(), null, EnumSet.of(ExecutableState.READY, ExecutableState.RUNNING));
+        final List<CubingJob> cubingJobs = jobService.listAllCubingJobs(raw.getName(), null,
+                EnumSet.of(ExecutableState.READY, ExecutableState.RUNNING));
         if (!cubingJobs.isEmpty()) {
             throw new BadRequestException(msg.getRAWTABLE_SCHEMA_CHANGE_WITH_RUNNING_JOB());
         }
@@ -183,14 +191,16 @@ public class RawTableService extends BasicService {
         ProjectManager projectManager = getProjectManager();
         if (!isRawTableInProject(newProjectName, raw)) {
             String owner = SecurityContextHolder.getContext().getAuthentication().getName();
-            ProjectInstance newProject = projectManager.moveRealizationToProject(RealizationType.CUBE, raw.getName(), newProjectName, owner);
+            ProjectInstance newProject = projectManager.moveRealizationToProject(RealizationType.CUBE, raw.getName(),
+                    newProjectName, owner);
             accessService.inherit(raw, newProject);
         }
 
         return updatedRawTableDesc;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION')  or hasPermission(#cube, 'MANAGEMENT')")
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
+            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION')  or hasPermission(#cube, 'MANAGEMENT')")
     public RawTableInstance enableRaw(RawTableInstance raw) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
@@ -205,7 +215,8 @@ public class RawTableService extends BasicService {
             throw new BadRequestException(String.format(msg.getRAWTABLE_NO_READY_SEGMENT(), cubeName));
         }
 
-        final List<CubingJob> cubingJobs = jobService.listAllCubingJobs(raw.getName(), null, EnumSet.of(ExecutableState.READY, ExecutableState.RUNNING));
+        final List<CubingJob> cubingJobs = jobService.listAllCubingJobs(raw.getName(), null,
+                EnumSet.of(ExecutableState.READY, ExecutableState.RUNNING));
         if (!cubingJobs.isEmpty()) {
             throw new BadRequestException(msg.getRAWTABLE_ENABLE_WITH_RUNNING_JOB());
         }
@@ -220,7 +231,8 @@ public class RawTableService extends BasicService {
         }
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
+            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
     public RawTableInstance disableRaw(RawTableInstance raw) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
@@ -322,7 +334,8 @@ public class RawTableService extends BasicService {
         return youngerSelf;
     }
 
-    public RawTableDesc updateRawTableToResourceStore(RawTableDesc desc, String projectName, boolean createNew) throws IOException {
+    public RawTableDesc updateRawTableToResourceStore(RawTableDesc desc, String projectName, boolean createNew)
+            throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
         String name = desc.getName();
@@ -338,7 +351,8 @@ public class RawTableService extends BasicService {
 
                 //raw table renaming is not allowed
                 if (!raw.getRawTableDesc().getName().equalsIgnoreCase(desc.getName())) {
-                    throw new BadRequestException(String.format(msg.getRAW_DESC_RENAME(), desc.getName(), raw.getRawTableDesc().getName()));
+                    throw new BadRequestException(
+                            String.format(msg.getRAW_DESC_RENAME(), desc.getName(), raw.getRawTableDesc().getName()));
                 }
 
                 desc = updateRawTableInstanceAndDesc(raw, desc, projectName, true);

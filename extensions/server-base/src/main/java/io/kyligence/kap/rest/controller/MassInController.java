@@ -49,7 +49,7 @@ import io.kyligence.kap.rest.service.MassInService;
 
 @Controller
 @RequestMapping(value = "/massin")
-public class MassInController extends BasicController{
+public class MassInController extends BasicController {
     @Autowired
     private MassInService massInService;
 
@@ -59,9 +59,11 @@ public class MassInController extends BasicController{
 
     private static final Logger logger = LoggerFactory.getLogger(MassInController.class);
 
-    @RequestMapping(value = "/query", method = RequestMethod.POST, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/query", method = RequestMethod.POST, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse queryMassin(@RequestHeader("Accept-Language") String lang, @RequestBody SQLRequest sqlRequest) throws IOException {
+    public EnvelopeResponse queryMassin(@RequestHeader("Accept-Language") String lang,
+            @RequestBody SQLRequest sqlRequest) throws IOException {
         KapMsgPicker.setMsg(lang);
 
         SQLResponse queryResult = queryService.doQueryWithCache(sqlRequest);

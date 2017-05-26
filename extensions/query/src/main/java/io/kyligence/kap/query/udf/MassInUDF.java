@@ -51,7 +51,8 @@ public class MassInUDF implements IKeep {
             KapConfig kapConfig = KapConfig.wrap(kylinConfig);
             MassinFilterManager manager = MassinFilterManager.getInstance(kylinConfig);
             try {
-                set = manager.load(Functions.FilterTableType.HDFS, MassinFilterManager.getResourceIdentifier(kapConfig, filterTable));
+                set = manager.load(Functions.FilterTableType.HDFS,
+                        MassinFilterManager.getResourceIdentifier(kapConfig, filterTable));
             } catch (IOException e) {
                 logger.error("{}", e);
             }

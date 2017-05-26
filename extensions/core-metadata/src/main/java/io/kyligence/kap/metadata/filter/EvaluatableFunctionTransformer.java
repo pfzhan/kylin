@@ -45,7 +45,8 @@ public class EvaluatableFunctionTransformer {
             translated = translateFunctionTupleFilter((BuiltInFunctionTupleFilter) tupleFilter);
         } else if (tupleFilter instanceof LogicalTupleFilter) {
             @SuppressWarnings("unchecked")
-            ListIterator<TupleFilter> childIterator = (ListIterator<TupleFilter>) tupleFilter.getChildren().listIterator();
+            ListIterator<TupleFilter> childIterator = (ListIterator<TupleFilter>) tupleFilter.getChildren()
+                    .listIterator();
             while (childIterator.hasNext()) {
                 TupleFilter transformed = transform(childIterator.next());
                 if (transformed != null) {
@@ -68,13 +69,14 @@ public class EvaluatableFunctionTransformer {
             translated.addChild(transformed);
         }
         translated.setReversed(functionTupleFilter.isReversed());
-        
+
         return translated;
     }
 
     private static TupleFilter translateCompareTupleFilter(CompareTupleFilter compTupleFilter) {
 
-        if (compTupleFilter.getFunction() == null || (!(compTupleFilter.getFunction() instanceof BuiltInFunctionTupleFilter))) {
+        if (compTupleFilter.getFunction() == null
+                || (!(compTupleFilter.getFunction() instanceof BuiltInFunctionTupleFilter))) {
             return null;
         }
 
@@ -83,7 +85,8 @@ public class EvaluatableFunctionTransformer {
             return null;
         }
 
-        BuiltInFunctionTupleFilter builtInFunctionTupleFilter = (BuiltInFunctionTupleFilter) compTupleFilter.getFunction();
+        BuiltInFunctionTupleFilter builtInFunctionTupleFilter = (BuiltInFunctionTupleFilter) compTupleFilter
+                .getFunction();
 
         if (!builtInFunctionTupleFilter.isValid())
             return null;

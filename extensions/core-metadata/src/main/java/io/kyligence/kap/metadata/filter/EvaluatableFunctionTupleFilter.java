@@ -89,7 +89,8 @@ public class EvaluatableFunctionTupleFilter extends BuiltInFunctionTupleFilter {
         }
         ByteArray valueByteArray = (ByteArray) tupleValue;
         OrderedBytesStringSerializer serializer = new OrderedBytesStringSerializer(strDataType);
-        String value = serializer.deserialize(ByteBuffer.wrap(valueByteArray.array(), valueByteArray.offset(), valueByteArray.length()));
+        String value = serializer
+                .deserialize(ByteBuffer.wrap(valueByteArray.array(), valueByteArray.offset(), valueByteArray.length()));
 
         try {
             if (isLikeFunction()) {

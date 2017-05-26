@@ -61,7 +61,8 @@ public class SequenceNodeOutput implements Serializable {
             try {
                 temp = Long.valueOf(row.get(0));
             } catch (NumberFormatException e) {
-                throw new RuntimeException("Only support one integer column per row for sequence SQL, exceptional value is " + row.get(0));
+                throw new RuntimeException(
+                        "Only support one integer column per row for sequence SQL, exceptional value is " + row.get(0));
             }
 
             longSet.add(temp);

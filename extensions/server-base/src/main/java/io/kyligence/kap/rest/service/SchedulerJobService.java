@@ -42,7 +42,6 @@ import org.springframework.stereotype.Component;
 import io.kyligence.kap.metadata.scheduler.SchedulerJobInstance;
 import io.kyligence.kap.metadata.scheduler.SchedulerJobManager;
 
-
 @Component("schedulerJobService")
 public class SchedulerJobService extends BasicService {
 
@@ -57,7 +56,8 @@ public class SchedulerJobService extends BasicService {
         return SchedulerJobManager.getInstance(getConfig());
     }
 
-    public List<SchedulerJobInstance> listAllSchedulerJobs(final String projectName, final String cubeName, final Integer limit, final Integer offset) throws IOException {
+    public List<SchedulerJobInstance> listAllSchedulerJobs(final String projectName, final String cubeName,
+            final Integer limit, final Integer offset) throws IOException {
         List<SchedulerJobInstance> jobs = getSchedulerJobManager().getSchedulerJobs(projectName, cubeName);
 
         int climit = (null == limit) ? Integer.MAX_VALUE : limit;
@@ -74,7 +74,8 @@ public class SchedulerJobService extends BasicService {
         return jobs.subList(coffset, coffset + climit);
     }
 
-    public List<SchedulerJobInstance> listAllSchedulerJobs(final String projectName, final String cubeName) throws IOException {
+    public List<SchedulerJobInstance> listAllSchedulerJobs(final String projectName, final String cubeName)
+            throws IOException {
         List<SchedulerJobInstance> jobs = getSchedulerJobManager().getSchedulerJobs(projectName, cubeName);
         return jobs;
     }
@@ -90,21 +91,27 @@ public class SchedulerJobService extends BasicService {
         return job;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
+            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
     public SchedulerJobInstance saveSchedulerJob(SchedulerJobInstance job) throws IOException {
         getSchedulerJobManager().addSchedulerJob(job);
         return job;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
-    public SchedulerJobInstance saveSchedulerJob(String name, String project, String cube, long triggerTime, long startTime, long repeatCount, long curRepeatCount, long repeatInterval, long partitionInterval) throws IOException {
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
+            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
+    public SchedulerJobInstance saveSchedulerJob(String name, String project, String cube, long triggerTime,
+            long startTime, long repeatCount, long curRepeatCount, long repeatInterval, long partitionInterval)
+            throws IOException {
 
-        SchedulerJobInstance job = new SchedulerJobInstance(name, project, cube, startTime, triggerTime, repeatCount, curRepeatCount, repeatInterval, partitionInterval);
+        SchedulerJobInstance job = new SchedulerJobInstance(name, project, cube, startTime, triggerTime, repeatCount,
+                curRepeatCount, repeatInterval, partitionInterval);
         getSchedulerJobManager().addSchedulerJob(job);
         return job;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'MANAGEMENT')")
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
+            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'MANAGEMENT')")
     public SchedulerJobInstance updateSchedulerJob(String name, Map<String, Long> settings) throws Exception {
         SchedulerJobInstance job = getSchedulerJobManager().getSchedulerJob(name);
 
@@ -138,14 +145,16 @@ public class SchedulerJobService extends BasicService {
         return job;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
+            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
     public SchedulerJobInstance deleteSchedulerJob(String name) throws IOException {
         SchedulerJobInstance job = getSchedulerJobManager().getSchedulerJob(name);
         getSchedulerJobManager().removeSchedulerJob(job);
         return job;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
+            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
     public SchedulerJobInstance deleteSchedulerJob(SchedulerJobInstance job) throws IOException {
         getSchedulerJobManager().removeSchedulerJob(job);
         return job;

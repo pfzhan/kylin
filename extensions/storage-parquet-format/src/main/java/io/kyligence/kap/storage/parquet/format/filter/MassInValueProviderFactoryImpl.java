@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.storage.parquet.format.filter;
 
+import java.io.IOException;
+
 import org.apache.kylin.dimension.DimensionEncoding;
 import org.apache.kylin.metadata.filter.UDF.MassInValueProvider;
 import org.apache.kylin.metadata.filter.UDF.MassInValueProviderFactory;
@@ -31,8 +33,6 @@ import org.apache.kylin.metadata.filter.function.Functions;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
 
 public class MassInValueProviderFactoryImpl implements MassInValueProviderFactory {
     public static final Logger logger = LoggerFactory.getLogger(MassInValueProviderFactoryImpl.class);
@@ -48,10 +48,12 @@ public class MassInValueProviderFactoryImpl implements MassInValueProviderFactor
     }
 
     @Override
-    public MassInValueProvider getProvider(Functions.FilterTableType filterTableType, String filterResourceIdentifier, TblColRef col) {
+    public MassInValueProvider getProvider(Functions.FilterTableType filterTableType, String filterResourceIdentifier,
+            TblColRef col) {
         if (dimEncAware != null) {
             try {
-                return new MassInValueProviderImpl(filterTableType, filterResourceIdentifier, dimEncAware.getDimEnc(col));
+                return new MassInValueProviderImpl(filterTableType, filterResourceIdentifier,
+                        dimEncAware.getDimEnc(col));
             } catch (IOException e) {
                 logger.error("{}", e);
             }

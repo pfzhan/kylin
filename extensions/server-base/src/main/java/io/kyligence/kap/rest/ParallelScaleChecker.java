@@ -76,6 +76,7 @@ class ParallelScaleChecker implements Runnable {
     }
 
     private void warning(int queryParallel, int storageParallel) {
-        logger.warn("Parallel Scale exceeds the threshold: Used={}, Threshold={}", queryParallel + storageParallel, parallelLimit);
+        logger.warn("Parallel Scale exceeds the threshold: Used={}, Threshold={}", queryParallel + storageParallel,
+                parallelLimit);
     }
 }

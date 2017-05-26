@@ -96,11 +96,13 @@ public class MockedCubeSparkRPC extends CubeSparkRPC {
                 append(cuboid.getId()).//
                 append("/*.parquettar").toString();
 
-        conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS, RoaringBitmaps.writeToString(getRequiredParquetColumns(scanRequest))); // which columns are required
+        conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS,
+                RoaringBitmaps.writeToString(getRequiredParquetColumns(scanRequest))); // which columns are required
         conf.set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, kylinConfig.getConfigAsString()); //push down kylin config
         conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES, new String(scanRequest.toByteArray(), "ISO-8859-1")); //so that ParquetRawInputFormat can use the scan request
         conf.set(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX, String.valueOf(true)); //whether to use II
-        conf.set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileInputFormat.ParquetTarballFileReader.ReadStrategy.COMPACT.toString()); //read fashion
+        conf.set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY,
+                ParquetTarballFileInputFormat.ParquetTarballFileReader.ReadStrategy.COMPACT.toString()); //read fashion
 
         Job job = Job.getInstance(conf);
         FileInputFormat.setInputPaths(job, dataFolder);
@@ -114,14 +116,16 @@ public class MockedCubeSparkRPC extends CubeSparkRPC {
 
             for (int i = 0; i < splits.size(); i++) {
                 ParquetRecordIterator iterator = new ParquetRecordIterator(job, inputFormat, splits.get(i));
-                SparkExecutorPreAggFunction function = new SparkExecutorPreAggFunction(null, null, RealizationType.CUBE.toString(), "queryonmockedrpc");
-                Iterable<byte[]> ret = Iterables.transform(function.call(iterator), new Function<RDDPartitionResult, byte[]>() {
-                    @Nullable
-                    @Override
-                    public byte[] apply(@Nullable RDDPartitionResult input) {
-                        return input.getData();
-                    }
-                });
+                SparkExecutorPreAggFunction function = new SparkExecutorPreAggFunction(null, null,
+                        RealizationType.CUBE.toString(), "queryonmockedrpc");
+                Iterable<byte[]> ret = Iterables.transform(function.call(iterator),
+                        new Function<RDDPartitionResult, byte[]>() {
+                            @Nullable
+                            @Override
+                            public byte[] apply(@Nullable RDDPartitionResult input) {
+                                return input.getData();
+                            }
+                        });
                 shardRecords.add(ret);
                 parquetRecordIterators.add(iterator);
             }
@@ -136,7 +140,8 @@ public class MockedCubeSparkRPC extends CubeSparkRPC {
                 closeable.close();
             }
 
-            return new StorageResponseGTScatter(scanRequest, new DummyPartitionStreamer(mockedShardBlobs.iterator()), context);
+            return new StorageResponseGTScatter(scanRequest, new DummyPartitionStreamer(mockedShardBlobs.iterator()),
+                    context);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -162,10 +167,13 @@ public class MockedCubeSparkRPC extends CubeSparkRPC {
         private Tuple2<Text, Text> buffer = new Tuple2<>(null, null);
         private RecordReader<Text, Text> reader;
 
-        public ParquetRecordIterator(Job job, FileInputFormat<Text, Text> inputFormat, InputSplit inputSplit) throws IOException, InterruptedException {
+        public ParquetRecordIterator(Job job, FileInputFormat<Text, Text> inputFormat, InputSplit inputSplit)
+                throws IOException, InterruptedException {
             TaskAttemptContext context = MapReduceTestUtil.createDummyMapTaskAttemptContext(job.getConfiguration());
             reader = inputFormat.createRecordReader(inputSplit, context);
-            MapContext<Text, Text, Text, Text> mcontext = new MapContextImpl<Text, Text, Text, Text>(job.getConfiguration(), context.getTaskAttemptID(), reader, null, null, MapReduceTestUtil.createDummyReporter(), inputSplit);
+            MapContext<Text, Text, Text, Text> mcontext = new MapContextImpl<Text, Text, Text, Text>(
+                    job.getConfiguration(), context.getTaskAttemptID(), reader, null, null,
+                    MapReduceTestUtil.createDummyReporter(), inputSplit);
             reader.initialize(inputSplit, mcontext);
         }
 

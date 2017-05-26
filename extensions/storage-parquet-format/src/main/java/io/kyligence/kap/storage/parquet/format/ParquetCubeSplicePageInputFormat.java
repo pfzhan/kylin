@@ -51,7 +51,8 @@ import io.kyligence.kap.storage.parquet.format.file.Utils;
  * @param <V> Page Id
  */
 public class ParquetCubeSplicePageInputFormat<K, V> extends FileInputFormat<K, V> {
-    public RecordReader<K, V> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
+    public RecordReader<K, V> createRecordReader(InputSplit split, TaskAttemptContext context)
+            throws IOException, InterruptedException {
         return new ParquetCubePageReader<>();
     }
 
@@ -80,7 +81,8 @@ public class ParquetCubeSplicePageInputFormat<K, V> extends FileInputFormat<K, V
             path = fileSplit.getPath();
 
             // init with first shard file
-            spliceReader = new ParquetSpliceReader.Builder().setConf(conf).setPath(path).setColumnsBitmap(Utils.createBitset(1)).build();
+            spliceReader = new ParquetSpliceReader.Builder().setConf(conf).setPath(path)
+                    .setColumnsBitmap(Utils.createBitset(1)).build();
             divs = Lists.newArrayList(spliceReader.getDivs());
         }
 

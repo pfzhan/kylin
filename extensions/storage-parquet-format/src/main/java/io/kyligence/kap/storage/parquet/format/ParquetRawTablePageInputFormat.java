@@ -27,8 +27,6 @@ package io.kyligence.kap.storage.parquet.format;
 import java.io.IOException;
 import java.util.List;
 
-import io.kyligence.kap.storage.parquet.format.datatype.ByteArrayListWritable;
-import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -47,13 +45,18 @@ import org.roaringbitmap.buffer.MutableRoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.storage.parquet.format.datatype.ByteArrayListWritable;
+import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
+
 /**
  * Used to build parquet inverted index
  * @param <K> Dimension values
  * @param <V> Page Id
  */
 public class ParquetRawTablePageInputFormat<K, V> extends FileInputFormat<K, V> {
-    public org.apache.hadoop.mapreduce.RecordReader<K, V> createRecordReader(org.apache.hadoop.mapreduce.InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
+    public org.apache.hadoop.mapreduce.RecordReader<K, V> createRecordReader(
+            org.apache.hadoop.mapreduce.InputSplit split, TaskAttemptContext context)
+            throws IOException, InterruptedException {
         return new ParquetRawTablePageReader<>();
     }
 

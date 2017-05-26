@@ -57,26 +57,33 @@ public class KapSuggestionController extends BasicController {
     @Qualifier("kapSuggestionService")
     private KapSuggestionService kapSuggestionService;
 
-    @RequestMapping(value = "{modelName}/{cubeName}/collect_sql", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "{modelName}/{cubeName}/collect_sql", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse collectSampleSqls(@RequestHeader("Accept-Language") String lang, @PathVariable String modelName, @PathVariable String cubeName, @RequestBody List<String> sqls) throws Exception {
+    public EnvelopeResponse collectSampleSqls(@RequestHeader("Accept-Language") String lang,
+            @PathVariable String modelName, @PathVariable String cubeName, @RequestBody List<String> sqls)
+            throws Exception {
         KapMsgPicker.setMsg(lang);
 
         kapSuggestionService.saveSampleSqls(modelName, cubeName, sqls);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
-    @RequestMapping(value = "{cubeName}/get_sql", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "{cubeName}/get_sql", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getSampleSqls(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) throws Exception {
+    public EnvelopeResponse getSampleSqls(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName)
+            throws Exception {
         KapMsgPicker.setMsg(lang);
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kapSuggestionService.getSampleSqls(cubeName), "");
     }
 
-    @RequestMapping(value = "suggestions", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "suggestions", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getSmartSuggestions(@RequestHeader("Accept-Language") String lang, @RequestBody CubeRequest cubeRequest) throws IOException {
+    public EnvelopeResponse getSmartSuggestions(@RequestHeader("Accept-Language") String lang,
+            @RequestBody CubeRequest cubeRequest) throws IOException {
         KapMsgPicker.setMsg(lang);
 
         CubeDesc cubeDesc = deserializeCubeDesc(cubeRequest);

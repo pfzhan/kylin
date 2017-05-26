@@ -59,10 +59,14 @@ public class ColumnIndexWriter implements Closeable {
         this.columnSpec = columnSpec;
         this.config = KapConfig.getInstanceFromEnv();
         this.totalPageNum = columnSpec.getTotalPageNum();
-        this.keyEncoding = KeyEncodingFactory.selectEncoding(columnSpec.getKeyEncodingIdentifier(), columnSpec.getColumnLength(), columnSpec.isOnlyEQIndex());
-        this.valueSetEncoding = ValueSetEncodingFactory.selectEncoding(columnSpec.getValueEncodingIdentifier(), 0, columnSpec.isOnlyEQIndex()); // todo: not auto calulate value encoding
-        this.indexMapCache = new IndexMapCache(columnSpec.getColumnName(), !columnSpec.isOnlyEQIndex(), keyEncoding, valueSetEncoding, false);
-        logger.info("KeyEncoding={}, ValueEncoding={}", keyEncoding.getClass().getName(), valueSetEncoding.getClass().getName());
+        this.keyEncoding = KeyEncodingFactory.selectEncoding(columnSpec.getKeyEncodingIdentifier(),
+                columnSpec.getColumnLength(), columnSpec.isOnlyEQIndex());
+        this.valueSetEncoding = ValueSetEncodingFactory.selectEncoding(columnSpec.getValueEncodingIdentifier(), 0,
+                columnSpec.isOnlyEQIndex()); // todo: not auto calulate value encoding
+        this.indexMapCache = new IndexMapCache(columnSpec.getColumnName(), !columnSpec.isOnlyEQIndex(), keyEncoding,
+                valueSetEncoding, false);
+        logger.info("KeyEncoding={}, ValueEncoding={}", keyEncoding.getClass().getName(),
+                valueSetEncoding.getClass().getName());
     }
 
     public long getTotalSize() {
@@ -137,7 +141,10 @@ public class ColumnIndexWriter implements Closeable {
         outputStream.writeChar(keyEncoding.getEncodingIdentifier());
         outputStream.writeChar(valueSetEncoding.getEncodingIdentifier());
 
-        logger.info("column={}, onlyEQ={}, cardinality={}, columnLength={}, step={}, docNum={}, keyEncoding={}, valueEncoding={}", columnSpec.getColumnName(), columnSpec.isOnlyEQIndex(), indexSize, columnSpec.getColumnLength(), step, totalPageNum, keyEncoding.getEncodingIdentifier(), valueSetEncoding.getEncodingIdentifier());
+        logger.info(
+                "column={}, onlyEQ={}, cardinality={}, columnLength={}, step={}, docNum={}, keyEncoding={}, valueEncoding={}",
+                columnSpec.getColumnName(), columnSpec.isOnlyEQIndex(), indexSize, columnSpec.getColumnLength(), step,
+                totalPageNum, keyEncoding.getEncodingIdentifier(), valueSetEncoding.getEncodingIdentifier());
         logger.info("Start to write eq index for column {}", columnSpec.getColumnName());
         writeIndex(indexMapCache, step);
         if (!columnSpec.isOnlyEQIndex()) {
@@ -148,7 +155,8 @@ public class ColumnIndexWriter implements Closeable {
     private void writeAuxiliary(int step) throws IOException {
         // write lt
         logger.info("Start to write lt index for column {}", columnSpec.getColumnName());
-        IndexMapCache auxiliaryIndexMap = new IndexMapCache(columnSpec.getColumnName(), false, keyEncoding, valueSetEncoding, true);
+        IndexMapCache auxiliaryIndexMap = new IndexMapCache(columnSpec.getColumnName(), false, keyEncoding,
+                valueSetEncoding, true);
         Iterable<? extends Number> lastValue = valueSetEncoding.newValueSet();
         Iterable<? extends Number> currValue = null;
         for (Pair<Comparable, ? extends Iterable<? extends Number>> indexEntry : indexMapCache.getIterable(true)) {

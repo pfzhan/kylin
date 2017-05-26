@@ -103,7 +103,8 @@ public class LocalTempMetadata {
         }
     }
 
-    private static void overrideEngineTypeAndStorageType(String tempMetadataDir, Pair<Integer, Integer> typePair, List<String> includeFiles) throws IOException {
+    private static void overrideEngineTypeAndStorageType(String tempMetadataDir, Pair<Integer, Integer> typePair,
+            List<String> includeFiles) throws IOException {
         int engineType = typePair.getFirst();
         int storageType = typePair.getSecond();
 

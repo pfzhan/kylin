@@ -32,7 +32,7 @@ import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 
 public class CheckHadoopConfDir {
-    
+
     public static String CHECKENV_REPORT_PFX = ">   ";
 
     public static void main(String[] args) throws Exception {
@@ -70,7 +70,9 @@ public class CheckHadoopConfDir {
 
         boolean shortcircuit = conf.getBoolean("dfs.client.read.shortcircuit", false);
         if (shortcircuit == false) {
-            System.out.println(CHECKENV_REPORT_PFX + "WARN: 'dfs.client.read.shortcircuit' is not enabled which could impact query performance. Check " + hadoopConfDir + "/hdfs-site.xml");
+            System.out.println(CHECKENV_REPORT_PFX
+                    + "WARN: 'dfs.client.read.shortcircuit' is not enabled which could impact query performance. Check "
+                    + hadoopConfDir + "/hdfs-site.xml");
         }
 
         System.exit(0);

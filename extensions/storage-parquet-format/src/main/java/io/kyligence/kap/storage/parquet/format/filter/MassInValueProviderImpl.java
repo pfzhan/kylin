@@ -44,7 +44,8 @@ public class MassInValueProviderImpl implements MassInValueProvider {
 
     private Set<ByteArray> ret = Sets.newHashSet();
 
-    public MassInValueProviderImpl(Functions.FilterTableType filterTableType, String filterResourceIdentifier, DimensionEncoding encoding) throws IOException {
+    public MassInValueProviderImpl(Functions.FilterTableType filterTableType, String filterResourceIdentifier,
+            DimensionEncoding encoding) throws IOException {
         MassinFilterManager manager = MassinFilterManager.getInstance(KylinConfig.getInstanceFromEnv());
         manager.setEncoding(filterResourceIdentifier, encoding);
 

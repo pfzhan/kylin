@@ -42,7 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ConfigurationBasedPartitioner extends Partitioner<Text, Text> implements Configurable {
-    protected static final Logger logger = LoggerFactory.getLogger(ConfigurationBasedPartitioner .class);
+    protected static final Logger logger = LoggerFactory.getLogger(ConfigurationBasedPartitioner.class);
     public static final String CUBOID_SHARD_REDUCE_MAPPING = "io.kyligence.kap.mr.partitioner-mapping";
     private Configuration conf = null;
     private Map<Pair<Long, Short>, Integer> partitionMap = null;
@@ -56,7 +56,8 @@ public class ConfigurationBasedPartitioner extends Partitioner<Text, Text> imple
         return mod;
     }
 
-    public static int getByteArrayPartition(byte[] key, byte[] value, int numReduceTasks, Map<Pair<Long, Short>, Integer> partitionMap) {
+    public static int getByteArrayPartition(byte[] key, byte[] value, int numReduceTasks,
+            Map<Pair<Long, Short>, Integer> partitionMap) {
         short shardId = (short) BytesUtil.readShort(key, 0, RowConstants.ROWKEY_SHARDID_LEN);
         long cuboidId = BytesUtil.readLong(key, RowConstants.ROWKEY_SHARDID_LEN, RowConstants.ROWKEY_CUBOIDID_LEN);
         if (partitionMap == null) {
@@ -76,11 +77,13 @@ public class ConfigurationBasedPartitioner extends Partitioner<Text, Text> imple
         try {
             String partitionMapping = conf.get(CUBOID_SHARD_REDUCE_MAPPING);
             if (partitionMapping != null) {
-                partitionMap = (Map<Pair<Long, Short>, Integer>) new ObjectInputStream(new ByteArrayInputStream(Base64.decodeBase64(partitionMapping.getBytes()))).readObject();
+                partitionMap = (Map<Pair<Long, Short>, Integer>) new ObjectInputStream(
+                        new ByteArrayInputStream(Base64.decodeBase64(partitionMapping.getBytes()))).readObject();
             }
 
-            for (Pair<Long, Short> key: partitionMap.keySet()) {
-                logger.info("Cuboid {} Shard {} --> Reducer Number {}", key.getFirst(), key.getSecond(), partitionMap.get(key));
+            for (Pair<Long, Short> key : partitionMap.keySet()) {
+                logger.info("Cuboid {} Shard {} --> Reducer Number {}", key.getFirst(), key.getSecond(),
+                        partitionMap.get(key));
             }
         } catch (IOException e) {
             logger.error("", e);

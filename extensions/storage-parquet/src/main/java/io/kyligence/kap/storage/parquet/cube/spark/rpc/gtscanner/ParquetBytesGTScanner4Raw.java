@@ -33,7 +33,8 @@ import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTScanRequest;
 
 public class ParquetBytesGTScanner4Raw extends ParquetBytesGTScanner {
-    public ParquetBytesGTScanner4Raw(GTInfo info, Iterator<ByteBuffer> iterator, GTScanRequest scanRequest, long bytesLimit, boolean withDelay) {
+    public ParquetBytesGTScanner4Raw(GTInfo info, Iterator<ByteBuffer> iterator, GTScanRequest scanRequest,
+            long bytesLimit, boolean withDelay) {
         super(info, iterator, scanRequest, bytesLimit, scanRequest.getTimeout(), withDelay);
     }
 

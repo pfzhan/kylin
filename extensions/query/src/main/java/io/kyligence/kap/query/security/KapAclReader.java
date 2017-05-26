@@ -88,7 +88,8 @@ public class KapAclReader {
             try {
                 model.findColumn(colName);
             } catch (IllegalArgumentException ex) {
-                throw new IllegalArgumentException("The columns name: \"" + colName + "\" in cell-level-security config is incorrect, please revise it", ex);
+                throw new IllegalArgumentException("The columns name: \"" + colName
+                        + "\" in cell-level-security config is incorrect, please revise it", ex);
             }
         }
     }

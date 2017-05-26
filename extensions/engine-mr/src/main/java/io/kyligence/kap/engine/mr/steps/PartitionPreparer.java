@@ -45,7 +45,8 @@ import com.google.common.collect.Maps;
 public class PartitionPreparer {
     protected static final Logger logger = LoggerFactory.getLogger(PartitionPreparer.class);
 
-    public static void preparePartitionMapping(Job job, KylinConfig config, CubeSegment cubeSeg, int reduceNum) throws IOException {
+    public static void preparePartitionMapping(Job job, KylinConfig config, CubeSegment cubeSeg, int reduceNum)
+            throws IOException {
         logger.info("preparePartitionMapping in KapSpliceInMemCuboidJob");
         Map<Pair<Long, Short>, Integer> partitionMap = Maps.newHashMap();
         PriorityBuffer bucketPriorityQueue = new PriorityBuffer(new Comparator() {
@@ -103,7 +104,8 @@ public class PartitionPreparer {
         oos.writeObject(partitionMap);
         oos.close();
         byte[] serialized = baos.toByteArray();
-        job.getConfiguration().set(ByteArrayConfigurationBasedPartitioner.CUBOID_SHARD_REDUCE_MAPPING, new String(Base64.encodeBase64(serialized)));
+        job.getConfiguration().set(ByteArrayConfigurationBasedPartitioner.CUBOID_SHARD_REDUCE_MAPPING,
+                new String(Base64.encodeBase64(serialized)));
     }
 
     private static class SizeBucket {

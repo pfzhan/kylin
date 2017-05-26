@@ -38,21 +38,24 @@ public class BinaryCompareFilterTest {
 
     @Test
     public void isEqMatch() throws Exception {
-        BinaryFilter filter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.EQ, Lists.newArrayList(value), 1, 2);
+        BinaryFilter filter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.EQ, Lists.newArrayList(value), 1,
+                2);
         Assert.assertTrue(filter.isMatch(new byte[] { 0x10, 0x20, 0x30 }));
         Assert.assertFalse(filter.isMatch(new byte[] { 0x10, 0x20, 0x33 }));
     }
 
     @Test
     public void isNeqMatch() throws Exception {
-        BinaryFilter filter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.NEQ, Lists.newArrayList(value), 1, 2);
+        BinaryFilter filter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.NEQ, Lists.newArrayList(value), 1,
+                2);
         Assert.assertTrue(filter.isMatch(new byte[] { 0x10, 0x20, 0x33 }));
         Assert.assertFalse(filter.isMatch(new byte[] { 0x10, 0x20, 0x30 }));
     }
 
     @Test
     public void isLtMatch() throws Exception {
-        BinaryFilter filter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.LT, Lists.newArrayList(value), 1, 2);
+        BinaryFilter filter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.LT, Lists.newArrayList(value), 1,
+                2);
         Assert.assertTrue(filter.isMatch(new byte[] { 0x10, 0x20, 0x29 }));
         Assert.assertTrue(filter.isMatch(new byte[] { 0x10, 0x19, 0x29 }));
         Assert.assertFalse(filter.isMatch(new byte[] { 0x10, 0x20, 0x30 }));
@@ -62,7 +65,8 @@ public class BinaryCompareFilterTest {
 
     @Test
     public void isLteMatch() throws Exception {
-        BinaryFilter filter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.LTE, Lists.newArrayList(value), 1, 2);
+        BinaryFilter filter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.LTE, Lists.newArrayList(value), 1,
+                2);
         Assert.assertTrue(filter.isMatch(new byte[] { 0x10, 0x20, 0x29 }));
         Assert.assertTrue(filter.isMatch(new byte[] { 0x10, 0x19, 0x29 }));
         Assert.assertTrue(filter.isMatch(new byte[] { 0x10, 0x20, 0x30 }));
@@ -72,7 +76,8 @@ public class BinaryCompareFilterTest {
 
     @Test
     public void isGtMatch() throws Exception {
-        BinaryFilter filter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.GT, Lists.newArrayList(value), 1, 2);
+        BinaryFilter filter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.GT, Lists.newArrayList(value), 1,
+                2);
         Assert.assertTrue(filter.isMatch(new byte[] { 0x10, 0x20, 0x33 }));
         Assert.assertTrue(filter.isMatch(new byte[] { 0x09, 0x22, 0x30 }));
         Assert.assertFalse(filter.isMatch(new byte[] { 0x10, 0x20, 0x30 }));
@@ -82,7 +87,8 @@ public class BinaryCompareFilterTest {
 
     @Test
     public void isGteMatch() throws Exception {
-        BinaryFilter filter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.GTE, Lists.newArrayList(value), 1, 2);
+        BinaryFilter filter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.GTE, Lists.newArrayList(value), 1,
+                2);
         Assert.assertTrue(filter.isMatch(new byte[] { 0x10, 0x20, 0x33 }));
         Assert.assertTrue(filter.isMatch(new byte[] { 0x09, 0x22, 0x30 }));
         Assert.assertTrue(filter.isMatch(new byte[] { 0x10, 0x20, 0x30 }));

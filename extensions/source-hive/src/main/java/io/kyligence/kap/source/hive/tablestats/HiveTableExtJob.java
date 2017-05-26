@@ -52,8 +52,10 @@ public class HiveTableExtJob extends AbstractHadoopJob {
     public static final String JOB_TITLE = "Kylin Hive Column Sample Job";
 
     @SuppressWarnings("static-access")
-    protected static final Option OPTION_TABLE = OptionBuilder.withArgName("table name").hasArg().isRequired(true).withDescription("The hive table name").create("table");
-    protected static final Option OPTION_FREQUENCY = OptionBuilder.withArgName("sample frequency").hasArg().isRequired(true).withDescription("The sample frequency").create("frequency");
+    protected static final Option OPTION_TABLE = OptionBuilder.withArgName("table name").hasArg().isRequired(true)
+            .withDescription("The hive table name").create("table");
+    protected static final Option OPTION_FREQUENCY = OptionBuilder.withArgName("sample frequency").hasArg()
+            .isRequired(true).withDescription("The sample frequency").create("frequency");
 
     public HiveTableExtJob() {
     }

@@ -150,7 +150,8 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     @Test
     public void testRawTablePrecedesCubeOnRawQueries() throws Exception {
 
-        List<File> sqlFiles = getFilesFromFolder(new File(getQueryFolderPrefix() + "src/test/resources/query/sql_raw"), ".sql");
+        List<File> sqlFiles = getFilesFromFolder(new File(getQueryFolderPrefix() + "src/test/resources/query/sql_raw"),
+                ".sql");
         for (File sqlFile : sqlFiles) {
             runSQL(sqlFile, false, false);
 
@@ -167,7 +168,8 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     }
 
     protected void runTimeoutQueries() throws Exception {
-        List<File> sqlFiles = getFilesFromFolder(new File(getQueryFolderPrefix() + "src/test/resources/query/sql_timeout"), ".sql");
+        List<File> sqlFiles = getFilesFromFolder(
+                new File(getQueryFolderPrefix() + "src/test/resources/query/sql_timeout"), ".sql");
         for (File sqlFile : sqlFiles) {
             try {
                 runSQL(sqlFile, false, false);
@@ -200,19 +202,22 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         try {
 
             Map<String, String> toggles = Maps.newHashMap();
-            toggles.put(BackdoorToggles.DEBUG_TOGGLE_COPROCESSOR_BEHAVIOR, StorageSideBehavior.SCAN_FILTER_AGGR_CHECKMEM_WITHDELAY.toString());//delay 10ms for every scan
+            toggles.put(BackdoorToggles.DEBUG_TOGGLE_COPROCESSOR_BEHAVIOR,
+                    StorageSideBehavior.SCAN_FILTER_AGGR_CHECKMEM_WITHDELAY.toString());//delay 10ms for every scan
             BackdoorToggles.setToggles(toggles);
 
             KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark-visit-timeout-ms", "3000");//set timeout to 3s
 
             RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=test_kylin_cube_with_slr_empty]");
-            RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=test_kylin_cube_with_slr_left_join_empty]");
+            RemoveBlackoutRealizationsRule.blackList
+                    .add("INVERTED_INDEX[name=test_kylin_cube_with_slr_left_join_empty]");
 
             runTimeoutQueries();
 
         } finally {
             RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=test_kylin_cube_with_slr_empty]");
-            RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=test_kylin_cube_with_slr_left_join_empty]");
+            RemoveBlackoutRealizationsRule.blackList
+                    .remove("INVERTED_INDEX[name=test_kylin_cube_with_slr_left_join_empty]");
 
             KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark-visit-timeout-ms", "300000");//set timeout to default
             BackdoorToggles.cleanToggles();

@@ -24,6 +24,10 @@
 
 package io.kyligence.kap.storage.parquet.steps;
 
+import static io.kyligence.kap.engine.mr.steps.ParquertMRJobUtils.addParquetInputFile;
+
+import java.io.IOException;
+
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -31,11 +35,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.kylin.common.util.HadoopUtil;
 
-import java.io.IOException;
-
-import static io.kyligence.kap.engine.mr.steps.ParquertMRJobUtils.addParquetInputFile;
-
-public class ParquetSpliceTarballJob extends ParquetTarballJob{
+public class ParquetSpliceTarballJob extends ParquetTarballJob {
     @Override
     protected int setJobInputFile(Job job, Path path) throws IOException {
         int ret = 0;

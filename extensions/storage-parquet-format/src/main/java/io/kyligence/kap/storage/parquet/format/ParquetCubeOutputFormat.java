@@ -64,9 +64,11 @@ import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
  */
 public class ParquetCubeOutputFormat extends FileOutputFormat<Text, Text> {
     private static final Logger logger = LoggerFactory.getLogger(ParquetCubeOutputFormat.class);
+
     @Override
     public RecordWriter<Text, Text> getRecordWriter(TaskAttemptContext job) throws IOException, InterruptedException {
-        return new ParquetCubeWriter((FileOutputCommitter) this.getOutputCommitter(job), job, job.getOutputKeyClass(), job.getOutputValueClass());
+        return new ParquetCubeWriter((FileOutputCommitter) this.getOutputCommitter(job), job, job.getOutputKeyClass(),
+                job.getOutputValueClass());
     }
 
     public static class ParquetCubeWriter extends ParquetOrderedFileWriter<Text, Text> {
@@ -75,7 +77,7 @@ public class ParquetCubeOutputFormat extends FileOutputFormat<Text, Text> {
         private long curCuboidId = -1;
         private short curShardId = -1;
         private int curShardCounter = 0;
-        
+
         private Configuration config;
         private KylinConfig kylinConfig;
         private MeasureCodec measureCodec;
@@ -83,7 +85,8 @@ public class ParquetCubeOutputFormat extends FileOutputFormat<Text, Text> {
         private CubeSegment cubeSegment;
         private Path outputDir = null;
 
-        public ParquetCubeWriter(FileOutputCommitter committer, TaskAttemptContext context, Class<?> keyClass, Class<?> valueClass) throws IOException, InterruptedException {
+        public ParquetCubeWriter(FileOutputCommitter committer, TaskAttemptContext context, Class<?> keyClass,
+                Class<?> valueClass) throws IOException, InterruptedException {
             this.config = context.getConfiguration();
             this.outputDir = committer.getTaskAttemptPath(context);
 
@@ -97,7 +100,8 @@ public class ParquetCubeOutputFormat extends FileOutputFormat<Text, Text> {
             logger.info("cubeName is " + cubeName + " and segmentID is " + segmentID);
             cubeInstance = CubeManager.getInstance(kylinConfig).getCube(cubeName);
             cubeSegment = cubeInstance.getSegmentById(segmentID);
-            Preconditions.checkState(cubeSegment.isEnableSharding(), "Cube segment sharding not enabled " + cubeSegment.getName());
+            Preconditions.checkState(cubeSegment.isEnableSharding(),
+                    "Cube segment sharding not enabled " + cubeSegment.getName());
 
             measureCodec = new MeasureCodec(cubeSegment.getCubeDesc().getMeasures());
 
@@ -118,19 +122,19 @@ public class ParquetCubeOutputFormat extends FileOutputFormat<Text, Text> {
                 cleanWriter();
                 curShardId = shardId;
                 curCuboidId = cuboidId;
-                
+
                 curShardCounter = 0;
                 logger.info("meet a new shard: cuboid {} shard {}", curCuboidId, curShardId);
 
             }
-            
+
             curShardCounter++;
 
             if (writer == null) {
                 writer = newWriter();
             }
         }
-        
+
         @Override
         protected void cleanWriter() throws IOException {
             logger.info("Finish written {} lines for cuboid {} shard {}", curShardCounter, curCuboidId, curShardId);
@@ -149,26 +153,32 @@ public class ParquetCubeOutputFormat extends FileOutputFormat<Text, Text> {
 
             // measures
             for (MeasureDesc measure : cubeSegment.getCubeDesc().getMeasures()) {
-                types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, measure.getName()));
+                types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY,
+                        measure.getName()));
             }
 
             MessageType schema = new MessageType(cubeSegment.getName(), types);
-            rawWriter = new ParquetRawWriter.Builder().setRowsPerPage(KapConfig.wrap(cubeSegment.getConfig()).getParquetRowsPerPage())//
-                    .setPagesPerGroup(KapConfig.wrap(cubeSegment.getConfig()).getParquetPagesPerGroup()).setCodecName(KapConfig.wrap(cubeSegment.getConfig()).getParquetPageCompression()).setConf(config).setType(schema).setPath(getOutputPath()).build();
+            rawWriter = new ParquetRawWriter.Builder()
+                    .setRowsPerPage(KapConfig.wrap(cubeSegment.getConfig()).getParquetRowsPerPage())//
+                    .setPagesPerGroup(KapConfig.wrap(cubeSegment.getConfig()).getParquetPagesPerGroup())
+                    .setCodecName(KapConfig.wrap(cubeSegment.getConfig()).getParquetPageCompression()).setConf(config)
+                    .setType(schema).setPath(getOutputPath()).build();
             return rawWriter;
         }
 
         @Override
         protected void writeData(Text key, Text value) throws IOException {
             byte[] valueBytes = value.getBytes().clone(); //on purpose, because parquet writer will cache
-            byte[] keyBody = Arrays.copyOfRange(key.getBytes(), RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN, key.getLength());
+            byte[] keyBody = Arrays.copyOfRange(key.getBytes(), RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN,
+                    key.getLength());
             int[] valueLength = measureCodec.getPeekLength(ByteBuffer.wrap(valueBytes));
             writer.writeRow(keyBody, 0, keyBody.length, valueBytes, valueLength);
         }
 
         @Override
         protected Path getOutputPath() {
-            Path path = new Path(outputDir, new StringBuffer().append(curCuboidId).append("/").append(curShardId).append(".parquet").toString());
+            Path path = new Path(outputDir, new StringBuffer().append(curCuboidId).append("/").append(curShardId)
+                    .append(".parquet").toString());
             return path;
         }
     }

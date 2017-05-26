@@ -45,7 +45,8 @@ public class ParquetPageIndexReader implements Closeable {
         this(inputStream, startOffset, null);
     }
 
-    public ParquetPageIndexReader(FSDataInputStream inputStream, long startOffset, Pair<Integer, Integer> pageRange) throws IOException{
+    public ParquetPageIndexReader(FSDataInputStream inputStream, long startOffset, Pair<Integer, Integer> pageRange)
+            throws IOException {
         this.inputStream = inputStream;
         inputStream.seek(startOffset);
         this.columnNum = inputStream.readInt();

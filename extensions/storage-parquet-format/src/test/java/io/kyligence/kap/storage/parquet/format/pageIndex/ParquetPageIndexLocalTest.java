@@ -67,7 +67,8 @@ public class ParquetPageIndexLocalTest extends LocalFileMetadataTestCase {
     @Test
     public void BuildIndex() throws Exception {
         //        writeRows(ParquetConfig.RowsPerPage);
-        ParquetBundleReader reader = new ParquetBundleReader.Builder().setPath(new Path("/Users/dong/Documents/9.parquet")).setConf(new Configuration()).build();
+        ParquetBundleReader reader = new ParquetBundleReader.Builder()
+                .setPath(new Path("/Users/dong/Documents/9.parquet")).setConf(new Configuration()).build();
         String[] name = { "puttime", "key", "uid", "tbl", "fsize", "hash", "md5", "ip", "mimetype" };
         int[] length = { 8, 8, 8, 8, 8, 8, 8, 8, 8 };
         int[] card = { 1, 1, 1, 1, 1, 1, 1, 1, 1 };
@@ -83,8 +84,10 @@ public class ParquetPageIndexLocalTest extends LocalFileMetadataTestCase {
         ColumnSpec[] specsSub = new ColumnSpec[1];
         specsSub[0] = new ColumnSpec("key", 6, 1, true, 1);
         specsSub[0].setValueEncodingIdentifier('s');
-        ParquetPageIndexWriter indexWriter = new ParquetPageIndexWriter(specs, new FSDataOutputStream(new FileOutputStream("/tmp/new2.parquetindex")), false);
-        ParquetPageIndexWriter indexWriterSub = new ParquetPageIndexWriter(specsSub, new FSDataOutputStream(new FileOutputStream("/tmp/new3.parquetindex")), false);
+        ParquetPageIndexWriter indexWriter = new ParquetPageIndexWriter(specs,
+                new FSDataOutputStream(new FileOutputStream("/tmp/new2.parquetindex")), false);
+        ParquetPageIndexWriter indexWriterSub = new ParquetPageIndexWriter(specsSub,
+                new FSDataOutputStream(new FileOutputStream("/tmp/new3.parquetindex")), false);
 
         int i = 0;
         while (true) {

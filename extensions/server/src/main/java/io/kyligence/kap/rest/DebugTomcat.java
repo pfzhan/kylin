@@ -55,7 +55,8 @@ public class DebugTomcat {
                 System.setProperty("catalina.home", ".");
 
             if (StringUtils.isEmpty(System.getProperty("hdp.version"))) {
-                throw new RuntimeException("No hdp.version set; Please set hdp.version in your jvm option, for example: -Dhdp.version=2.4.0.0-169");
+                throw new RuntimeException(
+                        "No hdp.version set; Please set hdp.version in your jvm option, for example: -Dhdp.version=2.4.0.0-169");
             }
 
             // workaround for job submission from win to linux -- https://issues.apache.org/jira/browse/MAPREDUCE-4052
@@ -115,7 +116,8 @@ public class DebugTomcat {
 
         String webBase = new File("../../webapp/app").getAbsolutePath();
         if (new File(webBase, "WEB-INF").exists() == false) {
-            throw new RuntimeException("In order to launch Kylin web app from IDE, please run:\ncp -rf extensions/server/src/main/webapp/WEB-INF webapp/app/");
+            throw new RuntimeException(
+                    "In order to launch Kylin web app from IDE, please run:\ncp -rf extensions/server/src/main/webapp/WEB-INF webapp/app/");
         }
 
         Tomcat tomcat = new Tomcat();

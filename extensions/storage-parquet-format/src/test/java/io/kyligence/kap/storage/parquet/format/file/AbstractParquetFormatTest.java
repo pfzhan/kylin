@@ -52,7 +52,10 @@ public abstract class AbstractParquetFormatTest extends LocalFileMetadataTestCas
     public AbstractParquetFormatTest() throws IOException {
         path = new Path(qualify("./a.parquet"));
         indexPath = new Path(qualify("./a.parquetindex"));
-        type = new MessageType("test", new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, "key1"), new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "m1"), new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "m2"));
+        type = new MessageType("test",
+                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, "key1"),
+                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "m1"),
+                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 1, "m2"));
     }
 
     protected String qualify(String path) {
@@ -76,7 +79,8 @@ public abstract class AbstractParquetFormatTest extends LocalFileMetadataTestCas
     }
 
     protected void writeRows(int rowCnt) throws Exception {
-        ParquetRawWriter writer = new ParquetRawWriter.Builder().setConf(new Configuration()).setPath(path).setType(type).build();
+        ParquetRawWriter writer = new ParquetRawWriter.Builder().setConf(new Configuration()).setPath(path)
+                .setType(type).build();
         for (int i = 0; i < rowCnt; ++i) {
             writer.writeRow(new byte[] { 1, 2, 3 }, 1, 2, new byte[] { 4, 5 }, new int[] { 1, 1 });
         }
@@ -84,7 +88,8 @@ public abstract class AbstractParquetFormatTest extends LocalFileMetadataTestCas
     }
 
     protected void writeRows(int rowCnt, boolean onIndexV2) throws Exception {
-        ParquetRawWriter writer = new ParquetRawWriter.Builder().setConf(new Configuration()).setPath(path).setType(type).setOnIndexV2(onIndexV2).build();
+        ParquetRawWriter writer = new ParquetRawWriter.Builder().setConf(new Configuration()).setPath(path)
+                .setType(type).setOnIndexV2(onIndexV2).build();
         for (int i = 0; i < rowCnt; ++i) {
             List<Object> row = Lists.newArrayList();
             row.add(Binary.fromConstantByteArray(new Integer(i).toString().getBytes()));

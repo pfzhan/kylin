@@ -51,7 +51,8 @@ public class ConfigOverrideProposer extends AbstractProposer {
 
         long defaultMax = KylinConfig.createKylinConfig(new Properties()).getCubeAggrGroupMaxCombination();
         if (combinationMax > defaultMax) {
-            workCubeDesc.getOverrideKylinProps().put("kylin.cube.aggrgroup.max-combination", Long.toString(combinationMax));
+            workCubeDesc.getOverrideKylinProps().put("kylin.cube.aggrgroup.max-combination",
+                    Long.toString(combinationMax));
         }
     }
 }

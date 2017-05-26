@@ -34,7 +34,6 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
-
 public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(LimitLoginAuthenticationProvider.class);

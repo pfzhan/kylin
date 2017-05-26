@@ -50,8 +50,10 @@ public class SparkDriverServer {
     }
 
     public void start() throws IOException {
-        server = NettyServerBuilder.forPort(port).maxMessageSize(64 * 1024 * 1024).addService(new SparkAppClientService()).addService(new SparkConfService()).build().start();
-        logger.info("Server started, listening on " + port + " with spark instance identifier: " + System.getProperty("kap.spark.identifier"));
+        server = NettyServerBuilder.forPort(port).maxMessageSize(64 * 1024 * 1024)
+                .addService(new SparkAppClientService()).addService(new SparkConfService()).build().start();
+        logger.info("Server started, listening on " + port + " with spark instance identifier: "
+                + System.getProperty("kap.spark.identifier"));
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override

@@ -67,7 +67,8 @@ public class IndexMapCache implements Closeable {
     private boolean needSpill;
     private final double spillThresholdMB = kapConfig.getParquetPageIndexSpillThresholdMB();
 
-    public IndexMapCache(String columnName, boolean needReverse, IKeyEncoding keyEncoding, IValueSetEncoding valueSetEncoding, boolean needSpill) {
+    public IndexMapCache(String columnName, boolean needReverse, IKeyEncoding keyEncoding,
+            IValueSetEncoding valueSetEncoding, boolean needSpill) {
         this.indexMapBuf = Maps.newTreeMap();
         this.dumps = Lists.newLinkedList();
         this.needReverse = needReverse;
@@ -150,7 +151,8 @@ public class IndexMapCache implements Closeable {
                     // the all-in-mem case
                     return new Iterator<Pair<Comparable, ? extends Iterable<? extends Number>>>() {
 
-                        final Iterator<Map.Entry<Comparable, Iterable<? extends Number>>> it = notReverse ? indexMapBuf.entrySet().iterator() : indexMapBuf.descendingMap().entrySet().iterator();
+                        final Iterator<Map.Entry<Comparable, Iterable<? extends Number>>> it = notReverse
+                                ? indexMapBuf.entrySet().iterator() : indexMapBuf.descendingMap().entrySet().iterator();
 
                         @Override
                         public boolean hasNext() {
@@ -212,8 +214,10 @@ public class IndexMapCache implements Closeable {
                 DataOutputStream dosReverse = null;
                 try {
                     dumpedFile = File.createTempFile("COLUMNAR_IDX_SPILL_" + columnName + "_", ".tmp");
-                    logger.info("Columnar index spill: column={}, size={}, file={}", columnName, indexMap.size(), dumpedFile.getAbsolutePath());
-                    dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(dumpedFile), kapConfig.getParquetPageIndexIOBufSize()));
+                    logger.info("Columnar index spill: column={}, size={}, file={}", columnName, indexMap.size(),
+                            dumpedFile.getAbsolutePath());
+                    dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(dumpedFile),
+                            kapConfig.getParquetPageIndexIOBufSize()));
                     dos.writeInt(size);
                     for (Map.Entry<Comparable, Iterable<? extends Number>> entry : indexMap.entrySet()) {
                         keyEncoding.serialize(entry.getKey(), dos);
@@ -221,10 +225,13 @@ public class IndexMapCache implements Closeable {
                     }
 
                     if (needReverse) {
-                        dumpedReverseFile = File.createTempFile("COLUMNAR_IDX_SPILL_REVERSE_" + columnName + "_", ".tmp");
-                        dosReverse = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(dumpedReverseFile), kapConfig.getParquetPageIndexIOBufSize()));
+                        dumpedReverseFile = File.createTempFile("COLUMNAR_IDX_SPILL_REVERSE_" + columnName + "_",
+                                ".tmp");
+                        dosReverse = new DataOutputStream(new BufferedOutputStream(
+                                new FileOutputStream(dumpedReverseFile), kapConfig.getParquetPageIndexIOBufSize()));
                         dosReverse.writeInt(size);
-                        for (Map.Entry<Comparable, Iterable<? extends Number>> entry : indexMap.descendingMap().entrySet()) {
+                        for (Map.Entry<Comparable, Iterable<? extends Number>> entry : indexMap.descendingMap()
+                                .entrySet()) {
                             keyEncoding.serialize(entry.getKey(), dosReverse);
                             valueSetEncoding.serialize(entry.getValue(), dosReverse);
                         }
@@ -253,10 +260,12 @@ public class IndexMapCache implements Closeable {
                 public Iterator<Pair<Comparable, ? extends Iterable<? extends Number>>> iterator() {
                     try {
                         if (spillFile == null || !spillFile.exists()) {
-                            throw new RuntimeException("Spill file not found at: " + (spillFile == null ? "<null>" : spillFile.getAbsolutePath()));
+                            throw new RuntimeException("Spill file not found at: "
+                                    + (spillFile == null ? "<null>" : spillFile.getAbsolutePath()));
                         }
 
-                        dis = new DataInputStream(new BufferedInputStream(new FileInputStream(spillFile), kapConfig.getParquetPageIndexIOBufSize()));
+                        dis = new DataInputStream(new BufferedInputStream(new FileInputStream(spillFile),
+                                kapConfig.getParquetPageIndexIOBufSize()));
                         final int count = dis.readInt();
                         return new Iterator<Pair<Comparable, ? extends Iterable<? extends Number>>>() {
                             int cursorIdx = 0;

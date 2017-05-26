@@ -139,7 +139,8 @@ public class HiveTableExtSampleJob extends CubingJob {
     }
 
     private void addExtractStatsStep(CubingJob parent, TableDesc table, String samplesOutPath) {
-        String statsStepParam = "-table " + table.getIdentity() + " -output " + samplesOutPath + " -frequency " + frequency;
+        String statsStepParam = "-table " + table.getIdentity() + " -output " + samplesOutPath + " -frequency "
+                + frequency;
         MapReduceExecutable collectStatsStep = new MapReduceExecutable();
         collectStatsStep.setName("Extract Stats from Table: " + table.getIdentity());
         collectStatsStep.setMapReduceJobClass(HiveTableExtJob.class);

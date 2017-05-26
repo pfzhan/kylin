@@ -86,9 +86,11 @@ public class RawTableController extends BasicController {
         return desc;
     }
 
-    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getRawTableDesc(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) {
+    public EnvelopeResponse getRawTableDesc(@RequestHeader("Accept-Language") String lang,
+            @PathVariable String cubeName) {
         KapMsgPicker.setMsg(lang);
         KapMessage msg = KapMsgPicker.getMsg();
 
@@ -100,9 +102,11 @@ public class RawTableController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, raw.getRawTableDesc(), "");
     }
 
-    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.DELETE }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.DELETE }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public void deleteRaw(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) throws IOException {
+    public void deleteRaw(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName)
+            throws IOException {
         KapMsgPicker.setMsg(lang);
         KapMessage msg = KapMsgPicker.getMsg();
 
@@ -114,9 +118,11 @@ public class RawTableController extends BasicController {
         rawTableService.deleteRaw(raw);
     }
 
-    @RequestMapping(value = "/{cubeName}/enable", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{cubeName}/enable", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse enableRaw(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) throws IOException {
+    public EnvelopeResponse enableRaw(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName)
+            throws IOException {
         KapMsgPicker.setMsg(lang);
         KapMessage msg = KapMsgPicker.getMsg();
 
@@ -129,9 +135,11 @@ public class RawTableController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, rawTableService.enableRaw(raw), "");
     }
 
-    @RequestMapping(value = "/{cubeName}/disable", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{cubeName}/disable", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse disableRaw(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) throws IOException {
+    public EnvelopeResponse disableRaw(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName)
+            throws IOException {
         KapMsgPicker.setMsg(lang);
         KapMessage msg = KapMsgPicker.getMsg();
 
@@ -144,9 +152,11 @@ public class RawTableController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, rawTableService.disableRaw(raw), "");
     }
 
-    @RequestMapping(value = "/{cubeName}/clone", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{cubeName}/clone", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse rawCube(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName, @RequestBody CubeRequest cubeRequest) throws IOException {
+    public EnvelopeResponse rawCube(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName,
+            @RequestBody CubeRequest cubeRequest) throws IOException {
         KapMsgPicker.setMsg(lang);
         KapMessage msg = KapMsgPicker.getMsg();
 

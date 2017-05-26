@@ -176,7 +176,8 @@ public class BinaryCompareFilter implements BinaryFilter {
     }
 
     // Duplicate code for performance
-    private boolean bytesEqual(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset, int rightLength) {
+    private boolean bytesEqual(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset,
+            int rightLength) {
         if (leftLength != rightLength) {
             return false;
         }
@@ -190,15 +191,18 @@ public class BinaryCompareFilter implements BinaryFilter {
         return true;
     }
 
-    private boolean bytesLessThan(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset, int rightLength) {
+    private boolean bytesLessThan(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset,
+            int rightLength) {
         return bytesLessConsiderEqual(left, leftOffset, leftLength, right, rightOffset, rightLength, false);
     }
 
-    private boolean bytesLessThanEqual(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset, int rightLength) {
+    private boolean bytesLessThanEqual(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset,
+            int rightLength) {
         return bytesLessConsiderEqual(left, leftOffset, leftLength, right, rightOffset, rightLength, true);
     }
 
-    private boolean bytesLessConsiderEqual(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset, int rightLength, boolean equalRetVal) {
+    private boolean bytesLessConsiderEqual(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset,
+            int rightLength, boolean equalRetVal) {
         if (leftLength != rightLength) {
             return false;
         }
@@ -216,15 +220,18 @@ public class BinaryCompareFilter implements BinaryFilter {
         return equalRetVal;
     }
 
-    private boolean bytesGreaterThan(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset, int rightLength) {
+    private boolean bytesGreaterThan(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset,
+            int rightLength) {
         return byteGreaterConsiderEqual(left, leftOffset, leftLength, right, rightOffset, rightLength, false);
     }
 
-    private boolean bytesGreaterThanEqual(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset, int rightLength) {
+    private boolean bytesGreaterThanEqual(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset,
+            int rightLength) {
         return byteGreaterConsiderEqual(left, leftOffset, leftLength, right, rightOffset, rightLength, true);
     }
 
-    private boolean byteGreaterConsiderEqual(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset, int rightLength, boolean equalRetVal) {
+    private boolean byteGreaterConsiderEqual(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset,
+            int rightLength, boolean equalRetVal) {
         if (leftLength != rightLength) {
             return false;
         }
@@ -242,7 +249,8 @@ public class BinaryCompareFilter implements BinaryFilter {
         return equalRetVal;
     }
 
-    private boolean bytesIn(byte[] left, int leftOffset, int leftLength, List<byte[]> right, int rightOffset, int rightLength) {
+    private boolean bytesIn(byte[] left, int leftOffset, int leftLength, List<byte[]> right, int rightOffset,
+            int rightLength) {
         if (candidate == null) {
             candidate = Sets.newHashSet();
             for (byte[] r : right) {

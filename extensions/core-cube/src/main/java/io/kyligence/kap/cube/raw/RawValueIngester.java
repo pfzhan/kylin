@@ -33,7 +33,8 @@ import io.kyligence.kap.metadata.datatype.OrderedBytesStringSerializer;
 public class RawValueIngester {
 
     //TODO: null values are silently transformed to default values
-    public static Object[] buildObjectOf(String[] values, BufferedRawColumnCodec columnCodec, ImmutableBitSet activeCols) {
+    public static Object[] buildObjectOf(String[] values, BufferedRawColumnCodec columnCodec,
+            ImmutableBitSet activeCols) {
         Preconditions.checkArgument(values.length == columnCodec.getColumnsCount());
 
         Object[] objects = new Object[values.length];

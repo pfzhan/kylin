@@ -47,7 +47,8 @@ public class KAPEhcacheTest {
     @Test
     public void basicTest() throws InterruptedException, URISyntaxException, IOException {
 
-        System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
+        System.out.println("runtime used memory: "
+                + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
 
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         URL resource = classLoader.getResource("ehcache-test.xml");
@@ -62,7 +63,8 @@ public class KAPEhcacheTest {
         //Create a Cache specifying its configuration.
         Cache testCache = cacheManager.getCache("SequenceSQLResults");
 
-        System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
+        System.out.println("runtime used memory: "
+                + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
         byte[] blob = null;
         Random random = new Random();
         int msize = 40;
@@ -77,10 +79,12 @@ public class KAPEhcacheTest {
         System.out.println(testCache.getSize());
         System.out.println(testCache.getStatistics().getLocalHeapSizeInBytes());
         System.out.println(testCache.getStatistics().getLocalDiskSizeInBytes());
-        System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
+        System.out.println("runtime used memory: "
+                + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
         System.gc();
         Thread.sleep(5000);
-        System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
+        System.out.println("runtime used memory: "
+                + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
 
         blob = new byte[(1024 * msize * 1024)];//400M
         for (int i = 0; i < blob.length; i++) {
@@ -92,10 +96,12 @@ public class KAPEhcacheTest {
         System.out.println(testCache.getSize());
         System.out.println(testCache.getStatistics().getLocalHeapSizeInBytes());
         System.out.println(testCache.getStatistics().getLocalDiskSizeInBytes());
-        System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
+        System.out.println("runtime used memory: "
+                + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
         System.gc();
         Thread.sleep(5000);
-        System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
+        System.out.println("runtime used memory: "
+                + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
 
         blob = new byte[(1024 * msize * 1024)];//400M
         for (int i = 0; i < blob.length; i++) {
@@ -108,10 +114,12 @@ public class KAPEhcacheTest {
         System.out.println(testCache.getSize());
         System.out.println(testCache.getStatistics().getLocalHeapSizeInBytes());
         System.out.println(testCache.getStatistics().getLocalDiskSizeInBytes());
-        System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
+        System.out.println("runtime used memory: "
+                + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
         System.gc();
         Thread.sleep(5000);
-        System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
+        System.out.println("runtime used memory: "
+                + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
 
         blob = new byte[(1024 * msize * 1024)];//400M
         for (int i = 0; i < blob.length; i++) {
@@ -125,10 +133,12 @@ public class KAPEhcacheTest {
         System.out.println(testCache.getSize());
         System.out.println(testCache.getStatistics().getLocalHeapSizeInBytes());
         System.out.println(testCache.getStatistics().getLocalDiskSizeInBytes());
-        System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
+        System.out.println("runtime used memory: "
+                + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
         System.gc();
         Thread.sleep(5000);
-        System.out.println("runtime used memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
+        System.out.println("runtime used memory: "
+                + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + "M");
 
         cacheManager.shutdown();
     }

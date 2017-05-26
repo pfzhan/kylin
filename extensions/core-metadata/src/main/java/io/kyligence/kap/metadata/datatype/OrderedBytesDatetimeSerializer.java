@@ -26,9 +26,10 @@ package io.kyligence.kap.metadata.datatype;
 
 import java.nio.ByteBuffer;
 
-import io.kyligence.kap.hbase.orderedbytes.OrderedInt64;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.datatype.DataType;
+
+import io.kyligence.kap.hbase.orderedbytes.OrderedInt64;
 
 public class OrderedBytesDatetimeSerializer extends OrderedBytesSerializer<Long> {
 

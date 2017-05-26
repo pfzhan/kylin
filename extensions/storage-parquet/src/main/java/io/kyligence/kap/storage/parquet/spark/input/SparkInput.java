@@ -73,7 +73,8 @@ public class SparkInput {
         //        config.set(ParquetFormatConstants.KYLIN_FILTER_MEASURES_BITSET_MAP, serialize(measureMap));
 
         // Read parquet file and
-        JavaPairRDD<Text, Text> rdd = context.newAPIHadoopFile(path, ParquetTarballFileInputFormat.class, Text.class, Text.class, config);
+        JavaPairRDD<Text, Text> rdd = context.newAPIHadoopFile(path, ParquetTarballFileInputFormat.class, Text.class,
+                Text.class, config);
         JavaRDD<Integer> rdd2 = rdd.map(new Function<Tuple2<Text, Text>, Integer>() {
             @Override
             public Integer call(Tuple2<Text, Text> tuple) throws Exception {
@@ -90,7 +91,8 @@ public class SparkInput {
         }
 
         ImmutableRoaringBitmap iBitmap = null;
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); DataOutputStream dos = new DataOutputStream(baos)) {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                DataOutputStream dos = new DataOutputStream(baos)) {
             mBitmap.serialize(dos);
             dos.flush();
             iBitmap = new ImmutableRoaringBitmap(ByteBuffer.wrap(baos.toByteArray()));

@@ -52,7 +52,9 @@ public class ParquetRawReaderTest extends AbstractParquetFormatTest {
         ParquetRawReader reader = new ParquetRawReader.Builder().setPath(path).setConf(new Configuration()).build();
         GeneralValuesReader valuesReader = reader.getValuesReader(ParquetConfig.PagesPerGroup - 1, 0);
         for (int i = 0; i < ParquetConfig.RowsPerPage; ++i) {
-            Assert.assertArrayEquals(valuesReader.readBytes().getBytes(), new Integer(i + (ParquetConfig.PagesPerGroup - 1) * ParquetConfig.RowsPerPage).toString().getBytes());
+            Assert.assertArrayEquals(valuesReader.readBytes().getBytes(),
+                    new Integer(i + (ParquetConfig.PagesPerGroup - 1) * ParquetConfig.RowsPerPage).toString()
+                            .getBytes());
         }
         Assert.assertNull(valuesReader.readBytes());
         reader.close();
@@ -65,7 +67,9 @@ public class ParquetRawReaderTest extends AbstractParquetFormatTest {
         ParquetRawReader reader = new ParquetRawReader.Builder().setPath(path).setConf(new Configuration()).build();
         GeneralValuesReader valuesReader = reader.getValuesReader(ParquetConfig.PagesPerGroup - 1, 0);
         for (int i = 0; i < ParquetConfig.RowsPerPage; ++i) {
-            Assert.assertArrayEquals(valuesReader.readBytes().getBytes(), new Integer(i + (ParquetConfig.PagesPerGroup - 1) * ParquetConfig.RowsPerPage).toString().getBytes());
+            Assert.assertArrayEquals(valuesReader.readBytes().getBytes(),
+                    new Integer(i + (ParquetConfig.PagesPerGroup - 1) * ParquetConfig.RowsPerPage).toString()
+                            .getBytes());
         }
         Assert.assertNull(valuesReader.readBytes());
         reader.close();

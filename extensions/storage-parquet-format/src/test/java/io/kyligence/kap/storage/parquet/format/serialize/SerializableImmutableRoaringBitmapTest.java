@@ -39,7 +39,8 @@ import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 public class SerializableImmutableRoaringBitmapTest {
     @Test
     public void testDeSer() throws IOException, ClassNotFoundException {
-        SerializableImmutableRoaringBitmap bitmap = new SerializableImmutableRoaringBitmap(ImmutableRoaringBitmap.bitmapOf());
+        SerializableImmutableRoaringBitmap bitmap = new SerializableImmutableRoaringBitmap(
+                ImmutableRoaringBitmap.bitmapOf());
 
         File tmpFile = File.createTempFile("tmp", ".bitmap");
         ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(tmpFile));

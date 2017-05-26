@@ -87,11 +87,13 @@ public class KapGetClusterInfo {
         }
 
         Configuration conf = HadoopUtil.getCurrentConfiguration();
-        String rmWebHost = HAUtil.getConfValueForRMInstance(YarnConfiguration.RM_WEBAPP_ADDRESS, YarnConfiguration.DEFAULT_RM_WEBAPP_ADDRESS, conf);
+        String rmWebHost = HAUtil.getConfValueForRMInstance(YarnConfiguration.RM_WEBAPP_ADDRESS,
+                YarnConfiguration.DEFAULT_RM_WEBAPP_ADDRESS, conf);
         if (HAUtil.isHAEnabled(conf)) {
             YarnConfiguration yarnConf = new YarnConfiguration(conf);
             String active = RMHAUtils.findActiveRMHAId(yarnConf);
-            rmWebHost = HAUtil.getConfValueForRMInstance(HAUtil.addSuffix(YarnConfiguration.RM_WEBAPP_ADDRESS, active), YarnConfiguration.DEFAULT_RM_WEBAPP_ADDRESS, yarnConf);
+            rmWebHost = HAUtil.getConfValueForRMInstance(HAUtil.addSuffix(YarnConfiguration.RM_WEBAPP_ADDRESS, active),
+                    YarnConfiguration.DEFAULT_RM_WEBAPP_ADDRESS, yarnConf);
         }
         if (StringUtils.isEmpty(rmWebHost)) {
             return;
@@ -108,7 +110,8 @@ public class KapGetClusterInfo {
         extractYarnMasterHost();
         String response = getHttpResponse(yarnMasterUrlBase + YARN_METRICS_SUFFIX);
         if (response == null) {
-            throw new IllegalStateException("Can not get yarn matrics with url: " + yarnMasterUrlBase + YARN_METRICS_SUFFIX);
+            throw new IllegalStateException(
+                    "Can not get yarn matrics with url: " + yarnMasterUrlBase + YARN_METRICS_SUFFIX);
         }
 
         JsonNode clusterMetrics = new ObjectMapper().readTree(response).path("clusterMetrics");

@@ -132,7 +132,8 @@ public class ModelingContextBuilder {
         for (TblColRef colRef : measureCols) {
             if (colRef.getType().isNumberFamily()) {
                 // SUM
-                measureFuncs.add(FunctionDesc.newInstance("SUM", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
+                measureFuncs
+                        .add(FunctionDesc.newInstance("SUM", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
             }
         }
 

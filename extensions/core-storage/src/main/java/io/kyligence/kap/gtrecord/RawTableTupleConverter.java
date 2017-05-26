@@ -48,7 +48,8 @@ public class RawTableTupleConverter {
     private final int nSelectedDims;
     private final int nSelectedMetrics;
 
-    public RawTableTupleConverter(RawTableInstance rawTableInstance, Set<TblColRef> selectedDimensions, Set<FunctionDesc> selectedMetrics, TupleInfo returnTupleInfo) {
+    public RawTableTupleConverter(RawTableInstance rawTableInstance, Set<TblColRef> selectedDimensions,
+            Set<FunctionDesc> selectedMetrics, TupleInfo returnTupleInfo) {
         this.tupleInfo = returnTupleInfo;
 
         RawToGridTableMapping mapping = rawTableInstance.getRawTableDesc().getRawToGridTableMapping();

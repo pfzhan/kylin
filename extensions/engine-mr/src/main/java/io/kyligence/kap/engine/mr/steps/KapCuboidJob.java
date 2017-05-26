@@ -154,7 +154,8 @@ public class KapCuboidJob extends AbstractHadoopJob {
 
         if ("FLAT_TABLE".equals(input)) {
             // base cuboid case
-            IMRInput.IMRTableInputFormat flatTableInputFormat = MRUtil.getBatchCubingInputSide(cubeSeg).getFlatTableInputFormat();
+            IMRInput.IMRTableInputFormat flatTableInputFormat = MRUtil.getBatchCubingInputSide(cubeSeg)
+                    .getFlatTableInputFormat();
             flatTableInputFormat.configureJob(job);
             return 1; //return a non-zero value
         } else {

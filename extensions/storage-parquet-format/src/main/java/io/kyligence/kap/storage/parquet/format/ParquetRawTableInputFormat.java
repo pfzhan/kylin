@@ -27,7 +27,6 @@ package io.kyligence.kap.storage.parquet.format;
 import java.io.IOException;
 import java.util.List;
 
-import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -46,8 +45,12 @@ import org.apache.parquet.io.api.Binary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
+
 public class ParquetRawTableInputFormat extends FileInputFormat<Text, Text> {
-    public org.apache.hadoop.mapreduce.RecordReader<Text, Text> createRecordReader(org.apache.hadoop.mapreduce.InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
+    public org.apache.hadoop.mapreduce.RecordReader<Text, Text> createRecordReader(
+            org.apache.hadoop.mapreduce.InputSplit split, TaskAttemptContext context)
+            throws IOException, InterruptedException {
         return new ParquetRawTableReader();
     }
 

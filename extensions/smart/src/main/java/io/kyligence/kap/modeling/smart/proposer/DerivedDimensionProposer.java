@@ -70,7 +70,9 @@ public class DerivedDimensionProposer extends AbstractProposer {
                 workCubeDesc.init(context.getKylinConfig());
 
                 derivedRatio = derivedRatio / 2;
-            } while (workCubeDesc.getRowkey().getRowKeyColumns().length > 63 && workCubeDesc.getRowkey().getRowKeyColumns().length < lastRowkeyNum && retry++ < modelingConfig.getDerivedStrictRetryMax());
+            } while (workCubeDesc.getRowkey().getRowKeyColumns().length > 63
+                    && workCubeDesc.getRowkey().getRowKeyColumns().length < lastRowkeyNum
+                    && retry++ < modelingConfig.getDerivedStrictRetryMax());
         }
     }
 
@@ -100,7 +102,8 @@ public class DerivedDimensionProposer extends AbstractProposer {
                 //                    result.add(newDimensionDesc(workCubeDesc, fkCol.getName(), fkCol.getTableAlias(), fkCol.getIdentity(), null));
                 //                }
                 for (TblColRef derivedCol : origDim.getColumnRefs()) {
-                    DimensionDesc newDim = newDimensionDesc(workCubeDesc, derivedCol.getName(), derivedCol.getTableAlias(), derivedCol.getIdentity(), null);
+                    DimensionDesc newDim = newDimensionDesc(workCubeDesc, derivedCol.getName(),
+                            derivedCol.getTableAlias(), derivedCol.getIdentity(), null);
                     result.add(newDim);
                     colDimMap.put(derivedCol, newDim);
                 }
@@ -124,7 +127,8 @@ public class DerivedDimensionProposer extends AbstractProposer {
                         result.remove(pkDim);
                     }
                     if (fkDim == null) {
-                        DimensionDesc newDim = newDimensionDesc(workCubeDesc, fks[i].getName(), fks[i].getTableAlias(), fks[i].getIdentity(), null);
+                        DimensionDesc newDim = newDimensionDesc(workCubeDesc, fks[i].getName(), fks[i].getTableAlias(),
+                                fks[i].getIdentity(), null);
                         result.add(newDim);
                     }
                 }
@@ -133,7 +137,8 @@ public class DerivedDimensionProposer extends AbstractProposer {
         return result;
     }
 
-    private List<DimensionDesc> convertToDerived(CubeDesc cubeDesc, Collection<DimensionDesc> origDimensions, double derivedRatio) {
+    private List<DimensionDesc> convertToDerived(CubeDesc cubeDesc, Collection<DimensionDesc> origDimensions,
+            double derivedRatio) {
         Set<DimensionDesc> workDimensions = Sets.newHashSet();
         DataModelDesc modelDesc = context.getModelDesc();
 
@@ -212,7 +217,9 @@ public class DerivedDimensionProposer extends AbstractProposer {
                     long colCardinality = context.getColumnsCardinality(dimColRef.getIdentity());
                     double colCardRatio = (double) colCardinality / (double) pKeyCardinality;
                     if (colCardRatio > derivedRatio) {
-                        logger.debug("Found one derived dimension: column={}, cardinality={}, pkCardinality={}, cardinalityRatio={}", tblDim.getColumn(), colCardinality, pKeyCardinality, colCardRatio);
+                        logger.debug(
+                                "Found one derived dimension: column={}, cardinality={}, pkCardinality={}, cardinalityRatio={}",
+                                tblDim.getColumn(), colCardinality, pKeyCardinality, colCardRatio);
                         derivedDimNames.add(tblDim.getColumn());
                     } else {
                         workDimensions.add(tblDim);
@@ -223,7 +230,8 @@ public class DerivedDimensionProposer extends AbstractProposer {
             if (!derivedDimNames.isEmpty()) {
                 // only add one derived dim, ignore all PK and FK dims
                 String dimName = String.format("%s_%s", tblAlias, "DERIVED");
-                workDimensions.add(newDimensionDesc(cubeDesc, "{FK}", tblAlias, dimName, derivedDimNames.toArray(new String[0])));
+                workDimensions.add(
+                        newDimensionDesc(cubeDesc, "{FK}", tblAlias, dimName, derivedDimNames.toArray(new String[0])));
             } else if (!pKeyDimsBackup.isEmpty()) {
                 workDimensions.addAll(fkDimsByTbl.get(tblRef));
                 workDimensions.addAll(pKeyDimsBackup);

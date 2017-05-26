@@ -63,7 +63,8 @@ public class KapBatchMergeJobBuilder extends JobBuilderSupport {
         final String jobId = result.getId();
 
         final List<CubeSegment> mergingSegments = cubeSegment.getCubeInstance().getMergingSegments(cubeSegment);
-        Preconditions.checkState(mergingSegments.size() > 1, "there should be more than 2 segments to merge, target segment " + cubeSegment);
+        Preconditions.checkState(mergingSegments.size() > 1,
+                "there should be more than 2 segments to merge, target segment " + cubeSegment);
         final List<String> mergingSegmentIds = Lists.newArrayList();
         for (CubeSegment merging : mergingSegments) {
             mergingSegmentIds.add(merging.getUuid());
@@ -86,7 +87,8 @@ public class KapBatchMergeJobBuilder extends JobBuilderSupport {
         return result;
     }
 
-    private MergeStatisticsStep createMergeStatisticsStep(CubeSegment seg, List<String> mergingSegmentIds, String mergedStatisticsFolder) {
+    private MergeStatisticsStep createMergeStatisticsStep(CubeSegment seg, List<String> mergingSegmentIds,
+            String mergedStatisticsFolder) {
         MergeStatisticsStep result = new MergeStatisticsStep();
         result.setName(ExecutableConstants.STEP_NAME_MERGE_STATISTICS);
 
@@ -99,12 +101,14 @@ public class KapBatchMergeJobBuilder extends JobBuilderSupport {
     }
 
     private RawTableInstance detectRawTable() {
-        RawTableInstance rawInstance = RawTableManager.getInstance(seg.getConfig()).getAccompanyRawTable(seg.getCubeInstance());
+        RawTableInstance rawInstance = RawTableManager.getInstance(seg.getConfig())
+                .getAccompanyRawTable(seg.getCubeInstance());
         logger.info("Raw table is " + (rawInstance == null ? "not " : "") + "specified in this cubing job " + seg);
         return rawInstance;
     }
 
-    public UpdateRawTableInfoAfterMergeStep createUpdateRawTableInfoAfterMergeStep(List<String> mergingSegmentIds, String jobId) {
+    public UpdateRawTableInfoAfterMergeStep createUpdateRawTableInfoAfterMergeStep(List<String> mergingSegmentIds,
+            String jobId) {
         UpdateRawTableInfoAfterMergeStep result = new UpdateRawTableInfoAfterMergeStep();
         result.setName("Update RawTable Info After Merge");
 

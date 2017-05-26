@@ -46,7 +46,8 @@ import org.slf4j.LoggerFactory;
  */
 public class ParquetWithIndexFileInputFormat extends FileInputFormat<IntWritable, byte[]> {
     @Override
-    public RecordReader createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
+    public RecordReader createRecordReader(InputSplit split, TaskAttemptContext context)
+            throws IOException, InterruptedException {
         return new ParquetWithIndexFileReader();
     }
 

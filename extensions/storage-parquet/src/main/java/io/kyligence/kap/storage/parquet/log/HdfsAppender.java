@@ -162,7 +162,8 @@ public class HdfsAppender extends AppenderSkeleton {
 
                         String sparkuser = System.getenv("SPARK_USER");
                         String user = System.getenv("USER");
-                        logger.info("login user is " + UserGroupInformation.getLoginUser() + " SPARK_USER is " + sparkuser + " USER is " + user);
+                        logger.info("login user is " + UserGroupInformation.getLoginUser() + " SPARK_USER is "
+                                + sparkuser + " USER is " + user);
                         UserGroupInformation childUGI = UserGroupInformation.createRemoteUser(user);
                         // Add tokens to new user so that it may execute its task correctly.
                         childUGI.addCredentials(credentials);
@@ -247,7 +248,9 @@ public class HdfsAppender extends AppenderSkeleton {
     }
 
     private void updateOutPutDir(LoggingEvent event) {
-        outPutPath = parseHdfsWordingDir() + "/" + "spark_logs" + "/" + dateFormat.format(new Date(event.getTimeStamp())) + "/" + "application-" + getApplicationId() + "/" + "executor-" + this.executorId + ".log";
+        outPutPath = parseHdfsWordingDir() + "/" + "spark_logs" + "/"
+                + dateFormat.format(new Date(event.getTimeStamp())) + "/" + "application-" + getApplicationId() + "/"
+                + "executor-" + this.executorId + ".log";
     }
 
     private boolean isDayChanged(LoggingEvent event) {

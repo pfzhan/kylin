@@ -37,8 +37,10 @@ public class BinaryLogicalFilterTest {
     @BeforeClass
     public static void setUp() throws Exception {
         children = new BinaryFilter[2];
-        children[0] = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.EQ, Lists.newArrayList(new byte[] { 0x30 }), 1, 1);
-        children[1] = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.NEQ, Lists.newArrayList(new byte[] { 0x40 }), 2, 1);
+        children[0] = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.EQ,
+                Lists.newArrayList(new byte[] { 0x30 }), 1, 1);
+        children[1] = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.NEQ,
+                Lists.newArrayList(new byte[] { 0x40 }), 2, 1);
     }
 
     @Test
@@ -62,7 +64,8 @@ public class BinaryLogicalFilterTest {
     @Test
     public void mixMatch() throws Exception {
         BinaryFilter andFilter = new BinaryLogicalFilter(TupleFilter.FilterOperatorEnum.AND, children);
-        BinaryFilter equalFilter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.EQ, Lists.newArrayList(new byte[] { 0x50 }), 3, 1);
+        BinaryFilter equalFilter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.EQ,
+                Lists.newArrayList(new byte[] { 0x50 }), 3, 1);
         BinaryFilter orFilter = new BinaryLogicalFilter(TupleFilter.FilterOperatorEnum.OR, andFilter, equalFilter);
 
         Assert.assertTrue(orFilter.isMatch(new byte[] { 0x00, 0x30, 0x44, 0x50 }));

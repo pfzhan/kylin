@@ -86,7 +86,8 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
         shardId = inputPath.getName().substring(0, inputPath.getName().indexOf('.'));
 
         // write to same dir with input
-        outputPath = new Path(FileOutputFormat.getWorkOutputPath(context), RawTableConstants.RawTableDir + "/" + shardId + ".parquet.inv");
+        outputPath = new Path(FileOutputFormat.getWorkOutputPath(context),
+                RawTableConstants.RawTableDir + "/" + shardId + ".parquet.inv");
         rawTableInstance = RawTableManager.getInstance(kylinConfig).getRawTableInstance(cubeName);
         rawTableDesc = rawTableInstance.getRawTableDesc();
 
@@ -112,7 +113,8 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
     }
 
     @Override
-    public void doMap(ByteArrayListWritable key, IntWritable value, Context context) throws IOException, InterruptedException {
+    public void doMap(ByteArrayListWritable key, IntWritable value, Context context)
+            throws IOException, InterruptedException {
         List<byte[]> originValue = key.get();
         List<byte[]> hashedValue = RawTableUtils.hash(originValue);
 

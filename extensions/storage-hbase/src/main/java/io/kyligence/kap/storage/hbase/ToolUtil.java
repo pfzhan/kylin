@@ -37,7 +37,8 @@ public class ToolUtil {
     public static final String HTABLE_UUID_TAG = "UUID";
 
     public static String getHBaseMetaStoreId() throws IOException {
-        try (final HBaseAdmin hbaseAdmin = new HBaseAdmin(HBaseConfiguration.create(HadoopUtil.getCurrentConfiguration()))) {
+        try (final HBaseAdmin hbaseAdmin = new HBaseAdmin(
+                HBaseConfiguration.create(HadoopUtil.getCurrentConfiguration()))) {
             final String metaStoreName = KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix();
             final HTableDescriptor desc = hbaseAdmin.getTableDescriptor(TableName.valueOf(metaStoreName));
             return desc.getValue(HTABLE_UUID_TAG);

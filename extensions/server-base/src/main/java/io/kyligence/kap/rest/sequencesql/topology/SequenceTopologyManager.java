@@ -45,12 +45,14 @@ public class SequenceTopologyManager {
 
         this.expire = expire;
         this.diskResultCache = diskResultCache;
-        cache = CacheBuilder.newBuilder().expireAfterAccess(this.expire, TimeUnit.MILLISECONDS).removalListener(new RemovalListener<Pair<Long, Integer>, Object>() {
-            @Override
-            public void onRemoval(RemovalNotification<Pair<Long, Integer>, Object> notification) {
-                SequenceTopologyManager.this.diskResultCache.cleanEntries(notification.getKey().getFirst() + "_" + notification.getKey().getSecond());
-            }
-        }).build();
+        cache = CacheBuilder.newBuilder().expireAfterAccess(this.expire, TimeUnit.MILLISECONDS)
+                .removalListener(new RemovalListener<Pair<Long, Integer>, Object>() {
+                    @Override
+                    public void onRemoval(RemovalNotification<Pair<Long, Integer>, Object> notification) {
+                        SequenceTopologyManager.this.diskResultCache.cleanEntries(
+                                notification.getKey().getFirst() + "_" + notification.getKey().getSecond());
+                    }
+                }).build();
     }
 
     public SequenceTopology getTopology(long sequenceID, int workerID) {

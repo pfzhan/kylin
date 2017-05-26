@@ -24,18 +24,19 @@
 
 package io.kyligence.kap.storage.parquet.adhoc;
 
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
+import static io.kyligence.kap.storage.parquet.adhoc.util.SqlConvertUtil.doConvert;
+
+import java.sql.Types;
+import java.util.List;
+
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.storage.adhoc.AdHocRunnerBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.sql.Types;
-
-import static io.kyligence.kap.storage.parquet.adhoc.util.SqlConvertUtil.doConvert;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 
 public class AdHocRunnerSparkImpl extends AdHocRunnerBase {
     public static final Logger logger = LoggerFactory.getLogger(AdHocRunnerSparkImpl.class);
@@ -53,12 +54,13 @@ public class AdHocRunnerSparkImpl extends AdHocRunnerBase {
     }
 
     @Override
-    public void executeQuery(String query, List<List<String>> results, List<SelectedColumnMeta> columnMetas) throws Exception {
+    public void executeQuery(String query, List<List<String>> results, List<SelectedColumnMeta> columnMetas)
+            throws Exception {
         SparkJobProtos.AdHocResponse response = client.queryWithAdHoc(doConvert(query));
         int columnCount = response.getColumnsCount();
         List<SparkJobProtos.StructField> fieldList = response.getColumnsList();
 
-        for(SparkJobProtos.Row row: response.getRowsList()) {
+        for (SparkJobProtos.Row row : response.getRowsList()) {
             results.add(row.getDataList());
         }
 
@@ -66,7 +68,9 @@ public class AdHocRunnerSparkImpl extends AdHocRunnerBase {
         for (int i = 0; i < columnCount; ++i) {
             int nullable = fieldList.get(i).getNullable() ? 1 : 0;
             int type = Types.VARCHAR;
-            columnMetas.add(new SelectedColumnMeta(false, false, false, false, nullable, false, Integer.MAX_VALUE, "column" + i, fieldList.get(i).getName(), null, null, null, Integer.MAX_VALUE, 128, type, fieldList.get(i).getDataType(), false, false, false));
+            columnMetas.add(new SelectedColumnMeta(false, false, false, false, nullable, false, Integer.MAX_VALUE,
+                    "column" + i, fieldList.get(i).getName(), null, null, null, Integer.MAX_VALUE, 128, type,
+                    fieldList.get(i).getDataType(), false, false, false));
         }
     }
 }

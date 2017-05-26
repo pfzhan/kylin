@@ -45,7 +45,8 @@ public class BinaryFilterSerializerTest {
 
     @Test
     public void eqFilterSerialize() throws Exception {
-        BinaryCompareFilter filter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.EQ, Lists.newArrayList(new byte[] { 0x02, 0x03 }), 1, 2);
+        BinaryCompareFilter filter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.EQ,
+                Lists.newArrayList(new byte[] { 0x02, 0x03 }), 1, 2);
         Assert.assertTrue(filter.isMatch(new byte[] { 0x00, 0x02, 0x03 }));
         Assert.assertFalse(filter.isMatch(new byte[] { 0x00, 0x02, 0x02 }));
 
@@ -58,7 +59,8 @@ public class BinaryFilterSerializerTest {
 
     @Test
     public void inFilterSerialize() throws Exception {
-        BinaryCompareFilter filter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.IN, Lists.newArrayList(new byte[] { 0x02, 0x03 }, new byte[] { 0x04, 0x05 }), 1, 2);
+        BinaryCompareFilter filter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.IN,
+                Lists.newArrayList(new byte[] { 0x02, 0x03 }, new byte[] { 0x04, 0x05 }), 1, 2);
         Assert.assertTrue(filter.isMatch(new byte[] { 0x00, 0x02, 0x03 }));
         Assert.assertTrue(filter.isMatch(new byte[] { 0x00, 0x04, 0x05 }));
         Assert.assertFalse(filter.isMatch(new byte[] { 0x00, 0x06, 0x07 }));
@@ -73,11 +75,16 @@ public class BinaryFilterSerializerTest {
 
     @Test
     public void mixLogicalCompareFilterSerialize() throws Exception {
-        BinaryCompareFilter equalFilter1 = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.EQ, Lists.newArrayList(new byte[] { 0x02, 0x03 }), 1, 2);
-        BinaryCompareFilter equalFilter2 = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.EQ, Lists.newArrayList(new byte[] { 0x04, 0x05 }), 3, 2);
-        BinaryLogicalFilter andFilter = new BinaryLogicalFilter(TupleFilter.FilterOperatorEnum.AND, equalFilter1, equalFilter2);
-        BinaryCompareFilter equalFilter3 = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.EQ, Lists.newArrayList(new byte[] { 0x06, 0x07 }), 5, 2);
-        BinaryLogicalFilter orFilter = new BinaryLogicalFilter(TupleFilter.FilterOperatorEnum.OR, andFilter, equalFilter3);
+        BinaryCompareFilter equalFilter1 = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.EQ,
+                Lists.newArrayList(new byte[] { 0x02, 0x03 }), 1, 2);
+        BinaryCompareFilter equalFilter2 = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.EQ,
+                Lists.newArrayList(new byte[] { 0x04, 0x05 }), 3, 2);
+        BinaryLogicalFilter andFilter = new BinaryLogicalFilter(TupleFilter.FilterOperatorEnum.AND, equalFilter1,
+                equalFilter2);
+        BinaryCompareFilter equalFilter3 = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.EQ,
+                Lists.newArrayList(new byte[] { 0x06, 0x07 }), 5, 2);
+        BinaryLogicalFilter orFilter = new BinaryLogicalFilter(TupleFilter.FilterOperatorEnum.OR, andFilter,
+                equalFilter3);
 
         Assert.assertTrue(orFilter.isMatch(new byte[] { 0x00, 0x02, 0x03, 0x04, 0x05, 0x00, 0x00 }));
         Assert.assertTrue(orFilter.isMatch(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x07 }));

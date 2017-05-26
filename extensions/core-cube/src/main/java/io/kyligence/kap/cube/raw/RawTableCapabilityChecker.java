@@ -50,7 +50,8 @@ public class RawTableCapabilityChecker {
 
         //raw table cannot handle lookup queries
         if (!StringUtils.equals(digest.factTable, rawTable.getRootFactTable())) {
-            logger.info("Exclude RawTableInstance " + rawTable.getName() + " because the query does not contain fact table");
+            logger.info("Exclude RawTableInstance " + rawTable.getName()
+                    + " because the query does not contain fact table");
             return result;
         }
 
@@ -73,7 +74,8 @@ public class RawTableCapabilityChecker {
             ParameterDesc parameterDesc = functionDesc.getParameter();
             if (parameterDesc != null) {
                 List<TblColRef> neededCols = parameterDesc.getColRefs();
-                if (neededCols.size() > 0 && rawTable.getRawTableDesc().getColumnsInOrder().containsAll(neededCols) && FunctionDesc.FUNC_COUNT_DISTINCT.equals(functionDesc.getExpression())) {
+                if (neededCols.size() > 0 && rawTable.getRawTableDesc().getColumnsInOrder().containsAll(neededCols)
+                        && FunctionDesc.FUNC_COUNT_DISTINCT.equals(functionDesc.getExpression())) {
                     result.influences.add(new CapabilityResult.DimensionAsMeasure(functionDesc));
                 }
             }

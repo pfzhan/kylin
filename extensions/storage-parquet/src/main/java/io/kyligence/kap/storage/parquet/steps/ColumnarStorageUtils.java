@@ -24,31 +24,36 @@
 
 package io.kyligence.kap.storage.parquet.steps;
 
-import io.kyligence.kap.cube.raw.RawTableInstance;
-import io.kyligence.kap.cube.raw.RawTableSegment;
-import io.kyligence.kap.storage.parquet.shaded.com.google.common.base.Splitter;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
 
+import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.cube.raw.RawTableSegment;
+import io.kyligence.kap.storage.parquet.shaded.com.google.common.base.Splitter;
+
 public class ColumnarStorageUtils {
     public static String getSegmentDir(KylinConfig config, RawTableInstance raw, RawTableSegment segment) {
         KapConfig kapConfig = KapConfig.wrap(config);
-        return new StringBuffer(kapConfig.getParquetStoragePath()).append(raw.getUuid()).append("/").append(segment.getUuid()).append("/").toString();
+        return new StringBuffer(kapConfig.getParquetStoragePath()).append(raw.getUuid()).append("/")
+                .append(segment.getUuid()).append("/").toString();
     }
 
     public static String getSegmentDir(KylinConfig config, CubeInstance cube, CubeSegment segment) {
         KapConfig kapConfig = KapConfig.wrap(config);
-        return new StringBuffer(kapConfig.getParquetStoragePath()).append(cube.getUuid()).append("/").append(segment.getUuid()).append("/").toString();
+        return new StringBuffer(kapConfig.getParquetStoragePath()).append(cube.getUuid()).append("/")
+                .append(segment.getUuid()).append("/").toString();
     }
 
     public static String getLocalRawtableDir(KylinConfig config, String remoteFs, RawTableInstance raw) {
-        return new StringBuffer(getLocalParquetStoragePath(config, remoteFs)).append(raw.getUuid()).append("/").toString();
+        return new StringBuffer(getLocalParquetStoragePath(config, remoteFs)).append(raw.getUuid()).append("/")
+                .toString();
     }
 
     public static String getLocalCubeDir(KylinConfig config, String remoteFs, CubeInstance cube) {
-        return new StringBuffer(getLocalParquetStoragePath(config, remoteFs)).append(cube.getUuid()).append("/").toString();
+        return new StringBuffer(getLocalParquetStoragePath(config, remoteFs)).append(cube.getUuid()).append("/")
+                .toString();
     }
 
     private static String getLocalParquetStoragePath(KylinConfig config, String remoteFs) {

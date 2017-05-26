@@ -56,14 +56,14 @@ public class ParquetPageIndexSpliceWriteReadTest extends LocalFileMetadataTestCa
         File indexFile = File.createTempFile("local", "inv");
         FSDataOutputStream outputStream = new FSDataOutputStream(new FileOutputStream(indexFile));
         ParquetPageIndexSpliceWriter writer = new ParquetPageIndexSpliceWriter(outputStream);
-        writer.startDiv(0, new String[] {"name"}, new int[] {1}, new int[] {1}, new boolean[] {true});
-        writer.write(new byte[] {0}, 1);
+        writer.startDiv(0, new String[] { "name" }, new int[] { 1 }, new int[] { 1 }, new boolean[] { true });
+        writer.write(new byte[] { 0 }, 1);
         writer.endDiv();
-        writer.startDiv(1, new String[] {"name"}, new int[] {1}, new int[] {1}, new boolean[] {true});
-        writer.write(new byte[] {1}, 0);
+        writer.startDiv(1, new String[] { "name" }, new int[] { 1 }, new int[] { 1 }, new boolean[] { true });
+        writer.write(new byte[] { 1 }, 0);
         writer.endDiv();
-        writer.startDiv(0, new String[] {"name"}, new int[] {1}, new int[] {1}, new boolean[] {true});
-        writer.write(new byte[] {2}, 2);
+        writer.startDiv(0, new String[] { "name" }, new int[] { 1 }, new int[] { 1 }, new boolean[] { true });
+        writer.write(new byte[] { 2 }, 2);
         writer.endDiv();
         writer.close();
 

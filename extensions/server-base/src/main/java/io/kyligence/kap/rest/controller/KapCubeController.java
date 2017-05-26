@@ -146,15 +146,18 @@ public class KapCubeController extends BasicController implements InitializingBe
         cal.setTime(firstTriggerDate);
 
         if (intervalTimeMillis < 0) {
-            sb.append(cal.get(Calendar.SECOND) + " " + cal.get(Calendar.MINUTE) + " " + cal.get(Calendar.HOUR_OF_DAY) + " " + cal.get(Calendar.DAY_OF_MONTH) + " * ?");
+            sb.append(cal.get(Calendar.SECOND) + " " + cal.get(Calendar.MINUTE) + " " + cal.get(Calendar.HOUR_OF_DAY)
+                    + " " + cal.get(Calendar.DAY_OF_MONTH) + " * ?");
         } else {
             long minutes = intervalTimeMillis / (60 * 1000);
             long hours = minutes / 60;
             long days = hours / 24;
             if (days > 0) {
-                sb.append(cal.get(Calendar.SECOND) + " " + cal.get(Calendar.MINUTE) + " " + cal.get(Calendar.HOUR_OF_DAY) + " " + cal.get(Calendar.DAY_OF_MONTH) + "/" + days + " * ?");
+                sb.append(cal.get(Calendar.SECOND) + " " + cal.get(Calendar.MINUTE) + " "
+                        + cal.get(Calendar.HOUR_OF_DAY) + " " + cal.get(Calendar.DAY_OF_MONTH) + "/" + days + " * ?");
             } else if (hours > 0) {
-                sb.append(cal.get(Calendar.SECOND) + " " + cal.get(Calendar.MINUTE) + " " + cal.get(Calendar.HOUR_OF_DAY) + "/" + hours + " *  * ?");
+                sb.append(cal.get(Calendar.SECOND) + " " + cal.get(Calendar.MINUTE) + " "
+                        + cal.get(Calendar.HOUR_OF_DAY) + "/" + hours + " *  * ?");
             } else if (minutes > 0) {
                 sb.append(cal.get(Calendar.SECOND) + " " + cal.get(Calendar.MINUTE) + "/" + minutes + " * * * ?");
             } else {
@@ -171,9 +174,11 @@ public class KapCubeController extends BasicController implements InitializingBe
      * @throws IOException
      */
 
-    @RequestMapping(value = "/{cubeName}/columnar", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{cubeName}/columnar", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getColumnarInfo(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) {
+    public EnvelopeResponse getColumnarInfo(@RequestHeader("Accept-Language") String lang,
+            @PathVariable String cubeName) {
         KapMsgPicker.setMsg(lang);
         KapMessage msg = KapMsgPicker.getMsg();
 
@@ -210,9 +215,11 @@ public class KapCubeController extends BasicController implements InitializingBe
      * @return number of cuboid, -1 if failed
      */
 
-    @RequestMapping(value = "aggregationgroups/{aggIndex}/cuboid", method = RequestMethod.POST, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "aggregationgroups/{aggIndex}/cuboid", method = RequestMethod.POST, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse calculateCuboidCombinationV2(@RequestHeader("Accept-Language") String lang, @PathVariable int aggIndex, @RequestBody String cubeDescStr) throws IOException {
+    public EnvelopeResponse calculateCuboidCombinationV2(@RequestHeader("Accept-Language") String lang,
+            @PathVariable int aggIndex, @RequestBody String cubeDescStr) throws IOException {
         MsgPicker.setMsg(lang);
 
         CubeDesc cubeDesc = deserializeCubeDescV2(cubeDescStr);
@@ -243,7 +250,8 @@ public class KapCubeController extends BasicController implements InitializingBe
 
     @RequestMapping(value = "", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse updateCubeDescV2(@RequestHeader("Accept-Language") String lang, @RequestBody KapCubeRequest kapCubeRequest) throws IOException, ParseException, SchedulerException {
+    public EnvelopeResponse updateCubeDescV2(@RequestHeader("Accept-Language") String lang,
+            @RequestBody KapCubeRequest kapCubeRequest) throws IOException, ParseException, SchedulerException {
         KapMsgPicker.setMsg(lang);
 
         CubeDesc cubeDesc = deserializeCubeDesc(kapCubeRequest);
@@ -251,7 +259,8 @@ public class KapCubeController extends BasicController implements InitializingBe
         RawTableDesc rawTableDesc = deserializeRawTableDesc(kapCubeRequest);
         SchedulerJobInstance schedulerJobInstance = deserializeSchedulerJobInstance(kapCubeRequest);
 
-        String projectName = (null == kapCubeRequest.getProject()) ? ProjectInstance.DEFAULT_PROJECT_NAME : kapCubeRequest.getProject();
+        String projectName = (null == kapCubeRequest.getProject()) ? ProjectInstance.DEFAULT_PROJECT_NAME
+                : kapCubeRequest.getProject();
 
         ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
         ResourceStore.Checkpoint cp = store.checkpoint();
@@ -263,7 +272,8 @@ public class KapCubeController extends BasicController implements InitializingBe
                 rawTableService.validateRawTableDesc(rawTableDesc);
                 rawTableDesc.setUuid(cubeDesc.getUuid());
                 boolean createNewRawTable = rawTableService.unifyRawTableDesc(rawTableDesc, false);
-                rawTableDesc = rawTableService.updateRawTableToResourceStore(rawTableDesc, projectName, createNewRawTable);
+                rawTableDesc = rawTableService.updateRawTableToResourceStore(rawTableDesc, projectName,
+                        createNewRawTable);
             } else {
                 rawTableService.deleteRawByUuid(cubeDesc.getUuid(), false);
             }
@@ -295,9 +305,11 @@ public class KapCubeController extends BasicController implements InitializingBe
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
-    @RequestMapping(value = "/draft", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/draft", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse updateCubeDescDraftV2(@RequestHeader("Accept-Language") String lang, @RequestBody KapCubeRequest kapCubeRequest) throws IOException {
+    public EnvelopeResponse updateCubeDescDraftV2(@RequestHeader("Accept-Language") String lang,
+            @RequestBody KapCubeRequest kapCubeRequest) throws IOException {
         KapMsgPicker.setMsg(lang);
 
         CubeDesc cubeDesc = deserializeCubeDesc(kapCubeRequest);
@@ -305,7 +317,8 @@ public class KapCubeController extends BasicController implements InitializingBe
         RawTableDesc rawTableDesc = deserializeRawTableDesc(kapCubeRequest);
         SchedulerJobInstance schedulerJobInstance = deserializeSchedulerJobInstance(kapCubeRequest);
 
-        String projectName = (null == kapCubeRequest.getProject()) ? ProjectInstance.DEFAULT_PROJECT_NAME : kapCubeRequest.getProject();
+        String projectName = (null == kapCubeRequest.getProject()) ? ProjectInstance.DEFAULT_PROJECT_NAME
+                : kapCubeRequest.getProject();
 
         ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
         ResourceStore.Checkpoint cp = store.checkpoint();
@@ -317,7 +330,8 @@ public class KapCubeController extends BasicController implements InitializingBe
                 rawTableService.validateRawTableDesc(rawTableDesc);
                 rawTableDesc.setUuid(cubeDesc.getUuid());
                 boolean createNewRawTable = rawTableService.unifyRawTableDesc(rawTableDesc, true);
-                rawTableDesc = rawTableService.updateRawTableToResourceStore(rawTableDesc, projectName, createNewRawTable);
+                rawTableDesc = rawTableService.updateRawTableToResourceStore(rawTableDesc, projectName,
+                        createNewRawTable);
             } else {
                 rawTableService.deleteRawByUuid(cubeDesc.getUuid(), true);
             }
@@ -407,7 +421,8 @@ public class KapCubeController extends BasicController implements InitializingBe
         return schedulerJob;
     }
 
-    private void bindSchedulerJobWithCube(SchedulerJobInstance younger, String cubeName, String cubeUuid) throws IOException {
+    private void bindSchedulerJobWithCube(SchedulerJobInstance younger, String cubeName, String cubeUuid)
+            throws IOException {
         SchedulerJobInstance older = getSchedulerJobByCubeName(cubeName);
         if (null != older)
             schedulerJobService.deleteSchedulerJob(older);
@@ -460,9 +475,11 @@ public class KapCubeController extends BasicController implements InitializingBe
         dataMap.put("jobService", jobService);
         jobDetail.setJobDataMap(dataMap);
 
-        CronExpression cronExp = new CronExpression(createCronExpression(instance.getRepeatInterval(), instance.getScheduledRunTime()));
+        CronExpression cronExp = new CronExpression(
+                createCronExpression(instance.getRepeatInterval(), instance.getScheduledRunTime()));
         CronScheduleBuilder cronScheduleBuilder = CronScheduleBuilder.cronSchedule(cronExp);
-        CronTrigger trigger = TriggerBuilder.newTrigger().startAt(new Date(instance.getScheduledRunTime())).withSchedule(cronScheduleBuilder).build();
+        CronTrigger trigger = TriggerBuilder.newTrigger().startAt(new Date(instance.getScheduledRunTime()))
+                .withSchedule(cronScheduleBuilder).build();
 
         scheduler.scheduleJob(jobDetail, trigger);
     }

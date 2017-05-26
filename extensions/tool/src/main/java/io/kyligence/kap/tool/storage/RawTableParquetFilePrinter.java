@@ -58,12 +58,15 @@ public class RawTableParquetFilePrinter {
         DateTimeSerializer dateSe = new DateTimeSerializer(null);
         StringSerializer stringSe = new StringSerializer(new DataType("A", 1, 1));
         LongSerializer longSe = new LongSerializer(null);
-        IntegerDimEnc.IntegerSerializer intSe = (IntegerDimEnc.IntegerSerializer) new IntegerDimEnc().asDataTypeSerializer();
+        IntegerDimEnc.IntegerSerializer intSe = (IntegerDimEnc.IntegerSerializer) new IntegerDimEnc()
+                .asDataTypeSerializer();
         BigDecimalSerializer bigdecSe = new BigDecimalSerializer(new DataType("B", 1, 1));
 
         //DataTypeSerializer[] ses = new DataTypeSerializer[] { dateSe, dateSe, dateSe, stringSe, stringSe, stringSe, stringSe, stringSe, stringSe, stringSe, stringSe, longSe, bigdecSe, longSe, longSe, intSe, longSe, intSe };
-        DataTypeSerializer[] ses = new DataTypeSerializer[] { dateSe, intSe, intSe, stringSe, intSe, intSe, stringSe, intSe, bigdecSe, intSe };
-        ParquetBundleReader bundleReader = new ParquetBundleReader.Builder().setPath(new Path(path)).setConf(new Configuration()).build();
+        DataTypeSerializer[] ses = new DataTypeSerializer[] { dateSe, intSe, intSe, stringSe, intSe, intSe, stringSe,
+                intSe, bigdecSe, intSe };
+        ParquetBundleReader bundleReader = new ParquetBundleReader.Builder().setPath(new Path(path))
+                .setConf(new Configuration()).build();
         int count = 0;
         while (true) {
             List<Object> data = bundleReader.read();

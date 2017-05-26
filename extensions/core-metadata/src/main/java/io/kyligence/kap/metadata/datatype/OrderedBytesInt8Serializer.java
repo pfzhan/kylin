@@ -26,8 +26,9 @@ package io.kyligence.kap.metadata.datatype;
 
 import java.nio.ByteBuffer;
 
-import io.kyligence.kap.hbase.orderedbytes.OrderedInt8;
 import org.apache.kylin.metadata.datatype.DataType;
+
+import io.kyligence.kap.hbase.orderedbytes.OrderedInt8;
 
 public class OrderedBytesInt8Serializer extends OrderedBytesSerializer<Byte> {
 

@@ -75,7 +75,9 @@ public class ParquetCubeInfoCollectionStep extends AbstractExecutable {
             if (fileStatus.isDirectory()) {
                 for (FileStatus child : fs.listStatus(new Path(inputPath))) {
                     if (isParquetFile(child.getPath())) {
-                        ParquetSpliceReader reader = new ParquetSpliceReader.Builder().setConf(HadoopUtil.getCurrentConfiguration()).setPath(child.getPath()).setColumnsBitmap(Utils.createBitset(1)).build();
+                        ParquetSpliceReader reader = new ParquetSpliceReader.Builder()
+                                .setConf(HadoopUtil.getCurrentConfiguration()).setPath(child.getPath())
+                                .setColumnsBitmap(Utils.createBitset(1)).build();
                         for (String div : reader.getDivs()) {
                             long cuboid = getCuboididFromDiv(div);
                             if (!cuboid2FileMap.containsKey(cuboid)) {

@@ -76,7 +76,8 @@ public class CubeLogManager {
 
     public CubeLog getCubeLog(String cubeName) throws IOException {
 
-        CubeLog result = getStore().getResource(getResourcePath(cubeName), CubeLog.class, CUBE_LOG_STATISTICS_SERIALIZER);
+        CubeLog result = getStore().getResource(getResourcePath(cubeName), CubeLog.class,
+                CUBE_LOG_STATISTICS_SERIALIZER);
         // create new
         if (null == result) {
             result = new CubeLog();

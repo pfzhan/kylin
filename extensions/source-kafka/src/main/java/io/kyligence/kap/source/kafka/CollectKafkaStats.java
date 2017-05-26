@@ -62,7 +62,8 @@ public class CollectKafkaStats {
         for (String broker : brokers.split(",")) {
             Properties property = KafkaConsumerProperties.getInstanceFromEnv().extractKafkaConfigToProperties();
             Consumer consumer = KafkaClient.getKafkaConsumer(broker, "sample", property);
-            logger.info(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG + ":{}", property.get(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG));
+            logger.info(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG + ":{}",
+                    property.get(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG));
             Map<String, List<PartitionInfo>> topics = consumer.listTopics();
 
             String key = identifyClusterByBrokers(brokers);

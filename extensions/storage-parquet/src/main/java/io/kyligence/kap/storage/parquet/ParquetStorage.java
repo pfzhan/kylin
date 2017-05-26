@@ -43,7 +43,8 @@ public class ParquetStorage implements IStorage {
         } else if (realization.getType() == RealizationType.INVERTED_INDEX) {
             return new RawTableStorageQuery((RawTableInstance) realization);
         } else {
-            throw new IllegalStateException("Unsupported realization type for ParquetStorage: " + realization.getType());
+            throw new IllegalStateException(
+                    "Unsupported realization type for ParquetStorage: " + realization.getType());
         }
     }
 

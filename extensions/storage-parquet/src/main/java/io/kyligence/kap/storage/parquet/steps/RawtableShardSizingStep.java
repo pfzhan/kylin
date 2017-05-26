@@ -67,7 +67,8 @@ public class RawtableShardSizingStep extends AbstractExecutable {
         }
     }
 
-    private void rawShardSizing(RawTableInstance rawInstance, RawTableSegment seg, KylinConfig kylinConf) throws IOException {
+    private void rawShardSizing(RawTableInstance rawInstance, RawTableSegment seg, KylinConfig kylinConf)
+            throws IOException {
         KapConfig kapConfig = KapConfig.wrap(kylinConf);
         int mbPerShard = kapConfig.getParquetStorageShardSize();
         int shardMax = kapConfig.getParquetStorageShardMax();
@@ -78,13 +79,16 @@ public class RawtableShardSizingStep extends AbstractExecutable {
         int shardNum = (int) (1.0 * estimatedSize / mbPerShard + 0.99);
 
         if (shardNum > shardMax) {
-            logger.info(String.format("RawTable's estimated size %.2f MB will generate %d regions, reduce to %d", estimatedSize, shardNum, shardMax));
+            logger.info(String.format("RawTable's estimated size %.2f MB will generate %d regions, reduce to %d",
+                    estimatedSize, shardNum, shardMax));
             shardNum = shardMax;
         } else if (shardNum < shardMin) {
-            logger.info(String.format("RawTable's estimated size %.2f MB will generate %d regions, increase to %d", estimatedSize, shardNum, shardMin));
+            logger.info(String.format("RawTable's estimated size %.2f MB will generate %d regions, increase to %d",
+                    estimatedSize, shardNum, shardMin));
             shardNum = shardMin;
         } else {
-            logger.info(String.format("RawTable's estimated size %.2f MB will generate %d regions", estimatedSize, shardNum));
+            logger.info(String.format("RawTable's estimated size %.2f MB will generate %d regions", estimatedSize,
+                    shardNum));
         }
         if (null != rawInstance) {
             seg.setShardNum(shardNum);

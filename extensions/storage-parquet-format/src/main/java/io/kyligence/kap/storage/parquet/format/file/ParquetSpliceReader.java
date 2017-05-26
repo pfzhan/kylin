@@ -51,7 +51,8 @@ public class ParquetSpliceReader {
     private ImmutableRoaringBitmap columns;
     private ParquetMetadata metadata;
 
-    public ParquetSpliceReader(Configuration configuration, Path path, ImmutableRoaringBitmap columns, long fileOffset) throws IOException {
+    public ParquetSpliceReader(Configuration configuration, Path path, ImmutableRoaringBitmap columns, long fileOffset)
+            throws IOException {
         this.configuration = configuration;
         this.path = path;
         this.columns = columns;
@@ -79,7 +80,8 @@ public class ParquetSpliceReader {
      */
     public ParquetBundleReader getDivReader(String div) throws IOException {
         Pair<Integer, Integer> range = divCache.get(div);
-        return new ParquetBundleReader(configuration, path, columns, Utils.createBitset(range.getLeft(), range.getRight()), fileOffset, metadata);
+        return new ParquetBundleReader(configuration, path, columns,
+                Utils.createBitset(range.getLeft(), range.getRight()), fileOffset, metadata);
     }
 
     /**
@@ -94,7 +96,8 @@ public class ParquetSpliceReader {
             Pair<Integer, Integer> range = divCache.get(d);
             logger.info("div: {}, range: {} - {}", d, range.getLeft(), range.getRight());
             if (bitmap == null) {
-                bitmap = new MutableRoaringBitmap(new RoaringBitmap(Utils.createBitset(range.getLeft(), range.getRight())));
+                bitmap = new MutableRoaringBitmap(
+                        new RoaringBitmap(Utils.createBitset(range.getLeft(), range.getRight())));
             } else {
                 bitmap.or(Utils.createBitset(range.getLeft(), range.getRight()));
             }
@@ -103,7 +106,8 @@ public class ParquetSpliceReader {
         if (bitmap == null) {
             return null;
         }
-        return new ParquetBundleReader(configuration, path, columns, bitmap.toImmutableRoaringBitmap(), fileOffset, metadata);
+        return new ParquetBundleReader(configuration, path, columns, bitmap.toImmutableRoaringBitmap(), fileOffset,
+                metadata);
     }
 
     public Pair<Integer, Integer> getDivPageRange(String div) {
@@ -112,7 +116,8 @@ public class ParquetSpliceReader {
 
     public MutableRoaringBitmap getDivPageRangeBitmap(String div) throws IOException {
         Pair<Integer, Integer> range = getDivPageRange(div);
-        MutableRoaringBitmap bitmap = new MutableRoaringBitmap(new RoaringBitmap(Utils.createBitset(range.getLeft(), range.getRight())));
+        MutableRoaringBitmap bitmap = new MutableRoaringBitmap(
+                new RoaringBitmap(Utils.createBitset(range.getLeft(), range.getRight())));
         return bitmap;
     }
 

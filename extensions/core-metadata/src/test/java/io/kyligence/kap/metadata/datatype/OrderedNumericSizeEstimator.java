@@ -26,10 +26,11 @@ package io.kyligence.kap.metadata.datatype;
 
 import java.util.List;
 
-import io.kyligence.kap.hbase.orderedbytes.OrderedNumeric;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.hbase.orderedbytes.OrderedNumeric;
 
 public class OrderedNumericSizeEstimator {
     @Test

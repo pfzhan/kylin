@@ -23,8 +23,10 @@
  */
 package io.kyligence.kap.tool.storage;
 
-import io.kyligence.kap.cube.raw.RawTableInstance;
-import io.kyligence.kap.cube.raw.RawTableManager;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
@@ -42,9 +44,8 @@ import org.apache.kylin.cube.CubeManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.cube.raw.RawTableManager;
 
 public class HDFSCacheUtil {
 
@@ -257,7 +258,8 @@ public class HDFSCacheUtil {
     }
 
     private String getStatDumpString(CachePoolStats stats) {
-        return formatString(stats.getBytesNeeded(), stats.getBytesCached(), stats.getFilesNeeded(), stats.getFilesCached());
+        return formatString(stats.getBytesNeeded(), stats.getBytesCached(), stats.getFilesNeeded(),
+                stats.getFilesCached());
     }
 
     protected static String formatString(long bytesNeeded, long bytesCached, long fileNeeded, long fileCached) {

@@ -142,7 +142,8 @@ public class KapRawTableJob extends AbstractHadoopJob {
 
         if ("FLAT_TABLE".equals(input)) {
             // TODO: getBatchCubingInputSide should support RawTableSegment too
-            IMRInput.IMRTableInputFormat flatTableInputFormat = MRUtil.getBatchCubingInputSide(seg.getCubeSegment()).getFlatTableInputFormat();
+            IMRInput.IMRTableInputFormat flatTableInputFormat = MRUtil.getBatchCubingInputSide(seg.getCubeSegment())
+                    .getFlatTableInputFormat();
             flatTableInputFormat.configureJob(job);
             return 1; //return a non-zero value
         } else

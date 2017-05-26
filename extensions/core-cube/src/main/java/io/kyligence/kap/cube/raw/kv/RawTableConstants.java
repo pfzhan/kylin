@@ -25,7 +25,7 @@
 package io.kyligence.kap.cube.raw.kv;
 
 public class RawTableConstants {
-    
+
     // directory name of rawtable
     public static final String RawTableDir = "RawTable";
 

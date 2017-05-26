@@ -65,7 +65,8 @@ public class CollectModelStatsJob extends CubingJob {
     private String submitter;
     private int frequency;
 
-    public CollectModelStatsJob(String project, String modelName, String submitter, long dateStart, long dateEnd, int frequency) {
+    public CollectModelStatsJob(String project, String modelName, String submitter, long dateStart, long dateEnd,
+            int frequency) {
         this.project = project;
         this.modelName = modelName;
         this.submitter = submitter;
@@ -191,10 +192,13 @@ public class CollectModelStatsJob extends CubingJob {
         return null;
     }
 
-    public AbstractExecutable createStatsFlatTableStep(JobEngineConfig conf, IJoinedFlatTableDesc flatTableDesc, String jobId) {
-        String initStatements = JoinedFlatTable.generateHiveInitStatements(conf.getConfig().getHiveDatabaseForIntermediateTable());
+    public AbstractExecutable createStatsFlatTableStep(JobEngineConfig conf, IJoinedFlatTableDesc flatTableDesc,
+            String jobId) {
+        String initStatements = JoinedFlatTable
+                .generateHiveInitStatements(conf.getConfig().getHiveDatabaseForIntermediateTable());
         final String dropTableHql = JoinedFlatTable.generateDropTableStatement(flatTableDesc);
-        final String createTableHql = JoinedFlatTable.generateCreateTableStatement(flatTableDesc, JobBuilderSupport.getJobWorkingDir(conf, jobId));
+        final String createTableHql = JoinedFlatTable.generateCreateTableStatement(flatTableDesc,
+                JobBuilderSupport.getJobWorkingDir(conf, jobId));
         String whereStatement = dateEnd - dateStart > 0 ? appendWhereStatement(flatTableDesc, dateStart, dateEnd) : "";
         String insertDataHqls = JoinedFlatTable.generateInsertPartialDataStatement(flatTableDesc, whereStatement);
 
@@ -234,7 +238,8 @@ public class CollectModelStatsJob extends CubingJob {
         if (partDesc != null && partDesc.getPartitionDateColumn() != null) {
             if (!(dateStart == 0 && dateEnd == Long.MAX_VALUE)) {
                 whereBuilder.append(hasCondition ? " AND (" : " (");
-                whereBuilder.append(partDesc.getPartitionConditionBuilder().buildDateRangeCondition(partDesc, dateStart, dateEnd));
+                whereBuilder.append(
+                        partDesc.getPartitionConditionBuilder().buildDateRangeCondition(partDesc, dateStart, dateEnd));
                 whereBuilder.append(")\n");
                 hasCondition = true;
             }

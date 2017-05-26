@@ -63,7 +63,8 @@ public class ModelDiagnose {
      * all lookup tables can be built as snapshot.
      * @throws java.io.IOException
      */
-    public static void checkDuplicatePKOnLookups(ModelStats modelStats, DataModelDesc dataModelDesc, KylinConfig config) throws IOException {
+    public static void checkDuplicatePKOnLookups(ModelStats modelStats, DataModelDesc dataModelDesc, KylinConfig config)
+            throws IOException {
         List<ModelStats.DuplicatePK> dupPKList = new ArrayList<>();
         MetadataManager metadataManager = MetadataManager.getInstance(config);
         for (JoinTableDesc fTable : dataModelDesc.getJoinTables()) {
@@ -84,7 +85,8 @@ public class ModelDiagnose {
         ModelStatsManager.getInstance(config).saveModelStats(modelStats);
     }
 
-    private static ModelStats.DuplicatePK checkLookup(TableDesc tableDesc, List<TblColRef> keyColumns, SnapshotTable table) throws IOException {
+    private static ModelStats.DuplicatePK checkLookup(TableDesc tableDesc, List<TblColRef> keyColumns,
+            SnapshotTable table) throws IOException {
         int[] keyIndex = new int[keyColumns.size()];
         String[] keyValues = new String[keyColumns.size()];
         String[] keyNames = new String[keyColumns.size()];
@@ -121,7 +123,8 @@ public class ModelDiagnose {
             if (count > 1) {
                 tmpMap.put(e.getKey(), e.getValue().getCount());
                 if ((float) count / (float) rowCount > DUPLICATION_TOLERANCE && count > DUPLICATION_THRESHOLD) {
-                    throw new IllegalStateException("Duplicate key found and can not be tolerant: (Key=" + e.getKey() + ", Value=" + count + ")");
+                    throw new IllegalStateException("Duplicate key found and can not be tolerant: (Key=" + e.getKey()
+                            + ", Value=" + count + ")");
                 }
             }
         }
@@ -159,7 +162,8 @@ public class ModelDiagnose {
      *
      * Diagnose if it exists possible data skew. Suppose that the root fact table has available stats.
      */
-    public static void checkDataSkewOnFactTable(DataModelDesc dataModelDesc, ModelStats modelStats, KylinConfig config) throws IOException {
+    public static void checkDataSkewOnFactTable(DataModelDesc dataModelDesc, ModelStats modelStats, KylinConfig config)
+            throws IOException {
 
         String factTableName = dataModelDesc.getRootFactTable().getTableIdentity();
         TableExtDesc tableExtDesc = MetadataManager.getInstance(config).getTableExt(factTableName);
@@ -221,7 +225,8 @@ public class ModelDiagnose {
      * Diagnose if the model's flat table is reasonable.
      *
      */
-    public static void checkJointResult(DataModelDesc modelDesc, ModelStats modelStats, KylinConfig config) throws IOException {
+    public static void checkJointResult(DataModelDesc modelDesc, ModelStats modelStats, KylinConfig config)
+            throws IOException {
         String factTableName = modelDesc.getRootFactTable().getTableIdentity();
         float countFact = (float) (MetadataManager.getInstance(config).getTableExt(factTableName).getTotalRows());
         if (countFact <= 0) {
@@ -261,7 +266,8 @@ public class ModelDiagnose {
                 joinResult.setJoinResultValidCount(modelStats.getCounter() - null_counter);
                 joinResult.setJoinResultRatio(ratio);
                 joinResults.add(joinResult);
-                logger.warn("There are too many null value on fact table: {} left join lookup table: {}", factTableName, fTable.getTable());
+                logger.warn("There are too many null value on fact table: {} left join lookup table: {}", factTableName,
+                        fTable.getTable());
             }
         }
         modelStats.setJoinResult(joinResults);

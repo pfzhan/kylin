@@ -24,8 +24,9 @@
 
 package io.kyligence.kap.provision;
 
-import io.kyligence.kap.KAPDeployUtil;
 import org.apache.kylin.job.DeployUtil;
+
+import io.kyligence.kap.KAPDeployUtil;
 
 public class ProvisionWithoutBuild extends org.apache.kylin.provision.BuildCubeWithEngine {
     public static void main(String[] args) throws Exception {

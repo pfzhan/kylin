@@ -86,37 +86,51 @@ public class KapModelController extends BasicController {
      * @return suggestion map
      */
 
-    @RequestMapping(value = "table_suggestions", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "table_suggestions", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getModelSuggestions(@RequestHeader("Accept-Language") String lang, @RequestParam(value = "table") String table) throws IOException {
+    public EnvelopeResponse getModelSuggestions(@RequestHeader("Accept-Language") String lang,
+            @RequestParam(value = "table") String table) throws IOException {
         KapMsgPicker.setMsg(lang);
 
         Map<String, KapModelService.MODEL_COLUMN_SUGGESTION> result = kapModelService.inferSuggestions(table);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @RequestMapping(value = "{project}/{modelName}/stats", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "{project}/{modelName}/stats", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getModelStats(@RequestHeader("Accept-Language") String lang, @PathVariable("project") String project, @PathVariable("modelName") String modelName, @RequestBody KapJobRequest req) throws IOException, JobException {
+    public EnvelopeResponse getModelStats(@RequestHeader("Accept-Language") String lang,
+            @PathVariable("project") String project, @PathVariable("modelName") String modelName,
+            @RequestBody KapJobRequest req) throws IOException, JobException {
         KapMsgPicker.setMsg(lang);
 
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
-        CollectModelStatsJob job = new CollectModelStatsJob(project, modelName, submitter, req.getStartTime(), req.getEndTime(), req.getFrequency());
+        CollectModelStatsJob job = new CollectModelStatsJob(project, modelName, submitter, req.getStartTime(),
+                req.getEndTime(), req.getFrequency());
         String jobId = job.initCollectJob();
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobService.getJobInstance(jobId), "");
     }
 
-    @RequestMapping(value = "{project}/{modelName}/diagnose", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "{project}/{modelName}/diagnose", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getModelDiagnosis(@RequestHeader("Accept-Language") String lang, @PathVariable("project") String project, @PathVariable("modelName") String modelName) throws IOException {
+    public EnvelopeResponse getModelDiagnosis(@RequestHeader("Accept-Language") String lang,
+            @PathVariable("project") String project, @PathVariable("modelName") String modelName) throws IOException {
         KapMsgPicker.setMsg(lang);
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kapModelService.getDiagnoseResult(modelName), "");
     }
 
-    @RequestMapping(value = "get_all_stats", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "get_all_stats", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getAllStats(@RequestHeader("Accept-Language") String lang, @RequestParam(value = "modelName", required = false) String modelName, @RequestParam(value = "projectName", required = false) String projectName, @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset, @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize) throws IOException, JobException {
+    public EnvelopeResponse getAllStats(@RequestHeader("Accept-Language") String lang,
+            @RequestParam(value = "modelName", required = false) String modelName,
+            @RequestParam(value = "projectName", required = false) String projectName,
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
+            throws IOException, JobException {
         KapMsgPicker.setMsg(lang);
 
         List<DataModelDesc> models = modelService.listAllModels(modelName, projectName);

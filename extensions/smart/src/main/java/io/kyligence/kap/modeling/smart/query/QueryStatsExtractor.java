@@ -117,9 +117,12 @@ public class QueryStatsExtractor {
 
         String metaPath = ResourceStore.dumpResources(KylinConfig.getInstanceFromEnv(), dumpResources);
         File metaDir = new File(new URI(metaPath));
-        FileUtils.writeStringToFile(new File(metaDir, cubeInstance.getResourcePath()), JsonUtil.writeValueAsIndentString(cubeInstance), Charset.defaultCharset());
-        FileUtils.writeStringToFile(new File(metaDir, cubeDesc.getResourcePath()), JsonUtil.writeValueAsIndentString(cubeDesc), Charset.defaultCharset());
-        FileUtils.writeStringToFile(new File(metaDir, projectInstance.getResourcePath()), JsonUtil.writeValueAsIndentString(projectInstance), Charset.defaultCharset());
+        FileUtils.writeStringToFile(new File(metaDir, cubeInstance.getResourcePath()),
+                JsonUtil.writeValueAsIndentString(cubeInstance), Charset.defaultCharset());
+        FileUtils.writeStringToFile(new File(metaDir, cubeDesc.getResourcePath()),
+                JsonUtil.writeValueAsIndentString(cubeDesc), Charset.defaultCharset());
+        FileUtils.writeStringToFile(new File(metaDir, projectInstance.getResourcePath()),
+                JsonUtil.writeValueAsIndentString(projectInstance), Charset.defaultCharset());
 
         return metaDir;
     }

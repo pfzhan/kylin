@@ -47,7 +47,7 @@ public class HiveToRawTableMapper<KEYIN> extends RawTableMapperBase<KEYIN, Objec
     public void doMap(KEYIN key, Object value, Context context) throws IOException, InterruptedException {
         Collection<String[]> rowCollection = flatTableInputFormat.parseMapperInput(value);
 
-        for (String[] row: rowCollection) {
+        for (String[] row : rowCollection) {
             //put a record into the shared bytesSplitter
             try {
                 // If split size is not enough

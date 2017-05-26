@@ -54,7 +54,8 @@ public class RawTableScanRangePlanner extends ScanRangePlannerBase {
     protected RawTableSegment rawSegment;
     protected StorageContext context;
 
-    public RawTableScanRangePlanner(RawTableSegment rawSegment, TupleFilter filter, Set<TblColRef> dimensions, Set<TblColRef> groupbyDims, //
+    public RawTableScanRangePlanner(RawTableSegment rawSegment, TupleFilter filter, Set<TblColRef> dimensions,
+            Set<TblColRef> groupbyDims, //
             Collection<FunctionDesc> metrics, StorageContext contex) {
         this.context = contex;
 
@@ -64,7 +65,8 @@ public class RawTableScanRangePlanner extends ScanRangePlannerBase {
         TupleFilter.collectColumns(filter, filterDims);
 
         this.gtInfo = RawTableGridTable.newGTInfo(this.rawSegment.getRawTableInstance().getRawTableDesc());
-        RawToGridTableMapping mapping = this.rawSegment.getRawTableInstance().getRawTableDesc().getRawToGridTableMapping();
+        RawToGridTableMapping mapping = this.rawSegment.getRawTableInstance().getRawTableDesc()
+                .getRawToGridTableMapping();
 
         IGTComparator comp = gtInfo.getCodeSystem().getComparator();
         //start key GTRecord compare to start key GTRecord
@@ -75,7 +77,8 @@ public class RawTableScanRangePlanner extends ScanRangePlannerBase {
         this.rangeStartEndComparator = RecordComparators.getRangeStartEndComparator(comp);
 
         //replace the constant values in filter to dictionary codes 
-        this.gtFilter = GTUtilExd.convertFilterColumnsAndConstantsForRawTable(filter, gtInfo, mapping.getGtOrderColumns(), true, groupbyDims);
+        this.gtFilter = GTUtilExd.convertFilterColumnsAndConstantsForRawTable(filter, gtInfo,
+                mapping.getGtOrderColumns(), true, groupbyDims);
 
         this.gtDimensions = mapping.makeGridTableColumns(dimensions);
         this.gtAggrGroups = mapping.makeGridTableColumns(groupbyDims);
@@ -98,8 +101,10 @@ public class RawTableScanRangePlanner extends ScanRangePlannerBase {
         boolean shouldSkip = this.shouldSkipSegment();
         if (!shouldSkip) {
             scanRequest = new GTScanRequestBuilder().setInfo(gtInfo).setRanges(null).setDimensions(gtDimensions).//
-                    setAggrGroupBy(gtAggrGroups).setAggrMetrics(gtAggrMetrics).setAggrMetricsFuncs(gtAggrFuncs).setFilterPushDown(gtFilter).//
-                    setAllowStorageAggregation(false).setAggCacheMemThreshold(rawSegment.getCubeSegment().getConfig().getQueryCoprocessorMemGB()).//
+                    setAggrGroupBy(gtAggrGroups).setAggrMetrics(gtAggrMetrics).setAggrMetricsFuncs(gtAggrFuncs)
+                    .setFilterPushDown(gtFilter).//
+                    setAllowStorageAggregation(false)
+                    .setAggCacheMemThreshold(rawSegment.getCubeSegment().getConfig().getQueryCoprocessorMemGB()).//
                     setStoragePushDownLimit(context.getFinalPushDownLimit()).createGTScanRequest();
         } else {
             scanRequest = null;
@@ -127,11 +132,15 @@ public class RawTableScanRangePlanner extends ScanRangePlannerBase {
                 int beginCompare = rangeStartEndComparator.comparator.compare(range.begin, gtStartAndEnd.getSecond());
                 int endCompare = rangeStartEndComparator.comparator.compare(gtStartAndEnd.getFirst(), range.end);
 
-                if ((isPartitionColUsingDatetimeEncoding && endCompare <= 0 && beginCompare < 0) || (!isPartitionColUsingDatetimeEncoding && endCompare <= 0 && beginCompare <= 0)) {
+                if ((isPartitionColUsingDatetimeEncoding && endCompare <= 0 && beginCompare < 0)
+                        || (!isPartitionColUsingDatetimeEncoding && endCompare <= 0 && beginCompare <= 0)) {
                     //segment range is [Closed,Open), but segmentStartAndEnd.getSecond() might be rounded when using dict encoding, so use <= when has equals in condition. 
                 } else {
-                    logger.debug("Pre-check partition col filter failed, partitionColRef {}, segment start {}, segment end {}, range begin {}, range end {}", //
-                            gtPartitionCol, makeReadable(gtStartAndEnd.getFirst()), makeReadable(gtStartAndEnd.getSecond()), makeReadable(range.begin), makeReadable(range.end));
+                    logger.debug(
+                            "Pre-check partition col filter failed, partitionColRef {}, segment start {}, segment end {}, range begin {}, range end {}", //
+                            gtPartitionCol, makeReadable(gtStartAndEnd.getFirst()),
+                            makeReadable(gtStartAndEnd.getSecond()), makeReadable(range.begin),
+                            makeReadable(range.end));
                     return true;
                 }
             }

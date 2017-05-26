@@ -55,7 +55,8 @@ public class HDFSResourceStore extends ResourceStore {
     }
 
     @Override
-    protected List<RawResource> getAllResourcesImpl(String folderPath, long timeStart, long timeEndExclusive) throws IOException {
+    protected List<RawResource> getAllResourcesImpl(String folderPath, long timeStart, long timeEndExclusive)
+            throws IOException {
         return null;
     }
 
@@ -86,7 +87,8 @@ public class HDFSResourceStore extends ResourceStore {
     }
 
     @Override
-    protected long checkAndPutResourceImpl(String resPath, byte[] content, long oldTS, long newTS) throws IOException, IllegalStateException {
+    protected long checkAndPutResourceImpl(String resPath, byte[] content, long oldTS, long newTS)
+            throws IOException, IllegalStateException {
         return 0;
     }
 

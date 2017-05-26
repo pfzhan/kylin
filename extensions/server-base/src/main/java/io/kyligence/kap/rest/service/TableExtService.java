@@ -38,8 +38,10 @@ import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampleJob;
 public class TableExtService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public String extractTableExt(String project, String submitter, int frequency, String tableName) throws IOException {
-        HiveTableExtSampleJob hiveTableExtSampleJob = new HiveTableExtSampleJob(project, submitter, tableName, frequency);
+    public String extractTableExt(String project, String submitter, int frequency, String tableName)
+            throws IOException {
+        HiveTableExtSampleJob hiveTableExtSampleJob = new HiveTableExtSampleJob(project, submitter, tableName,
+                frequency);
         return hiveTableExtSampleJob.start();
     }
 

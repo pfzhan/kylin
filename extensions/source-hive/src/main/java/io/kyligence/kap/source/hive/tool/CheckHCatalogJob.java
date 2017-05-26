@@ -58,7 +58,9 @@ public class CheckHCatalogJob extends AbstractHadoopJob implements IKeep {
         int age;
 
         @Override
-        protected void map(WritableComparable key, HCatRecord value, Mapper<WritableComparable, HCatRecord, IntWritable, IntWritable>.Context context) throws IOException, InterruptedException {
+        protected void map(WritableComparable key, HCatRecord value,
+                Mapper<WritableComparable, HCatRecord, IntWritable, IntWritable>.Context context)
+                throws IOException, InterruptedException {
             age = (Integer) value.get(1);
             context.write(new IntWritable(age), new IntWritable(1));
         }
@@ -67,7 +69,9 @@ public class CheckHCatalogJob extends AbstractHadoopJob implements IKeep {
     public static class Reduce extends Reducer<IntWritable, IntWritable, IntWritable, IntWritable> {
 
         @Override
-        protected void reduce(IntWritable key, Iterable<IntWritable> values, Reducer<IntWritable, IntWritable, IntWritable, IntWritable>.Context context) throws IOException, InterruptedException {
+        protected void reduce(IntWritable key, Iterable<IntWritable> values,
+                Reducer<IntWritable, IntWritable, IntWritable, IntWritable>.Context context)
+                throws IOException, InterruptedException {
             int sum = 0;
             Iterator<IntWritable> iter = values.iterator();
             while (iter.hasNext()) {

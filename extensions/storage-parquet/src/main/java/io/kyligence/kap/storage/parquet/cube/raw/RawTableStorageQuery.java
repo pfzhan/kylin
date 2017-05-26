@@ -86,7 +86,10 @@ public class RawTableStorageQuery implements IStorageQuery {
             RawTableSegmentScanner scanner;
             if (rawTableSegment.getCubeSegment().getInputRecords() == 0) {
                 if (!skipZeroInputSegment(rawTableSegment)) {
-                    logger.warn("raw segment {} input record is 0, " + "it may caused by kylin failed to the job counter " + "as the hadoop history server wasn't running", rawTableSegment);
+                    logger.warn(
+                            "raw segment {} input record is 0, " + "it may caused by kylin failed to the job counter "
+                                    + "as the hadoop history server wasn't running",
+                            rawTableSegment);
                 } else {
                     logger.warn("raw segment {} input record is 0, skip it ", rawTableSegment);
                     continue;
@@ -94,10 +97,12 @@ public class RawTableStorageQuery implements IStorageQuery {
             }
 
             Set<TblColRef> groups = new HashSet<>();
-            scanner = new RawTableSegmentScanner(rawTableSegment, dimensions, groups, Collections.<FunctionDesc> emptySet(), sqlDigest.filter, context);
+            scanner = new RawTableSegmentScanner(rawTableSegment, dimensions, groups,
+                    Collections.<FunctionDesc> emptySet(), sqlDigest.filter, context);
             scanners.add(scanner);
         }
-        return new SequentialRawTableTupleIterator(scanners, rawTableInstance, dimensions, metrics, returnTupleInfo, context);
+        return new SequentialRawTableTupleIterator(scanners, rawTableInstance, dimensions, metrics, returnTupleInfo,
+                context);
     }
 
     private void enableStorageLimitIfPossible(SQLDigest sqlDigest, TupleFilter filter, StorageContext context) {
@@ -126,7 +131,8 @@ public class RawTableStorageQuery implements IStorageQuery {
         }
     }
 
-    private void buildDimensionsAndMetrics(SQLDigest sqlDigest, Collection<TblColRef> dimensions, Collection<FunctionDesc> metrics) {
+    private void buildDimensionsAndMetrics(SQLDigest sqlDigest, Collection<TblColRef> dimensions,
+            Collection<FunctionDesc> metrics) {
         for (TblColRef column : sqlDigest.allColumns) {
             dimensions.add(column);
         }

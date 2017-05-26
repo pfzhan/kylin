@@ -24,11 +24,9 @@
 
 package io.kyligence.kap.rest.controller;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import io.kyligence.kap.rest.msg.KapMessage;
-import io.kyligence.kap.rest.msg.KapMsgPicker;
-import io.kyligence.kap.rest.service.KafkaService;
+import java.io.IOException;
+import java.util.List;
+
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -47,8 +45,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.io.IOException;
-import java.util.List;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
+import io.kyligence.kap.rest.service.KafkaService;
 
 @Controller
 @RequestMapping(value = "/kafka")
@@ -60,36 +62,45 @@ public class KafkaController extends BasicController {
 
     @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getTopics(@RequestHeader("Accept-Language") String lang, @RequestBody StreamingRequest streamingRequest) throws IOException {
+    public EnvelopeResponse getTopics(@RequestHeader("Accept-Language") String lang,
+            @RequestBody StreamingRequest streamingRequest) throws IOException {
         KapMsgPicker.setMsg(lang);
 
         KafkaConfig kafkaConfig = deserializeKafkaSchemalDesc(streamingRequest);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kafkaService.getTopics(kafkaConfig), "");
     }
 
-    @RequestMapping(value = "{cluster}/{topic}", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "{cluster}/{topic}", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getMessages(@RequestHeader("Accept-Language") String lang, @PathVariable String cluster, @PathVariable String topic, @RequestBody StreamingRequest streamingRequest) throws IOException {
+    public EnvelopeResponse getMessages(@RequestHeader("Accept-Language") String lang, @PathVariable String cluster,
+            @PathVariable String topic, @RequestBody StreamingRequest streamingRequest) throws IOException {
         KapMsgPicker.setMsg(lang);
 
         KafkaConfig kafkaConfig = deserializeKafkaSchemalDesc(streamingRequest);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kafkaService.getMessages(kafkaConfig), "");
     }
 
-    @RequestMapping(value = "{database}.{tablename}/samples", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "{database}.{tablename}/samples", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getSamples(@RequestHeader("Accept-Language") String lang, @PathVariable String database, @PathVariable String tablename, @RequestBody List<String> messages) throws IOException {
+    public EnvelopeResponse getSamples(@RequestHeader("Accept-Language") String lang, @PathVariable String database,
+            @PathVariable String tablename, @RequestBody List<String> messages) throws IOException {
         KapMsgPicker.setMsg(lang);
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kafkaService.saveSamplesToStreamingTable(database + "." + tablename, messages), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                kafkaService.saveSamplesToStreamingTable(database + "." + tablename, messages), "");
     }
 
-    @RequestMapping(value = "{database}.{tablename}/update_samples", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "{database}.{tablename}/update_samples", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse updateSamples(@RequestHeader("Accept-Language") String lang, @PathVariable String database, @PathVariable String tablename) throws IOException {
+    public EnvelopeResponse updateSamples(@RequestHeader("Accept-Language") String lang, @PathVariable String database,
+            @PathVariable String tablename) throws IOException {
         KapMsgPicker.setMsg(lang);
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kafkaService.updateSamplesByTableName(database + "." + tablename), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                kafkaService.updateSamplesByTableName(database + "." + tablename), "");
     }
 
     private KafkaConfig deserializeKafkaSchemalDesc(StreamingRequest streamingRequest) throws IOException {

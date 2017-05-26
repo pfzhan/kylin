@@ -75,7 +75,8 @@ public class SchedulerJobInstance extends RootPersistentEntity implements Compar
         return SCHEDULER_RESOURCE_ROOT + "/" + schedulerJobName + ".json";
     }
 
-    public SchedulerJobInstance(String name, String project, String relatedCube, long partitionStartTime, long scheduledRunTime, long repeatCount, long curRepeatCount, long repeatInterval, long partitionInterval) {
+    public SchedulerJobInstance(String name, String project, String relatedCube, long partitionStartTime,
+            long scheduledRunTime, long repeatCount, long curRepeatCount, long repeatInterval, long partitionInterval) {
         this.name = name;
         this.project = project;
         this.relatedCube = relatedCube;
@@ -177,7 +178,8 @@ public class SchedulerJobInstance extends RootPersistentEntity implements Compar
 
     @Override
     public String toString() {
-        return "SchedulerJobnstance{" + "name='" + name + '\'' + ", project=" + project + ", relatedCube=" + relatedCube + '\'' + '}';
+        return "SchedulerJobnstance{" + "name='" + name + '\'' + ", project=" + project + ", relatedCube=" + relatedCube
+                + '\'' + '}';
     }
 
     @Override

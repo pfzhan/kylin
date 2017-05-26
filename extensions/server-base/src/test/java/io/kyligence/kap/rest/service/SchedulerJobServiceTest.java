@@ -24,17 +24,17 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.io.IOException;
+import java.util.List;
 
-import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.scheduler.SchedulerJobInstance;
 import org.apache.kylin.job.exception.JobException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.List;
+import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.scheduler.SchedulerJobInstance;
 
 public class SchedulerJobServiceTest extends LocalFileMetadataTestCase {
     @Before
@@ -54,7 +54,8 @@ public class SchedulerJobServiceTest extends LocalFileMetadataTestCase {
 
         schedulerJobService.saveSchedulerJob("schedulerTest1", "default", "ci_left_join_cube",
                 System.currentTimeMillis() + 10000, 0, 1, 0, 1, 1);
-        List<SchedulerJobInstance> schedulerList = schedulerJobService.listAllSchedulerJobs("default", null, Integer.MAX_VALUE, 0);
+        List<SchedulerJobInstance> schedulerList = schedulerJobService.listAllSchedulerJobs("default", null,
+                Integer.MAX_VALUE, 0);
         Assert.assertEquals(1, schedulerList.size());
         schedulerJobService.deleteSchedulerJob("schedulerTest1");
         schedulerList = schedulerJobService.listAllSchedulerJobs("default", null, Integer.MAX_VALUE, 0);

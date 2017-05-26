@@ -352,7 +352,8 @@ public class HiveTableExtSampler implements Serializable {
             sampleValues.put(String.valueOf(rawSampleIndex), next);
             rawSampleIndex++;
         } else {
-            if (updateRawSampleIndex < SAMPLE_RAW_VALUE_NUMBER && counter % (HASH_SEED << (updateRawSampleIndex * 2)) == 0) {
+            if (updateRawSampleIndex < SAMPLE_RAW_VALUE_NUMBER
+                    && counter % (HASH_SEED << (updateRawSampleIndex * 2)) == 0) {
                 sampleValues.put(String.valueOf(updateRawSampleIndex), next);
                 updateRawSampleIndex++;
             }

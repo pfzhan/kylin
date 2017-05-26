@@ -38,7 +38,8 @@ public class ParquetOrderedPageIndexTable extends ParquetPageIndexTable {
 
     private Set<Integer> orderedColumns = Sets.newHashSet();
 
-    public ParquetOrderedPageIndexTable(FileSystem fileSystem, Path parquetIndexPath, FSDataInputStream inputStream, int startOffset, Collection<Integer> orderedColumns) throws IOException {
+    public ParquetOrderedPageIndexTable(FileSystem fileSystem, Path parquetIndexPath, FSDataInputStream inputStream,
+            int startOffset, Collection<Integer> orderedColumns) throws IOException {
         super(fileSystem, parquetIndexPath, inputStream, startOffset);
         this.orderedColumns.addAll(orderedColumns);
     }

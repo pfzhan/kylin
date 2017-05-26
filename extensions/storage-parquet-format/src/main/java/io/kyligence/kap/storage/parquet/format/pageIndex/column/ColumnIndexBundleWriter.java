@@ -55,7 +55,9 @@ public class ColumnIndexBundleWriter implements Closeable {
         this.indexWriters = new ColumnIndexWriter[columnNum];
         for (int col = 0; col < columnNum; col++) {
             File indexFile = getColumnIndexFile(col);
-            indexWriters[col] = new ColumnIndexWriter(columnSpecs[col], new DataOutputStream(new BufferedOutputStream(new FileOutputStream(indexFile), kapConfig.getParquetPageIndexIOBufSize())));
+            indexWriters[col] = new ColumnIndexWriter(columnSpecs[col],
+                    new DataOutputStream(new BufferedOutputStream(new FileOutputStream(indexFile),
+                            kapConfig.getParquetPageIndexIOBufSize())));
         }
     }
 

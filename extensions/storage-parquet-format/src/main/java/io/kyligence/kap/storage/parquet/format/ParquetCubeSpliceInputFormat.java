@@ -61,7 +61,8 @@ import io.kyligence.kap.storage.parquet.format.file.ParquetSpliceReader;
 
 public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
     @Override
-    public RecordReader<Text, Text> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
+    public RecordReader<Text, Text> createRecordReader(InputSplit split, TaskAttemptContext context)
+            throws IOException, InterruptedException {
         return new ParquetCubeSpliceReader();
     }
 
@@ -112,7 +113,8 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
                 requiredCuboids = getAllCuboidsFromFile();
             } else {
                 // <cuboid-id1>,<cuboid-id2>,...,<cuboid-idn>
-                requiredCuboids = context.getConfiguration().get(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS).split(",");
+                requiredCuboids = context.getConfiguration().get(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS)
+                        .split(",");
             }
 
             filterDivs(requiredCuboids);
@@ -178,7 +180,8 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
                 }
                 String div = divs.get(divIndex++);
                 reader = spliceReader.getDivReader(div);
-                rowKeyEncoder = new RowKeyEncoder(cubeSegment, Cuboid.findById(cubeInstance.getDescriptor(), getCuboididFromDiv(div)));
+                rowKeyEncoder = new RowKeyEncoder(cubeSegment,
+                        Cuboid.findById(cubeInstance.getDescriptor(), getCuboididFromDiv(div)));
                 return true;
             }
             return false;

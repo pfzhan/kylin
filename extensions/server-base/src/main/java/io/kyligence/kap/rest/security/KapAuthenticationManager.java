@@ -24,20 +24,20 @@
 
 package io.kyligence.kap.rest.security;
 
-import com.google.common.collect.Lists;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.kylin.rest.service.UserGrantedAuthority;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.Lists;
 
 public class KapAuthenticationManager {
 
     private static final Logger logger = LoggerFactory.getLogger(KapAuthenticationManager.class);
-
 
     private Map<String, UserObj> userObjMap;
 

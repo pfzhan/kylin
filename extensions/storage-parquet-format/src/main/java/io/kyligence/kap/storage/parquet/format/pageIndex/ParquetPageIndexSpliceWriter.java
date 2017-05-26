@@ -49,7 +49,8 @@ public class ParquetPageIndexSpliceWriter implements Closeable {
         return divStarted;
     }
 
-    public void startDiv(long cuboid, String[] columnNames, int[] columnLength, int[] cardinality, boolean[] onlyEQIndex) throws IOException {
+    public void startDiv(long cuboid, String[] columnNames, int[] columnLength, int[] cardinality,
+            boolean[] onlyEQIndex) throws IOException {
         divStarted = true;
         curCuboid = cuboid;
         writer = new ParquetPageIndexWriter(columnNames, columnLength, cardinality, onlyEQIndex, outputStream);

@@ -24,8 +24,11 @@
 
 package io.kyligence.kap.rest;
 
-import io.kyligence.kap.metadata.scheduler.SchedulerJobInstance;
-import io.kyligence.kap.rest.service.SchedulerJobService;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.model.CubeBuildTypeEnum;
 import org.apache.kylin.job.JobInstance;
@@ -45,10 +48,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import io.kyligence.kap.metadata.scheduler.SchedulerJobInstance;
+import io.kyligence.kap.rest.service.SchedulerJobService;
 
 public class ScheduleBuildJob implements Job {
     private static final Logger logger = LoggerFactory.getLogger(ScheduleBuildJob.class);
@@ -61,10 +62,10 @@ public class ScheduleBuildJob implements Job {
         Object authenticationObj = dataMap.get("authentication");
         Scheduler scheduler = context.getScheduler();
 
-        if(!JobService.class.isInstance(jobServiceObj))
+        if (!JobService.class.isInstance(jobServiceObj))
             throw new InternalErrorException("Invalid job service instance.");
 
-        if(!Authentication.class.isInstance(authenticationObj))
+        if (!Authentication.class.isInstance(authenticationObj))
             throw new InternalErrorException("Invalid authentication instance.");
 
         SchedulerJobService schedulerJobService = SchedulerJobService.class.cast(schedulerJobServiceObj);
@@ -81,17 +82,18 @@ public class ScheduleBuildJob implements Job {
             String lastJobUuid = buildingMap.getString(jobName);
             Long startTime = dataMap.getLong("startTime");
             SchedulerJobInstance schedulerInstance = schedulerJobService.getSchedulerJob(jobName);
-            JobInstance  jobInstance = null;
+            JobInstance jobInstance = null;
             CubeInstance cube = jobService.getCubeManager().getCube(schedulerInstance.getRelatedCube());
             boolean schedulerRemoved = false;
 
-            if(lastJobUuid != null) {
+            if (lastJobUuid != null) {
                 jobInstance = jobService.getJobInstance(lastJobUuid);
             }
 
-            if(jobInstance == null || jobInstance.getStatus() == JobStatusEnum.FINISHED ||
-                    jobInstance.getStatus() == JobStatusEnum.DISCARDED || jobInstance.getStatus() == JobStatusEnum.STOPPED) {
-                if(cube.getLatestReadySegment() != null) {
+            if (jobInstance == null || jobInstance.getStatus() == JobStatusEnum.FINISHED
+                    || jobInstance.getStatus() == JobStatusEnum.DISCARDED
+                    || jobInstance.getStatus() == JobStatusEnum.STOPPED) {
+                if (cube.getLatestReadySegment() != null) {
                     startTime = cube.getDateRangeEnd();
                 }
 
@@ -102,9 +104,9 @@ public class ScheduleBuildJob implements Job {
                 //2. partitionInterval == 0: Build till triggered time is selected, use current mill seconds as partition's end time
                 //3. partitionInterval < 0: Append with certain months' time interval
 
-                if(dataMap.getLong("partitionInterval") > 0) {
+                if (dataMap.getLong("partitionInterval") > 0) {
                     endTime = startTime + dataMap.getLong("partitionInterval");
-                } else if(dataMap.getLong("partitionInterval") == 0) {
+                } else if (dataMap.getLong("partitionInterval") == 0) {
                     endTime = System.currentTimeMillis();
                 } else {
                     long monthsNum = -dataMap.getLong("partitionInterval");
@@ -115,17 +117,18 @@ public class ScheduleBuildJob implements Job {
                     endTime = calender.getTimeInMillis();
                 }
 
-                jobInstance = jobService.submitJob(cube, startTime, endTime, 0, 0, null, null, CubeBuildTypeEnum.BUILD, false, authentication.getName());
+                jobInstance = jobService.submitJob(cube, startTime, endTime, 0, 0, null, null, CubeBuildTypeEnum.BUILD,
+                        false, authentication.getName());
                 buildingMap.put(cube.getName(), jobInstance.getUuid());
                 buildingJobs.setJobDataMap(buildingMap);
                 scheduler.deleteJob(JobKey.jobKey("building_jobs"));
                 scheduler.addJob(buildingJobs, true);
-            } else if(jobInstance.getStatus() == JobStatusEnum.ERROR) {
+            } else if (jobInstance.getStatus() == JobStatusEnum.ERROR) {
                 jobService.resumeJob(jobInstance);
             }
 
             // Stop scheduler if has run scheduled times
-            if(schedulerInstance.getCurRepeatCount() == (schedulerInstance.getRepeatCount() - 1)) {
+            if (schedulerInstance.getCurRepeatCount() == (schedulerInstance.getRepeatCount() - 1)) {
                 schedulerJobService.deleteSchedulerJob(jobName);
                 scheduler.deleteJob(JobKey.jobKey(jobName));
                 schedulerRemoved = true;
