@@ -134,20 +134,21 @@
       <el-row class="row_padding">
         <el-col :span="24">Rowkeys</el-col>
       </el-row>
-     <!--  <table class="ksd-common-table">
-        <tr> 
-          <th>{{$t('ID')}}</th>
-          <th>{{$t('column')}}</th>
-          <th>{{$t('encoding')}}</th>
-          <th>{{$t('length')}}</th>
-          <th>{{$t('shardBy')}}</th>
-          <th>{{$t('dataType')}}</th>
-          <th>{{$t('cardinality')}}</th>
-        </tr>
-        <tr v-for="(row, index) in convertedRowkeys" :key="row.column" v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }">
-          <td>{{index+1}}</td>
-          <td><common-tip :tips="row.column" class="drag_bar">{{(row.column)|omit(16,'...')}}</common-tip></td>
-          <td>
+       <el-row>
+         <el-col :span="3">{{$t('ID')}}</el-col>
+         <el-col :span="6">{{$t('column')}}</el-col>
+         <el-col :span="3">{{$t('encoding')}}</el-col>
+         <el-col :span="3">{{$t('length')}}</el-col>
+         <el-col :span="3">{{$t('shardBy')}}</el-col>
+         <el-col :span="3">{{$t('dataType')}}</el-col>
+         <el-col :span="3">{{$t('cardinality')}}</el-col>
+       </el-row>
+       
+        <div class="rowkeyTable"  v-for="(row, index) in convertedRowkeys" :key="row.column" >
+        <el-row>
+          <el-col :span="3">{{index+1}}</el-col>
+          <el-col :span="6">{{row.column}}</el-col>
+          <el-col :span="3">
               <el-select v-model="row.encoding" @change="changeRowkey(row, index)">
                 <el-option
                     v-for="(item, encodingindex) in initEncodingType(row)"
@@ -160,33 +161,50 @@
                   </el-tooltip>
                 </el-option>              
               </el-select>
-          </td>
-          <td> 
+          </el-col>
+          <el-col :span="3"> 
             <el-input v-model="row.valueLength"  :disabled="row.encoding.indexOf('dict')>=0||row.encoding.indexOf('date')>=0||row.encoding.indexOf('time')>=0" @change="changeRowkey(row, index)"></el-input> 
-          </td>
-          <td>
-            <el-select v-model="row.isShardBy" @change="changeRowkey(row, index)">
-              <el-option
-              v-for="item in shardByType"
-              :key="item.name"
-              :label="item.name"
-              :value="item.value">
-              </el-option>
-            </el-select>
-          </td>
-          <td>{{modelDesc.columnsDetail[row.column].datatype}}</td>
-          <td>{{modelDesc.columnsDetail[row.column].cardinality}}</td>
-        </tr>
-      </table> -->
-      <div style="position:relative">
+          </el-col>
+          <el-col :span="3">
+            <keep-alive>
+              <el-select v-model="row.isShardBy" @change="changeRowkey(row, index)">
+                <el-option
+                v-for="item in shardByType"
+                :key="item.name"
+                :label="item.name"
+                :value="item.value">
+                </el-option>
+              </el-select>
+            </keep-alive>
+          </el-col>
+          <el-col :span="3"> {{modelDesc.columnsDetail&&modelDesc.columnsDetail[row.column].datatype}}</el-col>
+          <el-col :span="3">{{modelDesc.columnsDetail&&modelDesc.columnsDetail[row.column].cardinality}}</el-col>
+        </el-row>
+        </div>
+         <div style="position:absolute;top:0;display:none" class="rowkeyTable"   >
+        <el-row class="rowkey" v-for="(row, index) in convertedRowkeys" :key="row.column" v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }">
+          <el-col :span="3">{{index+1}}</el-col>
+          <el-col :span="6">{{row.column}}</el-col>
+          <el-col :span="3">
+          </el-col>
+          <el-col :span="3"> 
+          </el-col>
+          <el-col :span="3">
+          </el-col>
+          <el-col :span="3"></el-col>
+          <el-col :span="3"></el-col>
+        </el-row>
+      </div>
+<!--       </table> -->
+      <!-- <div style="position:relative">
       <ul class="dragBar">
-         <li v-for="(rowkey, index) in convertedRowkeys" v-dragging="{ item: rowkey, list: convertedRowkeys, group: 'rowkey' }"></li>
+         <li v-for="(rowkey, index) in convertedRowkeys" :key="index"  v-dragging="{ item: rowkey, list: convertedRowkeys, group: 'rowkey' }"></li>
       </ul>
       <el-table class="table_margin"
         :data="convertedRowkeys"
         style="width: 100%">
 
-        <el-table-column
+        <el-table-column 
           :label="$t('ID')"
           width="55"
           :allData="convertedRowkeys"
@@ -194,7 +212,7 @@
           align="center">
 
           <template scope="scope" >
-            <el-tag >{{scope.$index+1}}</el-tag>
+            <el-tag v-dragging="{ item: scope, list: convertedRowkeys, group: 'scope' }">{{scope.$index+1}}</el-tag>
           </template>
         </el-table-column>
         <el-table-column
@@ -202,8 +220,7 @@
             :label="$t('column')"
             header-align="center"
            align="center">
-           <!-- <template scope="scope" ><common-tip :tips="scope.column">{{(scope.column)|omit(16,'...')}}</common-tip></template> -->
-        </el-table-column>       
+           </el-table-column>       
         <el-table-column
             :label="$t('encoding')"
             header-align="center"
@@ -268,7 +285,7 @@
            </template>
         </el-table-column>                                        
       </el-table>  
-      </div>
+      </div> -->
     </el-col>
     <el-col :span="6">
     </el-col>
@@ -462,6 +479,9 @@ export default {
       })
     },
     initEncodingType: function (rowkey) {
+      if (!this.modelDesc.columnsDetail[rowkey.column]) {
+        return
+      }
       let datatype = this.modelDesc.columnsDetail[rowkey.column].datatype
       let baseEncodings = loadBaseEncodings(this.$store.state.datasource)
       let filterEncodings = baseEncodings.filterByColumnType(datatype)
@@ -617,6 +637,21 @@ export default {
      line-height: 40px;
      width: 100px;
    }
+ }
+
+ .rowkeyTable {
+  font-size: 12px;
+  display: block;
+  .rowkey{
+    height: 30px;
+    line-height: 30px;
+  }
+    transition: transform .3s;
+    -webkit-user-drag: element;
+    user-select: none;
+  &.dragging{
+      background-color: #fff;
+    }
  }
  .table_margin {
    margin-top: 20px;

@@ -400,6 +400,10 @@ export default {
       if (this.rawTable.tableDetail.columns && this.rawTable.tableDetail.columns.length) {
         saveData.rawTableDescData = JSON.stringify(this.rawTable.tableDetail)
       }
+      var schedulerObj = this.scheduler.desc
+      schedulerObj.name = this.cubeDetail.name
+      schedulerObj.project = this.selected_project
+      saveData.schedulerJobData = JSON.stringify(schedulerObj)
       this.draftCube(saveData).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           try {
@@ -475,6 +479,10 @@ export default {
       if (this.rawTable.tableDetail.columns && this.rawTable.tableDetail.columns.length) {
         saveData.rawTableDescData = JSON.stringify(this.rawTable.tableDetail)
       }
+      var schedulerObj = this.scheduler.desc
+      schedulerObj.name = this.cubeDetail.name
+      schedulerObj.project = this.selected_project
+      saveData.schedulerJobData = JSON.stringify(schedulerObj)
       this.updateCube(saveData).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           this.$message({
