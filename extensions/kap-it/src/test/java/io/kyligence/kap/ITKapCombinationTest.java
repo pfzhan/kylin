@@ -69,9 +69,6 @@ public class ITKapCombinationTest extends ITKapKylinQueryTest {
     public ITKapCombinationTest(String joinType, Boolean rawTableFirst) throws Exception {
 
         ITKapKylinQueryTest.configure(joinType, rawTableFirst);
-
-        ITKapKylinQueryTest.clean();
-
         ITKapKylinQueryTest.setupAll();
     }
 }

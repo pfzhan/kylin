@@ -61,15 +61,15 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
+
         logger.info("setUp in ITKapKylinQueryTest");
-
         configure("left", false);
-
         setupAll();
     }
 
     @AfterClass
     public static void tearDown() throws Exception {
+
         logger.info("tearDown in ITKapKylinQueryTest");
         Candidate.restorePriorities();
         clean();
@@ -100,11 +100,19 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     protected static void setupAll() throws Exception {
         KylinTestBase.setupAll();
 
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.ad-hoc.runner.class-name", "");
+
         //uncomment this to use MockedCubeSparkRPC instead of real spark
         //config.setProperty("kap.storage.columnar.spark-cube-gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
 
         //uncomment this to use MockedRawTableTableRPC instead of real spark
         //config.setProperty("kap.storage.columnar.spark-rawtable-gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
+    }
+
+    protected static void clean() {
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.ad-hoc.runner.class-name", "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
+
+        KylinTestBase.clean();
     }
 
     //inherit query tests from ITKylinQueryTest
