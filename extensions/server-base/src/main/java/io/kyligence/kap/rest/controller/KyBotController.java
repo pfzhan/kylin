@@ -37,6 +37,7 @@ import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -45,6 +46,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
+import io.kyligence.kap.rest.request.KyAccountLoginRequest;
 import io.kyligence.kap.rest.service.KyBotService;
 
 @Controller
@@ -82,11 +84,25 @@ public class KyBotController extends BasicController {
 
     @RequestMapping(value = "/kyaccount/auth", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse checkKyaccountAuth(@RequestParam(value = "username", required = false) String username, @RequestParam(value = "password", required = false) String password, @RequestHeader("Accept-Language") String lang) throws IOException {
+    public EnvelopeResponse checkKyaccountAuth(@RequestBody KyAccountLoginRequest request, @RequestHeader("Accept-Language") String lang) throws IOException {
         KapMsgPicker.setMsg(lang);
         KapMessage msg = KapMsgPicker.getMsg();
 
-        String retCode = kybotService.fetchAndSaveKyAccountToken(username, password);
+        String retCode = kybotService.fetchAndSaveKyAccountToken(request.getUsername(), request.getPassword());
+
+        return new EnvelopeResponse(retCode, retCode.equals(kybotService.SUCC_CODE), null);
+    }
+
+    @RequestMapping(value = "/kyaccount/logout", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse logoutKyAccount(@RequestHeader("Accept-Language") String lang) throws IOException {
+        KapMsgPicker.setMsg(lang);
+        KapMessage msg = KapMsgPicker.getMsg();
+
+        if (kybotService.getDaemonStatus()) {
+            kybotService.stopDaemon();
+        }
+        String retCode = kybotService.removeLocalKyAccountToken();
 
         return new EnvelopeResponse(retCode, retCode.equals(kybotService.SUCC_CODE), null);
     }

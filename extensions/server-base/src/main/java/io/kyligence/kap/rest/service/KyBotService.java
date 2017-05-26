@@ -117,6 +117,15 @@ public class KyBotService extends BasicService {
         throw new RuntimeException("KyBot package not found in directory: " + destDir.getAbsolutePath());
     }
 
+    public String removeLocalKyAccountToken() {
+        System.clearProperty("kap.kyaccount.token");
+        if (FileUtils.deleteQuietly(getLocalTokenFile())) {
+            return SUCC_CODE;
+        } else {
+            return AUTH_FAILURE;
+        }
+    }
+
     public String fetchAndSaveKyAccountToken(String username, String password) {
         DefaultHttpClient client = getHttpClient();
         String url = kapConfig.getKyAccountSiteUrl() + "/uaa/api/tokens";
@@ -136,6 +145,8 @@ public class KyBotService extends BasicService {
                 if (!StringUtils.isEmpty(token)) {
                     File localTokenFile = getLocalTokenFile();
                     FileUtils.write(localTokenFile, token);
+
+                    readLocalKyAccountToken();
 
                     return SUCC_CODE;
                 }
@@ -157,7 +168,7 @@ public class KyBotService extends BasicService {
         if (kapConfig.getKyAccountToken() == null) {
             try {
                 String token = FileUtils.readFileToString(getLocalTokenFile());
-                kapConfig.setKyAccountToken(token);
+                System.setProperty("kap.kyaccount.token", token);
             } catch (IOException e) {
                 logger.error("Failed to read kyaccount token.", e);
             }
