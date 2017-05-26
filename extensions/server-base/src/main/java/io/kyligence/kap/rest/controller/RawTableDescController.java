@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.cube.raw.RawTableDesc.STATUS_DRAFT;
-
 import java.io.IOException;
 import java.util.HashMap;
 
@@ -82,25 +80,25 @@ public class RawTableDescController extends BasicController {
             throw new BadRequestException(String.format(msg.getRAWTABLE_DESC_NOT_FOUND(), rawName));
         }
 
-        if (desc.getStatus() == null) {
+        if (!desc.isDraft()) {
             data.put("rawTable", desc);
 
             String draftName = rawName + "_draft";
             RawTableInstance draftRawTableInstance = rawTableService.getRawTableManager().getRawTableInstance(draftName);
             if (draftRawTableInstance != null) {
                 RawTableDesc draftRawTableDesc = draftRawTableInstance.getRawTableDesc();
-                if (draftRawTableDesc != null && draftRawTableDesc.getStatus() != null && draftRawTableDesc.getStatus().equals(STATUS_DRAFT)) {
+                if (draftRawTableDesc != null && draftRawTableDesc.isDraft()) {
                     data.put("draft", draftRawTableDesc);
                 }
             }
-        } else if (desc.getStatus().equals(STATUS_DRAFT)) {
+        } else {
             data.put("draft", desc);
 
             String parentName = rawName.substring(0, rawName.lastIndexOf("_draft"));
             RawTableInstance parentRawTableInstance = rawTableService.getRawTableManager().getRawTableInstance(parentName);
             if (parentRawTableInstance != null) {
                 RawTableDesc parentRawTableDesc = parentRawTableInstance.getRawTableDesc();
-                if (parentRawTableDesc != null && parentRawTableDesc.getStatus() == null) {
+                if (parentRawTableDesc != null && !parentRawTableDesc.isDraft()) {
                     data.put("rawTable", parentRawTableDesc);
                 }
             }

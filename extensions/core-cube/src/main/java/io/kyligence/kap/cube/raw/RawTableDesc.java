@@ -63,12 +63,10 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     private static final Logger logger = LoggerFactory.getLogger(RawTableDesc.class);
     public static final String RAW_TABLE_DESC_RESOURCE_ROOT = "/raw_table_desc";
 
-    public static final String STATUS_DRAFT = "DRAFT";
-
     @JsonProperty("name")
     private String name;
-    @JsonProperty("status")
-    private String status;
+    @JsonProperty("is_draft")
+    private boolean isDraft;
     @JsonProperty("model_name")
     private String modelName;
     @JsonProperty("columns")
@@ -98,7 +96,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     public static RawTableDesc getCopyOf(RawTableDesc desc) {
         RawTableDesc rawTableDesc = new RawTableDesc();
         rawTableDesc.setName(desc.getName());
-        rawTableDesc.setStatus(desc.getStatus());
+        rawTableDesc.setDraft(desc.isDraft());
         rawTableDesc.setModelName(desc.getModelName());
         rawTableDesc.setOriginColumns(desc.getOriginColumns());
         rawTableDesc.setAutoMergeTimeRanges(desc.getAutoMergeTimeRanges());
@@ -239,12 +237,12 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         this.name = name;
     }
 
-    public String getStatus() {
-        return status;
+    public boolean isDraft() {
+        return isDraft;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public void setDraft(boolean isDraft) {
+        this.isDraft = isDraft;
     }
 
     @Override

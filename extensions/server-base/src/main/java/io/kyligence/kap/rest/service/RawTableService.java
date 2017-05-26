@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.rest.service;
 
-import static io.kyligence.kap.cube.raw.RawTableDesc.STATUS_DRAFT;
-
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
@@ -76,7 +74,7 @@ public class RawTableService extends BasicService {
     @Autowired
     @Qualifier("jobService")
     private JobService jobService;
-    
+
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#raw, 'ADMINISTRATION') or hasPermission(#raw, 'MANAGEMENT')")
     public RawTableInstance updateRawCost(RawTableInstance raw, int cost) throws IOException {
 
@@ -275,9 +273,9 @@ public class RawTableService extends BasicService {
         if (isDraft) {
             name += "_draft";
             desc.setName(name);
-            desc.setStatus(STATUS_DRAFT);
+            desc.setDraft(true);
         } else {
-            desc.setStatus(null);
+            desc.setDraft(false);
         }
 
         RawTableDesc youngerSelf = killSameUuid(desc.getUuid(), name, isDraft);
@@ -301,7 +299,7 @@ public class RawTableService extends BasicService {
             RawTableDesc rawTableDesc = rawTable.getRawTableDesc();
             if (rawTableDesc.getUuid().equals(uuid)) {
                 boolean toDrop = true;
-                boolean sameStatus = sameStatus(rawTableDesc.getStatus(), isDraft);
+                boolean sameStatus = rawTableDesc.isDraft() == isDraft;
                 if (sameStatus && !rawTableDesc.getName().equals(name)) {
                     rename = true;
                 }
@@ -309,7 +307,7 @@ public class RawTableService extends BasicService {
                     youngerSelf = rawTableDesc;
                     toDrop = false;
                 }
-                if (rawTableDesc.getStatus() == null) {
+                if (!rawTableDesc.isDraft()) {
                     official = rawTableDesc;
                     toDrop = false;
                 }
@@ -322,14 +320,6 @@ public class RawTableService extends BasicService {
             throw new BadRequestException(msg.getRAWTABLE_RENAME());
         }
         return youngerSelf;
-    }
-
-    public boolean sameStatus(String status, boolean isDraft) {
-        if (status == null || !status.equals(STATUS_DRAFT)) {
-            return !isDraft;
-        } else {
-            return isDraft;
-        }
     }
 
     public RawTableDesc updateRawTableToResourceStore(RawTableDesc desc, String projectName, boolean createNew) throws IOException {
@@ -364,7 +354,7 @@ public class RawTableService extends BasicService {
         for (RawTableInstance rawTable : rawTables) {
             RawTableDesc rawTableDesc = rawTable.getRawTableDesc();
             if (rawTableDesc.getUuid().equals(uuid)) {
-                boolean sameStatus = sameStatus(rawTableDesc.getStatus(), isDraft);
+                boolean sameStatus = rawTableDesc.isDraft() == isDraft;
                 if (!isDraft || sameStatus) {
                     deleteRaw(rawTable);
                 }

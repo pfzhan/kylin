@@ -201,7 +201,7 @@ public class RawTableManager implements IRealizationProvider {
 
         instance.initConfig(config);
         RawTableDesc desc = instance.getRawTableDesc();
-        if (desc.getStatus() == null)
+        if (!desc.isDraft())
             instance.init(config);
 
         if (StringUtils.isBlank(instance.getName())) {
@@ -217,7 +217,7 @@ public class RawTableManager implements IRealizationProvider {
         // save rawtable resource
         RawTableInstance raw = RawTableInstance.create(cubeName, desc);
         raw.setOwner(owner);
-        if (desc.getStatus() == null)
+        if (!desc.isDraft())
             raw.init(desc.getConfig());
         else
             raw.initConfig(desc.getConfig());
