@@ -1532,8 +1532,6 @@ export default {
           this.editLock = !!(this.modelData && this.modelData.uuid)
           console.log(this.extraoption, 99001)
           var modelData = this.extraoption.is_draft ? data.draft : data.model
-          console.log(modelData)
-          console.log(data)
           if (this.extraoption.is_draft) {
             modelData.name = modelData.name.replace(/_draft/, '')
           }

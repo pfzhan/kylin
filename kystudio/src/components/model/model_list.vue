@@ -345,7 +345,11 @@ export default {
         project: modelInfo.project,
         modelName: modelInfo.name,
         uuid: modelInfo.uuid,
+<<<<<<< 6f334de2186dda65ee3febafa0e96cc2ebd28292
         is_draft: modelInfo.is_draft,
+=======
+        status: modelInfo.is_draft,
+>>>>>>> #488 do not change api key be too casual ok?
         mode: 'view'
       })
     },
