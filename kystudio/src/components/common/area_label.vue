@@ -57,7 +57,7 @@ export default {
     selectTag (e) {
       var ev = ev || window.event
       var target = ev.target || ev.srcElement
-      if (target.className.indexOf('el-tag') >= 0 || target.className.indexOf('el-select__tags-text') >= 0) {
+      if (target && (target.className.indexOf('el-tag') >= 0 || target.className.indexOf('el-select__tags-text') >= 0)) {
         this.$emit('checklabel', target.innerText, target)
       }
     }
@@ -74,6 +74,9 @@ export default {
 
 .unchange{
     display:none;
+}
+.area_label {
+  overflow: hidden;
 }
 .area_label.unchange{
   display: block;

@@ -19,6 +19,13 @@ export default {
       activeName: 'jobs'
     }
   },
+  mounted () {
+    // safari 头部错位的问题
+    this.activeName = 'slowQueries'
+    this.$nextTick(() => {
+      this.activeName = 'jobs'
+    })
+  },
   components: {
     'jobs': jobs,
     'slow_queries': slowQueries

@@ -27,14 +27,14 @@
     <el-table
     border class="table_margin"
     :data="jobsList"
-   
+    style="width:100%"
     highlight-current-row
     @row-click="showLineSteps"
     >
       <el-table-column
-      :label="$t('JobName')">
+      :label="$t('JobName')" width="220">
         <template scope="scope">
-          <i class="el-icon-arrow-right" ></i>{{scope.row.name}}
+          <i class="el-icon-arrow-right" ></i> {{scope.row.name}}
         </template>
       </el-table-column>
       <el-table-column
@@ -53,7 +53,7 @@
       </el-table-column>
       <el-table-column
         :label="$t('LastModifiedTime')"
-        width="220">
+        >
         <template scope="scope">
         {{scope.row.gmtTime}}
         </template>
@@ -238,7 +238,7 @@ export default {
       filterStatus: [],
       filterTimeZone: 1,
       currentPage: 1,
-      interval: null,
+      stCycle: null,
       showStep: false,
       selected_job: {},
       dialogVisible: false,
@@ -267,17 +267,24 @@ export default {
     'job_dialog': jobDialog
   },
   created () {
-    let _this = this
-    _this.loadJobsList({pageSize: pageCount, pageOffset: 0, projectName: _this.project, timeFilter: 2}).then(() => {
-  //    _this.interval = setInterval(function () { _this.refreshJobs() }, 5000)
-    }).catch(() => {
+    var autoFilter = () => {
+      this.stCycle = setTimeout(() => {
+        this.refreshJobs().then(() => {
+          autoFilter()
+        }, () => {
+          autoFilter()
+        })
+      }, 5000)
+    }
+    this.loadJobsList({pageSize: pageCount, pageOffset: 0, projectName: this.project, timeFilter: 2}).then(() => {
+      autoFilter()
     })
   },
   mounted () {
     window.addEventListener('click', this.closeIt)
   },
   beforeDestroy () {
-    window.clearInterval(this.interval)
+    window.clearTimeout(this.stCycle)
     window.removeEventListener('click', this.closeIt)
   },
   computed: {
@@ -354,7 +361,7 @@ export default {
       if (this.filterStatus.length > 0) {
         this.$set(setting, 'status', this.filterStatus)
       }
-      this.loadJobsList(setting)
+      return this.loadJobsList(setting)
     },
     resume: function (job) {
       this.$confirm(this.$t('resumeJob'), '提示', {

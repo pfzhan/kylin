@@ -86,7 +86,7 @@ export default {
   },
   locales: {
     'en': {tip: 'Tip', propertyTip: 'Cube level properties will overwrite configuration in kylin.properties', addConfiguration: 'Add Configuration'},
-    'zh-cn': {tip: '提示', propertyTip: 'Cube级的属性值将会覆盖kylin.prperties中的属性值', addConfiguration: '添加配置'}
+    'zh-cn': {tip: '提示', propertyTip: 'Cube级的属性值将会覆盖kylin.properties中的属性值', addConfiguration: '添加配置'}
   }
 }
 </script>

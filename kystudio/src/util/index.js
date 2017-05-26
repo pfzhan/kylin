@@ -148,7 +148,7 @@ export function objectClone (obj) {
 }
 // 改变对象数组里对象的某个属性
 export function changeObjectArrProperty (objectArr, key, val, newKey, newVal, _this) {
-  var arr = objectClone(objectArr)
+  var arr = objectArr
   let len = arr && arr.length || 0
   let setKey = ''
   let setVal = ''

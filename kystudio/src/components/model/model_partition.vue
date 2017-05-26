@@ -50,7 +50,7 @@
           </el-col>
           <el-col :span="2"></el-col>
           <el-col :span="11">
-            <el-select v-model="checkPartition.time_column" placeholder="请选择" v-show="hasSepatate" :disabled="editMode  || actionMode==='view'">
+            <el-select v-model="checkPartition.time_column" placeholder="请选择" v-show="hasSeparate" :disabled="editMode  || actionMode==='view'">
               <el-option
                 v-for="item in timeColumnsByTable"
                 :key="item.name"
@@ -60,7 +60,7 @@
           </el-select>
           </el-col>
         </el-form-item>
-         <el-form-item label="Time Format" v-show="hasSepatate">
+         <el-form-item label="Time Format" v-show="hasSeparate">
           <el-select v-model="checkPartition.partition_time_format" placeholder="请选择" :disabled="editMode  || actionMode==='view'">
             <el-option
               v-for="item in timeFormat"
@@ -90,7 +90,7 @@ export default {
       columnsD: this.columnsForDate,
       columnsT: this.columnsForTime,
       needSetTime: true,
-      hasSepatate: false,
+      hasSeparate: false,
       statistics: []
     }
   },
@@ -111,7 +111,7 @@ export default {
                 this.$set(this.checkPartition, 'partition_date_format', 'yyyyMMdd')
                 this.$set(this.checkPartition, 'time_format', null)
                 this.$set(this.checkPartition, 'time_column', null)
-                this.hasSepatate = false
+                this.hasSeparate = false
               }
             }
           }
@@ -128,9 +128,9 @@ export default {
   watch: {
     'partitionSelect.partition_time_column' (val) {
       if (val) {
-        this.hasSepatate = true
+        this.hasSeparate = true
       } else {
-        this.hasSepatate = false
+        this.hasSeparate = false
       }
     }
   },

@@ -21,11 +21,12 @@
 
 		    </p>
 		      <div style="padding: 20px;">
-		        <h2 :title="o.name" @click="viewModel(o)">{{o.name|omit(24, '...')}} <icon v-if="!o.status" :name="getModelStatusIcon(o)&&getModelStatusIcon(o).icon" :style="{color:getModelStatusIcon(o) && getModelStatusIcon(o).color}"></icon> <el-progress class="ksd-fright" :width="40" type="circle" v-visible="o.diagnose&&o.diagnose.progress!==0&&o.diagnose.progress!==100" :percentage="o.diagnose && o.diagnose.progress || 0" style="width:150px;"></el-progress></h2>
-
+		        <h2 :title="o.name" >
+          <span @click="viewModel(o)">{{o.name|omit(24, '...')}}</span>
+           <common-tip :tips="o.diagnose&&o.diagnose.messages.join('\n') || '未进行model健康检测'"> <icon v-if="!o.status && o.diagnose && o.diagnose.progress===0" :name="modelHealthStatus[o.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[o.diagnose.heathStatus].color}"></icon></common-tip>
+             <el-progress  :width="20" type="circle" :stroke-width="2" :show-text="false" v-if="!o.status&&o.diagnose&&o.diagnose.progress!==0 && o.diagnose.progress!==100" :percentage="o.diagnose&&o.diagnose.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></h2>
 		        <div class="bottom clearfix">
 		          <time class="time" v-visible="o.owner" style="display:block">{{o.owner}}</time>
-		          <!-- <div class="view_btn" v-on:click="viewModel(o.name)"><icon name="long-arrow-right" style="font-size:20px"></icon></div> -->
 		        </div>
 		      </div>
 		    </el-card>
@@ -117,14 +118,15 @@ import { mapActions } from 'vuex'
 import cubeList from '../cube/cube_list'
 import { pageCount, modelHealthStatus } from '../../config'
 import { transToGmtTime, handleError, handleSuccess } from 'util/business'
-import { changeObjectArrProperty } from 'util/index'
 export default {
   data () {
     return {
+      modelHealthStatus: modelHealthStatus,
       useCubeDialogVisible: false,
       scanRatioDialogVisible: false,
       openCollectRange: false,
       usedCubes: [],
+      stCycleRequest: null,
       modelStaticsRange: 0,
       currentDate: new Date(),
       currentPage: 1,
@@ -184,6 +186,10 @@ export default {
     reloadModelList () {
       this.pageCurrentChange(this.currentPage)
     },
+    reloadDiagnoseList () {
+      var params1 = {pageSize: pageCount, pageOffset: this.currentPage - 1}
+      return this.loadModelDiagnoseList(params1)
+    },
     formatTooltip (val) {
       return val + '%'
     },
@@ -203,20 +209,15 @@ export default {
       // this.loadModels(params)
       // this.loadModelDiagnoseList(params1)
       this.loadModels(params).then(() => {
-        this.loadModelDiagnoseList(params1).then(() => {
-          this.$store.state.model.modelsDianoseList.forEach((d) => {
-            d.progress = Number(d.progress).toFixed(2)
-            changeObjectArrProperty(this.modelsList, 'name', d.modelName, 'diagnose', d, this)
-          })
-        })
+        this.loadModelDiagnoseList(params1)
       })
     },
     sizeChange () {
     },
-    getModelStatusIcon (modelInfo) {
-      var helthInfo = this.getHelthInfo(modelInfo.name)
-      return modelHealthStatus[helthInfo.heathStatus]
-    },
+    // getModelStatusIcon (modelInfo) {
+    //   var helthInfo = this.getHelthInfo(modelInfo.name)
+    //   return modelHealthStatus[helthInfo.heathStatus]
+    // },
     viewModel (modelInfo) {
       console.log(modelInfo)
       this.$emit('addtabs', 'viewmodel', '[view] ' + modelInfo.name, 'modelEdit', {
@@ -466,20 +467,20 @@ export default {
       }
       return []
     },
-    getHelthInfo (modelName) {
-      var len = this.modelHelth && this.modelHelth.length || 0
-      for (var i = 0; i < len; i++) {
-        if (this.modelHelth[i].modelName === modelName) {
-          this.modelHelth[i].progress = this.modelHelth[i].progress ? Number(this.modelHelth[i].progress).toFixed(2) : 0
-          return this.modelHelth[i]
-        }
-      }
-      return {
-        progress: 0,
-        heathStatus: '',
-        message: []
-      }
-    },
+    // getHelthInfo (modelName) {
+    //   var len = this.modelHelth && this.modelHelth.length || 0
+    //   for (var i = 0; i < len; i++) {
+    //     if (this.modelHelth[i].modelName === modelName) {
+    //       this.modelHelth[i].progress = this.modelHelth[i].progress ? Number(this.modelHelth[i].progress).toFixed(2) : 0
+    //       return this.modelHelth[i]
+    //     }
+    //   }
+    //   return {
+    //     progress: 0,
+    //     heathStatus: '',
+    //     message: []
+    //   }
+    // },
     renderHelthStatusIcon () {
     },
     isUsedInCubes (modelName, callback, noUseCallback) {
@@ -504,6 +505,12 @@ export default {
     modelsList () {
       return this.$store.state.model.modelsList.map((m) => {
         m.gmtTime = transToGmtTime(m.last_modified, this)
+        this.$store.state.model.modelsDianoseList.forEach((d) => {
+          if (d.modelName === m.name) {
+            d.progress = d.progress === 0 ? 0 : parseInt(d.progress)
+            m.diagnose = d
+          }
+        })
         return m
       })
     },
@@ -524,14 +531,22 @@ export default {
     if (this.project) {
       params1.project = this.project
     }
-    this.loadModels(params).then(() => {
-      this.loadModelDiagnoseList(params1).then(() => {
-        this.$store.state.model.modelsDianoseList.forEach((d) => {
-          d.progress = Number(d.progress).toFixed(2)
-          changeObjectArrProperty(this.modelsList, 'name', d.modelName, 'diagnose', d, this)
-        })
-      })
+    this.loadModelDiagnoseList(params1).then(() => {
+      this.loadModels(params)
     })
+    var cycleDiagnose = () => {
+      this.stCycleRequest = setTimeout(() => {
+        this.reloadDiagnoseList().then(() => {
+          cycleDiagnose()
+        }, () => {
+          cycleDiagnose()
+        })
+      }, 5000)
+    }
+    cycleDiagnose()
+  },
+  beforeDestroy () {
+    window.clearTimeout(this.stCycleRequest)
   }
 }
 </script>

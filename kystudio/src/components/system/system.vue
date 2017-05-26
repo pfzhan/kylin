@@ -4,22 +4,24 @@
       <el-col :span="9">  
             <span class="server-type">{{$t('ServerConfig')}}</span>
             <el-button  type="primary" class="btn-refresh" @click="refreshConfig" size="mini"><icon name="refresh"></icon></el-button>
-          <el-input class="textarea-wrap"
+            <editor class="ksd-mt-4" v-model="getServerConfig" lang="sql" theme="chrome" width="100%" height="400" useWrapMode="true"></editor>
+          <!-- <el-input class="textarea-wrap"
           type="textarea"
           :rows="18"
           :readonly="true"
           v-model="getServerConfig">
-          </el-input>
+          </el-input> -->
       </el-col>
       <el-col :span="9">
             <span class="server-type">{{$t('ServerEnvironment')}}</span>
             <el-button  type="primary" class="btn-refresh" @click="refreshEnv" size="mini"><icon name="refresh"></icon></el-button>
-          <el-input
+            <editor class="ksd-mt-4" v-model="getServerEnvironment" lang="sql" theme="chrome" width="100%" height="400"></editor>
+         <!--  <el-input
           type="textarea"
           :rows="18"
           :readonly="true"
           v-model="getServerEnvironment">
-          </el-input>
+          </el-input> -->
       </el-col>
       <el-col :span="6" class="action-wrap">
         <p style="font-size:20px;">{{$t('action')}}</p>
@@ -59,6 +61,7 @@ import { mapActions } from 'vuex'
 import { handleSuccess, handleError } from '../../util/business'
 import setConfig from './set_config'
 import diagnosis from './diagnosis'
+import editor from 'vue2-ace-editor'
 export default {
   data () {
     return {
@@ -69,7 +72,8 @@ export default {
   },
   components: {
     'set_config': setConfig,
-    'diagnosis': diagnosis
+    'diagnosis': diagnosis,
+    editor
   },
   methods: {
     ...mapActions({
@@ -188,10 +192,10 @@ export default {
   },
   computed: {
     getServerConfig () {
-      return JSON.stringify(this.$store.state.system.serverConfig)
+      return JSON.stringify(this.$store.state.system.serverConfig).replace(/\\n/g, '\r').replace(/^"|"$/g, '')
     },
     getServerEnvironment () {
-      return JSON.stringify(this.$store.state.system.serverEnvironment)
+      return JSON.stringify(this.$store.state.system.serverEnvironment).replace(/\\n/g, '\r').replace(/^"|"$/g, '')
     }
   },
   created () {

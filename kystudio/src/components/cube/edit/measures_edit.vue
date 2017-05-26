@@ -385,7 +385,7 @@ export default {
   },
   locales: {
     'en': {name: 'Name', expression: 'Expression', parameters: 'Parameters', datatype: 'Datatype', comment: 'Comment', returnType: 'Return Type', action: 'Action', addMeasure: 'Add Measure', editMeasure: 'Edit Measure', cancel: 'Cancel', yes: 'Yes', advancedDictionaries: 'Advanced Dictionaries', addDictionary: 'Add Dictionary', editDictionary: 'Edit Dictionary', builderClass: 'Builder Class', reuse: 'Reuse', advancedColumnFamily: 'Advanced ColumnFamily', addColumnFamily: 'Add ColumnFamily', columnFamily: 'ColumnFamily', measures: 'Measures'},
-    'zh-cn': {name: '名称', expression: '表达式', parameters: '参数', datatype: '数据类型', comment: '注释', returnType: '返回类型', action: '操作', addMeasure: '添加度量', editMeasure: '编辑度量', cancel: '取消', yes: '确定', advancedDictionaries: '高级字典', addDictionary: '添加字典', editDictionary: '编辑字典', builderClass: '构造类', reuse: '复用', advancedColumnFamily: '高级列族', addColumnFamily: '添加列族', columnFamily: '列族', measures: '度量'}
+    'zh-cn': {name: '名称', expression: '表达式', parameters: '参数', datatype: '数据类型', comment: '注释', returnType: '返回类型', action: '操作', addMeasure: '添加度量', editMeasure: '编辑度量', cancel: '取消', yes: '确定', advancedDictionaries: '高级字典', addDictionary: '添加字典', editDictionary: '编辑字典', builderClass: '构造类', reuse: '复用', advancedColumnFamily: '高级列族', addColumnFamily: '添加列簇', columnFamily: '列簇', measures: '度量'}
   }
 }
 </script>

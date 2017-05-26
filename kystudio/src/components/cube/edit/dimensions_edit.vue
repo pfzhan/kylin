@@ -57,7 +57,6 @@
                   <el-col :span="24">
                     <area_label :labels="currentRowkey"  :selectedlabels="group.includes" @change="refreshAggragation(group, group_index)" @checklabel="showDetail($event, group.includes)"> 
                     </area_label>
-                    {{group.includes}}
                   </el-col>
                 </el-row>
                 <el-row class="row_padding">

@@ -420,6 +420,13 @@ export default {
       // if (this.extraoption.actionMode !== 'add') {
       //   this.saveAndCheckModel()
       // } else {
+      if (this.draftBtnLoading) {
+        this.$message({
+          type: 'warning',
+          message: '系统正在响应Draft的保存请求，请稍后!'
+        })
+        return
+      }
       this.addModelDialogDisable = true
       // }
     },

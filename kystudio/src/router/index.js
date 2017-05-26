@@ -57,7 +57,7 @@ export default new Router({
         component: cubeEdit
       },
       {
-        name: 'system',
+        name: 'System',
         path: 'system',
         component: system
       },
