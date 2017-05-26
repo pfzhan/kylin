@@ -73,6 +73,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-x-discovery</artifactId>
+            <!-- this jar was absent from hbase lib, so compile it  -->
+            <scope>compile</scope>
+        </dependency>
 
         <!--Env & Test-->
         <dependency>
@@ -90,6 +96,11 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
