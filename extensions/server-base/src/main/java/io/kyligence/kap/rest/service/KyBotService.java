@@ -26,23 +26,27 @@ package io.kyligence.kap.rest.service;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
-import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.protocol.HTTP;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.security.PasswordPlaceholderConfigurer;
 import org.apache.kylin.rest.service.BasicService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,9 +55,6 @@ import org.springframework.stereotype.Component;
 
 import com.google.common.io.Files;
 
-import io.kyligence.kap.rest.msg.KapMessage;
-import io.kyligence.kap.rest.msg.KapMsgPicker;
-
 @Component("kyBotService")
 public class KyBotService extends BasicService {
     public static final String SUCC_CODE = "000";
@@ -61,25 +62,32 @@ public class KyBotService extends BasicService {
     public static final String AUTH_FAILURE = "402";
 
     private static final Logger logger = LoggerFactory.getLogger(KyBotService.class);
+    private KapConfig kapConfig = KapConfig.getInstanceFromEnv();
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public String dumpLocalKyBotPackage(boolean needUpload) throws IOException {
+    public String dumpLocalKyBotPackage(String target, long startTime, long endTime, boolean needUpload) throws IOException {
         File exportPath = Files.createTempDir();
-        String[] args = { "-all", exportPath.getAbsolutePath(), Boolean.toString(needUpload) };
+        if (StringUtils.isEmpty(target)) {
+            target = "-all";
+        }
+
+        if (needUpload) {
+            validateToken();
+        }
+
+        String[] args = { target, exportPath.getAbsolutePath(), Boolean.toString(needUpload), Long.toString(startTime), Long.toString(endTime) };
         runKyBotCLI(args);
         return getKyBotPackagePath(exportPath);
     }
 
     protected void runKyBotCLI(String[] args) throws IOException {
-        KapMessage msg = KapMsgPicker.getMsg();
-
         File cwd = new File("");
         logger.debug("Current path: " + cwd.getAbsolutePath());
 
         logger.debug("KybotClientCLI args: " + Arrays.toString(args));
         File script = new File(KylinConfig.getKylinHome() + File.separator + "bin", "diag.sh");
         if (!script.exists()) {
-            throw new BadRequestException(String.format(msg.getDIAG_NOT_FOUND(), script.getAbsolutePath()));
+            throw new RuntimeException("diag.sh not found at " + script.getAbsolutePath());
         }
 
         String diagCmd = script.getAbsolutePath() + " " + StringUtils.join(args, " ");
@@ -88,16 +96,14 @@ public class KyBotService extends BasicService {
 
         logger.debug("Cmdoutput: " + cmdOutput.getKey());
         if (cmdOutput.getKey() != 0) {
-            throw new BadRequestException(msg.getGENERATE_KYBOT_PACKAGE_FAIL());
+            throw new RuntimeException("Failed to generate KyBot package.");
         }
     }
 
     protected String getKyBotPackagePath(File destDir) {
-        KapMessage msg = KapMsgPicker.getMsg();
-
         File[] files = destDir.listFiles();
         if (files == null) {
-            throw new BadRequestException(String.format(msg.getKYBOT_PACKAGE_NOT_AVAILABLE(), destDir.getAbsolutePath()));
+            throw new RuntimeException("KyBot package is not available in directory: " + destDir.getAbsolutePath());
         }
         for (File subDir : files) {
             if (subDir.isDirectory()) {
@@ -108,19 +114,57 @@ public class KyBotService extends BasicService {
                 }
             }
         }
-        throw new BadRequestException(String.format(msg.getKYBOT_PACKAGE_NOT_FOUND(), destDir.getAbsolutePath()));
+        throw new RuntimeException("KyBot package not found in directory: " + destDir.getAbsolutePath());
     }
 
-    public String checkServiceConnection() {
-        KapConfig kapConfig = KapConfig.getInstanceFromEnv();
-        String username = kapConfig.getKyAccountUsename();
-        String password = kapConfig.getKyAccountPassword();
-        String token = kapConfig.getKyAccountToken();
+    public String fetchAndSaveKyAccountToken(String username, String password) {
+        DefaultHttpClient client = getHttpClient();
+        String url = kapConfig.getKyAccountSiteUrl() + "/uaa/api/tokens";
 
-        if ((StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) && StringUtils.isEmpty(token)) {
-            return NO_ACCOUNT;
+        // try token
+        HttpPost request = new HttpPost(url);
+
+        try {
+            List<NameValuePair> nvps = new ArrayList<>();
+            nvps.add(new BasicNameValuePair("username", username));
+            nvps.add(new BasicNameValuePair("password", password));
+            request.setEntity(new UrlEncodedFormEntity(nvps, HTTP.UTF_8));
+
+            HttpResponse response = client.execute(request);
+            if (response.getStatusLine().getStatusCode() == 200) {
+                String token = IOUtils.toString(response.getEntity().getContent());
+                if (!StringUtils.isEmpty(token)) {
+                    File localTokenFile = getLocalTokenFile();
+                    FileUtils.write(localTokenFile, token);
+
+                    return SUCC_CODE;
+                }
+            }
+            return AUTH_FAILURE;
+        } catch (Exception ex) {
+            logger.error("Authentication failed due to exception.", ex);
+            return AUTH_FAILURE;
+        } finally {
+            request.releaseConnection();
         }
+    }
 
+    private File getLocalTokenFile() {
+        return new File(KylinConfig.getKylinHome(), ".kyaccount");
+    }
+
+    public void readLocalKyAccountToken() {
+        if (kapConfig.getKyAccountToken() == null) {
+            try {
+                String token = FileUtils.readFileToString(getLocalTokenFile());
+                kapConfig.setKyAccountToken(token);
+            } catch (IOException e) {
+                logger.error("Failed to read kyaccount token.", e);
+            }
+        }
+    }
+
+    private DefaultHttpClient getHttpClient() {
         String proxyServer = kapConfig.getHttpProxyHost();
         int proxyPort = kapConfig.getHttpProxyPort();
 
@@ -130,41 +174,87 @@ public class KyBotService extends BasicService {
             client.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY, proxy);
         }
 
-        String url = kapConfig.getKyBotSiteUrl() + "/api/user/authentication";
-
-        boolean isSucc = false;
-
-        // try username & password firstly
-        if (!StringUtils.isEmpty(username) && !StringUtils.isEmpty(password)) {
-            password = PasswordPlaceholderConfigurer.decrypt(password);
-            byte[] encodedAuth = Base64.encodeBase64((username + ":" + password).getBytes(Charset.forName("ISO-8859-1")));
-            String authHeader = "Basic " + new String(encodedAuth);
-            isSucc = testServerConnection(client, url, authHeader);
-            logger.debug("Check authentication with username: URL={}, ProxyHost={}, ProxyPort={}, Username={}", url, proxyServer, proxyPort, username);
-        }
-
-        // try token
-        if (!StringUtils.isEmpty(token) && !isSucc) {
-            String authHeader = "bearer " + token;
-            isSucc = testServerConnection(client, url, authHeader);
-            logger.debug("Check authentication with token: URL={}, ProxyHost={}, ProxyPort={}, Token={}", url, proxyServer, proxyPort, token);
-        }
-
-        return isSucc ? SUCC_CODE : AUTH_FAILURE;
+        return client;
     }
 
-    private boolean testServerConnection(DefaultHttpClient client, String url, String authHeader) {
+    public String validateToken() {
+        String token = kapConfig.getKyAccountToken();
+        if (StringUtils.isEmpty(token)) {
+            return NO_ACCOUNT;
+        }
+
+        DefaultHttpClient client = getHttpClient();
+        String url = kapConfig.getKyBotSiteUrl() + "/api/user/authentication";
+
+        // try token
         HttpPost request = new HttpPost(url);
 
         try {
-            request.setHeader("authorization", authHeader);
+            request.setHeader("authorization", "bearer " + token);
             HttpResponse response = client.execute(request);
-            return response.getStatusLine().getStatusCode() == 200;
+            return response.getStatusLine().getStatusCode() == 200 ? SUCC_CODE : AUTH_FAILURE;
         } catch (Exception ex) {
-            logger.error("Authentication failed due to exception: " + ex.getMessage());
-            return false;
+            logger.error("Authentication failed due to exception.", ex);
+            return AUTH_FAILURE;
         } finally {
             request.releaseConnection();
+        }
+    }
+
+    public boolean getDaemonStatus() {
+        File script = FileUtils.getFile(KylinConfig.getKylinHome(), "kybot", "agent", "bin", "status.sh");
+        if (!script.exists()) {
+            throw new RuntimeException("kybot/agent/bin/status.sh not found at " + script.getAbsolutePath());
+        }
+        try {
+            CliCommandExecutor executor = KylinConfig.getInstanceFromEnv().getCliCommandExecutor();
+            Pair<Integer, String> cmdOutput = executor.execute(script.getAbsolutePath(), new org.apache.kylin.common.util.Logger() {
+                @Override
+                public void log(String message) {
+                    logger.debug("status.sh - {}", message);
+                }
+            });
+            logger.debug("Cmdoutput: " + cmdOutput.getKey() + "\n" + cmdOutput.getValue());
+            return cmdOutput.getValue().contains("running: true");
+        } catch (IOException e) {
+            logger.error("Failed to execute kybot/agent/bin/status.sh");
+            return false;
+        }
+    }
+
+    public boolean startDaemon() {
+        File script = FileUtils.getFile(KylinConfig.getKylinHome(), "kybot", "agent", "bin", "enable.sh");
+        if (!script.exists()) {
+            throw new RuntimeException("kybot/agent/bin/enable.sh not found at " + script.getAbsolutePath());
+        }
+        try {
+            Runtime.getRuntime().exec(script.getAbsolutePath());
+            Thread.sleep(3000L); // Sleep 3s to wait for agent start
+            return getDaemonStatus();
+        } catch (IOException | InterruptedException e) {
+            logger.error("Failed to execute kybot/agent/bin/enable.sh");
+            return false;
+        }
+    }
+
+    public boolean stopDaemon() {
+        File script = FileUtils.getFile(KylinConfig.getKylinHome(), "kybot", "agent", "bin", "disable.sh");
+        if (!script.exists()) {
+            throw new RuntimeException("kybot/agent/bin/disable.sh not found at " + script.getAbsolutePath());
+        }
+        try {
+            CliCommandExecutor executor = KylinConfig.getInstanceFromEnv().getCliCommandExecutor();
+            Pair<Integer, String> cmdOutput = executor.execute(script.getAbsolutePath(), new org.apache.kylin.common.util.Logger() {
+                @Override
+                public void log(String message) {
+                    logger.debug("disable.sh - {}", message);
+                }
+            });
+            logger.debug("Cmdoutput: " + cmdOutput.getKey());
+            return cmdOutput.getKey() == 0;
+        } catch (IOException e) {
+            logger.error("Failed to execute kybot/agent/bin/disable.sh");
+            return false;
         }
     }
 }

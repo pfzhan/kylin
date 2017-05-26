@@ -240,6 +240,14 @@ public class KapConfig {
         return config.getOptional("kap.kyaccount.token");
     }
 
+    public void setKyAccountToken(String token) {
+        config.setProperty("kap.kyaccount.token", token);
+    }
+
+    public String getKyAccountSiteUrl() {
+        return config.getOptional("kap.kyaccount.url", "http://kyaccount-qa.chinaeast.cloudapp.chinacloudapi.cn:9998");
+    }
+
     public String getKyBotSiteUrl() {
         return config.getOptional("kap.external.kybot.url", "https://kybot.io");
     }
