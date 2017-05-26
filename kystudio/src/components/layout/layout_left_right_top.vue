@@ -17,7 +17,7 @@
       <el-button v-show="gloalProjectSelectShow" @click="goToProjectList"><icon name="window-restore" scale="0.8"></icon></el-button>
       <el-button @click="addProject" v-show="gloalProjectSelectShow"><icon name="plus" scale="0.8"></icon></el-button>
 
-      <ul>
+      <ul class="topUl">
         <li><help></help></li>
         <li style="min-width:0"><change_lang></change_lang></li>
         <li>
@@ -414,7 +414,7 @@
       margin-top: 18px;
       margin-left: 4px;
     }
-    ul{
+    .topUl {
     	float:right;
     	li{
     		min-width:150px;
