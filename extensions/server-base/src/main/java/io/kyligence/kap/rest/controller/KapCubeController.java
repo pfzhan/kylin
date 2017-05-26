@@ -47,7 +47,7 @@ import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.GeneralResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.CacheService;
-import org.apache.kylin.rest.service.CubeServiceV2;
+import org.apache.kylin.rest.service.CubeService;
 import org.apache.kylin.rest.service.JobService;
 import org.quartz.CronExpression;
 import org.quartz.CronScheduleBuilder;
@@ -93,8 +93,8 @@ public class KapCubeController extends BasicController implements InitializingBe
     private static final Logger logger = LoggerFactory.getLogger(KapCubeController.class);
 
     @Autowired
-    @Qualifier("cubeMgmtServiceV2")
-    private CubeServiceV2 cubeServiceV2;
+    @Qualifier("cubeMgmtService")
+    private CubeService cubeService;
 
     @Autowired
     @Qualifier("kapCubeService")
@@ -179,7 +179,7 @@ public class KapCubeController extends BasicController implements InitializingBe
 
         List<ColumnarResponse> columnar = new ArrayList<>();
 
-        CubeInstance cube = cubeServiceV2.getCubeManager().getCube(cubeName);
+        CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
         if (null == cube) {
             throw new BadRequestException(String.format(msg.getCUBE_NOT_FOUND(), cubeName));
         }
@@ -247,7 +247,7 @@ public class KapCubeController extends BasicController implements InitializingBe
         KapMsgPicker.setMsg(lang);
 
         CubeDesc cubeDesc = deserializeCubeDesc(kapCubeRequest);
-        cubeServiceV2.validateCubeDesc(cubeDesc, false);
+        cubeService.validateCubeDesc(cubeDesc, false);
         RawTableDesc rawTableDesc = deserializeRawTableDesc(kapCubeRequest);
         SchedulerJobInstance schedulerJobInstance = deserializeSchedulerJobInstance(kapCubeRequest);
 
@@ -256,8 +256,8 @@ public class KapCubeController extends BasicController implements InitializingBe
         ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
         ResourceStore.Checkpoint cp = store.checkpoint();
         try {
-            boolean createNewCube = cubeServiceV2.unifyCubeDesc(cubeDesc, false);
-            cubeDesc = cubeServiceV2.updateCubeToResourceStore(cubeDesc, projectName, createNewCube);
+            boolean createNewCube = cubeService.unifyCubeDesc(cubeDesc, false);
+            cubeDesc = cubeService.updateCubeToResourceStore(cubeDesc, projectName, createNewCube);
 
             if (rawTableDesc != null) {
                 rawTableService.validateRawTableDesc(rawTableDesc);
@@ -301,7 +301,7 @@ public class KapCubeController extends BasicController implements InitializingBe
         KapMsgPicker.setMsg(lang);
 
         CubeDesc cubeDesc = deserializeCubeDesc(kapCubeRequest);
-        cubeServiceV2.validateCubeDesc(cubeDesc, true);
+        cubeService.validateCubeDesc(cubeDesc, true);
         RawTableDesc rawTableDesc = deserializeRawTableDesc(kapCubeRequest);
         SchedulerJobInstance schedulerJobInstance = deserializeSchedulerJobInstance(kapCubeRequest);
 
@@ -310,8 +310,8 @@ public class KapCubeController extends BasicController implements InitializingBe
         ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
         ResourceStore.Checkpoint cp = store.checkpoint();
         try {
-            boolean createNewCube = cubeServiceV2.unifyCubeDesc(cubeDesc, true);
-            cubeDesc = cubeServiceV2.updateCubeToResourceStore(cubeDesc, projectName, createNewCube);
+            boolean createNewCube = cubeService.unifyCubeDesc(cubeDesc, true);
+            cubeDesc = cubeService.updateCubeToResourceStore(cubeDesc, projectName, createNewCube);
 
             if (rawTableDesc != null) {
                 rawTableService.validateRawTableDesc(rawTableDesc);

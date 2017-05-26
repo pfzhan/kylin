@@ -35,8 +35,8 @@ import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.JobService;
-import org.apache.kylin.rest.service.ModelServiceV2;
-import org.apache.kylin.rest.service.ProjectServiceV2;
+import org.apache.kylin.rest.service.ModelService;
+import org.apache.kylin.rest.service.ProjectService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,12 +73,12 @@ public class KapModelController extends BasicController {
     private JobService jobService;
 
     @Autowired
-    @Qualifier("modelMgmtServiceV2")
-    private ModelServiceV2 modelServiceV2;
+    @Qualifier("modelMgmtService")
+    private ModelService modelService;
 
     @Autowired
-    @Qualifier("projectServiceV2")
-    private ProjectServiceV2 projectServiceV2;
+    @Qualifier("projectService")
+    private ProjectService projectService;
 
     /**
      * Get modeling suggestions for the table
@@ -119,7 +119,7 @@ public class KapModelController extends BasicController {
     public EnvelopeResponse getAllStats(@RequestHeader("Accept-Language") String lang, @RequestParam(value = "modelName", required = false) String modelName, @RequestParam(value = "projectName", required = false) String projectName, @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset, @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize) throws IOException, JobException {
         KapMsgPicker.setMsg(lang);
 
-        List<DataModelDesc> models = modelServiceV2.listAllModels(modelName, projectName);
+        List<DataModelDesc> models = modelService.listAllModels(modelName, projectName);
 
         int offset = pageOffset * pageSize;
         int limit = pageSize;
@@ -135,7 +135,7 @@ public class KapModelController extends BasicController {
 
         List<ModelStatusRequest> modelStatusList = new ArrayList<>();
         ModelStatsManager modelStatsManager = kapModelService.getModelStatsManager();
-        for (DataModelDesc model : modelServiceV2.getModels(modelName, projectName, limit, offset)) {
+        for (DataModelDesc model : modelService.getModels(modelName, projectName, limit, offset)) {
             ModelStatusRequest request = kapModelService.getDiagnoseResult(model.getName());
             String jobId = modelStatsManager.getModelStats(model.getName()).getJodID();
             if (null != jobId) {

@@ -46,7 +46,7 @@ import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.response.SQLResponse;
-import org.apache.kylin.rest.service.QueryServiceV2;
+import org.apache.kylin.rest.service.QueryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,8 +83,8 @@ public class SequenceSQLController extends BasicController {
     private static final Logger logger = LoggerFactory.getLogger(SequenceSQLController.class);
 
     @Autowired
-    @Qualifier("queryServiceV2")
-    private QueryServiceV2 queryServiceV2;
+    @Qualifier("queryService")
+    private QueryService queryService;
 
     private static ExecutorService executorService = new LoggableCachedThreadPool();
     private static SequenceTopologyManager topologyManager = new SequenceTopologyManager(new DiskResultCache(), KylinConfig.getInstanceFromEnv().getSequenceExpireTime());
@@ -245,7 +245,7 @@ public class SequenceSQLController extends BasicController {
                 long startTime = System.currentTimeMillis();
 
                 try {
-                    sqlResponse = queryServiceV2.query(shardedSequenceSQLRequest);
+                    sqlResponse = queryService.query(shardedSequenceSQLRequest);
 
                     sqlResponse.setDuration(System.currentTimeMillis() - startTime);
                     logger.info("Stats of SQL response: isException: {}, duration: {}, total scan count {}", //
@@ -260,7 +260,7 @@ public class SequenceSQLController extends BasicController {
                     throw new BadRequestException(errMsg);
                 }
 
-                queryServiceV2.logQuery(shardedSequenceSQLRequest, sqlResponse);
+                queryService.logQuery(shardedSequenceSQLRequest, sqlResponse);
 
                 if (sqlResponse.getIsException())
                     throw new InternalErrorException(sqlResponse.getExceptionMessage());

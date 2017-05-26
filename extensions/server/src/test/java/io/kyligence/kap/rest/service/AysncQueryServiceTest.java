@@ -119,7 +119,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             asyncQueryService.retrieveSavedQueryException(queryId);
             fail();
         } catch (Exception e) {
-            Assert.assertTrue(e instanceof IllegalStateException);
+            Assert.assertTrue(e instanceof RuntimeException);
         }
     }
 

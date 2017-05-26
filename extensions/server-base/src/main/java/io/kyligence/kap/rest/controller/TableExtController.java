@@ -34,7 +34,7 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.JobService;
-import org.apache.kylin.rest.service.TableServiceV2;
+import org.apache.kylin.rest.service.TableService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,8 +68,8 @@ public class TableExtController extends BasicController {
     private JobService jobService;
 
     @Autowired
-    @Qualifier("tableServiceV2")
-    private TableServiceV2 tableServiceV2;
+    @Qualifier("tableService")
+    private TableService tableService;
 
     @RequestMapping(value = "/{database}.{tableName}", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
@@ -118,7 +118,7 @@ public class TableExtController extends BasicController {
 
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
         boolean isCalculate = request.isNeedProfile();
-        Map<String, String[]> loadResult = tableServiceV2.loadHiveTables(request.getTables(), request.getProject(), false);
+        Map<String, String[]> loadResult = tableService.loadHiveTables(request.getTables(), request.getProject(), false);
         if (isCalculate) {
 
             String[] loadedTables = loadResult.get("result.loaded");
@@ -140,6 +140,6 @@ public class TableExtController extends BasicController {
         }
 
         String[] tableNames = StringUtil.splitAndTrim(tables, ",");
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, tableServiceV2.unloadHiveTables(tableNames, project), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, tableService.unloadHiveTables(tableNames, project), "");
     }
 }
