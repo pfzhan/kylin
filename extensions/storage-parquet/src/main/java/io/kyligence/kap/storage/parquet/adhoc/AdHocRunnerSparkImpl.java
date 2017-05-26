@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.sql.Types;
 
-import static io.kyligence.kap.storage.parquet.adhoc.util.SqlConvertUtil.doConvert;
 
 public class AdHocRunnerSparkImpl extends AdHocRunnerBase {
     public static final Logger logger = LoggerFactory.getLogger(AdHocRunnerSparkImpl.class);
@@ -54,7 +53,7 @@ public class AdHocRunnerSparkImpl extends AdHocRunnerBase {
 
     @Override
     public void executeQuery(String query, List<List<String>> results, List<SelectedColumnMeta> columnMetas) throws Exception {
-        SparkJobProtos.AdHocResponse response = client.queryWithAdHoc(doConvert(query));
+        SparkJobProtos.AdHocResponse response = client.queryWithAdHoc((query));
         int columnCount = response.getColumnsCount();
         List<SparkJobProtos.StructField> fieldList = response.getColumnsList();
 
