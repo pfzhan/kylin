@@ -54,11 +54,9 @@ public class KAPCubeHBaseEndpointRPC extends CubeHBaseEndpointRPC {
         short remain = (short) (shardNum % workerCount);
 
         if (workerID < remain) {
-            return Pair.newPair((short) (avgShard + 1),
-                    ShardingHash.normalize(baseShard, (short) ((avgShard + 1) * workerID), totalShards));
+            return Pair.newPair((short) (avgShard + 1), ShardingHash.normalize(baseShard, (short) ((avgShard + 1) * workerID), totalShards));
         } else {
-            return Pair.newPair(avgShard,
-                    ShardingHash.normalize(baseShard, (short) (remain + avgShard * workerID), totalShards));
+            return Pair.newPair(avgShard, ShardingHash.normalize(baseShard, (short) (remain + avgShard * workerID), totalShards));
         }
 
     }

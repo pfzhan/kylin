@@ -60,8 +60,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
     private Path parquetIndexPath = null;
     private Pair<Integer, Integer> pageRange = null;
 
-    public ParquetPageIndexTable(FileSystem fileSystem, Path parquetIndexPath, FSDataInputStream inputStream,
-            int startOffset) throws IOException {
+    public ParquetPageIndexTable(FileSystem fileSystem, Path parquetIndexPath, FSDataInputStream inputStream, int startOffset) throws IOException {
         this.fileSystem = fileSystem;
         this.parquetIndexPath = parquetIndexPath;
         this.indexReader = new ParquetPageIndexReader(inputStream, startOffset);
@@ -76,8 +75,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
 
     // TODO: should use batch lookup
     MutableRoaringBitmap lookColumnIndex(int column, TupleFilter.FilterOperatorEnum compareOp, Set<ByteArray> vals) {
-        logger.info("lookColumnIndex: column: {}, op: {}, vals: {} - {}", column, compareOp, vals.size(),
-                Iterables.getFirst(vals, null));
+        logger.info("lookColumnIndex: column: {}, op: {}, vals: {} - {}", column, compareOp, vals.size(), Iterables.getFirst(vals, null));
         MutableRoaringBitmap result = null;
         ByteArray val = null;
         ColumnIndexReader columnIndexReader = null;
@@ -183,8 +181,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
 
         MutableRoaringBitmap ret = null;
         for (int i = 0; i <= val.length() - window; i++) {
-            MutableRoaringBitmap temp = lookupLikeWithNGram(column,
-                    RawTableUtils.shrink(new ByteArray(val.array(), i, window), fuzzyHashLength));
+            MutableRoaringBitmap temp = lookupLikeWithNGram(column, RawTableUtils.shrink(new ByteArray(val.array(), i, window), fuzzyHashLength));
             if (ret == null) {
                 ret = temp;
             } else {
@@ -291,15 +288,13 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             int col = likeFunction.getColumn().getColumnDesc().getZeroBasedIndex();
             String pattern = likeFunction.getLikePattern();
             if (pattern == null) {
-                logger.info(
-                        "lookupChildFilter returning full bitmap because it's not a like function or it's NOT LIKE");
+                logger.info("lookupChildFilter returning full bitmap because it's not a like function or it's NOT LIKE");
                 return getFullBitmap().toMutableRoaringBitmap();
             }
 
             pattern = pattern.replaceAll("%", "");
             if (pattern.length() < KapConfig.getInstanceFromEnv().getParquetFuzzyIndexLength()) {
-                logger.info("The like pattern: " + pattern + " is too short, minimal length: "
-                        + KapConfig.getInstanceFromEnv().getParquetFuzzyIndexLength());
+                logger.info("The like pattern: " + pattern + " is too short, minimal length: " + KapConfig.getInstanceFromEnv().getParquetFuzzyIndexLength());
                 return getFullBitmap().toMutableRoaringBitmap();
             }
 
@@ -341,8 +336,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             }
         }
 
-        logger.info("Columnar II Metrics: TotalPageNum={}, ResultPageNum={}", getPageTotalNum(),
-                resultBitmap.getCardinality());
+        logger.info("Columnar II Metrics: TotalPageNum={}, ResultPageNum={}", getPageTotalNum(), resultBitmap.getCardinality());
         return resultBitmap;
     }
 

@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -51,12 +52,9 @@ import org.apache.parquet.io.api.Binary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
-
 public class ParquetCubeInputFormat extends FileInputFormat<Text, Text> {
     @Override
-    public RecordReader<Text, Text> createRecordReader(org.apache.hadoop.mapreduce.InputSplit split,
-            TaskAttemptContext context) throws IOException, InterruptedException {
+    public RecordReader<Text, Text> createRecordReader(org.apache.hadoop.mapreduce.InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
         return new ParquetCubeReader();
     }
 
@@ -161,8 +159,7 @@ public class ParquetCubeInputFormat extends FileInputFormat<Text, Text> {
                 reader = new ParquetBundleReader.Builder().setConf(conf).setPath(shardPath.get(shardIndex)).build();
 
                 setCurrentCuboidShard(shardPath.get(shardIndex));
-                rowKeyEncoder = new RowKeyEncoder(cubeSegment,
-                        Cuboid.findById(cubeInstance.getDescriptor(), curCuboidId));
+                rowKeyEncoder = new RowKeyEncoder(cubeSegment, Cuboid.findById(cubeInstance.getDescriptor(), curCuboidId));
                 shardIndex++;
                 return reader;
             }

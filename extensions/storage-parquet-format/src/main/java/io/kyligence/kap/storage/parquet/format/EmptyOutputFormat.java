@@ -34,8 +34,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 public class EmptyOutputFormat extends FileOutputFormat<Text, IntWritable> {
     @Override
-    public RecordWriter<Text, IntWritable> getRecordWriter(TaskAttemptContext job)
-            throws IOException, InterruptedException {
+    public RecordWriter<Text, IntWritable> getRecordWriter(TaskAttemptContext job) throws IOException, InterruptedException {
         return new ParquetCubePageIndexWriter();
     }
 
@@ -43,7 +42,6 @@ public class EmptyOutputFormat extends FileOutputFormat<Text, IntWritable> {
         @Override
         public void write(Text key, IntWritable value) throws IOException, InterruptedException {
         }
-
         @Override
         public void close(TaskAttemptContext context) throws IOException, InterruptedException {
         }

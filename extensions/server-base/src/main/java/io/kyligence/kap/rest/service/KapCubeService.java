@@ -81,8 +81,7 @@ public class KapCubeService extends BasicService {
         columnarResp.setSegmentPath(segStoragePath);
 
         if (raw != null) {
-            List<RawTableSegment> rawSegs = rawTableManager.getRawtableSegmentByDataRange(raw,
-                    segment.getDateRangeStart(), segment.getDateRangeEnd());
+            List<RawTableSegment> rawSegs = rawTableManager.getRawtableSegmentByDataRange(raw, segment.getDateRangeStart(), segment.getDateRangeEnd());
             if (rawSegs.size() != 1)
                 throw new BadRequestException(msg.getRAW_SEG_SIZE_NOT_ONE());
 
@@ -117,8 +116,6 @@ public class KapCubeService extends BasicService {
     }
 
     protected String getRawParquetFolderPath(RawTableSegment rawSegment) {
-        return new StringBuffer(KapConfig.wrap(rawSegment.getConfig()).getParquetStoragePath())
-                .append(rawSegment.getRawTableInstance().getUuid()).append("/").append(rawSegment.getUuid()).append("/")
-                .append("RawTable/").toString();
+        return new StringBuffer(KapConfig.wrap(rawSegment.getConfig()).getParquetStoragePath()).append(rawSegment.getRawTableInstance().getUuid()).append("/").append(rawSegment.getUuid()).append("/").append("RawTable/").toString();
     }
 }

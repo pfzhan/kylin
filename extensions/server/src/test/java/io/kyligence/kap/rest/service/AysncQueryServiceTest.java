@@ -170,8 +170,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     }
 
     private int countFileNum() throws IOException {
-        RemoteIterator<LocatedFileStatus> locatedFileStatusRemoteIterator = HadoopUtil.getWorkingFileSystem()
-                .listFiles(new Path(TEST_BASE_DIR), true);
+        RemoteIterator<LocatedFileStatus> locatedFileStatusRemoteIterator = HadoopUtil.getWorkingFileSystem().listFiles(new Path(TEST_BASE_DIR), true);
         int count = 0;
         while (locatedFileStatusRemoteIterator.hasNext()) {
             count++;

@@ -62,10 +62,8 @@ public class ModelStatsJob extends AbstractHadoopJob {
     public static final String JOB_TITLE = "KAP DataModel stats job";
 
     @SuppressWarnings("static-access")
-    protected static final Option OPTION_MODEL = OptionBuilder.withArgName("model name").hasArg().isRequired(true)
-            .withDescription("data model name").create("model");
-    protected static final Option OPTION_FREQUENCY = OptionBuilder.withArgName("sample frequency").hasArg()
-            .isRequired(true).withDescription("The sample frequency").create("frequency");
+    protected static final Option OPTION_MODEL = OptionBuilder.withArgName("model name").hasArg().isRequired(true).withDescription("data model name").create("model");
+    protected static final Option OPTION_FREQUENCY = OptionBuilder.withArgName("sample frequency").hasArg().isRequired(true).withDescription("The sample frequency").create("frequency");
 
     public ModelStatsJob() {
     }

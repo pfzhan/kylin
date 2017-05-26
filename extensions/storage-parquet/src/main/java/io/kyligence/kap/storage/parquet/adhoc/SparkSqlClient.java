@@ -24,12 +24,9 @@
 
 package io.kyligence.kap.storage.parquet.adhoc;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.Semaphore;
-
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -41,11 +38,13 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.util.SizeEstimator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 import scala.collection.JavaConversions;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.Semaphore;
 
 public class SparkSqlClient implements Serializable {
     public static final Logger logger = LoggerFactory.getLogger(SparkSqlClient.class);
@@ -75,31 +74,30 @@ public class SparkSqlClient implements Serializable {
 
             this.semaphore.acquire((int) estimateDfSize);
 
-            JavaRDD<SparkJobProtos.Row> rowRdd = df.javaRDD()
-                    .mapPartitions(new FlatMapFunction<Iterator<Row>, SparkJobProtos.Row>() {
+            JavaRDD<SparkJobProtos.Row> rowRdd = df.javaRDD().mapPartitions(new FlatMapFunction<Iterator<Row>, SparkJobProtos.Row>() {
 
-                        @Override
-                        public Iterable<SparkJobProtos.Row> call(Iterator<Row> iterator) throws Exception {
-                            List<SparkJobProtos.Row> rowList = new ArrayList<>();
+                @Override
+                public Iterable<SparkJobProtos.Row> call(Iterator<Row> iterator) throws Exception {
+                    List<SparkJobProtos.Row> rowList = new ArrayList<>();
 
-                            while (iterator.hasNext()) {
-                                SparkJobProtos.Row.Builder builder = SparkJobProtos.Row.newBuilder();
-                                Row curRow = iterator.next();
+                    while (iterator.hasNext()) {
+                        SparkJobProtos.Row.Builder builder = SparkJobProtos.Row.newBuilder();
+                        Row curRow = iterator.next();
 
-                                for (int i = 0; i < curRow.length(); i++) {
-                                    builder.addData(curRow.getAs(i).toString());
-                                }
-                                rowList.add(builder.build());
-                            }
-                            return rowList;
+                        for (int i = 0; i < curRow.length(); i++) {
+                            builder.addData(curRow.getAs(i).toString());
                         }
-                    });
+                        rowList.add(builder.build());
+                    }
+                    return rowList;
+                }
+            });
 
             //Get struct fields
             List<StructField> originFieldList = JavaConversions.asJavaList(df.schema().toList());
             List<SparkJobProtos.StructField> fieldList = new ArrayList<>(originFieldList.size());
 
-            for (StructField field : originFieldList) {
+            for(StructField field: originFieldList) {
                 SparkJobProtos.StructField.Builder builder = SparkJobProtos.StructField.newBuilder();
                 builder.setName(field.name());
                 builder.setDataType(field.dataType().toString());
@@ -113,8 +111,7 @@ public class SparkSqlClient implements Serializable {
 
         } catch (Exception e) {
             logger.error("Ad Hoc Query Error:", e);
-            throw new StatusRuntimeException(Status.INTERNAL
-                    .withDescription("Ad hoc query not supported, please check spark-driver.log for details."));
+            throw new StatusRuntimeException(Status.INTERNAL.withDescription("Ad hoc query not supported, please check spark-driver.log for details."));
         }
     }
 
@@ -122,3 +119,4 @@ public class SparkSqlClient implements Serializable {
         return estimateDfSize;
     }
 }
+

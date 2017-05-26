@@ -115,19 +115,18 @@ public class RelationJointAggrGroupRecorder {
                 }
             });
 
-            List<String> newResult = Lists
-                    .newArrayList(Collections2.transform(Collections2.filter(bestCandidate, new Predicate<Node>() {
-                        @Override
-                        public boolean apply(@Nullable Node input) {
-                            return !usedCols.contains(input);
-                        }
-                    }), new Function<Node, String>() {
-                        @Nullable
-                        @Override
-                        public String apply(@Nullable Node input) {
-                            return input.value;
-                        }
-                    }));
+            List<String> newResult = Lists.newArrayList(Collections2.transform(Collections2.filter(bestCandidate, new Predicate<Node>() {
+                @Override
+                public boolean apply(@Nullable Node input) {
+                    return !usedCols.contains(input);
+                }
+            }), new Function<Node, String>() {
+                @Nullable
+                @Override
+                public String apply(@Nullable Node input) {
+                    return input.value;
+                }
+            }));
 
             if (newResult.size() > 1) {
                 results.add(newResult);

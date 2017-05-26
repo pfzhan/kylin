@@ -112,14 +112,12 @@ public class HelixClusterAdmin {
     protected void initCluster() {
         admin.addCluster(clusterName, false);
         if (admin.getStateModelDef(clusterName, MODEL_LEADER_STANDBY) == null) {
-            admin.addStateModelDef(clusterName, MODEL_LEADER_STANDBY,
-                    new StateModelDefinition(StateModelConfigGenerator.generateConfigForLeaderStandby()));
+            admin.addStateModelDef(clusterName, MODEL_LEADER_STANDBY, new StateModelDefinition(StateModelConfigGenerator.generateConfigForLeaderStandby()));
         }
 
         // add job engine as a resource, 1 partition
         if (!admin.getResourcesInCluster(clusterName).contains(HelixClusterAdmin.RESOURCE_NAME_JOB_ENGINE)) {
-            admin.addResource(clusterName, HelixClusterAdmin.RESOURCE_NAME_JOB_ENGINE, 1, MODEL_LEADER_STANDBY,
-                    IdealState.RebalanceMode.FULL_AUTO.name());
+            admin.addResource(clusterName, HelixClusterAdmin.RESOURCE_NAME_JOB_ENGINE, 1, MODEL_LEADER_STANDBY, IdealState.RebalanceMode.FULL_AUTO.name());
         }
 
     }
@@ -131,10 +129,8 @@ public class HelixClusterAdmin {
      * @throws Exception
      */
     protected void startInstance(String instanceName) {
-        participantManager = HelixManagerFactory.getZKHelixManager(clusterName, instanceName, InstanceType.PARTICIPANT,
-                zkAddress);
-        participantManager.getStateMachineEngine().registerStateModelFactory(StateModelDefId.from(MODEL_LEADER_STANDBY),
-                new LeaderStandbyStateModelFactory(this.kylinConfig));
+        participantManager = HelixManagerFactory.getZKHelixManager(clusterName, instanceName, InstanceType.PARTICIPANT, zkAddress);
+        participantManager.getStateMachineEngine().registerStateModelFactory(StateModelDefId.from(MODEL_LEADER_STANDBY), new LeaderStandbyStateModelFactory(this.kylinConfig));
         try {
             participantManager.connect();
             participantManager.addLiveInstanceChangeListener(new KylinClusterLiveInstanceChangeListener());
@@ -156,8 +152,7 @@ public class HelixClusterAdmin {
      * Start an embedded helix controller
      */
     protected void startController() {
-        controllerManager = HelixControllerMain.startHelixController(zkAddress, clusterName, "controller",
-                HelixControllerMain.STANDALONE);
+        controllerManager = HelixControllerMain.startHelixController(zkAddress, clusterName, "controller", HelixControllerMain.STANDALONE);
     }
 
     public void stop() {
@@ -187,8 +182,7 @@ public class HelixClusterAdmin {
         if (stateMap.containsKey(instanceName)) {
             return stateMap.get(instanceName);
         } else {
-            logger.warn("fail to get state, clusterName:" + clusterName + " resourceName:" + resourceName + " instance:"
-                    + instanceName);
+            logger.warn("fail to get state, clusterName:" + clusterName + " resourceName:" + resourceName + " instance:" + instanceName);
             return "ERROR";
         }
     }
@@ -241,14 +235,11 @@ public class HelixClusterAdmin {
     public String getCurrentInstanceName() {
         final String restAddress = KapConfig.wrap(kylinConfig).getHelixRestAddress();
         if (StringUtils.isEmpty(restAddress)) {
-            throw new RuntimeException(
-                    "There is no kap.job.helix.host-address set in System property and kylin.properties;");
+            throw new RuntimeException("There is no kap.job.helix.host-address set in System property and kylin.properties;");
         }
 
-        final String hostname = Preconditions.checkNotNull(restAddress.substring(0, restAddress.lastIndexOf(":")),
-                "failed to get HostName of this server");
-        final String port = Preconditions.checkNotNull(restAddress.substring(restAddress.lastIndexOf(":") + 1),
-                "failed to get port of this server");
+        final String hostname = Preconditions.checkNotNull(restAddress.substring(0, restAddress.lastIndexOf(":")), "failed to get HostName of this server");
+        final String port = Preconditions.checkNotNull(restAddress.substring(restAddress.lastIndexOf(":") + 1), "failed to get port of this server");
         return hostname + "_" + port;
     }
 
@@ -262,8 +253,7 @@ public class HelixClusterAdmin {
             for (LiveInstance liveInstance : liveInstances) {
                 String instanceName = liveInstance.getInstanceName();
                 int indexOfUnderscore = instanceName.lastIndexOf("_");
-                instanceRestAddresses.add(instanceName.substring(0, indexOfUnderscore) + ":"
-                        + instanceName.substring(indexOfUnderscore + 1));
+                instanceRestAddresses.add(instanceName.substring(0, indexOfUnderscore) + ":" + instanceName.substring(indexOfUnderscore + 1));
             }
             if (instanceRestAddresses.size() > 0) {
                 String restServersInCluster = StringUtil.join(instanceRestAddresses, ",");

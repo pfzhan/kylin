@@ -60,21 +60,18 @@ public class SequentialRawTableTupleIterator implements ITupleIterator {
     private int scanCount;
     private int scanCountDelta;
 
-    public SequentialRawTableTupleIterator(List<RawTableSegmentScanner> scanners, RawTableInstance rawTableInstance,
-            Set<TblColRef> selectedDimensions, //
-            Set<FunctionDesc> selectedMetrics, TupleInfo returnTupleInfo, StorageContext context) {
+    public SequentialRawTableTupleIterator(List<RawTableSegmentScanner> scanners, RawTableInstance rawTableInstance, Set<TblColRef> selectedDimensions, //
+                                           Set<FunctionDesc> selectedMetrics, TupleInfo returnTupleInfo, StorageContext context) {
         this.context = context;
-        this.converter = new RawTableTupleConverter(rawTableInstance, selectedDimensions, selectedMetrics,
-                returnTupleInfo);
+        this.converter = new RawTableTupleConverter(rawTableInstance, selectedDimensions, selectedMetrics, returnTupleInfo);
         this.scanners = scanners;
-        Iterator<Iterator<GTRecord>> transformed = Iterators.transform(scanners.iterator(),
-                new Function<RawTableSegmentScanner, Iterator<GTRecord>>() {
-                    @Nullable
-                    @Override
-                    public Iterator<GTRecord> apply(@Nullable RawTableSegmentScanner input) {
-                        return input.iterator();
-                    }
-                });
+        Iterator<Iterator<GTRecord>> transformed = Iterators.transform(scanners.iterator(), new Function<RawTableSegmentScanner, Iterator<GTRecord>>() {
+            @Nullable
+            @Override
+            public Iterator<GTRecord> apply(@Nullable RawTableSegmentScanner input) {
+                return input.iterator();
+            }
+        });
         this.combinedGTItr = Iterators.concat(transformed);
         this.tuple = new Tuple(returnTupleInfo);
     }
@@ -103,7 +100,7 @@ public class SequentialRawTableTupleIterator implements ITupleIterator {
 
         if (++scanCountDelta >= 1000)
             flushScanCountDelta();
-
+        
         GTRecord temp = this.combinedGTItr.next();
         this.converter.translateResult(temp, tuple);
         return tuple;

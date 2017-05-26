@@ -81,8 +81,7 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
                     FileStatus[] segmentFolders = fs.listStatus(dataFolder.getPath());
 
                     for (FileStatus segmentFolder : segmentFolders) {
-                        String folderName = KapConfig.getInstanceFromEnv().getParquetStoragePath()
-                                + dataFolder.getPath().getName() + "/" + segmentFolder.getPath().getName();
+                        String folderName = KapConfig.getInstanceFromEnv().getParquetStoragePath() + dataFolder.getPath().getName() + "/" + segmentFolder.getPath().getName();
                         allHdfsPathsNeedToBeDeleted.add(folderName);
                     }
                 }
@@ -108,16 +107,14 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
                     String cubeId = cubeMgr.getCube(cubeName).getId();
                     String cubePath = KapConfig.getInstanceFromEnv().getParquetStoragePath() + cubeId + "/" + segmentId;
                     allHdfsPathsNeedToBeDeleted.remove(cubePath);
-                    logger.info("Skip " + cubePath + " from deletion list, as the path belongs to job " + jobId
-                            + " with state " + state);
+                    logger.info("Skip " + cubePath + " from deletion list, as the path belongs to job " + jobId + " with state " + state);
                 }
 
                 if (rawMgr.getRawTableInstance(cubeName) != null) {
                     String rawId = rawMgr.getRawTableInstance(cubeName).getId();
                     String rawPath = KapConfig.getInstanceFromEnv().getParquetStoragePath() + rawId + "/" + segmentId;
                     allHdfsPathsNeedToBeDeleted.remove(rawPath);
-                    logger.info("Skip " + rawPath + " from deletion list, as the path belongs to job " + jobId
-                            + " with state " + state);
+                    logger.info("Skip " + rawPath + " from deletion list, as the path belongs to job " + jobId + " with state " + state);
                 }
             }
         }
@@ -129,11 +126,9 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
 
                 String jobUuid = seg.getLastBuildJobID();
                 if (jobUuid != null && jobUuid.equals("") == false) {
-                    String exclude = KapConfig.getInstanceFromEnv().getParquetStoragePath() + cube.getId() + "/"
-                            + seg.getUuid();
+                    String exclude = KapConfig.getInstanceFromEnv().getParquetStoragePath() + cube.getId() + "/" + seg.getUuid();
                     allHdfsPathsNeedToBeDeleted.remove(exclude);
-                    logger.info("Skip " + exclude + " from deletion list, as the path belongs to segment " + seg
-                            + " of cube " + cube.getName() + ", with status " + status);
+                    logger.info("Skip " + exclude + " from deletion list, as the path belongs to segment " + seg + " of cube " + cube.getName() + ", with status " + status);
                 }
             }
         }
@@ -144,11 +139,9 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
                 SegmentStatusEnum status = seg.getStatus();
                 String jobUuid = seg.getLastBuildJobID();
                 if (jobUuid != null && jobUuid.equals("") == false) {
-                    String exclude = KapConfig.getInstanceFromEnv().getParquetStoragePath() + raw.getId() + "/"
-                            + seg.getUuid();
+                    String exclude = KapConfig.getInstanceFromEnv().getParquetStoragePath() + raw.getId() + "/" + seg.getUuid();
                     allHdfsPathsNeedToBeDeleted.remove(exclude);
-                    logger.info("Skip " + exclude + " from deletion list, as the path belongs to segment " + seg
-                            + " of rawtable " + raw.getName() + ", with status " + status);
+                    logger.info("Skip " + exclude + " from deletion list, as the path belongs to segment " + seg + " of rawtable " + raw.getName() + ", with status " + status);
                 }
             }
         }

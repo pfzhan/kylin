@@ -42,8 +42,7 @@ public class ParquetSpliceReaderTest extends AbstractParquetFormatTest {
     @Test
     public void testGetDiv() throws Exception {
         Configuration conf = new Configuration();
-        ParquetSpliceWriter writer = new ParquetSpliceWriter.Builder().setConf(conf).setPath(path).setType(type)
-                .build();
+        ParquetSpliceWriter writer = new ParquetSpliceWriter.Builder().setConf(conf).setPath(path).setType(type).build();
         for (int i = 0; i < ParquetConfig.PagesPerGroup; ++i) {
             writer.startDiv(String.valueOf(i));
             writer.writeRow(new byte[] { 1, 2, 3 }, 1, 2, new byte[] { 4, 5 }, new int[] { 1, 1 });
@@ -61,14 +60,13 @@ public class ParquetSpliceReaderTest extends AbstractParquetFormatTest {
     @Test
     public void testReadDiv() throws Exception {
         Configuration conf = new Configuration();
-        ParquetSpliceWriter writer = new ParquetSpliceWriter.Builder().setConf(conf).setPath(path).setType(type)
-                .build();
+        ParquetSpliceWriter writer = new ParquetSpliceWriter.Builder().setConf(conf).setPath(path).setType(type).build();
         for (int i = 0; i < ParquetConfig.PagesPerGroup; ++i) {
             writer.startDiv(String.valueOf(i));
             List<Object> row = Lists.newArrayList();
             row.add(Binary.fromConstantByteArray(new Integer(i).toString().getBytes()));
-            row.add(Binary.fromConstantByteArray(new byte[] { 1 }));
-            row.add(Binary.fromConstantByteArray(new byte[] { 2 }));
+            row.add(Binary.fromConstantByteArray(new byte[] {1}));
+            row.add(Binary.fromConstantByteArray(new byte[] {2}));
             writer.writeRow(row);
             writer.endDiv();
         }
@@ -78,8 +76,7 @@ public class ParquetSpliceReaderTest extends AbstractParquetFormatTest {
         ParquetBundleReader bundleReader = reader.getDivReader(String.valueOf(ParquetConfig.PagesPerGroup / 2));
         List<Object> data = bundleReader.read();
         Assert.assertEquals(ParquetConfig.PagesPerGroup / 2, bundleReader.getPageIndex());
-        Assert.assertArrayEquals(new Integer(ParquetConfig.PagesPerGroup / 2).toString().getBytes(),
-                ((Binary) data.get(0)).getBytes());
+        Assert.assertArrayEquals(new Integer(ParquetConfig.PagesPerGroup / 2).toString().getBytes(), ((Binary)data.get(0)).getBytes());
         Assert.assertNull(bundleReader.read());
     }
 }

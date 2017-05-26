@@ -66,13 +66,12 @@ public class MassinFilterManager {
 
     private static final ConcurrentMap<KylinConfig, MassinFilterManager> CACHE = new ConcurrentHashMap<>();
     private static final ConcurrentMap<KylinConfig, ResourceStore> RESOURCE_STORE_CACHE = new ConcurrentHashMap<>();
-    private final static Cache<String, Pair<Long, Set<ByteArray>>> HDFS_CACHES = CacheBuilder.newBuilder()
-            .maximumSize(3).removalListener(new RemovalListener<Object, Object>() {
-                @Override
-                public void onRemoval(RemovalNotification<Object, Object> notification) {
-                    logger.debug(String.valueOf(notification.getCause()));
-                }
-            }).build();
+    private final static Cache<String, Pair<Long, Set<ByteArray>>> HDFS_CACHES = CacheBuilder.newBuilder().maximumSize(3).removalListener(new RemovalListener<Object, Object>() {
+        @Override
+        public void onRemoval(RemovalNotification<Object, Object> notification) {
+            logger.debug(String.valueOf(notification.getCause()));
+        }
+    }).build();
     private static final ConcurrentMap<String, DimensionEncoding> EncodingMapping = new ConcurrentHashMap<>();
 
     private KylinConfig kylinConfig;
@@ -149,8 +148,7 @@ public class MassinFilterManager {
         return filterName;
     }
 
-    public Set<ByteArray> load(Functions.FilterTableType filterTableType, String resourceIdentifier)
-            throws IOException {
+    public Set<ByteArray> load(Functions.FilterTableType filterTableType, String resourceIdentifier) throws IOException {
         if (filterTableType == Functions.FilterTableType.HDFS) {
             Pair<Long, Set<ByteArray>> cached = HDFS_CACHES.getIfPresent(resourceIdentifier);
             if (cached != null) {
@@ -192,8 +190,7 @@ public class MassinFilterManager {
         ResourceStore store = RESOURCE_STORE_CACHE.get(kylinConfig);
         if (store == null) {
             try {
-                Class<? extends ResourceStore> storeClass = ClassUtil
-                        .forName("io.kyligence.kap.engine.mr.HDFSResourceStore", ResourceStore.class);
+                Class<? extends ResourceStore> storeClass = ClassUtil.forName("io.kyligence.kap.engine.mr.HDFSResourceStore", ResourceStore.class);
                 store = storeClass.getConstructor(KylinConfig.class).newInstance(kylinConfig);
                 synchronized (MassinFilterManager.class) {
                     RESOURCE_STORE_CACHE.put(kylinConfig, store);

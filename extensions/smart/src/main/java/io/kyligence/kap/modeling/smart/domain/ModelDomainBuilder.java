@@ -93,14 +93,11 @@ public class ModelDomainBuilder implements IDomainBuilder {
             measureFuncs.add(FunctionDesc.newInstance("COUNT_DISTINCT", ParameterDesc.newInstance(colRef), "hllc(10)"));
             if (colRef.getType().isNumberFamily()) {
                 // SUM
-                measureFuncs
-                        .add(FunctionDesc.newInstance("SUM", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
+                measureFuncs.add(FunctionDesc.newInstance("SUM", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
                 // MAX
-                measureFuncs
-                        .add(FunctionDesc.newInstance("MAX", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
+                measureFuncs.add(FunctionDesc.newInstance("MAX", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
                 // MIN
-                measureFuncs
-                        .add(FunctionDesc.newInstance("MIN", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
+                measureFuncs.add(FunctionDesc.newInstance("MIN", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
             }
         }
 

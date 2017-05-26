@@ -23,13 +23,9 @@
  */
 package io.kyligence.kap;
 
-import java.io.File;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.kylin.common.KylinConfig;
+
 import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.routing.NoRealizationFoundException;
 import org.junit.AfterClass;
@@ -38,6 +34,13 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 
 public class ITKapAdHocQueryTest extends KylinTestBase {
     private static final Logger logger = LoggerFactory.getLogger(ITKapAdHocQueryTest.class);
@@ -69,8 +72,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                 Assert.assertEquals(findRoot(e).getClass(), NoRealizationFoundException.class);
             }
 
-            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name",
-                    "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
+            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name", "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
         }
@@ -91,8 +93,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                 Assert.assertEquals(findRoot(e).getClass(), NoRealizationFoundException.class);
             }
 
-            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name",
-                    "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
+            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name", "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
         }
@@ -113,8 +114,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                 Assert.assertEquals(findRoot(e).getClass(), NoRealizationFoundException.class);
             }
 
-            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name",
-                    "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
+            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name", "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
         }
@@ -135,8 +135,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                 Assert.assertEquals(findRoot(e).getClass(), NoRealizationFoundException.class);
             }
 
-            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name",
-                    "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
+            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name", "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
         }
@@ -166,6 +165,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
         System.out.println(queue.size());
     }
 
+
     public class ConcurrentAdHocQueryThread implements Runnable {
         @Override
         public void run() {
@@ -181,8 +181,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                     Assert.assertEquals(findRoot(e).getClass(), NoRealizationFoundException.class);
                 }
 
-                kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name",
-                        "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
+                kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name", "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
                 int resultCount = 0;
                 try {
                     resultCount = runSQL(sqlFile, true, false);

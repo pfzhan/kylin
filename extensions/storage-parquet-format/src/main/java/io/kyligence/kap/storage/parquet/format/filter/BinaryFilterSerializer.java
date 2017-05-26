@@ -34,7 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BinaryFilterSerializer {
-    private static final Logger logger = LoggerFactory.getLogger(BinaryFilterSerializer.class);
+    private static final Logger logger = LoggerFactory.getLogger(BinaryFilterSerializer .class);
     private static final int BUFFER_SIZE = 65536;
 
     public static byte[] serialize(BinaryFilter filter) {
@@ -62,16 +62,16 @@ public class BinaryFilterSerializer {
 
         BinaryFilter filter;
         switch (op) {
-        case AND:
-        case OR:
-            filter = new BinaryLogicalFilter(op, null);
-            break;
-        case CONSTANT:
-            filter = new BinaryConstantFilter();
-            break;
-        default:
-            filter = new BinaryCompareFilter(op);
-            break;
+            case AND:
+            case OR:
+                filter = new BinaryLogicalFilter(op, null);
+                break;
+            case CONSTANT:
+                filter = new BinaryConstantFilter();
+                break;
+            default:
+                filter = new BinaryCompareFilter(op);
+                break;
         }
 
         filter.deserialize(buffer);

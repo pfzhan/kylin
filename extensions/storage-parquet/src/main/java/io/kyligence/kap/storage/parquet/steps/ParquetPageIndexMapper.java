@@ -139,8 +139,7 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
         }
 
         FSDataOutputStream outputStream = HadoopUtil.getFileSystem(outputPath).create(outputPath);
-        indexBundleWriter = new ParquetPageIndexWriter(columnName, columnLength, cardinality, onlyEQIndex,
-                outputStream);
+        indexBundleWriter = new ParquetPageIndexWriter(columnName, columnLength, cardinality, onlyEQIndex, outputStream);
     }
 
     @Override

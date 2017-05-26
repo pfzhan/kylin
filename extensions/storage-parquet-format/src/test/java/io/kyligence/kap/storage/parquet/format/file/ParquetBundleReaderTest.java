@@ -48,8 +48,7 @@ public class ParquetBundleReaderTest extends AbstractParquetFormatTest {
         ImmutableRoaringBitmap bitset = Utils.createBitset(10);
         bitset = deserialize(serialize(bitset));
 
-        ParquetBundleReader bundleReader = new ParquetBundleReader.Builder().setPath(path).setConf(new Configuration())
-                .setPageBitset(bitset).build();
+        ParquetBundleReader bundleReader = new ParquetBundleReader.Builder().setPath(path).setConf(new Configuration()).setPageBitset(bitset).build();
         List<Object> data = bundleReader.read();
         Assert.assertNotNull(data);
         Assert.assertArrayEquals(((Binary) data.get(0)).getBytes(), new byte[] { 2, 3 });

@@ -57,17 +57,14 @@ public class GTUtilExd extends GTUtil {
             final Set<TblColRef> unevaluatableColumnCollector) {
 
         Map<TblColRef, Integer> map = colListToMap(colMapping);
-
+        
         IFilterCodeSystem<ByteArray> filterCodeSystem = wrap(info.getCodeSystem().getComparator());
-        byte[] bytes = TupleFilterSerializerRawTableExt.serialize(rootFilter,
-                new RawTableGTConvertDecorator(unevaluatableColumnCollector, map, info, encodeConstants),
-                filterCodeSystem);
+        byte[] bytes = TupleFilterSerializerRawTableExt.serialize(rootFilter, new RawTableGTConvertDecorator(unevaluatableColumnCollector, map, info, encodeConstants), filterCodeSystem);
         return TupleFilterSerializerRawTableExt.deserialize(bytes, filterCodeSystem);
     }
 
     private static class RawTableGTConvertDecorator extends GTConvertDecorator {
-        public RawTableGTConvertDecorator(Set<TblColRef> unevaluatableColumnCollector,
-                Map<TblColRef, Integer> colMapping, GTInfo info, boolean encodeConstants) {
+        public RawTableGTConvertDecorator(Set<TblColRef> unevaluatableColumnCollector, Map<TblColRef, Integer> colMapping, GTInfo info, boolean encodeConstants) {
             super(unevaluatableColumnCollector, colMapping, info, encodeConstants);
         }
 
@@ -114,8 +111,7 @@ public class GTUtilExd extends GTUtil {
             }
 
             ConstantTupleFilter constantTupleFilter = funcFilter.getConstantTupleFilter();
-            if (constantTupleFilter == null || constantTupleFilter.getValues() == null
-                    || constantTupleFilter.getValues().isEmpty()) {
+            if (constantTupleFilter == null || constantTupleFilter.getValues() == null || constantTupleFilter.getValues().isEmpty()) {
                 return funcFilter;
             }
 

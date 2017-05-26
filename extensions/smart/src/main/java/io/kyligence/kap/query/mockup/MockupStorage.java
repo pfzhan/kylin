@@ -40,8 +40,7 @@ public class MockupStorage implements IStorage {
             try {
                 ret = new MockupStorageQuery(cubeInstance);
             } catch (Exception e) {
-                throw new RuntimeException(
-                        "Failed to initialize storage query for " + MockupStorageQuery.class.getName(), e);
+                throw new RuntimeException("Failed to initialize storage query for " + MockupStorageQuery.class.getName(), e);
             }
 
             return ret;

@@ -112,22 +112,18 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
         for (int i = 0; i < columns.size(); i++) {
             TblColRef column = columns.get(i);
             if (rawTableDesc.isNeedFuzzyIndex(column)) {
-                Path outputPath = new Path(FileOutputFormat.getWorkOutputPath(context),
-                        RawTableConstants.RawTableDir + "/" + shardId + "." + i + ".parquet.fuzzy");
+                Path outputPath = new Path(FileOutputFormat.getWorkOutputPath(context), RawTableConstants.RawTableDir + "/" + shardId + "." + i + ".parquet.fuzzy");
                 FSDataOutputStream output = HadoopUtil.getFileSystem(outputPath).create(outputPath);
-                ColumnSpec columnSpec = new ColumnSpec(column.getName(), RawTableUtils.roundToByte(fuzzyHashLength),
-                        10000, true, i);
+                ColumnSpec columnSpec = new ColumnSpec(column.getName(), RawTableUtils.roundToByte(fuzzyHashLength), 10000, true, i);
                 columnSpec.setValueEncodingIdentifier('s');
                 fuzzyIndexWriterMap.put(i, new ParquetPageIndexWriter(new ColumnSpec[] { columnSpec }, output));
-                fuzzyIndexEncodingMap.put(i,
-                        new ImmutableBitSet(rawTableDesc.getRawToGridTableMapping().getIndexOf(column)));
+                fuzzyIndexEncodingMap.put(i, new ImmutableBitSet(rawTableDesc.getRawToGridTableMapping().getIndexOf(column)));
             }
         }
     }
 
     @Override
-    public void doMap(ByteArrayListWritable key, IntWritable value, Context context)
-            throws IOException, InterruptedException {
+    public void doMap(ByteArrayListWritable key, IntWritable value, Context context) throws IOException, InterruptedException {
 
         List<byte[]> originValue = key.get();
 
@@ -136,8 +132,7 @@ public class RawTableFuzzyIndexMapper extends KylinMapper<ByteArrayListWritable,
             ImmutableBitSet cols = fuzzyIndexEncodingMap.get(fuzzyIndex);// only contain one element
             rawColumnCodec.decode(ByteBuffer.wrap(originValue.get(fuzzyIndex)), codecBuffer, cols);
             if (codecBuffer[cols.trueBitAt(0)] != null) {
-                writeSubstring(writer, codecBuffer[cols.trueBitAt(0)].toLowerCase().getBytes(), value.get(),
-                        fuzzyLength);
+                writeSubstring(writer, codecBuffer[cols.trueBitAt(0)].toLowerCase().getBytes(), value.get(), fuzzyLength);
             }
         }
 

@@ -200,11 +200,9 @@ public class RawTableSegment implements Comparable<RawTableSegment>, IBuildable,
     public void validate() {
         if (rawTableInstance.getRawTableDesc().getModel().getPartitionDesc().isPartitioned()) {
             if (!isSourceOffsetsOn() && dateRangeStart >= dateRangeEnd)
-                throw new IllegalStateException("Invalid segment, dateRangeStart(" + dateRangeStart
-                        + ") must be smaller than dateRangeEnd(" + dateRangeEnd + ") in segment " + this);
+                throw new IllegalStateException("Invalid segment, dateRangeStart(" + dateRangeStart + ") must be smaller than dateRangeEnd(" + dateRangeEnd + ") in segment " + this);
             if (isSourceOffsetsOn() && sourceOffsetStart >= sourceOffsetEnd)
-                throw new IllegalStateException("Invalid segment, sourceOffsetStart(" + sourceOffsetStart
-                        + ") must be smaller than sourceOffsetEnd(" + sourceOffsetEnd + ") in segment " + this);
+                throw new IllegalStateException("Invalid segment, sourceOffsetStart(" + sourceOffsetStart + ") must be smaller than sourceOffsetEnd(" + sourceOffsetEnd + ") in segment " + this);
         }
     }
 
@@ -227,8 +225,7 @@ public class RawTableSegment implements Comparable<RawTableSegment>, IBuildable,
     public CubeSegment getCubeSegment() {
         CubeSegment cubeSeg = rawTableInstance.getCubeInstance().getSegmentById(uuid);
         if (cubeSeg == null)
-            throw new IllegalStateException(
-                    "Cannot find the cube segment that this raw table segment attaches to: " + this + ", uuid=" + uuid);
+            throw new IllegalStateException("Cannot find the cube segment that this raw table segment attaches to: " + this + ", uuid=" + uuid);
         return cubeSeg;
     }
 

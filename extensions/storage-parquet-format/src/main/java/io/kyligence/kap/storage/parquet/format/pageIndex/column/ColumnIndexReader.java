@@ -113,9 +113,7 @@ public class ColumnIndexReader implements Closeable {
             char keyEncodingIdentifier = inputStream.readChar();
             char valueEncodingIdentifier = inputStream.readChar();
 
-            logger.info(
-                    "Init column index: ColLength={}, PageNum={}, Cardinality={}, Step={}, onlyEQ={}, keyEncoding={}, valueEncoding={}",
-                    columnLength, pageNum, cardinality, step, onlyEQ, keyEncodingIdentifier, valueEncodingIdentifier);
+            logger.info("Init column index: ColLength={}, PageNum={}, Cardinality={}, Step={}, onlyEQ={}, keyEncoding={}, valueEncoding={}", columnLength, pageNum, cardinality, step, onlyEQ, keyEncodingIdentifier, valueEncodingIdentifier);
 
             keyEncoding = KeyEncodingFactory.useEncoding(keyEncodingIdentifier, columnLength);
             valueSetEncoding = ValueSetEncodingFactory.useEncoding(valueEncodingIdentifier);
@@ -267,8 +265,7 @@ public class ColumnIndexReader implements Closeable {
                 offsetMapSize += 1;
             }
 
-            logger.debug("read from stream - start: {}, offsetMapSize:{}, columnLength:{}", stream.getPos(),
-                    offsetMapSize, columnLength);
+            logger.debug("read from stream - start: {}, offsetMapSize:{}, columnLength:{}", stream.getPos(), offsetMapSize, columnLength);
 
             for (int i = 0; i < offsetMapSize; i++) {
                 Comparable key = keyEncoding.deserialize(stream);
@@ -281,12 +278,10 @@ public class ColumnIndexReader implements Closeable {
             bodyLength = stream.readLong();
             bodyStartOffset = stream.getPos();
 
-            logger.debug("bodyLength:{}, bodyStartOffset:{}, realOffsetMapSize:{}", bodyLength, bodyStartOffset,
-                    offsetMap.size());
+            logger.debug("bodyLength:{}, bodyStartOffset:{}, realOffsetMapSize:{}", bodyLength, bodyStartOffset, offsetMap.size());
         }
 
-        private void readFromStream(FSDataInputStream stream, long startOffset, IndexBlockType type)
-                throws IOException {
+        private void readFromStream(FSDataInputStream stream, long startOffset, IndexBlockType type) throws IOException {
             stream.seek(startOffset);
             readFromStream(stream, type);
         }

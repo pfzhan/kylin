@@ -32,7 +32,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.LoggerFactory;
 
-public class ParquetStorageSpliceCleanupStep extends ParquetStorageCleanupStep {
+public class ParquetStorageSpliceCleanupStep extends ParquetStorageCleanupStep{
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(ParquetStorageCleanupStep.class);
 
     @Override

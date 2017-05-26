@@ -119,8 +119,7 @@ public class RawTableDescManager {
         }
 
         @Override
-        public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey)
-                throws IOException {
+        public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey) throws IOException {
             String descName = cacheKey;
             RawTableDesc desc = getRawTableDesc(descName);
             String modelName = desc == null ? null : desc.getModel().getName();
@@ -209,13 +208,11 @@ public class RawTableDescManager {
 
     void reloadAllRawTableDesc() throws IOException {
         ResourceStore store = getStore();
-        logger.info("Reloading RawTableDesc from folder "
-                + store.getReadableResourcePath(RawTableDesc.RAW_TABLE_DESC_RESOURCE_ROOT));
+        logger.info("Reloading RawTableDesc from folder " + store.getReadableResourcePath(RawTableDesc.RAW_TABLE_DESC_RESOURCE_ROOT));
 
         rawTableDescMap.clear();
 
-        List<String> paths = store.collectResourceRecursively(RawTableDesc.RAW_TABLE_DESC_RESOURCE_ROOT,
-                MetadataConstants.FILE_SURFIX);
+        List<String> paths = store.collectResourceRecursively(RawTableDesc.RAW_TABLE_DESC_RESOURCE_ROOT, MetadataConstants.FILE_SURFIX);
         for (String path : paths) {
             RawTableDesc desc;
             try {
@@ -225,8 +222,7 @@ public class RawTableDescManager {
                 continue;
             }
             if (path.equals(desc.getResourcePath()) == false) {
-                logger.error(
-                        "Skip suspicious desc at " + path + ", " + desc + " should be at " + desc.getResourcePath());
+                logger.error("Skip suspicious desc at " + path + ", " + desc + " should be at " + desc.getResourcePath());
                 continue;
             }
             if (rawTableDescMap.containsKey(desc.getName())) {

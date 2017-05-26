@@ -39,8 +39,7 @@ public class ParquetSpliceWriterTest extends AbstractParquetFormatTest {
     @Test
     public void testWriteDiv() throws Exception {
         Configuration conf = new Configuration();
-        ParquetSpliceWriter writer = new ParquetSpliceWriter.Builder().setConf(conf).setPath(path).setType(type)
-                .build();
+        ParquetSpliceWriter writer = new ParquetSpliceWriter.Builder().setConf(conf).setPath(path).setType(type).build();
         for (int i = 0; i < ParquetConfig.PagesPerGroup; ++i) {
             writer.startDiv(String.valueOf(i));
             writer.writeRow(new byte[] { 1, 2, 3 }, 1, 2, new byte[] { 4, 5 }, new int[] { 1, 1 });

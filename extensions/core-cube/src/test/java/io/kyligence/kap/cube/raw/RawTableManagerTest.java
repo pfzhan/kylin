@@ -103,14 +103,12 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         store.deleteResource("/raw_table_instance/" + cubeName + ".json");
 
         RawTableDesc desc = descMgr.getRawTableDesc(cubeDesc);
-        RawTableInstance createdRaw = rawMgr.createRawTableInstance(cubeName, ProjectInstance.DEFAULT_PROJECT_NAME,
-                desc, null);
+        RawTableInstance createdRaw = rawMgr.createRawTableInstance(cubeName, ProjectInstance.DEFAULT_PROJECT_NAME, desc, null);
 
         assertTrue(createdRaw == rawMgr.getRawTableInstance(cubeName));
         assertTrue(prjMgr.listAllRealizations(ProjectInstance.DEFAULT_PROJECT_NAME).contains(createdRaw));
 
-        RawTableInstance droppedRaw = RawTableManager.getInstance(getTestConfig()).dropRawTableInstance(cubeName,
-                false);
+        RawTableInstance droppedRaw = RawTableManager.getInstance(getTestConfig()).dropRawTableInstance(cubeName, false);
 
         assertTrue(createdRaw == droppedRaw);
         assertTrue(!prjMgr.listAllRealizations(ProjectInstance.DEFAULT_PROJECT_NAME).contains(droppedRaw));
@@ -201,8 +199,7 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         final NavigableSet<String> rawPath = store.listResources(RawTableInstance.RAW_TABLE_INSTANCE_RESOURCE_ROOT);
         assertTrue(rawPath.size() > 1);
 
-        final List<RawTableInstance> raws = store.getAllResources(RawTableInstance.RAW_TABLE_INSTANCE_RESOURCE_ROOT,
-                RawTableInstance.class, RawTableManager.INSTANCE_SERIALIZER);
+        final List<RawTableInstance> raws = store.getAllResources(RawTableInstance.RAW_TABLE_INSTANCE_RESOURCE_ROOT, RawTableInstance.class, RawTableManager.INSTANCE_SERIALIZER);
         assertEquals(rawPath.size(), raws.size());
     }
 

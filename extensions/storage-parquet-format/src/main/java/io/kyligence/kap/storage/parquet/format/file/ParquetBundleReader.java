@@ -44,17 +44,14 @@ public class ParquetBundleReader {
 
     private List<ParquetReaderState> readerStates;
 
-    public ParquetBundleReader(Configuration configuration, Path path, ImmutableRoaringBitmap columns,
-            ImmutableRoaringBitmap pageBitset, long fileOffset, ParquetMetadata metadata) throws IOException {
+    public ParquetBundleReader(Configuration configuration, Path path, ImmutableRoaringBitmap columns, ImmutableRoaringBitmap pageBitset, long fileOffset, ParquetMetadata metadata) throws IOException {
         readerStates = new ArrayList<>(columns.getCardinality());
 
         if (metadata == null) {
             metadata = ParquetFileReader.readFooter(configuration, path, ParquetMetadataConverter.NO_FILTER);
         }
         for (int column : columns) {
-            readerStates.add(new ParquetReaderState(
-                    new ParquetColumnReader.Builder().setFileOffset(fileOffset).setConf(configuration).setPath(path)
-                            .setColumn(column).setPageBitset(pageBitset).setMetadata(metadata).build()));
+            readerStates.add(new ParquetReaderState(new ParquetColumnReader.Builder().setFileOffset(fileOffset).setConf(configuration).setPath(path).setColumn(column).setPageBitset(pageBitset).setMetadata(metadata).build()));
             logger.info("Read Column: " + column);
         }
     }
@@ -159,8 +156,7 @@ public class ParquetBundleReader {
                 columnBitset = Utils.createBitset(columnCnt);
             }
 
-            ParquetBundleReader result = new ParquetBundleReader(conf, path, columnBitset, pageBitset, fileOffset,
-                    null);
+            ParquetBundleReader result = new ParquetBundleReader(conf, path, columnBitset, pageBitset, fileOffset, null);
 
             return result;
         }
@@ -177,8 +173,7 @@ public class ParquetBundleReader {
             long t = System.currentTimeMillis();
             try {
                 int i = 0;
-                ParquetBundleReader reader = new Builder().setPath(new Path(args[0])).setConf(new Configuration())
-                        .build();
+                ParquetBundleReader reader = new Builder().setPath(new Path(args[0])).setConf(new Configuration()).build();
                 long t2 = System.currentTimeMillis() - t;
                 System.out.println("Create reader takes " + t2 + " ms");
                 while (reader.read() != null) {

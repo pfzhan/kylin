@@ -95,12 +95,10 @@ public class ITKapMassinQueryTest extends ITMassInQueryTest {
     @Test
     public void massinTest() throws Exception {
         try {
-            RemoveBlackoutRealizationsRule.blackList
-                    .add("INVERTED_INDEX[name=test_kylin_cube_with_slr_left_join_empty]");
+            RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=test_kylin_cube_with_slr_left_join_empty]");
             compare("src/test/resources/query/massin/", null, true);
         } finally {
-            RemoveBlackoutRealizationsRule.blackList
-                    .remove("INVERTED_INDEX[name=test_kylin_cube_with_slr_left_join_empty]");
+            RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=test_kylin_cube_with_slr_left_join_empty]");
         }
     }
 

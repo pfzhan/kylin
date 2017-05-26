@@ -39,7 +39,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 
 public class IndexedRawMeasureType extends MeasureType<ByteArray> {
     private static final long serialVersionUID = 1L;
-
+    
     private final DataType dataType;
 
     public IndexedRawMeasureType(String funcName, DataType dataType) {
@@ -53,8 +53,7 @@ public class IndexedRawMeasureType extends MeasureType<ByteArray> {
 
             //encode measure value to dictionary
             @Override
-            public ByteArray valueOf(String[] values, MeasureDesc measureDesc,
-                    Map<TblColRef, Dictionary<String>> dictionaryMap) {
+            public ByteArray valueOf(String[] values, MeasureDesc measureDesc, Map<TblColRef, Dictionary<String>> dictionaryMap) {
                 if (values.length != 1)
                     throw new IllegalArgumentException();
 
@@ -76,8 +75,7 @@ public class IndexedRawMeasureType extends MeasureType<ByteArray> {
 
             //merge measure dictionary
             @Override
-            public ByteArray reEncodeDictionary(ByteArray value, MeasureDesc measureDesc,
-                    Map<TblColRef, Dictionary<String>> oldDicts, Map<TblColRef, Dictionary<String>> newDicts) {
+            public ByteArray reEncodeDictionary(ByteArray value, MeasureDesc measureDesc, Map<TblColRef, Dictionary<String>> oldDicts, Map<TblColRef, Dictionary<String>> newDicts) {
                 TblColRef colRef = getRawColumn(measureDesc.getFunction());
                 Dictionary<String> sourceDict = oldDicts.get(colRef);
                 Dictionary<String> mergedDict = newDicts.get(colRef);

@@ -66,8 +66,7 @@ public class ParquetSpliceMROutput2 implements IMROutput2 {
     public IMROutput2.IMRBatchCubingOutputSide2 getBatchCubingOutputSide(final CubeSegment seg) {
         return new IMROutput2.IMRBatchCubingOutputSide2() {
             ParquetSpliceMRSteps steps = new ParquetSpliceMRSteps(seg);
-            RawTableInstance raw = RawTableManager.getInstance(seg.getConfig())
-                    .getAccompanyRawTable(seg.getCubeInstance());
+            RawTableInstance raw = RawTableManager.getInstance(seg.getConfig()).getAccompanyRawTable(seg.getCubeInstance());
             boolean isRawTableEnable = (null != raw);
 
             @Override
@@ -128,8 +127,7 @@ public class ParquetSpliceMROutput2 implements IMROutput2 {
             } else if (mapperClass == NDCuboidMapper.class || mapperClass == HiveToBaseCuboidMapper.class) {
                 // layer
                 job.setPartitionerClass(ConfigurationBasedPartitioner.class);
-                reducerNum = ReducerNumSizing.getLayeredCubingReduceTaskNum(segment,
-                        AbstractHadoopJob.getTotalMapInputMB(job), level);
+                reducerNum = ReducerNumSizing.getLayeredCubingReduceTaskNum(segment, AbstractHadoopJob.getTotalMapInputMB(job), level);
                 List<List<Long>> layeredCuboids = new CuboidScheduler(segment.getCubeDesc()).getCuboidsByLayer();
                 for (Long cuboidId : layeredCuboids.get(level)) {
                     reducerNum = Math.max(reducerNum, segment.getCuboidShardNum(cuboidId));
@@ -149,8 +147,7 @@ public class ParquetSpliceMROutput2 implements IMROutput2 {
     public IMROutput2.IMRBatchMergeOutputSide2 getBatchMergeOutputSide(final CubeSegment seg) {
         return new IMROutput2.IMRBatchMergeOutputSide2() {
             ParquetSpliceMRSteps steps = new ParquetSpliceMRSteps(seg);
-            RawTableInstance raw = RawTableManager.getInstance(seg.getConfig())
-                    .getAccompanyRawTable(seg.getCubeInstance());
+            RawTableInstance raw = RawTableManager.getInstance(seg.getConfig()).getAccompanyRawTable(seg.getCubeInstance());
             boolean isRawTableEnable = (null != raw);
 
             @Override
@@ -159,10 +156,8 @@ public class ParquetSpliceMROutput2 implements IMROutput2 {
             }
 
             @Override
-            public void addStepPhase2_BuildCube(CubeSegment seg, List<CubeSegment> mergingSegments,
-                    DefaultChainedExecutable jobFlow) {
-                jobFlow.addTask(
-                        steps.createCubeMergeStep(seg, mergingSegments, jobFlow.getId(), KapMergeCuboidJob.class));
+            public void addStepPhase2_BuildCube(CubeSegment seg, List<CubeSegment> mergingSegments, DefaultChainedExecutable jobFlow) {
+                jobFlow.addTask(steps.createCubeMergeStep(seg, mergingSegments, jobFlow.getId(), KapMergeCuboidJob.class));
                 jobFlow.addTask(steps.createCubeMergeCleanupStep(jobFlow.getId(), seg));
                 jobFlow.addTask(steps.createCubePageIndexStep(jobFlow.getId()));
                 jobFlow.addTask(steps.createCubePageIndexCleanupStep(jobFlow.getId()));
@@ -203,8 +198,7 @@ public class ParquetSpliceMROutput2 implements IMROutput2 {
 
         @Override
         public void configureJobOutput(Job job, String output, CubeSegment segment) throws Exception {
-            int reducerNum = ReducerNumSizing.getLayeredCubingReduceTaskNum(segment,
-                    AbstractHadoopJob.getTotalMapInputMB(job), -1);
+            int reducerNum = ReducerNumSizing.getLayeredCubingReduceTaskNum(segment, AbstractHadoopJob.getTotalMapInputMB(job), -1);
             job.setPartitionerClass(ConfigurationBasedPartitioner.class);
             List<Long> allCuboids = new CuboidScheduler(segment.getCubeDesc()).getAllCuboidIds();
             for (Long cuboidId : allCuboids) {

@@ -158,8 +158,7 @@ public class RowkeyProposer extends AbstractProposer {
         if (context.hasTableStats() && cardinality > modelingConfig.getRowkeyDictEncCardinalityMax()) {
             TableExtDesc.ColumnStats colStats = context.getTableColumnStats(colDesc.getColRef());
             // TODO: currently used max length, better to use 95%ile length
-            int length = Math.min(colStats.getMaxLengthValue().getBytes().length,
-                    modelingConfig.getRowkeyFixLenLengthMax());
+            int length = Math.min(colStats.getMaxLengthValue().getBytes().length, modelingConfig.getRowkeyFixLenLengthMax());
             return String.format("%s:%d", FixedLenDimEnc.ENCODING_NAME, length);
         }
 
@@ -181,8 +180,7 @@ public class RowkeyProposer extends AbstractProposer {
         for (RowKeyColDesc rowKeyDesc : rowKeyDescs) {
             long cardinality = context.getColumnsCardinality(rowKeyDesc.getColRef().getIdentity());
             rowKeyDesc.setEncoding(selectDimEncoding(rowKeyDesc, cardinality));
-            logger.debug("Set dimension encoding: column={}, encoding={}, cardinality={}", rowKeyDesc.getColumn(),
-                    rowKeyDesc.getEncoding(), cardinality);
+            logger.debug("Set dimension encoding: column={}, encoding={}, cardinality={}", rowKeyDesc.getColumn(), rowKeyDesc.getEncoding(), cardinality);
 
             if (cardinality > maxCardinality) {
                 // find the largest cardinality, set shardBy=true if the max exceeds threshold
@@ -193,13 +191,11 @@ public class RowkeyProposer extends AbstractProposer {
 
         if (maxCardRowKey != null && maxCardinality > modelingConfig.getRowkeyUHCCardinalityMin()) {
             maxCardRowKey.setShardBy(true);
-            logger.debug("Found shard by dimension: column={}, cardinality={}", maxCardRowKey.getColumn(),
-                    maxCardinality);
+            logger.debug("Found shard by dimension: column={}, cardinality={}", maxCardRowKey.getColumn(), maxCardinality);
         }
 
         // update index settings
-        if (workCubeDesc.getEngineType() > IEngineAware.ID_SPARK
-                || workCubeDesc.getStorageType() > IStorageAware.ID_SHARDED_HBASE) {
+        if (workCubeDesc.getEngineType() > IEngineAware.ID_SPARK || workCubeDesc.getStorageType() > IStorageAware.ID_SHARDED_HBASE) {
             final String indexSettings = "eq";
             // TODO: for LT and GT check (eg. data column), set all index
             for (RowKeyColDesc rowKeyDesc : rowKeyDescs) {

@@ -40,8 +40,7 @@ public class ParquetColumnReaderTest extends AbstractParquetFormatTest {
     public void testGetNextValuesReader() throws Exception {
         writeRows(ParquetConfig.RowsPerPage);
 
-        ParquetColumnReader reader = new ParquetColumnReader.Builder().setPath(path).setConf(new Configuration())
-                .setColumn(0).build();
+        ParquetColumnReader reader = new ParquetColumnReader.Builder().setPath(path).setConf(new Configuration()).setColumn(0).build();
         GeneralValuesReader valuesReader = reader.getNextValuesReader();
         Assert.assertArrayEquals(valuesReader.readBytes().getBytes(), new byte[] { 2, 3 });
         Assert.assertNull(reader.getNextValuesReader());
@@ -51,8 +50,7 @@ public class ParquetColumnReaderTest extends AbstractParquetFormatTest {
     @Test
     public void testGetPageIndex() throws Exception {
         writeRows(ParquetConfig.RowsPerPage * ParquetConfig.PagesPerGroup);
-        ParquetColumnReader reader = new ParquetColumnReader.Builder().setPath(path).setConf(new Configuration())
-                .setColumn(0).build();
+        ParquetColumnReader reader = new ParquetColumnReader.Builder().setPath(path).setConf(new Configuration()).setColumn(0).build();
         int count = 0;
         while (true) {
             if (reader.getNextValuesReader() == null) {
@@ -65,8 +63,7 @@ public class ParquetColumnReaderTest extends AbstractParquetFormatTest {
     @Test
     public void testGetPageIndexWithPageBitmap() throws Exception {
         writeRows(ParquetConfig.RowsPerPage * ParquetConfig.PagesPerGroup);
-        ParquetColumnReader reader = new ParquetColumnReader.Builder().setPath(path).setConf(new Configuration())
-                .setColumn(0).setPageBitset(Utils.createBitset(1, ParquetConfig.PagesPerGroup - 1)).build();
+        ParquetColumnReader reader = new ParquetColumnReader.Builder().setPath(path).setConf(new Configuration()).setColumn(0).setPageBitset(Utils.createBitset(1, ParquetConfig.PagesPerGroup - 1)).build();
         int count = 1;
         while (true) {
             if (reader.getNextValuesReader() == null) {

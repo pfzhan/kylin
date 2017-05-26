@@ -65,8 +65,7 @@ public class KyBotService extends BasicService {
     private KapConfig kapConfig = KapConfig.getInstanceFromEnv();
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public String dumpLocalKyBotPackage(String target, long startTime, long endTime, boolean needUpload)
-            throws IOException {
+    public String dumpLocalKyBotPackage(String target, long startTime, long endTime, boolean needUpload) throws IOException {
         File exportPath = Files.createTempDir();
         if (StringUtils.isEmpty(target)) {
             target = "-all";
@@ -76,8 +75,7 @@ public class KyBotService extends BasicService {
             validateToken();
         }
 
-        String[] args = { target, exportPath.getAbsolutePath(), Boolean.toString(needUpload), Long.toString(startTime),
-                Long.toString(endTime) };
+        String[] args = { target, exportPath.getAbsolutePath(), Boolean.toString(needUpload), Long.toString(startTime), Long.toString(endTime) };
         runKyBotCLI(args);
         return getKyBotPackagePath(exportPath);
     }
@@ -210,13 +208,12 @@ public class KyBotService extends BasicService {
         }
         try {
             CliCommandExecutor executor = KylinConfig.getInstanceFromEnv().getCliCommandExecutor();
-            Pair<Integer, String> cmdOutput = executor.execute(script.getAbsolutePath(),
-                    new org.apache.kylin.common.util.Logger() {
-                        @Override
-                        public void log(String message) {
-                            logger.debug("status.sh - {}", message);
-                        }
-                    });
+            Pair<Integer, String> cmdOutput = executor.execute(script.getAbsolutePath(), new org.apache.kylin.common.util.Logger() {
+                @Override
+                public void log(String message) {
+                    logger.debug("status.sh - {}", message);
+                }
+            });
             logger.debug("Cmdoutput: " + cmdOutput.getKey() + "\n" + cmdOutput.getValue());
             return cmdOutput.getValue().contains("running: true");
         } catch (IOException e) {
@@ -247,13 +244,12 @@ public class KyBotService extends BasicService {
         }
         try {
             CliCommandExecutor executor = KylinConfig.getInstanceFromEnv().getCliCommandExecutor();
-            Pair<Integer, String> cmdOutput = executor.execute(script.getAbsolutePath(),
-                    new org.apache.kylin.common.util.Logger() {
-                        @Override
-                        public void log(String message) {
-                            logger.debug("disable.sh - {}", message);
-                        }
-                    });
+            Pair<Integer, String> cmdOutput = executor.execute(script.getAbsolutePath(), new org.apache.kylin.common.util.Logger() {
+                @Override
+                public void log(String message) {
+                    logger.debug("disable.sh - {}", message);
+                }
+            });
             logger.debug("Cmdoutput: " + cmdOutput.getKey());
             return cmdOutput.getKey() == 0;
         } catch (IOException e) {

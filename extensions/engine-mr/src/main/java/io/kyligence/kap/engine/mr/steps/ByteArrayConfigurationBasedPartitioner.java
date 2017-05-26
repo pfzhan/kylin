@@ -40,8 +40,7 @@ import org.apache.kylin.engine.mr.ByteArrayWritable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ByteArrayConfigurationBasedPartitioner extends Partitioner<ByteArrayWritable, ByteArrayWritable>
-        implements Configurable {
+public class ByteArrayConfigurationBasedPartitioner extends Partitioner<ByteArrayWritable, ByteArrayWritable> implements Configurable {
     protected static final Logger logger = LoggerFactory.getLogger(ByteArrayConfigurationBasedPartitioner.class);
 
     public static final String CUBOID_SHARD_REDUCE_MAPPING = "io.kyligence.kap.mr.partitioner-mapping";
@@ -59,13 +58,11 @@ public class ByteArrayConfigurationBasedPartitioner extends Partitioner<ByteArra
         try {
             String partitionMapping = conf.get(CUBOID_SHARD_REDUCE_MAPPING);
             if (partitionMapping != null) {
-                partitionMap = (Map<Pair<Long, Short>, Integer>) new ObjectInputStream(
-                        new ByteArrayInputStream(Base64.decodeBase64(partitionMapping.getBytes()))).readObject();
+                partitionMap = (Map<Pair<Long, Short>, Integer>) new ObjectInputStream(new ByteArrayInputStream(Base64.decodeBase64(partitionMapping.getBytes()))).readObject();
             }
 
-            for (Pair<Long, Short> key : partitionMap.keySet()) {
-                logger.info("Cuboid {} Shard {} --> Reducer Number {}", key.getFirst(), key.getSecond(),
-                        partitionMap.get(key));
+            for (Pair<Long, Short> key: partitionMap.keySet()) {
+                logger.info("Cuboid {} Shard {} --> Reducer Number {}", key.getFirst(), key.getSecond(), partitionMap.get(key));
             }
         } catch (IOException e) {
             logger.error("", e);

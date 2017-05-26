@@ -43,13 +43,13 @@ public class DataModelFlatTableDesc extends CubeJoinedFlatTableDesc {
 
         if (cubeSegment == null)
             return;
-
+        
         // add raw table columns
         RawTableManager rawTableManager = RawTableManager.getInstance(cubeSegment.getConfig());
         RawTableInstance rawTable = rawTableManager.getAccompanyRawTable(cubeSegment.getCubeInstance());
         if (rawTable == null)
             return;
-
+        
         for (TblColRef col : rawTable.getRawTableDesc().getColumnsInOrder()) {
             initAddColumn(col);
         }

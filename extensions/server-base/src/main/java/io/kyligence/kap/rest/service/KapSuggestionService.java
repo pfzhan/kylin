@@ -72,8 +72,7 @@ public class KapSuggestionService extends BasicService {
         CubeLogManager cubeLogManager = CubeLogManager.getInstance(getConfig());
         QueryStats queryStats = cubeLogManager.getCubeLog(cubeDesc.getName()).getQueryStats();
 
-        DataModelDesc dataModelDesc = MetadataManager.getInstance(getConfig())
-                .getDataModelDesc(cubeDesc.getModelName());
+        DataModelDesc dataModelDesc = MetadataManager.getInstance(getConfig()).getDataModelDesc(cubeDesc.getModelName());
 
         ModelingMaster modelingMaster = ModelingMasterFactory.create(getConfig(), dataModelDesc);
 

@@ -37,8 +37,7 @@ public class ParquetRawWriterTest extends AbstractParquetFormatTest {
 
     @Test
     public void testWriteAndReadPage() throws Exception {
-        ParquetRawWriter writer = new ParquetRawWriter.Builder().setConf(new Configuration()).setPath(path)
-                .setType(type).build();
+        ParquetRawWriter writer = new ParquetRawWriter.Builder().setConf(new Configuration()).setPath(path).setType(type).build();
         for (int i = 0; i < ParquetConfig.RowsPerPage * ParquetConfig.PagesPerGroup * 2; ++i) {
             writer.writeRow(new byte[] { 1, 2, 3 }, 1, 2, new byte[] { 4, 5 }, new int[] { 1, 1 });
             if ((i % ParquetConfig.RowsPerPage) == 0) {
@@ -50,8 +49,7 @@ public class ParquetRawWriterTest extends AbstractParquetFormatTest {
 
     @Test
     public void testFlushAndReadPage() throws Exception {
-        ParquetRawWriter writer = new ParquetRawWriter.Builder().setConf(new Configuration()).setPath(path)
-                .setType(type).build();
+        ParquetRawWriter writer = new ParquetRawWriter.Builder().setConf(new Configuration()).setPath(path).setType(type).build();
         for (int i = 0; i < 100; ++i) {
             writer.writeRow(new byte[] { 1, 2, 3 }, 1, 2, new byte[] { 4, 5 }, new int[] { 1, 1 });
             writer.flush();

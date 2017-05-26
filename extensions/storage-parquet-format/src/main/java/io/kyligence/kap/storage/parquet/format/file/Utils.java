@@ -54,8 +54,7 @@ public class Utils {
         for (String key : src.keySet()) {
             if (key.startsWith(DivisionNamePrefix)) {
                 String[] range = src.get(key).split(",");
-                result.put(key.substring(DivisionNamePrefix.length()),
-                        new ImmutablePair<>(Integer.valueOf(range[0]), Integer.valueOf(range[1])));
+                result.put(key.substring(DivisionNamePrefix.length()), new ImmutablePair<>(Integer.valueOf(range[0]), Integer.valueOf(range[1])));
             }
         }
 
@@ -69,8 +68,7 @@ public class Utils {
         }
 
         ImmutableRoaringBitmap iBitmap;
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                DataOutputStream dos = new DataOutputStream(baos);) {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); DataOutputStream dos = new DataOutputStream(baos);) {
             mBitmap.serialize(dos);
             dos.flush();
             iBitmap = new ImmutableRoaringBitmap(ByteBuffer.wrap(baos.toByteArray()));

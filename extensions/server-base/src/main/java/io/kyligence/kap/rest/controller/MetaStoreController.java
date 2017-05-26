@@ -52,12 +52,9 @@ public class MetaStoreController extends BasicController {
     /**
      * Backup the metastore to the current webserver node, for one project or one cube, or global
      */
-    @RequestMapping(value = "backup", method = RequestMethod.POST, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "backup", method = RequestMethod.POST, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse backup(@RequestHeader("Accept-Language") String lang,
-            @RequestParam(value = "project", required = false) String project,
-            @RequestParam(value = "cube", required = false) String cube) throws IOException {
+    public EnvelopeResponse backup(@RequestHeader("Accept-Language") String lang, @RequestParam(value = "project", required = false) String project, @RequestParam(value = "cube", required = false) String cube) throws IOException {
         KapMsgPicker.setMsg(lang);
 
         String resultPath = metaStoreService.backup(project, cube);

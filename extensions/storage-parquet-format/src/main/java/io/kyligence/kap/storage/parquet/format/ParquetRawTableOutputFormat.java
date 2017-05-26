@@ -61,14 +61,11 @@ import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
 
 public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListWritable, ByteArrayListWritable> {
     @Override
-    public RecordWriter<ByteArrayListWritable, ByteArrayListWritable> getRecordWriter(TaskAttemptContext job)
-            throws IOException, InterruptedException {
-        return new ParquetRawTableFileWriter((FileOutputCommitter) this.getOutputCommitter(job), job,
-                job.getOutputKeyClass(), job.getOutputValueClass());
+    public RecordWriter<ByteArrayListWritable, ByteArrayListWritable> getRecordWriter(TaskAttemptContext job) throws IOException, InterruptedException {
+        return new ParquetRawTableFileWriter((FileOutputCommitter) this.getOutputCommitter(job), job, job.getOutputKeyClass(), job.getOutputValueClass());
     }
 
-    public static class ParquetRawTableFileWriter
-            extends ParquetOrderedFileWriter<ByteArrayListWritable, ByteArrayListWritable> {
+    public static class ParquetRawTableFileWriter extends ParquetOrderedFileWriter<ByteArrayListWritable, ByteArrayListWritable> {
         private static final Logger logger = LoggerFactory.getLogger(ParquetRawTableFileWriter.class);
 
         private short curShardId = -1;
@@ -81,8 +78,7 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
         private BufferedRawColumnCodec rawColumnsCodec;
         private Path outputDir = null;
 
-        public ParquetRawTableFileWriter(FileOutputCommitter committer, TaskAttemptContext context, Class<?> keyClass,
-                Class<?> valueClass) throws IOException, InterruptedException {
+        public ParquetRawTableFileWriter(FileOutputCommitter committer, TaskAttemptContext context, Class<?> keyClass, Class<?> valueClass) throws IOException, InterruptedException {
             this.config = context.getConfiguration();
             this.outputDir = committer.getTaskAttemptPath(context);
 
@@ -107,14 +103,12 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
         }
 
         @Override
-        public void write(ByteArrayListWritable key, ByteArrayListWritable value)
-                throws IOException, InterruptedException {
+        public void write(ByteArrayListWritable key, ByteArrayListWritable value) throws IOException, InterruptedException {
             super.write(key, value);
         }
 
         @Override
-        protected void freshWriter(ByteArrayListWritable key, ByteArrayListWritable value)
-                throws IOException, InterruptedException {
+        protected void freshWriter(ByteArrayListWritable key, ByteArrayListWritable value) throws IOException, InterruptedException {
             short shardId = BytesUtil.readShort(key.get().get(0));
 
             if (shardId != curShardId) {
@@ -126,6 +120,7 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
             }
 
             curShardCounter++;
+
 
             if (writer == null) {
                 writer = newWriter();
@@ -141,6 +136,7 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
             }
         }
 
+
         @Override
         protected ParquetRawWriter newWriter() throws IOException, InterruptedException {
             ParquetRawWriter rawWriter;
@@ -148,16 +144,13 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
             List<TblColRef> columns = rawTableDesc.getColumnsInOrder();
 
             for (TblColRef column : columns) {
-                types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY,
-                        column.getName()));
+                types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, column.getName()));
             }
 
             MessageType schema = new MessageType(rawTableDesc.getName(), types);
-            rawWriter = new ParquetRawWriter.Builder()
-                    .setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage())//
+            rawWriter = new ParquetRawWriter.Builder().setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage())//
                     .setPagesPerGroup(KapConfig.getInstanceFromEnv().getParquetPagesPerGroup())//
-                    .setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression()).setConf(config)
-                    .setType(schema).setPath(getOutputPath()).build();
+                    .setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression()).setConf(config).setType(schema).setPath(getOutputPath()).build();
             return rawWriter;
         }
 
@@ -170,8 +163,7 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
 
         @Override
         protected Path getOutputPath() {
-            Path path = new Path(outputDir, new StringBuffer().append(RawTableConstants.RawTableDir).append("/")
-                    .append(curShardId).append(".parquet").toString());
+            Path path = new Path(outputDir, new StringBuffer().append(RawTableConstants.RawTableDir).append("/").append(curShardId).append(".parquet").toString());
             return path;
         }
     }

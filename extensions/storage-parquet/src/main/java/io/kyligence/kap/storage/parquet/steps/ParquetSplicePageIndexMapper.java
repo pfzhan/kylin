@@ -88,8 +88,7 @@ public class ParquetSplicePageIndexMapper extends KylinMapper<ByteArrayListWrita
         cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME).toUpperCase();
         segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
 
-        outputPath = new Path(FileOutputFormat.getWorkOutputPath(context),
-                inputPath.getName().replace("parquet", "parquet.inv"));
+        outputPath = new Path(FileOutputFormat.getWorkOutputPath(context), inputPath.getName().replace("parquet", "parquet.inv"));
         FSDataOutputStream outputStream = HadoopUtil.getFileSystem(outputPath).create(outputPath);
         indexSpliceWriter = new ParquetPageIndexSpliceWriter(outputStream);
 

@@ -43,7 +43,7 @@ import com.google.common.collect.Maps;
 
 /**
  */
-@StateModelInfo(states = { "LEADER", "STANDBY", "OFFLINE" }, initialState = "OFFLINE")
+@StateModelInfo(states = {"LEADER", "STANDBY", "OFFLINE"}, initialState = "OFFLINE")
 public class JobEngineTransitionHandler extends TransitionHandler {
     private static final Logger logger = LoggerFactory.getLogger(JobEngineTransitionHandler.class);
     private final KylinConfig kylinConfig;
@@ -66,7 +66,7 @@ public class JobEngineTransitionHandler extends TransitionHandler {
         try {
             DefaultScheduler scheduler = DefaultScheduler.createInstance();
             this.kylinConfig.setProperty("kylin.server.mode", "all");
-            scheduler.init(new JobEngineConfig(this.kylinConfig), new MockJobLock());
+                    scheduler.init(new JobEngineConfig(this.kylinConfig), new MockJobLock());
             while (!scheduler.hasStarted()) {
                 logger.error("scheduler has not been started");
                 Thread.sleep(1000);

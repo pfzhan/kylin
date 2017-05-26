@@ -63,18 +63,15 @@ public class ConfigController extends BasicController {
     @Qualifier("configService")
     private ConfigService configService;
 
-    @RequestMapping(value = "default", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "default", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getDefaultValue(@RequestHeader("Accept-Language") String lang,
-            @RequestParam("key") String key) {
+    public EnvelopeResponse getDefaultValue(@RequestHeader("Accept-Language") String lang, @RequestParam("key") String key) {
         KapMsgPicker.setMsg(lang);
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, configService.getDefaultConfigMap().get(key), "");
     }
 
-    @RequestMapping(value = "defaults", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "defaults", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getDefaultConfigs(@RequestHeader("Accept-Language") String lang) {
         KapMsgPicker.setMsg(lang);
@@ -88,12 +85,9 @@ public class ConfigController extends BasicController {
      * @return
      * error code 001: feature_name is empty
      */
-    @RequestMapping(value = "hidden_feature", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "hidden_feature", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse isFeatureHidden(@RequestHeader("Accept-Language") String lang,
-            @RequestParam("feature_name") String key)
-            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+    public EnvelopeResponse isFeatureHidden(@RequestHeader("Accept-Language") String lang, @RequestParam("feature_name") String key) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         KapMsgPicker.setMsg(lang);
         KapMessage msg = KapMsgPicker.getMsg();
 
@@ -105,8 +99,7 @@ public class ConfigController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "true".equals(s), "");
     }
 
-    @RequestMapping(value = "spark_status", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "spark_status", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getSparkExec(@RequestHeader("Accept-Language") String lang) {
         KapMsgPicker.setMsg(lang);

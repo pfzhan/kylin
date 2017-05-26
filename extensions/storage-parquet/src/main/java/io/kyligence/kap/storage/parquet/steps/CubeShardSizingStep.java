@@ -61,9 +61,7 @@ public class CubeShardSizingStep extends AbstractExecutable {
 
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
-        CubeSegment newSegment = CubingExecutableUtil.findSegment(context,
-                CubingExecutableUtil.getCubeName(this.getParams()),
-                CubingExecutableUtil.getSegmentId(this.getParams()));
+        CubeSegment newSegment = CubingExecutableUtil.findSegment(context, CubingExecutableUtil.getCubeName(this.getParams()), CubingExecutableUtil.getSegmentId(this.getParams()));
         KylinConfig kylinConf = newSegment.getConfig();
 
         try {
@@ -96,18 +94,13 @@ public class CubeShardSizingStep extends AbstractExecutable {
             int shardNum = (int) Math.ceil(1.0 * estimatedSize / mbPerShard);
 
             if (shardNum > shardMax) {
-                stepLogger
-                        .log(String.format("Cuboid %d 's estimated size %.2f MB will generate %d regions, reduce to %d",
-                                cuboidId, estimatedSize, shardNum, shardMax));
+                stepLogger.log(String.format("Cuboid %d 's estimated size %.2f MB will generate %d regions, reduce to %d", cuboidId, estimatedSize, shardNum, shardMax));
                 shardNum = shardMax;
             } else if (shardNum < shardMin) {
-                stepLogger.log(
-                        String.format("Cuboid %d 's estimated size %.2f MB will generate %d regions, increase to %d",
-                                cuboidId, estimatedSize, shardNum, shardMin));
+                stepLogger.log(String.format("Cuboid %d 's estimated size %.2f MB will generate %d regions, increase to %d", cuboidId, estimatedSize, shardNum, shardMin));
                 shardNum = shardMin;
             } else {
-                stepLogger.log(String.format("Cuboid %d 's estimated size %.2f MB will generate %d regions", cuboidId,
-                        estimatedSize, shardNum));
+                stepLogger.log(String.format("Cuboid %d 's estimated size %.2f MB will generate %d regions", cuboidId, estimatedSize, shardNum));
             }
 
             cuboidShards.put(cuboidId, (short) shardNum);

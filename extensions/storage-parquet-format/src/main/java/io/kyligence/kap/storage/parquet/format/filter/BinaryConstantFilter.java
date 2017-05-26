@@ -29,15 +29,14 @@ import java.nio.ByteBuffer;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.metadata.filter.TupleFilter;
 
-public class BinaryConstantFilter implements BinaryFilter {
+public class BinaryConstantFilter implements BinaryFilter{
     private boolean value;
 
     public BinaryConstantFilter(boolean value) {
         this.value = value;
     }
 
-    public BinaryConstantFilter() {
-    }
+    public BinaryConstantFilter() {}
 
     @Override
     public boolean isMatch(byte[] value) {
@@ -52,7 +51,7 @@ public class BinaryConstantFilter implements BinaryFilter {
     @Override
     public void serialize(ByteBuffer buffer) {
         BytesUtil.writeUTFString(TupleFilter.FilterOperatorEnum.CONSTANT.name(), buffer);
-        BytesUtil.writeBooleanArray(new boolean[] { value }, buffer);
+        BytesUtil.writeBooleanArray(new boolean[] {value}, buffer);
     }
 
     @Override

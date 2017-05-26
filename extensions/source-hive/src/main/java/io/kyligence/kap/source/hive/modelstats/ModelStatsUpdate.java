@@ -59,8 +59,7 @@ public class ModelStatsUpdate extends AbstractHadoopJob {
     public static final String JOB_TITLE = "Model Update Job";
 
     @SuppressWarnings("static-access")
-    protected static final Option OPTION_MODEL = OptionBuilder.withArgName("model name").hasArg().isRequired(true)
-            .withDescription("data model name").create("model");
+    protected static final Option OPTION_MODEL = OptionBuilder.withArgName("model name").hasArg().isRequired(true).withDescription("data model name").create("model");
 
     private String model;
 
@@ -87,8 +86,7 @@ public class ModelStatsUpdate extends AbstractHadoopJob {
 
             this.model = getOptionValue(OPTION_MODEL);
 
-            DataModelDesc dataModelDesc = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv())
-                    .getDataModelDesc(model);
+            DataModelDesc dataModelDesc = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv()).getDataModelDesc(model);
 
             flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc);
 

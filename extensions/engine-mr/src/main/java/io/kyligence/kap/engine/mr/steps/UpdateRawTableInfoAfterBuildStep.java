@@ -49,8 +49,7 @@ public class UpdateRawTableInfoAfterBuildStep extends AbstractExecutable {
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         final RawTableManager rawManager = RawTableManager.getInstance(context.getConfig());
-        final RawTableInstance rawInstance = rawManager
-                .getRawTableInstance(CubingExecutableUtil.getCubeName(this.getParams()));
+        final RawTableInstance rawInstance = rawManager.getRawTableInstance(CubingExecutableUtil.getCubeName(this.getParams()));
         final RawTableSegment segment = rawInstance.getSegmentById(CubingExecutableUtil.getSegmentId(this.getParams()));
 
         CubingJob cubingJob = (CubingJob) getManager().getJob(CubingExecutableUtil.getCubingJobId(this.getParams()));

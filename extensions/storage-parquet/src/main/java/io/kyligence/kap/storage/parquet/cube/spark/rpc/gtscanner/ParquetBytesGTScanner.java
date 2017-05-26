@@ -60,8 +60,7 @@ public abstract class ParquetBytesGTScanner implements IGTScanner {
     //for debug
     private boolean withDelay;
 
-    public ParquetBytesGTScanner(GTInfo info, Iterator<ByteBuffer> iterator, GTScanRequest scanRequest,
-            long maxScannedBytes, long timeout, boolean withDelay) {
+    public ParquetBytesGTScanner(GTInfo info, Iterator<ByteBuffer> iterator, GTScanRequest scanRequest, long maxScannedBytes, long timeout, boolean withDelay) {
         this.iterator = iterator;
         this.info = info;
         this.gtrecord = new GTRecord(info);
@@ -110,12 +109,10 @@ public abstract class ParquetBytesGTScanner implements IGTScanner {
                 gtrecord.loadColumns(ParquetBytesGTScanner.this.columns, input);
                 scannedBytes += input.position() - currentPos;
                 if (scannedBytes > maxScannedBytes) {
-                    throw new ResourceLimitExceededException(
-                            "Partition scanned bytes " + scannedBytes + " exceeds threshold " + maxScannedBytes
-                                    + ", consider increase kylin.storage.partition.max-scan-bytes");
+                    throw new ResourceLimitExceededException("Partition scanned bytes " + scannedBytes + " exceeds threshold " + maxScannedBytes
+                        + ", consider increase kylin.storage.partition.max-scan-bytes");
                 }
-                if ((++scannedRows % GTScanRequest.terminateCheckInterval == 1)
-                        && System.currentTimeMillis() > deadline) {
+                if ((++scannedRows % GTScanRequest.terminateCheckInterval == 1) && System.currentTimeMillis() > deadline) {
                     throw new KylinTimeoutException("coprocessor timeout after " + timeout + " ms");
                 }
 

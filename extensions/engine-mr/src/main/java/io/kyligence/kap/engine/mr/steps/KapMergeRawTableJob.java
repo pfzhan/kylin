@@ -131,8 +131,7 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
             attachKylinPropsAndMetadata(rawSeg, cube, job.getConfiguration());
 
             //push down kylin config
-            job.getConfiguration().set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES,
-                    KylinConfig.getInstanceFromEnv().getConfigAsString());
+            job.getConfiguration().set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, KylinConfig.getInstanceFromEnv().getConfigAsString());
 
             if (raw.getShardNumber() > 0)
                 job.setNumReduceTasks(raw.getShardNumber());
@@ -146,8 +145,7 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
         }
     }
 
-    private void attachKylinPropsAndMetadata(RawTableSegment rawSegment, CubeInstance cube, Configuration conf)
-            throws IOException {
+    private void attachKylinPropsAndMetadata(RawTableSegment rawSegment, CubeInstance cube, Configuration conf) throws IOException {
         RawTableInstance instance = rawSegment.getRawTableInstance();
         // write raw/cube / model_desc / raw_desc / dict / table
         Set<String> dumpList = new LinkedHashSet<>();

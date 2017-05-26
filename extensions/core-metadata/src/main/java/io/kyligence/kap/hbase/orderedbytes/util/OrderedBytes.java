@@ -590,8 +590,7 @@ public class OrderedBytes {
             if (i > remaining) {
                 // we've exceeded this range's window
                 src.setPosition(start);
-                throw new IllegalArgumentException("Read exceeds range before termination byte found. offset: " + offset
-                        + " position: " + (start + i));
+                throw new IllegalArgumentException("Read exceeds range before termination byte found. offset: " + offset + " position: " + (start + i));
             }
             // base-100 digits are encoded as val * 2 + 1 except for the termination digit.
             m = m.add(// m +=
@@ -1303,8 +1302,7 @@ public class OrderedBytes {
      */
     public static int encodeInt32(PositionedByteRange dst, int val, Order ord) {
         final int offset = dst.getOffset(), start = dst.getPosition();
-        dst.put(FIXED_INT32).put((byte) ((val >> 24) ^ 0x80)).put((byte) (val >> 16)).put((byte) (val >> 8))
-                .put((byte) val);
+        dst.put(FIXED_INT32).put((byte) ((val >> 24) ^ 0x80)).put((byte) (val >> 16)).put((byte) (val >> 8)).put((byte) val);
         ord.apply(dst.getBytes(), offset + start, 5);
         return 5;
     }
@@ -1363,9 +1361,7 @@ public class OrderedBytes {
      */
     public static int encodeInt64(PositionedByteRange dst, long val, Order ord) {
         final int offset = dst.getOffset(), start = dst.getPosition();
-        dst.put(FIXED_INT64).put((byte) ((val >> 56) ^ 0x80)).put((byte) (val >> 48)).put((byte) (val >> 40))
-                .put((byte) (val >> 32)).put((byte) (val >> 24)).put((byte) (val >> 16)).put((byte) (val >> 8))
-                .put((byte) val);
+        dst.put(FIXED_INT64).put((byte) ((val >> 56) ^ 0x80)).put((byte) (val >> 48)).put((byte) (val >> 40)).put((byte) (val >> 32)).put((byte) (val >> 24)).put((byte) (val >> 16)).put((byte) (val >> 8)).put((byte) val);
         ord.apply(dst.getBytes(), offset + start, 9);
         return 9;
     }
@@ -1486,9 +1482,7 @@ public class OrderedBytes {
         final int offset = dst.getOffset(), start = dst.getPosition();
         long lng = Double.doubleToLongBits(val);
         lng ^= ((lng >> Long.SIZE - 1) | Long.MIN_VALUE);
-        dst.put(FIXED_FLOAT64).put((byte) (lng >> 56)).put((byte) (lng >> 48)).put((byte) (lng >> 40))
-                .put((byte) (lng >> 32)).put((byte) (lng >> 24)).put((byte) (lng >> 16)).put((byte) (lng >> 8))
-                .put((byte) lng);
+        dst.put(FIXED_FLOAT64).put((byte) (lng >> 56)).put((byte) (lng >> 48)).put((byte) (lng >> 40)).put((byte) (lng >> 32)).put((byte) (lng >> 24)).put((byte) (lng >> 16)).put((byte) (lng >> 8)).put((byte) lng);
         ord.apply(dst.getBytes(), offset + start, 9);
         return 9;
     }
@@ -1514,8 +1508,7 @@ public class OrderedBytes {
      * false otherwise.
      */
     public static boolean isEncodedValue(PositionedByteRange src) {
-        return isNull(src) || isNumeric(src) || isFixedInt32(src) || isFixedInt64(src) || isFixedFloat32(src)
-                || isFixedFloat64(src) || isText(src) || isBlobCopy(src) || isBlobVar(src);
+        return isNull(src) || isNumeric(src) || isFixedInt32(src) || isFixedInt64(src) || isFixedFloat32(src) || isFixedFloat64(src) || isText(src) || isBlobCopy(src) || isBlobVar(src);
     }
 
     /**

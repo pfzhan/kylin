@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.msg;
 
+
 /**
  * Created by luwei on 17-5-10.
  */

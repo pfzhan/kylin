@@ -59,8 +59,7 @@ public class ParquetSpliceWriter {
             int rowsPerPage, // the number of rows in one page
             int pagesPerGroup // the number of pages in one row group
     ) throws IOException {
-        writer = new ParquetRawWriter(conf, schema, path, rlEncodings, dlEncodings, dataEncodings, codecName,
-                rowsPerPage, pagesPerGroup, true);
+        writer = new ParquetRawWriter(conf, schema, path, rlEncodings, dlEncodings, dataEncodings, codecName, rowsPerPage, pagesPerGroup, true);
         divCache = Maps.newHashMap();
     }
 
@@ -205,8 +204,7 @@ public class ParquetSpliceWriter {
 
             logger.info("Builder: rowsPerPage={}", rowsPerPage);
             logger.info("write file: {}", path.toString());
-            return new ParquetSpliceWriter(conf, type, path, rlEncodings, dlEncodings, dataEncodings, codecName,
-                    rowsPerPage, pagesPerGroup);
+            return new ParquetSpliceWriter(conf, type, path, rlEncodings, dlEncodings, dataEncodings, codecName, rowsPerPage, pagesPerGroup);
         }
     }
 }

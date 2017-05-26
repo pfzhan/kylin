@@ -48,8 +48,7 @@ public class ParquetPageIndexSpliceReader {
      * @throws IOException
      * @throws ClassNotFoundException
      */
-    public ParquetPageIndexSpliceReader(FSDataInputStream inputStream, long fileSize, long startOffset)
-            throws IOException, ClassNotFoundException {
+    public ParquetPageIndexSpliceReader(FSDataInputStream inputStream, long fileSize, long startOffset) throws IOException, ClassNotFoundException {
         this.inputStream = inputStream;
         this.startOffset = startOffset;
 
@@ -61,16 +60,15 @@ public class ParquetPageIndexSpliceReader {
 
     public List<ParquetPageIndexReader> getIndexReaderByCuboid(Long cuboid) throws IOException {
         List<ParquetPageIndexReader> readerList = Lists.newArrayList();
-        for (ParquetPageIndexSpliceMeta.CuboidSpliceInfo offsetInfo : cuboidMeta.get(cuboid)) {
-            readerList.add(new ParquetPageIndexReader(inputStream, offsetInfo.getDivOffset() + startOffset,
-                    new Pair<>(offsetInfo.getDivPageRangeStart(), offsetInfo.getDivPageRangeEnd())));
+        for (ParquetPageIndexSpliceMeta.CuboidSpliceInfo offsetInfo: cuboidMeta.get(cuboid)) {
+            readerList.add(new ParquetPageIndexReader(inputStream, offsetInfo.getDivOffset() + startOffset, new Pair<>(offsetInfo.getDivPageRangeStart(), offsetInfo.getDivPageRangeEnd())));
         }
         return readerList;
     }
 
     public ImmutableRoaringBitmap getFullBitmap(long cuboid) {
         MutableRoaringBitmap bitmap = new MutableRoaringBitmap();
-        for (ParquetPageIndexSpliceMeta.CuboidSpliceInfo pageRangeInfo : this.cuboidMeta.get(cuboid)) {
+        for (ParquetPageIndexSpliceMeta.CuboidSpliceInfo pageRangeInfo: this.cuboidMeta.get(cuboid)) {
             bitmap.add(pageRangeInfo.getDivPageRangeStart(), pageRangeInfo.getDivPageRangeEnd());
         }
         return bitmap.toImmutableRoaringBitmap();

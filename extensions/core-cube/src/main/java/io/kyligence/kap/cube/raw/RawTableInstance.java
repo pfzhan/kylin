@@ -360,8 +360,7 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
         if (!this.getRawTableDesc().getModel().getPartitionDesc().isPartitioned())
             return false;
 
-        return this.getRawTableDesc().getAutoMergeTimeRanges() != null
-                && this.getRawTableDesc().getAutoMergeTimeRanges().length > 0;
+        return this.getRawTableDesc().getAutoMergeTimeRanges() != null && this.getRawTableDesc().getAutoMergeTimeRanges().length > 0;
     }
 
     public Pair<Long, Long> autoMergeCubeSegments() throws IOException {

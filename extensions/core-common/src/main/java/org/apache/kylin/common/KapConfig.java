@@ -96,8 +96,7 @@ public class KapConfig {
     }
 
     public int getParquetPageIndexIOBufSize() {
-        return Integer
-                .parseInt(config.getOptional("kap.storage.columnar.ii-io-buffer-bytes", String.valueOf(1024 * 1024)));
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.ii-io-buffer-bytes", String.valueOf(1024 * 1024)));
     }
 
     public int getParquetPageIndexMaxSeeks() {
@@ -113,13 +112,11 @@ public class KapConfig {
     }
 
     public int getParquetSparkExecutorInstance() {
-        return Integer.parseInt(
-                config.getOptional("kap.storage.columnar.spark-conf.spark.executor.instances", String.valueOf(1)));
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.spark-conf.spark.executor.instances", String.valueOf(1)));
     }
 
     public int getParquetSparkExecutorCore() {
-        return Integer.parseInt(
-                config.getOptional("kap.storage.columnar.spark-conf.spark.executor.cores", String.valueOf(1)));
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.spark-conf.spark.executor.cores", String.valueOf(1)));
     }
 
     public String getSparkClientHost() {
@@ -131,18 +128,15 @@ public class KapConfig {
     }
 
     public int getGrpcMaxResponseSize() {
-        return Integer.parseInt(
-                config.getOptional("kap.storage.columnar.grpc-max-response-size", String.valueOf(128 * 1024 * 1024)));
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.grpc-max-response-size", String.valueOf(128 * 1024 * 1024)));
     }
 
     public String getSparkCubeGTStorage() {
-        return config.getOptional("kap.storage.columnar.spark-cube-gtstorage",
-                "io.kyligence.kap.storage.parquet.cube.CubeSparkRPC");
+        return config.getOptional("kap.storage.columnar.spark-cube-gtstorage", "io.kyligence.kap.storage.parquet.cube.CubeSparkRPC");
     }
 
     public String getSparkRawTableGTStorage() {
-        return config.getOptional("kap.storage.columnar.spark-rawtable-gtstorage",
-                "io.kyligence.kap.storage.parquet.cube.raw.RawTableSparkRPC");
+        return config.getOptional("kap.storage.columnar.spark-rawtable-gtstorage", "io.kyligence.kap.storage.parquet.cube.raw.RawTableSparkRPC");
     }
 
     public long getSparkVisitTimeout() {
@@ -174,8 +168,7 @@ public class KapConfig {
 
     public int getParquetStorageBlockSize() {
         int defaultBlockSize = 5 * getParquetStorageShardSize() * 1024 * 1024; //default (5 * shard_size)
-        return Integer.valueOf(config.getOptional("kap.storage.columnar.hdfs-blocksize-bytes",
-                String.valueOf(defaultBlockSize < 0 ? Integer.MAX_VALUE : defaultBlockSize)));
+        return Integer.valueOf(config.getOptional("kap.storage.columnar.hdfs-blocksize-bytes", String.valueOf(defaultBlockSize < 0 ? Integer.MAX_VALUE : defaultBlockSize)));
     }
 
     /**

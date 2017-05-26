@@ -53,8 +53,7 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
     public static final String JOB_TITLE = "Hive Sample Update Job";
 
     @SuppressWarnings("static-access")
-    protected static final Option OPTION_TABLE = OptionBuilder.withArgName("table name").hasArg().isRequired(true)
-            .withDescription("The hive table name").create("table");
+    protected static final Option OPTION_TABLE = OptionBuilder.withArgName("table name").hasArg().isRequired(true).withDescription("The hive table name").create("table");
 
     private String table;
 
@@ -107,8 +106,7 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
             long counter = Long.parseLong(sampler.getCounter());
             TableExtDesc.ColumnStats columnStats = new TableExtDesc.ColumnStats();
             columnStats.setColumnName(sampler.getColumnName());
-            columnStats.setColumnSamples(sampler.getMax(), sampler.getMin(), sampler.getMaxLenValue(),
-                    sampler.getMinLenValue());
+            columnStats.setColumnSamples(sampler.getMax(), sampler.getMin(), sampler.getMaxLenValue(), sampler.getMinLenValue());
             columnStats.setNullCount(Long.parseLong(sampler.getNullCounter()));
             columnStats.setCardinality(getEstimateCardinality(frequency, cardinality, counter));
             columnStats.setDataSkewSamples(sampler.getTopN().getTopNCounter());
@@ -153,8 +151,7 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
             throw new IllegalArgumentException("The frequency can not be ZERO");
 
         float ratio = 1.0f / (float) frequency;
-        long estimated = Math.max(obCardi,
-                (long) (Math.pow(obCardi, 3) / (Math.pow(allRowCount, 2) * Math.pow(ratio, 3))));
+        long estimated = Math.max(obCardi, (long) (Math.pow(obCardi, 3) / (Math.pow(allRowCount, 2) * Math.pow(ratio, 3))));
         return estimated;
     }
 

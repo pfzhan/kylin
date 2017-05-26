@@ -79,8 +79,7 @@ public class IndexMapCacheTest extends LocalFileMetadataTestCase {
         int columnLength = 8;
         int pageNum = 2;
 
-        IndexMapCache indexMapCache = new IndexMapCache("test", true, new IntEncoding(),
-                new MutableRoaringBitmapEncoding(), true);
+        IndexMapCache indexMapCache = new IndexMapCache("test", true, new IntEncoding(), new MutableRoaringBitmapEncoding(), true);
         for (int c = 0; c < 3; c++) {
             for (int i = 0; i < dataSize; i++) {
                 for (int j = 0; j < pageNum; j++) {

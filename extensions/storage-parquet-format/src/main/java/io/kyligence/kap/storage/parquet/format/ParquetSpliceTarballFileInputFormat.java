@@ -82,8 +82,7 @@ import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
  */
 public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, Text> {
 
-    public RecordReader<Text, Text> createRecordReader(InputSplit split, TaskAttemptContext context)
-            throws IOException, InterruptedException {
+    public RecordReader<Text, Text> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
         return new ParquetTarballFileReader();
     }
 
@@ -136,8 +135,7 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
             KylinConfig.setKylinConfigInEnvIfMissing(kylinPropsStr);
 
             // Column bitmap
-            columnBitmap = RoaringBitmaps
-                    .readFromString(conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS));
+            columnBitmap = RoaringBitmaps.readFromString(conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS));
             if (columnBitmap != null) {
                 logger.info("All columns read by parquet: " + StringUtils.join(columnBitmap, ","));
             } else {
@@ -146,8 +144,7 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
 
             String binaryFilterStr = conf.get(ParquetFormatConstants.KYLIN_BINARY_FILTER);
             if (binaryFilterStr != null && !binaryFilterStr.trim().isEmpty()) {
-                binaryFilter = BinaryFilterSerializer
-                        .deserialize(ByteBuffer.wrap(binaryFilterStr.getBytes("ISO-8859-1")));
+                binaryFilter = BinaryFilterSerializer.deserialize(ByteBuffer.wrap(binaryFilterStr.getBytes("ISO-8859-1")));
             }
             logger.info("Binary Filter: {}", binaryFilter);
 
@@ -168,8 +165,7 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
             // This block is not access in query
             if (readStrategy == ReadStrategy.KV) {
                 logger.info("Build page to shardId map");
-                ParquetSpliceReader spliceReader = new ParquetSpliceReader.Builder().setConf(conf).setPath(path)
-                        .setColumnsBitmap(columnBitmap).setFileOffset(indexLength).build();
+                ParquetSpliceReader spliceReader = new ParquetSpliceReader.Builder().setConf(conf).setPath(path).setColumnsBitmap(columnBitmap).setFileOffset(indexLength).build();
                 page2ShardMap = Maps.newHashMap();
                 page2CuboidMap = Maps.newHashMap();
                 for (String d : spliceReader.getDivs()) {
@@ -188,35 +184,28 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
             ImmutableRoaringBitmap pageBitmap = null;
             ParquetPageIndexSpliceReader pageIndexSpliceReader;
             try {
-                pageIndexSpliceReader = new ParquetPageIndexSpliceReader(inputStream, indexLength,
-                        ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE);
+                pageIndexSpliceReader = new ParquetPageIndexSpliceReader(inputStream, indexLength, ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE);
             } catch (ClassNotFoundException e) {
                 throw new RuntimeException(e);
             }
 
             if (scanReqStr != null) {
-                final GTScanRequest gtScanRequest = GTScanRequest.serializer
-                        .deserialize(ByteBuffer.wrap(scanReqStr.getBytes("ISO-8859-1")));
+                final GTScanRequest gtScanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(scanReqStr.getBytes("ISO-8859-1")));
                 gtScanRequestThreadLocal.set(gtScanRequest);//for later use convenience
-                MassInTupleFilter.VALUE_PROVIDER_FACTORY = new MassInValueProviderFactoryImpl(
-                        new MassInValueProviderFactoryImpl.DimEncAware() {
-                            @Override
-                            public DimensionEncoding getDimEnc(TblColRef col) {
-                                return gtScanRequest.getInfo().getCodeSystem()
-                                        .getDimEnc(col.getColumnDesc().getZeroBasedIndex());
-                            }
-                        });
+                MassInTupleFilter.VALUE_PROVIDER_FACTORY = new MassInValueProviderFactoryImpl(new MassInValueProviderFactoryImpl.DimEncAware() {
+                    @Override
+                    public DimensionEncoding getDimEnc(TblColRef col) {
+                        return gtScanRequest.getInfo().getCodeSystem().getDimEnc(col.getColumnDesc().getZeroBasedIndex());
+                    }
+                });
 
                 TupleFilter filter = gtScanRequest.getFilterPushDown();
-                if (Boolean.valueOf(conf.get(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX))
-                        && !filterIsNull(filter)) {
+                if (Boolean.valueOf(conf.get(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX)) && !filterIsNull(filter)) {
                     MutableRoaringBitmap mutableRoaringBitmap = null;
-                    for (ParquetPageIndexReader divIndexReader : pageIndexSpliceReader
-                            .getIndexReaderByCuboid(cuboidId)) {
+                    for (ParquetPageIndexReader divIndexReader : pageIndexSpliceReader.getIndexReaderByCuboid(cuboidId)) {
                         indexTable = new ParquetPageIndexTable(fileSystem, path, divIndexReader);
                         if (mutableRoaringBitmap == null) {
-                            mutableRoaringBitmap = new MutableRoaringBitmap(
-                                    indexTable.lookup(filter).toRoaringBitmap());
+                            mutableRoaringBitmap = new MutableRoaringBitmap(indexTable.lookup(filter).toRoaringBitmap());
                         } else {
                             mutableRoaringBitmap.or(indexTable.lookup(filter));
                         }
@@ -234,8 +223,7 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
                 pageBitmap = pageIndexSpliceReader.getFullBitmap(cuboidId);
             }
 
-            reader = new ParquetBundleReader.Builder().setConf(conf).setPath(path).setColumnsBitmap(columnBitmap)
-                    .setPageBitset(pageBitmap).setFileOffset(indexLength).build();
+            reader = new ParquetBundleReader.Builder().setConf(conf).setPath(path).setColumnsBitmap(columnBitmap).setPageBitset(pageBitmap).setFileOffset(indexLength).build();
 
             // init val
             String gtMaxLengthStr = conf.get(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH);
@@ -315,13 +303,10 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
                         byte[] temp = new byte[keyBytes.length + RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN];//make sure length
                         key.set(temp);
                     }
-                    System.arraycopy(Bytes.toBytes(page2ShardMap.get(reader.getPageIndex())), 0, key.getBytes(), 0,
-                            Shorts.BYTES);
-                    System.arraycopy(Bytes.toBytes(page2CuboidMap.get(reader.getPageIndex())), 0, key.getBytes(),
-                            Shorts.BYTES, Longs.BYTES);
+                    System.arraycopy(Bytes.toBytes(page2ShardMap.get(reader.getPageIndex())), 0, key.getBytes(), 0, Shorts.BYTES);
+                    System.arraycopy(Bytes.toBytes(page2CuboidMap.get(reader.getPageIndex())), 0, key.getBytes(), Shorts.BYTES, Longs.BYTES);
                 }
-                System.arraycopy(keyBytes, 0, key.getBytes(), RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN,
-                        keyBytes.length);
+                System.arraycopy(keyBytes, 0, key.getBytes(), RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN, keyBytes.length);
 
                 //value
                 setVal(data, 1);

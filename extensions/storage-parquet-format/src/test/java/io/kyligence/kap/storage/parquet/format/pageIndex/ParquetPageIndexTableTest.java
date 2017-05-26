@@ -95,8 +95,7 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         FSDataInputStream inputStream = fileSystem.open(invPath);
         indexTable = new ParquetPageIndexTable(fileSystem, invPath, inputStream, 0);
         inputStream.seek(0);
-        indexOrderedTable = new ParquetOrderedPageIndexTable(fileSystem, invPath, inputStream, 0,
-                Collections.singleton(0));
+        indexOrderedTable = new ParquetOrderedPageIndexTable(fileSystem, invPath, inputStream, 0, Collections.singleton(0));
 
         colRef1 = TblColRef.mockup(null, 1, columnName[0], null);
         colRef2 = TblColRef.mockup(null, 2, columnName[1], null);
@@ -120,8 +119,7 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
             specs[0].setKeyEncodingIdentifier('a');
             specs[0].setValueEncodingIdentifier('s');
         }
-        ParquetPageIndexWriter writer = new ParquetPageIndexWriter(columnName, columnLengthes, cardinalities, onlyEq,
-                new DataOutputStream(new FileOutputStream(indexFile)));
+        ParquetPageIndexWriter writer = new ParquetPageIndexWriter(columnName, columnLengthes, cardinalities, onlyEq, new DataOutputStream(new FileOutputStream(indexFile)));
         for (int i = 0; i < dataSize; i++) {
             byte[] buffer = new byte[columnLength * 3];
             BytesUtil.writeUnsigned(data1[i], buffer, 0, columnLength);

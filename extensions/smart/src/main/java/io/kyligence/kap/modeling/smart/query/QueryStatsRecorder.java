@@ -48,20 +48,18 @@ public class QueryStatsRecorder extends AbstractQueryRecorder<QueryStats> {
     @Override
     public void record(CubeInstance cubeInstance, final GTCubeStorageQueryRequest gtRequest) {
         final Cuboid cuboid = gtRequest.getCuboid();
-        Collection<String> groupByCols = Collections2.transform(gtRequest.getGroups(),
-                new Function<TblColRef, String>() {
-                    @Override
-                    public String apply(@Nullable TblColRef tblColRef) {
-                        return tblColRef.getCanonicalName();
-                    }
-                });
-        Collection<String> filterCols = Collections2.transform(gtRequest.getFilterCols(),
-                new Function<TblColRef, String>() {
-                    @Override
-                    public String apply(@Nullable TblColRef tblColRef) {
-                        return tblColRef.getCanonicalName();
-                    }
-                });
+        Collection<String> groupByCols = Collections2.transform(gtRequest.getGroups(), new Function<TblColRef, String>() {
+            @Override
+            public String apply(@Nullable TblColRef tblColRef) {
+                return tblColRef.getCanonicalName();
+            }
+        });
+        Collection<String> filterCols = Collections2.transform(gtRequest.getFilterCols(), new Function<TblColRef, String>() {
+            @Override
+            public String apply(@Nullable TblColRef tblColRef) {
+                return tblColRef.getCanonicalName();
+            }
+        });
 
         queryStats.addColPairs(filterCols, groupByCols);
         queryStats.addCuboid(cuboid.getId());

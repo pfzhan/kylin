@@ -60,8 +60,7 @@ public class ParquetTarballMapper extends KylinMapper<IntWritable, byte[], Text,
         long invLength = fs.getFileStatus(invPath).getLen();
 
         // write to same dir with input
-        Path outputPath = new Path(FileOutputFormat.getWorkOutputPath(context),
-                cuboidId + "/" + shardId + ".parquettar");
+        Path outputPath = new Path(FileOutputFormat.getWorkOutputPath(context), cuboidId + "/" + shardId + ".parquettar");
 
         logger.info("Input path: " + inputPath.toString());
         logger.info("Output path: " + outputPath.toString());

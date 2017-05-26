@@ -36,8 +36,7 @@ import junit.framework.TestCase;
 public class HiveTableExtSamplerTest extends TestCase {
     @Test
     public void testHiveSample() {
-        String[] stringValues = { "I love China", "", "麒麟最牛逼啊", "USA", "what is your name", "USA", "yes, I like it",
-                "true", "Dinner is perfect", "Not very good" };
+        String[] stringValues = { "I love China", "", "麒麟最牛逼啊", "USA", "what is your name", "USA", "yes, I like it", "true", "Dinner is perfect", "Not very good" };
         String[] decimalValues = { "1.232323232434", "3.23232323", "-1.3232", "434.223232", "232.22323" };
         HiveTableExtSampler sampler = new HiveTableExtSampler();
         sampler.setDataType("varchar");

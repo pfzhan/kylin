@@ -76,10 +76,8 @@ public class KapMergeCuboidJob extends KapCuboidJob {
             // set job configuration
             job.getConfiguration().set(BatchConstants.CFG_CUBE_NAME, cubeName);
             job.getConfiguration().set(BatchConstants.CFG_CUBE_SEGMENT_ID, segmentID);
-            job.getConfiguration().set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES,
-                    KylinConfig.getInstanceFromEnv().getConfigAsString());
-            job.getConfiguration().set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY,
-                    ParquetTarballFileInputFormat.ParquetTarballFileReader.ReadStrategy.KV.toString());
+            job.getConfiguration().set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, KylinConfig.getInstanceFromEnv().getConfigAsString());
+            job.getConfiguration().set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileInputFormat.ParquetTarballFileReader.ReadStrategy.KV.toString());
 
             // add metadata to distributed cache
             attachCubeMetadataWithDict(cube, job.getConfiguration());

@@ -26,7 +26,7 @@ package io.kyligence.kap.rest.response;
 
 import java.io.Serializable;
 
-public class ColumnarResponse implements Serializable {
+public class ColumnarResponse implements Serializable{
     private static final long serialVersionUID = 7263557115683273492L;
 
     private String segmentName;

@@ -47,9 +47,7 @@ import io.kyligence.kap.storage.parquet.format.file.ParquetColumnReader;
  * @param <V> Page Id
  */
 public class ParquetCubePageInputFormat<K, V> extends FileInputFormat<K, V> {
-    public org.apache.hadoop.mapreduce.RecordReader<K, V> createRecordReader(
-            org.apache.hadoop.mapreduce.InputSplit split, TaskAttemptContext context)
-            throws IOException, InterruptedException {
+    public org.apache.hadoop.mapreduce.RecordReader<K, V> createRecordReader(org.apache.hadoop.mapreduce.InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
         return new ParquetCubePageReader<>();
     }
 

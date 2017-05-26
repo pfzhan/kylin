@@ -94,23 +94,16 @@ public class RawTableSparkRPC implements IGTStorage {
         logger.info("Spark visit timeout is set to " + scanRequest.getTimeout());
         logger.info("Filter: {}", scanRequest.getFilterPushDown());
 
-        SparkJobProtos.SparkJobRequestPayload payload = SparkJobProtos.SparkJobRequestPayload.newBuilder()
-                .setGtScanRequest(ByteString.copyFrom(scanRequest.toByteArray())).//
-                setKylinProperties(KylinConfig.getInstanceFromEnv().getConfigAsString())
-                .setRealizationId(rawTableSegment.getRawTableInstance().getUuid()).//
+        SparkJobProtos.SparkJobRequestPayload payload = SparkJobProtos.SparkJobRequestPayload.newBuilder().setGtScanRequest(ByteString.copyFrom(scanRequest.toByteArray())).//
+                setKylinProperties(KylinConfig.getInstanceFromEnv().getConfigAsString()).setRealizationId(rawTableSegment.getRawTableInstance().getUuid()).//
                 setSegmentId(rawTableSegment.getUuid()).setDataFolderName(String.valueOf("RawTable")).//
-                setMaxRecordLength(scanRequest.getInfo().getMaxLength())
-                .addAllParquetColumns(getRequiredParquetColumns(scanRequest)).//
-                setUseII(KapConfig.getInstanceFromEnv().isUsingInvertedIndex())
-                .setRealizationType(RealizationType.INVERTED_INDEX.toString()).//
-                setQueryId(QueryContext.current().getQueryId())
-                .setSpillEnabled(rawTableSegment.getConfig().getQueryCoprocessorSpillEnabled()).//
-                setMaxScanBytes(rawTableSegment.getConfig().getPartitionMaxScanBytes())
-                .setStartTime(scanRequest.getStartTime()).setStorageType(-1).//
+                setMaxRecordLength(scanRequest.getInfo().getMaxLength()).addAllParquetColumns(getRequiredParquetColumns(scanRequest)).//
+                setUseII(KapConfig.getInstanceFromEnv().isUsingInvertedIndex()).setRealizationType(RealizationType.INVERTED_INDEX.toString()).//
+                setQueryId(QueryContext.current().getQueryId()).setSpillEnabled(rawTableSegment.getConfig().getQueryCoprocessorSpillEnabled()).//
+                setMaxScanBytes(rawTableSegment.getConfig().getPartitionMaxScanBytes()).setStartTime(scanRequest.getStartTime()).setStorageType(-1).//
                 build();
 
-        final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest, payload,
-                rawTableSegment.getConfig().getQueryMaxScanBytes());
+        final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest, payload, rawTableSegment.getConfig().getQueryMaxScanBytes());
         return new StorageResponseGTScatter(scanRequest, storageVisitResponseStreamer, context);
     }
 }

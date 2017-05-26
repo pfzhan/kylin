@@ -81,8 +81,7 @@ public class ParquetStorageCleanupStep extends AbstractExecutable {
         return false;
     }
 
-    private void dropHdfsPathOnCluster(List<String> folderPaths, List<String> fileSuffixs, FileSystem fileSystem)
-            throws IOException {
+    private void dropHdfsPathOnCluster(List<String> folderPaths, List<String> fileSuffixs, FileSystem fileSystem) throws IOException {
         if (folderPaths != null && folderPaths.size() > 0) {
             logger.info("Drop HDFS path on FileSystem: " + fileSystem.getUri());
             output.append("Drop HDFS path on FileSystem: \"" + fileSystem.getUri() + "\" \n");
@@ -90,8 +89,7 @@ public class ParquetStorageCleanupStep extends AbstractExecutable {
                 Path folderPath = new Path(folder);
                 if (fileSystem.exists(folderPath) && fileSystem.isDirectory(folderPath)) {
                     if (fileSuffixs != null && fileSuffixs.size() > 0) {
-                        logger.info("Selectively delete some files: folderPath={}, fileSuffix={}", folderPaths,
-                                fileSuffixs);
+                        logger.info("Selectively delete some files: folderPath={}, fileSuffix={}", folderPaths, fileSuffixs);
                         dropCuboidPath(fileSystem, folderPath, fileSuffixs);
                     } else {
                         logger.info("Delete entire folders.");

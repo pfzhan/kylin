@@ -49,8 +49,7 @@ public class KapAccessDecisionMaker implements OLAPContext.IAccessController {
     private Hashtable<TblColRef, String> cubeAccessControlColumns = new Hashtable<>();
 
     @Override
-    public TupleFilter check(OLAPAuthentication olapAuthentication, Collection<TblColRef> columns,
-            IRealization realization) throws IllegalArgumentException {
+    public TupleFilter check(OLAPAuthentication olapAuthentication, Collection<TblColRef> columns, IRealization realization) throws IllegalArgumentException {
 
         boolean isACLEnable = KapConfig.getInstanceFromEnv().isCellLevelSecurityEnabled().equalsIgnoreCase("true");
 
@@ -95,8 +94,7 @@ public class KapAccessDecisionMaker implements OLAPContext.IAccessController {
             for (TblColRef tblColRef : columns) {
                 String colNamewithTable = tblColRef.getCanonicalName().toLowerCase();
                 if (colNamewithTable.contains(attr.getKey()) && attr.getValue().equalsIgnoreCase(KapAclReader.DENY)) {
-                    throw new IllegalArgumentException(
-                            "Current User: " + currentUser + " is not allowed to access column: " + colNamewithTable);
+                    throw new IllegalArgumentException("Current User: " + currentUser + " is not allowed to access column: " + colNamewithTable);
                 }
             }
         }
@@ -124,8 +122,7 @@ public class KapAccessDecisionMaker implements OLAPContext.IAccessController {
     private void fetchCubeLimitColumns(Hashtable<String, String> aclColumns, Collection<TblColRef> allCubeColumns) {
         for (TblColRef cubeCol : allCubeColumns) {
             for (Map.Entry<String, String> aclCol : aclColumns.entrySet()) {
-                if (cubeCol.getCanonicalName().toLowerCase().contains(aclCol.getKey())
-                        & !isBooleanValue(aclCol.getValue())) {
+                if (cubeCol.getCanonicalName().toLowerCase().contains(aclCol.getKey()) & !isBooleanValue(aclCol.getValue())) {
                     cubeAccessControlColumns.put(cubeCol, aclCol.getValue());
                 }
             }

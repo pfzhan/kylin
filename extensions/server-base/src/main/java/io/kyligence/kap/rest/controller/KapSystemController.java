@@ -24,15 +24,9 @@
 
 package io.kyligence.kap.rest.controller;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.Charset;
-
-import javax.servlet.http.HttpServletResponse;
-
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
+import io.kyligence.kap.rest.service.LicenseInfoService;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.rest.controller.BasicController;
@@ -47,9 +41,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import io.kyligence.kap.rest.msg.KapMessage;
-import io.kyligence.kap.rest.msg.KapMsgPicker;
-import io.kyligence.kap.rest.service.LicenseInfoService;
+import javax.servlet.http.HttpServletResponse;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.Charset;
 
 @Controller
 @Component("kapSystemController")
@@ -59,8 +57,7 @@ public class KapSystemController extends BasicController {
     @Autowired
     private LicenseInfoService licenseInfoService;
 
-    @RequestMapping(value = "/license", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/license", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse listLicense(@RequestHeader("Accept-Language") String lang) {
         KapMsgPicker.setMsg(lang);
@@ -68,11 +65,9 @@ public class KapSystemController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
     }
 
-    @RequestMapping(value = "/requestLicense", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/requestLicense", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public void requestLicense(@RequestHeader("Accept-Language") String lang, final HttpServletResponse response)
-            throws IOException {
+    public void requestLicense(@RequestHeader("Accept-Language") String lang, final HttpServletResponse response) throws IOException {
         KapMsgPicker.setMsg(lang);
 
         String info = licenseInfoService.requestLicenseInfo();
@@ -84,8 +79,7 @@ public class KapSystemController extends BasicController {
     private void setDownloadResponse(File downloadFile, String filename, final HttpServletResponse response) {
         KapMessage msg = KapMsgPicker.getMsg();
 
-        try (InputStream fileInputStream = new FileInputStream(downloadFile);
-                OutputStream output = response.getOutputStream();) {
+        try (InputStream fileInputStream = new FileInputStream(downloadFile); OutputStream output = response.getOutputStream();) {
             response.reset();
             response.setContentType("application/octet-stream");
             response.setContentLength((int) (downloadFile.length()));

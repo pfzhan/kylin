@@ -84,8 +84,7 @@ public class FragmentJointAggrGroupRecorder {
         double currScore = 1;
         while (columnIter.hasNext()) {
             Column column = columnIter.next().getValue();
-            if (currScore * column.score > modelingConfig.getJointGroupCardinalityMax() * Math.pow(10, scaleTimes)
-                    || currGroup.size() >= modelingConfig.getJointColNumMax() * (scaleTimes / 3 + 1)) {
+            if (currScore * column.score > modelingConfig.getJointGroupCardinalityMax() * Math.pow(10, scaleTimes) || currGroup.size() >= modelingConfig.getJointColNumMax() * (scaleTimes / 3 + 1)) {
                 if (currGroup.size() > 1) {
                     result.add(currGroup);
                 }

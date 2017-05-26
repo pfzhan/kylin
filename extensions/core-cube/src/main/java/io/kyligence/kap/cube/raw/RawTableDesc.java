@@ -121,10 +121,8 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
 
         // FIXME: Dirty code, check encoding in string
         String encoding = columnMap.get(firstSorted).getEncoding();
-        if (!encoding.equalsIgnoreCase("integer") && !encoding.equalsIgnoreCase("date")
-                && !encoding.equalsIgnoreCase("time")) {
-            throw new IllegalStateException(
-                    "first sortby column's encoding is" + encoding + ", it should be integer, date or time");
+        if (!encoding.equalsIgnoreCase("integer") && !encoding.equalsIgnoreCase("date") && !encoding.equalsIgnoreCase("time")) {
+            throw new IllegalStateException("first sortby column's encoding is" + encoding + ", it should be integer, date or time");
         }
     }
 

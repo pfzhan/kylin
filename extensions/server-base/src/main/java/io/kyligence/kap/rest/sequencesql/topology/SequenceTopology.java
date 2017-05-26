@@ -67,8 +67,7 @@ public class SequenceTopology {
                 throw new IllegalStateException("SequenceOpt.INIT is only allowed for the first sql in the sequence");
             }
             SequenceSQLNode newSQLNode = new SequenceSQLNode(sql, sqlNodeCount++);
-            SequenceOptNode newOptNode = new SequenceOptNode(Lists.newArrayList(lowest, newSQLNode), resultOpt,
-                    optNodeCount++);
+            SequenceOptNode newOptNode = new SequenceOptNode(Lists.newArrayList(lowest, newSQLNode), resultOpt, optNodeCount++);
             lowest.child = newOptNode;
             newSQLNode.child = newOptNode;
             return getStepIDFromSqlID(newSQLNode.sqlID);
@@ -107,8 +106,7 @@ public class SequenceTopology {
             currentResult = new SequenceNodeOutput(sqlResponse);
             diskResultCache.cacheEntry(getStoreKey(updating), currentResult.getCachedBytes());
         } else {
-            currentResult = SequenceNodeOutput
-                    .getInstanceFromCachedBytes(diskResultCache.getEntry(getStoreKey(updating)));
+            currentResult = SequenceNodeOutput.getInstanceFromCachedBytes(diskResultCache.getEntry(getStoreKey(updating)));
         }
 
         if (updating.child != null) {
@@ -122,8 +120,7 @@ public class SequenceTopology {
         }
     }
 
-    private int updateOptNodeResult(SequenceOptNode updating, SequenceNodeOutput optinalLeftParentInput,
-            SequenceNodeOutput optinalRightParentInput) {
+    private int updateOptNodeResult(SequenceOptNode updating, SequenceNodeOutput optinalLeftParentInput, SequenceNodeOutput optinalRightParentInput) {
         long startTime = System.currentTimeMillis();
         if (optinalLeftParentInput == null) {
             optinalLeftParentInput = loadSequenceNodeOutput(getStoreKey(updating.parents.get(0)));
@@ -151,8 +148,7 @@ public class SequenceTopology {
         String cacheKey = getStoreKey(updating);
         diskResultCache.cacheEntry(cacheKey, currentResult.getCachedBytes());
 
-        logger.info(
-                "Time to process and persist:" + (System.currentTimeMillis() - startTime) + " with OPT being " + opt);
+        logger.info("Time to process and persist:" + (System.currentTimeMillis() - startTime) + " with OPT being " + opt);
 
         if (updating.child == null) {
             return currentResult.size();
@@ -225,15 +221,13 @@ public class SequenceTopology {
             for (int i = 0; i < sqlNodeCount; i++) {
                 SequenceSQLNode sqlNode = findSQLNode(i);
                 SequenceNodeOutput sqlOutput = loadSequenceNodeOutput(getStoreKey(sqlNode));
-                sb.append("     sql ").append(sqlNode.getSqlID()).append(": ").append(sqlNode.sql)
-                        .append(" (result size:").append(sqlOutput.size()).append(")").append(newLine);
+                sb.append("     sql ").append(sqlNode.getSqlID()).append(": ").append(sqlNode.sql).append(" (result size:").append(sqlOutput.size()).append(")").append(newLine);
             }
             sb.append(newLine);
             for (int i = 0; i < optNodeCount; i++) {
                 SequenceOptNode optNode = findOptNode(i);
                 SequenceNodeOutput optOutput = loadSequenceNodeOutput(getStoreKey(optNode));
-                sb.append("     opt ").append(optNode.getOptID()).append(": ").append(optNode.opt)
-                        .append(" (result size:").append(optOutput.size()).append(")").append(newLine);
+                sb.append("     opt ").append(optNode.getOptID()).append(": ").append(optNode.opt).append(" (result size:").append(optOutput.size()).append(")").append(newLine);
             }
             return sb.toString();
         }
@@ -244,8 +238,7 @@ public class SequenceTopology {
             return " ( " + node.getIdentifier() + " ) ";
         } else {
             SequenceOptNode optNode = (SequenceOptNode) node;
-            return " ( " + toString(optNode.parents.get(1)) + " " + optNode.opt + " " + toString(optNode.parents.get(0))
-                    + " ) ";
+            return " ( " + toString(optNode.parents.get(1)) + " " + optNode.opt + " " + toString(optNode.parents.get(0)) + " ) ";
         }
     }
 }

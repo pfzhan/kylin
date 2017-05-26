@@ -23,14 +23,11 @@
  */
 package io.kyligence.kap.tool.storage;
 
-import static org.junit.Assert.fail;
-
-import java.io.IOException;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.protocol.CachePoolEntry;
 import org.apache.hadoop.hdfs.protocol.CachePoolStats;
@@ -39,6 +36,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import java.io.IOException;
+
+import static org.junit.Assert.fail;
 
 @Ignore
 public class HDFSCacheUtilTest extends HBaseMetadataTestCase {

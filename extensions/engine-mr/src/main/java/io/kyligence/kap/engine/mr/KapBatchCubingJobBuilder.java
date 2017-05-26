@@ -100,8 +100,7 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
     private String getCubeRootPath(CubeSegment seg) {
         CubeInstance cube = seg.getCubeInstance();
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        return new StringBuffer(KapConfig.wrap(kylinConfig).getParquetStoragePath()).append(cube.getUuid()).append("/")
-                .append(seg.getUuid()).append("/").toString();
+        return new StringBuffer(KapConfig.wrap(kylinConfig).getParquetStoragePath()).append(cube.getUuid()).append("/").append(seg.getUuid()).append("/").toString();
     }
 
     private SaveStatisticsStep createSaveStatisticsStep(String jobId) {
@@ -114,6 +113,7 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
         return result;
     }
 
+
     private void addLayerCubingSteps(final CubingJob result, final String jobId, final String cuboidRootPath) {
         RowKeyDesc rowKeyDesc = seg.getCubeDesc().getRowkey();
         final int maxLevel = seg.getCubeDesc().getBuildLevel();
@@ -122,8 +122,7 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
         result.addTask(createBaseCuboidStep(getCuboidOutputPathsByLevel(cuboidRootPath, 0), jobId));
         // n dim cuboid steps
         for (int i = 1; i <= maxLevel; i++) {
-            result.addTask(createNDimensionCuboidStep(getCuboidOutputPathsByLevel(cuboidRootPath, i - 1),
-                    getCuboidOutputPathsByLevel(cuboidRootPath, i), i, jobId));
+            result.addTask(createNDimensionCuboidStep(getCuboidOutputPathsByLevel(cuboidRootPath, i-1), getCuboidOutputPathsByLevel(cuboidRootPath, i), i, jobId));
         }
 
         result.addTask(createUpdateLayerOutputDirStep(cuboidRootPath, jobId));
@@ -156,8 +155,7 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
         return updateDirStep;
     }
 
-    private MapReduceExecutable createNDimensionCuboidStep(String parentPath, String outputPath, int level,
-            String jobId) {
+    private MapReduceExecutable createNDimensionCuboidStep(String parentPath, String outputPath, int level, String jobId) {
         // ND cuboid job
         MapReduceExecutable ndCuboidStep = new MapReduceExecutable();
 
@@ -169,8 +167,7 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
         appendExecCmdParameters(cmd, BatchConstants.ARG_SEGMENT_ID, seg.getUuid());
         appendExecCmdParameters(cmd, BatchConstants.ARG_INPUT, parentPath);
         appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, outputPath);
-        appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME,
-                "Kylin_ND-Cuboid_Builder_" + seg.getRealization().getName() + "_Step");
+        appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_ND-Cuboid_Builder_" + seg.getRealization().getName() + "_Step");
         appendExecCmdParameters(cmd, BatchConstants.ARG_LEVEL, "" + level);
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBING_JOB_ID, jobId);
 
@@ -178,6 +175,7 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
         ndCuboidStep.setMapReduceJobClass(getNDCuboidJob());
         return ndCuboidStep;
     }
+
 
     private MapReduceExecutable createInMemCubingStep(String jobId, String cuboidRootPath) {
         // base cuboid job
@@ -191,8 +189,7 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBE_NAME, seg.getRealization().getName());
         appendExecCmdParameters(cmd, BatchConstants.ARG_SEGMENT_ID, seg.getUuid());
         appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, cuboidRootPath + "/" + InmemCubeTmpFolderPrefix);
-        appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME,
-                "Kylin_Cube_Builder_" + seg.getRealization().getName());
+        appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_Cube_Builder_" + seg.getRealization().getName());
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBING_JOB_ID, jobId);
 
         cubeStep.setMapReduceParams(cmd.toString());
@@ -214,8 +211,7 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
         appendExecCmdParameters(cmd, BatchConstants.ARG_SEGMENT_ID, seg.getUuid());
         appendExecCmdParameters(cmd, BatchConstants.ARG_INPUT, "FLAT_TABLE"); // marks flat table input
         appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, cubeOutputPath);
-        appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME,
-                "Kylin_Base_Cuboid_Builder_" + seg.getRealization().getName());
+        appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_Base_Cuboid_Builder_" + seg.getRealization().getName());
         appendExecCmdParameters(cmd, BatchConstants.ARG_LEVEL, "0");
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBING_JOB_ID, jobId);
 
@@ -225,8 +221,7 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
     }
 
     private RawTableInstance detectRawTable() {
-        RawTableInstance rawInstance = RawTableManager.getInstance(seg.getConfig())
-                .getAccompanyRawTable(seg.getCubeInstance());
+        RawTableInstance rawInstance = RawTableManager.getInstance(seg.getConfig()).getAccompanyRawTable(seg.getCubeInstance());
         logger.info("Raw table is " + (rawInstance == null ? "not " : "") + "specified in this cubing job " + seg);
         return rawInstance;
     }

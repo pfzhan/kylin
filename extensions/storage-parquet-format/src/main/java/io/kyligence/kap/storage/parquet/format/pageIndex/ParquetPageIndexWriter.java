@@ -57,13 +57,11 @@ public class ParquetPageIndexWriter implements Closeable {
 
     private long curOffset = 0;
 
-    public ParquetPageIndexWriter(String[] columnNames, int[] columnLength, int[] cardinality, boolean[] onlyEQIndex,
-            DataOutputStream outputStream) throws IOException {
+    public ParquetPageIndexWriter(String[] columnNames, int[] columnLength, int[] cardinality, boolean[] onlyEQIndex, DataOutputStream outputStream) throws IOException {
         this(columnNames, columnLength, cardinality, onlyEQIndex, outputStream, true);
     }
 
-    public ParquetPageIndexWriter(String[] columnNames, int[] columnLength, int[] cardinality, boolean[] onlyEQIndex,
-            DataOutputStream outputStream, boolean needSpill) throws IOException {
+    public ParquetPageIndexWriter(String[] columnNames, int[] columnLength, int[] cardinality, boolean[] onlyEQIndex, DataOutputStream outputStream, boolean needSpill) throws IOException {
         this.columnNum = columnNames.length;
         this.outputStream = outputStream;
         this.needSpill = needSpill;
@@ -79,8 +77,7 @@ public class ParquetPageIndexWriter implements Closeable {
         this(columnSpecs, outputStream, true);
     }
 
-    public ParquetPageIndexWriter(ColumnSpec[] columnSpecs, DataOutputStream outputStream, boolean needSpill)
-            throws IOException {
+    public ParquetPageIndexWriter(ColumnSpec[] columnSpecs, DataOutputStream outputStream, boolean needSpill) throws IOException {
         this.columnNum = columnSpecs.length;
         this.outputStream = outputStream;
         this.needSpill = needSpill;

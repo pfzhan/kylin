@@ -53,8 +53,7 @@ public class ModelingMasterFactory {
         return new ModelingMaster(context);
     }
 
-    public static ModelingMaster create(KylinConfig kylinConfig, CubeDesc cubeDesc, ICubeStats cubeStats,
-            QueryStats queryStats) {
+    public static ModelingMaster create(KylinConfig kylinConfig, CubeDesc cubeDesc, ICubeStats cubeStats, QueryStats queryStats) {
         ModelingContextBuilder contextBuilder = new ModelingContextBuilder(kylinConfig);
         ModelingContext context = contextBuilder.buildFromCubeDesc(cubeDesc, cubeStats, queryStats);
         return new ModelingMaster(context);

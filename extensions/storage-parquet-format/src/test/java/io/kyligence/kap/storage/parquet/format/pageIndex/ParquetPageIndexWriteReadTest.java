@@ -71,8 +71,7 @@ public class ParquetPageIndexWriteReadTest extends LocalFileMetadataTestCase {
         int cardinality1 = 50;
         int cardinality2 = 100;
 
-        int[] columnLength = { (Integer.SIZE - Integer.numberOfLeadingZeros(maxVal1) + 7) / 8,
-                (Integer.SIZE - Integer.numberOfLeadingZeros(maxVal2) + 7) / 8 };
+        int[] columnLength = { (Integer.SIZE - Integer.numberOfLeadingZeros(maxVal1) + 7) / 8, (Integer.SIZE - Integer.numberOfLeadingZeros(maxVal2) + 7) / 8 };
         int[] cardinality = { cardinality1, cardinality2 };
         String[] columnName = { "1", "2" };
         int[] data1 = new int[dataSize];
@@ -97,8 +96,7 @@ public class ParquetPageIndexWriteReadTest extends LocalFileMetadataTestCase {
 
         // write
         boolean[] onlyEq = { false, false };
-        ParquetPageIndexWriter writer = new ParquetPageIndexWriter(columnName, columnLength, cardinality, onlyEq,
-                new FSDataOutputStream(new FileOutputStream(indexFile)));
+        ParquetPageIndexWriter writer = new ParquetPageIndexWriter(columnName, columnLength, cardinality, onlyEq, new FSDataOutputStream(new FileOutputStream(indexFile)));
         for (int i = 0; i < dataSize; i++) {
             byte[] buffer1 = new byte[columnLength[0]];
             byte[] buffer2 = new byte[columnLength[1]];

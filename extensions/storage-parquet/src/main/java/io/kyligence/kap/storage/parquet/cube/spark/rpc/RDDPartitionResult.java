@@ -35,8 +35,8 @@ public class RDDPartitionResult implements Serializable {
     private long startLatency;
     private long totalDuration;
 
-    public RDDPartitionResult(byte[] data, long scannedRows, long scannedBytes, long returnedRows, String hostname,
-            long startLatency, long totalDuration) {
+    public RDDPartitionResult(byte[] data, long scannedRows, long scannedBytes, long returnedRows,
+        String hostname, long startLatency, long totalDuration) {
         this.data = data;
         this.scannedRows = scannedRows;
         this.scannedBytes = scannedBytes;

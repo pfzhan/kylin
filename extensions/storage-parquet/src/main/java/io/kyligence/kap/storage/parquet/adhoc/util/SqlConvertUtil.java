@@ -24,28 +24,24 @@
 
 package io.kyligence.kap.storage.parquet.adhoc.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 //TODO: Some workaround ways to make sql readable by spark sql, should replaced it with a more well-designed way
 public class SqlConvertUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(SqlConvertUtil.class);
 
-    private static final Pattern EXTRACT_PATTERN = Pattern.compile("\\s+extract\\s*(\\()\\s*(.*?)\\s*from(\\s+)",
-            Pattern.CASE_INSENSITIVE);
-    private static final Pattern FROM_PATTERN = Pattern.compile("\\s+from\\s+(\\()\\s*select\\s",
-            Pattern.CASE_INSENSITIVE);
-    private static final Pattern CAST_PATTERN = Pattern.compile("CAST\\((.*?) (?i)AS\\s*(.*?)\\s*\\)",
-            Pattern.CASE_INSENSITIVE);
-    private static final Pattern CONCAT_PATTERN = Pattern.compile("(['_a-z0-9A-Z]+)\\|\\|(['_a-z0-9A-Z]+)",
-            Pattern.CASE_INSENSITIVE);
+    private static final Pattern EXTRACT_PATTERN = Pattern.compile("\\s+extract\\s*(\\()\\s*(.*?)\\s*from(\\s+)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern FROM_PATTERN = Pattern.compile("\\s+from\\s+(\\()\\s*select\\s", Pattern.CASE_INSENSITIVE);
+    private static final Pattern CAST_PATTERN = Pattern.compile("CAST\\((.*?) (?i)AS\\s*(.*?)\\s*\\)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern CONCAT_PATTERN = Pattern.compile("(['_a-z0-9A-Z]+)\\|\\|(['_a-z0-9A-Z]+)", Pattern.CASE_INSENSITIVE);
 
     public static String replaceString(String originString, String fromString, String toString) {
         return originString.replace(fromString, toString);
@@ -68,8 +64,7 @@ public class SqlConvertUtil {
             int originStart = extractMatcher.start(0) + 1;
             int originEnd = endIdx + 1;
 
-            replacedString = replaceString(replacedString, originString.substring(originStart, originEnd),
-                    functionStr + "(" + extractInner + ")");
+            replacedString = replaceString(replacedString, originString.substring(originStart, originEnd), functionStr + "(" + extractInner + ")");
         }
 
         return replacedString;
@@ -84,17 +79,17 @@ public class SqlConvertUtil {
             String type = castMatcher.group(2);
             String supportedType = "";
             switch (type.toUpperCase()) {
-            case "INTEGER":
-                supportedType = "int";
-                break;
-            case "SHORT":
-                supportedType = "smallint";
-                break;
-            case "LONG":
-                supportedType = "bigint";
-                break;
-            default:
-                supportedType = type;
+                case "INTEGER":
+                    supportedType = "int";
+                    break;
+                case "SHORT":
+                    supportedType = "smallint";
+                    break;
+                case "LONG":
+                    supportedType = "bigint";
+                    break;
+                default:
+                    supportedType = type;
             }
 
             if (!supportedType.equals(type)) {
@@ -119,8 +114,7 @@ public class SqlConvertUtil {
             int startIdx = subqueryMatcher.start(1);
             int endIdx = parenthesesPairs.get(startIdx) + 1;
 
-            replacedString = replaceString(replacedString, originString.substring(startIdx, endIdx),
-                    originString.substring(startIdx, endIdx) + " as alias");
+            replacedString = replaceString(replacedString, originString.substring(startIdx, endIdx), originString.substring(startIdx, endIdx) + " as alias");
         }
 
         return replacedString;
@@ -133,8 +127,7 @@ public class SqlConvertUtil {
         while (concatMatcher.find()) {
             String leftString = concatMatcher.group(1);
             String rightString = concatMatcher.group(2);
-            replacedString = replaceString(replacedString, leftString + "||" + rightString,
-                    "concat(" + leftString + "," + rightString + ")");
+            replacedString = replaceString(replacedString, leftString + "||" + rightString, "concat(" + leftString + "," + rightString + ")");
         }
 
         return replacedString;
@@ -169,18 +162,18 @@ public class SqlConvertUtil {
             boolean inStrVal = false;
             for (int i = 0; i < sql.length(); i++) {
                 switch (sql.charAt(i)) {
-                case '(':
-                    if (!inStrVal) {
-                        lStack.push(i);
-                    }
-                    break;
-                case ')':
-                    if (!inStrVal && !lStack.empty()) {
-                        result.put(lStack.pop(), i);
-                    }
-                    break;
-                default:
-                    break;
+                    case '(':
+                        if (!inStrVal) {
+                            lStack.push(i);
+                        }
+                        break;
+                    case ')':
+                        if (!inStrVal && !lStack.empty()) {
+                            result.put(lStack.pop(), i);
+                        }
+                        break;
+                    default:
+                        break;
                 }
             }
         }

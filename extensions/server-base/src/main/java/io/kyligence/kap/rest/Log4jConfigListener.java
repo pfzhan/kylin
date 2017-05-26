@@ -101,8 +101,7 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
         });
         if (listFiles.length > 0) {
             try {
-                BufferedReader in = new BufferedReader(
-                        new InputStreamReader(new FileInputStream(listFiles[0]), "UTF-8"));
+                BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(listFiles[0]), "UTF-8"));
                 String statement = "";
                 String l;
                 while ((l = in.readLine()) != null) {
@@ -118,8 +117,7 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
                         String license = in.readLine();
                         System.setProperty("kap.license", license);
 
-                        licenseLog.info(
-                                "KAP License:\n" + statement + "====\n" + version + "\n" + dates + "\n" + license);
+                        licenseLog.info("KAP License:\n" + statement + "====\n" + version + "\n" + dates + "\n" + license);
                         break;
                     }
                     statement += l + "\n";
@@ -175,8 +173,7 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
         }
 
         if (parallel > 0) {
-            Executors.newScheduledThreadPool(1).scheduleAtFixedRate(new ParallelScaleChecker(parallel), 0, 10,
-                    TimeUnit.MINUTES);
+            Executors.newScheduledThreadPool(1).scheduleAtFixedRate(new ParallelScaleChecker(parallel), 0, 10, TimeUnit.MINUTES);
         }
     }
 

@@ -129,8 +129,7 @@ public class AsyncQueryService extends QueryService {
             throw new BadRequestException(msg.getQUERY_RESULT_FILE_NOT_FOUND());
         }
 
-        try (FSDataInputStream inputStream = fileSystem.open(dataPath);
-                ServletOutputStream outputStream = response.getOutputStream()) {
+        try (FSDataInputStream inputStream = fileSystem.open(dataPath); ServletOutputStream outputStream = response.getOutputStream()) {
             IOUtils.copyLarge(inputStream, outputStream);
         }
     }
@@ -150,8 +149,7 @@ public class AsyncQueryService extends QueryService {
             throw new BadRequestException(msg.getQUERY_EXCEPTION_FILE_NOT_FOUND());
         }
 
-        try (FSDataInputStream inputStream = fileSystem.open(dataPath);
-                InputStreamReader reader = new InputStreamReader(inputStream)) {
+        try (FSDataInputStream inputStream = fileSystem.open(dataPath); InputStreamReader reader = new InputStreamReader(inputStream)) {
             List<String> strings = IOUtils.readLines(reader);
 
             return StringUtils.join(strings, "");

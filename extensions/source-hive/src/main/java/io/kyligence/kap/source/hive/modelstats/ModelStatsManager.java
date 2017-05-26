@@ -76,8 +76,7 @@ public class ModelStatsManager {
 
     public ModelStats getModelStats(String modelName) throws IOException {
 
-        ModelStats result = getStore().getResource(getResourcePath(modelName), ModelStats.class,
-                MODEL_STATISTICS_SERIALIZER);
+        ModelStats result = getStore().getResource(getResourcePath(modelName), ModelStats.class, MODEL_STATISTICS_SERIALIZER);
         // create new
         if (null == result) {
             result = new ModelStats();

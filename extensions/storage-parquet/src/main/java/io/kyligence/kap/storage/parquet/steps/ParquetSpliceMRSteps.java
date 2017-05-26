@@ -50,8 +50,7 @@ public class ParquetSpliceMRSteps extends ParquetMRSteps {
         appendMapReduceParameters(cmd, JobEngineConfig.IN_MEM_JOB_CONF_SUFFIX);
 
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBING_JOB_ID, jobId);
-        appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME,
-                "Kylin_Build_Columnar_Page_Index_" + seg.getRealization().getName() + "_Step");
+        appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_Build_Columnar_Page_Index_" + seg.getRealization().getName() + "_Step");
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBE_NAME, seg.getRealization().getName());
         appendExecCmdParameters(cmd, BatchConstants.ARG_SEGMENT_ID, seg.getUuid());
         appendExecCmdParameters(cmd, BatchConstants.ARG_INPUT, getCubeFolderPath(seg));
@@ -71,8 +70,7 @@ public class ParquetSpliceMRSteps extends ParquetMRSteps {
         StringBuilder cmd = new StringBuilder();
         appendMapReduceParameters(cmd);
 
-        appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME,
-                "Kylin_Parquet_Tarball_" + seg.getRealization().getName() + "_Step");
+        appendExecCmdParameters(cmd, BatchConstants.ARG_JOB_NAME, "Kylin_Parquet_Tarball_" + seg.getRealization().getName() + "_Step");
         appendExecCmdParameters(cmd, BatchConstants.ARG_CUBE_NAME, seg.getRealization().getName());
         appendExecCmdParameters(cmd, BatchConstants.ARG_INPUT, getCubeFolderPath(seg));
         appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, getCubeTarballTmpFolderPath(seg));
@@ -99,8 +97,7 @@ public class ParquetSpliceMRSteps extends ParquetMRSteps {
         ParquetCubeInfoCollectionStep step = new ParquetCubeInfoCollectionStep();
         step.setName("Collect Cube File Mapping");
         step.setParam(ParquetCubeInfoCollectionStep.INPUT_PATH, getCubeFolderPath(seg));
-        step.setParam(ParquetCubeInfoCollectionStep.OUTPUT_PATH,
-                getCubeFolderPath(seg) + ParquetCubeInfoCollectionStep.CUBE_INFO_NAME);
+        step.setParam(ParquetCubeInfoCollectionStep.OUTPUT_PATH, getCubeFolderPath(seg) + ParquetCubeInfoCollectionStep.CUBE_INFO_NAME);
         return step;
     }
 }

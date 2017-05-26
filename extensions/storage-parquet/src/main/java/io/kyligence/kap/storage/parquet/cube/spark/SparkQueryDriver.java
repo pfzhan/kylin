@@ -39,8 +39,7 @@ public class SparkQueryDriver extends AbstractApplication {
     protected static final Logger logger = LoggerFactory.getLogger(SparkQueryDriver.class);
 
     @SuppressWarnings("static-access")
-    private static final Option OPTION_PORT = OptionBuilder.withArgName("port").hasArg().isRequired(true)
-            .withDescription("specify which port to listen to").create("port");
+    private static final Option OPTION_PORT = OptionBuilder.withArgName("port").hasArg().isRequired(true).withDescription("specify which port to listen to").create("port");
 
     private Options options;
 

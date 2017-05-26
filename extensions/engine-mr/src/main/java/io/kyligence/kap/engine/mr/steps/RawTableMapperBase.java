@@ -65,8 +65,7 @@ import io.kyligence.kap.cube.raw.gridtable.RawTableGridTable;
 import io.kyligence.kap.cube.raw.gridtable.RawToGridTableMapping;
 import io.kyligence.kap.storage.parquet.format.datatype.ByteArrayListWritable;
 
-abstract public class RawTableMapperBase<KEYIN, VALUEIN>
-        extends KylinMapper<KEYIN, VALUEIN, ByteArrayListWritable, ByteArrayListWritable> {
+abstract public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEYIN, VALUEIN, ByteArrayListWritable, ByteArrayListWritable> {
     protected static final Logger logger = LoggerFactory.getLogger(RawTableMapperBase.class);
     public static final byte[] HIVE_NULL = Bytes.toBytes("\\N");
     public static final byte[] ONE = Bytes.toBytes("1");
@@ -107,8 +106,7 @@ abstract public class RawTableMapperBase<KEYIN, VALUEIN>
         rawColumnCodec = new BufferedRawColumnCodec((RawTableCodeSystem) gtInfo.getCodeSystem());
         codecBuffer = new String[rawColumnCodec.getColumnsCount()]; // stored encoded value
 
-        bytesSplitter = new BytesSplitter(kapConfig.getRawTableColumnCountMax(),
-                kapConfig.getRawTableColumnLengthMax());
+        bytesSplitter = new BytesSplitter(kapConfig.getRawTableColumnCountMax(), kapConfig.getRawTableColumnLengthMax());
         initNullBytes();
 
         RawToGridTableMapping gridTableMapping = rawTableDesc.getRawToGridTableMapping();
@@ -207,13 +205,10 @@ abstract public class RawTableMapperBase<KEYIN, VALUEIN>
             if (isNull(splitBuffers[idInSource].value, 0, splitBuffers[idInSource].length)) {
                 codecBuffer[idInRawTable] = null;
             } else {
-                codecBuffer[idInRawTable] = Bytes.toString(splitBuffers[idInSource].value, 0,
-                        splitBuffers[idInSource].length);
+                codecBuffer[idInRawTable] = Bytes.toString(splitBuffers[idInSource].value, 0, splitBuffers[idInSource].length);
             }
             ImmutableBitSet rawtableIndexBitmap = new ImmutableBitSet(idInRawTable);
-            ByteBuffer buffer = rawColumnCodec.encode(
-                    RawValueIngester.buildObjectOf(codecBuffer, rawColumnCodec, rawtableIndexBitmap),
-                    rawtableIndexBitmap);
+            ByteBuffer buffer = rawColumnCodec.encode(RawValueIngester.buildObjectOf(codecBuffer, rawColumnCodec, rawtableIndexBitmap), rawtableIndexBitmap);
             result.add(Arrays.copyOfRange(buffer.array(), 0, buffer.position()));
         }
 
@@ -227,12 +222,10 @@ abstract public class RawTableMapperBase<KEYIN, VALUEIN>
             if (isNull(splitBuffers[idInSource].value, 0, splitBuffers[idInSource].length)) {
                 codecBuffer[idInRawTable] = null;
             } else {
-                codecBuffer[idInRawTable] = Bytes.toString(splitBuffers[idInSource].value, 0,
-                        splitBuffers[idInSource].length);
+                codecBuffer[idInRawTable] = Bytes.toString(splitBuffers[idInSource].value, 0, splitBuffers[idInSource].length);
             }
         }
-        Object[] values = RawValueIngester.buildObjectOf(codecBuffer, rawColumnCodec,
-                rawTableDesc.getRawToGridTableMapping().getShardbyKey());
+        Object[] values = RawValueIngester.buildObjectOf(codecBuffer, rawColumnCodec, rawTableDesc.getRawToGridTableMapping().getShardbyKey());
         return rawColumnCodec.encode(values, rawTableDesc.getRawToGridTableMapping().getShardbyKey());
     }
 

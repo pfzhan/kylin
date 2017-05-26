@@ -106,33 +106,22 @@ public class CubeSparkRPC implements IGTStorage {
         logger.info("Spark visit timeout is set to " + scanRequest.getTimeout());
         logger.info("Filter: {}", scanRequest.getFilterPushDown());
 
-        SparkJobProtos.SparkJobRequestPayload payload = SparkJobProtos.SparkJobRequestPayload.newBuilder()
-                .setGtScanRequest(ByteString.copyFrom(scanRequest.toByteArray())).//
-                setKylinProperties(KylinConfig.getInstanceFromEnv().getConfigAsString())
-                .setRealizationId(cubeSegment.getCubeInstance().getUuid()).//
+        SparkJobProtos.SparkJobRequestPayload payload = SparkJobProtos.SparkJobRequestPayload.newBuilder().setGtScanRequest(ByteString.copyFrom(scanRequest.toByteArray())).//
+                setKylinProperties(KylinConfig.getInstanceFromEnv().getConfigAsString()).setRealizationId(cubeSegment.getCubeInstance().getUuid()).//
                 setSegmentId(cubeSegment.getUuid()).setDataFolderName(String.valueOf(cuboid.getId())).//
-                setMaxRecordLength(scanRequest.getInfo().getMaxLength())
-                .addAllParquetColumns(getRequiredParquetColumns(scanRequest)).//
-                setUseII(KapConfig.getInstanceFromEnv().isUsingInvertedIndex())
-                .setRealizationType(RealizationType.CUBE.toString()).//
-                setQueryId(QueryContext.current().getQueryId())
-                .setSpillEnabled(cubeSegment.getConfig().getQueryCoprocessorSpillEnabled()).//
-                setMaxScanBytes(cubeSegment.getConfig().getPartitionMaxScanBytes())
-                .setStartTime(scanRequest.getStartTime()).setStorageType(cubeSegment.getStorageType()).//
+                setMaxRecordLength(scanRequest.getInfo().getMaxLength()).addAllParquetColumns(getRequiredParquetColumns(scanRequest)).//
+                setUseII(KapConfig.getInstanceFromEnv().isUsingInvertedIndex()).setRealizationType(RealizationType.CUBE.toString()).//
+                setQueryId(QueryContext.current().getQueryId()).setSpillEnabled(cubeSegment.getConfig().getQueryCoprocessorSpillEnabled()).//
+                setMaxScanBytes(cubeSegment.getConfig().getPartitionMaxScanBytes()).setStartTime(scanRequest.getStartTime()).setStorageType(cubeSegment.getStorageType()).//
                 build();
 
         if (BackdoorToggles.getDumpedPartitionDir() != null) {
-            logger.info("debugging: use previously dumped partition from {} instead of real requesting from storage",
-                    BackdoorToggles.getDumpedPartitionDir());
-            return new StorageResponseGTScatter(scanRequest,
-                    new DummyPartitionStreamer(new PartitionIteratorFromDir(BackdoorToggles.getDumpedPartitionDir())),
-                    context);
+            logger.info("debugging: use previously dumped partition from {} instead of real requesting from storage", BackdoorToggles.getDumpedPartitionDir());
+            return new StorageResponseGTScatter(scanRequest, new DummyPartitionStreamer(new PartitionIteratorFromDir(BackdoorToggles.getDumpedPartitionDir())), context);
         }
 
-        logger.info("The scan {} for segment {} is ready to be submitted to spark client",
-                Integer.toHexString(System.identityHashCode(scanRequest)), cubeSegment);
-        final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest, payload,
-                cubeSegment.getConfig().getQueryMaxScanBytes());
+        logger.info("The scan {} for segment {} is ready to be submitted to spark client", Integer.toHexString(System.identityHashCode(scanRequest)), cubeSegment);
+        final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest, payload, cubeSegment.getConfig().getQueryMaxScanBytes());
         return new StorageResponseGTScatter(scanRequest, storageVisitResponseStreamer, context);
 
     }

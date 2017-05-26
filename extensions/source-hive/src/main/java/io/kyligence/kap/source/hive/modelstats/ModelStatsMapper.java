@@ -89,7 +89,7 @@ public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, Byt
     @Override
     public void doMap(T key, Object value, Context context) throws IOException, InterruptedException {
         Collection<String[]> valuesCollection = tableInputFormat.parseMapperInput(value);
-        for (String[] values : valuesCollection) {
+        for (String[] values: valuesCollection) {
             for (int m = 0; m < flatTableDesc.getAllColumns().size(); m++) {
                 samplerMap.get(m).samples(values);
             }

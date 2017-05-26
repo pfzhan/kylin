@@ -119,8 +119,7 @@ public class KapInMemCuboidJob extends AbstractHadoopJob {
             job.setOutputValueClass(Text.class);
 
             // set input
-            IMRInput.IMRTableInputFormat flatTableInputFormat = MRUtil.getBatchCubingInputSide(cubeSeg)
-                    .getFlatTableInputFormat();
+            IMRInput.IMRTableInputFormat flatTableInputFormat = MRUtil.getBatchCubingInputSide(cubeSeg).getFlatTableInputFormat();
             flatTableInputFormat.configureJob(job);
 
             // set output

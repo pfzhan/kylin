@@ -49,14 +49,12 @@ public class KapUnauthorisedEntryPoint implements AuthenticationEntryPoint {
     @Autowired
     private KapAuthenticationManager kapAuthenticationManager;
 
-    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception)
-            throws IOException, ServletException {
+    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
         Message msg = MsgPicker.getMsg();
         Throwable cause = exception;
         while (cause != null) {
             if (cause.getClass().getPackage().getName().startsWith("org.apache.hadoop.hbase")) {
-                setErrorResponse(request, response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                        new InternalErrorException(msg.getHBASE_FAIL_WITHOUT_DETAIL()));
+                setErrorResponse(request, response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, new InternalErrorException(msg.getHBASE_FAIL_WITHOUT_DETAIL()));
                 return;
             }
             cause = cause.getCause();
@@ -74,8 +72,7 @@ public class KapUnauthorisedEntryPoint implements AuthenticationEntryPoint {
         setErrorResponse(request, response, HttpServletResponse.SC_UNAUTHORIZED, exception);
     }
 
-    public void setErrorResponse(HttpServletRequest request, HttpServletResponse response, int statusCode, Exception ex)
-            throws IOException {
+    public void setErrorResponse(HttpServletRequest request, HttpServletResponse response, int statusCode, Exception ex) throws IOException {
         response.setStatus(statusCode);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         ErrorResponse errorResponse = new ErrorResponse(request.getRequestURL().toString(), ex);

@@ -90,7 +90,7 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
         ColumnDesc[] columns = tableDesc.getColumns();
         Collection<String[]> valuesCollection = tableInputFormat.parseMapperInput(value);
 
-        for (String[] values : valuesCollection) {
+        for (String[] values: valuesCollection) {
             for (int m = 0; m < columns.length; m++) {
                 String fieldValue = values[m];
                 samplerMap.get(m).samples(fieldValue);

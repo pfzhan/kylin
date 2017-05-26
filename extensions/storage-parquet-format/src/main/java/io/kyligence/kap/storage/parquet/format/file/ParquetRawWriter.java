@@ -156,8 +156,7 @@ public class ParquetRawWriter {
     }
 
     // TODO: this writeRow is not pure, should be refactored
-    public void writeRow(byte[] key, int keyOffset, int keyLength, byte[] value, int[] valueLengths)
-            throws IOException {
+    public void writeRow(byte[] key, int keyOffset, int keyLength, byte[] value, int[] valueLengths) throws IOException {
         List<Object> row = new ArrayList<Object>();
         row.add(Binary.fromConstantByteArray(key, keyOffset, keyLength));
 
@@ -216,28 +215,19 @@ public class ParquetRawWriter {
     private TypeValuesWriter getValuesWriter(ColumnDescriptor descriptor) {
         switch (descriptor.getType()) {
         case BOOLEAN:
-            return new BooleanValueWriter(
-                    new RunLengthBitPackingHybridValuesWriter(1, parquetProperties.getInitialSlabSize(),
-                            parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
+            return new BooleanValueWriter(new RunLengthBitPackingHybridValuesWriter(1, parquetProperties.getInitialSlabSize(), parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
         case INT32:
-            return new IntegerValueWriter(
-                    new DeltaBinaryPackingValuesWriterForInteger(parquetProperties.getInitialSlabSize(),
-                            parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
+            return new IntegerValueWriter(new DeltaBinaryPackingValuesWriterForInteger(parquetProperties.getInitialSlabSize(), parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
         case INT64:
-            return new LongValueWriter(new DeltaBinaryPackingValuesWriterForLong(parquetProperties.getInitialSlabSize(),
-                    parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
+            return new LongValueWriter(new DeltaBinaryPackingValuesWriterForLong(parquetProperties.getInitialSlabSize(), parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
         case INT96:
-            return new BytesValueWriter(
-                    new FixedLenByteArrayPlainValuesWriter(12, parquetProperties.getInitialSlabSize(),
-                            parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
+            return new BytesValueWriter(new FixedLenByteArrayPlainValuesWriter(12, parquetProperties.getInitialSlabSize(), parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
         case FLOAT:
         case DOUBLE:
-            return new DoubleValueWriter(new PlainValuesWriter(parquetProperties.getInitialSlabSize(),
-                    parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
+            return new DoubleValueWriter(new PlainValuesWriter(parquetProperties.getInitialSlabSize(), parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
         case FIXED_LEN_BYTE_ARRAY:
         case BINARY:
-            return new BytesValueWriter(new DeltaByteArrayWriter(parquetProperties.getInitialSlabSize(),
-                    parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
+            return new BytesValueWriter(new DeltaByteArrayWriter(parquetProperties.getInitialSlabSize(), parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
         default:
             throw new IllegalArgumentException("Unknown type " + descriptor.getType());
         }
@@ -281,16 +271,13 @@ public class ParquetRawWriter {
                     bi.writeAllTo(baos);
                     baos.close();
                 } else {
-                    CompressionOutputStream os = compressionCodec.createOutputStream(baos,
-                            compressionCodec.createCompressor());
+                    CompressionOutputStream os = compressionCodec.createOutputStream(baos, compressionCodec.createCompressor());
                     bi.writeAllTo(os);
                     os.finish();
                     os.close();
                 }
 
-                writer.writeDataPage(pageBuffer[i][j].getCount(), (int) bi.size(), BytesInput.from(baos.toByteArray()),
-                        Statistics.getStatsBasedOnType(schema.getColumns().get(i).getType()), rlEncodings, dlEncodings,
-                        dataEncodings.get(i));
+                writer.writeDataPage(pageBuffer[i][j].getCount(), (int) bi.size(), BytesInput.from(baos.toByteArray()), Statistics.getStatsBasedOnType(schema.getColumns().get(i).getType()), rlEncodings, dlEncodings, dataEncodings.get(i));
             }
             writer.endColumn();
         }
@@ -461,8 +448,7 @@ public class ParquetRawWriter {
 
             logger.info("Builder: rowsPerPage={}", rowsPerPage);
             logger.info("write file: {}", path.toString());
-            return new ParquetRawWriter(conf, type, path, rlEncodings, dlEncodings, dataEncodings, codecName,
-                    rowsPerPage, pagesPerGroup, onIndexV2);
+            return new ParquetRawWriter(conf, type, path, rlEncodings, dlEncodings, dataEncodings, codecName, rowsPerPage, pagesPerGroup, onIndexV2);
         }
     }
 }

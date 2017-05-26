@@ -24,9 +24,9 @@
 
 package io.kyligence.kap.storage.parquet.adhoc.util;
 
+import junit.framework.TestCase;
 import org.junit.Test;
 
-import junit.framework.TestCase;
 
 public class SqlConvertUtilTest extends TestCase {
     @Test
@@ -54,16 +54,14 @@ public class SqlConvertUtilTest extends TestCase {
     public void testSubqueryReplace() {
         String originString = "select seller_id,lstg_format_name,sum(price) from (select * from test_kylin_fact where (lstg_format_name='FP-GTC') limit 20) group by seller_id,lstg_format_name";
         String replacedString = SqlConvertUtil.subqueryRepalce(originString);
-        assertEquals(replacedString,
-                "select seller_id,lstg_format_name,sum(price) from (select * from test_kylin_fact where (lstg_format_name='FP-GTC') limit 20) as alias group by seller_id,lstg_format_name");
+        assertEquals(replacedString, "select seller_id,lstg_format_name,sum(price) from (select * from test_kylin_fact where (lstg_format_name='FP-GTC') limit 20) as alias group by seller_id,lstg_format_name");
     }
 
     @Test
     public void testConcatReplace() {
         String originString = "select count(*) as cnt from test_kylin_fact where lstg_format_name||'a'='ABINa'";
         String replacedString = SqlConvertUtil.concatReplace(originString);
-        assertEquals(replacedString,
-                "select count(*) as cnt from test_kylin_fact where concat(lstg_format_name,'a')='ABINa'");
+        assertEquals(replacedString, "select count(*) as cnt from test_kylin_fact where concat(lstg_format_name,'a')='ABINa'");
     }
 
 }

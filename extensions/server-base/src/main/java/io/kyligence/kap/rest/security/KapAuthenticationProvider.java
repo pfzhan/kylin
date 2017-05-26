@@ -48,6 +48,7 @@ import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Element;
 
+
 public class KapAuthenticationProvider implements AuthenticationProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(KapAuthenticationProvider.class);
@@ -112,7 +113,7 @@ public class KapAuthenticationProvider implements AuthenticationProvider {
                 authed = authenticationProvider.authenticate(authentication);
                 userCache.put(new Element(userKey, authed));
             } catch (AuthenticationException e) {
-                if (userName != null) {
+                if(userName != null) {
                     kapAuthenticationManager.increaseWrongTime(userName);
                 }
                 logger.error("Failed to auth user: " + authentication.getName(), e);
@@ -125,8 +126,7 @@ public class KapAuthenticationProvider implements AuthenticationProvider {
 
             if (authed.getDetails() == null) {
                 //authed.setAuthenticated(false);
-                throw new UsernameNotFoundException(
-                        "User not found in LDAP, check whether he/she has been added to the groups.");
+                throw new UsernameNotFoundException("User not found in LDAP, check whether he/she has been added to the groups.");
             }
 
             if (authed.getDetails() instanceof UserDetails) {

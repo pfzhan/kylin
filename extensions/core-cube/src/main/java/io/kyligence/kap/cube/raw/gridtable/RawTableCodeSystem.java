@@ -27,6 +27,7 @@ package io.kyligence.kap.cube.raw.gridtable;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import io.kyligence.kap.cube.raw.RawTableColumnDesc;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.BytesSerializer;
 import org.apache.kylin.common.util.BytesUtil;
@@ -48,7 +49,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.cube.raw.RawTableColumnDesc;
 import io.kyligence.kap.metadata.datatype.OrderedBytesSerializer;
 
 public class RawTableCodeSystem implements IGTCodeSystem {
@@ -109,11 +109,9 @@ public class RawTableCodeSystem implements IGTCodeSystem {
                     throw new IllegalArgumentException("Dict encoding is not allowed for raw tables");
                 }
 
-                encodingArgs = DateDimEnc.replaceEncodingArgs(encoding, encodingArgs, encodingName,
-                        info.getColumnType(i));
+                encodingArgs = DateDimEnc.replaceEncodingArgs(encoding, encodingArgs, encodingName, info.getColumnType(i));
 
-                DimensionEncoding dimensionEncoding = DimensionEncodingFactory.create(encodingName, encodingArgs,
-                        encodingVersion);
+                DimensionEncoding dimensionEncoding = DimensionEncodingFactory.create(encodingName, encodingArgs, encodingVersion);
                 serializers[i] = dimensionEncoding.asDataTypeSerializer();
             }
         }
