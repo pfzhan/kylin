@@ -27,10 +27,17 @@ package io.kyligence.kap.rest.security;
 import java.io.IOException;
 
 import javax.servlet.ServletException;
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.rest.exception.InternalErrorException;
+import org.apache.kylin.rest.msg.Message;
+import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.response.ErrorResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -43,16 +50,37 @@ public class KapUnauthorisedEntryPoint implements AuthenticationEntryPoint {
     private KapAuthenticationManager kapAuthenticationManager;
 
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
+        Message msg = MsgPicker.getMsg();
+        Throwable cause = exception;
+        while (cause != null) {
+            if (cause.getClass().getPackage().getName().startsWith("org.apache.hadoop.hbase")) {
+                setErrorResponse(request, response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, new InternalErrorException(msg.getHBASE_FAIL_WITHOUT_DETAIL()));
+                return;
+            }
+            cause = cause.getCause();
+        }
+
         String userName = null;
         if (exception instanceof LockedException)
             userName = exception.getCause().getMessage();
 
         if (kapAuthenticationManager.isUserLocked(userName)) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, exception.getMessage());
+            setErrorResponse(request, response, HttpServletResponse.SC_BAD_REQUEST, exception);
             return;
         }
 
-        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+        setErrorResponse(request, response, HttpServletResponse.SC_UNAUTHORIZED, exception);
+    }
+
+    public void setErrorResponse(HttpServletRequest request, HttpServletResponse response, int statusCode, Exception ex) throws IOException {
+        response.setStatus(statusCode);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        ErrorResponse errorResponse = new ErrorResponse(request.getRequestURL().toString(), ex);
+        String errorStr = JsonUtil.writeValueAsIndentString(errorResponse);
+        ServletOutputStream out = response.getOutputStream();
+        out.print(errorStr);
+        out.flush();
+        out.close();
     }
 
 }
