@@ -180,8 +180,9 @@ public class SchedulerJobManager {
         return result;
     }
 
+    //TODO: For cube only currently, bind name with cube name
     public SchedulerJobInstance addSchedulerJob(SchedulerJobInstance job) throws IOException {
-        if (job == null || StringUtils.isEmpty(job.getName())) {
+        if (job == null || (StringUtils.isEmpty(job.getName()) && StringUtils.isEmpty(job.getRelatedCube()))) {
             throw new IllegalArgumentException();
         }
 
@@ -189,6 +190,9 @@ public class SchedulerJobManager {
         if (jobMap.containsKey(job.getName()))
             throw new IllegalArgumentException("Schedule job '" + job.getName() + "' already exists");
         */
+        if(StringUtils.isEmpty(job.getName())) {
+            job.setName(job.getRelatedCube());
+        }
 
         String path = SchedulerJobInstance.concatResourcePath(job.getName());
         getStore().putResource(path, job, SCHEDULER_JOB_INSTANCE_SERIALIZER);
