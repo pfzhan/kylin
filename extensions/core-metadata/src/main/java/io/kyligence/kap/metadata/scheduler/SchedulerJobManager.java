@@ -121,7 +121,7 @@ public class SchedulerJobManager {
             checkNotNull(job, "job (at %s) not found", path);
 
             String jobName = job.getName();
-            checkState(StringUtils.isNotBlank(jobName), "job (at %s) name must not be blank", path);
+            // checkState(StringUtils.isNotBlank(jobName), "job (at %s) name must not be blank", path);
 
             String project = job.getProject();
             checkState(StringUtils.isNotBlank(project), "job (at %s) project must not be blank", path);
@@ -185,8 +185,10 @@ public class SchedulerJobManager {
             throw new IllegalArgumentException();
         }
 
+        /*
         if (jobMap.containsKey(job.getName()))
             throw new IllegalArgumentException("Schedule job '" + job.getName() + "' already exists");
+        */
 
         String path = SchedulerJobInstance.concatResourcePath(job.getName());
         getStore().putResource(path, job, SCHEDULER_JOB_INSTANCE_SERIALIZER);

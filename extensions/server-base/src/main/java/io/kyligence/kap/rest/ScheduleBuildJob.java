@@ -74,15 +74,16 @@ public class ScheduleBuildJob implements Job {
 
         String jobName = dataMap.getString("name");
 
-        logger.info(jobName + " is triggered.");
+        logger.info("Scheduler of jobName " + jobName + " is triggered.");
         try {
-            String cubeName = dataMap.getString("cube");
             JobDetailImpl buildingJobs = (JobDetailImpl) scheduler.getJobDetail(JobKey.jobKey("building_jobs"));
             JobDataMap buildingMap = buildingJobs.getJobDataMap();
-            String lastJobUuid = buildingMap.getString(cubeName);
+            String lastJobUuid = buildingMap.getString(jobName);
             Long startTime = dataMap.getLong("startTime");
+            SchedulerJobInstance schedulerInstance = schedulerJobService.getSchedulerJob(jobName);
             JobInstance  jobInstance = null;
-            CubeInstance cube = jobService.getCubeManager().getCube(cubeName);
+            CubeInstance cube = jobService.getCubeManager().getCube(schedulerInstance.getRelatedCube());
+            boolean schedulerRemoved = false;
 
             if(lastJobUuid != null) {
                 jobInstance = jobService.getJobInstance(lastJobUuid);
@@ -115,29 +116,30 @@ public class ScheduleBuildJob implements Job {
                 }
 
                 jobInstance = jobService.submitJob(cube, startTime, endTime, 0, 0, null, null, CubeBuildTypeEnum.BUILD, false, authentication.getName());
-                buildingMap.put(cubeName, jobInstance.getUuid());
+                buildingMap.put(cube.getName(), jobInstance.getUuid());
                 buildingJobs.setJobDataMap(buildingMap);
                 scheduler.deleteJob(JobKey.jobKey("building_jobs"));
                 scheduler.addJob(buildingJobs, true);
-
-                // Reset scheduler job
-                SchedulerJobInstance schedulerJobInstance = schedulerJobService.getSchedulerJob(jobName);
-                if(schedulerJobInstance.getCurRepeatCount() == (schedulerJobInstance.getRepeatCount() - 1)) {
-                    schedulerJobService.deleteSchedulerJob(jobName);
-                    scheduler.deleteJob(JobKey.jobKey(jobName));
-                } else {
-                    Map<String, Long> settings = new HashMap();
-
-                    settings.put("partitionStartTime", startTime);
-                    settings.put("scheduledRunTime", schedulerJobInstance.getScheduledRunTime() + schedulerJobInstance.getRepeatInterval());
-                    settings.put("curRepeatCount", schedulerJobInstance.getCurRepeatCount() + 1);
-
-                    schedulerJobService.updateSchedulerJob(jobName, settings);
-                }
             } else if(jobInstance.getStatus() == JobStatusEnum.ERROR) {
                 jobService.resumeJob(jobInstance);
             }
 
+            // Stop scheduler if has run scheduled times
+            if(schedulerInstance.getCurRepeatCount() == (schedulerInstance.getRepeatCount() - 1)) {
+                schedulerJobService.deleteSchedulerJob(jobName);
+                scheduler.deleteJob(JobKey.jobKey(jobName));
+                schedulerRemoved = true;
+            }
+
+            // Reset scheduler job
+            if (!schedulerRemoved) {
+                Map<String, Long> settings = new HashMap();
+
+                settings.put("partitionStartTime", startTime);
+                settings.put("curRepeatCount", schedulerInstance.getCurRepeatCount() + 1);
+
+                schedulerJobService.updateSchedulerJob(jobName, settings);
+            }
         } catch (Exception e) {
             logger.error(e.getLocalizedMessage(), e);
             throw new InternalErrorException(e.getLocalizedMessage());
