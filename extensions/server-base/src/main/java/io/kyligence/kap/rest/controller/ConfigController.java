@@ -39,7 +39,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -63,18 +62,18 @@ public class ConfigController extends BasicController {
     @Qualifier("configService")
     private ConfigService configService;
 
-    @RequestMapping(value = "default", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "default", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getDefaultValue(@RequestHeader("Accept-Language") String lang, @RequestParam("key") String key) {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse getDefaultValue(@RequestParam("key") String key) {
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, configService.getDefaultConfigMap().get(key), "");
     }
 
-    @RequestMapping(value = "defaults", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "defaults", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getDefaultConfigs(@RequestHeader("Accept-Language") String lang) {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse getDefaultConfigs() {
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, configService.getDefaultConfigMap(), "");
     }
@@ -85,10 +84,11 @@ public class ConfigController extends BasicController {
      * @return
      * error code 001: feature_name is empty
      */
-    @RequestMapping(value = "hidden_feature", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "hidden_feature", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse isFeatureHidden(@RequestHeader("Accept-Language") String lang, @RequestParam("feature_name") String key) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse isFeatureHidden(@RequestParam("feature_name") String key)
+            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         KapMessage msg = KapMsgPicker.getMsg();
 
         if (StringUtils.isEmpty(key)) {
@@ -99,10 +99,10 @@ public class ConfigController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "true".equals(s), "");
     }
 
-    @RequestMapping(value = "spark_status", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "spark_status", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getSparkExec(@RequestHeader("Accept-Language") String lang) {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse getSparkExec() {
 
         int execNum = Integer.parseInt(configService.getSparkDriverConf("spark.executor.instances"));
         Map<String, String> ret = Maps.newHashMap();

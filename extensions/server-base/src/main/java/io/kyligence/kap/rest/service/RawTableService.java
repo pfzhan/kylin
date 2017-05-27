@@ -101,7 +101,7 @@ public class RawTableService extends BasicService {
         }
 
         if (getRawTableDescManager().getRawTableDesc(desc.getName()) != null) {
-            throw new BadRequestException(String.format(msg.getRAW_DESC_ALREADY_EXIST(), desc.getName()));
+            throw new BadRequestException(String.format(msg.getRAWTABLE_ALREADY_EXIST(), desc.getName()));
         }
 
         String owner = SecurityContextHolder.getContext().getAuthentication().getName();

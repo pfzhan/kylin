@@ -39,17 +39,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.service.MassInService;
 
 @Controller
 @RequestMapping(value = "/massin")
-public class MassInController extends BasicController{
+public class MassInController extends BasicController {
     @Autowired
     private MassInService massInService;
 
@@ -59,10 +57,10 @@ public class MassInController extends BasicController{
 
     private static final Logger logger = LoggerFactory.getLogger(MassInController.class);
 
-    @RequestMapping(value = "/query", method = RequestMethod.POST, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/query", method = RequestMethod.POST, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse queryMassin(@RequestHeader("Accept-Language") String lang, @RequestBody SQLRequest sqlRequest) throws IOException {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse queryMassin(@RequestBody SQLRequest sqlRequest) throws IOException {
 
         SQLResponse queryResult = queryService.doQueryWithCache(sqlRequest);
         String resourcePath = massInService.storeMassIn(queryResult, Functions.FilterTableType.HDFS);

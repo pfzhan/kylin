@@ -38,7 +38,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -55,10 +54,13 @@ public class KyBotController extends BasicController {
     @Qualifier("kyBotService")
     private KyBotService kybotService;
 
-    @RequestMapping(value = "/kybot/dump", method = { RequestMethod.GET }, produces = { "application/json", "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/kybot/dump", method = { RequestMethod.GET }, produces = { "application/json",
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public void localDumpKyBotPackage(@RequestParam(value = "startTime", required = false) Long startTime, @RequestParam(value = "endTime", required = false) Long endTime, @RequestParam(value = "target", required = false) String target, @RequestHeader("Accept-Language") String lang, final HttpServletRequest request, final HttpServletResponse response) {
-        KapMsgPicker.setMsg(lang);
+    public void localDumpKyBotPackage(@RequestParam(value = "startTime", required = false) Long startTime,
+            @RequestParam(value = "endTime", required = false) Long endTime,
+            @RequestParam(value = "target", required = false) String target, final HttpServletRequest request,
+            final HttpServletResponse response) {
         KapMessage msg = KapMsgPicker.getMsg();
 
         String filePath;
@@ -71,10 +73,12 @@ public class KyBotController extends BasicController {
         setDownloadResponse(filePath, response);
     }
 
-    @RequestMapping(value = "/kybot/upload", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/kybot/upload", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse uploadToKybot(@RequestParam(value = "startTime", required = false) Long startTime, @RequestParam(value = "endTime", required = false) Long endTime, @RequestParam(value = "target", required = false) String target, @RequestHeader("Accept-Language") String lang) throws IOException {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse uploadToKybot(@RequestParam(value = "startTime", required = false) Long startTime,
+            @RequestParam(value = "endTime", required = false) Long endTime,
+            @RequestParam(value = "target", required = false) String target) throws IOException {
 
         String path = kybotService.dumpLocalKyBotPackage(target, startTime, endTime, true);
         boolean retVal = !StringUtils.isEmpty(path);
@@ -82,10 +86,10 @@ public class KyBotController extends BasicController {
         return new EnvelopeResponse(retVal ? KyBotService.SUCC_CODE : KyBotService.AUTH_FAILURE, retVal, null);
     }
 
-    @RequestMapping(value = "/kyaccount/auth", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/kyaccount/auth", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse checkKyaccountAuth(@RequestBody KyAccountLoginRequest request, @RequestHeader("Accept-Language") String lang) throws IOException {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse checkKyaccountAuth(@RequestBody KyAccountLoginRequest request) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
         String retCode = kybotService.fetchAndSaveKyAccountToken(request.getUsername(), request.getPassword());
@@ -93,10 +97,10 @@ public class KyBotController extends BasicController {
         return new EnvelopeResponse(retCode, retCode.equals(kybotService.SUCC_CODE), null);
     }
 
-    @RequestMapping(value = "/kyaccount/logout", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/kyaccount/logout", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse logoutKyAccount(@RequestHeader("Accept-Language") String lang) throws IOException {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse logoutKyAccount() throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
         if (kybotService.getDaemonStatus()) {
@@ -107,10 +111,10 @@ public class KyBotController extends BasicController {
         return new EnvelopeResponse(retCode, retCode.equals(KyBotService.SUCC_CODE), null);
     }
 
-    @RequestMapping(value = "/kyaccount", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/kyaccount", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getKyaccountToken(@RequestHeader("Accept-Language") String lang) {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse getKyaccountToken() {
         KapMessage msg = KapMsgPicker.getMsg();
 
         kybotService.readLocalKyAccountToken();
@@ -118,7 +122,8 @@ public class KyBotController extends BasicController {
         return new EnvelopeResponse(KyBotService.SUCC_CODE, token, null);
     }
 
-    @RequestMapping(value = "/kybot/agreement", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/kybot/agreement", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getKybotAgreement() {
         String ret = kybotService.getKybotAgreement();
@@ -128,7 +133,8 @@ public class KyBotController extends BasicController {
         return new EnvelopeResponse(KyBotService.SUCC_CODE, ret, null);
     }
 
-    @RequestMapping(value = "/kybot/agreement", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/kybot/agreement", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse setKybotAgreement() {
         String ret = kybotService.setKybotAgreement();
@@ -138,30 +144,30 @@ public class KyBotController extends BasicController {
         return new EnvelopeResponse(KyBotService.SUCC_CODE, ret, null);
     }
 
-    @RequestMapping(value = "/kybot/daemon/status", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/kybot/daemon/status", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getKyBotDaemonStatus(@RequestHeader("Accept-Language") String lang) {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse getKyBotDaemonStatus() {
         KapMessage msg = KapMsgPicker.getMsg();
 
         boolean isRunning = kybotService.getDaemonStatus();
         return new EnvelopeResponse(KyBotService.SUCC_CODE, isRunning, null);
     }
 
-    @RequestMapping(value = "/kybot/daemon/start", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/kybot/daemon/start", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse startKyBotDaemon(@RequestHeader("Accept-Language") String lang) {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse startKyBotDaemon() {
         KapMessage msg = KapMsgPicker.getMsg();
 
         boolean started = kybotService.startDaemon();
         return new EnvelopeResponse(KyBotService.SUCC_CODE, started, null);
     }
 
-    @RequestMapping(value = "/kybot/daemon/stop", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/kybot/daemon/stop", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse stopKyBotDaemon(@RequestHeader("Accept-Language") String lang) {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse stopKyBotDaemon() {
         KapMessage msg = KapMsgPicker.getMsg();
 
         boolean stopped = kybotService.stopDaemon();

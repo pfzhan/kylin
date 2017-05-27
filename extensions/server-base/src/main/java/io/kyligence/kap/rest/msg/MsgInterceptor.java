@@ -24,29 +24,20 @@
 
 package io.kyligence.kap.rest.msg;
 
-import org.apache.kylin.rest.msg.MsgPicker;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 
 /**
- * Created by luwei on 17-5-10.
+ * Created by luwei on 17-5-26.
  */
-public class KapMsgPicker {
-    private static ThreadLocal<KapMessage> msg = new ThreadLocal<KapMessage>();
-
-    public static void setMsg(String lang) {
-        MsgPicker.setMsg(lang);
-
-        if ("cn".equals(lang))
-            msg.set(KapCnMessage.getInstance());
-        else
-            msg.set(KapMessage.getInstance());
-    }
-
-    public static KapMessage getMsg() {
-        KapMessage ret = msg.get();
-        if (ret == null) { // use English by default
-            ret = KapMessage.getInstance();
-            msg.set(KapMessage.getInstance());
-        }
-        return ret;
+public class MsgInterceptor extends HandlerInterceptorAdapter {
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
+            throws Exception {
+        String lang = request.getHeader("Accept-Language");
+        KapMsgPicker.setMsg(lang);
+        return true;
     }
 }

@@ -56,7 +56,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -100,9 +99,10 @@ public class KapUserController extends BasicController implements UserDetailsSer
         List<UserObj> all = listAllUsers();
         logger.info("All " + all.size() + " users");
         if (all.isEmpty()) {
-            save("en", "ADMIN", new UserObj("ADMIN", "KYLIN", true, Constant.ROLE_ADMIN, Constant.ROLE_ANALYST, Constant.ROLE_MODELER));
-            save("en", "ANALYST", new UserObj("ANALYST", "ANALYST", true, Constant.ROLE_ANALYST));
-            save("en", "MODELER", new UserObj("MODELER", "MODELER", true, Constant.ROLE_MODELER, Constant.ROLE_MODELER));
+            save("ADMIN", new UserObj("ADMIN", "KYLIN", true, Constant.ROLE_ADMIN, Constant.ROLE_ANALYST,
+                    Constant.ROLE_MODELER));
+            save("ANALYST", new UserObj("ANALYST", "ANALYST", true, Constant.ROLE_ANALYST));
+            save("MODELER", new UserObj("MODELER", "MODELER", true, Constant.ROLE_MODELER, Constant.ROLE_MODELER));
         }
 
         kapAuthenticationManager.addUser(all);
@@ -113,10 +113,10 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return get(username);
     }
 
-    @RequestMapping(value = "/{userName}", method = { RequestMethod.POST, RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{userName}", method = { RequestMethod.POST, RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public UserObj save(@RequestHeader("Accept-Language") String lang, @PathVariable("userName") String userName, @RequestBody UserObj user) {
-        KapMsgPicker.setMsg(lang);
+    public UserObj save(@PathVariable("userName") String userName, @RequestBody UserObj user) {
         KapMessage msg = KapMsgPicker.getMsg();
 
         checkUserName(userName);
@@ -155,11 +155,10 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return get(userName);
     }
 
-
-    @RequestMapping(value = "/password", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/password", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse save(@RequestHeader("Accept-Language") String lang, @RequestBody UserRequest user) {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse save(@RequestBody UserRequest user) {
         KapMessage msg = KapMsgPicker.getMsg();
 
         if (!isAdmin() && !getPrincipal().equals(user.getUsername())) {
@@ -215,11 +214,10 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return passwordPattern.matcher(password).matches();
     }
 
-
-    @RequestMapping(value = "/{userName}", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{userName}", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse get(@RequestHeader("Accept-Language") String lang, @PathVariable("userName") String userName) throws UsernameNotFoundException {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse getUser(@PathVariable("userName") String userName) throws UsernameNotFoundException {
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, get(userName), "");
     }
@@ -232,11 +230,13 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return user;
     }
 
-
-    @RequestMapping(value = "/users", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/users", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse listAllUsers(@RequestHeader("Accept-Language") String lang, @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset, @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize) throws IOException {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse listAllUsers(
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
+            throws IOException {
 
         HashMap<String, Object> data = new HashMap<String, Object>();
         List<UserObj> result = Lists.newArrayList();
@@ -260,11 +260,10 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
-
-    @RequestMapping(value = "/{userName}", method = { RequestMethod.DELETE }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{userName}", method = { RequestMethod.DELETE }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public void delete(@RequestHeader("Accept-Language") String lang, @PathVariable("userName") String userName) {
-        KapMsgPicker.setMsg(lang);
+    public void delete(@PathVariable("userName") String userName) {
 
         checkUserName(userName);
         kapAuthenticationManager.removeUser(userName);
@@ -272,11 +271,10 @@ public class KapUserController extends BasicController implements UserDetailsSer
         userService.deleteUser(userName);
     }
 
-
-    @RequestMapping(value = "/userAuhtorities", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/userAuhtorities", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse listAllAuthorities(@RequestHeader("Accept-Language") String lang) {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse listAllAuthorities() {
 
         try {
             List<String> result = userService.listUserAuthorities();

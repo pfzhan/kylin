@@ -43,7 +43,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -71,29 +70,31 @@ public class TableExtController extends BasicController {
     @Qualifier("tableService")
     private TableService tableService;
 
-    @RequestMapping(value = "/{database}.{tableName}", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{database}.{tableName}", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getTableExtDesc(@RequestHeader("Accept-Language") String lang, @PathVariable String database, @PathVariable String tableName) throws IOException {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse getTableExtDesc(@PathVariable String database, @PathVariable String tableName)
+            throws IOException {
 
         TableExtDesc tableExtDesc = tableExtService.getTableExt(database + "." + tableName);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, tableExtDesc, "");
     }
 
-    @RequestMapping(value = "/{project}/{tableName}/sample_job", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{project}/{tableName}/sample_job", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse sample(@RequestHeader("Accept-Language") String lang, @PathVariable String project, @PathVariable String tableName, @RequestBody HiveTableExtRequest request) throws IOException {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse sample(@PathVariable String project, @PathVariable String tableName,
+            @RequestBody HiveTableExtRequest request) throws IOException {
 
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
         String jobID = tableExtService.extractTableExt(project, submitter, request.getFrequency(), tableName);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobID, "");
     }
 
-    @RequestMapping(value = "/{tableName}/job", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{tableName}/job", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse listJob(@RequestHeader("Accept-Language") String lang, @PathVariable String tableName) throws IOException {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse listJob(@PathVariable String tableName) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
         String jobID = tableExtService.getJobByTableName(tableName);
@@ -111,14 +112,15 @@ public class TableExtController extends BasicController {
         throw new BadRequestException(msg.getJOB_INSTANCE_NOT_FOUND());
     }
 
-    @RequestMapping(value = "/{tables}/{project}", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{tables}/{project}", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse loadHiveTable(@RequestHeader("Accept-Language") String lang, @RequestBody ExtTableRequest request) throws Exception {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse loadHiveTable(@RequestBody ExtTableRequest request) throws Exception {
 
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
         boolean isCalculate = request.isNeedProfile();
-        Map<String, String[]> loadResult = tableService.loadHiveTables(request.getTables(), request.getProject(), false);
+        Map<String, String[]> loadResult = tableService.loadHiveTables(request.getTables(), request.getProject(),
+                false);
         if (isCalculate) {
 
             String[] loadedTables = loadResult.get("result.loaded");
@@ -128,9 +130,11 @@ public class TableExtController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, loadResult, "");
     }
 
-    @RequestMapping(value = "/{tables}/{project}", method = { RequestMethod.DELETE }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{tables}/{project}", method = { RequestMethod.DELETE }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse unLoadHiveTables(@RequestHeader("Accept-Language") String lang, @PathVariable String tables, @PathVariable String project) throws Exception {
+    public EnvelopeResponse unLoadHiveTables(@PathVariable String tables, @PathVariable String project)
+            throws Exception {
         String jobID;
         for (String tableName : tables.split(",")) {
             if ((jobID = new HiveTableExtSampleJob().findRunningJob(tableExtService.getConfig(), tableName)) != null) {

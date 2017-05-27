@@ -49,7 +49,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -75,10 +74,10 @@ public class AsyncQueryController extends BasicController {
 
     ExecutorService executorService = Executors.newCachedThreadPool();
 
-    @RequestMapping(value = "/async_query", method = RequestMethod.POST, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/async_query", method = RequestMethod.POST, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse query(@RequestHeader("Accept-Language") String lang, @RequestBody final SQLRequest sqlRequest) throws InterruptedException {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse query(@RequestBody final SQLRequest sqlRequest) throws InterruptedException {
 
         final AtomicReference<String> queryIdRef = new AtomicReference<>();
         final SecurityContext context = SecurityContextHolder.getContext();
@@ -108,13 +107,14 @@ public class AsyncQueryController extends BasicController {
             Thread.sleep(1);
         }
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, new AsyncQueryResponse(queryIdRef.get(), AsyncQueryResponse.Status.RUNNING, "still running"), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                new AsyncQueryResponse(queryIdRef.get(), AsyncQueryResponse.Status.RUNNING, "still running"), "");
     }
 
-    @RequestMapping(value = "/async_query", method = RequestMethod.DELETE, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/async_query", method = RequestMethod.DELETE, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse clean(@RequestHeader("Accept-Language") String lang) throws IOException {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse clean() throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
         boolean b = asyncQueryService.cleanFolder();
@@ -124,14 +124,15 @@ public class AsyncQueryController extends BasicController {
             throw new BadRequestException(msg.getCLEAN_FOLDER_FAIL());
     }
 
-    @RequestMapping(value = "/async_query/{query_id}/status", method = RequestMethod.GET, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/async_query/{query_id}/status", method = RequestMethod.GET, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse inqueryStatus(@RequestHeader("Accept-Language") String lang, @PathVariable String query_id) throws IOException {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse inqueryStatus(@PathVariable String query_id) throws IOException {
 
         if (asyncQueryService.isQueryFailed(query_id)) {
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, //
-                    new AsyncQueryResponse(query_id, AsyncQueryResponse.Status.FAILED, asyncQueryService.retrieveSavedQueryException(query_id)), //
+                    new AsyncQueryResponse(query_id, AsyncQueryResponse.Status.FAILED,
+                            asyncQueryService.retrieveSavedQueryException(query_id)), //
                     "");
         } else if (asyncQueryService.isQuerySuccessful(query_id)) {
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, //
@@ -143,15 +144,16 @@ public class AsyncQueryController extends BasicController {
                     "");
         } else {
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, //
-                    new AsyncQueryResponse(query_id, AsyncQueryResponse.Status.MISSING, "query does not exit or got cleaned"), //
+                    new AsyncQueryResponse(query_id, AsyncQueryResponse.Status.MISSING,
+                            "query does not exit or got cleaned"), //
                     "");
         }
     }
 
-    @RequestMapping(value = "/async_query/{query_id}/result", method = RequestMethod.GET, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/async_query/{query_id}/result", method = RequestMethod.GET, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public void downloadQueryResult(@RequestHeader("Accept-Language") String lang, @PathVariable String query_id, HttpServletResponse response) throws IOException {
-        KapMsgPicker.setMsg(lang);
+    public void downloadQueryResult(@PathVariable String query_id, HttpServletResponse response) throws IOException {
 
         response.setContentType("text/csv;charset=utf-8");
         response.setHeader("Content-Disposition", "attachment; filename=\"result.csv\"");

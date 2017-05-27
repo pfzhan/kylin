@@ -35,7 +35,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -63,10 +62,10 @@ public class RawTableDescController extends BasicController {
      * @return
      * @throws IOException
      */
-    @RequestMapping(value = "/{rawName}", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{rawName}", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getDesc(@RequestHeader("Accept-Language") String lang, @PathVariable String rawName) {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse getDesc(@PathVariable String rawName) {
         KapMessage msg = KapMsgPicker.getMsg();
 
         HashMap<String, RawTableDesc> data = new HashMap<String, RawTableDesc>();
@@ -84,7 +83,8 @@ public class RawTableDescController extends BasicController {
             data.put("rawTable", desc);
 
             String draftName = rawName + "_draft";
-            RawTableInstance draftRawTableInstance = rawTableService.getRawTableManager().getRawTableInstance(draftName);
+            RawTableInstance draftRawTableInstance = rawTableService.getRawTableManager()
+                    .getRawTableInstance(draftName);
             if (draftRawTableInstance != null) {
                 RawTableDesc draftRawTableDesc = draftRawTableInstance.getRawTableDesc();
                 if (draftRawTableDesc != null && draftRawTableDesc.isDraft()) {
@@ -95,7 +95,8 @@ public class RawTableDescController extends BasicController {
             data.put("draft", desc);
 
             String parentName = rawName.substring(0, rawName.lastIndexOf("_draft"));
-            RawTableInstance parentRawTableInstance = rawTableService.getRawTableManager().getRawTableInstance(parentName);
+            RawTableInstance parentRawTableInstance = rawTableService.getRawTableManager()
+                    .getRawTableInstance(parentName);
             if (parentRawTableInstance != null) {
                 RawTableDesc parentRawTableDesc = parentRawTableInstance.getRawTableDesc();
                 if (parentRawTableDesc != null && !parentRawTableDesc.isDraft()) {

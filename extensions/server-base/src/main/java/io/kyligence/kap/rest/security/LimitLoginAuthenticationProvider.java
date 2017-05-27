@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.security;
 
+import io.kyligence.kap.rest.msg.KapMsgPicker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,7 +59,7 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
                     kapAuthenticationManager.unlockUser(userName);
                 } else {
                     int leftSeconds = (30 - timeDiff / 1000) <= 0 ? 1 : (int) (30 - timeDiff / 1000);
-                    String msg = "User " + userName + " is locked, please wait for " + leftSeconds + " seconds.";
+                    String msg = String.format(KapMsgPicker.getMsg().getUSER_LOCK(), userName, leftSeconds);
                     throw new LockedException(msg, new Throwable(userName));
                 }
             }

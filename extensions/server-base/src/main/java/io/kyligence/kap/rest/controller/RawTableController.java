@@ -41,7 +41,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -86,10 +85,10 @@ public class RawTableController extends BasicController {
         return desc;
     }
 
-    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getRawTableDesc(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse getRawTableDesc(@PathVariable String cubeName) {
         KapMessage msg = KapMsgPicker.getMsg();
 
         RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
@@ -100,10 +99,10 @@ public class RawTableController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, raw.getRawTableDesc(), "");
     }
 
-    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.DELETE }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.DELETE }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public void deleteRaw(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) throws IOException {
-        KapMsgPicker.setMsg(lang);
+    public void deleteRaw(@PathVariable String cubeName) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
         RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
@@ -114,10 +113,10 @@ public class RawTableController extends BasicController {
         rawTableService.deleteRaw(raw);
     }
 
-    @RequestMapping(value = "/{cubeName}/enable", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{cubeName}/enable", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse enableRaw(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) throws IOException {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse enableRaw(@PathVariable String cubeName) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
         RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
@@ -129,10 +128,10 @@ public class RawTableController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, rawTableService.enableRaw(raw), "");
     }
 
-    @RequestMapping(value = "/{cubeName}/disable", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{cubeName}/disable", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse disableRaw(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) throws IOException {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse disableRaw(@PathVariable String cubeName) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
         RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
@@ -144,10 +143,11 @@ public class RawTableController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, rawTableService.disableRaw(raw), "");
     }
 
-    @RequestMapping(value = "/{cubeName}/clone", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{cubeName}/clone", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse rawCube(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName, @RequestBody CubeRequest cubeRequest) throws IOException {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse rawCube(@PathVariable String cubeName, @RequestBody CubeRequest cubeRequest)
+            throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
         String newRawName = cubeRequest.getCubeName();

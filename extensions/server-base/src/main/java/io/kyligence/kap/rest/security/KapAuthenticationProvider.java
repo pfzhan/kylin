@@ -28,6 +28,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
+import io.kyligence.kap.rest.msg.KapMsgPicker;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,7 +106,7 @@ public class KapAuthenticationProvider implements AuthenticationProvider {
                         kapAuthenticationManager.unlockUser(userName);
                     } else {
                         int leftSeconds = (30 - timeDiff / 1000) <= 0 ? 1 : (int) (30 - timeDiff / 1000);
-                        String msg = "User " + userName + " is locked, please wait for " + leftSeconds + " seconds.";
+                        String msg = String.format(KapMsgPicker.getMsg().getUSER_LOCK(), userName, leftSeconds);
                         throw new LockedException(msg, new Throwable(userName));
                     }
                 }

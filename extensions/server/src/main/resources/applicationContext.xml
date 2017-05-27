@@ -51,6 +51,13 @@
     <bean
             class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping"/>
 
+    <mvc:interceptors>
+        <mvc:interceptor>
+            <mvc:mapping path="/**"/>
+            <bean class="io.kyligence.kap.rest.msg.MsgInterceptor"/>
+        </mvc:interceptor>
+    </mvc:interceptors>
+
     <bean id="mappingJacksonHttpMessageConverter"
           class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter"/>
     <bean id="stringHttpMessageConverter"

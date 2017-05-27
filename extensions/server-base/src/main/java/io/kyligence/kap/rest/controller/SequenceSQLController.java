@@ -87,7 +87,8 @@ public class SequenceSQLController extends BasicController {
     private QueryService queryService;
 
     private static ExecutorService executorService = new LoggableCachedThreadPool();
-    private static SequenceTopologyManager topologyManager = new SequenceTopologyManager(new DiskResultCache(), KylinConfig.getInstanceFromEnv().getSequenceExpireTime());
+    private static SequenceTopologyManager topologyManager = new SequenceTopologyManager(new DiskResultCache(),
+            KylinConfig.getInstanceFromEnv().getSequenceExpireTime());
 
     @PostConstruct
     public void init() throws IOException {
@@ -104,10 +105,11 @@ public class SequenceSQLController extends BasicController {
         return restClient;
     }
 
-    @RequestMapping(value = "/sequence_sql/execution", method = RequestMethod.POST, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/sequence_sql/execution", method = RequestMethod.POST, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse doSequenceSql(@RequestHeader("Accept-Language") String lang, @RequestBody final SequenceSQLRequest sqlRequest, @RequestHeader("Authorization") String basicAuthen) throws ExecutionException, InterruptedException {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse doSequenceSql(@RequestBody final SequenceSQLRequest sqlRequest,
+            @RequestHeader("Authorization") String basicAuthen) throws ExecutionException, InterruptedException {
         KapMessage msg = KapMsgPicker.getMsg();
 
         long startTime = System.currentTimeMillis();
@@ -153,7 +155,8 @@ public class SequenceSQLController extends BasicController {
                 @Override
                 public SequenceSQLResponse call() throws Exception {
                     try {
-                        return workerClients.get(workerID).dispatchSequenceSQLExecutionToWorker(workerClients.size(), workerID, sqlRequest);
+                        return workerClients.get(workerID).dispatchSequenceSQLExecutionToWorker(workerClients.size(),
+                                workerID, sqlRequest);
                     } catch (IOException e) {
                         throw new InternalErrorException(e);
                     }
@@ -168,40 +171,44 @@ public class SequenceSQLController extends BasicController {
                 throw new BadRequestException(msg.getONE_SHARED_RESULT_NULL());
             }
             if (shardResult.getIsException()) {
-                throw new BadRequestException(String.format(msg.getONE_SHARED_EXCEPTION(), shardResult.getExceptionMessage()));
+                throw new BadRequestException(
+                        String.format(msg.getONE_SHARED_EXCEPTION(), shardResult.getExceptionMessage()));
             }
 
             shardResults.add(shardResult);
         }
 
         SequenceSQLResponse finalResponse = new SequenceSQLResponse();
-        int sum = (int) ValueIterators.sum(Iterators.transform(shardResults.iterator(), new Function<SequenceSQLResponse, Integer>() {
-            @Nullable
-            @Override
-            public Integer apply(@Nullable SequenceSQLResponse input) {
-                return input.getResultCount();
-            }
+        int sum = (int) ValueIterators
+                .sum(Iterators.transform(shardResults.iterator(), new Function<SequenceSQLResponse, Integer>() {
+                    @Nullable
+                    @Override
+                    public Integer apply(@Nullable SequenceSQLResponse input) {
+                        return input.getResultCount();
+                    }
 
-        }));
+                }));
 
-        int sqlID = ValueIterators.checkSame(Iterators.transform(shardResults.iterator(), new Function<SequenceSQLResponse, Integer>() {
-            @Nullable
-            @Override
-            public Integer apply(@Nullable SequenceSQLResponse input) {
-                return input.getStepID();
-            }
+        int sqlID = ValueIterators
+                .checkSame(Iterators.transform(shardResults.iterator(), new Function<SequenceSQLResponse, Integer>() {
+                    @Nullable
+                    @Override
+                    public Integer apply(@Nullable SequenceSQLResponse input) {
+                        return input.getStepID();
+                    }
 
-        }));
+                }));
 
         //TODO: use this
-        String cube = ValueIterators.checkSame(Iterators.transform(shardResults.iterator(), new Function<SequenceSQLResponse, String>() {
-            @Nullable
-            @Override
-            public String apply(@Nullable SequenceSQLResponse input) {
-                return input.getCube();
-            }
+        String cube = ValueIterators
+                .checkSame(Iterators.transform(shardResults.iterator(), new Function<SequenceSQLResponse, String>() {
+                    @Nullable
+                    @Override
+                    public String apply(@Nullable SequenceSQLResponse input) {
+                        return input.getCube();
+                    }
 
-        }));
+                }));
 
         finalResponse.setResultCount(sum);
         finalResponse.setSequenceID(sqlRequest.getSequenceID());
@@ -211,17 +218,18 @@ public class SequenceSQLController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, finalResponse, "");
     }
 
-    @RequestMapping(value = "/shardable_query_worker/execution", method = RequestMethod.POST, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/shardable_query_worker/execution", method = RequestMethod.POST, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse doShardableQuery(@RequestHeader("Accept-Language") String lang, @RequestBody ShardedSequenceSQLRequest shardedSequenceSQLRequest) {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse doShardableQuery(@RequestBody ShardedSequenceSQLRequest shardedSequenceSQLRequest) {
         KapMessage msg = KapMsgPicker.getMsg();
 
         try {
             if (shardedSequenceSQLRequest.getBackdoorToggles() == null) {
                 shardedSequenceSQLRequest.setBackdoorToggles(Maps.<String, String> newHashMap());
             }
-            shardedSequenceSQLRequest.getBackdoorToggles().put(BackdoorToggles.DEBUG_TOGGLE_SHARD_ASSIGNMENT, shardedSequenceSQLRequest.getWorkerCount() + "#" + shardedSequenceSQLRequest.getWorkerID());
+            shardedSequenceSQLRequest.getBackdoorToggles().put(BackdoorToggles.DEBUG_TOGGLE_SHARD_ASSIGNMENT,
+                    shardedSequenceSQLRequest.getWorkerCount() + "#" + shardedSequenceSQLRequest.getWorkerID());
             BackdoorToggles.setToggles(shardedSequenceSQLRequest.getBackdoorToggles());
 
             SQLResponse sqlResponse = null;
@@ -233,7 +241,8 @@ public class SequenceSQLController extends BasicController {
                 logger.info("The original query:  " + sql);
 
                 String serverMode = KylinConfig.getInstanceFromEnv().getServerMode();
-                if (!(Constant.SERVER_MODE_QUERY.equals(serverMode.toLowerCase()) || Constant.SERVER_MODE_ALL.equals(serverMode.toLowerCase()))) {
+                if (!(Constant.SERVER_MODE_QUERY.equals(serverMode.toLowerCase())
+                        || Constant.SERVER_MODE_ALL.equals(serverMode.toLowerCase()))) {
                     throw new BadRequestException(String.format(msg.getQUERY_NOT_ALLOWED(), serverMode));
                 }
 
@@ -249,7 +258,8 @@ public class SequenceSQLController extends BasicController {
 
                     sqlResponse.setDuration(System.currentTimeMillis() - startTime);
                     logger.info("Stats of SQL response: isException: {}, duration: {}, total scan count {}", //
-                            String.valueOf(sqlResponse.getIsException()), String.valueOf(sqlResponse.getDuration()), String.valueOf(sqlResponse.getTotalScanCount()));
+                            String.valueOf(sqlResponse.getIsException()), String.valueOf(sqlResponse.getDuration()),
+                            String.valueOf(sqlResponse.getTotalScanCount()));
 
                     //TODO: auth
                     //checkQueryAuth(sqlResponse);
@@ -268,18 +278,23 @@ public class SequenceSQLController extends BasicController {
                 logger.info("Updating the resultOpt only");
             }
 
-            SequenceTopology topology = topologyManager.getTopology(shardedSequenceSQLRequest.getSequenceID(), shardedSequenceSQLRequest.getWorkerID());
+            SequenceTopology topology = topologyManager.getTopology(shardedSequenceSQLRequest.getSequenceID(),
+                    shardedSequenceSQLRequest.getWorkerID());
 
             if (topology == null) {
-                topologyManager.addTopology(shardedSequenceSQLRequest.getSequenceID(), shardedSequenceSQLRequest.getWorkerID());
-                topology = topologyManager.getTopology(shardedSequenceSQLRequest.getSequenceID(), shardedSequenceSQLRequest.getWorkerID());
+                topologyManager.addTopology(shardedSequenceSQLRequest.getSequenceID(),
+                        shardedSequenceSQLRequest.getWorkerID());
+                topology = topologyManager.getTopology(shardedSequenceSQLRequest.getSequenceID(),
+                        shardedSequenceSQLRequest.getWorkerID());
             }
 
             int stepID = shardedSequenceSQLRequest.getStepID();
             if (stepID == -1) {
-                stepID = topology.addStep(shardedSequenceSQLRequest.getSql(), shardedSequenceSQLRequest.getSequenceOpt(), shardedSequenceSQLRequest.getResultOpt());
+                stepID = topology.addStep(shardedSequenceSQLRequest.getSql(),
+                        shardedSequenceSQLRequest.getSequenceOpt(), shardedSequenceSQLRequest.getResultOpt());
             } else {
-                stepID = topology.updateStep(stepID, shardedSequenceSQLRequest.getSql(), shardedSequenceSQLRequest.getSequenceOpt(), shardedSequenceSQLRequest.getResultOpt());
+                stepID = topology.updateStep(stepID, shardedSequenceSQLRequest.getSql(),
+                        shardedSequenceSQLRequest.getSequenceOpt(), shardedSequenceSQLRequest.getResultOpt());
             }
             int resultSize = topology.updateSQLNodeResult(stepID, sqlResponse);
 
@@ -297,10 +312,11 @@ public class SequenceSQLController extends BasicController {
         }
     }
 
-    @RequestMapping(value = "/sequence_sql/result/{sequenceID}", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/sequence_sql/result/{sequenceID}", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getSequenceSQLResult(@RequestHeader("Accept-Language") String lang, @PathVariable("sequenceID") final long sequenceID, @RequestHeader("Authorization") String basicAuthen) throws ExecutionException, InterruptedException {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse getSequenceSQLResult(@PathVariable("sequenceID") final long sequenceID,
+            @RequestHeader("Authorization") String basicAuthen) throws ExecutionException, InterruptedException {
         KapMessage msg = KapMsgPicker.getMsg();
 
         long startTime = System.currentTimeMillis();
@@ -329,7 +345,8 @@ public class SequenceSQLController extends BasicController {
                 throw new BadRequestException(msg.getONE_SHARED_RESULT_NULL());
             }
             if (shardResult.getIsException()) {
-                throw new BadRequestException(String.format(msg.getONE_SHARED_EXCEPTION(), shardResult.getExceptionMessage()));
+                throw new BadRequestException(
+                        String.format(msg.getONE_SHARED_EXCEPTION(), shardResult.getExceptionMessage()));
             }
 
             shardResults.add(shardResult);
@@ -348,10 +365,11 @@ public class SequenceSQLController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, finalResponse, "");
     }
 
-    @RequestMapping(value = "/shardable_query_worker/result/{sequenceID}/{workerID}", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/shardable_query_worker/result/{sequenceID}/{workerID}", method = {
+            RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getShardableQueryResult(@RequestHeader("Accept-Language") String lang, @PathVariable("sequenceID") long sequenceID, @PathVariable("workerID") int workerID) {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse getShardableQueryResult(@PathVariable("sequenceID") long sequenceID,
+            @PathVariable("workerID") int workerID) {
         KapMessage msg = KapMsgPicker.getMsg();
 
         SequenceSQLResponse sequenceSQLResponse = new SequenceSQLResponse();
@@ -374,10 +392,11 @@ public class SequenceSQLController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, sequenceSQLResponse, "");
     }
 
-    @RequestMapping(value = "/sequence_sql/topology/{sequenceID}", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/sequence_sql/topology/{sequenceID}", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getTopology(@RequestHeader("Accept-Language") String lang, @PathVariable("sequenceID") final long sequenceID, @RequestHeader("Authorization") String basicAuthen) throws ExecutionException, InterruptedException {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse getTopology(@PathVariable("sequenceID") final long sequenceID,
+            @RequestHeader("Authorization") String basicAuthen) throws ExecutionException, InterruptedException {
 
         final List<KAPRESTClient> workerClients = getWorkerClients(basicAuthen);
         List<String> shardResults = Lists.newArrayList();
@@ -404,10 +423,11 @@ public class SequenceSQLController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, shardResults, "");
     }
 
-    @RequestMapping(value = "/shardable_query_worker/topology/{sequenceID}/{workerID}", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/shardable_query_worker/topology/{sequenceID}/{workerID}", method = {
+            RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getShardTopology(@RequestHeader("Accept-Language") String lang, @PathVariable("sequenceID") final long sequenceID, @PathVariable("workerID") int workerID) {
-        KapMsgPicker.setMsg(lang);
+    public EnvelopeResponse getShardTopology(@PathVariable("sequenceID") final long sequenceID,
+            @PathVariable("workerID") int workerID) {
         KapMessage msg = KapMsgPicker.getMsg();
 
         SequenceTopology topology = topologyManager.getTopology(sequenceID, workerID);
