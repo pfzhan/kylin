@@ -50,6 +50,7 @@ public class ITKapLimitEnabledTest extends KylinTestBase {
     public static void setUp() throws Exception {
         logger.info("setUp in ITLimitEnabledTest");
         joinType = "inner";
+        config.setProperty("kylin.query.ad-hoc.runner.class-name", "");
         setupAll();
     }
 
