@@ -488,7 +488,7 @@ export default {
         this.draftBtnLoading = false
         handleSuccess(res, (data) => {
           this.modelInfo.uuid = data.uuid
-          this.modelInfo.status = 'DRAFT'
+          this.modelInfo.is_draft = true
           this.modelInfo.last_modified = JSON.parse(data.modelDescData).last_modified
           this.$emit('reload', 'modelList')
           this.$notify({
@@ -1438,7 +1438,7 @@ export default {
         partition_desc: {},
         dimensions: [],
         metrics: [],
-        status: this.modelInfo.status,
+        is_draft: this.modelInfo.is_draft,
         last_modified: this.modelInfo.last_modified,
         filter_condition: this.modelInfo.filterStr,
         name: this.modelInfo.modelName,
@@ -1518,8 +1518,11 @@ export default {
           this.modelData = data.model
           this.draftData = data.draft
           this.editLock = !!(this.modelData && this.modelData.uuid)
-          var modelData = this.extraoption.status === null ? data.model : data.draft
-          if (this.extraoption.status !== null) {
+          console.log(this.extraoption, 99001)
+          var modelData = this.extraoption.is_draft ? data.draft : data.model
+          console.log(modelData)
+          console.log(data)
+          if (this.extraoption.is_draft) {
             modelData.name = modelData.name.replace(/_draft/, '')
           }
           if (!modelData.fact_table) {
@@ -1529,7 +1532,7 @@ export default {
             uuid: modelData.uuid,
             modelDiscribe: modelData.description,
             modelName: modelData.name,
-            status: modelData.status,
+            is_draft: modelData.is_draft,
             last_modified: modelData.last_modified
           })
           // 加载原来设置的partition
@@ -1641,6 +1644,8 @@ export default {
           _this.firstRenderServerData = true
           // _this.autoLayerPosition()
         })
+      }, (res) => {
+        handleError(res)
       })
     },
     checkColsUsedStatus (alias, columnName) {
@@ -1747,7 +1752,7 @@ export default {
       delete jsonData.pos
       delete jsonData.uuid
       delete jsonData.last_modified
-      delete jsonData.status
+      delete jsonData.is_draft
       jsonData = JSON.stringify(jsonData)
       if (jsonData !== this.hisModelJsonStr) {
         this.hisModelJsonStr = jsonData

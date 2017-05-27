@@ -11,10 +11,10 @@
 					    <icon name="ellipsis-h"></icon>
 					  </span>
 					  <el-dropdown-menu slot="dropdown"  :uuid='o.uuid'>
-              <el-dropdown-item command="cube" v-if="!o.status">Add Cube</el-dropdown-item>
+              <el-dropdown-item command="cube" v-if="!o.is_draft">Add Cube</el-dropdown-item>
 					    <el-dropdown-item command="edit">Edit</el-dropdown-item>
-					    <el-dropdown-item command="clone" v-if="!o.status">Clone</el-dropdown-item>
-					    <el-dropdown-item command="stats" v-if="!o.status">Check</el-dropdown-item>
+					    <el-dropdown-item command="clone" v-if="!o.is_draft">Clone</el-dropdown-item>
+					    <el-dropdown-item command="stats" v-if="!o.is_draft">Check</el-dropdown-item>
               <el-dropdown-item command="drop" >Drop</el-dropdown-item>
 					  </el-dropdown-menu>
 					</el-dropdown>
@@ -23,8 +23,8 @@
 		      <div style="padding: 20px;">
 		        <h2 :title="o.name" >
           <span @click="viewModel(o)">{{o.name|omit(24, '...')}}</span>
-           <common-tip :tips="o.diagnose&&o.diagnose.messages.join('\n') || '未进行model健康检测'"> <icon v-if="!o.status && o.diagnose && o.diagnose.progress===0" :name="modelHealthStatus[o.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[o.diagnose.heathStatus].color}"></icon></common-tip>
-             <el-progress  :width="20" type="circle" :stroke-width="2" :show-text="false" v-if="!o.status&&o.diagnose&&o.diagnose.progress!==0 && o.diagnose.progress!==100" :percentage="o.diagnose&&o.diagnose.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></h2>
+           <common-tip :tips="o.diagnose&&o.diagnose.messages.join('\n') || '未进行model健康检测'"> <icon v-if="!o.is_draft && o.diagnose && o.diagnose.progress===0" :name="modelHealthStatus[o.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[o.diagnose.heathStatus].color}"></icon></common-tip>
+             <el-progress  :width="20" type="circle" :stroke-width="2" :show-text="false" v-if="!o.is_draft&&o.diagnose&&o.diagnose.progress!==0 && o.diagnose.progress!==100" :percentage="o.diagnose&&o.diagnose.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></h2>
 		        <div class="bottom clearfix">
 		          <time class="time" v-visible="o.owner" style="display:block">{{o.owner}}</time>
 		        </div>
@@ -224,7 +224,7 @@ export default {
         project: modelInfo.project,
         modelName: modelInfo.name,
         uuid: modelInfo.uuid,
-        status: modelInfo.status,
+        is_draft: modelInfo.is_draft,
         mode: 'view'
       })
     },
@@ -317,7 +317,7 @@ export default {
       this.viewModel({
         name: modelData.name,
         project: modelData.project,
-        status: modelData.status,
+        status: modelData.is_draft,
         uuid: modelData.uuid
       })
     },
@@ -338,7 +338,7 @@ export default {
             project: projectName,
             modelName: modelName,
             uuid: uuid,
-            status: modelData.status
+            status: modelData.is_draft
           })
         })
       } else if (command === 'clone') {

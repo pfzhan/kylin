@@ -179,6 +179,10 @@
         </el-row>
         </div>
    <!--       <div style="position:absolute;top:0;color:#fff;width:100%" class="rowkeyTable">
+         <div style="position:absolute;top:0" class="rowkeyTable"   >
+=======
+         <div style="position:absolute;top:0;display:none" class="rowkeyTable"   >
+>>>>>>> #488 test code for scheduler
         <el-row class="rowkey" v-for="(row, index) in convertedRowkeys" :key="row.column" v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }">
           <el-col :span="3"></el-col>
           <el-col :span="6"></el-col>
