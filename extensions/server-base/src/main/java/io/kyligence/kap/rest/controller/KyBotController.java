@@ -79,7 +79,7 @@ public class KyBotController extends BasicController {
         String path = kybotService.dumpLocalKyBotPackage(target, startTime, endTime, true);
         boolean retVal = !StringUtils.isEmpty(path);
 
-        return new EnvelopeResponse(retVal ? kybotService.SUCC_CODE : kybotService.AUTH_FAILURE, retVal, null);
+        return new EnvelopeResponse(retVal ? KyBotService.SUCC_CODE : KyBotService.AUTH_FAILURE, retVal, null);
     }
 
     @RequestMapping(value = "/kyaccount/auth", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
@@ -104,7 +104,7 @@ public class KyBotController extends BasicController {
         }
         String retCode = kybotService.removeLocalKyAccountToken();
 
-        return new EnvelopeResponse(retCode, retCode.equals(kybotService.SUCC_CODE), null);
+        return new EnvelopeResponse(retCode, retCode.equals(KyBotService.SUCC_CODE), null);
     }
 
     @RequestMapping(value = "/kyaccount", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
@@ -115,7 +115,27 @@ public class KyBotController extends BasicController {
 
         kybotService.readLocalKyAccountToken();
         String token = KapConfig.getInstanceFromEnv().getKyAccountToken();
-        return new EnvelopeResponse(kybotService.SUCC_CODE, token, null);
+        return new EnvelopeResponse(KyBotService.SUCC_CODE, token, null);
+    }
+
+    @RequestMapping(value = "/kybot/agreement", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getKybotAgreement() {
+        String ret = kybotService.getKybotAgreement();
+        if (KyBotService.AUTH_FAILURE.equals(ret) || KyBotService.NO_ACCOUNT.equals(ret)) {
+            return new EnvelopeResponse(ret, null, null);
+        }
+        return new EnvelopeResponse(KyBotService.SUCC_CODE, ret, null);
+    }
+
+    @RequestMapping(value = "/kybot/agreement", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse setKybotAgreement() {
+        String ret = kybotService.setKybotAgreement();
+        if (KyBotService.AUTH_FAILURE.equals(ret) || KyBotService.NO_ACCOUNT.equals(ret)) {
+            return new EnvelopeResponse(ret, null, null);
+        }
+        return new EnvelopeResponse(KyBotService.SUCC_CODE, ret, null);
     }
 
     @RequestMapping(value = "/kybot/daemon/status", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
@@ -125,7 +145,7 @@ public class KyBotController extends BasicController {
         KapMessage msg = KapMsgPicker.getMsg();
 
         boolean isRunning = kybotService.getDaemonStatus();
-        return new EnvelopeResponse(kybotService.SUCC_CODE, isRunning, null);
+        return new EnvelopeResponse(KyBotService.SUCC_CODE, isRunning, null);
     }
 
     @RequestMapping(value = "/kybot/daemon/start", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
@@ -135,7 +155,7 @@ public class KyBotController extends BasicController {
         KapMessage msg = KapMsgPicker.getMsg();
 
         boolean started = kybotService.startDaemon();
-        return new EnvelopeResponse(kybotService.SUCC_CODE, started, null);
+        return new EnvelopeResponse(KyBotService.SUCC_CODE, started, null);
     }
 
     @RequestMapping(value = "/kybot/daemon/stop", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
@@ -145,6 +165,6 @@ public class KyBotController extends BasicController {
         KapMessage msg = KapMsgPicker.getMsg();
 
         boolean stopped = kybotService.stopDaemon();
-        return new EnvelopeResponse(kybotService.SUCC_CODE, stopped, null);
+        return new EnvelopeResponse(KyBotService.SUCC_CODE, stopped, null);
     }
 }

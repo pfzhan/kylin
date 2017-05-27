@@ -37,11 +37,13 @@ import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HTTP;
+import org.apache.http.util.EntityUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
@@ -204,6 +206,50 @@ public class KyBotService extends BasicService {
             request.setHeader("authorization", "bearer " + token);
             HttpResponse response = client.execute(request);
             return response.getStatusLine().getStatusCode() == 200 ? SUCC_CODE : AUTH_FAILURE;
+        } catch (Exception ex) {
+            logger.error("Authentication failed due to exception.", ex);
+            return AUTH_FAILURE;
+        } finally {
+            request.releaseConnection();
+        }
+    }
+    
+    public String setKybotAgreement() {
+        String token = kapConfig.getKyAccountToken();
+        if (StringUtils.isEmpty(token)) {
+            return NO_ACCOUNT;
+        }
+
+        DefaultHttpClient client = getHttpClient();
+        String url = kapConfig.getKyBotSiteUrl() + "/api/user/agreement";
+        HttpPost request = new HttpPost(url);
+
+        try {
+            request.setHeader("authorization", "bearer " + token);
+            HttpResponse response = client.execute(request);
+            return EntityUtils.toString(response.getEntity());
+        } catch (Exception ex) {
+            logger.error("Authentication failed due to exception.", ex);
+            return AUTH_FAILURE;
+        } finally {
+            request.releaseConnection();
+        }
+    }
+    
+    public String getKybotAgreement() {
+        String token = kapConfig.getKyAccountToken();
+        if (StringUtils.isEmpty(token)) {
+            return NO_ACCOUNT;
+        }
+
+        DefaultHttpClient client = getHttpClient();
+        String url = kapConfig.getKyBotSiteUrl() + "/api/user/agreement";
+        HttpGet request = new HttpGet(url);
+
+        try {
+            request.setHeader("authorization", "bearer " + token);
+            HttpResponse response = client.execute(request);
+            return EntityUtils.toString(response.getEntity());
         } catch (Exception ex) {
             logger.error("Authentication failed due to exception.", ex);
             return AUTH_FAILURE;
