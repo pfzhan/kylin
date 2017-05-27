@@ -241,7 +241,7 @@ public class KapConfig {
     }
 
     public String getKyAccountSiteUrl() {
-        return config.getOptional("kap.kyaccount.url", "http://kyaccount-qa.chinaeast.cloudapp.chinacloudapi.cn:9998");
+        return config.getOptional("kap.kyaccount.url", "https://sso.kyligence.com");
     }
 
     public String getKyBotSiteUrl() {

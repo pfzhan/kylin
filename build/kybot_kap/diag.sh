@@ -32,17 +32,17 @@ then
 
     KYBOT_OPTS=""
     if [ "$needUpload" == "true" ]; then
-        KYBOT_OPTS="-uploadToServer true"
+        KYBOT_OPTS="${KYBOT_OPTS} -uploadToServer true"
     fi
 
-    if [ -z "$startTime" ]
+    if [ -n "$startTime" ]
     then
-        KYBOT_OPTS="-startTime $startTime"
+        KYBOT_OPTS="${KYBOT_OPTS} -startTime $startTime"
     fi
 
-    if [ -z "$endTime" ]
+    if [ -n "$endTime" ]
     then
-        KYBOT_OPTS="-endTime $endTime"
+        KYBOT_OPTS="${KYBOT_OPTS} -endTime $endTime"
     fi
 
     if [ ${#patient} -eq 36 ]; then
