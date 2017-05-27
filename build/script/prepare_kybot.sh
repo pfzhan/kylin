@@ -8,29 +8,27 @@ exportProjectVersions
 
 # use hbase1.x version
 if [ "$1" == "hbase1.x" ]; then
-    pkg_name="kybot-client-1.1.4-hbase1.x-bin.tar.gz"
-    pkg_asset_id="3851736"
-    pkg_md5="0f5990ceaa2a5956a2e3a8d342f9aa4b"
+    pkg_name="kybot-client-1.1.6-hbase1.x-bin.tar.gz"
+    pkg_url="http://kyligence.io/download/kybot/1.1.6/kybot-client-1.1.6-hbase1.x-bin.tar.gz"
+    pkg_md5="3a9a83f0dd3a4298ea5be630b7910bb4"
 fi  
 # use hbase0.98 version
 if [ "$1" == "hbase0.98" ]; then
-    pkg_name="kybot-client-1.1.4-hbase0.98-bin.tar.gz"
-    pkg_asset_id="3852058"
-    pkg_md5="3bb316662be7c35babcdf573563a99c2"
+    pkg_name="kybot-client-1.1.6-hbase0.98-bin.tar.gz"
+    pkg_url="http://kyligence.io/download/kybot/1.1.6/kybot-client-1.1.6-hbase0.98-bin.tar.gz"
+    pkg_md5="177a7bb88917a13fed8406af4f8dabd1"
 fi
 # use cdh5.7 version
 if [ "$1" == "cdh5.7" ]; then
-    pkg_name="kybot-client-1.1.4-cdh5.7-bin.tar.gz"
-    pkg_asset_id="3851776"
-    pkg_md5="e74e984e24762091398fc0c49919ae39"
+    pkg_name="kybot-client-1.1.6-cdh5.7-bin.tar.gz"
+    pkg_url="http://kyligence.io/download/kybot/1.1.6/kybot-client-1.1.6-cdh5.7-bin.tar.gz"
+    pkg_md5="14829a3f04e73386cbcf028973560035"
 fi
 
 if [[ -z "${pkg_name}" ]]; then
     echo "Client type undefined, supported types: \"hbase1.x\", \"hbase0.98\" and \"cdh5.7\"."
     exit 1;
 fi
-
-github_token="Kyligence:511e7eaf39667ef98826be54e7ff0447c9494cf1"
 
 echo "Checking kybot client ${pkg_name} ..."
 pkg_is_available=true
@@ -48,7 +46,7 @@ else
 fi
 if [ $pkg_is_available != true ]; then
     echo "Fetching kybot client..."
-    curl --retry 3 -u ${github_token} -H "Accept: application/octet-stream" -L https://api.github.com/repos/Kyligence/kybot-client/releases/assets/${pkg_asset_id} > build/${pkg_name} || { echo "Download kybot client failed"; exit 1; }
+    curl --retry 3 -H "Accept: application/octet-stream" -L ${pkg_url} > build/${pkg_name} || { echo "Download kybot client failed"; exit 1; }
 fi
 
 echo "Extracting kybot client..."
