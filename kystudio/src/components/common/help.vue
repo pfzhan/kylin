@@ -13,6 +13,7 @@
         v-model="isopend"
         on-color="#13ce66"
         off-color="#ff4949"
+        @change="changeKystaus"
         @click.native.stop>
       </el-switch>
 
@@ -28,8 +29,8 @@
   <about_kap :about="serverAbout">
   </about_kap>
 </el-dialog>
-<el-dialog v-model="kyBotUploadVisible" title="KyAccount | Sign in" size="tiny">
-  <el-form :model="kyBotAccount">
+<el-dialog v-model="kyBotUploadVisible" title="KyAccount | Sign in" size="tiny" @close="resetLoginKybotForm">
+  <el-form :model="kyBotAccount" :rules="rules" ref="loginKybotForm" >
     <el-form-item prop="username">
       <el-input v-model="kyBotAccount.username" placeholder="username"></el-input>
     </el-form-item>
@@ -37,7 +38,7 @@
       <el-input v-model="kyBotAccount.password" placeholder="password"></el-input>
     </el-form-item>
     <el-form-item>
-      <el-button @click="loginKyBot" class="btn-loginKybot">Login</el-button>  
+      <el-button @click="loginKyBot" :loading="loginLoading" class="btn-loginKybot">Login</el-button>  
     </el-form-item>
   </el-form>
   <p class="no-account">No account? <a href="javascript:;">Sign up</a> now</p>
@@ -47,7 +48,7 @@
   <p>
     <el-checkbox v-model="agreeKyBot" @click="agreeKyBot = !agreeKyBot">我已阅读并同意遵守《KyBot用户协议》</el-checkbox>
   </p>
-  <el-button @click="afterAgree" type="primary" :disabled="!agreeKyBot" class="btn-agree">同意协议并开启KyBot自动服务</el-button>
+  <el-button @click="afterAgree" type="primary" :disabled="!agreeKyBot" class="btn-agree">{{$t('agreeAndOpen')}}</el-button>
 </el-dialog>
 </div>
 </template>
@@ -55,6 +56,7 @@
   import { mapActions } from 'vuex'
 
   import aboutKap from '../common/about_kap.vue'
+  import { handleSuccess, handleError } from '../../util/business'
 
   export default {
     name: 'help',
@@ -70,7 +72,16 @@
         infoKybotVisible: false,
         agreeKyBot: false,
         isopend: false, // 是否已开启
-        switchVisible: false // 是否显示switch 按钮
+        switchVisible: false, // 是否显示switch 按钮
+        rules: {
+          username: [
+            { trigger: 'blur', validator: this.validateUserName }
+          ],
+          password: [
+            { trigger: 'blur', required: true, message: this.$t('noUserPwd') }
+          ]
+        },
+        loginLoading: false
       }
     },
     methods: {
@@ -78,10 +89,18 @@
         getAboutKap: 'GET_ABOUTKAP',
         getKybotAccount: 'GET_KYBOT_ACCOUNT',
         loginKybot: 'LOGIN_KYBOT',
-        getKyStatys: 'GET_KYBOT_STATUS',
+        getKyStatus: 'GET_KYBOT_STATUS',
         startKybot: 'START_KYBOT',
         stopKybot: 'STOP_KYBOT'
       }),
+      validateUserName (rule, value, callback) {
+        console.log('vallue', value)
+        if (value === '') {
+          callback(new Error(this.$t('usernameEmpty')))
+        } else {
+          callback()
+        }
+      },
       handleCommand (val) {
         var _this = this
         if (val === 'kapmanual') {
@@ -107,7 +126,28 @@
       },
       // 登录kybot
       loginKyBot () {
-        this.infoKybotVisible = true
+        let _this = this
+        this.loginLoading = true
+        let param = {
+          username: this.kyBotAccount.username,
+          password: this.kyBotAccount.password
+        }
+        this.loginKybot(param).then((result) => {
+          handleSuccess(result, (data, code, status, msg) => {
+            console.log('登录成功', result)
+            _this.kyBotUploadVisible = false
+            _this.infoKybotVisible = true
+            _this.loginLoading = false
+          }, (res) => {
+            handleError(res, (data, code, status, msg) => {
+              this.$message({
+                type: 'error',
+                message: msg
+              })
+            })
+            _this.loginLoading = false
+          })
+        })
       },
       // 同意协议并开启自动服务
       afterAgree () {
@@ -119,22 +159,58 @@
       swicthOpen (e) {
         console.log(e)
         // e.stopPropagation()
+      },
+      resetLoginKybotForm () {
+        this.$refs['loginKybotForm'].resetFields()
+      },
+      // 改变kybot自动上传状态
+      changeKystaus (status) {
+        console.log('new status :', status)
+        // if (status) { // 开启
+
+        // } else { // 关闭
+
+        // }
       }
     },
     computed: {
       serverAbout () {
         return this.$store.state.system.serverAboutKap
+      },
+      kyStatus () {
+        return this.$store.state.kybot.kyStatus
       }
     },
     created () {
-      this.getKybotAccount()
+      let _this = this
+      this.getKybotAccount().then((res) => {
+        handleSuccess(res, (data, code, status, msg) => {
+          if (!data) {
+            _this.switchVisible = false
+          } else {
+            _this.switchVisible = true
+          }
+        }, (res) => {
+          handleError(res, (data, code, status, msg) => {
+            console.log(data, code, status, msg)
+            if (status === 400) {
+              this.$message({
+                type: 'success',
+                message: msg
+              })
+            }
+          })
+        })
+      }).then(() => { // 检测是否已经开启自动上传
+        _this.getKyStatus()
+      })
     },
     components: {
       'about_kap': aboutKap
     },
     locales: {
-      'en': {},
-      'zh-cn': {}
+      'en': {usernameEmpty: 'Please enter username', usernameRule: 'username contains only numbers, letters and character "_"', noUserPwd: 'password required'},
+      'zh-cn': {usernameEmpty: '请输入用户名', usernameRule: '名字只能包含数字字母下划线', noUserPwd: '密码不能为空'}
     }
   }
 </script>

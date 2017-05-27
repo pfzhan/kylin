@@ -204,7 +204,7 @@ export default {
     _this.refreshConfig()
   },
   locales: {
-    'en': {ServerConfig: 'Server Config', ServerEnvironment: 'Server Environment', action: 'Actions', reloadMetadata: 'Reload Metadata', setConfig: 'Set Config', backup: 'Backup', diagnosis: 'Diagnosis', link: 'Links', success: 'Success', successEnvironment: 'Server environment get successfully', successConfig: 'Server config get successfully', reloadTip: 'Are you sure to reload metadata and clean cache? ', cancel: 'Cancel', yes: 'Yes', tip: 'Tip', reloadSuccessful: 'Reload metadata successful!', setConfigSuccessful: 'Set config successful!'},
+    'en': {ServerConfig: 'Server Config', ServerEnvironment: 'Server Environment', action: 'Actions', reloadMetadata: 'Reload Metadata', setConfig: 'Set Config', backup: 'Backup', diagnosis: 'Generate Diagnosis Package', link: 'Links', success: 'Success', successEnvironment: 'Server environment get successfully', successConfig: 'Server config get successfully', reloadTip: 'Are you sure to reload metadata and clean cache? ', cancel: 'Cancel', yes: 'Yes', tip: 'Tip', reloadSuccessful: 'Reload metadata successful!', setConfigSuccessful: 'Set config successful!'},
     'zh-cn': {ServerConfig: '服务器配置', ServerEnvironment: '服务器环境', action: '操作', reloadMetadata: '重载元数据', setConfig: '设置配置', backup: '备份', diagnosis: '诊断', link: '链接', success: '成功', successEnvironment: '成功获取环境信息', successConfig: '成功获取服务器配置', reloadTip: '确定要重载元数据并清理缓存? ', tip: '提示', cancel: '取消', yes: '确定', reloadSuccessful: '重载元数据成功!', setConfigSuccessful: '设置配置成功!'}
   }
 }

@@ -8,17 +8,19 @@ export default {
   mutations: {
     [types.GET_KYACCOUNT]: function (state, { data }) {
       state.kyaccount = data
+      console.log('state.kyaccount :', state.kyaccount)
     },
     [types.GET_KYSTATUS]: function (state, { data }) {
       state.kyStatus = data
+      console.log('state.kyStatus ::是否已开启：', state.kyStatus)
     }
   },
   actions: {
-    [types.GET_KYBOT_ACCOUNT]: function () {
-      // console.log('xxxxxx')
+    [types.GET_KYBOT_ACCOUNT]: function ({ commit }) {
       return api.kybot.getKyAccount().then((response) => {
         console.warn('get kybot account :', response)
-        // commit(types.GET_KYACCOUNT({ data: response.data }))
+        commit(types.GET_KYACCOUNT, { data: response.data })
+        return response
       })
     },
     [types.LOGIN_KYBOT]: function ({ commit }, params) {

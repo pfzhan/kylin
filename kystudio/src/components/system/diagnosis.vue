@@ -43,9 +43,9 @@
   </div>
   <div class="footer">
     <el-button type="primary" @click="upload">{{$t('kybotUpload')}}</el-button>
-    <el-tooltip content="您还未在" placement="right" effect="light">
+    <!-- <el-tooltip content="您还未在" placement="right" effect="light">
       <el-button class="ques">?</el-button>
-    </el-tooltip>
+    </el-tooltip> -->
     <br />
     <p class="upload-wrap">
       <a @click="dump" class="uploader">{{$t('kybotDumpOne')}}</a>
@@ -59,7 +59,7 @@
           <p class="tips">{{$t('tipStep3')}}</p>
         </div>
       </el-tooltip>
-    </p>
+    </p>el-butt
   </div>
 </div>
 </template>
@@ -201,8 +201,8 @@ export default {
     this.radio = 1
   },
   locales: {
-    'en': {kybotUpload: 'Generate and sync package to KyBot', contentOne: 'By analyzing your diagnostic package, ', contentTwo: 'can provide online diagnostic, tuning and support service for KAP.', contentTip: '(Generated diagnostic package would cover 72 hours using history ahead)', kybotDumpOne: 'Only generate', kybotDumpTwo: ', Manual upload ', selectTime: 'Select Time Range', last1: 'Last one hour', last2: 'Last one day', last3: 'Last 3 days', last4: 'Last one month', chooseDate: 'Choose Date', tipTitle: 'If there is no public network access, diagnostic package can be upload manually as following:', tipStep1: '1. Download diagnostic package', tipStep2: '2. Login on KYBOT', tipStep3: '3. Click upload button on the top left of KyBot home page, and select the diagnostic package desired on the upload page to upload', err1: 'start time must less than end time', err2: 'at least 5 mins', err3: 'most one month'},
-    'zh-cn': {kybotUpload: '一键生成诊断包至KyBot', contentOne: '通过分析生成的诊断包，', contentTwo: '提供在线诊断，优化服务。', contentTip: '(Generated diagnostic package would cover 72 hours using history ahead)', kybotDumpOne: '下载诊断包', kybotDumpTwo: ', Manual upload ', selectTime: '选择时间范围', last1: '上一小时', last2: '上一天', last3: '过去3天', last4: '最近一个月', chooseDate: '选择日期', tipTitle: '如无公网访问权限，可选择手动上传，操作步骤如下：', tipStep1: '1. 点击下载诊断包', tipStep2: '2. 登录KYBOT', tipStep3: '3. 在首页左上角点击上传按钮，在上传页面选择已下载的诊断包上传', err1: '开始时间必须小于结束时间', err2: '至少选择5分钟之后', err3: '至多选择一个月之内'}
+    'en': {kybotUpload: 'Generate and sync package to KyBot', contentOne: 'By analyzing your diagnostic package, ', contentTwo: 'can provide online diagnostic, tuning and support service for KAP.', contentTip: '(Generated diagnostic package would cover 72 hours using history ahead)', kybotDumpOne: 'Only generate', kybotDumpTwo: ', Manual upload ', selectTime: 'Select Time Range', last1: 'Last one hour', last2: 'Last one day', last3: 'Last three days', last4: 'Last one month', chooseDate: 'Choose Date', tipTitle: 'If there is no public network access, diagnostic package can be upload manually as following:', tipStep1: '1. Download diagnostic package', tipStep2: '2. Login on KYBOT', tipStep3: '3. Click upload button on the top left of KyBot home page, and select the diagnostic package desired on the upload page to upload', err1: 'start time must less than end time', err2: 'at least 5 mins', err3: 'most one month'},
+    'zh-cn': {kybotUpload: '一键生成诊断包至KyBot', contentOne: '通过分析生成的诊断包，', contentTwo: '提供在线诊断，优化服务。', contentTip: '(Generated diagnostic package would cover 72 hours using history ahead)', kybotDumpOne: '下载诊断包', kybotDumpTwo: ', 手动上传 ', selectTime: '选择时间范围', last1: '上一小时', last2: '上一天', last3: '过去3天', last4: '最近一个月', chooseDate: '选择日期', tipTitle: '如无公网访问权限，可选择手动上传，操作步骤如下：', tipStep1: '1. 点击下载诊断包', tipStep2: '2. 登录KYBOT', tipStep3: '3. 在首页左上角点击上传按钮，在上传页面选择已下载的诊断包上传', err1: '开始时间必须小于结束时间', err2: '至少选择5分钟之后', err3: '至多选择一个月之内'}
   }
 }
 </script>
@@ -238,7 +238,7 @@ export default {
       line-height: 30px;
     }
     .choices {
-      width: 410px;
+      width: 440px;
       margin: 0 auto;
       .el-radio__label {
         font-size: 12px;

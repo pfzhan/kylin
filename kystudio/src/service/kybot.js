@@ -11,11 +11,10 @@ export default {
     return Vue.resource(apiUrl + 'kyaccount').get()
   },
   // KyAccount 登陆
-  loginKybot (username, password) {
-    return Vue.resource(apiUrl + 'kyaccount/auth').save({
-      username: username,
-      password: password
-    })
+  loginKybot (param) {
+    // return Vue.resource(apiUrl + 'kyaccount/auth').save(param)
+    // let apiUrl1 = apiUrl.substring(0, apiUrl.length - 1)
+    return Vue.resource(apiUrl + 'kyaccount/auth?username=' + param.username + '&password=' + param.password).save()
   },
   // 获取KyBot自动上传是否开启
   getkybotStatus () {
