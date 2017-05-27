@@ -28,14 +28,45 @@ export default {
     },
     [types.GET_KYBOT_STATUS]: function ({commit}) {
       return api.kybot.getkybotStatus().then((response) => {
+        // response = {
+        //   code: '000',
+        //   data: true,
+        //   msg: ''
+        // }
         commit(types.GET_KYSTATUS, {data: response})
       })
     },
-    [types.START_KYBOT]: function () {
-      return api.kybot.startKybot()
+    [types.START_KYBOT]: function ({ commit }) {
+      return api.kybot.startKybot().then((response) => {
+        // response = {
+        //   code: '000',
+        //   data: true,
+        //   msg: ''
+        // }
+        return response
+      })
     },
-    [types.STOP_KYBOT]: function () {
-      return api.kybot.stopKybot()
+    [types.STOP_KYBOT]: function ({ commit }) {
+      return api.kybot.stopKybot().then((response) => {
+        // response = {
+        //   code: '000',
+        //   data: true,
+        //   msg: ''
+        // }
+        return response
+      })
+    },
+    // setAgreement
+    // 获取是否已同意协议
+    [types.GET_AGREEMENT]: function ({ commit }) {
+      return api.kybot.getAgreement().then((resp) => {
+        return resp
+      })
+    },
+    [types.SET_AGREEMENT]: function ({ commit }) {
+      return api.kybot.setAgreement().then((resp) => {
+        return resp
+      })
     }
   },
   getters: {}

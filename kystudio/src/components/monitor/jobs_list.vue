@@ -467,13 +467,13 @@ export default {
         filter.reverse = false
       }
       if (_column.label === this.$t('JobName')) {
-        // console.log('jobName sort')
+        console.log('jobName sort')
         filter.sortby = 'job_name'
       } else if (_column.label === this.$t('TableModelCube')) {
-        // console.log('TableModelCube sort')
+        console.log('TableModelCube sort')
         filter.sortby = 'cube_name'
       } else if (_column.label === this.$t('LastModifiedTime')) {
-        // console.log('LastModifiedTime sort')
+        console.log('LastModifiedTime sort')
         filter.sortby = 'last_modify'
       }
       this.loadJobsList(filter)

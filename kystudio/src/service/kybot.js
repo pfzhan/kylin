@@ -12,8 +12,6 @@ export default {
   },
   // KyAccount 登陆
   loginKybot (param) {
-    // return Vue.resource(apiUrl + 'kyaccount/auth').save(param)
-    // let apiUrl1 = apiUrl.substring(0, apiUrl.length - 1)
     return Vue.resource(apiUrl + 'kyaccount/auth?username=' + param.username + '&password=' + param.password).save()
   },
   // 获取KyBot自动上传是否开启
@@ -25,7 +23,15 @@ export default {
     return Vue.resource(apiUrl + 'kybot/daemon/start').save()
   },
   // 关闭KyBot自动上传
-  stopKtbot () {
+  stopKybot () {
     return Vue.resource(apiUrl + 'kybot/daemon/stop').save()
+  },
+  // 获取是否已同意协议
+  getAgreement () {
+    return Vue.resource(apiUrl + 'kybot/agreement').get()
+  },
+  // 同意协议
+  setAgreement () {
+    return Vue.resource(apiUrl + 'kybot/agreement').save()
   }
 }

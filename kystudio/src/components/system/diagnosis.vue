@@ -2,7 +2,7 @@
 <div class="diagnosis-wrap">
   <div class="dia-title">
     <p>{{$t('contentOne')}}
-      <a href="https://kybot.io/">KyBot</a>
+      <a href="https://kybot.io/" target="_blank">KyBot</a>
       {{$t('contentTwo')}}
     </p>
   </div>
@@ -42,13 +42,13 @@
     </div>
   </div>
   <div class="footer">
-    <el-button type="primary" @click="upload">{{$t('kybotUpload')}}</el-button>
+    <el-button type="primary" @click="upload" :loading="uploadLoading">{{$t('kybotUpload')}}</el-button>
     <!-- <el-tooltip content="您还未在" placement="right" effect="light">
       <el-button class="ques">?</el-button>
     </el-tooltip> -->
     <br />
     <p class="upload-wrap">
-      <a @click="dump" class="uploader">{{$t('kybotDumpOne')}}</a>
+      <a @click="dump" class="uploader" href="javascript:;" target="_blank">{{$t('kybotDumpOne')}}</a>
       {{$t('kybotDumpTwo')}}
       <el-tooltip content="slot#content" placement="right" effect="light">
         <el-button class="ques">?</el-button>
@@ -59,13 +59,22 @@
           <p class="tips">{{$t('tipStep3')}}</p>
         </div>
       </el-tooltip>
-    </p>el-butt
+    </p>
   </div>
+  <!-- <el-dialog v-model="switchVisible" title="KyAccount | Sign in" @close="resetLoginKybotForm">
+    <login_kybot ref="loginKybotForm" @onLogin="closeLoginForm"></login_kybot>
+  </el-dialog>
+  <el-dialog v-model="infoKybotVisible" title="KyBot自动上传" size="tiny">
+    <start_kybot @onStart="closeStartLayer"></start_kybot>
+  </el-dialog> -->
 </div>
 </template>
 <script>
 import { mapActions } from 'vuex'
 import { handleSuccess, handleError } from '../../util/business'
+import $ from 'jQuery'
+import { apiUrl } from '../../config'
+
 export default {
   name: 'diagnosis',
   data () {
@@ -84,7 +93,8 @@ export default {
       canChangePickEnd: true,
       hasErr: false,
       errMsgPick: '',
-      maxTime: 0
+      maxTime: 0,
+      uploadLoading: false
     }
   },
   methods: {
@@ -92,13 +102,22 @@ export default {
       getKybotUpload: 'GET_KYBOT_UPLOAD',
       getKybotDump: 'GET_KYBOT_DUMP'
     }),
+    checkLogin () {
+    },
     upload: function () {
+      this.uploadLoading = true
       this.startTime = +new Date(this.startTime)
       this.endTime = +new Date(this.endTime)
+      // let _this = this
+      //
+      // _this.switchVisible = true
+      //
       this.getKybotUpload({startTime: this.startTime, endTime: this.endTime}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
         })
+        this.uploadLoading = false
       }).catch((res) => {
+        this.uploadLoading = false
         handleError(res, (data, code, status, msg) => {
           this.$message({
             type: 'error',
@@ -106,20 +125,35 @@ export default {
           })
         })
       })
+      // this.getKybotAccount().then((resp) => {
+      //   handleSuccess(resp, (data, code, status, msg) => {
+      //     if (!data) {
+      //       _this.switchVisible = false
+      //     } else {
+      //       _this.switchVisible = true
+      //       this.getKybotUpload({startTime: this.startTime, endTime: this.endTime}).then((res) => {
+      //         handleSuccess(res, (data, code, status, msg) => {
+      //         })
+      //       }).catch((res) => {
+      //         handleError(res, (data, code, status, msg) => {
+      //           this.$message({
+      //             type: 'error',
+      //             message: msg
+      //           })
+      //         })
+      //       })
+      //     }
+      //   })
+      // })
+    },
+    closeLoginForm () {
+      this.kyBotUploadVisible = false
+      this.infoKybotVisible = true
     },
     dump: function () {
       this.startTime = +new Date(this.startTime)
-      this.getKybotDump({startTime: this.startTime, endTime: this.endTime}).then((res) => {
-        handleSuccess(res, (data, code, status, msg) => {
-        })
-      }).catch((res) => {
-        handleError(res, (data, code, status, msg) => {
-          this.$message({
-            type: 'error',
-            message: msg
-          })
-        })
-      })
+      let href = apiUrl + 'kybot/dump?startTime=' + this.startTime + '&endTime=' + this.endTime
+      $('.uploader').attr('href', href)
     },
     changeRange (radio) {
       this.canChangePickStart = false
@@ -191,6 +225,9 @@ export default {
         this.hasErr = true
         this.errMsgPick = this.$t('err3')
       }
+    },
+    closeStartLayer () {
+      this.infoKybotVisible = false
     }
   },
   computed: {

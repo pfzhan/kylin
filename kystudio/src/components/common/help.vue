@@ -7,7 +7,7 @@
   <el-dropdown-menu slot="dropdown">
     <el-dropdown-item command="kapmanual">KAP Manual</el-dropdown-item>
     <el-dropdown-item command="kybot">
-      KyBot自动上传
+      {{$t('kybotAuto')}}
       <el-switch
         v-if="switchVisible"
         v-model="isopend"
@@ -30,7 +30,8 @@
   </about_kap>
 </el-dialog>
 <el-dialog v-model="kyBotUploadVisible" title="KyAccount | Sign in" size="tiny" @close="resetLoginKybotForm">
-  <el-form :model="kyBotAccount" :rules="rules" ref="loginKybotForm" >
+  <login_kybot ref="loginKybotForm" @onLogin="closeLoginForm"></login_kybot>
+  <!-- <el-form :model="kyBotAccount" :rules="rules" ref="loginKybotForm" >
     <el-form-item prop="username">
       <el-input v-model="kyBotAccount.username" placeholder="username"></el-input>
     </el-form-item>
@@ -41,14 +42,15 @@
       <el-button @click="loginKyBot" :loading="loginLoading" class="btn-loginKybot">Login</el-button>  
     </el-form-item>
   </el-form>
-  <p class="no-account">No account? <a href="javascript:;">Sign up</a> now</p>
+  <p class="no-account">No account? <a href="javascript:;">Sign up</a> now</p> -->
 </el-dialog>
-<el-dialog v-model="infoKybotVisible" title="KyBot自动上传" size="tiny">
-  <p>KyBot通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天定时自动上传，无需自行打包和上传。</p>
+<el-dialog v-model="infoKybotVisible" :title="$t('kybotAuto')" size="tiny">
+  <start_kybot @onStart="closeStartLayer"></start_kybot>
+  <!-- <p>KyBot通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天定时自动上传，无需自行打包和上传。</p>
   <p>
     <el-checkbox v-model="agreeKyBot" @click="agreeKyBot = !agreeKyBot">我已阅读并同意遵守《KyBot用户协议》</el-checkbox>
   </p>
-  <el-button @click="afterAgree" type="primary" :disabled="!agreeKyBot" class="btn-agree">{{$t('agreeAndOpen')}}</el-button>
+  <el-button @click="startService" :loading="startLoading" type="primary" :disabled="!agreeKyBot" class="btn-agree">{{$t('agreeAndOpen')}}</el-button> -->
 </el-dialog>
 </div>
 </template>
@@ -56,6 +58,8 @@
   import { mapActions } from 'vuex'
 
   import aboutKap from '../common/about_kap.vue'
+  import loginKybot from '../common/login_kybot.vue'
+  import startKybot from '../common/start_kybot.vue'
   import { handleSuccess, handleError } from '../../util/business'
 
   export default {
@@ -70,18 +74,19 @@
           password: ''
         },
         infoKybotVisible: false,
-        agreeKyBot: false,
+        // agreeKyBot: false,
         isopend: false, // 是否已开启
         switchVisible: false, // 是否显示switch 按钮
-        rules: {
-          username: [
-            { trigger: 'blur', validator: this.validateUserName }
-          ],
-          password: [
-            { trigger: 'blur', required: true, message: this.$t('noUserPwd') }
-          ]
-        },
-        loginLoading: false
+        // rules: {
+        //   username: [
+        //     { trigger: 'blur', validator: this.validateUserName }
+        //   ],
+        //   password: [
+        //     { trigger: 'blur', required: true, message: this.$t('noUserPwd') }
+        //   ]
+        // },
+        // loginLoading: false,
+        startLoading: false
       }
     },
     methods: {
@@ -124,53 +129,92 @@
           this.kyBotUploadVisible = true
         }
       },
-      // 登录kybot
-      loginKyBot () {
-        let _this = this
-        this.loginLoading = true
-        let param = {
-          username: this.kyBotAccount.username,
-          password: this.kyBotAccount.password
-        }
-        this.loginKybot(param).then((result) => {
-          handleSuccess(result, (data, code, status, msg) => {
-            console.log('登录成功', result)
-            _this.kyBotUploadVisible = false
-            _this.infoKybotVisible = true
-            _this.loginLoading = false
-          }, (res) => {
-            handleError(res, (data, code, status, msg) => {
-              this.$message({
-                type: 'error',
-                message: msg
-              })
+      closeLoginForm () {
+        this.kyBotUploadVisible = false
+        this.infoKybotVisible = true
+      },
+      // // 登录kybot
+      // loginKyBot () {
+      //   let _this = this
+      //   this.loginLoading = true
+      //   let param = {
+      //     username: this.kyBotAccount.username,
+      //     password: this.kyBotAccount.password
+      //   }
+      //   this.loginKybot(param).then((result) => {
+      //     handleSuccess(result, (data, code, status, msg) => {
+      //       console.log('登录成功', result)
+      //       _this.kyBotUploadVisible = false
+      //       _this.infoKybotVisible = true
+      //       _this.loginLoading = false
+      //     }, (res) => {
+      //       handleError(res, (data, code, status, msg) => {
+      //         this.$message({
+      //           type: 'error',
+      //           message: msg
+      //         })
+      //       })
+      //       _this.loginLoading = false
+      //     })
+      //   })
+      // },
+      // 同意协议并开启自动服务
+      startService () {
+        // 同意协议并开启自动服务
+        // this.startLoading = true
+        this.startKybot().then((resp) => {
+          if (resp.data) {
+            // console.log('开启 ：', resp)
+            // this.startLoading = false
+            this.$message({
+              type: 'success',
+              message: resp.msg
             })
-            _this.loginLoading = false
+          }
+          // this.$emit('onStart')
+        }, (resp) => {
+          this.$message({
+            type: 'error',
+            message: resp.msg
           })
+          this.isopend = false // 开启失败
         })
       },
-      // 同意协议并开启自动服务
-      afterAgree () {
-      },
-      clickOpen (e) {
-        console.log(e)
-        e.stopPropagation()
-      },
-      swicthOpen (e) {
-        console.log(e)
-        // e.stopPropagation()
+      stopService () {
+        // this.startLoading = true
+        console.log('stop stop ', this.stopKybot)
+        this.stopKybot().then((resp) => {
+          if (resp.data) {
+            // console.log('开启 ：', resp)
+            // this.startLoading = false
+            this.$message({
+              type: 'success',
+              message: resp.msg
+            })
+          }
+          // this.$emit('onStart')
+        }, (resp) => {
+          this.$message({
+            type: 'error',
+            message: resp.msg
+          })
+          this.isopend = true // 关闭失败
+        })
       },
       resetLoginKybotForm () {
-        this.$refs['loginKybotForm'].resetFields()
+        this.$refs['loginKybotForm'].$refs['loginKybotForm'].resetFields()
       },
       // 改变kybot自动上传状态
       changeKystaus (status) {
         console.log('new status :', status)
-        // if (status) { // 开启
-
-        // } else { // 关闭
-
-        // }
+        if (status) { // 开启
+          this.startService()
+        } else { // 关闭
+          this.stopService()
+        }
+      },
+      closeStartLayer () {
+        this.infoKybotVisible = false
       }
     },
     computed: {
@@ -206,11 +250,13 @@
       })
     },
     components: {
-      'about_kap': aboutKap
+      'about_kap': aboutKap,
+      'login_kybot': loginKybot,
+      'start_kybot': startKybot
     },
     locales: {
-      'en': {usernameEmpty: 'Please enter username', usernameRule: 'username contains only numbers, letters and character "_"', noUserPwd: 'password required'},
-      'zh-cn': {usernameEmpty: '请输入用户名', usernameRule: '名字只能包含数字字母下划线', noUserPwd: '密码不能为空'}
+      'en': {usernameEmpty: 'Please enter username', usernameRule: 'username contains only numbers, letters and character "_"', noUserPwd: 'password required', agreeAndOpen: 'agree the protocol and open the automatic service', kybotAuto: 'KyBot Auto Upload'},
+      'zh-cn': {usernameEmpty: '请输入用户名', usernameRule: '名字只能包含数字字母下划线', noUserPwd: '密码不能为空', agreeAndOpen: '同意协议并开启自动服务', kybotAuto: 'KyBot 自动上传'}
     }
   }
 </script>
@@ -227,22 +273,7 @@
   .el-dialog__header {height:70px;line-height:70px;padding:0 20px;text-align:left;}
   .el-dialog__title {color:#red;font-size:14px;}
   .el-dialog__body {padding:0 50px;}
-  .btn-loginKybot {
-    width: 100%;
-    margin: 0;
-    background: #35a8fe;
-    color: #fff;
-  }
-  .no-account {
-    height: 20px;
-    line-height: 20px;
-    margin:-10px 0 30px 0;
-    text-align: left;
-  }
-  .btn-agree {
-    display: block;
-    margin: 20px auto;
-  }
+  
 }
 
 </style>

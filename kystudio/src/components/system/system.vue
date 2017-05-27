@@ -54,6 +54,32 @@
       <diagnosis></diagnosis>
     </el-dialog>
 
+    <el-dialog v-model="kyBotUploadVisible" title="KyAccount | Sign in" size="tiny" @close="resetLoginKybotForm">
+      <login_kybot ref="loginKybotForm" @onLogin="closeLoginForm"></login_kybot>
+    </el-dialog>
+
+    <el-dialog v-model="infoKybotVisible" :title="$t('autoUpload')" size="tiny">
+      <start_kybot @onStart="closeStartLayer"></start_kybot>
+    </el-dialog>
+
+    <!-- 协议弹层 -->
+    <el-dialog v-model="protocolVisible" size="tiny" class="agree-protocol">
+      <p>{{$t('contentOne')}}
+        <a href="https://kybot.io/" target="_blank">KyBot</a>
+        {{$t('contentTwo')}}
+      </p>
+      <div>
+        <el-checkbox v-model="agreeKyBot" @click="agreeKyBot = !agreeKyBot">
+          <a @click="showProtocol">{{$t('protocol')}}</a>
+        </el-checkbox>
+      </div>
+      <el-button @click="agreeProtocol" :loading="agreeLoading" type="primary" :disabled="!agreeKyBot" class="btn-agree">{{$t('agreeProtocol')}}</el-button>
+    </el-dialog>  
+
+    <!-- 协议内容弹层 -->
+    <el-dialog v-model='proContentVisivle' class="pro-content">
+      <protocol_content></protocol_content>
+    </el-dialog>
   </div>
 </template>
 <script>
@@ -62,18 +88,30 @@ import { handleSuccess, handleError } from '../../util/business'
 import setConfig from './set_config'
 import diagnosis from './diagnosis'
 import editor from 'vue2-ace-editor'
+import loginKybot from '../common/login_kybot.vue'
+import startKybot from '../common/start_kybot.vue'
+import protocolContent from '../system/protocol.vue'
 export default {
   data () {
     return {
       activeName: 'system',
       setConfigFormVisible: false,
-      diagnosisVisible: false
+      diagnosisVisible: false,
+      kyBotUploadVisible: false,
+      infoKybotVisible: false,
+      protocolVisible: false,
+      agreeKyBot: false,
+      agreeLoading: false,
+      proContentVisivle: false
     }
   },
   components: {
     'set_config': setConfig,
     'diagnosis': diagnosis,
-    editor
+    'login_kybot': loginKybot,
+    'start_kybot': startKybot,
+    editor,
+    'protocol_content': protocolContent
   },
   methods: {
     ...mapActions({
@@ -81,7 +119,8 @@ export default {
       getConf: 'GET_CONF',
       reloadMetadata: 'RELOAD_METADATA',
       backupMetadata: 'BACKUP_METADATA',
-      updateConfig: 'UPDATE_CONFIG'
+      updateConfig: 'UPDATE_CONFIG',
+      getKybotAccount: 'GET_KYBOT_ACCOUNT'
     }),
     reload: function () {
       this.$confirm(this.$t('reloadTip'), this.$t('tip'), {
@@ -149,7 +188,40 @@ export default {
       })
     },
     diagnosis: function () {
-      this.diagnosisVisible = true
+      // 检测登录状态
+      this.getKybotAccount().then((res) => {
+        handleSuccess(res, (data, code, status, msg) => {
+          if (!data) {
+            this.kyBotUploadVisible = true
+          } else {
+            this.kyBotUploadVisible = false
+            this.diagnosisVisible = true
+            this.protocolVisible = true
+          }
+          // 模拟
+          // this.kyBotUploadVisible = true
+        }, (res) => {
+          handleError(res, (data, code, status, msg) => {
+            console.log(data, code, status, msg)
+            if (status === 400) {
+              this.$message({
+                type: 'success',
+                message: msg
+              })
+            }
+          })
+        })
+      })
+    },
+    resetLoginKybotForm () {
+      this.$refs['loginKybotForm'].$refs['loginKybotForm'].resetFields()
+    },
+    closeLoginForm () {
+      this.kyBotUploadVisible = false
+      this.infoKybotVisible = true
+    },
+    closeStartLayer () {
+      this.infoKybotVisible = false
     },
     refreshEnv: function () {
       let _this = this
@@ -188,6 +260,15 @@ export default {
           }
         })
       })
+    },
+    agreeProtocol () {
+      this.agreeLoading = true
+      // 同意请求 成功回调之后
+      this.protocolVisible = false
+      this.diagnosisVisible = true
+    },
+    showProtocol () {
+      this.proContentVisivle = true
     }
   },
   computed: {
@@ -204,8 +285,8 @@ export default {
     _this.refreshConfig()
   },
   locales: {
-    'en': {ServerConfig: 'Server Config', ServerEnvironment: 'Server Environment', action: 'Actions', reloadMetadata: 'Reload Metadata', setConfig: 'Set Config', backup: 'Backup', diagnosis: 'Generate Diagnosis Package', link: 'Links', success: 'Success', successEnvironment: 'Server environment get successfully', successConfig: 'Server config get successfully', reloadTip: 'Are you sure to reload metadata and clean cache? ', cancel: 'Cancel', yes: 'Yes', tip: 'Tip', reloadSuccessful: 'Reload metadata successful!', setConfigSuccessful: 'Set config successful!'},
-    'zh-cn': {ServerConfig: '服务器配置', ServerEnvironment: '服务器环境', action: '操作', reloadMetadata: '重载元数据', setConfig: '设置配置', backup: '备份', diagnosis: '诊断', link: '链接', success: '成功', successEnvironment: '成功获取环境信息', successConfig: '成功获取服务器配置', reloadTip: '确定要重载元数据并清理缓存? ', tip: '提示', cancel: '取消', yes: '确定', reloadSuccessful: '重载元数据成功!', setConfigSuccessful: '设置配置成功!'}
+    'en': {ServerConfig: 'Server Config', ServerEnvironment: 'Server Environment', action: 'Actions', reloadMetadata: 'Reload Metadata', setConfig: 'Set Config', backup: 'Backup', diagnosis: 'Generate Diagnosis Package', link: 'Links', success: 'Success', successEnvironment: 'Server environment get successfully', successConfig: 'Server config get successfully', reloadTip: 'Are you sure to reload metadata and clean cache? ', cancel: 'Cancel', yes: 'Yes', tip: 'Tip', reloadSuccessful: 'Reload metadata successful!', setConfigSuccessful: 'Set config successful!', autoUpload: 'KyBot Auto Upload', contentOne: 'By analyzing your diagnostic package, ', contentTwo: 'can provide online diagnostic, tuning and support service for KAP.', protocol: '《KyBot Term of Service》', agreeProtocol: 'I have read and agree'},
+    'zh-cn': {ServerConfig: '服务器配置', ServerEnvironment: '服务器环境', action: '操作', reloadMetadata: '重载元数据', setConfig: '设置配置', backup: '备份', diagnosis: '诊断', link: '链接', success: '成功', successEnvironment: '成功获取环境信息', successConfig: '成功获取服务器配置', reloadTip: '确定要重载元数据并清理缓存? ', tip: '提示', cancel: '取消', yes: '确定', reloadSuccessful: '重载元数据成功!', setConfigSuccessful: '设置配置成功!', autoUpload: 'KyBot 自动上传', contentOne: '通过分析生成的诊断包，', contentTwo: '提供在线诊断，优化服务。', protocol: '《KyBot用户协议》', agreeProtocol: '我已阅读并同意'}
   }
 }
 </script>
@@ -257,6 +338,13 @@ export default {
     .blue:hover {
       text-decoration: none;
     }
+  }
+  .btn-agree {
+    display: block;
+    margin: 20px auto;
+  }
+  .agree-protocol {
+    line-height:30px;
   }
 }
 

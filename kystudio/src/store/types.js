@@ -142,6 +142,8 @@ export const LOGIN_KYBOT = 'LOGIN_KYBOT'
 export const GET_KYBOT_STATUS = 'GET_KYBOT_STATUS'
 export const START_KYBOT = 'START_KYBOT'
 export const STOP_KYBOT = 'STOP_KYBOT'
+export const GET_AGREEMENT = 'GET_AGREEMENT'
+export const SET_AGREEMENT = 'SET_AGREEMENT'
 
 // monitor actions mutations
 export const LOAD_JOBS_LIST = 'LOAD_JOBS_LIST'
