@@ -96,7 +96,7 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
         File[] listFiles = kylinHome.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
-                return name.endsWith(".license");
+                return name.equals("LICENSE");
             }
         });
         if (listFiles.length > 0) {

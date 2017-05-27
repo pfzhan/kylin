@@ -26,8 +26,10 @@ cd lib
 # copy license file
 if [ ! -z "${license_file}" ]; then
     echo "delete existing license files:"
-    ls *.license
-    rm *.license                        || exit 1
+    if ls LICENSE 1> /dev/null 2>&1; then
+        ls LICENSE
+        rm LICENSE                        || exit 1
+    fi
     cp $license_file .                  || exit 1
 fi
 

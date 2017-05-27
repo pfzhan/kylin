@@ -1,18 +1,18 @@
 #!/bin/bash
 pkg_name=`ls dist/*.tar.gz|grep -v orig.tar.gz$`
 echo $pkg_name
-if [ -f test.license ]; then
+if [ -f LICENSE ]; then
     tar -zxvf $pkg_name
-    cp -f test.license kap-*/
+    cp -f LICENSE kap-*/
     rm -f $pkg_name
     tar -zcvf $pkg_name kap-*/
     rm -rf kap-*/
 fi
 
 orig_pkg_name=`ls dist/*.tar.gz|grep orig.tar.gz$`
-if [ -f test.license ]; then
+if [ -f LICENSE ]; then
     tar -zxvf $orig_pkg_name
-    cp -f test.license kap-*/
+    cp -f LICENSE kap-*/
     rm -f $orig_pkg_name
     tar -zcvf $orig_pkg_name kap-*/
     rm -rf kap-*/

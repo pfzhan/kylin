@@ -83,7 +83,7 @@ fi
 mv $KYLIN_HOME/lib ${backup_dir}/
 mv $KYLIN_HOME/commit_SHA1 ${backup_dir}/
 mv $KYLIN_HOME/sample_cube ${backup_dir}/
-mv $KYLIN_HOME/*.license ${backup_dir}/
+mv $KYLIN_HOME/LICENSE ${backup_dir}/
 mkdir -p ${backup_dir}/tomcat
 mv $KYLIN_HOME/tomcat/webapps ${backup_dir}/tomcat/
 
@@ -91,7 +91,7 @@ mv $KYLIN_HOME/tomcat/webapps ${backup_dir}/tomcat/
 cp -r lib/lib $KYLIN_HOME/
 cp -r lib/commit_SHA1 $KYLIN_HOME/
 cp -r lib/sample_cube $KYLIN_HOME/
-cp -r lib/*.license $KYLIN_HOME/
+cp -r lib/LICENSE $KYLIN_HOME/
 cp -r lib/tomcat/webapps $KYLIN_HOME/tomcat
 if [ "$copy_conf_flag" == "1" ]; then
     cp -r $copy_dir/conf $KYLIN_HOME/
