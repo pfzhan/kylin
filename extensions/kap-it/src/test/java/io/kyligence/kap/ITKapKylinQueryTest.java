@@ -100,8 +100,6 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     protected static void setupAll() throws Exception {
         KylinTestBase.setupAll();
 
-        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.ad-hoc.runner.class-name", "");
-
         //uncomment this to use MockedCubeSparkRPC instead of real spark
         //config.setProperty("kap.storage.columnar.spark-cube-gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
 
@@ -110,8 +108,6 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     }
 
     protected static void clean() {
-        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.ad-hoc.runner.class-name", "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
-
         KylinTestBase.clean();
     }
 
