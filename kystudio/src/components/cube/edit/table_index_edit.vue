@@ -3,6 +3,13 @@
   <p v-if="!rawTableUsable">{{$t('noSupportRawTable')}}</p>
   <div v-else>
     <el-checkbox v-model="usedRawTable" @change="changeUsed()">{{$t('ConfigRawTable')}}</el-checkbox>
+
+
+
+
+
+
+
     <el-table  v-if="usedRawTable"
     :data="convertedRawTable"
     :row-class-name="tableRowClassName"
@@ -47,7 +54,7 @@
                     v-for="(item, index) in initEncodingType(scope.row)" :key="index"
                    :label="item.name"
                    :value="item.name + ':' + item.version">
-                   <el-tooltip effect="light" :content="$t('$store.state.config.encodingTip[item.name]')" placement="right">
+                   <el-tooltip effect="light" :content="$t('kylinLang.cube.'+$store.state.config.encodingTip[item.name])" placement="right">
                      <span style="float: left;;width: 90%">{{ item.name }}</span>
                      <span style="float: right;width: 10%; color: #8492a6; font-size: 13px" v-if="item.version>1">{{ item.version }}</span>
                   </el-tooltip>
@@ -79,7 +86,42 @@
       </el-table-column>       
     </el-table> 
     </div>
-    <pager ref="pager" :perPageSize="15" :totalSize="totalRawTable"  v-on:handleCurrentChange='currentChange' ></pager>
+    <pager v-if="usedRawTable" ref="pager" :perPageSize="15" :totalSize="totalRawTable"  v-on:handleCurrentChange='currentChange' ></pager>
+
+
+     
+    
+     <div class="ksd-common-table" v-if="usedRawTable && rawTable.tableDetail.columns.length">
+     <p class="ksd-left">对sorted列进行排序</p>
+       <el-row class="tableheader">
+         <el-col :span="1">{{$t('ID')}}</el-col>
+         <el-col :span="6">{{$t('column')}}</el-col>
+         <el-col :span="4">{{$t('dataType')}}</el-col>
+         <el-col :span="5">{{$t('tableAlias')}}</el-col>
+         <el-col :span="2">{{$t('Encoding')}}</el-col>
+         <el-col :span="4">{{$t('Length')}}</el-col>
+         <el-col :span="2">{{$t('Index')}}</el-col>
+       </el-row>
+        <el-row class="tablebody" v-if="row.index==='sorted'" v-for="(row, index) in rawTable.tableDetail.columns" :key="row.column" v-dragging="{ item: row, list: rawTable.tableDetail.columns, group: 'row' }">
+          <el-col :span="1">{{index+1}}</el-col>
+          <el-col :span="6">{{row.column}}</el-col>
+          <el-col :span="4">
+              {{modelDesc.columnsDetail[row.table+'.'+row.column].datatype}}
+          </el-col>
+          <el-col :span="5"> 
+            {{row.table}}
+          </el-col>
+          <el-col :span="2">
+            {{row.encoding}} 
+          </el-col>
+          <el-col :span="4">
+            {{row.valueLength}}
+          </el-col>
+          <el-col :span="2">
+            {{row.index}}
+          </el-col>
+        </el-row>
+        </div>
   </div>
 </template>
 <script>

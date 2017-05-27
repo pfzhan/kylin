@@ -22,6 +22,7 @@ body{
 .generate-attr(20,ksd-left,left);
 .generate-attr(20,ksd-right,right);
 .generate-attr(20,ksd-bottom,bottom);
+.generate-attr(20,ksd-h,height);
 .generate-attr(20,ksd-lineheight,line-height);
 .ksd-fright{float: right;}
 .ksd-fleft{float: left;}
@@ -32,24 +33,33 @@ body{
 .ksd_noshadow{box-shadow: none!important;}
 .ksd-common-table{
   font-size: 12px;
-  tr{
-    height: 36px;
-  }
-  tr{
-    border:solid 1px #ccc;
-  }
-   th {
-      border-bottom: 1px solid #dfe6ec;
-      white-space: nowrap;
-     overflow: hidden;
-     background-color: #eef1f6;
-     text-align: left;
+  text-align: center;
+  .tableheader{
      height: 40px;
-    min-width: 0;
-    text-overflow: ellipsis;
-    vertical-align: middle;
-
-   }
+     border: solid 1px #ccc;
+     .el-col{
+      line-height: 38px;
+     }
+  }
+  .tablebody{
+    border-bottom:solid 1px #ccc;
+    border-left:solid 1px #ccc;
+    border-right:solid 1px #ccc;
+    background-color: #fff;
+    .el-col{
+      line-height: 40px;
+      height: 40px;
+    }
+     &.dragging{
+      // background-color: #fff;
+      .el-select{
+        display: none;
+      }
+      .el-input{
+        display: none
+      }
+    }
+  }
 }
 .el-message{top: 158px!important;}
 // layout

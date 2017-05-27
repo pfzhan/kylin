@@ -124,6 +124,7 @@
       }
       this.getConf()
       this.getEncoding()
+      this.getAboutKap()
       this.getCurUserInfo().then((res) => {
         handleSuccess(res, (data) => {
           this.setCurUser({ user: data })
@@ -138,7 +139,8 @@
         getCurUserInfo: 'USER_AUTHENTICATION',
         getEncoding: 'GET_ENCODINGS',
         loadProjects: 'LOAD_PROJECT_LIST',
-        resetPassword: 'RESET_PASSWORD'
+        resetPassword: 'RESET_PASSWORD',
+        getAboutKap: 'GET_ABOUTKAP'
       }),
       ...mapMutations({
         setCurUser: 'SAVE_CURRENT_LOGIN_USER'

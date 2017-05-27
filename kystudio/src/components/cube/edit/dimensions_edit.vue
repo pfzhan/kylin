@@ -40,7 +40,7 @@
       </el-row>
       <el-row class="row_padding border_bottom" v-for="(group, group_index) in cubeDesc.aggregation_groups" :key="group_index">
         <el-col :span="24">
-          <el-card >
+          <el-card class="ksd_noshadow">
             <el-row>
               <el-col :span="6">
                 Cuboid Number: {{cuboidList[group_index]}}
@@ -134,39 +134,37 @@
       <el-row class="row_padding">
         <el-col :span="24">Rowkeys</el-col>
       </el-row>
-       <el-row>
-         <el-col :span="3">{{$t('ID')}}</el-col>
-         <el-col :span="6">{{$t('column')}}</el-col>
-         <el-col :span="3">{{$t('encoding')}}</el-col>
-         <el-col :span="3">{{$t('length')}}</el-col>
-         <el-col :span="3">{{$t('shardBy')}}</el-col>
-         <el-col :span="3">{{$t('dataType')}}</el-col>
-         <el-col :span="3">{{$t('cardinality')}}</el-col>
+      <div class="ksd-common-table">
+       <el-row class="tableheader">
+         <el-col :span="1">{{$t('ID')}}</el-col>
+         <el-col :span="9">{{$t('column')}}</el-col>
+         <el-col :span="4">{{$t('encoding')}}</el-col>
+         <el-col :span="2">{{$t('length')}}</el-col>
+         <el-col :span="2">{{$t('shardBy')}}</el-col>
+         <el-col :span="4">{{$t('dataType')}}</el-col>
+         <el-col :span="2">{{$t('cardinality')}}</el-col>
        </el-row>
-       
-        <div class="rowkeyTable"  v-for="(row, index) in convertedRowkeys" :key="row.column" >
-        <el-row>
-          <el-col :span="3">{{index+1}}</el-col>
-          <el-col :span="6">{{row.column}}</el-col>
-          <el-col :span="3">
+        <el-row class="tablebody" v-for="(row, index) in convertedRowkeys" :key="row.column"v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }">
+          <el-col :span="1">{{index+1}}</el-col>
+          <el-col :span="9">{{row.column}}</el-col>
+          <el-col :span="4">
               <el-select v-model="row.encoding" @change="changeRowkey(row, index)">
                 <el-option
                     v-for="(item, encodingindex) in initEncodingType(row)"
                     :key="encodingindex"
                    :label="item.name"
                    :value="item.name + ':' + item.version">
-                   <el-tooltip effect="light" :content="$t('kylinLang.cube[$store.state.config.encodingTip[item.name]]')" placement="right">
+                   <el-tooltip effect="light" :content="$t('kylinLang.cube.'+$store.state.config.encodingTip[item.name])" placement="right">
                      <span style="float: left;width: 90%">{{ item.name }}</span>
                      <span style="float: right;width: 10%; color: #8492a6; font-size: 13px" v-show="item.version>1">{{ item.version }}</span>
                   </el-tooltip>
                 </el-option>              
               </el-select>
           </el-col>
-          <el-col :span="3"> 
+          <el-col :span="2"> 
             <el-input v-model="row.valueLength"  :disabled="row.encoding.indexOf('dict')>=0||row.encoding.indexOf('date')>=0||row.encoding.indexOf('time')>=0" @change="changeRowkey(row, index)"></el-input> 
           </el-col>
-          <el-col :span="3">
-            <keep-alive>
+          <el-col :span="2">
               <el-select v-model="row.isShardBy" @change="changeRowkey(row, index)">
                 <el-option
                 v-for="item in shardByType"
@@ -175,26 +173,22 @@
                 :value="item.value">
                 </el-option>
               </el-select>
-            </keep-alive>
           </el-col>
-          <el-col :span="3"> {{modelDesc.columnsDetail&&modelDesc.columnsDetail[row.column].datatype}}</el-col>
-          <el-col :span="3">{{modelDesc.columnsDetail&&modelDesc.columnsDetail[row.column].cardinality}}</el-col>
+          <el-col :span="4"> {{modelDesc.columnsDetail&&modelDesc.columnsDetail[row.column].datatype}}</el-col>
+          <el-col :span="2">{{modelDesc.columnsDetail&&modelDesc.columnsDetail[row.column].cardinality}}</el-col>
         </el-row>
         </div>
-         <div style="position:absolute;top:0;display:none" class="rowkeyTable"   >
+   <!--       <div style="position:absolute;top:0;color:#fff;width:100%" class="rowkeyTable">
         <el-row class="rowkey" v-for="(row, index) in convertedRowkeys" :key="row.column" v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }">
-          <el-col :span="3">{{index+1}}</el-col>
-          <el-col :span="6">{{row.column}}</el-col>
-          <el-col :span="3">
-          </el-col>
-          <el-col :span="3"> 
-          </el-col>
-          <el-col :span="3">
-          </el-col>
+          <el-col :span="3"></el-col>
+          <el-col :span="6"></el-col>
+          <el-col :span="3"></el-col>
+          <el-col :span="3"> </el-col>
+          <el-col :span="3"></el-col>
           <el-col :span="3"></el-col>
           <el-col :span="3"></el-col>
         </el-row>
-      </div>
+      </div> -->
 <!--       </table> -->
       <!-- <div style="position:relative">
       <ul class="dragBar">
@@ -628,31 +622,6 @@ export default {
 }
 </script>
 <style lang="less">
- .dragBar {
-   position: absolute;
-   z-index: 9999;
-   top: 40px;
-   li{
-     height: 40px;
-     line-height: 40px;
-     width: 100px;
-   }
- }
-
- .rowkeyTable {
-  font-size: 12px;
-  display: block;
-  .rowkey{
-    height: 30px;
-    line-height: 30px;
-  }
-    transition: transform .3s;
-    -webkit-user-drag: element;
-    user-select: none;
-  &.dragging{
-      background-color: #fff;
-    }
- }
  .table_margin {
    margin-top: 20px;
    margin-bottom: 20px;

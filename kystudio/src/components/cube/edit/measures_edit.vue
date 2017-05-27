@@ -65,10 +65,10 @@
       </template>
     </el-table-column>                         
   </el-table>
-      <el-row>
+      <el-row v-if="!isPlusVersion">
         <el-col :span="24">{{$t('advancedColumnFamily')}}</el-col>
       </el-row> 
-      <el-table class="table_margin"
+      <el-table class="table_margin" v-if="!isPlusVersion"
         :data="cubeDesc.hbase_mapping.column_family"
         style="width: 100%">
         <el-table-column
@@ -78,7 +78,7 @@
         </el-table-column>       
         <el-table-column
             :label="$t('measures')">
-            <template scope="scope">
+            <template scope="scope">  
               <el-col :span="24">
                 <area_label :labels="currentMeasure" :selectedlabels="scope.row.columns[0].measure_refs"> 
                 </area_label>
@@ -374,6 +374,12 @@ export default {
   watch: {
     'cubeDesc.measures' (val, oldVal) {
       this.initColumnFamily()
+    }
+  },
+  computed: {
+    isPlusVersion () {
+      var kapVersionInfo = this.$store.state.system.serverAboutKap
+      return kapVersionInfo && kapVersionInfo['kap.version'] && kapVersionInfo['kap.version'].indexOf('Plus') !== -1
     }
   },
   created () {

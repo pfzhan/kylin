@@ -33,7 +33,8 @@ exports.default = {
     fixedLengthHexTip: '适用于字段值为十六进制字符, 比如1A2BFF或者FF00FF, 每两个字符需要一个字节. ',
     dataTip: '适用于字段值为日期字符, 支持的格式包括yyyyMMdd、yyyy-MM-dd、yyyy-MM-dd HH:mm:ss、yyyy-MM-dd HH:mm:ss.SSS, 其中如果包含时间戳部分会被截断. ',
     timeTip: '适用于字段值为时间戳字符, 支持范围为[ 1970-01-01 00:00:00, 2038/01/19 03:14:07] , 毫秒部分会被忽略. ',
-    booleanTip: '适用于字段值为: true, false, TRUE, FALSE, True, False, t, f, T, F, yes, no, YES, NO, Yes, No, y, n, Y, N, 1, 0'
+    booleanTip: '适用于字段值为: true, false, TRUE, FALSE, True, False, t, f, T, F, yes, no, YES, NO, Yes, No, y, n, Y, N, 1, 0',
+    orderedbytesTip: ''
   },
   project: {
 

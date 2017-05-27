@@ -86,18 +86,19 @@ export default {
               this.$router.push('/dashbord')
             })
           }, (res) => {
-            handleError(res, (data) => {
-              var match = (new RegExp('<u>User.*?(\\d+).*?</u>', 'i')).exec(data)
-              var errorType = match && match[1] ? 'lock' : 'error'
-              var reTryTime = match && match[1] || 0
-              if (errorType === 'lock') {
-                this.$message({
-                  message: '尝试登录失败超过三次，请在' + reTryTime + '秒后再试！', type: 'warning'
-                })
-              } else {
-                this.$message.error('登陆失败，请检查帐号和密码是否输入正确！')
-              }
-            })
+            handleError(res)
+            // handleError(res, (data) => {
+            //   var match = (new RegExp('<u>User.*?(\\d+).*?</u>', 'i')).exec(data)
+            //   var errorType = match && match[1] ? 'lock' : 'error'
+            //   var reTryTime = match && match[1] || 0
+            //   if (errorType === 'lock') {
+            //     this.$message({
+            //       message: '尝试登录失败超过三次，请在' + reTryTime + '秒后再试！', type: 'warning'
+            //     })
+            //   } else {
+            //     this.$message.error('登陆失败，请检查帐号和密码是否输入正确！')
+            //   }
+            // })
             Vue.http.headers.common['Authorization'] = ''
             this.$refs['loginBtn'].loading = false
           })

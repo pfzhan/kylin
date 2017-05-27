@@ -4,13 +4,14 @@ export default {
   state: {
     encodingTip: {
       dict: 'dicTip',
-      fixed_length: 'fixedLengthTip:',
+      fixed_length: 'fixedLengthTip',
       int: 'intTip',
       integer: 'integerTip',
       fixed_length_hex: 'fixedLengthHexTip',
       date: 'dataTip',
       time: 'timeTip',
-      boolean: 'booleanTip'
+      boolean: 'booleanTip',
+      orderedbytes: 'orderedbytesTip'
     },
     defaultConfig: {},
     layoutConfig: {
