@@ -116,6 +116,18 @@ if [ "$1" == "start" ] # ./spark_client.sh start [port]
 then
     echo "Starting Spark Client..."
 
+    if [[ $CI_MODE == 'true' ]]
+    then
+        cat << EOF > $SPARK_HOME/conf/hive-site.xml
+        <configuration>
+            <property>
+                <name>hive.metastore.uris</name>
+                <value>thrift://sandbox.hortonworks.com:9083</value>
+            </property>
+        </configuration>
+EOF
+    fi
+
     if [ -f "${KYLIN_HOME}/spark_client_pid" ]
     then
         PID=`cat $KYLIN_HOME/spark_client_pid`
@@ -155,6 +167,11 @@ then
 # stop command
 elif [ "$1" == "stop" ]
 then
+    if [[ $CI_MODE == 'true' ]]
+    then
+        rm ${SPARK_HOME}/conf/hive-site.xml
+    fi
+
     if [ -f "${KYLIN_HOME}/spark_client_pid" ]
     then
         PID=`cat $KYLIN_HOME/spark_client_pid`

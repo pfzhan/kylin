@@ -28,6 +28,7 @@ import org.apache.kylin.common.KylinConfig;
 
 import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.routing.NoRealizationFoundException;
+import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -49,11 +50,15 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
     public static void setUp() throws Exception {
         logger.info("setUp in ITKapAdHocQueryTest");
         KylinTestBase.setupAll();
+        RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=ci_inner_join_cube]");
+        RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=ci_left_join_cube]");
     }
 
     @AfterClass
     public static void tearDown() {
         logger.info("tearDown in ITKapAdHocQueryTest");
+        RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=ci_inner_join_cube]");
+        RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=ci_left_join_cube]");
     }
 
     @Test
@@ -67,6 +72,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
             kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name", "");
             try {
                 runSQL(sqlFile, true, false);
+                throw new SQLException();
 
             } catch (SQLException e) {
                 Assert.assertEquals(findRoot(e).getClass(), NoRealizationFoundException.class);
@@ -89,6 +95,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
             kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name", "");
             try {
                 runSQL(sqlFile, true, false);
+                throw new SQLException();
             } catch (SQLException e) {
                 Assert.assertEquals(findRoot(e).getClass(), NoRealizationFoundException.class);
             }
@@ -110,6 +117,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
             kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name", "");
             try {
                 runSQL(sqlFile, true, false);
+                throw new SQLException();
             } catch (SQLException e) {
                 Assert.assertEquals(findRoot(e).getClass(), NoRealizationFoundException.class);
             }
@@ -131,6 +139,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
             kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name", "");
             try {
                 runSQL(sqlFile, true, false);
+                throw new SQLException();
             } catch (SQLException e) {
                 Assert.assertEquals(findRoot(e).getClass(), NoRealizationFoundException.class);
             }
