@@ -42,7 +42,6 @@ import org.apache.curator.x.discovery.details.InstanceSerializer;
 import org.apache.curator.x.discovery.details.ServiceCacheListener;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.DaemonThreadFactory;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.Scheduler;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -57,6 +56,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.concurrent.Executors;
 
 public class CuratorScheduler implements Scheduler<AbstractExecutable> {
 
@@ -90,32 +90,34 @@ public class CuratorScheduler implements Scheduler<AbstractExecutable> {
             throw new IllegalArgumentException("no 'kap.job.helix.zookeeper-address' set in kylin.properties");
         }
 
-        if (started == true) {
-            logger.info("CuratorScheduler already started, skipped.");
-            return;
-        }
-        curatorClient = CuratorFrameworkFactory.newClient(zkAddress, new ExponentialBackoffRetry(3000, 3));
-        curatorClient.start();
+        synchronized (this) {
+            if (started == true) {
+                logger.info("CuratorScheduler already started, skipped.");
+                return;
+            }
+            curatorClient = CuratorFrameworkFactory.newClient(zkAddress, new ExponentialBackoffRetry(3000, 3));
+            curatorClient.start();
 
-        final String restAddress = KapConfig.wrap(kylinConfig).getHelixRestAddress();
-        try {
-            registerInstance(restAddress);
-        } catch (Exception e) {
-            throw new SchedulerException(e);
-        }
-
-        String serverMode = jobEngineConfig.getConfig().getServerMode();
-        if ("job".equals(serverMode.toLowerCase()) || "all".equals(serverMode.toLowerCase())) {
+            final String restAddress = KapConfig.wrap(kylinConfig).getHelixRestAddress();
             try {
-                startJobEngine(zkAddress, restAddress, jobEngineConfig);
-            } catch (IOException e) {
+                registerInstance(restAddress);
+            } catch (Exception e) {
                 throw new SchedulerException(e);
             }
-        } else {
-            logger.info("server mode: " + serverMode + ", no need to run job scheduler");
-        }
 
-        started = true;
+            String serverMode = jobEngineConfig.getConfig().getServerMode();
+            if ("job".equals(serverMode.toLowerCase()) || "all".equals(serverMode.toLowerCase())) {
+                try {
+                    startJobEngine(zkAddress, restAddress, jobEngineConfig);
+                } catch (IOException e) {
+                    throw new SchedulerException(e);
+                }
+            } else {
+                logger.info("server mode: " + serverMode + ", no need to run job scheduler");
+            }
+
+            started = true;
+        }
     }
 
     private void registerInstance(String restAddress) throws Exception {
@@ -127,7 +129,7 @@ public class CuratorScheduler implements Scheduler<AbstractExecutable> {
         serviceDiscovery = ServiceDiscoveryBuilder.builder(LinkedHashMap.class).client(curatorClient).basePath(servicePath).serializer(serializer).build();
         serviceDiscovery.start();
 
-        serviceCache = serviceDiscovery.serviceCacheBuilder().name(SERVICE_NAME).threadFactory(new DaemonThreadFactory()).build();
+        serviceCache = serviceDiscovery.serviceCacheBuilder().name(SERVICE_NAME).threadFactory(Executors.defaultThreadFactory()).build();
 
         serviceCache.addListener(new ServiceCacheListener() {
             @Override
@@ -148,7 +150,6 @@ public class CuratorScheduler implements Scheduler<AbstractExecutable> {
                 });
                 final String restServersInCluster = StringUtil.join(instanceNodes, ",");
                 logger.info("kylin.server.cluster-servers update to " + restServersInCluster);
-                kylinConfig.setProperty("kylin.server.cluster-servers", restServersInCluster);
                 System.setProperty("kylin.server.cluster-servers", restServersInCluster);
 
             }
