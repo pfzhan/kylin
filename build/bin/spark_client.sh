@@ -65,8 +65,6 @@ then
 fi
 echo "SPARK_HOME is set to ${SPARK_HOME}"
 
-ln -sfn ${LOG4J_DIR}/hive-site.xml ${SPARK_HOME}/conf/hive-site.xml
-
 function retrieveSparkEnvProps()
 {
  # spark envs
