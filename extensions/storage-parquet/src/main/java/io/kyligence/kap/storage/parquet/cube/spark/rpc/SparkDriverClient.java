@@ -107,7 +107,7 @@ public class SparkDriverClient {
 
         final List<SparkJobResponse> responses = new LinkedList<>();
         final AtomicBoolean serverSideCompleted = new AtomicBoolean(false);
-        final AtomicReference<String> serverSideError = new AtomicReference<>();
+        final AtomicReference<Throwable> serverSideError = new AtomicReference<>();
         final Semaphore semaphore = new Semaphore(0);
 
         final StreamObserver<SparkJobRequest> requestObserver = asyncStub.submitJob(new StreamObserver<SparkJobResponse>() {
@@ -122,7 +122,8 @@ public class SparkDriverClient {
             public void onError(Throwable throwable) {
                 Status status = Status.fromThrowable(throwable);
                 logger.error("grpc client side receive error: " + status);
-                serverSideError.set(status.getDescription() == null ? "Unknown error! Please make sure the spark driver is working by running \"bin/spark_client.sh start\"" : status.getDescription());
+//                serverSideError.set(status.getDescription() == null ? "Unknown error! Please make sure the spark driver is working by running \"bin/spark_client.sh start\"" : status.getDescription());
+                serverSideError.set(throwable);
                 semaphore.release();
             }
 
@@ -158,7 +159,7 @@ public class SparkDriverClient {
 
         private final Semaphore semaphore;
         private final AtomicBoolean serverSideCompleted;
-        private final AtomicReference<String> serverSideError;
+        private final AtomicReference<Throwable> serverSideError;
         private final List<SparkJobResponse> responses;
         private final StreamObserver<SparkJobRequest> requestObserver;
         private final String scanRequestId;
@@ -167,7 +168,7 @@ public class SparkDriverClient {
         SparkJobRequest subsequentRequest;
         private boolean fetched;
 
-        public KyStorageVisitResponseStreamer(Semaphore semaphore, AtomicBoolean serverSideCompleted, AtomicReference<String> serverSideError, List<SparkJobResponse> responses, StreamObserver<SparkJobRequest> requestObserver, String scanRequestId, long startTime, long queryMaxScanBytes) {
+        public KyStorageVisitResponseStreamer(Semaphore semaphore, AtomicBoolean serverSideCompleted, AtomicReference<Throwable> serverSideError, List<SparkJobResponse> responses, StreamObserver<SparkJobRequest> requestObserver, String scanRequestId, long startTime, long queryMaxScanBytes) {
             this.semaphore = semaphore;
             this.serverSideCompleted = serverSideCompleted;
             this.serverSideError = serverSideError;
@@ -193,8 +194,11 @@ public class SparkDriverClient {
                 }
 
                 if (serverSideError.get() != null) {
-                    throw new RuntimeException(serverSideError.get());
-                    //throw new RuntimeException("Failed to visit KyStorage! check logs/spark-driver.log for more details");
+                    Status status = Status.fromThrowable(serverSideError.get());
+                    if (status.getCode() == Status.DEADLINE_EXCEEDED.getCode()) {
+                        throw new ResourceLimitExceededException(serverSideError.get().getMessage());
+                    }
+                    throw new RuntimeException(status.getDescription() == null ? "Unknown error! Please make sure the spark driver is working by running \"bin/spark_client.sh start\"" : status.getDescription());
                 }
 
                 if (responses.size() != 1) {

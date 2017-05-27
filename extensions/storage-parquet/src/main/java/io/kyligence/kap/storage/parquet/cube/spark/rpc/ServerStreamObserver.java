@@ -33,6 +33,8 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.api.java.JavaRDD;
@@ -258,7 +260,13 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
     }
 
     private void onFail(final StreamObserver<SparkJobProtos.SparkJobResponse> responseObserver, String streamIdentifier, Throwable cause) {
-        StatusRuntimeException statusRuntimeException = Status.INTERNAL.withDescription("KyStorage failure due to: " + cause.getMessage()).withCause(cause).asRuntimeException();
+        Status status = null;
+        if (ExceptionUtils.getRootCause(cause) instanceof ResourceLimitExceededException) {
+            status = Status.DEADLINE_EXCEEDED;
+        } else {
+            status = Status.INTERNAL;
+        }
+        StatusRuntimeException statusRuntimeException = status.withDescription("KyStorage failure due to: " + cause.getMessage()).withCause(cause).asRuntimeException();
         responseObserver.onError(statusRuntimeException);
 
         storageVisitStates.invalidate(streamIdentifier);//clean the state explicitly
