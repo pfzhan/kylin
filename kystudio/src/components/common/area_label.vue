@@ -20,7 +20,7 @@
 <script>
 export default {
   name: 'labelArea',
-  props: ['labels', 'selectedlabels', 'placeholder', 'changeable', 'datamap'],
+  props: ['labels', 'refreshInfo', 'selectedlabels', 'placeholder', 'changeable', 'datamap'],
   data () {
     return {
       selectedL: this.selectedlabels
@@ -39,17 +39,24 @@ export default {
       return arr
     }
   },
+  watch: {
+    selectedlabels (val) {
+      this.selectedL = val
+    }
+  },
   methods: {
     change (e) {
-      console.log(this.selectedlabels, 'seee')
       var ev = ev || window.event
       var target = ev.target || ev.srcElement
       this.$emit('change', target.innerText, target)
+      this.$emit('refreshData', this.selectedL, this.refreshInfo)
+      // this.refreshData = this.selectedL
+      // Object.assign(this.refreshData, [], this.selectedL)
     },
     removeTag (data) {
-      for (var k = 0; k < (this.selectedlabels && this.selectedlabels.length || 0); k++) {
-        if (this.selectedlabels[k] === data.value) {
-          this.selectedlabels.splice(k, 1)
+      for (var k = 0; k < (this.selectedL && this.selectedL.length || 0); k++) {
+        if (this.selectedL[k] === data.value) {
+          this.selectedL.splice(k, 1)
           break
         }
       }

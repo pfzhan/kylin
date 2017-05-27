@@ -36,7 +36,7 @@
     <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('buildTrigger')}} </el-col>
     <el-col :span="16">
       <el-date-picker class="input_width" @change="changeTriggerTime()"
-        v-model="scheduler.desc.triggerTime"
+        v-model="scheduler.desc.scheduled_run_time"
         type="datetime"
         align="right">
       </el-date-picker>
@@ -127,9 +127,9 @@ export default {
       this.cubeDesc.auto_merge_time_ranges.splice(index, 1)
     },
     initRepeatInterval: function (data) {
-      let _week = Math.floor(data.repeatInterval / 604800000)
-      let _day = Math.floor(data.repeatInterval / 86400000)
-      let _hour = Math.floor(data.repeatInterval / 3600000)
+      let _week = Math.floor(data.partition_interval / 604800000)
+      let _day = Math.floor(data.partition_interval / 86400000)
+      let _hour = Math.floor(data.partition_interval / 3600000)
       if (_week === 0) {
         if (_day === 0) {
           this.intervalRange.type = 'hours'
@@ -147,7 +147,7 @@ export default {
       this.cubeDesc.partition_date_start = this.cubeDesc.partition_date_start.getTime()
     },
     changeTriggerTime: function () {
-      this.scheduler.desc.triggerTime = this.scheduler.desc.triggerTime.getTime()
+      this.scheduler.desc.scheduled_run_time = this.scheduler.desc.scheduled_run_time.getTime()
     },
     changeTimeRange: function (timeRange, index) {
       let time = 0
@@ -163,11 +163,12 @@ export default {
       this.getScheduler(schedulerName).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           this.initRepeatInterval(data)
-          this.scheduler.desc.triggerTime = data.triggerTime
-          this.scheduler.desc.repeatInterval = data.repeatInterval
+          this.scheduler.desc.scheduled_run_time = data.scheduled_run_time
+          this.scheduler.desc.partition_interval = data.partition_interval
         })
       }).catch((res) => {
-        handleError(res)
+        handleError(res, () => {
+        })
       })
     },
     changeInterval: function () {
@@ -181,7 +182,7 @@ export default {
       if (this.intervalRange.type === 'weeks') {
         time = this.intervalRange.range * 604800000
       }
-      this.scheduler.desc.repeatInterval = time
+      this.scheduler.desc.partition_interval = time
     },
     addNewTimeRange: function () {
       this.timeRanges.push({type: 'days', range: 0, mills: 0})
@@ -192,7 +193,7 @@ export default {
     if (this.cubeDesc.auto_merge_time_ranges) {
       this.conversionTime()
     }
-    if (this.scheduler.desc.triggerTime && this.scheduler.desc.repeatInterval) {
+    if (this.scheduler.desc.scheduled_run_time && this.scheduler.desc.partition_interval) {
       this.initRepeatInterval(this.scheduler.desc)
     } else {
       this.initScheduler()

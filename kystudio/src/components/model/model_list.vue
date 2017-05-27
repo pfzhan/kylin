@@ -192,7 +192,7 @@ export default {
       return this.loadModelDiagnoseList(params1)
     },
     changeBar (val) {
-      this.modelStaticsRange = val
+      this.modelStaticsRange = (val / 100).toFixed(2)
       this.openCollectRange = !!val
     },
     cancelSetModelStatics () {

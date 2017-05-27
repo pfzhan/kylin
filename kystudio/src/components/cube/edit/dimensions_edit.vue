@@ -54,7 +54,7 @@
                 </el-row> 
                 <el-row> 
                   <el-col :span="24">
-                    <area_label :labels="currentRowkey"  :selectedlabels="group.includes" @change="refreshAggragation(group, group_index)" @checklabel="showDetail($event, group.includes)"> 
+                    <area_label :labels="currentRowkey" :refreshInfo="{index: group_index, key: 'includes'}" @refreshData="refreshIncludeData"   :selectedlabels="group.includes" @change="refreshAggragation(group_index)" @checklabel="showDetail($event, group.includes)"> 
                     </area_label>
                   </el-col>
                 </el-row>
@@ -63,7 +63,7 @@
                 </el-row>  
                 <el-row>
                   <el-col :span="24" >
-                    <area_label :labels="group.includes"  :selectedlabels="group.select_rule.mandatory_dims" @change="refreshAggragation(group, group_index)" @checklabel="showDetail($event, group.select_rule.mandatory_dims)"> 
+                    <area_label :labels="group.includes" :refreshInfo="{index: group_index, key: 'mandatory_dims'}" @refreshData="refreshMandatoryData"  :selectedlabels="group.select_rule.mandatory_dims" @change="refreshAggragation(group_index)"   @checklabel="showDetail($event, group.select_rule.mandatory_dims)"> 
                     </area_label>
                   </el-col>
                 </el-row>
@@ -74,7 +74,7 @@
                   <el-col :span="24">
                     <el-row class="row_padding" :gutter="10" v-for="(hierarchy_dims, hierarchy_index) in group.select_rule.hierarchy_dims" :key="hierarchy_index">
                        <el-col :span="23" >
-                        <area_label :labels="group.includes"  :selectedlabels="hierarchy_dims" @change="refreshAggragation(group, group_index)" @checklabel="showDetail($event, hierarchy_dims)"> 
+                        <area_label :labels="group.includes" :refreshInfo="{gindex: group_index, hindex: hierarchy_index, key: 'hierarchy_dims'}" @refreshData="refreshHierarchyData"  :selectedlabels="hierarchy_dims" @change="refreshAggragation(group_index)" @checklabel="showDetail($event, hierarchy_dims)"> 
                         </area_label>
                       </el-col>  
                       <el-col :span="1">
@@ -98,7 +98,7 @@
                 <el-col :span="24">
                   <el-row class="row_padding" :gutter="10" v-for="(joint_dims, joint_index) in group.select_rule.joint_dims" :key="joint_index">
                     <el-col :span="23" >
-                      <area_label :labels="group.includes"  :selectedlabels="joint_dims" @change="refreshAggragation(group, group_index)" @checklabel="showDetail($event, joint_dims)"> 
+                      <area_label :labels="group.includes" :refreshInfo="{gindex: group_index, jindex: joint_index, key: 'joint_dims'}" @refreshData="refreshJointData"  :selectedlabels="joint_dims" @change="refreshAggragation(group_index)" @checklabel="showDetail($event, joint_dims)"> 
                       </area_label>
                     </el-col>
                     <el-col :span="1" >                
@@ -178,112 +178,7 @@
           <el-col :span="2">{{modelDesc.columnsDetail&&modelDesc.columnsDetail[row.column].cardinality}}</el-col>
         </el-row>
         </div>
-   <!--       <div style="position:absolute;top:0;color:#fff;width:100%" class="rowkeyTable">
-         <div style="position:absolute;top:0" class="rowkeyTable"   >
-=======
-         <div style="position:absolute;top:0;display:none" class="rowkeyTable"   >
->>>>>>> #488 test code for scheduler
-        <el-row class="rowkey" v-for="(row, index) in convertedRowkeys" :key="row.column" v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }">
-          <el-col :span="3"></el-col>
-          <el-col :span="6"></el-col>
-          <el-col :span="3"></el-col>
-          <el-col :span="3"> </el-col>
-          <el-col :span="3"></el-col>
-          <el-col :span="3"></el-col>
-          <el-col :span="3"></el-col>
-        </el-row>
-      </div> -->
-<!--       </table> -->
-      <!-- <div style="position:relative">
-      <ul class="dragBar">
-         <li v-for="(rowkey, index) in convertedRowkeys" :key="index"  v-dragging="{ item: rowkey, list: convertedRowkeys, group: 'rowkey' }"></li>
-      </ul>
-      <el-table class="table_margin"
-        :data="convertedRowkeys"
-        style="width: 100%">
-
-        <el-table-column 
-          :label="$t('ID')"
-          width="55"
-          :allData="convertedRowkeys"
-          header-align="center"
-          align="center">
-
-          <template scope="scope" >
-            <el-tag v-dragging="{ item: scope, list: convertedRowkeys, group: 'scope' }">{{scope.$index+1}}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column
-            property="column"
-            :label="$t('column')"
-            header-align="center"
-           align="center">
-           </el-table-column>       
-        <el-table-column
-            :label="$t('encoding')"
-            header-align="center"
-           align="center"
-           width="150">
-            <template scope="scope">
-              <el-select v-model="scope.row.encoding" @change="changeRowkey(scope.row, scope.$index)">
-                <el-option
-                    v-for="(item, index) in initEncodingType(scope.row)"
-                    :key="index"
-                   :label="item.name"
-                   :value="item.name + ':' + item.version">
-                   <el-tooltip effect="light" :content="$t('kylinLang.cube[$store.state.config.encodingTip[item.name]]')" placement="right">
-                     <span style="float: left;width: 90%">{{ item.name }}</span>
-                     <span style="float: right;width: 10%; color: #8492a6; font-size: 13px" v-show="item.version>1">{{ item.version }}</span>
-                  </el-tooltip>
-                </el-option>              
-              </el-select>
-            </template>
-        </el-table-column>    
-        <el-table-column
-            :label="$t('length')"
-            header-align="center"
-           align="center"
-           width="110">
-            <template scope="scope">
-              <el-input v-model="scope.row.valueLength"  :disabled="scope.row.encoding.indexOf('dict')>=0||scope.row.encoding.indexOf('date')>=0||scope.row.encoding.indexOf('time')>=0" @change="changeRowkey(scope.row, scope.$index)"></el-input>     
-            </template>        
-        </el-table-column>    
-        <el-table-column
-         :label="$t('shardBy')"
-         header-align="center"
-         align="center"
-         width="110">
-          <template scope="scope">
-            <el-select v-model="scope.row.isShardBy" @change="changeRowkey(scope.row, scope.$index)">
-              <el-option
-              v-for="item in shardByType"
-              :key="item.name"
-              :label="item.name"
-              :value="item.value">
-              </el-option>
-            </el-select>              
-          </template>
-        </el-table-column>    
-        <el-table-column
-            :label="$t('dataType')"
-            header-align="center"
-           align="center"
-           width="140">
-           <template scope="scope">
-             {{modelDesc.columnsDetail[scope.row.column].datatype}}
-           </template>
-        </el-table-column>    
-        <el-table-column
-            :label="$t('cardinality')"
-            header-align="center"
-           align="center"
-           width="110">
-           <template scope="scope">
-             {{modelDesc.columnsDetail[scope.row.column].cardinality}}
-           </template>
-        </el-table-column>                                        
-      </el-table>  
-      </div> -->
+   
     </el-col>
     <el-col :span="6">
     </el-col>
@@ -333,6 +228,32 @@ export default {
       calCuboid: 'CAL_CUBOID',
       getCubeSuggestions: 'GET_CUBE_SUGGESTIONS'
     }),
+    refreshIncludeData (data, refreshInfo) {
+      var index = refreshInfo.index
+      var key = refreshInfo.key
+      this.$set(this.cubeDesc.aggregation_groups[index], key, data)
+      // this.cubeDesc.aggregation_groups[index].select_rule[key] = data
+    },
+    refreshMandatoryData (data, refreshInfo) {
+      var index = refreshInfo.index
+      var key = refreshInfo.key
+      this.$set(this.cubeDesc.aggregation_groups[index].select_rule, key, data)
+      // this.cubeDesc.aggregation_groups[index].select_rule[key] = data
+    },
+    refreshJointData (data, refreshInfo) {
+      var gindex = refreshInfo.gindex
+      var jindex = refreshInfo.jindex
+      var key = refreshInfo.key
+      this.$set(this.cubeDesc.aggregation_groups[gindex].select_rule[key], jindex, data)
+      // this.cubeDesc.aggregation_groups[gindex].select_rule[key][jindex] = data
+    },
+    refreshHierarchyData (data, refreshInfo) {
+      var gindex = refreshInfo.gindex
+      var jindex = refreshInfo.hindex
+      var key = refreshInfo.key
+      this.$set(this.cubeDesc.aggregation_groups[gindex].select_rule[key], jindex, data)
+      // this.cubeDesc.aggregation_groups[gindex].select_rule[key][jindex] = data
+    },
     resetDimensions: function () {
       this.cubeDesc.dimensions.splice(0, this.cubeDesc.dimensions.length)
       this.dim_cap = 0
@@ -563,10 +484,10 @@ export default {
         this.refreshAggragation(groupIndex)
       })
     },
-    refreshAggragation: function (index) {
-      this.calCuboid({cubeDescData: JSON.stringify(this.cubeDesc), aggIndex: index}).then((res) => {
+    refreshAggragation: function (groupindex) {
+      this.calCuboid({cubeDescData: JSON.stringify(this.cubeDesc), aggIndex: groupindex}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
-          this.$set(this.cuboidList, index, data)
+          this.$set(this.cuboidList, groupindex, data)
         })
       }).catch((res) => {
         handleError(res)

@@ -7,7 +7,7 @@
     <el-step :title="$t('measures')" @click.native="step(4)"></el-step>
     <el-step :title="$t('refreshSetting')" @click.native="step(5)"></el-step>
     <el-step :title="$t('tableIndex')" @click.native="step(6)"></el-step>
-    <el-step :title="$t('configurationOverwrites')" @click.native="step(7)"></el-step>
+    <el-step :title="$t('AdvancedSetting')" @click.native="step(7)"></el-step>
     <el-step :title="$t('overview')" @click.native="step(8)"></el-step>
   </el-steps>
   <div class="ksd-mt-10 ksd-mb-10">
@@ -64,6 +64,7 @@ export default {
       isEdit: this.extraoption.isEdit,
       hisCubeMetaStr: '',
       hisRawTableStr: '',
+      hisSchedulerStr: '',
       renderCubeFirst: false,
       index: 0,
       // 定时保存配置
@@ -87,11 +88,11 @@ export default {
       scheduler: {
         cubeName: '',
         desc: {
-          partitionInterval: 86400000,
-          repeatCount: 65535,
-          repeatInterval: 0,
+          partition_interval: 86400000,
+          repeat_count: 65535,
+          repeat_interval: 0,
           startTime: 0,
-          triggerTime: 0
+          scheduled_run_time: 0
         }
       },
       selected_project: this.$store.state.project.selected_project,
@@ -444,13 +445,15 @@ export default {
     checkHasChanged () {
       var filterCubeMetaStr = this.filterUnCheckObject(this.cubeDetail)
       var filterRawTableStr = this.filterUnCheckObject(this.rawTable.tableDetail)
+      var filterSchedulerStr = this.this.scheduler.desc
       if (this.renderCubeFirst) {
         this.renderCubeFirst = false
         this.hisCubeMetaStr = filterCubeMetaStr
         this.hisRawTableStr = filterRawTableStr
+        this.hisSchedulerStr = filterSchedulerStr
         return false
       } else {
-        if (this.hisCubeMetaStr === filterCubeMetaStr && this.hisRawTableStr === filterRawTableStr) {
+        if (this.hisCubeMetaStr === filterCubeMetaStr && this.hisRawTableStr === filterRawTableStr && this.hisSchedulerStr === filterSchedulerStr) {
           return false
         }
       }
@@ -704,8 +707,8 @@ export default {
     clearTimeout(this.cubeSaveST)
   },
   locales: {
-    'en': {cubeInfo: 'Cube Info', sampleSql: 'Sample Sql', dimensions: 'Dimensions', measures: 'Measures', refreshSetting: 'Refresh Setting', tableIndex: 'Table Index', configurationOverwrites: 'Configuration Overwrites', overview: 'Overview', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: 'The CUBE named [ ', checkCubeNamePartTwo: ' ] already exists!', checkDimensions: 'Dimension can\'t be null!', checkAggGroup: 'Each aggregation group can\'t be empty!', checkMeasuresCount: '[ COUNT] metric is required!', checkRowkeyInt: 'int encoding column length should between 1 and 8!', checkRowkeyShard: 'At most one \'shard by\' column is allowed!', checkColumnFamily: 'All measures need to be assigned to column family!', checkColumnFamilyNull: 'Each column family can\'t not be empty!', checkCOKey: 'Property name is required!', checkCOValue: 'Property value is required!', rawtableSetSorted: 'You must set one column with an index value of sorted! ', rawtableSortedWidthDate: 'The first column with "sorted" index must be a column with "integer", "time" or "date" encoding! ', rawtableSingleSorted: 'Only one column is allowed to set with an index value of sorted! ', errorMsg: '错误信息'},
-    'zh-cn': {cubeInfo: 'Cube信息', sampleSql: '查询样例', dimensions: '维度', measures: '度量', refreshSetting: '更新配置', tableIndex: '表索引', configurationOverwrites: '配置覆盖', overview: '概览', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: '名为 [ ', checkCubeNamePartTwo: '] 的CUBE已经存在!', checkDimensions: '维度不能为空!', checkAggGroup: '任意聚合组不能为空!', checkMeasuresCount: '[ COUNT] 度量是必须的!', checkRowkeyInt: '编码为int的列的长度应该在1-8之间!', checkRowkeyShard: '最多只允许一个\'shard by\'的列!', checkColumnFamily: '所有度量都需要被分配到列族中!', checkColumnFamilyNull: '任一列族不能为空!', checkCOKey: '属性名不能为空!', checkCOValue: '属性值不能为空!', rawtableSetSorted: '必须设置一个列的index的值为sorted! ', rawtableSortedWidthDate: '第一个sorted列必须是编码为integer、date或time的列', rawtableSingleSorted: '只允许设置一个列的index的值为sorted', errorMsg: '错误信息'}
+    'en': {cubeInfo: 'Cube Info', sampleSql: 'Sample Sql', dimensions: 'Dimensions', measures: 'Measures', refreshSetting: 'Refresh Setting', tableIndex: 'Table Index', AdvancedSetting: 'Advanced Setting', overview: 'Overview', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: 'The CUBE named [ ', checkCubeNamePartTwo: ' ] already exists!', checkDimensions: 'Dimension can\'t be null!', checkAggGroup: 'Each aggregation group can\'t be empty!', checkMeasuresCount: '[ COUNT] metric is required!', checkRowkeyInt: 'int encoding column length should between 1 and 8!', checkRowkeyShard: 'At most one \'shard by\' column is allowed!', checkColumnFamily: 'All measures need to be assigned to column family!', checkColumnFamilyNull: 'Each column family can\'t not be empty!', checkCOKey: 'Property name is required!', checkCOValue: 'Property value is required!', rawtableSetSorted: 'You must set one column with an index value of sorted! ', rawtableSortedWidthDate: 'The first column with "sorted" index must be a column with "integer", "time" or "date" encoding! ', rawtableSingleSorted: 'Only one column is allowed to set with an index value of sorted! ', errorMsg: '错误信息'},
+    'zh-cn': {cubeInfo: 'Cube信息', sampleSql: '查询样例', dimensions: '维度', measures: '度量', refreshSetting: '更新配置', tableIndex: '表索引', AdvancedSetting: '高级设置', overview: '概览', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: '名为 [ ', checkCubeNamePartTwo: '] 的CUBE已经存在!', checkDimensions: '维度不能为空!', checkAggGroup: '任意聚合组不能为空!', checkMeasuresCount: '[ COUNT] 度量是必须的!', checkRowkeyInt: '编码为int的列的长度应该在1-8之间!', checkRowkeyShard: '最多只允许一个\'shard by\'的列!', checkColumnFamily: '所有度量都需要被分配到列族中!', checkColumnFamilyNull: '任一列族不能为空!', checkCOKey: '属性名不能为空!', checkCOValue: '属性值不能为空!', rawtableSetSorted: '必须设置一个列的index的值为sorted! ', rawtableSortedWidthDate: '第一个sorted列必须是编码为integer、date或time的列', rawtableSingleSorted: '只允许设置一个列的index的值为sorted', errorMsg: '错误信息'}
   }
 }
 </script>

@@ -402,8 +402,8 @@ export default {
         this.scanSampleRatioDialogVisible = false
         this.scanRatioDialogVisible = false
         this.loadResultVisible = true
-        this.selectTables = []
-        this.selectTablesNames = []
+        Object.assign(this.selectTables, [], [])
+        Object.assign(this.selectTablesNames, [], [])
       }, (res) => {
         btn.loading = false
         handleError(res)
