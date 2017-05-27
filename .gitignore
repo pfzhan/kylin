@@ -96,6 +96,7 @@ extensions/examples/test_metadata/*
 
 #kybot
 kybot/
+.kyaccount
 
 # maven
 dependency-reduced-pom.xml
