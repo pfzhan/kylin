@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -47,6 +48,7 @@ import org.apache.http.util.EntityUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.BasicService;
@@ -191,7 +193,7 @@ public class KyBotService extends BasicService {
     }
 
     public String validateToken() {
-        String token = kapConfig.getKyAccountToken();
+        String token = getKyAccountToken();
         if (StringUtils.isEmpty(token)) {
             return NO_ACCOUNT;
         }
@@ -213,9 +215,9 @@ public class KyBotService extends BasicService {
             request.releaseConnection();
         }
     }
-    
+
     public String setKybotAgreement() {
-        String token = kapConfig.getKyAccountToken();
+        String token = getKyAccountToken();
         if (StringUtils.isEmpty(token)) {
             return NO_ACCOUNT;
         }
@@ -229,18 +231,15 @@ public class KyBotService extends BasicService {
             HttpResponse response = client.execute(request);
             return EntityUtils.toString(response.getEntity());
         } catch (Exception ex) {
-            logger.error("Authentication failed due to exception.", ex);
+            logger.error("Failed to set user agreement result from kybot.", ex);
             return AUTH_FAILURE;
         } finally {
             request.releaseConnection();
         }
     }
-    
-    public String getKybotAgreement() {
-        String token = kapConfig.getKyAccountToken();
-        if (StringUtils.isEmpty(token)) {
-            return NO_ACCOUNT;
-        }
+
+    public boolean getKybotAgreement() {
+        String token = getKyAccountToken();
 
         DefaultHttpClient client = getHttpClient();
         String url = kapConfig.getKyBotSiteUrl() + "/api/user/agreement";
@@ -249,13 +248,17 @@ public class KyBotService extends BasicService {
         try {
             request.setHeader("authorization", "bearer " + token);
             HttpResponse response = client.execute(request);
-            return EntityUtils.toString(response.getEntity());
+            if (response.getStatusLine().getStatusCode() == 200) {
+                Map<String, Object> agreementMap = JsonUtil.readValue(EntityUtils.toString(response.getEntity()), Map.class);
+                return (boolean) agreementMap.get("isUserAgreement");
+            }
         } catch (Exception ex) {
-            logger.error("Authentication failed due to exception.", ex);
-            return AUTH_FAILURE;
+            logger.error("Failed to get user agreement result from kybot.", ex);
         } finally {
             request.releaseConnection();
         }
+
+        return false;
     }
 
     public boolean getDaemonStatus() {
@@ -313,5 +316,10 @@ public class KyBotService extends BasicService {
             logger.error("Failed to execute kybot/agent/bin/disable.sh");
             return false;
         }
+    }
+
+    private String getKyAccountToken() {
+        readLocalKyAccountToken();
+        return kapConfig.getKyAccountToken();
     }
 }
