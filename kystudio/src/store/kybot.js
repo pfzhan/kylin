@@ -34,6 +34,7 @@ export default {
         //   msg: ''
         // }
         commit(types.GET_KYSTATUS, {data: response})
+        return response
       })
     },
     [types.START_KYBOT]: function ({ commit }) {

@@ -12,7 +12,8 @@ export default {
   },
   // KyAccount 登陆
   loginKybot (param) {
-    return Vue.resource(apiUrl + 'kyaccount/auth?username=' + param.username + '&password=' + param.password).save()
+    // return Vue.resource(apiUrl + 'kyaccount/auth?username=' + param.username + '&password=' + param.password).save()
+    return Vue.resource(apiUrl + 'kyaccount/auth').save(param)
   },
   // 获取KyBot自动上传是否开启
   getkybotStatus () {

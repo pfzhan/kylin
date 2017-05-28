@@ -42,7 +42,8 @@
         loginKybot: 'LOGIN_KYBOT',
         getKyStatus: 'GET_KYBOT_STATUS',
         startKybot: 'START_KYBOT',
-        stopKybot: 'STOP_KYBOT'
+        stopKybot: 'STOP_KYBOT',
+        getAgreement: 'GET_AGREEMENT'
       }),
       validateUserName (rule, value, callback) {
         console.log('vallue', value)
@@ -52,26 +53,76 @@
           callback()
         }
       },
+      // 开启自动上传服务
+      startService () {
+        this.startKybot().then((resp) => {
+          handleSuccess(resp, (data, code, status, msg) => {
+            console.log('开启2 ：', data)
+            if (data) {
+              this.$message({
+                type: 'success',
+                message: this.$t('openSuccess')
+              })
+              this.$emit('openSwitch')
+              this.$emit('closeLoginForm')
+            }
+          })
+        })
+      },
       // 登录kybot
       loginKyBot () {
-        this.$refs['loginKybotForm'].validate((valid) => {
+        this.$refs['loginKybotForm'].validate((valid) => { // 表单验证通过之后
           if (valid) {
             this.loginLoading = true
             let param = {
               username: this.kyBotAccount.username,
               password: this.kyBotAccount.password
             }
-            this.loginKybot(param).then((result) => {
+            this.loginKybot(param).then((result) => { // 登录
               handleSuccess(result, (data, code, status, msg) => {
                 console.log('登录成功', result)
-                // _this.kyBotUploadVisible = false
-                // _this.infoKybotVisible = true
                 this.loginLoading = false
-                this.$emit('onLogin')
-                // 检测有没有开启
-                this.getKyStatus().then((resp) => {
-                  // if (!resp.data) {// 未开启
-                  // }
+                // A首先获取有没有开启过自动上传的服务，开启了则更新switch的按钮状态其他什么都不做
+                // B否则
+                //  a)检测有没有同意过协议 ：如果没有同意弹出同意并开启自动上传的层
+                //  b)如果已经同意过协议则直接发送开启自动服务
+                // A
+                this.getKyStatus().then((res) => {
+                  console.log('res', res)
+                  handleSuccess(res, (data, code, status, msg) => {
+                    console.log('data 状态;', data)
+                    if (data) { // 开启了 则开启
+                      // this.isopend = true
+                      console.log('2:', data)
+                      this.$emit('openSwitch')
+                      this.$emit('closeLoginForm')
+                    } else {
+                      // a
+                      this.getAgreement().then((res) => {
+                        handleSuccess(res, (data, code, status, msg) => {
+                          console.log('3 .data :', data, data.isUserAgreement)
+                          if (!data.isUserAgreement) { // 没有同意过协议 开协议层
+                            console.log('3: 没有')
+                            this.$emit('closeLoginOpenKybot')
+                          } else {
+                            // b)
+                            console.log('4: 同意过了')
+                            this.startService()
+                          }
+                        })
+                      })
+                    }
+                  }, (errResp) => {
+                    handleError(errResp, (data, code, status, msg) => {
+                      console.log(data, code, status, msg)
+                      if (status === 400) {
+                        this.$message({
+                          type: 'success',
+                          message: msg
+                        })
+                      }
+                    })
+                  })
                 })
               }, (res) => {
                 handleError(res, (data, code, status, msg) => {

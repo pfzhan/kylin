@@ -9,12 +9,13 @@
     <el-dropdown-item command="kybot">
       {{$t('kybotAuto')}}
       <el-switch
-        v-if="switchVisible"
         v-model="isopend"
         on-color="#13ce66"
         off-color="#ff4949"
         @change="changeKystaus"
-        @click.native.stop>
+        @click.native.stop
+        @openSwitch="openSwitch"
+        @closeSwitch="closeSwitch">
       </el-switch>
 
     </el-dropdown-item>
@@ -30,7 +31,7 @@
   </about_kap>
 </el-dialog>
 <el-dialog v-model="kyBotUploadVisible" title="KyAccount | Sign in" size="tiny" @close="resetLoginKybotForm">
-  <login_kybot ref="loginKybotForm" @onLogin="closeLoginForm"></login_kybot>
+  <login_kybot ref="loginKybotForm" @closeLoginForm="closeLoginForm" @closeLoginOpenKybot="closeLoginOpenKybot"></login_kybot>
   <!-- <el-form :model="kyBotAccount" :rules="rules" ref="loginKybotForm" >
     <el-form-item prop="username">
       <el-input v-model="kyBotAccount.username" placeholder="username"></el-input>
@@ -76,7 +77,6 @@
         infoKybotVisible: false,
         // agreeKyBot: false,
         isopend: false, // 是否已开启
-        switchVisible: false, // 是否显示switch 按钮
         // rules: {
         //   username: [
         //     { trigger: 'blur', validator: this.validateUserName }
@@ -126,10 +126,15 @@
           })
           this.aboutKapVisible = true
         } else if (val === 'kybot') {
+          // 需要先检测有没有登录 待修改
           this.kyBotUploadVisible = true
         }
       },
       closeLoginForm () {
+        this.kyBotUploadVisible = false
+        // this.infoKybotVisible = true
+      },
+      closeLoginOpenKybot () {
         this.kyBotUploadVisible = false
         this.infoKybotVisible = true
       },
@@ -163,42 +168,31 @@
         // 同意协议并开启自动服务
         // this.startLoading = true
         this.startKybot().then((resp) => {
-          if (resp.data) {
-            // console.log('开启 ：', resp)
-            // this.startLoading = false
-            this.$message({
-              type: 'success',
-              message: resp.msg
-            })
-          }
-          // this.$emit('onStart')
-        }, (resp) => {
-          this.$message({
-            type: 'error',
-            message: resp.msg
+          console.log('开启 1：', resp)
+          handleSuccess(resp, (data, code, status, msg) => {
+            console.log('开启2 ：', data)
+            if (data) {
+              this.$message({
+                type: 'success',
+                message: this.$t('openSuccess')
+              })
+            }
           })
-          this.isopend = false // 开启失败
         })
       },
       stopService () {
         // this.startLoading = true
         console.log('stop stop ', this.stopKybot)
         this.stopKybot().then((resp) => {
-          if (resp.data) {
-            // console.log('开启 ：', resp)
-            // this.startLoading = false
-            this.$message({
-              type: 'success',
-              message: resp.msg
-            })
-          }
-          // this.$emit('onStart')
-        }, (resp) => {
-          this.$message({
-            type: 'error',
-            message: resp.msg
+          handleSuccess(resp, (data, code, status, msg) => {
+            console.log('关闭2 ：', data)
+            if (data) {
+              this.$message({
+                type: 'success',
+                message: this.$t('closeSuccess')
+              })
+            }
           })
-          this.isopend = true // 关闭失败
         })
       },
       resetLoginKybotForm () {
@@ -210,11 +204,21 @@
         if (status) { // 开启
           this.startService()
         } else { // 关闭
+          // 需要先检测有没有登录  待修改
+          this.kyBotUploadVisible = true
           this.stopService()
         }
       },
       closeStartLayer () {
         this.infoKybotVisible = false
+      },
+      // 开启switch事件
+      openSwitch () {
+        this.isopend = true
+      },
+      // 关闭switch事件
+      closeSwitch () {
+        this.isopend = false
       }
     },
     computed: {
@@ -226,16 +230,20 @@
       }
     },
     created () {
-      let _this = this
-      this.getKybotAccount().then((res) => {
+      // 获取是否已开启自动上传kybot switch 按钮切换状态
+      this.getKyStatus().then((res) => {
+        console.log('res', res)
         handleSuccess(res, (data, code, status, msg) => {
+          console.log('data 状态;', data)
           if (!data) {
-            _this.switchVisible = false
+            console.log('1:', data)
+            this.isopend = false
           } else {
-            _this.switchVisible = true
+            this.isopend = true
+            console.log('2:', data)
           }
-        }, (res) => {
-          handleError(res, (data, code, status, msg) => {
+        }, (errResp) => {
+          handleError(errResp, (data, code, status, msg) => {
             console.log(data, code, status, msg)
             if (status === 400) {
               this.$message({
@@ -245,9 +253,34 @@
             }
           })
         })
-      }).then(() => { // 检测是否已经开启自动上传
-        _this.getKyStatus()
       })
+      // this.getKybotAccount().then((res) => {
+      //   console.log('switch status res ==', res)
+      //   handleSuccess(res, (data, code, status, msg) => {
+      //     console.log('data 状态;', data)
+      //     if (!data) {
+      //       console.log('1:', data)
+      //       this.isopend = false
+      //     } else {
+      //       this.isopend = true
+      //       console.log('2:', data)
+      //     }
+      //   }, (res) => {
+      //     handleError(res, (data, code, status, msg) => {
+      //       console.log(data, code, status, msg)
+      //       if (status === 400) {
+      //         this.$message({
+      //           type: 'success',
+      //           message: msg
+      //         })
+      //       }
+      //     })
+      //   })
+      // }).then(() => { // 检测是否已经开启自动上传
+      //   this.getKyStatus().then((res) => {
+      //     console.log('')
+      //   })
+      // })
     },
     components: {
       'about_kap': aboutKap,
@@ -255,8 +288,8 @@
       'start_kybot': startKybot
     },
     locales: {
-      'en': {usernameEmpty: 'Please enter username', usernameRule: 'username contains only numbers, letters and character "_"', noUserPwd: 'password required', agreeAndOpen: 'agree the protocol and open the automatic service', kybotAuto: 'KyBot Auto Upload', Manual: 'KAP Manual', kybotService: 'KyBot Service', aboutKap: 'About KAP'},
-      'zh-cn': {usernameEmpty: '请输入用户名', usernameRule: '名字只能包含数字字母下划线', noUserPwd: '密码不能为空', agreeAndOpen: '同意协议并开启自动服务', kybotAuto: 'KyBot自动上传', Manual: 'KAP手册', kybotService: 'KyBot服务', aboutKap: '关于KAP'}
+      'en': {usernameEmpty: 'Please enter username', usernameRule: 'username contains only numbers, letters and character "_"', noUserPwd: 'password required', agreeAndOpen: 'agree the protocol and open the automatic service', kybotAuto: 'KyBot Auto Upload', openSuccess: 'open successfully', closeSuccess: 'close successfully'},
+      'zh-cn': {usernameEmpty: '请输入用户名', usernameRule: '名字只能包含数字字母下划线', noUserPwd: '密码不能为空', agreeAndOpen: '同意协议并开启自动服务', kybotAuto: 'KyBot 自动上传', openSuccess: '成功开启', closeSuccess: '成功关闭'}
     }
   }
 </script>
