@@ -24,12 +24,16 @@
 
 package io.kyligence.kap.metadata.scheduler;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static io.kyligence.kap.metadata.scheduler.SchedulerJobInstance.SCHEDULER_RESOURCE_ROOT;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -39,10 +43,6 @@ import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static io.kyligence.kap.metadata.scheduler.SchedulerJobInstance.SCHEDULER_RESOURCE_ROOT;
 
 public class SchedulerJobManager {
     public static final Serializer<SchedulerJobInstance> SCHEDULER_JOB_INSTANCE_SERIALIZER = new JsonSerializer<>(SchedulerJobInstance.class);
@@ -126,8 +126,8 @@ public class SchedulerJobManager {
             String project = job.getProject();
             checkState(StringUtils.isNotBlank(project), "job (at %s) project must not be blank", path);
 
-            String cube = job.getRelatedCube();
-            checkState(StringUtils.isNotBlank(cube), "job (at %s) related cube must not be blank", path);
+            String realization = job.getRelatedRealization();
+            checkState(StringUtils.isNotBlank(realization), "job (at %s) related realization must not be blank", path);
 
             String startTime = Long.toString(job.getPartitionStartTime());
             checkState(StringUtils.isNotBlank(startTime), "job (at %s) partition start time must not be blank", path);
@@ -166,14 +166,14 @@ public class SchedulerJobManager {
         return new ArrayList<SchedulerJobInstance>(jobMap.values());
     }
 
-    public List<SchedulerJobInstance> getSchedulerJobs(String project, String cubeName) throws IOException {
+    public List<SchedulerJobInstance> getSchedulerJobs(String project, String realizationName) throws IOException {
         List<SchedulerJobInstance> list = listAllSchedulerJobs();
         List<SchedulerJobInstance> result = new ArrayList<SchedulerJobInstance>();
         Iterator<SchedulerJobInstance> it = list.iterator();
 
         while (it.hasNext()) {
             SchedulerJobInstance ci = it.next();
-            if ((ci.getProject().equalsIgnoreCase(project) || project == null) && (ci.getRelatedCube().equalsIgnoreCase(cubeName) || cubeName == null)) {
+            if ((ci.getProject().equalsIgnoreCase(project) || project == null) && (ci.getRelatedRealization().equalsIgnoreCase(realizationName) || realizationName == null)) {
                 result.add(ci);
             }
         }
@@ -182,7 +182,7 @@ public class SchedulerJobManager {
 
     //TODO: For cube only currently, bind name with cube name
     public SchedulerJobInstance addSchedulerJob(SchedulerJobInstance job) throws IOException {
-        if (job == null || (StringUtils.isEmpty(job.getName()) && StringUtils.isEmpty(job.getRelatedCube()))) {
+        if (job == null || (StringUtils.isEmpty(job.getName()) && StringUtils.isEmpty(job.getRelatedRealization()))) {
             throw new IllegalArgumentException();
         }
 
@@ -190,8 +190,8 @@ public class SchedulerJobManager {
         if (jobMap.containsKey(job.getName()))
             throw new IllegalArgumentException("Schedule job '" + job.getName() + "' already exists");
         */
-        if(StringUtils.isEmpty(job.getName())) {
-            job.setName(job.getRelatedCube());
+        if (StringUtils.isEmpty(job.getName())) {
+            job.setName(job.getRelatedRealization());
         }
 
         String path = SchedulerJobInstance.concatResourcePath(job.getName());
@@ -207,7 +207,7 @@ public class SchedulerJobManager {
     }
 
     public SchedulerJobInstance updateSchedulerJobInstance(SchedulerJobInstance job) throws IOException {
-        if (job.getName() == null || job.getRelatedCube() == null) {
+        if (job.getName() == null || job.getRelatedRealization() == null) {
             throw new IllegalArgumentException("Scheduler job illegal.");
         }
 

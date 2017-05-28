@@ -91,13 +91,13 @@ export default {
     return Vue.resource(apiUrl + 'smart/suggestions').save(cubeDesc)
   },
   getScheduler: (cubeName) => {
-    return Vue.resource(apiUrl + 'cubes/scheduler/' + cubeName).get()
+    return Vue.resource(apiUrl + 'cubes/' + cubeName + '/scheduler_job').get()
   },
   updateScheduler: (scheduler) => {
     return Vue.resource(apiUrl + 'cubes/' + scheduler.cubeName + '/schedule').update(scheduler.desc)
   },
   deleteScheduler: (cubeName) => {
-    return Vue.resource(apiUrl + 'cubes/scheduler/' + cubeName + '/delete').delete()
+    return Vue.resource(apiUrl + 'cubes/' + cubeName + '/scheduler_job').delete()
   },
   saveCubeAccess: (accessData, cubeId) => {
     return Vue.resource(apiUrl + 'access/CubeInstance/' + cubeId).save(accessData)

@@ -29,7 +29,9 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -53,9 +55,11 @@ import org.quartz.CronExpression;
 import org.quartz.CronScheduleBuilder;
 import org.quartz.CronTrigger;
 import org.quartz.JobDataMap;
+import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.TriggerBuilder;
+import org.quartz.TriggerKey;
 import org.quartz.impl.JobDetailImpl;
 import org.quartz.impl.StdSchedulerFactory;
 import org.slf4j.Logger;
@@ -67,6 +71,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -117,6 +122,8 @@ public class KapCubeController extends BasicController implements InitializingBe
 
     private Scheduler scheduler;
 
+    private Map<String, TriggerKey> cubeTriggerKeyMap = new HashMap<>();
+
     @SuppressWarnings("unchecked")
     @Override
     public void afterPropertiesSet() throws Exception {
@@ -131,6 +138,7 @@ public class KapCubeController extends BasicController implements InitializingBe
 
         jobDetail.setJobDataMap(dataMap);
         scheduler.addJob(jobDetail, true);
+        resumeSchedulers();
     }
 
     private Scheduler createScheduler() throws SchedulerException {
@@ -250,6 +258,7 @@ public class KapCubeController extends BasicController implements InitializingBe
             throws IOException, ParseException, SchedulerException {
 
         CubeDesc cubeDesc = deserializeCubeDesc(kapCubeRequest);
+        scheduler.pauseTrigger(cubeTriggerKeyMap.get(cubeDesc.getName()));
         cubeService.validateCubeDesc(cubeDesc, false);
         RawTableDesc rawTableDesc = deserializeRawTableDesc(kapCubeRequest);
         SchedulerJobInstance schedulerJobInstance = deserializeSchedulerJobInstance(kapCubeRequest);
@@ -274,7 +283,8 @@ public class KapCubeController extends BasicController implements InitializingBe
             }
 
             bindSchedulerJobWithCube(schedulerJobInstance, cubeDesc.getName(), cubeDesc.getUuid());
-
+            validateSchedulerJobs(cubeDesc.getUuid());
+            enableSchedulerJob(schedulerJobInstance);
         } catch (Exception ex) {
             cp.rollback();
             cacheService.wipeAllCache();
@@ -282,9 +292,6 @@ public class KapCubeController extends BasicController implements InitializingBe
         } finally {
             cp.close();
         }
-
-        validateSchedulerJobs(cubeDesc.getUuid());
-        enableSchedulerJob(schedulerJobInstance);
 
         String cubeDescData = JsonUtil.writeValueAsIndentString(cubeDesc);
         String rawTableDescData = JsonUtil.writeValueAsIndentString(rawTableDesc);
@@ -328,14 +335,8 @@ public class KapCubeController extends BasicController implements InitializingBe
             } else {
                 rawTableService.deleteRawByUuid(cubeDesc.getUuid(), true);
             }
-
-            SchedulerJobInstance jobInstance = getSchedulerJobByCubeName(cubeDesc.getName());
-            if (null != jobInstance)
-                schedulerJobService.deleteSchedulerJob(jobInstance);
-            schedulerJobInstance.setRelatedCube(cubeDesc.getName());
-            schedulerJobInstance.setRelatedCubeUuid(cubeDesc.getUuid());
-            schedulerJobService.saveSchedulerJob(schedulerJobInstance);
-
+            bindSchedulerJobWithCube(schedulerJobInstance, cubeDesc.getName(), cubeDesc.getUuid());
+            validateSchedulerJobs(cubeDesc.getUuid());
         } catch (Exception ex) {
             cp.rollback();
             cacheService.wipeAllCache();
@@ -343,8 +344,6 @@ public class KapCubeController extends BasicController implements InitializingBe
         } finally {
             cp.close();
         }
-
-        validateSchedulerJobs(cubeDesc.getUuid());
 
         String cubeDescData = JsonUtil.writeValueAsIndentString(cubeDesc);
         String rawTableDescData = JsonUtil.writeValueAsIndentString(rawTableDesc);
@@ -358,6 +357,31 @@ public class KapCubeController extends BasicController implements InitializingBe
         }
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
+    }
+
+    @RequestMapping(value = "{cubeName}/scheduler_job", method = RequestMethod.GET, produces = { "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getSchedulerJob(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) throws IOException {
+        MsgPicker.setMsg(lang);
+        SchedulerJobInstance job = getSchedulerJobByCubeName(cubeName);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, job, "");
+    }
+
+    @RequestMapping(value = "{cubeName}/scheduler_job", method = RequestMethod.DELETE, produces = { "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse deleteSchedulerJob(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) throws IOException, SchedulerException {
+        MsgPicker.setMsg(lang);
+        SchedulerJobInstance job = getSchedulerJobByCubeName(cubeName);
+        schedulerJobService.deleteSchedulerJob(job);
+        if (cubeTriggerKeyMap.containsKey(job.getRelatedRealization())) {
+            CronTrigger trigger = (CronTrigger) scheduler.getTrigger(cubeTriggerKeyMap.get(job.getRelatedRealization()));
+            JobKey jobKey = trigger.getJobKey();
+            if (jobKey != null) {
+                scheduler.deleteJob(jobKey);
+            }
+            cubeTriggerKeyMap.remove(job.getRelatedRealization());
+        }
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, 0, "");
     }
 
     private CubeDesc deserializeCubeDesc(KapCubeRequest kapCubeRequest) throws IOException {
@@ -419,19 +443,20 @@ public class KapCubeController extends BasicController implements InitializingBe
         SchedulerJobInstance older = getSchedulerJobByCubeName(cubeName);
         if (null != older)
             schedulerJobService.deleteSchedulerJob(older);
-        younger.setRelatedCube(cubeName);
-        younger.setRelatedCubeUuid(cubeUuid);
+        younger.setRelatedRealization(cubeName);
+        younger.setName(cubeName);
+        younger.setRelatedRealizationUuid(cubeUuid);
         schedulerJobService.saveSchedulerJob(younger);
     }
 
     // Keep SchedulerJob consistent with cubes.
     private void validateSchedulerJobs(String uuid) throws IOException {
         for (SchedulerJobInstance jobInstance : schedulerJobService.listAllSchedulerJobs()) {
-            if (!jobInstance.getRelatedCubeUuid().equalsIgnoreCase(uuid))
+            if (!jobInstance.getRelatedRealizationUuid().equalsIgnoreCase(uuid))
                 continue;
 
             for (String cubeName : kapCubeService.getCubesByUuid(uuid)) {
-                if (!jobInstance.getRelatedCube().equalsIgnoreCase(cubeName)) {
+                if (!jobInstance.getRelatedRealization().equalsIgnoreCase(cubeName)) {
                     schedulerJobService.deleteSchedulerJob(jobInstance);
                 }
             }
@@ -440,7 +465,7 @@ public class KapCubeController extends BasicController implements InitializingBe
 
     private SchedulerJobInstance getSchedulerJobByCubeName(String cubeName) throws IOException {
         for (SchedulerJobInstance jobInstance : schedulerJobService.listAllSchedulerJobs()) {
-            if (jobInstance.getRelatedCube().equalsIgnoreCase(cubeName))
+            if (jobInstance.getRelatedRealization().equalsIgnoreCase(cubeName))
                 return jobInstance;
 
         }
@@ -460,7 +485,7 @@ public class KapCubeController extends BasicController implements InitializingBe
 
         JobDataMap dataMap = jobDetail.getJobDataMap();
         dataMap.put("name", instance.getName());
-        dataMap.put("cube", instance.getRelatedCube());
+        dataMap.put("cube", instance.getRelatedRealization());
         dataMap.put("startTime", instance.getPartitionStartTime());
         dataMap.put("partitionInterval", instance.getPartitionInterval());
         dataMap.put("authentication", SecurityContextHolder.getContext().getAuthentication());
@@ -471,9 +496,26 @@ public class KapCubeController extends BasicController implements InitializingBe
         CronExpression cronExp = new CronExpression(
                 createCronExpression(instance.getRepeatInterval(), instance.getScheduledRunTime()));
         CronScheduleBuilder cronScheduleBuilder = CronScheduleBuilder.cronSchedule(cronExp);
-        CronTrigger trigger = TriggerBuilder.newTrigger().startAt(new Date(instance.getScheduledRunTime()))
-                .withSchedule(cronScheduleBuilder).build();
 
+        CronTrigger trigger = null;
+
+        if (cubeTriggerKeyMap.containsKey(instance.getRelatedRealization())) {
+            trigger = (CronTrigger) scheduler.getTrigger(cubeTriggerKeyMap.get(instance.getRelatedRealization()));
+            JobKey jobKey = trigger.getJobKey();
+
+            if (jobKey != null) {
+                scheduler.deleteJob(jobKey);
+            }
+        }
+        trigger = TriggerBuilder.newTrigger().startAt(new Date(instance.getScheduledRunTime())).withSchedule(cronScheduleBuilder).build();
+        cubeTriggerKeyMap.put(instance.getRelatedRealization(), trigger.getKey());
         scheduler.scheduleJob(jobDetail, trigger);
+    }
+
+    private void resumeSchedulers() throws ParseException, IOException, SchedulerException {
+        List<SchedulerJobInstance> schedulerList = schedulerJobService.listAllSchedulerJobs();
+        for (SchedulerJobInstance schedulerInstance : schedulerList) {
+            enableSchedulerJob(schedulerInstance);
+        }
     }
 }

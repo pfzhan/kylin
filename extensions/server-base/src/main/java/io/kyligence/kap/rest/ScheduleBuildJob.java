@@ -82,7 +82,7 @@ public class ScheduleBuildJob implements Job {
             Long startTime = dataMap.getLong("startTime");
             SchedulerJobInstance schedulerInstance = schedulerJobService.getSchedulerJob(jobName);
             JobInstance  jobInstance = null;
-            CubeInstance cube = jobService.getCubeManager().getCube(schedulerInstance.getRelatedCube());
+            CubeInstance cube = jobService.getCubeManager().getCube(schedulerInstance.getRelatedRealization());
             boolean schedulerRemoved = false;
 
             if(lastJobUuid != null) {

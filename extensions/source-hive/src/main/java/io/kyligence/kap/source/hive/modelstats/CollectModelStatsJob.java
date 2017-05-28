@@ -74,6 +74,10 @@ public class CollectModelStatsJob extends CubingJob {
         this.frequency = frequency;
     }
 
+    public CollectModelStatsJob(String modelName) {
+        this.modelName = modelName;
+    }
+
     public CollectModelStatsJob() {
     }
 

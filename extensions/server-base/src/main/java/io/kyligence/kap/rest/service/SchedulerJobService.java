@@ -42,7 +42,6 @@ import org.springframework.stereotype.Component;
 import io.kyligence.kap.metadata.scheduler.SchedulerJobInstance;
 import io.kyligence.kap.metadata.scheduler.SchedulerJobManager;
 
-
 @Component("schedulerJobService")
 public class SchedulerJobService extends BasicService {
 
@@ -99,7 +98,7 @@ public class SchedulerJobService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
     public SchedulerJobInstance saveSchedulerJob(String name, String project, String cube, long triggerTime, long startTime, long repeatCount, long curRepeatCount, long repeatInterval, long partitionInterval) throws IOException {
 
-        SchedulerJobInstance job = new SchedulerJobInstance(name, project, cube, startTime, triggerTime, repeatCount, curRepeatCount, repeatInterval, partitionInterval);
+        SchedulerJobInstance job = new SchedulerJobInstance(name, project, "cube", cube, startTime, triggerTime, repeatCount, curRepeatCount, repeatInterval, partitionInterval);
         getSchedulerJobManager().addSchedulerJob(job);
         return job;
     }

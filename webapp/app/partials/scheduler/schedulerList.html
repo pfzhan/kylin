@@ -27,7 +27,7 @@
       <!--td>
         {{scheduler.name}}
       </td-->
-      <td>{{scheduler.related_cube}}</td>
+      <td>{{scheduler.related_realization}}</td>
       <td>{{scheduler.scheduled_run_time + scheduler.repeat_interval * scheduler.cur_repeat_count|utcToConfigTimeZone}}</td>
       <td>{{scheduler.first_end_time + scheduler.partition_interval * (scheduler.cur_repeat_count - 1)|utcToConfigTimeZone}}</td>
       <td>{{scheduler.repeat_count}}</td>

@@ -43,11 +43,14 @@ public class SchedulerJobInstance extends RootPersistentEntity implements Compar
     @JsonProperty("project")
     private String project;
 
-    @JsonProperty("related_cube")
-    private String relatedCube;
+    @JsonProperty("realization_type")
+    private String realizationType;
 
-    @JsonProperty("related_cube_uuid")
-    private String relatedCubeUuid;
+    @JsonProperty("related_realization")
+    private String relatedRealization;
+
+    @JsonProperty("related_realization_uuid")
+    private String relatedRealizationUuid;
 
     @JsonProperty("partition_start_time")
     private long partitionStartTime;
@@ -75,10 +78,11 @@ public class SchedulerJobInstance extends RootPersistentEntity implements Compar
         return SCHEDULER_RESOURCE_ROOT + "/" + schedulerJobName + ".json";
     }
 
-    public SchedulerJobInstance(String name, String project, String relatedCube, long partitionStartTime, long scheduledRunTime, long repeatCount, long curRepeatCount, long repeatInterval, long partitionInterval) {
+    public SchedulerJobInstance(String name, String project, String realizationType, String relatedRealization, long partitionStartTime, long scheduledRunTime, long repeatCount, long curRepeatCount, long repeatInterval, long partitionInterval) {
         this.name = name;
         this.project = project;
-        this.relatedCube = relatedCube;
+        this.realizationType = realizationType;
+        this.relatedRealization = relatedRealization;
         this.partitionStartTime = partitionStartTime;
         this.scheduledRunTime = scheduledRunTime;
         this.repeatCount = repeatCount;
@@ -106,20 +110,28 @@ public class SchedulerJobInstance extends RootPersistentEntity implements Compar
         this.project = project;
     }
 
-    public String getRelatedCube() {
-        return relatedCube;
+    public String getRealizationType() {
+        return realizationType;
     }
 
-    public void setRelatedCube(String cube) {
-        this.relatedCube = cube;
+    public void setRealizationType(String realizationType) {
+        this.realizationType = realizationType;
     }
 
-    public void setRelatedCubeUuid(String uuid) {
-        this.relatedCubeUuid = uuid;
+    public String getRelatedRealization() {
+        return relatedRealization;
     }
 
-    public String getRelatedCubeUuid() {
-        return this.relatedCubeUuid;
+    public void setRelatedRealization(String relatedRealization) {
+        this.relatedRealization = relatedRealization;
+    }
+
+    public void setRelatedRealizationUuid(String uuid) {
+        this.relatedRealizationUuid = uuid;
+    }
+
+    public String getRelatedRealizationUuid() {
+        return this.relatedRealizationUuid;
     }
 
     public long getPartitionStartTime() {
@@ -172,12 +184,12 @@ public class SchedulerJobInstance extends RootPersistentEntity implements Compar
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, project, relatedCube);
+        return Objects.hash(name, project, relatedRealization);
     }
 
     @Override
     public String toString() {
-        return "SchedulerJobnstance{" + "name='" + name + '\'' + ", project=" + project + ", relatedCube=" + relatedCube + '\'' + '}';
+        return "SchedulerJobnstance{" + "name='" + name + '\'' + ", project=" + project + ", relatedRealization=" + relatedRealization + '\'' + '}';
     }
 
     @Override
