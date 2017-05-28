@@ -13,7 +13,10 @@ export default {
   props: ['extraoption'],
   data () {
     return {
-      json: ''
+      json: '',
+      saveData: {
+        project: this.extraoption.project
+      }
     }
   },
   components: {
@@ -27,26 +30,25 @@ export default {
       updateCube: 'UPDATE_CUBE'
     }),
     update: function () {
-      let _this = this
-      _this.$confirm('确认保存Cube？', '提示', {
+      this.$confirm('确认保存Cube？', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        _this.updateCube({project: _this.extraoption.project, cubeDescData: _this.json}).then((res) => {
+        this.saveData.cubeDescData = this.json
+        this.updateCube(this.saveData).then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
-            _this.$message({
+            this.$message({
               type: 'success',
               message: '保存成功!'
             })
           })
-          _this.$emit('removetabs', 'edit' + _this.extraoption.cubeName)
+          this.$emit('removetabs', 'edit' + this.extraoption.cubeName)
         }).catch((res) => {
           handleError(res)
         })
       }).catch((e) => {
-        console.log(e)
-        _this.$message({
+        this.$message({
           type: 'info',
           message: '已取消保存'
         })
@@ -65,17 +67,15 @@ export default {
       this.loadRawTable(this.extraoption.cubeName).then((res) => {
         handleSuccess(res, (data) => {
           if (data) {
-            this.usedRawTable = true
-            this.$set(this.rawTable, 'tableDetail', data)
-            this.initConvertedRawTable()
+            this.saveData.rawTableDescData = JSON.stringify(data)
           }
         })
       })
       this.getScheduler(this.extraoption.cubeName).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
-          this.initRepeatInterval(data)
-          this.scheduler.desc.scheduled_run_time = data.scheduled_run_time
-          this.scheduler.desc.partition_interval = data.partition_interval
+          if (data) {
+            this.saveData.schedulerJobData = JSON.stringify(data)
+          }
         })
       })
     }

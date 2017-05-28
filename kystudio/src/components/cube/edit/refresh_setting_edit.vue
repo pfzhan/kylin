@@ -37,6 +37,7 @@
     <el-col :span="16">
       <el-date-picker class="input_width" @change="changeTriggerTime()"
         v-model="scheduler.desc.scheduled_run_time"
+        :picker-options="pickerOptionsEnd"
         type="datetime"
         align="right">
       </el-date-picker>
@@ -93,7 +94,14 @@ export default {
       timeOptions: [0.5, 1, 2, 4, 8],
       rangesOptions: ['days', 'hours'],
       intervalOptions: ['weeks', 'days', 'hours'],
-      selected_project: localStorage.getItem('selected_project')
+      selected_project: localStorage.getItem('selected_project'),
+      pickerOptionsEnd: {
+        disabledDate: (time) => {
+          let nowDate = new Date()
+          var result = time.getTime() - nowDate.getTime()
+          return result
+        }
+      }
     }
   },
   methods: {
@@ -196,6 +204,7 @@ export default {
     if (this.scheduler.desc.scheduled_run_time && this.scheduler.desc.partition_interval) {
       this.initRepeatInterval(this.scheduler.desc)
     } else {
+      this.scheduler.desc.scheduled_run_time = (new Date()).getTime()
       this.initScheduler()
     }
   },

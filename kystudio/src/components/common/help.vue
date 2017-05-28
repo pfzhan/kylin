@@ -2,10 +2,10 @@
 <div class="help_box">
 <el-dropdown @command="handleCommand">
   <span class="el-dropdown-link">
-    Help <icon name="angle-down"></icon>
+    {{$t('kylinLang.common.help')}} <icon name="angle-down"></icon>
   </span>
   <el-dropdown-menu slot="dropdown">
-    <el-dropdown-item command="kapmanual">KAP Manual</el-dropdown-item>
+    <el-dropdown-item command="kapmanual">{{$t('Manual')}}</el-dropdown-item>
     <el-dropdown-item command="kybot">
       {{$t('kybotAuto')}}
       <el-switch
@@ -18,8 +18,8 @@
       </el-switch>
 
     </el-dropdown-item>
-    <el-dropdown-item command="kybotservice">KyBot Service</el-dropdown-item>
-    <el-dropdown-item command="aboutkap">About KAP</el-dropdown-item>
+    <el-dropdown-item command="kybotservice">{{$t('kybotService')}}</el-dropdown-item>
+    <el-dropdown-item command="aboutkap">{{$t('aboutKap')}}</el-dropdown-item>
   </el-dropdown-menu>
 </el-dropdown>
 
@@ -255,8 +255,8 @@
       'start_kybot': startKybot
     },
     locales: {
-      'en': {usernameEmpty: 'Please enter username', usernameRule: 'username contains only numbers, letters and character "_"', noUserPwd: 'password required', agreeAndOpen: 'agree the protocol and open the automatic service', kybotAuto: 'KyBot Auto Upload'},
-      'zh-cn': {usernameEmpty: '请输入用户名', usernameRule: '名字只能包含数字字母下划线', noUserPwd: '密码不能为空', agreeAndOpen: '同意协议并开启自动服务', kybotAuto: 'KyBot 自动上传'}
+      'en': {usernameEmpty: 'Please enter username', usernameRule: 'username contains only numbers, letters and character "_"', noUserPwd: 'password required', agreeAndOpen: 'agree the protocol and open the automatic service', kybotAuto: 'KyBot Auto Upload', Manual: 'KAP Manual', kybotService: 'KyBot Service', aboutKap: 'About KAP'},
+      'zh-cn': {usernameEmpty: '请输入用户名', usernameRule: '名字只能包含数字字母下划线', noUserPwd: '密码不能为空', agreeAndOpen: '同意协议并开启自动服务', kybotAuto: 'KyBot自动上传', Manual: 'KAP手册', kybotService: 'KyBot服务', aboutKap: '关于KAP'}
     }
   }
 </script>

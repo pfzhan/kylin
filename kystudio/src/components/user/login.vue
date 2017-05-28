@@ -33,7 +33,7 @@
             </el-form-item>
             </div>
             <el-form-item>
-              <kap-icon-button type="primary"  @keyup.native.enter="onLoginSubmit" @click.native="onLoginSubmit" useload="true" ref="loginBtn">{{$t('loginIn')}}</kap-icon-button>
+              <kap-icon-button type="primary"  @keyup.native.enter="onLoginSubmit" @click.native="onLoginSubmit" :useload="false" ref="loginBtn">{{$t('loginIn')}}</kap-icon-button>
             </el-form-item>
           </el-form>
           <!-- <a class="forget_pwd">{{$t('forgetPassword')}}</a> -->
@@ -83,7 +83,7 @@ export default {
             handleSuccess(res, (data) => {
               this.$refs['loginBtn'].loading = false
               this.setCurUser({ user: data })
-              this.$router.push('/dashbord')
+              this.$router.push('/dashboard')
             })
           }, (res) => {
             handleError(res)

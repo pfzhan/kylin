@@ -6,7 +6,7 @@ import button from 'components/demo/button'
 import naming from 'components/demo/naming'
 import topLeftRightView from 'components/layout/layout_left_right_top'
 import layoutFull from 'components/layout/layout_full'
-import dashbord from 'components/dashbord'
+import dashboard from 'components/dashbord'
 import projectList from 'components/project/project_list'
 import modelTab from 'components/model/model_tab'
 import cubeList from 'components/cube/cube_list'
@@ -25,20 +25,20 @@ export default new Router({
       name: 'access',
       component: layoutFull,
       children: [{
-        name: 'login',
+        name: 'Login',
         path: 'login',
         component: login
       }]
     },
     {
       path: '/',
-      redirect: '/dashbord',
+      redirect: '/dashboard',
       name: 'default',
       component: topLeftRightView,
       children: [{
-        name: 'Dashbord',
-        path: 'dashbord',
-        component: dashbord
+        name: 'Dashboard',
+        path: 'dashboard',
+        component: dashboard
       }, {
         name: 'Project',
         path: 'project',

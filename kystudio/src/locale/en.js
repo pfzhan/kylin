@@ -8,23 +8,30 @@ exports.default = {
     cancel: 'cancel',
     close: 'close',
     update: 'update',
+    save: 'save',
+    submit: 'submit',
+    setting: 'Settings',
+    logout: 'Logout',
     // 常规状态
     success: 'success',
+    // 术语
     model: 'model',
     cube: 'cube',
     models: 'models',
     cubes: 'cubes',
     dataSource: 'datasource',
-    tip: 'tips',
+    // 通用提示
+    unknownError: 'Unknown Error!',
+    // 其他
+    tip: 'Tips',
     action: 'action',
-    save: 'save',
-    submit: 'submit'
-
+    help: 'help'
   },
   model: {
 
   },
   cube: {
+    // for column encoding
     dicTip: 'Use dictionary to encode dimension values. dict encoding is very compact but vulnerable for ultra high cardinality dimensions. ',
     fixedLengthTip: 'Use a fixed-length("length" parameter) byte array to encode integer dimension values, with potention value truncations. ',
     intTip: 'Deprecated, use latest integer encoding intead. ',
@@ -42,5 +49,13 @@ exports.default = {
   },
   login: {
 
+  },
+  menu: {
+    dashboard: 'Dashboard',
+    studio: 'Studio',
+    insight: 'Insight',
+    monitor: 'Monitor',
+    system: 'System',
+    project: 'Project'
   }
 }

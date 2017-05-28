@@ -195,14 +195,6 @@ export default {
       startTime: 0,
       endTime: 0,
       viewModal: 'card',
-      pickerOptionsEnd: {
-        disabledDate: (time) => {
-          console.log(time)
-          let nowDate = new Date(this.startTime)
-          var result = time.getTime() - nowDate.getTime()
-          return result
-        }
-      },
       hasPartition: false,
       currentDate: new Date(),
       currentPage: 1,

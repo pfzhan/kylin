@@ -70,7 +70,7 @@ Vue.http.interceptors.push(function (request, next) {
 
 router.beforeEach((to, from, next) => {
   if (to.matched && to.matched.length) {
-    store.state.config.layoutConfig.gloalProjectSelectShow = to.name !== 'Dashbord'
+    store.state.config.layoutConfig.gloalProjectSelectShow = to.name !== 'Dashboard'
     store.state.config.routerConfig.currentPathName = to.name
     next()
   } else {
@@ -84,7 +84,7 @@ router.afterEach(route => {
 })
 
 /* eslint-disable no-new */
-new Vue({
+window.kapVm = new Vue({
   el: '#app',
   router,
   store,

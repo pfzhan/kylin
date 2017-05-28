@@ -445,7 +445,7 @@ export default {
     checkHasChanged () {
       var filterCubeMetaStr = this.filterUnCheckObject(this.cubeDetail)
       var filterRawTableStr = this.filterUnCheckObject(this.rawTable.tableDetail)
-      var filterSchedulerStr = this.this.scheduler.desc
+      var filterSchedulerStr = this.scheduler.desc
       if (this.renderCubeFirst) {
         this.renderCubeFirst = false
         this.hisCubeMetaStr = filterCubeMetaStr

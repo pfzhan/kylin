@@ -7,7 +7,7 @@
       <img v-show="briefMenu==='brief_menu'" src="../../assets/img/logo.png" class="logo" @click="goHome" style="cursor:pointer;"><span class="logo_text"></span>
       <el-menu style="border-top: 1px solid #475669;" :default-active="defaultActive" class="el-menu-vertical-demo" @open="handleopen" @close="handleclose" @select="handleselect" theme="dark" unique-opened router>
         <template v-for="(item,index) in menus" >
-          <el-menu-item :index="item.path" :key="index" ><img :src="item.icon"> <span>{{item.name}}</span></el-menu-item>
+          <el-menu-item :index="item.path" :key="index" ><img :src="item.icon"> <span>{{$t('kylinLang.menu.' + item.name)}}</span></el-menu-item>
         </template>
       </el-menu>
     </aside>
@@ -25,8 +25,8 @@
             <span class="el-dropdown-link">bob <icon name="angle-down"></icon>
             </span>
             <el-dropdown-menu slot="dropdown" >
-              <el-dropdown-item command="setting">设置</el-dropdown-item>
-              <el-dropdown-item command="loginout">注销</el-dropdown-item>
+              <el-dropdown-item command="setting">{{$t('kylinLang.common.setting')}}</el-dropdown-item>
+              <el-dropdown-item command="loginout">{{$t('kylinLang.common.logout')}}</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
         </li>
@@ -37,8 +37,8 @@
         <el-col :span="24" style="margin-bottom:15px;">
 
           <el-breadcrumb separator="/" >
-            <el-breadcrumb-item :to="{ path: '/dashbord' }"><icon class="home_icon" name="home" ></icon></el-breadcrumb-item>
-             <el-breadcrumb-item v-if="currentPathName!=''">{{currentPath}}</el-breadcrumb-item>
+            <el-breadcrumb-item :to="{ path: '/dashboard' }"><icon class="home_icon" name="home" ></icon></el-breadcrumb-item>
+             <el-breadcrumb-item v-if="currentPathName!=''">{{$t('kylinLang.menu.' + currentPath.toLowerCase())}}</el-breadcrumb-item>
             <!-- <el-breadcrumb-item v-if="currentPathNameParent!=''" >{{currentPathNameParent}}</el-breadcrumb-item>	 -->
 
           </el-breadcrumb>
@@ -86,7 +86,7 @@
 </template>
 
 <script>
-  import { handleSuccess, handleError } from '../../util/business'
+  import { handleSuccess, handleError, kapConfirm } from '../../util/business'
   import { mapActions, mapMutations } from 'vuex'
   import projectSelect from '../project/project_select'
   import projectEdit from '../project/project_edit'
@@ -114,11 +114,11 @@
           desc: ''
         },
         menus: [
-          {name: 'Dashbord', path: '/dashbord', icon: require('../../assets/img/dashboard.png')},
-          {name: 'Studio', path: '/studio/datasource', icon: require('../../assets/img/model.png')},
-          {name: 'Insight', path: '/insight', icon: require('../../assets/img/insight.png')},
-          {name: 'Monitor', path: '/monitor', icon: require('../../assets/img/monitor.png')},
-          {name: 'System', path: '/system', icon: require('../../assets/img/system.png')}
+          {name: 'dashboard', path: '/dashboard', icon: require('../../assets/img/dashboard.png')},
+          {name: 'studio', path: '/studio/datasource', icon: require('../../assets/img/model.png')},
+          {name: 'insight', path: '/insight', icon: require('../../assets/img/insight.png')},
+          {name: 'monitor', path: '/monitor', icon: require('../../assets/img/monitor.png')},
+          {name: 'system', path: '/system', icon: require('../../assets/img/system.png')}
         ],
         resetPasswordFormVisible: false
       }
@@ -216,14 +216,14 @@
         localStorage.setItem('menu_type', this.$store.state.config.layoutConfig.briefMenu)
       },
       logoutConfirm: function () {
-        return this.$confirm('确认退出吗?', '提示', {})
+        return kapConfirm(this.$t('confirmLoginOut'))
       },
       handleCommand (command) {
         if (command === 'loginout') {
           this.logoutConfirm().then(() => {
             this.loginOut().then(() => {
               this.$refs.projectSelect.clearProject()
-              this.$router.replace('/access/login')
+              this.$router.push({name: 'Login'})
             })
           })
         } else if (command === 'setting') {
@@ -232,7 +232,7 @@
         }
       },
       goToProjectList () {
-        this.$router.replace('/project')
+        this.$router.push({name: 'Project'})
       },
       goHome () {
         $('.el-menu').find('li').eq(0).click()
@@ -289,8 +289,8 @@
     mounted () {
     },
     locales: {
-      'en': {resetPassword: 'Reset Password'},
-      'zh-cn': {resetPassword: '重置密码'}
+      'en': {resetPassword: 'Reset Password', confirmLoginOut: 'Confirm exit?'},
+      'zh-cn': {resetPassword: '重置密码', confirmLoginOut: '确认退出吗？'}
     }
   }
 </script>

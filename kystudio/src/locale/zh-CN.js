@@ -8,6 +8,10 @@ exports.default = {
     cancel: '取消',
     close: '关闭',
     update: '更新',
+    save: '保存',
+    submit: '提交',
+    setting: '设置',
+    logout: '注销',
     // 常规状态
     success: '成功',
     // 业务词汇
@@ -16,16 +20,19 @@ exports.default = {
     models: '模型',
     cubes: 'cubes',
     dataSource: '数据源',
+    // 通用提示
+    unknownError: 'Unknown Error!',
+    // 其他
     users: '用户',
     tip: '提示',
     action: '操作',
-    save: '保存',
-    submit: '提交'
+    help: '帮助'
   },
   model: {
 
   },
   cube: {
+    // for column encoding
     dicTip: '适用于大部分字段, 默认推荐使用, 但在超高基情况下, 可能引起内存不足的问题.',
     fixedLengthTip: '适用于超高基场景, 将选取字段的前N个字节作为编码值, 当N小于字段长度, 会造成字段截断, 当N较大时, 造成RowKey过长, 查询性能下降.',
     intTip: '已弃用, 请使用最新的integer编码. ',
@@ -44,5 +51,13 @@ exports.default = {
   },
   login: {
 
+  },
+  menu: {
+    dashboard: 'Dashboard',
+    studio: 'Studio',
+    insight: '分析',
+    monitor: '监控',
+    system: '系统',
+    project: '项目'
   }
 }

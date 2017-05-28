@@ -1,5 +1,5 @@
 import { utcToConfigTimeZome, removeNameSpace, getNameSpaceTopName } from './index'
-import { Message } from 'element-ui'
+import { MessageBox, Message } from 'element-ui'
 // 成功回调入口
 export function handleSuccess (res, callback, errorcallback) {
   var responseData = res.data
@@ -18,7 +18,7 @@ export function handleSuccess (res, callback, errorcallback) {
 export function handleError (res, errorcallback) {
   var responseData = res.data
   if (typeof errorcallback !== 'function' && responseData.msg) {
-    Message.error(responseData.msg || '未知异常')
+    Message.error(responseData.msg || window.kapVm.$t('kylinLang.common.unknownError'))
   }
   if (responseData && responseData.code) {
     if (typeof errorcallback === 'function') {
@@ -30,6 +30,14 @@ export function handleError (res, errorcallback) {
       errorcallback(res.data, -1, res.status, '')
     }
   }
+}
+
+// 确认弹窗
+
+export function kapConfirm (content, para) {
+  var dialogPara = para || {}
+  // console.log(Message, 32323)
+  return MessageBox.confirm(content, window.kapVm.$t('kylinLang.common.tip'), dialogPara)
 }
 // 获取基本encoding
 export function loadBaseEncodings (state) {

@@ -26,7 +26,7 @@ export default {
       })
       if (!hasMatch) {
         localStorage.setItem('selected_project', '')
-        this.selected_project = ''
+        state.selected_project = ''
       }
     }
   },
