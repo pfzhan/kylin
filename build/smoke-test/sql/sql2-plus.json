@@ -19,16 +19,16 @@
       "currency":false,
       "definitelyWritable":false,
       "writable":false,
-      "signed":true,
-      "queryAdHoc": false
+      "signed":true
     }
   ],
+  "queryAdHoc": false,
   "results":[
     [
       "99.9908"
     ]
   ],
-  "cube":"kylin_sales_cube",
+  "cube":"CUBE[name=kylin_sales_cube]",
   "affectedRowCount":0,
   "isException":false,
   "exceptionMessage":null,

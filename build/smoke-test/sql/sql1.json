@@ -1,5 +1,5 @@
 {
-  "cube": "kylin_sales_cube",
+  "cube": "CUBE[name=kylin_sales_cube]",
   "partial": false,
   "affectedRowCount": 0,
   "isException": false,
@@ -9,6 +9,7 @@
     ]
   ],
   "exceptionMessage": null,
+  "queryAdHoc": false,
   "columnMetas": [
     {
       "scale": 0,
@@ -29,8 +30,7 @@
       "signed": true,
       "columnTypeName": "BIGINT",
       "schemaName": null,
-      "isNullable": 0,
-      "queryAdHoc": false
+      "isNullable": 0
     }
   ]
 }
