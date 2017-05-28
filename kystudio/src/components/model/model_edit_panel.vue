@@ -117,9 +117,14 @@
 		    <!-- <el-tab-pane label="Model Statistics" name="second">Model Statistics</el-tab-pane> -->
         <el-tab-pane label="Table Statistics" name="second">
              <el-table
-              :data="statistics"
+              :data="statistics.slice(1)"
               style="width: 100%">
-              <el-table-column
+               <el-table-column v-for="(val,index) in statistics[0]" :key="index"
+                :prop="''+index"
+                width="220"
+                :label="statistics[0][index]">
+              </el-table-column>
+              <!-- <el-table-column
                 prop="column_name"
                 label="列名"
                 width="180">
@@ -148,14 +153,15 @@
                <el-table-column
                 prop="null_count"
                 label="空值个数">
-              </el-table-column>
+              </el-table-column> -->
             </el-table>
-           <el-table
+        <el-table
           :data="modelStatics.slice(1)"
           border
           style="width: 100%">
           <el-table-column v-for="(val,index) in modelStatics[0]" :key="index"
             :prop="''+index"
+            width="220"
             :label="modelStatics[0][index]">
           </el-table-column>
         </el-table>
@@ -243,16 +249,29 @@ export default {
     loadTableStatics (database, tableName) {
       this.loadTableExt(database + '.' + tableName).then((res) => {
         handleSuccess(res, (data) => {
-          this.statistics = data.columns_stats
-          var sampleData = changeDataAxis(data.sample_rows)
-          var basicColumn = [[]]
+          var lenOffeature = data.columns_stats && data.columns_stats.length || 0
+          var arr = [['列名'], ['基数'], ['最大长度值'], ['最大值'], ['最小长度值'], ['最小值'], ['空值个数']]
+          for (let i = 0; i < lenOffeature; i++) {
+            arr[0].push(data.columns_stats[i].column_name)
+            arr[1].push(data.columns_stats[i].cardinality)
+            arr[2].push(data.columns_stats[i].max_length_value)
+            arr[3].push(data.columns_stats[i].max_value)
+            arr[4].push(data.columns_stats[i].min_length_value)
+            arr[5].push(data.columns_stats[i].min_value)
+            arr[6].push(data.columns_stats[i].null_count)
+          }
+          this.statistics = arr
+          var sampleData = changeDataAxis(data.sample_rows, true)
+          console.log(sampleData, 8899)
+          var basicColumn = [['列名']]
           for (var i = 0, len = sampleData && sampleData.length || 0; i < len; i++) {
-            for (var m = 0; m < sampleData[i].length; m++) {
-              basicColumn[0].push(this.tableData.columns[m].name)
+            for (var m = 0; m < sampleData[i].length - 1; m++) {
+              basicColumn[0].push(data.columns_stats[m].column_name)
             }
             break
           }
           this.modelStatics = basicColumn.concat(sampleData)
+          console.log(this.modelStatics, 99900)
         })
       })
     },

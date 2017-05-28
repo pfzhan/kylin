@@ -2,7 +2,8 @@
 	<div class="paddingbox modelist_box">
     <el-button type="primary" class="ksd-mb-10" @click="addModel">+Model</el-button>
     <br/>
-		<el-row :gutter="20">
+    <p class="ksd-right"> <icon @click.native="changeGridModal('card')" name="newspaper-o" :class="{active: viewModal==='card'}"> </icon> <icon @click.native="changeGridModal('list')"  :class="{active: viewModal!=='card'}" name="reorder"></icon></p>
+		<el-row :gutter="20" v-if="viewModal==='card'">
 		  <el-col :span="8"  v-for="(o, index) in modelsList" :key="o.uuid" :style="{height:'152px'}">
 		    <el-card :body-style="{ padding: '0px'}" style="height:100%">
 		      <p class="title">Last updated {{ o.gmtTime }}
@@ -32,6 +33,45 @@
 		    </el-card>
 		  </el-col>
 		</el-row>
+
+
+    <el-table v-if="viewModal!=='card'"
+    :data="modelsList"
+    stripe
+    style="width: 100%">
+    <el-table-column @click="viewModel(o)"
+      prop="name"
+      label="Name"
+      width="180">
+    </el-table-column>
+    <el-table-column
+      prop="project"
+      label="Project"
+      width="180">
+    </el-table-column>
+    <el-table-column
+      prop="owner"
+      label="Owner">
+    </el-table-column>
+     <el-table-column
+      prop="owner"
+      label="Status">
+      <template scope="scope">
+         <icon v-if="!scope.row.is_draft && scope.row.diagnose && scope.row.diagnose.progress===0" :name="modelHealthStatus[scope.row.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[scope.row.diagnose.heathStatus].color}"></icon>
+         <el-progress  :width="20" type="circle" :stroke-width="2" :show-text="false" v-if="!scope.row.is_draft&&scope.row.diagnose&&scope.row.diagnose.progress!==0 && scope.row.diagnose.progress!==100" :percentage="scope.row.diagnose&&scope.row.diagnose.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></h2>
+      </template>
+    </el-table-column>
+    <el-table-column
+      prop="fact_table"
+      label="Fact Table">
+    </el-table-column>
+    <el-table-column
+      prop="gmtTime"
+      label="Last Upated Time">
+    </el-table-column>
+  </el-table>
+
+
 		<pager class="ksd-center" ref="pager"  :totalSize="modelsTotal"  v-on:handleCurrentChange='pageCurrentChange' ></pager>
 
     <el-dialog title="Clone Model" v-model="cloneFormVisible">
@@ -86,6 +126,29 @@
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">
               <div class="ksd-mt-20">
+              <div class="date-picker" v-if="hasPartition">
+                  <p>设置处理区间：</p>
+                  <br/>
+                  <el-date-picker
+                    v-model="startTime"
+                    type="datetime"
+                    @change="changeStartTime"
+                    :placeholder="$t('chooseDate')"
+                    size="small"
+                    format="yyyy-MM-dd HH:mm"
+                    >
+                  </el-date-picker>
+                  <span class="line"></span>
+                  <el-date-picker
+                    v-model="endTime"
+                    type="datetime"
+                    :placeholder="$t('chooseDate')"
+                    size="small"
+                    format="yyyy-MM-dd HH:mm"
+                    :picker-options="pickerOptionsEnd">
+                  </el-date-picker>
+                </div>
+                <br/>
                <!--  <el-checkbox v-model="openCollectRange">Check Model</el-checkbox> -->
                  <!-- <el-slider v-model="modelStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider> -->
                   <slider @changeBar="changeBar" label="Check Model" :show="scanRatioDialogVisible"></slider>
@@ -129,6 +192,18 @@ export default {
       usedCubes: [],
       stCycleRequest: null,
       modelStaticsRange: 0,
+      startTime: 0,
+      endTime: 0,
+      viewModal: 'card',
+      pickerOptionsEnd: {
+        disabledDate: (time) => {
+          console.log(time)
+          let nowDate = new Date(this.startTime)
+          var result = time.getTime() - nowDate.getTime()
+          return result
+        }
+      },
+      hasPartition: false,
       currentDate: new Date(),
       currentPage: 1,
       subMenu: 'Model',
@@ -184,6 +259,21 @@ export default {
       checkCubeName: 'CHECK_CUBE_NAME_AVAILABILITY',
       getCubesList: 'GET_CUBES_LIST'
     }),
+    changeGridModal (val) {
+      this.viewModal = val
+    },
+    changeStartTime () {
+      this.pickerOptionsEnd.disabledDate = (time) => { // set date-picker endTime
+        let nowDate = new Date(this.startTime)
+        this.endTime = this.startTime
+        // nowDate.setMonth(nowDate.getMonth() + 1)// 后一个月
+        // let v1 = time.getTime() > +new Date(_this.startTime) + 30 * 24 * 60 * 60 * 1000
+        let v1 = time.getTime() < +nowDate
+        // let v2 = time.getTime() < +new Date(this.startTime) - 8.64e7
+        // this.maxTime = +nowDate // 缓存最大值 endTime
+        return v1
+      }
+    },
     reloadModelList () {
       this.pageCurrentChange(this.currentPage)
     },
@@ -350,6 +440,11 @@ export default {
         // this.cloneModel(modelName, projectName)
       } else if (command === 'stats') {
         this.scanRatioDialogVisible = true
+        this.startTime = 0
+        console.log(modelData)
+        if (modelData.partition_desc.partition_date_column) {
+          this.hasPartition = true
+        }
         // this.stats(projectName, modelName)
       } else if (command === 'drop') {
         this.$confirm('此操作将永久删除该model, 是否继续?', '提示', {
@@ -420,6 +515,8 @@ export default {
         project: this.currentModelData.project,
         modelname: this.currentModelData.name,
         data: {
+          startTime: (new Date(this.startTime)).getTime(),
+          endTime: (new Date(this.endTime)).getTime(),
           ratio: this.modelStaticsRange
         }
       }).then(() => {
@@ -556,7 +653,14 @@ export default {
 }
 </script>
 <style lang="less">
+@import '../../less/config.less';
 .modelist_box{
+  .fa-icon{
+    cursor: pointer;
+    &.active{
+      color:@base-color;
+    }
+  }
   .el-card{
     &:hover{
       border:solid 1px #58b7ff;

@@ -1,5 +1,5 @@
 <template>
-<div>
+<div class="fulllayout">
 <el-row class="panel layout_left_right_top" :class="briefMenu">
   <el-col :span="24" class="panel-center">
     <aside class="left_menu">
@@ -67,6 +67,21 @@
       <el-button type="primary" @click="checkResetPasswordForm">{{$t('yes')}}</el-button>
     </div>
   </el-dialog>
+
+<el-dialog class="linsencebox"
+  :title="defaultVal(kapInfo['kap.version'])+'试用版'"
+  :visible.sync="lisenceDialogVisible"
+  :close-on-click-modal="false"
+  :modal="false"
+  size="tiny">
+  <p><span>试用期限: </span>{{defaultVal(kapInfo['kap.dates'])}}<!-- <span>2012<i>/1/2</i></span><span>－</span><span>2012<i>/1/2</i></span> --></p>
+  <p class="ksd-mt-20">您的试用期将在<span class="hastime">30</span>天后过期，必须申请正式许可，才能继续使用</p>
+  <span slot="footer" class="dialog-footer">
+    <el-button @click="getLicense">申请正式许可</el-button>
+    <el-button type="primary" @click="lisenceDialogVisible = false">继续使用</el-button>
+  </span>
+</el-dialog>
+
   </div>
 </template>
 
@@ -87,6 +102,7 @@
         currentPathName: 'DesignModel',
         currentPathNameParent: 'Model',
         defaultActive: '/dashbord',
+        lisenceDialogVisible: false,
         form: {
           name: '',
           region: '',
@@ -145,6 +161,16 @@
       ...mapMutations({
         setCurUser: 'SAVE_CURRENT_LOGIN_USER'
       }),
+      getLicense () {
+        location.href = './api/kap/system/requestLicense'
+      },
+      defaultVal (obj) {
+        if (!obj) {
+          return 'N/A'
+        } else {
+          return obj
+        }
+      },
       changeProject () {
         this.$router.go(0)
         location.reload()
@@ -255,6 +281,9 @@
         let info = Object.create(this.currentUserInfo)
         info.password = ''
         return info
+      },
+      kapInfo () {
+        return this.$store.state.system.serverAboutKap
       }
     },
     mounted () {
@@ -267,6 +296,35 @@
 </script>
 
 <style lang="less">
+  @import '../../less/config.less';
+  .fulllayout{
+    .linsencebox{
+      i{
+        font-size: 18px;
+        font-weight: bold;
+      }
+      .hastime{
+        font-size: 28px;
+        color:@base-color;
+      }
+    .el-dialog{
+      top:initial!important;
+      bottom:0;
+      right:0;
+      left:initial;
+      height: 240px;
+      width: 400px;
+      margin-bottom: 0;
+      margin-right: 0;
+      transform:initial;
+      .el-dialog__footer{
+          bottom: 0;
+          position: absolute;
+          right: 0;
+      }
+    }
+  }
+  }
    .brief_menu {
       .logo_text {
         display: none;

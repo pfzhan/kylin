@@ -1,7 +1,7 @@
 <template>
-    <div class="table_margin">   
+    <div class="paddingbox">   
       <editor v-model="json"  theme="chrome" class="ksd-mt-20" width="100%" height="400" ></editor>
-      <el-button class="button_right" v-if="extraoption.type==='edit'" @click="update">{{$t('save')}}</el-button>
+      <el-button class="button_right" v-if="extraoption.type==='edit'" type="primary" @click="update">{{$t('save')}}</el-button>
     </div>
 </template>
 <script>
@@ -22,6 +22,8 @@ export default {
   methods: {
     ...mapActions({
       loadCubeDesc: 'LOAD_CUBE_DESC',
+      getScheduler: 'GET_SCHEDULER',
+      loadRawTable: 'GET_RAW_TABLE',
       updateCube: 'UPDATE_CUBE'
     }),
     update: function () {
@@ -31,7 +33,7 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        _this.updateCube({project: _this.extraoption.project, cubeName: _this.extraoption.cubeName, cubeDescData: _this.json}).then((res) => {
+        _this.updateCube({project: _this.extraoption.project, cubeDescData: _this.json}).then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
             _this.$message({
               type: 'success',
@@ -40,12 +42,7 @@ export default {
           })
           _this.$emit('removetabs', 'edit' + _this.extraoption.cubeName)
         }).catch((res) => {
-          handleError(res, (data, code, status, msg) => {
-            console.log(status, 30000)
-            // if (status === 404) {
-            //   _this.$router.replace('access/login')
-            // }
-          })
+          handleError(res)
         })
       }).catch((e) => {
         console.log(e)
@@ -57,20 +54,28 @@ export default {
     }
   },
   created () {
-    let _this = this
-    if (_this.extraoption.type === 'view') {
-      _this.json = JSON.stringify(_this.extraoption.cubeDesc)
+    if (this.extraoption.type === 'view') {
+      this.json = JSON.stringify(this.extraoption.cubeDesc, 4, 4)
     } else {
-      _this.loadCubeDesc(_this.extraoption.cubeName).then((res) => {
-        handleSuccess(res, (data, code, status, msg) => {
-          _this.json = JSON.stringify(data[0])
+      this.loadCubeDesc(this.extraoption.cubeName).then((res) => {
+        handleSuccess(res, (data) => {
+          this.json = JSON.stringify(data[0], 4, 4)
         })
-      }).catch((res) => {
-        handleError(res, (data, code, status, msg) => {
-          console.log(status, 30000)
-          // if (status === 404) {
-          //   _this.$router.replace('access/login')
-          // }
+      })
+      this.loadRawTable(this.extraoption.cubeName).then((res) => {
+        handleSuccess(res, (data) => {
+          if (data) {
+            this.usedRawTable = true
+            this.$set(this.rawTable, 'tableDetail', data)
+            this.initConvertedRawTable()
+          }
+        })
+      })
+      this.getScheduler(this.extraoption.cubeName).then((res) => {
+        handleSuccess(res, (data, code, status, msg) => {
+          this.initRepeatInterval(data)
+          this.scheduler.desc.scheduled_run_time = data.scheduled_run_time
+          this.scheduler.desc.partition_interval = data.partition_interval
         })
       })
     }

@@ -54,7 +54,7 @@
                 </el-row> 
                 <el-row> 
                   <el-col :span="24">
-                    <area_label :labels="currentRowkey" :refreshInfo="{index: group_index, key: 'includes'}" @refreshData="refreshIncludeData"   :selectedlabels="group.includes" @change="refreshAggragation(group_index)" @checklabel="showDetail($event, group.includes)"> 
+                    <area_label :labels="currentRowkey" :refreshInfo="{index: group_index, key: 'includes'}" @refreshData="refreshIncludeData"   :selectedlabels="group.includes" @change="refreshAggragation(group_index)" @checklabel="showDetail"> 
                     </area_label>
                   </el-col>
                 </el-row>
@@ -63,7 +63,7 @@
                 </el-row>  
                 <el-row>
                   <el-col :span="24" >
-                    <area_label :labels="group.includes" :refreshInfo="{index: group_index, key: 'mandatory_dims'}" @refreshData="refreshMandatoryData"  :selectedlabels="group.select_rule.mandatory_dims" @change="refreshAggragation(group_index)"   @checklabel="showDetail($event, group.select_rule.mandatory_dims)"> 
+                    <area_label :labels="group.includes" :refreshInfo="{index: group_index, key: 'mandatory_dims'}" @refreshData="refreshMandatoryData"  :selectedlabels="group.select_rule.mandatory_dims" @change="refreshAggragation(group_index)"   @checklabel="showDetail"> 
                     </area_label>
                   </el-col>
                 </el-row>
@@ -74,7 +74,7 @@
                   <el-col :span="24">
                     <el-row class="row_padding" :gutter="10" v-for="(hierarchy_dims, hierarchy_index) in group.select_rule.hierarchy_dims" :key="hierarchy_index">
                        <el-col :span="23" >
-                        <area_label :labels="group.includes" :refreshInfo="{gindex: group_index, hindex: hierarchy_index, key: 'hierarchy_dims'}" @refreshData="refreshHierarchyData"  :selectedlabels="hierarchy_dims" @change="refreshAggragation(group_index)" @checklabel="showDetail($event, hierarchy_dims)"> 
+                        <area_label :labels="group.includes" :refreshInfo="{gindex: group_index, hindex: hierarchy_index, key: 'hierarchy_dims'}" @refreshData="refreshHierarchyData"  :selectedlabels="hierarchy_dims" @change="refreshAggragation(group_index)" @checklabel="showDetail"> 
                         </area_label>
                       </el-col>  
                       <el-col :span="1">
@@ -98,7 +98,7 @@
                 <el-col :span="24">
                   <el-row class="row_padding" :gutter="10" v-for="(joint_dims, joint_index) in group.select_rule.joint_dims" :key="joint_index">
                     <el-col :span="23" >
-                      <area_label :labels="group.includes" :refreshInfo="{gindex: group_index, jindex: joint_index, key: 'joint_dims'}" @refreshData="refreshJointData"  :selectedlabels="joint_dims" @change="refreshAggragation(group_index)" @checklabel="showDetail($event, joint_dims)"> 
+                      <area_label :labels="group.includes" :refreshInfo="{gindex: group_index, jindex: joint_index, key: 'joint_dims'}" @refreshData="refreshJointData"  :selectedlabels="joint_dims" @change="refreshAggragation(group_index)" @checklabel="showDetail"> 
                       </area_label>
                     </el-col>
                     <el-col :span="1" >                
@@ -178,9 +178,38 @@
           <el-col :span="2">{{modelDesc.columnsDetail&&modelDesc.columnsDetail[row.column].cardinality}}</el-col>
         </el-row>
         </div>
-   
     </el-col>
     <el-col :span="6">
+       <el-table
+          :data="featureData"
+          border
+          style="width: 100%">
+          <el-table-column
+            prop="name"
+            width="180"
+            label="特征数据">
+          </el-table-column>
+          <el-table-column
+            prop="content"
+            label=""
+            >
+          </el-table-column>
+        </el-table>
+          <el-table
+          :data="modelStatics"
+          border
+          style="width: 100%">
+          <el-table-column
+            prop="name"
+            width="180"
+            label="示例数据">
+          </el-table-column>
+          <el-table-column
+            prop="content"
+            label=""
+            >
+          </el-table-column>
+        </el-table>
     </el-col>
   </el-row> 
     <el-dialog :title="$t('addDimensions')" v-model="addDimensionsFormVisible" top="5%" size="large" v-if="addDimensionsFormVisible">
@@ -193,7 +222,8 @@
   </div>
 </template>
 <script>
-import { handleSuccess, handleError, loadBaseEncodings } from '../../../util/business'
+import { handleSuccess, handleError, loadBaseEncodings, getTableNameInfoByAlias } from '../../../util/business'
+import { changeDataAxis, indexOfObjWithSomeKey } from '../../../util/index'
 import { mapActions } from 'vuex'
 import areaLabel from '../../common/area_label'
 import addDimensions from '../dialog/add_dimensions'
@@ -212,7 +242,9 @@ export default {
       rowkeyColumns: [],
       oldRowkey: [],
       currentRowkey: [],
-      convertedRowkeys: []
+      convertedRowkeys: [],
+      featureData: [],
+      modelStatics: []
     }
   },
   components: {
@@ -226,7 +258,8 @@ export default {
   methods: {
     ...mapActions({
       calCuboid: 'CAL_CUBOID',
-      getCubeSuggestions: 'GET_CUBE_SUGGESTIONS'
+      getCubeSuggestions: 'GET_CUBE_SUGGESTIONS',
+      loadTableExt: 'LOAD_DATASOURCE_EXT'
     }),
     refreshIncludeData (data, refreshInfo) {
       var index = refreshInfo.index
@@ -261,10 +294,40 @@ export default {
       this.cubeDesc.rowkey.rowkey_columns.splice(0, this.cubeDesc.rowkey.rowkey_columns.length)
       this.initConvertedRowkeys()
     },
-    showDetail: function (event, arr) {
-      if (event.target.innerText !== '') {
-        let str = event.target.innerText.slice(0, -3)
-        console.log(str)
+    showDetail: function (text, target) {
+      var columnNameInfo = text && text.split('.') || []
+      if (columnNameInfo.length) {
+        var alias = columnNameInfo[0]
+        var column = columnNameInfo[1]
+        console.log(alias)
+        var tableInfo = getTableNameInfoByAlias(this.modelDesc, alias)
+        console.log(tableInfo)
+        if (tableInfo) {
+          var database = tableInfo.database
+          var tableName = tableInfo.tableName
+          this.loadTableExt(database + '.' + tableName).then((res) => {
+            handleSuccess(res, (data) => {
+              // var columnFeatureData = filterObjectArray(data.columns_stats, 'column_name', column)
+              var objIndex = indexOfObjWithSomeKey(data.columns_stats, 'column_name', column)
+              var columnFeatureData = data.columns_stats[objIndex]
+              this.featureData = []
+              if (columnFeatureData) {
+                this.featureData.push({name: '列名', content: columnFeatureData.column_name})
+                this.featureData.push({name: '基数', content: columnFeatureData.cardinality})
+                this.featureData.push({name: '最大长度值', content: columnFeatureData.max_length_value})
+                this.featureData.push({name: '最大值', content: columnFeatureData.max_value})
+                this.featureData.push({name: '最小长度值', content: columnFeatureData.min_length_value})
+                this.featureData.push({name: '最小值', content: columnFeatureData.min_value})
+                this.featureData.push({name: '空值个数', content: columnFeatureData.null_count})
+              }
+              var sampleData = data.sample_rows[objIndex] || null
+              this.modelStatics = [{name: '序号', content: column}]
+              for (var i = 0, len = sampleData && sampleData.length || 0; i < len; i++) {
+                this.modelStatics.push({ name: i + 1, content: sampleData[i] })
+              }
+            })
+          })
+        }
       }
     },
     cubeSuggestions: function () {
@@ -283,6 +346,22 @@ export default {
     },
     addDimensions: function () {
       this.addDimensionsFormVisible = true
+    },
+    loadSpecial (database, tableName) {
+      this.loadTableExt(database + '.' + tableName).then((res) => {
+        handleSuccess(res, (data) => {
+          this.statistics = data.columns_stats
+          var sampleData = changeDataAxis(data.sample_rows)
+          var basicColumn = [[]]
+          for (var i = 0, len = sampleData && sampleData.length || 0; i < len; i++) {
+            for (var m = 0; m < sampleData[i].length; m++) {
+              basicColumn[0].push(this.tableData.columns[m].name)
+            }
+            break
+          }
+          this.modelStatics = basicColumn.concat(sampleData)
+        })
+      })
     },
     checkAddDimensions: function () {
       this.$refs['addDimensionsForm'].$emit('addDimensionsFormValid')

@@ -37,6 +37,7 @@
     },
     props: ['treedata', 'renderTree', 'placeholder', 'multiple', 'expandIdList', 'maxlevel', 'showfilter', 'allowdrag', 'showCheckbox', 'lazy', 'expandall', 'maxLabelLen', 'titleLabel', 'emptytext', 'indent'],
     methods: {
+      // 过滤点击变色
       filterNode (value, data) {
         if (!value) {
           this.showNodeCount++
@@ -52,18 +53,36 @@
           return true
         }
       },
+      // 节点点击事件，处理点击变色
       nodeClick (data) {
         if (!data.children || data.children.length <= 0) {
           if (this.lastCheckedNode && !this.multiple) {
             this.$set(this.lastCheckedNode, 'checked', false)
+            delete this.checkedNodes[this.lastCheckedNode.label]
           }
           this.$set(data, 'checked', true)
+          this.checkedNodes[data.label] = data
           this.lastCheckedNode = data
         }
         this.$emit('nodeclick', data)
       },
-      cancelNodeChecked () {
+      // 取消某个节点的选中变色
+      cancelNodeChecked (name) {
+        for (var i in this.checkedNodes) {
+          if (this.checkedNodes[i].id === name) {
+            this.checkedNodes[i].checked = false
+            delete this.checkedNodes[i]
+          }
+        }
       },
+      // 取消所有的节点选中变色
+      cancelCheckedAll () {
+        for (var i in this.checkedNodes) {
+          this.checkedNodes[i].checked = false
+        }
+        this.checkedNodes = []
+      },
+      // 根据用户入参渲染树的节点DOM
       createLeafContent (data) {
         var len = data.tags && data.tags.length || 0
         var dom = []
@@ -107,13 +126,14 @@
           }
         })
       },
+      // 异步渲染节点
       loadNode (node, resolve) {
-        console.log(node, 'fww')
         this.$emit('lazyload', node, resolve)
       }
     },
     data () {
       return {
+        checkedNodes: [],
         filterText: '',
         showNodeCount: 0,
         lastCheckedNode: null,

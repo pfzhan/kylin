@@ -61,7 +61,7 @@ export default {
     return Vue.resource(apiUrl + 'cube_desc/' + cubeName).get()
   },
   calCuboid: (cubeDesc) => {
-    return Vue.resource(apiUrl + 'cubes/aggregationgroups/cuboid').save(cubeDesc)
+    return Vue.resource(apiUrl + 'cubes/aggregationgroups/' + cubeDesc.aggIndex + '/cuboid').save(cubeDesc.cubeDescData)
   },
   getEncoding: () => {
     return Vue.resource(apiUrl + 'encodings/valid_encodings').get()

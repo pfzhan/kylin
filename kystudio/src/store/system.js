@@ -26,6 +26,13 @@ export default {
         return state.timeZone
       }
     },
+    [types.GET_CONF_BY_NAME]: function (state, name, key) {
+      if (!state[key]) {
+        state[key] = getProperty(name, state.serverConfig)
+      } else {
+        return state[key]
+      }
+    },
     [types.GET_ABOUT]: function (state, result) {
       state.serverAboutKap = result.list
     }
@@ -44,7 +51,10 @@ export default {
     [types.GET_CONF]: function ({ commit }) {
       return api.system.getConfig().then((response) => {
         commit(types.SAVE_CONF, { conf: response.data.data })
-        commit(types.GET_TIMEZONE, 'kylin.web.timezone')
+        commit(types.GET_CONF_BY_NAME, 'kylin.web.timezone', 'timeZone')
+        commit(types.GET_CONF_BY_NAME, 'kap.kyaccount.username', 'kyAccount')
+        commit(types.GET_CONF_BY_NAME, 'kap.license.statement', 'statement')
+        commit(types.GET_CONF_BY_NAME, 'kylin.web.timezone', 'timeZone')
       })
     },
     [types.RELOAD_METADATA]: function ({ commit }) {

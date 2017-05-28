@@ -46,12 +46,15 @@ export function getNameSpace (str) {
   }
 }
 
-export function changeDataAxis (data) {
+export function changeDataAxis (data, hasIndex) {
   var len = data && data.length || 0
   var newArr = []
   var sublen = data && data.length && data[0].length || 0
   for (var i = 0; i < sublen; i++) {
     var subArr = []
+    if (hasIndex) {
+      subArr.push(i + 1)
+    }
     for (var j = 0; j < len; j++) {
       subArr.push(data[j][i])
     }

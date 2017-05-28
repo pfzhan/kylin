@@ -1,4 +1,4 @@
-import { utcToConfigTimeZome } from './index'
+import { utcToConfigTimeZome, removeNameSpace, getNameSpaceTopName } from './index'
 import { Message } from 'element-ui'
 // 成功回调入口
 export function handleSuccess (res, callback, errorcallback) {
@@ -151,3 +151,28 @@ export function hasRole (vue, roleName) {
   }
   return haseRole
 }
+
+// 根据别名查询table的全名
+export function getTableNameInfoByAlias (modelDesc, aliasName) {
+  if (!modelDesc || !aliasName) {
+    return null
+  }
+  if (removeNameSpace(modelDesc.fact_table) === aliasName) {
+    return {
+      database: getNameSpaceTopName(modelDesc.fact_table),
+      tableName: removeNameSpace(modelDesc.fact_table)
+    }
+  }
+  var lookupLen = modelDesc.lookups && modelDesc.lookups.length || 0
+  for (var i = 0; i < lookupLen; i++) {
+    var curLookup = modelDesc.lookups[i]
+    if (curLookup.alias === aliasName) {
+      return {
+        database: getNameSpaceTopName(curLookup.table),
+        tableName: removeNameSpace(curLookup.table)
+      }
+    }
+  }
+  return null
+}
+

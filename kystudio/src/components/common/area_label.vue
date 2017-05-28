@@ -60,6 +60,7 @@ export default {
           break
         }
       }
+      this.$emit('removeTag', data.value)
     },
     selectTag (e) {
       var ev = ev || window.event

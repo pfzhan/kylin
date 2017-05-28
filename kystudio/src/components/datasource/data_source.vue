@@ -174,12 +174,12 @@
         <el-row :gutter="20">
 		  <el-col :span="8"><div class="grid-content bg-purple">
 		  	 <div class="dialog_tree_box">
-           <tree  @lazyload="loadChildNode"  @nodeclick="clickHiveTable" :lazy="true" :treedata="hiveData" maxlevel="3" ref="subtree"  :showfilter="false" :allowdrag="false" ></tree>
+           <tree  @lazyload="loadChildNode" :multiple="true"  @nodeclick="clickHiveTable" :lazy="true" :treedata="hiveData" maxlevel="3" ref="subtree"  :showfilter="false" :allowdrag="false" ></tree>
           </div>
 		  </div></el-col>
 		  <el-col :span="16"><div class="grid-content bg-purple">
 		  	<div class="tree_check_content ksd-mt-20">
-		 	  <arealabel :labels="selectTables" changeable="unchange" :selectedlabels="selectTablesNames" placeholder="请在左侧选择要加载的table"  :datamap="{label: 'label', value: 'value'}"></arealabel>
+		 	  <arealabel :labels="selectTables" changeable="unchange" :selectedlabels="selectTablesNames" placeholder="请在左侧选择要加载的table" @removeTag="removeSelectedHive"  :datamap="{label: 'label', value: 'value'}"></arealabel>
         <div class="ksd-mt-20">
           <!-- <el-checkbox v-model="openCollectRange">Table Sampling</el-checkbox> -->
           <!-- <span class="demonstration">Sample percentage</span> -->
@@ -381,6 +381,13 @@ export default {
     //     })
     //   })
     // },
+    removeSelectedHive (val) {
+      this.$refs.subtree.cancelNodeChecked(val)
+      this.selectTablesNames.splice(this.selectTablesNames.indexOf(val), 1)
+      this.selectTables = this.selectTables.filter((t) => {
+        return t.id === val
+      })
+    },
     // 加载Hive列表
     loadHivesAction (tableNamesArr, btn) {
       this.loadHiveInProject({
@@ -404,6 +411,7 @@ export default {
         this.loadResultVisible = true
         Object.assign(this.selectTables, [], [])
         Object.assign(this.selectTablesNames, [], [])
+        this.$refs.subtree.cancelCheckedAll()
       }, (res) => {
         btn.loading = false
         handleError(res)

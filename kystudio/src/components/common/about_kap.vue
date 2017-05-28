@@ -6,7 +6,7 @@
 			</a>
 			<el-row><label for="">版本：</label>{{license(serverAboutKap['kap.version'])}}</el-row>
 					<el-row><label for="">使用期限：</label>{{license(serverAboutKap['kap.dates'])}}</el-row>
-			<el-row><label for="">许可声明：</label>{{license(serverAboutKap['kap.license.statement'])}}</el-row>		
+		<el-row><label for="">许可声明：</label>{{license(serverAboutKap['kap.license.statement'])}}</el-row>		
 		</div>
 		<div class="container">
 			<h3>服务声明</h3>
@@ -15,36 +15,45 @@
 			</p>
 		</div>
 		<div class="footer">
-			<p class="details">kyAccount.xxxx@xxxx.com<br />未在Kylin properties 中配置KyAccount</p>
-			<el-button type="primary">生成许可申请文件</el-button>
+			<p class="details">{{kyAccount}}</p>
+			<el-button type="primary" @click="getLicense">生成许可申请文件</el-button>
 			<el-row class="gray">申请许可请将许可申请文件发送到Kyligence销售支持渠道</el-row>
 			<el-row class="gray">All Rights Reserved. Kyligence Inc.</el-row>
 		</div>
 	</div>
 </template>
 <script>
-	export default {
-	  name: 'about_kap',
-	  data () {
-	    return {
-	      aboutKap: this.about
-	    }
-	  },
-	  computed: {
-	    serverAboutKap () {
-	      return this.$store.state.system.serverAboutKap
-	    }
-	  },
-	  methods: {
-	    license (obj) {
-	      if (!obj) {
-	        return 'N/A'
-	      } else {
-	        return obj
-	      }
-	    }
-	  }
-	}
+export default {
+  name: 'about_kap',
+  data () {
+    return {
+      aboutKap: this.about
+    }
+  },
+  computed: {
+    serverAboutKap () {
+      return this.$store.state.system.serverAboutKap
+    },
+    kyAccount () {
+      return this.$store.state.system.kyAccount || '未在Kylin properties中配置KyAccount账号'
+    },
+    statement () {
+      return this.$store.state.system.statement
+    }
+  },
+  methods: {
+    license (obj) {
+      if (!obj) {
+        return 'N/A'
+      } else {
+        return obj
+      }
+    },
+    getLicense () {
+      location.href = './api/kap/system/requestLicense'
+    }
+  }
+}
 </script>
 <style lang="less">
 	.about-kap {
