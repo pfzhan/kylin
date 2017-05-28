@@ -19,7 +19,8 @@
       "currency":false,
       "definitelyWritable":false,
       "writable":false,
-      "signed":true
+      "signed":true,
+      "queryAdHoc": false
     }
   ],
   "results":[

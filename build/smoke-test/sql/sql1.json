@@ -29,7 +29,8 @@
       "signed": true,
       "columnTypeName": "BIGINT",
       "schemaName": null,
-      "isNullable": 0
+      "isNullable": 0,
+      "queryAdHoc": false
     }
   ]
 }
