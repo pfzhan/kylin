@@ -23,9 +23,13 @@
  */
 package io.kyligence.kap;
 
+import java.io.File;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.kylin.common.KylinConfig;
-
 import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.routing.NoRealizationFoundException;
 import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
@@ -35,13 +39,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
 
 public class ITKapAdHocQueryTest extends KylinTestBase {
     private static final Logger logger = LoggerFactory.getLogger(ITKapAdHocQueryTest.class);
@@ -75,10 +72,12 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                 throw new SQLException();
 
             } catch (SQLException e) {
-                Assert.assertEquals(findRoot(e).getClass(), NoRealizationFoundException.class);
+                logger.debug("stacktrace for the SQLException: ", e);
+                Assert.assertEquals(NoRealizationFoundException.class, findRoot(e).getClass());
             }
 
-            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name", "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
+            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name",
+                    "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
         }
@@ -97,10 +96,12 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                 runSQL(sqlFile, true, false);
                 throw new SQLException();
             } catch (SQLException e) {
-                Assert.assertEquals(findRoot(e).getClass(), NoRealizationFoundException.class);
+                logger.debug("stacktrace for the SQLException: ", e);
+                Assert.assertEquals(NoRealizationFoundException.class, findRoot(e).getClass());
             }
 
-            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name", "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
+            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name",
+                    "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
         }
@@ -119,10 +120,12 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                 runSQL(sqlFile, true, false);
                 throw new SQLException();
             } catch (SQLException e) {
-                Assert.assertEquals(findRoot(e).getClass(), NoRealizationFoundException.class);
+                logger.debug("stacktrace for the SQLException: ", e);
+                Assert.assertEquals(NoRealizationFoundException.class, findRoot(e).getClass());
             }
 
-            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name", "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
+            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name",
+                    "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
         }
@@ -141,10 +144,12 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                 runSQL(sqlFile, true, false);
                 throw new SQLException();
             } catch (SQLException e) {
-                Assert.assertEquals(findRoot(e).getClass(), NoRealizationFoundException.class);
+                logger.debug("stacktrace for the SQLException: ", e);
+                Assert.assertEquals(NoRealizationFoundException.class, findRoot(e).getClass());
             }
 
-            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name", "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
+            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name",
+                    "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
         }
@@ -174,7 +179,6 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
         System.out.println(queue.size());
     }
 
-
     public class ConcurrentAdHocQueryThread implements Runnable {
         @Override
         public void run() {
@@ -187,10 +191,12 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                 try {
                     runSQL(sqlFile, true, false);
                 } catch (Exception e) {
-                    Assert.assertEquals(findRoot(e).getClass(), NoRealizationFoundException.class);
+                    logger.debug("stacktrace for the SQLException: ", e);
+                    Assert.assertEquals(NoRealizationFoundException.class, findRoot(e).getClass());
                 }
 
-                kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name", "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
+                kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name",
+                        "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
                 int resultCount = 0;
                 try {
                     resultCount = runSQL(sqlFile, true, false);
