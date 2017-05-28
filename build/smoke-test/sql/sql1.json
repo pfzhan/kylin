@@ -9,7 +9,7 @@
     ]
   ],
   "exceptionMessage": null,
-  "queryAdHoc": false,
+  "adHoc": false,
   "columnMetas": [
     {
       "scale": 0,

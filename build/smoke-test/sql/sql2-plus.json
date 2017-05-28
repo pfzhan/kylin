@@ -22,7 +22,7 @@
       "signed":true
     }
   ],
-  "queryAdHoc": false,
+  "adHoc": false,
   "results":[
     [
       "99.9908"
