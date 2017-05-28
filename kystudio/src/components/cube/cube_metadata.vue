@@ -1,7 +1,7 @@
 <template>
     <div class="paddingbox">   
       <editor v-model="json"  theme="chrome" class="ksd-mt-20" width="100%" height="400" ></editor>
-      <el-button class="button_right" v-if="extraoption.type==='edit'" @click="update">{{$t('save')}}</el-button>
+      <el-button class="button_right" v-if="extraoption.type==='edit'" type="primary" @click="update">{{$t('save')}}</el-button>
     </div>
 </template>
 <script>
@@ -60,9 +60,8 @@ export default {
     }
   },
   created () {
-    let _this = this
-    if (_this.extraoption.type === 'view') {
-      _this.json = JSON.stringify(_this.extraoption.cubeDesc, 4, 4)
+    if (this.extraoption.type === 'view') {
+      this.json = JSON.stringify(this.extraoption.cubeDesc, 4, 4)
     } else {
       this.loadCubeDesc(this.extraoption.cubeName).then((res) => {
         handleSuccess(res, (data) => {
@@ -82,8 +81,6 @@ export default {
             this.saveData.schedulerJobData = JSON.stringify(data)
           }
         })
-      }).catch((res) => {
-        handleError(res)
       })
     }
   },
