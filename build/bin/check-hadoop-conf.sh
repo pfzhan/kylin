@@ -3,7 +3,9 @@
 #title=Checking Hadoop Configuration
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
-source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/find-hadoop-conf-dir.sh
+
+## ${dir} assigned to $KYLIN_HOME/bin in header.sh
+source ${dir}/find-hadoop-conf-dir.sh
 
 echo "Checking hadoop conf dir..."
 

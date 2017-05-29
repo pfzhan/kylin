@@ -42,7 +42,7 @@ else
     fi
 fi
 
-source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/find-hadoop-conf-dir.sh
+source ${dir}/find-hadoop-conf-dir.sh
 export KAP_SPARK_IDENTIFIER=$RANDOM
 export KAP_HDFS_APPENDER_JAR=`basename ${KYLIN_SPARK_JAR_PATH}`
 

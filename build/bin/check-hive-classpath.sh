@@ -7,6 +7,7 @@ source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 echo "Checking Hive classpath..."
 
 if [ -z "${hive_dependency}" ]; then
+    ## ${dir} assigned to $KYLIN_HOME/bin in header.sh
     source ${dir}/find-hive-dependency.sh
 fi
 
