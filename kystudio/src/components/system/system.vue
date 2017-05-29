@@ -33,7 +33,7 @@
             {{$t('backup')}}
           </p>
         </el-button>
-        <el-button class="but-width bg_blue" @click="diagnosis" style="margin-bottom:30px;">
+        <el-button class="but-width bg_blue" @click="diagnosisSys" style="margin-bottom:30px;">
           <p class="p_font">
             <!-- <icon name="ambulance"></icon> -->
             {{$t('diagnosis')}}
@@ -54,16 +54,16 @@
       <diagnosis></diagnosis>
     </el-dialog>
 
-    <el-dialog v-model="kyBotUploadVisible" title="KyAccount | Sign in" size="tiny" @close="resetLoginKybotForm">
+    <!-- <el-dialog v-model="kyBotUploadVisible" title="KyAccount | Sign in" size="tiny" @close="resetLoginKybotForm">
       <login_kybot ref="loginKybotForm" @onLogin="closeLoginForm"></login_kybot>
-    </el-dialog>
+    </el-dialog> -->
 
-    <el-dialog v-model="infoKybotVisible" :title="$t('autoUpload')" size="tiny">
+    <!-- <el-dialog v-model="infoKybotVisible" :title="$t('autoUpload')" size="tiny">
       <start_kybot @onStart="closeStartLayer"></start_kybot>
-    </el-dialog>
+    </el-dialog> -->
 
     <!-- 协议弹层 -->
-    <el-dialog v-model="protocolVisible" size="tiny" class="agree-protocol">
+    <!-- <el-dialog v-model="protocolVisible" size="tiny" class="agree-protocol">
       <p>{{$t('contentOne')}}
         <a href="https://kybot.io/" target="_blank">KyBot</a>
         {{$t('contentTwo')}}
@@ -74,12 +74,12 @@
         </el-checkbox>
       </div>
       <el-button @click="agreeProtocol" :loading="agreeLoading" type="primary" :disabled="!agreeKyBot" class="btn-agree">{{$t('agreeProtocol')}}</el-button>
-    </el-dialog>  
+    </el-dialog>   -->
 
     <!-- 协议内容弹层 -->
-    <el-dialog v-model='proContentVisivle' class="pro-content">
+    <!-- <el-dialog v-model='proContentVisivle' class="pro-content">
       <protocol_content></protocol_content>
-    </el-dialog>
+    </el-dialog> -->
   </div>
 </template>
 <script>
@@ -96,13 +96,13 @@ export default {
     return {
       activeName: 'system',
       setConfigFormVisible: false,
-      diagnosisVisible: false,
-      kyBotUploadVisible: false,
-      infoKybotVisible: false,
-      protocolVisible: false,
-      agreeKyBot: false,
-      agreeLoading: false,
-      proContentVisivle: false
+      diagnosisVisible: false
+      // kyBotUploadVisible: false,
+      // infoKybotVisible: false,
+      // protocolVisible: false,
+      // agreeKyBot: false,
+      // agreeLoading: false,
+      // proContentVisivle: false
     }
   },
   components: {
@@ -119,8 +119,7 @@ export default {
       getConf: 'GET_CONF',
       reloadMetadata: 'RELOAD_METADATA',
       backupMetadata: 'BACKUP_METADATA',
-      updateConfig: 'UPDATE_CONFIG',
-      getKybotAccount: 'GET_KYBOT_ACCOUNT'
+      updateConfig: 'UPDATE_CONFIG'
     }),
     reload: function () {
       this.$confirm(this.$t('reloadTip'), this.$t('tip'), {
@@ -187,31 +186,32 @@ export default {
         })
       })
     },
-    diagnosis: function () {
+    diagnosisSys: function () {
+      this.diagnosisVisible = true
       // 检测登录状态
-      this.getKybotAccount().then((res) => {
-        handleSuccess(res, (data, code, status, msg) => {
-          if (!data) {
-            this.kyBotUploadVisible = true
-          } else {
-            this.kyBotUploadVisible = false
-            this.diagnosisVisible = true
-            this.protocolVisible = true
-          }
-          // 模拟
-          // this.kyBotUploadVisible = true
-        }, (res) => {
-          handleError(res, (data, code, status, msg) => {
-            console.log(data, code, status, msg)
-            if (status === 400) {
-              this.$message({
-                type: 'success',
-                message: msg
-              })
-            }
-          })
-        })
-      })
+      // this.getKybotAccount().then((res) => {
+      //   handleSuccess(res, (data, code, status, msg) => {
+      //     if (!data) {
+      //       this.kyBotUploadVisible = true
+      //     } else {
+      //       this.kyBotUploadVisible = false
+      //       this.diagnosisVisible = true
+      //       // this.protocolVisible = true
+      //     }
+      //     // 模拟
+      //     // this.kyBotUploadVisible = true
+      //   }, (res) => {
+      //     handleError(res, (data, code, status, msg) => {
+      //       console.log(data, code, status, msg)
+      //       if (status === 400) {
+      //         this.$message({
+      //           type: 'success',
+      //           message: msg
+      //         })
+      //       }
+      //     })
+      //   })
+      // })
     },
     resetLoginKybotForm () {
       this.$refs['loginKybotForm'].$refs['loginKybotForm'].resetFields()
@@ -260,15 +260,6 @@ export default {
           }
         })
       })
-    },
-    agreeProtocol () {
-      this.agreeLoading = true
-      // 同意请求 成功回调之后
-      this.protocolVisible = false
-      this.diagnosisVisible = true
-    },
-    showProtocol () {
-      this.proContentVisivle = true
     }
   },
   computed: {

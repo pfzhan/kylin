@@ -83,7 +83,7 @@
               <el-dropdown-item @click.native="resume(scope.row)">{{$t('jobResume')}}</el-dropdown-item>
               <el-dropdown-item @click.native="discard(scope.row)">{{$t('jobDiscard')}}</el-dropdown-item>
               <el-dropdown-item @click.native="pause(scope.row)">{{$t('jobPause')}}</el-dropdown-item>
-              <el-dropdown-item @click.native="diagnosis(scope.row)">{{$t('jobDiagnosis')}}</el-dropdown-item>
+              <el-dropdown-item @click.native="diagnosisJob(scope.row)">{{$t('jobDiagnosis')}}</el-dropdown-item>
               <el-dropdown-item @click.native="drop(scope.row.uuid)">{{$t('jobDrop')}}</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
@@ -227,6 +227,10 @@
     <el-button type="primary" @click="dialogVisible = false">Close</el-button>
   </span>
 </el-dialog>
+
+<el-dialog :title="$t('diagnosis')" v-model="diagnosisVisible">
+  <diagnosis></diagnosis>
+</el-dialog>
 </div>
 </template>
 
@@ -235,6 +239,7 @@ import { mapActions } from 'vuex'
 import jobDialog from './job_dialog'
 import { pageCount } from '../../config'
 import { transToGmtTime } from 'util/business'
+import diagnosisXX from '../system/diagnosis'
 export default {
   name: 'jobslist',
   data () {
@@ -266,11 +271,13 @@ export default {
         {name: 'LASTONEMONTH', value: 2},
         {name: 'LASTONEYEAR', value: 3},
         {name: 'ALL', value: 4}
-      ]
+      ],
+      diagnosisVisible: false
     }
   },
   components: {
-    'job_dialog': jobDialog
+    'job_dialog': jobDialog,
+    'diagnosis': diagnosisXX
   },
   created () {
     var autoFilter = () => {
@@ -354,6 +361,9 @@ export default {
       }
       this.loadJobsList(filter)
     },
+    diagnosisJob: function () {
+      this.diagnosisVisible = true
+    },
     refreshJobs: function () {
       let setting = {
         pageOffset: this.currentPage - 1,
@@ -404,9 +414,6 @@ export default {
         })
       }).catch(() => {
       })
-    },
-    diagnosis: function (job) {
-      console.log('lll')
     },
     drop: function (jobId) {
       this.$confirm(this.$t('dropJob'), '提示', {

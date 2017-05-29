@@ -61,12 +61,29 @@
       </el-tooltip>
     </p>
   </div>
-  <!-- <el-dialog v-model="switchVisible" title="KyAccount | Sign in" @close="resetLoginKybotForm">
+  <el-dialog title="KyAccount | Sign in" @close="resetLoginKybotForm">
     <login_kybot ref="loginKybotForm" @onLogin="closeLoginForm"></login_kybot>
   </el-dialog>
   <el-dialog v-model="infoKybotVisible" title="KyBot自动上传" size="tiny">
-    <start_kybot @onStart="closeStartLayer"></start_kybot>
-  </el-dialog> -->
+    <start_kybot @onStart="closeStartLayer" :propAgreement="infoKybotVisible"></start_kybot>
+  </el-dialog>
+  <!-- 协议弹层 -->
+  <el-dialog v-model="protocolVisible" size="tiny" class="agree-protocol">
+    <p>{{$t('contentOne')}}
+      <a href="https://kybot.io/" target="_blank">KyBot</a>
+      {{$t('contentTwo')}}
+    </p>
+    <div>
+      <el-checkbox v-model="agreeKyBot" @click="agreeKyBot = !agreeKyBot">
+        <a @click="showProtocol">{{$t('protocol')}}</a>
+      </el-checkbox>
+    </div>
+    <el-button @click="agreeProtocol" :loading="agreeLoading" type="primary" :disabled="!agreeKyBot" class="btn-agree">{{$t('agreeProtocol')}}</el-button>
+  </el-dialog> 
+  <!-- 协议内容弹层 -->
+    <el-dialog v-model='proContentVisivle' class="pro-content">
+      <protocol_content></protocol_content>
+    </el-dialog>
 </div>
 </template>
 <script>
@@ -94,13 +111,22 @@ export default {
       hasErr: false,
       errMsgPick: '',
       maxTime: 0,
-      uploadLoading: false
+      uploadLoading: false,
+      kyBotUploadVisible: false,
+      infoKybotVisible: false,
+      protocolVisible: false,
+      agreeKyBot: false,
+      agreeLoading: false,
+      proContentVisivle: false
     }
   },
   methods: {
     ...mapActions({
       getKybotUpload: 'GET_KYBOT_UPLOAD',
-      getKybotDump: 'GET_KYBOT_DUMP'
+      getKybotDump: 'GET_KYBOT_DUMP',
+      getKybotAccount: 'GET_KYBOT_ACCOUNT',
+      getAgreement: 'GET_AGREEMENT',
+      setAgreement: 'SET_AGREEMENT'
     }),
     checkLogin () {
     },
@@ -112,10 +138,51 @@ export default {
       //
       // _this.switchVisible = true
       //
+      // this.getKybotUpload({startTime: this.startTime, endTime: this.endTime}).then((res) => {
+      //   handleSuccess(res, (data, code, status, msg) => {
+      //   })
+      //   this.uploadLoading = false
+      // }).catch((res) => {
+      //   this.uploadLoading = false
+      //   handleError(res, (data, code, status, msg) => {
+      //     this.$message({
+      //       type: 'error',
+      //       message: msg
+      //     })
+      //   })
+      // })
+      this.getKybotAccount().then((resp) => {
+        handleSuccess(resp, (data, code, status, msg) => {
+          if (!data) {
+            this.kyBotUploadVisible = true
+          } else {
+            this.getAgreement().then((res) => {
+              handleSuccess(res, (data, code, status, msg) => {
+                // console.log('3 .data :', data, data.isUserAgreement)
+                if (!data) { // 没有同意过协议 开协议层
+                  console.log('3: 没有')
+                  this.$emit('closeLoginOpenKybot')
+                } else {
+                  // b)
+                  console.log('4: 同意过了')
+                  // this.startService()
+                  this.uploading()
+                }
+              })
+            })
+          }
+        })
+      })
+    },
+    resetLoginKybotForm () {
+      this.$refs['loginKybotForm'].$refs['loginKybotForm'].resetFields()
+    },
+    uploading () {
       this.getKybotUpload({startTime: this.startTime, endTime: this.endTime}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
+          this.uploadLoading = false
+          this.diagnosisVisible = false
         })
-        this.uploadLoading = false
       }).catch((res) => {
         this.uploadLoading = false
         handleError(res, (data, code, status, msg) => {
@@ -125,26 +192,6 @@ export default {
           })
         })
       })
-      // this.getKybotAccount().then((resp) => {
-      //   handleSuccess(resp, (data, code, status, msg) => {
-      //     if (!data) {
-      //       _this.switchVisible = false
-      //     } else {
-      //       _this.switchVisible = true
-      //       this.getKybotUpload({startTime: this.startTime, endTime: this.endTime}).then((res) => {
-      //         handleSuccess(res, (data, code, status, msg) => {
-      //         })
-      //       }).catch((res) => {
-      //         handleError(res, (data, code, status, msg) => {
-      //           this.$message({
-      //             type: 'error',
-      //             message: msg
-      //           })
-      //         })
-      //       })
-      //     }
-      //   })
-      // })
     },
     closeLoginForm () {
       this.kyBotUploadVisible = false
@@ -228,6 +275,24 @@ export default {
     },
     closeStartLayer () {
       this.infoKybotVisible = false
+    },
+    showProtocol () {
+      this.proContentVisivle = true
+    },
+    agreeProtocol () {
+      // 同意请求 成功回调之后
+      // this.protocolVisible = false
+      // this.diagnosisVisible = true
+      // 同意协议
+      this.setAgreement().then((resp) => {
+        console.log('同意协议')
+        handleSuccess(resp, (data, code, status, msg) => {
+          this.agreeLoading = true
+          this.protocolVisible = false
+        })
+      }, (res) => {
+        console.log('同意失败')
+      })
     }
   },
   computed: {

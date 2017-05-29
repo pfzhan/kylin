@@ -32,26 +32,9 @@
 </el-dialog>
 <el-dialog v-model="kyBotUploadVisible" title="KyAccount | Sign in" size="tiny" @close="resetLoginKybotForm">
   <login_kybot ref="loginKybotForm" @closeLoginForm="closeLoginForm" @closeLoginOpenKybot="closeLoginOpenKybot"></login_kybot>
-  <!-- <el-form :model="kyBotAccount" :rules="rules" ref="loginKybotForm" >
-    <el-form-item prop="username">
-      <el-input v-model="kyBotAccount.username" placeholder="username"></el-input>
-    </el-form-item>
-    <el-form-item prop="password">
-      <el-input v-model="kyBotAccount.password" placeholder="password"></el-input>
-    </el-form-item>
-    <el-form-item>
-      <el-button @click="loginKyBot" :loading="loginLoading" class="btn-loginKybot">Login</el-button>  
-    </el-form-item>
-  </el-form>
-  <p class="no-account">No account? <a href="javascript:;">Sign up</a> now</p> -->
 </el-dialog>
 <el-dialog v-model="infoKybotVisible" :title="$t('kybotAuto')" size="tiny">
-  <start_kybot @onStart="closeStartLayer"></start_kybot>
-  <!-- <p>KyBot通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天定时自动上传，无需自行打包和上传。</p>
-  <p>
-    <el-checkbox v-model="agreeKyBot" @click="agreeKyBot = !agreeKyBot">我已阅读并同意遵守《KyBot用户协议》</el-checkbox>
-  </p>
-  <el-button @click="startService" :loading="startLoading" type="primary" :disabled="!agreeKyBot" class="btn-agree">{{$t('agreeAndOpen')}}</el-button> -->
+  <start_kybot @closeStartLayer="closeStartLayer" @openSwitch="openSwitch" :propAgreement="infoKybotVisible"></start_kybot>
 </el-dialog>
 </div>
 </template>
@@ -75,17 +58,7 @@
           password: ''
         },
         infoKybotVisible: false,
-        // agreeKyBot: false,
         isopend: false, // 是否已开启
-        // rules: {
-        //   username: [
-        //     { trigger: 'blur', validator: this.validateUserName }
-        //   ],
-        //   password: [
-        //     { trigger: 'blur', required: true, message: this.$t('noUserPwd') }
-        //   ]
-        // },
-        // loginLoading: false,
         startLoading: false
       }
     },
@@ -96,7 +69,8 @@
         loginKybot: 'LOGIN_KYBOT',
         getKyStatus: 'GET_KYBOT_STATUS',
         startKybot: 'START_KYBOT',
-        stopKybot: 'STOP_KYBOT'
+        stopKybot: 'STOP_KYBOT',
+        getAgreement: 'GET_AGREEMENT'
       }),
       validateUserName (rule, value, callback) {
         console.log('vallue', value)
@@ -127,59 +101,43 @@
           this.aboutKapVisible = true
         } else if (val === 'kybot') {
           // 需要先检测有没有登录 待修改
-          this.kyBotUploadVisible = true
+          // this.kyBotUploadVisible = true
+          if (_this.isopend) {
+            return
+          }
+          this.checkLogin(() => {
+            this.getStatus(true)
+          })
         }
+      },
+      resetLoginKybotForm () {
+        this.$refs['loginKybotForm'].$refs['loginKybotForm'].resetFields()
       },
       closeLoginForm () {
         this.kyBotUploadVisible = false
-        // this.infoKybotVisible = true
       },
       closeLoginOpenKybot () {
         this.kyBotUploadVisible = false
         this.infoKybotVisible = true
       },
-      // // 登录kybot
-      // loginKyBot () {
-      //   let _this = this
-      //   this.loginLoading = true
-      //   let param = {
-      //     username: this.kyBotAccount.username,
-      //     password: this.kyBotAccount.password
-      //   }
-      //   this.loginKybot(param).then((result) => {
-      //     handleSuccess(result, (data, code, status, msg) => {
-      //       console.log('登录成功', result)
-      //       _this.kyBotUploadVisible = false
-      //       _this.infoKybotVisible = true
-      //       _this.loginLoading = false
-      //     }, (res) => {
-      //       handleError(res, (data, code, status, msg) => {
-      //         this.$message({
-      //           type: 'error',
-      //           message: msg
-      //         })
-      //       })
-      //       _this.loginLoading = false
-      //     })
-      //   })
-      // },
       // 同意协议并开启自动服务
       startService () {
-        // 同意协议并开启自动服务
-        // this.startLoading = true
         this.startKybot().then((resp) => {
           console.log('开启 1：', resp)
           handleSuccess(resp, (data, code, status, msg) => {
             console.log('开启2 ：', data)
             if (data) {
+              this.isopend = true
               this.$message({
                 type: 'success',
                 message: this.$t('openSuccess')
               })
+              this.infoKybotVisible = false
             }
           })
         })
       },
+      // 关闭服务
       stopService () {
         // this.startLoading = true
         console.log('stop stop ', this.stopKybot)
@@ -187,6 +145,7 @@
           handleSuccess(resp, (data, code, status, msg) => {
             console.log('关闭2 ：', data)
             if (data) {
+              this.isopend = false
               this.$message({
                 type: 'success',
                 message: this.$t('closeSuccess')
@@ -195,17 +154,84 @@
           })
         })
       },
-      resetLoginKybotForm () {
-        this.$refs['loginKybotForm'].$refs['loginKybotForm'].resetFields()
+      // 检测登录
+      checkLogin (callback) {
+        this.getKybotAccount().then((res) => {
+          console.log('res', res)
+          handleSuccess(res, (data, code, status, msg) => {
+            console.log('data 状态;', data)
+            if (!data) {
+              console.log('1:', data)
+              this.kyBotUploadVisible = true
+            } else {
+              // this.isopend = true
+              console.log('2:', data)
+              callback() // off -> on 先检测登录状态 没有登录则弹登录 ； 否则直接开启
+            }
+          }, (errResp) => {
+            handleError(errResp, (data, code, status, msg) => {
+              console.log(data, code, status, msg)
+              if (status === 400) {
+                this.$message({
+                  type: 'success',
+                  message: msg
+                })
+              }
+            })
+          })
+        })
+      },
+      // 获取同意协议
+      getAgreementInfo () {
+        this.getAgreement().then((res) => {
+          handleSuccess(res, (data, code, status, msg) => {
+            console.log('获取同意协议 .data :', data)
+            if (!data.isUserAgreement) { // 没有同意过协议 开协议层
+              console.log(' 没有同意过协议')
+              this.infoKybotVisible = true
+            } else {
+              console.log('同意了协议则开启')
+              this.startService()
+            }
+          })
+        })
+      },
+      // 获取是否开启
+      getStatus (showAgreement, callback) {
+        this.getKyStatus().then((res) => {
+          console.log('1111111获取是否开启 res', res)
+          handleSuccess(res, (data, code, status, msg) => {
+            console.log('22222222data 状态;', data)
+            if (!data) {
+              console.log('1:', data)
+              this.isopend = false
+              showAgreement && this.getAgreementInfo()
+            } else {
+              this.isopend = true
+              console.log('2:', data)
+            }
+          }, (errResp) => {
+            handleError(errResp, (data, code, status, msg) => {
+              console.log(data, code, status, msg)
+              if (status === 400) {
+                this.$message({
+                  type: 'success',
+                  message: msg
+                })
+              }
+            })
+          })
+        })
       },
       // 改变kybot自动上传状态
       changeKystaus (status) {
         console.log('new status :', status)
         if (status) { // 开启
-          this.startService()
-        } else { // 关闭
           // 需要先检测有没有登录  待修改
-          this.kyBotUploadVisible = true
+          this.checkLogin(() => {
+            this.getStatus(true)
+          })
+        } else { // 关闭
           this.stopService()
         }
       },
@@ -230,57 +256,10 @@
       }
     },
     created () {
+      // 检测登录状态
+      // this.checkLogin()
       // 获取是否已开启自动上传kybot switch 按钮切换状态
-      this.getKyStatus().then((res) => {
-        console.log('res', res)
-        handleSuccess(res, (data, code, status, msg) => {
-          console.log('data 状态;', data)
-          if (!data) {
-            console.log('1:', data)
-            this.isopend = false
-          } else {
-            this.isopend = true
-            console.log('2:', data)
-          }
-        }, (errResp) => {
-          handleError(errResp, (data, code, status, msg) => {
-            console.log(data, code, status, msg)
-            if (status === 400) {
-              this.$message({
-                type: 'success',
-                message: msg
-              })
-            }
-          })
-        })
-      })
-      // this.getKybotAccount().then((res) => {
-      //   console.log('switch status res ==', res)
-      //   handleSuccess(res, (data, code, status, msg) => {
-      //     console.log('data 状态;', data)
-      //     if (!data) {
-      //       console.log('1:', data)
-      //       this.isopend = false
-      //     } else {
-      //       this.isopend = true
-      //       console.log('2:', data)
-      //     }
-      //   }, (res) => {
-      //     handleError(res, (data, code, status, msg) => {
-      //       console.log(data, code, status, msg)
-      //       if (status === 400) {
-      //         this.$message({
-      //           type: 'success',
-      //           message: msg
-      //         })
-      //       }
-      //     })
-      //   })
-      // }).then(() => { // 检测是否已经开启自动上传
-      //   this.getKyStatus().then((res) => {
-      //     console.log('')
-      //   })
-      // })
+      this.getStatus()
     },
     components: {
       'about_kap': aboutKap,

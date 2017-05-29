@@ -8,10 +8,12 @@
 </template>
 <script>
   import { mapActions } from 'vuex'
+  import { handleSuccess } from '../../util/business'
   // import { handleSuccess, handleError } from '../../util/business'
 
   export default {
     name: 'help',
+    props: ['propAgreement'],
     data () {
       return {
         agreeKyBot: false,
@@ -27,30 +29,48 @@
       // 同意协议并开启自动服务
       startService () {
         this.startLoading = true
+        // 开启自动服务
         this.startKybot().then((resp) => {
-          if (resp.data) {
-            // console.log('开启 ：', resp)
-            this.startLoading = false
-            this.$message({
-              type: 'success',
-              message: resp.msg
-            })
-          }
-          this.$emit('onStart')
-        }, (resp) => {
-          this.startLoading = false
-          this.$message({
-            type: 'error',
-            message: resp.msg
+          handleSuccess(resp, (data, code, status, msg) => {
+            if (data) {
+              this.$message({
+                type: 'success',
+                message: this.$t('openSuccess')
+              })
+              this.startLoading = false
+              this.$emit('closeStartLayer')
+              this.$emit('openSwitch')
+            }
           })
         })
-          // }
-        // })
+        // 同意协议
+        this.setAgreement().then((resp) => {
+          console.log('同意协议')
+          handleSuccess(resp, (data, code, status, msg) => {
+            // if (data) {
+            //   this.$message({
+            //     type: 'success',
+            //     message: this.$t('openSuccess')
+            //   })
+            // }
+          })
+        }, (res) => {
+          console.log('同意失败')
+        })
+      }
+    },
+    watch: {
+      propAgreement: function (val) {
+        console.log(val)
+        if (!val) {
+          console.log('子组件 val :', val)
+          this.agreeKyBot = false
+        }
       }
     },
     locales: {
-      'en': {agreeAndOpen: 'Enable Auto Upload', hasAgree: 'I have read and agree《KyBot Term of Service》', protocol: 'By analyzing your diagnostic package, KyBot can provide online diagnostic, tuning and support service for KAP. After starting auto upload service, it will automatically upload packages everyday regularly.'},
-      'zh-cn': {agreeAndOpen: '开启自动上传', hasAgree: '我已阅读并同意《KyBot用户协议》', protocol: '通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天定时自动上传，无需自行打包和上传。'}
+      'en': {agreeAndOpen: 'Enable Auto Upload', hasAgree: 'I have read and agree《KyBot Term of Service》', protocol: 'By analyzing your diagnostic package, KyBot can provide online diagnostic, tuning and support service for KAP. After starting auto upload service, it will automatically upload packages everyday regularly.', openSuccess: 'open successfully'},
+      'zh-cn': {agreeAndOpen: '开启自动上传', hasAgree: '我已阅读并同意《KyBot用户协议》', protocol: '通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天定时自动上传，无需自行打包和上传。', openSuccess: '开启成功'}
     }
   }
 </script>

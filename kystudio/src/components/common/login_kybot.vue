@@ -100,8 +100,8 @@
                       // a
                       this.getAgreement().then((res) => {
                         handleSuccess(res, (data, code, status, msg) => {
-                          console.log('3 .data :', data, data.isUserAgreement)
-                          if (!data.isUserAgreement) { // 没有同意过协议 开协议层
+                          // console.log('3 .data :', data, data.isUserAgreement)
+                          if (!data) { // 没有同意过协议 开协议层
                             console.log('3: 没有')
                             this.$emit('closeLoginOpenKybot')
                           } else {
