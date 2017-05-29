@@ -35,6 +35,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.cube.CubeInstance;
@@ -64,6 +65,16 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
     protected void execute(OptionsHelper optionsHelper) throws Exception {
         super.execute(optionsHelper);
         cleanUnusedParquetFolders(new Configuration());
+    }
+
+    @Override
+    protected void cleanUnusedHBaseTables() throws IOException {
+        StorageURL metadataUrl = KylinConfig.getInstanceFromEnv().getMetadataUrl();
+        if ("hbase".equals(metadataUrl.getScheme())) {
+            super.cleanUnusedHBaseTables();
+        } else {
+            logger.info("Not using HBase as metadata resource store, skip hbase clean up job.");
+        }
     }
 
     private void cleanUnusedParquetFolders(Configuration conf) throws IOException {

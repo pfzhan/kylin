@@ -24,9 +24,12 @@
 
 package io.kyligence.kap.job.impl.curator;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+
+import javax.annotation.Nullable;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
@@ -44,10 +47,10 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 
 /**
  */
@@ -61,15 +64,17 @@ public class CuratorSchedulerTest extends LocalFileMetadataTestCase {
 
     @Before
     public void setup() throws Exception {
-        createTestMetadata();
         zkTestServer = new TestingServer();
         zkTestServer.start();
+        System.setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
+        createTestMetadata();
     }
 
     @After
     public void after() throws Exception {
         zkTestServer.close();
         cleanupTestMetadata();
+        System.clearProperty("kylin.env.zookeeper-connect-string");
     }
 
     @Test
@@ -77,7 +82,6 @@ public class CuratorSchedulerTest extends LocalFileMetadataTestCase {
 
         final String zkString = zkTestServer.getConnectString();
         final KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        kylinConfig.setProperty("kap.job.helix.zookeeper-address", zkString);
 
         ServiceDiscovery<LinkedHashMap> serviceDiscovery = null;
         CuratorFramework curatorClient = null;

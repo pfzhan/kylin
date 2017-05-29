@@ -226,6 +226,8 @@ public class KapUserController extends BasicController implements UserDetailsSer
         checkUserName(userName);
 
         UserDetails details = userService.loadUserByUsername(userName);
+        if (details == null)
+            return null;
         UserObj user = userDetailsToObj(details);
         return user;
     }

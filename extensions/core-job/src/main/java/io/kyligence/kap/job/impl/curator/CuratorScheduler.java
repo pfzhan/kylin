@@ -83,12 +83,7 @@ public class CuratorScheduler implements Scheduler<AbstractExecutable> {
         kylinConfig = jobEngineConfig.getConfig();
 
         KapConfig kapConfig = KapConfig.wrap(kylinConfig);
-        String zkAddress = "";
-        if (kapConfig.getHelixZookeeperAddress() != null) {
-            zkAddress = kapConfig.getHelixZookeeperAddress();
-        } else {
-            throw new IllegalArgumentException("no 'kap.job.helix.zookeeper-address' set in kylin.properties");
-        }
+        String zkAddress = kapConfig.getHelixZookeeperAddress();
 
         synchronized (this) {
             if (started == true) {

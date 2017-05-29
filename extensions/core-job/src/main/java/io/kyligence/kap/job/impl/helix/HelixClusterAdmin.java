@@ -80,12 +80,7 @@ public class HelixClusterAdmin {
         this.kylinConfig = kylinConfig;
 
         KapConfig kapConfig = KapConfig.wrap(kylinConfig);
-        if (kapConfig.getHelixZookeeperAddress() != null) {
-            this.zkAddress = kapConfig.getHelixZookeeperAddress();
-        } else {
-            throw new IllegalArgumentException("no 'kap.job.helix.zookeeper-address' set in kylin.properties");
-        }
-
+        this.zkAddress = kapConfig.getHelixZookeeperAddress();
         this.clusterName = kylinConfig.getClusterName();
         this.admin = new ZKHelixAdmin(zkAddress);
     }

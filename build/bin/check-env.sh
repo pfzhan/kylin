@@ -3,6 +3,7 @@
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
+
 mkdir -p ${KYLIN_HOME}/logs
 LOG=${KYLIN_HOME}/logs/check-env.out
 ERRORS=${KYLIN_HOME}/logs/check-env.error
@@ -11,8 +12,10 @@ TITLE="#title"
 
 if [[ "$1" != "if-not-yet" || ! -f ${BYPASS} ]]; then
 
+
     echo `setColor 33 "KAP is checking installation environment, log is at ${LOG}"`
     echo ""
+
     rm -f ${LOG}
     rm -f ${ERRORS}
     touch ${ERRORS}

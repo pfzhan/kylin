@@ -6,6 +6,14 @@ source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
 echo "Checking HBase classpath..."
 
+metadataUrl=`${dir}/get-properties.sh kylin.metadata.url`
+if [[ "${metadataUrl##*@}" != "hbase" ]]
+then
+    echo "Not HBase metadata ${metadataUrl}. Skip check."
+    exit 0
+fi
+
+
 oCP=${HBASE_CLASSPATH}
 oCPP=${HBASE_CLASSPATH_PREFIX}
 

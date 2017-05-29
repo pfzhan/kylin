@@ -28,6 +28,8 @@
         <!-- Kylin versions -->
         <kylin.version>2.1.0-SNAPSHOT</kylin.version>
 
+        <commons-dbcp.version>1.4</commons-dbcp.version>
+        <mysql-connector.version>5.1.41</mysql-connector.version>
         <zkclient.version>0.8</zkclient.version>
         <grpc.version>1.0.2</grpc.version>
         <fastPFOR.version>0.0.13</fastPFOR.version>
@@ -237,6 +239,11 @@
                 <version>${zkclient.version}</version>
             </dependency>
             <dependency>
+                <groupId>commons-dbcp</groupId>
+                <artifactId>commons-dbcp</artifactId>
+                <version>${commons-dbcp.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-all</artifactId>
                 <version>${grpc.version}</version>
@@ -245,6 +252,12 @@
                 <groupId>me.lemire.integercompression</groupId>
                 <artifactId>JavaFastPFOR</artifactId>
                 <version>${fastPFOR.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>mysql</groupId>
+                <artifactId>mysql-connector-java</artifactId>
+                <version>${mysql-connector.version}</version>
+                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>

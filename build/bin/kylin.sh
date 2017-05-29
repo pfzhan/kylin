@@ -50,6 +50,7 @@ then
           quit "Kylin is running, stop it first"
         fi
     fi
+
     
     kapVersion=`${dir}/get-properties.sh kap.version` 
     fileVersion=`cat ${KYLIN_HOME}/VERSION`
@@ -57,6 +58,13 @@ then
     if [ "${kapVersion}" != "${fileVersion}" ]
     then
         quit 'Did you copied and replaced conf/kylin.properties from somewhere else (when upgrading)? It is not supported. Please strictly follow upgrade manual to apply previous changes to shipped kylin.properties in this version'
+    fi
+
+    # check metadata store type
+    metadataUrl=`${dir}/get-properties.sh kylin.metadata.url`
+    if [[ "${metadataUrl##*@}" != "hbase" ]]
+    then
+        exec ${dir}/kylin-start-wo-hbase.sh
     fi
     
     retrieveDependency
