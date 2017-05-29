@@ -1,4 +1,5 @@
 #!/bin/bash
+# Kyligence Inc. License
 
 # set verbose=true to print more logs in scripts
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh $@

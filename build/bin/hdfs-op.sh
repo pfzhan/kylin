@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # Kyligence Inc. License
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
