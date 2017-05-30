@@ -118,10 +118,11 @@ public class KapModelController extends BasicController {
         KapMsgPicker.setMsg(lang);
         String jobId = new CollectModelStatsJob(modelName).findRunningJob();
         Map<Boolean, Double> result = new HashMap<>();
-        if (jobId == null) {
+        if (jobId != null && null != jobService.getJobInstance(jobId)) {
+            result.put(true, jobService.getJobInstance(jobId).getProgress());
+        } else {
             result.put(false, 0.0);
         }
-        result.put(true, jobService.getJobInstance(jobId).getProgress());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 
