@@ -89,7 +89,7 @@ public class SchedulerJobService extends BasicService {
         return job;
     }
 
-    public void unifySchedulerJobInstance(SchedulerJobInstance schedulerJobInstance) throws IOException {
+    public void keepModifyTs(SchedulerJobInstance schedulerJobInstance) throws IOException {
         String name = schedulerJobInstance.getName();
 
         SchedulerJobInstance youngerSelf = getSchedulerJob(name);
