@@ -21,7 +21,8 @@ class testQuery(unittest.TestCase):
         headers = {
             'content-type': "application/json",
             'authorization': "Basic QURNSU46S1lMSU4=",
-            'cache-control': "no-cache"
+            'cache-control': "no-cache",
+            'accept' : "application/vnd.apache.kylin-v2+json"
         }
 
         sql_files = glob.glob('sql/*.sql')
@@ -45,12 +46,13 @@ class testQuery(unittest.TestCase):
             self.assertEqual(response.status_code, 200, 'Query failed.')
 
             actual_result = json.loads(response.text)
-            print 'Query duration: ' + str(actual_result['duration']) + 'ms'
-            del actual_result['duration']
-            del actual_result['hitExceptionCache']
-            del actual_result['storageCacheUsed']
-            del actual_result['totalScanCount']
-            del actual_result['totalScanBytes']
+            print actual_result
+            print 'Query duration: ' + str(actual_result['data']['duration']) + 'ms'
+            del actual_result['data']['duration']
+            del actual_result['data']['hitExceptionCache']
+            del actual_result['data']['storageCacheUsed']
+            del actual_result['data']['totalScanCount']
+            del actual_result['data']['totalScanBytes']
 
             expect_result = json.loads(open(sql_file[:-4] + '.json').read().strip())
             self.assertEqual(actual_result, expect_result, 'Query result does not equal.')
