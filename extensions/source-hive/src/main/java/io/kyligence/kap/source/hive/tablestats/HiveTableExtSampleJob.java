@@ -77,22 +77,16 @@ public class HiveTableExtSampleJob extends CubingJob {
 
     public String start() throws IOException {
 
-        logger.info("Start HiveTableExt job: " + getId());
-
         String runningJobID = findRunningJob(config, tableName);
         if (runningJobID != null)
             return runningJobID;
 
-        InitJob();
-
-        addSteps(this);
-
-        ExecutableManager.getInstance(config).addJob(this);
-
+        ExecutableManager.getInstance(config).addJob(build());
         return getId();
     }
 
-    private void InitJob() {
+    public CubingJob build() throws IOException {
+        logger.info("Start HiveTableExt job: " + getId());
         SimpleDateFormat format = new SimpleDateFormat("z yyyy-MM-dd HH:mm:ss");
         format.setTimeZone(TimeZone.getTimeZone(config.getTimeZone()));
         setDeployEnvName(config.getDeployEnv());
@@ -100,6 +94,8 @@ public class HiveTableExtSampleJob extends CubingJob {
         setName("Collect " + tableName + " statistics " + format.format(new Date(System.currentTimeMillis())));
         setSubmitter(submitter);
         setParam(CubingExecutableUtil.CUBE_NAME, tableName);
+        addSteps(this);
+        return this;
     }
 
     public void addSteps(CubingJob parent) throws IOException {

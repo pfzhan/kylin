@@ -101,7 +101,7 @@ public class KapModelController extends BasicController {
 
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
         CollectModelStatsJob job = new CollectModelStatsJob(project, modelName, submitter, req.getStartTime(), req.getEndTime(), req.getFrequency());
-        String jobId = job.initCollectJob();
+        String jobId = job.start();
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobService.getJobInstance(jobId), "");
     }
 

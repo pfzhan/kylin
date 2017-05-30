@@ -81,17 +81,18 @@ public class CollectModelStatsJob extends CubingJob {
     public CollectModelStatsJob() {
     }
 
-    public String initCollectJob() throws IOException {
+    public String start() throws IOException {
 
         String runningJobID = findRunningJob();
         if (runningJobID != null)
             return runningJobID;
 
-        createCollectJob();
+        logger.info("Start ModelStats job: " + getId());
+        ExecutableManager.getInstance(config).addJob(build());
         return getId();
     }
 
-    private void createCollectJob() throws IOException {
+    public CubingJob build() throws IOException {
 
         SimpleDateFormat format = new SimpleDateFormat("z yyyy-MM-dd HH:mm:ss");
         format.setTimeZone(TimeZone.getTimeZone(config.getTimeZone()));
@@ -133,9 +134,7 @@ public class CollectModelStatsJob extends CubingJob {
         modelStats.setEndTime(dateEnd);
         modelStats.setJodID(getId());
         modelStatsManager.saveModelStats(modelStats);
-
-        ExecutableManager.getInstance(config).addJob(this);
-        logger.info("Start ModelStats job: " + getId());
+        return this;
     }
 
     private void checkDuplicateKeyStep() {

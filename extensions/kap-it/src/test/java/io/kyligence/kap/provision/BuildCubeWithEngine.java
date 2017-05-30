@@ -26,10 +26,14 @@ package io.kyligence.kap.provision;
 
 import java.io.IOException;
 
+import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.KAPDeployUtil;
+import io.kyligence.kap.source.hive.modelstats.CollectModelStatsJob;
+import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampleJob;
 
 public class BuildCubeWithEngine extends org.apache.kylin.provision.BuildCubeWithEngine {
 
@@ -51,6 +55,26 @@ public class BuildCubeWithEngine extends org.apache.kylin.provision.BuildCubeWit
             logger.error("error", e);
             System.exit(1);
         }
+    }
+
+    @Override
+    protected boolean testTableExt() throws Exception {
+        String tableName = "DEFAULT.TEST_KYLIN_FACT";
+        logger.info("Start testing tablestats: {}", tableName);
+        DefaultChainedExecutable job = new HiveTableExtSampleJob(tableName, 1).build();
+        jobService.addJob(job);
+        ExecutableState state = waitForJob(job.getId());
+        return Boolean.valueOf(ExecutableState.SUCCEED == state);
+    }
+
+    @Override
+    protected boolean testModel() throws Exception {
+        String modelName = "ci_inner_join_model";
+        logger.info("Start testing model stats: {}", modelName);
+        DefaultChainedExecutable job = new CollectModelStatsJob("default", modelName, "TEST", 0, 0, 1).build();
+        jobService.addJob(job);
+        ExecutableState state = waitForJob(job.getId());
+        return Boolean.valueOf(ExecutableState.SUCCEED == state);
     }
 
     @Override
