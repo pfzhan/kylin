@@ -28,11 +28,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
-import io.kyligence.kap.storage.parquet.adhoc.SparkSqlClient;
-import io.kyligence.kap.storage.parquet.adhoc.util.KapAdHocUtil;
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
+import javax.annotation.Nullable;
+
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.SparkConf;
@@ -40,9 +37,17 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import io.kyligence.kap.common.obf.IKeepClassMembers;
+import io.kyligence.kap.storage.parquet.adhoc.SparkSqlClient;
+import io.kyligence.kap.storage.parquet.adhoc.util.KapAdHocUtil;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.JobServiceGrpc;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobRequest;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobResponse;
 
@@ -55,8 +60,32 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase imp
     private Semaphore semaphore;
 
     public SparkAppClientService() {
-        conf = new SparkConf().setAppName("KAP Query Driver");
+        conf = new SparkConf().setAppName("KyStorage for Kyligence Analytical Platform");
         conf.set("spark.scheduler.mode", "FAIR");
+
+        conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
+        conf.set("spark.kryo.registrationRequired", "true");
+
+        conf.registerKryoClasses(new Class[] { scala.collection.mutable.WrappedArray.ofRef.class, Object[].class,
+                RDDPartitionResult.class, SparkExecutorPreAggFunction.class });
+
+        //for spark sql
+        //https://mail-archives.apache.org/mod_mbox/spark-user/201603.mbox/%3CCAHCfvsSyUpx78ZFS_A9ycxvtO1=Jp7DfCCAeJKHyHZ1sugqHEQ@mail.gmail.com%3E
+        try {
+            conf.registerKryoClasses(new Class[] { org.apache.spark.sql.types.StructType.class,
+                    org.apache.spark.sql.types.StructField.class, org.apache.spark.sql.types.StructField[].class,
+                    org.apache.spark.sql.types.LongType.class, org.apache.spark.sql.types.Metadata.class,
+                    org.apache.spark.sql.catalyst.InternalRow.class, org.apache.spark.sql.catalyst.InternalRow[].class,
+                    org.apache.spark.sql.catalyst.expressions.UnsafeRow.class,
+                    org.apache.spark.sql.catalyst.expressions.UnsafeRow[].class,
+                    org.apache.spark.sql.execution.joins.UnsafeHashedRelation.class,
+                    org.apache.spark.sql.execution.joins.UnsafeHashedRelation.class, java.util.HashMap.class,
+                    Class.forName("scala.reflect.ClassTag$$anon$1"), Class.class,
+                    org.apache.spark.sql.execution.columnar.CachedBatch.class, byte[][].class, ArrayList.class });
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+
         sc = new JavaSparkContext(conf);
         semaphore = new Semaphore((int) KapAdHocUtil.memoryStringToMegas(this.conf.get("spark.driver.memory")) / 2);
 
@@ -72,7 +101,8 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase imp
     @Override
     public StreamObserver<SparkJobRequest> submitJob(final StreamObserver<SparkJobResponse> responseObserver) {
         if (sc.sc().isStopped()) {
-            logger.warn("Current JavaSparkContext(started at {} GMT) is found to be stopped, creating a new one", DateFormat.formatToTimeStr(sc.startTime()));
+            logger.warn("Current JavaSparkContext(started at {} GMT) is found to be stopped, creating a new one",
+                    DateFormat.formatToTimeStr(sc.startTime()));
             sc = new JavaSparkContext(conf);
             semaphore = new Semaphore((int) KapAdHocUtil.memoryStringToMegas(this.conf.get("spark.driver.memory")) / 2);
         }
@@ -81,26 +111,36 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase imp
     }
 
     @Override
-    public void doAdHocQuery(SparkJobProtos.AdHocRequest request, StreamObserver<SparkJobProtos.AdHocResponse> responseObserver) {
+    public void doAdHocQuery(SparkJobProtos.AdHocRequest request,
+            StreamObserver<SparkJobProtos.AdHocResponse> responseObserver) {
         if (sc.sc().isStopped()) {
-            logger.warn("Current JavaSparkContext(started at {} GMT) is found to be stopped, creating a new one", DateFormat.formatToTimeStr(sc.startTime()));
+            logger.warn("Current JavaSparkContext(started at {} GMT) is found to be stopped, creating a new one",
+                    DateFormat.formatToTimeStr(sc.startTime()));
             sc = new JavaSparkContext(conf);
             semaphore = new Semaphore((int) KapAdHocUtil.memoryStringToMegas(this.conf.get("spark.driver.memory")) / 2);
         }
 
         logger.info("Starting to do ad hoc query");
         try {
-            SparkSqlClient sqlClient = new SparkSqlClient(sc,  request, semaphore);
-            Pair<List<SparkJobProtos.Row>, List<SparkJobProtos.StructField>> pair = sqlClient.executeSql();
+            SparkSqlClient sqlClient = new SparkSqlClient(sc, request, semaphore);
+            Pair<List<List<String>>, List<SparkJobProtos.StructField>> pair = sqlClient.executeSql();
 
-            responseObserver.onNext(SparkJobProtos.AdHocResponse.newBuilder().addAllRows(pair.getFirst()).addAllColumns(pair.getSecond()).build());
+            responseObserver.onNext(SparkJobProtos.AdHocResponse.newBuilder()
+                    .addAllRows(Iterables.transform(pair.getFirst(), new Function<List<String>, SparkJobProtos.Row>() {
+                        @Nullable
+                        @Override
+                        public SparkJobProtos.Row apply(@Nullable List<String> input) {
+                            return SparkJobProtos.Row.newBuilder().addAllData(input).build();
+                        }
+                    })).addAllColumns(pair.getSecond()).build());
             responseObserver.onCompleted();
 
             semaphore.release((int) sqlClient.getEstimateDfSize());
 
         } catch (Exception e) {
             logger.error("Ad Hoc Query Error:", e);
-            throw new StatusRuntimeException(Status.INTERNAL.withDescription("Ad hoc query not supported, please check spark-driver.log for details."));
+            throw new StatusRuntimeException(Status.INTERNAL
+                    .withDescription("Ad hoc query not supported, please check spark-driver.log for details."));
         }
     }
 }
