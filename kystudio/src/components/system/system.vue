@@ -51,7 +51,7 @@
     </el-dialog>
 
     <el-dialog :title="$t('diagnosis')" v-model="diagnosisVisible">
-      <diagnosis></diagnosis>
+      <diagnosis :selectTimer="true"></diagnosis>
     </el-dialog>
 
     <!-- <el-dialog v-model="kyBotUploadVisible" title="KyAccount | Sign in" size="tiny" @close="resetLoginKybotForm">
@@ -276,8 +276,8 @@ export default {
     _this.refreshConfig()
   },
   locales: {
-    'en': {ServerConfig: 'Server Config', ServerEnvironment: 'Server Environment', action: 'Actions', reloadMetadata: 'Reload Metadata', setConfig: 'Set Config', backup: 'Backup', diagnosis: 'Generate Diagnosis Package', link: 'Links', success: 'Success', successEnvironment: 'Server environment get successfully', successConfig: 'Server config get successfully', reloadTip: 'Are you sure to reload metadata and clean cache? ', cancel: 'Cancel', yes: 'Yes', tip: 'Tip', reloadSuccessful: 'Reload metadata successful!', setConfigSuccessful: 'Set config successful!', autoUpload: 'KyBot Auto Upload', contentOne: 'By analyzing your diagnostic package, ', contentTwo: 'can provide online diagnostic, tuning and support service for KAP.', protocol: '《KyBot Term of Service》', agreeProtocol: 'I have read and agree'},
-    'zh-cn': {ServerConfig: '服务器配置', ServerEnvironment: '服务器环境', action: '操作', reloadMetadata: '重载元数据', setConfig: '设置配置', backup: '备份', diagnosis: '诊断', link: '链接', success: '成功', successEnvironment: '成功获取环境信息', successConfig: '成功获取服务器配置', reloadTip: '确定要重载元数据并清理缓存? ', tip: '提示', cancel: '取消', yes: '确定', reloadSuccessful: '重载元数据成功!', setConfigSuccessful: '设置配置成功!', autoUpload: 'KyBot 自动上传', contentOne: '通过分析生成的诊断包，', contentTwo: '提供在线诊断，优化服务。', protocol: '《KyBot用户协议》', agreeProtocol: '我已阅读并同意'}
+    'en': {ServerConfig: 'Server Config', ServerEnvironment: 'Server Environment', action: 'Actions', reloadMetadata: 'Reload Metadata', setConfig: 'Set Config', backup: 'Backup', diagnosis: 'Generate Diagnosis Package', link: 'Links', success: 'Success', successEnvironment: 'Server environment get successfully', successConfig: 'Server config get successfully', reloadTip: 'Are you sure to reload metadata and clean cache? ', cancel: 'Cancel', yes: 'Yes', tip: 'Tip', reloadSuccessful: 'Reload metadata successful!', setConfigSuccessful: 'Set config successful!', autoUpload: 'KyBot Auto Upload', contentOne: 'By analyzing your diagnostic package, ', contentTwo: 'can provide online diagnostic, tuning and support service for KAP.'},
+    'zh-cn': {ServerConfig: '服务器配置', ServerEnvironment: '服务器环境', action: '操作', reloadMetadata: '重载元数据', setConfig: '设置配置', backup: '备份', diagnosis: '诊断', link: '链接', success: '成功', successEnvironment: '成功获取环境信息', successConfig: '成功获取服务器配置', reloadTip: '确定要重载元数据并清理缓存? ', tip: '提示', cancel: '取消', yes: '确定', reloadSuccessful: '重载元数据成功!', setConfigSuccessful: '设置配置成功!', autoUpload: 'KyBot 自动上传', contentOne: '通过分析生成的诊断包，', contentTwo: '提供在线诊断，优化服务。'}
   }
 }
 </script>

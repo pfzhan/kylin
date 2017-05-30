@@ -8,7 +8,7 @@
   </div>
   
   <!-- <p>{{$t('contentTip')}}</p> -->
-  <div class="select-time">
+  <div class="select-time" v-if="selectTimer">
     <div class="choices">
       <p class="hd">{{$t('selectTime')}}</p>
       <el-radio-group v-model="radio" @change="changeRange">
@@ -43,9 +43,6 @@
   </div>
   <div class="footer">
     <el-button type="primary" @click="upload" :loading="uploadLoading">{{$t('kybotUpload')}}</el-button>
-    <!-- <el-tooltip content="您还未在" placement="right" effect="light">
-      <el-button class="ques">?</el-button>
-    </el-tooltip> -->
     <br />
     <p class="upload-wrap">
       <a @click="dump" class="uploader" href="javascript:;" target="_blank">{{$t('kybotDumpOne')}}</a>
@@ -61,14 +58,16 @@
       </el-tooltip>
     </p>
   </div>
-  <el-dialog title="KyAccount | Sign in" @close="resetLoginKybotForm">
-    <login_kybot ref="loginKybotForm" @onLogin="closeLoginForm"></login_kybot>
+  <!-- 登录弹层 -->
+  <el-dialog v-model="kyBotUploadVisible" title="KyAccount | Sign in" @close="resetLoginKybotForm" :modal="false">
+    <login_kybot ref="loginKybotForm" @closeLoginForm="closeLoginForm"></login_kybot>
   </el-dialog>
-  <el-dialog v-model="infoKybotVisible" title="KyBot自动上传" size="tiny">
+  
+  <!-- <el-dialog v-model="infoKybotVisible" title="KyBot自动上传" size="tiny">
     <start_kybot @onStart="closeStartLayer" :propAgreement="infoKybotVisible"></start_kybot>
-  </el-dialog>
+  </el-dialog> -->
   <!-- 协议弹层 -->
-  <el-dialog v-model="protocolVisible" size="tiny" class="agree-protocol">
+  <el-dialog v-model="protocolVisible" class="agree-protocol" :modal="false">
     <p>{{$t('contentOne')}}
       <a href="https://kybot.io/" target="_blank">KyBot</a>
       {{$t('contentTwo')}}
@@ -81,7 +80,7 @@
     <el-button @click="agreeProtocol" :loading="agreeLoading" type="primary" :disabled="!agreeKyBot" class="btn-agree">{{$t('agreeProtocol')}}</el-button>
   </el-dialog> 
   <!-- 协议内容弹层 -->
-    <el-dialog v-model='proContentVisivle' class="pro-content">
+    <el-dialog v-model='proContentVisivle' class="pro-content" size="full" :modal="false">
       <protocol_content></protocol_content>
     </el-dialog>
 </div>
@@ -91,9 +90,12 @@ import { mapActions } from 'vuex'
 import { handleSuccess, handleError } from '../../util/business'
 import $ from 'jQuery'
 import { apiUrl } from '../../config'
+import loginKybot from '../common/login_kybot.vue'
+import protocolContent from '../system/protocol.vue'
 
 export default {
   name: 'diagnosis',
+  props: ['targetId', 'selectTimer'],
   data () {
     return {
       newConfig: {
@@ -113,12 +115,15 @@ export default {
       maxTime: 0,
       uploadLoading: false,
       kyBotUploadVisible: false,
-      infoKybotVisible: false,
+      // infoKybotVisible: false,
       protocolVisible: false,
       agreeKyBot: false,
       agreeLoading: false,
       proContentVisivle: false
     }
+  },
+  created () {
+    console.log('this.selectTimer', this.selectTimer, this.targetId)
   },
   methods: {
     ...mapActions({
@@ -126,7 +131,9 @@ export default {
       getKybotDump: 'GET_KYBOT_DUMP',
       getKybotAccount: 'GET_KYBOT_ACCOUNT',
       getAgreement: 'GET_AGREEMENT',
-      setAgreement: 'SET_AGREEMENT'
+      setAgreement: 'SET_AGREEMENT',
+      loginKybot: 'LOGIN_KYBOT',
+      getJobKybot: 'GET_JOB_KYBOT'
     }),
     checkLogin () {
     },
@@ -155,18 +162,25 @@ export default {
         handleSuccess(resp, (data, code, status, msg) => {
           if (!data) {
             this.kyBotUploadVisible = true
+            this.uploadLoading = false
           } else {
             this.getAgreement().then((res) => {
               handleSuccess(res, (data, code, status, msg) => {
                 // console.log('3 .data :', data, data.isUserAgreement)
+                this.uploadLoading = false
                 if (!data) { // 没有同意过协议 开协议层
                   console.log('3: 没有')
-                  this.$emit('closeLoginOpenKybot')
+                  // this.$emit('closeLoginOpenKybot')
+                  this.protocolVisible = true
                 } else {
                   // b)
                   console.log('4: 同意过了')
-                  // this.startService()
-                  this.uploading()
+                  if (this.targetId) {
+                    this.uploadingJob(this.targetId)
+                  } else {
+                    // 上传
+                    this.uploading()
+                  }
                 }
               })
             })
@@ -174,14 +188,51 @@ export default {
         })
       })
     },
+    uploadingJob (id) {
+      this.uploadLoading = true
+      this.getJobKybot(id).then((resp) => {
+        handleSuccess(resp, (data, code, status, msg) => {
+          if (data) {
+            this.uploadLoading = false
+            this.diagnosisVisible = false
+            // 关闭
+            this.protocolVisible = false
+            this.kyBotUploadVisible = false
+            this.$message({
+              type: 'success',
+              message: this.$t('uploaded')
+            })
+          }
+        })
+      }).catch((res) => {
+        this.uploadLoading = false
+        handleError(res, (data, code, status, msg) => {
+          this.$message({
+            type: 'error',
+            message: msg
+          })
+        })
+      })
+    },
     resetLoginKybotForm () {
       this.$refs['loginKybotForm'].$refs['loginKybotForm'].resetFields()
+      this.uploadLoading = false
     },
     uploading () {
+      this.uploadLoading = true
       this.getKybotUpload({startTime: this.startTime, endTime: this.endTime}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
-          this.uploadLoading = false
-          this.diagnosisVisible = false
+          if (data) {
+            this.uploadLoading = false
+            this.diagnosisVisible = false
+            // 关闭
+            this.protocolVisible = false
+            this.kyBotUploadVisible = false
+            this.$message({
+              type: 'success',
+              message: this.$t('uploaded')
+            })
+          }
         })
       }).catch((res) => {
         this.uploadLoading = false
@@ -195,7 +246,7 @@ export default {
     },
     closeLoginForm () {
       this.kyBotUploadVisible = false
-      this.infoKybotVisible = true
+      // this.infoKybotVisible = true
     },
     dump: function () {
       this.startTime = +new Date(this.startTime)
@@ -274,7 +325,7 @@ export default {
       }
     },
     closeStartLayer () {
-      this.infoKybotVisible = false
+      // this.infoKybotVisible = false
     },
     showProtocol () {
       this.proContentVisivle = true
@@ -287,8 +338,11 @@ export default {
       this.setAgreement().then((resp) => {
         console.log('同意协议')
         handleSuccess(resp, (data, code, status, msg) => {
-          this.agreeLoading = true
-          this.protocolVisible = false
+          if (data) {
+            this.agreeLoading = true
+            this.protocolVisible = false
+            this.uploading()
+          }
         })
       }, (res) => {
         console.log('同意失败')
@@ -297,14 +351,18 @@ export default {
   },
   computed: {
   },
+  components: {
+    'login_kybot': loginKybot,
+    'protocol_content': protocolContent
+  },
   mounted () {
     this.canChangePick = false
     this.changeRange(1)
     this.radio = 1
   },
   locales: {
-    'en': {kybotUpload: 'Generate and sync package to KyBot', contentOne: 'By analyzing your diagnostic package, ', contentTwo: 'can provide online diagnostic, tuning and support service for KAP.', contentTip: '(Generated diagnostic package would cover 72 hours using history ahead)', kybotDumpOne: 'Only generate', kybotDumpTwo: ', Manual upload ', selectTime: 'Select Time Range', last1: 'Last one hour', last2: 'Last one day', last3: 'Last three days', last4: 'Last one month', chooseDate: 'Choose Date', tipTitle: 'If there is no public network access, diagnostic package can be upload manually as following:', tipStep1: '1. Download diagnostic package', tipStep2: '2. Login on KYBOT', tipStep3: '3. Click upload button on the top left of KyBot home page, and select the diagnostic package desired on the upload page to upload', err1: 'start time must less than end time', err2: 'at least 5 mins', err3: 'most one month'},
-    'zh-cn': {kybotUpload: '一键生成诊断包至KyBot', contentOne: '通过分析生成的诊断包，', contentTwo: '提供在线诊断，优化服务。', contentTip: '(Generated diagnostic package would cover 72 hours using history ahead)', kybotDumpOne: '下载诊断包', kybotDumpTwo: ', 手动上传 ', selectTime: '选择时间范围', last1: '上一小时', last2: '上一天', last3: '过去3天', last4: '最近一个月', chooseDate: '选择日期', tipTitle: '如无公网访问权限，可选择手动上传，操作步骤如下：', tipStep1: '1. 点击下载诊断包', tipStep2: '2. 登录KYBOT', tipStep3: '3. 在首页左上角点击上传按钮，在上传页面选择已下载的诊断包上传', err1: '开始时间必须小于结束时间', err2: '至少选择5分钟之后', err3: '至多选择一个月之内'}
+    'en': {kybotUpload: 'Generate and sync package to KyBot', contentOne: 'By analyzing your diagnostic package, ', contentTwo: 'can provide online diagnostic, tuning and support service for KAP.', contentTip: '(Generated diagnostic package would cover 72 hours using history ahead)', kybotDumpOne: 'Only generate', kybotDumpTwo: ', Manual upload ', selectTime: 'Select Time Range', last1: 'Last one hour', last2: 'Last one day', last3: 'Last three days', last4: 'Last one month', chooseDate: 'Choose Date', tipTitle: 'If there is no public network access, diagnostic package can be upload manually as following:', tipStep1: '1. Download diagnostic package', tipStep2: '2. Login on KYBOT', tipStep3: '3. Click upload button on the top left of KyBot home page, and select the diagnostic package desired on the upload page to upload', err1: 'start time must less than end time', err2: 'at least 5 mins', err3: 'most one month', uploaded: 'uploaded successfully', protocol: '《KyBot Term of Service》', agreeProtocol: 'I have read and agree'},
+    'zh-cn': {kybotUpload: '一键生成诊断包至KyBot', contentOne: '通过分析生成的诊断包，', contentTwo: '提供在线诊断，优化服务。', contentTip: '(Generated diagnostic package would cover 72 hours using history ahead)', kybotDumpOne: '下载诊断包', kybotDumpTwo: ', 手动上传 ', selectTime: '选择时间范围', last1: '上一小时', last2: '上一天', last3: '过去3天', last4: '最近一个月', chooseDate: '选择日期', tipTitle: '如无公网访问权限，可选择手动上传，操作步骤如下：', tipStep1: '1. 点击下载诊断包', tipStep2: '2. 登录KYBOT', tipStep3: '3. 在首页左上角点击上传按钮，在上传页面选择已下载的诊断包上传', err1: '开始时间必须小于结束时间', err2: '至少选择5分钟之后', err3: '至多选择一个月之内', uploaded: '上传成功', protocol: '《KyBot用户协议》', agreeProtocol: '我已阅读并同意'}
   }
 }
 </script>

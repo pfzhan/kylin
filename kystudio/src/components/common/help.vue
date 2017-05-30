@@ -163,6 +163,7 @@
             if (!data) {
               console.log('1:', data)
               this.kyBotUploadVisible = true
+              this.isopend = false
             } else {
               // this.isopend = true
               console.log('2:', data)
@@ -186,7 +187,7 @@
         this.getAgreement().then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
             console.log('获取同意协议 .data :', data)
-            if (!data.isUserAgreement) { // 没有同意过协议 开协议层
+            if (!data) { // 没有同意过协议 开协议层
               console.log(' 没有同意过协议')
               this.infoKybotVisible = true
             } else {
@@ -240,6 +241,7 @@
       },
       // 开启switch事件
       openSwitch () {
+        console.log('help vue 里面open 开启了服务')
         this.isopend = true
       },
       // 关闭switch事件

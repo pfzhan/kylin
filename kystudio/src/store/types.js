@@ -134,6 +134,7 @@ export const GET_ABOUTKAP = 'GET_ABOUTKAP'
 export const GET_ABOUT = 'GET_ABOUT'
 export const GET_KYBOT_UPLOAD = 'GET_KYBOT_UPLOAD'
 export const GET_KYBOT_DUMP = 'GET_KYBOT_DUMP'
+export const GET_JOB_KYBOT = 'GET_JOB_KYBOT'
 
 // kybot account and upload
 export const GET_KYACCOUNT = 'GET_KYACCOUNT'

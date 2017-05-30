@@ -5,7 +5,7 @@
         <el-input v-model="kyBotAccount.username" placeholder="username"></el-input>
       </el-form-item>
       <el-form-item prop="password">
-        <el-input v-model="kyBotAccount.password" placeholder="password"></el-input>
+        <el-input v-model="kyBotAccount.password" type="password" placeholder="password"></el-input>
       </el-form-item>
       <el-form-item>
         <el-button @click="loginKyBot" :loading="loginLoading" class="btn-loginKybot">Login</el-button>  

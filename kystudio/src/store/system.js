@@ -75,6 +75,11 @@ export default {
     [types.GET_KYBOT_UPLOAD]: function ({ commit }, {startTime, endTime}) {
       return api.system.getKybotUpload(startTime, endTime)
     },
+    [types.GET_JOB_KYBOT]: function ({commit}, target) {
+      return api.system.getJobKtbot(target).then((response) => {
+        return response
+      })
+    },
     [types.GET_KYBOT_DUMP]: function ({ commit }, {startTime, endTime}) {
       return api.system.getKybotDump(startTime, endTime)
     }

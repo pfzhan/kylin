@@ -83,7 +83,7 @@
               <el-dropdown-item @click.native="resume(scope.row)">{{$t('jobResume')}}</el-dropdown-item>
               <el-dropdown-item @click.native="discard(scope.row)">{{$t('jobDiscard')}}</el-dropdown-item>
               <el-dropdown-item @click.native="pause(scope.row)">{{$t('jobPause')}}</el-dropdown-item>
-              <el-dropdown-item @click.native="diagnosisJob(scope.row)">{{$t('jobDiagnosis')}}</el-dropdown-item>
+              <el-dropdown-item @click.native="diagnosisJob(scope.row, scope.row.uuid)">{{$t('jobDiagnosis')}}</el-dropdown-item>
               <el-dropdown-item @click.native="drop(scope.row.uuid)">{{$t('jobDrop')}}</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
@@ -229,7 +229,7 @@
 </el-dialog>
 
 <el-dialog :title="$t('diagnosis')" v-model="diagnosisVisible">
-  <diagnosis></diagnosis>
+  <diagnosis :targetId="targetId"></diagnosis>
 </el-dialog>
 </div>
 </template>
@@ -272,7 +272,8 @@ export default {
         {name: 'LASTONEYEAR', value: 3},
         {name: 'ALL', value: 4}
       ],
-      diagnosisVisible: false
+      diagnosisVisible: false,
+      targetId: ''
     }
   },
   components: {
@@ -361,8 +362,10 @@ export default {
       }
       this.loadJobsList(filter)
     },
-    diagnosisJob: function () {
+    diagnosisJob: function (a, target) {
       this.diagnosisVisible = true
+      this.targetId = target
+      console.log('xxxxxxxxxx', a, target)
     },
     refreshJobs: function () {
       let setting = {
@@ -484,11 +487,15 @@ export default {
         filter.sortby = 'last_modify'
       }
       this.loadJobsList(filter)
+    },
+    closeLoginOpenKybot () {
+      this.kyBotUploadVisible = false
+      this.infoKybotVisible = true
     }
   },
   locales: {
-    'en': {JobName: 'Job Name', TableModelCube: 'Table/Model/Cube', ProgressStatus: 'Progress/Statu', LastModifiedTime: 'Last Modified Time', Duration: 'Duration', Actions: 'Actions', jobResume: 'Resume', jobDiscard: 'Discard', jobPause: 'Pause', jobDiagnosis: 'Diagnosis', jobDrop: 'Drop', tip_jobDiagnosis: 'Download Diagnosis Info For This Job', tip_jobResume: 'Resume the Job', tip_jobPause: 'Pause the Job', tip_jobDiscard: 'Discard the Job', cubeName: 'Cube Name', NEW: 'NEW', PENDING: 'PENDING', RUNNING: 'RUNNING', FINISHED: 'FINISHED', ERROR: 'ERROR', DISCARDED: 'DISCARDED', STOPPED: 'STOPPED', LASTONEDAY: 'LAST ONE DAY', LASTONEWEEK: 'LAST ONE WEEK', LASTONEMONTH: 'LAST ONE MONTH', LASTONEYEAR: 'LAST ONE YEAR', ALL: 'ALL', parameters: 'Parameters', output: 'Output', load: 'Loading ... ', cmdOutput: 'cmd_output', resumeJob: 'Are you sure to resume the job?', discardJob: 'Are you sure to discard the job?', pauseJob: 'Are you sure to pause the job?', dropJob: 'Are you sure to drop the job?'},
-    'zh-cn': {JobName: '任务', TableModelCube: '表/模型/Cube', ProgressStatus: '进度/状态', LastModifiedTime: '最后修改时间', Duration: '耗时', Actions: '操作', jobResume: '恢复', jobDiscard: '终止', jobPause: '暂停', jobDiagnosis: '诊断', jobDrop: '删除', tip_jobDiagnosis: '下载Job诊断包', tip_jobResume: '恢复Job', tip_jobPause: '暂停Job', tip_jobDiscard: '终止Job', cubeName: 'Cube 名称', NEW: '新建', PENDING: '等待', RUNNING: '运行', FINISHED: '完成', ERROR: '错误', DISCARDED: '无效', STOPPED: '暂停', LASTONEDAY: '最近一天', LASTONEWEEK: '最近一周', LASTONEMONTH: '最近一月', LASTONEYEAR: '最近一年', ALL: '所有', parameters: '参数', output: '输出', load: '下载中 ... ', cmdOutput: 'cmd_output', resumeJob: '确定要恢复任务?', discardJob: '确定要抛弃任务?', pauseJob: '确定要暂停任务?', dropJob: '确定要删除任务?'}
+    'en': {JobName: 'Job Name', TableModelCube: 'Table/Model/Cube', ProgressStatus: 'Progress/Statu', LastModifiedTime: 'Last Modified Time', Duration: 'Duration', Actions: 'Actions', jobResume: 'Resume', jobDiscard: 'Discard', jobPause: 'Pause', jobDiagnosis: 'Diagnosis', jobDrop: 'Drop', tip_jobDiagnosis: 'Download Diagnosis Info For This Job', tip_jobResume: 'Resume the Job', tip_jobPause: 'Pause the Job', tip_jobDiscard: 'Discard the Job', cubeName: 'Cube Name', NEW: 'NEW', PENDING: 'PENDING', RUNNING: 'RUNNING', FINISHED: 'FINISHED', ERROR: 'ERROR', DISCARDED: 'DISCARDED', STOPPED: 'STOPPED', LASTONEDAY: 'LAST ONE DAY', LASTONEWEEK: 'LAST ONE WEEK', LASTONEMONTH: 'LAST ONE MONTH', LASTONEYEAR: 'LAST ONE YEAR', ALL: 'ALL', parameters: 'Parameters', output: 'Output', load: 'Loading ... ', cmdOutput: 'cmd_output', resumeJob: 'Are you sure to resume the job?', discardJob: 'Are you sure to discard the job?', pauseJob: 'Are you sure to pause the job?', dropJob: 'Are you sure to drop the job?', diagnosis: 'Generate Diagnosis Package'},
+    'zh-cn': {JobName: '任务', TableModelCube: '表/模型/Cube', ProgressStatus: '进度/状态', LastModifiedTime: '最后修改时间', Duration: '耗时', Actions: '操作', jobResume: '恢复', jobDiscard: '终止', jobPause: '暂停', jobDiagnosis: '诊断', jobDrop: '删除', tip_jobDiagnosis: '下载Job诊断包', tip_jobResume: '恢复Job', tip_jobPause: '暂停Job', tip_jobDiscard: '终止Job', cubeName: 'Cube 名称', NEW: '新建', PENDING: '等待', RUNNING: '运行', FINISHED: '完成', ERROR: '错误', DISCARDED: '无效', STOPPED: '暂停', LASTONEDAY: '最近一天', LASTONEWEEK: '最近一周', LASTONEMONTH: '最近一月', LASTONEYEAR: '最近一年', ALL: '所有', parameters: '参数', output: '输出', load: '下载中 ... ', cmdOutput: 'cmd_output', resumeJob: '确定要恢复任务?', discardJob: '确定要抛弃任务?', pauseJob: '确定要暂停任务?', dropJob: '确定要删除任务?', diagnosis: '诊断'}
   }
 }
 </script>
@@ -683,6 +690,16 @@ export default {
     .timeline-body {
       color: #999;
     }
+  }
+  .footer {
+    margin-top: 50px;
+  }
+  .agree-protocol {
+    line-height:30px;
+  }
+  .btn-agree {
+    display: block;
+    margin: 20px auto;
   }
 }
 .single-line {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}

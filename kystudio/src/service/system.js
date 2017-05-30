@@ -37,5 +37,8 @@ export default {
       startTime: startTime,
       endTime: endTime
     })
+  },
+  getJobKtbot: (target) => {
+    return Vue.resource(apiUrl + 'kybot/upload?target=' + target).get()
   }
 }
