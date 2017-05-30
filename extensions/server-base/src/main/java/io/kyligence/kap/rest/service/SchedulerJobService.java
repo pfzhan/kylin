@@ -89,6 +89,18 @@ public class SchedulerJobService extends BasicService {
         return job;
     }
 
+    public void unifySchedulerJobInstance(SchedulerJobInstance schedulerJobInstance) throws IOException {
+        String name = schedulerJobInstance.getName();
+
+        SchedulerJobInstance youngerSelf = getSchedulerJob(name);
+
+        if (youngerSelf != null) {
+            schedulerJobInstance.setLastModified(youngerSelf.getLastModified());
+        } else {
+            schedulerJobInstance.setLastModified(0);
+        }
+    }
+
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
     public SchedulerJobInstance saveSchedulerJob(SchedulerJobInstance job) throws IOException {
         getSchedulerJobManager().addSchedulerJob(job);

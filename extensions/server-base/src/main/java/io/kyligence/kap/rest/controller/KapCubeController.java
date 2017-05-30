@@ -282,6 +282,7 @@ public class KapCubeController extends BasicController implements InitializingBe
                 rawTableService.deleteRawByUuid(cubeDesc.getUuid(), false);
             }
 
+            schedulerJobService.unifySchedulerJobInstance(schedulerJobInstance);
             bindSchedulerJobWithCube(schedulerJobInstance, cubeDesc.getName(), cubeDesc.getUuid());
             validateSchedulerJobs(cubeDesc.getUuid());
             enableSchedulerJob(schedulerJobInstance);
@@ -335,6 +336,8 @@ public class KapCubeController extends BasicController implements InitializingBe
             } else {
                 rawTableService.deleteRawByUuid(cubeDesc.getUuid(), true);
             }
+
+            schedulerJobService.unifySchedulerJobInstance(schedulerJobInstance);
             bindSchedulerJobWithCube(schedulerJobInstance, cubeDesc.getName(), cubeDesc.getUuid());
             validateSchedulerJobs(cubeDesc.getUuid());
         } catch (Exception ex) {
