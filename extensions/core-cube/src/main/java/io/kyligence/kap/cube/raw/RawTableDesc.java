@@ -149,7 +149,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     public List<TblColRef> getNonSortbyColumns() {
         List<TblColRef> cols = new ArrayList<>();
         for (RawTableColumnDesc colDesc : columns) {
-            if (sortbyColumns.contains(colDesc.getIndex()))
+            if (sortbyColumns.contains(colDesc.getColumn()))
                 continue;
             cols.add(colDesc.getColumn());
         }

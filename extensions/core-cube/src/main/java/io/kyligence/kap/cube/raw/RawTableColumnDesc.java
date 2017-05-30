@@ -99,8 +99,17 @@ public class RawTableColumnDesc {
         return index;
     }
 
+    // only for test
+    void setIndex(String index) {
+        this.index = index;
+    }
+
     public String getEncoding() {
         return encoding;
+    }
+
+    void setEncoding(String encoding) {
+        this.encoding = encoding;
     }
 
     public int getEncodingVersion() {
@@ -115,8 +124,17 @@ public class RawTableColumnDesc {
         return shardby == null ? false : shardby;
     }
 
+    void setShardby(Boolean shardby) {
+        this.shardby = shardby;
+    }
+
     public Boolean isSortby() {
         return sortby == null ? false : sortby;
+    }
+
+    // test only
+    void setSortby(Boolean sortby) {
+        this.sortby = sortby;
     }
 
     @Override
