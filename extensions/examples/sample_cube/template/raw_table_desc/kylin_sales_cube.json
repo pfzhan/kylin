@@ -9,7 +9,7 @@
     "column" : "TRANS_ID"
   }, {
     "index" : "sorted",
-    "encoding" : "orderedbytes",
+    "encoding" : "date",
     "table" : "KYLIN_SALES",
     "column" : "PART_DT"
   }, {
