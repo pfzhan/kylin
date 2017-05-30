@@ -57,6 +57,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 
+import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 
 @Component("kyBotService")
@@ -69,7 +70,7 @@ public class KyBotService extends BasicService {
     private KapConfig kapConfig = KapConfig.getInstanceFromEnv();
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public String dumpLocalKyBotPackage(String target, long startTime, long endTime, boolean needUpload) throws IOException {
+    public String dumpLocalKyBotPackage(String target, Long startTime, Long endTime, boolean needUpload) throws IOException {
         File exportPath = Files.createTempDir();
         if (StringUtils.isEmpty(target)) {
             target = "-all";
@@ -79,8 +80,19 @@ public class KyBotService extends BasicService {
             validateToken();
         }
 
-        String[] args = { target, exportPath.getAbsolutePath(), Boolean.toString(needUpload), Long.toString(startTime), Long.toString(endTime) };
-        runKyBotCLI(args);
+        ArrayList<String> args = Lists.newArrayList();
+        args.add(target);
+        args.add(exportPath.getAbsolutePath());
+        args.add(Boolean.toString(needUpload));
+
+        if (startTime != null) {
+            args.add(Long.toString(startTime));
+        }
+        if (endTime != null) {
+            args.add(Long.toString(endTime));
+        }
+
+        runKyBotCLI(args.toArray(new String[0]));
         return getKyBotPackagePath(exportPath);
     }
 
