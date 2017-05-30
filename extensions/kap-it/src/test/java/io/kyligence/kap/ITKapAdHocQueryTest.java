@@ -56,12 +56,13 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
         logger.info("tearDown in ITKapAdHocQueryTest");
         RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=ci_inner_join_cube]");
         RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=ci_left_join_cube]");
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.ad-hoc.runner.class-name", "");
     }
 
     @Test
     public void testFilterOnMeasureQuery() throws Exception {
 
-        String queryFileName = getQueryFolderPrefix() + "src/test/resources/query/sql_adhoc/query01.sql";
+        String queryFileName = "src/test/resources/query/sql_adhoc/query01.sql";
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
@@ -86,7 +87,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
     @Test
     public void testNoMeasureQuery() throws Exception {
 
-        String queryFileName = getQueryFolderPrefix() + "src/test/resources/query/sql_adhoc/query02.sql";
+        String queryFileName = "src/test/resources/query/sql_adhoc/query02.sql";
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
@@ -110,7 +111,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
     @Test
     public void testAggOnDimension() throws Exception {
 
-        String queryFileName = getQueryFolderPrefix() + "src/test/resources/query/sql_adhoc/query03.sql";
+        String queryFileName = "src/test/resources/query/sql_adhoc/query03.sql";
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
@@ -134,7 +135,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
     @Test
     public void testUnMatchedJoin() throws Exception {
 
-        String queryFileName = getQueryFolderPrefix() + "src/test/resources/query/sql_adhoc/query04.sql";
+        String queryFileName = "src/test/resources/query/sql_adhoc/query04.sql";
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
@@ -152,6 +153,30 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                     "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
+        }
+    }
+
+    @Test
+    public void testComputedColumnExpand() throws Exception {
+        try {
+            RemoveBlackoutRealizationsRule.blackList.add("CUBE[name=ci_inner_join_cube]");
+            RemoveBlackoutRealizationsRule.blackList.add("CUBE[name=ci_left_join_cube]");
+            RemoveBlackoutRealizationsRule.blackList.add("HYBRID[name=ci_inner_join_hybrid]");
+
+            KylinConfig.getInstanceFromEnv().setProperty("kylin.query.ad-hoc.runner.class-name",
+                    "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
+
+            List<File> sqlFiles = getFilesFromFolder(
+                    new File("../../kylin/kylin-it/src/test/resources/query/sql_computedcolumn"), ".sql");
+            for (File sqlFile : sqlFiles) {
+                int resultCount = runSQL(sqlFile, false, false);
+                Assert.assertTrue(resultCount > 1);
+            }
+
+        } finally {
+            RemoveBlackoutRealizationsRule.blackList.remove("CUBE[name=ci_inner_join_cube]");
+            RemoveBlackoutRealizationsRule.blackList.remove("CUBE[name=ci_left_join_cube]");
+            RemoveBlackoutRealizationsRule.blackList.add("HYBRID[name=ci_inner_join_hybrid]");
         }
     }
 
@@ -182,7 +207,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
     public class ConcurrentAdHocQueryThread implements Runnable {
         @Override
         public void run() {
-            String queryFileName = getQueryFolderPrefix() + "src/test/resources/query/sql_adhoc/query04.sql";
+            String queryFileName = "src/test/resources/query/sql_adhoc/query04.sql";
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
             File sqlFile = new File(queryFileName);
             if (sqlFile.exists()) {

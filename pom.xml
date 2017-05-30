@@ -40,8 +40,8 @@
         <jackson.version>2.6.3</jackson.version>
         <hadoop2.version>2.7.1</hadoop2.version>
         <curator.version>2.7.1</curator.version>
-        <mockito.version>2.7.14</mockito.version>
         <quartz.version>2.1.1</quartz.version>
+        <mockito.version>2.7.14</mockito.version>
         <spring.framework.security.version>3.1.2.RELEASE</spring.framework.security.version>
 
         <!-- Sonar -->
@@ -225,13 +225,7 @@
                 <type>test-jar</type>
             </dependency>
 
-            <!-- more test -->
-            <dependency>
-                <groupId>org.mockito</groupId>
-                <artifactId>mockito-core</artifactId>
-                <version>${mockito.version}</version>
-            </dependency>
-
+          
             <!-- Sorted by groupId, artifactId; kylin and KAP dependencies first. -->
             <dependency>
                 <groupId>com.101tec</groupId>
