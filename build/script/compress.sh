@@ -72,6 +72,8 @@ ln -sfn profile/kylin_job_conf.xml kylin_job_conf.xml
 mv kylin_job_conf.xml ${package_name}/conf/
 ln -sfn profile/kylin_job_conf_inmem.xml kylin_job_conf_inmem.xml
 mv kylin_job_conf_inmem.xml ${package_name}/conf/
+ln -sfn profile/kylin-kafka-consumer.xml kylin-kafka-consumer.xml
+mv kylin-kafka-consumer.xml ${package_name}/conf/
 
 rm -rf lib tomcat commit_SHA1 VERSION # keep the spark folder on purpose
 find ${package_name} -type d -exec chmod 755 {} \;
