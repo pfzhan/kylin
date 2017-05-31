@@ -80,7 +80,7 @@ public class HelixClusterAdmin {
         this.kylinConfig = kylinConfig;
 
         KapConfig kapConfig = KapConfig.wrap(kylinConfig);
-        this.zkAddress = kapConfig.getHelixZookeeperAddress();
+        this.zkAddress = kapConfig.getZookeeperConnectString();
         this.clusterName = kylinConfig.getClusterName();
         this.admin = new ZKHelixAdmin(zkAddress);
     }
@@ -228,9 +228,9 @@ public class HelixClusterAdmin {
     }
 
     public String getCurrentInstanceName() {
-        final String restAddress = KapConfig.wrap(kylinConfig).getHelixRestAddress();
+        final String restAddress = KapConfig.wrap(kylinConfig).getServerRestAddress();
         if (StringUtils.isEmpty(restAddress)) {
-            throw new RuntimeException("There is no kap.job.helix.host-address set in System property and kylin.properties;");
+            throw new RuntimeException("There is no kap.server.host-address set in System property and kylin.properties;");
         }
 
         final String hostname = Preconditions.checkNotNull(restAddress.substring(0, restAddress.lastIndexOf(":")), "failed to get HostName of this server");

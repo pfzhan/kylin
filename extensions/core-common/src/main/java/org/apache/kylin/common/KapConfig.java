@@ -214,12 +214,12 @@ public class KapConfig {
         return config.getOptional("kap.server.massin-resource-dir", "/massin");
     }
 
-    public String getHelixZookeeperAddress() {
+    public String getZookeeperConnectString() {
         return config.getZookeeperConnectString();
     }
 
-    public String getHelixRestAddress() {
-        return config.getOptional("kap.job.helix.host-address", "localhost:7070");
+    public String getServerRestAddress() {
+        return config.getOptional("kap.server.host-address", "localhost:7070");
     }
 
     /**

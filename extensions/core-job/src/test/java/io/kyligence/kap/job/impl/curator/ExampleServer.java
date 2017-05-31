@@ -44,7 +44,7 @@ public class ExampleServer implements Closeable {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         KylinConfig kylinConfig1 = KylinConfig.createKylinConfig(kylinConfig);
-        kylinConfig1.setProperty("kap.job.helix.host-address", address);
+        kylinConfig1.setProperty("kap.server.host-address", address);
 
         scheduler = new CuratorScheduler();
         scheduler.init(new JobEngineConfig(kylinConfig1), new MockJobLock());

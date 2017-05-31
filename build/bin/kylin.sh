@@ -73,7 +73,7 @@ function retrieveDependency() {
     kylin_common_opts="-Dkylin.hive.dependency=${hive_dependency} \
     -Dkylin.kafka.dependency=${kafka_dependency} \
     -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} \
-    -Dkap.job.helix.host-address=${KYLIN_REST_ADDRESS} \
+    -Dkap.server.host-address=${KYLIN_REST_ADDRESS} \
     -Dspring.profiles.active=${spring_profile} \
     -Dhdp.version=${hdp_version}"
     

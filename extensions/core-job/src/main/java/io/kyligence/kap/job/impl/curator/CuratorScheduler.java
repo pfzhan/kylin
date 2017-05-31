@@ -83,7 +83,7 @@ public class CuratorScheduler implements Scheduler<AbstractExecutable> {
         kylinConfig = jobEngineConfig.getConfig();
 
         KapConfig kapConfig = KapConfig.wrap(kylinConfig);
-        String zkAddress = kapConfig.getHelixZookeeperAddress();
+        String zkAddress = kapConfig.getZookeeperConnectString();
 
         synchronized (this) {
             if (started == true) {
@@ -93,7 +93,7 @@ public class CuratorScheduler implements Scheduler<AbstractExecutable> {
             curatorClient = CuratorFrameworkFactory.newClient(zkAddress, new ExponentialBackoffRetry(3000, 3));
             curatorClient.start();
 
-            final String restAddress = KapConfig.wrap(kylinConfig).getHelixRestAddress();
+            final String restAddress = KapConfig.wrap(kylinConfig).getServerRestAddress();
             try {
                 registerInstance(restAddress);
             } catch (Exception e) {
