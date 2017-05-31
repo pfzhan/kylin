@@ -16,6 +16,11 @@ exports.default = {
     sync: '同步',
     clone: '克隆',
     check: '检测',
+    view: '预览',
+    draft: '草稿',
+    zoomIn: '放大视图',
+    zoomOut: '缩小视图',
+    automaticlayout: '自动布局',
     // 常规状态
     success: '成功',
     fail: '失败',
@@ -26,12 +31,25 @@ exports.default = {
     models: '模型',
     cubes: 'cubes',
     dataSource: '数据源',
+    fact: '事实表',
+    lookup: '维度表',
+    pk: 'Primary key',
+    fk: 'Foreign key',
     // 通用提示
     unknownError: '未知错误!',
+    submitSuccess: '提交成功',
     addSuccess: '添加成功',
     saveSuccess: '保存成功',
+    cloneSuccess: '克隆成功',
     delSuccess: '删除成功',
     updateSuccess: '更新成功',
+    confirmDel: '确认删除吗？',
+    // placeholder
+    pleaseInput: '请输入',
+    pleaseSelect: '请选择',
+    noData: '没有数据',
+    // 格式提示
+    nameFormatValidTip: '名称格式有误，支持数字字母下划线的组合',
     // 其他
     users: '用户',
     tip: '提示',
@@ -41,7 +59,8 @@ exports.default = {
     password: '密码'
   },
   model: {
-
+    scanRangeSetting: '扫描范围设置',
+    sameModelName: '已经存在同名的model了'
   },
   cube: {
     // for column encoding
@@ -53,7 +72,9 @@ exports.default = {
     dataTip: '适用于字段值为日期字符, 支持的格式包括yyyyMMdd、yyyy-MM-dd、yyyy-MM-dd HH:mm:ss、yyyy-MM-dd HH:mm:ss.SSS, 其中如果包含时间戳部分会被截断. ',
     timeTip: '适用于字段值为时间戳字符, 支持范围为[ 1970-01-01 00:00:00, 2038/01/19 03:14:07] , 毫秒部分会被忽略. ',
     booleanTip: '适用于字段值为: true, false, TRUE, FALSE, True, False, t, f, T, F, yes, no, YES, NO, Yes, No, y, n, Y, N, 1, 0',
-    orderedbytesTip: ''
+    orderedbytesTip: '',
+    sameCubeName: '已经存在同名的Cube了',
+    inputCubeName: '请输入cube名称'
   },
   project: {
     mustSelectProject: '请先选择一个Project'

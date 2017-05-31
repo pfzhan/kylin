@@ -65,7 +65,7 @@
 	      :label="$t('access')"
 	      >
 	    </el-table-column>
-	   <el-table-column 
+	   <el-table-column  v-if="hasActionAccess"
 	      :label="$t('kylinLang.common.action')"
 	      width="120">
 	      <template scope="scope">
@@ -87,7 +87,7 @@
 
 <script>
 import { mapActions } from 'vuex'
-import { handleSuccess, handleError, hasPermission, hasPermissionOfCube, hasRole } from '../../util/business'
+import { handleSuccess, handleError, hasPermission, hasPermissionOfCube, hasRole, kapConfirm } from '../../util/business'
 export default {
   name: 'access',
   props: ['accessId', 'own'],
@@ -152,16 +152,12 @@ export default {
       })
     },
     removeAccess (id) {
-      this.$confirm('此操作将永久删除该Access, 是否继续?', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(() => {
+      kapConfirm(this.$t('kylinLang.common.confirmDel')).then(() => {
         var actionType = this.own === 'cube' ? 'delCubeAccess' : 'delProjectAccess'
         this[actionType]({id: this.accessId, aid: id}).then((res) => {
           this.$message({
             type: 'success',
-            message: '删除成功!'
+            message: this.$t('kylinLang.common.delSuccess')
           })
           this.loadAccess()
         }, (res) => {

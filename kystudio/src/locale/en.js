@@ -16,6 +16,11 @@ exports.default = {
     sync: 'Sync',
     clone: 'Clone',
     check: 'Check',
+    view: 'View',
+    draft: 'Draft',
+    zoomIn: 'Zoom in',
+    zoomOut: 'Zoom out',
+    automaticlayout: 'Automatic layout',
     // 常规状态
     success: 'success',
     fail: 'fail',
@@ -26,12 +31,25 @@ exports.default = {
     models: 'models',
     cubes: 'cubes',
     dataSource: 'datasource',
+    fact: 'Fact Table',
+    lookup: 'Lookup Table',
+    pk: '主键',
+    fk: '外键',
     // 通用提示
     unknownError: 'Unknown Error!',
+    submitSuccess: 'Submitted successfully',
     addSuccess: 'Added successfully',
     saveSuccess: 'Saved successfully',
+    cloneSuccess: 'Cloned successfully',
     delSuccess: 'Deleted successfully',
     updateSuccess: 'Updated successfully',
+    confirmDel: 'Confirm delete it?',
+    // placeholder
+    pleaseInput: 'Please input',
+    pleaseSelect: 'Please select',
+    noData: 'No data',
+    // 格式提示
+    nameFormatValidTip: 'Invalid name！ You can use letters, numbers, and underscore characters',
     // 其他
     tip: 'Tips',
     action: 'action',
@@ -40,7 +58,8 @@ exports.default = {
     password: 'password'
   },
   model: {
-
+    scanRangeSetting: 'Scan range setting',
+    sameModelName: 'Model with the same name already exists'
   },
   cube: {
     // for column encoding
@@ -52,7 +71,9 @@ exports.default = {
     dataTip: 'Use 3 bytes to encode date dimension values. ',
     timeTip: 'Use 4 bytes to encode timestamps, supporting from 1970-01-01 00:00:00 to 2038/01/19 03:14:07. Millisecond is ignored. ',
     booleanTip: 'Use 1 byte to encode boolean values, valid value include: true, false, TRUE, FALSE, True, False, t, f, T, F, yes, no, YES, NO, Yes, No, y, n, Y, N, 1, 0',
-    orderedbytesTip: ''
+    orderedbytesTip: '',
+    sameCubeName: 'Cube with the same name already exists',
+    inputCubeName: 'Please input cube name'
   },
   project: {
     mustSelectProject: 'Please select a project first'

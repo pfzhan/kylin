@@ -68,7 +68,7 @@
 
 <script>
 import { mapActions } from 'vuex'
-import { handleSuccess, handleError, hasPermission, hasRole } from '../../util/business'
+import { handleSuccess, handleError, hasPermission, hasRole, kapConfirm } from '../../util/business'
 export default {
   name: 'cubelist',
   props: ['project', 'projectId'],
@@ -117,15 +117,11 @@ export default {
       this.filterMeta = Object.assign(this.filterMeta, row)
     },
     removeFilter (row) {
-      this.$confirm('此操作将永久删除该Filter, 是否继续?', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(() => {
+      kapConfirm(this.$t('kylinLang.common.confirmDel')).then(() => {
         this.delFilter({project: this.project, filterName: row.name}).then((res) => {
           this.$message({
             type: 'success',
-            message: '删除成功!'
+            message: this.$t('kylinLang.common.delSuccess')
           })
           this.loadFilters()
         })
@@ -145,7 +141,7 @@ export default {
         project: this.project
       }).then((res) => {
         this.loadFilters()
-        this.$message('保存成功！')
+        this.$message(this.$t('kylinLang.common.saveSuccess'))
         this.editFilterVisible = false
       }, (res) => {
         handleError(res, (data, code, status, msg) => {

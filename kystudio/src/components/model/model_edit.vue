@@ -5,17 +5,17 @@
 <!--     <draggable  @start="drag=true" @end="drag=false"> -->
       <model-assets  v-on:drag="drag" :project="extraoption.project" @okFunc="serverDataToDragData" ></model-assets>
       <!-- <el-tree v-if="extraoption.uuid" @nodeclick="clickCube" :data="cubeDataTree" style="background-color: #f1f2f7;border:none;width:250px;" :render-content="renderCubeTree"></el-tree> -->
-      <tree  v-if="extraoption.uuid" style="background-color: #f1f2f7;border:none;width:250px;" :treedata="cubeDataTree" placeholder="输入关键字过滤Data Source" maxLabelLen="20" :showfilter= "false" :expandall="true" @nodeclick="clickCube" emptytext="无数据" v-unselect :renderTree="renderCubeTree"></tree>
+      <tree  v-if="extraoption.uuid" style="background-color: #f1f2f7;border:none;width:250px;" :treedata="cubeDataTree" :placeholder="$t('kylinLang.common.pleaseInput')" maxLabelLen="20" :showfilter= "false" :expandall="true" @nodeclick="clickCube"  v-unselect :renderTree="renderCubeTree"></tree>
 <!--     </draggable> -->
     </div>
     <ul class="model_tool">
-        <li class="toolbtn tool_add" @click="addZoom" v-unselect title="放大视图"><span></span></li>
-        <li class="toolbtn tool_jian" @click="subZoom" v-unselect title="缩小视图"><span></span></li>
-        <li class="toolbtn" @click="autoLayerPosition" v-unselect style="line-height:26px;" title="自动布局"><icon style="color:#383838" name="life-bouy"></icon></li>
+        <li class="toolbtn tool_add" @click="addZoom" v-unselect :title="$t('zoomIn')"><span></span></li>
+        <li class="toolbtn tool_jian" @click="subZoom" v-unselect :title="$t('zoomOut')"><span></span></li>
+        <li class="toolbtn" @click="autoLayerPosition" v-unselect style="line-height:26px;" title="$t('automaticlayout')"><icon style="color:#383838" name="life-bouy"></icon></li>
       </ul>
     <div class="btn_group"  v-if="actionMode!=='view'">
-      <el-button @click="saveDraft(true)" :loading="draftBtnLoading">Draft</el-button>
-      <el-button type="primary" @click="saveCurrentModel" :loading="saveBtnLoading">Save</el-button>
+      <el-button @click="saveDraft(true)" :loading="draftBtnLoading">{{$t('kylinLang.common.draft')}}</el-button>
+      <el-button type="primary" @click="saveCurrentModel" :loading="saveBtnLoading">{{$t('kylinLang.common.save')}}</el-button>
     </div>  
     <div class="tips_group">
       
@@ -32,8 +32,8 @@
                <i class="el-icon-setting" style="color:#fff"></i>
               </span>
               <el-dropdown-menu slot="dropdown" >
-                <el-dropdown-item command="ROOTFACT" :data="table.guid">Fact</el-dropdown-item>
-                <el-dropdown-item command="LOOKUP" :data="table.guid">Lookup</el-dropdown-item>
+                <el-dropdown-item command="ROOTFACT" :data="table.guid">{{$t('kylinLang.common.fact')}}</el-dropdown-item>
+                <el-dropdown-item command="LOOKUP" :data="table.guid">{{$t('kylinLang.common.lookup')}}</el-dropdown-item>
               </el-dropdown-menu>
               </el-dropdown> 
         </div>
@@ -52,7 +52,7 @@
      
 
     </div>
-     <el-dialog title="主外键关系" v-model="dialogVisible" size="small" class="links_dialog">
+     <el-dialog :title="$t('addJoinCondition')" v-model="dialogVisible" size="small" class="links_dialog">
         <span>
         <!--   <el-row :gutter="20" class="ksd-mb10">
             <el-col :span="24">
@@ -101,10 +101,10 @@
               :show-header="false"
               style="width: 100%;border:none" class="linksTable">
               <el-table-column style="border:none"
-                label="主键"
+                :label="$t('pk')"
                 >
                 <template scope="scope">
-                <el-select v-model="scope.row[2]" placeholder="请选择" style="width:100%" :disabled = "actionMode ==='view'">
+                <el-select v-model="scope.row[2]" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:100%" :disabled = "actionMode ==='view'">
                   <el-option
                     v-for="item in currentLinkData.source.columns"
                     :key="item.name"
@@ -118,10 +118,10 @@
                  <template scope="scope" align="center">＝</template>
               </el-table-column>
               <el-table-column style="border:none"
-                label="外键"
+                :label="$t('fk')"
                 >
                 <template scope="scope">
-                <el-select v-model="scope.row[3]" placeholder="请选择" style="width:100%" :disabled = "actionMode ==='view'">
+                <el-select v-model="scope.row[3]" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:100%" :disabled = "actionMode ==='view'">
                   <el-option
                     v-for="item in currentLinkData.target.columns"
                     :key="item.name"
@@ -132,18 +132,18 @@
                 </template>
               </el-table-column>
               <br/>
-              <el-table-column style="border:none" label="操作" width="80" v-if="actionMode!=='view'">
+              <el-table-column style="border:none" :label="$t('kylinLang.common.action')" width="80" v-if="actionMode!=='view'">
                 <template scope="scope" >
-                  <confirm-btn v-if="scope.row[5]" v-on:okFunc='delConnect(scope.row)' :tips="deleteLinkTips"><el-button size="small"
-          type="danger">删除</el-button></confirm-btn>
+                  <confirm-btn v-if="scope.row[5]" v-on:okFunc='delConnect(scope.row)' :tips="$t('kylinLang.common.confirmDel')"><el-button size="small"
+          type="danger">{{$t('kylinLang.common.drop')}}</el-button></confirm-btn>
                 </template>
               </el-table-column>
             </el-table>
             <br/>
-            <el-button type="primary" v-if="actionMode!=='view'" @click="addJoinCondition(currentLinkData.source.guid,currentLinkData.target.guid, '', '', currentLinkData.joinType,true)">添加join条件</el-button>
+            <el-button type="primary" v-if="actionMode!=='view'" @click="addJoinCondition(currentLinkData.source.guid,currentLinkData.target.guid, '', '', currentLinkData.joinType,true)">{{$t('addJoinCondition')}}</el-button>
         </span>
          <span slot="footer" class="dialog-footer">
-            <el-button type="primary" @click="saveLinks(currentLinkData.source.guid,currentLinkData.target.guid)">确 定</el-button>
+            <el-button type="primary" @click="saveLinks(currentLinkData.source.guid,currentLinkData.target.guid)">{{$t('kylinLang.common.close')}}</el-button>
           </span> 
       </el-dialog>
        <el-dialog title="Computed Column" v-model="computedColumnFormVisible" size="small">
@@ -164,8 +164,8 @@
             </el-form>
           </div>
           <span slot="footer" class="dialog-footer">
-            <el-button @click="computedColumnFormVisible = false">取 消</el-button>
-            <el-button type="primary" @click="saveComputedColumn">确 定</el-button>
+            <el-button @click="computedColumnFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+            <el-button type="primary" @click="saveComputedColumn">{{$t('kylinLang.common.submit')}}</el-button>
           </span>     
         </el-dialog>
       <model-tool :modelInfo="modelInfo" :actionMode="actionMode" :editLock="editLock" :compeleteModelId="modelData&&modelData.uuid||null" :columnsForTime="timeColumns" :columnsForDate="dateColumns"  :activeName="submenuInfo.menu1" :activeNameSub="submenuInfo.menu2" :tableList="tableList" :partitionSelect="partitionSelect"  :selectTable="currentSelectTable" ref="modelsubmenu"></model-tool>
@@ -179,8 +179,8 @@
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
-        <el-button @click="createCubeVisible = false">取 消</el-button>
-        <el-button type="primary" @click="createCube">添 加</el-button>
+        <el-button @click="createCubeVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" @click="createCube">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
 
@@ -192,8 +192,8 @@
      <!--    <el-slider v-model="modelStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openModelCheck'></el-slider> -->
         <!-- <slider label="Check Model" @changeBar="changeModelBar" :show="addModelDialogDisable"></slider> -->
        <div slot="footer" class="dialog-footer">
-        <el-button @click="addModelDialogDisable = false">取 消</el-button>
-        <el-button type="primary" @click="saveAndCheckModel" :loading="saveBtnLoading">添 加</el-button>
+        <el-button @click="addModelDialogDisable = false">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" @click="saveAndCheckModel" :loading="saveBtnLoading">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
 </div>
@@ -225,7 +225,7 @@ export default {
       addModelDialogDisable: false,
       createCubeFormRule: {
         cubeName: [
-          {required: true, message: '请输入cube名字', trigger: 'blur'},
+          {required: true, message: this.$t('kylinLang.cube.inputCubeName'), trigger: 'blur'},
           {validator: this.checkName, trigger: 'blur'}
         ]
       },
@@ -526,7 +526,7 @@ export default {
     },
     checkName (rule, value, callback) {
       if (!/^\w+$/.test(value)) {
-        callback(new Error(this.$t('名字格式有误')))
+        callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
       } else {
         callback()
       }
@@ -543,7 +543,7 @@ export default {
         if (valid) {
           this.checkCubeName(this.cubeMeta.cubeName).then((data) => {
             this.$message({
-              message: '已经存在同名的Cube了',
+              message: this.$t('kylinLang.cube.sameCubeName'),
               type: 'warning'
             })
           }, (res) => {
@@ -602,8 +602,8 @@ export default {
       var _this = this
       this.addComputedColumnToDatabase(function (columnName) {
         _this.$notify({
-          title: '成功',
-          message: columnName + ' 计算列创建成功',
+          title: this.$t('kylinLang.common.success'),
+          message: columnName + this.$t('addComputedColumnSuccess'),
           type: 'success'
         })
       })
@@ -678,7 +678,7 @@ export default {
           callback(computedObj.columnName)
         }
       } else {
-        this.warnAlert('该计算列的名称已经存在！')
+        this.warnAlert(this.$t('sameNameComputedColumn'))
       }
     },
     checkSameColumnName: function (guid, column) {
@@ -823,12 +823,12 @@ export default {
       return obj
     },
     removeTable: function (guid) {
-      if (this.checkLock()) {
-        return
-      }
+      // if (this.checkLock()) {
+      //   return
+      // }
       var count = this.getConnectsByTableId(guid)
       if (count > 0) {
-        this.warnAlert('该table有关联的链接，请先删除连接再删除表！')
+        this.warnAlert(this.$t('delTableTip'))
         return
       }
       for (var i = 0; i < this.tableList.length; i++) {
@@ -1229,19 +1229,19 @@ export default {
       // 检查是否是rootfact指向fact和lookup
       var resultTag = false
       if (this.checkIsRootFact(p1)) {
-        this.warnAlert('Fact Table不能作为主键表')
+        this.warnAlert(this.$t('cannotSetFTableToFKTable'))
         resultTag = true
       }
       // 检查是否有反向链接
       for (var i = 0; i < this.links.length; i++) {
         if (this.links[i][0] === p2 && this.links[i][1] === p1) {
-          this.warnAlert('这两个表已经被反向关联过')
+          this.warnAlert(this.$t('tableHasOppositeLinks'))
           resultTag = true
           break
         }
       }
       if (this.getConnectsCountByGuid(p1, p2) >= 1) {
-        this.warnAlert('该表已经关联过其他外键表')
+        this.warnAlert(this.$t('tableHasOtherFKTable'))
         resultTag = true
       }
       return resultTag
@@ -1293,12 +1293,12 @@ export default {
       var guid = licompon.$el.getAttribute('data')
       if (kind === 'ROOTFACT') {
         if (this.checkHasFactKindTable(guid)) {
-          this.warnAlert('已经有一个Fact Table了')
+          this.warnAlert(this.$t('hasRootFact'))
           return
         }
         for (var i in this.links) {
           if (this.links[i][0] === guid) {
-            this.warnAlert('有一个连接的主键已经在该表上，该表不能再被设置成Fact，请删除连接重试！')
+            this.warnAlert(this.$t('cannotSetFact'))
             return
           }
         }
@@ -1506,7 +1506,6 @@ export default {
     serverDataToDragData: function () {
       var _this = this
       // 添加模式
-      console.log(this.extraoption, 'ewewe')
       if (!this.extraoption.uuid) {
         this.$set(this.modelInfo, 'modelDiscribe', this.extraoption.modelDesc)
         this.$set(this.modelInfo, 'modelName', this.extraoption.modelName)
@@ -1906,6 +1905,10 @@ export default {
   },
   updated () {
     // console.log(1)
+  },
+  locales: {
+    'en': {'addJoinCondition': 'New join condition', 'hasRootFact': 'There is already a fact table', 'cannotSetFact': 'Can not set a fact table that has foreign key', 'cannotSetFTableToFKTable': 'Can not set a fact table to be it\'s foreign key table', 'tableHasOppositeLinks': 'There is an reverse link between tables', 'tableHasOtherFKTable': 'There is already a foreign key table with this table', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly'},
+    'zh-cn': {'addJoinCondition': '添加连接条件', 'hasRootFact': '已经有一个事实表了', 'cannotSetFact': '不能设置一个有外键的表为事实表', 'cannotSetFTableToFKTable': '不是能设置事实表作为该表的外键表', 'tableHasOppositeLinks': '两表之间已经存在一个反向的连接了！', 'tableHasOtherFKTable': '该表已经有一个关联的外键表', 'delTableTip': '请先删除掉该表和其他表的关联关系', 'sameNameComputedColumn': '已经有一个同名的计算列', 'addComputedColumnSuccess': '计算列添加成功'}
   }
 }
 </script>
@@ -2061,6 +2064,7 @@ export default {
        }
        width: 220px;
        left: 440px;
+       z-index:1;
        background-color: #64748a; 
        position: absolute;
        height: 420px;

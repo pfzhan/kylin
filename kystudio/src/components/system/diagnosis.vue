@@ -88,7 +88,7 @@
 <script>
 import { mapActions } from 'vuex'
 import { handleSuccess, handleError } from '../../util/business'
-import $ from 'jQuery'
+import $ from 'jquery'
 import { apiUrl } from '../../config'
 import loginKybot from '../common/login_kybot.vue'
 import protocolContent from '../system/protocol.vue'

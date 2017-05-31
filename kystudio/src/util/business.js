@@ -17,6 +17,7 @@ export function handleSuccess (res, callback, errorcallback) {
 // 失败回调入口
 export function handleError (res, errorcallback) {
   var responseData = res.data
+  console.log(res, 990)
   if (typeof errorcallback !== 'function') {
     Message.error(responseData && responseData.msg || window.kapVm.$t('kylinLang.common.unknownError'))
   }

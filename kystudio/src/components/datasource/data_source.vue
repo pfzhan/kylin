@@ -1,7 +1,7 @@
 <template>
 	<div class="datasource">
       <div class="tree_list">
-         <el-radio-group v-model="currentLoadType" class="ksd-mt-30 ksd-ml-30">
+         <el-radio-group v-model="currentLoadType" class="ksd-mt-30 ksd-ml-30" v-if="isAdmin">
 		    <el-radio-button label="Hive" @click.native="openLoadHiveListDialog"><icon name="download" scale="0.8"></icon><span> Hive</span></el-radio-button>
 		    <el-radio-button label="Kfka" @click.native="openKafkaDialog"><icon name="download" scale="0.8"></icon><span> Kafka</span></el-radio-button>
 		  </el-radio-group>
@@ -16,7 +16,7 @@
           <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 0" type="info" :useload="true" @click.native="collectSampleDialogOpen" ref="sampleBtn">{{$t('sampling')}}</kap-icon-button>
           <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 1" type="info" :useload="true" @click.native="collectKafkaSampleDialogOpen" ref="kafkaSampleBtn">{{$t('sampling')}}(Streaming)</kap-icon-button>
 <!--           <el-button type="danger" @click.native="unloadTable" icon="delete2">Unload</el-button> -->
-           <kap-icon-button icon="trash" type="danger" :useload="true" @click.native="unloadTable" ref="unloadBtn">{{$t('unload')}}</kap-icon-button>
+           <kap-icon-button v-if="isAdmin" icon="trash" type="danger" :useload="true" @click.native="unloadTable" ref="unloadBtn">{{$t('unload')}}</kap-icon-button>
           </div>
       	<el-tabs v-model="activeName" class="ksd-mt-20 clear" v-show="tableData">
 		    <el-tab-pane :label="$t('kylinLang.dataSource.columns')" name="first">
@@ -273,7 +273,7 @@
 </template>
 <script>
 import { mapActions } from 'vuex'
-import { handleSuccess, handleError } from '../../util/business'
+import { handleSuccess, handleError, hasRole } from '../../util/business'
 import { changeDataAxis } from '../../util/index'
 import createKafka from '../kafka/create_kafka'
 import editKafka from '../kafka/edit_kafka'
@@ -732,6 +732,11 @@ export default {
         this.editKafkaFormVisible = false
         handleError(res)
       })
+    }
+  },
+  computed: {
+    isAdmin () {
+      return hasRole(this, 'ROLE_ADMIN')
     }
   },
   watch: {

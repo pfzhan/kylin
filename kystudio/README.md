@@ -33,8 +33,8 @@ npm test
 > 开发的时候，请通过访问http://localhost:8080/#/demo 来了解项目中组件的正确用法和命名规范，如果在项目中添加了新的通用组件，请及时在demo中更新
 
 
-##相关组件学习文档
+##kystudio项目中使用到的组件学习文档
 
 > mock 	[moc官网](http://mockjs.com/)
-
+> i18n  [i18n官网](http://kazupon.github.io/vue-i18n/en/)
 For detailed explanation on how things work, checkout the [guide](http://vuejs-templates.github.io/webpack/) and [docs for vue-loader](http://vuejs.github.io/vue-loader).

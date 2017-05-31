@@ -9,7 +9,7 @@ export default {
   props: ['content'],
   data () {
     return {
-      tips: this.content || 'no data'
+      tips: this.content || this.$t('kylinLang.common.noData')
     }
   }
 }

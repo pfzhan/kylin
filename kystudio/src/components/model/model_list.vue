@@ -24,7 +24,7 @@
 		      <div style="padding: 20px;">
 		        <h2 :title="o.name" >
           <span @click="viewModel(o)">{{o.name|omit(24, '...')}}</span>
-           <common-tip :tips="o.diagnose&&o.diagnose.messages.join('\n') || '未进行model健康检测'"> <icon v-if="!o.is_draft && o.diagnose && o.diagnose.progress===0" :name="modelHealthStatus[o.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[o.diagnose.heathStatus].color}"></icon></common-tip>
+           <common-tip :tips="o.diagnose&&o.diagnose.messages.join('\n') || $t('hasNotChecked')"> <icon v-if="!o.is_draft && o.diagnose && (o.diagnose.progress===0 || o.diagnose.progress===100)" :name="modelHealthStatus[o.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[o.diagnose.heathStatus].color}"></icon></common-tip>
              <el-progress  :width="20" type="circle" :stroke-width="2" :show-text="false" v-if="!o.is_draft&&o.diagnose&&o.diagnose.progress!==0 && o.diagnose.progress!==100" :percentage="o.diagnose&&o.diagnose.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></h2>
 		        <div class="bottom clearfix">
 		          <time class="time" v-visible="o.owner" style="display:block">{{o.owner}}</time>
@@ -97,7 +97,7 @@
 
     <el-dialog title="Clone Model" v-model="cloneFormVisible">
       <el-form :model="cloneModelMeta" :rules="cloneFormRule" ref="cloneForm">
-        <el-form-item label="Model Name" prop="newName">
+        <el-form-item :label="$t('modelName')" prop="newName">
           <el-input v-model="cloneModelMeta.newName" auto-complete="off"></el-input>
         </el-form-item>
       </el-form>
@@ -117,7 +117,7 @@
          <el-input
             type="textarea"
             :rows="2"
-            placeholder="请输入内容"
+            :placeholder="$t('kylinLang.common.pleaseInput')"
             v-model="createModelMeta.modelDesc">
           </el-input>
         </el-form-item>
@@ -142,13 +142,13 @@
       </div>
     </el-dialog>
 
-    <el-dialog title="设置扫描范围" v-model="scanRatioDialogVisible" >
+    <el-dialog :title="$t('scanRangeSetting')" v-model="scanRatioDialogVisible" >
         <el-row :gutter="20">
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">
               <div class="ksd-mt-20">
               <div class="date-picker" v-if="hasPartition">
-                  <p>设置处理区间：</p>
+                  <p>{{$t('scanRangeSetting')}}</p>
                   <br/>
                   <el-date-picker
                     v-model="startTime"
@@ -185,15 +185,15 @@
       </el-dialog>
 
       <el-dialog
-        title="提示"
+        :title="$t('kylinLang.common.tip')"
         :visible.sync="useCubeDialogVisible"
         >
-         该Model已经被下列cube使用过，无法编辑！您可以预览该Model！<br/>
+         {{$t('modelUsedTip')}}<br/>
          <el-tag type="primary"  v-for="tips in usedCubes" class="ksd-mt-10 ksd-ml-10">{{tips.name}}</el-tag>
          <!-- <el-alert :closable="false" :title="tips.name" type="info" v-for="tips in usedCubes" class="ksd-mt-10"></el-alert> -->
         <span slot="footer" class="dialog-footer">
           <el-button @click="useCubeDialogVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
-          <el-button type="primary" @click="gotoView">预览</el-button>
+          <el-button type="primary" @click="gotoView">{{$t('kylinLang.common.view')}}</el-button>
         </span>
       </el-dialog>
 	</div>
@@ -202,7 +202,7 @@
 import { mapActions } from 'vuex'
 import cubeList from '../cube/cube_list'
 import { pageCount, modelHealthStatus } from '../../config'
-import { transToGmtTime, handleError, handleSuccess } from 'util/business'
+import { transToGmtTime, handleError, handleSuccess, kapConfirm } from 'util/business'
 export default {
   data () {
     return {
@@ -253,18 +253,18 @@ export default {
       project: localStorage.getItem('selected_project'),
       cloneFormRule: {
         newName: [
-          {required: true, message: '请输入clone后的model名字', trigger: 'blur'},
+          {required: true, message: this.$t('inputCloneName'), trigger: 'blur'},
           {validator: this.checkName, trigger: 'blur'}]
       },
       createModelFormRule: {
         modelName: [
-          {required: true, message: '请输入model名字', trigger: 'blur'},
+          {required: true, message: this.$t('inputModelName'), trigger: 'blur'},
           {validator: this.checkName, trigger: 'blur'}
         ]
       },
       createCubeFormRule: {
         cubeName: [
-          {required: true, message: '请输入cube名字', trigger: 'blur'},
+          {required: true, message: this.$t('inputCubeName'), trigger: 'blur'},
           {validator: this.checkName, trigger: 'blur'}
         ]
       }
@@ -299,6 +299,9 @@ export default {
         // this.maxTime = +nowDate // 缓存最大值 endTime
         return v1
       }
+    },
+    checkActionRole () {
+
     },
     reloadModelList () {
       this.pageCurrentChange(this.currentPage)
@@ -346,7 +349,7 @@ export default {
     },
     addModel () {
       if (!this.project) {
-        this.$message('请先选择一个project')
+        this.$message(this.$t('kylinLang.project.mustSelectProject'))
         return
       }
       this.createModelVisible = true
@@ -360,7 +363,7 @@ export default {
         if (valid) {
           this.checkModelName(this.createModelMeta.modelName).then((res) => {
             this.$message({
-              message: '已经存在同名的model了',
+              message: this.$t('kylinLang.model.sameModelName'),
               type: 'warning'
             })
           }, (res) => {
@@ -396,7 +399,7 @@ export default {
         if (valid) {
           this.checkCubeName(this.cubeMeta.cubeName).then((data) => {
             this.$message({
-              message: '已经存在同名的Cube了',
+              message: this.$t('sameCubeName'),
               type: 'warning'
             })
           }, (res) => {
@@ -478,17 +481,8 @@ export default {
         }
         // this.stats(projectName, modelName)
       } else if (command === 'drop') {
-        this.$confirm('此操作将永久删除该model, 是否继续?', '提示', {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
-        }).then(() => {
+        kapConfirm(this.$t('delModelTip')).then(() => {
           this.drop()
-        }).catch(() => {
-          this.$message({
-            type: 'info',
-            message: '已取消删除'
-          })
         })
       } else if (command === 'cube') {
         this.initCubeMeta()
@@ -532,7 +526,7 @@ export default {
             this.cloneFormVisible = false
             this.$message({
               type: 'success',
-              message: '克隆成功!'
+              message: this.$t('kylinLang.common.cloneSuccess')
             })
             this.reloadModelList()
           }, (res) => {
@@ -553,7 +547,7 @@ export default {
       }).then(() => {
         this.$message({
           type: 'success',
-          message: '提交成功!'
+          message: this.$t('kylinLang.common.submitSuccess')
         })
         this.scanRatioDialogVisible = false
       })
@@ -562,7 +556,7 @@ export default {
       this.delModel(this.currentModelData.name).then(() => {
         this.$message({
           type: 'success',
-          message: '删除成功!'
+          message: this.$t('kylinLang.common.delSuccess')
         })
         this.reloadModelList()
       }, (res) => {
@@ -571,7 +565,7 @@ export default {
     },
     checkName (rule, value, callback) {
       if (!/^\w+$/.test(value)) {
-        callback(new Error(this.$t('名字格式有误')))
+        callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
       } else {
         callback()
       }
@@ -682,8 +676,8 @@ export default {
     window.clearTimeout(this.stCycleRequest)
   },
   locales: {
-    'en': {'addCube': 'Add Cube'},
-    'zh-cn': {'addCube': '添加Cube'}
+    'en': {'modelName': 'Model name', 'addCube': 'Add Cube', 'modelUsedTip': 'The model has been used by cubes as follows，you can only view the Model！', 'inputCloneName': 'Please input new name', 'inputModelName': 'Please input model name', 'inputCubeName': 'Please input cube name', 'delModelTip': 'Are you sure to drop this model?', 'hasNotChecked': 'Not checked health yet'},
+    'zh-cn': {'modelName': '模型名称', 'addCube': '添加Cube', 'modelUsedTip': '该Model已经被下列cube使用过，无法编辑！您可以预览该Model！', 'inputCloneName': '请输入克隆后的名字', 'inputModelName': '请输入model名称', 'inputCubeName': '请输入cube名称', 'delModelTip': '你确认删除该model吗?', 'hasNotChecked': '还未进行健康检测'}
   }
 }
 </script>
