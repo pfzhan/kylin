@@ -67,20 +67,20 @@
     <start_kybot @onStart="closeStartLayer" :propAgreement="infoKybotVisible"></start_kybot>
   </el-dialog> -->
   <!-- 协议弹层 -->
-  <el-dialog v-model="protocolVisible" class="agree-protocol" :modal="false">
+  <el-dialog v-model="protocolVisible" class="agree-protocol" :modal="false" @close="agreeKyBot = false">
     <p>{{$t('contentOne')}}
       <a href="https://kybot.io/" target="_blank">KyBot</a>
       {{$t('contentTwo')}}
     </p>
     <div>
       <el-checkbox v-model="agreeKyBot" @click="agreeKyBot = !agreeKyBot">
-        <a @click="showProtocol">{{$t('protocol')}}</a>
+        <a @click="showProtocol" class="btn-showProtocol">{{$t('protocol')}}</a>
       </el-checkbox>
     </div>
     <el-button @click="agreeProtocol" :loading="agreeLoading" type="primary" :disabled="!agreeKyBot" class="btn-agree">{{$t('agreeProtocol')}}</el-button>
   </el-dialog> 
   <!-- 协议内容弹层 -->
-    <el-dialog v-model='proContentVisivle' class="pro-content" size="full" :modal="false">
+    <el-dialog v-model='proContentVisivle' class="pro-content" size="large" :modal="false">
       <protocol_content></protocol_content>
     </el-dialog>
 </div>
@@ -121,9 +121,6 @@ export default {
       agreeLoading: false,
       proContentVisivle: false
     }
-  },
-  created () {
-    console.log('this.selectTimer', this.selectTimer, this.targetId)
   },
   methods: {
     ...mapActions({
@@ -166,15 +163,12 @@ export default {
           } else {
             this.getAgreement().then((res) => {
               handleSuccess(res, (data, code, status, msg) => {
-                // console.log('3 .data :', data, data.isUserAgreement)
                 this.uploadLoading = false
                 if (!data) { // 没有同意过协议 开协议层
-                  console.log('3: 没有')
                   // this.$emit('closeLoginOpenKybot')
                   this.protocolVisible = true
                 } else {
                   // b)
-                  console.log('4: 同意过了')
                   if (this.targetId) {
                     this.uploadingJob(this.targetId)
                   } else {
@@ -183,6 +177,8 @@ export default {
                   }
                 }
               })
+            }).catch((res) => {
+              handleError(res)
             })
           }
         })
@@ -206,12 +202,7 @@ export default {
         })
       }).catch((res) => {
         this.uploadLoading = false
-        handleError(res, (data, code, status, msg) => {
-          this.$message({
-            type: 'error',
-            message: msg
-          })
-        })
+        handleError(res)
       })
     },
     resetLoginKybotForm () {
@@ -232,16 +223,13 @@ export default {
               type: 'success',
               message: this.$t('uploaded')
             })
+          } else {
+            handleError(res)
           }
         })
       }).catch((res) => {
         this.uploadLoading = false
-        handleError(res, (data, code, status, msg) => {
-          this.$message({
-            type: 'error',
-            message: msg
-          })
-        })
+        handleError(res)
       })
     },
     closeLoginForm () {
@@ -249,15 +237,19 @@ export default {
       // this.infoKybotVisible = true
     },
     dump: function () {
-      this.startTime = +new Date(this.startTime)
-      let href = apiUrl + 'kybot/dump?startTime=' + this.startTime + '&endTime=' + this.endTime
+      let href = ''
+      if (this.selectTimer) {
+        this.startTime = +new Date(this.startTime)
+        href = apiUrl + 'kybot/dump?startTime=' + this.startTime + '&endTime=' + this.endTime
+      } else {
+        href = apiUrl + 'kybot/dump?target=' + this.targetId
+      }
       $('.uploader').attr('href', href)
     },
     changeRange (radio) {
       this.canChangePickStart = false
       this.canChangePickEnd = false
       this.hasErr = false
-      // console.log('改变时间范围', this.radio)
       radio = radio || this.radio // typeof radio is number
       let cur = new Date()
       let now = +cur
@@ -308,13 +300,9 @@ export default {
         this.radio = ''
       }
       this.hasErr = false // default everything is ok
-      // console.warn('startTime' + +this.startTime)
-      // console.warn('this.maxTime :' + this.maxTime)
-      // console.log('this.endTime :', this.endTime)
       this.canChangePickEnd = true
       if (this.startTime > this.endTime) {
         this.hasErr = true
-        console.log(1111)
         this.errMsgPick = this.$t('err1')
       } else if (this.startTime + 5 * 60 * 1000 > this.endTime) {
         this.hasErr = true
@@ -331,12 +319,8 @@ export default {
       this.proContentVisivle = true
     },
     agreeProtocol () {
-      // 同意请求 成功回调之后
-      // this.protocolVisible = false
-      // this.diagnosisVisible = true
       // 同意协议
       this.setAgreement().then((resp) => {
-        console.log('同意协议')
         handleSuccess(resp, (data, code, status, msg) => {
           if (data) {
             this.agreeLoading = true
@@ -345,7 +329,7 @@ export default {
           }
         })
       }, (res) => {
-        console.log('同意失败')
+        // console.log('同意失败')
       })
     }
   },
@@ -368,6 +352,17 @@ export default {
 </script>
 <style lang="less">
 .diagnosis-wrap {
+  .pro-content {
+    .el-dialog {
+      width: 500px;
+    }
+  }
+  a {
+    text-decoration: none;
+  }
+  .btn-showProtocol {
+    font-size: 14px;
+  }
   .dia-title {
     position: relative;
     line-height:20px;

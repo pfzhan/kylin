@@ -51,13 +51,10 @@
       :label="$t('ProgressStatus')"
       width="220">
         <template scope="scope">
-         <!--  <el-progress  :percentage="scope.row.progress" v-if="scope.row.progress === 100" status="success">
-          </el-progress>
-          <el-progress  :percentage="scope.row.progress" v-if="scope.row.job_status === 'ERROR'" status="exception">
+          <el-progress  :percentage="scope.row.progress" v-if="scope.row.progress === 100" status="success">
           </el-progress>
           <el-progress  :percentage="scope.row.progress | number(2)"  v-else>
-          </el-progress> -->
-          <kap-progress :percent="scope.row.progress | number(2)" :status="scope.row.job_status"></kap-progress>
+          </el-progress>
         </template>
       </el-table-column>
       <el-table-column
@@ -83,19 +80,11 @@
               <i class="el-icon-more"></i>
             </el-button>
             <el-dropdown-menu slot="dropdown">
-<<<<<<< 96417a0336501b50ff6d5372e2a36f3fde4ad804
               <el-dropdown-item @click.native="resume(scope.row)">{{$t('jobResume')}}</el-dropdown-item>
               <el-dropdown-item @click.native="discard(scope.row)">{{$t('jobDiscard')}}</el-dropdown-item>
               <el-dropdown-item @click.native="pause(scope.row)">{{$t('jobPause')}}</el-dropdown-item>
               <el-dropdown-item @click.native="diagnosisJob(scope.row, scope.row.uuid)">{{$t('jobDiagnosis')}}</el-dropdown-item>
               <el-dropdown-item @click.native="drop(scope.row.uuid)">{{$t('jobDrop')}}</el-dropdown-item>
-=======
-              <el-dropdown-item @click.native="resume(scope.row)" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'">{{$t('jobResume')}}</el-dropdown-item>
-              <el-dropdown-item @click.native="discard(scope.row)" v-if="scope.row.job_status=='RUNNING' || scope.row.job_status=='NEW' || scope.row.job_status=='PENDING' || scope.row.job_status=='ERROR' || scope.row.job_status=='STOPPED'">{{$t('jobDiscard')}}</el-dropdown-item>
-              <el-dropdown-item @click.native="pause(scope.row)" v-if="scope.row.job_status=='RUNNING' || scope.row.job_status=='NEW' || scope.row.job_status=='PENDING'">{{$t('jobPause')}}</el-dropdown-item>
-              <el-dropdown-item @click.native="diagnosisJob(scope.row)">{{$t('jobDiagnosis')}}</el-dropdown-item>
-              <el-dropdown-item @click.native="drop(scope.row.uuid)" v-if="scope.row.job_status=='FINISHED' || scope.row.job_status=='ERROR' || scope.row.job_status=='STOPPED' || scope.row.job_status=='DISCARDED'">{{$t('jobDrop')}}</el-dropdown-item>
->>>>>>> #488 monitor module refine
             </el-dropdown-menu>
           </el-dropdown>
         </template>
@@ -111,7 +100,7 @@
             <div class="timeline-body">
               <table class="table table-striped table-bordered" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td class="single-line"><b>{{$t('jobName')}}</b></td>
+                  <td class="single-line"><b>Job Name</b></td>
                   <td style="max-width: 180px;word-wrap: break-word;word-break: normal;">
                     {{selected_job.name}}
                   </td>
@@ -123,7 +112,7 @@
                   </td>
                 </tr>
                 <tr>
-                   <td>{{$t('kylinLang.common.status')}}</td>
+                   <td>Status</td>
                   <td>
                     <el-tag 
                     :type="getJobStatusTag">
@@ -132,11 +121,11 @@
                   </td>
                 </tr>
                 <tr>
-                  <td>{{$t('duration')}}</td>
+                  <td>Duration</td>
                   <td>{{selected_job.duration/60 | number(2)}}mins</td>
                 </tr>
                 <tr>
-                  <td>MapReduce {{$t('waiting')}}</td>
+                  <td>MapReduce Waiting</td>
                   <td>{{selected_job.mr_waiting/60 | number(2)}} mins</td>
                 </tr>
               </table>
@@ -197,9 +186,9 @@
                 <span class="blue">{{step.info.hdfs_bytes_written|dataSize}}</span>
                 <!-- <br /> -->
               </div>
-              <span>{{$t('duration')}}: </span>
+              <span>Duration: </span>
                 <span class="blue">{{timerline_duration(step)}}</span><br />
-              <span>{{$t('waiting')}}: </span>
+              <span>Waiting: </span>
                 <span class="blue">{{step.exec_wait_time | tofixedTimer(2)}}</span><br />
             </div>
             <div class="timeline-footer">
@@ -249,7 +238,7 @@
 import { mapActions } from 'vuex'
 import jobDialog from './job_dialog'
 import { pageCount } from '../../config'
-import { transToGmtTime, kapConfirm, handleError } from 'util/business'
+import { transToGmtTime } from 'util/business'
 import diagnosisXX from '../system/diagnosis'
 export default {
   name: 'jobslist',
@@ -266,12 +255,6 @@ export default {
       dialogVisible: false,
       outputDetail: '',
       stepAttrToShow: '',
-      filter: {
-        pageOffset: this.currentPage - 1,
-        pageSize: pageCount,
-        projectName: this.project,
-        timeFilter: 1
-      },
       allStatus: [
         {name: 'NEW', value: 0},
         {name: 'PENDING', value: 1},
@@ -307,7 +290,7 @@ export default {
         })
       }, 5000)
     }
-    this.loadJobsList(this.filter).then(() => {
+    this.loadJobsList({pageSize: pageCount, pageOffset: 0, projectName: this.project, timeFilter: 2}).then(() => {
       autoFilter()
     })
   },
@@ -382,7 +365,6 @@ export default {
     diagnosisJob: function (a, target) {
       this.diagnosisVisible = true
       this.targetId = target
-      console.log('xxxxxxxxxx', a, target)
     },
     refreshJobs: function () {
       let setting = {
@@ -400,52 +382,56 @@ export default {
       return this.loadJobsList(setting)
     },
     resume: function (job) {
-      kapConfirm(this.$t('resumeJob')).then(() => {
-        this.resumeJob(job.uuid).then(() => {
-          this.$message({
-            type: 'success',
-            message: '任务恢复成功!'
-          })
-        }).catch((res) => {
-          handleError(res)
+      this.$confirm(this.$t('resumeJob'), '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        this.refreshJob().then(() => {
+        }).catch(() => {
         })
+      }).catch(() => {
       })
     },
     discard: function (job) {
-      kapConfirm(this.$t('discardJob')).then(() => {
-        this.cancelJob(job.uuid).then(() => {
-          this.$message({
-            type: 'success',
-            message: '任务成功取消!'
-          })
-        }).catch((res) => {
-          handleError(res)
+      this.$confirm(this.$t('discardJob'), '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        this.cancelJob().then(() => {
+        }).catch(() => {
         })
+      }).catch(() => {
       })
     },
     pause: function (job) {
-      kapConfirm(this.$t('pauseJob')).then(() => {
-        this.pauseJob(job.uuid).then(() => {
-          this.$message({
-            type: 'success',
-            message: '任务成功取消!'
-          })
-        }).catch((res) => {
-          handleError(res)
+      this.$confirm(this.$t('pauseJob'), '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        this.pauseJob().then(() => {
+        }).catch(() => {
         })
+      }).catch(() => {
       })
     },
     drop: function (jobId) {
-      kapConfirm(this.$t('dropJob')).then(() => {
+      this.$confirm(this.$t('dropJob'), '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
         this.removeJob(jobId).then(() => {
           this.$message({
             type: 'success',
             message: '删除成功!'
           })
           this.refreshFilter()
-        }).catch((res) => {
-          handleError(res)
+        }).catch(() => {
         })
+      }).catch(() => {
       })
     },
     showLineSteps: function (row, v1, v2) {
@@ -477,9 +463,8 @@ export default {
       }
     },
     sortJobList (column, prop, order) {
-      console.log('sort by job name', column, prop, order)
       let _column = column.column
-      this.filter = {
+      let filter = {
         pageOffset: this.currentPage - 1,
         pageSize: pageCount,
         projectName: this.project,
@@ -487,16 +472,16 @@ export default {
         reverse: true
       }
       if (_column.order === 'ascending') {
-        this.filter.reverse = false
+        filter.reverse = false
       }
       if (_column.label === this.$t('JobName')) {
-        this.filter.sortby = 'job_name'
+        filter.sortby = 'job_name'
       } else if (_column.label === this.$t('TableModelCube')) {
-        this.filter.sortby = 'cube_name'
+        filter.sortby = 'cube_name'
       } else if (_column.label === this.$t('LastModifiedTime')) {
-        this.filter.sortby = 'last_modify'
+        filter.sortby = 'last_modify'
       }
-      this.loadJobsList(this.filter)
+      this.loadJobsList(filter)
     },
     closeLoginOpenKybot () {
       this.kyBotUploadVisible = false
@@ -504,8 +489,8 @@ export default {
     }
   },
   locales: {
-    'en': {JobName: 'Job Name', TableModelCube: 'Table/Model/Cube', ProgressStatus: 'Progress/Statu', LastModifiedTime: 'Last Modified Time', Duration: 'Duration', Actions: 'Actions', jobResume: 'Resume', jobDiscard: 'Discard', jobPause: 'Pause', jobDiagnosis: 'Diagnosis', jobDrop: 'Drop', tip_jobDiagnosis: 'Download Diagnosis Info For This Job', tip_jobResume: 'Resume the Job', tip_jobPause: 'Pause the Job', tip_jobDiscard: 'Discard the Job', cubeName: 'Cube Name', NEW: 'NEW', PENDING: 'PENDING', RUNNING: 'RUNNING', FINISHED: 'FINISHED', ERROR: 'ERROR', DISCARDED: 'DISCARDED', STOPPED: 'STOPPED', LASTONEDAY: 'LAST ONE DAY', LASTONEWEEK: 'LAST ONE WEEK', LASTONEMONTH: 'LAST ONE MONTH', LASTONEYEAR: 'LAST ONE YEAR', ALL: 'ALL', parameters: 'Parameters', output: 'Output', load: 'Loading ... ', cmdOutput: 'cmd_output', resumeJob: 'Are you sure to resume the job?', discardJob: 'Are you sure to discard the job?', pauseJob: 'Are you sure to pause the job?', dropJob: 'Are you sure to drop the job?', diagnosis: 'Generate Diagnosis Package', 'jobName': 'Job Name', 'duration': 'Duration', 'waiting': 'Waiting'},
-    'zh-cn': {JobName: '任务', TableModelCube: '表/模型/Cube', ProgressStatus: '进度/状态', LastModifiedTime: '最后修改时间', Duration: '耗时', Actions: '操作', jobResume: '恢复', jobDiscard: '终止', jobPause: '暂停', jobDiagnosis: '诊断', jobDrop: '删除', tip_jobDiagnosis: '下载Job诊断包', tip_jobResume: '恢复Job', tip_jobPause: '暂停Job', tip_jobDiscard: '终止Job', cubeName: 'Cube 名称', NEW: '新建', PENDING: '等待', RUNNING: '运行', FINISHED: '完成', ERROR: '错误', DISCARDED: '无效', STOPPED: '暂停', LASTONEDAY: '最近一天', LASTONEWEEK: '最近一周', LASTONEMONTH: '最近一月', LASTONEYEAR: '最近一年', ALL: '所有', parameters: '参数', output: '输出', load: '下载中 ... ', cmdOutput: 'cmd_output', resumeJob: '确定要恢复任务?', discardJob: '确定要抛弃任务?', pauseJob: '确定要暂停任务?', dropJob: '确定要删除任务?', diagnosis: '诊断', 'jobName': '任务名', 'duration': '持续时间', 'waiting': '等待时间'}
+    'en': {JobName: 'Job Name', TableModelCube: 'Table/Model/Cube', ProgressStatus: 'Progress/Statu', LastModifiedTime: 'Last Modified Time', Duration: 'Duration', Actions: 'Actions', jobResume: 'Resume', jobDiscard: 'Discard', jobPause: 'Pause', jobDiagnosis: 'Diagnosis', jobDrop: 'Drop', tip_jobDiagnosis: 'Download Diagnosis Info For This Job', tip_jobResume: 'Resume the Job', tip_jobPause: 'Pause the Job', tip_jobDiscard: 'Discard the Job', cubeName: 'Cube Name', NEW: 'NEW', PENDING: 'PENDING', RUNNING: 'RUNNING', FINISHED: 'FINISHED', ERROR: 'ERROR', DISCARDED: 'DISCARDED', STOPPED: 'STOPPED', LASTONEDAY: 'LAST ONE DAY', LASTONEWEEK: 'LAST ONE WEEK', LASTONEMONTH: 'LAST ONE MONTH', LASTONEYEAR: 'LAST ONE YEAR', ALL: 'ALL', parameters: 'Parameters', output: 'Output', load: 'Loading ... ', cmdOutput: 'cmd_output', resumeJob: 'Are you sure to resume the job?', discardJob: 'Are you sure to discard the job?', pauseJob: 'Are you sure to pause the job?', dropJob: 'Are you sure to drop the job?', diagnosis: 'Generate Diagnosis Package'},
+    'zh-cn': {JobName: '任务', TableModelCube: '表/模型/Cube', ProgressStatus: '进度/状态', LastModifiedTime: '最后修改时间', Duration: '耗时', Actions: '操作', jobResume: '恢复', jobDiscard: '终止', jobPause: '暂停', jobDiagnosis: '诊断', jobDrop: '删除', tip_jobDiagnosis: '下载Job诊断包', tip_jobResume: '恢复Job', tip_jobPause: '暂停Job', tip_jobDiscard: '终止Job', cubeName: 'Cube 名称', NEW: '新建', PENDING: '等待', RUNNING: '运行', FINISHED: '完成', ERROR: '错误', DISCARDED: '无效', STOPPED: '暂停', LASTONEDAY: '最近一天', LASTONEWEEK: '最近一周', LASTONEMONTH: '最近一月', LASTONEYEAR: '最近一年', ALL: '所有', parameters: '参数', output: '输出', load: '下载中 ... ', cmdOutput: 'cmd_output', resumeJob: '确定要恢复任务?', discardJob: '确定要抛弃任务?', pauseJob: '确定要暂停任务?', dropJob: '确定要删除任务?', diagnosis: '诊断'}
   }
 }
 </script>
@@ -702,7 +687,7 @@ export default {
     }
   }
   .footer {
-    margin-top: 50px;
+    margin-top: 30px;
   }
   .agree-protocol {
     line-height:30px;

@@ -53,33 +53,6 @@
     <el-dialog :title="$t('diagnosis')" v-model="diagnosisVisible">
       <diagnosis :selectTimer="true"></diagnosis>
     </el-dialog>
-
-    <!-- <el-dialog v-model="kyBotUploadVisible" title="KyAccount | Sign in" size="tiny" @close="resetLoginKybotForm">
-      <login_kybot ref="loginKybotForm" @onLogin="closeLoginForm"></login_kybot>
-    </el-dialog> -->
-
-    <!-- <el-dialog v-model="infoKybotVisible" :title="$t('autoUpload')" size="tiny">
-      <start_kybot @onStart="closeStartLayer"></start_kybot>
-    </el-dialog> -->
-
-    <!-- 协议弹层 -->
-    <!-- <el-dialog v-model="protocolVisible" size="tiny" class="agree-protocol">
-      <p>{{$t('contentOne')}}
-        <a href="https://kybot.io/" target="_blank">KyBot</a>
-        {{$t('contentTwo')}}
-      </p>
-      <div>
-        <el-checkbox v-model="agreeKyBot" @click="agreeKyBot = !agreeKyBot">
-          <a @click="showProtocol">{{$t('protocol')}}</a>
-        </el-checkbox>
-      </div>
-      <el-button @click="agreeProtocol" :loading="agreeLoading" type="primary" :disabled="!agreeKyBot" class="btn-agree">{{$t('agreeProtocol')}}</el-button>
-    </el-dialog>   -->
-
-    <!-- 协议内容弹层 -->
-    <!-- <el-dialog v-model='proContentVisivle' class="pro-content">
-      <protocol_content></protocol_content>
-    </el-dialog> -->
   </div>
 </template>
 <script>
@@ -97,12 +70,6 @@ export default {
       activeName: 'system',
       setConfigFormVisible: false,
       diagnosisVisible: false
-      // kyBotUploadVisible: false,
-      // infoKybotVisible: false,
-      // protocolVisible: false,
-      // agreeKyBot: false,
-      // agreeLoading: false,
-      // proContentVisivle: false
     }
   },
   components: {
@@ -190,30 +157,6 @@ export default {
     },
     diagnosisSys: function () {
       this.diagnosisVisible = true
-      // 检测登录状态
-      // this.getKybotAccount().then((res) => {
-      //   handleSuccess(res, (data, code, status, msg) => {
-      //     if (!data) {
-      //       this.kyBotUploadVisible = true
-      //     } else {
-      //       this.kyBotUploadVisible = false
-      //       this.diagnosisVisible = true
-      //       // this.protocolVisible = true
-      //     }
-      //     // 模拟
-      //     // this.kyBotUploadVisible = true
-      //   }, (res) => {
-      //     handleError(res, (data, code, status, msg) => {
-      //       console.log(data, code, status, msg)
-      //       if (status === 400) {
-      //         this.$message({
-      //           type: 'success',
-      //           message: msg
-      //         })
-      //       }
-      //     })
-      //   })
-      // })
     },
     resetLoginKybotForm () {
       this.$refs['loginKybotForm'].$refs['loginKybotForm'].resetFields()

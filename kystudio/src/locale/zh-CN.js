@@ -36,7 +36,9 @@ exports.default = {
     users: '用户',
     tip: '提示',
     action: '操作',
-    help: '帮助'
+    help: '帮助',
+    username: '用户账号',
+    password: '密码'
   },
   model: {
 

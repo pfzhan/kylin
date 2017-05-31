@@ -72,14 +72,6 @@
         stopKybot: 'STOP_KYBOT',
         getAgreement: 'GET_AGREEMENT'
       }),
-      validateUserName (rule, value, callback) {
-        console.log('vallue', value)
-        if (value === '') {
-          callback(new Error(this.$t('usernameEmpty')))
-        } else {
-          callback()
-        }
-      },
       handleCommand (val) {
         var _this = this
         if (val === 'kapmanual') {
@@ -96,7 +88,7 @@
           // 发请求 kap/system/license
           this.getAboutKap().then((result) => {
           }, (resp) => {
-            console.log(resp)
+            // console.log(resp)
           })
           this.aboutKapVisible = true
         } else if (val === 'kybot') {
@@ -123,9 +115,7 @@
       // 同意协议并开启自动服务
       startService () {
         this.startKybot().then((resp) => {
-          console.log('开启 1：', resp)
           handleSuccess(resp, (data, code, status, msg) => {
-            console.log('开启2 ：', data)
             if (data) {
               this.isopend = true
               this.$message({
@@ -139,11 +129,8 @@
       },
       // 关闭服务
       stopService () {
-        // this.startLoading = true
-        console.log('stop stop ', this.stopKybot)
         this.stopKybot().then((resp) => {
           handleSuccess(resp, (data, code, status, msg) => {
-            console.log('关闭2 ：', data)
             if (data) {
               this.isopend = false
               this.$message({
@@ -157,21 +144,15 @@
       // 检测登录
       checkLogin (callback) {
         this.getKybotAccount().then((res) => {
-          console.log('res', res)
           handleSuccess(res, (data, code, status, msg) => {
-            console.log('data 状态;', data)
             if (!data) {
-              console.log('1:', data)
               this.kyBotUploadVisible = true
               this.isopend = false
             } else {
-              // this.isopend = true
-              console.log('2:', data)
               callback() // off -> on 先检测登录状态 没有登录则弹登录 ； 否则直接开启
             }
           }, (errResp) => {
             handleError(errResp, (data, code, status, msg) => {
-              console.log(data, code, status, msg)
               if (status === 400) {
                 this.$message({
                   type: 'success',
@@ -186,12 +167,9 @@
       getAgreementInfo () {
         this.getAgreement().then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
-            console.log('获取同意协议 .data :', data)
             if (!data) { // 没有同意过协议 开协议层
-              console.log(' 没有同意过协议')
               this.infoKybotVisible = true
             } else {
-              console.log('同意了协议则开启')
               this.startService()
             }
           })
@@ -200,20 +178,15 @@
       // 获取是否开启
       getStatus (showAgreement, callback) {
         this.getKyStatus().then((res) => {
-          console.log('1111111获取是否开启 res', res)
           handleSuccess(res, (data, code, status, msg) => {
-            console.log('22222222data 状态;', data)
             if (!data) {
-              console.log('1:', data)
               this.isopend = false
               showAgreement && this.getAgreementInfo()
             } else {
               this.isopend = true
-              console.log('2:', data)
             }
           }, (errResp) => {
             handleError(errResp, (data, code, status, msg) => {
-              console.log(data, code, status, msg)
               if (status === 400) {
                 this.$message({
                   type: 'success',
@@ -226,7 +199,6 @@
       },
       // 改变kybot自动上传状态
       changeKystaus (status) {
-        console.log('new status :', status)
         if (status) { // 开启
           // 需要先检测有没有登录  待修改
           this.checkLogin(() => {
@@ -241,7 +213,6 @@
       },
       // 开启switch事件
       openSwitch () {
-        console.log('help vue 里面open 开启了服务')
         this.isopend = true
       },
       // 关闭switch事件
@@ -258,8 +229,6 @@
       }
     },
     created () {
-      // 检测登录状态
-      // this.checkLogin()
       // 获取是否已开启自动上传kybot switch 按钮切换状态
       this.getStatus()
     },

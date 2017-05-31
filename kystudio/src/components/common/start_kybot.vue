@@ -8,8 +8,7 @@
 </template>
 <script>
   import { mapActions } from 'vuex'
-  import { handleSuccess } from '../../util/business'
-  // import { handleSuccess, handleError } from '../../util/business'
+  import { handleSuccess, handleError } from '../../util/business'
 
   export default {
     name: 'help',
@@ -41,29 +40,21 @@
               this.$emit('closeStartLayer')
               this.$emit('openSwitch')
             }
+          }).catch((res) => {
+            handleError(res)
           })
         })
         // 同意协议
         this.setAgreement().then((resp) => {
-          console.log('同意协议')
           handleSuccess(resp, (data, code, status, msg) => {
-            // if (data) {
-            //   this.$message({
-            //     type: 'success',
-            //     message: this.$t('openSuccess')
-            //   })
-            // }
           })
         }, (res) => {
-          console.log('同意失败')
         })
       }
     },
     watch: {
       propAgreement: function (val) {
-        console.log(val)
         if (!val) {
-          console.log('子组件 val :', val)
           this.agreeKyBot = false
         }
       }

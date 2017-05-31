@@ -35,7 +35,9 @@ exports.default = {
     // 其他
     tip: 'Tips',
     action: 'action',
-    help: 'help'
+    help: 'help',
+    username: 'username',
+    password: 'password'
   },
   model: {
 
