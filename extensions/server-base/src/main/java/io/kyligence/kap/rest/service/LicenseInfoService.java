@@ -39,14 +39,14 @@ import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinVersion;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-
-import io.kyligence.kap.storage.hbase.ToolUtil;
 
 @Component("licenseInfoService")
 public class LicenseInfoService extends BasicService {
@@ -85,7 +85,7 @@ public class LicenseInfoService extends BasicService {
     public String requestLicenseInfo() throws IOException {
         Map<String, String> currentLicenseInfo = extractLicenseInfo();
         Map<String, String> systemInfo = Maps.newHashMap();
-        systemInfo.put("metastore", ToolUtil.getHBaseMetaStoreId());
+        systemInfo.put("metastore", getMetastoreUUID());
         systemInfo.put("network", getNetworkAddr());
         systemInfo.put("os.name", System.getProperty("os.name"));
         systemInfo.put("os.arch", System.getProperty("os.arch"));
@@ -102,6 +102,12 @@ public class LicenseInfoService extends BasicService {
         }
         output.append("signature:" + calculateSignature(output.toString()));
         return output.toString();
+    }
+
+    private String getMetastoreUUID() throws IOException {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        ResourceStore store = ResourceStore.getStore(kylinConfig);
+        return store.getMetaStoreUUID();
     }
 
     private String calculateSignature(String input) {
