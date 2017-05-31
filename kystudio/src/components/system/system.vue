@@ -153,6 +153,8 @@ export default {
       let _this = this
       this.updateConfig({key: data.key, value: data.value}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
+          this.refreshEnv()
+          this.refreshConfig()
           this.$message({
             type: 'success',
             message: this.$t('setConfigSuccessful'),
@@ -224,23 +226,17 @@ export default {
       this.infoKybotVisible = false
     },
     refreshEnv: function () {
-      let _this = this
-      _this.getEnv().then((res) => {
+      this.getEnv().then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
-          _this.$notify({
-            title: _this.$t('success'),
-            message: _this.$t('successEnvironment'),
+          this.$notify({
+            title: this.$t('success'),
+            message: this.$t('successEnvironment'),
             type: 'success',
             duration: 3000
           })
         })
       }).catch((res) => {
-        handleError(res, (data, code, status, msg) => {
-          console.log(status, 30000)
-          if (status === 404) {
-            _this.$router.replace('access/login')
-          }
-        })
+        handleError(res)
       })
     },
     refreshConfig: function () {
@@ -253,12 +249,7 @@ export default {
           duration: 3000
         })
       }).catch((res) => {
-        handleError(res, (data, code, status, msg) => {
-          console.log(status, 30000)
-          if (status === 404) {
-            _this.$router.replace('access/login')
-          }
-        })
+        handleError(res)
       })
     }
   },
@@ -271,9 +262,8 @@ export default {
     }
   },
   created () {
-    let _this = this
-    _this.refreshEnv()
-    _this.refreshConfig()
+    this.refreshEnv()
+    this.refreshConfig()
   },
   locales: {
     'en': {ServerConfig: 'Server Config', ServerEnvironment: 'Server Environment', action: 'Actions', reloadMetadata: 'Reload Metadata', setConfig: 'Set Config', backup: 'Backup', diagnosis: 'Generate Diagnosis Package', link: 'Links', success: 'Success', successEnvironment: 'Server environment get successfully', successConfig: 'Server config get successfully', reloadTip: 'Are you sure to reload metadata and clean cache? ', cancel: 'Cancel', yes: 'Yes', tip: 'Tip', reloadSuccessful: 'Reload metadata successful!', setConfigSuccessful: 'Set config successful!', autoUpload: 'KyBot Auto Upload', contentOne: 'By analyzing your diagnostic package, ', contentTwo: 'can provide online diagnostic, tuning and support service for KAP.'},

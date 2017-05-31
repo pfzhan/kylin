@@ -9,7 +9,7 @@ export default {
     return Vue.resource(apiUrl + 'kap/user/users').get(para)
   },
   updateStatus: (user) => {
-    return Vue.resource(apiUrl + 'kap/user/' + user.name).update({disabled: user.disabled})
+    return Vue.resource(apiUrl + 'kap/user/' + user.name).update({disabled: user.disabled, defaultPassword: true})
   },
   saveUser: (user) => {
     return Vue.resource(apiUrl + 'kap/user/' + user.name).save(user.detail)

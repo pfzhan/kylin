@@ -57,6 +57,7 @@ export const CACHE_MODEL_DIANOSELIST = 'CACHE_MODEL_DIANOSELIST'
 export const CHECK_MODELNAME = 'CHECK_MODELNAME'
 export const GET_USED_COLS = 'GET_USED_COLS'
 export const LOAD_ALL_MODEL = 'LOAD_ALL_MODEL'
+export const GET_MODEL_PROGRESS = 'GET_MODEL_PROGRESS'
 // cube actions mutations
 export const GET_CUBES_LIST = 'GET_CUBES_LIST'
 export const SAVE_CUBES_LIST = 'SAVE_CUBES_LIST'

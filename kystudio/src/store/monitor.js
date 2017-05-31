@@ -31,14 +31,14 @@ export default {
     [types.LOAD_STEP_OUTPUTS]: function ({ commit }, stepDetail) {
       return api.monitor.getStepOutputs(stepDetail)
     },
-    [types.RESUME_JOB]: function ({ commit }, stepDetail) {
-      return api.monitor.resumeJob()
+    [types.RESUME_JOB]: function ({ commit }, jobId) {
+      return api.monitor.resumeJob(jobId)
     },
-    [types.CANCEL_JOB]: function ({ commit }, stepDetail) {
-      return api.monitor.cancelJob()
+    [types.CANCEL_JOB]: function ({ commit }, jobId) {
+      return api.monitor.cancelJob(jobId)
     },
-    [types.PAUSE_JOB]: function ({ commit }, stepDetail) {
-      return api.monitor.pauseJob()
+    [types.PAUSE_JOB]: function ({ commit }, jobId) {
+      return api.monitor.pauseJob(jobId)
     },
     [types.REMOVE_JOB]: function ({ commit }, jobId) {
       return api.monitor.removeJob(jobId)

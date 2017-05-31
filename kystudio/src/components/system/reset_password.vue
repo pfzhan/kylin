@@ -8,12 +8,12 @@
           :closable="false">
       </el-alert>
       </el-form-item>
-      <el-form-item :label="$t('role')">
+      <el-form-item :label="$t('role')" v-if="!isAdmin">
         <el-tag type="success" v-if="userDetail.admin === true">{{$t('admin')}}</el-tag>
         <el-tag type="primary" v-if="userDetail.modeler === true">{{$t('modeler')}}</el-tag>
         <el-tag v-if="userDetail.analyst === true">{{$t('analyst')}}</el-tag>
       </el-form-item>
-      <el-form-item :label="$t('oldPassword')" prop="oldPassword">
+      <el-form-item :label="$t('oldPassword')" prop="oldPassword" v-if="">
         <el-input type="password" v-model="userDetail.oldPassword"></el-input>
       </el-form-item>
       <el-form-item :label="$t('password')" prop="password">
@@ -26,6 +26,7 @@
   </div>
 </template>
 <script>
+import { hasRole } from '../../util/business'
 export default {
   name: 'reset_password',
   props: ['userDetail'],
@@ -60,6 +61,11 @@ export default {
       } else {
         callback()
       }
+    }
+  },
+  computed: {
+    isAdmin () {
+      return hasRole(this, 'ROLE_ADMIN')
     }
   },
   created () {

@@ -88,6 +88,7 @@
 
 <script>
 import { mapActions } from 'vuex'
+import { handleError } from '../../util/index'
 import addUser from './add_user'
 import editRole from './edit_role'
 import resetPassword from './reset_password'
@@ -98,7 +99,8 @@ export default {
       selected_user: {},
       addUserFormVisible: false,
       editRoleFormVisible: false,
-      resetPasswordFormVisible: false
+      resetPasswordFormVisible: false,
+      currentPage: 1
     }
   },
   components: {
@@ -116,28 +118,26 @@ export default {
       removeUser: 'REMOVE_USER'
     }),
     drop: function (userName, index) {
-      let _this = this
-      _this.removeUser(userName).then((result) => {
-        _this.usersList.splice(index)
-      }).catch((result) => {
-        _this.$message({
-          type: 'error',
-          message: result.statusText
+      this.removeUser(userName).then((result) => {
+        this.loadUsersList({pageSize: this.$refs['pager'].pageSize, pageOffset: this.currentPage - 1})
+        this.$message({
+          type: 'success',
+          message: this.$t('kylinLang.common.delSuccess')
         })
+      }).catch((result) => {
+        handleError(result)
       })
     },
-    pageCurrentChange () {
-      this.loadUsersList({pageSize: this.$refs['pager'].pageSize, pageOffset: this.$refs['pager'].currentPage - 1})
+    pageCurrentChange (pager) {
+      this.currentPage = pager
+      this.loadUsersList({pageSize: this.$refs['pager'].pageSize, pageOffset: pager - 1})
     },
     changeStatus: function (user) {
       let userStatus = {name: user.username, disabled: !user.disabled}
       this.updateStatus(userStatus).then((result) => {
-        this.loadUsersList()
+        this.loadUsersList({pageSize: this.$refs['pager'].pageSize, pageOffset: this.currentPage - 1})
       }).catch((result) => {
-        this.$message({
-          type: 'error',
-          message: result.statusText
-        })
+        handleError(result)
       })
     },
     addUser: function () {
@@ -159,7 +159,6 @@ export default {
       this.$refs['addUser'].$emit('addUserFormValid')
     },
     addUserValidSuccess: function (data) {
-      let _this = this
       let user = {
         name: data.username,
         detail: {
@@ -178,18 +177,16 @@ export default {
       if (data.analyst) {
         user.detail.authorities.push('ROLE_ANALYST')
       }
-      _this.saveUser(user).then((result) => {
+      this.saveUser(user).then((result) => {
         this.$message({
           type: 'success',
-          message: result.statusText
+          message: this.$t('kylinLang.common.saveSuccess')
         })
+        this.loadUsersList({pageSize: this.$refs['pager'].pageSize, pageOffset: this.currentPage - 1})
       }).catch((result) => {
-        this.$message({
-          type: 'error',
-          message: result.statusText
-        })
+        handleError(result)
       })
-      _this.addUserFormVisible = false
+      this.addUserFormVisible = false
     },
     closeEditRole: function () {
       this.$refs['editRole'].$refs['editRoleForm'].resetFields()
@@ -202,16 +199,17 @@ export default {
       this.$refs['editRole'].$emit('editRoleFormValid')
     },
     editRoleValidSuccess: function (data) {
-      let _this = this
       let user = {
         name: data.username,
         detail: {
+          defaultPassword: true,
           username: data.username,
           password: data.password,
           disabled: data.disabled,
           authorities: []
         }
       }
+      console.log(user.detail)
       if (data.admin) {
         user.detail.authorities.push('ROLE_ADMIN')
       }
@@ -221,10 +219,10 @@ export default {
       if (data.analyst) {
         user.detail.authorities.push('ROLE_ANALYST')
       }
-      _this.editRole(user).then((result) => {
+      this.editRole(user).then((result) => {
         this.$message({
           type: 'success',
-          message: result.statusText
+          message: this.$t('kylinLang.common.saveSuccess')
         })
       }).catch((result) => {
         this.$message({
@@ -232,7 +230,7 @@ export default {
           message: result.statusText
         })
       })
-      _this.editRoleFormVisible = false
+      this.editRoleFormVisible = false
     },
     closeResetPassword: function () {
       this.$refs['resetPassword'].$refs['resetPasswordForm'].resetFields()

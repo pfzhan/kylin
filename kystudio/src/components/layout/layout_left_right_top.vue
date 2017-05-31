@@ -7,7 +7,7 @@
       <img v-show="briefMenu==='brief_menu'" src="../../assets/img/logo.png" class="logo" @click="goHome" style="cursor:pointer;"><span class="logo_text"></span>
       <el-menu style="border-top: 1px solid #475669;" :default-active="defaultActive" class="el-menu-vertical-demo" @open="handleopen" @close="handleclose" @select="handleselect" theme="dark" unique-opened router>
         <template v-for="(item,index) in menus" >
-          <el-menu-item :index="item.path" :key="index" ><img :src="item.icon"> <span>{{$t('kylinLang.menu.' + item.name)}}</span></el-menu-item>
+          <el-menu-item :index="item.path" v-if="showMenuByRole(item.name)" :key="index" ><img :src="item.icon"> <span>{{$t('kylinLang.menu.' + item.name)}}</span></el-menu-item>
         </template>
       </el-menu>
     </aside>
@@ -69,12 +69,12 @@
   </el-dialog>
 
 <el-dialog class="linsencebox"
-  :title="defaultVal(kapInfo['kap.version'])+'试用版'"
+  :title="kapVersion+'试用版'"
   :visible.sync="lisenceDialogVisible"
   :close-on-click-modal="false"
   :modal="false"
   size="tiny">
-  <p><span>试用期限: </span>{{defaultVal(kapInfo['kap.dates'])}}<!-- <span>2012<i>/1/2</i></span><span>－</span><span>2012<i>/1/2</i></span> --></p>
+  <p><span>试用期限: </span>{{kapDate}}<!-- <span>2012<i>/1/2</i></span><span>－</span><span>2012<i>/1/2</i></span> --></p>
   <p class="ksd-mt-20">您的试用期将在<span class="hastime">30</span>天后过期，必须申请正式许可，才能继续使用</p>
   <span slot="footer" class="dialog-footer">
     <el-button @click="getLicense">申请正式许可</el-button>
@@ -86,7 +86,7 @@
 </template>
 
 <script>
-  import { handleSuccess, handleError, kapConfirm } from '../../util/business'
+  import { handleSuccess, handleError, kapConfirm, hasRole } from '../../util/business'
   import { mapActions, mapMutations } from 'vuex'
   import projectSelect from '../project/project_select'
   import projectEdit from '../project/project_edit'
@@ -161,6 +161,12 @@
       ...mapMutations({
         setCurUser: 'SAVE_CURRENT_LOGIN_USER'
       }),
+      showMenuByRole (menuName) {
+        if (menuName === 'system' && this.isAdmin === false) {
+          return false
+        }
+        return true
+      },
       getLicense () {
         location.href = './api/kap/system/requestLicense'
       },
@@ -267,6 +273,9 @@
       }
     },
     computed: {
+      isAdmin () {
+        return hasRole(this, 'ROLE_ADMIN')
+      },
       briefMenu () {
         return this.$store.state.config.layoutConfig.briefMenu
       },
@@ -284,6 +293,12 @@
       },
       kapInfo () {
         return this.$store.state.system.serverAboutKap
+      },
+      kapDate () {
+        return this.defaultVal(this.kapInfo && this.kapInfo['kap.dates'] || null)
+      },
+      kapVersion () {
+        return this.defaultVal(this.kapInfo && this.kapInfo['kap.version'] || null)
       }
     },
     mounted () {

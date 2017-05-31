@@ -235,7 +235,7 @@ export default {
       dim_cap: 0,
       addDimensionsFormVisible: false,
       selected_dimension: {},
-      selected_project: localStorage.getItem('selected_project'),
+      selected_project: this.modelDesc.project,
       pfkMap: {},
       cuboidList: [],
       shardByType: [{name: 'true', value: true}, {name: 'false', value: false}],

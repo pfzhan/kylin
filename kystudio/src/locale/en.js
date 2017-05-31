@@ -3,8 +3,9 @@ exports.default = {
   common: {
     // 常规操作
     add: 'add',
-    edit: 'edit',
+    edit: 'Edit',
     delete: 'delete',
+    drop: 'Drop',
     cancel: 'cancel',
     close: 'close',
     update: 'update',
@@ -12,8 +13,13 @@ exports.default = {
     submit: 'submit',
     setting: 'Settings',
     logout: 'Logout',
+    sync: 'Sync',
+    clone: 'Clone',
+    check: 'Check',
     // 常规状态
     success: 'success',
+    fail: 'fail',
+    status: 'Status',
     // 术语
     model: 'model',
     cube: 'cube',
@@ -22,6 +28,10 @@ exports.default = {
     dataSource: 'datasource',
     // 通用提示
     unknownError: 'Unknown Error!',
+    addSuccess: 'Added successfully',
+    saveSuccess: 'Saved successfully',
+    delSuccess: 'Deleted successfully',
+    updateSuccess: 'Updated successfully',
     // 其他
     tip: 'Tips',
     action: 'action',
@@ -43,9 +53,19 @@ exports.default = {
     orderedbytesTip: ''
   },
   project: {
+    mustSelectProject: 'Please select a project first'
+  },
+  job: {
   },
   dataSource: {
-
+    columnName: 'Column Name',
+    cardinality: 'Cardinality',
+    dataType: 'Data Type',
+    comment: 'Comment',
+    columns: 'Columns',
+    extendInfo: 'Extend Information',
+    statistics: 'Statistics',
+    sampleData: 'Sample Data'
   },
   login: {
 

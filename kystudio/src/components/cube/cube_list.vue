@@ -232,11 +232,12 @@ export default {
     },
     loadCubesList: function (curPage, modelName) {
       let _this = this
-      let param = {}
-      if (!modelName) { // 所有cube列表
-        param = {pageSize: pageCount, pageOffset: curPage, projectName: localStorage.getItem('selected_project')}
-      } else { // 筛选model下的cube
-        param = {pageSize: pageCount, pageOffset: curPage, projectName: localStorage.getItem('selected_project'), modelName: modelName}
+      let param = {pageSize: pageCount, pageOffset: curPage}
+      if (localStorage.getItem('selected_project')) {
+        param.projectName = localStorage.getItem('selected_project')
+      }
+      if (modelName) {
+        param.modelName = modelName
       }
       this.getCubesList(param).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
@@ -304,7 +305,7 @@ export default {
     },
     edit: function (cube) {
       this.$emit('addtabs', 'cube', cube.name, 'cubeEdit', {
-        project: localStorage.getItem('selected_project'),
+        project: cube.project,
         cubeName: cube.name,
         modelName: cube.model,
         isEdit: true
@@ -600,14 +601,14 @@ export default {
     },
     editCubeDesc: function (cube) {
       this.$emit('addtabs', 'edit', cube.name, 'cubeMetadata', {
-        project: localStorage.getItem('selected_project'),
+        project: cube.project,
         cubeName: cube.name,
         type: 'edit'
       })
     },
     view: function (cube) {
       this.$emit('addtabs', 'view', cube.name, 'cubeMetadata', {
-        project: localStorage.getItem('selected_project'),
+        project: cube.project,
         cubeName: cube.name,
         cubeDesc: cube,
         type: 'view'

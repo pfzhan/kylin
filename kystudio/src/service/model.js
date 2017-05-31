@@ -46,6 +46,9 @@ export default {
     return Vue.resource(apiUrl + 'model/' + modelName).get()
   },
   checkUsedCols: (modelName) => {
-    return Vue.resource(apiUrl + '/models/' + modelName + '/usedCols').get()
+    return Vue.resource(apiUrl + 'models/' + modelName + '/usedCols').get()
+  },
+  modelProgress: (para) => {
+    return Vue.resource(apiUrl + 'models/' + para.project + '/' + para.modelName + '/progress').get()
   }
 }

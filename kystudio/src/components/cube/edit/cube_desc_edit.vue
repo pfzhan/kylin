@@ -95,7 +95,7 @@ export default {
           scheduled_run_time: 0
         }
       },
-      selected_project: this.$store.state.project.selected_project,
+      selected_project: this.extraoption.project,
       wizardSteps: [
         {title: 'checkCubeInfo', isComplete: false},
         {title: 'checkSampleSql', isComplete: false},
@@ -135,7 +135,8 @@ export default {
       getScheduler: 'GET_SCHEDULER',
       updateScheduler: 'UPDATE_SCHEDULER',
       deleteScheduler: 'DELETE_SCHEDULER',
-      draftCube: 'DRAFT_CUBE'
+      draftCube: 'DRAFT_CUBE',
+      loadDataSourceByProject: 'LOAD_DATASOURCE'
     }),
     step: function (num) {
       this.activeStep = this.stepsCheck(num)
@@ -685,6 +686,7 @@ export default {
     if (this.isEdit) {
       this.loadCubeDetail()
     }
+    this.loadDataSourceByProject(this.selected_project)
     this.loadModelInfo(this.extraoption.modelName).then((res) => {
       handleSuccess(res, (data, code, status, msg) => {
         this.renderCubeFirst = true

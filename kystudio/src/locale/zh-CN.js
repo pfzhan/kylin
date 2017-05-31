@@ -5,6 +5,7 @@ exports.default = {
     add: '添加',
     edit: '编辑',
     delete: '删除',
+    drop: '删除',
     cancel: '取消',
     close: '关闭',
     update: '更新',
@@ -12,8 +13,13 @@ exports.default = {
     submit: '提交',
     setting: '设置',
     logout: '注销',
+    sync: '同步',
+    clone: '克隆',
+    check: '检测',
     // 常规状态
     success: '成功',
+    fail: '失败',
+    status: '状态',
     // 业务词汇
     model: '模型',
     cube: 'cube',
@@ -21,7 +27,11 @@ exports.default = {
     cubes: 'cubes',
     dataSource: '数据源',
     // 通用提示
-    unknownError: 'Unknown Error!',
+    unknownError: '未知错误!',
+    addSuccess: '添加成功',
+    saveSuccess: '保存成功',
+    delSuccess: '删除成功',
+    updateSuccess: '更新成功',
     // 其他
     users: '用户',
     tip: '提示',
@@ -44,10 +54,19 @@ exports.default = {
     orderedbytesTip: ''
   },
   project: {
-
+    mustSelectProject: '请先选择一个Project'
+  },
+  job: {
   },
   dataSource: {
-
+    columnName: '列名',
+    cardinality: '基数',
+    dataType: '数据类型',
+    comment: '注释',
+    columns: '列',
+    extendInfo: '扩展信息',
+    statistics: '特征数据',
+    sampleData: '采样数据'
   },
   login: {
 

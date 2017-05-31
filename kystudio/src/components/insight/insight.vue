@@ -432,6 +432,11 @@ export default {
     .tips_box{
       font-size: 12px;
     }
+    .insight_tab{
+      .el-tabs__new-tab{
+        display: none;
+      }
+    }
     .query_result_box{
       border-top: solid 1px #d1dbe5;
       h3{

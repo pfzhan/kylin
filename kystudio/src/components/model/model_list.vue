@@ -1,6 +1,6 @@
 <template>
 	<div class="paddingbox modelist_box">
-    <el-button type="primary" class="ksd-mb-10" @click="addModel">+Model</el-button>
+    <el-button type="primary" class="ksd-mb-10" @click="addModel">+{{$t('kylinLang.common.model')}}</el-button>
     <br/>
     <p class="ksd-right"> <icon @click.native="changeGridModal('card')" name="newspaper-o" :class="{active: viewModal==='card'}"> </icon> <icon @click.native="changeGridModal('list')"  :class="{active: viewModal!=='card'}" name="reorder"></icon></p>
 		<el-row :gutter="20" v-if="viewModal==='card'">
@@ -12,11 +12,11 @@
 					    <icon name="ellipsis-h"></icon>
 					  </span>
 					  <el-dropdown-menu slot="dropdown"  :uuid='o.uuid'>
-              <el-dropdown-item command="cube" v-if="!o.is_draft">Add Cube</el-dropdown-item>
-					    <el-dropdown-item command="edit">Edit</el-dropdown-item>
-					    <el-dropdown-item command="clone" v-if="!o.is_draft">Clone</el-dropdown-item>
-					    <el-dropdown-item command="stats" v-if="!o.is_draft">Check</el-dropdown-item>
-              <el-dropdown-item command="drop" >Drop</el-dropdown-item>
+              <el-dropdown-item command="cube" v-if="!o.is_draft">{{$t('addCube')}}</el-dropdown-item>
+					    <el-dropdown-item command="edit">{{$t('kylinLang.common.edit')}}</el-dropdown-item>
+					    <el-dropdown-item command="clone" v-if="!o.is_draft">{{$t('kylinLang.common.clone')}}</el-dropdown-item>
+					    <el-dropdown-item command="stats" v-if="!o.is_draft">{{$t('kylinLang.common.check')}}</el-dropdown-item>
+              <el-dropdown-item command="drop" >{{$t('kylinLang.common.drop')}}</el-dropdown-item>
 					  </el-dropdown-menu>
 					</el-dropdown>
 
@@ -37,12 +37,15 @@
 
     <el-table v-if="viewModal!=='card'"
     :data="modelsList"
+    cell-click="viewModel(o)"
     stripe
     style="width: 100%">
-    <el-table-column @click="viewModel(o)"
-      prop="name"
+    <el-table-column 
       label="Name"
       width="180">
+       <template scope="scope" >
+         <span @click="viewModel(scope.row)" style="cursor:pointer;text-decoration: underline;">{{scope.row.name}}</span>
+       </template>
     </el-table-column>
     <el-table-column
       prop="project"
@@ -69,6 +72,24 @@
       prop="gmtTime"
       label="Last Upated Time">
     </el-table-column>
+     <el-table-column class="ksd-center"
+      width="100"
+      label="Action">
+       <template scope="scope">
+        <el-dropdown @command="handleCommand" :id="scope.row.name" trigger="click">
+           <el-button class="el-dropdown-link">
+            <i class="el-icon-more"></i>
+          </el-button >
+         <el-dropdown-menu slot="dropdown"  :uuid='scope.row.uuid'>
+              <el-dropdown-item command="cube" v-if="!scope.row.is_draft">{{$t('addCube')}}</el-dropdown-item>
+              <el-dropdown-item command="edit">{{$t('kylinLang.common.edit')}}</el-dropdown-item>
+              <el-dropdown-item command="clone" v-if="!scope.row.is_draft">{{$t('kylinLang.common.clone')}}</el-dropdown-item>
+              <el-dropdown-item command="stats" v-if="!scope.row.is_draft">{{$t('kylinLang.common.check')}}</el-dropdown-item>
+              <el-dropdown-item command="drop" >{{$t('kylinLang.common.drop')}}</el-dropdown-item>
+            </el-dropdown-menu>
+          </el-dropdown>
+       </template>
+    </el-table-column>
   </el-table>
 
 
@@ -81,8 +102,8 @@
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
-        <el-button @click="cloneFormVisible = false">取 消</el-button>
-        <el-button type="primary" @click="clone">Clone</el-button>
+        <el-button @click="cloneFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" @click="clone">{{$t('kylinLang.common.clone')}}</el-button>
       </div>
     </el-dialog>
 
@@ -102,8 +123,8 @@
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
-        <el-button @click="createModelVisible = false">取 消</el-button>
-        <el-button type="primary" @click="createModel">添 加</el-button>
+        <el-button @click="createModelVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" @click="createModel">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
 
@@ -116,8 +137,8 @@
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
-        <el-button @click="createCubeVisible = false">取 消</el-button>
-        <el-button type="primary" @click="createCube">添 加</el-button>
+        <el-button @click="createCubeVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" @click="createCube">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
 
@@ -158,8 +179,8 @@
           </el-col>
         </el-row>
         <div slot="footer" class="dialog-footer">
-          <el-button @click="cancelSetModelStatics">取 消</el-button>
-          <el-button type="primary" @click="stats">确 定</el-button>
+          <el-button @click="cancelSetModelStatics">{{$t('kylinLang.common.cancel')}}</el-button>
+          <el-button type="primary" @click="stats">{{$t('kylinLang.common.submit')}}</el-button>
         </div>
       </el-dialog>
 
@@ -171,7 +192,7 @@
          <el-tag type="primary"  v-for="tips in usedCubes" class="ksd-mt-10 ksd-ml-10">{{tips.name}}</el-tag>
          <!-- <el-alert :closable="false" :title="tips.name" type="info" v-for="tips in usedCubes" class="ksd-mt-10"></el-alert> -->
         <span slot="footer" class="dialog-footer">
-          <el-button @click="useCubeDialogVisible = false">取 消</el-button>
+          <el-button @click="useCubeDialogVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
           <el-button type="primary" @click="gotoView">预览</el-button>
         </span>
       </el-dialog>
@@ -194,6 +215,18 @@ export default {
       modelStaticsRange: 0,
       startTime: 0,
       endTime: 0,
+      pickerOptionsEnd: {
+        disabledDate: (time) => { // set date-picker endTime
+          let nowDate = new Date(this.startTime)
+          this.endTime = this.startTime
+          // nowDate.setMonth(nowDate.getMonth() + 1)// 后一个月
+          // let v1 = time.getTime() > +new Date(_this.startTime) + 30 * 24 * 60 * 60 * 1000
+          let v1 = time.getTime() < +nowDate
+          // let v2 = time.getTime() < +new Date(this.startTime) - 8.64e7
+          // this.maxTime = +nowDate // 缓存最大值 endTime
+          return v1
+        }
+      },
       viewModal: 'card',
       hasPartition: false,
       currentDate: new Date(),
@@ -249,7 +282,8 @@ export default {
       loadModelDiagnoseList: 'DIAGNOSELIST',
       checkModelName: 'CHECK_MODELNAME',
       checkCubeName: 'CHECK_CUBE_NAME_AVAILABILITY',
-      getCubesList: 'GET_CUBES_LIST'
+      getCubesList: 'GET_CUBES_LIST',
+      getModelProgress: 'GET_MODEL_PROGRESS'
     }),
     changeGridModal (val) {
       this.viewModal = val
@@ -431,9 +465,14 @@ export default {
         this.cloneModelMeta.project = projectName
         // this.cloneModel(modelName, projectName)
       } else if (command === 'stats') {
+        this.getModelProgress({
+          project: projectName,
+          modelName: modelName
+        }).then((res) => {
+
+        })
         this.scanRatioDialogVisible = true
         this.startTime = 0
-        console.log(modelData)
         if (modelData.partition_desc.partition_date_column) {
           this.hasPartition = true
         }
@@ -641,6 +680,10 @@ export default {
   },
   beforeDestroy () {
     window.clearTimeout(this.stCycleRequest)
+  },
+  locales: {
+    'en': {'addCube': 'Add Cube'},
+    'zh-cn': {'addCube': '添加Cube'}
   }
 }
 </script>
@@ -691,6 +734,11 @@ export default {
     float: right;
     margin-right: 8px;
     cursor: pointer;
+  }
+  .el-table{
+    .el-dropdown{
+      float: none;
+    }
   }
   .bottom {
     margin-top: 10px;

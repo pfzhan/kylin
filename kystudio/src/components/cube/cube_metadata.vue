@@ -27,7 +27,8 @@ export default {
       loadCubeDesc: 'LOAD_CUBE_DESC',
       getScheduler: 'GET_SCHEDULER',
       loadRawTable: 'GET_RAW_TABLE',
-      updateCube: 'UPDATE_CUBE'
+      updateCube: 'UPDATE_CUBE',
+      draftCube: 'DRAFT_CUBE'
     }),
     update: function () {
       this.$confirm('确认保存Cube？', '提示', {
@@ -35,8 +36,14 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
+        console.log(this.extraoption)
+        var action = 'draftCube'
+        if (!JSON.parse(this.json).is_draft) {
+          action = 'updateCube'
+        }
+        console.log(action)
         this.saveData.cubeDescData = this.json
-        this.updateCube(this.saveData).then((res) => {
+        this[action](this.saveData).then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
             this.$message({
               type: 'success',
@@ -44,13 +51,14 @@ export default {
             })
           })
           this.$emit('removetabs', 'edit' + this.extraoption.cubeName)
-        }).catch((res) => {
+        }, (res) => {
           handleError(res)
         })
       }).catch((e) => {
+        console.log(e)
         this.$message({
           type: 'info',
-          message: '已取消保存'
+          message: e || '已取消保存'
         })
       })
     }

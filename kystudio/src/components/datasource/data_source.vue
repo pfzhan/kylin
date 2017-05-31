@@ -11,15 +11,15 @@
       <div class="table_content" >
        <img class="null_pic" src="../../assets/img/notabledata.png" v-show="!tableData"/>
        <div class="ksd-fright ksd-mt-20" style="position:relative;z-index:1" v-show="tableData">
-       <kap-icon-button v-if="tableData.source_type === 0" icon="refresh" type="primary" :useload="true" @click.native="reloadTableDialogVisible" ref="reloadBtn">Reload</kap-icon-button>
+       <kap-icon-button v-if="tableData.source_type === 0" icon="refresh" type="primary" :useload="true" @click.native="reloadTableDialogVisible" ref="reloadBtn">{{$t('reload')}}</kap-icon-button>
           <!-- <el-button type="info" icon="eyedropper">Sampling</el-button> -->
-          <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 0" type="info" :useload="true" @click.native="collectSampleDialogOpen" ref="sampleBtn">Sampling</kap-icon-button>
-          <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 1" type="info" :useload="true" @click.native="collectKafkaSampleDialogOpen" ref="kafkaSampleBtn">Sampling(Streaming)</kap-icon-button>
+          <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 0" type="info" :useload="true" @click.native="collectSampleDialogOpen" ref="sampleBtn">{{$t('sampling')}}</kap-icon-button>
+          <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 1" type="info" :useload="true" @click.native="collectKafkaSampleDialogOpen" ref="kafkaSampleBtn">{{$t('sampling')}}(Streaming)</kap-icon-button>
 <!--           <el-button type="danger" @click.native="unloadTable" icon="delete2">Unload</el-button> -->
-           <kap-icon-button icon="trash" type="danger" :useload="true" @click.native="unloadTable" ref="unloadBtn">Unload</kap-icon-button>
+           <kap-icon-button icon="trash" type="danger" :useload="true" @click.native="unloadTable" ref="unloadBtn">{{$t('unload')}}</kap-icon-button>
           </div>
       	<el-tabs v-model="activeName" class="ksd-mt-20 clear" v-show="tableData">
-		    <el-tab-pane label="Columns" name="first">
+		    <el-tab-pane :label="$t('kylinLang.dataSource.columns')" name="first">
 	    	  <el-table
 			    :data="tableData.columns"
 			    border
@@ -31,28 +31,28 @@
 			    </el-table-column>
 			    <el-table-column
 			      prop="name"
-			      label="Column Name"
+			      :label="$t('kylinLang.dataSource.columnName')"
 			     >
 			    </el-table-column>
 			    <el-table-column
 			      width="120"
 			      prop="datatype"
-			      label="Data Type">
+			      :label="$t('kylinLang.dataSource.dataType')">
 			    </el-table-column>
 			    <el-table-column
 			      width="160"
-			      label="Cardinality">
+			      :label="$t('kylinLang.dataSource.cardinality')">
              <template scope="scope">
               {{ tableData.cardinality[scope.row.name] }}
             </template>
 			    </el-table-column>
 			    <el-table-column
 			      prop="address"
-			      label="Comment">
+			      :label="$t('kylinLang.dataSource.comment')">
 			    </el-table-column>
 			  </el-table>
 		    </el-tab-pane>
-		    <el-tab-pane label="Extend Infomation" name="second">
+		    <el-tab-pane :label="$t('kylinLang.dataSource.extendInfo')" name="second">
 		    	<table class="extendinfo_table" v-if="extendData.data_source_properties" >
 		    		<tr>
 		    			<th>TABLE NAME:</th>
@@ -105,7 +105,7 @@
 		    		</tr>
 		    	</table>
 		    </el-tab-pane>
-		    <el-tab-pane label="Statistics" name="third" v-if="tableData.source_type === 0">
+		    <el-tab-pane :label="$t('kylinLang.dataSource.statistics')" name="third" v-if="tableData.source_type === 0">
 		    	 <el-table
 			    :data="statistics"
 			    border
@@ -151,7 +151,7 @@
 			    </el-table-column>
 			  </el-table>
 		    </el-tab-pane>
-		    <el-tab-pane label="Sample Data" name="fourth">
+		    <el-tab-pane :label="$t('kylinLang.dataSource.sampleData')" name="fourth">
 		      <el-table
 			    :data="sampleData.slice(1)"
 			    border
@@ -163,14 +163,14 @@
 			  </el-table>
 		    </el-tab-pane>
           <el-tab-pane label="Streaming Cluster" name="fifth" v-if="tableData.source_type === 1">
-            <el-button type="primary" icon="edit" @click="editKafkaFormVisible=true" class="ksd-fright">Edit</el-button>
+            <el-button type="primary" icon="edit" @click="editKafkaFormVisible=true" class="ksd-fright">{{$t('kylinLang.common.edit')}}</el-button>
             <view-kafka  ref="addkafkaForm" v-on:validSuccess="kafkaValidSuccess"  :tableName="currentStreamingTable" ></view-kafka>
           </el-tab-pane>
         </el-tabs>
       </div>
 
-      <el-dialog size="small" title="Load Hive Tables" v-model="load_hive_dalog_visible" class="load_hive_dialog">
-        <el-input v-model="filterVal" placeholder="请输入内容"></el-input>
+      <el-dialog size="small" :title="$t('loadhiveTables')" v-model="load_hive_dalog_visible" class="load_hive_dialog">
+        <el-input v-model="filterVal" :placeholder="$t('filterInputTips')"></el-input>
         <el-row :gutter="20">
 		  <el-col :span="8"><div class="grid-content bg-purple">
 		  	 <div class="dialog_tree_box">
@@ -179,43 +179,43 @@
 		  </div></el-col>
 		  <el-col :span="16"><div class="grid-content bg-purple">
 		  	<div class="tree_check_content ksd-mt-20">
-		 	  <arealabel :labels="selectTables" changeable="unchange" :selectedlabels="selectTablesNames" placeholder="请在左侧选择要加载的table" @removeTag="removeSelectedHive"  :datamap="{label: 'label', value: 'value'}"></arealabel>
+		 	  <arealabel :labels="selectTables" changeable="unchange" :selectedlabels="selectTablesNames" :placeholder="$t('selectLeftHiveTip')" @removeTag="removeSelectedHive"  :datamap="{label: 'label', value: 'value'}"></arealabel>
         <div class="ksd-mt-20">
           <!-- <el-checkbox v-model="openCollectRange">Table Sampling</el-checkbox> -->
           <!-- <span class="demonstration">Sample percentage</span> -->
           <!-- <el-slider :min="0" show-stops :step="20" @change="changeBarVal" v-model="tableStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider> -->
-          <slider @changeBar="changeBar" label="Table Sampling" :show="load_hive_dalog_visible"></slider>
+          <slider @changeBar="changeBar" :label="$t('sampling')" :show="load_hive_dalog_visible"></slider>
         </div>
 		    </div>
 		  </div></el-col>
 		</el-row>
 		  <div slot="footer" class="dialog-footer">
-		    <el-button @click="load_hive_dalog_visible = false">取 消</el-button>
-		    <el-button type="primary" @click="loadHiveList" :loading="loadHiveLoad">加 载</el-button>
+		    <el-button @click="load_hive_dalog_visible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+		    <el-button type="primary" @click="loadHiveList" :loading="loadHiveLoad">{{$t('kylinLang.common.sync')}}</el-button>
 		  </div>
 	    </el-dialog>
 
      <!-- reload table dialog -->
-     <el-dialog title="设置扫描范围" v-model="scanRatioDialogVisible" >
+     <el-dialog :title="$t('setScanRange')" v-model="scanRatioDialogVisible" >
         <el-row :gutter="20">
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">
               <div class="ksd-mt-20">
                 <!-- <el-checkbox v-model="openCollectRange">Table Sampling</el-checkbox> -->
                <!--   <el-slider v-model="tableStaticsRange" :min="0"  show-stops :step="20" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider> -->
-                 <slider @changeBar="changeBar" label="Table Sampling" :show="scanRatioDialogVisible"></slider>
+                 <slider @changeBar="changeBar" :label="$t('sampling')"  :show="scanRatioDialogVisible"></slider>
               </div>
               </div>
             </div>
           </el-col>
         </el-row>
         <div slot="footer" class="dialog-footer">
-          <el-button @click="cancelReloadTable">取 消</el-button>
-          <el-button type="primary" @click="reloadTable">确 定</el-button>
+          <el-button @click="cancelReloadTable">{{$t('kylinLang.common.cancel')}}</el-button>
+          <el-button type="primary" @click="reloadTable">{{$t('kylinLang.common.submit')}}</el-button>
         </div>
       </el-dialog>
       <!-- 单个采样dialog -->
-      <el-dialog title="设置扫描范围" v-model="scanSampleRatioDialogVisible" >
+      <el-dialog :title="$t('setScanRange')" v-model="scanSampleRatioDialogVisible" >
         <el-row :gutter="20">
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">
@@ -227,16 +227,16 @@
           </el-col>
         </el-row>
         <div slot="footer" class="dialog-footer">
-          <el-button @click="cancelLoadSample">取 消</el-button>
-          <el-button type="primary" @click="loadSample">确 定</el-button>
+          <el-button @click="cancelLoadSample">{{$t('kylinLang.common.cancel')}}</el-button>
+          <el-button type="primary" @click="loadSample">{{$t('kylinLang.common.submit')}}</el-button>
         </div>
       </el-dialog>
 
      <el-dialog title="Load Kafka Topic" v-model="kafkaFormVisible" top="10%" size="small">
         <create_kafka  ref="kafkaForm" v-on:validSuccess="kafkaValidSuccess"></create_kafka>
         <span slot="footer" class="dialog-footer">
-          <el-button @click="kafkaFormVisible = false">{{$t('cancel')}}</el-button>
-          <el-button type="primary" @click="checkKafkaForm">{{$t('yes')}}</el-button>
+          <el-button @click="kafkaFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+          <el-button type="primary" @click="checkKafkaForm">{{$t('kylinLang.common.submit')}}</el-button>
         </span>
       </el-dialog>
 
@@ -244,29 +244,29 @@
      <el-dialog title="Load Kafka Topic" v-model="editKafkaFormVisible" top="10%" size="small">
         <edit_kafka  ref="kafkaFormEdit"  v-on:validEditSuccess="kafkaEditValidSuccess" :tableName="currentStreamingTable" ></edit_kafka>
         <span slot="footer" class="dialog-footer">
-          <el-button @click="editKafkaFormVisible = false">{{$t('cancel')}}</el-button>
-          <el-button type="primary" @click="checkKafkaFormEdit">{{$t('yes')}}</el-button>
+          <el-button @click="editKafkaFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+          <el-button type="primary" @click="checkKafkaFormEdit">{{$t('kylinLang.common.submit')}}</el-button>
         </span>
       </el-dialog>
       <el-dialog
-        title="提示"
+        :title="$t('kylinLang.common.tip')"
         v-model="loadResultVisible"
         >
          <el-alert v-for=" su in loadResult.success" :key="su"
-            :title="'成功'+currentAction+'['+su+']'"
+            :title="$t('kylinLang.common.success')+currentAction+'['+su+']'"
             type="success"
             :closable="false"
             class="ksd-mt-10"
             show-icon>
           </el-alert>
             <el-alert v-for=" fa in loadResult.fail" :key="fa"
-            :title="'成功'+currentAction+'['+fa+']'"
+            :title="$t('kylinLang.common.fail')+currentAction+'['+fa+']'"
             type="error"
             :closable="false"
             show-icon>
           </el-alert>
         <span slot="footer" class="dialog-footer">
-          <el-button type="primary" @click="loadResultVisible = false">确 定</el-button>
+          <el-button type="primary" @click="loadResultVisible = false">{{$t('kylinLang.common.close')}}</el-button>
         </span>
       </el-dialog>
     </div>
@@ -296,7 +296,7 @@ export default {
         label: 'label',
         data: 'data'
       },
-      currentAction: '加载',
+      currentAction: this.$t('load'),
       tableData: '',
       extendData: {},
       statistics: [],
@@ -352,14 +352,14 @@ export default {
     // 初始化加载hive列表的弹窗
     openLoadHiveListDialog () {
       if (!this.project) {
-        this.$message('请先选择一个project')
+        this.$message(this.$t('kylinLang.project.mustSelectProject'))
         return
       }
       this.load_hive_dalog_visible = true
     },
     openKafkaDialog () {
       if (!this.project) {
-        this.$message('请先选择一个project')
+        this.$message(this.$t('kylinLang.project.mustSelectProject'))
         return
       }
       this.kafkaFormVisible = true
@@ -458,7 +458,7 @@ export default {
       this.tableStaticsRange = 100
       this.openCollectRange = 100
       this.checkTableHasJob(this.tableData.database + '.' + this.tableData.name, () => {
-        this.$message.error('该table 已经启用了一个job开始采样')
+        this.$message.error(this.$t('hasCollectJob'))
         this.$refs.sampleBtn.loading = false
       }, () => {
         this.scanSampleRatioDialogVisible = true
@@ -476,7 +476,7 @@ export default {
         handleSuccess(res, () => {
           this.$refs.sampleBtn.loading = false
           this.scanSampleRatioDialogVisible = false
-          this.$message('采集开始，可以进入Monitor进行查看！')
+          this.$message(this.$t('loadTableJobBeginTips'))
         })
       }, (res) => {
         handleError(res)
@@ -491,7 +491,7 @@ export default {
     },
     // 卸载Table
     unloadTable () {
-      this.currentAction = '卸载'
+      this.currentAction = this.$t('unload')
       this.unloadHiveInProject({
         project: this.project,
         tables: this.tableData.database + '.' + this.tableData.name
@@ -578,7 +578,6 @@ export default {
       }
     },
     loadChildNode (node, resolve) {
-      console.log(node, 'kkk')
       if (node.level === 0) {
         return resolve([{label: 'Hive Tables'}])
       } else if (node.level === 1) {
@@ -655,7 +654,7 @@ export default {
       }
     },
     loadHiveList () {
-      this.currentAction = '加载'
+      this.currentAction = this.$t('load')
       if (this.selectTables.length > 0) {
         this.loadHiveLoad = true
         this.loadHiveInProject({
@@ -726,7 +725,7 @@ export default {
         tableData: ''
       }).then((res) => {
         // handleSuccess(res, (data) => {
-        this.$message('更新成功！')
+        this.$message(this.$t('kylinLang.common.updateSuccess'))
         this.editKafkaFormVisible = false
         // })
       }, (res) => {
@@ -746,6 +745,10 @@ export default {
     }
   },
   mounted () {
+  },
+  locales: {
+    'en': {'load': 'Load', 'reload': 'Reload', 'sampling': 'Sampling', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Scan Range Setting', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!'},
+    'zh-cn': {'load': '加载', 'reload': '重新加载表', 'sampling': '收集统计信息', 'unload': '卸载表', 'loadhiveTables': '加载Hive表元数据', 'selectLeftHiveTip': '请在左侧选择要加载的table', 'setScanRange': '设置扫描范围', 'filterInputTips': '请输入hive表名进行过滤', 'loadTableJobBeginTips': '采集开始，您可以到Monitor页面查看采样进度！', 'hasCollectJob': '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!'}
   }
 }
 </script>

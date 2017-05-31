@@ -152,6 +152,7 @@ export default {
       }
     },
     changePartitionDateStart: function () {
+      console.log(this.cubeDesc.partition_date_start.getTime(), 9900)
       this.cubeDesc.partition_date_start = this.cubeDesc.partition_date_start.getTime()
     },
     changeTriggerTime: function () {

@@ -69,6 +69,9 @@ export default {
     },
     [types.GET_USED_COLS]: function ({ commit }, modelName) {
       return api.model.checkUsedCols(modelName)
+    },
+    [types.GET_MODEL_PROGRESS]: function ({ commit }, para) {
+      return api.model.modelProgress(para)
     }
   },
   getters: {
