@@ -272,7 +272,7 @@ public class HiveTableExtSampler implements Serializable {
 
         codeMapperRows();
 
-        topN.code();
+        topN.code(buf);
 
         return buf;
     }
@@ -779,8 +779,8 @@ public class HiveTableExtSampler implements Serializable {
                 } else {
                     own.increment(value.getValue());
                 }
+                retain();
             }
-            retain();
         }
 
         private void retain() {
@@ -799,7 +799,7 @@ public class HiveTableExtSampler implements Serializable {
             return this.topMap;
         }
 
-        public void code() {
+        public void code(ByteBuffer buf) {
             int s = topList.size();
             longSer.serialize((long) s, buf);
             for (MutableInt e : topList) {

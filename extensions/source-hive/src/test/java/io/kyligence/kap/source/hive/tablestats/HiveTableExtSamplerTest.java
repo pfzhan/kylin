@@ -121,6 +121,38 @@ public class HiveTableExtSamplerTest extends TestCase {
     }
 
     @Test
+    public void testMerge() {
+        List<HiveTableExtSampler> samplers = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            HiveTableExtSampler s = new HiveTableExtSampler();
+            s.setDataType("varchar");
+            samplers.add(s);
+        }
+
+        for (int i = 0; i < 123456; i++) {
+            for (HiveTableExtSampler s : samplers) {
+                String value = UUID.randomUUID().toString();
+                s.samples(value + value + value + value + value + value);
+            }
+        }
+
+        HiveTableExtSampler finalSampler = new HiveTableExtSampler();
+        finalSampler.setDataType("varchar");
+        for (HiveTableExtSampler s : samplers) {
+            s.sync();
+            ByteBuffer buf = s.code();
+            buf.flip();
+            s.decode(buf);
+            finalSampler.merge(s);
+        }
+
+        ByteBuffer buf = finalSampler.code();
+        buf.flip();
+        finalSampler.decode(buf);
+        finalSampler.getTopN();
+    }
+
+    @Test
     public void testModelStats() {
         HiveTableExtSampler sampler = new HiveTableExtSampler(0, 3);
         sampler.setDataType("varchar");
