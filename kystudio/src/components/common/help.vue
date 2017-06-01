@@ -26,7 +26,7 @@
 
 
 <a :href="url" target="_blank"></a>
-<el-dialog v-model="aboutKapVisible" title="关于KAP">
+<el-dialog v-model="aboutKapVisible" :title="$t('aboutKap')">
   <about_kap :about="serverAbout">
   </about_kap>
 </el-dialog>
@@ -104,7 +104,6 @@
         }
       },
       dropHelp () {
-        console.log('drop !!')
         this.getStatus()
       },
       resetLoginKybotForm () {
@@ -238,10 +237,6 @@
       kyStatus () {
         return this.$store.state.kybot.kyStatus
       }
-    },
-    created () {
-      // 获取是否已开启自动上传kybot switch 按钮切换状态
-      this.getStatus()
     },
     components: {
       'about_kap': aboutKap,
