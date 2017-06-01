@@ -150,24 +150,21 @@ export default {
       // this.FormVisible = false
     },
     removeProject (project) {
-      // this.$confirm(this.$t('deleteProject'), this.$t('tip'), {
-      //   confirmButtonText: this.$t('yes'),
-      //   cancelButtonText: this.$t('cancel'),
-      //   type: 'warning'
-      // }).then(() => {
-      //   this.deleteProject(project.name).then((result) => {
-      //     this.$message({
-      //       type: 'success',
-      //       message: this.$t('saveSuccessful')
-      //     })
-      //     this.loadProjects()
-      //   }, (result) => {
-      //     this.$message({
-      //       type: 'info',
-      //       message: this.$t('saveFailed')
-      //     })
-      //   })
-      // })
+      this.$confirm(this.$t('deleteProject'), this.$t('tip'), {
+        confirmButtonText: this.$t('yes'),
+        cancelButtonText: this.$t('cancel'),
+        type: 'warning'
+      }).then(() => {
+        this.deleteProject(project.name).then((result) => {
+          this.$message({
+            type: 'success',
+            message: this.$t('saveSuccessful')
+          })
+          this.loadProjects()
+        }, (res) => {
+          handleError(res)
+        })
+      })
     },
     backup (project) {
       // console.log('1')

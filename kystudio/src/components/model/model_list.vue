@@ -60,7 +60,8 @@
       prop="owner"
       label="Status">
       <template scope="scope">
-         <icon v-if="!scope.row.is_draft && scope.row.diagnose && scope.row.diagnose.progress===0" :name="modelHealthStatus[scope.row.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[scope.row.diagnose.heathStatus].color}"></icon>
+         <!-- <icon v-if="!scope.row.is_draft && scope.row.diagnose && scope.row.diagnose.progress===0" :name="modelHealthStatus[scope.row.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[scope.row.diagnose.heathStatus].color}"></icon> -->
+          <common-tip :tips="scope.row.diagnose&&scope.row.diagnose.messaes&&scope.row.diagnose.messaes.join('\n') || $t('hasNotChecked')"> <icon v-if="!scope.row.is_draft && scope.row.diagnose && (scope.row.diagnose.progress===0 || scope.row.diagnose.progress===100)" :name="modelHealthStatus[scope.row.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[scope.row.diagnose.heathStatus].color}"></icon></common-tip>
          <el-progress  :width="20" type="circle" :stroke-width="2" :show-text="false" v-if="!scope.row.is_draft&&scope.row.diagnose&&scope.row.diagnose.progress!==0 && scope.row.diagnose.progress!==100" :percentage="scope.row.diagnose&&scope.row.diagnose.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></h2>
       </template>
     </el-table-column>

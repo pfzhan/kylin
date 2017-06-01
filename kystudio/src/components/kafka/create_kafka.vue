@@ -53,18 +53,18 @@
         </el-row>
         <el-row class='row_padding'>
           <el-col :span='24'>
-            <el-button size='mini' icon='loading' @click='getClusterInfo'>{{$t('clusterInfo')}}
+            <el-button  icon='search' :loading="loading" type="primary" @click='getClusterInfo'>{{$t('clusterInfo')}}
             </el-button>
           </el-col>
         </el-row>
-        <el-row class='row_padding ' >
-          <el-col :span='10' v-loading.body='loading'>
+        <el-row class='row_padding ' style="height:200px;overflow:hidden" >
+          <el-col :span='10' >
             <el-tree :data="treeData" :props="treeProps" class='textarea_height'
              @node-click="getTopicInfo">
             </el-tree>
           </el-col>
           <el-col :span='14'>
-            <editor v-model="sourceSchema" lang="json" theme="chrome" width="100%" height="600" useWrapMode="true"></editor>
+            <editor v-model="sourceSchema" lang="json" theme="chrome" width="100%" height="200" useWrapMode="true"></editor>
           </el-col>
           <div class='convertBtn' @click='streamingOnChange();loadColumnZH();'>      <p>Convert</p>
             <i class='el-icon-arrow-down' aria-hidden='true'></i>
@@ -75,15 +75,16 @@
             <el-col :span='6'>
              {{$t('tableName')}}:
             </el-col>
-            <el-col :span='9'>
+            <el-col :span='8'>
               <el-select v-model="database">
                 <el-option v-for="(item, index) in databaseOption" :key="index"
                 :label="item"
                 :value="item">
                 </el-option>
               </el-select>
-              <b>/</b>
+              
             </el-col>
+            <el-col :span='1' class="ksd-center ksd-lineheight-40"><b>／</b></el-col>
             <el-col :span='9'>
               <el-input  v-model="kafkaMeta.name"></el-input>
             </el-col>
@@ -156,6 +157,7 @@ import 'brace/mode/javascript'
 import 'brace/mode/less'
 import 'brace/mode/json'
 import 'brace/theme/chrome'
+import { handleError, handleSuccess } from '../../util/business'
 export default {
   name: 'createKafka',
   data () {
@@ -239,28 +241,30 @@ export default {
       this.kafkaMeta.clusters[0].brokers.splice(index, 1)
     },
     getClusterInfo: function () {
-      let _this = this
-      _this.treeData = []
+      this.treeData = []
       this.loading = true
       this.clusterInfo({
-        project: 'a',
-        kafkaConfig: this.kafkaMeta,
-        streamingConfig: this.streamingMeta
-      }).then((result) => {
-        for (let key of Object.keys(result.body)) {
-          let treeNode = {label: key, children: []}
-          result.body[key].forEach(function (cluster) {
-            treeNode.children.push({label: cluster})
-          })
-          _this.treeData.push(treeNode)
-        }
+        project: localStorage.getItem('selected_project'),
+        kafkaConfig: JSON.stringify(this.kafkaMeta),
+        streamingConfig: JSON.stringify(this.streamingMeta)
+      }).then((res) => {
+        handleSuccess(res, (result) => {
+          var data = result.data
+          for (let key of Object.keys(data)) {
+            let treeNode = {label: key, children: []}
+            data[key].forEach(function (cluster) {
+              treeNode.children.push({label: cluster})
+            })
+            this.treeData.push(treeNode)
+          }
+        })
         this.loading = false
-      }).catch((result) => {
+      }).catch((res) => {
+        handleError(res)
         this.loading = false
       })
     },
     getTopicInfo: function (node, nodeDesc) {
-      let _this = this
       if (node.children) {
         return
       } else {
@@ -268,17 +272,17 @@ export default {
           cluster: nodeDesc.parent.data.label,
           name: node.label,
           kafka: {
-            project: 'a',
-            kafkaConfig: this.kafkaMeta,
-            streamingConfig: this.streamingMeta
+            project: localStorage.getItem('selected_project'),
+            kafkaConfig: JSON.stringify(this.kafkaMeta),
+            streamingConfig: JSON.stringify(this.streamingMeta)
           }
         }
-        _this.topicInfo(topic).then((result) => {
-          if (result && result.body.length > 0) {
-            _this.sourceSchema = result.body[0]
-          }
-        }).catch((result) => {
-          console.log(result)
+        this.topicInfo(topic).then((res) => {
+          handleSuccess(res, (data) => {
+            this.sourceSchema = data.data
+          })
+        }).catch((res) => {
+          handleError(res)
         })
       }
     },
@@ -375,16 +379,15 @@ export default {
     }
   },
   created () {
-    let _this = this
     this.$on('kafkaFormValid', (t) => {
-      _this.$refs['kafkaForm'].validate((valid) => {
+      this.$refs['kafkaForm'].validate((valid) => {
         if (valid) {
-          _this.$emit('validSuccess', {
-            database: _this.database,
-            tableName: _this.tableName,
-            columnList: _this.columnList,
-            kafkaMeta: _this.kafkaMeta,
-            streamingMeta: _this.streamingMeta})
+          this.$emit('validSuccess', {
+            database: this.database,
+            tableName: this.kafkaMeta.name,
+            columnList: this.columnList,
+            kafkaMeta: this.kafkaMeta,
+            streamingMeta: this.streamingMeta})
         }
       })
     })
@@ -405,7 +408,7 @@ export default {
   padding-bottom: 5px;
  }
  .textarea_height {
-  height: 600px;
+  height: 200px;
   width: 100%
  }
  .textarea_percent {
@@ -419,10 +422,11 @@ export default {
   left: 65%;
   margin-left: 10px;
   padding: 5px;
-  color: #000;
+  color: #383838;
   border-radius: 4px 4px 0 0;
   cursor: pointer;
-  height: 35px;
+  height: 30px;
+  line-height: 30px;
   box-shadow: 2px 2px 2px #eee;
  }
 .convertBtn i {

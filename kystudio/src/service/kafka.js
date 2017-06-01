@@ -12,7 +12,7 @@ export default {
     return Vue.resource(apiUrl + 'kafka/' + topic.cluster + '/' + topic.name).save(topic.kafka)
   },
   saveSampleData: (tableName) => {
-    return Vue.resource(apiUrl + tableName + '/samples').save()
+    return Vue.resource(apiUrl + 'kafka/' + tableName + '/samples').save()
   },
   saveKafka: (kafka) => {
     return Vue.resource(apiUrl + 'streaming').save(kafka)

@@ -179,7 +179,7 @@
 		  </div></el-col>
 		  <el-col :span="16"><div class="grid-content bg-purple">
 		  	<div class="tree_check_content ksd-mt-20">
-		 	  <arealabel :labels="selectTables" changeable="unchange" :selectedlabels="selectTablesNames" :placeholder="$t('selectLeftHiveTip')" @removeTag="removeSelectedHive"  :datamap="{label: 'label', value: 'value'}"></arealabel>
+		 	  <arealabel :labels="selectTables" @refreshData="refreshHiveData" changeable="unchange" :selectedlabels="selectTablesNames" :placeholder="$t('selectLeftHiveTip')" @removeTag="removeSelectedHive"  :datamap="{label: 'label', value: 'value'}"></arealabel>
         <div class="ksd-mt-20">
           <!-- <el-checkbox v-model="openCollectRange">Table Sampling</el-checkbox> -->
           <!-- <span class="demonstration">Sample percentage</span> -->
@@ -349,6 +349,9 @@ export default {
       this.tableStaticsRange = val
       this.openCollectRange = !!val
     },
+    refreshHiveData (val) {
+      this.selectTablesNames = val
+    },
     // 初始化加载hive列表的弹窗
     openLoadHiveListDialog () {
       if (!this.project) {
@@ -356,6 +359,9 @@ export default {
         return
       }
       this.load_hive_dalog_visible = true
+      this.$refs.subtree.cancelCheckedAll()
+      this.selectTables = []
+      this.selectTablesNames = []
     },
     openKafkaDialog () {
       if (!this.project) {
@@ -409,8 +415,8 @@ export default {
         this.scanSampleRatioDialogVisible = false
         this.scanRatioDialogVisible = false
         this.loadResultVisible = true
-        Object.assign(this.selectTables, [], [])
-        Object.assign(this.selectTablesNames, [], [])
+        this.selectTables = []
+        this.selectTablesNames = []
         this.$refs.subtree.cancelCheckedAll()
       }, (res) => {
         btn.loading = false
@@ -655,7 +661,7 @@ export default {
     },
     loadHiveList () {
       this.currentAction = this.$t('load')
-      if (this.selectTables.length > 0) {
+      if (this.selectTablesNames.length > 0) {
         this.loadHiveLoad = true
         this.loadHiveInProject({
           project: this.project,
@@ -713,7 +719,7 @@ export default {
       this.saveKafka({
         kafkaConfig: JSON.stringify(data.kafkaMeta),
         streamingConfig: JSON.stringify(data.streamingMeta),
-        project: 'project1',
+        project: this.project,
         tableData: tableData
       })
     },

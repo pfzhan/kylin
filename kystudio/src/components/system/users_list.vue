@@ -88,7 +88,7 @@
 
 <script>
 import { mapActions } from 'vuex'
-import { handleError } from '../../util/index'
+import { handleError } from '../../util/business'
 import addUser from './add_user'
 import editRole from './edit_role'
 import resetPassword from './reset_password'
