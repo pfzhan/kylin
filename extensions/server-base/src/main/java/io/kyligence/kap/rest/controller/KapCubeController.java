@@ -227,6 +227,7 @@ public class KapCubeController extends BasicController implements InitializingBe
             throws IOException {
 
         CubeDesc cubeDesc = deserializeCubeDescV2(cubeDescStr);
+        cubeDesc.init(KylinConfig.getInstanceFromEnv());
         AggregationGroup aggregationGroup = cubeDesc.getAggregationGroups().get(aggIndex);
 
         if (aggregationGroup != null) {
