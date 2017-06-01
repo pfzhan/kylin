@@ -99,7 +99,7 @@ public class TableExtController extends BasicController {
 
         String jobID = tableExtService.getJobByTableName(tableName);
         if (jobID == null || jobID.isEmpty())
-            throw new BadRequestException(msg.getJOB_INSTANCE_NOT_FOUND());
+            return null;
         try {
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobService.getJobInstance(jobID), "");
         } catch (RuntimeException e) {
