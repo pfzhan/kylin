@@ -1,32 +1,29 @@
 <template>
   <div class="project_edit">
     <el-form label-position="top" :model="projectDesc" :rules="rules" ref="projectForm">
-    <el-form-item :label="$t('projectName')" prop="name">
-      <el-input v-model="projectDesc.name" :placeholder="$t('projectPlace')" auto-complete="off"></el-input>
-    </el-form-item>
-    <el-form-item :label="$t('description')" >
-      <el-input type="textarea" :placeholder="$t('projectDescription')" v-model="projectDesc.description" auto-complete="off"></el-input>
-    </el-form-item>
-    <el-row class="project-config">{{$t('projectConfig')}}</el-row>
-    <el-row :gutter="20" class="ksd-mb-6"  v-for="(property,index) in convertedProperties " :key="index">
-      <el-col :span="10">
-        <el-form-item
-         prop="key">
-          <el-input v-model="property.key" placeholder="key"></el-input>
-        </el-form-item> 
-      </el-col>
-      <el-col :span="10">
-        <el-form-item prop="value">
-          <el-input v-model="property.value" placeholder="value"></el-input>
-        </el-form-item>
-      </el-col>
-      <el-col :span="4"><el-button type="danger" @click.prevent="removeProperty(index)">{{$t('delete')}}</el-button></el-col>
-    
-  </el-row>    
-
-  <el-form-item>
-    <el-button @click="addNewProperty" icon="close">{{$t('property')}}</el-button>
-  </el-form-item>    
+      <el-form-item :label="$t('projectName')" prop="name">
+        <el-input v-model="projectDesc.name" :placeholder="$t('projectPlace')" auto-complete="off"></el-input>
+      </el-form-item>
+      <el-form-item :label="$t('description')" >
+        <el-input type="textarea" :placeholder="$t('projectDescription')" v-model="projectDesc.description" auto-complete="off"></el-input>
+      </el-form-item>
+      <el-col class="project-config">{{$t('projectConfig')}}</el-col>
+      <el-row :gutter="20" class="ksd-mb-6"  v-for="(property,index) in convertedProperties " :key="index">
+        <el-col :span="10">
+          <el-form-item prop="key">
+            <el-input v-model="property.key" placeholder="key"></el-input>
+          </el-form-item>
+        </el-col>
+        <el-col :span="10">
+          <el-form-item prop="value">
+            <el-input v-model="property.value" placeholder="value"></el-input>
+          </el-form-item>
+        </el-col>
+        <el-col :span="4"><el-button type="danger" @click.prevent="removeProperty(index)">{{$t('delete')}}</el-button></el-col>
+    </el-row>    
+    <el-form-item>
+      <el-button @click="addNewProperty" icon="close">{{$t('property')}}</el-button>
+    </el-form-item>    
   </el-form>
 </div>
 </template>
@@ -42,25 +39,24 @@ export default {
       rules: {
         name: [
           { trigger: 'blur', validator: this.validateProjectName }
-        ],
-        key: [
-          { trigger: 'blur', required: true, message: 'key required' }
-        ],
-        value: [
-          { trigger: 'blur', required: true, message: 'value required' }
         ]
       }
     }
   },
   methods: {
     validateProjectName (rule, value, callback) {
+      console.log('value :', value)
       if (value === '') {
         callback(new Error(this.$t('noProject')))
+        console.log(1)
       } else if (!/^\w+$/.test(value)) {
         callback(new Error(this.$t('nameUncorrect')))
+        console.log(2)
       } else {
         callback()
+        console.log(3)
       }
+      console.log(4)
     },
     removeProperty (index) {
       this.convertedProperties.splice(index, 1)

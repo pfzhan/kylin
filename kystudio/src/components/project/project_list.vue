@@ -6,16 +6,19 @@
     <el-table-column type="expand">
       <template scope="props">
          <el-tabs activeName="first" type="card" >
-           <el-tab-pane label="Cubes" name="first">
-             <cube_list :cubeList="props.row.realizations"></cube_list>
-           </el-tab-pane>
-           <el-tab-pane :label="$t('access')" name="second">
-              <access_edit :accessId="props.row.uuid" own='project'></access_edit>
-           </el-tab-pane>
-           <el-tab-pane label="Models" name="fourth">
-
-           </el-tab-pane>
-           <!-- <el-tab-pane :label="$t('externalFilters')" name="third">
+          <el-tab-pane label="Models" name="first">
+            <model_list :modelList="props.row.models"></model_list>
+          </el-tab-pane>
+          <el-tab-pane label="Cubes" name="second">
+            <cube_list :cubeList="props.row.realizations"></cube_list>
+          </el-tab-pane>
+          <el-tab-pane :label="$t('access')" name="third">
+            <access_edit :accessId="props.row.uuid" own='project'></access_edit>
+          </el-tab-pane>
+          <el-tab-pane :label="$t('projectConfig')" name="fourth">
+            <project_config :override="props.row.override_kylin_properties"></project_config>
+          </el-tab-pane>
+           <!-- <el-tab-pane :label="$t('externalFilters')" name="fourth">
              <filter_edit :project="props.row.name" :projectId="props.row.uuid"></filter_edit>
            </el-tab-pane> -->
         </el-tabs>
@@ -55,7 +58,7 @@
     </el-table>
     <pager class="ksd-center" :pageSize="pageSize" :totalSize="projectsTotal" :currentPage='currentPage' v-on:handleCurrentChange='pageCurrentChange' ></pager>
 
-    <el-dialog :title="$t('project')" v-model="FormVisible" >
+    <el-dialog :title="$t('project')" v-model="FormVisible" @close="resetProjectForm">
       <project_edit ref="projectForm" :project="project"  v-on:validSuccess="validSuccess" v-on:validFailed='validFailed'></project_edit>
       <div slot="footer" class="dialog-footer">
         <el-button @click="FormVisible = false">{{$t('cancel')}}</el-button>
@@ -67,11 +70,12 @@
 <script>
 import { mapActions } from 'vuex'
 import cubeList from './cube_list'
-import modeList from './mode_list'
+import modeList from './model_list'
 import accessEdit from './access_edit'
 import filterEdit from './filter_edit'
 import projectEdit from './project_edit'
-import { handleError, transToGmtTime } from '../../util/business'
+import projectConfig from './project_config'
+import { handleSuccess, handleError, transToGmtTime } from '../../util/business'
 export default {
   name: 'projectlist',
   methods: {
@@ -165,17 +169,22 @@ export default {
             message: this.$t('saveSuccessful')
           })
           this.loadProjects()
-        }, (res) => {
-          handleError(res)
+        }, (result) => {
+          this.$message({
+            type: 'info',
+            message: this.$t('saveFailed')
+          })
         })
       })
     },
     backup (project) {
       // console.log('1')
       this.backupProject(project).then((result) => {
-        this.$message({
-          type: 'success',
-          message: this.$t('backupSuccessful')
+        handleSuccess(result, (data, code, status, msg) => {
+          this.$message({
+            type: 'success',
+            message: this.$t('backupSuccessful: ' + data)
+          })
         })
       }, (res) => {
         handleError(res, (data, code, status, msg) => {
@@ -195,6 +204,9 @@ export default {
         principal: true,
         sid: ''
       }
+    },
+    resetProjectForm () {
+      this.$refs['projectForm'].$refs['projectForm'].resetFields()
     }
   },
   data () {
@@ -232,7 +244,8 @@ export default {
     'project_edit': projectEdit,
     'access_edit': accessEdit,
     'filter_edit': filterEdit,
-    'model_list': modeList
+    'model_list': modeList,
+    'project_config': projectConfig
   },
   computed: {
     projectList () {
@@ -249,8 +262,8 @@ export default {
     this.loadProjects({pageOffset: this.currentPage - 1, pageSize: this.pageSize})
   },
   locales: {
-    'en': {project: 'Project', name: 'Name', owner: 'Owner', description: 'Description', createTime: 'Create Time', action: 'Action', access: 'Access', externalFilters: 'External Filters', edit: 'Edit', backup: 'Backup', delete: 'Delete', tip: 'Tip', cancel: 'Cancel', yes: 'Yes', saveSuccessful: 'Saved the project successful!', saveFailed: 'Save Failed!', deleteProject: 'Once it\'s deleted, your project\'s metadata and data will be cleaned up and can\'t be restored back.  ', backupSuccessful: 'backup successful!'},
-    'zh-cn': {project: '项目', name: '名称', owner: '所有者', description: '描述', createTime: '创建时间', action: '操作', access: '权限', externalFilters: '其他过滤', edit: '编辑', backup: '备份', delete: '删除', tip: '提示', cancel: '取消', yes: '确定', saveSuccessful: '保存项目成功!', saveFailed: '保存失败!', deleteProject: '删除后, 项目定义及数据会被清除, 且不能恢复.', backupSuccessful: '备份成功!'}
+    'en': {project: 'Project', name: 'Name', owner: 'Owner', description: 'Description', createTime: 'Create Time', action: 'Action', access: 'Access', externalFilters: 'External Filters', edit: 'Edit', backup: 'Backup', delete: 'Delete', tip: 'Tip', cancel: 'Cancel', yes: 'Yes', saveSuccessful: 'Saved the project successful!', saveFailed: 'Save Failed!', deleteProject: 'Once it\'s deleted, your project\'s metadata and data will be cleaned up and can\'t be restored back.  ', backupSuccessful: 'backup successful!', projectConfig: 'project config'},
+    'zh-cn': {project: '项目', name: '名称', owner: '所有者', description: '描述', createTime: '创建时间', action: '操作', access: '权限', externalFilters: '其他过滤', edit: '编辑', backup: '备份', delete: '删除', tip: '提示', cancel: '取消', yes: '确定', saveSuccessful: '保存项目成功!', saveFailed: '保存失败!', deleteProject: '删除后, 项目定义及数据会被清除, 且不能恢复.', backupSuccessful: '备份成功!', projectConfig: '项目配置'}
   }
 }
 </script>
