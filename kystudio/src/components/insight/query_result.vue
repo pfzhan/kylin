@@ -80,7 +80,6 @@ import { mapActions } from 'vuex'
 import pager from '../common/pager'
 import { indexOfObjWithSomeKey, scToFloat, showNull } from '../../util/index'
 import { handleError } from '../../util/business'
-import editor from 'vue2-ace-editor'
 export default {
   name: 'queryResult',
   props: ['extraoption'],
@@ -116,8 +115,7 @@ export default {
     }
   },
   components: {
-    pager,
-    editor
+    pager
   },
   methods: {
     ...mapActions({

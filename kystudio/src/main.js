@@ -25,12 +25,14 @@ import pager from 'components/common/pager'
 import slider from 'components/common/slider'
 import nodata from 'components/common/nodata'
 import progressbar from 'components/common/progress'
+import editor from 'vue2-ace-editor'
 // import draggable from 'vuedraggable'
 import nprogress from 'nprogress'
 
 import Icon from 'vue-awesome/components/Icon.vue'
 import 'vue-awesome/icons'
-
+import 'brace/mode/json'
+import 'brace/theme/chrome'
 import VueDND from 'awe-dnd'
 Vue.use(VueDND)
 Vue.component('icon', Icon)
@@ -42,6 +44,7 @@ Vue.component('kap-icon-button', iconBtn)
 Vue.component('kap-nodata', nodata)
 Vue.component('slider', slider)
 Vue.component('kap-progress', progressbar)
+Vue.component('editor', editor)
 // Vue.component('draggable', draggable)
 // Vue.component('introJs', introJs)
 // var cmdArg = process.argv.splice(2) && process.argv.splice(2)[0] || ''

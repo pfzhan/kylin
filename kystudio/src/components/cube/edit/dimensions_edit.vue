@@ -186,7 +186,7 @@
           style="width: 100%">
           <el-table-column
             prop="name"
-            width="180"
+            width="90"
             label="特征数据">
           </el-table-column>
           <el-table-column
@@ -201,7 +201,7 @@
           style="width: 100%">
           <el-table-column
             prop="name"
-            width="180"
+            width="60"
             label="示例数据">
           </el-table-column>
           <el-table-column

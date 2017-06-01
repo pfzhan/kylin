@@ -152,11 +152,6 @@
 </template>
 <script>
 import { mapActions } from 'vuex'
-import editor from 'vue2-ace-editor'
-import 'brace/mode/javascript'
-import 'brace/mode/less'
-import 'brace/mode/json'
-import 'brace/theme/chrome'
 import { handleError, handleSuccess } from '../../util/business'
 export default {
   name: 'createKafka',
@@ -213,9 +208,6 @@ export default {
       },
       treeData: []
     }
-  },
-  components: {
-    editor
   },
   methods: {
     ...mapActions({

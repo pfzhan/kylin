@@ -60,7 +60,6 @@ import { mapActions } from 'vuex'
 import { handleSuccess, handleError } from '../../util/business'
 import setConfig from './set_config'
 import diagnosis from './diagnosis'
-import editor from 'vue2-ace-editor'
 import loginKybot from '../common/login_kybot.vue'
 import startKybot from '../common/start_kybot.vue'
 import protocolContent from '../system/protocol.vue'
@@ -77,7 +76,6 @@ export default {
     'diagnosis': diagnosis,
     'login_kybot': loginKybot,
     'start_kybot': startKybot,
-    editor,
     'protocol_content': protocolContent
   },
   methods: {
@@ -108,8 +106,8 @@ export default {
       })
     },
     editorInit () {
-      require('brace/mode/sql')
-      require('brace/theme/chrome')
+      // require('brace/mode/sql')
+      // require('brace/theme/chrome')
     },
     setConfig: function () {
       this.setConfigFormVisible = true

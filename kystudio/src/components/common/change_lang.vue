@@ -1,5 +1,5 @@
 <template>
-<el-button v-if="lang!=='en'" @click="changeLang">EN</el-button>
+<el-button v-if="lang=='en'" @click="changeLang">EN</el-button>
 <el-button v-else @click="changeLang">中</el-button>
 </template>
 <script>

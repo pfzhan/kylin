@@ -33,8 +33,8 @@ exports.default = {
     dataSource: '数据源',
     fact: '事实表',
     lookup: '维度表',
-    pk: 'Primary key',
-    fk: 'Foreign key',
+    pk: '主键',
+    fk: '外键',
     // 通用提示
     unknownError: '未知错误!',
     submitSuccess: '提交成功',

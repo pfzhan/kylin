@@ -96,11 +96,11 @@
           <el-button class="el-dropdown-link">
             <i class="el-icon-more"></i>
           </el-button >
-          <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item v-if="scope.row.status==='DISABLED' " @click.native="drop(scope.row.name)">{{$t('drop')}}</el-dropdown-item>
+          <el-dropdown-menu slot="dropdown" v-if="isAdmin ">
+            <el-dropdown-item v-if="scope.row.status==='DISABLED'" @click.native="drop(scope.row.name)">{{$t('drop')}}</el-dropdown-item>
             <el-dropdown-item @click.native="edit(scope.row)">{{$t('edit')}}</el-dropdown-item>
             <el-dropdown-item v-if="scope.row.status !== 'DESCBROKEN' " @click.native="build(scope.row)">{{$t('build')}}</el-dropdown-item>
-            <el-dropdown-item v-if="scope.row.status==='READY' " @click.native="refresh(scope.row)">{{$t('refresh')}}</el-dropdown-item>
+            <el-dropdown-item v-if="scope.row.status!=='DISABLED'&&scope.row.status!=='DESCBROKEN' " @click.native="refresh(scope.row)">{{$t('refresh')}}</el-dropdown-item>
             <el-dropdown-item v-if="scope.row.status!== 'DESCBROKEN'" @click.native="merge(scope.row)">{{$t('merge')}}</el-dropdown-item>
             <el-dropdown-item v-if="scope.row.status=='DISABLED' " @click.native="enable(scope.row.name)">{{$t('enable')}}</el-dropdown-item>
             <el-dropdown-item v-if="scope.row.status!=='DISABLED' " @click.native="disable(scope.row.name)">{{$t('disable')}}</el-dropdown-item>
@@ -176,7 +176,7 @@ import cloneCube from './dialog/clone_cube'
 import mergeCube from './dialog/merge_cube'
 import accessEdit from '../project/access_edit'
 import refreshCube from './dialog/refresh_cube'
-import { handleSuccess, handleError, transToGmtTime } from '../../util/business'
+import { handleSuccess, handleError, transToGmtTime, hasRole } from '../../util/business'
 export default {
   name: 'cubeslist',
   data () {
@@ -659,6 +659,9 @@ export default {
         m.gmtTime = transToGmtTime(m.last_modified, this)
         return m
       })
+    },
+    isAdmin () {
+      return hasRole(this, 'ROLE_ADMIN')
     }
   },
   locales: {

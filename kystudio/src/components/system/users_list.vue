@@ -92,6 +92,7 @@ import { handleError } from '../../util/business'
 import addUser from './add_user'
 import editRole from './edit_role'
 import resetPassword from './reset_password'
+import { pageCount } from '../../config'
 export default {
   name: 'userslist',
   data () {
@@ -294,7 +295,7 @@ export default {
     }
   },
   created () {
-    this.loadUsersList()
+    this.loadUsersList({pageSize: pageCount, pageOffset: this.currentPage - 1})
   },
   locales: {
     'en': {user: 'User', userName: 'User Name', admin: 'Admin', modeler: 'Modeler', analyst: 'Analyst', status: 'Status', action: 'Action', editRole: 'Edit Role', resetPassword: 'Reset Password', drop: 'Drop', disable: 'Disable', enable: 'Enable', addUser: 'Add User', yes: 'Yes', cancel: 'Cancel'},

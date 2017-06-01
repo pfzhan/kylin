@@ -6,13 +6,9 @@
 <script>
 import { mapActions } from 'vuex'
 import { handleSuccess, handleError } from '../../../util/business'
-import editor from 'vue2-ace-editor'
 export default {
   name: 'sampleSQL',
   props: ['sampleSql', 'cubeDesc'],
-  components: {
-    editor
-  },
   methods: {
     ...mapActions({
       getSampleSql: 'GET_SAMPLE_SQL'

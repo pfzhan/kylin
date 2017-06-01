@@ -33,8 +33,8 @@ exports.default = {
     dataSource: 'datasource',
     fact: 'Fact Table',
     lookup: 'Lookup Table',
-    pk: '主键',
-    fk: '外键',
+    pk: 'Primary key',
+    fk: 'Foreign key',
     // 通用提示
     unknownError: 'Unknown Error!',
     submitSuccess: 'Submitted successfully',

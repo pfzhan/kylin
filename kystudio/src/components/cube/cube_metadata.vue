@@ -7,7 +7,6 @@
 <script>
 import { mapActions } from 'vuex'
 import { handleSuccess, handleError } from '../../util/business'
-import editor from 'vue2-ace-editor'
 export default {
   name: 'cubeMetadata',
   props: ['extraoption'],
@@ -18,9 +17,6 @@ export default {
         project: this.extraoption.project
       }
     }
-  },
-  components: {
-    editor
   },
   methods: {
     ...mapActions({

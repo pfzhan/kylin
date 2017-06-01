@@ -94,7 +94,6 @@
   </div>
 </template>
 <script>
-import editor from 'vue2-ace-editor'
 import tab from '../common/tab'
 import querypanel from 'components/insight/query_panel'
 import queryresult from 'components/insight/query_result'
@@ -374,7 +373,6 @@ export default {
     })
   },
   components: {
-    editor,
     querypanel,
     queryresult,
     tab

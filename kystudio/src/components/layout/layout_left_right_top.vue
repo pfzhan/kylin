@@ -22,7 +22,7 @@
         <li style="min-width:0"><change_lang></change_lang></li>
         <li>
           <el-dropdown @command="handleCommand">
-            <span class="el-dropdown-link">bob <icon name="angle-down"></icon>
+            <span class="el-dropdown-link">{{currentUserInfo && currentUserInfo.username}} <icon name="angle-down"></icon>
             </span>
             <el-dropdown-menu slot="dropdown" >
               <el-dropdown-item command="setting">{{$t('kylinLang.common.setting')}}</el-dropdown-item>
@@ -103,6 +103,9 @@
         currentPathNameParent: 'Model',
         defaultActive: '/dashbord',
         lisenceDialogVisible: false,
+        currentUserInfo: {
+          username: ''
+        },
         form: {
           name: '',
           region: '',
