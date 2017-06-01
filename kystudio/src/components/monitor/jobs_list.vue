@@ -31,8 +31,8 @@
     highlight-current-row
     @row-click="showLineSteps"
     @sort-change="sortJobList"
-    :default-sort="{prop: 'jobname', order: 'descending'}"
     >
+    <!-- :default-sort="{prop: 'jobname', order: 'descending'}" -->
       <el-table-column
       :label="$t('JobName')"
       sortable

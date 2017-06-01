@@ -18,8 +18,8 @@
       <el-form :inline="true" :model="accessMeta"  class="demo-form-inline">
        <el-form-item :label="$t('type')">
           <el-select  placeholder="Type" v-model="accessMeta.principal">
-            <el-option :label="$t('user')" :value="true"></el-option>
-            <el-option :label="$t('role')" :value="false"></el-option>
+            <el-option label="user" :value="true"></el-option>
+            <el-option label="role" :value="false"></el-option>
           </el-select>
         </el-form-item>
          <el-form-item :label="$t('name')" v-if="accessMeta.principal">
@@ -34,10 +34,10 @@
         </el-form-item>
         <el-form-item :label="$t('permission')">
           <el-select  :placeholder="$t('permission')" v-model="accessMeta.permission">
-            <el-option :label="$t('cubeAdmin')" :value="16"></el-option>
-            <el-option :label="$t('cubeEdit')" :value="32"></el-option>
-            <el-option :label="$t('cubeOpera')" :value="64"></el-option>
-            <el-option :label="$t('cubeQuery')" :value="1"></el-option>
+            <el-option label="cubeAdmin" :value="16"></el-option>
+            <el-option label="cubeEdit" :value="32"></el-option>
+            <el-option label="cubeOpera" :value="64"></el-option>
+            <el-option label="cubeQuery" :value="1"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item>

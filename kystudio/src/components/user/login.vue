@@ -26,7 +26,7 @@
            <el-form   @keyup.native.enter="onLoginSubmit" class="login_form" :model="user" ref="loginForm" :rules="rules">
            <div class="input_group">
             <el-form-item label="" prop="username">
-              <el-input v-model="user.username"  :placeholder="$t('userName')"></el-input>
+              <el-input v-model="user.username" auto-complete="on" :autofocus="true"  :placeholder="$t('userName')" name="username"></el-input>
             </el-form-item>
             <el-form-item label="" prop="password" class="password">
               <el-input  type="password" v-model="user.password" :placeholder="$t('password')"></el-input>
@@ -61,7 +61,7 @@ export default {
         password: [{required: true, message: this.$t('noUserPwd'), trigger: 'blur'}]
       },
       user: {
-        username: '',
+        username: '' || localStorage.getItem('username'),
         password: ''
       },
       btnLock: false
@@ -84,6 +84,7 @@ export default {
               this.$refs['loginBtn'].loading = false
               this.setCurUser({ user: data })
               this.$router.push('/dashboard')
+              localStorage.setItem('username', this.user.username)
             })
           }, (res) => {
             handleError(res)

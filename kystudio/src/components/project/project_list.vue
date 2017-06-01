@@ -12,9 +12,12 @@
            <el-tab-pane :label="$t('access')" name="second">
               <access_edit :accessId="props.row.uuid" own='project'></access_edit>
            </el-tab-pane>
-           <el-tab-pane :label="$t('externalFilters')" name="third">
-             <filter_edit :project="props.row.name" :projectId="props.row.uuid"></filter_edit>
+           <el-tab-pane label="Models" name="fourth">
+
            </el-tab-pane>
+           <!-- <el-tab-pane :label="$t('externalFilters')" name="third">
+             <filter_edit :project="props.row.name" :projectId="props.row.uuid"></filter_edit>
+           </el-tab-pane> -->
         </el-tabs>
       </template>
     </el-table-column>
@@ -64,6 +67,7 @@
 <script>
 import { mapActions } from 'vuex'
 import cubeList from './cube_list'
+import modeList from './mode_list'
 import accessEdit from './access_edit'
 import filterEdit from './filter_edit'
 import projectEdit from './project_edit'
@@ -227,7 +231,8 @@ export default {
     'cube_list': cubeList,
     'project_edit': projectEdit,
     'access_edit': accessEdit,
-    'filter_edit': filterEdit
+    'filter_edit': filterEdit,
+    'model_list': modeList
   },
   computed: {
     projectList () {

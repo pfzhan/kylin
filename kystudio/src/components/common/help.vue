@@ -1,10 +1,10 @@
 <template>
 <div class="help_box">
-<el-dropdown @command="handleCommand">
+<el-dropdown @command="handleCommand" @click.native="dropHelp">
   <span class="el-dropdown-link">
     {{$t('kylinLang.common.help')}} <icon name="angle-down"></icon>
   </span>
-  <el-dropdown-menu slot="dropdown">
+  <el-dropdown-menu slot="dropdown" >
     <el-dropdown-item command="kapmanual">{{$t('Manual')}}</el-dropdown-item>
     <el-dropdown-item command="kybot">
       {{$t('kybotAuto')}}
@@ -59,7 +59,8 @@
         },
         infoKybotVisible: false,
         isopend: false, // 是否已开启
-        startLoading: false
+        startLoading: false,
+        flag: true
       }
     },
     methods: {
@@ -101,6 +102,10 @@
             this.getStatus(true)
           })
         }
+      },
+      dropHelp () {
+        console.log('drop !!')
+        this.getStatus()
       },
       resetLoginKybotForm () {
         this.$refs['loginKybotForm'].$refs['loginKybotForm'].resetFields()
@@ -177,6 +182,10 @@
       },
       // 获取是否开启
       getStatus (showAgreement, callback) {
+        if (!this.flag) {
+          return
+        }
+        this.flag = false
         this.getKyStatus().then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
             if (!data) {
@@ -185,6 +194,7 @@
             } else {
               this.isopend = true
             }
+            this.flag = true
           }, (errResp) => {
             handleError(errResp, (data, code, status, msg) => {
               if (status === 400) {
@@ -194,6 +204,7 @@
                 })
               }
             })
+            this.flag = true
           })
         })
       },
