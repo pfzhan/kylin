@@ -105,7 +105,7 @@ public class DefaultModelingStrategy implements IModelingStrategy {
     }
 
     public int getAggGroupStrictCombinationMax() {
-        return 8192;
+        return 4096;
     }
 
     public int getAggGroupStrictRetryMax() {
