@@ -92,10 +92,9 @@ public class ParquetStorageCleanupStep extends AbstractExecutable {
                         logger.info("Selectively delete some files: folderPath={}, fileSuffix={}", folderPaths, fileSuffixs);
                         dropCuboidPath(fileSystem, folderPath, fileSuffixs);
                     } else {
-                        logger.info("Delete entire folders.");
                         //if no file suffix provided, delete the whole folder
-                        logger.debug("working on HDFS folder " + folder);
-                        output.append("working on HDFS folder " + folder + "\n");
+                        logger.info("Delete entire folders: " + folder);
+                        output.append("Delete entire folders: " + folder + "\n");
                         fileSystem.delete(folderPath, true);
                     }
                 } else {

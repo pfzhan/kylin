@@ -212,7 +212,7 @@ public class DerivedDimensionProposer extends AbstractProposer {
                     long colCardinality = context.getColumnsCardinality(dimColRef.getIdentity());
                     double colCardRatio = (double) colCardinality / (double) pKeyCardinality;
                     if (colCardRatio > derivedRatio) {
-                        logger.debug("Found one derived dimension: column={}, cardinality={}, pkCardinality={}, cardinalityRatio={}", tblDim.getColumn(), colCardinality, pKeyCardinality, colCardRatio);
+                        logger.trace("Found one derived dimension: column={}, cardinality={}, pkCardinality={}, cardinalityRatio={}", tblDim.getColumn(), colCardinality, pKeyCardinality, colCardRatio);
                         derivedDimNames.add(tblDim.getColumn());
                     } else {
                         workDimensions.add(tblDim);

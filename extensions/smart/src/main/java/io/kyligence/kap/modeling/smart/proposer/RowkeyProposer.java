@@ -87,7 +87,7 @@ public class RowkeyProposer extends AbstractProposer {
         // sort rowkey order by cardinality desc
         RowKeyColDesc[] rowKeyDescs = workCubeDesc.getRowkey().getRowKeyColumns();
 
-        logger.debug("Before sorting row keys: {}", StringUtils.join(rowKeyDescs, ","));
+        logger.trace("Before sorting row keys: {}", StringUtils.join(rowKeyDescs, ","));
 
         // split all rowkeys to 2 groups: filter, others
         List<RowKeyColDesc> filterRowkeys = Lists.newArrayList();
@@ -113,7 +113,7 @@ public class RowkeyProposer extends AbstractProposer {
                 return (int) (filterRowkeyVals.get(r1) - filterRowkeyVals.get(r2));
             }
         }));
-        logger.debug("Sort filter rowkeys: {}", StringUtils.join(filterRowkeys, ","));
+        logger.trace("Sort filter rowkeys: {}", StringUtils.join(filterRowkeys, ","));
 
         // sort others with cardinalites
         final Map<RowKeyColDesc, Double> otherRowkeyVals = Maps.newHashMap();
@@ -126,14 +126,14 @@ public class RowkeyProposer extends AbstractProposer {
                 return (int) (otherRowkeyVals.get(r1) - otherRowkeyVals.get(r2));
             }
         }));
-        logger.debug("Sort other rowkeys: {}", StringUtils.join(otherRowkeys, ","));
+        logger.trace("Sort other rowkeys: {}", StringUtils.join(otherRowkeys, ","));
 
         List<RowKeyColDesc> allRowkeys = Lists.newArrayListWithExpectedSize(rowKeyDescs.length);
         allRowkeys.addAll(filterRowkeys);
         allRowkeys.addAll(otherRowkeys);
         rowKeyDescs = allRowkeys.toArray(rowKeyDescs);
 
-        logger.debug("After sorting row keys: {}", StringUtils.join(rowKeyDescs, ","));
+        logger.trace("After sorting row keys: {}", StringUtils.join(rowKeyDescs, ","));
 
     }
 
@@ -180,7 +180,7 @@ public class RowkeyProposer extends AbstractProposer {
         for (RowKeyColDesc rowKeyDesc : rowKeyDescs) {
             long cardinality = context.getColumnsCardinality(rowKeyDesc.getColRef().getIdentity());
             rowKeyDesc.setEncoding(selectDimEncoding(rowKeyDesc, cardinality));
-            logger.debug("Set dimension encoding: column={}, encoding={}, cardinality={}", rowKeyDesc.getColumn(), rowKeyDesc.getEncoding(), cardinality);
+            logger.trace("Set dimension encoding: column={}, encoding={}, cardinality={}", rowKeyDesc.getColumn(), rowKeyDesc.getEncoding(), cardinality);
 
             if (cardinality > maxCardinality) {
                 // find the largest cardinality, set shardBy=true if the max exceeds threshold
@@ -191,7 +191,7 @@ public class RowkeyProposer extends AbstractProposer {
 
         if (maxCardRowKey != null && maxCardinality > modelingConfig.getRowkeyUHCCardinalityMin()) {
             maxCardRowKey.setShardBy(true);
-            logger.debug("Found shard by dimension: column={}, cardinality={}", maxCardRowKey.getColumn(), maxCardinality);
+            logger.trace("Found shard by dimension: column={}, cardinality={}", maxCardRowKey.getColumn(), maxCardinality);
         }
 
         // update index settings

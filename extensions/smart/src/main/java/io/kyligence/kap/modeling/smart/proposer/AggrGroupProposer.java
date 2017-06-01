@@ -129,7 +129,7 @@ public class AggrGroupProposer extends AbstractProposer {
                         candidatesItr.remove();
                     }
                 }
-                logger.debug("Added {} mandatory dimension from cardinality.", mandatoryCandidates.size());
+                logger.trace("Added {} mandatory dimension from cardinality.", mandatoryCandidates.size());
             }
 
             // according to query stats
@@ -183,20 +183,20 @@ public class AggrGroupProposer extends AbstractProposer {
 
                         if (equal1 && equal2) {
                             relationJointAggRecorder.add(colName1, score1, colName2, score2);
-                            logger.debug("Found relation joint pair from model stats: {}={}, {}={}", colName1, score1, colName2, score2);
+                            logger.trace("Found relation joint pair from model stats: {}={}, {}={}", colName1, score1, colName2, score2);
                         } else if (!approxEquals(modelStats.getCounter() / cardPair)) {
                             // for hierarchy, need to check if column's cardinality equals to model rows, if so do not consider as hierarchy.
                             if (equal1 && !equal2 && score1 > score2) {
                                 hierAggRecorder.add(colName2, colName1);
-                                logger.debug("Found hierarchy pair from model stats: {}={}, {}={}", colName2, score2, colName1, score1);
+                                logger.trace("Found hierarchy pair from model stats: {}={}, {}={}", colName2, score2, colName1, score1);
                             } else if (!equal1 && equal2 && score1 < score2) {
                                 hierAggRecorder.add(colName1, colName2);
-                                logger.debug("Found hierarchy pair from model stats: {}={}, {}={}", colName1, score1, colName2, score2);
+                                logger.trace("Found hierarchy pair from model stats: {}={}, {}={}", colName1, score1, colName2, score2);
                             }
                         }
                     }
                 } else {
-                    logger.debug("ModelStats not found and skip joint/hierarchy agg group.");
+                    logger.trace("ModelStats not found and skip joint/hierarchy agg group.");
                 }
             }
         }
@@ -225,7 +225,7 @@ public class AggrGroupProposer extends AbstractProposer {
 
                     if (equal1 && equal2) {
                         relationJointAggRecorder.add(colName1, score1, colName2, score2);
-                        logger.debug("Found relation joint pair from query stats: {}={}, {}={}", colName1, score1, colName2, score2);
+                        logger.trace("Found relation joint pair from query stats: {}={}, {}={}", colName1, score1, colName2, score2);
                     }
                 }
             }
@@ -241,7 +241,7 @@ public class AggrGroupProposer extends AbstractProposer {
                         fragmentRecorder.add(rowKeyColName, cardinality);
                     }
                 }
-                logger.debug("Try to find small joint groups: retry={}", retry);
+                logger.trace("Try to find small joint groups: retry={}", retry);
             }
         }
 

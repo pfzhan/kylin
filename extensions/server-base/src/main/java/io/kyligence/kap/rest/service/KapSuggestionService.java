@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
@@ -69,28 +70,30 @@ public class KapSuggestionService extends BasicService {
     }
 
     public CubeDesc getSmartSuggestions(CubeDesc cubeDesc) throws IOException {
-        CubeLogManager cubeLogManager = CubeLogManager.getInstance(getConfig());
-        QueryStats queryStats = cubeLogManager.getCubeLog(cubeDesc.getName()).getQueryStats();
+        try (SetThreadName ignored = new SetThreadName("Suggestion %s", Long.toHexString(Thread.currentThread().getId()))) {
+            CubeLogManager cubeLogManager = CubeLogManager.getInstance(getConfig());
+            QueryStats queryStats = cubeLogManager.getCubeLog(cubeDesc.getName()).getQueryStats();
 
-        DataModelDesc dataModelDesc = MetadataManager.getInstance(getConfig()).getDataModelDesc(cubeDesc.getModelName());
+            DataModelDesc dataModelDesc = MetadataManager.getInstance(getConfig()).getDataModelDesc(cubeDesc.getModelName());
 
-        ModelingMaster modelingMaster = ModelingMasterFactory.create(getConfig(), dataModelDesc);
+            ModelingMaster modelingMaster = ModelingMasterFactory.create(getConfig(), dataModelDesc);
 
-        if (null != queryStats)
-            modelingMaster.getContext().setQueryStats(queryStats);
+            if (null != queryStats)
+                modelingMaster.getContext().setQueryStats(queryStats);
 
-        CubeDesc inputCubeDesc;
-        if (cubeDesc.getDimensions().size() == 0)
-            inputCubeDesc = modelingMaster.proposeInitialCube();
-        else
-            inputCubeDesc = cubeDesc;
+            CubeDesc inputCubeDesc;
+            if (cubeDesc.getDimensions().size() == 0)
+                inputCubeDesc = modelingMaster.proposeInitialCube();
+            else
+                inputCubeDesc = cubeDesc;
 
-        CubeDesc dimMeasCube = modelingMaster.proposeDerivedDimensions(inputCubeDesc);
-        CubeDesc rowkeyCube = modelingMaster.proposeRowkey(dimMeasCube);
-        CubeDesc aggGroupCube = modelingMaster.proposeAggrGroup(rowkeyCube);
-        CubeDesc configOverrideCube = modelingMaster.proposeConfigOverride(aggGroupCube);
+            CubeDesc dimMeasCube = modelingMaster.proposeDerivedDimensions(inputCubeDesc);
+            CubeDesc rowkeyCube = modelingMaster.proposeRowkey(dimMeasCube);
+            CubeDesc aggGroupCube = modelingMaster.proposeAggrGroup(rowkeyCube);
+            CubeDesc configOverrideCube = modelingMaster.proposeConfigOverride(aggGroupCube);
 
-        return configOverrideCube;
+            return configOverrideCube;
+        }
     }
 
     private boolean isSampleSqlUpdated(List<String> newSqls, List<String> oldSqls) {

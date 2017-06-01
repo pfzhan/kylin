@@ -94,13 +94,9 @@ public class CubeShardSizingStep extends AbstractExecutable {
             int shardNum = (int) Math.ceil(1.0 * estimatedSize / mbPerShard);
 
             if (shardNum > shardMax) {
-                stepLogger.log(String.format("Cuboid %d 's estimated size %.2f MB will generate %d regions, reduce to %d", cuboidId, estimatedSize, shardNum, shardMax));
                 shardNum = shardMax;
             } else if (shardNum < shardMin) {
-                stepLogger.log(String.format("Cuboid %d 's estimated size %.2f MB will generate %d regions, increase to %d", cuboidId, estimatedSize, shardNum, shardMin));
                 shardNum = shardMin;
-            } else {
-                stepLogger.log(String.format("Cuboid %d 's estimated size %.2f MB will generate %d regions", cuboidId, estimatedSize, shardNum));
             }
 
             cuboidShards.put(cuboidId, (short) shardNum);

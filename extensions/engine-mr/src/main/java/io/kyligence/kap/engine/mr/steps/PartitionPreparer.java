@@ -93,8 +93,10 @@ public class PartitionPreparer {
             }
         }
 
-        for (Pair<Long, Short> key : partitionMap.keySet()) {
-            logger.info("Cuboid {} Shard {} --> Reducer {}", key.getFirst(), key.getSecond(), partitionMap.get(key));
+        if (logger.isTraceEnabled()) {
+            for (Pair<Long, Short> key : partitionMap.keySet()) {
+                logger.trace("Cuboid {} Shard {} --> Reducer {}", key.getFirst(), key.getSecond(), partitionMap.get(key));
+            }
         }
 
         // Serialize mapping
