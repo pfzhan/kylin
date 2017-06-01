@@ -101,7 +101,7 @@ public class DefaultModelingStrategy implements IModelingStrategy {
     }
 
     public boolean getAggGroupStrictEnabled() {
-        return false;
+        return true;
     }
 
     public int getAggGroupStrictCombinationMax() {

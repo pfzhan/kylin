@@ -33,6 +33,8 @@ import org.apache.kylin.cube.model.CubeDesc;
 import io.kyligence.kap.modeling.smart.ModelingContext;
 
 public class ConfigOverrideProposer extends AbstractProposer {
+    private final static String AGG_MAX_COMBINATION = "kylin.cube.aggrgroup.max-combination";
+
     public ConfigOverrideProposer(ModelingContext context) {
         super(context);
     }
@@ -50,8 +52,9 @@ public class ConfigOverrideProposer extends AbstractProposer {
         combinationMax = Long.highestOneBit(combinationMax) << 1;
 
         long defaultMax = KylinConfig.createKylinConfig(new Properties()).getCubeAggrGroupMaxCombination();
+        workCubeDesc.getOverrideKylinProps().remove(AGG_MAX_COMBINATION);
         if (combinationMax > defaultMax) {
-            workCubeDesc.getOverrideKylinProps().put("kylin.cube.aggrgroup.max-combination", Long.toString(combinationMax));
+            workCubeDesc.getOverrideKylinProps().put(AGG_MAX_COMBINATION, Long.toString(combinationMax));
         }
     }
 }
