@@ -110,7 +110,6 @@ public class KyBotService extends BasicService {
         CliCommandExecutor executor = KylinConfig.getInstanceFromEnv().getCliCommandExecutor();
         Pair<Integer, String> cmdOutput = executor.execute(diagCmd);
 
-        logger.debug("Cmdoutput: " + cmdOutput.getKey());
         if (cmdOutput.getKey() != 0) {
             throw new RuntimeException("Failed to generate KyBot package.");
         }
@@ -280,13 +279,7 @@ public class KyBotService extends BasicService {
         }
         try {
             CliCommandExecutor executor = KylinConfig.getInstanceFromEnv().getCliCommandExecutor();
-            Pair<Integer, String> cmdOutput = executor.execute(script.getAbsolutePath(), new org.apache.kylin.common.util.Logger() {
-                @Override
-                public void log(String message) {
-                    logger.debug("status.sh - {}", message);
-                }
-            });
-            logger.debug("Cmdoutput: " + cmdOutput.getKey() + "\n" + cmdOutput.getValue());
+            Pair<Integer, String> cmdOutput = executor.execute(script.getAbsolutePath());
             return cmdOutput.getValue().contains("running: true");
         } catch (IOException e) {
             logger.error("Failed to execute kybot/agent/bin/status.sh");
@@ -316,13 +309,7 @@ public class KyBotService extends BasicService {
         }
         try {
             CliCommandExecutor executor = KylinConfig.getInstanceFromEnv().getCliCommandExecutor();
-            Pair<Integer, String> cmdOutput = executor.execute(script.getAbsolutePath(), new org.apache.kylin.common.util.Logger() {
-                @Override
-                public void log(String message) {
-                    logger.debug("disable.sh - {}", message);
-                }
-            });
-            logger.debug("Cmdoutput: " + cmdOutput.getKey());
+            Pair<Integer, String> cmdOutput = executor.execute(script.getAbsolutePath());
             return cmdOutput.getKey() == 0;
         } catch (IOException e) {
             logger.error("Failed to execute kybot/agent/bin/disable.sh");
