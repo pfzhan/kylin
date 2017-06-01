@@ -11,9 +11,7 @@ echo "Checking spark home..."
 
 # check SPARK_HOME
 
-[[ -z ${SPARK_HOME} ]] || [[ ${SPARK_HOME} == ${KYLIN_HOME}/spark ]] || echo "${CHECKENV_REPORT_PFX}`setColor 32 Important!` Current SPARK_HOME is set: ${SPARK_HOME}, please don't risk it, more info: https://kyligence.gitbooks.io/kap-manual/content/zh-cn/install/check_env.cn.html"
-
-echo "Spark home is `setColor 36 OK`!"
+[[ -z ${SPARK_HOME} ]] || [[ ${SPARK_HOME} == ${KYLIN_HOME}/spark ]] || echo "${CHECKENV_REPORT_PFX}`setColor 32 Important!` Current SPARK_HOME is set: ${SPARK_HOME}, please don't risk it, more info: https://kyligence.gitbooks.io/kap-manual/content/en/install/check_env.en.html"
 
 echo "Testing spark task..."
 ${dir}/spark_client.sh test
@@ -42,26 +40,26 @@ if [ $? != 0 ]; then
 fi
 
 #def constant var
-spark_total_cores=`getValueByKey availableVirtualCores ${saveFileName}`
-spark_total_memory=`getValueByKey availableMB ${saveFileName}`
+yarn_available_cores=`getValueByKey availableVirtualCores ${saveFileName}`
+yarn_available_memory=`getValueByKey availableMB ${saveFileName}`
 spark_executor_cores=`getValueByKey ${key_executor_cores} ${override_file}`
 spark_executor_memory=`getValueByKey ${key_executor_memory} ${override_file}`
 spark_executor_instance=`getValueByKey ${key_executor_instance} ${override_file}`
 
-if [ -z ${spark_total_cores} ]; then
+if [ -z ${yarn_available_cores} ]; then
     echo "${CHECKENV_REPORT_PFX}WARN: Cannot get Yarn RM's cores info, skip the spark config suggestion."
     exit 0
 fi
 
-if [ -z ${spark_total_memory} ]; then
+if [ -z ${yarn_available_memory} ]; then
     echo "${CHECKENV_REPORT_PFX}WARN: Cannot get Yarn RM's memory info, skip the spark config suggestion."
     exit 0
 fi
 
 echo "${key_executor_cores}=`setColor 36 ${spark_executor_cores}`"
 echo "${key_executor_memory}=`setColor 36 ${spark_executor_memory}`"
-echo "${CHECKENV_REPORT_PFX}The total yarn RM cores: `setColor 36 ${spark_total_cores}`"
-echo "${CHECKENV_REPORT_PFX}The total yarn RM memory: `setColor 36 ${spark_total_memory}M`"
+echo "${CHECKENV_REPORT_PFX}The available yarn RM cores: `setColor 36 ${yarn_available_cores}`"
+echo "${CHECKENV_REPORT_PFX}The available yarn RM memory: `setColor 36 ${yarn_available_memory}M`"
 unit=${spark_executor_memory: -1}
 unit=$(echo ${unit} | tr [a-z] [A-Z])
 
@@ -73,11 +71,11 @@ else
     quit "Unrecognized memory unit: ${unit} in ${spark_executor_memory} in kylin.properties";
 fi
 
-[[ ${spark_total_cores} -gt ${spark_executor_cores} ]] || quit "The executor's cores: ${spark_executor_cores} configured in kylin.properties are not correctly, even more than Yarn's total cores: ${spark_total_cores}."
-[[ ${spark_total_memory} -gt ${spark_executor_memory} ]] || quit "The executor's memory: ${spark_executor_memory}M configured in kylin.properties are not correctly, even more than Yarn's total memory ${spark_total_memory}M."
+[[ ${yarn_available_cores} -gt ${spark_executor_cores} ]] || quit "In kylin.properties, ${key_executor_cores} is set to ${spark_executor_cores}, which is greater than Yarn's available cores: ${yarn_available_cores}, please correct it."
+[[ ${yarn_available_memory} -gt ${spark_executor_memory} ]] || quit "In kylin.properties, ${key_executor_memory} is set to ${spark_executor_memory}M, which is more than Yarn's available memory: ${yarn_available_memory}M, please correct it."
 
-ins1=`expr ${spark_total_memory} / ${spark_executor_memory}`
-ins2=`expr ${spark_total_cores} / ${spark_executor_cores}`
+ins1=`expr ${yarn_available_memory} / ${spark_executor_memory}`
+ins2=`expr ${yarn_available_cores} / ${spark_executor_cores}`
 
 if [ ${ins1} -lt ${ins2} ]; then
     recommend=${ins1}
