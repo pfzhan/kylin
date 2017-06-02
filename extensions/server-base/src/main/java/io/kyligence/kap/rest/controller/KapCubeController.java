@@ -283,7 +283,7 @@ public class KapCubeController extends BasicController implements InitializingBe
                 rawTableService.deleteRawByUuid(cubeDesc.getUuid(), false);
             }
 
-            schedulerJobService.keepModifyTs(schedulerJobInstance);
+            //schedulerJobService.keepModifyTs(schedulerJobInstance);
             bindSchedulerJobWithCube(schedulerJobInstance, cubeDesc.getName(), cubeDesc.getUuid());
             validateSchedulerJobs(cubeDesc.getUuid());
             enableSchedulerJob(schedulerJobInstance);
@@ -338,7 +338,7 @@ public class KapCubeController extends BasicController implements InitializingBe
                 rawTableService.deleteRawByUuid(cubeDesc.getUuid(), true);
             }
 
-            schedulerJobService.keepModifyTs(schedulerJobInstance);
+            //schedulerJobService.keepModifyTs(schedulerJobInstance);
             bindSchedulerJobWithCube(schedulerJobInstance, cubeDesc.getName(), cubeDesc.getUuid());
             validateSchedulerJobs(cubeDesc.getUuid());
         } catch (Exception ex) {
@@ -363,22 +363,27 @@ public class KapCubeController extends BasicController implements InitializingBe
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
-    @RequestMapping(value = "{cubeName}/scheduler_job", method = RequestMethod.GET, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "{cubeName}/scheduler_job", method = RequestMethod.GET, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getSchedulerJob(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) throws IOException {
+    public EnvelopeResponse getSchedulerJob(@RequestHeader("Accept-Language") String lang,
+            @PathVariable String cubeName) throws IOException {
         MsgPicker.setMsg(lang);
         SchedulerJobInstance job = getSchedulerJobByCubeName(cubeName);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, job, "");
     }
 
-    @RequestMapping(value = "{cubeName}/scheduler_job", method = RequestMethod.DELETE, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "{cubeName}/scheduler_job", method = RequestMethod.DELETE, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse deleteSchedulerJob(@RequestHeader("Accept-Language") String lang, @PathVariable String cubeName) throws IOException, SchedulerException {
+    public EnvelopeResponse deleteSchedulerJob(@RequestHeader("Accept-Language") String lang,
+            @PathVariable String cubeName) throws IOException, SchedulerException {
         MsgPicker.setMsg(lang);
         SchedulerJobInstance job = getSchedulerJobByCubeName(cubeName);
         schedulerJobService.deleteSchedulerJob(job);
         if (cubeTriggerKeyMap.containsKey(job.getRelatedRealization())) {
-            CronTrigger trigger = (CronTrigger) scheduler.getTrigger(cubeTriggerKeyMap.get(job.getRelatedRealization()));
+            CronTrigger trigger = (CronTrigger) scheduler
+                    .getTrigger(cubeTriggerKeyMap.get(job.getRelatedRealization()));
             JobKey jobKey = trigger.getJobKey();
             if (jobKey != null) {
                 scheduler.deleteJob(jobKey);
@@ -511,7 +516,8 @@ public class KapCubeController extends BasicController implements InitializingBe
                 scheduler.deleteJob(jobKey);
             }
         }
-        trigger = TriggerBuilder.newTrigger().startAt(new Date(instance.getScheduledRunTime())).withSchedule(cronScheduleBuilder).build();
+        trigger = TriggerBuilder.newTrigger().startAt(new Date(instance.getScheduledRunTime()))
+                .withSchedule(cronScheduleBuilder).build();
         cubeTriggerKeyMap.put(instance.getRelatedRealization(), trigger.getKey());
         scheduler.scheduleJob(jobDetail, trigger);
     }

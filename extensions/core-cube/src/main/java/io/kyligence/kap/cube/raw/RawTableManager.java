@@ -222,7 +222,9 @@ public class RawTableManager implements IRealizationProvider {
         else
             raw.initConfig(desc.getConfig());
         updateRawTable(new RawTableUpdate(raw));
-        ProjectManager.getInstance(config).moveRealizationToProject(RealizationType.INVERTED_INDEX, cubeName, projectName, owner);
+        if (!desc.isDraft()) {
+            ProjectManager.getInstance(config).moveRealizationToProject(RealizationType.INVERTED_INDEX, cubeName, projectName, owner);
+        }
         return raw;
     }
 

@@ -120,10 +120,13 @@ public class RawTableService extends BasicService {
             }
             throw e;
         }
-        accessService.init(createdRaw, AclPermission.ADMINISTRATION);
 
-        ProjectInstance project = getProjectManager().getProject(projectName);
-        accessService.inherit(createdRaw, project);
+        if (!desc.isDraft()) {
+            accessService.init(createdRaw, AclPermission.ADMINISTRATION);
+
+            ProjectInstance project = getProjectManager().getProject(projectName);
+            accessService.inherit(createdRaw, project);
+        }
 
         return createdRaw;
     }
@@ -180,11 +183,13 @@ public class RawTableService extends BasicService {
         }
 
         RawTableDesc updatedRawTableDesc = getRawTableDescManager().updateRawTableDesc(desc);
-        ProjectManager projectManager = getProjectManager();
-        if (!isRawTableInProject(newProjectName, raw)) {
-            String owner = SecurityContextHolder.getContext().getAuthentication().getName();
-            ProjectInstance newProject = projectManager.moveRealizationToProject(RealizationType.CUBE, raw.getName(), newProjectName, owner);
-            accessService.inherit(raw, newProject);
+        if (!desc.isDraft()) {
+            ProjectManager projectManager = getProjectManager();
+            if (!isRawTableInProject(newProjectName, raw)) {
+                String owner = SecurityContextHolder.getContext().getAuthentication().getName();
+                ProjectInstance newProject = projectManager.moveRealizationToProject(RealizationType.CUBE, raw.getName(), newProjectName, owner);
+                accessService.inherit(raw, newProject);
+            }
         }
 
         return updatedRawTableDesc;
