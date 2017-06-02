@@ -1,7 +1,7 @@
 <template>
   <el-form :model="timeZone" label-position="right" label-width="280px" :rules="rules" ref="buildCubeForm">
     <el-form-item :label="$t('partitionDateColumn')" >
-      <el-tag>{{cubeDesc.partitionDateColumn}} {{this.cubeDesc.partitionDateStart}}</el-tag>
+      <el-tag>{{cubeDesc.partitionDateColumn}}</el-tag>
     </el-form-item>
     <el-form-item :label="$t('startDate')" prop="startDate">
       <el-date-picker

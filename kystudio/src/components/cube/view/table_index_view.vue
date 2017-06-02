@@ -67,7 +67,8 @@ export default {
   props: ['cubeDesc'],
   methods: {
     ...mapActions({
-      loadRawTable: 'GET_RAW_TABLE'
+      loadRawTable: 'GET_RAW_TABLE',
+      loadDataSourceByProject: 'LOAD_DATASOURCE'
     }),
     getEncoding: function (encode) {
       let code = encode.split(':')
@@ -86,18 +87,10 @@ export default {
           _this.$set(_this.cubeDesc, 'rawTable', data)
         })
       }).catch((res) => {
-        handleError(res, (data, code, status, msg) => {
-          this.$message({
-            type: 'error',
-            message: msg,
-            duration: 3000
-          })
-          if (status === 404) {
-            // _this.$router.replace('access/login')
-          }
-        })
+        handleError(res, () => {})
       })
     }
+    this.loadDataSourceByProject(this.cubeDesc.project)
   },
   locales: {
     'en': {noRawTable: 'No Raw Table Configuration Information', tableIndex: 'Table Index', ID: 'ID', column: 'Column', dataType: 'Data Type', tableAlias: 'Table Alias', Encoding: 'Encoding', Length: 'Length', Index: 'Index'},

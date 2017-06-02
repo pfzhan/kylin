@@ -1,5 +1,5 @@
 <template>
-<div>
+<div class="dimensionBox">
   <el-row>
     <el-col :span="18" class="border_right">  
       <el-row class="row_padding border_bottom">
@@ -23,7 +23,8 @@
        <el-row class="row_padding" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
         <el-col  :span="24">
           <el-card  class="ksd_noshadow">
-            <el-tag class="tag_margin"
+            <el-tag class="tag_margin" style="cursor:pointer"
+            @click.native="showDetail(dimension.table+'.'+dimension.name)"
             v-for="(dimension, index) in cubeDesc.dimensions"
             :key="index"
             :type="dimension.derived?'gray':'primary'">
@@ -54,7 +55,7 @@
                 </el-row> 
                 <el-row> 
                   <el-col :span="24">
-                    <area_label :labels="currentRowkey" :refreshInfo="{index: group_index, key: 'includes'}" @refreshData="refreshIncludeData"   :selectedlabels="group.includes" @change="refreshAggragation(group_index)" @checklabel="showDetail"> 
+                    <area_label :labels="group.includes" :refreshInfo="{index: group_index, key: 'includes'}" @refreshData="refreshIncludeData"   :selectedlabels="group.includes" @change="refreshAggragation(group_index)" @checklabel="showDetail"> 
                     </area_label>
                   </el-col>
                 </el-row>
@@ -185,9 +186,11 @@
           border
           style="width: 100%">
           <el-table-column
-            prop="name"
-            width="90"
-            label="特征数据">
+            :label="$t('kylinLang.dataSource.statistics')"
+            width="110">
+            <template scope="scope">
+              {{$t('kylinLang.dataSource.'+scope.row.name)}}
+            </template>
           </el-table-column>
           <el-table-column
             prop="content"
@@ -201,8 +204,8 @@
           style="width: 100%">
           <el-table-column
             prop="name"
-            width="60"
-            label="示例数据">
+            width="90"
+            :label="$t('kylinLang.dataSource.sampleData')">
           </el-table-column>
           <el-table-column
             prop="content"
@@ -312,16 +315,17 @@ export default {
               var columnFeatureData = data.columns_stats[objIndex]
               this.featureData = []
               if (columnFeatureData) {
-                this.featureData.push({name: '列名', content: columnFeatureData.column_name})
-                this.featureData.push({name: '基数', content: columnFeatureData.cardinality})
-                this.featureData.push({name: '最大长度值', content: columnFeatureData.max_length_value})
-                this.featureData.push({name: '最大值', content: columnFeatureData.max_value})
-                this.featureData.push({name: '最小长度值', content: columnFeatureData.min_length_value})
-                this.featureData.push({name: '最小值', content: columnFeatureData.min_value})
-                this.featureData.push({name: '空值个数', content: columnFeatureData.null_count})
+                // this.featureData.push({name: 'statistics', content: ''})
+                this.featureData.push({name: 'columns', content: columnFeatureData.column_name})
+                this.featureData.push({name: 'cardinality', content: columnFeatureData.cardinality})
+                this.featureData.push({name: 'maxLengthVal', content: columnFeatureData.max_length_value})
+                this.featureData.push({name: 'maximum', content: columnFeatureData.max_value})
+                this.featureData.push({name: 'minLengthVal', content: columnFeatureData.min_length_value})
+                this.featureData.push({name: 'minimal', content: columnFeatureData.min_value})
+                this.featureData.push({name: 'nullCount', content: columnFeatureData.null_count})
               }
               var sampleData = data.sample_rows[objIndex] || null
-              this.modelStatics = [{name: '序号', content: column}]
+              this.modelStatics = [{name: 'ID', content: column}]
               for (var i = 0, len = sampleData && sampleData.length || 0; i < len; i++) {
                 this.modelStatics.push({ name: i + 1, content: sampleData[i] })
               }
@@ -416,7 +420,6 @@ export default {
           this.pfkMap[table][pk] = lookup.join.foreign_key[index]
         })
       })
-      console.log(981122)
       this.cubeDesc.dimensions.forEach((dimension, index) => {
         if (dimension.derived && dimension.derived.length) {
           let lookup = []
@@ -468,11 +471,9 @@ export default {
       this.initConvertedRowkeys()
     },
     initConvertedRowkeys: function () {
-      console.log('fwewe')
       this.convertedRowkeys = []
       this.cubeDesc.rowkey.rowkey_columns.forEach((rowkey) => {
         let version = rowkey.encoding_version || 1
-        console.log(123123)
         this.convertedRowkeys.push({column: rowkey.column, encoding: this.getEncoding(rowkey.encoding) + ':' + version, valueLength: this.getLength(rowkey.encoding), isShardBy: rowkey.isShardBy})
       })
     },
@@ -512,13 +513,11 @@ export default {
       })
     },
     initAggregationGroup: function () {
-      console.log(33)
       if (!this.isEdit && this.currentRowkey.length > 0 && this.cubeDesc.aggregation_groups.length <= 0) {
         let newGroup = {includes: this.currentRowkey, select_rule: {mandatory_dims: [], hierarchy_dims: [], joint_dims: []}}
         this.cubeDesc.aggregation_groups.push(newGroup)
         this.cuboidList.push(0)
       }
-      console.log(1222)
       this.cubeDesc.aggregation_groups.forEach((aggregationGroup, groupIndex) => {
         for (let i = 0; i < aggregationGroup.includes.length; i++) {
           if (this.currentRowkey.indexOf(aggregationGroup.includes[i]) === -1) {
@@ -564,6 +563,7 @@ export default {
       })
     },
     refreshAggragation: function (groupindex) {
+      groupindex = groupindex || 0
       this.calCuboid({cubeDescData: JSON.stringify(this.cubeDesc), aggIndex: groupindex}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           this.$set(this.cuboidList, groupindex, data)
@@ -573,7 +573,6 @@ export default {
       })
     },
     initCalCuboid: function () {
-      console.log(12345)
       this.cubeDesc.aggregation_groups.forEach((aggregationGroup, groupIndex) => {
         this.refreshAggragation(groupIndex)
       })
@@ -595,22 +594,19 @@ export default {
       this.cuboidList.splice(index, 1)
     },
     addAggGroup: function () {
-      console.log(981)
-      this.cubeDesc.aggregation_groups.push({includes: [], select_rule: {mandatory_dims: [], hierarchy_dims: [], joint_dims: []}})
+      this.cubeDesc.aggregation_groups.push({includes: this.currentRowkey, select_rule: {mandatory_dims: [], hierarchy_dims: [], joint_dims: []}})
       this.cuboidList.push(0)
     },
     removeHierarchyDims: function (index, hierarchyDims) {
       hierarchyDims.splice(index, 1)
     },
     addHierarchyDims: function (hierarchyDims) {
-      console.log(981122)
       hierarchyDims.push([])
     },
     removeJointDims: function (index, jointDims) {
       jointDims.splice(index, 1)
     },
     addJointDims: function (jointDims) {
-      console.log(98112222)
       jointDims.push([])
     }
   },
@@ -645,5 +641,10 @@ export default {
  }
 .border_right {
   border-right: 1px solid #ddd;
+ }
+ .dimensionBox{
+   .el-tag{
+     cursor: pointer;
+   }
  }
 </style>

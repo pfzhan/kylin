@@ -25,8 +25,7 @@ export default {
           this.$set(this.cubeDesc.desc, 'sampleSql', data.join('\r\n'))
         })
       }).catch((res) => {
-        handleError(res, (data, code, status, msg) => {
-        })
+        handleError(res, () => {})
       })
     }
   },

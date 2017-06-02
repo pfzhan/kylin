@@ -88,7 +88,12 @@ exports.default = {
     columns: 'Columns',
     extendInfo: 'Extend Information',
     statistics: 'Statistics',
-    sampleData: 'Sample Data'
+    sampleData: 'Sample Data',
+    maximum: 'Max Value',
+    minimal: 'Min Value',
+    nullCount: 'Null Count',
+    minLengthVal: 'Min Length Value',
+    maxLengthVal: 'Max Length Value'
   },
   login: {
 

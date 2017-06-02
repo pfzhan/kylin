@@ -4,13 +4,13 @@
     <el-col :span="6">{{$t('autoMergeThresholds')}}</el-col>
     <el-col :span="18">
       <el-row v-for="timeRange in cubeDesc.desc.auto_merge_time_ranges" :key="timeRange">
-        <el-col :span="24">{{timeRange}}</el-col>
+        <el-col :span="24">{{timeRange|timeSize}}</el-col>
       </el-row>
     </el-col>  
   </el-row>
   <el-row >
     <el-col :span="6">{{$t('buildTrigger')}}</el-col>
-    <el-col :span="18" v-if="cubeDesc.scheduler">{{cubeDesc.scheduler.triggerTime}}</el-col>
+    <el-col :span="18" v-if="cubeDesc.scheduler">{{toGmtTime(cubeDesc.scheduler.triggerTime)}}</el-col>
   </el-row>
   <el-row class="border_bottom">
     <el-col :span="6">{{$t('periddicalInterval')}}</el-col>
@@ -18,18 +18,18 @@
   </el-row>
   <el-row >
     <el-col :span="6">{{$t('retentionThreshold')}}</el-col>
-    <el-col :span="18">{{cubeDesc.desc.retention_range}}</el-col>
+    <el-col :span="18">{{cubeDesc.desc.retention_range|timeSize}}</el-col>
   </el-row>
   <el-row>
     <el-col :span="6">{{$t('partitionStartDate')}}</el-col>
-    <el-col :span="18">{{cubeDesc.desc.partition_date_start}}</el-col>
+    <el-col :span="18">{{toGmtTime(cubeDesc.desc.partition_date_start)}}</el-col>
   </el-row>        
 </el-card>
 </template>
 
 <script>
 import { mapActions } from 'vuex'
-import { handleSuccess, handleError } from '../../../util/business'
+import { handleSuccess, handleError, transToGmtTime } from '../../../util/business'
 export default {
   name: 'refreshSetting',
   props: ['cubeDesc'],
@@ -41,7 +41,8 @@ export default {
   methods: {
     ...mapActions({
       getScheduler: 'GET_SCHEDULER'
-    })
+    }),
+    toGmtTime: transToGmtTime
   },
   created () {
     let _this = this
@@ -51,8 +52,7 @@ export default {
           _this.$set(_this.cubeDesc, 'scheduler', data)
         })
       }).catch((res) => {
-        handleError(res, (data, code, status, msg) => {
-        })
+        handleError(res, () => {})
       })
     }
   },

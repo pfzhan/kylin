@@ -14,9 +14,9 @@
           <img src="../../assets/img/logo.png" class="logo">
           <p class="welcome">{{$t('welcome')}}</p>
           <ul>
-            <li><i class="el-icon-date"></i>Introduction to KAP</li>
-            <li><i class="el-icon-menu"></i>How to use KAP</li>
-            <li><i class="el-icon-message"></i>Contact us</li>
+            <li><i class="el-icon-date"></i> <a href="http://kyligence.io/kap/" target="_blank">KAP Introduction</a></li>
+            <li><i class="el-icon-menu"></i> <a href="http://docs.kyligence.io" target="_blank">KAP Manual</a></li>
+            <li><i class="el-icon-message"></i> <a href="mailto:support@kyligence.io" target="_blank">Contact us</a></li>
           </ul>
         </div>
       </el-col>
@@ -198,6 +198,9 @@ export default {
          li{
            i{
             margin-right: 10px;
+           }
+           a{
+            color: #fff;
            }
            color: #fff;
            list-style: none;

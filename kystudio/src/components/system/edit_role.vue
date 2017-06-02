@@ -24,7 +24,7 @@ export default {
     })
   },
   locales: {
-    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin'},
+    'en': {username: 'User Name', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin'},
     'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员'}
   }
 }

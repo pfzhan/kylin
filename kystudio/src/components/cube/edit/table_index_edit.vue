@@ -3,13 +3,6 @@
   <p v-if="!rawTableUsable">{{$t('noSupportRawTable')}}</p>
   <div v-else>
     <el-checkbox v-model="usedRawTable" @change="changeUsed()">{{$t('ConfigRawTable')}}</el-checkbox>
-
-
-
-
-
-
-
     <el-table  v-if="usedRawTable"
     :data="convertedRawTable"
     :row-class-name="tableRowClassName"

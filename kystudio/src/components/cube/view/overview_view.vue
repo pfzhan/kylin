@@ -23,12 +23,12 @@ export default {
   computed: {
     cubeData: function () {
       let cubeDetail = [
-        {label: 'modelName', value: this.desc.model_name},
+        {label: 'modelName', value: this.desc.model},
         {label: 'cubeName', value: this.desc.name},
-        {label: 'factTable', value: this.desc.fact_table},
-        {label: 'lookupTable', value: ''},
-        {label: 'dimensions', value: this.desc.dimensions.length},
-        {label: 'measures', value: this.desc.measures.length}]
+        {label: 'factTable', value: this.desc.modelDesc.fact_table},
+        {label: 'lookupTable', value: this.desc.modelDesc.lookups.length},
+        {label: 'dimensions', value: this.desc.modelDesc.dimensions.length},
+        {label: 'measures', value: this.desc.modelDesc.metrics.length}]
       return cubeDetail
     }
   },

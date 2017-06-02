@@ -4,14 +4,10 @@
   </div>
 </template>
 <script>
-import { mapActions } from 'vuex'
 export default {
   name: 'total',
   props: ['percent', 'status'],
   methods: {
-    ...mapActions({
-      loadProjects: 'LOAD_PROJECT_LIST'
-    })
   },
   computed: {
     icon () {
@@ -61,7 +57,6 @@ export default {
     }
   },
   created () {
-    this.loadProjects()
   }
 }
 </script>

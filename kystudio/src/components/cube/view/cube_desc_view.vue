@@ -17,7 +17,7 @@
   <refresh_setting v-if="activeStep===5" :cubeDesc="cube"></refresh_setting>
   <table_index v-if="activeStep===6" :cubeDesc="cube" :cubeIndex="index"></table_index>
   <configuration_overwrites v-if="activeStep===7" :cubeDesc="cube"></configuration_overwrites>
-  <overview v-if="activeStep===8" :cubeDesc="cube"></overview>
+  <overview v-if="activeStep===8" :desc="cube"></overview>
 </div>
 </template>
 
@@ -98,16 +98,7 @@ export default {
           _this.$set(_this.cube, 'desc', data[0])
         })
       }).catch((res) => {
-        handleError(res, (data, code, status, msg) => {
-          this.$message({
-            type: 'error',
-            message: msg,
-            duration: 3000
-          })
-          if (status === 404) {
-            // _this.$router.replace('access/login')
-          }
-        })
+        handleError(res, () => {})
       })
     }
     if (!_this.cube.modelDesc) {
@@ -117,16 +108,7 @@ export default {
           _this.getTables()
         })
       }).catch((res) => {
-        handleError(res, (data, code, status, msg) => {
-          this.$message({
-            type: 'error',
-            message: msg,
-            duration: 3000
-          })
-          if (status === 404) {
-            // _this.$router.replace('access/login')
-          }
-        })
+        handleError(res, () => {})
       })
     }
   },

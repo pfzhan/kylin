@@ -79,7 +79,7 @@ export default {
     })
   },
   locales: {
-    'en': {username: 'Username', role: 'Role', password: 'Password', oldPassword: 'Old Password', confirmNewPassword: 'Confirm new password', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', tip_password_unsafe: 'The password should contain at least one numbers, letters and special characters.', passwordConfirm: 'Password and confirm password are not the same.'},
+    'en': {username: 'User Name', role: 'Role', password: 'Password', oldPassword: 'Old Password', confirmNewPassword: 'Confirm new password', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', tip_password_unsafe: 'The password should contain at least one numbers, letters and special characters.', passwordConfirm: 'Password and confirm password are not the same.'},
     'zh-cn': {username: '用户名', role: '角色', password: '新密码', oldPassword: '旧密码', confirmNewPassword: '确认密码', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', tip_password_unsafe: '密码包含至少一个数字、字母及特殊字符.', passwordConfirm: '两次密码不一致, 请检查'}
   }
 }

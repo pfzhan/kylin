@@ -118,36 +118,36 @@
 			    </el-table-column>
 			    <el-table-column
 			      prop="column"
-			      label="Column"
+			      :label="$t('kylinLang.dataSource.columns')"
 			     >
 			    </el-table-column>
 			    <el-table-column
 			      width="120"
 			      prop="cardinality"
-			      label="Cardinality">
+			      :label="$t('kylinLang.dataSource.cardinality')">
 			    </el-table-column>
 			    <el-table-column
 			      width="100"
 			      prop="max_value"
-			      label="Maximum">
+			      :label="$t('kylinLang.dataSource.maximum')">
 			    </el-table-column>
 			    <el-table-column
 			      prop="min_value"
-            width="80"
-			      label="Minimal">
+            width="100"
+			      :label="$t('kylinLang.dataSource.minimal')">
 			    </el-table-column>
 			    <el-table-column
 			      prop="max_length_value"
-			      label="Max-Length">
+			      :label="$t('kylinLang.dataSource.maxLengthVal')">
 			    </el-table-column>
 			    <el-table-column
 			      prop="min_length_value"
-			      label="Min-Length">
+			      :label="$t('kylinLang.dataSource.minLengthVal')">
 			    </el-table-column>
 			    <el-table-column
 			      width="120"
 			      prop="null_count"
-			      label="NULL Count">
+			      :label="$t('kylinLang.dataSource.nullCount')">
 			    </el-table-column>
 			  </el-table>
 		    </el-tab-pane>
@@ -196,7 +196,7 @@
 	    </el-dialog>
 
      <!-- reload table dialog -->
-     <el-dialog :title="$t('setScanRange')" v-model="scanRatioDialogVisible" >
+     <el-dialog :title="$t('setScanRange')" v-model="scanRatioDialogVisible" @close="cancelReloadTable">
         <el-row :gutter="20">
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">
@@ -759,7 +759,7 @@ export default {
   },
   locales: {
     'en': {'load': 'Load', 'reload': 'Reload', 'sampling': 'Sampling', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Scan Range Setting', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!'},
-    'zh-cn': {'load': '加载', 'reload': '重新加载表', 'sampling': '收集统计信息', 'unload': '卸载表', 'loadhiveTables': '加载Hive表元数据', 'selectLeftHiveTip': '请在左侧选择要加载的table', 'setScanRange': '设置扫描范围', 'filterInputTips': '请输入hive表名进行过滤', 'loadTableJobBeginTips': '采集开始，您可以到Monitor页面查看采样进度！', 'hasCollectJob': '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!'}
+    'zh-cn': {'load': '加载', 'reload': '重载', 'sampling': '采样', 'unload': '卸载', 'loadhiveTables': '加载Hive表元数据', 'selectLeftHiveTip': '请在左侧选择要加载的table', 'setScanRange': '设置扫描范围', 'filterInputTips': '请输入hive表名进行过滤', 'loadTableJobBeginTips': '采集开始，您可以到Monitor页面查看采样进度！', 'hasCollectJob': '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!'}
   }
 }
 </script>

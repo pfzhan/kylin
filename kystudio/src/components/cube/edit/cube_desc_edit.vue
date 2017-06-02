@@ -21,7 +21,7 @@
   <overview v-if="activeStep===8" :cubeDesc="cubeDetail" :modelDesc="modelDetail"></overview>
   </div>
   
-<el-button  type="primary"  @click.native="saveDraft(true)">Draft</el-button>
+<!-- <el-button  type="primary"  @click.native="saveDraft(true)">Draft</el-button> -->
   <el-button class="button_right" type="primary" v-if="activeStep !== 8" @click.native="next">{{$t('next')}}<i class="el-icon-arrow-right el-icon--right"></i></el-button>
   <el-button class="button_right" type="primary" v-if="activeStep === 8" @click.native="saveOrUpdate">{{$t('save')}}</el-button>
     <el-button class="button_right" icon="arrow-left" v-if="activeStep !== 1" @click.native="prev">{{$t('prev')}}</el-button>
@@ -61,6 +61,7 @@ export default {
     return {
       cubeSaveST: null,
       activeStep: 1,
+      cubeSaving: false,
       isEdit: this.extraoption.isEdit,
       hisCubeMetaStr: '',
       hisRawTableStr: '',
@@ -382,6 +383,9 @@ export default {
         }
         return
       }
+      if (this.cubeSaving) {
+        return
+      }
       if (+this.cubeDetail.engine_type === 100 || +this.cubeDetail.engine_type === 99) {
         this.rawTable.tableDetail.name = this.cubeDetail.name
         this.rawTable.tableDetail.model_name = this.cubeDetail.model_name
@@ -463,6 +467,7 @@ export default {
       return true
     },
     saveCube () {
+      this.cubeSaving = true
       if (+this.cubeDetail.engine_type === 100 || +this.cubeDetail.engine_type === 99) {
         this.rawTable.tableDetail.name = this.cubeDetail.name
         this.rawTable.tableDetail.model_name = this.cubeDetail.model_name
@@ -481,6 +486,7 @@ export default {
       schedulerObj.project = this.selected_project
       saveData.schedulerJobData = JSON.stringify(schedulerObj)
       this.updateCube(saveData).then((res) => {
+        this.cubeSaving = false
         handleSuccess(res, (data, code, status, msg) => {
           this.$message({
             type: 'success',
@@ -491,6 +497,7 @@ export default {
           this.$emit('removetabs', 'cube' + this.extraoption.cubeName)
         })
       }).catch((res) => {
+        this.cubeSaving = false
         handleError(res)
       })
     },
@@ -710,7 +717,7 @@ export default {
   },
   locales: {
     'en': {cubeInfo: 'Cube Info', sampleSql: 'Sample Sql', dimensions: 'Dimensions', measures: 'Measures', refreshSetting: 'Refresh Setting', tableIndex: 'Table Index', AdvancedSetting: 'Advanced Setting', overview: 'Overview', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: 'The CUBE named [ ', checkCubeNamePartTwo: ' ] already exists!', checkDimensions: 'Dimension can\'t be null!', checkAggGroup: 'Each aggregation group can\'t be empty!', checkMeasuresCount: '[ COUNT] metric is required!', checkRowkeyInt: 'int encoding column length should between 1 and 8!', checkRowkeyShard: 'At most one \'shard by\' column is allowed!', checkColumnFamily: 'All measures need to be assigned to column family!', checkColumnFamilyNull: 'Each column family can\'t not be empty!', checkCOKey: 'Property name is required!', checkCOValue: 'Property value is required!', rawtableSetSorted: 'You must set one column with an index value of sorted! ', rawtableSortedWidthDate: 'The first column with "sorted" index must be a column with "integer", "time" or "date" encoding! ', rawtableSingleSorted: 'Only one column is allowed to set with an index value of sorted! ', errorMsg: '错误信息'},
-    'zh-cn': {cubeInfo: 'Cube信息', sampleSql: '查询样例', dimensions: '维度', measures: '度量', refreshSetting: '更新配置', tableIndex: '表索引', AdvancedSetting: '高级设置', overview: '概览', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: '名为 [ ', checkCubeNamePartTwo: '] 的CUBE已经存在!', checkDimensions: '维度不能为空!', checkAggGroup: '任意聚合组不能为空!', checkMeasuresCount: '[ COUNT] 度量是必须的!', checkRowkeyInt: '编码为int的列的长度应该在1-8之间!', checkRowkeyShard: '最多只允许一个\'shard by\'的列!', checkColumnFamily: '所有度量都需要被分配到列族中!', checkColumnFamilyNull: '任一列族不能为空!', checkCOKey: '属性名不能为空!', checkCOValue: '属性值不能为空!', rawtableSetSorted: '必须设置一个列的index的值为sorted! ', rawtableSortedWidthDate: '第一个sorted列必须是编码为integer、date或time的列', rawtableSingleSorted: '只允许设置一个列的index的值为sorted', errorMsg: '错误信息'}
+    'zh-cn': {cubeInfo: 'Cube信息', sampleSql: '查询样例', dimensions: '维度', measures: '度量', refreshSetting: '刷新配置', tableIndex: '表索引', AdvancedSetting: '高级设置', overview: '概览', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: '名为 [ ', checkCubeNamePartTwo: '] 的CUBE已经存在!', checkDimensions: '维度不能为空!', checkAggGroup: '任意聚合组不能为空!', checkMeasuresCount: '[ COUNT] 度量是必须的!', checkRowkeyInt: '编码为int的列的长度应该在1-8之间!', checkRowkeyShard: '最多只允许一个\'shard by\'的列!', checkColumnFamily: '所有度量都需要被分配到列族中!', checkColumnFamilyNull: '任一列族不能为空!', checkCOKey: '属性名不能为空!', checkCOValue: '属性值不能为空!', rawtableSetSorted: '必须设置一个列的index的值为sorted! ', rawtableSortedWidthDate: '第一个sorted列必须是编码为integer、date或time的列', rawtableSingleSorted: '只允许设置一个列的index的值为sorted', errorMsg: '错误信息'}
   }
 }
 </script>

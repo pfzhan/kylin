@@ -89,14 +89,20 @@ exports.default = {
     columns: '列',
     extendInfo: '扩展信息',
     statistics: '特征数据',
-    sampleData: '采样数据'
+    sampleData: '采样数据',
+    maximum: '最大值',
+    minimal: '最小值',
+    nullCount: '空值计数',
+    minLengthVal: '最小长度值',
+    maxLengthVal: '最大长度值'
+
   },
   login: {
 
   },
   menu: {
-    dashboard: 'Dashboard',
-    studio: 'Studio',
+    dashboard: '仪表盘',
+    studio: '建模',
     insight: '分析',
     monitor: '监控',
     system: '系统',

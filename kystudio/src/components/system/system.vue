@@ -170,7 +170,7 @@ export default {
             duration: 3000
           })
         })
-      }).catch((res) => {
+      }, (res) => {
         handleError(res)
       })
     },

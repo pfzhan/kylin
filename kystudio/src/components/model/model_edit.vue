@@ -439,7 +439,7 @@ export default {
         this.saveBtnLoading = false
         this.$message({
           type: 'success',
-          message: '保存成功!'
+          message: this.$t('kylinLang.common.saveSuccess')
         })
         if (this.openModelCheck) {
           this.statsModel({
@@ -1723,7 +1723,7 @@ export default {
     //   this.DragDataToServerData()
     // },
     jsplumbZoom: function (zoom, instance, transformOrigin, el) {
-      transformOrigin = transformOrigin || [ 0.5, 0.5 ]
+      transformOrigin = transformOrigin || [0.5 + 460 / 40000, 0.5 + 180 / 40000]
       instance = instance || jsPlumb
       el = el || instance.getContainer()
       var p = [ 'webkit', 'moz', 'ms', 'o' ]

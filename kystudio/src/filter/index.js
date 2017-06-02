@@ -91,3 +91,12 @@ Vue.filter('dataSize', function (data) {
   }
   return size
 })
+Vue.filter('timeSize', function (data) {
+  var size
+  if (data / 1000 / 60 / 60 / 24 >= 1) {
+    size = (data / 1000 / 60 / 60 / 24).toFixed(2) + ' days'
+  } else if (data / 1000 / 60 / 60 >= 1) {
+    size = (data / 1000 / 60 / 60).toFixed(2) + ' hours'
+  }
+  return size
+})
