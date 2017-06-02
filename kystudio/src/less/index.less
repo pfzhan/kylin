@@ -154,3 +154,212 @@ li {list-style-type:none;}
     }
   }
 }
+
+// 13新样式
+.kapApp {
+  // btns 
+  // button-disabled
+  .el-button.is-disabled,
+  .el-button.is-disabled:focus,
+  .el-button.is-disabled:hover {
+    background: #aeb6da;
+    border-color: #aeb6da;
+    color: #dae1fc;
+  }
+  .el-button.is-disabled.is-plain,
+  .el-button.is-disabled.is-plain:focus,
+  .el-button.is-disabled.is-plain:hover {
+    color: #c3cae8;
+    border-color: #c3cae8;
+  }
+  // button--primary
+  .el-button--primary {
+    .setBtner(@btn-default-normal);
+  }
+  .el-button--primary:focus,
+  .el-button--primary:hover {
+    .setBtner(@btn-default-hover);
+  }
+  .el-button--primary.is-active,
+  .el-button--primary:active {
+    .setBtner(@btn-default-active);
+  }
+  // button--primary-plain
+  .el-button--primary.is-plain {
+    .setBtner-plain(@btn-default-normal);
+  }
+  .el-button--primary.is-plain:focus,
+  .el-button--primary.is-plain:hover {
+    .setBtner-plain(@btn-default-hover);
+  }
+  .el-button--primary.is-plain.is-active,
+  .el-button--primary.is-plain:active {
+    .setBtner-plain(@btn-default-active);
+  }
+  // button--success
+  .el-button--success {
+    .setBtner(@btn-success-normal);
+  }
+  .el-button--success:focus,
+  .el-button--success:hover {
+    .setBtner(@btn-success-hover);
+  }
+  .el-button--success.is-active,
+  .el-button--success:active {
+    .setBtner(@btn-success-active);
+  }
+  // button--succe-plain
+  .el-button--success.is-plain {
+    .setBtner-plain(@btn-success-normal);
+  }
+  .el-button--success.is-plain:focus,
+  .el-button--success.is-plain:hover {
+    .setBtner-plain(@btn-success-hover);
+  }
+  .el-button--success.is-plain.is-active,
+  .el-button--success.is-plain:active {
+    .setBtner-plain(@btn-success-active);
+  }
+  // button--warning
+  .el-button--warning {
+    .setBtner(@btn-warning-normal);
+  }
+  .el-button--warning:focus,
+  .el-button--warning:hover {
+    .setBtner(@btn-warning-hover);
+  }
+  .el-button--warning.is-active,
+  .el-button--warning:active {
+    .setBtner(@btn-warning-active);
+  }
+  // button--warning-plain
+  .el-button--warning.is-plain {
+    .setBtner-plain(@btn-warning-normal);
+  }
+  .el-button--warning.is-plain:focus,
+  .el-button--warning.is-plain:hover {
+    .setBtner-plain(@btn-warning-hover);
+  }
+  .el-button--warning.is-plain.is-active,
+  .el-button--warning.is-plain:active {
+    .setBtner-plain(@btn-warning-active);
+  }
+  // button-danger
+  .el-button--danger {
+    .setBtner(@btn-danger-normal);
+  }
+  .el-button--danger:focus,
+  .el-button--danger:hover {
+    .setBtner(@btn-danger-hover);
+  }
+  .el-button--danger.is-active,
+  .el-button--danger:active {
+    .setBtner(@btn-danger-active);
+  }
+  // button-danger-plain
+  .el-button--danger.is-plain {
+    .setBtner-plain(@btn-danger-normal);
+  }
+  .el-button--danger.is-plain:focus,
+  .el-button--danger.is-plain:hover {
+    .setBtner-plain(@btn-danger-hover);
+  }
+  .el-button--danger.is-plain.is-active,
+  .el-button--danger.is-plain:active {
+    .setBtner-plain(@btn-danger-active);
+  }
+  // button-info
+  .el-button--info {
+    .setBtner(@btn-info-normal);
+  }
+  .el-button--info:focus,
+  .el-button--info:hover {
+    .setBtner(@btn-info-hover);
+  }
+  .el-button--info.is-active,
+  .el-button--info:active {
+    .setBtner(@btn-info-active);
+  }
+  // button-is-plain
+  .el-button--info.is-plain {
+    .setBtner-plain(@btn-info-normal);
+  }
+  .el-button--info.is-plain:focus,
+  .el-button--info.is-plain:hover {
+    .setBtner-plain(@btn-info-hover);
+  }
+  .el-button--info.is-plain.is-active,
+  .el-button--info.is-plain:active {
+    .setBtner-plain(@btn-info-active);
+  }
+  // table
+  .el-table,
+  .el-table tr {
+    background: @tableBC;
+    color: @content-color;
+  }
+  .el-table th {
+    background: @grey-color;
+  }
+  .el-table--border td,
+  .el-table--border th {
+    border-right: @table-border;
+  }
+  .el-table td,
+  .el-table th.is-leaf {
+    border-bottom: @table-border;
+  }
+  .el-table__footer-wrapper thead div, 
+  .el-table__header-wrapper thead div {
+    background: @grey-color;
+    color: @fff;
+  }
+  // message
+  .el-message-box {
+    background: @grey-color;
+  }
+  .el-message-box__title {
+    color: @fff;
+  }
+  .el-message-box__content {
+    color: @content-color;
+  }
+  // notification
+  .el-notification {
+    background: @grey-color;
+  }
+  .el-notification__title {
+    color: @fff;
+  }
+  .el-notification__content {
+    color: @content-color;
+  }
+  // popper need to set effect="dark"
+  .el-tooltip__popper[x-placement^=top] .popper__arrow {
+    border-top-color: @popper-bg;
+  }
+  .el-tooltip__popper[x-placement^=top] .popper__arrow::after{
+    border-top-color: @popper-bg;
+  }
+  .el-tooltip__popper[x-placement^=bottom] .popper__arrow {
+    border-bottom-color: @popper-bg;
+  }
+  .el-tooltip__popper[x-placement^=bottom] .popper__arrow::after {
+    border-bottom-color: @popper-bg
+  }
+  .el-tooltip__popper[x-placement^=right] .popper__arrow {
+    border-right-color: @popper-bg;
+  }
+  .el-tooltip__popper[x-placement^=right] .popper__arrow::after {
+    border-right-color: @popper-bg;
+  }
+  .el-tooltip__popper[x-placement^=left] .popper__arrow {
+    border-left-color: @popper-bg;
+  }
+  .el-tooltip__popper[x-placement^=left] .popper__arrow::after {
+    border-left-color: @popper-bg;
+  }
+  .el-tooltip__popper.is-dark{
+    background:@popper-bg;
+  }
+}

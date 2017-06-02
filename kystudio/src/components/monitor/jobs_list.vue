@@ -201,12 +201,12 @@
               <el-button v-if="step.step_status!='PENDING'"  :plain="true" @click.native="clickFile(step)" size="mini">
                 <icon name="file" ></icon>
               </el-button>
-              <el-button v-if="step.info.yarn_application_tracking_url"  :plain="true"  size="mini">
-                <a :href="step.info.yarn_application_tracking_url" target="_blank"
+              <a :href="step.info.yarn_application_tracking_url" target="_blank"
                        tooltip="MRJob">
-                <icon name="tasks" ></icon>
+                <el-button v-if="step.info.yarn_application_tracking_url"  :plain="true"  size="mini">
+                  <icon name="tasks" ></icon>
+                </el-button>
               </a>
-              </el-button>
 
               <a  target="_blank" tooltip="Monitoring">
                 <i class="ace-icon fa fa-chain grey bigger-110"></i>

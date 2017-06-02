@@ -47,7 +47,7 @@
     <p class="upload-wrap">
       <a @click="dump" class="uploader" href="javascript:;" target="_blank">{{$t('kybotDumpOne')}}</a>
       {{$t('kybotDumpTwo')}}
-      <el-tooltip content="slot#content" placement="right" effect="light">
+      <el-tooltip content="slot#content" placement="right" effect="dark">
         <el-button class="ques">?</el-button>
         <div slot="content" class="system-upload-tips">
           <p class="tips">{{$t('tipTitle')}}</p>
