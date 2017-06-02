@@ -42,6 +42,7 @@ exports.default = {
     saveSuccess: 'Saved successfully',
     cloneSuccess: 'Cloned successfully',
     delSuccess: 'Deleted successfully',
+    backupSuccess: 'Backup successfully',
     updateSuccess: 'Updated successfully',
     confirmDel: 'Confirm delete it?',
     // placeholder
@@ -53,7 +54,7 @@ exports.default = {
     // 其他
     tip: 'Tips',
     action: 'action',
-    help: 'help',
+    help: 'Help',
     username: 'username',
     password: 'password'
   },

@@ -24,7 +24,7 @@ export default {
     'users': users
   },
   locales: {
-    'en': {user: 'User', systrm: 'System'},
+    'en': {user: 'User', system: 'System'},
     'zh-cn': {user: '用户', system: '系统'}
   }
 }

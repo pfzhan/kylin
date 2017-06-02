@@ -47,7 +47,7 @@
             </template>
 			    </el-table-column>
 			    <el-table-column
-			      prop="address"
+			      prop="comment"
 			      :label="$t('kylinLang.dataSource.comment')">
 			    </el-table-column>
 			  </el-table>

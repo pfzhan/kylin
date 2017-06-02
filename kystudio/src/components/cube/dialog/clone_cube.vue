@@ -21,7 +21,7 @@ export default {
       newCube: {
         originalName: this.cubeDesc.name,
         cubeName: this.cubeDesc.name + '_clone',
-        project: localStorage.getItem('selected_project')
+        project: this.cubeDesc.project
       },
       rules: {
         cubeName: [

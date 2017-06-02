@@ -1047,6 +1047,7 @@ export default {
     connect: function (p1, p2, jsplumb, otherProper) {
       var _this = this
       var defaultPata = {uuids: [p1, p2],
+        deleteEndpointsOnDetach: true,
         editable: true,
         overlays: [['Label', {id: p1 + (p2 + 'label'),
           // location: 0.1,
@@ -1111,9 +1112,9 @@ export default {
         if (this.currentTableLinks.length) {
           this.setConnectLabelText(showLinkCon, p1, p2, '' + this.currentTableLinks.length)
         } else {
-          jsPlumb.detach(showLinkCon)
+          this.plumbInstance.deleteConnection(showLinkCon)
           delete this.showLinkCons[p1 + '$' + p2]
-          this.removePoint(showLinkCon.sourceId)
+          // this.removePoint(showLinkCon.sourceId)
         }
       } else {
         this.addShowLink(p1, p2, joinType)
@@ -1184,6 +1185,7 @@ export default {
           this.currentTableLinks.push(this.links[i])
         }
       }
+      return this.currentTableLinks
     },
     getConnectType: function (p1, p2) {
       var joinType = 'left'

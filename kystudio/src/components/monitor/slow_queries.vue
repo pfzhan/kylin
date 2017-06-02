@@ -68,16 +68,19 @@ export default {
     return {
       pageSize: 4,
       currentPage: 1,
-      project: localStorage.getItem('selected_project')
+      project: localStorage.getItem('selected_project') || null
     }
   },
   created () {
+    var para = {
+      pageOffset: 0,
+      pageSize: pageCount
+    }
+    if (this.project) {
+      para.projectName = this.project
+    }
     this.loadSlowQueries({
-      page: {
-        pageOffset: 0,
-        projectName: this.project,
-        pageSize: pageCount
-      }
+      page: para
     })
   },
   computed: {
@@ -93,12 +96,15 @@ export default {
       loadSlowQueries: 'LOAD_SLOW_QUERIES'
     }),
     pageCurrentChange (val) {
+      var para = {
+        pageOffset: val - 1,
+        pageSize: pageCount
+      }
+      if (this.project) {
+        para.projectName = this.project
+      }
       this.loadSlowQueries({
-        page: {
-          projectName: this.project,
-          pageOffset: val - 1,
-          pageSize: pageCount
-        }
+        page: para
       })
     }
   },

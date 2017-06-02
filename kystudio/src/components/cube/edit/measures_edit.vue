@@ -387,7 +387,7 @@ export default {
       this.autoAddMeasures()
     }
     this.loadHiddenFeature({feature_name: 'raw_measure'})
-    this.loadHiddenFeature({feature_name: 'extendedcolumn_measure'})
+    this.loadHiddenFeature({feature_name: 'extendedcolumn-measure'})
   },
   locales: {
     'en': {name: 'Name', expression: 'Expression', parameters: 'Parameters', datatype: 'Datatype', comment: 'Comment', returnType: 'Return Type', action: 'Action', addMeasure: 'Add Measure', editMeasure: 'Edit Measure', cancel: 'Cancel', yes: 'Yes', advancedDictionaries: 'Advanced Dictionaries', addDictionary: 'Add Dictionary', editDictionary: 'Edit Dictionary', builderClass: 'Builder Class', reuse: 'Reuse', advancedColumnFamily: 'Advanced ColumnFamily', addColumnFamily: 'Add ColumnFamily', columnFamily: 'ColumnFamily', measures: 'Measures'},

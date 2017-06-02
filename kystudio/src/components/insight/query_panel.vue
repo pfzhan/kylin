@@ -1,6 +1,6 @@
 <template>
   <div class="query_panel_box">
-    <p class="tips">querying <span>{{pending}}</span>S in Cube: <span>aire_line</span></p>
+    <!-- <p class="tips">querying <span>{{pending}}</span>S in Cube: <span>aire_line</span></p> -->
     <div v-show="!errinfo">
       <el-progress type="circle" :percentage="percent"></el-progress>
       <!-- <div class="panel_btn"><icon name="close"></icon> cancel</div> -->
@@ -36,7 +36,7 @@ export default {
   mounted () {
     var _this = this
     clearInterval(this.ST)
-    this.ST = setInterval(function () {
+    this.ST = setInterval(() => {
       this.pending += 300
       var randomPlus = Math.round(10 * Math.random())
       if (_this.percent + randomPlus < 99) {

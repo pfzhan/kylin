@@ -46,9 +46,10 @@ export default {
   },
   methods: {
     change (e) {
-      var ev = ev || window.event
-      var target = ev.target || ev.srcElement
-      this.$emit('change', target.innerText, target)
+      // console.log(e, 9999)
+      // var ev = ev || window.event
+      // var target = ev.target || ev.srcElement
+      // this.$emit('change', target.innerText, target)
       this.$emit('refreshData', this.selectedL, this.refreshInfo)
       // this.refreshData = this.selectedL
       // Object.assign(this.refreshData, [], this.selectedL)

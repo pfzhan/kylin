@@ -166,14 +166,11 @@ export default {
         this.deleteProject(project.name).then((result) => {
           this.$message({
             type: 'success',
-            message: this.$t('saveSuccessful')
+            message: this.$t('delSuccess')
           })
           this.loadProjects()
-        }, (result) => {
-          this.$message({
-            type: 'info',
-            message: this.$t('saveFailed')
-          })
+        }, (res) => {
+          handleError(res)
         })
       })
     },
@@ -187,15 +184,7 @@ export default {
           })
         })
       }, (res) => {
-        handleError(res, (data, code, status, msg) => {
-          console.log(data, code, status, msg)
-          if (status === 400) {
-            this.$message({
-              type: 'error',
-              message: msg
-            })
-          }
-        })
+        handleError(res)
       })
     },
     initAccessMeta () {
