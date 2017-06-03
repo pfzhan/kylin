@@ -64,10 +64,10 @@ function retrieveDependency() {
     
     # compose KYLIN_TOMCAT_CLASSPATH
     tomcat_classpath=${tomcat_root}/bin/bootstrap.jar:${tomcat_root}/bin/tomcat-juli.jar:${tomcat_root}/lib/*
-    export KYLIN_TOMCAT_CLASSPATH=${tomcat_classpath}:${KYLIN_HOME}/conf:${KYLIN_HOME}/lib/*:${KYLIN_HOME}/kybot/*:${KYLIN_HOME}/ext/*:${hadoop_dependencies}
+    export KYLIN_TOMCAT_CLASSPATH=${tomcat_classpath}:${KYLIN_HOME}/conf:${KYLIN_HOME}/lib/*:${KYLIN_HOME}/ext/*:${hadoop_dependencies}
     
     # compose KYLIN_TOOL_CLASSPATH
-    export KYLIN_TOOL_CLASSPATH=${KYLIN_HOME}/conf:${KYLIN_HOME}/tool/*:${KYLIN_HOME}/kybot/*:${KYLIN_HOME}/ext/*:${hadoop_dependencies}
+    export KYLIN_TOOL_CLASSPATH=${KYLIN_HOME}/conf:${KYLIN_HOME}/tool/*:${KYLIN_HOME}/ext/*:${hadoop_dependencies}
     
     # compose kylin_common_opts
     kylin_common_opts="-Dkylin.hive.dependency=${hive_dependency} \
