@@ -12,7 +12,7 @@ kylin_port=`$KYLIN_HOME/bin/get-properties.sh kylin.server.cluster-servers`
 kylin_port=`echo ${kylin_port##*:}`
 
 kylin_port_in_use=`netstat -tlpn | grep "\b${kylin_port}\b"`
-[[ -z ${kylin_port_in_use} ]] || quit "ERROR: Port ${kylin_port} is in use, another KAP instance is running?"
+[[ -z ${kylin_port_in_use} ]] || quit "ERROR: Port ${kylin_port} is in use, another KAP server is running?"
 
 spark_client_port_in_use=`netstat -tlpn | grep "\b${spark_client_port}\b"`
 [[ -z ${spark_client_port_in_use} ]] || quit "ERROR: Port ${spark_client_port} is in use, spark_client is already running?"

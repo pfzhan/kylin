@@ -35,7 +35,6 @@ then
     [[ $? == 0 ]] || quit "ERROR: Current user has no permission to create Hive table in working directory: ${WORKING_DIR}"
 
     echo "Checking HCat Available"
-    export ENABLE_CHECK_ENV=false
     ${dir}/kylin.sh io.kyligence.kap.source.hive.tool.CheckHCatalogJob ${HIVE_TEST_DB} ${RANDNAME} /tmp/kylin/check_hcatalog
     [[ $? == 0 ]] || quit "ERROR: Cannot read Hive table (${HIVE_TEST_TABLE}) via HCatInputFormat API. Please check 'logs/check-env.out' for details."
 elif [ ${HIVE_CLIENT_TYPE} = "beeline" ]
@@ -57,7 +56,6 @@ then
     [[ $? == 0 ]] || { rm -f ${HQL_TMP_FILE}; quit "ERROR: Current user has no permission to create table in working directory: ${WORKING_DIR}"; }
 
     echo "Checking HCat Available"
-    export ENABLE_CHECK_ENV=false
     ${dir}/kylin.sh io.kyligence.kap.source.hive.tool.CheckHCatalogJob ${HIVE_TEST_DB} ${RANDNAME} /tmp/kylin/check_hcatalog
     [[ $? == 0 ]] || quit "ERROR: Cannot read Hive table (${HIVE_TEST_TABLE}) via HCatInputFormat API. Please check 'logs/check-env.out' for details."
 else

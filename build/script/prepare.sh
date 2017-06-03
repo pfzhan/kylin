@@ -6,7 +6,7 @@ cd ${dir}/../..
 source build/script/functions.sh
 exportProjectVersions
 
-sh build/script/prepare_libs.sh || { exit 1; }
+sh build/script/prepare-libs.sh || { exit 1; }
 
 for PARAM in $@; do
     if [ "$PARAM" == "cdh5.7" ]; then
@@ -16,9 +16,9 @@ for PARAM in $@; do
 done
 
 if [ "$CDH" == "1" ]; then
-    sh build/script/prepare_kybot.sh cdh5.7 || { exit 1; }
+    sh build/script/prepare-kybot.sh cdh5.7 || { exit 1; }
 else
-    sh build/script/prepare_kybot.sh hbase1.x || { exit 1; }
+    sh build/script/prepare-kybot.sh hbase1.x || { exit 1; }
 fi
 
 if [ "$SKIP_OBF" != "1" ]; then

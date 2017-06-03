@@ -2,10 +2,10 @@
 # Kyligence Inc. License
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh $@
-
-if [ "$verbose" = true ]; then
+if [ "$1" == "-v" ]; then
     shift
 fi
+
 
 if [[ $CI_MODE == 'true' ]]
 then
@@ -112,7 +112,7 @@ then
     exit 0
 fi
 # start command
-if [ "$1" == "start" ] # ./spark_client.sh start [port]
+if [ "$1" == "start" ] # ./spark-client.sh start [port]
 then
     echo "Starting Spark Client..."
 
@@ -189,5 +189,5 @@ then
         quit "Spark client pid is not found"
     fi
 else
-    quit "Usage: 'spark_client.sh [-v] start' or 'spark_clint.sh [-v] stop'"
+    quit "Usage: 'spark-client.sh [-v] start' or 'spark-clint.sh [-v] stop'"
 fi

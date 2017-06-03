@@ -1,6 +1,8 @@
 #!/bin/bash
 # Kyligence Inc. License
 
+# source me
+
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
 if [[ "$kylin_hadoop_conf_dir" == "" ]]
@@ -15,14 +17,14 @@ then
     fi
     
     if [ -n "$override_hadoop_conf_dir" ]; then
-        verbose "$override_hadoop_conf_dir is override as the kylin_hadoop_conf_dir"
+        verbose "kylin_hadoop_conf_dir is override as $override_hadoop_conf_dir"
         export kylin_hadoop_conf_dir=$override_hadoop_conf_dir
         return
     fi
     
-    hbase_classpath=`hbase classpath`
+    hadoop_classpath=`hadoop classpath`
     
-    arr=(`echo $hbase_classpath | cut -d ":" -f 1- | sed 's/:/ /g'`)
+    arr=(`echo $hadoop_classpath | cut -d ":" -f 1- | sed 's/:/ /g'`)
     kylin_hadoop_conf_dir=
     
     for data in ${arr[@]}
@@ -60,11 +62,10 @@ then
                 continue
             fi
             
-            verbose "$result is chosen as the kylin_hadoop_conf_dir"
+            verbose "kylin_hadoop_conf_dir is $result"
             export kylin_hadoop_conf_dir=$result
             return
         fi
     done
-
 fi
 

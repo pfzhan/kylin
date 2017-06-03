@@ -25,7 +25,6 @@ echo "Hello Snappy" >> ${input_file};
 source ${dir}/hdfs-op.sh put ${input_file}
 source ${dir}/hdfs-op.sh mkdir snappy_test_output
 
-export ENABLE_CHECK_ENV=false
 ${dir}/kylin.sh io.kyligence.kap.tool.mr.KapMRJobCLI ${TARGET_HDFS_FILE} ${TARGET_HDFS_DIR}
 [[ $? == 0 ]] || quit "Test MR job with SnappyCodec failed, please check the full log for more details."
 ${dir}/hdfs-op.sh rm ${input_file}

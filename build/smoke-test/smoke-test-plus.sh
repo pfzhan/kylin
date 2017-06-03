@@ -39,7 +39,7 @@ echo "Wait 2 minutes for service start KAP orig package."
 sleep 2m
 
 # Temp stop spark driver to release resources for yarn
-${KYLIN_HOME}/bin/spark_client.sh stop
+${KYLIN_HOME}/bin/spark-client.sh stop
 
 cd $dir/smoke-test
 echo "Start to build on KAP orig package."
@@ -66,7 +66,7 @@ echo "Wait 2 minutes for service start KAP obf package."
 sleep 2m
 
 # Temp stop spark driver to release resources for yarn
-${KYLIN_HOME}/bin/spark_client.sh stop
+${KYLIN_HOME}/bin/spark-client.sh stop
 
 cd -
 
@@ -74,12 +74,12 @@ cd $dir/smoke-test
 echo "Start to test obf package."
 python testBuildCube.py 1356998400000 1456790400000     || { exit 1; }
 
-${KYLIN_HOME}/bin/spark_client.sh start
+${KYLIN_HOME}/bin/spark-client.sh start
 echo "sleep one minute before exit, allowing spark fully start"
 sleep 1m
 
 python testQuery.py 1                                   || { exit 1; }
-${KYLIN_HOME}/bin/spark_client.sh stop
+${KYLIN_HOME}/bin/spark-client.sh stop
 
 python testDiag.py                                      || { exit 1; }
 cd -

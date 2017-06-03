@@ -67,7 +67,7 @@ then
         exit 1
     fi
 
-    #backup tomccat file
+    #backup tomcat file
     if [ ! -f ${TOMCAT_BACKUP_FILE} ]; then
         cp -f ${TOMCAT_CONFIG_FILE} ${TOMCAT_BACKUP_FILE}
     fi

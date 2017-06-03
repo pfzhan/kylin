@@ -31,7 +31,6 @@ key_executor_instance="kap.storage.columnar.spark-conf.spark.executor.instances"
 
 mkdir -p ${KYLIN_HOME}/var
 saveFileName="${KYLIN_HOME}/var/cluster.info"
-export ENABLE_CHECK_ENV=false
 ${dir}/kylin.sh io.kyligence.kap.tool.setup.KapGetClusterInfo ${saveFileName}
 
 if [ $? != 0 ]; then
@@ -58,8 +57,8 @@ fi
 
 echo "${key_executor_cores}=`setColor 36 ${spark_executor_cores}`"
 echo "${key_executor_memory}=`setColor 36 ${spark_executor_memory}`"
-echo "${CHECKENV_REPORT_PFX}The available yarn RM cores: `setColor 36 ${yarn_available_cores}`"
-echo "${CHECKENV_REPORT_PFX}The available yarn RM memory: `setColor 36 ${yarn_available_memory}M`"
+echo "${CHECKENV_REPORT_PFX}The available yarn RM cores: ${yarn_available_cores}"
+echo "${CHECKENV_REPORT_PFX}The available yarn RM memory: ${yarn_available_memory}M"
 unit=${spark_executor_memory: -1}
 unit=$(echo ${unit} | tr [a-z] [A-Z])
 
@@ -90,5 +89,6 @@ elif [ ${spark_executor_instance} -gt ${recommend} ]; then
 elif [ `expr ${recommend} / ${spark_executor_instance}` -gt 5 ]; then
     echo "${CHECKENV_REPORT_PFX}`setColor 31 WARN:` The executor's instances: ${spark_executor_instance} in kylin.properties is set too few, the maximum could be ${recommend}"
 else
-    echo "${CHECKENV_REPORT_PFX}The max executor's instances can be: ${recommend}"
+    echo "${CHECKENV_REPORT_PFX}The max executor instances can be `setColor 36 ${recommend}`"
+    echo "${CHECKENV_REPORT_PFX}The current executor instances is `setColor 36 ${spark_executor_instance}`"
 fi

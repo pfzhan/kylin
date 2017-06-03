@@ -10,8 +10,6 @@
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
-source ${dir}/check-env.sh "if-not-yet"
-
 function help {
     echo "usage: metastore.sh backup"
     echo "       metastore.sh fetch DATA"

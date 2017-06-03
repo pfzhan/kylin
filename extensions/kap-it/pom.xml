@@ -413,7 +413,7 @@
                             <phase>pre-integration-test</phase>
                             <configuration>
                                 <skip>${skipTests}</skip>
-                                <executable>build/bin/spark_client.sh</executable>
+                                <executable>build/bin/spark-client.sh</executable>
                                 <commandlineArgs>start</commandlineArgs>
                                 <environmentVariables>
                                     <CI_MODE>true</CI_MODE>
@@ -430,7 +430,7 @@
                             <phase>post-integration-test</phase>
                             <configuration>
                                 <skip>${skipTests}</skip>
-                                <executable>build/bin/spark_client.sh</executable>
+                                <executable>build/bin/spark-client.sh</executable>
                                 <commandlineArgs>stop</commandlineArgs>
                                 <environmentVariables>
                                     <CI_MODE>true</CI_MODE>

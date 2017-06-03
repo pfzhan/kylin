@@ -3,8 +3,6 @@
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
-dir=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
-
 if [ $# != 1 ]
 then
     echo 'invalid input'
@@ -22,5 +20,5 @@ kylin_conf_opts=
 if [ ! -z "$KYLIN_CONF" ]; then
     kylin_conf_opts="-DKYLIN_CONF=$KYLIN_CONF"
 fi
-result=`java $kylin_conf_opts -cp $tool_jar -Dlog4j.configuration=file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties org.apache.kylin.tool.KylinConfigCLI $1 2>/dev/null`
+result=`$JAVA $kylin_conf_opts -cp $tool_jar -Dlog4j.configuration=file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties org.apache.kylin.tool.KylinConfigCLI $1 2>/dev/null`
 echo "$result"

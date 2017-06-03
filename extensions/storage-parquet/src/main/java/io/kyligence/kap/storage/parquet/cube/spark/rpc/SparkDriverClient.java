@@ -198,7 +198,7 @@ public class SparkDriverClient {
                     if (status.getCode() == Status.DEADLINE_EXCEEDED.getCode()) {
                         throw new ResourceLimitExceededException(serverSideError.get().getMessage());
                     }
-                    throw new RuntimeException(status.getDescription() == null ? "Unknown error! Please make sure the spark driver is working by running \"bin/spark_client.sh start\"" : status.getDescription());
+                    throw new RuntimeException(status.getDescription() == null ? "Unknown error! Please make sure the spark driver is working by running \"bin/spark-client.sh start\"" : status.getDescription());
                 }
 
                 if (responses.size() != 1) {
