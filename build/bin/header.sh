@@ -7,6 +7,8 @@
 if [[ "$dir" == "" ]]
 then
     dir=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
+    # required because the entry shell can be $KYLIN_HOME/kybot/kybot.sh; must change /kybot to /bin
+    dir=$(cd "$dir/../bin" && pwd -P)
 
     # misc functions
     function quit {
