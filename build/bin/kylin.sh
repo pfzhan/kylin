@@ -50,9 +50,10 @@ function retrieveDependency() {
     fi
 
     # compose hadoop_dependencies
-    hadoop_dependencies=${hadoop_dependencies}:`hadoop classpath`
     if [ -n "${hbase_dependency}" ]; then
-        hadoop_dependencies=${hadoop_dependencies}:${hbase_dependency}
+        hadoop_dependencies=${hbase_dependency}
+    else
+        hadoop_dependencies=`hadoop classpath`   || quit "Command 'hadoop classpath' does not work. Please check hadoop is installed correctly."
     fi
     if [ -n "${hive_dependency}" ]; then
         hadoop_dependencies=${hadoop_dependencies}:${hive_dependency}
