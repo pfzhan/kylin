@@ -68,9 +68,11 @@ then
     # set JAVA
     if [[ "${JAVA}" == "" ]]; then
         if [[ -z "$JAVA_HOME" ]]; then
-            quit "Pleaes set JAVA_HOME"
+            JAVA_HOME=`/bin/bash -x hadoop classpath 2>&1 | sed -n "s/\(.*\)export JAVA_HOME=\(.*\)/\2/"p`
+            [[ -z "$JAVA_HOME" ]] && quit "Pleaes set JAVA_HOME"
         fi
         export JAVA=$JAVA_HOME/bin/java
+        [[ -e "${JAVA}" ]] || quit "${JAVA} does not exist. Pleaes set JAVA_HOME correctly."
         verbose "java is ${JAVA}" 
     fi
 fi
