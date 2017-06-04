@@ -37,7 +37,7 @@
     <el-col :span="16">
       <el-date-picker class="input_width" @change="changeTriggerTime()"
         v-model="scheduler.desc.scheduled_run_time"
-        
+        :picker-options="pickerOptionsEnd"
         type="datetime"
         align="right">
       </el-date-picker>
@@ -112,19 +112,19 @@ export default {
       let _this = this
       _this.cubeDesc.auto_merge_time_ranges.forEach(function (item) {
         let _day = Math.floor(item / 86400000)
-        let _hour = Math.floor(item / 3600000)
-        let _minute = item / 60000
+        let _hour = (item % 86400000) / 3600000
+        let _minute = (item % 86400000) / 60000
         let rangeObj = {
           type: 'days',
           range: 0,
           mills: 0
         }
-        console.log(_day, _hour, _minute)
         if (_hour === 0) {
           rangeObj.type = 'minutes'
           rangeObj.range = _minute
           rangeObj.mills = rangeObj.range * 60000
-        } else if (_day === 0) {
+        }
+        if (_day === 0) {
           rangeObj.type = 'hours'
           rangeObj.range = _hour
           rangeObj.mills = rangeObj.range * 3600000
