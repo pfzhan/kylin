@@ -28,7 +28,7 @@
         header-align="center"
         align="center">
         <template scope="scope">
-          {{modelDesc.columnsDetail[scope.row.table+'.'+scope.row.column].datatype}}
+          {{modelDesc.columnsDetail[scope.row.table+'.'+scope.row.column]&&modelDesc.columnsDetail[scope.row.table+'.'+scope.row.column].datatype}}
         </template>   
      </el-table-column>  
      <el-table-column
@@ -99,7 +99,7 @@
           <el-col :span="1">{{index+1}}</el-col>
           <el-col :span="6">{{row.column}}</el-col>
           <el-col :span="4">
-              {{modelDesc.columnsDetail[row.table+'.'+row.column].datatype}}
+              {{modelDesc.columnsDetail[row.table+'.'+row.column]&&modelDesc.columnsDetail[row.table+'.'+row.column].datatype}}
           </el-col>
           <el-col :span="5"> 
             {{row.table}}
@@ -140,9 +140,10 @@ export default {
     }),
     changeUsed: function () {
       if (this.usedRawTable === false) {
-        this.rawTable.needDelete = true
+        this.$store.state.cube.cubeRowTableIsSetting = false
         this.rawTable.tableDetail.columns.splice(0, this.rawTable.tableDetail.columns.length)
       } else {
+        this.$store.state.cube.cubeRowTableIsSetting = true
         this.getBaseColumnsData()
       }
     },
@@ -160,7 +161,7 @@ export default {
     },
     initEncodingType: function (column) {
       let _this = this
-      let datatype = this.modelDesc.columnsDetail[column.table + '.' + column.column].datatype
+      let datatype = this.modelDesc.columnsDetail[column.table + '.' + column.column] && this.modelDesc.columnsDetail[column.table + '.' + column.column].datatype || ''
       let baseEncodings = loadBaseEncodings(this.$store.state.datasource)
       let filterEncodings = baseEncodings.filterByColumnType(datatype)
       baseEncodings.addEncoding('orderedbytes', 1)
@@ -249,15 +250,21 @@ export default {
   created () {
     let _this = this
     if (_this.rawTableUsable) {
-      if (_this.rawTable.tableDetail.columns.length > 0) {
+      console.log(1)
+      if (_this.rawTable.tableDetail.columns.length > 0 && this.$store.state.cube.cubeRowTableIsSetting) {
         _this.usedRawTable = true
+        console.log(2)
         _this.initConvertedRawTable()
       } else {
+        console.log(3)
         if (_this.isEdit) {
+          console.log(4)
           var rawtbaleName = this.cubeDesc.name + (this.cubeDesc.status === 'DRAFT' ? '_draft' : '')
           this.loadRawTable(rawtbaleName).then((res) => {
             handleSuccess(res, (data, code, status, msg) => {
-              if (data) {
+              console.log()
+              if (data && this.$store.state.cube.cubeRowTableIsSetting) {
+                console.log('hehe')
                 _this.usedRawTable = true
                 _this.$set(_this.rawTable, 'tableDetail', data)
                 _this.initConvertedRawTable()

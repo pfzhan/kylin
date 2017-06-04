@@ -23,7 +23,7 @@
   
 <!-- <el-button  type="primary"  @click.native="saveDraft(true)">Draft</el-button> -->
   <el-button class="button_right" type="primary" v-if="activeStep !== 8" @click.native="next">{{$t('next')}}<i class="el-icon-arrow-right el-icon--right"></i></el-button>
-  <el-button class="button_right" type="primary" v-if="activeStep === 8" @click.native="saveOrUpdate">{{$t('save')}}</el-button>
+  <el-button class="button_right" :loading="cubeSaving" type="primary" v-if="activeStep === 8" @click.native="saveOrUpdate">{{$t('save')}}</el-button>
     <el-button class="button_right" icon="arrow-left" v-if="activeStep !== 1" @click.native="prev">{{$t('prev')}}</el-button>
 
 

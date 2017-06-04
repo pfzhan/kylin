@@ -14,7 +14,7 @@
     <div class="topbar">
       <icon name="bars" v-on:click.native="toggleMenu"></icon>
       <project_select class="project_select" v-show="gloalProjectSelectShow" v-on:changePro="changeProject" ref="projectSelect"></project_select>
-      <el-button v-show="gloalProjectSelectShow" @click="goToProjectList"><icon name="window-restore" scale="0.8"></icon></el-button>
+      <el-button v-show="gloalProjectSelectShow" :class="{'isProjectPage':defaultActive==='projectActive'}" @click="goToProjectList"><icon name="window-restore" scale="0.8"></icon></el-button>
       <el-button @click="addProject" v-show="gloalProjectSelectShow"><icon name="plus" scale="0.8"></icon></el-button>
 
       <ul class="topUl">
@@ -135,10 +135,27 @@
     },
     created () {
       let hash = location.hash.replace(/#/, '')
+      var matched = false
       for (let i = 0; i < this.menus.length; i++) {
-        if (this.menus[i].path === hash) {
+        if (hash.indexOf(this.menus[i].name) >= 0) {
           this.currentPathName = this.menus[i].name
           this.defaultActive = hash
+          if (this.menus[i].name === 'studio') {
+            this.defaultActive = '/studio/datasource'
+          }
+          matched = true
+          break
+        }
+      }
+      if (!matched) {
+        this.defaultActive = ''
+        if (hash === '/project') {
+          this.defaultActive = 'projectActive'
+        } else {
+          this.defaultActive = hash
+          if (hash.indeOf('studio')) {
+            this.defaultActive = '/studio/datasource'
+          }
         }
       }
       this.getConf()
@@ -219,6 +236,11 @@
       handleclose () {
       },
       handleselect: function (a, b) {
+        if (a === '/project') {
+          this.defaultActive = 'projectActive'
+        } else {
+          this.defaultActive = ''
+        }
       },
       toggleMenu: function () {
         this.$store.state.config.layoutConfig.briefMenu = this.$store.state.config.layoutConfig.briefMenu ? '' : 'brief_menu'
@@ -231,7 +253,7 @@
         if (command === 'loginout') {
           this.logoutConfirm().then(() => {
             this.loginOut().then(() => {
-              this.$refs.projectSelect.clearProject()
+              // this.$refs.projectSelect.clearProject()
               this.$router.push({name: 'Login'})
             })
           })
@@ -241,6 +263,7 @@
         }
       },
       goToProjectList () {
+        this.defaultActive = 'projectActive'
         this.$router.push({name: 'Project'})
       },
       goHome () {
@@ -378,6 +401,9 @@
   .el-breadcrumb{
     margin-left: 26px;
     margin-top: 20px;
+  }
+  .isProjectPage {
+    color: @base-color;
   }
   .logo_text{
     color:#fff;

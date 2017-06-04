@@ -113,7 +113,8 @@
           style: {
             'width': '100%',
             'padding-left': '2px',
-            'position': 'relative'
+            'position': 'relative',
+            'cursor': _this.allowdrag ? 'move' : 'default'
           },
           on: {
             dragstart: function (event) {

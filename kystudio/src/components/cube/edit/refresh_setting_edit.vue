@@ -37,7 +37,7 @@
     <el-col :span="16">
       <el-date-picker class="input_width" @change="changeTriggerTime()"
         v-model="scheduler.desc.scheduled_run_time"
-        :picker-options="pickerOptionsEnd"
+        
         type="datetime"
         align="right">
       </el-date-picker>
@@ -92,8 +92,8 @@ export default {
       timeRanges: [],
       intervalRange: {range: '', type: ''},
       timeOptions: [0.5, 1, 2, 4, 8],
-      rangesOptions: ['days', 'hours'],
-      intervalOptions: ['weeks', 'days', 'hours'],
+      rangesOptions: ['days', 'hours', 'minutes'],
+      intervalOptions: ['weeks', 'days', 'hours', 'minutes'],
       selected_project: localStorage.getItem('selected_project'),
       pickerOptionsEnd: {
         disabledDate: (time) => {
@@ -112,13 +112,19 @@ export default {
       let _this = this
       _this.cubeDesc.auto_merge_time_ranges.forEach(function (item) {
         let _day = Math.floor(item / 86400000)
-        let _hour = (item % 86400000) / 3600000
+        let _hour = Math.floor(item / 3600000)
+        let _minute = item / 60000
         let rangeObj = {
           type: 'days',
           range: 0,
           mills: 0
         }
-        if (_day === 0) {
+        console.log(_day, _hour, _minute)
+        if (_hour === 0) {
+          rangeObj.type = 'minutes'
+          rangeObj.range = _minute
+          rangeObj.mills = rangeObj.range * 60000
+        } else if (_day === 0) {
           rangeObj.type = 'hours'
           rangeObj.range = _hour
           rangeObj.mills = rangeObj.range * 3600000
@@ -138,10 +144,16 @@ export default {
       let _week = Math.floor(data.partition_interval / 604800000)
       let _day = Math.floor(data.partition_interval / 86400000)
       let _hour = Math.floor(data.partition_interval / 3600000)
+      var _minute = Math.floor(data.partition_interval / 60000)
       if (_week === 0) {
         if (_day === 0) {
-          this.intervalRange.type = 'hours'
-          this.intervalRange.range = _hour
+          if (_minute === 0) {
+            this.intervalRange.type = 'hours'
+            this.intervalRange.range = _hour
+          } else {
+            this.intervalRange.type = 'minutes'
+            this.intervalRange.range = _minute
+          }
         } else {
           this.intervalRange.type = 'days'
           this.intervalRange.range = _day
@@ -160,7 +172,9 @@ export default {
     },
     changeTimeRange: function (timeRange, index) {
       let time = 0
-      if (timeRange.type === 'hours') {
+      if (timeRange.type === 'minutes') {
+        time = timeRange.range * 60000
+      } else if (timeRange.type === 'hours') {
         time = timeRange.range * 3600000
       } else {
         time = timeRange.range * 86400000
@@ -182,6 +196,9 @@ export default {
     },
     changeInterval: function () {
       let time = 0
+      if (this.intervalRange.type === 'minutes') {
+        time = this.intervalRange.range * 60000
+      }
       if (this.intervalRange.type === 'hours') {
         time = this.intervalRange.range * 3600000
       }

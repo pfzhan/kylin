@@ -251,12 +251,7 @@ export default {
           this.totalCubes = data.size
         })
       }).catch((res) => {
-        handleError(res, (data, code, status, msg) => {
-          console.log(status, 30000)
-          // if (status === 404) {
-          //   _this.$router.replace('access/login')
-          // }
-        })
+        handleError(res)
       })
     },
     drop: function (cubeName) {

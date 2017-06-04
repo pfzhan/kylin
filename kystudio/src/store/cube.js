@@ -4,7 +4,8 @@ export default {
   state: {
     cubesList: [],
     cubesDescList: [],
-    cubeAccess: {}
+    cubeAccess: {},
+    cubeRowTableIsSetting: true
   },
   mutations: {
     [types.SAVE_CUBES_LIST]: function (state, { list, total }) {

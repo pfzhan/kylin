@@ -1,5 +1,5 @@
 <template>
-   <el-select  placeholder="请选择project" v-model="selected_project">
+   <el-select  placeholder="请选择project" v-model="selected_project" @change="changeProject">
     <el-option
       v-for="item in projectList" :key="item.name"
       :label="item.name"
@@ -12,16 +12,9 @@
 import { mapActions } from 'vuex'
 export default {
   name: 'projectselect',
-  watch: {
-    selected_project (val) {
-      localStorage.setItem('selected_project', val)
-      this.$store.state.project.selected_project = val
-      this.$emit('changePro', val)
-    }
-  },
   data () {
     return {
-      selected_project: this.$store.state.project.selected_project
+      selected_project: ''
     }
   },
   methods: {
@@ -31,6 +24,11 @@ export default {
     clearProject () {
       localStorage.removeItem('selected_project')
       this.$store.state.project.selected_project = ''
+    },
+    changeProject (val) {
+      localStorage.setItem('selected_project', val)
+      this.$store.state.project.selected_project = val
+      this.$emit('changePro', val)
     }
   },
   computed: {
@@ -40,6 +38,7 @@ export default {
   },
   created () {
     // console.log(this.$store.state.project.selected_project, '0101')
+    this.selected_project = this.$store.state.project.selected_project
     this.loadAllProjects()
   }
 }

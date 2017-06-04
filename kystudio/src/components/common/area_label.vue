@@ -74,6 +74,7 @@ export default {
   mounted () {
     var _this = this
     this.$refs.select.$refs.tags.onclick = function (e) {
+      console.log(e, 788)
       _this.selectTag(e)
     }
   }
@@ -103,6 +104,19 @@ export default {
     }
   }
 
+}
+.area_label{
+  .el-tag__close{
+    position: absolute;
+    right: 0;
+    top: 2px;
+  }
+  .el-tag{
+    max-width:100%;
+    overflow:hidden;
+    position: relative;
+    padding-right: 20px;
+  }
 }
 
 </style>

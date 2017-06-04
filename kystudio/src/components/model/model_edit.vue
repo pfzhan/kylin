@@ -156,7 +156,15 @@
                 <el-input type="textarea"  auto-complete="off" v-model="computedColumn.expression"></el-input>
               </el-form-item>
               <el-form-item label="returnType" >
-                <el-input  auto-complete="off" v-model="computedColumn.returnType"></el-input>
+              <el-select v-model="computedColumn.returnType" placeholder="请选择">
+                <el-option  
+                  v-for="item in encodings"
+                  :key="item.name"
+                  :label="item.name"
+                  :value="item.name">
+                </el-option>
+              </el-select>
+                <!-- <el-input  auto-complete="off" v-model="computedColumn.returnType"></el-input> -->
               </el-form-item>  
               <el-form-item label="comment" >
                 <el-input type="textarea"  auto-complete="off" v-model="computedColumn.comment"></el-input>
@@ -266,6 +274,7 @@ export default {
           partition_time_format: ''
         }
       },
+      // encodings: loadBaseEncodings(this.$store.state.datasource),
       partitionSelect: {
         'date_table': '',
         'date_column': '',
@@ -581,6 +590,7 @@ export default {
         on: {
           click: function (event) {
             if (event.target.className === 'addCube') {
+              event.stopPropagation()
               _this.addCube(event)
             }
           }
@@ -1880,6 +1890,15 @@ export default {
         return true
       }
       return false
+    },
+    encodings () {
+      var arr = []
+      for (var i in this.$store.state.datasource.encodings) {
+        arr.push({
+          name: i
+        })
+      }
+      return arr
     }
   },
   created () {
@@ -2008,6 +2027,7 @@ export default {
      z-index: 9!important;
      width: 40000px;
      height: 40000px;
+     cursor: move;
    }
    .links_dialog{
      p{
@@ -2061,6 +2081,7 @@ export default {
           background:none;
           border:none;
           color:#fff;
+          cursor: move;
           font-size: 14px;
           background-color:#5a6a80;
        }
@@ -2093,6 +2114,7 @@ export default {
           right: 0;
           font-size: 12px;
           color:#fff;
+          cursor: pointer;
           i{
             cursor: pointer;
           }
@@ -2121,9 +2143,15 @@ export default {
          padding-left:10px;
          color:#fff;
        }
+       .drag_bar{
+        span{
+          cursor: text;
+        }
+       }
        .columns_box{
         height: 300px;
         overflow: hidden;
+        cursor: default;
        }
        ul{
         // position: absolute;
@@ -2134,8 +2162,9 @@ export default {
           height: 30px;
           line-height: 30px;
           color:#fff;
-          cursor: pointer;
+          cursor: move;
           background-color: #64748a;
+
           span{
             display: inline-block;
           }

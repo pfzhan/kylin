@@ -9,7 +9,7 @@
 		  </div>
 		  <section data-scrollbar id="project_scroll_box">
 		  <a class="btn-addProject" href="javascript:;" @click="addProject">+ Project</a>
-		  <div v-for="o in projectList" :key="o.uuid" class="text item" @click="goto('Project')" style="cursor:pointer">
+		  <div v-for="o in projectList" :key="o.uuid" class="text item" @click="selectProject(o.name)" style="cursor:pointer">
 		    {{o.name }}
 		  </div>
 		  </section>
@@ -122,6 +122,11 @@ export default {
     },
     goto (routername, to) {
       this.$router.push({name: routername, params: {subaction: to}})
+    },
+    selectProject (projectName) {
+      this.$store.state.project.selected_project = projectName
+      localStorage.setItem('selected_project', projectName)
+      this.$router.push('studio/datasource')
     }
   },
   data () {

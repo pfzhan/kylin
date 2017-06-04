@@ -1,5 +1,5 @@
 <template>
-  <div >
+  <div class="ksd-slider">
 	<el-checkbox v-model="openCollectRange">{{label}}</el-checkbox>
     <el-slider :min="minConfig" :show-stops="showStop" :step="stepConfig" @change="changeBarVal" v-model="staticsRange" :max="maxConfig" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider> <span>{{staticsRange}}%</span>
   </div>
@@ -49,8 +49,12 @@ export default {
   }
 }
 </script>
-<style scoped="">
-.box-card {
-  width: 90%
+<style>
+.ksd-slider {
+  .el-slider__stop {
+    width: 8px;
+    height: 8px;
+    top:4px;
+  }
 }
 </style>
