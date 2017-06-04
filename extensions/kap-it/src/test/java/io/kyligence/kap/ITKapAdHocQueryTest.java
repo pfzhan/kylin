@@ -41,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ITKapAdHocQueryTest extends KylinTestBase {
+    private static final String ADHOC_RUNNER_KEY = "kylin.query.ad-hoc.runner-class-name";
     private static final Logger logger = LoggerFactory.getLogger(ITKapAdHocQueryTest.class);
 
     @BeforeClass
@@ -56,7 +57,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
         logger.info("tearDown in ITKapAdHocQueryTest");
         RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=ci_inner_join_cube]");
         RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=ci_left_join_cube]");
-        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.ad-hoc.runner.class-name", "");
+        KylinConfig.getInstanceFromEnv().setProperty(ADHOC_RUNNER_KEY, "");
     }
 
     @Test
@@ -67,7 +68,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
             //runSQL(sqlFile, true, true);
-            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name", "");
+            kylinConfig.setProperty(ADHOC_RUNNER_KEY, "");
             try {
                 runSQL(sqlFile, true, false);
                 throw new SQLException();
@@ -77,7 +78,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                 Assert.assertEquals(NoRealizationFoundException.class, findRoot(e).getClass());
             }
 
-            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name",
+            kylinConfig.setProperty(ADHOC_RUNNER_KEY,
                     "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
@@ -92,7 +93,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
             //runSQL(sqlFile, true, true);
-            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name", "");
+            kylinConfig.setProperty(ADHOC_RUNNER_KEY, "");
             try {
                 runSQL(sqlFile, true, false);
                 throw new SQLException();
@@ -101,7 +102,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                 Assert.assertEquals(NoRealizationFoundException.class, findRoot(e).getClass());
             }
 
-            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name",
+            kylinConfig.setProperty(ADHOC_RUNNER_KEY,
                     "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
@@ -116,7 +117,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
             //runSQL(sqlFile, true, true);
-            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name", "");
+            kylinConfig.setProperty(ADHOC_RUNNER_KEY, "");
             try {
                 runSQL(sqlFile, true, false);
                 throw new SQLException();
@@ -125,7 +126,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                 Assert.assertEquals(NoRealizationFoundException.class, findRoot(e).getClass());
             }
 
-            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name",
+            kylinConfig.setProperty(ADHOC_RUNNER_KEY,
                     "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
@@ -140,7 +141,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
             //runSQL(sqlFile, true, true);
-            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name", "");
+            kylinConfig.setProperty(ADHOC_RUNNER_KEY, "");
             try {
                 runSQL(sqlFile, true, false);
                 throw new SQLException();
@@ -149,7 +150,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                 Assert.assertEquals(NoRealizationFoundException.class, findRoot(e).getClass());
             }
 
-            kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name",
+            kylinConfig.setProperty(ADHOC_RUNNER_KEY,
                     "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
@@ -163,7 +164,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
             RemoveBlackoutRealizationsRule.blackList.add("CUBE[name=ci_left_join_cube]");
             RemoveBlackoutRealizationsRule.blackList.add("HYBRID[name=ci_inner_join_hybrid]");
 
-            KylinConfig.getInstanceFromEnv().setProperty("kylin.query.ad-hoc.runner.class-name",
+            KylinConfig.getInstanceFromEnv().setProperty(ADHOC_RUNNER_KEY,
                     "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
 
             List<File> sqlFiles = getFilesFromFolder(
@@ -212,7 +213,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
             File sqlFile = new File(queryFileName);
             if (sqlFile.exists()) {
                 //runSQL(sqlFile, true, true);
-                kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name", "");
+                kylinConfig.setProperty(ADHOC_RUNNER_KEY, "");
                 try {
                     runSQL(sqlFile, true, false);
                 } catch (Exception e) {
@@ -220,7 +221,7 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                     Assert.assertEquals(NoRealizationFoundException.class, findRoot(e).getClass());
                 }
 
-                kylinConfig.setProperty("kylin.query.ad-hoc.runner.class-name",
+                kylinConfig.setProperty(ADHOC_RUNNER_KEY,
                         "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
                 int resultCount = 0;
                 try {

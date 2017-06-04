@@ -24,25 +24,27 @@
 
 package io.kyligence.kap.storage.parquet.adhoc;
 
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
+import java.sql.Types;
+import java.util.List;
+
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
-import org.apache.kylin.storage.adhoc.AdHocRunnerBase;
+import org.apache.kylin.source.adhocquery.IAdHocRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.sql.Types;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 
 
-public class AdHocRunnerSparkImpl extends AdHocRunnerBase {
+public class AdHocRunnerSparkImpl implements IAdHocRunner {
     public static final Logger logger = LoggerFactory.getLogger(AdHocRunnerSparkImpl.class);
 
     private SparkDriverClient client;
 
     @Override
-    public void init() {
+    public void init(KylinConfig config) {
         try {
             client = new SparkDriverClient(KapConfig.getInstanceFromEnv());
         } catch (Exception e) {
@@ -53,7 +55,7 @@ public class AdHocRunnerSparkImpl extends AdHocRunnerBase {
 
     @Override
     public void executeQuery(String query, List<List<String>> results, List<SelectedColumnMeta> columnMetas) throws Exception {
-        SparkJobProtos.AdHocResponse response = client.queryWithAdHoc((query));
+        SparkJobProtos.AdHocResponse response = client.queryWithAdHoc(query);
         int columnCount = response.getColumnsCount();
         List<SparkJobProtos.StructField> fieldList = response.getColumnsList();
 
