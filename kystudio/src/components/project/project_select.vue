@@ -13,7 +13,9 @@ import { mapActions } from 'vuex'
 export default {
   name: 'projectselect',
   data () {
-    return {}
+    return {
+      selected_project: ''
+    }
   },
   methods: {
     ...mapActions({
@@ -32,13 +34,11 @@ export default {
   computed: {
     projectList () {
       return this.$store.state.project.allProject || ''
-    },
-    selected_project () {
-      return this.$store.state.project.selected_project
     }
   },
   created () {
     // console.log(this.$store.state.project.selected_project, '0101')
+    this.selected_project = this.$store.state.project.selected_project
     this.loadAllProjects()
   }
 }
