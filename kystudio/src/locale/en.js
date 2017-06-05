@@ -12,7 +12,7 @@ exports.default = {
     save: 'save',
     submit: 'submit',
     setting: 'Settings',
-    logout: 'Logout',
+    logout: 'Log Out',
     sync: 'Sync',
     clone: 'Clone',
     check: 'Check',

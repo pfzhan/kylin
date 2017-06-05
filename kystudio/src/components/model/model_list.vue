@@ -1,5 +1,6 @@
 <template>
 	<div class="paddingbox modelist_box">
+   <!-- <img src="../../assets/img/nocube.png" v-if="!(modelsList && modelsList.length)"> -->
     <el-button type="primary" class="ksd-mb-10" v-if="isAdmin" @click="addModel">+{{$t('kylinLang.common.model')}}</el-button>
     <br/>
     <p class="ksd-right" v-if="modelsList&&modelsList.length"> <icon @click.native="changeGridModal('card')" name="newspaper-o" :class="{active: viewModal==='card'}"> </icon> <icon @click.native="changeGridModal('list')"  :class="{active: viewModal!=='card'}" name="reorder"></icon></p>
@@ -7,8 +8,8 @@
 		  <el-col :span="8"  v-for="(o, index) in modelsList" :key="o.uuid" :style="{height:'152px'}">
 		    <el-card :body-style="{ padding: '0px'}" style="height:100%">
 		      <p class="title">Last updated {{ o.gmtTime }}
-					<el-dropdown @command="handleCommand" :id="o.name" trigger="click"  v-if="isAdmin || hasPermission(o.uuid)"
-					  <span class="el-dropdown-link" v-if="isAdmin || hasPermission(o.uuid)">
+					<el-dropdown @command="handleCommand" :id="o.name" trigger="click"  v-if="isAdmin || hasPermission(o.uuid)">
+					  <span class="el-dropdown-link" >
 					    <icon name="ellipsis-h"></icon>
 					  </span>
 					  <el-dropdown-menu slot="dropdown"  :uuid='o.uuid' >
