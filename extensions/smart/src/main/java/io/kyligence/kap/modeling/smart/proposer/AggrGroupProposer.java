@@ -35,7 +35,6 @@ import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.cube.model.RowKeyColDesc;
 import org.apache.kylin.cube.model.SelectRule;
-import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,7 +80,7 @@ public class AggrGroupProposer extends AbstractProposer {
     private class AggrGroupBuilder {
         final CubeDesc workCubeDesc;
         final AggregationGroup aggGroup;
-        final Map<String, TableExtDesc.ColumnStats> colStatsMap;
+        final Map<String, Long> colCardinalityMap;
         final List<String> aggGroupCandidates;
 
         final List<String> mandatoryCandidates = Lists.newArrayList();
@@ -94,11 +93,11 @@ public class AggrGroupProposer extends AbstractProposer {
             this.workCubeDesc = workCubeDesc;
 
             String[] includes = aggGroup.getIncludes();
-            colStatsMap = Maps.newHashMapWithExpectedSize(includes.length);
+            colCardinalityMap = Maps.newHashMapWithExpectedSize(includes.length);
             if (context.hasTableStats()) {
                 for (String include : includes) {
                     RowKeyColDesc rowKeyColDesc = CubeDescUtil.getRowKeyColDescByName(workCubeDesc, include);
-                    colStatsMap.put(rowKeyColDesc.getColumn(), context.getTableColumnStats(rowKeyColDesc.getColRef()));
+                    colCardinalityMap.put(rowKeyColDesc.getColumn(), context.getColumnsCardinality(rowKeyColDesc.getColRef().getIdentity()));
                 }
             }
 
@@ -107,8 +106,8 @@ public class AggrGroupProposer extends AbstractProposer {
             Collections.sort(aggGroupCandidates, new Comparator<String>() {
                 @Override
                 public int compare(String o1, String o2) {
-                    long c1 = colStatsMap.get(o1) != null ? colStatsMap.get(o1).getCardinality() : 0;
-                    long c2 = colStatsMap.get(o2) != null ? colStatsMap.get(o1).getCardinality() : 0;
+                    long c1 = colCardinalityMap.get(o1) != null ? colCardinalityMap.get(o1) : 0;
+                    long c2 = colCardinalityMap.get(o2) != null ? colCardinalityMap.get(o1) : 0;
                     if (c1 == c2) {
                         return o1.hashCode() - o2.hashCode();
                     } else {
@@ -124,7 +123,7 @@ public class AggrGroupProposer extends AbstractProposer {
             if (context.hasTableStats()) {
                 while (candidatesItr.hasNext()) {
                     String rowKeyColName = candidatesItr.next();
-                    if (colStatsMap.get(rowKeyColName) != null && colStatsMap.get(rowKeyColName).getCardinality() <= modelingConfig.getMandatoryCardinalityMax()) {
+                    if (colCardinalityMap.get(rowKeyColName) != null && colCardinalityMap.get(rowKeyColName) <= modelingConfig.getMandatoryCardinalityMax()) {
                         mandatoryCandidates.add(rowKeyColName);
                         candidatesItr.remove();
                     }

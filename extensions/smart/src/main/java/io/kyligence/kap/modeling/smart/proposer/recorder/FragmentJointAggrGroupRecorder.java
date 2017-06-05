@@ -101,7 +101,7 @@ public class FragmentJointAggrGroupRecorder {
             result.add(currGroup);
         }
 
-        logger.debug("Added {} joint from merging small cardinality dimensions.", result.size());
+        logger.trace("Added {} joint from merging small cardinality dimensions.", result.size());
 
         return result;
     }
@@ -171,7 +171,7 @@ public class FragmentJointAggrGroupRecorder {
             }
         }
 
-        logger.debug("Added {} joint from merging similar pattern dimensions.", result.size());
+        logger.trace("Added {} joint from merging similar pattern dimensions.", result.size());
 
         return result;
     }

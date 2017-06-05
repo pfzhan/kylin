@@ -209,7 +209,8 @@ public class ModelingContext {
         int columnIdx = tblColRef.getColumnDesc().getZeroBasedIndex();
         if (tableExtDescs.containsKey(tableIdentity)) {
             List<ColumnStats> columnStats = tableExtDescs.get(tableIdentity).getColumnStats();
-            if (columnStats != null && !columnStats.isEmpty()) {
+            // ComputedColumn whose zeroBasedIndex >= columnStats.size(), has no ColumnStats and will return null.
+            if (columnStats != null && !columnStats.isEmpty() && columnIdx < columnStats.size()) {
                 return columnStats.get(columnIdx);
             }
         }
