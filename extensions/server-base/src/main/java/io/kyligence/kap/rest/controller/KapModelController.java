@@ -149,7 +149,7 @@ public class KapModelController extends BasicController {
         for (DataModelDesc model : modelService.getModels(modelName, projectName, limit, offset)) {
             ModelStatusRequest request = kapModelService.getDiagnoseResult(model.getName());
             String jobId = modelStatsManager.getModelStats(model.getName()).getJodID();
-            if (null != jobId) {
+            if (null != jobId && null != jobService.getJobInstance(jobId)) {
                 request.setProgress(jobService.getJobInstance(jobId).getProgress());
             }
             modelStatusList.add(request);
