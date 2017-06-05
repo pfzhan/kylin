@@ -174,7 +174,9 @@
           <span slot="footer" class="dialog-footer">
             <el-button @click="computedColumnFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
             <el-button type="primary" @click="saveComputedColumn">{{$t('kylinLang.common.submit')}}</el-button>
-          </span>     
+          </span>
+
+               
         </el-dialog>
       <model-tool :modelInfo="modelInfo" :actionMode="actionMode" :editLock="editLock" :compeleteModelId="modelData&&modelData.uuid||null" :columnsForTime="timeColumns" :columnsForDate="dateColumns"  :activeName="submenuInfo.menu1" :activeNameSub="submenuInfo.menu2" :tableList="tableList" :partitionSelect="partitionSelect"  :selectTable="currentSelectTable" ref="modelsubmenu"></model-tool>
 
@@ -1527,14 +1529,16 @@ export default {
         this.$set(this.modelInfo, 'modelName', this.extraoption.modelName)
         return
       }
+      console.log(this.extraoption, 8899)
+      var actionModelName = this.extraoption.status ? this.extraoption.modelName + '_draft' : this.extraoption.modelName
       // 编辑模式
-      this.getModelByModelName(this.extraoption.modelName).then((response) => {
+      this.getModelByModelName(actionModelName).then((response) => {
         handleSuccess(response, (data) => {
           this.modelData = data.model
           this.draftData = data.draft
           this.editLock = !!(this.modelData && this.modelData.uuid)
-          var modelData = this.extraoption.is_draft ? data.draft : data.model
-          if (this.extraoption.is_draft) {
+          var modelData = this.extraoption.status ? data.draft : data.model
+          if (this.extraoption.status) {
             modelData.name = modelData.name.replace(/_draft/, '')
           }
           if (!modelData.fact_table) {

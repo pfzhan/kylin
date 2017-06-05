@@ -509,7 +509,7 @@ export default {
     },
     changeDimCap: function () {
       this.cubeDesc.aggregation_groups.forEach((aggregationGroup) => {
-        this.$set(aggregationGroup, 'dim_cap', this.dim_cap)
+        this.$set(aggregationGroup, 'dim_cap', +this.dim_cap)
         this.refreshAggragation()
       })
     },
