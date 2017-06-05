@@ -145,7 +145,7 @@
          <el-col :span="4">{{$t('dataType')}}</el-col>
          <el-col :span="2">{{$t('cardinality')}}</el-col>
        </el-row>
-        <el-row class="tablebody" v-for="(row, index) in convertedRowkeys" :key="row.column"v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }">
+        <el-row class="tablebody" v-for="(row, index) in convertedRowkeys"  v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }">
           <el-col :span="1">{{index+1}}</el-col>
           <el-col :span="9">{{row.column}}</el-col>
           <el-col :span="4">
@@ -340,7 +340,7 @@ export default {
           this.$set(this.cubeDesc, 'dimensions', data.dimensions)
           this.$set(this.cubeDesc, 'aggregation_groups', data.aggregation_groups)
           this.$set(this.cubeDesc, 'override_kylin_properties', data.override_kylin_properties)
-          this.dim_cap = data.aggregation_groups[0].dim_cap || 0
+          this.dim_cap = data.aggregation_groups[0].select_rule.dim_cap || 0
           this.$set(this.cubeDesc.rowkey, 'rowkey_columns', data.rowkey.rowkey_columns)
           this.initConvertedRowkeys()
         })
@@ -509,7 +509,7 @@ export default {
     },
     changeDimCap: function () {
       this.cubeDesc.aggregation_groups.forEach((aggregationGroup) => {
-        this.$set(aggregationGroup, 'dim_cap', +this.dim_cap)
+        this.$set(aggregationGroup.select_rule, 'dim_cap', +this.dim_cap)
         this.refreshAggragation()
       })
     },

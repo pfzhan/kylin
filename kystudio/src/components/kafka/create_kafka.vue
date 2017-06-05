@@ -30,7 +30,7 @@
             align='center'>
             <template scope='scope'>
               <el-input v-model='scope.row.port' v-if='currentCheck === scope.$index'></el-input>
-              <span v-else >{{scope.row.host}}</span>
+              <span v-else >{{scope.row.port}}</span>
             </template>
           </el-table-column>
           <el-table-column

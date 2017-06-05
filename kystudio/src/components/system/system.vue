@@ -84,7 +84,8 @@ export default {
       getConf: 'GET_CONF',
       reloadMetadata: 'RELOAD_METADATA',
       backupMetadata: 'BACKUP_METADATA',
-      updateConfig: 'UPDATE_CONFIG'
+      updateConfig: 'UPDATE_CONFIG',
+      loadAllProjects: 'LOAD_ALL_PROJECT'
     }),
     reload: function () {
       this.$confirm(this.$t('reloadTip'), this.$t('tip'), {
@@ -99,6 +100,7 @@ export default {
               message: this.$t('reloadSuccessful')
             })
           })
+          this.loadAllProjects()
         }).catch((res) => {
           handleError(res)
         })
