@@ -24,9 +24,12 @@
 
 package io.kyligence.kap.modeling.smart.common;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.dimension.DictionaryDimEnc;
 
 public class DefaultModelingStrategy implements IModelingStrategy {
+    private KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+
     public final static DefaultModelingStrategy INSTANCE = new DefaultModelingStrategy();
 
     private DefaultModelingStrategy() {
@@ -104,8 +107,8 @@ public class DefaultModelingStrategy implements IModelingStrategy {
         return true;
     }
 
-    public int getAggGroupStrictCombinationMax() {
-        return 4096;
+    public long getAggGroupStrictCombinationMax() {
+        return kylinConfig.getCubeAggrGroupMaxCombination();
     }
 
     public int getAggGroupStrictRetryMax() {
@@ -114,5 +117,9 @@ public class DefaultModelingStrategy implements IModelingStrategy {
 
     public int getDerivedStrictRetryMax() {
         return 20;
+    }
+
+    public boolean getCuboidCombinationOverride() {
+        return false;
     }
 }

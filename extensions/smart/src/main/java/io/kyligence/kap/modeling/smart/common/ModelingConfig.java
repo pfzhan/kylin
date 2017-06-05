@@ -147,7 +147,7 @@ public class ModelingConfig {
         return getOptional("aggGroup.strict-enabled", strategy.getAggGroupStrictEnabled());
     }
 
-    public int getAggGroupStrictCombinationMax() {
+    public long getAggGroupStrictCombinationMax() {
         return getOptional("aggGroup.strict.combination-max", strategy.getAggGroupStrictCombinationMax());
     }
 
@@ -157,5 +157,9 @@ public class ModelingConfig {
 
     public int getDerivedStrictRetryMax() {
         return getOptional("derived.strict.retry-max", strategy.getDerivedStrictRetryMax());
+    }
+
+    public boolean getCuboidCombinationOverride() {
+        return getOptional("cuboid-combination-override", strategy.getCuboidCombinationOverride());
     }
 }

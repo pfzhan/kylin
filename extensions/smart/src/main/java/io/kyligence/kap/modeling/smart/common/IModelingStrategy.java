@@ -61,9 +61,11 @@ interface IModelingStrategy {
 
     boolean getAggGroupStrictEnabled();
 
-    int getAggGroupStrictCombinationMax();
+    long getAggGroupStrictCombinationMax();
 
     int getAggGroupStrictRetryMax();
 
     int getDerivedStrictRetryMax();
+
+    boolean getCuboidCombinationOverride();
 }

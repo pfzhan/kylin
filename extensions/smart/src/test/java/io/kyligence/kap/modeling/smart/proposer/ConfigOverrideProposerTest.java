@@ -44,12 +44,14 @@ public class ConfigOverrideProposerTest {
 
     @BeforeClass
     public static void beforeClass() {
+        System.setProperty("kap.smart.conf.cuboid-combination-override", "true");
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
     }
 
     @AfterClass
     public static void afterClass() {
         KylinConfig.destroyInstance();
+        System.clearProperty("kap.smart.conf.cuboid-combination-override");
     }
 
     @Test

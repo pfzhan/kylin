@@ -29,10 +29,14 @@ import java.util.Properties;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.modeling.smart.ModelingContext;
 
 public class ConfigOverrideProposer extends AbstractProposer {
+    private static final Logger logger = LoggerFactory.getLogger(ConfigOverrideProposer.class);
+
     private final static String AGG_MAX_COMBINATION = "kylin.cube.aggrgroup.max-combination";
 
     public ConfigOverrideProposer(ModelingContext context) {
@@ -54,7 +58,10 @@ public class ConfigOverrideProposer extends AbstractProposer {
         long defaultMax = KylinConfig.createKylinConfig(new Properties()).getCubeAggrGroupMaxCombination();
         workCubeDesc.getOverrideKylinProps().remove(AGG_MAX_COMBINATION);
         if (combinationMax > defaultMax) {
-            workCubeDesc.getOverrideKylinProps().put(AGG_MAX_COMBINATION, Long.toString(combinationMax));
+            logger.warn("Suggested max aggregation group combination exceeds default threshold: combination={}, threshold={}", combinationMax, AGG_MAX_COMBINATION);
+            if (context.getModelingConfig().getCuboidCombinationOverride()) {
+                workCubeDesc.getOverrideKylinProps().put(AGG_MAX_COMBINATION, Long.toString(combinationMax));
+            }
         }
     }
 }
