@@ -19,7 +19,7 @@ keepParam+=`grep -hro --include="*.java" "\"io\.kyligence\.kap\.[^\"\\]*" . | cu
 # keep classes in kylin.properties
 keepParam+=`grep -hro --include="kylin.properties" "io\.kyligence\.kap\.[^\"\\]*" . | sort -u | awk '{print "-keep class " $0 " {*;}"}'`' '
 # keep classes in *.sh
-keepParam+=`grep -hro --include="*.sh" "io\.kyligence\.kap\.[^\*\.]*\.[^ ]*" . | sort -u | awk '{print "-keep class " $0 " {*;}"}'`' '
+keepParam+=`grep -hro --include="*.sh" "io\.kyligence\.kap\.[^\*\.]*\.[^ \`\"]*" . | sort -u | awk '{print "-keep class " $0 " {*;}"}'`' '
 
 if [ -z $java_home ]; then
 	java_home_mess=`mvn -version | grep "Java home"`

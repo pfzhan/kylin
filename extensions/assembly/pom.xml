@@ -185,7 +185,6 @@
                                     <exclude>org.apache.zookeeper:*</exclude>
                                     <exclude>net.sf.ehcache:*</exclude>
                                     <exclude>org.apache.httpcomponents:*</exclude>
-                                    <include>com.google.guava:guava</include>
                                     <exclude>org.apache.commons:commons-email:*</exclude>
                                     <exclude>com.sun.mail:javax.mail:*</exclude>
                                     <exclude>javax.activation:activation:*</exclude>
