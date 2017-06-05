@@ -60,7 +60,8 @@
         infoKybotVisible: false,
         isopend: false, // 是否已开启
         startLoading: false,
-        flag: true
+        flag: true,
+        switchTimer: 0
       }
     },
     methods: {
@@ -209,14 +210,19 @@
       },
       // 改变kybot自动上传状态
       changeKystaus (status) {
-        if (status) { // 开启
-          // 需要先检测有没有登录  待修改
-          this.checkLogin(() => {
-            this.getStatus(true)
-          })
-        } else { // 关闭
-          this.stopService()
+        if (this.switchTimer) {
+          clearTimeout(this.switchTimer)
         }
+        this.switchTimer = setTimeout(() => {
+          if (status) { // 开启
+            // 需要先检测有没有登录
+            this.checkLogin(() => {
+              this.getStatus(true)
+            })
+          } else { // 关闭
+            this.stopService()
+          }
+        }, 200)
       },
       closeStartLayer () {
         this.infoKybotVisible = false

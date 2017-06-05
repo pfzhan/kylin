@@ -207,7 +207,7 @@
             imgSrc = require('../../assets/img/insight_hover.png')
           } else if (index === 3) {
             imgSrc = require('../../assets/img/monitor_hover.png')
-          } else {
+          } else if (index === 4) {
             imgSrc = require('../../assets/img/system_hover.png')
           }
           _this.menus[index].icon = imgSrc
@@ -224,7 +224,7 @@
             imgSrc = require('../../assets/img/insight.png')
           } else if (index === 3) {
             imgSrc = require('../../assets/img/monitor.png')
-          } else {
+          } else if (index === 4) {
             imgSrc = require('../../assets/img/system.png')
           }
           _this.menus[index].icon = imgSrc

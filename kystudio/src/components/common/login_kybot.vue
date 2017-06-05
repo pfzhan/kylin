@@ -86,28 +86,32 @@
                 //  a)检测有没有同意过协议 ：如果没有同意弹出同意并开启自动上传的层
                 //  b)如果已经同意过协议则直接发送开启自动服务
                 // A
-                this.getKyStatus().then((res) => {
-                  handleSuccess(res, (data, code, status, msg) => {
-                    if (data) { // 开启了 则开启
-                      this.$emit('openSwitch')
-                      this.$emit('closeLoginForm')
-                    } else {
-                      // a
-                      this.getAgreement().then((res) => {
-                        handleSuccess(res, (data, code, status, msg) => {
-                          if (!data) { // 没有同意过协议 开协议层
-                            this.$emit('closeLoginOpenKybot')
-                          } else {
-                            // b)
-                            this.startService()
-                          }
+                if (data) {
+                  this.getKyStatus().then((res) => {
+                    handleSuccess(res, (data, code, status, msg) => {
+                      if (data) { // 开启了 则开启
+                        this.$emit('openSwitch')
+                        this.$emit('closeLoginForm')
+                      } else {
+                        // a
+                        this.getAgreement().then((res) => {
+                          handleSuccess(res, (data, code, status, msg) => {
+                            if (!data) { // 没有同意过协议 开协议层
+                              this.$emit('closeLoginOpenKybot')
+                            } else {
+                              // b)
+                              this.startService()
+                            }
+                          })
                         })
-                      })
-                    }
-                  }, (errResp) => {
-                    handleError(errResp)
+                      }
+                    }, (errResp) => {
+                      handleError(errResp)
+                    })
                   })
-                })
+                } else {
+                  handleError(msg)
+                }
               }, (res) => {
                 handleError(res)
                 this.loginLoading = false
@@ -141,6 +145,7 @@
     line-height: 20px;
     margin:-10px 0 30px 0;
     text-align: left;
+    color: #1c71d8;
   }
 }
 </style>

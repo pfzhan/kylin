@@ -3,7 +3,7 @@
   <el-row :gutter="30">
     <el-col :span="8">
       <div class="grid-content bg-purple">
-    	<el-card class="box-card">
+    	<el-card class="box-card box-project">
 		  <div slot="header" class="clearfix">
 		    <span style="line-height: 36px;">Project</span>
 		  </div>
@@ -28,16 +28,48 @@
     	</div>
     </el-col> -->
     	<el-col :span="8">
-    		<div>
-    			models
+    		<div class="counter-list counter-list1">
+    			<el-card>
+    				<div slot="header" class="clearfix">
+		    			Models
+					</div>
+					<section>
+						20
+					</section>
+    			</el-card>
     		</div>
-    		<div>
-    			cubes
+    		<div class="counter-list counter-list2">
+    			<el-card>
+    				<div slot="header" class="clearfix">
+		    			Jobs
+					</div>
+					<section>
+						21
+					</section>
+    			</el-card>
     		</div>
     	</el-col>
     	<el-col :span="8">
-    		<div>Jobs</div>
-    		<div>Users</div>
+    		<div class="counter-list counter-list3">
+    			<el-card>
+					<div slot="header" class="clearfix">
+		    			Cubess
+					</div>
+					<section>
+						222
+					</section>
+				</el-card>
+    		</div>
+    		<div class="counter-list counter-list4">
+    			<el-card>
+					<div slot="header" class="clearfix">
+		    			Users
+					</div>
+					<section>
+						33
+					</section>
+				</el-card>
+    		</div>
     	</el-col>
     </el-row>
   </el-row>
@@ -167,11 +199,21 @@ export default {
 </script>
 <style lang="less">
 	@import url(../../less/config.less);
+	.title-bar {
+		background: @bg-top;
+		border:0 none;
+		color: @fff;
+	}
 	#dashbord{
+		.box-project {
+			height: 590px;
+		}
 		.grid-content {
 			.el-card {
+				.title-bar;
 				background: @bg-top;
 				border:0 none;
+				color: @fff;
 			}
 			.el-card__header {
 				background: @bg-menu;
@@ -180,8 +222,60 @@ export default {
 				border-bottom: 0;
 			}
 		}
+		.el-col {
+			.counter-list:first-child {
+				height: 260px;
+				margin-bottom: 50px;
+			}
+		}
+		.counter-list {
+			.el-card {
+				border: 0 none;
+				background: transparent;
+			}
+			.el-card__header {
+				background: @bg-menu;
+				.title-bar;
+			}
+			.el-card__body {
+				height: 200px;
+				line-height: 200px;
+				font-size: 100px;
+				color: @fff;
+				text-align: center;
+			}
+		}
+		.counter-list1 {
+			.el-card__body {
+				background: -webkit-linear-gradient(to bottom,#3296e9,#1275c6);
+				background: -moz-linear-gradient(to bottom,#3296e9,#1275c6);
+				background: linear-gradient(to bottom,#3296e9,#1275c6);
+			}
+		}
+		.counter-list2 {
+			.el-card__body {
+				background: -webkit-linear-gradient(to bottom,#ecb860,#cf9532);
+				background: -moz-linear-gradient(to bottom,#ecb860,#cf9532);
+				background: linear-gradient(to bottom,#ecb860,#cf9532);
+			}
+		}
+		.counter-list3 {
+			.el-card__body {
+				background: -webkit-linear-gradient(to bottom,#59ce5e,#33a638);
+				background: -moz-linear-gradient(to bottom,#59ce5e,#33a638);
+				background: linear-gradient(to bottom,#59ce5e,#33a638);
+			}
+		}
+		.counter-list4 {
+			.el-card__body {
+				background: -webkit-linear-gradient(to bottom,#f35f56,#cb3a30);
+				background: -moz-linear-gradient(to bottom,#f35f56,#cb3a30);
+				background: linear-gradient(to bottom,#f35f56,#cb3a30);
+			}
+		}
+		
 		#project_scroll_box {
-		  height: 220px;
+		  height: 620px;
 		}
 		.single-line {
 			display: inline-block;
@@ -256,7 +350,7 @@ export default {
 	 }
 	 .el-card__header{
 	 	background-color: #eff2f7;
-	 	height: 72px;
+	 	height: 60px;
 	 	font-size: 18px;
 	 	color: #475669;
 	 	padding: 20px;
