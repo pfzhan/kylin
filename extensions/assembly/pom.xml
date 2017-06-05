@@ -157,6 +157,11 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -180,12 +185,17 @@
                                     <exclude>org.apache.zookeeper:*</exclude>
                                     <exclude>net.sf.ehcache:*</exclude>
                                     <exclude>org.apache.httpcomponents:*</exclude>
+                                    <include>com.google.guava:guava</include>
                                     <exclude>org.apache.commons:commons-email:*</exclude>
                                     <exclude>com.sun.mail:javax.mail:*</exclude>
                                     <exclude>javax.activation:activation:*</exclude>
                                 </excludes>
                             </artifactSet>
                             <relocations>
+                                <relocation>
+                                    <pattern>com.google.common</pattern>
+                                    <shadedPattern>${shadeBase}.com.google.common</shadedPattern>
+                                </relocation>
                                 <relocation>
                                     <pattern>com.fasterxml.jackson</pattern>
                                     <shadedPattern>${shadeBase}.com.fasterxml.jackson</shadedPattern>
