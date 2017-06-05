@@ -104,8 +104,15 @@ public class ConfigController extends BasicController {
     @ResponseBody
     public EnvelopeResponse getSparkExec() {
 
-        int execNum = Integer.parseInt(configService.getSparkDriverConf("spark.executor.instances"));
+        boolean dynamic = Boolean.valueOf(configService.getSparkDriverConf("spark.dynamicAllocation.enabled"));
+        int execNum;
         Map<String, String> ret = Maps.newHashMap();
+
+        if (dynamic) {
+            execNum = Integer.parseInt(configService.getSparkDriverConf("spark.dynamicAllocation.maxExecutors"));
+        } else {
+            execNum = Integer.parseInt(configService.getSparkDriverConf("spark.executor.instances"));
+        }
 
         byte[] bytes = new byte[4];
         BytesUtil.writeUnsigned(execNum, bytes, 0, bytes.length);
