@@ -171,7 +171,15 @@ public class KapCnMessage extends KapMessage {
 
     // KAP KyBot
     public String getDUMP_KYBOT_PACKAGE_FAIL() {
-        return "抛弃 kybot 包失败";
+        return "生成KyBot诊断包失败";
+    }
+
+    public String getKYACCOUNT_AUTH_FAILURE() {
+        return "登录失败，请检查您的用户名和密码。";
+    }
+
+    public String getKYBOT_NOACCESS() {
+        return "无法连接到Internet, 请检查网络连接。\n如需设置代理，可在kylin.properties通过kap.external.http.proxy.host和kap.external.http.proxy.port配置主机名和端口号";
     }
 
     // KAP Metastore

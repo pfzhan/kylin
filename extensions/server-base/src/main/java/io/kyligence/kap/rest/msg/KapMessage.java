@@ -219,6 +219,14 @@ public class KapMessage {
         return "Failed to dump kybot package.";
     }
 
+    public String getKYACCOUNT_AUTH_FAILURE() {
+        return "Authentication failed, please check your username and password.";
+    }
+
+    public String getKYBOT_NOACCESS() {
+        return "Failed to connect to the internet, please check the network connection.\nTo set up a proxy, you can configure the hostname and port at\nkap.external.http.proxy.host and kap.external.http.proxy.port in kylin.properties";
+    }
+
     // KAP Metastore
     public String getKYLIN_HOME_UNDEFINED() {
         return "KYLIN_HOME undefined.";

@@ -65,6 +65,7 @@ public class KyBotService extends BasicService {
     public static final String SUCC_CODE = "000";
     public static final String NO_ACCOUNT = "401";
     public static final String AUTH_FAILURE = "402";
+    public static final String NO_INTERNET = "403";
 
     private static final Logger logger = LoggerFactory.getLogger(KyBotService.class);
     private KapConfig kapConfig = KapConfig.getInstanceFromEnv();
@@ -141,7 +142,7 @@ public class KyBotService extends BasicService {
         }
     }
 
-    public String fetchAndSaveKyAccountToken(String username, String password) {
+    private HttpResponse requestKyAccountLogin(String username, String password) {
         DefaultHttpClient client = getHttpClient();
         String url = kapConfig.getKyAccountSiteUrl() + "/uaa/api/tokens";
 
@@ -149,30 +150,52 @@ public class KyBotService extends BasicService {
         HttpPost request = new HttpPost(url);
 
         try {
-            List<NameValuePair> nvps = new ArrayList<>();
-            nvps.add(new BasicNameValuePair("username", username));
-            nvps.add(new BasicNameValuePair("password", password));
-            request.setEntity(new UrlEncodedFormEntity(nvps, HTTP.UTF_8));
+            if (username != null && password != null) {
+                List<NameValuePair> nvps = new ArrayList<>();
+                nvps.add(new BasicNameValuePair("username", username));
+                nvps.add(new BasicNameValuePair("password", password));
+                request.setEntity(new UrlEncodedFormEntity(nvps, HTTP.UTF_8));
+            }
 
             HttpResponse response = client.execute(request);
-            if (response.getStatusLine().getStatusCode() == 200) {
-                String token = IOUtils.toString(response.getEntity().getContent());
-                if (!StringUtils.isEmpty(token)) {
-                    File localTokenFile = getLocalTokenFile();
-                    FileUtils.write(localTokenFile, token);
-
-                    readLocalKyAccountToken();
-
-                    return SUCC_CODE;
-                }
-            }
-            return AUTH_FAILURE;
-        } catch (Exception ex) {
-            logger.error("Authentication failed due to exception.", ex);
-            return AUTH_FAILURE;
+            return response;
+        } catch (Exception e) {
+            logger.error("Authentication failed due to exception.", e.getLocalizedMessage());
+            return null;
         } finally {
             request.releaseConnection();
         }
+    }
+
+    public boolean checkInternetAccess() {
+        HttpResponse response = requestKyAccountLogin(null, null);
+        if (response != null) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public String fetchAndSaveKyAccountToken(String username, String password) {
+        HttpResponse response = requestKyAccountLogin(username, password);
+        if (response != null) {
+            if (response.getStatusLine().getStatusCode() == 200) {
+                try {
+                    String token = IOUtils.toString(response.getEntity().getContent());
+                    if (!StringUtils.isEmpty(token)) {
+                        File localTokenFile = getLocalTokenFile();
+                        FileUtils.write(localTokenFile, token);
+
+                        readLocalKyAccountToken();
+
+                        return SUCC_CODE;
+                    }
+                } catch (Exception e) {
+                    logger.error("Failed to persist kyaccount token. ", e);
+                }
+            }
+        }
+        return AUTH_FAILURE;
     }
 
     private File getLocalTokenFile() {
