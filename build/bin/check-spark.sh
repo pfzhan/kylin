@@ -14,7 +14,7 @@ echo "Checking spark home..."
 [[ -z ${SPARK_HOME} ]] || [[ ${SPARK_HOME} == ${KYLIN_HOME}/spark ]] || echo "${CHECKENV_REPORT_PFX}`setColor 32 Important!` Current SPARK_HOME is set: ${SPARK_HOME}, please don't risk it, more info: https://kyligence.gitbooks.io/kap-manual/content/en/install/check_env.en.html"
 
 echo "Testing spark task..."
-${dir}/spark_client.sh test
+${dir}/spark-client.sh test
 
 echo "Checking spark executor config..."
 
@@ -41,9 +41,9 @@ fi
 #def constant var
 yarn_available_cores=`getValueByKey availableVirtualCores ${saveFileName}`
 yarn_available_memory=`getValueByKey availableMB ${saveFileName}`
-spark_executor_cores=`getValueByKey ${key_executor_cores} ${override_file}`
-spark_executor_memory=`getValueByKey ${key_executor_memory} ${override_file}`
-spark_executor_instance=`getValueByKey ${key_executor_instance} ${override_file}`
+spark_executor_cores=`${dir}/get-properties.sh ${key_executor_cores}`
+spark_executor_memory=`${dir}/get-properties.sh ${key_executor_memory}`
+spark_executor_instance=`${dir}/get-properties.sh ${key_executor_instance}`
 
 if [ -z ${yarn_available_cores} ]; then
     echo "${CHECKENV_REPORT_PFX}WARN: Cannot get Yarn RM's cores info, skip the spark config suggestion."
