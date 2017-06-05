@@ -62,6 +62,7 @@ export default {
       cubeSaveST: null,
       activeStep: 1,
       cubeSaving: false,
+      cubeDraftSaving: false,
       isEdit: this.extraoption.isEdit,
       hisCubeMetaStr: '',
       hisRawTableStr: '',
@@ -386,6 +387,7 @@ export default {
       if (this.cubeSaving) {
         return
       }
+      this.cubeDraftSaving = true
       if (+this.cubeDetail.engine_type === 100 || +this.cubeDetail.engine_type === 99) {
         this.rawTable.tableDetail.name = this.cubeDetail.name
         this.rawTable.tableDetail.model_name = this.cubeDetail.model_name
@@ -404,6 +406,7 @@ export default {
       schedulerObj.project = this.selected_project
       saveData.schedulerJobData = JSON.stringify(schedulerObj)
       this.draftCube(saveData).then((res) => {
+        this.cubeDraftSaving = false
         handleSuccess(res, (data, code, status, msg) => {
           try {
             var cubeData = JSON.parse(data.cubeDescData)
@@ -427,13 +430,14 @@ export default {
           this.$emit('reload', 'cubeList')
         })
       }).catch((res) => {
+        this.cubeDraftSaving = false
         handleError(res)
       })
     },
     timerSave () {
       this.cubeSaveST = setTimeout(() => {
         this.saveConfig.timer++
-        if (this.saveConfig.timer > this.saveConfig.limitTimer) {
+        if (this.saveConfig.timer > this.saveConfig.limitTimer && !this.cubeDraftSaving) {
           this.saveDraft()
           this.saveConfig.timer = 0
         }

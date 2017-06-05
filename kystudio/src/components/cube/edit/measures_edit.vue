@@ -110,6 +110,7 @@ import { mapActions } from 'vuex'
 import addMeasures from '../dialog/add_measures'
 import parameterTree from '../../common/parameter_tree'
 import areaLabel from '../../common/area_label'
+import { needLengthMeasureType } from '../../../config/index'
 export default {
   name: 'measures',
   props: ['cubeDesc', 'modelDesc'],
@@ -162,7 +163,11 @@ export default {
         if (data.measure.function.expression === 'TOP_N' && data.convertedColumns.length > 0) {
           _this.$set(data.measure.function, 'configuration', {})
           data.convertedColumns.forEach(function (column) {
-            _this.$set(data.measure.function.configuration, 'topn.encoding.' + column.column, _this.getEncoding(column.encoding) + ':' + column.valueLength)
+            if (needLengthMeasureType.indexOf(_this.getEncoding(column.encoding)) >= 0) {
+              _this.$set(data.measure.function.configuration, 'topn.encoding.' + column.column, _this.getEncoding(column.encoding) + ':' + column.valueLength)
+            } else {
+              _this.$set(data.measure.function.configuration, 'topn.encoding.' + column.column, _this.getEncoding(column.encoding))
+            }
             _this.$set(data.measure.function.configuration, 'topn.encoding_version.' + column.column, _this.getVersion(column.encoding))
           })
         }

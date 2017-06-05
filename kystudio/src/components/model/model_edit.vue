@@ -1779,10 +1779,11 @@ export default {
     // 定时保存
     timerSave: function () {
       this.timerST = setTimeout(() => {
-        this.saveConfig.timer++
-        if (this.saveConfig.timer > this.saveConfig.limitTimer) {
+        if (this.saveConfig.timer > this.saveConfig.limitTimer && !this.draftBtnLoading) {
           this.saveDraft()
           this.saveConfig.timer = 0
+        } else {
+          this.saveConfig.timer++
         }
         this.timerSave()
       }, 1000)

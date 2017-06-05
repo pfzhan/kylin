@@ -37,6 +37,7 @@ const modelHealthStatus = {
     color: 'gray'
   }
 }
+const needLengthMeasureType = ['fixed_length', 'fixed_length_hex', 'int', 'integer']
 const permissions = {
   READ: {name: 'CUBE QUERY', value: 'READ', mask: 1},
   MANAGEMENT: {name: 'CUBE EDIT', value: 'MANAGEMENT', mask: 32},
@@ -53,6 +54,7 @@ export {
   // model健康状态
   modelHealthStatus,
   // cube操作权限对应数值
-  permissions
+  permissions,
+  needLengthMeasureType
 }
 

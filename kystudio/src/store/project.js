@@ -24,7 +24,6 @@ export default {
           hasMatch = true
         }
       })
-      console.log(hasMatch, '01112')
       if (!hasMatch) {
         localStorage.setItem('selected_project', '')
         state.selected_project = ''

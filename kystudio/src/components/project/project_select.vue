@@ -31,6 +31,11 @@ export default {
       this.$emit('changePro', val)
     }
   },
+  watch: {
+    '$store.state.project.selected_project' () {
+      this.selected_project = this.$store.state.project.selected_project
+    }
+  },
   computed: {
     projectList () {
       return this.$store.state.project.allProject || ''
