@@ -221,8 +221,6 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
 
     // init config only for draft
     void initConfig(KylinConfig config) {
-        MetadataManager metaMgr = MetadataManager.getInstance(config);
-
         this.config = config;
     }
 

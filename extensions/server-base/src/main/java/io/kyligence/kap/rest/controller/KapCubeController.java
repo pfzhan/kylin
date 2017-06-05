@@ -71,7 +71,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -80,6 +79,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 
 import io.kyligence.kap.cube.raw.RawTableDesc;
+import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.metadata.scheduler.SchedulerJobInstance;
 import io.kyligence.kap.rest.ScheduleBuildJob;
 import io.kyligence.kap.rest.msg.KapMessage;
@@ -223,10 +223,10 @@ public class KapCubeController extends BasicController implements InitializingBe
     @RequestMapping(value = "aggregationgroups/{aggIndex}/cuboid", method = RequestMethod.POST, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse calculateCuboidCombinationV2(@PathVariable int aggIndex, @RequestBody String cubeDescStr)
+    public EnvelopeResponse calculateCuboidCombination(@PathVariable int aggIndex, @RequestBody String cubeDescStr)
             throws IOException {
 
-        CubeDesc cubeDesc = deserializeCubeDescV2(cubeDescStr);
+        CubeDesc cubeDesc = deserializeCubeDesc(cubeDescStr);
         cubeDesc.init(KylinConfig.getInstanceFromEnv());
         AggregationGroup aggregationGroup = cubeDesc.getAggregationGroups().get(aggIndex);
 
@@ -236,7 +236,7 @@ public class KapCubeController extends BasicController implements InitializingBe
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, -1, "");
     }
 
-    private CubeDesc deserializeCubeDescV2(String cubeDescStr) throws IOException {
+    private CubeDesc deserializeCubeDesc(String cubeDescStr) throws IOException {
         Message msg = MsgPicker.getMsg();
 
         CubeDesc desc = null;
@@ -255,7 +255,7 @@ public class KapCubeController extends BasicController implements InitializingBe
 
     @RequestMapping(value = "", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse updateCubeDescV2(@RequestBody KapCubeRequest kapCubeRequest)
+    public EnvelopeResponse updateCubeDesc(@RequestBody KapCubeRequest kapCubeRequest)
             throws IOException, ParseException, SchedulerException {
 
         CubeDesc cubeDesc = deserializeCubeDesc(kapCubeRequest);
@@ -283,7 +283,6 @@ public class KapCubeController extends BasicController implements InitializingBe
                 rawTableService.deleteRawByUuid(cubeDesc.getUuid(), false);
             }
 
-            //schedulerJobService.keepModifyTs(schedulerJobInstance);
             bindSchedulerJobWithCube(schedulerJobInstance, cubeDesc.getName(), cubeDesc.getUuid());
             validateSchedulerJobs(cubeDesc.getUuid());
             enableSchedulerJob(schedulerJobInstance);
@@ -312,7 +311,7 @@ public class KapCubeController extends BasicController implements InitializingBe
     @RequestMapping(value = "/draft", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse updateCubeDescDraftV2(@RequestBody KapCubeRequest kapCubeRequest) throws IOException {
+    public EnvelopeResponse updateCubeDescDraft(@RequestBody KapCubeRequest kapCubeRequest) throws IOException {
 
         CubeDesc cubeDesc = deserializeCubeDesc(kapCubeRequest);
         cubeService.validateCubeDesc(cubeDesc, true);
@@ -338,7 +337,6 @@ public class KapCubeController extends BasicController implements InitializingBe
                 rawTableService.deleteRawByUuid(cubeDesc.getUuid(), true);
             }
 
-            //schedulerJobService.keepModifyTs(schedulerJobInstance);
             bindSchedulerJobWithCube(schedulerJobInstance, cubeDesc.getName(), cubeDesc.getUuid());
             validateSchedulerJobs(cubeDesc.getUuid());
         } catch (Exception ex) {
@@ -366,31 +364,59 @@ public class KapCubeController extends BasicController implements InitializingBe
     @RequestMapping(value = "{cubeName}/scheduler_job", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getSchedulerJob(@RequestHeader("Accept-Language") String lang,
-            @PathVariable String cubeName) throws IOException {
-        MsgPicker.setMsg(lang);
+    public EnvelopeResponse getSchedulerJob(@PathVariable String cubeName) throws IOException {
         SchedulerJobInstance job = getSchedulerJobByCubeName(cubeName);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, job, "");
     }
 
-    @RequestMapping(value = "{cubeName}/scheduler_job", method = RequestMethod.DELETE, produces = {
+    @RequestMapping(value = "{cubeName}", method = { RequestMethod.DELETE }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse deleteSchedulerJob(@RequestHeader("Accept-Language") String lang,
-            @PathVariable String cubeName) throws IOException, SchedulerException {
-        MsgPicker.setMsg(lang);
-        SchedulerJobInstance job = getSchedulerJobByCubeName(cubeName);
-        schedulerJobService.deleteSchedulerJob(job);
-        if (cubeTriggerKeyMap.containsKey(job.getRelatedRealization())) {
-            CronTrigger trigger = (CronTrigger) scheduler
-                    .getTrigger(cubeTriggerKeyMap.get(job.getRelatedRealization()));
-            JobKey jobKey = trigger.getJobKey();
-            if (jobKey != null) {
-                scheduler.deleteJob(jobKey);
+    public void deleteCubeAndDraft(@PathVariable String cubeName) throws IOException, SchedulerException {
+        ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
+        ResourceStore.Checkpoint cp = store.checkpoint();
+        try {
+            String draftName = cubeName + "_draft";
+            CubeInstance draftCube = cubeService.getCubeManager().getCube(draftName);
+            if (draftCube != null && draftCube.getDescriptor().isDraft()) {
+                deleteCube(draftName);
             }
-            cubeTriggerKeyMap.remove(job.getRelatedRealization());
+            deleteCube(cubeName);
+        } catch (Exception ex) {
+            cp.rollback();
+            cacheService.wipeAllCache();
+            throw ex;
+        } finally {
+            cp.close();
         }
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, 0, "");
+    }
+
+    private void deleteCube(String cubeName) throws IOException, SchedulerException {
+        CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
+        if (cube != null) {
+            deleteScheduler(cubeName);
+            RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
+            if (null != raw) {
+                rawTableService.deleteRaw(raw);
+            }
+            cubeService.deleteCube(cube);
+        }
+    }
+
+    private void deleteScheduler(String cubeName) throws IOException, SchedulerException {
+        SchedulerJobInstance job = getSchedulerJobByCubeName(cubeName);
+        if (job != null) {
+            schedulerJobService.deleteSchedulerJob(job);
+            if (cubeTriggerKeyMap.containsKey(job.getRelatedRealization())) {
+                CronTrigger trigger = (CronTrigger) scheduler
+                        .getTrigger(cubeTriggerKeyMap.get(job.getRelatedRealization()));
+                JobKey jobKey = trigger.getJobKey();
+                if (jobKey != null) {
+                    scheduler.deleteJob(jobKey);
+                }
+                cubeTriggerKeyMap.remove(job.getRelatedRealization());
+            }
+        }
     }
 
     private CubeDesc deserializeCubeDesc(KapCubeRequest kapCubeRequest) throws IOException {

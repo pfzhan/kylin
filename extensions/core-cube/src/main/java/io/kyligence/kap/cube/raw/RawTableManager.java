@@ -64,7 +64,8 @@ public class RawTableManager implements IRealizationProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(RawTableManager.class);
 
-    public static final Serializer<RawTableInstance> INSTANCE_SERIALIZER = new JsonSerializer<RawTableInstance>(RawTableInstance.class);
+    public static final Serializer<RawTableInstance> INSTANCE_SERIALIZER = new JsonSerializer<RawTableInstance>(
+            RawTableInstance.class);
 
     // static cached instances
     private static final ConcurrentMap<KylinConfig, RawTableManager> CACHE = new ConcurrentHashMap<>();
@@ -130,7 +131,8 @@ public class RawTableManager implements IRealizationProvider {
         }
 
         @Override
-        public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey) throws IOException {
+        public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey)
+                throws IOException {
 
             if (event == Event.DROP)
                 return;
@@ -139,7 +141,8 @@ public class RawTableManager implements IRealizationProvider {
 
             reloadRawTableInstanceLocal(rawTableName);
 
-            for (ProjectInstance prj : ProjectManager.getInstance(config).findProjects(RealizationType.INVERTED_INDEX, rawTableName)) {
+            for (ProjectInstance prj : ProjectManager.getInstance(config).findProjects(RealizationType.INVERTED_INDEX,
+                    rawTableName)) {
                 broadcaster.notifyProjectDataUpdate(prj.getName());
             }
         }
@@ -147,7 +150,8 @@ public class RawTableManager implements IRealizationProvider {
 
     private class RawTableCubeSyncListener extends Broadcaster.Listener {
         @Override
-        public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey) throws IOException {
+        public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey)
+                throws IOException {
             String cubeName = cacheKey;
 
             if (event == Event.DROP)
@@ -212,7 +216,8 @@ public class RawTableManager implements IRealizationProvider {
     }
 
     // sync on update
-    public RawTableInstance createRawTableInstance(String cubeName, String projectName, RawTableDesc desc, String owner) throws IOException {
+    public RawTableInstance createRawTableInstance(String cubeName, String projectName, RawTableDesc desc, String owner)
+            throws IOException {
         logger.info("Creating rawtable '" + projectName + "-->" + cubeName + "' from desc '" + desc.getName() + "'");
         // save rawtable resource
         RawTableInstance raw = RawTableInstance.create(cubeName, desc);
@@ -222,9 +227,8 @@ public class RawTableManager implements IRealizationProvider {
         else
             raw.initConfig(desc.getConfig());
         updateRawTable(new RawTableUpdate(raw));
-        if (!desc.isDraft()) {
-            ProjectManager.getInstance(config).moveRealizationToProject(RealizationType.INVERTED_INDEX, cubeName, projectName, owner);
-        }
+        ProjectManager.getInstance(config).moveRealizationToProject(RealizationType.INVERTED_INDEX, cubeName,
+                projectName, owner);
         return raw;
     }
 
@@ -252,11 +256,13 @@ public class RawTableManager implements IRealizationProvider {
 
     void reloadAllRawTableInstance() throws IOException {
         ResourceStore store = getStore();
-        logger.info("Reloading RawTableInstance from folder " + store.getReadableResourcePath(RawTableInstance.RAW_TABLE_INSTANCE_RESOURCE_ROOT));
+        logger.info("Reloading RawTableInstance from folder "
+                + store.getReadableResourcePath(RawTableInstance.RAW_TABLE_INSTANCE_RESOURCE_ROOT));
 
         rawTableInstanceMap.clear();
 
-        List<String> paths = store.collectResourceRecursively(RawTableInstance.RAW_TABLE_INSTANCE_RESOURCE_ROOT, MetadataConstants.FILE_SURFIX);
+        List<String> paths = store.collectResourceRecursively(RawTableInstance.RAW_TABLE_INSTANCE_RESOURCE_ROOT,
+                MetadataConstants.FILE_SURFIX);
         for (String path : paths) {
             RawTableInstance instance;
             try {
@@ -266,7 +272,8 @@ public class RawTableManager implements IRealizationProvider {
                 continue;
             }
             if (path.equals(instance.getResourcePath()) == false) {
-                logger.error("Skip suspicious instance at " + path + ", " + instance + " should be at " + instance.getResourcePath());
+                logger.error("Skip suspicious instance at " + path + ", " + instance + " should be at "
+                        + instance.getResourcePath());
                 continue;
             }
             if (rawTableInstanceMap.containsKey(instance.getName())) {
@@ -288,7 +295,8 @@ public class RawTableManager implements IRealizationProvider {
         segment.setCreateTimeUTC(System.currentTimeMillis());
         segment.setDateRangeStart(seg.getDateRangeStart());
         segment.setDateRangeEnd(seg.getDateRangeEnd());
-        segment.setSourceOffsetStart(seg.getSourceOffsetStart() == seg.getDateRangeStart() ? 0 : seg.getSourceOffsetStart());
+        segment.setSourceOffsetStart(
+                seg.getSourceOffsetStart() == seg.getDateRangeStart() ? 0 : seg.getSourceOffsetStart());
         segment.setSourceOffsetEnd(seg.getSourceOffsetEnd() == seg.getDateRangeEnd() ? 0 : seg.getSourceOffsetEnd());
         segment.setStatus(SegmentStatusEnum.NEW);
 
@@ -309,7 +317,8 @@ public class RawTableManager implements IRealizationProvider {
         List<RawTableSegment> tobe = raw.calculateToBeSegments(newSegment);
 
         if (tobe.contains(newSegment) == false)
-            throw new IllegalStateException("For raw " + raw + ", segment " + newSegment + " is expected but not in the tobe " + tobe);
+            throw new IllegalStateException(
+                    "For raw " + raw + ", segment " + newSegment + " is expected but not in the tobe " + tobe);
 
         newSegment.setStatus(SegmentStatusEnum.READY);
 
@@ -319,10 +328,12 @@ public class RawTableManager implements IRealizationProvider {
                 toRemoveSegs.add(segment);
         }
 
-        logger.info("Promoting rawtable " + raw + ", new segments " + newSegment + ", to remove segments " + toRemoveSegs);
+        logger.info(
+                "Promoting rawtable " + raw + ", new segments " + newSegment + ", to remove segments " + toRemoveSegs);
 
         RawTableUpdate rawBuilder = new RawTableUpdate(raw);
-        rawBuilder.setToRemoveSegs(toRemoveSegs.toArray(new RawTableSegment[toRemoveSegs.size()])).setToUpdateSegs(newSegment).setStatus(RealizationStatusEnum.READY);
+        rawBuilder.setToRemoveSegs(toRemoveSegs.toArray(new RawTableSegment[toRemoveSegs.size()]))
+                .setToUpdateSegs(newSegment).setStatus(RealizationStatusEnum.READY);
         updateRawTable(rawBuilder);
     }
 
@@ -340,7 +351,8 @@ public class RawTableManager implements IRealizationProvider {
         return seg.getStatus() == SegmentStatusEnum.READY;
     }
 
-    public RawTableSegment mergeSegments(RawTableInstance raw, String cubeSegUuid, long startDate, long endDate, long startOffset, long endOffset, boolean force) throws IOException {
+    public RawTableSegment mergeSegments(RawTableInstance raw, String cubeSegUuid, long startDate, long endDate,
+            long startOffset, long endOffset, boolean force) throws IOException {
         if (raw.getSegments().isEmpty())
             throw new IllegalArgumentException("RawTable " + raw + " has no segments");
         if (startDate >= endDate && startOffset >= endOffset)
@@ -354,9 +366,11 @@ public class RawTableManager implements IRealizationProvider {
         if (isOffsetsOn) {
             // offset cube, merge by date range?
             if (startOffset == endOffset) {
-                Pair<RawTableSegment, RawTableSegment> pair = raw.getSegments(SegmentStatusEnum.READY).findMergeOffsetsByDateRange(startDate, endDate, Long.MAX_VALUE);
+                Pair<RawTableSegment, RawTableSegment> pair = raw.getSegments(SegmentStatusEnum.READY)
+                        .findMergeOffsetsByDateRange(startDate, endDate, Long.MAX_VALUE);
                 if (pair == null)
-                    throw new IllegalArgumentException("Find no segments to merge by date range " + startDate + "-" + endDate + " for rawtable " + raw);
+                    throw new IllegalArgumentException("Find no segments to merge by date range " + startDate + "-"
+                            + endDate + " for rawtable " + raw);
                 startOffset = pair.getFirst().getSourceOffsetStart();
                 endOffset = pair.getSecond().getSourceOffsetEnd();
             }
@@ -376,7 +390,9 @@ public class RawTableManager implements IRealizationProvider {
 
         List<RawTableSegment> mergingSegments = raw.getMergingSegments(newSegment);
         if (mergingSegments.size() <= 1)
-            throw new IllegalArgumentException("Range " + newSegment.getSourceOffsetStart() + "-" + newSegment.getSourceOffsetEnd() + " must contain at least 2 segments, but there is " + mergingSegments.size());
+            throw new IllegalArgumentException(
+                    "Range " + newSegment.getSourceOffsetStart() + "-" + newSegment.getSourceOffsetEnd()
+                            + " must contain at least 2 segments, but there is " + mergingSegments.size());
 
         RawTableSegment first = mergingSegments.get(0);
         RawTableSegment last = mergingSegments.get(mergingSegments.size() - 1);
@@ -399,7 +415,9 @@ public class RawTableManager implements IRealizationProvider {
             }
 
             if (emptySegment.size() > 0) {
-                throw new IllegalArgumentException("Empty rawtable segment found, couldn't merge unless 'forceMergeEmptySegment' set to true: " + emptySegment);
+                throw new IllegalArgumentException(
+                        "Empty rawtable segment found, couldn't merge unless 'forceMergeEmptySegment' set to true: "
+                                + emptySegment);
             }
         }
 
@@ -413,7 +431,8 @@ public class RawTableManager implements IRealizationProvider {
     }
 
     // for test
-    private RawTableSegment newSegment(RawTableInstance raw, String cubeSegUuid, long startDate, long endDate, long startOffset, long endOffset) {
+    private RawTableSegment newSegment(RawTableInstance raw, String cubeSegUuid, long startDate, long endDate,
+            long startOffset, long endOffset) {
         RawTableSegment segment = new RawTableSegment(raw);
         segment.setUuid(null == cubeSegUuid ? UUID.randomUUID().toString() : cubeSegUuid);
         segment.setName(RawTableSegment.makeSegmentName(startDate, endDate, startOffset, endOffset));
@@ -431,7 +450,8 @@ public class RawTableManager implements IRealizationProvider {
         List<RawTableSegment> tobe = raw.calculateToBeSegments(newSegment);
         List<RawTableSegment> newList = Arrays.asList(newSegment);
         if (tobe.containsAll(newList) == false) {
-            throw new IllegalStateException("For rawtable " + raw + ", the new segments " + newList + " do not fit in its current " + raw.getSegments() + "; the resulted tobe is " + tobe);
+            throw new IllegalStateException("For rawtable " + raw + ", the new segments " + newList
+                    + " do not fit in its current " + raw.getSegments() + "; the resulted tobe is " + tobe);
         }
     }
 
@@ -443,7 +463,8 @@ public class RawTableManager implements IRealizationProvider {
 
     private void checkCubeIsPartitioned(RawTableInstance raw) {
         if (raw.getModel().getPartitionDesc().isPartitioned() == false) {
-            throw new IllegalStateException("there is no partition date column specified, only full build is supported");
+            throw new IllegalStateException(
+                    "there is no partition date column specified, only full build is supported");
         }
     }
 
