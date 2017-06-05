@@ -326,7 +326,5 @@ export default {
   td {
     height: 50px;
   }
-  .el-dropdown {
-  }
 }
 </style>

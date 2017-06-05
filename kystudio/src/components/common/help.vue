@@ -250,10 +250,11 @@
   }
 </script>
 <style lang="less">
-.help_box{
+.help_box {
   line-height: 30px;
   text-align: left;
-  .el-dropdown{
+  color: #fff;
+  .el-dropdown {
 	cursor: pointer;
 	svg{
 	  vertical-align: middle;

@@ -40,9 +40,9 @@
               this.$emit('closeStartLayer')
               this.$emit('openSwitch')
             }
-          }).catch((res) => {
-            handleError(res)
           })
+        }).catch((res) => {
+          handleError(res)
         })
         // 同意协议
         this.setAgreement().then((resp) => {

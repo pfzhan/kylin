@@ -16,16 +16,30 @@
 		</el-card>
       </div>
     </el-col>
-    <el-col :span="16" class="slider_bpx">
-       <div class="grid-content bg-purple">
+    <!-- <el-col :span="16" class="slider_bpx">
+       	<div class="grid-content bg-purple">
     	<div class="block">
 		    <el-carousel trigger="click" height="280px">
 		      <el-carousel-item v-for="img in sliderImgs" :key="img.src">
 		        <img :src="img.src">
 		      </el-carousel-item>
 		    </el-carousel>
-	  </div>
-    </div></el-col>
+	  	</div>
+    	</div>
+    </el-col> -->
+    	<el-col :span="8">
+    		<div>
+    			models
+    		</div>
+    		<div>
+    			cubes
+    		</div>
+    	</el-col>
+    	<el-col :span="8">
+    		<div>Jobs</div>
+    		<div>Users</div>
+    	</el-col>
+    </el-row>
   </el-row>
   <el-row :gutter="30">
     <el-col :span="8">
@@ -152,7 +166,20 @@ export default {
 }
 </script>
 <style lang="less">
+	@import url(../../less/config.less);
 	#dashbord{
+		.grid-content {
+			.el-card {
+				background: @bg-top;
+				border:0 none;
+			}
+			.el-card__header {
+				background: @bg-menu;
+				color: @fff;
+				font-size: 14px;
+				border-bottom: 0;
+			}
+		}
 		#project_scroll_box {
 		  height: 220px;
 		}
@@ -212,9 +239,9 @@ export default {
 	  .item{
 	 	height: 50px;
 	 	line-height: 50px;
-	 	border-bottom:solid 1px #eff2f6;
+	 	border-bottom:solid 1px @line-color;
 	 	font-size: 14px;
-	 	color: #1f2d3d;
+	 	color: @fff;
 	 	.time_box{
 	 		font-size: 12px;
 	 		color: #8492a6;
@@ -256,7 +283,7 @@ export default {
             height: 50px;
             line-height: 50px;
             margin: 0;
-            border-bottom: 1px solid #eff2f6;
+            border-bottom: 1px solid @line-color;
         }
         .btn-addProject:hover {
             text-decoration: none;

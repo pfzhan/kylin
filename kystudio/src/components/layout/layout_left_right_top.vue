@@ -5,14 +5,14 @@
     <aside class="left_menu">
       <img v-show="briefMenu!=='brief_menu'" src="../../assets/img/logo_all.png" class="logo" id="logo" @click="goHome" style="cursor:pointer;">
       <img v-show="briefMenu==='brief_menu'" src="../../assets/img/logo.png" class="logo" @click="goHome" style="cursor:pointer;"><span class="logo_text"></span>
-      <el-menu style="border-top: 1px solid #475669;" :default-active="defaultActive" class="el-menu-vertical-demo" @open="handleopen" @close="handleclose" @select="handleselect" theme="dark" unique-opened router>
+      <el-menu :default-active="defaultActive" class="el-menu-vertical-demo" @open="handleopen" @close="handleclose" @select="handleselect" theme="dark" unique-opened router>
         <template v-for="(item,index) in menus" >
-          <el-menu-item :index="item.path" v-if="showMenuByRole(item.name)" :key="index" ><img :src="item.icon"> <span>{{$t('kylinLang.menu.' + item.name)}}</span></el-menu-item>
+          <el-menu-item :index="item.path" v-if="showMenuByRole(item.name)" :key="index" class="J_menu"><img :src="item.icon"> <span>{{$t('kylinLang.menu.' + item.name)}}</span></el-menu-item>
         </template>
       </el-menu>
     </aside>
     <div class="topbar">
-      <icon name="bars" v-on:click.native="toggleMenu"></icon>
+      <icon name="bars" style="color: #d4d7e3;" v-on:click.native="toggleMenu"></icon>
       <project_select class="project_select" v-on:changePro="changeProject" ref="projectSelect"></project_select>
       <el-button  :class="{'isProjectPage':defaultActive==='projectActive'}" @click="goToProjectList"><icon name="window-restore" scale="0.8"></icon></el-button>
       <el-button @click="addProject" v-show="isModeler"><icon name="plus" scale="0.8"></icon></el-button>
@@ -118,7 +118,7 @@
         },
         menus: [
           {name: 'dashboard', path: '/dashboard', icon: require('../../assets/img/dashboard.png')},
-          {name: 'studio', path: '/studio/datasource', icon: require('../../assets/img/model.png')},
+          {name: 'studio', path: '/studio/datasource', icon: require('../../assets/img/studio.png')},
           {name: 'insight', path: '/insight', icon: require('../../assets/img/insight.png')},
           {name: 'monitor', path: '/monitor', icon: require('../../assets/img/monitor.png')},
           {name: 'system', path: '/system', icon: require('../../assets/img/system.png')}
@@ -189,6 +189,46 @@
             }
           }
         }
+      },
+      hoverMenu () {
+        let imgSrc = ''
+        let index = 0
+        let _this = this
+        console.log('xxx', $('.J_menu'))
+        $('.J_menu').on('mouseenter', function () {
+          let $this = $(this)
+          console.log('enter', $this.index())
+          index = $this.index()
+          if (index === 0) {
+            imgSrc = require('../../assets/img/dashboard_hover.png')
+          } else if (index === 1) {
+            imgSrc = require('../../assets/img/studio_hover.png')
+          } else if (index === 2) {
+            imgSrc = require('../../assets/img/insight_hover.png')
+          } else if (index === 3) {
+            imgSrc = require('../../assets/img/monitor_hover.png')
+          } else {
+            imgSrc = require('../../assets/img/system_hover.png')
+          }
+          _this.menus[index].icon = imgSrc
+        })
+        $('.J_menu').on('mouseleave', function () {
+          let $this = $(this)
+          console.log('leave:  ', $(this).index())
+          index = $this.index()
+          if (index === 0) {
+            imgSrc = require('../../assets/img/dashboard.png')
+          } else if (index === 1) {
+            imgSrc = require('../../assets/img/studio.png')
+          } else if (index === 2) {
+            imgSrc = require('../../assets/img/insight.png')
+          } else if (index === 3) {
+            imgSrc = require('../../assets/img/monitor.png')
+          } else {
+            imgSrc = require('../../assets/img/system.png')
+          }
+          _this.menus[index].icon = imgSrc
+        })
       },
       getLicense () {
         location.href = './api/kap/system/requestLicense'
@@ -324,6 +364,7 @@
       }
     },
     mounted () {
+      this.hoverMenu()
     },
     locales: {
       'en': {resetPassword: 'Reset Password', confirmLoginOut: 'Confirm exit?'},
@@ -434,7 +475,7 @@
 	}
 
 	.panel-center {
-		background: #324057;
+		// background: #324057;
 		position: absolute;
 		top: 0px;
 		bottom: 0px;
@@ -442,7 +483,7 @@
 	}
 
 	.panel-c-c {
-		background: #f1f2f7;
+		// background: #f1f2f7;
 		position: absolute;
 		right: 0px;
 		top: 67px;
@@ -483,11 +524,26 @@
   .home_icon{
       margin-top: -4px;
     }
+  .el-menu-vertical-demo {
+    height: 100%;
+    background: @bg-top;
+    font-size: 12px;
+    color: #d0d0d0;
+    border-radius: 0;
+    .el-menu-item {
+      border-left: 4px solid @bg-top;
+    }
+    .el-menu-item:hover {
+      background: none;
+      span {
+        color: #fff;
+      }
+    }
+  }
 	.topbar{
 		height: 66px;
 		width: 100%;
-		background-color: #fff;
-		border-bottom: solid 1px rgba(192,204,218,1);
+		background: @bg-top;
 		position: absolute;
     top:0;
     >svg{
@@ -503,6 +559,7 @@
     }
     .el-dropdown{
     	cursor:pointer;
+      color: #fff;
       svg{
     	vertical-align:middle;
     	margin-left:2px;
@@ -543,18 +600,18 @@
       }
 		}
 		.is-active{
-		  border-left: solid 4px #58b7ff;
+		  border-left: solid 4px #20a0ff;
       color: #fff;
-      background: #475669;
 		}
 	}
 	.left_menu{
 		position:relative;
 		z-index:999;
-		background-color: #20a0ff;
+		background-color: #218fea;
     width: 200px;
+    height: 100%;
 	}
-    .el-icon-arrow-down:before{
+  .el-icon-arrow-down:before{
 		content: ''
 	}
 
