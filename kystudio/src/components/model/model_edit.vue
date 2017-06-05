@@ -710,7 +710,7 @@ export default {
       }
       var willSetType = getNextValInArray(this.columnBType, columnBType)
       this.editTableColumnInfo(id, 'name', columnName, 'btype', willSetType)
-      var fullName = tableInfo.database + tableInfo.name
+      var fullName = tableInfo.database + '.' + tableInfo.name
       if (willSetType === '－') {
         this.changeComputedColumnDisable(fullName, columnName, false)
       } else {
@@ -722,18 +722,19 @@ export default {
       for (var i = 0; i < len; i++) {
         var calcColumn = this.modelInfo.computed_columns[i]
         if (calcColumn.tableIdentity === fullName && calcColumn.columnName === column) {
-          this.modelInfo.computed_columns[i] = status
+          this.modelInfo.computed_columns[i].disabled = status
           break
         }
       }
     },
     getDisableComputedColumn () {
       var result = []
+      console.log(this.modelInfo.computed_columns, 99)
       var len = this.modelInfo.computed_columns && this.modelInfo.computed_columns.length || 0
       for (var i = 0; i < len; i++) {
         var calcColumn = this.modelInfo.computed_columns[i]
         var obj = {}
-        if (calcColumn.disabled === true) {
+        if (calcColumn.disabled !== false) {
           obj = Object.assign({}, calcColumn)
           result.push(obj)
         }
@@ -1441,7 +1442,9 @@ export default {
     },
     // trans Data
     DragDataToServerData: function (needJson) {
+      console.log(123)
       var fainalComputed = this.getDisableComputedColumn()
+      console.log(fainalComputed)
       var pos = {}
       var kylinData = {
         uuid: this.modelInfo.uuid,
@@ -1530,10 +1533,7 @@ export default {
           this.modelData = data.model
           this.draftData = data.draft
           this.editLock = !!(this.modelData && this.modelData.uuid)
-          console.log(this.extraoption, 99001)
           var modelData = this.extraoption.is_draft ? data.draft : data.model
-          console.log(modelData)
-          console.log(data)
           if (this.extraoption.is_draft) {
             modelData.name = modelData.name.replace(/_draft/, '')
           }

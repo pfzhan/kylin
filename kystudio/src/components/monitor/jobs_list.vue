@@ -136,7 +136,7 @@
           </div>
         </li>
     <p class="blue time-hd">
-      Job activity
+      Job Details
     </p>
     <ul class="timeline">
       
@@ -192,7 +192,7 @@
               <span>{{$t('duration')}}: </span>
                 <span class="blue">{{timerline_duration(step)}}</span><br />
               <span>{{$t('waiting')}}: </span>
-                <span class="blue">{{step.exec_wait_time | tofixedTimer(2)}}</span><br />
+                <span class="blue">{{step.exec_wait_time |  (2)}}</span><br />
             </div>
             <div class="timeline-footer">
              <el-button v-if="step.exec_cmd"  :plain="true" @click.native="clickKey(step)" size="mini">
@@ -261,7 +261,7 @@ export default {
       filter: {
         pageOffset: 0,
         pageSize: pageCount,
-        projectName: this.project,
+        projectName: localStorage.getItem('selected_project'),
         timeFilter: 1
       },
       allStatus: [
@@ -359,7 +359,7 @@ export default {
       let filter = {
         pageOffset: this.currentPage - 1,
         pageSize: pageCount,
-        projectName: this.project,
+        projectName: localStorage.getItem('selected_project'),
         timeFilter: this.filterTimeZone
       }
       if (this.filterCubeName) {
@@ -378,7 +378,7 @@ export default {
       let setting = {
         pageOffset: this.currentPage - 1,
         pageSize: pageCount,
-        projectName: this.project,
+        projectName: localStorage.getItem('selected_project'),
         timeFilter: this.filterTimeZone
       }
       if (this.filterCubeName) {
@@ -471,7 +471,7 @@ export default {
       this.filter = {
         pageOffset: this.currentPage - 1,
         pageSize: pageCount,
-        projectName: this.project,
+        projectName: localStorage.getItem('selected_project'),
         timeFilter: this.filterTimeZone,
         reverse: true
       }

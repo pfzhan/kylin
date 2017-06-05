@@ -74,7 +74,7 @@ Vue.filter('tofixedTimer', function (value, fix) {
   if (value > 60) {
     return (value / 60).toFixed(fix) + ' mins'
   } else {
-    return value + 'seconds'
+    return value + ' seconds'
   }
 })
 
