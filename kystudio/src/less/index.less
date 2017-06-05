@@ -157,6 +157,33 @@ li {list-style-type:none;}
 
 // 13新样式
 .kapApp {
+  // message
+  .el-message {
+    background: @grey-color;
+    color: @fff;
+  }
+  .el-message-box {
+    background: @grey-color;
+  }
+  .el-message-box__title {
+    color: @fff;
+  }
+  .el-message-box__content {
+    color: @content-color;
+  }
+  .el-message__group p {
+    color: @fff;
+  }
+  .el-message-box__btns {
+    .el-button--default {
+      background: transparent;
+      color: @fff;
+      border: 1px solid @popper-bg;
+    }
+    .el-button--primary {
+      .setBtner(@btn-default-normal);
+    }
+  }
   // btns 
   // button-disabled
   .el-button.is-disabled,
@@ -314,16 +341,7 @@ li {list-style-type:none;}
     background: @grey-color;
     color: @fff;
   }
-  // message
-  .el-message-box {
-    background: @grey-color;
-  }
-  .el-message-box__title {
-    color: @fff;
-  }
-  .el-message-box__content {
-    color: @content-color;
-  }
+  
   // notification
   .el-notification {
     background: @grey-color;
@@ -361,5 +379,45 @@ li {list-style-type:none;}
   }
   .el-tooltip__popper.is-dark{
     background:@popper-bg;
+  }
+  // dialog
+  .el-dialog {
+    background: @grey-color;
+  }
+  .el-dialog__title {
+    color: @fff;
+  }
+  .el-dialog__body {
+    .el-form-item__label {
+      color: @content-color;
+    }
+    .el-input__inner,
+    .el-textarea__inner {
+      color: @input-color;
+      background: @input-bg;
+      border: 1px solid @input-bg;
+    }
+    .el-input__inner:focus,
+    .el-textarea__inner:focus {
+      color: @fff;
+      border: 1px solid @popper-bg;
+    }
+  }
+  .el-form-item__content {
+    .el-button--default {
+      background: transparent;
+      border:1px solid @btn-default-normal;
+      color: @content-color;
+      .el-icon-close {
+        color: @btn-default-normal;
+      }
+    }
+  }
+  .el-dialog__footer {
+    .el-button--default {
+      background: transparent;
+      color: @fff;
+      border: 1px solid @popper-bg;
+    }
   }
 }
