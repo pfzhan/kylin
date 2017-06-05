@@ -167,10 +167,10 @@ export default {
       }
     },
     changePartitionDateStart: function () {
-      this.cubeDesc.partition_date_start = transToUTCMs(this.partitionStartDate)
+      this.cubeDesc.partition_date_start = transToUTCMs(this.cubeDesc.partition_date_start)
     },
     changeTriggerTime: function () {
-      this.scheduler.desc.scheduled_run_time = transToUTCMs(this.scheduledRunTime)
+      this.scheduler.desc.scheduled_run_time = transToUTCMs(this.scheduler.desc.scheduled_run_time)
     },
     changeTimeRange: function (timeRange, index) {
       let time = 0
@@ -223,8 +223,7 @@ export default {
     console.log(this.scheduler)
     if (this.cubeDesc.auto_merge_time_ranges) {
       this.conversionTime()
-      this.partitionStartDate = transToUtcTimeFormat(this.cubeDesc.partition_date_start)
-      // this.cubeDesc.partition_date_start = transToUtcTimeFormat(this.cubeDesc.partition_date_start)
+      this.cubeDesc.partition_date_start = transToUtcTimeFormat(this.cubeDesc.partition_date_start)
     }
     if (this.scheduler.desc.scheduled_run_time && this.scheduler.desc.partition_interval) {
       this.initRepeatInterval(this.scheduler.desc)
