@@ -33,6 +33,10 @@ ${KYLIN_HOME}/bin/metastore.sh reset
 
 # Firstly run origin package to initialize metadata and build a segment
 ${KYLIN_HOME}/bin/sample.sh
+
+${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.tool.AclTableMigrationCLI MIGRATE
+
+
 ${KYLIN_HOME}/bin/kylin.sh start
 
 echo "Wait 2 minutes for service start KAP orig package."
