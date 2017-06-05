@@ -51,7 +51,7 @@ public class KapTestJdbcCLI {
             connectionManager = JDBCConnectionManager.getConnectionManager();
         } catch (RuntimeException e) {
             logger.error(e.toString());
-            System.out.println("Fcom.google.common.collect.FluentIterableail to connect to mysql, more info please check full log");
+            System.out.println("Fail to connect to mysql, more info please check full log");
             System.exit(1);
         }
     }
