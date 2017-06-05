@@ -156,15 +156,15 @@
                 <el-input type="textarea"  auto-complete="off" v-model="computedColumn.expression"></el-input>
               </el-form-item>
               <el-form-item label="returnType" >
-              <el-select v-model="computedColumn.returnType" placeholder="请选择">
+           <!--    <el-select v-model="computedColumn.returnType" placeholder="请选择">
                 <el-option  
                   v-for="item in encodings"
                   :key="item.name"
                   :label="item.name"
                   :value="item.name">
                 </el-option>
-              </el-select>
-                <!-- <el-input  auto-complete="off" v-model="computedColumn.returnType"></el-input> -->
+              </el-select> -->
+                <el-input  auto-complete="off" v-model="computedColumn.returnType"></el-input>
               </el-form-item>  
               <el-form-item label="comment" >
                 <el-input type="textarea"  auto-complete="off" v-model="computedColumn.comment"></el-input>
