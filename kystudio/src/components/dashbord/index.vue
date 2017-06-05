@@ -111,11 +111,11 @@
 
 <script>
 import { mapActions } from 'vuex'
-import Scrollbar from 'smooth-scrollbar'
+// import Scrollbar from 'smooth-scrollbar'
 export default {
   methods: {
     ...mapActions({
-      loadProjects: 'LOAD_PROJECT_LIST'
+      loadProjects: 'LOAD_ALL_PROJECT'
     }),
     addProject () {
       this.$emit('addProject')
@@ -140,11 +140,11 @@ export default {
   },
   computed: {
     projectList () {
-      return this.$store.state.project.projectList
+      return this.$store.state.project.allProject
     }
   },
   mounted () {
-    Scrollbar.init(document.getElementById('project_scroll_box'))
+    // Scrollbar.init(document.getElementById('project_scroll_box'))
   },
   created () {
     this.loadProjects()

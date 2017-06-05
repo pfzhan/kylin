@@ -32,6 +32,7 @@ import nprogress from 'nprogress'
 import Icon from 'vue-awesome/components/Icon.vue'
 import 'vue-awesome/icons'
 import 'brace/mode/json'
+import 'brace/mode/sql'
 import 'brace/theme/chrome'
 import VueDND from 'awe-dnd'
 Vue.use(VueDND)

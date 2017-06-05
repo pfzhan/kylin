@@ -50,5 +50,8 @@ export default {
   },
   modelProgress: (para) => {
     return Vue.resource(apiUrl + 'models/' + para.project + '/' + para.modelName + '/progress').get()
+  },
+  getModelAccess: (modelId) => {
+    return Vue.resource(apiUrl + 'access/DataModelDesc/' + modelId).get()
   }
 }

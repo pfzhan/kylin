@@ -49,12 +49,12 @@ export default {
   }
 }
 </script>
-<style>
+<style lang="less">
 .ksd-slider {
   .el-slider__stop {
     width: 8px;
     height: 8px;
-    top:4px;
+    top:-2px;
   }
 }
 </style>

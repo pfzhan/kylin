@@ -45,18 +45,13 @@ export default {
   },
   methods: {
     validateProjectName (rule, value, callback) {
-      console.log('value :', value)
       if (value === '') {
         callback(new Error(this.$t('noProject')))
-        console.log(1)
       } else if (!/^\w+$/.test(value)) {
-        callback(new Error(this.$t('nameUncorrect')))
-        console.log(2)
+        callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
       } else {
         callback()
-        console.log(3)
       }
-      console.log(4)
     },
     removeProperty (index) {
       this.convertedProperties.splice(index, 1)
@@ -72,22 +67,21 @@ export default {
     }
   },
   created () {
-    let _this = this
     this.$on('projectFormValid', (t) => {
-      _this.$refs['projectForm'].validate((valid) => {
+      this.$refs['projectForm'].validate((valid) => {
         if (valid) {
-          _this.projectDesc.override_kylin_properties = fromArrToObj(this.convertedProperties)
-          _this.$emit('validSuccess', _this.projectDesc)
+          this.projectDesc.override_kylin_properties = fromArrToObj(this.convertedProperties)
+          this.$emit('validSuccess', this.projectDesc)
         } else {
-          _this.$emit('validFailed')
+          this.$emit('validFailed')
           return false
         }
       })
     })
   },
   locales: {
-    'en': {projectName: 'Project Name', description: 'Description', projectConfig: 'Project Config', delete: 'Delete', property: 'Property', inputTip: 'The project name is required.', projectDescription: 'projectDescription...', projectPlace: 'You can use letters, numbers, and underscore characters "_"', noProject: 'Please enter the project name', 'nameUncorrect': 'The project contains the letters, numbers, and underscore characters "_"'},
-    'zh-cn': {projectName: '项目名称', description: '描述', projectConfig: '项目配置', delete: '删除', property: '配置', inputTip: '项目名不能为空', projectDescription: '项目描述...', projectPlace: '可以使用字母、数字以及下划线', noProject: '请输入project名称', nameUncorrect: '项目名称只能包含数字字母下划线!'}
+    'en': {projectName: 'Project Name', description: 'Description', projectConfig: 'Project Config', delete: 'Delete', property: 'Property', inputTip: 'The project name is required.', projectDescription: 'projectDescription...', projectPlace: 'You can use letters, numbers, and underscore characters "_"', noProject: 'Please enter the project name'},
+    'zh-cn': {projectName: '项目名称', description: '描述', projectConfig: '项目配置', delete: '删除', property: '配置', inputTip: '项目名不能为空', projectDescription: '项目描述...', projectPlace: '可以使用字母、数字以及下划线', noProject: '请输入project名称'}
   }
 }
 </script>

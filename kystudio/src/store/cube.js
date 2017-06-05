@@ -18,8 +18,14 @@ export default {
     }
   },
   actions: {
-    [types.GET_CUBES_LIST]: function ({ commit }, cube) {
-      return api.cube.getCubesList(cube)
+    [types.GET_CUBES_LIST]: function ({ dispatch, commit }, cube) {
+      return api.cube.getCubesList(cube).then((res) => {
+        var len = res.data.data.cubes && res.data.data.cubes.length || 0
+        for (var i = 0; i < len; i++) {
+          dispatch(types.GET_CUBE_ACCESS, res.data.data.cubes[i].uuid)
+        }
+        return res
+      })
     },
     [types.LOAD_CUBE_DESC]: function ({ commit }, cubeName) {
       return api.cube.getCubeDesc(cubeName)

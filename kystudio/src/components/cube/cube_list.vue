@@ -88,15 +88,16 @@
       width="180"
       prop="createGMTTime">
     </el-table-column>
-    <el-table-column
+    <el-table-column 
       sortable
       :label="$t('actions')">
       <template scope="scope">
-        <el-dropdown trigger="click">
+      <span v-if="!(isAdmin || hasPermission(scope.row.uuid))"> N/A</span>
+        <el-dropdown trigger="click" v-if="isAdmin || hasPermission(scope.row.uuid)">
           <el-button class="el-dropdown-link">
             <i class="el-icon-more"></i>
           </el-button >
-          <el-dropdown-menu slot="dropdown" v-if="isAdmin ">
+          <el-dropdown-menu slot="dropdown" >
             <el-dropdown-item v-if="scope.row.status==='DISABLED'" @click.native="drop(scope.row.name)">{{$t('drop')}}</el-dropdown-item>
             <el-dropdown-item @click.native="edit(scope.row)">{{$t('edit')}}</el-dropdown-item>
             <el-dropdown-item v-if="scope.row.status !== 'DESCBROKEN' " @click.native="build(scope.row)">{{$t('build')}}</el-dropdown-item>
@@ -114,7 +115,8 @@
       sortable
       label="Admin">
       <template scope="scope">
-        <el-dropdown trigger="click">
+      <span v-if="!isAdmin"> N/A</span>
+        <el-dropdown trigger="click" v-if="isAdmin">
           <el-button class="el-dropdown-link">
             <i class="el-icon-more"></i>
           </el-button >
@@ -166,7 +168,7 @@
 
 <script>
 import { mapActions } from 'vuex'
-import { pageCount } from '../../config'
+import { pageCount, permissions } from '../../config'
 import showJson from './json'
 import showSql from './sql'
 import segments from './segments'
@@ -176,7 +178,7 @@ import cloneCube from './dialog/clone_cube'
 import mergeCube from './dialog/merge_cube'
 import accessEdit from '../project/access_edit'
 import refreshCube from './dialog/refresh_cube'
-import { handleSuccess, handleError, transToGmtTime, hasRole } from '../../util/business'
+import { handleSuccess, handleError, transToGmtTime, hasRole, hasPermissionOfCube } from '../../util/business'
 export default {
   name: 'cubeslist',
   data () {
@@ -636,15 +638,18 @@ export default {
     },
     changeTab: function (tab) {
       if (tab.$data.index === '1') {
-        console.log('tab 1')
         tab.$children[0].loadCubeSql()
       }
       if (tab.$data.index === '4') {
         tab.$children[0].loadSegments()
       }
+    },
+    hasPermission (cubeId) {
+      return hasPermissionOfCube(this, cubeId, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask)
     }
   },
   created () {
+    console.log(permissions, 902323)
     this.loadCubesList(0)
     this.loadModels({pageSize: 10000, pageOffset: 0, projectName: this.selected_project || null})
   },

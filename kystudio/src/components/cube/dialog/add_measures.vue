@@ -115,7 +115,7 @@
       :data="convertedColumns">
       <el-table-column
         :label="$t('ID')"
-        width="50">
+        width="100">
         <template scope="scope">
           <el-tag>{{scope.$index+1}}</el-tag>
         </template>

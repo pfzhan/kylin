@@ -37,6 +37,12 @@ const modelHealthStatus = {
     color: 'gray'
   }
 }
+const permissions = {
+  READ: {name: 'CUBE QUERY', value: 'READ', mask: 1},
+  MANAGEMENT: {name: 'CUBE EDIT', value: 'MANAGEMENT', mask: 32},
+  OPERATION: {name: 'CUBE OPERATION', value: 'OPERATION', mask: 64},
+  ADMINISTRATION: {name: 'CUBE ADMIN', value: 'ADMINISTRATION', mask: 16}
+}
 export {
   // http请求
   apiUrl,
@@ -45,6 +51,8 @@ export {
   // 分页
   pageCount,
   // model健康状态
-  modelHealthStatus
+  modelHealthStatus,
+  // cube操作权限对应数值
+  permissions
 }
 

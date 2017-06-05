@@ -65,11 +65,12 @@
 	      :label="$t('access')"
 	      >
 	    </el-table-column>
-	   <el-table-column  v-if="hasActionAccess"
+	   <el-table-column  
 	      :label="$t('kylinLang.common.action')"
 	      width="120">
 	      <template scope="scope">
-	        <el-button 
+        <span v-if="!hasPermission(scope.row.id)">N/A</span>
+	        <el-button  v-if="hasPermission(scope.row.id)"
 	          @click="removeAccess(scope.row.id)"
 	          type="text">
 	          {{$t('kylinLang.common.delete')}}
@@ -182,13 +183,16 @@ export default {
         handleError(res)
       })
     },
+    hasPermission (accessId) {
+      // var actionType = this.own === 'cube' ? 'getCubeAccess' : 'getProjectAccess'
+      var checkPermission = this.own === 'cube' ? hasPermissionOfCube : hasPermission
+      return hasRole(this, 'ROLE_ADMIN') || checkPermission(this, accessId, 16)
+    },
     loadAccess () {
       var actionType = this.own === 'cube' ? 'getCubeAccess' : 'getProjectAccess'
-      var checkPermission = this.own === 'cube' ? hasPermissionOfCube : hasPermission
       this[actionType](this.accessId).then((res) => {
         handleSuccess(res, (data) => {
           this.accessList = data
-          this.hasActionAccess = hasRole(this, 'ROLE_ADMIN') || checkPermission(this, this.accessId, 16)
           this.settleAccessList = data && data.map((access) => {
             access.roleOrName = access.sid.grantedAuthority || access.sid.principal
             access.type = access.sid.principal ? 'User' : 'Role'

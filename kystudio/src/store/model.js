@@ -5,7 +5,8 @@ export default {
     modelsList: [],
     modelsDianoseList: [],
     modelsTotal: 0,
-    modelEditCache: {}
+    modelEditCache: {},
+    modelAccess: {}
   },
   mutations: {
     [types.SAVE_MODEL_LIST]: function (state, result) {
@@ -21,12 +22,21 @@ export default {
     },
     [types.CACHE_MODEL_DIANOSELIST]: function (state, {data}) {
       state.modelsDianoseList = data
+    },
+    [types.CACHE_MODEL_ACCESS]: function (state, { access, id }) {
+      state.modelAccess[id] = access
     }
   },
   actions: {
-    [types.LOAD_MODEL_LIST]: function ({ commit }, para) {
+    [types.LOAD_MODEL_LIST]: function ({ dispatch, commit }, para) {
       api.model.getModelList(para).then((response) => {
+        // 加载权限
+        var len = response.data.data.models && response.data.data.models.length || 0
+        for (var i = 0; i < len; i++) {
+          dispatch(types.GET_MODEL_ACCESS, response.data.data.models[i].uuid)
+        }
         commit(types.SAVE_MODEL_LIST, { list: response.data.data.models, total: response.data.data.size })
+        return response
       })
     },
     [types.LOAD_ALL_MODEL]: function ({ commit }, para) {
@@ -72,6 +82,12 @@ export default {
     },
     [types.GET_MODEL_PROGRESS]: function ({ commit }, para) {
       return api.model.modelProgress(para)
+    },
+    [types.GET_MODEL_ACCESS]: function ({ commit }, id) {
+      return api.model.getModelAccess(id).then((res) => {
+        commit(types.CACHE_MODEL_ACCESS, {access: res.data.data, id: id})
+        return res
+      })
     }
   },
   getters: {

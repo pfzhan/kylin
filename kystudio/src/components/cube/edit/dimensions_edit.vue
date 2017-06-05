@@ -4,10 +4,10 @@
     <el-col :span="18" class="border_right">  
       <el-row class="row_padding border_bottom">
         <el-col :span="5">
-          <el-button type="primary" icon="setting" @click.native="resetDimensions">{{$t('resetDimensions')}}</el-button>
+          <el-button type="primary" icon="setting" @click.native="resetDimensions" :disabled="isReadyCube" >{{$t('resetDimensions')}}</el-button>
         </el-col>
         <el-col :span="5">
-          <el-button type="primary" icon="menu" @click.native="cubeSuggestions">{{$t('cubeSuggestion')}}</el-button>
+          <el-button type="primary" icon="menu" @click.native="cubeSuggestions" :disabled="isReadyCube" >{{$t('cubeSuggestion')}}</el-button>
         </el-col>
       </el-row>
 
@@ -18,7 +18,7 @@
         </el-row>
         <el-row class="row_padding">
         <el-col :span="24">         
-         <el-button  icon="plus" @click.native="addDimensions">{{$t('addDimensions')}}</el-button></el-col>
+         <el-button  icon="plus" @click.native="addDimensions" :disabled="isReadyCube" >{{$t('addDimensions')}}</el-button></el-col>
        </el-row>
        <el-row class="row_padding" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
         <el-col  :span="24">
@@ -37,7 +37,7 @@
 
       <el-row class="row_padding border_bottom" style="line-height:36px;">
         <el-col :span="6">{{$t('aggregationGroups')}}</el-col>
-        <el-col :span="18">Max group by column: <el-input v-model="dim_cap" style="width:100px;" @change="changeDimCap"></el-input></el-col>
+        <el-col :span="18">Max group by column: <el-input v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;" @change="changeDimCap"></el-input></el-col>
       </el-row>
       <el-row class="row_padding border_bottom" v-for="(group, group_index) in cubeDesc.aggregation_groups" :key="group_index">
         <el-col :span="24">
@@ -55,7 +55,7 @@
                 </el-row> 
                 <el-row> 
                   <el-col :span="24">
-                    <area_label :labels="group.includes" :refreshInfo="{index: group_index, key: 'includes'}" @refreshData="refreshIncludeData"   :selectedlabels="group.includes" @change="refreshAggragation(group_index)" @checklabel="showDetail"> 
+                    <area_label :disabled="isReadyCube" :labels="convertedRowkeys" :datamap="{label:'column', value:'column'}" :refreshInfo="{index: group_index, key: 'includes'}" @refreshData="refreshIncludeData"   :selectedlabels="group.includes" @change="refreshAggragation(group_index)" @checklabel="showDetail"> 
                     </area_label>
                   </el-col>
                 </el-row>
@@ -64,7 +64,7 @@
                 </el-row>  
                 <el-row>
                   <el-col :span="24" >
-                    <area_label :labels="group.includes" :refreshInfo="{index: group_index, key: 'mandatory_dims'}" @refreshData="refreshMandatoryData"  :selectedlabels="group.select_rule.mandatory_dims" @change="refreshAggragation(group_index)"   @checklabel="showDetail"> 
+                    <area_label :labels="group.includes" :disabled="isReadyCube" :refreshInfo="{index: group_index, key: 'mandatory_dims'}" @refreshData="refreshMandatoryData"  :selectedlabels="group.select_rule.mandatory_dims" @change="refreshAggragation(group_index)"   @checklabel="showDetail"> 
                     </area_label>
                   </el-col>
                 </el-row>
@@ -75,7 +75,7 @@
                   <el-col :span="24">
                     <el-row class="row_padding" :gutter="10" v-for="(hierarchy_dims, hierarchy_index) in group.select_rule.hierarchy_dims" :key="hierarchy_index">
                        <el-col :span="23" >
-                        <area_label :labels="group.includes" :refreshInfo="{gindex: group_index, hindex: hierarchy_index, key: 'hierarchy_dims'}" @refreshData="refreshHierarchyData"  :selectedlabels="hierarchy_dims" @change="refreshAggragation(group_index)" @checklabel="showDetail"> 
+                        <area_label :labels="group.includes"  :disabled="isReadyCube" :refreshInfo="{gindex: group_index, hindex: hierarchy_index, key: 'hierarchy_dims'}" @refreshData="refreshHierarchyData"  :selectedlabels="hierarchy_dims" @change="refreshAggragation(group_index)" @checklabel="showDetail"> 
                         </area_label>
                       </el-col>  
                       <el-col :span="1">
@@ -99,7 +99,7 @@
                 <el-col :span="24">
                   <el-row class="row_padding" :gutter="10" v-for="(joint_dims, joint_index) in group.select_rule.joint_dims" :key="joint_index">
                     <el-col :span="23" >
-                      <area_label :labels="group.includes" :refreshInfo="{gindex: group_index, jindex: joint_index, key: 'joint_dims'}" @refreshData="refreshJointData"  :selectedlabels="joint_dims" @change="refreshAggragation(group_index)" @checklabel="showDetail"> 
+                      <area_label :labels="group.includes" :disabled="isReadyCube"  :refreshInfo="{gindex: group_index, jindex: joint_index, key: 'joint_dims'}" @refreshData="refreshJointData"  :selectedlabels="joint_dims" @change="refreshAggragation(group_index)" @checklabel="showDetail"> 
                       </area_label>
                     </el-col>
                     <el-col :span="1" >                
@@ -111,14 +111,14 @@
                </el-row> 
                <el-row>
                  <el-col :span="5">
-                  <el-button icon="plus" @click="addJointDims( group.select_rule.joint_dims)">
+                  <el-button icon="plus" :disabled="isReadyCube"  @click="addJointDims( group.select_rule.joint_dims)">
                   {{$t('newJoint')}}
                   </el-button>                 
                 </el-col>                    
               </el-row>
             </el-col>
             <el-col :span="1">            
-              <el-button type="danger" icon="minus" size="mini" @click="removeAggGroup(group_index)">
+              <el-button type="danger" :disabled="isReadyCube"  icon="minus" size="mini" @click="removeAggGroup(group_index)">
               </el-button>
             </el-col>
           </el-row>
@@ -127,7 +127,7 @@
     </el-row>
     <el-row class="row_padding border_bottom">
       <el-col :span="24">
-        <el-button icon="plus" @click="addAggGroup" class="table_margin">
+        <el-button icon="plus" @click="addAggGroup" :disabled="isReadyCube"  class="table_margin">
         {{$t('addAggregationGroups')}}
         </el-button>
       </el-col>
@@ -469,6 +469,7 @@ export default {
         }
       })
       this.initConvertedRowkeys()
+      console.log(this.currentRowkey, 77777)
     },
     initConvertedRowkeys: function () {
       this.convertedRowkeys = []
@@ -614,6 +615,11 @@ export default {
     // this.$dragging.$on('dragend', ({ value }) => {
     //   console.log(value)
     // })
+  },
+  computed: {
+    isReadyCube () {
+      return this.cubeDesc.status === 'READY'
+    }
   },
   locales: {
     'en': {dimensions: 'Dimensions', name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment', action: 'Action', addDimensions: 'Add Dimensions', editDimension: 'Edit Dimensions', filter: 'Filter...', cancel: 'Cancel', yes: 'Yes', aggregationGroups: 'Aggregation Groups', Includes: 'Includes', mandatoryDimensions: 'Mandatory Dimensions', hierarchyDimensions: 'Hierarchy Dimensions', jointDimensions: 'Joint Dimensions', addAggregationGroups: 'Aggregation Groups', newHierarchy: 'New Hierarchy', newJoint: 'New Joint', ID: 'ID', encoding: 'Encoding', length: 'Length', shardBy: 'Shard By', dataType: 'Data Type', resetDimensions: 'Reset', cubeSuggestion: 'Cube Suggestion'},

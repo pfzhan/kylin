@@ -216,7 +216,7 @@ import modelassets from './model_assets'
 import Draggable from 'draggable'
 import modelEditTool from 'components/model/model_edit_panel'
 import partitionColumn from 'components/model/model_partition.vue'
-import { handleSuccess, handleError } from 'util/business'
+import { handleSuccess, handleError, hasRole } from 'util/business'
 export default {
   name: 'modeledit',
   components: {
@@ -578,10 +578,11 @@ export default {
     },
     renderCubeTree (h, {node, data, store}) {
       var _this = this
+      var addCubeDom = this.isAdmin ? '<span style="width:40px;height:60px; text-align:center;margin-left:30px;font-size:18px;" class="addCube" >+</span>' : ''
       return this.$createElement('div', {
         class: [{'el-tree-node__label': true, 'leaf-label': node.isLeaf && node.level !== 1}, node.icon],
         domProps: {
-          innerHTML: node.level === 1 ? '<span>' + data.label + '</span><span style="width:40px;height:60px; text-align:center;margin-left:30px;font-size:18px;" class="addCube" >+</span>' : '<span>' + data.label + '</span>'
+          innerHTML: node.level === 1 ? '<span>' + data.label + '</span>' + addCubeDom : '<span>' + data.label + '</span>'
         },
         attrs: {
           title: data.label,
@@ -1890,6 +1891,9 @@ export default {
         return true
       }
       return false
+    },
+    isAdmin () {
+      return hasRole(this, 'ROLE_ADMIN')
     },
     encodings () {
       var arr = []

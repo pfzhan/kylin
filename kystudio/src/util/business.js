@@ -146,6 +146,33 @@ export function hasPermissionOfCube (vue, cubeId) {
       }
     })
   }
+  console.log(hasPermission, 89111)
+  return hasPermission
+}
+
+// 检测是否有cube的某种权限
+export function hasPermissionOfModel (vue, modelId) {
+  var entity = vue.$store.state.model.modelAccess[modelId]
+  var curUser = vue.$store.state.user.currentUser
+  if (!curUser) {
+    return curUser
+  }
+  var hasPermission = false
+  var masks = []
+  for (var i = 2; i < arguments.length; i++) {
+    if (arguments[i]) {
+      masks.push(arguments[i])
+    }
+  }
+  if (entity) {
+    entity.forEach((acessEntity, index) => {
+      if (masks.indexOf(acessEntity.permission.mask) !== -1) {
+        if ((curUser.username === acessEntity.sid.principal)) {
+          hasPermission = true
+        }
+      }
+    })
+  }
   return hasPermission
 }
 // 检测当前用户是否有某种角色

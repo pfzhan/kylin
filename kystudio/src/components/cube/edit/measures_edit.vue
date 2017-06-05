@@ -60,8 +60,8 @@
       align="center"
       width="100">
       <template scope="scope">
-        <el-button type="success"  size="mini" icon="edit" @click="editMeasure(scope.row)"></el-button>
-        <el-button type="danger"  size="mini" icon="delete" @click="removeMeasure(scope.row, scope.$index)"></el-button>
+        <el-button type="success"  size="mini" icon="edit" :disabled="isReadyCube"  @click="editMeasure(scope.row)"></el-button>
+        <el-button type="danger"  size="mini" icon="delete" :disabled="isReadyCube" @click="removeMeasure(scope.row, scope.$index)"></el-button>
       </template>
     </el-table-column>                         
   </el-table>
@@ -380,6 +380,9 @@ export default {
     isPlusVersion () {
       var kapVersionInfo = this.$store.state.system.serverAboutKap
       return kapVersionInfo && kapVersionInfo['kap.version'] && kapVersionInfo['kap.version'].indexOf('Plus') !== -1
+    },
+    isReadyCube () {
+      return this.cubeDesc.status === 'READY'
     }
   },
   created () {

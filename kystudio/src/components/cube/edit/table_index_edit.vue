@@ -247,7 +247,7 @@ export default {
       }
     }
   },
-  created () {
+  mounted () {
     let _this = this
     if (_this.rawTableUsable) {
       console.log(1)

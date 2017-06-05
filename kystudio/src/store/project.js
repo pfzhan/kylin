@@ -37,8 +37,13 @@ export default {
         commit(types.SAVE_PROJECT_LIST, {list: response.data.data.readableProjects, size: response.data.data.size})
       })
     },
-    [types.LOAD_ALL_PROJECT]: function ({ commit }, params) {
-      return api.project.getProjectList().then((response) => {
+    [types.LOAD_ALL_PROJECT]: function ({ dispatch, commit }, params) {
+      return api.project.getProjectList({pageOffset: 0, pageSize: 100000}).then((response) => {
+        // 加载project所有的权限
+        var pl = response.data.data.readableProjects && response.data.data.readableProjects.length || 0
+        for (var i = 0; i < pl; i++) {
+          dispatch(types.GET_PROJECT_ACCESS, response.data.data.readableProjects[i].uuid)
+        }
         commit(types.CACHE_ALL_PROJECTS, {list: response.data.data.readableProjects})
       })
     },

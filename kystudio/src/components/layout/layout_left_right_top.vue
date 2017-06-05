@@ -13,9 +13,9 @@
     </aside>
     <div class="topbar">
       <icon name="bars" v-on:click.native="toggleMenu"></icon>
-      <project_select class="project_select" v-show="gloalProjectSelectShow" v-on:changePro="changeProject" ref="projectSelect"></project_select>
-      <el-button v-show="gloalProjectSelectShow" :class="{'isProjectPage':defaultActive==='projectActive'}" @click="goToProjectList"><icon name="window-restore" scale="0.8"></icon></el-button>
-      <el-button @click="addProject" v-show="gloalProjectSelectShow"><icon name="plus" scale="0.8"></icon></el-button>
+      <project_select class="project_select" v-on:changePro="changeProject" ref="projectSelect"></project_select>
+      <el-button  :class="{'isProjectPage':defaultActive==='projectActive'}" @click="goToProjectList"><icon name="window-restore" scale="0.8"></icon></el-button>
+      <el-button @click="addProject" v-show="isModeler"><icon name="plus" scale="0.8"></icon></el-button>
 
       <ul class="topUl">
         <li><help></help></li>
@@ -134,30 +134,7 @@
       help
     },
     created () {
-      let hash = location.hash.replace(/#/, '')
-      var matched = false
-      for (let i = 0; i < this.menus.length; i++) {
-        if (hash.indexOf(this.menus[i].name) >= 0) {
-          this.currentPathName = this.menus[i].name
-          this.defaultActive = hash
-          if (this.menus[i].name === 'studio') {
-            this.defaultActive = '/studio/datasource'
-          }
-          matched = true
-          break
-        }
-      }
-      if (!matched) {
-        this.defaultActive = ''
-        if (hash === '/project') {
-          this.defaultActive = 'projectActive'
-        } else {
-          this.defaultActive = hash
-          if (hash.indeOf('studio')) {
-            this.defaultActive = '/studio/datasource'
-          }
-        }
-      }
+      this.reloadRouter()
       this.getConf()
       this.getEncoding()
       this.getAboutKap()
@@ -175,6 +152,7 @@
         getCurUserInfo: 'USER_AUTHENTICATION',
         getEncoding: 'GET_ENCODINGS',
         loadProjects: 'LOAD_PROJECT_LIST',
+        loadAllProjects: 'LOAD_ALL_PROJECT',
         resetPassword: 'RESET_PASSWORD',
         getAboutKap: 'GET_ABOUTKAP'
       }),
@@ -186,6 +164,31 @@
           return false
         }
         return true
+      },
+      reloadRouter () {
+        let hash = location.hash.replace(/#/, '')
+        var matched = false
+        for (let i = 0; i < this.menus.length; i++) {
+          if (hash.indexOf(this.menus[i].name) >= 0) {
+            this.currentPathName = this.menus[i].name
+            this.defaultActive = hash
+            if (this.menus[i].name === 'studio') {
+              this.defaultActive = '/studio/datasource'
+            }
+            matched = true
+            break
+          }
+        }
+        if (!matched) {
+          if (hash === '/project') {
+            this.defaultActive = 'projectActive'
+          } else {
+            this.defaultActive = hash
+            if (hash.indeOf('studio')) {
+              this.defaultActive = '/studio/datasource'
+            }
+          }
+        }
       },
       getLicense () {
         location.href = './api/kap/system/requestLicense'
@@ -209,37 +212,27 @@
         this.$refs.projectForm.$emit('projectFormValid')
       },
       validSuccess (data) {
-        let _this = this
         this.saveProject(JSON.stringify(data)).then((result) => {
           this.$message({
             type: 'success',
-            message: '保存成功!'
+            message: this.$t('kylinLang.common.saveSuccess')
           })
-          _this.loadProjects()
+          // this.loadProjects()
+          this.loadAllProjects()
         }, (res) => {
-          handleError(res, (data, code, status, msg) => {
-            if (status === 400) {
-              this.$message({
-                type: 'success',
-                message: msg
-              })
-            }
-          })
+          handleError(res)
         })
         this.FormVisible = false
       },
       onSubmit () {
-        console.log('submit!')
       },
       handleopen () {
       },
       handleclose () {
       },
       handleselect: function (a, b) {
-        if (a === '/project') {
-          this.defaultActive = 'projectActive'
-        } else {
-          this.defaultActive = ''
+        if (a !== '/project') {
+          this.defaultActive = a
         }
       },
       toggleMenu: function () {
@@ -325,6 +318,9 @@
       },
       kapVersion () {
         return this.defaultVal(this.kapInfo && this.kapInfo['kap.version'] || null)
+      },
+      isModeler () {
+        return hasRole(this, 'ROLE_MODELER')
       }
     },
     mounted () {

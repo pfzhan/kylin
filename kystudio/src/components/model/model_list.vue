@@ -1,17 +1,17 @@
 <template>
 	<div class="paddingbox modelist_box">
-    <el-button type="primary" class="ksd-mb-10" @click="addModel">+{{$t('kylinLang.common.model')}}</el-button>
+    <el-button type="primary" class="ksd-mb-10" v-if="isAdmin" @click="addModel">+{{$t('kylinLang.common.model')}}</el-button>
     <br/>
-    <p class="ksd-right"> <icon @click.native="changeGridModal('card')" name="newspaper-o" :class="{active: viewModal==='card'}"> </icon> <icon @click.native="changeGridModal('list')"  :class="{active: viewModal!=='card'}" name="reorder"></icon></p>
+    <p class="ksd-right" v-if="modelsList&&modelsList.length"> <icon @click.native="changeGridModal('card')" name="newspaper-o" :class="{active: viewModal==='card'}"> </icon> <icon @click.native="changeGridModal('list')"  :class="{active: viewModal!=='card'}" name="reorder"></icon></p>
 		<el-row :gutter="20" v-if="viewModal==='card'">
 		  <el-col :span="8"  v-for="(o, index) in modelsList" :key="o.uuid" :style="{height:'152px'}">
 		    <el-card :body-style="{ padding: '0px'}" style="height:100%">
 		      <p class="title">Last updated {{ o.gmtTime }}
-					<el-dropdown @command="handleCommand" :id="o.name" trigger="click">
-					  <span class="el-dropdown-link">
+					<el-dropdown @command="handleCommand" :id="o.name" trigger="click"  v-if="isAdmin || hasPermission(o.uuid)"
+					  <span class="el-dropdown-link" v-if="isAdmin || hasPermission(o.uuid)">
 					    <icon name="ellipsis-h"></icon>
 					  </span>
-					  <el-dropdown-menu slot="dropdown"  :uuid='o.uuid'>
+					  <el-dropdown-menu slot="dropdown"  :uuid='o.uuid' >
               <el-dropdown-item command="cube" v-if="!o.is_draft">{{$t('addCube')}}</el-dropdown-item>
 					    <el-dropdown-item command="edit">{{$t('kylinLang.common.edit')}}</el-dropdown-item>
 					    <el-dropdown-item command="clone" v-if="!o.is_draft">{{$t('kylinLang.common.clone')}}</el-dropdown-item>
@@ -73,11 +73,12 @@
       prop="gmtTime"
       label="Last Upated Time">
     </el-table-column>
-     <el-table-column class="ksd-center"
+     <el-table-column class="ksd-center" 
       width="100"
       label="Action">
        <template scope="scope">
-        <el-dropdown @command="handleCommand" :id="scope.row.name" trigger="click">
+       <span v-if="!(isAdmin || hasPermission(scope.row.uuid))"> N/A</span>
+        <el-dropdown @command="handleCommand" :id="scope.row.name" trigger="click" v-if="isAdmin || hasPermission(scope.row.uuid)">
            <el-button class="el-dropdown-link">
             <i class="el-icon-more"></i>
           </el-button >
@@ -202,8 +203,8 @@
 <script>
 import { mapActions } from 'vuex'
 import cubeList from '../cube/cube_list'
-import { pageCount, modelHealthStatus } from '../../config'
-import { transToGmtTime, handleError, handleSuccess, kapConfirm } from 'util/business'
+import { pageCount, modelHealthStatus, permissions } from '../../config'
+import { transToGmtTime, handleError, handleSuccess, kapConfirm, hasRole, hasPermissionOfModel } from 'util/business'
 export default {
   data () {
     return {
@@ -622,6 +623,9 @@ export default {
           noUseCallback()
         })
       })
+    },
+    hasPermission (modelId) {
+      return hasPermissionOfModel(this, modelId, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask)
     }
   },
   computed: {
@@ -642,6 +646,9 @@ export default {
     },
     modelHelth () {
       return this.$store.state.model.modelsDianoseList
+    },
+    isAdmin () {
+      return hasRole(this, 'ROLE_ADMIN')
     }
   },
   created () {

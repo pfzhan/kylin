@@ -27,6 +27,7 @@ exports.default = {
     status: '状态',
     // 业务词汇
     model: '模型',
+    project: '项目',
     cube: 'cube',
     models: '模型',
     cubes: 'cubes',

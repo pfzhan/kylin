@@ -1,5 +1,6 @@
 <template>
   <div class="paddingbox">
+ <el-button type="primary" class="ksd-mb-10" v-if="isModeler" @click="addProject">+{{$t('kylinLang.common.project')}}</el-button>
   <el-table
     :data="projectList"
     style="width: 100%">
@@ -40,14 +41,15 @@
       :label="$t('createTime')"
       prop="gmtTime">
     </el-table-column>   
-    <el-table-column
+    <el-table-column 
       :label="$t('action')">
       <template scope="scope">
-      <el-dropdown trigger="click">
+      <span v-if="!(isAdmin || hasSomePermission(scope.row.uuid))">N/A</span>
+      <el-dropdown trigger="click" v-if="isAdmin || hasSomePermission(scope.row.uuid)">
       <el-button class="el-dropdown-link">
         <i class="el-icon-more"></i>
       </el-button >
-      <el-dropdown-menu slot="dropdown">
+      <el-dropdown-menu slot="dropdown" >
         <el-dropdown-item @click.native="editProject(scope.row)">{{$t('edit')}}</el-dropdown-item> 
         <el-dropdown-item @click.native="backup(scope.row)">{{$t('backup')}}</el-dropdown-item>
         <el-dropdown-item @click.native="removeProject(scope.row)">{{$t('delete')}}</el-dropdown-item>
@@ -75,12 +77,14 @@ import accessEdit from './access_edit'
 import filterEdit from './filter_edit'
 import projectEdit from './project_edit'
 import projectConfig from './project_config'
-import { handleSuccess, handleError, transToGmtTime } from '../../util/business'
+import { permissions } from '../../config/index'
+import { handleSuccess, handleError, transToGmtTime, hasPermission, hasRole } from '../../util/business'
 export default {
   name: 'projectlist',
   methods: {
     ...mapActions({
       loadProjects: 'LOAD_PROJECT_LIST',
+      loadAllProjects: 'LOAD_ALL_PROJECT',
       deleteProject: 'DELETE_PROJECT',
       updateProject: 'UPDATE_PROJECT',
       saveProject: 'SAVE_PROJECT',
@@ -116,21 +120,21 @@ export default {
     pageCurrentChange (currentPage) {
       this.loadProjects({pageOffset: currentPage - 1, pageSize: this.pageSize})
     },
+    addProject () {
+      this.FormVisible = true
+      this.project = {name: '', description: '', override_kylin_properties: {}}
+    },
     validSuccess (data) {
-      let _this = this
-      console.log(9990)
       if (this.project.uuid) {
         this.updateProject({name: this.project.name, desc: JSON.stringify(data)}).then((result) => {
           this.$message({
             type: 'success',
             message: this.$t('saveSuccessful')
           })
-          _this.loadProjects()
-        }, (result) => {
-          this.$message({
-            type: 'info',
-            message: this.$t('saveFailed')
-          })
+          this.loadProjects()
+          this.loadAllProjects()
+        }, (res) => {
+          handleError(res)
         })
       } else {
         this.saveProject(JSON.stringify(data)).then((result) => {
@@ -138,18 +142,10 @@ export default {
             type: 'success',
             message: this.$t('saveSuccessful')
           })
-          console.log(result)
           this.loadProjects()
+          this.loadAllProjects()
         }, (res) => {
-          handleError(res, (data, code, status, msg) => {
-            console.log(data, code, status, msg)
-            if (status === 400) {
-              this.$message({
-                type: 'success',
-                message: msg
-              })
-            }
-          })
+          handleError(res)
         })
       }
       this.FormVisible = false
@@ -166,9 +162,10 @@ export default {
         this.deleteProject(project.name).then((result) => {
           this.$message({
             type: 'success',
-            message: this.$t('delSuccess')
+            message: this.$t('kylinLang.common.delSuccess')
           })
           this.loadProjects()
+          this.loadAllProjects()
         }, (res) => {
           handleError(res)
         })
@@ -193,6 +190,9 @@ export default {
         principal: true,
         sid: ''
       }
+    },
+    hasSomePermission (pid) {
+      return hasPermission(this, pid, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask)
     },
     resetProjectForm () {
       this.$refs['projectForm'].$refs['projectForm'].resetFields()
@@ -245,6 +245,12 @@ export default {
     },
     projectsTotal () {
       return this.$store.state.project.projectTotalSize
+    },
+    isAdmin () {
+      return hasRole(this, 'ROLE_ADMIN')
+    },
+    isModeler () {
+      return hasRole(this, 'ROLE_MODELER')
     }
   },
   created () {

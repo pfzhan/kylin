@@ -5,6 +5,7 @@
     @remove-tag="removeTag"
     @change="change"
     style="width:100%"
+    :disabled='disabled'
     multiple
     :popper-class="changeable"
     :placeholder="placeholder">
@@ -20,7 +21,7 @@
 <script>
 export default {
   name: 'labelArea',
-  props: ['labels', 'refreshInfo', 'selectedlabels', 'placeholder', 'changeable', 'datamap'],
+  props: ['labels', 'refreshInfo', 'selectedlabels', 'placeholder', 'changeable', 'datamap', 'disabled'],
   data () {
     return {
       selectedL: this.selectedlabels
@@ -49,7 +50,7 @@ export default {
       // console.log(e, 9999)
       // var ev = ev || window.event
       // var target = ev.target || ev.srcElement
-      // this.$emit('change', target.innerText, target)
+      this.$emit('change')
       this.$emit('refreshData', this.selectedL, this.refreshInfo)
       // this.refreshData = this.selectedL
       // Object.assign(this.refreshData, [], this.selectedL)
@@ -76,6 +77,7 @@ export default {
     this.$refs.select.$refs.tags.onclick = function (e) {
       console.log(e, 788)
       _this.selectTag(e)
+      e.stoppropagation()
     }
   }
 }

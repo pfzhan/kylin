@@ -1,6 +1,6 @@
 <template>
   <div class="paddingbox ksd-common-tab monitor">
-    <el-tabs v-model="activeName" type="card" >
+    <el-tabs v-model="activeName" type="card" v-if="isAdmin">
       <el-tab-pane :label="$t('jobs')" name="jobs">
         <jobs></jobs>
       </el-tab-pane>
@@ -13,6 +13,7 @@
 <script>
 import jobs from './jobs_list'
 import slowQueries from './slow_queries'
+import { hasRole } from '../../util/business'
 export default {
   data () {
     return {
@@ -25,6 +26,11 @@ export default {
     this.$nextTick(() => {
       this.activeName = 'jobs'
     })
+  },
+  computed: {
+    isAdmin () {
+      return hasRole(this, 'ROLE_ADMIN')
+    }
   },
   components: {
     'jobs': jobs,
