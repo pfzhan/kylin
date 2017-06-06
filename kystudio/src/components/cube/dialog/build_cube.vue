@@ -25,7 +25,7 @@ export default {
   data () {
     return {
       timeZone: {
-        startDate: transToUtcTimeFormat((this.cubeDesc.segments[this.cubeDesc.segments.length - 1]) ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].last_build_time : this.cubeDesc.partitionDateStart),
+        startDate: transToUtcTimeFormat((this.cubeDesc.segments[this.cubeDesc.segments.length - 1]) ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].date_range_end : this.cubeDesc.partitionDateStart),
         endDate: null
       },
       rules: {

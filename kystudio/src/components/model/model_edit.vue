@@ -183,7 +183,7 @@
               <el-table-column
                 label="操作">
                 <template scope="scope">
-                  <el-button type="primary" size="small">编辑</el-button>
+                  <el-button type="primary" size="small">{{$t('kylinLang.common.edit')}}</el-button>
                    <confirm-btn  v-on:okFunc='delComputedColumn(scope.row)' :tips="$t('kylinLang.common.confirmDel')"><el-button size="small"
           type="danger">{{$t('kylinLang.common.drop')}}</el-button></confirm-btn>
                 </template>
@@ -641,6 +641,8 @@ export default {
     },
     delComputedColumn (column) {
       this.changeComputedColumnDisable(column.tableIdentity, column.columnName, false)
+      var tableList = this.getSameOriginTables(column.tableIdentity.split('.')[0], column.tableIdentity.split('.')[1])
+      this.editTableColumnInfo(tableList[0].guid, 'name', column.columnName, 'btype', '-')
       this.refreshComputed()
     },
     saveComputedColumn: function (guid) {
@@ -1553,9 +1555,7 @@ export default {
         this.$set(this.modelInfo, 'modelName', this.extraoption.modelName)
         return
       }
-      console.log(this.extraoption, 8899)
       var actionModelName = this.extraoption.status ? this.extraoption.modelName + '_draft' : this.extraoption.modelName
-      console.log(this.extraoption.status, actionModelName, 889900)
       // 编辑模式
       this.getModelByModelName(actionModelName).then((response) => {
         handleSuccess(response, (data) => {
@@ -1769,10 +1769,14 @@ export default {
       if (!guid) {
         return
       }
+      this.currentTableComputedColumns.splice(0)
       var tableInfo = this.getTableInfoByGuid(guid)
-      return this.modelInfo.computed_columns.filter((computedColumn) => {
-        return computedColumn.tableIdentity === tableInfo.database + '.' + tableInfo.name && computedColumn.diabled !== false
+      this.modelInfo.computed_columns.filter((computedColumn) => {
+        if (computedColumn.tableIdentity === tableInfo.database + '.' + tableInfo.name && computedColumn.disabled !== false) {
+          this.currentTableComputedColumns.push(computedColumn)
+        }
       })
+      console.log(this.currentTableComputedColumns, 9999)
     },
     jsplumbZoom: function (zoom, instance, transformOrigin, el) {
       transformOrigin = transformOrigin || [0.5 + 460 / 40000, 0.5 + 180 / 40000]
@@ -1945,7 +1949,14 @@ export default {
       return arr
     },
     currentTableComputedColumns () {
-      this.refreshComputed()
+      var guid = this.computedColumn.guid
+      if (!guid) {
+        return
+      }
+      var tableInfo = this.getTableInfoByGuid(guid)
+      return this.modelInfo.computed_columns.filter((computedColumn) => {
+        return computedColumn.tableIdentity === tableInfo.database + '.' + tableInfo.name && computedColumn.disabled !== false
+      })
     }
   },
   created () {

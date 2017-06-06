@@ -4,15 +4,16 @@ var path = require('path')
 var proxyTable = {}
 var argvs = process.argv.slice(2)
 if (argvs && argvs.indexOf('proxy') !== -1) {
+  var proxyHost = 'http://localhost:7070'
   proxyTable = {
     '/kylin/api': {
-      target: 'http://localhost:7070',
+      target: proxyHost,
       pathRewrite: {
         '^/kylin': '/kylin'
       }
     },
     '/kylin/j_spring_security_logout': {
-      target: 'http://localhost:8080',
+      target: proxyHost,
       pathRewrite: {
         '^/kylin': '#/kylin'
       }

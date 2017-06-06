@@ -175,8 +175,8 @@
                 </el-option>
               </el-select>
           </el-col>
-          <el-col :span="4"> {{modelDesc.columnsDetail&&modelDesc.columnsDetail[row.column].datatype}}</el-col>
-          <el-col :span="2">{{modelDesc.columnsDetail&&modelDesc.columnsDetail[row.column].cardinality}}</el-col>
+          <el-col :span="4"> {{modelDesc.columnsDetail&&modelDesc.columnsDetail[row.column]&&modelDesc.columnsDetail[row.column].datatype}}</el-col>
+          <el-col :span="2">{{modelDesc.columnsDetail&&modelDesc.columnsDetail[row.column]&&modelDesc.columnsDetail[row.column].cardinality}}</el-col>
         </el-row>
         </div>
     </el-col>
