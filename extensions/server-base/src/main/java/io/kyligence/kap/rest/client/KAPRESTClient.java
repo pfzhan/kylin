@@ -25,7 +25,6 @@
 package io.kyligence.kap.rest.client;
 
 import java.io.IOException;
-import java.util.Map;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -74,7 +73,8 @@ public class KAPRESTClient extends RestClient {
         return filterName;
     }
 
-    public SequenceSQLResponse dispatchSequenceSQLExecutionToWorker(int totalWorkers, int workerID, SequenceSQLRequest originalRequest) throws IOException {
+    public SequenceSQLResponse dispatchSequenceSQLExecutionToWorker(int totalWorkers, int workerID,
+            SequenceSQLRequest originalRequest) throws IOException {
         long startTime = System.currentTimeMillis();
         ShardedSequenceSQLRequest request = new ShardedSequenceSQLRequest();
         request.setWorkerCount(totalWorkers);
@@ -101,10 +101,12 @@ public class KAPRESTClient extends RestClient {
             String msg = EntityUtils.toString(response.getEntity());
 
             if (response.getStatusLine().getStatusCode() != 200)
-                throw new IOException("Invalid response " + response.getStatusLine().getStatusCode() + " with shardable query  " + url + "\n" + msg);
+                throw new IOException("Invalid response " + response.getStatusLine().getStatusCode()
+                        + " with shardable query  " + url + "\n" + msg);
 
             SequenceSQLResponse sequenceSQLResponse = JsonUtil.readValue(msg, SequenceSQLResponse.class);
-            logger.info("KAPRESTClient {} dispatchSequenceSQLExecutionToWorker finished in {} millis", url, System.currentTimeMillis() - startTime);
+            logger.info("KAPRESTClient {} dispatchSequenceSQLExecutionToWorker finished in {} millis", url,
+                    System.currentTimeMillis() - startTime);
             return sequenceSQLResponse;
         } catch (Exception ex) {
             throw new IOException(ex);
@@ -125,10 +127,12 @@ public class KAPRESTClient extends RestClient {
             String msg = EntityUtils.toString(response.getEntity());
 
             if (response.getStatusLine().getStatusCode() != 200)
-                throw new IOException("Invalid response " + response.getStatusLine().getStatusCode() + " when collecting results from  " + url + "\n" + msg);
+                throw new IOException("Invalid response " + response.getStatusLine().getStatusCode()
+                        + " when collecting results from  " + url + "\n" + msg);
 
             SequenceSQLResponse sequenceSQLResponse = JsonUtil.readValue(msg, SequenceSQLResponse.class);
-            logger.info("KAPRESTClient {} collectSequenceSQLResultFromWorker finished in {} millis", url, System.currentTimeMillis() - startTime);
+            logger.info("KAPRESTClient {} collectSequenceSQLResultFromWorker finished in {} millis", url,
+                    System.currentTimeMillis() - startTime);
             return sequenceSQLResponse;
 
         } catch (Exception ex) {
@@ -150,10 +154,12 @@ public class KAPRESTClient extends RestClient {
             String msg = EntityUtils.toString(response.getEntity());
 
             if (response.getStatusLine().getStatusCode() != 200)
-                throw new IOException("Invalid response " + response.getStatusLine().getStatusCode() + " when collecting stats from  " + url + "\n" + msg);
+                throw new IOException("Invalid response " + response.getStatusLine().getStatusCode()
+                        + " when collecting stats from  " + url + "\n" + msg);
 
             String ret = msg;
-            logger.info("KAPRESTClient {} collectStatsFromWorker finished in {} millis", url, System.currentTimeMillis() - startTime);
+            logger.info("KAPRESTClient {} collectStatsFromWorker finished in {} millis", url,
+                    System.currentTimeMillis() - startTime);
             return ret;
 
         } catch (Exception ex) {
@@ -170,11 +176,12 @@ public class KAPRESTClient extends RestClient {
             HttpResponse response = client.execute(get);
             String msg = EntityUtils.toString(response.getEntity());
             if (response.getStatusLine().getStatusCode() != 200)
-                throw new IOException("Invalid response " + response.getStatusLine().getStatusCode() + " when collecting results from  " + url + "\n" + msg);
-            Map<String, String> sparkResponse = JsonUtil.readValueAsMap(msg);
+                throw new IOException("Invalid response " + response.getStatusLine().getStatusCode()
+                        + " when collecting results from  " + url + "\n" + msg);
+
+            int execNum = Integer.valueOf(JsonUtil.readValueAsTree(msg).get("data").get("v").asText());
 
             byte[] bytes = new byte[4];
-            int execNum = Integer.parseInt(sparkResponse.get("v"));
 
             BytesUtil.writeUnsigned(execNum, bytes, 0, bytes.length);
             byte tmp = bytes[0];
