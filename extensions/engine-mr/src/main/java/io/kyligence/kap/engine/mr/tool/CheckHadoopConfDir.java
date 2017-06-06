@@ -31,7 +31,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 
-public class CheckHadoopConfDir {
+import io.kyligence.kap.common.obf.IKeep;
+
+public class CheckHadoopConfDir implements IKeep {
     
     public static String CHECKENV_REPORT_PFX = ">   ";
 
