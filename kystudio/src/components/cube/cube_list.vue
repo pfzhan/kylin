@@ -294,7 +294,7 @@ export default {
     edit: function (cube) {
       this.$emit('addtabs', 'cube', cube.name, 'cubeEdit', {
         project: cube.project,
-        cubeName: cube.name,
+        cubeName: cube.is_draft ? cube.name + '_draft' : cube.name,
         modelName: cube.model,
         isEdit: true
       })

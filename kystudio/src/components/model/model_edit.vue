@@ -148,7 +148,8 @@
       </el-dialog>
        <el-dialog title="Computed Column" v-model="computedColumnFormVisible" size="small">
           <div>
-            <el-form label-position="top"  ref="computedColumnForm">
+            <el-button type="primary" class="ksd-mb-10" v-show="!openAddComputedColumnForm" @click="openAddComputedColumnForm = true">{{$t('kylinLang.common.add')}}</el-button>
+            <el-form label-position="top"  ref="computedColumnForm" v-show="openAddComputedColumnForm">
               <el-form-item label="name" >
                 <el-input  auto-complete="off" v-model="computedColumn.name"></el-input>
               </el-form-item>
@@ -156,22 +157,14 @@
                 <el-input type="textarea"  auto-complete="off" v-model="computedColumn.expression"></el-input>
               </el-form-item>
               <el-form-item label="returnType" >
-           <!--    <el-select v-model="computedColumn.returnType" placeholder="请选择">
-                <el-option  
-                  v-for="item in encodings"
-                  :key="item.name"
-                  :label="item.name"
-                  :value="item.name">
-                </el-option>
-              </el-select> -->
                 <el-input  auto-complete="off" v-model="computedColumn.returnType"></el-input>
               </el-form-item>  
-              <!-- <el-form-item label="comment" >
-                <el-input type="textarea"  auto-complete="off" v-model="computedColumn.comment"></el-input>
-              </el-form-item>  --> 
+              <el-form-item>
+                <el-button type="primary" @click="saveComputedColumn;openAddComputedColumnForm=false">{{$t('kylinLang.common.submit')}}</el-button>
+              </el-form-item>
             </el-form>
             <el-table
-              :data="modelInfo.computed_columns"
+              :data="currentTableComputedColumns"
               style="width: 100%">
               <el-table-column
                 prop="columnName"
@@ -187,11 +180,18 @@
                 prop="datatype"
                 label="返回类型">
               </el-table-column>
+              <el-table-column
+                label="操作">
+                <template scope="scope">
+                  <el-button type="primary" size="small">编辑</el-button>
+                  <el-button type="danger" size="small">删除</el-button>
+                </template>
+              </el-table-column>
             </el-table>
           </div>
             <span slot="footer" class="dialog-footer">
             <el-button @click="computedColumnFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
-            <el-button type="primary" @click="saveComputedColumn">{{$t('kylinLang.common.submit')}}</el-button>
+            <el-button type="primary" @click="computedColumnFormVisible = false">{{$t('kylinLang.common.ok')}}</el-button>
           </span>
         </el-dialog>
       <model-tool :modelInfo="modelInfo" :actionMode="actionMode" :editLock="editLock" :compeleteModelId="modelData&&modelData.uuid||null" :columnsForTime="timeColumns" :columnsForDate="dateColumns"  :activeName="submenuInfo.menu1" :activeNameSub="submenuInfo.menu2" :tableList="tableList" :partitionSelect="partitionSelect"  :selectTable="currentSelectTable" ref="modelsubmenu"></model-tool>
@@ -245,6 +245,7 @@ export default {
   props: ['extraoption'],
   data () {
     return {
+      openAddComputedColumnForm: false,
       createCubeVisible: false,
       openModelCheck: true,
       modelStaticsRange: 100,
@@ -363,6 +364,7 @@ export default {
       switchWidth: 100,
       dialogVisible: false,
       computedColumnFormVisible: false,
+      // currentTableComputedColumns: [],
       deleteLinkTips: '你确认要删除该连接吗？',
       selectColumn: {},
       plumbInstance: null,
@@ -624,7 +626,16 @@ export default {
       this.$set(this.currentSelectTable, 'tablename', tablename || '')
     },
     addComputedColumn: function (guid) {
+      this.computedColumn = {
+        guid: '',
+        name: '',
+        expression: '',
+        returnType: ''
+      }
       this.computedColumn.guid = guid
+      var tableInfo = this.getTableInfoByGuid(guid)
+      console.log(tableInfo, 9999)
+      this.currentTableComputedColumns = []
       this.computedColumnFormVisible = true
     },
     saveComputedColumn: function (guid) {
@@ -635,6 +646,7 @@ export default {
           message: columnName + this.$t('addComputedColumnSuccess'),
           type: 'success'
         })
+        // this.computedColumnFormVisible = false
       })
     },
     getPartitionDateColumns: function () {
@@ -675,6 +687,7 @@ export default {
       var guid = this.computedColumn.guid
       var databaseInfo = this.getTableInfoByGuid(guid)
       var sameTables = this.getSameOriginTables(databaseInfo.database, databaseInfo.name)
+      console.log(guid, databaseInfo, sameTables, 111888)
       if (!this.checkSameColumnName(guid, this.computedColumn.name)) {
         var columnObj = {
           name: this.computedColumn.name,
@@ -695,13 +708,6 @@ export default {
         })
         if (!isInit) {
           this.modelInfo.computed_columns.push(computedObj)
-        }
-        this.computedColumnFormVisible = false
-        this.computedColumn = {
-          guid: '',
-          name: '',
-          expression: '',
-          returnType: ''
         }
         if (typeof callback === 'function') {
           callback(computedObj.columnName)
@@ -1924,6 +1930,17 @@ export default {
         })
       }
       return arr
+    },
+    currentTableComputedColumns () {
+      var guid = this.computedColumn.guid
+      if (!guid) {
+        return
+      }
+      console.log(guid, 99001)
+      var tableInfo = this.getTableInfoByGuid(guid)
+      return this.modelInfo.computed_columns.filter((computedColumn) => {
+        return computedColumn.tableIdentity === tableInfo.database + '.' + tableInfo.name
+      })
     }
   },
   created () {
