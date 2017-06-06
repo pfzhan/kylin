@@ -79,7 +79,7 @@
               password: this.kyBotAccount.password
             }
             this.loginKybot(param).then((result) => { // 登录
-              handleSuccess(result, (data, code, status, msg) => {
+              handleSuccess(result, (data, code, msg) => {
                 this.loginLoading = false
                 // A首先获取有没有开启过自动上传的服务，开启了则更新switch的按钮状态其他什么都不做
                 // B否则
@@ -110,7 +110,10 @@
                     })
                   })
                 } else {
-                  handleError(msg)
+                  this.$message({
+                    type: 'error',
+                    message: msg
+                  })
                 }
               }, (res) => {
                 handleError(res)

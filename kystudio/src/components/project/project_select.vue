@@ -1,12 +1,14 @@
 <template>
-   <el-select  :placeholder="$t('kylinLang.project.selectProject')" v-model="selected_project" @change="changeProject">
-    <el-option
+  <div class="project_select">
+    <el-select  :placeholder="$t('kylinLang.project.selectProject')" v-model="selected_project" @change="changeProject">
+      <el-option
       v-for="item in projectList" :key="item.name"
       :label="item.name"
       :value="item.name"
       >
-    </el-option>
-  </el-select>
+      </el-option>
+    </el-select>
+  </div>
 </template>
 <script>
 import { mapActions } from 'vuex'
@@ -48,6 +50,13 @@ export default {
   }
 }
 </script>
-<style scoped="">
-
+<style lang="less">
+  .project_select {
+    input {
+      width: 220px;
+      background: #393e53;
+      border: 0;
+      color: #fff;
+    }
+  }
 </style>
