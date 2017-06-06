@@ -1,6 +1,8 @@
 <template>
-<el-button v-if="lang=='en'" @click="changeLang">EN</el-button>
-<el-button v-else @click="changeLang">中</el-button>
+<div class="change_lang">
+  <el-button v-if="lang=='en'" @click="changeLang">EN</el-button>
+  <el-button v-else @click="changeLang">中</el-button>
+</div>
 </template>
 <script>
   import Vue from 'vue'
@@ -42,8 +44,15 @@
     }
   }
 </script>
-<style scoped="">
- .el-button{
-  border:none;
- }
+<style lang="less">
+.change_lang {
+  button {
+    background: transparent;
+    color: #fff;
+  }
+  .el-button{
+    border:none;
+  }
+}
+ 
 </style>

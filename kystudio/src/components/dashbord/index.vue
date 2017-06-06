@@ -2,7 +2,7 @@
 <div id="dashbord" class="paddingbox">
   <el-row :gutter="30">
     <el-col :span="8">
-      <div class="grid-content bg-purple">
+      <div class="grid-content grid-project bg-purple">
     	<el-card class="box-card box-project">
 		  <div slot="header" class="clearfix">
 		    <span style="line-height: 36px;">Project</span>
@@ -205,7 +205,7 @@ export default {
 		color: @fff;
 	}
 	#dashbord{
-		.box-project {
+		.el-card.box-project {
 			height: 590px;
 		}
 		.grid-content {

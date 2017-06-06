@@ -5,9 +5,9 @@
     <aside class="left_menu">
       <img v-show="briefMenu!=='brief_menu'" src="../../assets/img/logo_all.png" class="logo" id="logo" @click="goHome" style="cursor:pointer;">
       <img v-show="briefMenu==='brief_menu'" src="../../assets/img/logo.png" class="logo" @click="goHome" style="cursor:pointer;"><span class="logo_text"></span>
-      <el-menu :default-active="defaultActive" class="el-menu-vertical-demo" @open="handleopen" @close="handleclose" @select="handleselect" theme="dark" unique-opened router>
+      <el-menu :default-active="defaultActive" class="el-menu-vertical-demo J_menu" @open="handleopen" @close="handleclose" @select="handleselect" theme="dark" unique-opened router>
         <template v-for="(item,index) in menus" >
-          <el-menu-item :index="item.path" v-if="showMenuByRole(item.name)" :key="index" class="J_menu"><img :src="item.icon"> <span>{{$t('kylinLang.menu.' + item.name)}}</span></el-menu-item>
+          <el-menu-item :index="item.path" v-if="showMenuByRole(item.name)" :key="index"><img :src="item.icon"> <span>{{$t('kylinLang.menu.' + item.name)}}</span></el-menu-item>
         </template>
       </el-menu>
     </aside>
@@ -87,6 +87,7 @@
 
 <script>
   import { handleSuccess, handleError, kapConfirm, hasRole } from '../../util/business'
+  import { objectClone } from '../../util/index'
   import { mapActions, mapMutations } from 'vuex'
   import projectSelect from '../project/project_select'
   import projectEdit from '../project/project_edit'
@@ -94,6 +95,7 @@
   import help from '../common/help'
   import resetPassword from '../system/reset_password'
   import $ from 'jquery'
+
   export default {
     data () {
       return {
@@ -194,10 +196,11 @@
         let imgSrc = ''
         let index = 0
         let _this = this
-        console.log('xxx', $('.J_menu'))
-        $('.J_menu').on('mouseenter', function () {
+        // let cookMenus = Object.create(this.menus)
+        let cookMenus = objectClone(this.menus)
+        console.log('cookMenus', cookMenus)
+        $('.J_menu').on('mouseenter', 'li', function () {
           let $this = $(this)
-          console.log('enter', $this.index())
           index = $this.index()
           if (index === 0) {
             imgSrc = require('../../assets/img/dashboard_hover.png')
@@ -212,22 +215,9 @@
           }
           _this.menus[index].icon = imgSrc
         })
-        $('.J_menu').on('mouseleave', function () {
-          let $this = $(this)
-          console.log('leave:  ', $(this).index())
-          index = $this.index()
-          if (index === 0) {
-            imgSrc = require('../../assets/img/dashboard.png')
-          } else if (index === 1) {
-            imgSrc = require('../../assets/img/studio.png')
-          } else if (index === 2) {
-            imgSrc = require('../../assets/img/insight.png')
-          } else if (index === 3) {
-            imgSrc = require('../../assets/img/monitor.png')
-          } else if (index === 4) {
-            imgSrc = require('../../assets/img/system.png')
-          }
-          _this.menus[index].icon = imgSrc
+        $('.J_menu').on('mouseleave', 'li', function () {
+          var index = $(this).index()
+          _this.$set(_this.menus[index], 'icon', cookMenus[index].icon)
         })
       },
       getLicense () {
@@ -291,7 +281,6 @@
             })
           })
         } else if (command === 'setting') {
-          console.log('this.currentUser :', this.currentUser)
           this.resetPasswordFormVisible = true
         }
       },
