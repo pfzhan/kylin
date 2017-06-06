@@ -36,7 +36,7 @@
     <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('buildTrigger')}} </el-col>
     <el-col :span="16">
       <el-date-picker class="input_width" @change="changeTriggerTime()"
-        v-model="scheduler.desc.scheduled_run_time"
+        v-model="scheduledRunTime"
         
         type="datetime"
         align="right">
@@ -72,7 +72,7 @@
     <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('partitionStartDate')}} </el-col>
     <el-col :span="16">
       <el-date-picker class="input_width" @change="changePartitionDateStart"
-        v-model="cubeDesc.partition_date_start"
+        v-model="partitionStartDate"
         type="datetime"
         align="right">
       </el-date-picker>
@@ -83,7 +83,7 @@
 
 <script>
 import { mapActions } from 'vuex'
-import { handleSuccess, handleError } from '../../../util/business'
+import { handleSuccess, handleError, transToUtcTimeFormat, transToUTCMs } from '../../../util/business'
 export default {
   name: 'refreshSetting',
   props: ['cubeDesc', 'scheduler'],
@@ -95,6 +95,8 @@ export default {
       rangesOptions: ['days', 'hours', 'minutes'],
       intervalOptions: ['weeks', 'days', 'hours', 'minutes'],
       selected_project: localStorage.getItem('selected_project'),
+      partitionStartDate: 0,
+      scheduledRunTime: 0,
       pickerOptionsEnd: {
         disabledDate: (time) => {
           let nowDate = new Date()
@@ -119,7 +121,6 @@ export default {
           range: 0,
           mills: 0
         }
-        console.log(_day, _hour, _minute)
         if (_hour === 0) {
           rangeObj.type = 'minutes'
           rangeObj.range = _minute
@@ -164,11 +165,10 @@ export default {
       }
     },
     changePartitionDateStart: function () {
-      console.log(this.cubeDesc.partition_date_start.getTime(), 9900)
-      this.cubeDesc.partition_date_start = this.cubeDesc.partition_date_start.getTime()
+      this.cubeDesc.partition_date_start = transToUTCMs(this.partitionStartDate)
     },
     changeTriggerTime: function () {
-      this.scheduler.desc.scheduled_run_time = this.scheduler.desc.scheduled_run_time.getTime()
+      this.scheduler.desc.scheduled_run_time = transToUTCMs(this.scheduledRunTime)
     },
     changeTimeRange: function (timeRange, index) {
       let time = 0
@@ -187,6 +187,7 @@ export default {
         handleSuccess(res, (data, code, status, msg) => {
           this.initRepeatInterval(data)
           this.scheduler.desc.scheduled_run_time = data.scheduled_run_time
+          this.scheduledRunTime = transToUtcTimeFormat(this.scheduler.desc.scheduled_run_time)
           this.scheduler.desc.partition_interval = data.partition_interval
         })
       }).catch((res) => {
@@ -218,11 +219,14 @@ export default {
   created: function () {
     if (this.cubeDesc.auto_merge_time_ranges) {
       this.conversionTime()
+      this.partitionStartDate = transToUtcTimeFormat(this.cubeDesc.partition_date_start)
+      // this.cubeDesc.partition_date_start = transToUtcTimeFormat(this.cubeDesc.partition_date_start)
     }
     if (this.scheduler.desc.scheduled_run_time && this.scheduler.desc.partition_interval) {
       this.initRepeatInterval(this.scheduler.desc)
     } else {
-      this.scheduler.desc.scheduled_run_time = (new Date()).getTime()
+      // this.scheduler.desc.scheduled_run_time = transToUtcTimeFormat((new Date()).getTime())
+      this.scheduledRunTime = new Date()
       this.initScheduler()
     }
   },

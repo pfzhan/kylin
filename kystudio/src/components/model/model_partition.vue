@@ -1,9 +1,9 @@
 <template>
 	<div style="overflow:hidden" class="partitionBox">
       <el-form  label-width="240px">
-        <el-form-item label="Partition Date Column">
+        <el-form-item :label="$t('partitionDateColumn')">
           <el-col :span="11">
-                 <el-select v-model="checkPartition.date_table" placeholder="请选择" :disabled="editMode || actionMode==='view'">
+                 <el-select v-model="checkPartition.date_table" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="editMode || actionMode==='view'">
                   <el-option
                     v-for="(key,value) in dateColumns"
                     :key="key"
@@ -14,7 +14,7 @@
           </el-col>
           <el-col :span="2"></el-col>
           <el-col class="line" :span="11">
-             <el-select v-model="checkPartition.date_column" @change="changeDateColumn" placeholder="请选择" :disabled="editMode  || actionMode==='view'">
+             <el-select v-model="checkPartition.date_column" @change="changeDateColumn" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="editMode  || actionMode==='view'">
                   <el-option
                     v-for="item in dateColumnsByTable"
                     :key="item.name"
@@ -24,8 +24,8 @@
                 </el-select>
           </el-col>
         </el-form-item>
-        <el-form-item label="Date Format">
-          <el-select v-model="checkPartition.partition_date_format" placeholder="请选择" :disabled="!needSetTime || editMode  || actionMode==='view'">
+        <el-form-item :label="$t('dateFormat')">
+          <el-select v-model="checkPartition.partition_date_format" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="!needSetTime || editMode  || actionMode==='view'">
             <el-option
               v-for="item in dateFormat"
               :key="item.label"
@@ -34,12 +34,12 @@
             </el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="Has separate time column？" v-show="needSetTime">
+        <el-form-item :label="$t('hasSeparateLabel')" v-show="needSetTime">
         <el-switch v-model="hasSeparate" on-text="" @change="changeSepatate" off-text="" :disabled="editMode  || actionMode==='view'"></el-switch>
         </el-form-item>
-        <el-form-item label="Partition Time Column" v-show="hasSeparate">
+        <el-form-item :label="$t('partitionTimeColumn')" v-show="hasSeparate">
         <el-col :span="11">
-          <el-select v-model="checkPartition.time_table" placeholder="请选择" :disabled="editMode  || actionMode==='view'">
+          <el-select v-model="checkPartition.time_table" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="editMode  || actionMode==='view'">
             <el-option
               v-for="(key,value) in timeColumns"
               :key="key"
@@ -50,7 +50,7 @@
           </el-col>
           <el-col :span="2"></el-col>
           <el-col :span="11">
-            <el-select v-model="checkPartition.time_column" placeholder="请选择" v-show="hasSeparate" :disabled="editMode  || actionMode==='view'">
+            <el-select v-model="checkPartition.time_column" :placeholder="$t('kylinLang.common.pleaseSelect')" v-show="hasSeparate" :disabled="editMode  || actionMode==='view'">
               <el-option
                 v-for="item in timeColumnsByTable"
                 :key="item.name"
@@ -60,8 +60,8 @@
           </el-select>
           </el-col>
         </el-form-item>
-         <el-form-item label="Time Format" v-show="hasSeparate">
-          <el-select v-model="checkPartition.partition_time_format" placeholder="请选择" :disabled="editMode  || actionMode==='view'">
+         <el-form-item :label="$t('timeFormat')" v-show="hasSeparate">
+          <el-select v-model="checkPartition.partition_time_format" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="editMode  || actionMode==='view'">
             <el-option
               v-for="item in timeFormat"
               :key="item.label"
@@ -171,6 +171,10 @@ export default {
   created () {
   },
   mounted () {
+  },
+  locales: {
+    'en': {partitionDateColumn: 'Partition Date Column', dateFormat: 'Date Format', hasSeparateLabel: 'Has a separate "time of the day" column?', partitionTimeColumn: '分区时间列', timeFormat: 'Time Format'},
+    'zh-cn': {partitionDateColumn: '分区列（日期类型）', dateFormat: '日期格式', hasSeparateLabel: '您使用单独的列来表示某天内的时间吗？', partitionTimeColumn: '分区列（时间类型）', timeFormat: '时间格式'}
   }
 }
 </script>

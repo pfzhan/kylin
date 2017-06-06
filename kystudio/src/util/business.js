@@ -19,7 +19,11 @@ export function handleError (res, errorcallback) {
   var responseData = res.data
   console.log(res, 990)
   if (typeof errorcallback !== 'function') {
-    Message.error(responseData && responseData.msg || window.kapVm.$t('kylinLang.common.unknownError'))
+    Message.error({
+      message: responseData && responseData.msg || window.kapVm.$t('kylinLang.common.unknownError'),
+      showClose: true,
+      duration: 5000
+    })
   }
   if (responseData && responseData.code) {
     if (typeof errorcallback === 'function') {
@@ -211,5 +215,30 @@ export function getTableNameInfoByAlias (modelDesc, aliasName) {
     }
   }
   return null
+}
+export function toDoubleNumber (n) {
+  n = n > 9 ? n : '0' + n
+  return n
+}
+export function transToUtcTimeFormat (ms) {
+  var date = new Date(ms)
+  var y = date.getUTCFullYear()
+  var m = date.getUTCMonth()
+  var d = date.getUTCDate()
+  var h = date.getUTCHours()
+  var M = date.getUTCMinutes()
+  var s = date.getUTCSeconds()
+  var result = y + '-' + toDoubleNumber(m + 1) + '-' + toDoubleNumber(d) + ' ' + toDoubleNumber(h) + ':' + toDoubleNumber(M) + ':' + toDoubleNumber(s)
+  return result
+}
+export function transToUTCMs (date) {
+  date = new Date(date)
+  var y = date.getFullYear()
+  var m = date.getMonth()
+  var d = date.getDate()
+  var h = date.getHours()
+  var M = date.getMinutes()
+  var s = date.getSeconds()
+  return Date.UTC(y, m, d, h, M, s)
 }
 

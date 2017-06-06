@@ -76,8 +76,8 @@ export default {
     }
   },
   locales: {
-    'en': {partitionDateColumn: 'PARTITION DATE COLUMN', refreshSegment: 'REFRESH SEGMENT', segmentDetail: 'SEGMENT DETAIL', startDate: 'Start Date (Include)', endDate: 'End Date (Exclude)', lastBuildTime: 'Last build Time', lastBuildID: 'Last build ID', noPartition: 'No partition date column defined.'},
-    'zh-cn': {partitionDateColumn: '分区日期列', refreshSegment: '刷新的SEGMENT', segmentDetail: 'SEGMENT详细信息', startDate: '起始日期 (包含)', endDate: '结束日期 (不包含)', lastBuildTime: '上次构建时间', lastBuildID: '上次构建ID', noPartition: '没有定义分区日期列. '}
+    'en': {partitionDateColumn: 'PARTITION DATE COLUMN', refreshSegment: 'REFRESH SEGMENT', segmentDetail: 'SEGMENT DETAIL', startDate: 'Start Date (Include)', endDate: 'End Date (Exclude)', lastBuildTime: 'Last build Time', lastBuildID: 'Last build ID', noPartition: 'No partition column is defined in model. Thereby cube refreshing would trigger a full build job, which may cost a lot of resources.'},
+    'zh-cn': {partitionDateColumn: '分区日期列', refreshSegment: '刷新的SEGMENT', segmentDetail: 'SEGMENT详细信息', startDate: '起始日期 (包含)', endDate: '结束日期 (不包含)', lastBuildTime: '上次构建时间', lastBuildID: '上次构建ID', noPartition: '相关模型中未定义分割日期／时间列。因而刷新cube将触发一个全量构建的任务，可能占用较多资源。'}
   }
 }
 </script>

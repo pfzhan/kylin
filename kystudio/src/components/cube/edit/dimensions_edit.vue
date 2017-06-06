@@ -343,6 +343,7 @@ export default {
           this.dim_cap = data.aggregation_groups[0].select_rule.dim_cap || 0
           this.$set(this.cubeDesc.rowkey, 'rowkey_columns', data.rowkey.rowkey_columns)
           this.initConvertedRowkeys()
+          this.initCalCuboid()
         })
       }).catch((res) => {
         handleError(res)

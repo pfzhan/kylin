@@ -6,11 +6,12 @@ exports.default = {
     edit: 'Edit',
     delete: 'delete',
     drop: 'Drop',
-    cancel: 'cancel',
-    close: 'close',
-    update: 'update',
-    save: 'save',
-    submit: 'submit',
+    cancel: 'Cancel',
+    close: 'Close',
+    update: 'Update',
+    save: 'Save',
+    ok: 'Ok',
+    submit: 'Submit',
     setting: 'Settings',
     logout: 'Log Out',
     sync: 'Sync',
@@ -26,7 +27,7 @@ exports.default = {
     fail: 'fail',
     status: 'Status',
     // 术语
-    model: 'model',
+    model: 'Model',
     project: 'Project',
     cube: 'cube',
     models: 'models',
@@ -78,7 +79,8 @@ exports.default = {
     inputCubeName: 'Please input cube name'
   },
   project: {
-    mustSelectProject: 'Please select a project first'
+    mustSelectProject: 'Please select a project first',
+    selectProject: 'Please select a project'
   },
   job: {
   },
@@ -107,5 +109,9 @@ exports.default = {
     monitor: 'Monitor',
     system: 'System',
     project: 'Project'
+  },
+  system: {
+    evaluationStatement: 'You are using evaluation version of KAP. If you need the most professional services and products base on Apache Kylin. Please contact us! ',
+    statement: 'You are using KAP enterprise product and service. If you have any issues about KAP, please contact us. We will continue to provide you with quality products and services from Apache Kylin core team.'
   }
 }

@@ -299,7 +299,7 @@ export default {
       }, 5000)
     }
     this.loadJobsList(this.filter).then(() => {
-      // autoFilter()
+      autoFilter()
     })
   },
   mounted () {

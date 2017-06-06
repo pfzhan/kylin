@@ -7,8 +7,8 @@
 		  v-model="visible">
 		  <p>{{tips}}</p>
 		  <div style="text-align: right; margin: 0">
-		    <el-button size="mini" type="text" @click="visible = false">取消</el-button>
-		    <el-button type="primary" size="mini" @click="visible = false;okFunc()">确定</el-button>
+		    <el-button size="mini" type="text" @click="visible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+		    <el-button type="primary" size="mini" @click="visible = false;okFunc()">{{$t('kylinLang.common.ok')}}</el-button>
 		  </div>
 		</el-popover>
 		<div v-popover:popover><slot></slot></div>

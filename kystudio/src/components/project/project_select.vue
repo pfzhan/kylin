@@ -1,5 +1,5 @@
 <template>
-   <el-select  placeholder="请选择project" v-model="selected_project" @change="changeProject">
+   <el-select  :placeholder="$t('kylinLang.project.selectProject')" v-model="selected_project" @change="changeProject">
     <el-option
       v-for="item in projectList" :key="item.name"
       :label="item.name"

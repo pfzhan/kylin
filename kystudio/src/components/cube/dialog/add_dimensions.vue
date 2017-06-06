@@ -26,13 +26,13 @@
       <el-table-column
         :label="$t('datatype')">
         <template scope="scope">
-          {{modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].datatype}}
+          {{modelDesc.columnsDetail&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column]&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].datatype}}
         </template>
       </el-table-column>
       <el-table-column
         :label="$t('cardinality')">
         <template scope="scope">
-          {{modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].cardinality}}
+          {{modelDesc.columnsDetail&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column]&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].cardinality}}
         </template>
       </el-table-column>      
       <el-table-column>
@@ -65,13 +65,13 @@
       <el-table-column
         :label="$t('datatype')">
         <template scope="scope">
-          {{modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].datatype}}
+          {{modelDesc.columnsDetail[table.tableName + '.' + scope.row.column]&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].datatype}}
         </template>
       </el-table-column>
       <el-table-column
         :label="$t('cardinality')">
         <template scope="scope">
-          {{modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].cardinality}}
+          {{modelDesc.columnsDetail[table.tableName + '.' + scope.row.column]&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].cardinality}}
         </template>
       </el-table-column>       
       <el-table-column

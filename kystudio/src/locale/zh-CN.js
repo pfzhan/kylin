@@ -10,6 +10,7 @@ exports.default = {
     close: '关闭',
     update: '更新',
     save: '保存',
+    ok: '确定',
     submit: '提交',
     setting: '设置',
     logout: '注销',
@@ -79,7 +80,8 @@ exports.default = {
     inputCubeName: '请输入cube名称'
   },
   project: {
-    mustSelectProject: '请先选择一个Project'
+    mustSelectProject: '请先选择一个Project',
+    selectProject: '选择project'
   },
   job: {
   },
@@ -109,5 +111,9 @@ exports.default = {
     monitor: '监控',
     system: '系统',
     project: '项目'
+  },
+  system: {
+    evaluationStatement: '您正在使用KAP试用版, 如果您对我们的产品满意, 需要专业的产品、咨询或服务, 请联系我们, 您将获得来自Apache Kylin核心小组的帮助. ',
+    statement: '您已经购买KAP企业版产品及服务, 如果您在使用过程中遇到任何问题, 请随时与我们沟通, 我们将持续为您提供优质的产品及服务!'
   }
 }

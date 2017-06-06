@@ -466,7 +466,7 @@ export default {
       } else if (command === 'clone') {
         this.initCloneMeta()
         this.cloneFormVisible = true
-        this.cloneModelMeta.newName = ''
+        this.cloneModelMeta.newName = modelName + '_clone'
         this.cloneModelMeta.oldName = modelName
         this.cloneModelMeta.project = projectName
         // this.cloneModel(modelName, projectName)

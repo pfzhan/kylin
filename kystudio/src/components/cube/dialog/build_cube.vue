@@ -18,13 +18,14 @@
   </el-form>
 </template>
 <script>
+import { transToUtcTimeFormat, transToUTCMs } from '../../../util/business'
 export default {
   name: 'build_cube',
   props: ['cubeDesc'],
   data () {
     return {
       timeZone: {
-        startDate: new Date((this.cubeDesc.segments[this.cubeDesc.segments.length - 1]) ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].last_build_time : this.cubeDesc.partitionDateStart),
+        startDate: transToUtcTimeFormat((this.cubeDesc.segments[this.cubeDesc.segments.length - 1]) ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].last_build_time : this.cubeDesc.partitionDateStart),
         endDate: null
       },
       rules: {
@@ -39,8 +40,8 @@ export default {
   },
   methods: {
     validateStartDate: function (rule, value, callback) {
-      let endTime = this.timeZone.endDate.getTime()
-      let startTime = value.getTime()
+      let endTime = (new Date(this.timeZone.endDate)).getTime()
+      let startTime = (new Date(value)).getTime()
       if (startTime === null) {
         callback(new Error(this.$t('selectDate')))
       } else if (endTime < startTime) {
@@ -50,8 +51,8 @@ export default {
       }
     },
     validateEndDate: function (rule, value, callback) {
-      let endTime = value.getTime()
-      let startTime = this.timeZone.startDate.getTime()
+      let endTime = (new Date(value)).getTime()
+      let startTime = (new Date(this.timeZone.startDate)).getTime()
       if (endTime === null) {
         callback(new Error(this.$t('selectDate')))
       } else if (endTime < startTime) {
@@ -66,7 +67,7 @@ export default {
     this.$on('buildCubeFormValid', (t) => {
       _this.$refs['buildCubeForm'].validate((valid) => {
         if (valid) {
-          _this.$emit('validSuccess', {start: this.timeZone.startDate.getTime(), end: this.timeZone.endDate.getTime()})
+          _this.$emit('validSuccess', {start: transToUTCMs(this.timeZone.startDate), end: transToUTCMs(this.timeZone.endDate)})
         }
       })
     })
@@ -74,7 +75,7 @@ export default {
 
   watch: {
     cubeDesc (cubeDesc) {
-      this.timeZone.startDate = new Date((this.cubeDesc.segments[this.cubeDesc.segments.length - 1]) ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].last_build_time : this.cubeDesc.partitionDateStart)
+      this.timeZone.startDate = transToUtcTimeFormat(0) // new Date((this.cubeDesc.segments[this.cubeDesc.segments.length - 1]) ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].last_build_time : this.cubeDesc.partitionDateStart)
       this.timeZone.endDate = null
     }
   },

@@ -166,17 +166,33 @@
               </el-select> -->
                 <el-input  auto-complete="off" v-model="computedColumn.returnType"></el-input>
               </el-form-item>  
-              <el-form-item label="comment" >
+              <!-- <el-form-item label="comment" >
                 <el-input type="textarea"  auto-complete="off" v-model="computedColumn.comment"></el-input>
-              </el-form-item>  
+              </el-form-item>  --> 
             </el-form>
+            <el-table
+              :data="modelInfo.computed_columns"
+              style="width: 100%">
+              <el-table-column
+                prop="columnName"
+                label="列名"
+                width="180">
+              </el-table-column>
+              <el-table-column
+                prop="expression"
+                label="表达式"
+                width="180">
+              </el-table-column>
+              <el-table-column
+                prop="datatype"
+                label="返回类型">
+              </el-table-column>
+            </el-table>
           </div>
-          <span slot="footer" class="dialog-footer">
+            <span slot="footer" class="dialog-footer">
             <el-button @click="computedColumnFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
             <el-button type="primary" @click="saveComputedColumn">{{$t('kylinLang.common.submit')}}</el-button>
           </span>
-
-               
         </el-dialog>
       <model-tool :modelInfo="modelInfo" :actionMode="actionMode" :editLock="editLock" :compeleteModelId="modelData&&modelData.uuid||null" :columnsForTime="timeColumns" :columnsForDate="dateColumns"  :activeName="submenuInfo.menu1" :activeNameSub="submenuInfo.menu2" :tableList="tableList" :partitionSelect="partitionSelect"  :selectTable="currentSelectTable" ref="modelsubmenu"></model-tool>
 

@@ -4,26 +4,26 @@
 		<el-tabs v-model="menuActive" type="border-card"  @tab-click="subMenuTabClick" >
 		    <el-tab-pane label="Overview" name="first">
             <el-tabs v-model="subMenuActive" >
-                <el-tab-pane label="Model Info" name="first">
+                <el-tab-pane :label="$t('modelInfo')" name="first">
                     <table  cellspacing="0" cellpadding="0">
                       <tr>
-                        <th>Model Name</th>
+                        <th>{{$t('modelName')}}</th>
                         <td><el-input v-model="currentModelInfo.modelName" :disabled="actionMode==='view'|| !!compeleteModelId"></el-input></td>
                       </tr>
                       <tr>
-                        <th>Description</th>
+                        <th>{{$t('discribe')}}</th>
                         <td>
                             <el-input
                             type="textarea"
                             :rows="2" :disabled="actionMode==='view'"
-                            placeholder="请输入内容"
+                            :placeholder="$t('inputModelDescription')"
                             v-model="currentModelInfo.modelDiscribe">
                           </el-input>
                         </td>
                       </tr>
                     </table>
                 </el-tab-pane>
-                <el-tab-pane label="Partition" name="second">
+                <el-tab-pane :label="$t('partition')" name="second">
                  <partition-column style="width:800px" :modelInfo="modelInfo" :actionMode="actionMode"  :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
                  <!--  <el-form   label-width="240px">
                     <el-form-item label="Partition Date Column">
@@ -81,19 +81,19 @@
                     </el-form-item>
                   </el-form> -->
                 </el-tab-pane>
-                <el-tab-pane label="Filter" name="five">
+                <el-tab-pane :label="$t('filter')" name="five">
                   <el-form label-width="240px">
-                    <el-form-item label="Filter Condition">
+                    <el-form-item :label="$t('filterCondition')">
                        <el-input :disabled="actionMode==='view'"
                         type="textarea"
                         :autosize="{ minRows: 2, maxRows: 4}"
-                        placeholder="The filter condition, no clause WHERE needed"
+                        :placeholder="$t('filterPlaceHolder')"
                         v-model="currentModelInfo.filterStr">
                       </el-input>
                     </el-form-item>
                   </el-form>
                 </el-tab-pane>
-                <el-tab-pane label="Dimension" name="third">
+                <el-tab-pane :label="$t('dimension')" name="third">
                   <div v-for="(key, value) in dimensions" :key="key">
                     <el-badge :value="dimensions[value].length" class="item ksd-mt-10" style="background-color:green">
                     <el-button size="small">{{value}}</el-button>
@@ -102,7 +102,7 @@
                     <el-tag class="ksd-ml-10 ksd-mt-6" v-for="i in dimensions[value]" :key="i">{{i}}</el-tag>&nbsp;&nbsp;
                   </div>
                 </el-tab-pane>
-                <el-tab-pane label="Measure" name="fourth">
+                <el-tab-pane :label="$t('measure')" name="fourth">
                   <div v-for="(key, value) in measures" :key="key">
                     <el-badge :value="measures[value].length" class="item ksd-mt-10" >
                     <el-button size="small">{{value}}</el-button>
@@ -115,7 +115,7 @@
             </el-tabs>
         </el-tab-pane>
 		    <!-- <el-tab-pane label="Model Statistics" name="second">Model Statistics</el-tab-pane> -->
-        <el-tab-pane label="Table Statistics" name="second">
+        <el-tab-pane :label="$t('tableStatistics')" name="second">
              <el-table
               :data="statistics.slice(1)"
               style="width: 100%">
@@ -391,6 +391,10 @@ export default {
     }, 1000)
   },
   mounted () {
+  },
+  locales: {
+    'en': {modelName: 'Model Name', discribe: 'Model Description', inputModelDescription: 'Please input model description', modelInfo: 'Model Info', partition: 'Partition', filter: 'Filter', filterCondition: 'Filter Condition', tableStatistics: 'Table Statistics', dimension: 'Dimension', measure: 'Measure', filterPlaceHolder: 'Please input filter condition'},
+    'zh-cn': {modelName: '模型名称', discribe: '模型描述', inputModelDescription: '请输入模型的描述', modelInfo: '模型信息', 'partition': '分区', filter: '过滤器', filterCondition: '过滤条件', tableStatistics: '采样数据', dimension: '维度', measure: '维度', filterPlaceHolder: '请输入过滤条件'}
   }
 }
 </script>

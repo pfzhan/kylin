@@ -270,32 +270,23 @@ export default {
               duration: 3000
             })
           })
-          this.deleteRawTable(cubeName).then((res) => {
-            handleSuccess(res, (data, code, status, msg) => {
-            })
-          }).catch((res) => {
-            handleError(res, (data, code, status, msg) => {
-            })
-          })
-          this.deleteScheduler(cubeName).then((res) => {
-            handleSuccess(res, (data, code, status, msg) => {
-            })
-          }).catch((res) => {
-            handleError(res, (data, code, status, msg) => {
-            })
-          })
+          // this.deleteRawTable(cubeName).then((res) => {
+          //   handleSuccess(res, (data, code, status, msg) => {
+          //   })
+          // }).catch((res) => {
+          //   handleError(res, (data, code, status, msg) => {
+          //   })
+          // })
+          // this.deleteScheduler(cubeName).then((res) => {
+          //   handleSuccess(res, (data, code, status, msg) => {
+          //   })
+          // }).catch((res) => {
+          //   handleError(res, (data, code, status, msg) => {
+          //   })
+          // })
           this.loadCubesList(this.currentPage - 1)
         }).catch((res) => {
-          handleError(res, (data, code, status, msg) => {
-            this.$message({
-              type: 'error',
-              message: msg,
-              duration: 3000
-            })
-            // if (status === 404) {
-            //   this.$router.replace('access/login')
-            // }
-          })
+          handleError(res)
         })
       }).catch(() => {
       })
@@ -327,16 +318,7 @@ export default {
               _this.loadCubesList(this.currentPage - 1)
             })
           }).catch((res) => {
-            handleError(res, (data, code, status, msg) => {
-              this.$message({
-                type: 'error',
-                message: msg,
-                duration: 3000
-              })
-              // if (status === 404) {
-              //   _this.$router.replace('access/login')
-              // }
-            })
+            handleError(res)
           })
         }).catch(() => {
         })
@@ -360,16 +342,7 @@ export default {
                 _this.loadCubesList(this.currentPage - 1)
               })
             }).catch((res) => {
-              handleError(res, (data, code, status, msg) => {
-                this.$message({
-                  type: 'error',
-                  message: msg,
-                  duration: 3000
-                })
-                // if (status === 404) {
-                //   _this.$router.replace('access/login')
-                // }
-              })
+              handleError(res)
             })
           }).catch(() => {
           })
@@ -392,16 +365,7 @@ export default {
           _this.loadCubesList(this.currentPage - 1)
         })
       }).catch((res) => {
-        handleError(res, (data, code, status, msg) => {
-          this.$message({
-            type: 'error',
-            message: msg,
-            duration: 3000
-          })
-          // if (status === 404) {
-          //   _this.$router.replace('access/login')
-          // }
-        })
+        handleError(res)
       })
       this.buildCubeFormVisible = false
     },
@@ -425,16 +389,7 @@ export default {
           _this.loadCubesList(this.currentPage - 1)
         })
       }).catch((res) => {
-        handleError(res, (data, code, status, msg) => {
-          this.$message({
-            type: 'error',
-            message: msg,
-            duration: 3000
-          })
-          // if (status === 404) {
-          //   _this.$router.replace('access/login')
-          // }
-        })
+        handleError(res)
       })
       _this.refreshCubeFormVisible = false
     },
@@ -458,16 +413,7 @@ export default {
           _this.loadCubesList(this.currentPage - 1)
         })
       }).catch((res) => {
-        handleError(res, (data, code, status, msg) => {
-          this.$message({
-            type: 'error',
-            message: msg,
-            duration: 3000
-          })
-          // if (status === 404) {
-          //   _this.$router.replace('access/login')
-          // }
-        })
+        handleError(res)
       })
       _this.mergeCubeFormVisible = false
     },
@@ -488,16 +434,7 @@ export default {
             _this.loadCubesList(this.currentPage - 1)
           })
         }).catch((res) => {
-          handleError(res, (data, code, status, msg) => {
-            this.$message({
-              type: 'error',
-              message: msg,
-              duration: 3000
-            })
-            // if (status === 404) {
-            //   _this.$router.replace('access/login')
-            // }
-          })
+          handleError(res)
         })
       }).catch(() => {
       })
@@ -519,16 +456,7 @@ export default {
             _this.loadCubesList(this.currentPage - 1)
           })
         }).catch((res) => {
-          handleError(res, (data, code, status, msg) => {
-            this.$message({
-              type: 'error',
-              message: msg,
-              duration: 3000
-            })
-            // if (status === 404) {
-            //   _this.$router.replace('access/login')
-            // }
-          })
+          handleError(res)
         })
       }).catch(() => {
       })
@@ -550,16 +478,7 @@ export default {
             _this.loadCubesList(this.currentPage - 1)
           })
         }).catch((res) => {
-          handleError(res, (data, code, status, msg) => {
-            this.$message({
-              type: 'error',
-              message: msg,
-              duration: 3000
-            })
-            // if (status === 404) {
-            //   _this.$router.replace('access/login')
-            // }
-          })
+          handleError(res)
         })
       }).catch(() => {
       })
@@ -583,16 +502,7 @@ export default {
           _this.loadCubesList(this.currentPage - 1)
         })
       }).catch((res) => {
-        handleError(res, (data, code, status, msg) => {
-          this.$message({
-            type: 'error',
-            message: msg,
-            duration: 3000
-          })
-          // if (status === 404) {
-          //   _this.$router.replace('access/login')
-          // }
-        })
+        handleError(res)
       })
       _this.cloneCubeFormVisible = false
     },
