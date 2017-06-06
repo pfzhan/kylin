@@ -346,7 +346,7 @@ export default {
         project: modelInfo.project,
         modelName: modelInfo.name,
         uuid: modelInfo.uuid,
-        is_draft: modelInfo.is_draft,
+        status: modelInfo.is_draft,
         mode: 'view'
       })
     },
@@ -435,6 +435,7 @@ export default {
     },
     gotoView () {
       var modelData = this.currentModelData
+      console.log(modelData, 'kkkkk')
       this.useCubeDialogVisible = false
       this.viewModel({
         name: modelData.name,

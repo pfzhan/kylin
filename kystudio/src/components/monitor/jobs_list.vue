@@ -396,6 +396,7 @@ export default {
             type: 'success',
             message: '任务恢复成功!'
           })
+          this.refreshFilter()
         }).catch((res) => {
           handleError(res)
         })
@@ -408,6 +409,7 @@ export default {
             type: 'success',
             message: '任务成功取消!'
           })
+          this.refreshFilter()
         }).catch((res) => {
           handleError(res)
         })
@@ -420,6 +422,7 @@ export default {
             type: 'success',
             message: '任务成功取消!'
           })
+          this.refreshFilter()
         }).catch((res) => {
           handleError(res)
         })

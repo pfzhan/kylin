@@ -38,14 +38,14 @@
     // 可以访问组件实例 `this`
       var hasEditTab = false
       this.editableTabs.forEach((tab) => {
-        if (['cube', 'cubes'].indexOf(tab.tabType) !== -1) {
+        if (['cube', 'cubes', 'model'].indexOf(tab.tabType) !== -1) {
           hasEditTab = true
         }
       })
       if (hasEditTab) {
-        this.$confirm('将要离开该页面，请保存未完成的编辑?', '提示', {
+        this.$confirm(this.$t('willGo'), this.$t('tip'), {
           confirmButtonText: '继续跳转',
-          cancelButtonText: '取消',
+          cancelButtonText: this.$t('kylinLang.common.cancel'),
           type: 'warning'
         }).then(() => {
           next()
@@ -122,6 +122,10 @@
     },
     mounted () {
       console.log(this)
+    },
+    locales: {
+      'en': {'willGo': 'You have unsaved information detected, Do you want to continue?', 'go': 'Continue go'},
+      'zh-cn': {'willGo': '检测到您有未保存的信息，是否继续跳转？', 'go': '继续跳转'}
     }
   }
 </script>

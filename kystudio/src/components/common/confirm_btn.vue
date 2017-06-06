@@ -1,5 +1,5 @@
 <template>
-	<div>
+	<div style="display:inline-block">
 		<el-popover
 		  ref="popover"
 		  placement="top"

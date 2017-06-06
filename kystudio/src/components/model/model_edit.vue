@@ -160,7 +160,7 @@
                 <el-input  auto-complete="off" v-model="computedColumn.returnType"></el-input>
               </el-form-item>  
               <el-form-item>
-                <el-button type="primary" @click="saveComputedColumn;openAddComputedColumnForm=false">{{$t('kylinLang.common.submit')}}</el-button>
+                <el-button type="primary" @click="saveComputedColumn">{{$t('kylinLang.common.submit')}}</el-button>
               </el-form-item>
             </el-form>
             <el-table
@@ -184,7 +184,8 @@
                 label="操作">
                 <template scope="scope">
                   <el-button type="primary" size="small">编辑</el-button>
-                  <el-button type="danger" size="small">删除</el-button>
+                   <confirm-btn  v-on:okFunc='delComputedColumn(scope.row)' :tips="$t('kylinLang.common.confirmDel')"><el-button size="small"
+          type="danger">{{$t('kylinLang.common.drop')}}</el-button></confirm-btn>
                 </template>
               </el-table-column>
             </el-table>
@@ -638,15 +639,18 @@ export default {
       this.currentTableComputedColumns = []
       this.computedColumnFormVisible = true
     },
+    delComputedColumn (column) {
+      this.changeComputedColumnDisable(column.tableIdentity, column.columnName, false)
+      this.refreshComputed()
+    },
     saveComputedColumn: function (guid) {
-      var _this = this
-      this.addComputedColumnToDatabase(function (columnName) {
-        _this.$notify({
+      this.addComputedColumnToDatabase((columnName) => {
+        this.$notify({
           title: this.$t('kylinLang.common.success'),
           message: columnName + this.$t('addComputedColumnSuccess'),
           type: 'success'
         })
-        // this.computedColumnFormVisible = false
+        this.openAddComputedColumnForm = false
       })
     },
     getPartitionDateColumns: function () {
@@ -1466,9 +1470,7 @@ export default {
     },
     // trans Data
     DragDataToServerData: function (needJson) {
-      console.log(123)
       var fainalComputed = this.getDisableComputedColumn()
-      console.log(fainalComputed)
       var pos = {}
       var kylinData = {
         uuid: this.modelInfo.uuid,
@@ -1553,6 +1555,7 @@ export default {
       }
       console.log(this.extraoption, 8899)
       var actionModelName = this.extraoption.status ? this.extraoption.modelName + '_draft' : this.extraoption.modelName
+      console.log(this.extraoption.status, actionModelName, 889900)
       // 编辑模式
       this.getModelByModelName(actionModelName).then((response) => {
         handleSuccess(response, (data) => {
@@ -1761,6 +1764,16 @@ export default {
     // saveData: function () {
     //   this.DragDataToServerData()
     // },
+    refreshComputed () {
+      var guid = this.computedColumn.guid
+      if (!guid) {
+        return
+      }
+      var tableInfo = this.getTableInfoByGuid(guid)
+      return this.modelInfo.computed_columns.filter((computedColumn) => {
+        return computedColumn.tableIdentity === tableInfo.database + '.' + tableInfo.name && computedColumn.diabled !== false
+      })
+    },
     jsplumbZoom: function (zoom, instance, transformOrigin, el) {
       transformOrigin = transformOrigin || [0.5 + 460 / 40000, 0.5 + 180 / 40000]
       instance = instance || jsPlumb
@@ -1932,15 +1945,7 @@ export default {
       return arr
     },
     currentTableComputedColumns () {
-      var guid = this.computedColumn.guid
-      if (!guid) {
-        return
-      }
-      console.log(guid, 99001)
-      var tableInfo = this.getTableInfoByGuid(guid)
-      return this.modelInfo.computed_columns.filter((computedColumn) => {
-        return computedColumn.tableIdentity === tableInfo.database + '.' + tableInfo.name
-      })
+      this.refreshComputed()
     }
   },
   created () {
