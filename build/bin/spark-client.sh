@@ -153,7 +153,7 @@ EOF
     verbose "The submit command is: $submitCommand"
     eval $submitCommand
 
-    echo "A new Spark Client instance is started by $USER. To stop it, run 'spark_client.sh stop'"
+    echo "A new Spark Client instance is started by $USER. To stop it, run 'spark-client.sh stop'"
     echo "Check the log at ${KYLIN_HOME}/logs/spark-driver.log"
 
     if [[ $CI_MODE == 'true' ]]
