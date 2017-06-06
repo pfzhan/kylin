@@ -273,7 +273,7 @@ export default {
 				background: linear-gradient(to bottom,#f35f56,#cb3a30);
 			}
 		}
-		
+
 		#project_scroll_box {
 		  height: 620px;
 		}
