@@ -13,13 +13,13 @@ checkCommandExits mvn
 BUILD_LIB_DIR=build/lib
 
 # keep all rest classes in *.xml
-keepParam=`grep -hro --include="*.xml" --exclude={pom.xml,workspace.xml,checkstyle-\*.xml} "io\.kyligence\.kap\.rest\.[^\"\<]*" . | sort -u | awk '{print "-keep class " $0 " {*;}"}'`' '
+keepParam=$(grep -hro --include="*.xml" --exclude={pom.xml,workspace.xml,checkstyle-\*.xml} "io\.kyligence\.kap\.rest\.[^\"\<]*" . | sort -u | awk '{print "-keep class " $0 " {*;}"}')' '
 # keep all class name in double quote
-keepParam+=`grep -hro --include="*.java" "\"io\.kyligence\.kap\.[^\"\\]*" . | cut -c 2- | sort -u | awk '{print "-keep class " $0 " {*;}"}'`' '
+keepParam+=$(grep -hro --include="*.java" "\"io\.kyligence\.kap\.[^\"\\]*" . | cut -c 2- | sort -u | awk '{print "-keep class " $0 " {*;}"}')' '
 # keep classes in kylin.properties
-keepParam+=`grep -hro --include="kylin.properties" "io\.kyligence\.kap\.[^\"\\]*" . | sort -u | awk '{print "-keep class " $0 " {*;}"}'`' '
+keepParam+=$(grep -hro --include="kylin.properties" "io\.kyligence\.kap\.[^\"\\]*" . | sort -u | awk '{print "-keep class " $0 " {*;}"}')' '
 # keep classes in *.sh
-keepParam+=`grep -hro --include="*.sh" "io\.kyligence\.kap\.[^\*\.]*\.[^ \`\"]*" . | sort -u | awk '{print "-keep class " $0 " {*;}"}'`' '
+keepParam+=$(grep -hro --include="*.sh" "io\.kyligence\.kap\.[^\*\.]*\.[^ \`\"]*" . | sort -u | awk '{print "-keep class " $0 " {*;}"}')' '
 
 if [ -z $java_home ]; then
 	java_home_mess=`mvn -version | grep "Java home"`
