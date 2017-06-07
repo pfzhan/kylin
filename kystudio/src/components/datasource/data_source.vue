@@ -452,7 +452,7 @@ export default {
     checkTableHasJob (tableName, cb, hasNotCb) {
       this.getTableJob(tableName).then((res) => {
         handleSuccess(res, (data) => {
-          if (data.job_status === 'FINISHED' || data.progress === '100') {
+          if (data && data.job_status === 'FINISHED' || data.progress === '100' || !data) {
             hasNotCb()
           } else {
             cb()

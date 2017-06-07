@@ -25,7 +25,7 @@
 		      <div style="padding: 20px;">
 		        <h2 :title="o.name" >
           <span @click="viewModel(o)">{{o.name|omit(24, '...')}}</span>
-           <common-tip :tips="o.diagnose&&o.diagnose.messages.join('\n') || $t('hasNotChecked')"> <icon v-if="!o.is_draft && o.diagnose && (o.diagnose.progress===0 || o.diagnose.progress===100)" :name="modelHealthStatus[o.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[o.diagnose.heathStatus].color}"></icon></common-tip>
+           <common-tip :tips="o.diagnose&&o.diagnose.messages.join('\n') || (o.diagnose&&o.diagnose.progress === 0 ? $t('hasNotChecked') : '')"> <icon v-if="!o.is_draft && o.diagnose && (o.diagnose.progress===0 || o.diagnose.progress===100)" :name="modelHealthStatus[o.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[o.diagnose.heathStatus].color}"></icon></common-tip>
              <el-progress  :width="20" type="circle" :stroke-width="2" :show-text="false" v-if="!o.is_draft&&o.diagnose&&o.diagnose.progress!==0 && o.diagnose.progress!==100" :percentage="o.diagnose&&o.diagnose.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></h2>
 		        <div class="bottom clearfix">
 		          <time class="time" v-visible="o.owner" style="display:block">{{o.owner}}</time>

@@ -60,9 +60,40 @@
         header-align="center"
         align="center">   
         <template scope="scope">
-          <el-input v-model="scope.row.valueLength"      :disabled="scope.row.encoding.indexOf('dict')>=0||scope.row.encoding.indexOf('date')>=0||scope.row.encoding.indexOf('time')>=0||scope.row.encoding.indexOf('var')>=0||scope.row.encoding.indexOf('orderedbytes')>=0"  @change="changeRawTable(scope.row, scope.$index)"></el-input>  
+          <el-input v-model="scope.row.valueLength" :disabled="scope.row.encoding.indexOf('dict')>=0||scope.row.encoding.indexOf('date')>=0||scope.row.encoding.indexOf('time')>=0||scope.row.encoding.indexOf('var')>=0||scope.row.encoding.indexOf('orderedbytes')>=0"  @change="changeRawTable(scope.row, scope.$index)"></el-input>  
         </template>  
-    </el-table-column>       
+    </el-table-column>
+
+     <el-table-column
+        :label="$t('sortedBy')"
+        header-align="center"
+        align="center">   
+            <template scope="scope">
+              <el-select v-model="scope.row.is_sortby" >
+                <el-option
+                    v-for="(item, index) in booleanSelect" :key="index"
+                   :label="item.name"
+                   :value="item.value">
+                </el-option>              
+              </el-select>
+            </template>
+      </el-table-column> 
+
+       <el-table-column
+        :label="$t('shardBy')"
+        header-align="center"
+        align="center">   
+            <template scope="scope">
+              <el-select v-model="scope.row.is_shardby" >
+                <el-option
+                    v-for="(item, index) in booleanSelect" :key="index"
+                   :label="item.name"
+                   :value="item.value">
+                </el-option>              
+              </el-select>
+            </template>
+      </el-table-column> 
+
     <el-table-column
         :label="$t('Index')"
         header-align="center"
@@ -73,7 +104,7 @@
                     v-for="(item, index) in rawTableIndexOptions" :key="index"
                    :label="item"
                    :value="item">
-                </el-option>              
+                </el-option>             
               </el-select>
             </template>
       </el-table-column>       
@@ -95,7 +126,7 @@
          <el-col :span="4">{{$t('Length')}}</el-col>
          <el-col :span="2">{{$t('Index')}}</el-col>
        </el-row>
-        <el-row class="tablebody" v-if="row.index==='sorted'" v-for="(row, index) in rawTable.tableDetail.columns" :key="row.column" v-dragging="{ item: row, list: rawTable.tableDetail.columns, group: 'row' }">
+        <el-row class="tablebody" v-if="row.is_sortby===true" v-for="(row, index) in rawTable.tableDetail.columns" :key="row.column" v-dragging="{ item: row, list: rawTable.tableDetail.columns, group: 'row' }">
           <el-col :span="1">{{index+1}}</el-col>
           <el-col :span="6">{{row.column}}</el-col>
           <el-col :span="4">
@@ -131,7 +162,8 @@ export default {
       currentPage: 1,
       convertedRawTable: [],
       rawTableDetail: [],
-      rawTableIndexOptions: ['discrete', 'fuzzy', 'sorted']
+      rawTableIndexOptions: ['discrete', 'fuzzy'],
+      booleanSelect: [{name: 'true', value: true}, {name: 'false', value: false}]
     }
   },
   methods: {
@@ -175,7 +207,7 @@ export default {
       }
     },
     tableRowClassName: function (row, index) {
-      if (row.index === 'sorted') {
+      if (row.is_sortby === true) {
         return 'info-row'
       }
       return ''
@@ -183,6 +215,8 @@ export default {
     changeRawTable: function (column, index) {
       let _this = this
       _this.$set(_this.rawTable.tableDetail.columns[15 * (this.currentPage - 1) + index], 'index', column.index)
+      _this.$set(_this.rawTable.tableDetail.columns[15 * (this.currentPage - 1) + index], 'is_sortby', column.is_sortby)
+      _this.$set(_this.rawTable.tableDetail.columns[15 * (this.currentPage - 1) + index], 'is_shardby', column.is_shardby)
       _this.$set(_this.rawTable.tableDetail.columns[15 * (this.currentPage - 1) + index], 'encoding_version', _this.getVersion(column.encoding))
       if (column.valueLength) {
         _this.$set(_this.rawTable.tableDetail.columns[15 * (this.currentPage - 1) + index], 'encoding', _this.getEncoding(column.encoding) + ':' + column.valueLength)
@@ -200,7 +234,7 @@ export default {
       _this.convertedRawTable.splice(0, _this.convertedRawTable.length)
       rawTableDetail.forEach(function (rawTable) {
         let version = rawTable.encoding_version || 1
-        _this.convertedRawTable.push({column: rawTable.column, table: rawTable.table, encoding: _this.getEncoding(rawTable.encoding) + ':' + version, valueLength: _this.getLength(rawTable.encoding), index: rawTable.index})
+        _this.convertedRawTable.push({column: rawTable.column, table: rawTable.table, encoding: _this.getEncoding(rawTable.encoding) + ':' + version, valueLength: _this.getLength(rawTable.encoding), index: rawTable.index, is_sortby: false, is_shardby: false})
       })
     },
     getBaseColumnsData: function () {
@@ -208,27 +242,33 @@ export default {
       _this.modelDesc.dimensions.forEach(function (dimension) {
         dimension.columns.forEach(function (column) {
           let index = 'discrete'
+          let sorted = false
           if (_this.modelDesc.partition_desc && dimension.table + '.' + column === _this.modelDesc.partition_desc.partition_date_column) {
-            index = 'sorted'
+            sorted = true
           }
           _this.rawTable.tableDetail.columns.push({
             index: index,
             encoding: 'orderedbytes',
             table: dimension.table,
-            column: column
+            column: column,
+            is_sortby: sorted,
+            is_shardby: false
           })
         })
       })
       this.modelDesc.metrics.forEach(function (measure) {
         let index = 'discrete'
+        let sorted = false
         if (_this.modelDesc.partition_desc && measure === _this.modelDesc.partition_desc.partition_date_column) {
-          index = 'sorted'
+          sorted = true
         }
         _this.rawTable.tableDetail.columns.push({
           index: index,
           encoding: 'orderedbytes',
           table: getNameSpace(measure),
-          column: removeNameSpace(measure)
+          column: removeNameSpace(measure),
+          is_sortby: sorted,
+          is_shardby: false
         })
       })
       this.initConvertedRawTable()
@@ -258,21 +298,15 @@ export default {
     })
     let _this = this
     if (_this.rawTableUsable) {
-      console.log(1)
       if (_this.rawTable.tableDetail.columns.length > 0 && this.$store.state.cube.cubeRowTableIsSetting) {
         _this.usedRawTable = true
-        console.log(2)
         _this.initConvertedRawTable()
       } else {
-        console.log(3)
         if (_this.isEdit) {
-          console.log(4)
           var rawtbaleName = this.cubeDesc.name + (this.cubeDesc.status === 'DRAFT' ? '_draft' : '')
           this.loadRawTable(rawtbaleName).then((res) => {
             handleSuccess(res, (data, code, status, msg) => {
-              console.log()
               if (data && this.$store.state.cube.cubeRowTableIsSetting) {
-                console.log('hehe')
                 _this.usedRawTable = true
                 _this.$set(_this.rawTable, 'tableDetail', data)
                 _this.initConvertedRawTable()
@@ -287,8 +321,8 @@ export default {
     }
   },
   locales: {
-    'en': {noSupportRawTable: 'Only KAP PLUS Provides Raw Table', tableIndex: 'Table Index', ID: 'ID', column: 'Column', dataType: 'Data Type', tableAlias: 'Table Alias', Encoding: 'Encoding', Length: 'Length', Index: 'Index', ConfigRawTable: 'Config Raw Table'},
-    'zh-cn': {noSupportRawTable: '只有KAP PLUS 提供Raw Table功能', tableIndex: '表索引', ID: 'ID', column: '列', dataType: '数据类型', tableAlias: '表别名', Encoding: '编码', Length: '长度', Index: '索引', ConfigRawTable: '配置Raw Table'}
+    'en': {noSupportRawTable: 'Only KAP PLUS Provides Raw Table', tableIndex: 'Table Index', ID: 'ID', column: 'Column', dataType: 'Data Type', tableAlias: 'Table Alias', Encoding: 'Encoding', Length: 'Length', Index: 'Index', ConfigRawTable: 'Config Raw Table', 'sortBy': 'sortBy', 'shardBy': 'shardBy'},
+    'zh-cn': {noSupportRawTable: '只有KAP PLUS 提供Raw Table功能', tableIndex: '表索引', ID: 'ID', column: '列', dataType: '数据类型', tableAlias: '表别名', Encoding: '编码', Length: '长度', Index: '索引', ConfigRawTable: '配置Raw Table', 'sortBy': 'sortBy', 'shardBy': 'shardBy'}
   }
 }
 </script>
