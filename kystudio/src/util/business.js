@@ -2,6 +2,7 @@ import { utcToConfigTimeZome, removeNameSpace, getNameSpaceTopName } from './ind
 import { MessageBox, Message } from 'element-ui'
 // 成功回调入口
 export function handleSuccess (res, callback, errorcallback) {
+  console.log(res, 999)
   var responseData = res.data
   if (responseData && responseData.code === '000') {
     if (typeof callback === 'function') {

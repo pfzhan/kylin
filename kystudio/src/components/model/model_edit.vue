@@ -44,7 +44,7 @@
         <p class="filter_box"><el-input v-model="table.filterName" v-on:change="filterColumnByInput(table.filterName,table.guid)"  size="small" placeholder="enter filter..."></el-input></p>
         <section data-scrollbar class="columns_box">
           <ul>
-            <li draggable @dragstart="dragColumns" @dragend="dragColumnsEnd"  v-for="column in table.columns" :key="column.guid"  class="column_li"  v-bind:class="{'active_filter':column.isActive}" :data-guid="table.guid" :data-column="column.name" ><span class="kind" :class="{dimension:column.btype=='D',measure:column.btype=='M'}" v-on:click="changeColumnBType(table.guid,column.name,column.btype)">{{column.btype}}</span><span class="column" v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)"><common-tip trigger="click" :tips="column.name" style="font-size:10px;">{{column.name|omit(14,'...')}}</common-tip></span><span class="column_type">{{column.datatype}}</span></style></li>
+            <li draggable @dragstart="dragColumns" @dragend="dragColumnsEnd"  v-for="column in table.columns" :key="column.guid"  class="column_li"  v-bind:class="{'active_filter':column.isActive}" :data-guid="table.guid" :data-column="column.name" ><span class="kind" :class="{dimension:column.btype=='D',measure:column.btype=='M'}" v-on:click="changeColumnBType(table.guid,column.name,column.btype, column.isComputed)">{{column.btype}}</span><span class="column" v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)"><common-tip trigger="click" :tips="column.name" style="font-size:10px;">{{column.name|omit(14,'...')}}</common-tip></span><span class="column_type">{{column.datatype}}</span></style></li>
           </ul>
         </section>
         <div class="more_tool"></div>
@@ -134,7 +134,7 @@
               <br/>
               <el-table-column style="border:none" :label="$t('kylinLang.common.action')" width="80" v-if="actionMode!=='view'">
                 <template scope="scope" >
-                  <confirm-btn v-if="scope.row[5]" v-on:okFunc='delConnect(scope.row)' :tips="$t('kylinLang.common.confirmDel')"><el-button size="small"
+                  <confirm-btn  v-on:okFunc='delConnect(scope.row)' :tips="$t('kylinLang.common.confirmDel')"><el-button size="small"
           type="danger">{{$t('kylinLang.common.drop')}}</el-button></confirm-btn>
                 </template>
               </el-table-column>
@@ -146,7 +146,7 @@
             <el-button type="primary" @click="saveLinks(currentLinkData.source.guid,currentLinkData.target.guid)">{{$t('kylinLang.common.close')}}</el-button>
           </span> 
       </el-dialog>
-       <el-dialog title="Computed Column" v-model="computedColumnFormVisible" size="small">
+       <el-dialog title="$t('kylinLang.common.computedColumn')" v-model="computedColumnFormVisible" size="small">
           <div>
             <el-button type="primary" class="ksd-mb-10" v-show="!openAddComputedColumnForm" @click="openAddComputedColumnForm = true">{{$t('kylinLang.common.add')}}</el-button>
             <el-form label-position="top"  ref="computedColumnForm" v-show="openAddComputedColumnForm">
@@ -163,7 +163,7 @@
                 <el-button type="primary" @click="saveComputedColumn">{{$t('kylinLang.common.submit')}}</el-button>
               </el-form-item>
             </el-form>
-            <el-table
+            <el-table v-if="currentTableComputedColumns && currentTableComputedColumns.length"
               :data="currentTableComputedColumns"
               style="width: 100%">
               <el-table-column
@@ -183,7 +183,7 @@
               <el-table-column
                 label="操作">
                 <template scope="scope">
-                  <el-button type="primary" size="small">{{$t('kylinLang.common.edit')}}</el-button>
+                  <el-button type="primary" size="small" v-on:click='editComputedColumn(scope.row)'>{{$t('kylinLang.common.edit')}}</el-button>
                    <confirm-btn  v-on:okFunc='delComputedColumn(scope.row)' :tips="$t('kylinLang.common.confirmDel')"><el-button size="small"
           type="danger">{{$t('kylinLang.common.drop')}}</el-button></confirm-btn>
                 </template>
@@ -634,15 +634,27 @@ export default {
         returnType: ''
       }
       this.computedColumn.guid = guid
-      var tableInfo = this.getTableInfoByGuid(guid)
-      console.log(tableInfo, 9999)
       this.currentTableComputedColumns = []
       this.computedColumnFormVisible = true
+    },
+    editComputedColumn (row) {
+      this.openAddComputedColumnForm = true
+      var tableList = this.getSameOriginTables(row.tableIdentity.split('.')[0], row.tableIdentity.split('.')[1])
+      this.computedColumn = {
+        guid: tableList[0].guid,
+        name: row.columnName,
+        expression: row.expression,
+        returnType: row.datatype
+      }
     },
     delComputedColumn (column) {
       this.changeComputedColumnDisable(column.tableIdentity, column.columnName, false)
       var tableList = this.getSameOriginTables(column.tableIdentity.split('.')[0], column.tableIdentity.split('.')[1])
-      this.editTableColumnInfo(tableList[0].guid, 'name', column.columnName, 'btype', '-')
+      for (var i = 0; i < tableList.length; i++) {
+        var guid = tableList[i].guid
+        this.delColumn(guid, 'name', column.columnName)
+      }
+      // this.editTableColumnInfo(tableList[0].guid, 'name', column.columnName, 'btype', '-')
       this.refreshComputed()
     },
     saveComputedColumn: function (guid) {
@@ -693,13 +705,13 @@ export default {
       var guid = this.computedColumn.guid
       var databaseInfo = this.getTableInfoByGuid(guid)
       var sameTables = this.getSameOriginTables(databaseInfo.database, databaseInfo.name)
-      console.log(guid, databaseInfo, sameTables, 111888)
       if (!this.checkSameColumnName(guid, this.computedColumn.name)) {
         var columnObj = {
           name: this.computedColumn.name,
           datatype: this.computedColumn.returnType,
           btype: this.computedColumn.columnType || 'D',
-          expression: this.computedColumn.expression
+          expression: this.computedColumn.expression,
+          isComputed: true
         }
         var computedObj = {
           tableIdentity: databaseInfo.database + '.' + databaseInfo.name,
@@ -719,15 +731,42 @@ export default {
           callback(computedObj.columnName)
         }
       } else {
-        this.warnAlert(this.$t('sameNameComputedColumn'))
+        if (this.checkSameComputedName(guid, this.computedColumn.name)) {
+          this.modelInfo.computed_columns.forEach((co) => {
+            if (co.tableIdentity === databaseInfo.database + '.' + databaseInfo.name && co.columnName === this.computedColumn.name) {
+              co.expression = this.computedColumn.expression
+              co.datatype = this.computedColumn.datatype
+            }
+          })
+        } else {
+          this.warnAlert(this.$t('sameNameComputedColumn'))
+        }
       }
     },
     checkSameColumnName: function (guid, column) {
       var columns = this.getTableInfoByGuid(guid).columns
-      return indexOfObjWithSomeKey(columns, 'columnName', column) !== -1
+      return indexOfObjWithSomeKey(columns, 'name', column) !== -1
+    },
+    checkSameComputedName (guid, column) {
+      var columns = this.getTableInfoByGuid(guid).columns
+      console.log(columns, 8899)
+      for (var s = 0; s < columns.lenght; s++) {
+        if (columns[s].isComputed && columns[s].name === column) {
+          return true
+        }
+      }
+    },
+    checkSameNormalName (guid, column) {
+      var columns = this.getTableInfoByGuid(guid).columns
+      for (var s = 0; s < columns.lenght; s++) {
+        if (!columns[s].isComputed && columns[s].name === column) {
+          return true
+        }
+      }
     },
     // dimension and measure and disable
-    changeColumnBType: function (id, columnName, columnBType) {
+    changeColumnBType: function (id, columnName, columnBType, isComputed) {
+      console.log(arguments, 90)
       if (this.actionMode === 'view') {
         return
       }
@@ -739,20 +778,18 @@ export default {
         return
       }
       var willSetType = getNextValInArray(this.columnBType, columnBType)
-      this.editTableColumnInfo(id, 'name', columnName, 'btype', willSetType)
-      var fullName = tableInfo.database + '.' + tableInfo.name
-      if (willSetType === '－') {
-        this.changeComputedColumnDisable(fullName, columnName, false)
-      } else {
-        this.changeComputedColumnDisable(fullName, columnName, true)
+      if (willSetType === '－' && isComputed) {
+        willSetType = this.columnBType[0]
       }
+      this.editTableColumnInfo(id, 'name', columnName, 'btype', willSetType)
+      // var fullName = tableInfo.database + '.' + tableInfo.name
     },
-    changeComputedColumnDisable (fullName, column, status) {
+    changeComputedColumnDisable (fullName, column) {
       var len = this.modelInfo.computed_columns && this.modelInfo.computed_columns.length || 0
       for (var i = 0; i < len; i++) {
         var calcColumn = this.modelInfo.computed_columns[i]
         if (calcColumn.tableIdentity === fullName && calcColumn.columnName === column) {
-          this.modelInfo.computed_columns[i].disabled = status
+          this.modelInfo.computed_columns.splice(i, 1)
           break
         }
       }
@@ -1446,6 +1483,19 @@ export default {
             var col = table.columns[i]
             if (col[filterColumnKey] === filterColumnVal || filterColumnVal === '*') {
               _this.$set(col, columnKey, value)
+            }
+          }
+        }
+      })
+    },
+    delColumn: function (guid, filterColumnKey, filterColumnVal) {
+      this.tableList.forEach(function (table) {
+        if (table.guid === guid) {
+          var len = table.columns && table.columns.length || 0
+          for (let i = 0; i < len; i++) {
+            var col = table.columns[i]
+            if (col[filterColumnKey] === filterColumnVal) {
+              table.columns.splice(i, 1)
             }
           }
         }

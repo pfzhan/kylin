@@ -247,7 +247,15 @@ export default {
       }
     }
   },
+
   mounted () {
+    // this.$dragging.$on('dragend', ({ value }) => {
+    //   console.log(value.list, 112233)
+    //   Object.assign(this.rawTable.tableDetail.columns, value.list)
+    // })
+    this.$dragging.$on('dragged', ({ value }) => {
+      this.initConvertedRawTable()
+    })
     let _this = this
     if (_this.rawTableUsable) {
       console.log(1)

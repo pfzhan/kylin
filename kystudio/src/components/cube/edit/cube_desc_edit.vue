@@ -53,7 +53,7 @@ import configurationOverwrites from './configuration_overwrites_edit'
 import overview from './overview_edit'
 import json from '../json'
 import { removeNameSpace, objectClone } from '../../../util/index'
-import { handleSuccess, handleError, transToUTCMs } from '../../../util/business'
+import { handleSuccess, handleError } from '../../../util/business'
 export default {
   name: 'cubeDescEdit',
   props: ['extraoption'],
@@ -400,7 +400,7 @@ export default {
       }
       // 将cube的起始时间设置转换成UTC
       var cloneCubeDescData = JSON.parse(saveData.cubeDescData)
-      cloneCubeDescData.partition_date_start = transToUTCMs(cloneCubeDescData.partition_date_start)
+      // cloneCubeDescData.partition_date_start = transToUTCMs(cloneCubeDescData.partition_date_start)
       saveData.cubeDescData = JSON.stringify(cloneCubeDescData)
       if (this.rawTable.tableDetail.columns && this.rawTable.tableDetail.columns.length) {
         saveData.rawTableDescData = JSON.stringify(this.rawTable.tableDetail)
@@ -410,8 +410,9 @@ export default {
       schedulerObj.project = this.selected_project
       // 将scheduler 的自动构建触发时间设置转换成UTC
       var schedulerObjClone = JSON.parse(JSON.stringify(schedulerObj))
-      console.log(schedulerObjClone.scheduled_run_time, 9911)
-      schedulerObjClone.scheduled_run_time = transToUTCMs(schedulerObjClone.scheduled_run_time)
+      // console.log(schedulerObjClone.scheduled_run_time, 9911)
+      schedulerObjClone.repeat_interval = schedulerObjClone.partition_interval
+      // schedulerObjClone.scheduled_run_time = transToUTCMs(schedulerObjClone.scheduled_run_time)
       saveData.schedulerJobData = JSON.stringify(schedulerObjClone)
       this.draftCube(saveData).then((res) => {
         this.cubeDraftSaving = false
@@ -490,13 +491,28 @@ export default {
         cubeDescData: JSON.stringify(this.cubeDetail),
         project: this.selected_project
       }
+      // 将cube的起始时间设置转换成UTC
+      var cloneCubeDescData = JSON.parse(saveData.cubeDescData)
+      // cloneCubeDescData.partition_date_start = transToUTCMs(cloneCubeDescData.partition_date_start)
+      saveData.cubeDescData = JSON.stringify(cloneCubeDescData)
       if (this.rawTable.tableDetail.columns && this.rawTable.tableDetail.columns.length) {
         saveData.rawTableDescData = JSON.stringify(this.rawTable.tableDetail)
       }
       var schedulerObj = this.scheduler.desc
       schedulerObj.name = this.cubeDetail.name
       schedulerObj.project = this.selected_project
-      saveData.schedulerJobData = JSON.stringify(schedulerObj)
+      // 将scheduler 的自动构建触发时间设置转换成UTC
+      var schedulerObjClone = JSON.parse(JSON.stringify(schedulerObj))
+      schedulerObjClone.repeat_interval = schedulerObjClone.partition_interval
+      // schedulerObjClone.scheduled_run_time = transToUTCMs(schedulerObjClone.scheduled_run_time)
+      saveData.schedulerJobData = JSON.stringify(schedulerObjClone)
+      // if (this.rawTable.tableDetail.columns && this.rawTable.tableDetail.columns.length) {
+      //   saveData.rawTableDescData = JSON.stringify(this.rawTable.tableDetail)
+      // }
+      // var schedulerObj = this.scheduler.desc
+      // schedulerObj.name = this.cubeDetail.name
+      // schedulerObj.project = this.selected_project
+      // saveData.schedulerJobData = JSON.stringify(schedulerObj)
       this.updateCube(saveData).then((res) => {
         this.cubeSaving = false
         handleSuccess(res, (data, code, status, msg) => {

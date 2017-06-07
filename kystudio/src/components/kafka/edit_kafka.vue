@@ -30,7 +30,7 @@
             align='center'>
             <template scope='scope'>
               <el-input v-model='scope.row.port' v-if='currentCheck === scope.$index'></el-input>   
-              <span v-else >{{scope.row.host}}</span>         
+              <span v-else >{{scope.row.port}}</span>         
             </template>
           </el-table-column>
           <el-table-column
@@ -61,7 +61,7 @@
           <el-col :span='24'>     
             Topic: {{kafkaMeta.topic}} 
           </el-col>
-        </el-row>         
+        </el-row>    
         <el-card >
           <div slot="header">
             <span >{{$t('parserSetting')}}</span>
@@ -79,10 +79,10 @@
 </template>
 <script>
 import { mapActions } from 'vuex'
-import { handleSuccess } from '../../util/business'
+// import { handleSuccess } from '../../util/business'
 export default {
-  name: 'createKafka',
-  props: ['tableName'],
+  name: 'editKafka',
+  props: ['tableName', 'streamingData', 'streamingConfig'],
   data () {
     return {
       rules: {
@@ -93,11 +93,7 @@ export default {
         { required: true, message: '', trigger: 'change' }
         ]
       },
-      currentCheck: 0,
-      kafkaMeta: {
-        clusters: [{}]
-      },
-      streamingConfig: null
+      currentCheck: -1
     }
   },
   methods: {
@@ -124,6 +120,11 @@ export default {
       this.kafkaMeta.clusters[0].brokers.splice(index, 1)
     }
   },
+  computed: {
+    kafkaMeta () {
+      return this.streamingData
+    }
+  },
   created () {
     this.$on('kafkaEditFormValid', (t) => {
       this.$refs['kafkaForm'].validate((valid) => {
@@ -135,16 +136,16 @@ export default {
         }
       })
     })
-    this.getKafkaTableDetail(this.tableName).then((res) => {
-      handleSuccess(res, (data) => {
-        this.kafkaMeta = data && data[0]
-      })
-    })
-    this.getStreamingConfig(this.tableName).then((res) => {
-      handleSuccess(res, (data) => {
-        this.streamingConfig = data && data[0]
-      })
-    })
+    // this.getKafkaTableDetail(this.tableName).then((res) => {
+    //   handleSuccess(res, (data) => {
+    //     this.kafkaMeta = data && data[0]
+    //   })
+    // })
+    // this.getStreamingConfig(this.tableName).then((res) => {
+    //   handleSuccess(res, (data) => {
+    //     this.streamingConfig = data && data[0]
+    //   })
+    // })
   },
   locales: {
     'en': {host: 'Host', port: 'Port', action: 'Action', cluster: 'Cluster', clusterInfo: 'Get Cluster Info', timestamp: 'timestamp', derivedTimeDimension: 'Derived Time Dimension', parserSetting: 'Parser Setting', parserName: 'Parser Name', parserTimestampField: 'Parser Timestamp Field', parserProperties: 'ParserProperties'},

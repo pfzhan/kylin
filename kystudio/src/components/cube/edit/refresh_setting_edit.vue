@@ -142,10 +142,12 @@ export default {
       this.cubeDesc.auto_merge_time_ranges.splice(index, 1)
     },
     initRepeatInterval: function (data) {
+      console.log(data, 33)
       let _week = Math.floor(data.partition_interval / 604800000)
       let _day = Math.floor(data.partition_interval / 86400000)
       let _hour = Math.floor(data.partition_interval / 3600000)
       var _minute = Math.floor(data.partition_interval / 60000)
+      console.log(_week, _day, _hour, _minute, 8899)
       if (_week === 0) {
         if (_day === 0) {
           if (_minute === 0) {
@@ -188,6 +190,7 @@ export default {
           this.initRepeatInterval(data)
           this.scheduler.desc.scheduled_run_time = data.scheduled_run_time
           this.scheduledRunTime = transToUtcTimeFormat(this.scheduler.desc.scheduled_run_time)
+          console.log(this.scheduledRunTime, 'kkk')
           this.scheduler.desc.partition_interval = data.partition_interval
         })
       }).catch((res) => {
@@ -217,6 +220,7 @@ export default {
     }
   },
   created: function () {
+    console.log(this.scheduler)
     if (this.cubeDesc.auto_merge_time_ranges) {
       this.conversionTime()
       this.partitionStartDate = transToUtcTimeFormat(this.cubeDesc.partition_date_start)
@@ -224,6 +228,7 @@ export default {
     }
     if (this.scheduler.desc.scheduled_run_time && this.scheduler.desc.partition_interval) {
       this.initRepeatInterval(this.scheduler.desc)
+      this.scheduledRunTime = transToUtcTimeFormat(this.scheduler.desc.scheduled_run_time)
     } else {
       // this.scheduler.desc.scheduled_run_time = transToUtcTimeFormat((new Date()).getTime())
       this.scheduledRunTime = new Date()

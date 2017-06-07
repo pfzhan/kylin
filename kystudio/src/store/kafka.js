@@ -12,8 +12,8 @@ export default {
     [types.GET_TOPIC_INFO]: function ({ commit }, topic) {
       return api.kafka.getTopicInfo(topic)
     },
-    [types.SAVE_SAMPLE_DATA]: function ({ commit }, tableName) {
-      return api.kafka.saveSampleData(tableName)
+    [types.SAVE_SAMPLE_DATA]: function ({ commit }, data) {
+      return api.kafka.saveSampleData(data.tableName, data.sampleData)
     },
     [types.SAVE_KAFKA]: function ({ commit }, kafka) {
       return api.kafka.saveKafka(kafka)

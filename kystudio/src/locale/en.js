@@ -35,6 +35,7 @@ exports.default = {
     dataSource: 'datasource',
     fact: 'Fact Table',
     lookup: 'Lookup Table',
+    computedColumn: 'Computed Column',
     pk: 'Primary key',
     fk: 'Foreign key',
     // 通用提示

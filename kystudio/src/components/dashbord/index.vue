@@ -53,7 +53,7 @@
     		<div class="counter-list counter-list3">
     			<el-card>
 					<div slot="header" class="clearfix">
-		    			Cubess
+		    			Cubes
 					</div>
 					<section>
 						222

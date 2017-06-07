@@ -11,8 +11,8 @@ export default {
   getTopicInfo: (topic) => {
     return Vue.resource(apiUrl + 'kafka/' + topic.cluster + '/' + topic.name).save(topic.kafka)
   },
-  saveSampleData: (tableName) => {
-    return Vue.resource(apiUrl + 'kafka/' + tableName + '/samples').save()
+  saveSampleData: (tableName, sampleData) => {
+    return Vue.resource(apiUrl + 'kafka/' + tableName + '/samples').save(sampleData)
   },
   saveKafka: (kafka) => {
     return Vue.resource(apiUrl + 'streaming').save(kafka)

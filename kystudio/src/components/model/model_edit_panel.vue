@@ -95,7 +95,7 @@
                 </el-tab-pane>
                 <el-tab-pane :label="$t('dimension')" name="third">
                   <div v-for="(key, value) in dimensions" :key="key">
-                    <el-badge :value="dimensions[value].length" class="item ksd-mt-10" style="background-color:green">
+                    <el-badge :value="dimensions[value]&&dimensions[value].length" class="item ksd-mt-10" style="background-color:green">
                     <el-button size="small">{{value}}</el-button>
                     </el-badge>
                     <br/>
@@ -104,7 +104,7 @@
                 </el-tab-pane>
                 <el-tab-pane :label="$t('measure')" name="fourth">
                   <div v-for="(key, value) in measures" :key="key">
-                    <el-badge :value="measures[value].length" class="item ksd-mt-10" >
+                    <el-badge :value="measures[value]&&measures[value].length" class="item ksd-mt-10" >
                     <el-button size="small">{{value}}</el-button>
                     </el-badge>
                     <br/>

@@ -1,9 +1,9 @@
 <template>
   <div>
-    <el-form :model='kafkaMeta' label-position='right'   label-width=' 120px' ref='kafkaForm'>
+    <el-form  label-position='right'   label-width=' 120px' ref='kafkaForm'>
         <span style='line-height: 36px;'>{{$t('cluster')}}</span>
         <el-table class='table_margin'
-          :data='kafkaMeta.clusters[0].brokers' 
+          :data='kafkaMeta.clusters&&kafkaMeta.clusters[0].brokers' 
           style='width: 100%'>
           <el-table-column
             label='ID'
@@ -28,11 +28,11 @@
             header-align='center'
             align='center'>
             <template scope='scope'>
-              <span>{{scope.row.host}}</span>         
+              <span>{{scope.row.port}}</span>         
             </template>
           </el-table-column>
         </el-table>
-               
+
         <el-card >
           <div slot="header">
             <span >{{$t('parserSetting')}}</span>
@@ -50,30 +50,27 @@
     </div>
 </template>
 <script>
-import { mapActions } from 'vuex'
-import { handleSuccess } from '../../util/business'
+// import { mapActions } from 'vuex'
+// import { handleSuccess } from '../../util/business'
 export default {
-  name: 'createKafka',
-  prop: ['tableName'],
+  name: 'viewkafka',
+  props: ['streamingData'],
   data () {
     return {
-      kafkaMeta: {
-        clusters: []
-      }
+      // kafkaMeta: {
+      //   clusters: []
+      // }
     }
   },
   methods: {
-    ...mapActions({
-      getKafkaTableDetail: 'GET_KAFKA_CONFIG'
-    })
   },
   created () {
-    this.getKafkaTableDetail(this.tableName).then((res) => {
-      handleSuccess(res, (data) => {
-        console.log(data, 'sssss')
-        this.kafkaMeta = data && data[0]
-      })
-    })
+    // this.kafkaMeta.clusters = this.streamingData && this.streamingData[0] || null
+  },
+  computed: {
+    kafkaMeta () {
+      return this.streamingData
+    }
   },
   locales: {
     'en': {host: 'Host', port: 'Port', action: 'Action', cluster: 'Cluster', clusterInfo: 'Get Cluster Info', timestamp: 'timestamp', derivedTimeDimension: 'Derived Time Dimension', parserSetting: 'Parser Setting', parserName: 'Parser Name', parserTimestampField: 'Parser Timestamp Field', parserProperties: 'ParserProperties'},

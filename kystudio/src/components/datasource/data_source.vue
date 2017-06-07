@@ -164,7 +164,7 @@
 		    </el-tab-pane>
           <el-tab-pane label="Streaming Cluster" name="fifth" v-if="tableData.source_type === 1">
             <el-button type="primary" icon="edit" @click="editKafkaFormVisible=true" class="ksd-fright">{{$t('kylinLang.common.edit')}}</el-button>
-            <view-kafka  ref="addkafkaForm" v-on:validSuccess="kafkaValidSuccess"  :tableName="currentStreamingTable" ></view-kafka>
+            <view_kafka  ref="addkafkaForm" v-on:validSuccess="kafkaValidSuccess" :streamingData="currentStreamingTableData"  :tableName="currentStreamingTable" ></view_kafka>
           </el-tab-pane>
         </el-tabs>
       </div>
@@ -242,7 +242,7 @@
 
 
      <el-dialog title="Load Kafka Topic" v-model="editKafkaFormVisible" top="10%" size="small">
-        <edit_kafka  ref="kafkaFormEdit"  v-on:validEditSuccess="kafkaEditValidSuccess" :tableName="currentStreamingTable" ></edit_kafka>
+        <edit_kafka  ref="kafkaFormEdit"  v-on:validEditSuccess="kafkaEditValidSuccess" :streamingData="currentStreamingTableData" :streamingConfig="currentStreamingConfig"  :tableName="currentStreamingTable" ></edit_kafka>
         <span slot="footer" class="dialog-footer">
           <el-button @click="editKafkaFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
           <el-button type="primary" @click="checkKafkaFormEdit">{{$t('kylinLang.common.submit')}}</el-button>
@@ -312,6 +312,8 @@ export default {
       hiveData: [],
       filterVal: '',
       currentStreamingTable: '',
+      currentStreamingTableData: '',
+      currentStreamingConfig: '',
       loadResult: {
         success: [],
         fail: []
@@ -322,7 +324,7 @@ export default {
     arealabel,
     'create_kafka': createKafka,
     'edit_kafka': editKafka,
-    'view-kafka': viewKafka
+    'view_kafka': viewKafka
   },
   created () {
     if (this.project) {
@@ -343,7 +345,8 @@ export default {
       collectSampleData: 'COLLECT_SAMPLE_DATA',
       getTableJob: 'GET_TABLE_JOB',
       collectKafkaSampleData: 'LOAD_KAFKA_SAMPLEDATA',
-      getKafkaTableDetail: 'GET_KAFKA_CONFIG'
+      getKafkaTableDetail: 'GET_KAFKA_CONFIG',
+      getStreamingConfig: 'LOAD_STREAMING_CONFIG'
     }),
     changeBar (val) {
       this.tableStaticsRange = val
@@ -620,44 +623,59 @@ export default {
     },
     clickTable (leaf) {
       var databaseInfo = leaf.id.split('$')
-      var _this = this
       if (databaseInfo.length === 2) {
         var database = databaseInfo[0]
         var tableName = databaseInfo[1]
-        var tableData = this.$store.state.datasource.dataSource[this.project]
-        for (var k = 0; k < tableData.length; k++) {
-          if (tableData[k].database === database && tableData[k].name === tableName) {
-            this.tableData = tableData[k]
+        this.showTableDetail(database, tableName)
+      }
+    },
+    showTableDetail (databaseName, table) {
+      var _this = this
+      var database = databaseName
+      var tableName = table
+      var tableData = this.$store.state.datasource.dataSource[this.project]
+      for (var k = 0; k < tableData.length; k++) {
+        if (tableData[k].database === database && tableData[k].name === tableName) {
+          this.tableData = tableData[k]
+          break
+        }
+      }
+      this.activeName = 'first'
+      this.loadTableExt(database + '.' + tableName).then((res) => {
+        handleSuccess(res, (data) => {
+          _this.extendData = data
+          for (var s = 0, len = _this.extendData.columns_stats && _this.extendData.columns_stats.length || 0; s < len; s++) {
+            _this.extendData.columns_stats[s].column = this.tableData.columns[s].name
+          }
+          _this.statistics = _this.extendData.columns_stats
+          var sampleData = changeDataAxis(_this.extendData.sample_rows)
+          var basicColumn = [[]]
+          for (var i = 0; i < sampleData.length; i++) {
+            for (var m = 0; m < sampleData[i].length; m++) {
+              basicColumn[0].push(_this.tableData.columns[m].name)
+            }
             break
           }
-        }
-        this.activeName = 'first'
-        this.loadTableExt(database + '.' + tableName).then((res) => {
-          handleSuccess(res, (data) => {
-            _this.extendData = data
-            for (var s = 0, len = _this.extendData.columns_stats && _this.extendData.columns_stats.length || 0; s < len; s++) {
-              _this.extendData.columns_stats[s].column = this.tableData.columns[s].name
-            }
-            _this.statistics = _this.extendData.columns_stats
-            var sampleData = changeDataAxis(_this.extendData.sample_rows)
-            var basicColumn = [[]]
-            for (var i = 0; i < sampleData.length; i++) {
-              for (var m = 0; m < sampleData[i].length; m++) {
-                basicColumn[0].push(_this.tableData.columns[m].name)
-              }
-              break
-            }
-            this.sampleData = basicColumn.concat(sampleData)
-            if (_this.tableData.source_type === 1) {
-              this.currentStreamingTable = data.table_name
-              // console.log(this.currentStreamingTable, 9900000)
-              return
-            }
-          })
-        }, (res) => {
-          handleError(res)
+          this.sampleData = basicColumn.concat(sampleData)
+          if (_this.tableData.source_type === 1) {
+            this.currentStreamingTable = data.table_name
+            this.getKafkaTableDetail(this.currentStreamingTable).then((res) => {
+              handleSuccess(res, (data) => {
+                this.currentStreamingTableData = data[0] || null
+              })
+            })
+            this.getStreamingConfig(this.currentStreamingTable).then((res) => {
+              handleSuccess(res, (data) => {
+                this.currentStreamingConfig = data && data[0]
+              })
+            })
+            // console.log(this.currentStreamingTable, 9900000)
+            return
+          }
         })
-      }
+      }, (res) => {
+        handleError(res)
+      })
     },
     loadHiveList () {
       this.currentAction = this.$t('load')
@@ -715,12 +733,24 @@ export default {
         database: data.database || 'Default'
       }
       data.streamingMeta.name = data.kafkaMeta.name
-      this.saveSampleData(data.database + '.' + data.tableName)
+      this.saveSampleData({ tableName: data.database + '.' + data.tableName, sampleData: data.sampleData })
       this.saveKafka({
         kafkaConfig: JSON.stringify(data.kafkaMeta),
         streamingConfig: JSON.stringify(data.streamingMeta),
         project: this.project,
-        tableData: tableData
+        tableData: JSON.stringify(tableData)
+      }).then((res) => {
+        handleSuccess(res, (data) => {
+          this.$message({
+            type: 'success',
+            message: this.$t('saveSuccessful')
+          })
+          this.kafkaFormVisible = false
+          this.loadHiveTree()
+          // this.showTableDetail(data.database, data.tableName)
+        })
+      }, (res) => {
+        handleError(res)
       })
     },
     kafkaEditValidSuccess: function (data) {
@@ -733,9 +763,13 @@ export default {
         // handleSuccess(res, (data) => {
         this.$message(this.$t('kylinLang.common.updateSuccess'))
         this.editKafkaFormVisible = false
+        this.loadHiveTree()
+        this.showTableDetail(data.kafkaMeta.name.split('.')[0], data.kafkaMeta.name.split('.')[1])
+        this.activeName = 'fifth'
         // })
       }, (res) => {
         this.editKafkaFormVisible = false
+        this.showTableDetail(data.kafkaMeta.name.split('.')[0], data.kafkaMeta.name.split('.')[1])
         handleError(res)
       })
     }

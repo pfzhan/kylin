@@ -206,7 +206,8 @@ export default {
         children: 'children',
         label: 'label'
       },
-      treeData: []
+      treeData: [],
+      sampleData: null
     }
   },
   methods: {
@@ -241,7 +242,7 @@ export default {
         streamingConfig: JSON.stringify(this.streamingMeta)
       }).then((res) => {
         handleSuccess(res, (result) => {
-          var data = result.data
+          var data = result
           for (let key of Object.keys(data)) {
             let treeNode = {label: key, children: []}
             data[key].forEach(function (cluster) {
@@ -260,6 +261,8 @@ export default {
       if (node.children) {
         return
       } else {
+        this.kafkaMeta.topic = node.label
+        // this.kafkaMeta.name = nodeDesc.parent.data.label
         let topic = {
           cluster: nodeDesc.parent.data.label,
           name: node.label,
@@ -271,7 +274,8 @@ export default {
         }
         this.topicInfo(topic).then((res) => {
           handleSuccess(res, (data) => {
-            this.sourceSchema = data.data
+            this.sampleData = data
+            this.sourceSchema = JSON.stringify(data[0])
           })
         }).catch((res) => {
           handleError(res)
@@ -281,6 +285,7 @@ export default {
     convertJson: function (jsonData) {
       try {
         var parseResult = JSON.parse(jsonData)
+        parseResult = JSON.parse(parseResult)
       } catch (error) {
         return
       }
@@ -292,6 +297,7 @@ export default {
             changeObjTree(obj[i], base + i)
             continue
           }
+          console.log(base + i, obj[i])
           columnList.push(createNewObj(base + i, obj[i]))
         }
       }
@@ -379,7 +385,9 @@ export default {
             tableName: this.kafkaMeta.name,
             columnList: this.columnList,
             kafkaMeta: this.kafkaMeta,
-            streamingMeta: this.streamingMeta})
+            streamingMeta: this.streamingMeta,
+            sampleData: this.sampleData
+          })
         }
       })
     })

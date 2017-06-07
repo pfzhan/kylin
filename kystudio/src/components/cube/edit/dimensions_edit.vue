@@ -145,7 +145,7 @@
          <el-col :span="4">{{$t('dataType')}}</el-col>
          <el-col :span="2">{{$t('cardinality')}}</el-col>
        </el-row>
-        <el-row class="tablebody" v-for="(row, index) in convertedRowkeys"  v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }">
+        <el-row class="tablebody" v-for="(row, index) in convertedRowkeys"  v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }" :key="row.column">
           <el-col :span="1">{{index+1}}</el-col>
           <el-col :span="9">{{row.column}}</el-col>
           <el-col :span="4">
@@ -247,7 +247,8 @@ export default {
       currentRowkey: [],
       convertedRowkeys: [],
       featureData: [],
-      modelStatics: []
+      modelStatics: [],
+      testSort: [{name: 1}, {name: 2}, {name: 3}, {name: 4}]
     }
   },
   components: {
@@ -613,9 +614,6 @@ export default {
     }
   },
   mounted () {
-    // this.$dragging.$on('dragend', ({ value }) => {
-    //   console.log(value)
-    // })
   },
   computed: {
     isReadyCube () {
