@@ -43,7 +43,7 @@ export default {
         // 加载project所有的权限
         var pl = response.data.data.projects && response.data.data.projects.length || 0
         for (var i = 0; i < pl; i++) {
-          dispatch(types.GET_PROJECT_ACCESS, response.data.data[i].uuid)
+          dispatch(types.GET_PROJECT_ACCESS, response.data.data.projects[i].uuid)
         }
         commit(types.CACHE_ALL_PROJECTS, {list: response.data.data.projects})
       })
