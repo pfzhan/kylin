@@ -241,7 +241,7 @@ public class KapCubeController extends BasicController implements InitializingBe
 
         CubeDesc desc = null;
         try {
-            logger.debug("Saving cube " + cubeDescStr);
+            logger.trace("Saving cube " + cubeDescStr);
             desc = JsonUtil.readValue(cubeDescStr, CubeDesc.class);
         } catch (JsonParseException e) {
             logger.error("The cube definition is not valid.", e);
@@ -424,7 +424,7 @@ public class KapCubeController extends BasicController implements InitializingBe
 
         CubeDesc desc = null;
         try {
-            logger.debug("Saving cube " + kapCubeRequest.getCubeDescData());
+            logger.trace("Saving cube " + kapCubeRequest.getCubeDescData());
             desc = JsonUtil.readValue(kapCubeRequest.getCubeDescData(), CubeDesc.class);
         } catch (JsonParseException e) {
             logger.error("The cube definition is not valid.", e);
@@ -444,7 +444,7 @@ public class KapCubeController extends BasicController implements InitializingBe
             return desc;
 
         try {
-            logger.debug("Saving rawtable " + kapCubeRequest.getRawTableDescData());
+            logger.trace("Saving rawtable " + kapCubeRequest.getRawTableDescData());
             desc = JsonUtil.readValue(kapCubeRequest.getRawTableDescData(), RawTableDesc.class);
         } catch (JsonParseException e) {
             logger.error("The rawtable definition is not valid.", e);
@@ -461,7 +461,7 @@ public class KapCubeController extends BasicController implements InitializingBe
 
         SchedulerJobInstance schedulerJob = null;
         try {
-            logger.debug("Saving scheduler job " + kapCubeRequest.getSchedulerJobData());
+            logger.trace("Saving scheduler job " + kapCubeRequest.getSchedulerJobData());
             schedulerJob = JsonUtil.readValue(kapCubeRequest.getSchedulerJobData(), SchedulerJobInstance.class);
         } catch (JsonParseException e) {
             logger.error("The SchedulerJobInstance definition is not valid.", e);
