@@ -504,7 +504,7 @@ export default {
         if (tipChangestate) {
           this.$message({
             type: 'warning',
-            message: '未检测到任何改动!'
+            message: this.$t('kylinLang.common.checkNoChange')
           })
         }
         return

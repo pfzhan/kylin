@@ -52,6 +52,7 @@ exports.default = {
     pleaseInput: 'Please input',
     pleaseSelect: 'Please select',
     noData: 'No data',
+    checkNoChange: 'No changes can be saved as drafts',
     // 格式提示
     nameFormatValidTip: 'Invalid name！ You can use letters, numbers, and underscore characters',
     // 其他

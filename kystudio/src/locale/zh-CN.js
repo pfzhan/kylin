@@ -52,6 +52,7 @@ exports.default = {
     pleaseInput: '请输入',
     pleaseSelect: '请选择',
     noData: '没有数据',
+    checkNoChange: '未检测到任何改动',
     // 格式提示
     nameFormatValidTip: '名称格式有误，支持数字字母下划线的组合',
     // 其他

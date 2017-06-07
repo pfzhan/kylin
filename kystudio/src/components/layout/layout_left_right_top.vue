@@ -136,12 +136,12 @@
       help
     },
     created () {
-      this.reloadRouter()
-      this.getConf()
-      this.getEncoding()
-      this.getAboutKap()
       this.getCurUserInfo().then((res) => {
         handleSuccess(res, (data) => {
+          this.reloadRouter()
+          this.getConf()
+          this.getEncoding()
+          this.getAboutKap()
           this.setCurUser({ user: data })
         })
       })

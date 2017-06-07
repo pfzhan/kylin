@@ -311,6 +311,9 @@ export default {
     },
     reloadDiagnoseList () {
       var params1 = {pageSize: pageCount, pageOffset: this.currentPage - 1}
+      if (localStorage.getItem('selected_project')) {
+        params1.project = localStorage.getItem('selected_project')
+      }
       return this.loadModelDiagnoseList(params1)
     },
     changeBar (val) {
@@ -324,9 +327,9 @@ export default {
       this.currentPage = currentPage
       var params = {pageSize: pageCount, pageOffset: currentPage - 1}
       var params1 = {pageSize: pageCount, pageOffset: currentPage - 1}
-      if (this.project) {
-        params.projectName = this.project
-        params1.project = this.project
+      if (localStorage.getItem('selected_project')) {
+        params.projectName = localStorage.getItem('selected_project')
+        params1.project = localStorage.getItem('selected_project')
       }
       // this.loadModels(params)
       // this.loadModelDiagnoseList(params1)
@@ -336,12 +339,7 @@ export default {
     },
     sizeChange () {
     },
-    // getModelStatusIcon (modelInfo) {
-    //   var helthInfo = this.getHelthInfo(modelInfo.name)
-    //   return modelHealthStatus[helthInfo.heathStatus]
-    // },
     viewModel (modelInfo) {
-      console.log(modelInfo)
       this.$emit('addtabs', 'viewmodel', '[view] ' + modelInfo.name, 'modelEdit', {
         project: modelInfo.project,
         modelName: modelInfo.name,
@@ -610,7 +608,7 @@ export default {
       this.getCubesList({
         pageSize: 10000,
         pageOffset: 0,
-        projectName: this.project,
+        projectName: localStorage.getItem('selected_project'),
         modelName: modelName
       }).then((res) => {
         handleSuccess(res, (data) => {
@@ -654,11 +652,9 @@ export default {
     var params = {pageSize: pageCount, pageOffset: 0}
     var params1 = {pageSize: pageCount, pageOffset: 0}
     // console.log(this.project, 112233)
-    if (this.project) {
-      params.projectName = this.project
-    }
-    if (this.project) {
-      params1.project = this.project
+    if (localStorage.getItem('selected_project')) {
+      params.projectName = localStorage.getItem('selected_project')
+      params1.project = localStorage.getItem('selected_project')
     }
     this.loadModelDiagnoseList(params1).then(() => {
       this.loadModels(params)
