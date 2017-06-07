@@ -28,7 +28,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
-import io.kyligence.kap.rest.msg.KapMsgPicker;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +44,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.Assert;
 
+import io.kyligence.kap.rest.msg.KapMsgPicker;
+import io.kyligence.kap.rest.service.SchedulerJobService;
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Element;
@@ -60,6 +61,10 @@ public class KapAuthenticationProvider implements AuthenticationProvider {
     @Autowired
     @Qualifier("userService")
     UserService userService;
+
+    @Autowired
+    @Qualifier("schedulerJobService")
+    private SchedulerJobService schedulerJobService;
 
     @Autowired
     private CacheManager cacheManager;
@@ -93,6 +98,7 @@ public class KapAuthenticationProvider implements AuthenticationProvider {
         if (null != authedUser) {
             authed = (Authentication) authedUser.getObjectValue();
             SecurityContextHolder.getContext().setAuthentication(authed);
+            schedulerJobService.resumeSchedulers();
         } else {
             try {
                 if (authentication instanceof UsernamePasswordAuthenticationToken)
