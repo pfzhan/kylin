@@ -2,7 +2,7 @@
     <el-form :model='kafkaMeta' label-position='right' :rules='rules'  label-width=' 120px' ref='kafkaForm'>
         <span style='line-height: 36px;'>{{$t('cluster')}}</span>
         <el-table class='table_margin'
-          :data='kafkaMeta.clusters[0].brokers' 
+          :data='kafkaMeta.clusters[0].brokers'
           style='width: 100%'>
           <el-table-column
             label='ID'
@@ -29,8 +29,8 @@
             header-align='center'
             align='center'>
             <template scope='scope'>
-              <el-input v-model='scope.row.port' v-if='currentCheck === scope.$index'></el-input>   
-              <span v-else >{{scope.row.port}}</span>         
+              <el-input v-model='scope.row.port' v-if='currentCheck === scope.$index'></el-input>
+              <span v-else >{{scope.row.port}}</span>
             </template>
           </el-table-column>
           <el-table-column
@@ -46,35 +46,35 @@
           </el-table-column>
         </el-table>
         <el-row class='row_padding'>
-          <el-col :span='24'>   
+          <el-col :span='24'>
             <el-button size='mini' icon='plus' @click='addBroker'>Add Broker
             </el-button>
           </el-col>
         </el-row>
      <!--    <el-row class='row_padding'>
-          <el-col :span='24'>      
+          <el-col :span='24'>
             <el-button size='mini' icon='loading' @click='getClusterInfo'>{{$t('clusterInfo')}}
             </el-button>
           </el-col>
         </el-row>   -->
         <el-row class='row_padding'>
-          <el-col :span='24'>     
-            Topic: {{kafkaMeta.topic}} 
+          <el-col :span='24'>
+            Topic: {{kafkaMeta.topic}}
           </el-col>
-        </el-row>    
+        </el-row>
         <el-card >
           <div slot="header">
             <span >{{$t('parserSetting')}}</span>
           </div>
           <div>
             <el-form-item :label="$t('parserName')" prop="parserName">
-                <el-input v-model="kafkaMeta.parserName"></el-input>      
+                <el-input v-model="kafkaMeta.parserName"></el-input>
             </el-form-item>
             <el-form-item :label="$t('parserProperties')" prop="parserProperties">
-                <el-input v-model="kafkaMeta.parserProperties" placeholder="configA=1;configB=2"></el-input>      
+                <el-input v-model="kafkaMeta.parserProperties" placeholder="tsColName=createdAt;tsParser=org.apache.kylin.source.kafka.DateTimeParser;tsPattern=MMM dd,yyyy hh:mm:ss aa"></el-input>
             </el-form-item>
           </div>
-      </el-card>        
+      </el-card>
     </el-form>
 </template>
 <script>

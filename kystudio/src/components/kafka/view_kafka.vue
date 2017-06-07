@@ -3,7 +3,7 @@
     <el-form  label-position='right'   label-width=' 120px' ref='kafkaForm'>
         <span style='line-height: 36px;'>{{$t('cluster')}}</span>
         <el-table class='table_margin'
-          :data='kafkaMeta.clusters&&kafkaMeta.clusters[0].brokers' 
+          :data='kafkaMeta.clusters&&kafkaMeta.clusters[0].brokers'
           style='width: 100%'>
           <el-table-column
             label='ID'
@@ -28,7 +28,7 @@
             header-align='center'
             align='center'>
             <template scope='scope'>
-              <span>{{scope.row.port}}</span>         
+              <span>{{scope.row.port}}</span>
             </template>
           </el-table-column>
         </el-table>
@@ -39,13 +39,13 @@
           </div>
           <div>
             <el-form-item :label="$t('parserName')" prop="parserName">
-                <el-input v-model="kafkaMeta.parserName" disabled></el-input>      
+                <el-input v-model="kafkaMeta.parserName" disabled></el-input>
             </el-form-item>
             <el-form-item :label="$t('parserProperties')" prop="parserProperties">
-                <el-input v-model="kafkaMeta.parserProperties" disabled placeholder="configA=1;configB=2"></el-input>      
+                <el-input v-model="kafkaMeta.parserProperties" disabled placeholder="tsColName=createdAt;tsParser=org.apache.kylin.source.kafka.DateTimeParser;tsPattern=MMM dd,yyyy hh:mm:ss aa"></el-input>
             </el-form-item>
           </div>
-      </el-card>        
+      </el-card>
     </el-form>
     </div>
 </template>

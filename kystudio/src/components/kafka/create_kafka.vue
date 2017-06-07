@@ -82,7 +82,7 @@
                 :value="item">
                 </el-option>
               </el-select>
-              
+
             </el-col>
             <el-col :span='1' class="ksd-center ksd-lineheight-40"><b>／</b></el-col>
             <el-col :span='9'>
@@ -144,7 +144,7 @@
               </el-select>
             </el-form-item>
             <el-form-item :label="$t('parserProperties')" prop="parserProperties">
-                <el-input v-model="kafkaMeta.parserProperties" placeholder="configA=1;configB=2"></el-input>
+                <el-input v-model="kafkaMeta.parserProperties" placeholder="tsColName=createdAt;tsParser=org.apache.kylin.source.kafka.DateTimeParser;tsPattern=MMM dd,yyyy hh:mm:ss aa"></el-input>
             </el-form-item>
           </div>
       </el-card>
@@ -431,7 +431,7 @@ export default {
  }
 .convertBtn i {
    position: relative;
-   left: 18px; 
+   left: 18px;
 }
 .el-card .el-card__body {
   padding: 0px;
