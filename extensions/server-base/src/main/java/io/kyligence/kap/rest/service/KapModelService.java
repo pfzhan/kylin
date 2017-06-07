@@ -141,6 +141,7 @@ public class KapModelService extends BasicService {
             sign++;
             messages.add(modelStats.getSkewResult());
         }
+        request.setMessages(messages);
         request.setHeathStatus(judgeHealthStatus(sign));
         return request;
     }
