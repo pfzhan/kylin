@@ -66,14 +66,18 @@
   }
 </script>
 <style lang="less">
-.start_kybot {
-	.btn-agree {
-    display: block;
-    margin: 20px auto;
+  @import url(../../less/config.less);
+  .start_kybot {
+    .btn-agree {
+      display: block;
+      margin: 20px auto;
+    }
+    .blue {
+      color: #20a0ff;
+    }
+    .el-checkbox{
+      color: @content-color;
+    }
   }
-  .blue {
-    color: #20a0ff;
-  }
-}
 </style>
 

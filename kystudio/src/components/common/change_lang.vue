@@ -1,7 +1,7 @@
 <template>
 <div class="change_lang">
-  <el-button v-if="lang=='en'" @click="changeLang">EN</el-button>
-  <el-button v-else @click="changeLang">中</el-button>
+  <el-button v-if="lang=='en'" @click="changeLang">English</el-button>
+  <el-button v-else @click="changeLang">中文</el-button>
 </div>
 </template>
 <script>
@@ -45,14 +45,17 @@
   }
 </script>
 <style lang="less">
-.change_lang {
-  button {
-    background: transparent;
-    color: #fff;
+  @import '../../less/config.less';
+  .change_lang {
+    button {
+      background: transparent;
+      color: @word-color;
+    }
+    .el-button{
+      border:none;
+    }
+    .el-button:hover{
+      color: @fff;
+    }
   }
-  .el-button{
-    border:none;
-  }
-}
- 
 </style>

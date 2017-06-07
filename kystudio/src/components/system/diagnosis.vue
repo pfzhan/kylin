@@ -6,11 +6,11 @@
       {{$t('contentTwo')}}
     </p>
   </div>
-  
+
   <!-- <p>{{$t('contentTip')}}</p> -->
   <div class="select-time" v-if="selectTimer">
     <div class="choices">
-      <p class="hd">{{$t('selectTime')}}</p>
+      <p class="hd">{{$t('selectTime')}}&nbsp;&nbsp;( {{$t('timeLimits')}} )</p>
       <el-radio-group v-model="radio" @change="changeRange">
         <el-radio :label="1" size="small">{{$t('last1')}}</el-radio>
         <el-radio :label="2" size="small">{{$t('last2')}}</el-radio>
@@ -62,7 +62,7 @@
   <el-dialog v-model="kyBotUploadVisible" title="KyAccount | Sign in" @close="resetLoginKybotForm" :modal="false" size="large">
     <login_kybot ref="loginKybotForm" @closeLoginForm="closeLoginForm"></login_kybot>
   </el-dialog>
-  
+
   <!-- <el-dialog v-model="infoKybotVisible" title="KyBot自动上传" size="tiny">
     <start_kybot @onStart="closeStartLayer" :propAgreement="infoKybotVisible"></start_kybot>
   </el-dialog> -->
@@ -78,7 +78,7 @@
       </el-checkbox>
     </div>
     <el-button @click="agreeProtocol" :loading="agreeLoading" type="primary" :disabled="!agreeKyBot" class="btn-agree">{{$t('agreeProtocol')}}</el-button>
-  </el-dialog> 
+  </el-dialog>
   <!-- 协议内容弹层 -->
     <el-dialog v-model='proContentVisivle' class="pro-content" size="large" :modal="false">
       <protocol_content></protocol_content>
@@ -102,7 +102,7 @@ export default {
         key: '',
         value: ''
       },
-      radio: 1,
+      radio: 2,
       startTime: '',
       endTime: '',
       pickerOptionsStart: {},
@@ -272,28 +272,31 @@ export default {
       }
     },
     changeStartTime () {
-      let _this = this
+      // let _this = this
       if (this.canChangePickStart) {
         this.radio = ''
       }
       this.hasErr = false // default everything is ok
-      this.pickerOptionsEnd.disabledDate = (time) => { // set date-picker endTime
-        let nowDate = new Date(_this.startTime)
-        nowDate.setMonth(nowDate.getMonth() + 1)// 后一个月
-        let nextMonth = +nowDate // 后一个月
-        // let v1 = time.getTime() > +new Date(_this.startTime) + 30 * 24 * 60 * 60 * 1000
-        let currentDate = +new Date() // 现在之后的都不能选择
-        let lastDate = '' // 最后能选择的时间
-        if (currentDate > nextMonth) {
-          lastDate = nextMonth
-        } else {
-          lastDate = currentDate
-        }
-        let v1 = time.getTime() > lastDate
-        let v2 = time.getTime() < +new Date(_this.startTime) - 8.64e7
-        this.maxTime = +nowDate // 缓存最大值 endTime
-        return (v1 || v2)
-      }
+//      this.pickerOptionsEnd.disabledDate = (time) => { // set date-picker endTime
+//        console.log(time)
+//        let nowTime = new Date().getTime()
+//        return time > nowTime
+//        let nowDate = new Date(_this.startTime)
+//        nowDate.setMonth(nowDate.getMonth() + 1)// 后一个月
+//        let nextMonth = +nowDate // 后一个月
+//        // let v1 = time.getTime() > +new Date(_this.startTime) + 30 * 24 * 60 * 60 * 1000
+//        let currentDate = +new Date() // 现在之后的都不能选择
+//        let lastDate = '' // 最后能选择的时间
+//        if (currentDate > nextMonth) {
+//          lastDate = nextMonth
+//        } else {
+//          lastDate = currentDate
+//        }
+//        let v1 = time.getTime() > lastDate
+//        let v2 = time.getTime() < +new Date(_this.startTime) - 8.64e7
+//        this.maxTime = +nowDate // 缓存最大值 endTime
+//        return (v1 || v2)
+//      }
       this.startTime = +new Date(this.startTime)
       this.endTime = +new Date(this.endTime)
       if (isNaN(this.startTime) || isNaN(this.endTime)) {
@@ -303,8 +306,8 @@ export default {
         this.hasErr = true
         this.errMsgPick = this.$t('err1')
       } else if (this.startTime + 5 * 60 * 1000 > this.endTime) {
-        this.hasErr = true
-        this.errMsgPick = this.$t('err2')
+        // 选择的时间小于5分钟
+        this.startTime = this.endTime - 5 * 1000 * 60
       } else if (this.maxTime < this.endTime) {
         this.hasErr = true
         this.errMsgPick = this.$t('err3')
@@ -375,11 +378,21 @@ export default {
   mounted () {
     this.canChangePick = false
     this.changeRange(1)
-    this.radio = 1
+    this.radio = 2
+    this.pickerOptionsEnd.disabledDate = (time) => { // set date-picker endTime
+      console.log(time)
+      let nowTime = new Date().getTime()
+      return time > nowTime
+    }
+    this.pickerOptionsStart.disabledDate = (time) => { // set date-picker endTime
+      console.log(time)
+      let nowTime = new Date().getTime()
+      return time > nowTime
+    }
   },
   locales: {
-    'en': {kybotUpload: 'Generate and sync package to KyBot', contentOne: 'By analyzing your diagnostic package, ', contentTwo: 'can provide online diagnostic, tuning and support service for KAP.', contentTip: '(Generated diagnostic package would cover 72 hours using history ahead)', kybotDumpOne: 'Only generate', kybotDumpTwo: ', Manual upload ', selectTime: 'Select Time Range', last1: 'Last one hour', last2: 'Last one day', last3: 'Last three days', last4: 'Last one month', chooseDate: 'Choose Date', tipTitle: 'If there is no public network access, diagnostic package can be upload manually as following:', tipStep1: '1. Download diagnostic package', tipStep2: '2. Login on KYBOT', tipStep3: '3. Click upload button on the top left of KyBot home page, and select the diagnostic package desired on the upload page to upload', err1: 'start time must less than end time', err2: 'at least 5 mins', err3: 'most one month', uploaded: 'uploaded successfully', protocol: '《KyBot Term of Service》', agreeProtocol: 'I have read and agree', noTime: 'Please choose the startTime or endTime'},
-    'zh-cn': {kybotUpload: '生成诊断包并上传至KyBot', contentOne: '通过分析生成的诊断包，', contentTwo: '提供在线诊断，优化服务。', contentTip: '(Generated diagnostic package would cover 72 hours using history ahead)', kybotDumpOne: '下载诊断包', kybotDumpTwo: ', 手动上传 ', selectTime: '选择时间范围', last1: '最近一小时', last2: '最近一天', last3: '最近三天', last4: '最近一个月', chooseDate: '选择日期', tipTitle: '如无公网访问权限，可选择手动上传，操作步骤如下：', tipStep1: '1. 点击下载诊断包', tipStep2: '2. 登录KYBOT', tipStep3: '3. 在首页左上角点击上传按钮，在上传页面选择已下载的诊断包上传', err1: '开始时间必须小于结束时间', err2: '至少选择5分钟之后', err3: '至多选择一个月之内', uploaded: '上传成功', protocol: '《KyBot用户协议》', agreeProtocol: '我已阅读并同意', noTime: '开始时间，结束时间不能为空'}
+    'en': {kybotUpload: 'Generate and sync package to KyBot', contentOne: 'By analyzing your diagnostic package, ', contentTwo: 'can provide online diagnostic, tuning and support service for KAP.', contentTip: '(Generated diagnostic package would cover 72 hours using history ahead)', kybotDumpOne: 'Only generate', kybotDumpTwo: ', Manual upload ', selectTime: 'Select Time Range', last1: 'Last one hour', last2: 'Last one day', last3: 'Last three days', last4: 'Last one month', chooseDate: 'Choose Date', tipTitle: 'If there is no public network access, diagnostic package can be upload manually as following:', tipStep1: '1. Download diagnostic package', tipStep2: '2. Login on KYBOT', tipStep3: '3. Click upload button on the top left of KyBot home page, and select the diagnostic package desired on the upload page to upload', err1: 'start time must less than end time', err2: 'at least 5 mins', err3: 'most one month', uploaded: 'uploaded successfully', protocol: '《KyBot Term of Service》', agreeProtocol: 'I have read and agree', noTime: 'Please choose the startTime or endTime', timeLimits: 'More than five minutes and less than one month'},
+    'zh-cn': {kybotUpload: '生成诊断包并上传至KyBot', contentOne: '通过分析生成的诊断包，', contentTwo: '提供在线诊断，优化服务。', contentTip: '(Generated diagnostic package would cover 72 hours using history ahead)', kybotDumpOne: '下载诊断包', kybotDumpTwo: ', 手动上传 ', selectTime: '选择时间范围', last1: '最近一小时', last2: '最近一天', last3: '最近三天', last4: '最近一个月', chooseDate: '选择日期', tipTitle: '如无公网访问权限，可选择手动上传，操作步骤如下：', tipStep1: '1. 点击下载诊断包', tipStep2: '2. 登录KYBOT', tipStep3: '3. 在首页左上角点击上传按钮，在上传页面选择已下载的诊断包上传', err1: '开始时间必须小于结束时间', err2: '至少选择5分钟之后', err3: '至多选择一个月之内', uploaded: '上传成功', protocol: '《KyBot用户协议》', agreeProtocol: '我已阅读并同意', noTime: '开始时间，结束时间不能为空', timeLimits: '大于五分钟小于一个月'}
   }
 }
 </script>
@@ -473,7 +486,7 @@ export default {
       .uploader {
         font-size: 14px;
       }
-    } 
+    }
   }
   .err-msg {
     height: 30px;

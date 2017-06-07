@@ -1,11 +1,10 @@
 <template>
 <div>
   <div id="loginPage">
-    <div class="logobox" style="display:inline-block"><img src="../../assets/img/logo.png" class="logo"></div>
     <ul class="ksd-fright">
-        <li><kap-help></kap-help></li>
-        <li><kap-change-lang></kap-change-lang></li>
-      </ul>
+      <li><kap-help></kap-help></li>
+      <li><kap-change-lang></kap-change-lang></li>
+    </ul>
   </div>
   <div id="loginBox">
     <el-row :gutter="0">
@@ -13,6 +12,7 @@
         <div class="grid-content bg-purple content_part1">
           <img src="../../assets/img/logo.png" class="logo">
           <p class="welcome">{{$t('welcome')}}</p>
+          <div class="line"></div>
           <ul>
             <li><i class="el-icon-date"></i> <a href="http://kyligence.io/kap/" target="_blank">KAP Introduction</a></li>
             <li><i class="el-icon-menu"></i> <a href="http://docs.kyligence.io" target="_blank">KAP Manual</a></li>
@@ -137,7 +137,6 @@ export default {
   @import '../../less/config.less';
   #loginPage{
     height: 60px;
-    border-bottom:solid 1px #ccc;
     ul {
       li{
         display: inline-block;
@@ -153,7 +152,7 @@ export default {
     }
     .logo {
       height: 40px;
-      width: 40px;
+      // width: 40px;
       vertical-align: middle;
       z-index:999;
       margin: 10px 10px 13px 30px;
@@ -177,10 +176,11 @@ export default {
     left: 50%;
     margin-left: -293px;
     margin-top: -150px;
-    border:solid 1px #ccc;
-    box-shadow: 2px 2px 2px #ccc;
+    box-shadow: 0 0 10px #222;
+    background: @grey-color;
     .logo{
-      margin-top: 30px;
+      height: 65px; 
+      margin-top: 25px;
       margin-bottom: 15px;
     }
     .welcome{
@@ -192,9 +192,15 @@ export default {
        height: 300px;
        width: 293px;
        background-color:@base-color;
+       .line{
+        height: 2px;
+        background: #4fa6ee;
+        width: 90%;
+        margin: 0 auto;
+        margin-top: 15px; 
+       }
        ul{
-        margin-top: 30px;
-        margin-left: 30px;
+        margin: 20px 0 0 30px;
          li{
            i{
             margin-right: 10px;
@@ -211,14 +217,14 @@ export default {
        }
      }
      .el-row{
-       background:url(../../assets/img/login_bg.png);
+       // background:url(../../assets/img/login_bg.png);
        background-size: contain;
        background-position: right top;
      }
      .content_part2 {
        h2{
         font-size:18px;
-        color: @base-color;
+        color: @fff;
         margin-top: 45px;
         margin-left: 25px;
         margin-bottom: 10px;
@@ -244,7 +250,9 @@ export default {
          }
        }
        .el-input__inner{
-         border-radius: 2px 2px 0 0 ;
+         border-radius: 2px 2px 0 0;
+         background: @input-bg;
+         color: @fff;
        }
      }
    }

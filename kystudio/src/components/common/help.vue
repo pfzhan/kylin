@@ -2,7 +2,7 @@
 <div class="help_box">
 <el-dropdown @command="handleCommand" @click.native="dropHelp">
   <span class="el-dropdown-link">
-    {{$t('kylinLang.common.help')}} <icon name="angle-down"></icon>
+    {{$t('kylinLang.common.help')}} <i class="el-icon-caret-bottom"></i>
   </span>
   <el-dropdown-menu slot="dropdown" >
     <el-dropdown-item command="kapmanual">{{$t('Manual')}}</el-dropdown-item>
@@ -17,7 +17,6 @@
         @openSwitch="openSwitch"
         @closeSwitch="closeSwitch">
       </el-switch>
-
     </el-dropdown-item>
     <el-dropdown-item command="kybotservice">{{$t('kybotService')}}</el-dropdown-item>
     <el-dropdown-item command="aboutkap">{{$t('aboutKap')}}</el-dropdown-item>
@@ -150,6 +149,7 @@
       checkLogin (callback) {
         this.getKybotAccount().then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
+            console.log(data)
             if (!data) {
               this.kyBotUploadVisible = true
               this.isopend = false
@@ -189,7 +189,7 @@
         this.getKyStatus().then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
             if (!data) {
-              this.isopend = false
+              // this.isopend = false
               showAgreement && this.getAgreementInfo()
             } else {
               this.isopend = true
@@ -244,6 +244,17 @@
         return this.$store.state.kybot.kyStatus
       }
     },
+    // watch: ('isopend', () => {
+    //   this.isopend = false
+    //   alert(3)
+    // }),
+    // watch: {
+    //   isopend (o, n) {
+    //     this.checkLogin(() => {
+    //       this.getStatus(true)
+    //     })
+    //   }
+    // },
     components: {
       'about_kap': aboutKap,
       'login_kybot': loginKybot,
@@ -256,20 +267,27 @@
   }
 </script>
 <style lang="less">
-.help_box {
-  line-height: 30px;
-  text-align: left;
-  color: #fff;
-  .el-dropdown {
-	cursor: pointer;
-	svg{
-	  vertical-align: middle;
-	}
+  @import '../../less/config.less';
+  .help_box {
+    line-height: 30px;
+    text-align: left;
+    .el-dropdown {
+  	cursor: pointer;
+  	svg{
+  	  vertical-align: middle;
+  	}
+    }
+    .el-dialog__header {height:70px;line-height:70px;padding:0 20px;text-align:left;}
+    .el-dialog__title {color:#red;font-size:14px;}
+    .el-dialog__body {padding:0 50px;}
+    .el-dropdown-link{
+      color: @word-color;
+    }
+    .el-dropdown-link:hover{
+      color: @fff;
+    }
+    .el-icon-caret-bottom{
+      font-size: 12px;
+    }
   }
-  .el-dialog__header {height:70px;line-height:70px;padding:0 20px;text-align:left;}
-  .el-dialog__title {color:#red;font-size:14px;}
-  .el-dialog__body {padding:0 50px;}
-
-}
-
 </style>
