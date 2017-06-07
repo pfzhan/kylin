@@ -7,7 +7,10 @@ source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 echo "Checking HBase read root dir..."
 
 metadataUrl=`${dir}/get-properties.sh kylin.metadata.url`
-if [[ "${metadataUrl##*@}" != "hbase" ]]
+storage_type=${metadataUrl#*@}
+storage_type=${storage_type%%,*}
+
+if [[ "${storage_type}" != "hbase" ]]
 then
     echo "Not HBase metadata ${metadataUrl}. Skip check."
     exit 0

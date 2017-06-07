@@ -18,7 +18,9 @@ function retrieveDependency() {
     # get hbase_dependency
     if [ -z "${hbase_dependency}" ]; then
         metadataUrl=`${dir}/get-properties.sh kylin.metadata.url`
-        if [[ "${metadataUrl##*@}" == "hbase" ]]
+        storage_type=${metadataUrl#*@}
+        storage_type=${storage_type%%,*}
+        if [[ "${storage_type}" == "hbase" ]]
         then
             source ${dir}/find-hbase-dependency.sh
         fi

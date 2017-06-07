@@ -1,12 +1,15 @@
 #!/bin/bash
 # Kyligence Inc. License
-#title=Checking Mysql Usages
+#title=Checking JDBC Usages
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
 
 metadataUrl=`${dir}/get-properties.sh kylin.metadata.url`
-if [[ "${metadataUrl##*@}" != "jdbc" ]]
+storage_type=${metadataUrl#*@}
+storage_type=${storage_type%%,*}
+
+if [[ "${storage_type}" != "jdbc" ]]
 then
     echo "Not JDBC metadata ${metadataUrl}. Skip check."
     exit 0
