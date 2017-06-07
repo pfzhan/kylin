@@ -19,31 +19,33 @@ export default {
     [types.CACHE_ALL_PROJECTS]: function (state, { list, size }) {
       state.allProject = list
       var hasMatch = false
-      list.forEach((p) => {
-        if (p.name === localStorage.getItem('selected_project')) {
-          hasMatch = true
+      if (list) {
+        list.forEach((p) => {
+          if (p.name === localStorage.getItem('selected_project')) {
+            hasMatch = true
+          }
+        })
+        if (!hasMatch) {
+          localStorage.setItem('selected_project', '')
+          state.selected_project = ''
         }
-      })
-      if (!hasMatch) {
-        localStorage.setItem('selected_project', '')
-        state.selected_project = ''
       }
     }
   },
   actions: {
     [types.LOAD_PROJECT_LIST]: function ({ commit }, params) {
       return api.project.getProjectList(params).then((response) => {
-        commit(types.SAVE_PROJECT_LIST, {list: response.data.data.readableProjects, size: response.data.data.size})
+        commit(types.SAVE_PROJECT_LIST, {list: response.data.data, size: response.data.data.size})
       })
     },
     [types.LOAD_ALL_PROJECT]: function ({ dispatch, commit }, params) {
       return api.project.getProjectList({pageOffset: 0, pageSize: 100000}).then((response) => {
         // 加载project所有的权限
-        var pl = response.data.data.readableProjects && response.data.data.readableProjects.length || 0
+        var pl = response.data.data && response.data.data.length || 0
         for (var i = 0; i < pl; i++) {
-          dispatch(types.GET_PROJECT_ACCESS, response.data.data.readableProjects[i].uuid)
+          dispatch(types.GET_PROJECT_ACCESS, response.data.data[i].uuid)
         }
-        commit(types.CACHE_ALL_PROJECTS, {list: response.data.data.readableProjects})
+        commit(types.CACHE_ALL_PROJECTS, {list: response.data.data})
       })
     },
     [types.DELETE_PROJECT]: function ({ commit }, projectName) {

@@ -6,7 +6,7 @@ Vue.use(VueResource)
 
 export default {
   getProjectList: (params) => {
-    return Vue.resource(apiUrl + 'projects/readable').get(params)
+    return Vue.resource(apiUrl + 'projects').get(params)
   },
   deleteProject: (projectName) => {
     return Vue.resource(apiUrl + 'projects/' + projectName).remove({})

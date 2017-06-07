@@ -365,13 +365,8 @@ export default {
       this.$refs['addModelForm'].validate((valid) => {
         if (valid) {
           this.checkModelName(this.createModelMeta.modelName).then((res) => {
-            this.$message({
-              message: this.$t('kylinLang.model.sameModelName'),
-              type: 'warning'
-            })
-          }, (res) => {
-            handleError(res, (data, code, status, msg) => {
-              if (status === 400) {
+            handleSuccess(res, (data) => {
+              if (data.size === 0) {
                 this.createModelVisible = false
                 this.$emit('addtabs', 'model', this.createModelMeta.modelName, 'modelEdit', {
                   project: localStorage.getItem('selected_project'),
@@ -381,11 +376,13 @@ export default {
                 })
               } else {
                 this.$message({
-                  message: msg,
+                  message: this.$t('kylinLang.model.sameModelName'),
                   type: 'warning'
                 })
               }
             })
+          }, (res) => {
+            handleError(res)
           })
         }
       })

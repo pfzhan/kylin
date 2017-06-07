@@ -194,6 +194,27 @@ export function hasRole (vue, roleName) {
   return haseRole
 }
 
+// 过滤空值
+export function filterNullValInObj (needFilterObj) {
+  var newObj
+  if (typeof needFilterObj === 'string') {
+    newObj = JSON.parse(needFilterObj)
+  } else {
+    newObj = Object.assign({}, newObj)
+  }
+  function filterData (data) {
+    var obj = data
+    for (var i in obj) {
+      if (obj[i] === null) {
+        delete obj[i]
+      } else if (typeof obj[i] === 'object') {
+        obj[i] = filterData(obj[i])
+      }
+    }
+    return obj
+  }
+  return JSON.stringify(filterData(newObj))
+}
 // 根据别名查询table的全名
 export function getTableNameInfoByAlias (modelDesc, aliasName) {
   if (!modelDesc || !aliasName) {

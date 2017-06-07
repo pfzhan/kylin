@@ -77,7 +77,8 @@ exports.default = {
     booleanTip: 'Use 1 byte to encode boolean values, valid value include: true, false, TRUE, FALSE, True, False, t, f, T, F, yes, no, YES, NO, Yes, No, y, n, Y, N, 1, 0',
     orderedbytesTip: '',
     sameCubeName: 'Cube with the same name already exists',
-    inputCubeName: 'Please input cube name'
+    inputCubeName: 'Please input cube name',
+    addCube: 'Add Cube'
   },
   project: {
     mustSelectProject: 'Please select a project first',
@@ -98,7 +99,9 @@ exports.default = {
     minimal: 'Min Value',
     nullCount: 'Null Count',
     minLengthVal: 'Min Length Value',
-    maxLengthVal: 'Max Length Value'
+    maxLengthVal: 'Max Length Value',
+    expression: 'Expression',
+    returnType: 'Return Type'
   },
   login: {
 

@@ -217,7 +217,6 @@ export default {
       return true
     },
     checkDimensions: function () {
-      console.log(7888)
       let _this = this
       if (_this.cubeDetail.dimensions.length <= 0) {
         this.$message({
@@ -477,6 +476,7 @@ export default {
       }
       this.hisCubeMetaStr = filterCubeMetaStr
       this.hisRawTableStr = filterRawTableStr
+      this.hisSchedulerStr = filterSchedulerStr
       return true
     },
     saveCube () {

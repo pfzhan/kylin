@@ -43,8 +43,8 @@
         }
       })
       if (hasEditTab) {
-        this.$confirm(this.$t('willGo'), this.$t('tip'), {
-          confirmButtonText: '继续跳转',
+        this.$confirm(this.$t('willGo'), this.$t('kylinLang.common.tip'), {
+          confirmButtonText: this.$t('go'),
           cancelButtonText: this.$t('kylinLang.common.cancel'),
           type: 'warning'
         }).then(() => {

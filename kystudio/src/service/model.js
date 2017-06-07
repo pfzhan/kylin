@@ -12,7 +12,7 @@ export default {
     return Vue.resource(apiUrl + 'models/table_suggestions').get(params)
   },
   getModelByModelName: (modelname) => {
-    return Vue.resource(apiUrl + 'model/' + modelname).get()
+    return Vue.resource(apiUrl + 'model_desc/' + modelname).get()
   },
   deleteModel: (modelname) => {
     return Vue.resource(apiUrl + 'models/' + modelname).delete()
@@ -43,7 +43,7 @@ export default {
     })
   },
   checkModelName: (modelName) => {
-    return Vue.resource(apiUrl + 'model/' + modelName).get()
+    return Vue.resource(apiUrl + 'models?modelName=' + modelName).get()
   },
   checkUsedCols: (modelName) => {
     return Vue.resource(apiUrl + 'models/' + modelName + '/usedCols').get()

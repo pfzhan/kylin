@@ -35,6 +35,7 @@ exports.default = {
     dataSource: '数据源',
     fact: '事实表',
     lookup: '维度表',
+    computedColumn: '计算列',
     pk: '主键',
     fk: '外键',
     // 通用提示
@@ -77,7 +78,8 @@ exports.default = {
     booleanTip: '适用于字段值为: true, false, TRUE, FALSE, True, False, t, f, T, F, yes, no, YES, NO, Yes, No, y, n, Y, N, 1, 0',
     orderedbytesTip: '',
     sameCubeName: '已经存在同名的Cube了',
-    inputCubeName: '请输入cube名称'
+    inputCubeName: '请输入cube名称',
+    addCube: '添加cube'
   },
   project: {
     mustSelectProject: '请先选择一个Project',
@@ -98,8 +100,9 @@ exports.default = {
     minimal: '最小值',
     nullCount: '空值计数',
     minLengthVal: '最小长度值',
-    maxLengthVal: '最大长度值'
-
+    maxLengthVal: '最大长度值',
+    expression: '表达式',
+    returnType: '返回类型'
   },
   login: {
 

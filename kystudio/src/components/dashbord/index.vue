@@ -34,7 +34,7 @@
 		    			Models
 					</div>
 					<section>
-						20
+						{{totalModels}}
 					</section>
     			</el-card>
     		</div>
@@ -44,7 +44,7 @@
 		    			Jobs
 					</div>
 					<section>
-						21
+						{{totalJobs}}
 					</section>
     			</el-card>
     		</div>
@@ -56,7 +56,7 @@
 		    			Cubes
 					</div>
 					<section>
-						222
+						{{totalCubes}}
 					</section>
 				</el-card>
     		</div>
@@ -66,7 +66,7 @@
 		    			Users
 					</div>
 					<section>
-						33
+						{{totalUsers}}
 					</section>
 				</el-card>
     		</div>
@@ -78,7 +78,7 @@
       <div class="grid-content bg-purple">
     	<el-card class="box-card">
 		  <div slot="header" class="clearfix">
-		    <span style="line-height: 36px;">Documentation</span>
+		    <span style="line-height: 36px;">Manual</span>
 		  </div>
 		  <div v-for="o in manualList" :key="o.title" class="text item">
 		    <a>{{o.title }}</a>
@@ -98,59 +98,18 @@
 		  </div>
 		</el-card>
     </div></el-col>
-    <el-col :span="8"><div class="grid-content bg-purple">
-    	<el-card class="box-card">
-		  <div slot="header" class="clearfix">
-		    <span style="line-height: 36px;">Statistics</span>
-		  </div>
-		  <div >
-		     <table cellspacing="0">
-		     	<tr>
-		     		<td style="border-right:solid 1px #ccd3db;border-bottom:solid 1px #ccd3db">
-		     		  <h2 @click="goto('Project')" style="cursor:pointer">18</h2>
-		       	      <p>Projects</p>
-		     		</td>
-		     		<td style="border-bottom:solid 1px #ccd3db">
-		     		  <h2 @click="goto('Studio', 'model')" style="cursor:pointer">89</h2>
-		       	      <p>Models</p>
-		     		</td>
-		     	</tr>
-		     	<tr>
-		     		<td style="border-right:solid 1px #ccd3db;">
-		     		  <h2 @click="goto('Studio', 'cube')" style="cursor:pointer">15</h2>
-		          	  <p>Cubes</p>
-		     		</td>
-		     		<td >
-		     		<h2 @click="goto('Monitor')" style="cursor:pointer">97</h2>
-		       	      <p>Jobs</p>
-		     		</td>
-		     	</tr>
-		     </table>
-		  </div>
-		</el-card>
-    </div></el-col>
-  </el-row>
-  <el-row :gutter="30">
-    <el-col :span="12"><div class="grid-content bg-purple news-wrap">
-    	<el-card class="box-card">
-		  <div slot="header" class="clearfix">
-		    <span style="line-height: 36px;">News</span>
-		  </div>
-		  <div v-for="o in newsList" :key="o.title" class="text item">
-		     <a class="single-line">{{o.title }}</a><span class="fright time_box">{{o.time}}</span>
-		  </div>
-		</el-card>
-    </div></el-col>
-    <el-col :span="12"><div class="grid-content bg-purple">
-    	<el-card class="box-card">
-		  <div slot="header" class="clearfix">
-		    <span style="line-height: 36px;">Blog</span>
-		  </div>
-		  <div v-for="o in blogsList" :key="o.title" class="text item">
-		    <a class="single-line">{{o.title }}</a><span class="fright time_box">{{o.time}}</span>
-		  </div>
-		</el-card>
-    </div></el-col>
+    <el-col :span="8">
+      <div class="grid-content bg-purple">
+        <el-card class="box-card">
+          <div slot="header" class="clearfix">
+            <span style="line-height: 36px;">Q&A</span>
+          </div>
+          <div v-for="o in manualList" :key="o.title" class="text item">
+            <a>{{o.title }}</a>
+          </div>
+        </el-card>
+      </div>
+    </el-col>
   </el-row>
 </div>
 </template>
@@ -161,7 +120,11 @@ import { mapActions } from 'vuex'
 export default {
   methods: {
     ...mapActions({
-      loadProjects: 'LOAD_ALL_PROJECT'
+      loadProjects: 'LOAD_ALL_PROJECT',
+      getCubesList: 'GET_CUBES_LIST',
+      loadModels: 'LOAD_MODEL_LIST',
+      loadJobsList: 'LOAD_JOBS_LIST',
+      loadUsersList: 'LOAD_USERS_LIST'
     }),
     addProject () {
       this.$emit('addProject')
@@ -187,13 +150,30 @@ export default {
   computed: {
     projectList () {
       return this.$store.state.project.allProject
+    },
+    totalModels () {
+      return this.$store.state.model.modelsTotal
+    },
+    totalCubes () {
+      return this.$store.state.cube.totalCubes
+    },
+    totalJobs () {
+      return this.$store.state.monitor.totalJobs
+    },
+    totalUsers () {
+      return this.$store.state.user.usersSize
     }
   },
   mounted () {
     // Scrollbar.init(document.getElementById('project_scroll_box'))
   },
   created () {
+    var params = {pageSize: 1, pageOffset: 0}
     this.loadProjects()
+    this.getCubesList(params)
+    this.loadModels(params)
+    this.loadUsersList(params)
+    this.loadJobsList({pageSize: 1, pageOffset: 0, timeFilter: 1})
   }
 }
 </script>

@@ -157,7 +157,7 @@ export default {
       let _this = this
       let index = this.cubeDesc.measures.indexOf(this.selected_measure)
       if (data.measure.function.expression === 'TOP_N' || (data.measure.function.expression === 'COUNT_DISTINCT' && data.measure.function.returntype !== 'bitmap')) {
-        if (data.convertedColumns.length > 0) {
+        if (data.convertedColumns && data.convertedColumns.length > 0) {
           _this.recursion(data.measure.function.parameter, data.convertedColumns, 0)
         }
         if (data.measure.function.expression === 'TOP_N' && data.convertedColumns.length > 0) {

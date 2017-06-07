@@ -220,11 +220,6 @@ export default {
         sid: '',
         editAccessVisible: false
       },
-      filterList: [{
-        tableName: 'HDFS',
-        resourcePath: '../../xxx',
-        description: 'xxx'
-      }],
       selected_project: localStorage.getItem('selected_project')
     }
   },

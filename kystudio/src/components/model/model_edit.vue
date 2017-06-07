@@ -70,7 +70,7 @@
             </el-col>
             <el-col :span="6" style="text-align:center">
               <div class="grid-content bg-purple">
-                  <el-select v-model="currentLinkData.joinType" :disabled = "actionMode ==='view'" style="width:120px;" @change="switchJointType(currentLinkData.source.guid,currentLinkData.target.guid, currentLinkData.joinType)" placeholder="请选择连接类型">
+                  <el-select v-model="currentLinkData.joinType" :disabled = "actionMode ==='view'" style="width:120px;" @change="switchJointType(currentLinkData.source.guid,currentLinkData.target.guid, currentLinkData.joinType)" :placeholder="$t('kylinLang.common.pleaseSelect')">
                     <el-option
                       v-for="item in joinTypes"
                       :key="item.label"
@@ -146,7 +146,7 @@
             <el-button type="primary" @click="saveLinks(currentLinkData.source.guid,currentLinkData.target.guid)">{{$t('kylinLang.common.close')}}</el-button>
           </span> 
       </el-dialog>
-       <el-dialog title="$t('kylinLang.common.computedColumn')" v-model="computedColumnFormVisible" size="small">
+       <el-dialog :title="$t('kylinLang.common.computedColumn')" v-model="computedColumnFormVisible" size="small">
           <div>
             <el-button type="primary" class="ksd-mb-10" v-show="!openAddComputedColumnForm" @click="openAddComputedColumnForm = true">{{$t('kylinLang.common.add')}}</el-button>
             <el-form label-position="top"  ref="computedColumnForm" v-show="openAddComputedColumnForm">
@@ -168,20 +168,20 @@
               style="width: 100%">
               <el-table-column
                 prop="columnName"
-                label="列名"
+                :label="$t('kylinLang.dataSource.columns')"
                 width="180">
               </el-table-column>
               <el-table-column
                 prop="expression"
-                label="表达式"
+                :label="$t('kylinLang.dataSource.expression')"
                 width="180">
               </el-table-column>
               <el-table-column
                 prop="datatype"
-                label="返回类型">
+                :label="$t('kylinLang.dataSource.returnType')">
               </el-table-column>
               <el-table-column
-                label="操作">
+                :label="$t('kylinLang.common.action')">
                 <template scope="scope">
                   <el-button type="primary" size="small" v-on:click='editComputedColumn(scope.row)'>{{$t('kylinLang.common.edit')}}</el-button>
                    <confirm-btn  v-on:okFunc='delComputedColumn(scope.row)' :tips="$t('kylinLang.common.confirmDel')"><el-button size="small"
@@ -199,7 +199,7 @@
 
        <!-- 添加cube -->
 
-    <el-dialog title="Add Cube" v-model="createCubeVisible" size="tiny">
+    <el-dialog :title="$t('kylinLang.cube.addCube')" v-model="createCubeVisible" size="tiny">
       <el-form :model="cubeMeta" :rules="createCubeFormRule" ref="addCubeForm">
         <el-form-item label="Cube Name" prop="cubeName">
           <el-input v-model="cubeMeta.cubeName" auto-complete="off"></el-input>
@@ -235,7 +235,7 @@ import modelassets from './model_assets'
 import Draggable from 'draggable'
 import modelEditTool from 'components/model/model_edit_panel'
 import partitionColumn from 'components/model/model_partition.vue'
-import { handleSuccess, handleError, hasRole } from 'util/business'
+import { handleSuccess, handleError, hasRole, filterNullValInObj } from 'util/business'
 export default {
   name: 'modeledit',
   components: {
@@ -464,7 +464,7 @@ export default {
       this.saveBtnLoading = true
       this.saveModel({
         project: this.project,
-        modelDescData: this.DragDataToServerData()
+        modelDescData: filterNullValInObj(this.DragDataToServerData())
       }).then(() => {
         this.saveBtnLoading = false
         this.$message({
@@ -511,7 +511,7 @@ export default {
       }
       this.draftBtnLoading = true
       this.saveModelDraft({
-        modelDescData: _this.DragDataToServerData(),
+        modelDescData: filterNullValInObj(_this.DragDataToServerData()),
         project: _this.project,
         modelName: _this.modelInfo.name
       }).then((res) => {
