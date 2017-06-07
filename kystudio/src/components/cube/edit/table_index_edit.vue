@@ -69,7 +69,7 @@
         header-align="center"
         align="center">   
             <template scope="scope">
-              <el-select v-model="scope.row.is_sortby" >
+              <el-select v-model="scope.row.is_sortby" @change="changeRawTable(scope.row, scope.$index)">
                 <el-option
                     v-for="(item, index) in booleanSelect" :key="index"
                    :label="item.name"
@@ -84,7 +84,7 @@
         header-align="center"
         align="center">   
             <template scope="scope">
-              <el-select v-model="scope.row.is_shardby" >
+              <el-select v-model="scope.row.is_shardby" @change="changeRawTable(scope.row, scope.$index)">
                 <el-option
                     v-for="(item, index) in booleanSelect" :key="index"
                    :label="item.name"
@@ -234,7 +234,7 @@ export default {
       _this.convertedRawTable.splice(0, _this.convertedRawTable.length)
       rawTableDetail.forEach(function (rawTable) {
         let version = rawTable.encoding_version || 1
-        _this.convertedRawTable.push({column: rawTable.column, table: rawTable.table, encoding: _this.getEncoding(rawTable.encoding) + ':' + version, valueLength: _this.getLength(rawTable.encoding), index: rawTable.index, is_sortby: false, is_shardby: false})
+        _this.convertedRawTable.push({column: rawTable.column, table: rawTable.table, encoding: _this.getEncoding(rawTable.encoding) + ':' + version, valueLength: _this.getLength(rawTable.encoding), index: rawTable.index, is_sortby: rawTable.is_sortby, is_shardby: rawTable.is_shardby})
       })
     },
     getBaseColumnsData: function () {
