@@ -36,6 +36,12 @@ mv build/tomcat/conf/context.xml build/tomcat/conf/context.xml.bak
 cp build/deploy/context.xml build/tomcat/conf/context.xml
 echo "context.xml overwritten..."
 
+cp build/tomcat/conf/catalina.properties build/tomcat/conf/catalina.properties.bak
+sed -i "s/org\.apache\.catalina\.startup\.ContextConfig\.jarsToSkip=.*/org\.apache\.catalina\.startup\.ContextConfig\.jarsToSkip=*.jar/g" build/tomcat/conf/catalina.properties
+sed -i "s/org\.apache\.catalina\.startup\.TldConfig\.jarsToSkip=.*/org\.apache\.catalina\.startup\.TldConfig\.jarsToSkip=*.jar/g" build/tomcat/conf/catalina.properties
+echo "catalina.properties overwritten..."
+
+
 cp build/deploy/.keystore build/tomcat/conf/.keystore
 
 cp kylin/tomcat-ext/target/kylin-tomcat-ext-${kylin_version}.jar build/tomcat/lib/kylin-tomcat-ext-${kylin_version}.jar
