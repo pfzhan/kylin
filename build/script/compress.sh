@@ -39,27 +39,17 @@ cp -rf VERSION commit_SHA1 lib tool kybot tomcat spark ${package_name}/
 
 # Add min/prod profiles
 cp -rf conf/profile_min ${package_name}/conf
-rm -rf ${package_name}/conf/profile_min/kap-plus.properties
 cp -rf conf/profile_prod ${package_name}/conf
-rm -rf ${package_name}/conf/profile_prod/kap-plus.properties
 
 cp -rf conf/kylin-tools-log4j.properties ${package_name}/conf/
 cp -rf conf/kylin-server-log4j.properties ${package_name}/conf/
 cp -rf conf/spark-driver-log4j.properties ${package_name}/conf/
 cp -rf conf/spark-executor-log4j.properties ${package_name}/conf/
-cp -rf conf/hive-site.xml ${package_name}/conf/
 
 cp -rf conf/userctrl.acl ${package_name}/conf/
 cp -rf bin/* ${package_name}/bin/
 
-# update kap plus config files
-if [ "${PACKAGE_PLUS}" != "0" ]; then
-    cat conf/profile_min/kap-plus.properties >> ${package_name}/conf/profile_min/kylin.properties
-    cat conf/profile_prod/kap-plus.properties >> ${package_name}/conf/profile_prod/kylin.properties
-fi
 
-echo "kap.version=${release_version}" >> ${package_name}/conf/profile_min/kylin.properties
-echo "kap.version=${release_version}" >> ${package_name}/conf/profile_prod/kylin.properties
 
 # update symblink, use production profile as default
 ln -sfn profile_prod profile
@@ -76,6 +66,12 @@ ln -sfn profile/kylin-kafka-consumer.xml kylin-kafka-consumer.xml
 mv kylin-kafka-consumer.xml ${package_name}/conf/
 
 rm -rf lib tomcat commit_SHA1 VERSION # keep the spark folder on purpose
+
+## comment all default properties, and append them to the user visible kylin.properties
+## first 16 lines are license, just skip them
+sed '1,21d' ../extensions/core-common/src/main/resources/kylin-defaults0.properties | awk '{print "#"$0}' >> ${package_name}/conf/profile_min/kylin.properties
+sed '1,21d' ../extensions/core-common/src/main/resources/kylin-defaults0.properties | awk '{print "#"$0}' >> ${package_name}/conf/profile_prod/kylin.properties
+
 find ${package_name} -type d -exec chmod 755 {} \;
 find ${package_name} -type f -exec chmod 644 {} \;
 find ${package_name} -type f -name "*.sh" -exec chmod 755 {} \;

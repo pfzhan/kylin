@@ -45,3 +45,17 @@ function calMd5() {
         md5sum $1
     fi
 }
+
+function removeKAPPlusConfigs() {
+    file=$1
+    startline=`cat -n ${file} | sed -n '/==========KAP PLUS ONLY START==========/p' | awk '{print $1}'`
+    endline=`cat -n ${file} | sed -n '/==========KAP PLUS ONLY END==========/p' | awk '{print $1}'`
+    sed -i.plusbak "${startline},${endline}d" ${file}
+}
+
+function restoreKAPPlusConfigs() { 
+    file=$1
+    if [ -f ${file}.plusbak ]; then
+        mv ${file}.plusbak ${file}
+    fi
+}

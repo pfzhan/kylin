@@ -5,6 +5,8 @@ cd ${dir}/../..
 
 source build/script/functions.sh
 
+
+
 if [ "$1" == "-skipObf" ] || [ "$2" == "-skipObf" ]; then
     export SKIP_OBF=1
     shift
@@ -13,10 +15,25 @@ fi
 
 if [ "$1" == "-noPlus" ] || [ "$2" == "-noPlus" ]; then
     export PACKAGE_PLUS=0
+    
+    # remove all the "KAP plus only stuff"
+    for file in extensions/core-common/src/main/resources/kylin-defaults0.properties build/conf/profile_min/kylin.properties
+    do 
+        removeKAPPlusConfigs $file
+    done
+    
     shift
+    
     echo "Packing for KAP Normal..."
 else
 	export PACKAGE_PLUS=1
+	
+	# restore the removals if noPlus mode ran before
+    for file in extensions/core-common/src/main/resources/kylin-defaults0.properties build/conf/profile_min/kylin.properties
+    do 
+        restoreKAPPlusConfigs $file
+    done
+    
 	echo "Packing for KAP Plus..."
 fi
 
@@ -67,5 +84,13 @@ fi
 echo "BUILD STAGE 5 - Prepare and compress package..."
 sh build/script/prepare.sh ${MVN_PROFILE} || { exit 1; }
 sh build/script/compress.sh               || { exit 1; }
+
+echo "BUILD STAGE 6 - Clean up..."
+
+# restore the removals if noPlus mode ran before
+for file in extensions/core-common/src/main/resources/kylin-defaults0.properties build/conf/profile_min/kylin.properties
+do 
+    restoreKAPPlusConfigs $file
+done
 
 echo "BUILD FINISHED!"

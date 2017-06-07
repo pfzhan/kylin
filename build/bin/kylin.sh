@@ -1,6 +1,7 @@
 #!/bin/bash
 # Kyligence Inc. License
 
+
 # set verbose=true to print more logs in scripts
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh $@
 if [ "$1" == "-v" ]; then
@@ -94,12 +95,7 @@ function retrieveDependency() {
 }
 
 function checkBasicKylinProps() {
-    kapVersion=`${dir}/get-properties.sh kap.version`
     fileVersion=`cat ${KYLIN_HOME}/VERSION`
-    if [ "${kapVersion}" != "${fileVersion}" ]
-    then
-        quit 'Did you copied and replaced conf/kylin.properties from somewhere else (when upgrading)? It is not supported. Please strictly follow upgrade manual to apply previous changes to shipped kylin.properties in this version'
-    fi
 
     spring_profile=`${dir}/get-properties.sh kylin.security.profile`
     if [ -z "$spring_profile" ]
