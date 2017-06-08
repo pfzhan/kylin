@@ -52,8 +52,8 @@
           <project_edit :project="project" ref="projectForm" v-on:validSuccess="validSuccess">
           </project_edit>
           <span slot="footer" class="dialog-footer">
-            <el-button @click="FormVisible = false">取 消</el-button>
-            <el-button type="primary" @click.native="Save">确 定</el-button>
+            <el-button @click="FormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+            <el-button type="primary" @click.native="Save">{{$t('kylinLang.common.ok')}}</el-button>
           </span>
         </el-dialog>
       </div>
@@ -69,16 +69,15 @@
   </el-dialog>
 
 <el-dialog class="linsencebox"
-  :title="kapVersion+'试用版'"
-  :visible.sync="lisenceDialogVisible"
-  :close-on-click-modal="false"
+  :title="kapVersion"
+  v-model="lisenceDialogVisible"
   :modal="false"
   size="tiny">
-  <p><span>试用期限: </span>{{kapDate}}<!-- <span>2012<i>/1/2</i></span><span>－</span><span>2012<i>/1/2</i></span> --></p>
-  <p class="ksd-mt-20">您的试用期将在<span class="hastime">30</span>天后过期，必须申请正式许可，才能继续使用</p>
+  <p><span>{{$t('validPeriod')}}</span>{{kapDate}}<!-- <span>2012<i>/1/2</i></span><span>－</span><span>2012<i>/1/2</i></span> --></p>
+  <p class="ksd-mt-20">{{$t('overtip1')}}<span class="hastime">{{lastTime}} </span>{{$t('overtip2')}}</p>
   <span slot="footer" class="dialog-footer">
-    <el-button @click="getLicense">申请正式许可</el-button>
-    <el-button type="primary" @click="lisenceDialogVisible = false">继续使用</el-button>
+    <el-button @click="getLicense">{{$t('applayLisence')}}</el-button>
+    <el-button type="primary" @click="lisenceDialogVisible = false">{{$t('continueUse')}}</el-button>
   </span>
 </el-dialog>
 
@@ -108,6 +107,7 @@
         currentUserInfo: {
           username: ''
         },
+        overlock: false,
         form: {
           name: '',
           region: '',
@@ -145,6 +145,7 @@
           this.setCurUser({ user: data })
         })
       })
+      // this.overlock = localStorage.getItem('buyit')
     },
     methods: {
       ...mapActions({
@@ -211,9 +212,7 @@
         let imgSrc = ''
         let index = 0
         let _this = this
-        // let cookMenus = Object.create(this.menus)
         let cookMenus = objectClone(this.menus)
-        console.log('cookMenus', cookMenus)
         $('.J_menu').on('mouseenter', 'li', function () {
           let $this = $(this)
           index = $this.index()
@@ -295,6 +294,7 @@
         if (command === 'loginout') {
           this.logoutConfirm().then(() => {
             this.loginOut().then(() => {
+              localStorage.setItem('buyit', false)
               this.$router.push({name: 'Login'})
             })
           })
@@ -368,14 +368,39 @@
       },
       isModeler () {
         return hasRole(this, 'ROLE_MODELER')
+      },
+      serverAboutKap () {
+        return this.$store.state.system.serverAboutKap
+      },
+      lastTime () {
+        var date = this.serverAboutKap && this.serverAboutKap['kap.dates'] || ''
+        var splitTime = date.split(',')
+        if (splitTime.length >= 2) {
+          var nowdate = new Date()
+          // nowdate.setMonth(nowdate.getMonth() + 1)
+          var endTime = splitTime[1]
+          var ms = (new Date(endTime)) - (new Date(nowdate))
+          if (ms > 0) {
+            var days = Math.ceil(ms / 1000 / 60 / 60 / 24)
+            if (days <= 30) {
+              if (!this.$store.state.config.overLock) {
+                this.lisenceDialogVisible = true
+                this.$store.state.config.overLock = true
+              }
+              localStorage.setItem('buyit', true)
+            }
+            return days
+          }
+        }
+        return 0
       }
     },
     mounted () {
       this.hoverMenu()
     },
     locales: {
-      'en': {resetPassword: 'Reset Password', confirmLoginOut: 'Confirm exit?'},
-      'zh-cn': {resetPassword: '重置密码', confirmLoginOut: '确认退出吗？'}
+      'en': {resetPassword: 'Reset Password', confirmLoginOut: 'Confirm exit?', validPeriod: 'Valid Period: ', overtip1: 'Your probation period will expire in', overtip2: 'days, and you must apply for a formal license! ', applayLisence: 'Apply for formal permission', 'continueUse': 'Continue use'},
+      'zh-cn': {resetPassword: '重置密码', confirmLoginOut: '确认退出吗？', validPeriod: '使用期限: ', overtip1: '您的试用期将在', overtip2: '天后过期，必须申请正式许可，才能继续使用！', applayLisence: '申请正式许可', 'continueUse': '继续使用'}
     }
   }
 </script>
@@ -383,6 +408,7 @@
 <style lang="less">
   @import '../../less/config.less';
   .fulllayout{
+    
     .linsencebox{
       i{
         font-size: 18px;

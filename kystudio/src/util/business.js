@@ -80,6 +80,8 @@ export function loadBaseEncodings (state) {
       }
       return resultArr
     },
+    baseEncoding () {
+    },
     addEncoding: function (name, version) {
       for (var i = 0; i < resultArr.length; i++) {
         if (resultArr[i].name === name && resultArr[i].version === version) {

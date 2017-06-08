@@ -18,23 +18,28 @@ if (process.env.NODE_ENV === 'development') {
 const modelHealthStatus = {
   'GOOD': {
     icon: 'check-circle-o',
-    color: 'green'
+    color: 'green',
+    message: 'Good Helth'
   },
   'WARN': {
     icon: 'exclamation-circle',
-    color: 'yellow'
+    color: 'blue',
+    message: ''
   },
   'BAD': {
     icon: 'times-circle',
-    color: 'red'
+    color: 'red',
+    message: ''
   },
   'TERRIBLE': {
     icon: 'times-circle',
-    color: 'red'
+    color: 'red',
+    message: ''
   },
   'NONE': {
     icon: 'question-circle',
-    color: 'gray'
+    color: 'gray',
+    message: 'Not checked health yet'
   }
 }
 const needLengthMeasureType = ['fixed_length', 'fixed_length_hex', 'int', 'integer']

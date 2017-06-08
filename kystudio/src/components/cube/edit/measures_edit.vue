@@ -93,7 +93,7 @@
             </template>
         </el-table-column>                                              
       </el-table>   
-     <el-button type="primary" icon="plus" size="small" @click="addColumnFamily">
+     <el-button type="primary" icon="plus" v-if="!isPlusVersion" size="small" @click="addColumnFamily">
       {{$t('addColumnFamily')}}</el-button>      
   
   <el-dialog :title="$t('editMeasure')" v-model="measureFormVisible" top="5%" size="small">

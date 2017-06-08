@@ -639,6 +639,7 @@ export default {
         this.$store.state.model.modelsDianoseList.forEach((d) => {
           if (d.modelName === m.name) {
             d.progress = d.progress === 0 ? 0 : parseInt(d.progress)
+            d.messages = d.messages && d.messages.length ? d.messages : [modelHealthStatus[d.heathStatus].message]
             m.diagnose = d
           }
         })

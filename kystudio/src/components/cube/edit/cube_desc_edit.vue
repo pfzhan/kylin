@@ -90,7 +90,7 @@ export default {
       scheduler: {
         cubeName: '',
         desc: {
-          partition_interval: 86400000,
+          partition_interval: 0,
           repeat_count: 65535,
           repeat_interval: 0,
           startTime: 0,

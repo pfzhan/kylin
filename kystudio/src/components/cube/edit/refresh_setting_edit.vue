@@ -231,7 +231,7 @@ export default {
       this.scheduledRunTime = transToUtcTimeFormat(this.scheduler.desc.scheduled_run_time)
     } else {
       // this.scheduler.desc.scheduled_run_time = transToUtcTimeFormat((new Date()).getTime())
-      this.scheduledRunTime = new Date()
+      this.scheduledRunTime = null
       this.initScheduler()
     }
   },

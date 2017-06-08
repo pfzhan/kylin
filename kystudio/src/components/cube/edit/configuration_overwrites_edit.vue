@@ -43,18 +43,20 @@ export default {
       loadConfig: 'LOAD_DEFAULT_CONFIG'
     }),
     addNewProperty: function () {
-      let _this = this
-      _this.convertedProperties.push({checked: true, key: '', value: '', isDefault: false})
-      _this.$set(_this.cubeDesc.override_kylin_properties, '', '')
+      this.convertedProperties.push({checked: true, key: '', value: '', isDefault: false})
+      this.$set(this.cubeDesc.override_kylin_properties, '', '')
     },
     removeProperty: function (index) {
-      let _this = this
-      _this.$delete(_this.cubeDesc.override_kylin_properties, _this.convertedProperties[index].key)
-      _this.convertedProperties.splice(index, 1)
+      this.$delete(this.cubeDesc.override_kylin_properties, this.convertedProperties[index].key)
+      this.convertedProperties.splice(index, 1)
     },
     changeProperty: function (index) {
-      let _this = this
-      _this.$set(_this.cubeDesc.override_kylin_properties, _this.convertedProperties[index].key, _this.convertedProperties[index].value)
+      this.cubeDesc.override_kylin_properties = {}
+      this.convertedProperties.forEach((item, index) => {
+        if (item.checked) {
+          this.$set(this.cubeDesc.override_kylin_properties, this.convertedProperties[index].key, this.convertedProperties[index].value)
+        }
+      })
     },
     initProperty: function () {
       let _this = this

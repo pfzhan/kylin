@@ -169,14 +169,7 @@
               callback() // off -> on 先检测登录状态 没有登录则弹登录 ； 否则直接开启
             }
           }, (errResp) => {
-            handleError(errResp, (data, code, status, msg) => {
-              if (status === 400) {
-                this.$message({
-                  type: 'success',
-                  message: msg
-                })
-              }
-            })
+            handleError(errResp)
           })
         })
       },
@@ -209,14 +202,7 @@
             }
             this.flag = true
           }, (errResp) => {
-            handleError(errResp, (data, code, status, msg) => {
-              if (status === 400) {
-                this.$message({
-                  type: 'success',
-                  message: msg
-                })
-              }
-            })
+            handleError(errResp)
             this.flag = true
           })
         })
@@ -284,6 +270,9 @@
   .help_box {
     line-height: 30px;
     text-align: left;
+    .el-dialog--small{
+      width: 700px;
+    }
     .el-dropdown {
   	cursor: pointer;
   	svg{

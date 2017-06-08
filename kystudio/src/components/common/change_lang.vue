@@ -15,7 +15,6 @@
   Vue.config.lang = localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : 'zh-cn'
   enLocale.kylinLang = enKylinLocale.default
   zhLocale.kylinLang = zhKylinLocale.default
-  console.log(enLocale)
   Vue.locale('en', enLocale)
   Vue.locale('zh-cn', zhLocale)
   export default {

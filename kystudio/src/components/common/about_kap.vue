@@ -11,7 +11,7 @@
 		<div class="container">
 			<h3>{{$t('statement')}}</h3>
             <p v-if="serverAboutKap['kap.license.isEvaluation']=='true'">{{$t('kylinLang.system.evaluationStatement')}}</p>
-            <p v-if="serverAboutKap['kap.license.isEvaluation']=='true'">{{$t('kylinLang.system.statement')}}</p>
+            <p v-if="serverAboutKap['kap.license.isEvaluation']!=='true'">{{$t('kylinLang.system.statement')}}</p>
 			<el-row>
 				<label for="">{{$t('serviceEnd')}}</label>
 				{{license(serverAboutKap['kap.license.serviceEnd'])}}

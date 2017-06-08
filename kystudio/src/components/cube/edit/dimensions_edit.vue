@@ -44,7 +44,7 @@
           <el-card class="ksd_noshadow">
             <el-row>
               <el-col :span="6">
-                Cuboid Number: {{cuboidList[group_index]}}
+                Cuboid Number: {{cuboidList[group_index]}} {{groupErrorList[group_index]}}
               </el-col> 
             </el-row>
             <el-row class="row_padding" >
@@ -241,6 +241,7 @@ export default {
       selected_project: this.modelDesc.project,
       pfkMap: {},
       cuboidList: [],
+      groupErrorList: [],
       shardByType: [{name: 'true', value: true}, {name: 'false', value: false}],
       rowkeyColumns: [],
       oldRowkey: [],
@@ -383,7 +384,6 @@ export default {
             } else {
               this.$set(colObj, 'column', column.column)
             }
-            console.log(98112)
             this.cubeDesc.dimensions.push(colObj)
           })
         }
@@ -570,9 +570,12 @@ export default {
       this.calCuboid({cubeDescData: JSON.stringify(this.cubeDesc), aggIndex: groupindex}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           this.$set(this.cuboidList, groupindex, data)
+          this.$set(this.groupErrorList, groupindex, '')
         })
       }).catch((res) => {
-        handleError(res)
+        handleError(res, (data, code, status, msg) => {
+          this.$set(this.groupErrorList, groupindex, msg)
+        })
       })
     },
     initCalCuboid: function () {

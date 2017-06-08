@@ -85,6 +85,7 @@ export default {
               this.setCurUser({ user: data })
               this.$router.push('/dashboard')
               localStorage.setItem('username', this.user.username)
+              this.$store.state.config.overLock = false
             })
           }, (res) => {
             handleError(res)

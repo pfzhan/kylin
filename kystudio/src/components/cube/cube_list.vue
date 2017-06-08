@@ -559,7 +559,6 @@ export default {
     }
   },
   created () {
-    console.log(permissions, 902323)
     this.loadCubesList(0)
     this.loadModels({pageSize: 10000, pageOffset: 0, projectName: this.selected_project || null})
   },

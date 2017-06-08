@@ -2,13 +2,17 @@
   <div>
     <el-row  class="resultTips" >
       <el-col :span="3"><div class="grid-content bg-purple"><p>Status: <span style="color:green"> success</span></p></div></el-col>
-      <el-col :span="5"><div class="grid-content bg-purple"><p>Start Time: <span> {{queryInfo.starttime|gmtTime}}</span></p></div></el-col>
+      <el-col :span="6"><div class="grid-content bg-purple"><p>Start Time: <span> {{queryInfo.starttime|gmtTime}}</span></p></div></el-col>
       <el-col :span="3"><div class="grid-content bg-purple"><p>Duration: <span> {{(queryInfo.duration/1000)|fixed(2)}}s</span></p></div></el-col>
-      <el-col :span="4"><div class="grid-content bg-purple"><p>Project: <span> {{queryInfo.project}}</span></p></div></el-col>
-      <el-col :span="5"><div class="grid-content bg-purple"><p>Cube: <span> {{queryInfo.cube}}</span></p></div></el-col>
+      <el-col :span="8"><div class="grid-content bg-purple"><p>Project: <span> {{queryInfo.project}}</span></p></div></el-col>
       <el-col :span="4"><div class="grid-content bg-purple" style="text-align:right" >
       <kap-icon-button   icon="save" type="primary" @click.native="openSaveQueryDialog">Save Query</kap-icon-button>
       </div></el-col>
+    </el-row>
+    <el-row class="resultTips" >
+      <el-col :span="24">
+        <div class="grid-content bg-purple"><p>Cube: <span v-for="(cube, index) in queryInfo.cube">{{cube}}</span></p></div>
+      </el-col>
     </el-row>
   	<div>
 <kap-icon-button  v-show="viewModel" icon="area-chart" type="parimary" @click.native="changeViewModel">Visualization</kap-icon-button>
@@ -123,7 +127,7 @@ export default {
       saveQueryToServer: 'SAVE_QUERY'
     }),
     exportData () {
-      location.href = '/kylin/api/query/format/csv?sql=select%20*%20from%20EDW.TEST_SITES&project=default'
+      location.href = '/kylin/api/query/format/csv?sql=' + this.extraoption.sql + '&project=' + this.extraoption.project
     },
     changeViewModel () {
       this.viewModel = !this.viewModel

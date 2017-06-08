@@ -21,6 +21,7 @@ export default {
     routerConfig: {
       currentPathName: ''
     },
+    overLock: localStorage.getItem('buyit'),
     hiddenFeature: {
       raw_measure: false,
       extendedcolumn_measure: false
