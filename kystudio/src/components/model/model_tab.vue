@@ -129,11 +129,16 @@
   }
 </script>
 <style lang="less" scope="">
+@import '../../less/config.less';
 .modeltab{
+  .el-tabs__header{
+    border-bottom: 1px solid #313446;
+  }
   .el-tabs--card>.el-tabs__header{
     .el-tabs__nav div:nth-child(1){
       &.is-active{
-       background-color: #475568
+       background-color: @base-color;
+       border: 0;
       }
       background-color: #475568
     }

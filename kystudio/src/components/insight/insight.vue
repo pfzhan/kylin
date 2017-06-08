@@ -375,6 +375,7 @@ export default {
 }
 </script>
 <style lang="less">
+  @import '../../less/config.less';
   .insight_box {
     position: relative;
     .el-icon-circle-close {

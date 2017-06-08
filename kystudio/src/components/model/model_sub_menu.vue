@@ -11,7 +11,7 @@
         <component is="cubeList"  v-on:addtabs="addTab" ref="cubes"></component>
       </el-tab-pane>
     </el-tabs>
-    </div>
+  </div>
 </template>
 <script>
 import dataSource from '../datasource/data_source'

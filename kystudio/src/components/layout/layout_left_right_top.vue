@@ -19,10 +19,10 @@
 
       <ul class="topUl">
         <li><help></help></li>
-        <li style="min-width:0"><change_lang></change_lang></li>
+        <li><change_lang></change_lang></li>
         <li>
           <el-dropdown @command="handleCommand">
-            <span class="el-dropdown-link">{{currentUserInfo && currentUserInfo.username}} <icon name="angle-down"></icon>
+            <span class="el-dropdown-link">{{currentUserInfo && currentUserInfo.username}} <i style="font-size:12px;" class="el-icon-caret-bottom"></i>
             </span>
             <el-dropdown-menu slot="dropdown" >
               <el-dropdown-item command="setting">{{$t('kylinLang.common.setting')}}</el-dropdown-item>
@@ -576,6 +576,14 @@
       padding: 8px 12px;
       margin-top: 18px;
       margin-left: 4px;
+      background: @grey-color;
+      color: @fff;
+    }
+    .el-input{
+      margin-right: 30px;
+      .el-input__icon{
+        margin-right: 32px;
+      }
     }
     .topUl {
     	float:right;
@@ -584,7 +592,7 @@
     		display:inline-block;
     		height:66px;
     		line-height:66px;
-    		text-align:center;
+    		text-align:left;
     	}
 
     }

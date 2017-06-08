@@ -53,6 +53,7 @@
     }
     .el-button{
       border:none;
+      background: @bg-top;
     }
     .el-button:hover{
       color: @fff;

@@ -7,11 +7,13 @@
       :name="item.name"
       v-show="!item.disabled"
       :closable="item.closable"> 
-      <span slot="label" v-show="!item.disabled"><icon :name="item.icon" :spin="item.spin" scale="0.8"></icon> {{item.title}}</span>
+      <span slot="label" v-show="!item.disabled">
+        <icon :name="item.icon" :spin="item.spin" scale="0.8"></icon> {{item.title}}
+      </span>
       <slot :item = "item" v-show="!item.disabled"></slot>
     </el-tab-pane>
   </el-tabs>
-  </div>
+</div>
 </template>
 <script>
   export default {

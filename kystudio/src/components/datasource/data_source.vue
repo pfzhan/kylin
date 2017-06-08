@@ -1,7 +1,7 @@
 <template>
 	<div class="datasource">
       <div class="tree_list">
-         <el-radio-group v-model="currentLoadType" class="ksd-mt-30 ksd-ml-30" v-if="isAdmin">
+        <el-radio-group v-model="currentLoadType" class="ksd-mt-30 ksd-ml-30" v-if="isAdmin">
 		    <el-radio-button label="Hive" @click.native="openLoadHiveListDialog"><icon name="download" scale="0.8"></icon><span> Hive</span></el-radio-button>
 		    <el-radio-button label="Kfka" @click.native="openKafkaDialog"><icon name="download" scale="0.8"></icon><span> Kafka</span></el-radio-button>
 		  </el-radio-group>
@@ -798,6 +798,7 @@ export default {
 }
 </script>
 <style lang="less" >
+@import '../../less/config.less';
 .modeltab{
     &>.el-tabs{
       &>.el-tabs__header{
@@ -861,10 +862,25 @@ export default {
 		display: inline-block;
 		position: relative;
 		top:-15px;
-
+    background: @grey-color;
+    label .el-radio-button__inner{
+      color: @fff;
+      border-color: @base-color;
+    }
+    label:nth-child(1) .el-radio-button__inner{
+      background: @base-color;
+    }
+    label:nth-child(2) .el-radio-button__inner{
+      background: @grey-color;
+    }
+    .ksd-ml-30{
+      margin-left: 45px!important;
+      margin-top: 40px!important;
+    }
 	}
 
 	.table_content{
+    background: @tableBC!important;
 		padding: 20px;
 		position: absolute;
 		left: 250px;
@@ -880,7 +896,6 @@ export default {
 	.extendinfo_table {
 		width: 100%;
 		tr{
-
 			border-top:solid 1px #ccc;
 			height: 40px;
 		}
@@ -914,5 +929,6 @@ export default {
 			top:10px;
 		}
 	}
+  
 }
 </style>

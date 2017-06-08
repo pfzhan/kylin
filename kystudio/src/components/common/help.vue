@@ -281,7 +281,7 @@
     .el-dialog__title {color:#red;font-size:14px;}
     .el-dialog__body {padding:0 50px;}
     .el-dropdown-link{
-      color: @word-color;
+      color: @fff;
     }
     .el-dropdown-link:hover{
       color: @fff;

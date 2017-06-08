@@ -87,8 +87,10 @@ li {list-style-type:none;}
 .clear {
   clear: both;
 }
-.el-table .cell {
-  word-break:normal!important;
+.el-table{
+  .cell {
+    word-break:normal!important;
+  }
 }
 .ace-chrome .ace_print-margin {
   display: none;
@@ -98,15 +100,24 @@ li {list-style-type:none;}
 // kystudio  border型tab
 .ksd-border-tab {
    .el-tabs--border-card{
+      background: @grey-color;
+      color: @fff;
       box-shadow:none;
       border:none;
       .el-tabs__content{
-        border:solid 1px #d1dbe5;
-        border:solid 1px #d1dbe5;
+        // border:solid 1px #d1dbe5;
+        // border:solid 1px #d1dbe5;
         margin-top: -2px;
+      }
+      .el-tabs__nav-scroll{
+        background: @tableBC;
       }
       &>.el-tabs__header{
         border-bottom: solid 1px #fff;
+        .el-tabs__item.is-active{
+          background: @base-color;
+          border: 0!important;
+        }
         .el-tabs__nav{
           margin-left: 1px;
           z-index: 222;
@@ -120,7 +131,7 @@ li {list-style-type:none;}
             border-left:solid 1px #d1dbe5;
             border-bottom:#fff;
           }
-          border-top:solid 1px #f1f2f7;
+          // border-top:solid 1px #f1f2f7;
           border-radius: 5px 5px 0 0;
         }
       }
@@ -388,6 +399,9 @@ li {list-style-type:none;}
   .el-dialog__title {
     color: @fff;
   }
+  .el-form-item__label{
+    color: @fff;
+  }
   .el-dialog__body {
     color: @content-color;
     .el-form-item__label {
@@ -434,5 +448,43 @@ li {list-style-type:none;}
   .el-dropdown-menu > li:hover{
     background: #4e5571;
     color: @fff;
+  }
+  .el-input__inner{
+    background: #292b38;
+    color: @fff;
+  }
+  .el-tree{
+    background: @grey-color!important;
+    color: @fff;
+  }
+  .tree_box .el-tree div.checked-leaf.leaf-label{
+    color: @fff;
+  }
+  .tree_box .el-tree > .el-tree-node > .el-tree-node__content{
+    background: #434b70;
+    border-color: #434b70;
+  }
+  .table_content{
+    border: 0!important;
+  }
+  .el-tabs__item:hover{
+    color: @fff;
+  }
+  .el-tabs__item.is-active{
+    color: @fff;
+  }
+  .el-select-dropdown__empty{
+    color: @fff;
+    background: @grey-color;
+  }
+  .el-tree-node__content:hover{
+    color: @fff;
+    background: #434b70;
+  }
+  .el-select-dropdown__list{
+    background: @grey-color;
+  }
+  .el-select-dropdown__item.selected.hover{
+    background: #434b70;
   }
 }
