@@ -7,7 +7,7 @@
   <el-dropdown-menu slot="dropdown" >
     <el-dropdown-item command="kapmanual">{{$t('Manual')}}</el-dropdown-item>
     <el-dropdown-item command="kybot">
-      {{$t('kybotAuto')}}
+      <el-button style="color: #fff;font-size: 16px;" type="text" @click="alertKybot">{{$t('kybotAuto')}}</el-button>
       <el-switch
         v-model="isopend"
         on-color="#13ce66"
@@ -73,6 +73,18 @@
         stopKybot: 'STOP_KYBOT',
         getAgreement: 'GET_AGREEMENT'
       }),
+      alertKybot () {
+        const h = this.$createElement
+        this.$msgbox({
+          title: this.$t('kybotAuto'),
+          message: h('p', {}, [
+            h('div', {}, this.$t('kybot'))
+          ]),
+          showCancelButton: false
+        }).then(action => {
+          // alert(1)
+        })
+      },
       handleCommand (val) {
         var _this = this
         if (val === 'kapmanual') {
@@ -95,12 +107,12 @@
         } else if (val === 'kybot') {
           // 需要先检测有没有登录 待修改
           // this.kyBotUploadVisible = true
-          if (_this.isopend) {
-            return
-          }
-          this.checkLogin(() => {
-            this.getStatus(true)
-          })
+          // if (_this.isopend) {
+          //   return
+          // }
+          // this.checkLogin(() => {
+          //   this.getStatus(true)
+          // })
         }
       },
       dropHelp () {
@@ -123,8 +135,8 @@
             if (data) {
               this.isopend = true
               this.$message({
-                type: 'success',
-                message: this.$t('openSuccess')
+                type: 'success'
+                // message: this.$t('openSuccess')
               })
               this.infoKybotVisible = false
             }
@@ -174,6 +186,7 @@
           handleSuccess(res, (data, code, status, msg) => {
             if (!data) { // 没有同意过协议 开协议层
               this.infoKybotVisible = true
+              this.isopend = false
             } else {
               this.startService()
             }
@@ -261,8 +274,8 @@
       'start_kybot': startKybot
     },
     locales: {
-      'en': {usernameEmpty: 'Please enter username', usernameRule: 'username contains only numbers, letters and character "_"', noUserPwd: 'password required', agreeAndOpen: 'agree the protocol and open the automatic service', kybotAuto: 'KyBot Auto Upload', openSuccess: 'open successfully', closeSuccess: 'close successfully', Manual: 'KAP Manual', kybotService: 'KyBot Service', aboutKap: 'About KAP'},
-      'zh-cn': {usernameEmpty: '请输入用户名', usernameRule: '名字只能包含数字字母下划线', noUserPwd: '密码不能为空', agreeAndOpen: '同意协议并开启自动服务', kybotAuto: 'KyBot自动上传', openSuccess: '成功开启', closeSuccess: '成功关闭', Manual: 'KAP手册', kybotService: 'KyBot服务', aboutKap: '关于KAP'}
+      'en': {usernameEmpty: 'Please enter username', usernameRule: 'username contains only numbers, letters and character "_"', noUserPwd: 'password required', agreeAndOpen: 'agree the protocol and open the automatic service', kybotAuto: 'KyBot Auto Upload', openSuccess: 'open successfully', closeSuccess: 'close successfully', Manual: 'KAP Manual', kybotService: 'KyBot Service', aboutKap: 'About KAP', kybot: 'Kybot by analyzing the production of diagnostic kits, KAP diagnosis, optimization and online services, the automatic upload service, regularly upload automatically every day, don not need to packaging and upload on its own'},
+      'zh-cn': {usernameEmpty: '请输入用户名', usernameRule: '名字只能包含数字字母下划线', noUserPwd: '密码不能为空', agreeAndOpen: '同意协议并开启自动服务', kybotAuto: 'KyBot自动上传', openSuccess: '成功开启', closeSuccess: '成功关闭', Manual: 'KAP手册', kybotService: 'KyBot服务', aboutKap: '关于KAP', kybot: 'Kybot通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天定时自动上传，无需自行打包和上传'}
     }
   }
 </script>
