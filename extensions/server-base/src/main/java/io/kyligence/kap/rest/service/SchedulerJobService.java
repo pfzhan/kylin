@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
@@ -253,7 +254,7 @@ public class SchedulerJobService extends BasicService {
 
     // SchedulerJob will be triggered once its trigger_time is set.
     public void enableSchedulerJob(SchedulerJobInstance instance) throws ParseException, SchedulerException {
-        if (instance.getScheduledRunTime() == 0)
+        if (!validateScheduler(instance))
             return;
 
         JobDetailImpl jobDetail = new JobDetailImpl();
@@ -312,5 +313,21 @@ public class SchedulerJobService extends BasicService {
                 throw new RuntimeException(e.getMessage(), e);
             }
         }
+    }
+
+    private boolean validateScheduler(SchedulerJobInstance instance) {
+        boolean isValid = true;
+
+        if (!StringUtils.isNoneBlank(instance.getName(), instance.getProject(), instance.getRealizationType(),
+                instance.getRelatedRealization(), instance.getRelatedRealizationUuid())) {
+            isValid = false;
+        }
+
+        if (instance.getScheduledRunTime() <= 0 || instance.getPartitionInterval() <= 0
+                || instance.getRepeatInterval() <= 0) {
+            isValid = false;
+        }
+
+        return isValid;
     }
 }
