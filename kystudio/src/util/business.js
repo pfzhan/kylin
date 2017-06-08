@@ -1,8 +1,7 @@
 import { utcToConfigTimeZome, removeNameSpace, getNameSpaceTopName } from './index'
-import { MessageBox, Message } from 'element-ui'
+import { MessageBox } from 'element-ui'
 // 成功回调入口
 export function handleSuccess (res, callback, errorcallback) {
-  console.log(res, 999)
   var responseData = res.data
   if (responseData && responseData.code === '000') {
     if (typeof callback === 'function') {
@@ -18,12 +17,11 @@ export function handleSuccess (res, callback, errorcallback) {
 // 失败回调入口
 export function handleError (res, errorcallback) {
   var responseData = res.data
-  console.log(res, 990)
   if (typeof errorcallback !== 'function') {
-    Message.error({
-      message: responseData && responseData.msg || window.kapVm.$t('kylinLang.common.unknownError'),
-      showClose: true,
-      duration: 5000
+    var msg = responseData && responseData.msg || window.kapVm.$t('kylinLang.common.unknownError')
+    MessageBox.confirm(msg, window.kapVm.$t('kylinLang.common.tip'), {
+      type: 'error',
+      showCancelButton: false
     })
   }
   if (responseData && responseData.code) {
@@ -42,6 +40,15 @@ export function handleError (res, errorcallback) {
 
 export function kapConfirm (content, para) {
   var dialogPara = para || {}
+  // console.log(Message, 32323)
+  return MessageBox.confirm(content, window.kapVm.$t('kylinLang.common.tip'), dialogPara)
+}
+
+export function kapWarn (content, para) {
+  var dialogPara = para || {
+    type: 'warning',
+    showCancelButton: false
+  }
   // console.log(Message, 32323)
   return MessageBox.confirm(content, window.kapVm.$t('kylinLang.common.tip'), dialogPara)
 }

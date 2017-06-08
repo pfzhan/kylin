@@ -31,13 +31,17 @@ exports.default = {
     project: '项目',
     cube: 'cube',
     models: '模型',
-    cubes: 'cubes',
+    jobs: '任务',
+    cubes: 'Cubes',
     dataSource: '数据源',
     fact: '事实表',
     lookup: '维度表',
     computedColumn: '计算列',
     pk: '主键',
     fk: '外键',
+    manual: '手册',
+    tutorial: '使用教程',
+    qa: '常见问题',
     // 通用提示
     unknownError: '未知错误!',
     submitSuccess: '提交成功',
@@ -103,7 +107,7 @@ exports.default = {
     minLengthVal: '最小长度值',
     maxLengthVal: '最大长度值',
     expression: '表达式',
-    returnType: '返回类型'
+    returnType: '数据类型'
   },
   login: {
 

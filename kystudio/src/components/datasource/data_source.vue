@@ -273,7 +273,7 @@
 </template>
 <script>
 import { mapActions } from 'vuex'
-import { handleSuccess, handleError, hasRole } from '../../util/business'
+import { handleSuccess, handleError, hasRole, kapWarn } from '../../util/business'
 import { changeDataAxis } from '../../util/index'
 import createKafka from '../kafka/create_kafka'
 import editKafka from '../kafka/edit_kafka'
@@ -452,7 +452,7 @@ export default {
     checkTableHasJob (tableName, cb, hasNotCb) {
       this.getTableJob(tableName).then((res) => {
         handleSuccess(res, (data) => {
-          if (data && data.job_status === 'FINISHED' || data.progress === '100' || !data) {
+          if (data && (data.job_status === 'FINISHED' || data.progress === '100') || !data) {
             hasNotCb()
           } else {
             cb()
@@ -467,7 +467,7 @@ export default {
       this.tableStaticsRange = 100
       this.openCollectRange = 100
       this.checkTableHasJob(this.tableData.database + '.' + this.tableData.name, () => {
-        this.$message.error(this.$t('hasCollectJob'))
+        kapWarn(this.$t('hasCollectJob'))
         this.$refs.sampleBtn.loading = false
       }, () => {
         this.scanSampleRatioDialogVisible = true

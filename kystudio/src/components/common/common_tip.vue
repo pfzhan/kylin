@@ -1,6 +1,6 @@
 <template>
 	<span>
-		<el-tooltip :content="tips" placement="top">
+		<el-tooltip :content="tips" :placement="placement||'top'">
 		  <span><slot></slot></span>
 		</el-tooltip>
 	</span>
@@ -13,6 +13,6 @@
         visible: false
       }
     },
-    props: ['tips', 'trigger']
+    props: ['tips', 'trigger', 'placement']
   }
 </script>

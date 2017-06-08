@@ -193,7 +193,7 @@ export default {
       selected_cube: {},
       selected_project: this.$store.state.project.selected_project,
       filterCube: '',
-      currentModel: ''
+      currentModel: 'ALL'
     }
   },
   components: {
@@ -238,7 +238,7 @@ export default {
       if (localStorage.getItem('selected_project')) {
         param.projectName = localStorage.getItem('selected_project')
       }
-      if (modelName) {
+      if (modelName && modelName !== 'ALL') {
         param.modelName = modelName
       }
       this.getCubesList(param).then((res) => {
@@ -565,10 +565,9 @@ export default {
   },
   computed: {
     modelsList () {
-      return this.$store.state.model.modelsList.map((m) => {
-        m.gmtTime = transToGmtTime(m.last_modified, this)
-        return m
-      })
+      var models = this.$store.state.model.modelsList.slice(0)
+      models.push({name: 'ALL'})
+      return models
     },
     isAdmin () {
       return hasRole(this, 'ROLE_ADMIN')

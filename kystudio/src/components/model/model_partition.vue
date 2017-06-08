@@ -125,15 +125,6 @@ export default {
       }
     }
   },
-  watch: {
-    'partitionSelect.partition_time_column' (val) {
-      if (val) {
-        this.hasSeparate = true
-      } else {
-        this.hasSeparate = false
-      }
-    }
-  },
   computed: {
     editMode () {
       return this.editLock
@@ -171,9 +162,10 @@ export default {
   created () {
   },
   mounted () {
+    this.hasSeparate = !!(this.checkPartition && this.checkPartition.time_column)
   },
   locales: {
-    'en': {partitionDateColumn: 'Partition Date Column', dateFormat: 'Date Format', hasSeparateLabel: 'Has a separate "time of the day" column?', partitionTimeColumn: '分区时间列', timeFormat: 'Time Format'},
+    'en': {partitionDateColumn: 'Partition Date Column', dateFormat: 'Date Format', hasSeparateLabel: 'Has a separate "time of the day" column?', partitionTimeColumn: 'Partition Time Column', timeFormat: 'Time Format'},
     'zh-cn': {partitionDateColumn: '分区列（日期类型）', dateFormat: '日期格式', hasSeparateLabel: '您使用单独的列来表示某天内的时间吗？', partitionTimeColumn: '分区列（时间类型）', timeFormat: '时间格式'}
   }
 }

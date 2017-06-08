@@ -14,7 +14,7 @@
         <li class="toolbtn" @click="autoLayerPosition" v-unselect style="line-height:26px;" :title="$t('kylinLang.common.automaticlayout')"><icon style="color:#383838" name="life-bouy"></icon></li>
       </ul>
     <div class="btn_group"  v-if="actionMode!=='view'">
-      <el-button @click="saveDraft(true)" :loading="draftBtnLoading">{{$t('kylinLang.common.draft')}}</el-button>
+      <!-- <el-button @click="saveDraft(true)" :loading="draftBtnLoading">{{$t('kylinLang.common.draft')}}</el-button> -->
       <el-button type="primary" @click="saveCurrentModel" :loading="saveBtnLoading">{{$t('kylinLang.common.save')}}</el-button>
     </div>  
     <div class="tips_group">
@@ -44,7 +44,7 @@
         <p class="filter_box"><el-input v-model="table.filterName" v-on:change="filterColumnByInput(table.filterName,table.guid)"  size="small" placeholder="enter filter..."></el-input></p>
         <section data-scrollbar class="columns_box">
           <ul>
-            <li draggable @dragstart="dragColumns" @dragend="dragColumnsEnd"  v-for="column in table.columns" :key="column.guid"  class="column_li"  v-bind:class="{'active_filter':column.isActive}" :data-guid="table.guid" :data-column="column.name" ><span class="kind" :class="{dimension:column.btype=='D',measure:column.btype=='M'}" v-on:click="changeColumnBType(table.guid,column.name,column.btype, column.isComputed)">{{column.btype}}</span><span class="column" v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)"><common-tip trigger="click" :tips="column.name" style="font-size:10px;">{{column.name|omit(14,'...')}}</common-tip></span><span class="column_type">{{column.datatype}}</span></style></li>
+            <li draggable @dragstart="dragColumns" @dragend="dragColumnsEnd"  v-for="column in table.columns" :key="column.guid"  class="column_li"  v-bind:class="{'active_filter':column.isActive}" :data-guid="table.guid" :data-column="column.name" ><span class="kind" :class="{dimension:column.btype=='D',measure:column.btype=='M'}" v-on:click="changeColumnBType(table.guid,column.name,column.btype, column.isComputed)">{{column.btype}}</span><span class="column" v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)"><common-tip trigger="click" :tips="column.name" placement="left-start" style="font-size:10px;">{{column.name|omit(14,'...')}}</common-tip></span><span class="column_type">{{column.datatype}}</span></style></li>
           </ul>
         </section>
         <div class="more_tool"></div>
@@ -143,21 +143,29 @@
             <el-button type="primary" v-if="actionMode!=='view'" @click="addJoinCondition(currentLinkData.source.guid,currentLinkData.target.guid, '', '', currentLinkData.joinType,true)">{{$t('addJoinCondition')}}</el-button>
         </span>
          <span slot="footer" class="dialog-footer">
-            <el-button type="primary" @click="saveLinks(currentLinkData.source.guid,currentLinkData.target.guid)">{{$t('kylinLang.common.close')}}</el-button>
+            <el-button type="primary" @click="saveLinks(currentLinkData.source.guid,currentLinkData.target.guid)">{{$t('kylinLang.common.ok')}}</el-button>
           </span> 
       </el-dialog>
        <el-dialog :title="$t('kylinLang.common.computedColumn')" v-model="computedColumnFormVisible" size="small">
           <div>
             <el-button type="primary" class="ksd-mb-10" v-show="!openAddComputedColumnForm" @click="openAddComputedColumnForm = true">{{$t('kylinLang.common.add')}}</el-button>
             <el-form label-position="top"  ref="computedColumnForm" v-show="openAddComputedColumnForm">
-              <el-form-item label="name" >
+              <el-form-item :label="$t('kylinLang.dataSource.columns')" >
                 <el-input  auto-complete="off" v-model="computedColumn.name"></el-input>
               </el-form-item>
-              <el-form-item label="expression" >
+              <el-form-item :label="$t('kylinLang.dataSource.expression')" >
                 <el-input type="textarea"  auto-complete="off" v-model="computedColumn.expression"></el-input>
               </el-form-item>
-              <el-form-item label="returnType" >
-                <el-input  auto-complete="off" v-model="computedColumn.returnType"></el-input>
+              <el-form-item :label="$t('kylinLang.dataSource.returnType')">
+                <el-select v-model="computedColumn.returnType">
+                  <el-option
+                    v-for="item in computedColumnDataType"
+                    :key="item"
+                    :label="item"
+                    :value="item">
+                  </el-option>
+                </el-select>
+                <!-- <el-input  auto-complete="off" v-model="computedColumn.returnType"></el-input> -->
               </el-form-item>  
               <el-form-item>
                 <el-button type="primary" @click="saveComputedColumn">{{$t('kylinLang.common.submit')}}</el-button>
@@ -257,6 +265,7 @@ export default {
           {validator: this.checkName, trigger: 'blur'}
         ]
       },
+      computedColumnDataType: ['any', 'char', 'varchar', 'string', 'boolean', 'byte', 'binary', 'int', 'short', 'long', 'integer', 'tinyint', 'smallint', 'bigint', 'int4', 'long8', 'float', 'real', 'double', 'decimal', 'numeric', 'date', 'time', 'datetime', 'timestamp', '_literal_type', '_derived_type', 'hllc', 'bitmap', 'topn', 'raw', 'extendedcolumn', 'percentile'],
       cubeMeta: {
         cubeName: '',
         modelName: '',
@@ -571,14 +580,14 @@ export default {
     createCube () {
       this.$refs['addCubeForm'].validate((valid) => {
         if (valid) {
-          this.checkCubeName(this.cubeMeta.cubeName).then((data) => {
-            this.$message({
-              message: this.$t('kylinLang.cube.sameCubeName'),
-              type: 'warning'
-            })
-          }, (res) => {
-            handleError(res, (data, code, status, msg) => {
-              if (status === 400) {
+          this.checkCubeName(this.cubeMeta.cubeName).then((res) => {
+            handleSuccess(res, (data) => {
+              if (data && data.size > 0) {
+                this.$message({
+                  message: this.$t('kylinLang.cube.sameCubeName'),
+                  type: 'warning'
+                })
+              } else {
                 this.createCubeVisible = false
                 this.$emit('addtabs', 'cube', this.cubeMeta.cubeName, 'cubeEdit', {
                   project: this.cubeMeta.projectName,
@@ -586,13 +595,10 @@ export default {
                   modelName: this.cubeMeta.modelName,
                   isEdit: false
                 })
-              } else {
-                this.$message({
-                  message: msg,
-                  type: 'warning'
-                })
               }
             })
+          }, (res) => {
+            handleError(res)
           })
         }
       })
@@ -627,12 +633,12 @@ export default {
       this.$set(this.currentSelectTable, 'tablename', tablename || '')
     },
     addComputedColumn: function (guid) {
-      this.computedColumn = {
+      Object.assign(this.computedColumn, {
         guid: '',
         name: '',
         expression: '',
         returnType: ''
-      }
+      })
       this.computedColumn.guid = guid
       this.currentTableComputedColumns = []
       this.computedColumnFormVisible = true
@@ -661,7 +667,7 @@ export default {
       this.addComputedColumnToDatabase((columnName) => {
         this.$notify({
           title: this.$t('kylinLang.common.success'),
-          message: columnName + this.$t('addComputedColumnSuccess'),
+          message: this.$t('addComputedColumnSuccess'),
           type: 'success'
         })
         this.openAddComputedColumnForm = false
@@ -735,9 +741,12 @@ export default {
           this.modelInfo.computed_columns.forEach((co) => {
             if (co.tableIdentity === databaseInfo.database + '.' + databaseInfo.name && co.columnName === this.computedColumn.name) {
               co.expression = this.computedColumn.expression
-              co.datatype = this.computedColumn.datatype
+              co.datatype = this.computedColumn.returnType
             }
           })
+          this.editTableComputedColumnInfo(guid, this.computedColumn.name, 'expression', this.computedColumn.expression)
+          this.editTableComputedColumnInfo(guid, this.computedColumn.name, 'datatype', this.computedColumn.returnType)
+          this.openAddComputedColumnForm = false
         } else {
           this.warnAlert(this.$t('sameNameComputedColumn'))
         }
@@ -749,8 +758,7 @@ export default {
     },
     checkSameComputedName (guid, column) {
       var columns = this.getTableInfoByGuid(guid).columns
-      console.log(columns, 8899)
-      for (var s = 0; s < columns.lenght; s++) {
+      for (var s = 0; s < columns.length; s++) {
         if (columns[s].isComputed && columns[s].name === column) {
           return true
         }
@@ -758,7 +766,7 @@ export default {
     },
     checkSameNormalName (guid, column) {
       var columns = this.getTableInfoByGuid(guid).columns
-      for (var s = 0; s < columns.lenght; s++) {
+      for (var s = 0; s < columns.length; s++) {
         if (!columns[s].isComputed && columns[s].name === column) {
           return true
         }
@@ -796,7 +804,6 @@ export default {
     },
     getDisableComputedColumn () {
       var result = []
-      console.log(this.modelInfo.computed_columns, 99)
       var len = this.modelInfo.computed_columns && this.modelInfo.computed_columns.length || 0
       for (var i = 0; i < len; i++) {
         var calcColumn = this.modelInfo.computed_columns[i]
@@ -1178,11 +1185,21 @@ export default {
     delBrokenConnect (p1, p2) {
       var links = this.links
       for (var i = 0; i < links.length; i++) {
-        if (links[i][0] === p1 && links[i][1] === p2 && (links[i][2] === '' || links[i][3] === '')) {
+        if (links[i][0] === p1 && links[i][1] === p2 && (links[i][2] === undefined || links[i][3] === undefined)) {
           this.links.splice(i, 1)
           i = i - 1
         }
       }
+      this.refreshConnectCountText(p1, p2)
+    },
+    checkBrokenConnect (p1, p2) {
+      var links = this.links
+      for (var i = 0; i < links.length; i++) {
+        if (links[i][0] === p1 && links[i][1] === p2 && (links[i][2] === undefined || links[i][3] === undefined)) {
+          return true
+        }
+      }
+      return false
     },
     refreshConnectCountText (p1, p2, joinType) {
       this.getConnectsByTableIds(p1, p2)
@@ -1205,15 +1222,18 @@ export default {
       this.refreshConnectCountText(p1, p2, joinType)
     },
     saveLinks (p1, p2) {
+      var isBroken = this.checkBrokenConnect(p1, p2)
+      if (isBroken) {
+        this.warnAlert(this.$t('checkCompleteLink'))
+        return
+      }
       this.dialogVisible = false
       this.delBrokenConnect(p1, p2)
       this.getConnectsByTableIds(p1, p2)
-      var showLinkCon = this.showLinkCons[p1 + '$' + p2]
-      if (showLinkCon) {
-        this.setConnectLabelText(showLinkCon, p1, p2, '' + this.currentTableLinks.length)
-      } else {
-
-      }
+      // var showLinkCon = this.showLinkCons[p1 + '$' + p2]
+      // if (showLinkCon) {
+      //   this.setConnectLabelText(showLinkCon, p1, p2, '' + this.currentTableLinks.length)
+      // }
     },
     switchJointType: function (p1, p2, status) {
       for (var i = 0; i < this.links.length; i++) {
@@ -1488,6 +1508,14 @@ export default {
         }
       })
     },
+    editTableComputedColumnInfo: function (guid, column, key, value) {
+      var tableInfo = this.getTableInfoByGuid(guid)
+      var tableList = this.getSameOriginTables(tableInfo.database, tableInfo.name)
+      tableList.forEach((table) => {
+        var curGuid = table.guid
+        this.editTableColumnInfo(curGuid, 'name', column, key, value)
+      })
+    },
     delColumn: function (guid, filterColumnKey, filterColumnVal) {
       this.tableList.forEach(function (table) {
         if (table.guid === guid) {
@@ -1711,8 +1739,8 @@ export default {
                 guid: tableList[0].guid,
                 name: modelData.computed_columns[i].columnName,
                 expression: modelData.computed_columns[i].expression,
-                returnType: modelData.computed_columns[i].datatype,
-                columnType: modelData.computed_columns[i].datatype
+                returnType: modelData.computed_columns[i].datatype
+                // columnType: modelData.computed_columns[i].datatype
               }
               this.addComputedColumnToDatabase(() => {}, true)
             }
@@ -1826,7 +1854,6 @@ export default {
           this.currentTableComputedColumns.push(computedColumn)
         }
       })
-      console.log(this.currentTableComputedColumns, 9999)
     },
     jsplumbZoom: function (zoom, instance, transformOrigin, el) {
       transformOrigin = transformOrigin || [0.5 + 460 / 40000, 0.5 + 180 / 40000]
@@ -2036,8 +2063,8 @@ export default {
     // console.log(1)
   },
   locales: {
-    'en': {'addJoinCondition': 'New join condition', 'hasRootFact': 'There is already a fact table', 'cannotSetFact': 'Can not set a fact table that has foreign key', 'cannotSetFTableToFKTable': 'Can not set a fact table to be it\'s foreign key table', 'tableHasOppositeLinks': 'There is an reverse link between tables', 'tableHasOtherFKTable': 'There is already a foreign key table with this table', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly'},
-    'zh-cn': {'addJoinCondition': '添加连接条件', 'hasRootFact': '已经有一个事实表了', 'cannotSetFact': '不能设置一个有外键的表为事实表', 'cannotSetFTableToFKTable': '不是能设置事实表作为该表的外键表', 'tableHasOppositeLinks': '两表之间已经存在一个反向的连接了！', 'tableHasOtherFKTable': '该表已经有一个关联的外键表', 'delTableTip': '请先删除掉该表和其他表的关联关系', 'sameNameComputedColumn': '已经有一个同名的计算列', 'addComputedColumnSuccess': '计算列添加成功'}
+    'en': {'addJoinCondition': 'New join condition', 'hasRootFact': 'There is already a fact table', 'cannotSetFact': 'Can not set a fact table that has foreign key', 'cannotSetFTableToFKTable': 'Can not set a fact table to be it\'s foreign key table', 'tableHasOppositeLinks': 'There is an reverse link between tables', 'tableHasOtherFKTable': 'There is already a foreign key table with this table', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly', 'checkCompleteLink': 'Connect info is incomplete'},
+    'zh-cn': {'addJoinCondition': '添加连接条件', 'hasRootFact': '已经有一个事实表了', 'cannotSetFact': '不能设置一个有外键的表为事实表', 'cannotSetFTableToFKTable': '不是能设置事实表作为该表的外键表', 'tableHasOppositeLinks': '两表之间已经存在一个反向的连接了！', 'tableHasOtherFKTable': '该表已经有一个关联的外键表', 'delTableTip': '请先删除掉该表和其他表的关联关系', 'sameNameComputedColumn': '已经有一个同名的计算列', 'addComputedColumnSuccess': '计算列添加成功', 'checkCompleteLink': '连接信息不完整'}
   }
 }
 </script>

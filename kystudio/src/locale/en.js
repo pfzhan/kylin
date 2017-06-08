@@ -30,14 +30,18 @@ exports.default = {
     model: 'Model',
     project: 'Project',
     cube: 'cube',
-    models: 'models',
-    cubes: 'cubes',
+    models: 'Models',
+    jobs: 'Jobs',
+    cubes: 'Cubes',
     dataSource: 'datasource',
     fact: 'Fact Table',
     lookup: 'Lookup Table',
     computedColumn: 'Computed Column',
     pk: 'Primary key',
     fk: 'Foreign key',
+    manual: 'Manual',
+    tutorial: 'Tutorial',
+    qa: 'Q&A',
     // 通用提示
     unknownError: 'Unknown Error!',
     submitSuccess: 'Submitted successfully',
@@ -56,8 +60,9 @@ exports.default = {
     // 格式提示
     nameFormatValidTip: 'Invalid name！ You can use letters, numbers, and underscore characters',
     // 其他
+    users: 'Users',
     tip: 'Tips',
-    action: 'action',
+    action: 'Action',
     help: 'Help',
     username: 'username',
     password: 'password'
@@ -102,7 +107,7 @@ exports.default = {
     minLengthVal: 'Min Length Value',
     maxLengthVal: 'Max Length Value',
     expression: 'Expression',
-    returnType: 'Return Type'
+    returnType: 'Data Type'
   },
   login: {
 

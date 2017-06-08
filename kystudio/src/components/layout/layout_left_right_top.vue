@@ -13,9 +13,9 @@
     </aside>
     <div class="topbar">
       <icon name="bars" style="color: #d4d7e3;" v-on:click.native="toggleMenu"></icon>
-      <project_select class="project_select" v-on:changePro="changeProject" ref="projectSelect"></project_select>
-      <el-button  :class="{'isProjectPage':defaultActive==='projectActive'}" @click="goToProjectList"><icon name="window-restore" scale="0.8"></icon></el-button>
-      <el-button @click="addProject" v-show="isModeler"><icon name="plus" scale="0.8"></icon></el-button>
+      <project_select  v-if='gloalProjectSelectShow' class="project_select" v-on:changePro="changeProject" ref="projectSelect"></project_select>
+      <el-button  v-if='gloalProjectSelectShow' :class="{'isProjectPage':defaultActive==='projectActive'}" @click="goToProjectList"><icon name="window-restore" scale="0.8"></icon></el-button>
+      <el-button v-if='gloalProjectSelectShow' @click="addProject" v-show="isModeler"><icon name="plus" scale="0.8"></icon></el-button>
 
       <ul class="topUl">
         <li><help></help></li>
@@ -247,12 +247,15 @@
             type: 'success',
             message: this.$t('kylinLang.common.saveSuccess')
           })
-          // this.loadProjects()
+          localStorage.setItem('selected_project', data.name)
+          this.$store.state.project.selected_project = data.name
+          this.FormVisible = false
           this.loadAllProjects()
+          this.$router.push('/studio/datasource')
         }, (res) => {
+          this.FormVisible = false
           handleError(res)
         })
-        this.FormVisible = false
       },
       onSubmit () {
       },

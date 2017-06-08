@@ -1,14 +1,14 @@
 <template>
 <div id="dashbord" class="paddingbox">
   <el-row :gutter="30">
-    <el-col :span="8">
+    <el-col :span="6">
       <div class="grid-content grid-project bg-purple">
     	<el-card class="box-card box-project">
 		  <div slot="header" class="clearfix">
-		    <span style="line-height: 36px;">Project</span>
+		    {{$t('kylinLang.common.project')}}
 		  </div>
+          <a class="btn-addProject" href="javascript:;" @click="addProject">+{{$t('kylinLang.common.project')}}</a>
 		  <section data-scrollbar id="project_scroll_box">
-		  <a class="btn-addProject" href="javascript:;" @click="addProject">+ Project</a>
 		  <div v-for="o in projectList" :key="o.uuid" class="text item" @click="selectProject(o.name)" style="cursor:pointer">
 		    {{o.name }}
 		  </div>
@@ -27,11 +27,11 @@
 	  	</div>
     	</div>
     </el-col> -->
-    	<el-col :span="8">
+    	<el-col :span="9">
     		<div class="counter-list counter-list1">
     			<el-card>
     				<div slot="header" class="clearfix">
-		    			Models
+		    			{{$t('kylinLang.common.models')}}
 					</div>
 					<section>
 						{{totalModels}}
@@ -41,7 +41,7 @@
     		<div class="counter-list counter-list2">
     			<el-card>
     				<div slot="header" class="clearfix">
-		    			Jobs
+		    			{{$t('kylinLang.common.jobs')}}
 					</div>
 					<section>
 						{{totalJobs}}
@@ -49,11 +49,11 @@
     			</el-card>
     		</div>
     	</el-col>
-    	<el-col :span="8">
+    	<el-col :span="9">
     		<div class="counter-list counter-list3">
     			<el-card>
 					<div slot="header" class="clearfix">
-		    			Cubes
+		    			{{$t('kylinLang.common.cubes')}}
 					</div>
 					<section>
 						{{totalCubes}}
@@ -63,7 +63,7 @@
     		<div class="counter-list counter-list4">
     			<el-card>
 					<div slot="header" class="clearfix">
-		    			Users
+		    			{{$t('kylinLang.common.users')}}
 					</div>
 					<section>
 						{{totalUsers}}
@@ -74,11 +74,11 @@
     </el-row>
   </el-row>
   <el-row :gutter="30">
-    <el-col :span="8">
+    <el-col :span="6">
       <div class="grid-content bg-purple">
     	<el-card class="box-card">
 		  <div slot="header" class="clearfix">
-		    <span style="line-height: 36px;">Manual</span>
+		    <span style="line-height: 36px;">{{$t('kylinLang.common.manual')}}</span>
 		  </div>
 		  <div v-for="o in manualList" :key="o.title" class="text item">
 		    <a>{{o.title }}</a>
@@ -86,10 +86,10 @@
 		</el-card>
       </div>
     </el-col>
-    <el-col :span="8"><div class="grid-content bg-purple video_box">
+    <el-col :span="9"><div class="grid-content bg-purple video_box">
     	<el-card class="box-card">
 		  <div slot="header" class="clearfix">
-		    <span style="line-height: 36px;">Tutorial</span>
+		    <span style="line-height: 36px;">{{$t('kylinLang.common.tutorial')}}</span>
 		  </div>
 		  <div >
 		    <video controls="controls" src="http://kyligence.io/public/assets/video/video.mp4" data-current="--" data-duration="--">
@@ -98,11 +98,11 @@
 		  </div>
 		</el-card>
     </div></el-col>
-    <el-col :span="8">
+    <el-col :span="9">
       <div class="grid-content bg-purple">
         <el-card class="box-card">
           <div slot="header" class="clearfix">
-            <span style="line-height: 36px;">Q&A</span>
+            <span style="line-height: 36px;">{{$t('kylinLang.common.qa')}}</span>
           </div>
           <div v-for="o in manualList" :key="o.title" class="text item">
             <a>{{o.title }}</a>
@@ -116,7 +116,7 @@
 
 <script>
 import { mapActions } from 'vuex'
-// import Scrollbar from 'smooth-scrollbar'
+import Scrollbar from 'smooth-scrollbar'
 export default {
   methods: {
     ...mapActions({
@@ -152,20 +152,22 @@ export default {
       return this.$store.state.project.allProject
     },
     totalModels () {
-      return this.$store.state.model.modelsTotal
+      return this.$store.state.model.modelsTotal || 0
     },
     totalCubes () {
-      return this.$store.state.cube.totalCubes
+      return this.$store.state.cube.totalCubes || 0
     },
     totalJobs () {
-      return this.$store.state.monitor.totalJobs
+      return this.$store.state.monitor.totalJobs || 0
     },
     totalUsers () {
-      return this.$store.state.user.usersSize
+      return this.$store.state.user.usersSize || 0
     }
   },
   mounted () {
-    // Scrollbar.init(document.getElementById('project_scroll_box'))
+    this.$nextTick(() => {
+      Scrollbar.init(document.getElementById('project_scroll_box'))
+    })
   },
   created () {
     var params = {pageSize: 1, pageOffset: 0}
@@ -198,9 +200,12 @@ export default {
 			.el-card__header {
 				background: @bg-menu;
 				color: @fff;
-				font-size: 14px;
+				// font-size: 14px;
 				border-bottom: 0;
 			}
+            .el-card__body{
+                position: relative;
+            }
 		}
 		.el-col {
 			.counter-list:first-child {
@@ -255,7 +260,7 @@ export default {
 		}
 
 		#project_scroll_box {
-		  height: 620px;
+		  height: 446px;
 		}
 		.single-line {
 			display: inline-block;

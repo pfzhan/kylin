@@ -106,7 +106,7 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="cloneFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" @click="clone">{{$t('kylinLang.common.clone')}}</el-button>
+        <el-button type="primary" :loading="btnLoading" @click="clone">{{$t('kylinLang.common.clone')}}</el-button>
       </div>
     </el-dialog>
 
@@ -127,7 +127,7 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="createModelVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" @click="createModel">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button type="primary" @click="createModel" :loading="btnLoading">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
 
@@ -141,17 +141,17 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="createCubeVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" @click="createCube">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button type="primary" @click="createCube" :loading="btnLoading">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
 
-    <el-dialog :title="$t('scanRangeSetting')" v-model="scanRatioDialogVisible" >
+    <el-dialog :title="$t('kylinLang.model.scanRangeSetting')" v-model="scanRatioDialogVisible" >
         <el-row :gutter="20">
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">
               <div class="ksd-mt-20">
               <div class="date-picker" v-if="hasPartition">
-                  <p>{{$t('scanRangeSetting')}}</p>
+                  <!-- <p>{{$t('kylinLang.model.scanRangeSetting')}}</p> -->
                   <br/>
                   <el-date-picker
                     v-model="startTime"
@@ -183,7 +183,7 @@
         </el-row>
         <div slot="footer" class="dialog-footer">
           <el-button @click="cancelSetModelStatics">{{$t('kylinLang.common.cancel')}}</el-button>
-          <el-button type="primary" @click="stats">{{$t('kylinLang.common.submit')}}</el-button>
+          <el-button type="primary" @click="stats" :loading="btnLoading">{{$t('kylinLang.common.submit')}}</el-button>
         </div>
       </el-dialog>
 
@@ -214,19 +214,16 @@ export default {
       scanRatioDialogVisible: false,
       openCollectRange: false,
       usedCubes: [],
+      // cloneBtnLoading: false,
+      btnLoading: false,
       stCycleRequest: null,
       modelStaticsRange: 0,
       startTime: 0,
       endTime: 0,
       pickerOptionsEnd: {
-        disabledDate: (time) => { // set date-picker endTime
+        disabledDate: (time) => {
           let nowDate = new Date(this.startTime)
-          this.endTime = this.startTime
-          // nowDate.setMonth(nowDate.getMonth() + 1)// 后一个月
-          // let v1 = time.getTime() > +new Date(_this.startTime) + 30 * 24 * 60 * 60 * 1000
           let v1 = time.getTime() < +nowDate
-          // let v2 = time.getTime() < +new Date(this.startTime) - 8.64e7
-          // this.maxTime = +nowDate // 缓存最大值 endTime
           return v1
         }
       },
@@ -362,7 +359,9 @@ export default {
     createModel () {
       this.$refs['addModelForm'].validate((valid) => {
         if (valid) {
+          this.btnLoading = true
           this.checkModelName(this.createModelMeta.modelName).then((res) => {
+            this.btnLoading = false
             handleSuccess(res, (data) => {
               if (data.size === 0) {
                 this.createModelVisible = false
@@ -380,6 +379,7 @@ export default {
               }
             })
           }, (res) => {
+            this.btnLoading = false
             handleError(res)
           })
         }
@@ -395,14 +395,16 @@ export default {
     createCube () {
       this.$refs['addCubeForm'].validate((valid) => {
         if (valid) {
-          this.checkCubeName(this.cubeMeta.cubeName).then((data) => {
-            this.$message({
-              message: this.$t('sameCubeName'),
-              type: 'warning'
-            })
-          }, (res) => {
-            handleError(res, (data, code, status, msg) => {
-              if (status === 400) {
+          this.btnLoading = true
+          this.checkCubeName(this.cubeMeta.cubeName).then((res) => {
+            this.btnLoading = false
+            handleSuccess(res, (data) => {
+              if (data && data.size > 0) {
+                this.$message({
+                  message: this.$t('kylinLang.cube.sameCubeName'),
+                  type: 'warning'
+                })
+              } else {
                 this.createCubeVisible = false
                 this.$emit('addtabs', 'cube', this.cubeMeta.cubeName, 'cubeEdit', {
                   project: this.cubeMeta.projectName,
@@ -410,13 +412,11 @@ export default {
                   modelName: this.cubeMeta.modelName,
                   isEdit: false
                 })
-              } else {
-                this.$message({
-                  message: msg,
-                  type: 'warning'
-                })
               }
             })
+          }, (res) => {
+            this.btnLoading = false
+            handleError(res)
           })
         }
       })
@@ -430,7 +430,6 @@ export default {
     },
     gotoView () {
       var modelData = this.currentModelData
-      console.log(modelData, 'kkkkk')
       this.useCubeDialogVisible = false
       this.viewModel({
         name: modelData.name,
@@ -513,6 +512,7 @@ export default {
     clone () {
       this.$refs['cloneForm'].validate((valid) => {
         if (valid) {
+          this.btnLoading = true
           var modelData = this.getModelData(this.cloneModelMeta.oldName, this.cloneModelMeta.project)
           this.cloneModel({
             oldName: this.cloneModelMeta.oldName,
@@ -523,18 +523,21 @@ export default {
             }
           }).then((response) => {
             this.cloneFormVisible = false
+            this.btnLoading = false
             this.$message({
               type: 'success',
               message: this.$t('kylinLang.common.cloneSuccess')
             })
             this.reloadModelList()
           }, (res) => {
+            this.btnLoading = false
             handleError(res)
           })
         }
       })
     },
     stats () {
+      this.btnLoading = true
       this.statsModel({
         project: this.currentModelData.project,
         modelname: this.currentModelData.name,
@@ -544,11 +547,15 @@ export default {
           ratio: this.modelStaticsRange
         }
       }).then(() => {
+        this.btnLoading = false
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.submitSuccess')
         })
         this.scanRatioDialogVisible = false
+      }, (res) => {
+        handleError(res)
+        this.btnLoading = false
       })
     },
     drop () {
