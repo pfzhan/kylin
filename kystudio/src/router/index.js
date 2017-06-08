@@ -58,7 +58,7 @@ export default new Router({
       },
       {
         name: 'System',
-        path: 'system',
+        path: 'system/:subaction',
         component: system
       },
       {

@@ -99,7 +99,7 @@ import querypanel from 'components/insight/query_panel'
 import queryresult from 'components/insight/query_result'
 import { mapActions } from 'vuex'
 import {groupData, indexOfObjWithSomeKey} from '../../util/index'
-import { handleSuccess } from '../../util/business'
+import { handleSuccess, kapConfirm } from '../../util/business'
 import { pageCount } from '../../config'
 export default {
   name: 'insight',
@@ -264,22 +264,13 @@ export default {
       this.pageCurrentChangeForCookie(this.cookieQueryCurrentPage || 1)
     },
     removeQuery (queryId) {
-      this.$confirm('此操作将永久删除该条记录, 是否继续?', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(() => {
+      kapConfirm(this.$t('kylinLang.common.confirmDel')).then(() => {
         this.delQuery(queryId).then((response) => {
           this.$message({
             type: 'success',
-            message: '删除成功!'
+            message: this.$t('kylinLang.common.delSuccess')
           })
           this.loadSavedQuery(this.queryCurrentPage - 1)
-        })
-      }).catch(() => {
-        this.$message({
-          type: 'info',
-          message: '已取消删除'
         })
       })
     },

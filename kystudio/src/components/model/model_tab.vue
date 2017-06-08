@@ -121,7 +121,6 @@
       'cubeView': cubeView
     },
     mounted () {
-      console.log(this)
     },
     locales: {
       'en': {'willGo': 'You have unsaved information detected, Do you want to continue?', 'go': 'Continue go'},

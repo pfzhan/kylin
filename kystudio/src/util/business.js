@@ -2,13 +2,13 @@ import { utcToConfigTimeZome, removeNameSpace, getNameSpaceTopName } from './ind
 import { MessageBox } from 'element-ui'
 // 成功回调入口
 export function handleSuccess (res, callback, errorcallback) {
-  var responseData = res.data
+  var responseData = res && res.data || null
   if (responseData && responseData.code === '000') {
     if (typeof callback === 'function') {
       callback(responseData.data, responseData.code, responseData.msg)
     }
   } else {
-    callback(responseData.data, '000', responseData.msg)
+    callback(responseData && responseData.data || null, '000', responseData && responseData.msg || '')
   }
   // if (typeof errorcallback === 'function') {
   //   errorcallback(responseData.data, responseData.code)

@@ -459,6 +459,11 @@ export default {
       // if (this.extraoption.actionMode !== 'add') {
       //   this.saveAndCheckModel()
       // } else {
+      var rootFact = this.getRootFact()
+      if (!rootFact.length) {
+        this.warnAlert(this.$t('hasNoFact'))
+        return
+      }
       if (this.draftBtnLoading) {
         this.$message({
           type: 'warning',
@@ -2063,8 +2068,8 @@ export default {
     // console.log(1)
   },
   locales: {
-    'en': {'addJoinCondition': 'New join condition', 'hasRootFact': 'There is already a fact table', 'cannotSetFact': 'Can not set a fact table that has foreign key', 'cannotSetFTableToFKTable': 'Can not set a fact table to be it\'s foreign key table', 'tableHasOppositeLinks': 'There is an reverse link between tables', 'tableHasOtherFKTable': 'There is already a foreign key table with this table', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly', 'checkCompleteLink': 'Connect info is incomplete'},
-    'zh-cn': {'addJoinCondition': '添加连接条件', 'hasRootFact': '已经有一个事实表了', 'cannotSetFact': '不能设置一个有外键的表为事实表', 'cannotSetFTableToFKTable': '不是能设置事实表作为该表的外键表', 'tableHasOppositeLinks': '两表之间已经存在一个反向的连接了！', 'tableHasOtherFKTable': '该表已经有一个关联的外键表', 'delTableTip': '请先删除掉该表和其他表的关联关系', 'sameNameComputedColumn': '已经有一个同名的计算列', 'addComputedColumnSuccess': '计算列添加成功', 'checkCompleteLink': '连接信息不完整'}
+    'en': {'addJoinCondition': 'New join condition', 'hasRootFact': 'There is already a fact table', 'cannotSetFact': 'Can not set a fact table that has foreign key', 'cannotSetFTableToFKTable': 'Can not set a fact table to be it\'s foreign key table', 'tableHasOppositeLinks': 'There is an reverse link between tables', 'tableHasOtherFKTable': 'There is already a foreign key table with this table', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly', 'checkCompleteLink': 'Connect info is incomplete', hasNoFact: 'please set a fact table'},
+    'zh-cn': {'addJoinCondition': '添加连接条件', 'hasRootFact': '已经有一个事实表了', 'cannotSetFact': '不能设置一个有外键的表为事实表', 'cannotSetFTableToFKTable': '不是能设置事实表作为该表的外键表', 'tableHasOppositeLinks': '两表之间已经存在一个反向的连接了！', 'tableHasOtherFKTable': '该表已经有一个关联的外键表', 'delTableTip': '请先删除掉该表和其他表的关联关系', 'sameNameComputedColumn': '已经有一个同名的计算列', 'addComputedColumnSuccess': '计算列添加成功', 'checkCompleteLink': '连接信息不完整', hasNoFact: '请设置一个事实表'}
   }
 }
 </script>

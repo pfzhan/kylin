@@ -29,7 +29,7 @@
     </el-col> -->
     	<el-col :span="9">
     		<div class="counter-list counter-list1">
-    			<el-card>
+    			<el-card @click.native="goto('Studio','model', '/studio/datasource')">
     				<div slot="header" class="clearfix">
 		    			{{$t('kylinLang.common.models')}}
 					</div>
@@ -39,7 +39,7 @@
     			</el-card>
     		</div>
     		<div class="counter-list counter-list2">
-    			<el-card>
+    			<el-card @click.native="goto('Monitor', '', '/monitor')">
     				<div slot="header" class="clearfix">
 		    			{{$t('kylinLang.common.jobs')}}
 					</div>
@@ -51,7 +51,7 @@
     	</el-col>
     	<el-col :span="9">
     		<div class="counter-list counter-list3">
-    			<el-card>
+    			<el-card @click.native="goto('Studio', 'cube', '/studio/datasource')">
 					<div slot="header" class="clearfix">
 		    			{{$t('kylinLang.common.cubes')}}
 					</div>
@@ -61,7 +61,7 @@
 				</el-card>
     		</div>
     		<div class="counter-list counter-list4">
-    			<el-card>
+    			<el-card @click.native="goto('System', 'user', '/system/config')">
 					<div slot="header" class="clearfix">
 		    			{{$t('kylinLang.common.users')}}
 					</div>
@@ -129,12 +129,14 @@ export default {
     addProject () {
       this.$emit('addProject')
     },
-    goto (routername, to) {
+    goto (routername, to, path) {
       this.$router.push({name: routername, params: {subaction: to}})
+      this.$emit('changeCurrentPath', path)
     },
     selectProject (projectName) {
       this.$store.state.project.selected_project = projectName
       localStorage.setItem('selected_project', projectName)
+      this.$emit('changeCurrentPath', '/studio/datasource')
       this.$router.push('studio/datasource')
     }
   },
@@ -314,6 +316,7 @@ export default {
 		}
 		.el-card{
 			height: 280px;
+            cursor: pointer;
 		}
 	  .item{
 	 	height: 50px;

@@ -32,19 +32,19 @@
     <div class="ksd-mt-20" v-show="!viewModel">
        <el-form :inline="true"  class="demo-form-inline">
         <el-form-item label="Graph Type">
-          <el-select  placeholder="Graph Type" v-model="graphType">
+          <el-select  placeholder="Graph Type" v-model="graphType" @change="changeGraphInfo">
             <el-option label="Line Chart" value="line"></el-option>
             <el-option label="Bar Chart" value="bar"></el-option>
             <el-option label="Pie Chart" value="pie"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="Dimensions">
-          <el-select  placeholder="Dimensions" v-model="selectDimension">
+          <el-select  placeholder="Dimensions" v-model="selectDimension" @change="changeGraphInfo">
             <el-option :label="dime.name" :value="dime.name" v-for="dime in dimensionsAndMeasures.d" :key="dime.name"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="Metrics">
-          <el-select  placeholder="Metrics" v-model="selectMetrics">
+          <el-select  placeholder="Metrics" v-model="selectMetrics" @change="changeGraphInfo">
             <el-option :label="mea.name" :value="mea.name" v-for="(mea, index) in dimensionsAndMeasures.m" :key="index"></el-option>
           </el-select>
         </el-form-item>
@@ -306,6 +306,10 @@ export default {
         handleError(res)
         this.saveQueryFormVisible = false
       })
+    },
+    changeGraphInfo () {
+      var renderData = this.transDataForGraph(this.selectDimension, this.selectMetrics)
+      this.renderGraph(this.selectDimension, this.selectMetrics, renderData, this.graphType)
     }
   },
   mounted () {
@@ -321,20 +325,20 @@ export default {
     this.queryInfo.cube = this.extraoption.data.cube
     this.transDataForGrid(this.extraoption.data)
   },
-  watch: {
-    'selectDimension': function () {
-      var renderData = this.transDataForGraph(this.selectDimension, this.selectMetrics)
-      this.renderGraph(this.selectDimension, this.selectMetrics, renderData, this.graphType)
-    },
-    'selectMetrics': function () {
-      var renderData = this.transDataForGraph(this.selectDimension, this.selectMetrics)
-      this.renderGraph(this.selectDimension, this.selectMetrics, renderData, this.graphType)
-    },
-    'graphType': function () {
-      var renderData = this.transDataForGraph(this.selectDimension, this.selectMetrics)
-      this.renderGraph(this.selectDimension, this.selectMetrics, renderData, this.graphType)
-    }
-  },
+  // watch: {
+  //   'selectDimension': function () {
+  //     var renderData = this.transDataForGraph(this.selectDimension, this.selectMetrics)
+  //     this.renderGraph(this.selectDimension, this.selectMetrics, renderData, this.graphType)
+  //   },
+  //   'selectMetrics': function () {
+  //     var renderData = this.transDataForGraph(this.selectDimension, this.selectMetrics)
+  //     this.renderGraph(this.selectDimension, this.selectMetrics, renderData, this.graphType)
+  //   },
+  //   'graphType': function () {
+  //     var renderData = this.transDataForGraph(this.selectDimension, this.selectMetrics)
+  //     this.renderGraph(this.selectDimension, this.selectMetrics, renderData, this.graphType)
+  //   }
+  // },
   computed: {
     modelsTotal () {
       return this.tableData.length

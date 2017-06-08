@@ -45,7 +45,7 @@
         </el-col>
         <el-col :span="24" style="box-sizing: border-box;" id="mainBox">
           <!--<transition name="fade">-->
-          <router-view v-on:addProject="addProject" ></router-view>
+          <router-view v-on:addProject="addProject" v-on:changeCurrentPath="changePath"></router-view>
           <!--</transition>-->
         </el-col>
         <el-dialog title="Project" v-model="FormVisible" @close="resetProjectForm">
@@ -123,7 +123,7 @@
           {name: 'studio', path: '/studio/datasource', icon: require('../../assets/img/studio.png')},
           {name: 'insight', path: '/insight', icon: require('../../assets/img/insight.png')},
           {name: 'monitor', path: '/monitor', icon: require('../../assets/img/monitor.png')},
-          {name: 'system', path: '/system', icon: require('../../assets/img/system.png')}
+          {name: 'system', path: '/system/config', icon: require('../../assets/img/system.png')}
         ],
         resetPasswordFormVisible: false
       }
@@ -177,6 +177,12 @@
             if (this.menus[i].name === 'studio') {
               this.defaultActive = '/studio/datasource'
             }
+            if (this.menus[i].name === 'system') {
+              this.defaultActive = ''
+              this.$nextTick(() => {
+                this.defaultActive = '/system/config'
+              })
+            }
             matched = true
             break
           }
@@ -186,11 +192,20 @@
             this.defaultActive = 'projectActive'
           } else {
             this.defaultActive = hash
-            if (hash.indeOf('studio')) {
+            if (hash.indeOf('studio') >= 0) {
               this.defaultActive = '/studio/datasource'
+            }
+            if (hash.indeOf('system') >= 0) {
+              this.defaultActive = ''
+              this.$nextTick(() => {
+                this.defaultActive = '/system/config'
+              })
             }
           }
         }
+      },
+      changePath (path) {
+        this.defaultActive = path
       },
       hoverMenu () {
         let imgSrc = ''
@@ -252,6 +267,7 @@
           this.FormVisible = false
           this.loadAllProjects()
           this.$router.push('/studio/datasource')
+          this.defaultActive = '/studio/datasource'
         }, (res) => {
           this.FormVisible = false
           handleError(res)
@@ -279,7 +295,6 @@
         if (command === 'loginout') {
           this.logoutConfirm().then(() => {
             this.loginOut().then(() => {
-              // this.$refs.projectSelect.clearProject()
               this.$router.push({name: 'Login'})
             })
           })

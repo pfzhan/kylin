@@ -1,7 +1,7 @@
 <template>
 	<div class="model_edit_tool">
-  <icon name="bars" @click.native="slideSubMenu()" class="display_bar"></icon>
-		<el-tabs v-model="menuActive" type="border-card"  @tab-click="subMenuTabClick" >
+  <icon :name="menuStatus==='show'?'sort-down':'sort-up'" @click.native="slideSubMenu()" class="display_bar"></icon>
+		<el-tabs v-model="menuActive" type="border-card"  @tab-click="subMenuTabClick" @click.native="">
 		    <el-tab-pane label="Overview" name="first">
             <el-tabs v-model="subMenuActive" >
                 <el-tab-pane :label="$t('modelInfo')" name="first">
