@@ -18,6 +18,7 @@ if [[ "$CHECKENV_ING" == "" ]]; then
     
     if [[ "$1" != "if-not-yet" || ! -f ${BYPASS} ]]; then
     
+        echo ""
         echo `setColor 33 "KAP is checking installation environment, log is at ${LOG}"`
         echo ""
 
@@ -35,7 +36,7 @@ if [[ "$CHECKENV_ING" == "" ]]; then
                 echo `getValueByKey ${TITLE} ${f}`
                 echo ""                                                                             >>${LOG}
                 echo "============================================================================" >>${LOG}
-                echo "Checking $(basename $f)"                                                       >>${LOG}
+                echo "Checking $(basename $f)"                                                      >>${LOG}
                 echo "----------------------------------------------------------------------------" >>${LOG}
                 bash $f >>${LOG} 2>&1
                 if [[ $? != 0 ]]; then
@@ -50,10 +51,10 @@ if [[ "$CHECKENV_ING" == "" ]]; then
             fi
         done
         echo ""
-        echo "----------------------- Report ------------------------"
         cat ${LOG} | grep "${CHECKENV_REPORT_PFX}"
         touch ${BYPASS}
         echo `setColor 33 "Checking environment was successful and is now suppressed. To check again, run 'bin/check-env.sh' manually."`
+        echo ""
     fi
     
     export CHECKENV_ING=
