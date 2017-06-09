@@ -93,8 +93,8 @@ then
     retrieveSparkEnvProps
     echo "HADOOP_CONF_DIR=$HADOOP_CONF_DIR"
 
-    mkdir -p ${KYLIN_HOME}/var
-    input_file=${KYLIN_HOME}/var/spark_client_test_input
+    mkdir -p ${KYLIN_HOME}/logs/tmp
+    input_file=${KYLIN_HOME}/logs/tmp/spark_client_test_input
     [[ ! -f ${input_file} ]] || rm -f ${input_file}
     echo "Hello Spark Client" >> ${input_file};
     source ${dir}/hdfs-op.sh put ${input_file}

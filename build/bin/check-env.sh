@@ -20,7 +20,8 @@ if [[ "$CHECKENV_ING" == "" ]]; then
     
         echo `setColor 33 "KAP is checking installation environment, log is at ${LOG}"`
         echo ""
-    
+
+        rm -rf ${KYLIN_HOME}/logs/tmp
         rm -f ${LOG}
         rm -f ${ERRORS}
         touch ${ERRORS}
