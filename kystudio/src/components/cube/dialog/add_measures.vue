@@ -263,7 +263,7 @@ export default {
           })
         }
       })
-      if (this.modelDesc.metricss) {
+      if (this.modelDesc.metrics) {
         this.modelDesc.metrics.forEach(function (metric, index) {
           columns.push(metric)
         })
