@@ -55,31 +55,35 @@ public class KapSuggestionController extends BasicController {
     @Qualifier("kapSuggestionService")
     private KapSuggestionService kapSuggestionService;
 
-    @RequestMapping(value = "{modelName}/{cubeName}/collect_sql", method = { RequestMethod.POST }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "{modelName}/{cubeName}/collect_sql", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse collectSampleSqls(@PathVariable String modelName, @PathVariable String cubeName,
-            @RequestBody List<String> sqls) throws Exception {
+    public EnvelopeResponse saveSampleSqls(@PathVariable String modelName, @PathVariable String cubeName, @RequestBody List<String> sqls) throws Exception {
 
         kapSuggestionService.saveSampleSqls(modelName, cubeName, sqls);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kapSuggestionService.proposeDimensions(cubeName, modelName), "");
     }
 
-    @RequestMapping(value = "{cubeName}/get_sql", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "{cubeName}/get_sql", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getSampleSqls(@PathVariable String cubeName) throws Exception {
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kapSuggestionService.getSampleSqls(cubeName), "");
     }
 
-    @RequestMapping(value = "suggestions", method = { RequestMethod.POST }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "dimensions", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getSmartSuggestions(@RequestBody CubeRequest cubeRequest) throws IOException {
+    public EnvelopeResponse proposeDimensions(@RequestBody CubeRequest cubeRequest) throws IOException {
 
         CubeDesc cubeDesc = deserializeCubeDesc(cubeRequest);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kapSuggestionService.getSmartSuggestions(cubeDesc), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kapSuggestionService.proposeDimensions(cubeDesc.getName(), cubeDesc.getModelName()), "");
+    }
+
+    @RequestMapping(value = "suggestions", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse optimizeCube(@RequestBody CubeRequest cubeRequest) throws IOException {
+
+        CubeDesc cubeDesc = deserializeCubeDesc(cubeRequest);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kapSuggestionService.optimizeCube(cubeDesc), "");
     }
 
     private CubeDesc deserializeCubeDesc(CubeRequest cubeRequest) throws IOException {
