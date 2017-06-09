@@ -453,6 +453,28 @@ li {list-style-type:none;}
   .el-time-panel__btn.cancel {
     display: none;
   }
+
+  // el-pagination
+  .el-pagination{
+    .el-pager{
+      .active{
+        background: @base-color;
+      }
+    }
+    .el-pagination__total{
+      color: @fff;
+    }
+    .el-pagination__jump{
+      color: @fff;
+    }
+    .el-pagination__editor{
+      color: @fff;
+      background: #292b3a;
+    }
+    .el-pagination button.disabled{
+      // background: yellow!important;
+    }
+  }
   
   // dropdown-menu
   .el-dropdown-menu{
@@ -518,6 +540,52 @@ li {list-style-type:none;}
   }
   .el-select-dropdown.is-multiple .el-select-dropdown__item.selected.hover, .el-select-dropdown__item.hover, .el-select-dropdown__item:hover{
     background: #434b70;
+  }
+  .el-input{
+    background: @bg-top;
+  }
+  .el-tabs__nav-scroll{
+    background: @bg-total;
+  }
+  .el-tabs__item{
+    color: @fff;
+  }
+  .el-tabs--border-card>.el-tabs__header .el-tabs__item.is-active{
+    background: @base-color;
+  }
+  .el-tabs__content{
+    background: @grey-color;
+  }
+  .model_edit_tool table th{
+    background: @tableBC;
+    color: @fff;
+  }
+  .el-textarea__inner{
+    background: @tableBC;
+    color: @fff;
+  }
+  .tree_list{
+    background: @bg-total;
+  }
+  .modeltab .el-tabs--card > .el-tabs__header .el-tabs__nav div:nth-child(1){
+    background: transparent;
+  }
+  .cell{
+    .el-dropdown{
+      .el-button{
+        background: @grey-color;
+        color: @fff;
+      }
+    }
+  }
+  .el-pagination .btn-next{}
+  .el-pagination{
+    .btn-prev{
+      background: transparent;
+    }
+    .btn-next{
+      background: transparent;
+    }
   }
 }
 

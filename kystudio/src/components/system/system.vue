@@ -209,7 +209,7 @@ export default {
 }
 </script>
 <style lang="less">
-
+  @import '../../less/config.less';
   .system-wrap {
     .box-card{
     height: 500px;
@@ -233,7 +233,7 @@ export default {
   .server-type {
     line-height: 36px;
     font-size: 14px;
-    color: #000;
+    color: @fff;
   }
   .btn-refresh {
     margin-left:10px;

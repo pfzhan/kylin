@@ -1,6 +1,6 @@
 <template>
 <div class="help_box">
-<el-dropdown @command="handleCommand" @click.native="dropHelp">
+<el-dropdown trigger="click" @command="handleCommand">
   <span class="el-dropdown-link">
     {{$t('kylinLang.common.help')}} <i class="el-icon-caret-bottom"></i>
   </span>
@@ -135,8 +135,8 @@
             if (data) {
               this.isopend = true
               this.$message({
-                type: 'success'
-                // message: this.$t('openSuccess')
+                type: 'success',
+                message: this.$t('openSuccess')
               })
               this.infoKybotVisible = false
             }
