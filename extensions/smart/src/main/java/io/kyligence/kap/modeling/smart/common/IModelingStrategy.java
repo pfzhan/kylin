@@ -68,4 +68,10 @@ interface IModelingStrategy {
     int getDerivedStrictRetryMax();
 
     boolean getCuboidCombinationOverride();
+
+    boolean enableDimCapForAggGroupStrict();
+
+    boolean enableJointForAggGroupStrict();
+
+    int getDimCapMin();
 }

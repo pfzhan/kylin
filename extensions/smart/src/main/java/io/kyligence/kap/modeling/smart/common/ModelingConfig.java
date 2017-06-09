@@ -31,14 +31,6 @@ public class ModelingConfig {
     private KapConfig kapConfig;
     private IModelingStrategy strategy;
 
-    public static ModelingConfig getInstanceFromEnv() {
-        return new ModelingConfig(KapConfig.getInstanceFromEnv());
-    }
-
-    public static ModelingConfig wrap(KylinConfig kylinConfig) {
-        return new ModelingConfig(KapConfig.wrap(kylinConfig));
-    }
-
     private ModelingConfig(KapConfig kapConfig) {
         this.kapConfig = kapConfig;
 
@@ -48,6 +40,14 @@ public class ModelingConfig {
         } else {
             throw new RuntimeException("Unknown Strategy: " + strategyName);
         }
+    }
+
+    public static ModelingConfig getInstanceFromEnv() {
+        return new ModelingConfig(KapConfig.getInstanceFromEnv());
+    }
+
+    public static ModelingConfig wrap(KylinConfig kylinConfig) {
+        return new ModelingConfig(KapConfig.wrap(kylinConfig));
     }
 
     private String getOptional(String name, String defaultValue) {
@@ -159,7 +159,19 @@ public class ModelingConfig {
         return getOptional("derived.strict.retry-max", strategy.getDerivedStrictRetryMax());
     }
 
+    public int getDimCapMin() {
+        return getOptional("dim-cap.min", strategy.getDimCapMin());
+    }
+
     public boolean getCuboidCombinationOverride() {
         return getOptional("cuboid-combination-override", strategy.getCuboidCombinationOverride());
+    }
+
+    public boolean enableDimCapForAggGroupStrict() {
+        return getOptional("aggGroup.strict.dim-cap-enabled", strategy.enableDimCapForAggGroupStrict());
+    }
+
+    public boolean enableJointForAggGroupStrict() {
+        return getOptional("aggGroup.strict.joint-enabled", strategy.enableJointForAggGroupStrict());
     }
 }

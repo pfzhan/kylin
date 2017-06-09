@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.query.mockup.Utils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
@@ -86,7 +87,7 @@ public class CubeDescUtil {
         cubeDesc.setRowkey(rowkey);
         cubeDesc.setAggregationGroups(Lists.newArrayList(aggregationGroup));
 
-        cubeDesc.getOverrideKylinProps().put("kylin.cube.aggrgroup.max-combination", Long.toString(Long.MAX_VALUE));
+        Utils.setLargeCuboidCombinationConf(cubeDesc.getOverrideKylinProps());
     }
 
     public static void addRowKeyToAggGroup(AggregationGroup aggGroup, String rowKeyName) {

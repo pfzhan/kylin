@@ -70,6 +70,8 @@ public class QueryStatsExtractor {
             @Override
             public QueryStats call() throws Exception {
                 KylinConfig config = Utils.newKylinConfig(localMetaDir.getAbsolutePath());
+                Utils.setLargeCuboidCombinationConf(config);
+
                 KylinConfig.setKylinConfigThreadLocal(config);
                 try (MockupQueryExecutor queryExecutor = new MockupQueryExecutor(queryRecorder)) {
                     for (String sql : sqls) {

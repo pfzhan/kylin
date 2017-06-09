@@ -63,6 +63,8 @@ public class AggrGroupProposer extends AbstractProposer {
         if (!context.hasModelStats() && !context.hasQueryStats()) {
             return;
         }
+        workCubeDesc.getOverrideKylinProps().clear();
+        workCubeDesc.initConfig(context.getKylinConfig());
 
         for (AggregationGroup aggregationGroup : workCubeDesc.getAggregationGroups()) {
             optimizeAggrGroup(workCubeDesc, aggregationGroup);
@@ -79,14 +81,13 @@ public class AggrGroupProposer extends AbstractProposer {
 
     private class AggrGroupBuilder {
         final CubeDesc workCubeDesc;
-        final AggregationGroup aggGroup;
         final Map<String, Long> colCardinalityMap;
         final List<String> aggGroupCandidates;
-
         final List<String> mandatoryCandidates = Lists.newArrayList();
         final RelationJointAggrGroupRecorder relationJointAggRecorder = new RelationJointAggrGroupRecorder(modelingConfig);
         final HierarchyAggGroupRecorder hierAggRecorder = new HierarchyAggGroupRecorder();
         final FragmentJointAggrGroupRecorder fragmentRecorder = new FragmentJointAggrGroupRecorder(modelingConfig);
+        AggregationGroup aggGroup;
 
         private AggrGroupBuilder(CubeDesc workCubeDesc, AggregationGroup aggGroup) {
             this.aggGroup = aggGroup;
@@ -244,6 +245,31 @@ public class AggrGroupProposer extends AbstractProposer {
             }
         }
 
+        private void buildDimCapToControlCuboidNum() {
+            if (modelingConfig.getAggGroupStrictEnabled() && modelingConfig.enableDimCapForAggGroupStrict()) {
+                int dimCap = aggGroup.getDimCap();
+                if (dimCap == 0) {
+                    dimCap = aggGroup.getIncludes().length;
+                }
+
+                long cuboids = getEstimatedCuboidCombination();
+                int retry = 0;
+                while (cuboids > modelingConfig.getAggGroupStrictCombinationMax() && retry++ < modelingConfig.getAggGroupStrictRetryMax() && dimCap > modelingConfig.getDimCapMin()) {
+                    aggGroup.getSelectRule().dimCap = --dimCap;
+                    cuboids = getEstimatedCuboidCombination();
+                }
+            }
+        }
+
+        private long getEstimatedCuboidCombination() {
+            try {
+                aggGroup.init(workCubeDesc, workCubeDesc.getRowkey());
+                return aggGroup.calculateCuboidCombination();
+            } catch (Exception e) {
+                return Long.MAX_VALUE;
+            }
+        }
+
         void build() {
             List<List<String>> resultJoint = Lists.newArrayList();
             List<List<String>> resultHier = Lists.newArrayList();
@@ -286,18 +312,21 @@ public class AggrGroupProposer extends AbstractProposer {
             selectRule.jointDims = ArrayUtils.to2DArray(resultJoint);
             selectRule.hierarchyDims = ArrayUtils.to2DArray(resultHier);
 
-            long cuboidNum = aggGroup.calculateCuboidCombination();
-            int retry = 0;
-            while (modelingConfig.getAggGroupStrictEnabled() && cuboidNum > modelingConfig.getAggGroupStrictCombinationMax() && retry++ <= modelingConfig.getAggGroupStrictRetryMax()) {
-                resultJoint.removeAll(fragementJointList);
+            buildDimCapToControlCuboidNum();
 
-                buildSmallJointGroup(retry);
-                fragementJointList = fragmentRecorder.getResult(retry, hierList, relationJointList);
-                resultJoint.addAll(fragementJointList);
+            if (modelingConfig.getAggGroupStrictEnabled() && modelingConfig.enableJointForAggGroupStrict()) {
+                long cuboidNum = getEstimatedCuboidCombination();
+                int retry = 0;
+                while (cuboidNum > modelingConfig.getAggGroupStrictCombinationMax() && retry++ <= modelingConfig.getAggGroupStrictRetryMax()) {
+                    resultJoint.removeAll(fragementJointList);
 
-                selectRule.jointDims = ArrayUtils.to2DArray(resultJoint);
+                    buildSmallJointGroup(retry);
+                    fragementJointList = fragmentRecorder.getResult(retry, hierList, relationJointList);
+                    resultJoint.addAll(fragementJointList);
 
-                cuboidNum = aggGroup.calculateCuboidCombination();
+                    selectRule.jointDims = ArrayUtils.to2DArray(resultJoint);
+                    cuboidNum = getEstimatedCuboidCombination();
+                }
             }
         }
     }

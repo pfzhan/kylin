@@ -28,9 +28,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.dimension.DictionaryDimEnc;
 
 public class DefaultModelingStrategy implements IModelingStrategy {
-    private KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-
     public final static DefaultModelingStrategy INSTANCE = new DefaultModelingStrategy();
+    private KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
     private DefaultModelingStrategy() {
     }
@@ -112,7 +111,7 @@ public class DefaultModelingStrategy implements IModelingStrategy {
     }
 
     public int getAggGroupStrictRetryMax() {
-        return 20;
+        return 63;
     }
 
     public int getDerivedStrictRetryMax() {
@@ -121,5 +120,17 @@ public class DefaultModelingStrategy implements IModelingStrategy {
 
     public boolean getCuboidCombinationOverride() {
         return false;
+    }
+
+    public boolean enableDimCapForAggGroupStrict() {
+        return true;
+    }
+
+    public boolean enableJointForAggGroupStrict() {
+        return false;
+    }
+
+    public int getDimCapMin() {
+        return 1;
     }
 }

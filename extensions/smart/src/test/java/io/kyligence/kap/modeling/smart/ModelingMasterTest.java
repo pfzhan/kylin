@@ -30,6 +30,7 @@ import java.io.IOException;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
@@ -68,8 +69,9 @@ public class ModelingMasterTest {
 
     private void testInternal(String metaDir, String modelName, String sqlDir) throws IOException {
         KylinConfig kylinConfig = Utils.newKylinConfig(metaDir);
-        KylinConfig.setKylinConfigThreadLocal(kylinConfig);
+        kylinConfig.setProperty("kylin.cube.aggrgroup.max-combination", "4096");
 
+        KylinConfig.setKylinConfigThreadLocal(kylinConfig);
         DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc(modelName);
 
         File[] sqlFiles = new File[0];
@@ -101,7 +103,10 @@ public class ModelingMasterTest {
 
         // get override cube
         CubeDesc configOverrideCube = master.proposeConfigOverride(aggGroupCube);
-
         System.out.println(JsonUtil.writeValueAsIndentString(configOverrideCube));
+
+        for (AggregationGroup aggGroup : configOverrideCube.getAggregationGroups()) {
+            System.out.println("Aggregation Group Combination:" + aggGroup.calculateCuboidCombination());
+        }
     }
 }
