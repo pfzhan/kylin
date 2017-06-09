@@ -587,6 +587,48 @@ li {list-style-type:none;}
       background: transparent;
     }
   }
+  .extendinfo_table{
+    color: @fff;
+    tr:nth-child(odd){
+      background: @tableBC!important;
+    }
+  }
+  .el-card{
+    background: @grey-color;
+  }
+  .has-time{
+    background: @grey-color!important;
+    color: rgba(255,255,255,0.7);
+  }
+  .el-date-table{
+    td:hover{
+      background: @tableBC;
+      color: @fff;
+    }
+    td.available:hover{
+      background: @tableBC;
+      color: @fff;
+    }
+    td.disabled{
+      background: @input-color;
+    }
+  }
+  .el-picker-panel__footer{
+    background: transparent;
+    .el-picker-panel__link-btn{
+      color: @fff;
+    }
+    .el-picker-panel__btn{
+      color: @fff;
+    }
+  }
+  .el-time-panel{
+    background: @tableBC;
+    color: @fff;
+  }
+  .el-time-spinner__item:hover{
+    background: @grey-color!important;
+  }
 }
 
 

@@ -101,4 +101,3 @@ window.kapVm = new Vue({
   template: '<fullLayout/>',
   components: { fullLayout }
 })
-

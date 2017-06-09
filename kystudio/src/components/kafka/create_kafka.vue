@@ -398,7 +398,8 @@ export default {
   }
 }
 </script>
-<style scoped=''>
+<style scope='' lang="less">
+  @import '../../less/config.less';
  .table_margin {
    margin-top: 10px;
    margin-bottom: 10px;
@@ -418,16 +419,15 @@ export default {
  .convertBtn {
   position: absolute;
   bottom: 0;
-  background-color: #ccc;
+  background-color: #434b70;
+  color: #fff;
   left: 65%;
   margin-left: 10px;
   padding: 5px;
-  color: #383838;
   border-radius: 4px 4px 0 0;
   cursor: pointer;
   height: 30px;
   line-height: 30px;
-  box-shadow: 2px 2px 2px #eee;
  }
 .convertBtn i {
    position: relative;
@@ -435,5 +435,10 @@ export default {
 }
 .el-card .el-card__body {
   padding: 0px;
+}
+.el-button--mini{
+  background: transparent;
+  color: @fff;
+  border: 1px solid @base-color;
 }
 </style>

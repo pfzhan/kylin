@@ -130,8 +130,8 @@
       }
     },
     locales: {
-      'en': {singUp: 'Sign Up Now', noAccount: "Don't have an account", usernameEmpty: 'Please enter username', noUserPwd: 'Password required', login: 'Login'},
-      'zh-cn': {singUp: '立即注册', noAccount: '还没有账号', usernameEmpty: '请输入用户名', noUserPwd: '密码不能为空', login: '登录'}
+      'en': {singUp: 'Sign Up Now', noAccount: "Don't have an account", usernameEmpty: 'Please enter username', noUserPwd: 'Password required', login: 'Login', openSuccess: 'success'},
+      'zh-cn': {singUp: '立即注册', noAccount: '还没有账号', usernameEmpty: '请输入用户名', noUserPwd: '密码不能为空', login: '登录', openSuccess: '成功'}
     }
   }
 </script>

@@ -228,4 +228,3 @@ export function utcToConfigTimeZome (item, zone, formatSet) {
   }
   return moment(convertedMillis).format(format) + ' ' + timezone
 }
-
