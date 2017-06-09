@@ -1625,8 +1625,8 @@ export default {
         this.$set(this.modelInfo, 'modelName', this.extraoption.modelName)
         return
       }
+      var actionModelName = this.extraoption.modelName
       // 编辑模式
-      var actionModelName = this.extraoption.status ? this.extraoption.modelName + '_draft' : this.extraoption.modelName
       this.getModelByModelName(actionModelName).then((response) => {
         handleSuccess(response, (data) => {
           this.modelData = data.model
