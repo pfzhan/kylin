@@ -24,7 +24,7 @@
       <div class="table_box" v-if="table&&table.kind" @drop='dropColumn' @dragover='allowDrop($event)'  v-for="table in tableList" :key="table.guid" :id="table.guid" v-bind:class="table.kind.toLowerCase()" v-bind:style="{ left: table.pos.x + 'px', top: table.pos.y + 'px' }" >
         <div class="tool_box" >
             <icon name="table" class="el-icon-menu" style="color:#fff" @click.native="openModelSubMenu('hide', table.database, table.name)"></icon>
-            <icon name="gears" v-if="actionMode!=='view'"  class="el-icon-share" style="color:#fff" v-on:click.native="addComputedColumn(table.guid)"></icon>
+            <icon name="gears"  class="el-icon-share" style="color:#fff" v-on:click.native="addComputedColumn(table.guid)"></icon>
             <icon name="sort-alpha-asc" v-on:click.native="sortColumns(table)"></icon>
             <i class="fa fa-window-close"></i>
             <el-dropdown @command="selectTableKind" class="ksd-fright" v-if="actionMode!=='view'">
@@ -44,7 +44,7 @@
         <p class="filter_box"><el-input v-model="table.filterName" v-on:change="filterColumnByInput(table.filterName,table.guid)"  size="small" placeholder="enter filter..."></el-input></p>
         <section data-scrollbar class="columns_box">
           <ul>
-            <li draggable @dragstart="dragColumns" @dragend="dragColumnsEnd"  v-for="column in table.columns" :key="column.guid"  class="column_li"  v-bind:class="{'active_filter':column.isActive}" :data-guid="table.guid" :data-column="column.name" ><span class="kind" :class="{dimension:column.btype=='D',measure:column.btype=='M'}" v-on:click="changeColumnBType(table.guid,column.name,column.btype, column.isComputed)">{{column.btype}}</span><span class="column" v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)"><common-tip trigger="click" :tips="column.name" placement="left-start" style="font-size:10px;">{{column.name|omit(14,'...')}}</common-tip></span><span class="column_type">{{column.datatype}}</span></style></li>
+            <li draggable @dragstart="dragColumns" @dragend="dragColumnsEnd"  v-for="column in table.columns" :key="column.guid"  class="column_li"  v-bind:class="{'active_filter':column.isActive}" :data-guid="table.guid" :data-column="column.name" ><span class="kind" :class="{dimension:column.btype=='D',measure:column.btype=='M'}" v-on:click="changeColumnBType(table.guid,column.name,column.btype, column.isComputed)">{{column.btype}}</span><span class="column" v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)"><common-tip trigger="click" :tips="column.name" placement="right-start" style="font-size:10px;">{{column.name|omit(14,'...')}}</common-tip></span><span class="column_type">{{column.datatype}}</span></style></li>
           </ul>
         </section>
         <div class="more_tool"></div>
@@ -54,13 +54,6 @@
     </div>
      <el-dialog :title="$t('addJoinCondition')" v-model="dialogVisible" size="small" class="links_dialog">
         <span>
-        <!--   <el-row :gutter="20" class="ksd-mb10">
-            <el-col :span="24">
-              <div class="grid-content bg-purple">
-                <a style="color:#56c0fc">{{currentLinkData.source.alias}}</a>
-              </div>
-            </el-col>
-            </el-row> -->
             <br/>
              <el-row :gutter="20" class="ksd-mb10" style="line-height:49px;">
              <el-col :span="9" style="text-align:center">
@@ -87,13 +80,6 @@
             </el-col>
             </el-row>
             <br/>
-            <!--  <el-row :gutter="20">
-            <el-col :span="24">
-              <div class="grid-content bg-purple">
-                <a style="color:#56c0fc">{{currentLinkData.target.alias}}</a>
-              </div>
-            </el-col>
-            </el-row> -->
           </el-row>
           <br/>
            <el-table
@@ -148,7 +134,7 @@
       </el-dialog>
        <el-dialog :title="$t('kylinLang.common.computedColumn')" v-model="computedColumnFormVisible" size="small">
           <div>
-            <el-button type="primary" class="ksd-mb-10" v-show="!openAddComputedColumnForm" @click="openAddComputedColumnForm = true">{{$t('kylinLang.common.add')}}</el-button>
+            <el-button type="primary" class="ksd-mb-10" v-show="!openAddComputedColumnForm&&actionMode!=='view'" @click="openAddComputedColumnForm = true">{{$t('kylinLang.common.add')}}</el-button>
             <el-form label-position="top"  ref="computedColumnForm" v-show="openAddComputedColumnForm">
               <el-form-item :label="$t('kylinLang.dataSource.columns')" >
                 <el-input  auto-complete="off" v-model="computedColumn.name"></el-input>
@@ -171,6 +157,7 @@
                 <el-button type="primary" @click="saveComputedColumn">{{$t('kylinLang.common.submit')}}</el-button>
               </el-form-item>
             </el-form>
+            <kap-nodata v-if="!(currentTableComputedColumns && currentTableComputedColumns.length)"></kap-nodata>
             <el-table v-if="currentTableComputedColumns && currentTableComputedColumns.length"
               :data="currentTableComputedColumns"
               style="width: 100%">
@@ -189,7 +176,7 @@
                 :label="$t('kylinLang.dataSource.returnType')">
               </el-table-column>
               <el-table-column
-                :label="$t('kylinLang.common.action')">
+                :label="$t('kylinLang.common.action')" v-if="actionMode!=='view'">
                 <template scope="scope">
                   <el-button type="primary" size="small" v-on:click='editComputedColumn(scope.row)'>{{$t('kylinLang.common.edit')}}</el-button>
                    <confirm-btn  v-on:okFunc='delComputedColumn(scope.row)' :tips="$t('kylinLang.common.confirmDel')"><el-button size="small"
@@ -199,7 +186,7 @@
             </el-table>
           </div>
             <span slot="footer" class="dialog-footer">
-            <el-button @click="computedColumnFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+            <!-- <el-button @click="computedColumnFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button> -->
             <el-button type="primary" @click="computedColumnFormVisible = false">{{$t('kylinLang.common.ok')}}</el-button>
           </span>
         </el-dialog>
@@ -243,7 +230,7 @@ import modelassets from './model_assets'
 import Draggable from 'draggable'
 import modelEditTool from 'components/model/model_edit_panel'
 import partitionColumn from 'components/model/model_partition.vue'
-import { handleSuccess, handleError, hasRole, filterNullValInObj } from 'util/business'
+import { handleSuccess, handleError, hasRole, filterNullValInObj, kapConfirm } from 'util/business'
 export default {
   name: 'modeledit',
   components: {
@@ -1638,135 +1625,150 @@ export default {
         this.$set(this.modelInfo, 'modelName', this.extraoption.modelName)
         return
       }
-      var actionModelName = this.extraoption.status ? this.extraoption.modelName + '_draft' : this.extraoption.modelName
       // 编辑模式
+      var actionModelName = this.extraoption.status ? this.extraoption.modelName + '_draft' : this.extraoption.modelName
       this.getModelByModelName(actionModelName).then((response) => {
         handleSuccess(response, (data) => {
           this.modelData = data.model
           this.draftData = data.draft
-          this.editLock = !!(this.modelData && this.modelData.uuid)
           var modelData = this.extraoption.status ? data.draft : data.model
-          if (this.extraoption.status) {
-            modelData.name = modelData.name.replace(/_draft/, '')
-          }
-          if (!modelData.fact_table) {
-            return
-          }
-          Object.assign(_this.modelInfo, {
-            uuid: modelData.uuid,
-            modelDiscribe: modelData.description,
-            modelName: modelData.name,
-            is_draft: modelData.is_draft,
-            last_modified: modelData.last_modified
-          })
-          // 加载原来设置的partition
-          var partitionDate = modelData.partition_desc.partition_date_column ? modelData.partition_desc.partition_date_column.split('.') : [null, null]
-          var partitionTime = modelData.partition_desc.partition_time_column ? modelData.partition_desc.partition_time_column.split('.') : [null, null]
-          Object.assign(this.partitionSelect, {
-            'date_table': partitionDate[0],
-            'date_column': partitionDate[1],
-            'time_table': partitionTime[0],
-            'time_column': partitionTime[1],
-            'partition_date_column': modelData.partition_desc.partition_date_column,
-            'partition_time_column': modelData.partition_desc.partition_time_column,
-            'partition_date_start': 0,
-            'partition_date_format': modelData.partition_desc.partition_date_format,
-            'partition_time_format': modelData.partition_desc.partition_time_format,
-            'partition_type': 'APPEND'
-          })
-          // 加载原来设置的partition
-          _this.modelInfo.filterStr = modelData.filter_condition
-          _this.modelInfo.computed_columns = modelData.computed_columns || []
-          var lookups = modelData.lookups
-          var baseTables = {}
-          for (var i = 0; i < lookups.length; i++) {
-            baseTables[lookups[i].alias] = {
-              database: lookups[i].table.split('.')[0],
-              table: lookups[i].table.split('.')[1],
-              kind: lookups[i].kind,
-              guid: sampleGuid(),
-              alias: lookups[i].alias
-            }
-          }
-          baseTables[modelData.fact_table.split('.')[1]] = {
-            database: modelData.fact_table.split('.')[0],
-            table: modelData.fact_table.split('.')[1],
-            kind: 'ROOTFACT',
-            guid: sampleGuid(),
-            alias: modelData.fact_table.split('.')[1]
-          }
-          for (var table in baseTables) {
-            _this.createTableData(this.extraoption.project, baseTables[table].database, baseTables[table].table, {
-              pos: modelData.pos && modelData.pos[modelData.fact_table.split('.')[1]] || {x: 20000, y: 20000},
-              kind: baseTables[table].kind,
-              guid: baseTables[table].guid,
-              alias: baseTables[table].alias || baseTables[table].name
+          if (this.modelData && this.draftData && this.extraoption.mode !== 'view') {
+            kapConfirm(this.$t('checkDraft'), {
+              confirmButtonText: 'OK',
+              cancelButtonText: 'NO'
+            }).then(() => {
+              modelData = data.draft
+              loadEditData()
+            }).catch(() => {
+              modelData = data.model
+              loadEditData()
             })
+          } else {
+            loadEditData()
           }
-          var baseLinks = []
-          for (let i = 0; i < lookups.length; i++) {
-            for (let j = 0; j < lookups[i].join.primary_key.length; j++) {
-              let priFullColumn = lookups[i].join.primary_key[j]
-              let foriFullColumn = lookups[i].join.foreign_key[j]
-              let priAlias = priFullColumn.split('.')[0]
-              let foriAlias = foriFullColumn.split('.')[0]
-              let pcolumn = priFullColumn.split('.')[1]
-              let fcolumn = foriFullColumn.split('.')[1]
-              let bArr = [baseTables[priAlias].guid, baseTables[foriAlias].guid, pcolumn, fcolumn, lookups[i].join.type]
-              baseLinks.push(bArr)
+          // 处理初始化数据
+          function loadEditData () {
+            _this.editLock = !!(_this.modelData && _this.modelData.uuid)
+            if (!modelData.fact_table) {
+              return
             }
-          }
-          _this.links = baseLinks
-          this.$nextTick(function () {
-            Scrollbar.initAll()
+            Object.assign(_this.modelInfo, {
+              uuid: modelData.uuid,
+              modelDiscribe: modelData.description,
+              modelName: modelData.name,
+              is_draft: modelData.is_draft,
+              last_modified: modelData.last_modified
+            })
+            // 加载原来设置的partition
+            var partitionDate = modelData.partition_desc.partition_date_column ? modelData.partition_desc.partition_date_column.split('.') : [null, null]
+            var partitionTime = modelData.partition_desc.partition_time_column ? modelData.partition_desc.partition_time_column.split('.') : [null, null]
+            Object.assign(_this.partitionSelect, {
+              'date_table': partitionDate[0],
+              'date_column': partitionDate[1],
+              'time_table': partitionTime[0],
+              'time_column': partitionTime[1],
+              'partition_date_column': modelData.partition_desc.partition_date_column,
+              'partition_time_column': modelData.partition_desc.partition_time_column,
+              'partition_date_start': 0,
+              'partition_date_format': modelData.partition_desc.partition_date_format,
+              'partition_time_format': modelData.partition_desc.partition_time_format,
+              'partition_type': 'APPEND'
+            })
+            // 加载原来设置的partition
+            _this.modelInfo.filterStr = modelData.filter_condition
+            _this.modelInfo.computed_columns = modelData.computed_columns || []
+            var lookups = modelData.lookups
+            var baseTables = {}
+            for (var i = 0; i < lookups.length; i++) {
+              baseTables[lookups[i].alias] = {
+                database: lookups[i].table.split('.')[0],
+                table: lookups[i].table.split('.')[1],
+                kind: lookups[i].kind,
+                guid: sampleGuid(),
+                alias: lookups[i].alias
+              }
+            }
+            baseTables[modelData.fact_table.split('.')[1]] = {
+              database: modelData.fact_table.split('.')[0],
+              table: modelData.fact_table.split('.')[1],
+              kind: 'ROOTFACT',
+              guid: sampleGuid(),
+              alias: modelData.fact_table.split('.')[1]
+            }
+            for (var table in baseTables) {
+              _this.createTableData(_this.extraoption.project, baseTables[table].database, baseTables[table].table, {
+                pos: modelData.pos && modelData.pos[modelData.fact_table.split('.')[1]] || {x: 20000, y: 20000},
+                kind: baseTables[table].kind,
+                guid: baseTables[table].guid,
+                alias: baseTables[table].alias || baseTables[table].name
+              })
+            }
+            var baseLinks = []
             for (let i = 0; i < lookups.length; i++) {
-              let priAlias = lookups[i].alias
-              let foriFullColumn = lookups[i].join.foreign_key[0]
-              var pGuid = baseTables[priAlias].guid
-              var fGuid = baseTables[foriFullColumn.split('.')[0]].guid
-              var hisConn = _this.showLinkCons[pGuid + '$' + fGuid]
-              if (!hisConn) {
-                var joinType = lookups[i].join.type
-                _this.addShowLink(pGuid, fGuid, joinType)
+              for (let j = 0; j < lookups[i].join.primary_key.length; j++) {
+                let priFullColumn = lookups[i].join.primary_key[j]
+                let foriFullColumn = lookups[i].join.foreign_key[j]
+                let priAlias = priFullColumn.split('.')[0]
+                let foriAlias = foriFullColumn.split('.')[0]
+                let pcolumn = priFullColumn.split('.')[1]
+                let fcolumn = foriFullColumn.split('.')[1]
+                let bArr = [baseTables[priAlias].guid, baseTables[foriAlias].guid, pcolumn, fcolumn, lookups[i].join.type]
+                baseLinks.push(bArr)
               }
             }
-            if (!modelData.pos) {
-              _this.autoLayerPosition()
-            }
-          })
-          // computed column add
-          var computedColumnsLen = modelData.computed_columns && modelData.computed_columns.length || 0
-          for (let i = 0; i < computedColumnsLen; i++) {
-            var fullName = modelData.computed_columns[i].tableIdentity.split('.')
-            var tableList = this.getSameOriginTables(fullName[0], fullName[1])
-            if (tableList && tableList.length) {
-              this.computedColumn = {
-                guid: tableList[0].guid,
-                name: modelData.computed_columns[i].columnName,
-                expression: modelData.computed_columns[i].expression,
-                returnType: modelData.computed_columns[i].datatype
-                // columnType: modelData.computed_columns[i].datatype
+            _this.links = baseLinks
+            _this.$nextTick(function () {
+              Scrollbar.initAll()
+              for (let i = 0; i < lookups.length; i++) {
+                let priAlias = lookups[i].alias
+                let foriFullColumn = lookups[i].join.foreign_key[0]
+                var pGuid = baseTables[priAlias].guid
+                var fGuid = baseTables[foriFullColumn.split('.')[0]].guid
+                var hisConn = _this.showLinkCons[pGuid + '$' + fGuid]
+                if (!hisConn) {
+                  var joinType = lookups[i].join.type
+                  _this.addShowLink(pGuid, fGuid, joinType)
+                }
               }
-              this.addComputedColumnToDatabase(() => {}, true)
+              if (!modelData.pos) {
+                _this.autoLayerPosition()
+              }
+            })
+            // computed column add
+            var computedColumnsLen = modelData.computed_columns && modelData.computed_columns.length || 0
+            for (let i = 0; i < computedColumnsLen; i++) {
+              var fullName = modelData.computed_columns[i].tableIdentity.split('.')
+              var tableList = _this.getSameOriginTables(fullName[0], fullName[1])
+              if (tableList && tableList.length) {
+                _this.computedColumn = {
+                  guid: tableList[0].guid,
+                  name: modelData.computed_columns[i].columnName,
+                  expression: modelData.computed_columns[i].expression,
+                  returnType: modelData.computed_columns[i].datatype
+                  // columnType: modelData.computed_columns[i].datatype
+                }
+                _this.addComputedColumnToDatabase(() => {}, true)
+              }
             }
-          }
 
-          var modelDimensionsLen = modelData.dimensions && modelData.dimensions.length || 0
-          for (let i = 0; i < modelDimensionsLen; i++) {
-            var currentD = modelData.dimensions[i]
-            for (let j = 0; j < currentD.columns.length; j++) {
-              _this.editTableColumnInfo(baseTables[currentD.table].guid, 'name', currentD.columns[j], 'btype', 'D')
+            var modelDimensionsLen = modelData.dimensions && modelData.dimensions.length || 0
+            for (let i = 0; i < modelDimensionsLen; i++) {
+              var currentD = modelData.dimensions[i]
+              for (let j = 0; j < currentD.columns.length; j++) {
+                _this.editTableColumnInfo(baseTables[currentD.table].guid, 'name', currentD.columns[j], 'btype', 'D')
+              }
             }
+            var modelMetricsLen = modelData.metrics && modelData.metrics.length || 0
+            for (let i = 0; i < modelMetricsLen; i++) {
+              var currentM = modelData.metrics[i]
+              _this.editTableColumnInfo(baseTables[currentM.split('.')[0]].guid, 'name', currentM.split('.')[1], 'btype', 'M')
+            }
+            // partition time setting
+            _this.getPartitionDateColumns()
+            _this.firstRenderServerData = true
+            // _this.autoLayerPosition()
           }
-          var modelMetricsLen = modelData.metrics && modelData.metrics.length || 0
-          for (let i = 0; i < modelMetricsLen; i++) {
-            var currentM = modelData.metrics[i]
-            _this.editTableColumnInfo(baseTables[currentM.split('.')[0]].guid, 'name', currentM.split('.')[1], 'btype', 'M')
-          }
-          // partition time setting
-          _this.getPartitionDateColumns()
-          _this.firstRenderServerData = true
-          // _this.autoLayerPosition()
+          // 处理编辑数据完毕
         })
       }, (res) => {
         handleError(res)
@@ -2068,8 +2070,8 @@ export default {
     // console.log(1)
   },
   locales: {
-    'en': {'addJoinCondition': 'New join condition', 'hasRootFact': 'There is already a fact table', 'cannotSetFact': 'Can not set a fact table that has foreign key', 'cannotSetFTableToFKTable': 'Can not set a fact table to be it\'s foreign key table', 'tableHasOppositeLinks': 'There is an reverse link between tables', 'tableHasOtherFKTable': 'There is already a foreign key table with this table', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly', 'checkCompleteLink': 'Connect info is incomplete', hasNoFact: 'please set a fact table'},
-    'zh-cn': {'addJoinCondition': '添加连接条件', 'hasRootFact': '已经有一个事实表了', 'cannotSetFact': '不能设置一个有外键的表为事实表', 'cannotSetFTableToFKTable': '不是能设置事实表作为该表的外键表', 'tableHasOppositeLinks': '两表之间已经存在一个反向的连接了！', 'tableHasOtherFKTable': '该表已经有一个关联的外键表', 'delTableTip': '请先删除掉该表和其他表的关联关系', 'sameNameComputedColumn': '已经有一个同名的计算列', 'addComputedColumnSuccess': '计算列添加成功', 'checkCompleteLink': '连接信息不完整', hasNoFact: '请设置一个事实表'}
+    'en': {'addJoinCondition': 'New join condition', 'hasRootFact': 'There is already a fact table', 'cannotSetFact': 'Can not set a fact table that has foreign key', 'cannotSetFTableToFKTable': 'Can not set a fact table to be it\'s foreign key table', 'tableHasOppositeLinks': 'There is an reverse link between tables', 'tableHasOtherFKTable': 'There is already a foreign key table with this table', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly', 'checkCompleteLink': 'Connect info is incomplete', hasNoFact: 'please set a fact table', 'checkDraft': 'Detected the unsaved content, are you going to continue the last edit?'},
+    'zh-cn': {'addJoinCondition': '添加连接条件', 'hasRootFact': '已经有一个事实表了', 'cannotSetFact': '不能设置一个有外键的表为事实表', 'cannotSetFTableToFKTable': '不是能设置事实表作为该表的外键表', 'tableHasOppositeLinks': '两表之间已经存在一个反向的连接了！', 'tableHasOtherFKTable': '该表已经有一个关联的外键表', 'delTableTip': '请先删除掉该表和其他表的关联关系', 'sameNameComputedColumn': '已经有一个同名的计算列', 'addComputedColumnSuccess': '计算列添加成功', 'checkCompleteLink': '连接信息不完整', hasNoFact: '请设置一个事实表', 'checkDraft': '检测到上次有未保存的内容，是否继续上次进行编辑'}
   }
 }
 </script>

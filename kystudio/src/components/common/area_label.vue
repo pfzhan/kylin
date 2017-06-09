@@ -77,7 +77,7 @@ export default {
     this.$refs.select.$refs.tags.onclick = function (e) {
       console.log(e, 788)
       _this.selectTag(e)
-      e.stoppropagation()
+      e.stoppropagation && e.stoppropagation()
     }
   }
 }

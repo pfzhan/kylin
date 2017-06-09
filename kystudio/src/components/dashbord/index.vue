@@ -78,7 +78,7 @@
       <div class="grid-content bg-purple">
     	<el-card class="box-card">
 		  <div slot="header" class="clearfix">
-		    <span style="line-height: 36px;">{{$t('kylinLang.common.manual')}}</span>
+		    <span>{{$t('kylinLang.common.manual')}}</span>
 		  </div>
 		  <div v-for="o in manualList" :key="o.title" class="text item">
 		    <a>{{o.title }}</a>
@@ -89,7 +89,7 @@
     <el-col :span="9"><div class="grid-content bg-purple video_box">
     	<el-card class="box-card">
 		  <div slot="header" class="clearfix">
-		    <span style="line-height: 36px;">{{$t('kylinLang.common.tutorial')}}</span>
+		    <span>{{$t('kylinLang.common.tutorial')}}</span>
 		  </div>
 		  <div >
 		    <video controls="controls" src="http://kyligence.io/public/assets/video/video.mp4" data-current="--" data-duration="--">
@@ -102,7 +102,7 @@
       <div class="grid-content bg-purple">
         <el-card class="box-card">
           <div slot="header" class="clearfix">
-            <span style="line-height: 36px;">{{$t('kylinLang.common.qa')}}</span>
+            <span>{{$t('kylinLang.common.qa')}}</span>
           </div>
           <div v-for="o in manualList" :key="o.title" class="text item">
             <a>{{o.title }}</a>

@@ -4,9 +4,9 @@
 			<a href="http://kyligence.io/" target="_blank">
 				<img src="../../assets/img/test.png" alt="" />
 			</a>
-			<el-row><label for="">{{$t('version')}}</label>{{license(serverAboutKap['kap.version'])}}</el-row>
-					<el-row><label for="">{{$t('validPeriod')}}</label>{{license(serverAboutKap['kap.dates'])}}</el-row>
-		<el-row><label for="">{{$t('licenseStatement')}}</label>{{license(serverAboutKap['kap.license.statement'])}}</el-row>		
+			<el-row><label for="">{{$t('version')}}</label>{{license(serverAboutKap && serverAboutKap['kap.version'])}}</el-row>
+					<el-row><label for="">{{$t('validPeriod')}}</label>{{license(serverAboutKap && serverAboutKap['kap.dates'])}}</el-row>
+		<el-row><label for="">{{$t('licenseStatement')}}</label>{{license(serverAboutKap&&serverAboutKap['kap.license.statement'])}}</el-row>		
 		</div>
 		<div class="container">
 			<h3>{{$t('statement')}}</h3>
@@ -14,11 +14,11 @@
             <p v-if="serverAboutKap['kap.license.isEvaluation']!=='true'">{{$t('kylinLang.system.statement')}}</p>
 			<el-row>
 				<label for="">{{$t('serviceEnd')}}</label>
-				{{license(serverAboutKap['kap.license.serviceEnd'])}}
+				{{license(serverAboutKap&&serverAboutKap['kap.license.serviceEnd'])}}
 			</el-row>
 			<el-row>
 			  <label for="">KAP Commit:</label>
-			  {{license(serverAboutKap['kap.commit'])}}
+			  {{license(serverAboutKap&&serverAboutKap['kap.commit'])}}
 			</el-row>
 		</div>
 		<div class="footer">

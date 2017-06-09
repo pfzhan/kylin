@@ -49,7 +49,23 @@
         <template scope="scope">
           {{getLength(scope.row.encoding)}}          
         </template> 
-    </el-table-column>       
+    </el-table-column>
+    <el-table-column
+        label="sortedBy"
+        header-align="center"
+        align="center">   
+            <template scope="scope">
+            {{scope.row.is_sortby}}
+            </template>
+      </el-table-column>   
+    <el-table-column
+        label="shardBy"
+        header-align="center"
+        align="center">   
+        <template scope="scope">
+          {{scope.row.is_shardby}}          
+        </template> 
+    </el-table-column>     
     <el-table-column
         :label="$t('Index')"
         prop="index"

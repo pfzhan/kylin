@@ -164,14 +164,14 @@ export default {
     },
     refreshEnv: function () {
       this.getEnv().then((res) => {
-        handleSuccess(res, (data, code, status, msg) => {
-          this.$notify({
-            title: this.$t('success'),
-            message: this.$t('successEnvironment'),
-            type: 'success',
-            duration: 3000
-          })
-        })
+        // handleSuccess(res, (data, code, status, msg) => {
+        //   this.$notify({
+        //     title: this.$t('success'),
+        //     message: this.$t('successEnvironment'),
+        //     type: 'success',
+        //     duration: 3000
+        //   })
+        // })
       }, (res) => {
         handleError(res)
       })
@@ -179,12 +179,12 @@ export default {
     refreshConfig: function () {
       let _this = this
       _this.getConf().then((result) => {
-        _this.$notify({
-          title: _this.$t('success'),
-          message: _this.$t('successConfig'),
-          type: 'success',
-          duration: 3000
-        })
+        // _this.$notify({
+        //   title: _this.$t('success'),
+        //   message: _this.$t('successConfig'),
+        //   type: 'success',
+        //   duration: 3000
+        // })
       }).catch((res) => {
         handleError(res)
       })

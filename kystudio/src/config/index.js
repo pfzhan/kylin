@@ -23,7 +23,7 @@ const modelHealthStatus = {
   },
   'WARN': {
     icon: 'exclamation-circle',
-    color: 'blue',
+    color: 'yellow',
     message: ''
   },
   'BAD': {

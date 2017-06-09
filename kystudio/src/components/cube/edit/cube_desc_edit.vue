@@ -68,6 +68,7 @@ export default {
       hisRawTableStr: '',
       hisSchedulerStr: '',
       renderCubeFirst: false,
+      aliasMap: {},
       index: 0,
       // 定时保存配置
       saveConfig: {
@@ -684,39 +685,41 @@ export default {
       })
     },
     getTables: function () {
-      let _this = this
       let rootFactTable = removeNameSpace(this.modelDetail.fact_table)
       let factTables = []
       let lookupTables = []
       factTables.push(rootFactTable)
-      _this.$set(_this.modelDetail, 'columnsDetail', {})
-      _this.$store.state.datasource.dataSource[_this.selected_project].forEach(function (table) {
-        if (_this.modelDetail.fact_table === table.database + '.' + table.name) {
-          table.columns.forEach(function (column) {
-            _this.$set(_this.modelDetail.columnsDetail, rootFactTable + '.' + column.name, {
+      this.$set(this.modelDetail, 'columnsDetail', {})
+      this.$store.state.datasource.dataSource[this.selected_project].forEach((table) => {
+        if (this.modelDetail.fact_table === table.database + '.' + table.name) {
+          table.columns.forEach((column) => {
+            this.$set(this.modelDetail.columnsDetail, rootFactTable + '.' + column.name, {
               name: column.name,
               datatype: column.datatype,
               cardinality: table.cardinality[column.name],
               comment: column.comment})
           })
+          this.aliasMap[table.name] = table.database + '.' + table.name
         }
       })
-      _this.modelDetail.lookups.forEach(function (lookup) {
+      this.modelDetail.lookups.forEach(function (lookup) {
         if (lookup.kind === 'FACT') {
           if (!lookup.alias) {
             lookup['alias'] = removeNameSpace(lookup.table)
           }
           factTables.push(lookup.alias)
+          this.aliasMap[lookup.alias] = lookup.table
         } else {
           if (!lookup.alias) {
             lookup['alias'] = removeNameSpace(lookup.table)
           }
           lookupTables.push(lookup.alias)
+          this.aliasMap[lookup.alias] = lookup.table
         }
-        _this.$store.state.datasource.dataSource[_this.selected_project].forEach(function (table) {
+        this.$store.state.datasource.dataSource[this.selected_project].forEach(function (table) {
           if (lookup.table === table.database + '.' + table.name) {
-            table.columns.forEach(function (column) {
-              _this.$set(_this.modelDetail.columnsDetail, lookup.alias + '.' + column.name, {
+            table.columns.forEach((column) => {
+              this.$set(this.modelDetail.columnsDetail, lookup.alias + '.' + column.name, {
                 name: column.name,
                 datatype: column.datatype,
                 cardinality: table.cardinality[column.name],
@@ -725,8 +728,24 @@ export default {
           }
         })
       })
-      _this.$set(this.modelDetail, 'lookupTables', lookupTables)
-      _this.$set(this.modelDetail, 'factTables', factTables)
+      if (this.modelDetail.computed_columns) {
+        this.modelDetail.computed_columns.forEach((co) => {
+          var alias = ''
+          for (var i in this.aliasMap) {
+            if (this.aliasMap[i] === co.tableIdentity) {
+              alias = i
+            }
+          }
+          this.$set(this.modelDetail.columnsDetail, alias + '.' + co.columnName, {
+            name: co.columnName,
+            datatype: co.datatype,
+            cardinality: 'N/A',
+            comment: co.expression
+          })
+        })
+      }
+      this.$set(this.modelDetail, 'lookupTables', lookupTables)
+      this.$set(this.modelDetail, 'factTables', factTables)
     }
   },
   created () {

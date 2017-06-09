@@ -138,8 +138,10 @@ export default {
         this.tableMeta.push(columnMeata[i])
       }
       this.tableData = data.results
-      for (let i = 0; i < this.tableData.length; i++) {
-        for (var m = 0; m < this.tableData[i].length; m++) {
+      var len = this.tableData.length
+      for (let i = 0; i < len; i++) {
+        var innerLen = this.tableData[i].length
+        for (var m = 0; m < innerLen; m++) {
           var cur = this.tableData[i][m]
           var trans = scToFloat(cur)
           if (trans) {
