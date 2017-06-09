@@ -109,7 +109,9 @@ public class ConfigController extends BasicController {
         Map<String, String> ret = Maps.newHashMap();
 
         if (dynamic) {
-            execNum = Integer.parseInt(configService.getSparkDriverConf("spark.dynamicAllocation.maxExecutors"));
+            int dynamicInstanceNum = Integer.parseInt(configService.getSparkDriverConf("spark.dynamicAllocation.maxExecutors"));
+            int staticInstanceNum = Integer.parseInt(configService.getSparkDriverConf("spark.executor.instances"));
+            execNum = dynamicInstanceNum > staticInstanceNum ? dynamicInstanceNum : staticInstanceNum;
         } else {
             execNum = Integer.parseInt(configService.getSparkDriverConf("spark.executor.instances"));
         }
