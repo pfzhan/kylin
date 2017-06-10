@@ -494,6 +494,13 @@ export default {
       return true
     },
     saveCube () {
+      if (this.cubeDraftSaving) {
+        this.$message({
+          type: 'warning',
+          message: '系统正在响应Draft的保存请求，请稍后!'
+        })
+        return
+      }
       this.cubeSaving = true
       if (+this.cubeDetail.engine_type === 100 || +this.cubeDetail.engine_type === 99) {
         this.rawTable.tableDetail.name = this.cubeDetail.name
@@ -536,7 +543,7 @@ export default {
             message: '保存成功!'
           })
           this.$emit('reload', 'cubeList')
-          this.$emit('removetabs', 'cube' + this.extraoption.cubeName)
+          this.$emit('removetabs', 'cube' + this.extraoption.cubeName, 'Overview')
         })
       }).catch((res) => {
         this.cubeSaving = false
@@ -752,6 +759,14 @@ export default {
     this.createNewCube()
     if (this.isEdit) {
       this.loadCubeDetail()
+      this.loadRawTable(this.extraoption.cubeName).then((res) => {
+        handleSuccess(res, (data, code, status, msg) => {
+          if (data) {
+            this.$set(this.rawTable, 'tableDetail', data)
+            this.$store.state.cube.cubeRowTableIsSetting = true
+          }
+        })
+      })
     }
     this.loadDataSourceByProject(this.selected_project)
     this.loadModelInfo(this.extraoption.modelName).then((res) => {

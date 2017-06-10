@@ -149,7 +149,7 @@
           <el-col :span="1">{{index+1}}</el-col>
           <el-col :span="9">{{row.column}}</el-col>
           <el-col :span="4">
-              <el-select v-model="row.encoding" @change="changeRowkey(row, index)">
+              <el-select v-model="row.encoding" @change="changeEncoding(row, index);changeRowkey(row, index);">
                 <el-option
                     v-for="(item, encodingindex) in initEncodingType(row)"
                     :key="encodingindex"
@@ -495,6 +495,14 @@ export default {
         return addEncodings
       } else {
         return filterEncodings
+      }
+    },
+    changeEncoding (column, index) {
+      var encoding = this.getEncoding(column.encoding)
+      if (encoding === 'integer') {
+        column.valueLength = 4
+      } else {
+        column.valueLength = ''
       }
     },
     changeRowkey: function (rowkey, index) {

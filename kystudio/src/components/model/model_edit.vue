@@ -483,7 +483,7 @@ export default {
             }
           })
         }
-        this.$emit('removetabs', 'model' + this.extraoption.modelName)
+        this.$emit('removetabs', 'model' + this.extraoption.modelName, 'Overview')
         this.$emit('reload', 'modelList')
       }, (res) => {
         this.saveBtnLoading = false

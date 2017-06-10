@@ -137,7 +137,7 @@
         :label="$t('encoding')"
         width="180">
         <template scope="scope">
-          <el-select v-model="scope.row.encoding">
+          <el-select v-model="scope.row.encoding" @change="changeEncoding(scope.row);">
             <el-option
               v-for="(item, index) in initEncodingType(scope.row)"
               :key="index"
@@ -348,6 +348,13 @@ export default {
             _this.$set(column, 'valueLength', _valueLength)
           })
         }
+      }
+    },
+    changeEncoding (row) {
+      if (this.getEncoding(row.encoding) === 'integer') {
+        row.valueLength = 4
+      } else {
+        row.valueLength = ''
       }
     },
     initEncodingType: function (column) {

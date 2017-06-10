@@ -84,8 +84,7 @@
       reloadTab (moduleName) {
         this.$refs.modelSubMenu.reload(moduleName)
       },
-      delTab (targetName) {
-        console.log(targetName)
+      delTab (targetName, stayTabName) {
         let tabs = this.editableTabs
         let activeName = this.activeName
         let activeView = this.currentView
@@ -94,7 +93,12 @@
         }
         if (activeName === targetName) {
           tabs.forEach((tab, index) => {
-            if (tab.name === targetName) {
+            if (stayTabName) {
+              if (tab.name === stayTabName) {
+                activeName = tabs[index].name
+                activeView = tabs[index].content
+              }
+            } else if (tab.name === targetName) {
               let nextTab = tabs[index + 1] || tabs[index - 1]
               if (nextTab) {
                 activeName = nextTab.name

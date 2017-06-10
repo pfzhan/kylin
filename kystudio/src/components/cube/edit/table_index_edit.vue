@@ -42,7 +42,7 @@
         header-align="center"
         align="center">   
             <template scope="scope">
-              <el-select v-model="scope.row.encoding" @change="changeRawTable(scope.row, scope.$index)">
+              <el-select v-model="scope.row.encoding" @change=" changeEncoding(scope.row, scope.$index);changeRawTable(scope.row, scope.$index);">
                 <el-option
                     v-for="(item, index) in initEncodingType(scope.row)" :key="index"
                    :label="item.name"
@@ -211,6 +211,14 @@ export default {
         return 'info-row'
       }
       return ''
+    },
+    changeEncoding (column, index) {
+      var encoding = this.getEncoding(column.encoding)
+      if (encoding === 'integer') {
+        column.valueLength = 4
+      } else {
+        column.valueLength = ''
+      }
     },
     changeRawTable: function (column, index) {
       let _this = this

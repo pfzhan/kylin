@@ -8,7 +8,7 @@
 		  <el-col :span="8"  v-for="(o, index) in modelsList" :key="o.uuid" :style="{height:'152px'}">
 		    <el-card :body-style="{ padding: '0px'}" style="height:100%">
 		      <p class="title">Last updated {{ o.gmtTime }}
-					<el-dropdown @command="handleCommand" :id="o.name" trigger="click"  v-if="isAdmin || hasPermission(o.uuid)">
+					<el-dropdown @command="handleCommand" :id="o.name" trigger="click"  v-show="isAdmin || hasPermission(o.uuid)">
 					  <span class="el-dropdown-link" >
 					    <icon name="ellipsis-h"></icon>
 					  </span>
@@ -79,7 +79,7 @@
       label="Action">
        <template scope="scope">
        <span v-if="!(isAdmin || hasPermission(scope.row.uuid))"> N/A</span>
-        <el-dropdown @command="handleCommand" :id="scope.row.name" trigger="click" v-if="isAdmin || hasPermission(scope.row.uuid)">
+        <el-dropdown @command="handleCommand" :id="scope.row.name" trigger="click" v-show="isAdmin || hasPermission(scope.row.uuid)">
            <el-button class="el-dropdown-link">
             <i class="el-icon-more"></i>
           </el-button >
@@ -470,13 +470,23 @@ export default {
           project: projectName,
           modelName: modelName
         }).then((res) => {
-
+          handleSuccess(res, (data) => {
+            for (var i in data) {
+              if (i === true) {
+                this.scanRatioDialogVisible = true
+                this.startTime = 0
+                if (modelData.partition_desc.partition_date_column) {
+                  this.hasPartition = true
+                }
+                return
+              }
+            }
+            this.$message({
+              type: 'success',
+              message: this.$t('hasChecked')
+            })
+          })
         })
-        this.scanRatioDialogVisible = true
-        this.startTime = 0
-        if (modelData.partition_desc.partition_date_column) {
-          this.hasPartition = true
-        }
         // this.stats(projectName, modelName)
       } else if (command === 'drop') {
         kapConfirm(this.$t('delModelTip')).then(() => {
@@ -687,8 +697,8 @@ export default {
     window.clearTimeout(this.stCycleRequest)
   },
   locales: {
-    'en': {'modelName': 'Model name', 'addCube': 'Add Cube', 'modelUsedTip': 'The model has been used by cubes as follows，you can only view the Model！', 'inputCloneName': 'Please input new name', 'inputModelName': 'Please input model name', 'inputCubeName': 'Please input cube name', 'delModelTip': 'Are you sure to drop this model?', 'hasNotChecked': 'Not checked health yet'},
-    'zh-cn': {'modelName': '模型名称', 'addCube': '添加Cube', 'modelUsedTip': '该Model已经被下列cube使用过，无法编辑！您可以预览该Model！', 'inputCloneName': '请输入克隆后的名字', 'inputModelName': '请输入model名称', 'inputCubeName': '请输入cube名称', 'delModelTip': '你确认删除该model吗?', 'hasNotChecked': '还未进行健康检测'}
+    'en': {'modelName': 'Model name', 'addCube': 'Add Cube', 'modelUsedTip': 'The model has been used by cubes as follows，you can only view the Model！', 'inputCloneName': 'Please input new name', 'inputModelName': 'Please input model name', 'inputCubeName': 'Please input cube name', 'delModelTip': 'Are you sure to drop this model?', 'hasNotChecked': 'Not checked health yet', hasChecked: 'There has been a running check job!You can go to Monitor page to watch the progress!'},
+    'zh-cn': {'modelName': '模型名称', 'addCube': '添加Cube', 'modelUsedTip': '该Model已经被下列cube使用过，无法编辑！您可以预览该Model！', 'inputCloneName': '请输入克隆后的名字', 'inputModelName': '请输入model名称', 'inputCubeName': '请输入cube名称', 'delModelTip': '你确认删除该model吗?', 'hasNotChecked': '还未进行健康检测', hasChecked: '已有一个检测作业正在进行中，您可以去Monitor页面查看进度!'}
   }
 }
 </script>
