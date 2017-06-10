@@ -205,12 +205,12 @@ public class ModelStats extends RootPersistentEntity {
 
     public String getDuplicationResult() {
         StringBuilder ret = new StringBuilder();
-        ret.append("Check PK Duplication Result: ");
+        ret.append("This model has PrimaryKey duplications: \r\n");
         for (DuplicatePK dp : duplicatePrimaryKeys) {
             if (dp.getDuplication().size() > 0) {
                 ret.append("Primary Key: ");
                 ret.append(dp.getPrimaryKeys());
-                ret.append(" ");
+                ret.append("\r\n");
                 ret.append(dp.toString());
             }
         }
@@ -226,7 +226,7 @@ public class ModelStats extends RootPersistentEntity {
 
     public String getJointResult() {
         StringBuilder ret = new StringBuilder();
-        ret.append("Check Joint Result: ");
+        ret.append("This model has some improper joins of tables: \r\n");
         for (JoinResult e : joinResult) {
             ret.append(e.toString());
         }
@@ -242,11 +242,11 @@ public class ModelStats extends RootPersistentEntity {
 
     public String getSkewResult() {
         StringBuilder ret = new StringBuilder();
-        ret.append("Check Data Skew Result: ");
+        ret.append("This model has data uneven distribution on the fact table: \r\n");
         for (Map.Entry<String, List<SkewResult>> e : dataSkew.entrySet()) {
-            ret.append("Skew FK:");
+            ret.append("Foreign Key: ");
             ret.append(e.getKey());
-            ret.append(" ");
+            ret.append("\r\n");
             for (SkewResult s : e.getValue()) {
                 ret.append(s.toString());
             }
@@ -270,11 +270,19 @@ public class ModelStats extends RootPersistentEntity {
         @JsonProperty("primary_key")
         private String primaryKey;
 
-        @JsonProperty("join_result_valid_count")
-        private long joinResultValidCount;
+        @JsonProperty("after_join_count")
+        private long afterJoinCount;
 
-        @JsonProperty("join_result_valid_ratio")
-        private float joinResultValidRatio;
+        @JsonProperty("fact_table_count")
+        private long factTableCount;
+
+        public void setFactTableCount(long factTableCount) {
+            this.factTableCount = factTableCount;
+        }
+
+        public long getFactTableCount() {
+            return this.factTableCount;
+        }
 
         public void setPrimaryKey(String primaryKey) {
             this.primaryKey = primaryKey;
@@ -293,29 +301,21 @@ public class ModelStats extends RootPersistentEntity {
         }
 
         public void setJoinResultValidCount(long joinResultValidCount) {
-            this.joinResultValidCount = joinResultValidCount;
+            this.afterJoinCount = joinResultValidCount;
         }
 
         public long getJoinResultValidCount() {
-            return this.joinResultValidCount;
-        }
-
-        public void setJoinResultRatio(float joinResultRatio) {
-            this.joinResultValidRatio = joinResultRatio;
-        }
-
-        public float getJoinResultRatio() {
-            return this.joinResultValidRatio;
+            return this.afterJoinCount;
         }
 
         public String toString() {
             StringBuilder s = new StringBuilder();
             s.append("Primary key: ");
             s.append(primaryKey);
-            s.append(" (valid_row_count=");
-            s.append(joinResultValidCount);
-            s.append(", valid_row_ratio=");
-            s.append(joinResultValidRatio).append(")");
+            s.append("\r\n");
+            s.append("Ratio after the join: ");
+            s.append(afterJoinCount + "/" + factTableCount);
+            s.append("\r\n");
             return s.toString();
         }
     }
@@ -350,10 +350,11 @@ public class ModelStats extends RootPersistentEntity {
 
         public String toString() {
             StringBuilder s = new StringBuilder();
-            s.append(" (skew_value=");
+            s.append("Occurrence value: ");
             s.append(dataSkewValue);
-            s.append(", skew_count=");
-            s.append(dataSkewCount).append(")");
+            s.append(", Occurrence count: ");
+            s.append(dataSkewCount);
+            s.append("\r\n");
             return s.toString();
         }
     }
@@ -400,12 +401,12 @@ public class ModelStats extends RootPersistentEntity {
         public String toString() {
             StringBuilder s = new StringBuilder();
             for (Map.Entry<String, Integer> e : this.duplication.entrySet()) {
-                s.append("pair(dup_value=");
+                s.append("Duplication value:");
                 s.append(e.getKey());
-                s.append(",");
-                s.append("dup_count=");
+                s.append(", ");
+                s.append("Duplication count:");
                 s.append(e.getValue());
-                s.append(") ");
+                s.append("\r\n");
             }
             return s.toString();
         }

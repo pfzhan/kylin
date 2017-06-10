@@ -33,6 +33,7 @@ import java.util.Map;
 
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.io.IOUtils;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.dict.lookup.SnapshotManager;
 import org.apache.kylin.dict.lookup.SnapshotTable;
@@ -51,7 +52,7 @@ public class ModelDiagnose {
 
     private static final Logger logger = LoggerFactory.getLogger(ModelDiagnose.class);
 
-    private static final long FACT_SKEW_THRESHOLD = 5000000L;
+    private static final long FACT_SKEW_THRESHOLD = KapConfig.getInstanceFromEnv().getJointDataSkewThreshold();
     private static final float FLAT_TABLE_RECORDS_RATION = 0.01F;
     private static final float LEFT_JOIN_NULL_TOLERANCE = 0.1F;
     private static final float DUPLICATION_TOLERANCE = 0.1F;
@@ -63,7 +64,8 @@ public class ModelDiagnose {
      * all lookup tables can be built as snapshot.
      * @throws java.io.IOException
      */
-    public static void checkDuplicatePKOnLookups(ModelStats modelStats, DataModelDesc dataModelDesc, KylinConfig config) throws IOException {
+    public static void checkDuplicatePKOnLookups(ModelStats modelStats, DataModelDesc dataModelDesc, KylinConfig config)
+            throws IOException {
         List<ModelStats.DuplicatePK> dupPKList = new ArrayList<>();
         MetadataManager metadataManager = MetadataManager.getInstance(config);
         for (JoinTableDesc fTable : dataModelDesc.getJoinTables()) {
@@ -84,7 +86,8 @@ public class ModelDiagnose {
         ModelStatsManager.getInstance(config).saveModelStats(modelStats);
     }
 
-    private static ModelStats.DuplicatePK checkLookup(TableDesc tableDesc, List<TblColRef> keyColumns, SnapshotTable table) throws IOException {
+    private static ModelStats.DuplicatePK checkLookup(TableDesc tableDesc, List<TblColRef> keyColumns,
+            SnapshotTable table) throws IOException {
         int[] keyIndex = new int[keyColumns.size()];
         String[] keyValues = new String[keyColumns.size()];
         String[] keyNames = new String[keyColumns.size()];
@@ -121,7 +124,8 @@ public class ModelDiagnose {
             if (count > 1) {
                 tmpMap.put(e.getKey(), e.getValue().getCount());
                 if ((float) count / (float) rowCount > DUPLICATION_TOLERANCE && count > DUPLICATION_THRESHOLD) {
-                    throw new IllegalStateException("Duplicate key found and can not be tolerant: (Key=" + e.getKey() + ", Value=" + count + ")");
+                    throw new IllegalStateException("Duplicate key found and can not be tolerant: (Key=" + e.getKey()
+                            + ", Value=" + count + ")");
                 }
             }
         }
@@ -159,7 +163,8 @@ public class ModelDiagnose {
      *
      * Diagnose if it exists possible data skew. Suppose that the root fact table has available stats.
      */
-    public static void checkDataSkewOnFactTable(DataModelDesc dataModelDesc, ModelStats modelStats, KylinConfig config) throws IOException {
+    public static void checkDataSkewOnFactTable(DataModelDesc dataModelDesc, ModelStats modelStats, KylinConfig config)
+            throws IOException {
 
         String factTableName = dataModelDesc.getRootFactTable().getTableIdentity();
         TableExtDesc tableExtDesc = MetadataManager.getInstance(config).getTableExt(factTableName);
@@ -221,21 +226,22 @@ public class ModelDiagnose {
      * Diagnose if the model's flat table is reasonable.
      *
      */
-    public static void checkJointResult(DataModelDesc modelDesc, ModelStats modelStats, KylinConfig config) throws IOException {
+    public static void checkJointResult(DataModelDesc modelDesc, ModelStats modelStats, KylinConfig config)
+            throws IOException {
         String factTableName = modelDesc.getRootFactTable().getTableIdentity();
-        float countFact = (float) (MetadataManager.getInstance(config).getTableExt(factTableName).getTotalRows());
+        long countFact = MetadataManager.getInstance(config).getTableExt(factTableName).getTotalRows();
         if (countFact <= 0) {
             logger.warn("The root fact table: {} has no available stats, will skip data skew check!", factTableName);
             return;
         }
 
         List<ModelStats.JoinResult> joinResults = new ArrayList<>();
-        float countFlatTable = (float) modelStats.getCounter();
-        if (countFlatTable / countFact < FLAT_TABLE_RECORDS_RATION) {
+        long countAfterJoin = modelStats.getCounter();
+        if ((float) countAfterJoin / (float) countFact < FLAT_TABLE_RECORDS_RATION) {
             logger.warn("The records of model's flat table is too few, please check the join details");
             ModelStats.JoinResult joinResult = new ModelStats.JoinResult();
-            joinResult.setJoinResultValidCount(modelStats.getCounter());
-            joinResult.setJoinResultRatio(countFlatTable / countFact);
+            joinResult.setJoinResultValidCount(countAfterJoin);
+            joinResult.setFactTableCount(countFact);
             joinResults.add(joinResult);
             modelStats.setJoinResult(joinResults);
             ModelStatsManager.getInstance(config).saveModelStats(modelStats);
@@ -253,15 +259,16 @@ public class ModelDiagnose {
 
             String pkName = pkKeys.get(0).getIdentity();
             long null_counter = modelStats.getColumnNullMap().get(pkName);
-            float ratio = (countFlatTable - (float) null_counter) / countFlatTable;
+            float ratio = ((float) countAfterJoin - (float) null_counter) / (float) countAfterJoin;
             if (ratio < LEFT_JOIN_NULL_TOLERANCE) {
                 ModelStats.JoinResult joinResult = new ModelStats.JoinResult();
                 joinResult.setJoinTableName(fTable.getAlias());
                 joinResult.setPrimaryKey(pkName);
                 joinResult.setJoinResultValidCount(modelStats.getCounter() - null_counter);
-                joinResult.setJoinResultRatio(ratio);
+                joinResult.setFactTableCount(countFact);
                 joinResults.add(joinResult);
-                logger.warn("There are too many null value on fact table: {} left join lookup table: {}", factTableName, fTable.getTable());
+                logger.warn("There are too many null value on fact table: {} left join lookup table: {}", factTableName,
+                        fTable.getTable());
             }
         }
         modelStats.setJoinResult(joinResults);
