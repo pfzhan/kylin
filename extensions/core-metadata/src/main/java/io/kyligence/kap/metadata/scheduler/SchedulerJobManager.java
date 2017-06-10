@@ -173,7 +173,7 @@ public class SchedulerJobManager {
 
         while (it.hasNext()) {
             SchedulerJobInstance ci = it.next();
-            if ((ci.getProject().equalsIgnoreCase(project) || project == null) && (ci.getRelatedRealization().equalsIgnoreCase(realizationName) || realizationName == null)) {
+            if ((ci.getProject().equals(project) || project == null) && (ci.getRelatedRealization().equals(realizationName) || realizationName == null)) {
                 result.add(ci);
             }
         }

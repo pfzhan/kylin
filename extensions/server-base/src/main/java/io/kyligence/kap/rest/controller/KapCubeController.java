@@ -428,11 +428,11 @@ public class KapCubeController extends BasicController implements InitializingBe
     // Keep SchedulerJob consistent with cubes.
     private void validateSchedulerJobs(String uuid) throws IOException, SchedulerException {
         for (SchedulerJobInstance jobInstance : schedulerJobService.listAllSchedulerJobs()) {
-            if (!jobInstance.getRelatedRealizationUuid().equalsIgnoreCase(uuid))
+            if (!jobInstance.getRelatedRealizationUuid().equals(uuid))
                 continue;
 
             for (String cubeName : kapCubeService.getCubesByUuid(uuid)) {
-                if (!jobInstance.getRelatedRealization().equalsIgnoreCase(cubeName)) {
+                if (!jobInstance.getRelatedRealization().equals(cubeName)) {
                     schedulerJobService.deleteSchedulerJob(jobInstance);
                 }
             }
@@ -441,7 +441,7 @@ public class KapCubeController extends BasicController implements InitializingBe
 
     private SchedulerJobInstance getSchedulerJobByCubeName(String cubeName) throws IOException {
         for (SchedulerJobInstance jobInstance : schedulerJobService.listAllSchedulerJobs()) {
-            if (jobInstance.getRelatedRealization().equalsIgnoreCase(cubeName))
+            if (jobInstance.getRelatedRealization().equals(cubeName))
                 return jobInstance;
 
         }
