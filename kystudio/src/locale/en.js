@@ -88,7 +88,9 @@ exports.default = {
   },
   project: {
     mustSelectProject: 'Please select a project first',
-    selectProject: 'Please select a project'
+    selectProject: 'Please select a project',
+    projectList: 'Project List',
+    addProject: 'Add Project'
   },
   job: {
   },

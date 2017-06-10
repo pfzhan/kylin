@@ -23,9 +23,9 @@
     <div class="model_edit" :style="{left:docker.x +'px'  ,top:docker.y + 'px'}">
       <div class="table_box" v-if="table&&table.kind" @drop='dropColumn' @dragover='allowDrop($event)'  v-for="table in tableList" :key="table.guid" :id="table.guid" v-bind:class="table.kind.toLowerCase()" v-bind:style="{ left: table.pos.x + 'px', top: table.pos.y + 'px' }" >
         <div class="tool_box" >
-            <icon name="table" class="el-icon-menu" style="color:#fff" @click.native="openModelSubMenu('hide', table.database, table.name)"></icon>
-            <icon name="gears"  class="el-icon-share" style="color:#fff" v-on:click.native="addComputedColumn(table.guid)"></icon>
-            <icon name="sort-alpha-asc" v-on:click.native="sortColumns(table)"></icon>
+            <span><icon name="table" class="el-icon-menu" style="color:#fff" @click.native="openModelSubMenu('hide', table.database, table.name)"></icon></span>
+            <span><icon name="gears"  class="el-icon-share" style="color:#fff" v-on:click.native="addComputedColumn(table.guid)"></icon></span>
+            <span><icon name="sort-alpha-asc" v-on:click.native="sortColumns(table)"></icon></span>
             <i class="fa fa-window-close"></i>
             <el-dropdown @command="selectTableKind" class="ksd-fright" v-if="actionMode!=='view'">
               <span class="el-dropdown-link">
@@ -56,14 +56,15 @@
         <span>
             <br/>
              <el-row :gutter="20" class="ksd-mb10" style="line-height:49px;">
-             <el-col :span="9" style="text-align:center">
+             <el-col :span="24" style="text-align:center">
               <div class="grid-content bg-purple">
-                <a style="color:#56c0fc">{{currentLinkData.source.alias}}</a>
+              <el-input v-model="currentLinkData.source.alias" :disabled="true"></el-input>
+                <!-- <a style="color:#56c0fc">{{currentLinkData.source.alias}}</a> -->
               </div>
             </el-col>
-            <el-col :span="6" style="text-align:center">
+            <el-col :span="24" style="text-align:center">
               <div class="grid-content bg-purple">
-                  <el-select v-model="currentLinkData.joinType" :disabled = "actionMode ==='view'" style="width:120px;" @change="switchJointType(currentLinkData.source.guid,currentLinkData.target.guid, currentLinkData.joinType)" :placeholder="$t('kylinLang.common.pleaseSelect')">
+                  <el-select style="width:100%" v-model="currentLinkData.joinType" :disabled = "actionMode ==='view'"  @change="switchJointType(currentLinkData.source.guid,currentLinkData.target.guid, currentLinkData.joinType)" :placeholder="$t('kylinLang.common.pleaseSelect')">
                     <el-option
                       v-for="item in joinTypes"
                       :key="item.label"
@@ -73,9 +74,10 @@
                   </el-select>
               </div>
             </el-col>
-            <el-col :span="9" style="text-align:center">
+            <el-col :span="24" style="text-align:center">
               <div class="grid-content bg-purple">
-                <a style="color:#56c0fc">{{currentLinkData.target.alias}}</a>
+              <el-input v-model="currentLinkData.target.alias" :disabled="true"></el-input>
+                <!-- <a style="color:#56c0fc">{{currentLinkData.target.alias}}</a> -->
               </div>
             </el-col>
             </el-row>
@@ -538,22 +540,6 @@ export default {
       this.initCubeMeta()
       this.cubeMeta.projectName = this.project
       this.cubeMeta.modelName = this.modelInfo.modelName
-      // var _this = this
-      // event.stopPropagation()
-      // this.$prompt('请输入Cube名称', '提示', {
-      //   confirmButtonText: '确定',
-      //   cancelButtonText: '取消'
-      //     // inputPattern: /[\w!#$%&'*+/=?^_`{|}~-]+(?:\.[\w!#$%&'*+/=?^_`{|}~-]+)*@(?:[\w](?:[\w-]*[\w])?\.)+[\w](?:[\w-]*[\w])?/,
-      //     // inputErrorMessage: '邮箱格式不正确'
-      // }).then(({ value }) => {
-      //   _this.$emit('addtabs', 'cube', value, 'cubeEdit', {
-      //     project: localStorage.getItem('selected_project'),
-      //     cubeName: value,
-      //     modelName: this.modelInfo.modelName,
-      //     isEdit: false
-      //   })
-      // }).catch(() => {
-      // })
     },
     checkName (rule, value, callback) {
       if (!/^\w+$/.test(value)) {
@@ -1306,7 +1292,7 @@ export default {
       var obj = {}
       var count = 0
       for (var i = 0; i < this.links.length; i++) {
-        if (this.links[i][0] === p1 && this.links[i][1] !== p2) {
+        if (this.links[i][0] !== p1 && this.links[i][1] === p2) {
           obj[this.links[i][1]] = true
         }
       }
@@ -1321,7 +1307,7 @@ export default {
     checkIncorrectLink: function (p1, p2) {
       // 检查是否是rootfact指向fact和lookup
       var resultTag = false
-      if (this.checkIsRootFact(p1)) {
+      if (this.checkIsRootFact(p2)) {
         this.warnAlert(this.$t('cannotSetFTableToFKTable'))
         resultTag = true
       }
@@ -1390,7 +1376,7 @@ export default {
           return
         }
         for (var i in this.links) {
-          if (this.links[i][0] === guid) {
+          if (this.links[i][1] === guid) {
             this.warnAlert(this.$t('cannotSetFact'))
             return
           }
@@ -1591,18 +1577,18 @@ export default {
         pos[p1TableInfo.alias] = p1TableInfo.pos
         if (!linkTables[p1 + '$' + p2]) {
           linkTables[p1 + '$' + p2] = {
-            table: p1TableInfo.database + '.' + p1TableInfo.name,
-            kind: p1TableInfo.kind,
-            alias: p1TableInfo.alias,
+            table: p2TableInfo.database + '.' + p2TableInfo.name,
+            kind: p2TableInfo.kind,
+            alias: p2TableInfo.alias,
             join: {
               type: joinType,
-              primary_key: [p1TableInfo.alias + '.' + col1],
-              foreign_key: [p2TableInfo.alias + '.' + col2]
+              primary_key: [p2TableInfo.alias + '.' + col2],
+              foreign_key: [p1TableInfo.alias + '.' + col1]
             }
           }
         } else {
-          linkTables[p1 + '$' + p2].join.primary_key.push(p1TableInfo.alias + '.' + col1)
-          linkTables[p1 + '$' + p2].join.foreign_key.push(p2TableInfo.alias + '.' + col2)
+          linkTables[p1 + '$' + p2].join.primary_key.push(p2TableInfo.alias + '.' + col2)
+          linkTables[p1 + '$' + p2].join.foreign_key.push(p1TableInfo.alias + '.' + col1)
         }
       }
       for (var s in linkTables) {
@@ -1625,8 +1611,9 @@ export default {
         this.$set(this.modelInfo, 'modelName', this.extraoption.modelName)
         return
       }
-      var actionModelName = this.extraoption.modelName
       // 编辑模式
+      // var actionModelName = this.extraoption.status ? this.extraoption.modelName + '_draft' : this.extraoption.modelName
+      var actionModelName = this.extraoption.modelName
       this.getModelByModelName(actionModelName).then((response) => {
         handleSuccess(response, (data) => {
           this.modelData = data.model
@@ -1712,7 +1699,7 @@ export default {
                 let foriAlias = foriFullColumn.split('.')[0]
                 let pcolumn = priFullColumn.split('.')[1]
                 let fcolumn = foriFullColumn.split('.')[1]
-                let bArr = [baseTables[priAlias].guid, baseTables[foriAlias].guid, pcolumn, fcolumn, lookups[i].join.type]
+                let bArr = [baseTables[foriAlias].guid, baseTables[priAlias].guid, fcolumn, pcolumn, lookups[i].join.type]
                 baseLinks.push(bArr)
               }
             }
@@ -1727,7 +1714,7 @@ export default {
                 var hisConn = _this.showLinkCons[pGuid + '$' + fGuid]
                 if (!hisConn) {
                   var joinType = lookups[i].join.type
-                  _this.addShowLink(pGuid, fGuid, joinType)
+                  _this.addShowLink(fGuid, pGuid, joinType)
                 }
               }
               if (!modelData.pos) {
@@ -1800,10 +1787,10 @@ export default {
       var resultArr = result || [[rootGuid]]
       var tempArr = []
       for (var i in this.showLinkCons) {
-        if (rootGuid === i.split('$')[1]) {
+        if (rootGuid === i.split('$')[0]) {
           resultArr[index] = resultArr[index] || []
-          resultArr[index].push(i.split('$')[0])
-          tempArr.push(i.split('$')[0])
+          resultArr[index].push(i.split('$')[1])
+          tempArr.push(i.split('$')[1])
         }
       }
       for (var s = 0; s < tempArr.length; s++) {
@@ -1920,12 +1907,12 @@ export default {
       var wHeight = $(window).height()
       var modelEditTool = $(this.$el).find('.model_edit_tool')
       if (newVal === 'brief_menu') {
-        this.dockerScreen.w = wWidth - 140
+        this.dockerScreen.w = wWidth - 100
         this.dockerScreen.h = wHeight - 176
         modelEditTool.addClass('smallScreen')
       } else {
         modelEditTool.removeClass('smallScreen')
-        this.dockerScreen.w = wWidth - 240
+        this.dockerScreen.w = wWidth - 200
         this.dockerScreen.h = wHeight - 176
       }
     },
@@ -2085,22 +2072,26 @@ export default {
      }
    }
    .model_edit_box {
-    margin-top: 20px;
+    // margin-top: 20px;
     position: relative;
-    background-color: #475568;
-    background-image: url('../../assets/img/jsplumb.png');
-    background-repeat:repeat;
+    background-color: #20222e;
+    // background-image: url('../../assets/img/jsplumb.png');
+    // background-repeat:repeat;
     overflow: hidden;
-   }
-   .tree_list {
+    .tree_list {
       height: 100%;
-      background-color: #f1f2f7;
+      background-color: #393e52;
       position: absolute;
       z-index: 2000;
       overflow-y: auto;
       overflow-x: hidden;
-      
+      padding-top: 20px;
+      .el-input{
+        background-color: #393e52;
+      }
+    }
    }
+   
    .model_tool{
      position: absolute;
      right: 6px;
@@ -2199,7 +2190,7 @@ export default {
        }
        &.rootfact{
           .table_name{
-            background-color: #2eb3fc;
+            background-color: #2b91e7;
           }
        }
        &.fact{
@@ -2230,7 +2221,7 @@ export default {
        width: 220px;
        left: 440px;
        z-index:1;
-       background-color: #64748a; 
+       background-color: #2f3242; 
        position: absolute;
        height: 420px;
        .link_box{
@@ -2250,13 +2241,19 @@ export default {
        }
        .tool_box{
           position: absolute;
-          padding:2px 6px;
+          padding:8px 6px;
           top:36px;
+          height: 16px;
+          line-height: 16px;
           left: 0;
           right: 0;
           font-size: 12px;
           color:#fff;
           cursor: pointer;
+          background-color: #4f5572;
+          span{
+            margin-right: 4px;
+          }
           i{
             cursor: pointer;
           }
@@ -2275,8 +2272,8 @@ export default {
        .filter_box{
         padding: 10px;
         padding-bottom: 10px;
-        margin-top: 10px;
-        padding-top: 12px;
+        margin-top: 30px;
+        // padding-top: 12px;
        }
        .table_name{
          height: 36px;
@@ -2291,7 +2288,7 @@ export default {
         }
        }
        .columns_box{
-        height: 300px;
+        height: 280px;
         overflow: hidden;
         cursor: default;
        }
@@ -2305,7 +2302,7 @@ export default {
           line-height: 30px;
           color:#fff;
           cursor: move;
-          background-color: #64748a;
+          background-color: #2f3242;
 
           span{
             display: inline-block;

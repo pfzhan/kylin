@@ -192,7 +192,7 @@
         :visible.sync="useCubeDialogVisible"
         >
          {{$t('modelUsedTip')}}<br/>
-         <el-tag type="primary"  v-for="tips in usedCubes" class="ksd-mt-10 ksd-ml-10">{{tips.name}}</el-tag>
+         <el-tag type="primary"  v-for="tips in usedCubes" :key="tips.name" class="ksd-mt-10 ksd-ml-10">{{tips.name}}</el-tag>
          <!-- <el-alert :closable="false" :title="tips.name" type="info" v-for="tips in usedCubes" class="ksd-mt-10"></el-alert> -->
         <span slot="footer" class="dialog-footer">
           <el-button @click="useCubeDialogVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
@@ -679,7 +679,7 @@ export default {
         }, () => {
           cycleDiagnose()
         })
-      }, 5000)
+      }, 10000)
     }
     cycleDiagnose()
   },

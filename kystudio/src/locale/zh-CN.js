@@ -88,7 +88,9 @@ exports.default = {
   },
   project: {
     mustSelectProject: '请先选择一个Project',
-    selectProject: '选择project'
+    selectProject: '选择project',
+    projectList: '项目列表',
+    addProject: '添加项目'
   },
   job: {
   },

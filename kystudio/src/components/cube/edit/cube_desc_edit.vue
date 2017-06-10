@@ -680,7 +680,6 @@ export default {
           this.$set(this.cubeDetail, 'name', this.cubeDetail.name.replace(/_draft$/, ''))
         })
       }).catch((res) => {
-        console.log(12322)
         handleError(res)
       })
     },
@@ -702,7 +701,7 @@ export default {
           this.aliasMap[table.name] = table.database + '.' + table.name
         }
       })
-      this.modelDetail.lookups.forEach(function (lookup) {
+      this.modelDetail.lookups.forEach((lookup) => {
         if (lookup.kind === 'FACT') {
           if (!lookup.alias) {
             lookup['alias'] = removeNameSpace(lookup.table)
@@ -716,7 +715,7 @@ export default {
           lookupTables.push(lookup.alias)
           this.aliasMap[lookup.alias] = lookup.table
         }
-        this.$store.state.datasource.dataSource[this.selected_project].forEach(function (table) {
+        this.$store.state.datasource.dataSource[this.selected_project].forEach((table) => {
           if (lookup.table === table.database + '.' + table.name) {
             table.columns.forEach((column) => {
               this.$set(this.modelDetail.columnsDetail, lookup.alias + '.' + column.name, {
@@ -732,6 +731,7 @@ export default {
         this.modelDetail.computed_columns.forEach((co) => {
           var alias = ''
           for (var i in this.aliasMap) {
+            console.log(this.aliasMap, co, 112)
             if (this.aliasMap[i] === co.tableIdentity) {
               alias = i
             }
@@ -758,6 +758,7 @@ export default {
       handleSuccess(res, (data, code, status, msg) => {
         this.renderCubeFirst = true
         this.modelDetail = data.model
+        console.log(9999)
         this.getTables()
       })
     }).catch((res) => {

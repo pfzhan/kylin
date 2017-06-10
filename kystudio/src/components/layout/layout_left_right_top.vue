@@ -13,9 +13,9 @@
     </aside>
     <div class="topbar">
       <icon name="bars" style="color: #d4d7e3;" v-on:click.native="toggleMenu"></icon>
-      <project_select  v-if='gloalProjectSelectShow' class="project_select" v-on:changePro="changeProject" ref="projectSelect"></project_select>
-      <el-button  v-if='gloalProjectSelectShow' :class="{'isProjectPage':defaultActive==='projectActive'}" @click="goToProjectList"><icon name="window-restore" scale="0.8"></icon></el-button>
-      <el-button v-if='gloalProjectSelectShow' @click="addProject" v-show="isModeler"><icon name="plus" scale="0.8"></icon></el-button>
+      <project_select v-show='gloalProjectSelectShow' class="project_select" v-on:changePro="changeProject" ref="projectSelect"></project_select>
+      <el-button :title="$t('kylinLang.project.projectList')" :class="{'isProjectPage':defaultActive==='projectActive'}" @click="goToProjectList"><icon name="window-restore" scale="0.8"></icon></el-button>
+      <el-button :title="$t('kylinLang.project.addProject')" @click="addProject" v-show="isModeler"><icon name="plus" scale="0.8"></icon></el-button>
 
       <ul class="topUl">
         <li><help></help></li>
@@ -53,7 +53,7 @@
           </project_edit>
           <span slot="footer" class="dialog-footer">
             <el-button @click="FormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
-            <el-button type="primary" @click.native="Save">{{$t('kylinLang.common.ok')}}</el-button>
+            <el-button type="primary" @click.native="Save" :loading="projectSaveLoading">{{$t('kylinLang.common.ok')}}</el-button>
           </span>
         </el-dialog>
       </div>
@@ -63,8 +63,8 @@
 <el-dialog @close="closeResetPassword" :title="$t('resetPassword')" v-model="resetPasswordFormVisible">
     <reset_password :userDetail="currentUser" ref="resetPassword" v-on:validSuccess="resetPasswordValidSuccess"></reset_password>
     <div slot="footer" class="dialog-footer">
-      <el-button @click="resetPasswordFormVisible = false">{{$t('cancel')}}</el-button>
-      <el-button type="primary" @click="checkResetPasswordForm">{{$t('yes')}}</el-button>
+      <el-button @click="resetPasswordFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+      <el-button type="primary" @click="checkResetPasswordForm">{{$t('kylinLang.common.ok')}}</el-button>
     </div>
   </el-dialog>
 
@@ -98,6 +98,7 @@
   export default {
     data () {
       return {
+        projectSaveLoading: false,
         project: {},
         FormVisible: false,
         currentPathName: 'DesignModel',
@@ -256,6 +257,7 @@
         this.$refs.projectForm.$emit('projectFormValid')
       },
       validSuccess (data) {
+        this.projectSaveLoading = true
         this.saveProject(JSON.stringify(data)).then((result) => {
           this.$message({
             type: 'success',
@@ -264,11 +266,13 @@
           localStorage.setItem('selected_project', data.name)
           this.$store.state.project.selected_project = data.name
           this.FormVisible = false
+          this.projectSaveLoading = false
           this.loadAllProjects()
           this.$router.push('/studio/datasource')
           this.defaultActive = '/studio/datasource'
         }, (res) => {
           this.FormVisible = false
+          this.projectSaveLoading = false
           handleError(res)
         })
       },
@@ -522,7 +526,7 @@
 		top: 67px;
 		bottom: 0px;
 		left: 200px;
-		overflow-y: scroll;
+		overflow-y: auto;
 	}
 
 	.logout {
@@ -601,7 +605,7 @@
     .el-button {
       padding: 8px 12px;
       margin-top: 18px;
-      margin-left: 4px;
+      margin-left: 8px;
       background: @grey-color;
       color: @fff;
     }
