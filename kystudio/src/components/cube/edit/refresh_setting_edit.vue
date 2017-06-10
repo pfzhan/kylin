@@ -184,14 +184,14 @@ export default {
       this.cubeDesc.auto_merge_time_ranges[index] = time
     },
     initScheduler: function () {
-      var schedulerName = this.cubeDesc.name + (this.cubeDesc.status === 'DRAFT' ? '_draft' : '')
-      this.getScheduler(schedulerName).then((res) => {
+      // var schedulerName = this.cubeDesc.name + (this.cubeDesc.status === 'DRAFT' ? '_draft' : '')
+      this.getScheduler(this.cubeDesc.name).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
-          this.initRepeatInterval(data)
-          this.scheduler.desc.scheduled_run_time = data.scheduled_run_time
+          var schedulerData = this.cubeDesc.is_draft ? data.draft : data.schedulerJob
+          this.initRepeatInterval(schedulerData)
+          this.scheduler.desc.scheduled_run_time = schedulerData.scheduled_run_time
           this.scheduledRunTime = transToUtcTimeFormat(this.scheduler.desc.scheduled_run_time)
-          console.log(this.scheduledRunTime, 'kkk')
-          this.scheduler.desc.partition_interval = data.partition_interval
+          this.scheduler.desc.partition_interval = schedulerData.partition_interval
         })
       }).catch((res) => {
         handleError(res, () => {
@@ -220,7 +220,6 @@ export default {
     }
   },
   created: function () {
-    console.log(this.scheduler)
     if (this.cubeDesc.auto_merge_time_ranges) {
       this.conversionTime()
       this.partitionStartDate = transToUtcTimeFormat(this.cubeDesc.partition_date_start)

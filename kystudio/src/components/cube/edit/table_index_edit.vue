@@ -246,6 +246,7 @@ export default {
       })
     },
     getBaseColumnsData: function () {
+      console.log(this.rawTable.tableDetail, 998)
       let _this = this
       _this.modelDesc.dimensions.forEach(function (dimension) {
         dimension.columns.forEach(function (column) {
@@ -306,18 +307,22 @@ export default {
     })
     let _this = this
     if (_this.rawTableUsable) {
-      if (_this.rawTable.tableDetail.columns.length > 0 && this.$store.state.cube.cubeRowTableIsSetting) {
+      if (_this.rawTable.tableDetail && _this.rawTable.tableDetail.columns.length > 0 && this.$store.state.cube.cubeRowTableIsSetting) {
         _this.usedRawTable = true
         _this.initConvertedRawTable()
       } else {
         if (_this.isEdit) {
-          var rawtbaleName = this.cubeDesc.name + (this.cubeDesc.status === 'DRAFT' ? '_draft' : '')
-          this.loadRawTable(rawtbaleName).then((res) => {
+          // var rawtbaleName = this.cubeDesc.name + (this.cubeDesc.status === 'DRAFT' ? '_draft' : '')
+          _this.initConvertedRawTable()
+          this.loadRawTable(this.cubeDesc.name).then((res) => {
             handleSuccess(res, (data, code, status, msg) => {
               if (data && this.$store.state.cube.cubeRowTableIsSetting) {
                 _this.usedRawTable = true
-                _this.$set(_this.rawTable, 'tableDetail', data)
-                _this.initConvertedRawTable()
+                var rawtbale = this.cubeDesc.is_draft ? data.draft : data.rawTable
+                if (rawtbale) {
+                  _this.$set(_this.rawTable, 'tableDetail', rawtbale)
+                  _this.initConvertedRawTable()
+                }
               }
             })
           }).catch((res) => {

@@ -1621,7 +1621,7 @@ export default {
           this.draftData = data.draft
           var modelData = this.extraoption.status ? data.draft : data.model
           if (this.modelData && this.draftData && this.extraoption.mode !== 'view') {
-            kapConfirm(this.$t('checkDraft'), {
+            kapConfirm(this.$t('kylinLang.common.checkDraft'), {
               confirmButtonText: 'OK',
               cancelButtonText: 'NO'
             }).then(() => {

@@ -95,7 +95,7 @@ export default {
     if (!_this.cube.desc) {
       this.loadCubeDesc(_this.cube.name).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
-          _this.$set(_this.cube, 'desc', data[0])
+          _this.$set(_this.cube, 'desc', data.cube)
         })
       }).catch((res) => {
         handleError(res, () => {})

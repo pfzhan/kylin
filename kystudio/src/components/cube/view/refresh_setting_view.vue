@@ -49,7 +49,8 @@ export default {
     if (!_this.cubeDesc.scheduler) {
       _this.getScheduler(this.cubeDesc.name).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
-          _this.$set(_this.cubeDesc, 'scheduler', data)
+          var schedulerData = data.schedulerJob || data.draft
+          _this.$set(_this.cubeDesc, 'scheduler', schedulerData)
         })
       }).catch((res) => {
         handleError(res, () => {})

@@ -52,6 +52,7 @@ exports.default = {
     backupSuccess: '备份成功',
     updateSuccess: '更新成功',
     confirmDel: '确认删除吗？',
+    checkDraft: '检测到上次有未保存的内容，是否继续上次进行编辑？',
     // placeholder
     pleaseInput: '请输入',
     pleaseSelect: '请选择',

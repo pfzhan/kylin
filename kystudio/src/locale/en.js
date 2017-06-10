@@ -53,6 +53,7 @@ exports.default = {
     backupSuccess: 'Backup successfully',
     updateSuccess: 'Updated successfully',
     confirmDel: 'Confirm delete it?',
+    checkDraft: 'Detected the unsaved content, are you going to continue the last edit?',
     // placeholder
     pleaseInput: 'Please input',
     pleaseSelect: 'Please select',

@@ -53,7 +53,7 @@ import configurationOverwrites from './configuration_overwrites_edit'
 import overview from './overview_edit'
 import json from '../json'
 import { removeNameSpace, objectClone } from '../../../util/index'
-import { handleSuccess, handleError } from '../../../util/business'
+import { handleSuccess, handleError, kapConfirm } from '../../../util/business'
 export default {
   name: 'cubeDescEdit',
   props: ['extraoption'],
@@ -681,10 +681,39 @@ export default {
       return StorageEng
     },
     loadCubeDetail: function () {
+      var _this = this
       this.loadCubeDesc(this.extraoption.cubeName).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
-          this.cubeDetail = data[0]
-          this.$set(this.cubeDetail, 'name', this.cubeDetail.name.replace(/_draft$/, ''))
+          this.cubeDetail = data.cube || data.draft
+          if (data.cube && data.draft) {
+            kapConfirm(this.$t('kylinLang.common.checkDraft'), {
+              confirmButtonText: 'OK',
+              cancelButtonText: 'NO'
+            }).then(() => {
+              this.cubeDetail = data.draft
+              loadRowTable(true)
+            }).catch(() => {
+              this.cubeDetail = data.model
+              loadRowTable(false)
+            })
+          } else {
+            if (data.cube) {
+              loadRowTable(false)
+            } else {
+              loadRowTable(true)
+            }
+          }
+          function loadRowTable (isDraft) {
+            _this.loadRawTable(_this.extraoption.cubeName).then((res) => {
+              handleSuccess(res, (data, code, status, msg) => {
+                var rawtableData = isDraft ? data.draft : data.rawTable
+                if (rawtableData) {
+                  _this.$set(_this.rawTable, 'tableDetail', rawtableData)
+                  _this.$store.state.cube.cubeRowTableIsSetting = true
+                }
+              })
+            })
+          }
         })
       }).catch((res) => {
         handleError(res)
@@ -759,14 +788,6 @@ export default {
     this.createNewCube()
     if (this.isEdit) {
       this.loadCubeDetail()
-      this.loadRawTable(this.extraoption.cubeName).then((res) => {
-        handleSuccess(res, (data, code, status, msg) => {
-          if (data) {
-            this.$set(this.rawTable, 'tableDetail', data)
-            this.$store.state.cube.cubeRowTableIsSetting = true
-          }
-        })
-      })
     }
     this.loadDataSourceByProject(this.selected_project)
     this.loadModelInfo(this.extraoption.modelName).then((res) => {

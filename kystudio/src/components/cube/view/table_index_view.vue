@@ -100,7 +100,8 @@ export default {
     if (!_this.cubeDesc.rawTable) {
       _this.loadRawTable(this.cubeDesc.name).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
-          _this.$set(_this.cubeDesc, 'rawTable', data)
+          var rawData = data.rawTable || data.draft
+          _this.$set(_this.cubeDesc, 'rawTable', rawData)
         })
       }).catch((res) => {
         handleError(res, () => {})
