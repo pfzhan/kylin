@@ -33,6 +33,7 @@ import org.apache.kylin.metadata.model.FunctionDesc;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -76,13 +77,8 @@ public class QueryStats implements Serializable {
         }
     }
 
-    public void addColPairs(Collection<String>... cols) {
-        Set<String> colNames = Sets.newHashSet();
-        for (Collection<String> col : cols) {
-            colNames.addAll(col);
-        }
-
-        String[] colNameArr = colNames.toArray(new String[0]);
+    public void addColPairs(Collection<String> colNames) {
+        String[] colNameArr = Iterables.toArray(colNames, String.class);
         for (int i = 0; i < colNames.size(); i++) {
             for (int j = i + 1; j < colNames.size(); j++) {
                 String key = createCoocurrenceKey(colNameArr[i], colNameArr[j]);
@@ -98,14 +94,18 @@ public class QueryStats implements Serializable {
     public void addGroupBy(Collection<String> groupByCols) {
         for (String groupByCol : groupByCols) {
             incMapVal(groupBys, groupByCol);
-            incMapVal(appears, groupByCol);
         }
     }
 
     public void addFilter(Collection<String> filterCols) {
         for (String filterCol : filterCols) {
             incMapVal(filters, filterCol);
-            incMapVal(appears, filterCol);
+        }
+    }
+
+    public void addAppear(Collection<String> appearCols) {
+        for (String appearCol : appearCols) {
+            incMapVal(appears, appearCol);
         }
     }
 

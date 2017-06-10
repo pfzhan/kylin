@@ -152,9 +152,6 @@ public class AggrGroupProposer extends AbstractProposer {
                 ModelStats modelStats = context.getModelStats();
                 if (modelStats.getDoubleColumnCardinality() != null) {
                     for (Map.Entry<String, Long> entry : modelStats.getDoubleColumnCardinality().entrySet()) {
-                        if (entry.getKey().equals("SSB.CUSTOMER.C_CITY,SSB.CUSTOMER.C_NATION")) {
-                            //                            System.out.println("a");
-                        }
                         String[] idxPair = entry.getKey().split(",");
                         String colName1 = idxPair[0].trim();
                         String colName2 = idxPair[1].trim();
@@ -248,10 +245,12 @@ public class AggrGroupProposer extends AbstractProposer {
         private void buildDimCapToControlCuboidNum() {
             if (modelingConfig.getAggGroupStrictEnabled() && modelingConfig.enableDimCapForAggGroupStrict()) {
                 int dimCap = aggGroup.getDimCap();
-                if (dimCap == 0) {
-                    dimCap = aggGroup.getIncludes().length;
+                if (dimCap > 0) {
+                    // if dimCap exists as input, then keep it.
+                    return;
                 }
 
+                dimCap = aggGroup.getIncludes().length;
                 long cuboids = getEstimatedCuboidCombination();
                 int retry = 0;
                 while (cuboids > modelingConfig.getAggGroupStrictCombinationMax() && retry++ < modelingConfig.getAggGroupStrictRetryMax() && dimCap > modelingConfig.getDimCapMin()) {

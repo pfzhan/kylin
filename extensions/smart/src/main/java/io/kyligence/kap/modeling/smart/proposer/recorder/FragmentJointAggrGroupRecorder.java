@@ -66,7 +66,7 @@ public class FragmentJointAggrGroupRecorder {
 
         List<List<String>> result = Lists.newArrayList();
         if (scaleTimes <= modelingConfig.getAggGroupStrictRetryMax() / 2) {
-            result.addAll(groupByName());
+            result.addAll(groupByName()); // ignore name patterns if retried too many times.
         }
         result.addAll(groupRandom(scaleTimes));
 

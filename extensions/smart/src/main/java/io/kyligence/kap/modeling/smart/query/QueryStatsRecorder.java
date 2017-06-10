@@ -25,6 +25,7 @@
 package io.kyligence.kap.modeling.smart.query;
 
 import java.util.Collection;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -35,6 +36,7 @@ import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryRequest;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.query.mockup.AbstractQueryRecorder;
 
@@ -51,21 +53,27 @@ public class QueryStatsRecorder extends AbstractQueryRecorder<QueryStats> {
         Collection<String> groupByCols = Collections2.transform(gtRequest.getGroups(), new Function<TblColRef, String>() {
             @Override
             public String apply(@Nullable TblColRef tblColRef) {
-                return tblColRef.getCanonicalName();
-            }
-        });
-        Collection<String> filterCols = Collections2.transform(gtRequest.getFilterCols(), new Function<TblColRef, String>() {
-            @Override
-            public String apply(@Nullable TblColRef tblColRef) {
-                return tblColRef.getCanonicalName();
+                return tblColRef.getIdentity();
             }
         });
 
-        queryStats.addColPairs(filterCols, groupByCols);
+        Collection<String> filterCols = Collections2.transform(gtRequest.getFilterCols(), new Function<TblColRef, String>() {
+            @Override
+            public String apply(@Nullable TblColRef tblColRef) {
+                return tblColRef.getIdentity();
+            }
+        });
+
+        Set<String> usedCols = Sets.newHashSet();
+        usedCols.addAll(groupByCols);
+        usedCols.addAll(filterCols);
+
         queryStats.addCuboid(cuboid.getId());
         queryStats.addMeasures(gtRequest.getMetrics());
+        queryStats.addColPairs(usedCols);
         queryStats.addGroupBy(groupByCols);
         queryStats.addFilter(filterCols);
+        queryStats.addAppear(usedCols);
         queryStats.addTotalQueries();
     }
 
