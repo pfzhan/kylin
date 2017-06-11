@@ -160,13 +160,13 @@ public class KapCubeController extends BasicController implements InitializingBe
      * Calculate Cuboid Combination based on the AggreationGroup definition.
      *
      * @param cubeDescStr
-     * @return number of cuboid, -1 if failed
+     * @return number of cuboid, return -1 on agg not found
      */
 
     @RequestMapping(value = "aggregationgroups/{aggIndex}/cuboid", method = RequestMethod.POST, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse calculateCuboidCombination(@PathVariable int aggIndex, @RequestBody String cubeDescStr)
+    public EnvelopeResponse calculateAggCuboidCombination(@PathVariable int aggIndex, @RequestBody String cubeDescStr)
             throws IOException {
 
         CubeDesc cubeDesc = deserializeCubeDesc(cubeDescStr);
@@ -177,6 +177,15 @@ public class KapCubeController extends BasicController implements InitializingBe
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, aggregationGroup.calculateCuboidCombination(), "");
         } else
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, -1, "");
+    }
+
+    @RequestMapping(value = "/cuboid", method = RequestMethod.POST, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse calculateCubeCuboidCombination(@RequestBody String cubeDescStr) throws IOException {
+        CubeDesc cubeDesc = deserializeCubeDesc(cubeDescStr);
+        cubeDesc.init(KylinConfig.getInstanceFromEnv());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, cubeDesc.getAllCuboids().size(), "");
     }
 
     private CubeDesc deserializeCubeDesc(String cubeDescStr) throws IOException {
