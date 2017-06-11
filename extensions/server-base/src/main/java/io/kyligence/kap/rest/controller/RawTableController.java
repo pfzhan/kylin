@@ -27,7 +27,6 @@ package io.kyligence.kap.rest.controller;
 import java.io.IOException;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.request.CubeRequest;
@@ -45,14 +44,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-
 import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
-import io.kyligence.kap.rest.request.RawTableRequest;
 import io.kyligence.kap.rest.service.RawTableService;
 
 @Controller
@@ -68,23 +63,6 @@ public class RawTableController extends BasicController {
     @Qualifier("jobService")
     private JobService jobService;
 
-    private RawTableDesc deserializeRawTableDesc(RawTableRequest rawTableRequest) throws IOException {
-        KapMessage msg = KapMsgPicker.getMsg();
-
-        RawTableDesc desc = null;
-        try {
-            logger.debug("Saving rawtable " + rawTableRequest.getRawTableDescData());
-            desc = JsonUtil.readValue(rawTableRequest.getRawTableDescData(), RawTableDesc.class);
-        } catch (JsonParseException e) {
-            logger.error("The rawtable definition is not valid.", e);
-            throw new BadRequestException(msg.getINVALID_RAWTABLE_DEFINITION());
-        } catch (JsonMappingException e) {
-            logger.error("The rawtable definition is not valid.", e);
-            throw new BadRequestException(msg.getINVALID_RAWTABLE_DEFINITION());
-        }
-        return desc;
-    }
-
     @RequestMapping(value = "/{cubeName}", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
@@ -97,20 +75,6 @@ public class RawTableController extends BasicController {
             throw new BadRequestException(String.format(msg.getRAWTABLE_NOT_FOUND(), cubeName));
         }
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, raw.getRawTableDesc(), "");
-    }
-
-    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.DELETE }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    public void deleteRaw(@PathVariable String cubeName) throws IOException {
-        KapMessage msg = KapMsgPicker.getMsg();
-
-        RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
-        if (null == raw) {
-            logger.info("raw table" + cubeName + " does not exist!");
-            throw new BadRequestException(String.format(msg.getRAWTABLE_NOT_FOUND(), cubeName));
-        }
-        rawTableService.deleteRaw(raw);
     }
 
     @RequestMapping(value = "/{cubeName}/enable", method = { RequestMethod.PUT }, produces = {

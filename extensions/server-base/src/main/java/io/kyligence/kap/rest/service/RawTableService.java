@@ -111,24 +111,11 @@ public class RawTableService extends BasicService {
         RawTableInstance createdRaw;
 
         createdDesc = getRawTableDescManager().createRawTableDesc(desc);
-        try {
-            createdRaw = getRawTableManager().createRawTableInstance(rawName, projectName, createdDesc, owner);
-        } catch (Exception e) {
-            // if create rawtable instance fails, roll back desc changes
-            try {
-                getRawTableDescManager().removeRawTableDesc(desc);
-            } catch (Exception ex) {
-                logger.error("Error when rollback created RawTableDesc", ex);
-            }
-            throw e;
-        }
+        createdRaw = getRawTableManager().createRawTableInstance(rawName, projectName, createdDesc, owner);
 
-        if (!desc.isDraft()) {
-            accessService.init(createdRaw, AclPermission.ADMINISTRATION);
-
-            ProjectInstance project = getProjectManager().getProject(projectName);
-            accessService.inherit(createdRaw, project);
-        }
+        accessService.init(createdRaw, AclPermission.ADMINISTRATION);
+        ProjectInstance project = getProjectManager().getProject(projectName);
+        accessService.inherit(createdRaw, project);
 
         return createdRaw;
     }
@@ -197,9 +184,7 @@ public class RawTableService extends BasicService {
             String owner = SecurityContextHolder.getContext().getAuthentication().getName();
             ProjectInstance newProject = projectManager.moveRealizationToProject(RealizationType.CUBE, raw.getName(),
                     newProjectName, owner);
-            if (!desc.isDraft()) {
-                accessService.inherit(raw, newProject);
-            }
+            accessService.inherit(raw, newProject);
         }
 
         return updatedRawTableDesc;
@@ -272,8 +257,9 @@ public class RawTableService extends BasicService {
     public void validateRawTableDesc(RawTableDesc desc) {
         KapMessage msg = KapMsgPicker.getMsg();
 
+        // raw table can be null
         if (desc == null) {
-            throw new BadRequestException(msg.getINVALID_RAWTABLE_DEFINITION());
+            return;
         }
 
         String descName = desc.getName();
@@ -285,70 +271,21 @@ public class RawTableService extends BasicService {
         }
     }
 
-    public boolean unifyRawTableDesc(RawTableDesc desc, boolean isDraft) throws IOException {
-        boolean createNew = false;
-        String name = desc.getName();
-        if (isDraft) {
-            name += "_draft";
-            desc.setName(name);
-            desc.setDraft(true);
-        } else {
-            desc.setDraft(false);
-        }
-
-        RawTableDesc youngerSelf = killSameUuid(desc.getUuid(), name, isDraft);
-        if (youngerSelf != null) {
-            desc.setLastModified(youngerSelf.getLastModified());
-        } else {
-            createNew = true;
-            desc.setLastModified(0);
-        }
-
-        return createNew;
-    }
-
-    public RawTableDesc killSameUuid(String uuid, String name, boolean isDraft) throws IOException {
-        KapMessage msg = KapMsgPicker.getMsg();
-
-        RawTableDesc youngerSelf = null, official = null;
-        boolean rename = false;
-        List<RawTableInstance> rawTables = getRawTableManager().listAllRawTables();
-        for (RawTableInstance rawTable : rawTables) {
-            RawTableDesc rawTableDesc = rawTable.getRawTableDesc();
-            if (rawTableDesc.getUuid().equals(uuid)) {
-                boolean toDrop = true;
-                boolean sameStatus = rawTableDesc.isDraft() == isDraft;
-                if (sameStatus && !rawTableDesc.getName().equals(name)) {
-                    rename = true;
-                }
-                if (sameStatus && rawTableDesc.getName().equals(name)) {
-                    youngerSelf = rawTableDesc;
-                    toDrop = false;
-                }
-                if (!rawTableDesc.isDraft()) {
-                    official = rawTableDesc;
-                    toDrop = false;
-                }
-                if (toDrop) {
-                    deleteRaw(rawTable);
-                }
-            }
-        }
-        if (official != null && rename) {
-            throw new BadRequestException(msg.getRAWTABLE_RENAME());
-        }
-        return youngerSelf;
-    }
-
-    public RawTableDesc updateRawTableToResourceStore(RawTableDesc desc, String projectName, boolean createNew)
+    public RawTableDesc updateRawTableToResourceStore(RawTableDesc desc, String projectName)
             throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
+        desc.setDraft(false);
+        if (desc.getUuid() == null)
+            desc.updateRandomUuid();
+        
         String name = desc.getName();
-        if (createNew) {
-            createRawTableInstanceAndDesc(name, projectName, desc);
-        } else {
-            try {
+        try {
+            if (desc.getLastModified() == 0) {
+                // new
+                createRawTableInstanceAndDesc(name, projectName, desc);
+            } else {
+                // update
                 RawTableInstance raw = getRawTableManager().getRawTableInstance(name);
 
                 if (raw == null) {
@@ -356,29 +293,22 @@ public class RawTableService extends BasicService {
                 }
 
                 //raw table renaming is not allowed
-                if (!raw.getRawTableDesc().getName().equalsIgnoreCase(desc.getName())) {
+                if (!raw.getRawTableDesc().getName().equals(desc.getName())) {
                     throw new BadRequestException(
                             String.format(msg.getRAW_DESC_RENAME(), desc.getName(), raw.getRawTableDesc().getName()));
                 }
 
                 desc = updateRawTableInstanceAndDesc(raw, desc, projectName, true);
-            } catch (AccessDeniedException accessDeniedException) {
-                throw new ForbiddenException(msg.getUPDATE_CUBE_NO_RIGHT());
             }
+        } catch (AccessDeniedException accessDeniedException) {
+            throw new ForbiddenException(msg.getUPDATE_CUBE_NO_RIGHT());
         }
         return desc;
     }
 
-    public void deleteRawByUuid(String uuid, boolean isDraft) throws IOException {
-        List<RawTableInstance> rawTables = getRawTableManager().listAllRawTables();
-        for (RawTableInstance rawTable : rawTables) {
-            RawTableDesc rawTableDesc = rawTable.getRawTableDesc();
-            if (rawTableDesc.getUuid().equals(uuid)) {
-                boolean sameStatus = rawTableDesc.isDraft() == isDraft;
-                if (!isDraft || sameStatus) {
-                    deleteRaw(rawTable);
-                }
-            }
-        }
+    public void deleteRawByName(String cubeName) throws IOException {
+        RawTableInstance rawTable = getRawTableManager().getRawTableInstance(cubeName);
+        if (rawTable != null)
+            deleteRaw(rawTable);
     }
 }

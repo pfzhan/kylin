@@ -27,10 +27,11 @@ package io.kyligence.kap.rest.controller;
 import java.io.IOException;
 import java.util.HashMap;
 
+import org.apache.kylin.metadata.draft.Draft;
 import org.apache.kylin.rest.controller.BasicController;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.rest.service.CubeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -39,10 +40,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.google.common.base.Preconditions;
+
 import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
-import io.kyligence.kap.rest.msg.KapMessage;
-import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.service.RawTableService;
 
 @Controller
@@ -52,6 +53,10 @@ public class RawTableDescController extends BasicController {
     @Autowired
     @Qualifier("rawTableService")
     private RawTableService rawTableService;
+
+    @Autowired
+    @Qualifier("cubeMgmtService")
+    private CubeService cubeService;
 
     /**
      * Get detail information of the "Cube ID"
@@ -65,51 +70,34 @@ public class RawTableDescController extends BasicController {
     @RequestMapping(value = "/{rawName}", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getDesc(@PathVariable String rawName) {
-        KapMessage msg = KapMsgPicker.getMsg();
+    public EnvelopeResponse getDesc(@PathVariable String rawName) throws IOException {
 
-        HashMap<String, RawTableDesc> data = new HashMap<String, RawTableDesc>();
+        RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(rawName);
+        Draft draft = cubeService.getCubeDraft(rawName);
+        
+        // skip checking raw/draft being null, raw table not exist is fine
 
-        RawTableInstance rawInstance = rawTableService.getRawTableManager().getRawTableInstance(rawName);
-        if (rawInstance == null) {
-            throw new BadRequestException(String.format(msg.getRAWTABLE_NOT_FOUND(), rawName));
+        HashMap<String, RawTableDesc> result = new HashMap<>();
+        if (raw != null) {
+            Preconditions.checkState(!raw.getRawTableDesc().isDraft());
+            result.put("rawTable", raw.getRawTableDesc());
         }
-        RawTableDesc desc = rawInstance.getRawTableDesc();
-        if (desc == null) {
-            throw new BadRequestException(String.format(msg.getRAWTABLE_DESC_NOT_FOUND(), rawName));
-        }
-
-        if (!desc.isDraft()) {
-            data.put("rawTable", desc);
-
-            String draftName = rawName + "_draft";
-            RawTableInstance draftRawTableInstance = rawTableService.getRawTableManager()
-                    .getRawTableInstance(draftName);
-            if (draftRawTableInstance != null) {
-                RawTableDesc draftRawTableDesc = draftRawTableInstance.getRawTableDesc();
-                if (draftRawTableDesc != null && draftRawTableDesc.isDraft()) {
-                    data.put("draft", draftRawTableDesc);
-                }
-            }
-        } else {
-            data.put("draft", desc);
-
-            String parentName = rawName.substring(0, rawName.lastIndexOf("_draft"));
-            RawTableInstance parentRawTableInstance = rawTableService.getRawTableManager()
-                    .getRawTableInstance(parentName);
-            if (parentRawTableInstance != null) {
-                RawTableDesc parentRawTableDesc = parentRawTableInstance.getRawTableDesc();
-                if (parentRawTableDesc != null && !parentRawTableDesc.isDraft()) {
-                    data.put("rawTable", parentRawTableDesc);
-                }
-            }
+        if (draft != null) {
+            RawTableDesc draw = (RawTableDesc) draft.getEntities()[1];
+            if (draw != null)
+                Preconditions.checkState(draw.isDraft());
+            result.put("draft", draw);            
         }
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 
     public void setRawTableService(RawTableService rawTableService) {
         this.rawTableService = rawTableService;
+    }
+
+    public void setCubeService(CubeService cubeService) {
+        this.cubeService = cubeService;
     }
 
 }

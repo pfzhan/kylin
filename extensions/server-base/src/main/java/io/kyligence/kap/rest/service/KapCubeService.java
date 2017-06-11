@@ -118,4 +118,5 @@ public class KapCubeService extends BasicService {
     protected String getRawParquetFolderPath(RawTableSegment rawSegment) {
         return new StringBuffer(KapConfig.wrap(rawSegment.getConfig()).getParquetStoragePath()).append(rawSegment.getRawTableInstance().getUuid()).append("/").append(rawSegment.getUuid()).append("/").append("RawTable/").toString();
     }
+
 }

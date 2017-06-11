@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.controller;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
@@ -36,6 +37,7 @@ import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.metadata.draft.Draft;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.controller.BasicController;
@@ -48,6 +50,7 @@ import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.CacheService;
 import org.apache.kylin.rest.service.CubeService;
 import org.apache.kylin.rest.service.JobService;
+import org.apache.kylin.rest.service.ProjectService;
 import org.quartz.SchedulerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,6 +91,10 @@ public class KapCubeController extends BasicController implements InitializingBe
     @Autowired
     @Qualifier("kapCubeService")
     private KapCubeService kapCubeService;
+
+    @Autowired
+    @Qualifier("projectService")
+    private ProjectService projectService;
 
     @Autowired
     @Qualifier("cacheService")
@@ -195,36 +202,40 @@ public class KapCubeController extends BasicController implements InitializingBe
             throws IOException, ParseException, SchedulerException {
 
         CubeDesc cubeDesc = deserializeCubeDesc(kapCubeRequest);
-        schedulerJobService.pauseScheduler(cubeDesc.getName());
         cubeService.validateCubeDesc(cubeDesc, false);
-        RawTableDesc rawTableDesc = deserializeRawTableDesc(kapCubeRequest);
-        SchedulerJobInstance schedulerJobInstance = deserializeSchedulerJobInstance(kapCubeRequest);
 
-        String projectName = (null == kapCubeRequest.getProject()) ? ProjectInstance.DEFAULT_PROJECT_NAME
+        RawTableDesc rawTableDesc = deserializeRawTableDesc(kapCubeRequest);
+        rawTableService.validateRawTableDesc(rawTableDesc);
+
+        SchedulerJobInstance schedule = deserializeSchedulerJobInstance(kapCubeRequest);
+        schedulerJobService.pauseScheduler(cubeDesc.getName());
+
+        String project = (null == kapCubeRequest.getProject()) ? ProjectInstance.DEFAULT_PROJECT_NAME
                 : kapCubeRequest.getProject();
 
         ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
         ResourceStore.Checkpoint cp = store.checkpoint();
         try {
-            boolean createNewCube = cubeService.unifyCubeDesc(cubeDesc, false);
-            cubeDesc = cubeService.updateCubeToResourceStore(cubeDesc, projectName, createNewCube);
+            cubeDesc = cubeService.updateCubeToResourceStore(cubeDesc, project);
 
             if (rawTableDesc != null) {
-                rawTableService.validateRawTableDesc(rawTableDesc);
-                rawTableDesc.setUuid(cubeDesc.getUuid());
-                boolean createNewRawTable = rawTableService.unifyRawTableDesc(rawTableDesc, false);
-                rawTableDesc = rawTableService.updateRawTableToResourceStore(rawTableDesc, projectName,
-                        createNewRawTable);
+                rawTableDesc.setName(cubeDesc.getName());
+                rawTableDesc = rawTableService.updateRawTableToResourceStore(rawTableDesc, project);
             } else {
-                rawTableService.deleteRawByUuid(cubeDesc.getUuid(), false);
+                rawTableService.deleteRawByName(cubeDesc.getName());
             }
 
-            bindSchedulerJobWithCube(schedulerJobInstance, cubeDesc.getName(), cubeDesc.getUuid());
-            validateSchedulerJobs(cubeDesc.getUuid());
-            schedulerJobService.enableSchedulerJob(schedulerJobInstance);
+            if (schedule != null) {
+                bindSchedulerJobWithCube(schedule, cubeDesc.getName(), cubeDesc.getUuid());
+                schedulerJobService.enableSchedulerJob(schedule);
+            }
+
+            // remove any previous draft
+            cubeService.getDraftManager().delete(cubeDesc.getUuid());
+
         } catch (Exception ex) {
             cp.rollback();
-            cacheService.wipeAllCache();
+            cacheService.wipeProjectCache(project);
             throw ex;
         } finally {
             cp.close();
@@ -238,6 +249,7 @@ public class KapCubeController extends BasicController implements InitializingBe
         if (rawTableDesc != null) {
             data.setProperty("rawTableUuid", rawTableDesc.getUuid());
             data.setProperty("rawTableDescData", rawTableDescData);
+            // FIXME why this is under "rawTableDesc != null" ?
             data.setProperty("schedulerJobData", kapCubeRequest.getSchedulerJobData());
         }
 
@@ -252,37 +264,24 @@ public class KapCubeController extends BasicController implements InitializingBe
 
         CubeDesc cubeDesc = deserializeCubeDesc(kapCubeRequest);
         cubeService.validateCubeDesc(cubeDesc, true);
-        RawTableDesc rawTableDesc = deserializeRawTableDesc(kapCubeRequest);
-        SchedulerJobInstance schedulerJobInstance = deserializeSchedulerJobInstance(kapCubeRequest);
 
-        String projectName = (null == kapCubeRequest.getProject()) ? ProjectInstance.DEFAULT_PROJECT_NAME
+        RawTableDesc rawTableDesc = deserializeRawTableDesc(kapCubeRequest);
+        rawTableService.validateRawTableDesc(rawTableDesc);
+
+        SchedulerJobInstance schedule = deserializeSchedulerJobInstance(kapCubeRequest);
+
+        String project = (null == kapCubeRequest.getProject()) ? ProjectInstance.DEFAULT_PROJECT_NAME
                 : kapCubeRequest.getProject();
 
-        ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
-        ResourceStore.Checkpoint cp = store.checkpoint();
-        try {
-            boolean createNewCube = cubeService.unifyCubeDesc(cubeDesc, true);
-            cubeDesc = cubeService.updateCubeToResourceStore(cubeDesc, projectName, createNewCube);
+        if (cubeDesc.getUuid() == null)
+            cubeDesc.updateRandomUuid();
+        cubeDesc.setDraft(true);
 
-            if (rawTableDesc != null) {
-                rawTableService.validateRawTableDesc(rawTableDesc);
-                rawTableDesc.setUuid(cubeDesc.getUuid());
-                boolean createNewRawTable = rawTableService.unifyRawTableDesc(rawTableDesc, true);
-                rawTableDesc = rawTableService.updateRawTableToResourceStore(rawTableDesc, projectName,
-                        createNewRawTable);
-            } else {
-                rawTableService.deleteRawByUuid(cubeDesc.getUuid(), true);
-            }
-
-            bindSchedulerJobWithCube(schedulerJobInstance, cubeDesc.getName(), cubeDesc.getUuid());
-            validateSchedulerJobs(cubeDesc.getUuid());
-        } catch (Exception ex) {
-            cp.rollback();
-            cacheService.wipeAllCache();
-            throw ex;
-        } finally {
-            cp.close();
+        if (rawTableDesc != null) {
+            rawTableDesc.setDraft(true);
         }
+
+        cubeService.getDraftManager().save(project, cubeDesc.getUuid(), cubeDesc, rawTableDesc, schedule);
 
         String cubeDescData = JsonUtil.writeValueAsIndentString(cubeDesc);
         String rawTableDescData = JsonUtil.writeValueAsIndentString(rawTableDesc);
@@ -292,6 +291,7 @@ public class KapCubeController extends BasicController implements InitializingBe
         if (rawTableDesc != null) {
             data.setProperty("rawTableUuid", rawTableDesc.getUuid());
             data.setProperty("rawTableDescData", rawTableDescData);
+            // FIXME why this is under "rawTableDesc != null" ?
             data.setProperty("schedulerJobData", kapCubeRequest.getSchedulerJobData());
         }
 
@@ -302,30 +302,49 @@ public class KapCubeController extends BasicController implements InitializingBe
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getSchedulerJob(@PathVariable String cubeName) throws IOException {
+
         SchedulerJobInstance job = getSchedulerJobByCubeName(cubeName);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, job, "");
+        Draft draft = cubeService.getCubeDraft(cubeName);
+
+        // skip checking job/draft being null, schedulerJob not exist is fine
+
+        HashMap<String, SchedulerJobInstance> result = new HashMap<>();
+        if (job != null) {
+            result.put("schedulerJob", job);
+        }
+        if (draft != null) {
+            SchedulerJobInstance djob = (SchedulerJobInstance) draft.getEntities()[2];
+            result.put("draft", djob);
+        }
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 
     @RequestMapping(value = "{cubeName}", method = { RequestMethod.DELETE }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public void deleteCubeAndDraft(@PathVariable String cubeName) throws IOException, SchedulerException {
-        ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
-        ResourceStore.Checkpoint cp = store.checkpoint();
-        try {
-            String draftName = cubeName + "_draft";
-            CubeInstance draftCube = cubeService.getCubeManager().getCube(draftName);
-            if (draftCube != null && draftCube.getDescriptor().isDraft()) {
-                deleteCube(draftName);
+        CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
+        if (cube != null) {
+            String project = projectService.getProjectOfCube(cube.getName());
+
+            ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
+            ResourceStore.Checkpoint cp = store.checkpoint();
+            try {
+                deleteCube(cubeName);
+            } catch (Exception ex) {
+                cp.rollback();
+                cacheService.wipeProjectCache(project);
+                throw ex;
+            } finally {
+                cp.close();
             }
-            deleteCube(cubeName);
-        } catch (Exception ex) {
-            cp.rollback();
-            cacheService.wipeAllCache();
-            throw ex;
-        } finally {
-            cp.close();
         }
+
+        // delete draft is not critical and can be out of checkpoint/rollback
+        Draft draft = cubeService.getCubeDraft(cubeName);
+        if (draft != null)
+            cubeService.getDraftManager().delete(draft.getUuid());
     }
 
     private void deleteCube(String cubeName) throws IOException, SchedulerException {
@@ -344,7 +363,6 @@ public class KapCubeController extends BasicController implements InitializingBe
         SchedulerJobInstance job = getSchedulerJobByCubeName(cubeName);
         if (job != null) {
             schedulerJobService.deleteSchedulerJob(job);
-
         }
     }
 
@@ -402,41 +420,28 @@ public class KapCubeController extends BasicController implements InitializingBe
         return schedulerJob;
     }
 
-    private void bindSchedulerJobWithCube(SchedulerJobInstance younger, String cubeName, String cubeUuid)
+    private void bindSchedulerJobWithCube(SchedulerJobInstance schedule, String cubeName, String cubeUuid)
             throws IOException, SchedulerException {
         SchedulerJobInstance older = getSchedulerJobByCubeName(cubeName);
         if (null != older)
             schedulerJobService.deleteSchedulerJob(older);
-        younger.setRelatedRealization(cubeName);
-        younger.setName(cubeName);
-        younger.setRelatedRealizationUuid(cubeUuid);
-        younger.setRealizationType("cube");
 
-        if (younger.getScheduledRunTime() < System.currentTimeMillis()) {
-            younger.setScheduledRunTime(System.currentTimeMillis());
+        schedule.setRelatedRealization(cubeName);
+        schedule.setName(cubeName);
+        schedule.setRelatedRealizationUuid(cubeUuid);
+        schedule.setRealizationType("cube");
+
+        if (schedule.getScheduledRunTime() < System.currentTimeMillis()) {
+            schedule.setScheduledRunTime(System.currentTimeMillis());
         }
 
         CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
         Segments<CubeSegment> segments = cube.getSegments();
 
-        if (younger.getPartitionStartTime() < segments.getDateRangeEnd()) {
-            younger.setPartitionStartTime(segments.getDateRangeEnd());
+        if (schedule.getPartitionStartTime() < segments.getDateRangeEnd()) {
+            schedule.setPartitionStartTime(segments.getDateRangeEnd());
         }
-        schedulerJobService.saveSchedulerJob(younger);
-    }
-
-    // Keep SchedulerJob consistent with cubes.
-    private void validateSchedulerJobs(String uuid) throws IOException, SchedulerException {
-        for (SchedulerJobInstance jobInstance : schedulerJobService.listAllSchedulerJobs()) {
-            if (!jobInstance.getRelatedRealizationUuid().equals(uuid))
-                continue;
-
-            for (String cubeName : kapCubeService.getCubesByUuid(uuid)) {
-                if (!jobInstance.getRelatedRealization().equals(cubeName)) {
-                    schedulerJobService.deleteSchedulerJob(jobInstance);
-                }
-            }
-        }
+        schedulerJobService.saveSchedulerJob(schedule);
     }
 
     private SchedulerJobInstance getSchedulerJobByCubeName(String cubeName) throws IOException {

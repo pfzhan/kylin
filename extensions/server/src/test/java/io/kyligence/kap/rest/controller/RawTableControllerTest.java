@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.controller;
 import java.io.IOException;
 import java.util.HashMap;
 
+import org.apache.kylin.rest.service.CubeService;
 import org.apache.kylin.rest.service.JobService;
 import org.junit.Assert;
 import org.junit.Before;
@@ -49,9 +50,14 @@ public class RawTableControllerTest extends ServiceTestBase {
     @Autowired
     @Qualifier("rawTableService")
     RawTableService rawService;
+    
     @Autowired
     @Qualifier("jobService")
     JobService jobService;
+
+    @Autowired
+    @Qualifier("cubeMgmtService")
+    private CubeService cubeService;
 
     @Before
     public void setup() throws Exception {
@@ -63,7 +69,7 @@ public class RawTableControllerTest extends ServiceTestBase {
 
         descController = new RawTableDescController();
         descController.setRawTableService(rawService);
-
+        descController.setCubeService(cubeService);
     }
 
     @Test

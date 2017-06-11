@@ -177,6 +177,9 @@ public class SchedulerJobService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
             + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
     public SchedulerJobInstance saveSchedulerJob(SchedulerJobInstance job) throws IOException {
+        if (job.getUuid() == null)
+            job.updateRandomUuid();
+
         getSchedulerJobManager().addSchedulerJob(job);
         return job;
     }
