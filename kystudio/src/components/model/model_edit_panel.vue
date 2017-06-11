@@ -21,15 +21,10 @@
                           </el-input>
                         </td>
                       </tr>
-                       <tr>
+                       <tr v-show="currentModelInfo.owner">
                         <th>{{$t('owner')}}</th>
                         <td>
-                            <el-input
-                            type="textarea"
-                            :rows="2" :disabled="actionMode==='view'"
-                            :placeholder="$t('inputModelDescription')"
-                            v-model="currentModelInfo.modelDiscribe">
-                          </el-input>
+                           {{currentModelInfo.owner}}
                         </td>
                       </tr>
                     </table>

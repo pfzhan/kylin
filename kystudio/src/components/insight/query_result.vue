@@ -81,7 +81,6 @@
 import echarts from 'echarts'
 import $ from 'jquery'
 import { mapActions } from 'vuex'
-import pager from '../common/pager'
 import { indexOfObjWithSomeKey, scToFloat, showNull } from '../../util/index'
 import { handleError } from '../../util/business'
 export default {
@@ -115,11 +114,7 @@ export default {
         project: this.extraoption.project,
         sql: this.extraoption.sql
       }
-
     }
-  },
-  components: {
-    pager
   },
   methods: {
     ...mapActions({
@@ -133,22 +128,23 @@ export default {
       this.viewModel = !this.viewModel
     },
     transDataForGrid (data) {
-      var columnMeata = data.columnMetas
-      for (var i = 0; i < columnMeata.length; i++) {
+      var columnMeata = this.extraoption.data.columnMetas
+      var lenOfMeta = columnMeata.length
+      for (var i = 0; i < lenOfMeta; i++) {
         this.tableMeta.push(columnMeata[i])
       }
-      this.tableData = data.results
-      var len = this.tableData.length
-      for (let i = 0; i < len; i++) {
-        var innerLen = this.tableData[i].length
-        for (var m = 0; m < innerLen; m++) {
-          var cur = this.tableData[i][m]
-          var trans = scToFloat(cur)
-          if (trans) {
-            this.tableData[i][m] = showNull(trans)
-          }
-        }
-      }
+      // this.tableData = data.results
+      // var len = this.tableData.length
+      // for (let i = 0; i < len; i++) {
+      //   var innerLen = this.tableData[i].length
+      //   for (var m = 0; m < innerLen; m++) {
+      //     var cur = this.tableData[i][m]
+      //     var trans = scToFloat(cur)
+      //     if (trans) {
+      //       this.tableData[i][m] = showNull(trans)
+      //     }
+      //   }
+      // }
       this.pageSizeChange(1)
     },
     transDataForGraph (dimension, measure) {
@@ -296,7 +292,19 @@ export default {
     },
     pageSizeChange (size) {
       // this.$refs.pager.currentPage = size
-      this.pagerTableData = Object.assign([], this.tableData.slice((size - 1) * this.$refs.pager.pageSize, size * this.$refs.pager.pageSize))
+      this.tableData = this.extraoption.data.results.slice((size - 1) * this.$refs.pager.pageSize, size * this.$refs.pager.pageSize)
+      var len = this.tableData.length
+      for (let i = 0; i < len; i++) {
+        var innerLen = this.tableData[i].length
+        for (var m = 0; m < innerLen; m++) {
+          var cur = this.tableData[i][m]
+          var trans = scToFloat(cur)
+          if (trans) {
+            this.tableData[i][m] = showNull(trans)
+          }
+        }
+      }
+      this.pagerTableData = Object.assign([], this.tableData)
     },
     openSaveQueryDialog () {
       this.saveQueryFormVisible = true
@@ -329,7 +337,7 @@ export default {
     // })
     this.queryInfo.duration = this.extraoption.data.duration
     this.queryInfo.cube = this.extraoption.data.cube
-    this.transDataForGrid(this.extraoption.data)
+    this.transDataForGrid()
   },
   // watch: {
   //   'selectDimension': function () {
@@ -347,7 +355,7 @@ export default {
   // },
   computed: {
     modelsTotal () {
-      return this.tableData.length
+      return this.extraoption.data.results.length
     },
     dimensionsAndMeasures () {
       var resultDimension = []

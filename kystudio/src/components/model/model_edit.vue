@@ -281,6 +281,7 @@ export default {
         uuid: null,
         last_modified: '',
         filterStr: '',
+        owner: '',
         modelName: '',
         modelDiscribe: '',
         computed_columns: [],
@@ -1644,7 +1645,8 @@ export default {
               modelDiscribe: modelData.description,
               modelName: modelData.name,
               is_draft: modelData.is_draft,
-              last_modified: modelData.last_modified
+              last_modified: modelData.last_modified,
+              owner: modelData.owner
             })
             // 加载原来设置的partition
             var partitionDate = modelData.partition_desc.partition_date_column ? modelData.partition_desc.partition_date_column.split('.') : [null, null]
