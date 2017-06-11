@@ -59,7 +59,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Objects;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.raw.gridtable.RawToGridTableMapping;
 import io.kyligence.kap.metadata.model.IKapStorageAware;
 
 /**
@@ -93,7 +92,6 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
     @JsonProperty("create_time_utc")
     private long createTimeUTC;
 
-    private RawToGridTableMapping mapping;
     private Set<TblColRef> allColumns;
     private Set<ColumnDesc> allColumnDescs;
     private List<TblColRef> mockupDimensions;
@@ -122,13 +120,6 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
         initAllColumns();
         initDimensions();
         initMeasures();
-    }
-
-    // init config only for draft
-    public void initConfig(KylinConfig config) {
-        if (null == config)
-            throw new IllegalArgumentException("config is null in RawTableInstance Init!");
-        this.config = config;
     }
 
     public RawTableDesc getRawTableDesc() {

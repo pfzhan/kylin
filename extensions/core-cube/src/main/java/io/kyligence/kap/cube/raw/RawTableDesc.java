@@ -219,11 +219,6 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         return columnsInOrder;
     }
 
-    // init config only for draft
-    void initConfig(KylinConfig config) {
-        this.config = config;
-    }
-
     // ============================================================================
 
     public KylinConfig getConfig() {

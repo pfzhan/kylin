@@ -31,6 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.cube.model.RowKeyColDesc;
@@ -63,8 +64,9 @@ public class AggrGroupProposer extends AbstractProposer {
         if (!context.hasModelStats() && !context.hasQueryStats()) {
             return;
         }
-        workCubeDesc.getOverrideKylinProps().clear();
-        workCubeDesc.initConfig(context.getKylinConfig());
+        
+        KylinConfigExt configExt = (KylinConfigExt) workCubeDesc.getConfig();
+        configExt.getExtendedOverrides().clear();
 
         for (AggregationGroup aggregationGroup : workCubeDesc.getAggregationGroups()) {
             optimizeAggrGroup(workCubeDesc, aggregationGroup);

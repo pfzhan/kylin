@@ -168,10 +168,7 @@ public class RawTableDescManager {
             throw new IllegalStateException("RawTableDesc name must not be blank");
         }
 
-        if (!desc.isDraft())
-            desc.init(config);
-        else
-            desc.initConfig(config);
+        desc.init(config);
 
         return desc;
     }
@@ -184,11 +181,10 @@ public class RawTableDescManager {
             throw new IllegalArgumentException();
         if (rawTableDescMap.containsKey(rawTableDesc.getName()))
             throw new IllegalArgumentException("RawTableDesc '" + rawTableDesc.getName() + "' already exists");
+        if (rawTableDesc.isDraft())
+            throw new IllegalArgumentException("RawTableDesc '" + rawTableDesc.getName() + "' must not be a draft");
 
-        if (!rawTableDesc.isDraft())
-            rawTableDesc.init(config);
-        else
-            rawTableDesc.initConfig(config);
+        rawTableDesc.init(config);
 
         String path = rawTableDesc.getResourcePath();
         getStore().putResource(path, rawTableDesc, DESC_SERIALIZER);
@@ -245,18 +241,15 @@ public class RawTableDescManager {
      */
     public RawTableDesc updateRawTableDesc(RawTableDesc desc) throws IOException {
         // Validate RawTableDesc
-        if (desc.getUuid() == null || desc.getName() == null) {
+        if (desc.getUuid() == null || desc.getName() == null)
             throw new IllegalArgumentException();
-        }
         String name = desc.getName();
-        if (!rawTableDescMap.containsKey(name)) {
+        if (!rawTableDescMap.containsKey(name))
             throw new IllegalArgumentException("RawTableDesc '" + name + "' does not exist.");
-        }
+        if (desc.isDraft())
+            throw new IllegalArgumentException("RawTableDesc '" + desc.getName() + "' must not be a draft");
 
-        if (!desc.isDraft())
-            desc.init(config);
-        else
-            desc.initConfig(config);
+        desc.init(config);
 
         // Save Source
         String path = desc.getResourcePath();
