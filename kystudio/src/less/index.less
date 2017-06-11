@@ -66,14 +66,14 @@ body{
 .ksd_left_bar{
    width: 250px;
    display: inline-block;
-   border-top: solid 1px #d1dbe5;
+   border-top: solid 1px transparent;
 }
 .ksd_right_box{
    position: absolute;
    left: 250px;
    top:0;
-   border-left:solid 1px #d1dbe5;
-   border-top: solid 1px #d1dbe5;
+   border-left:solid 1px transparent;
+   border-top: solid 1px transparent;
    min-height: 1000px;
    right: 0;
 }
@@ -653,6 +653,12 @@ li {list-style-type:none;}
   .jobs_list .timeline > li > .timeline-item *{
     background: @tableBC;
     color: @fff;
+  }
+  .insight_box .query_result_box{
+    border: 0;
+  }
+  .insight_tab *{
+    border: 0!important;
   }
 }
 

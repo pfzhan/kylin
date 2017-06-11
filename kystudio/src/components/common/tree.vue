@@ -1,7 +1,7 @@
 <!-- 树 -->
 <template>
   <div class="tree_box">
-  <el-input
+  <el-input style="padding-left: 25px;margin-top: -10px;background: transparent;margin-bottom: 10px;"
     :placeholder="placeholder"
     v-model="filterText" v-if="showfilter">
   </el-input>

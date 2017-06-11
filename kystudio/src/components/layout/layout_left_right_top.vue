@@ -36,12 +36,13 @@
       <div class="grid-content bg-purple-light">
         <el-col :span="24" style="margin-bottom:15px;">
 
-          <el-breadcrumb separator="/" >
+          <!-- 面包屑先干掉 -->
+          <!-- <el-breadcrumb separator="/" >
             <el-breadcrumb-item :to="{ path: '/dashboard' }"><icon class="home_icon" name="home" ></icon></el-breadcrumb-item>
-             <el-breadcrumb-item v-if="currentPathName!=''">{{$t('kylinLang.menu.' + currentPath.toLowerCase())}}</el-breadcrumb-item>
+             <el-breadcrumb-item v-if="currentPathName!=''">{{$t('kylinLang.menu.' + currentPath.toLowerCase())}}</el-breadcrumb-item> -->
             <!-- <el-breadcrumb-item v-if="currentPathNameParent!=''" >{{currentPathNameParent}}</el-breadcrumb-item>	 -->
 
-          </el-breadcrumb>
+          <!-- </el-breadcrumb> -->
         </el-col>
         <el-col :span="24" style="box-sizing: border-box;" id="mainBox">
           <!--<transition name="fade">-->
@@ -625,12 +626,9 @@
     		text-align:left;
     	}
       li:nth-child(2){
-        // background: yellow;
         margin-left: -30px;
       }
     }
-
-
 	}
 	.el-menu{
     padding-top: 40px;
