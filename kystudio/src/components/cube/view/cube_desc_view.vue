@@ -2,22 +2,22 @@
 <div class="cube_desc_view">
   <el-steps :active="activeStep"  finish-status="finish" process-status="wait" center >
     <el-step :title="$t('cubeInfo')" @click.native="step(1)"></el-step>
-    <el-step :title="$t('Sql')" @click.native="step(2)"></el-step>
-    <el-step :title="$t('dimensions')" @click.native="step(3)"></el-step>
-    <el-step :title="$t('measures')" @click.native="step(4)"></el-step>
-    <el-step :title="$t('refreshSetting')" @click.native="step(5)"></el-step>
-    <el-step :title="$t('tableIndex')" @click.native="step(6)"></el-step>
-    <el-step :title="$t('configurationOverwrites')" @click.native="step(7)"></el-step>
-    <el-step :title="$t('overview')" @click.native="step(8)"></el-step>
+    <!-- <el-step :title="$t('Sql')" @click.native="step(2)"></el-step> -->
+    <el-step :title="$t('dimensions')" @click.native="step(2)"></el-step>
+    <el-step :title="$t('measures')" @click.native="step(3)"></el-step>
+    <el-step :title="$t('refreshSetting')" @click.native="step(4)"></el-step>
+    <el-step :title="$t('tableIndex')" @click.native="step(5)"></el-step>
+    <el-step :title="$t('configurationOverwrites')" @click.native="step(6)"></el-step>
+    <el-step :title="$t('overview')" @click.native="step(7)"></el-step>
   </el-steps>
   <info v-if="activeStep===1" :cubeDesc="cube"></info>
-  <sample_sql v-if="activeStep===2" :cubeDesc="cube"></sample_sql>
-  <dimensions v-if="activeStep===3" :cubeDesc="cube"></dimensions>
-  <measures v-if="activeStep===4" :cubeDesc="cube"></measures>
-  <refresh_setting v-if="activeStep===5" :cubeDesc="cube"></refresh_setting>
-  <table_index v-if="activeStep===6" :cubeDesc="cube" :cubeIndex="index"></table_index>
-  <configuration_overwrites v-if="activeStep===7" :cubeDesc="cube"></configuration_overwrites>
-  <overview v-if="activeStep===8" :desc="cube"></overview>
+  <!-- <sample_sql v-if="activeStep===2" :cubeDesc="cube"></sample_sql> -->
+  <dimensions v-if="activeStep===2" :cubeDesc="cube"></dimensions>
+  <measures v-if="activeStep===3" :cubeDesc="cube"></measures>
+  <refresh_setting v-if="activeStep===4" :cubeDesc="cube"></refresh_setting>
+  <table_index v-if="activeStep===5" :cubeDesc="cube" :cubeIndex="index"></table_index>
+  <configuration_overwrites v-if="activeStep===6" :cubeDesc="cube"></configuration_overwrites>
+  <overview v-if="activeStep===7" :desc="cube"></overview>
 </div>
 </template>
 

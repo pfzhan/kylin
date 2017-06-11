@@ -107,6 +107,9 @@ export default {
     [types.GET_CUBE_SUGGESTIONS]: function ({ commit }, cubeDesc) {
       return api.cube.getCubeSuggestions(cubeDesc)
     },
+    [types.GET_CUBE_DIMENSIONS]: function ({ commit }, cubeDesc) {
+      return api.cube.getCubeSuggestDimensions(cubeDesc)
+    },
     [types.GET_SCHEDULER]: function ({ commit }, cubeName) {
       return api.cube.getScheduler(cubeName)
     },

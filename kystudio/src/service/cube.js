@@ -90,6 +90,9 @@ export default {
   getCubeSuggestions: (cubeDesc) => {
     return Vue.resource(apiUrl + 'smart/suggestions').save(cubeDesc)
   },
+  getCubeSuggestDimensions: (cubeDesc) => {
+    return Vue.resource(apiUrl + 'smart/dimensions').save(cubeDesc)
+  },
   getScheduler: (cubeName) => {
     return Vue.resource(apiUrl + 'cubes/' + cubeName + '/scheduler_job').get()
   },

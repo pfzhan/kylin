@@ -2,28 +2,28 @@
 <div class="paddingbox">
   <el-steps :active="activeStep"  finish-status="finish" process-status="wait" center align-center style="width:96%;margin:0 auto">
     <el-step :title="$t('cubeInfo')" @click.native="step(1)"></el-step>
-    <el-step :title="$t('sampleSql')" @click.native="step(2)"></el-step>
-    <el-step :title="$t('dimensions')" @click.native="step(3)"></el-step>
-    <el-step :title="$t('measures')" @click.native="step(4)"></el-step>
-    <el-step :title="$t('refreshSetting')" @click.native="step(5)"></el-step>
-    <el-step :title="$t('tableIndex')" @click.native="step(6)"></el-step>
-    <el-step :title="$t('AdvancedSetting')" @click.native="step(7)"></el-step>
-    <el-step :title="$t('overview')" @click.native="step(8)"></el-step>
+    <!-- <el-step :title="$t('sampleSql')" @click.native="step(2)"></el-step> -->
+    <el-step :title="$t('dimensions')" @click.native="step(2)"></el-step>
+    <el-step :title="$t('measures')" @click.native="step(3)"></el-step>
+    <el-step :title="$t('refreshSetting')" @click.native="step(4)"></el-step>
+    <el-step :title="$t('tableIndex')" @click.native="step(5)"></el-step>
+    <el-step :title="$t('AdvancedSetting')" @click.native="step(6)"></el-step>
+    <el-step :title="$t('overview')" @click.native="step(7)"></el-step>
   </el-steps>
   <div class="ksd-mt-10 ksd-mb-10">
   <info v-if="activeStep===1" :cubeDesc="cubeDetail" :modelDesc="modelDetail" :isEdit="isEdit"></info>
-  <sample_sql v-if="activeStep===2" :cubeDesc="cubeDetail" :isEdit="isEdit" :sampleSql="sampleSQL"></sample_sql>
-  <dimensions v-if="activeStep===3" :cubeDesc="cubeDetail" :modelDesc="modelDetail" :isEdit="isEdit"></dimensions>
-  <measures v-if="activeStep===4" :cubeDesc="cubeDetail" :modelDesc="modelDetail" :isEdit="isEdit"></measures>
-  <refresh_setting v-if="activeStep===5" :cubeDesc="cubeDetail" :isEdit="isEdit" :modelDesc="modelDetail" :scheduler="scheduler"></refresh_setting>
-  <table_index v-if="activeStep===6" :cubeDesc="cubeDetail" :isEdit="isEdit" :modelDesc="modelDetail"  :rawTable="rawTable"></table_index>
-  <configuration_overwrites v-if="activeStep===7" :cubeDesc="cubeDetail" :isEdit="isEdit"></configuration_overwrites>
-  <overview v-if="activeStep===8" :cubeDesc="cubeDetail" :modelDesc="modelDetail"></overview>
+  <!-- <sample_sql v-if="activeStep===2" :cubeDesc="cubeDetail" :isEdit="isEdit" :sampleSql="sampleSQL"></sample_sql> -->
+  <dimensions v-if="activeStep===2" :cubeDesc="cubeDetail" :modelDesc="modelDetail" :isEdit="isEdit"></dimensions>
+  <measures v-if="activeStep===3" :cubeDesc="cubeDetail" :modelDesc="modelDetail" :isEdit="isEdit"></measures>
+  <refresh_setting v-if="activeStep===4" :cubeDesc="cubeDetail" :isEdit="isEdit" :modelDesc="modelDetail" :scheduler="scheduler"></refresh_setting>
+  <table_index v-if="activeStep===5" :cubeDesc="cubeDetail" :isEdit="isEdit" :modelDesc="modelDetail"  :rawTable="rawTable"></table_index>
+  <configuration_overwrites v-if="activeStep===6" :cubeDesc="cubeDetail" :isEdit="isEdit"></configuration_overwrites>
+  <overview v-if="activeStep===7" :cubeDesc="cubeDetail" :modelDesc="modelDetail"></overview>
   </div>
   
 <!-- <el-button  type="primary"  @click.native="saveDraft(true)">Draft</el-button> -->
-  <el-button class="button_right" type="primary" v-if="activeStep !== 8" @click.native="next">{{$t('next')}}<i class="el-icon-arrow-right el-icon--right"></i></el-button>
-  <el-button class="button_right" :loading="cubeSaving" type="primary" v-if="activeStep === 8" @click.native="saveOrUpdate">{{$t('save')}}</el-button>
+  <el-button class="button_right" type="primary" v-if="activeStep !== 7" @click.native="next">{{$t('next')}}<i class="el-icon-arrow-right el-icon--right"></i></el-button>
+  <el-button class="button_right" :loading="cubeSaving" type="primary" v-if="activeStep === 7" @click.native="saveOrUpdate">{{$t('save')}}</el-button>
     <el-button class="button_right" icon="arrow-left" v-if="activeStep !== 1" @click.native="prev">{{$t('prev')}}</el-button>
 
 
@@ -101,7 +101,7 @@ export default {
       selected_project: this.extraoption.project,
       wizardSteps: [
         {title: 'checkCubeInfo', isComplete: false},
-        {title: 'checkSampleSql', isComplete: false},
+        // {title: 'checkSampleSql', isComplete: false},
         {title: 'checkDimensions', isComplete: false},
         {title: 'checkMeasures', isComplete: false},
         {title: 'checkRefreshSetting', isComplete: false},
@@ -167,17 +167,17 @@ export default {
       switch (index) {
         case 1:
           return _this.checkCubeInfo()
+        // case 2:
+        //   return _this.checkSampleSql()
         case 2:
-          return _this.checkSampleSql()
-        case 3:
           return _this.checkDimensions()
-        case 4:
+        case 3:
           return _this.checkMeasures()
-        case 5:
+        case 4:
           return _this.checkRefreshSetting()
-        case 6:
+        case 5:
           return _this.checkTableIndex()
-        case 7:
+        case 6:
           return _this.checkConfigurationOverwrite()
         default:
           return true
@@ -208,14 +208,6 @@ export default {
       } else {
         return true
       }
-    },
-    checkSampleSql: function () {
-      console.log(880)
-      let _this = this
-      if (_this.sampleSQL.sqlString !== '') {
-        _this.saveSampleSql({modelName: _this.modelDetail.name, cubeName: _this.cubeDetail.name, sqls: _this.sampleSQL.sqlString.split(/\r?\n/)})
-      }
-      return true
     },
     checkDimensions: function () {
       let _this = this

@@ -103,6 +103,7 @@ export default {
   methods: {
     getTableColumns: function () {
       let _this = this
+      // console.log(_this.modelDesc.dimensions, 'lll')
       _this.modelDesc.dimensions.forEach(function (dimension) {
         _this.multipleSelection[dimension.table] = []
         if (_this.modelDesc.factTables.indexOf(dimension.table) !== -1) {
@@ -116,11 +117,20 @@ export default {
           let colArr = []
           let tableObj = {tableName: dimension.table, columns: colArr}
           dimension.columns.forEach(function (col) {
-            colArr.push({table: dimension.table, column: col, name: col, derived: 'true', isSelected: false})
+            var suggestDerivedInfo = suggestDerived(dimension.table, col) === null ? 'false' : 'true'
+            colArr.push({table: dimension.table, column: col, name: col, derived: suggestDerivedInfo, isSelected: false})
           })
           _this.lookupTableColumns.push(tableObj)
         }
       })
+      function suggestDerived (table, column) {
+        var derivedList = _this.modelDesc.suggestionDerived
+        for (var s = 0; s < derivedList.length; s++) {
+          if (table === derivedList[s].table && column === derivedList[s].column) {
+            return derivedList[s].derived
+          }
+        }
+      }
     },
     getCubeColumnInTable: function () {
       let _this = this
@@ -197,12 +207,10 @@ export default {
     }
   },
   created () {
-    console.log(this.modelDesc.columnsDetail)
-    let _this = this
     this.getTableColumns()
     this.getCubeColumnInTable()
     this.$on('addDimensionsFormValid', (t) => {
-      _this.$emit('validSuccess', this.multipleSelection)
+      this.$emit('validSuccess', this.multipleSelection)
     })
   },
   locales: {

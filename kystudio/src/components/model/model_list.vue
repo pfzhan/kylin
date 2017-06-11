@@ -474,7 +474,7 @@ export default {
         }).then((res) => {
           handleSuccess(res, (data) => {
             for (var i in data) {
-              if (i === true) {
+              if (i === 'false') {
                 this.scanRatioDialogVisible = true
                 this.startTime = 0
                 if (modelData.partition_desc.partition_date_column) {

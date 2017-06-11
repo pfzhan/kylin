@@ -2,16 +2,11 @@
 <div class="dimensionBox">
   <el-row>
     <el-col :span="18" class="border_right">  
-      <el-row class="row_padding border_bottom">
-        <el-col :span="5">
-          <el-button type="primary" icon="setting" @click.native="resetDimensions" :disabled="isReadyCube" >{{$t('resetDimensions')}}</el-button>
-        </el-col>
-        <el-col :span="5">
-          <el-button type="primary" icon="menu" @click.native="cubeSuggestions" :disabled="isReadyCube" >{{$t('cubeSuggestion')}}</el-button>
+      <el-row>
+        <el-col :span="24">
+           <el-button type="primary"  @click.native="collectSql" :disabled="isReadyCube" >{{$t('collectsqlPatterns')}}</el-button>
         </el-col>
       </el-row>
-
-
       <el-row class="row_padding border_bottom">
         <el-row class="row_padding">
           <el-col :span="24">{{$t('dimensions')}}</el-col>
@@ -34,10 +29,21 @@
         </el-col>
         </el-row>
       </el-row>
+      <el-row class="row_padding border_bottom">
+        <el-col :span="5">
+          <el-button type="primary" icon="menu" @click.native="cubeSuggestions" :disabled="isReadyCube" >{{$t('cubeSuggestion')}}</el-button>
+        </el-col>
+        <el-col :span="5">
+          <el-button type="primary" icon="setting" @click.native="resetDimensions" :disabled="isReadyCube" >{{$t('resetDimensions')}}</el-button>
+        </el-col>
+      </el-row>
 
       <el-row class="row_padding border_bottom" style="line-height:36px;">
-        <el-col :span="6">{{$t('aggregationGroups')}}</el-col>
-        <el-col :span="18">Max group by column: <el-input v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;" @change="changeDimCap"></el-input></el-col>
+        <el-col :span="24">{{$t('aggregationGroups')}}</el-col>
+      </el-row>
+      <el-row class="row_padding border_bottom" style="line-height:36px;">
+        <el-col :span="12">Total cuboid number: -</el-col>
+        <el-col :span="12" >Max group by column: <el-input v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;"></el-input><el-button type="primary"  @click.native="changeDimCap();cubeSuggestions()">Apply</el-button> </el-col>
       </el-row>
       <el-row class="row_padding border_bottom" v-for="(group, group_index) in cubeDesc.aggregation_groups" :key="group_index">
         <el-col :span="24">
@@ -222,6 +228,14 @@
         <el-button type="primary" @click="checkAddDimensions">{{$t('yes')}}</el-button>
       </span>     
     </el-dialog>  
+    <el-dialog :title="$t('collectsqlPatterns')" v-model="addSQLFormVisible">
+      <editor v-model="sqlString"  theme="chrome" class="ksd-mt-20" width="100%" height="400" ></editor>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="addSQLFormVisible = false">{{$t('cancel')}}</el-button>
+        <el-button type="primary" @click="collectSqlToServer">{{$t('yes')}}</el-button>
+      </span>     
+    </el-dialog>  
+
   </div>
 </template>
 <script>
@@ -237,7 +251,9 @@ export default {
     return {
       dim_cap: 0,
       addDimensionsFormVisible: false,
+      addSQLFormVisible: false,
       selected_dimension: {},
+      sqlString: '',
       selected_project: this.modelDesc.project,
       pfkMap: {},
       cuboidList: [],
@@ -264,8 +280,13 @@ export default {
     ...mapActions({
       calCuboid: 'CAL_CUBOID',
       getCubeSuggestions: 'GET_CUBE_SUGGESTIONS',
-      loadTableExt: 'LOAD_DATASOURCE_EXT'
+      loadTableExt: 'LOAD_DATASOURCE_EXT',
+      saveSampleSql: 'SAVE_SAMPLE_SQL',
+      getSmartDimensions: 'GET_CUBE_DIMENSIONS'
     }),
+    collectSql () {
+      this.addSQLFormVisible = true
+    },
     refreshIncludeData (data, refreshInfo) {
       var index = refreshInfo.index
       var key = refreshInfo.key
@@ -334,6 +355,21 @@ export default {
             })
           })
         }
+      }
+    },
+    collectSqlToServer () {
+      if (this.sqlString !== '') {
+        this.saveSampleSql({modelName: this.modelDesc.name, cubeName: this.cubeDesc.name, sqls: this.sqlString.split(/\r?\n/)}).then((res) => {
+          handleSuccess(res, (data, code, status, msg) => {
+            this.$set(this.modelDesc, 'suggestionDerived', data.dimensions)
+            // this.$set(this.cubeDesc, 'aggregation_groups', data.aggregation_groups)
+            this.$set(this.cubeDesc, 'override_kylin_properties', data.override_kylin_properties)
+            this.dim_cap = data.aggregation_groups[0].select_rule.dim_cap || 0
+            this.addSQLFormVisible = false
+          })
+        }, (res) => {
+          handleError(res)
+        })
       }
     },
     cubeSuggestions: function () {
@@ -471,7 +507,6 @@ export default {
         }
       })
       this.initConvertedRowkeys()
-      console.log(this.currentRowkey, 77777)
     },
     initConvertedRowkeys: function () {
       this.convertedRowkeys = []
@@ -625,6 +660,17 @@ export default {
     }
   },
   mounted () {
+    this.getSmartDimensions({cubeDescData: JSON.stringify(this.cubeDesc)}).then((res) => {
+      handleSuccess(res, (data, code, status, msg) => {
+        this.$set(this.modelDesc, 'suggestionDerived', data.dimensions)
+        // this.$set(this.cubeDesc, 'aggregation_groups', data.aggregation_groups)
+        this.$set(this.cubeDesc, 'override_kylin_properties', data.override_kylin_properties)
+        this.dim_cap = data.aggregation_groups[0].select_rule.dim_cap || 0
+        // this.$set(this.cubeDesc.rowkey, 'rowkey_columns', data.rowkey.rowkey_columns)
+        // this.initConvertedRowkeys()
+        // this.initCalCuboid()
+      })
+    })
   },
   computed: {
     isReadyCube () {
@@ -632,8 +678,8 @@ export default {
     }
   },
   locales: {
-    'en': {dimensions: 'Dimensions', name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment', action: 'Action', addDimensions: 'Add Dimensions', editDimension: 'Edit Dimensions', filter: 'Filter...', cancel: 'Cancel', yes: 'Yes', aggregationGroups: 'Aggregation Groups', Includes: 'Includes', mandatoryDimensions: 'Mandatory Dimensions', hierarchyDimensions: 'Hierarchy Dimensions', jointDimensions: 'Joint Dimensions', addAggregationGroups: 'Aggregation Groups', newHierarchy: 'New Hierarchy', newJoint: 'New Joint', ID: 'ID', encoding: 'Encoding', length: 'Length', shardBy: 'Shard By', dataType: 'Data Type', resetDimensions: 'Reset', cubeSuggestion: 'Cube Suggestion'},
-    'zh-cn': {dimensions: '维度', name: '名称', type: '类型', tableAlias: '表别名', column: '列名', datatype: '数据类型', cardinality: '基数', comment: '注释', action: '操作', addDimensions: '添加维度', editDimension: 'Edit Dimension', filter: '过滤器', cancel: '取消', yes: '确定', aggregationGroups: '聚合组', Includes: '包含的维度', mandatoryDimensions: '必需维度', hierarchyDimensions: '层级维度', jointDimensions: '联合维度', addAggregationGroups: '添加聚合组', newHierarchy: '新的层数', newJoint: '新的组合', ID: 'ID', encoding: '编码', length: '长度', shardBy: 'Shard By', dataType: '数据类型', resetDimensions: '重置', cubeSuggestion: 'Cube 建议'}
+    'en': {dimensions: 'Dimensions', name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment', action: 'Action', addDimensions: 'Add Dimensions', editDimension: 'Edit Dimensions', filter: 'Filter...', cancel: 'Cancel', yes: 'Yes', aggregationGroups: 'Aggregation Groups', Includes: 'Includes', mandatoryDimensions: 'Mandatory Dimensions', hierarchyDimensions: 'Hierarchy Dimensions', jointDimensions: 'Joint Dimensions', addAggregationGroups: 'Aggregation Groups', newHierarchy: 'New Hierarchy', newJoint: 'New Joint', ID: 'ID', encoding: 'Encoding', length: 'Length', shardBy: 'Shard By', dataType: 'Data Type', resetDimensions: 'Reset', cubeSuggestion: 'Optimize', collectsqlPatterns: 'Collect SQL Patterns'},
+    'zh-cn': {dimensions: '维度', name: '名称', type: '类型', tableAlias: '表别名', column: '列名', datatype: '数据类型', cardinality: '基数', comment: '注释', action: '操作', addDimensions: '添加维度', editDimension: 'Edit Dimension', filter: '过滤器', cancel: '取消', yes: '确定', aggregationGroups: '聚合组', Includes: '包含的维度', mandatoryDimensions: '必需维度', hierarchyDimensions: '层级维度', jointDimensions: '联合维度', addAggregationGroups: '添加聚合组', newHierarchy: '新的层数', newJoint: '新的组合', ID: 'ID', encoding: '编码', length: '长度', shardBy: 'Shard By', dataType: '数据类型', resetDimensions: '重置', cubeSuggestion: 'Optimize', collectsqlPatterns: '输入sql'}
   }
 }
 </script>
