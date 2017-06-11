@@ -98,7 +98,7 @@ public class HiveTableExtSamplerTest extends TestCase {
     @Test
     public void testDataSkew() {
         List<String> skewSamples = new ArrayList<>();
-        int counter = 5000000;
+        int counter = 50000;
         for (int i = 0; i < counter; i++) {
             if (i > counter / 2)
                 skewSamples.add(String.valueOf(0));
@@ -123,16 +123,16 @@ public class HiveTableExtSamplerTest extends TestCase {
     @Test
     public void testMerge() {
         List<HiveTableExtSampler> samplers = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 5; i++) {
             HiveTableExtSampler s = new HiveTableExtSampler();
             s.setDataType("varchar");
             samplers.add(s);
         }
 
-        for (int i = 0; i < 123456; i++) {
+        for (int i = 0; i < 12345; i++) {
             for (HiveTableExtSampler s : samplers) {
                 String value = UUID.randomUUID().toString();
-                s.samples(value + value + value + value + value + value);
+                s.samples(value);
             }
         }
 

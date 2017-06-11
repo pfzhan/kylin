@@ -69,9 +69,7 @@ public class IndexMapCacheTest extends LocalFileMetadataTestCase {
 
     private void createGarbage() {
         byte[] garbage = new byte[512 * 1024 * 1024];
-        for (byte g : garbage) {
-            g = 1;
-        }
+        garbage[0] = garbage[garbage.length - 1] = 127;
     }
 
     private void testIndexMapCache() {
@@ -103,5 +101,7 @@ public class IndexMapCacheTest extends LocalFileMetadataTestCase {
         }
 
         assertEquals(num, dataSize);
+        
+        indexMapCache.close();
     }
 }
