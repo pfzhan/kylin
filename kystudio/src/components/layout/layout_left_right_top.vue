@@ -618,13 +618,16 @@
     .topUl {
     	float:right;
     	li{
-    		min-width:150px;
+    		width:120px;
     		display:inline-block;
     		height:66px;
     		line-height:66px;
     		text-align:left;
     	}
-
+      li:nth-child(2){
+        // background: yellow;
+        margin-left: -30px;
+      }
     }
 
 

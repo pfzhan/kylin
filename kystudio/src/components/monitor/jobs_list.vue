@@ -1,6 +1,6 @@
 <template>
 <div class="jobs_list" @click.stop>
-  <el-row :gutter="20">
+  <el-row :gutter="20" style="padding-top: 10px; margin-bottom: -8px;">
     <el-col :span="4">
       <el-input
         icon="search"

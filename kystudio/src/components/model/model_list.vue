@@ -24,7 +24,9 @@
 		    </p>
 		      <div style="padding: 20px;">
 		        <h2 :title="o.name" >
-          <span @click="viewModel(o)">{{o.name|omit(24, '...')}}</span>
+            <el-tooltip class="item" effect="dark" :content="o.name|omit(24, '...')" placement="top">
+              <span @click="viewModel(o)">{{o.name|omit(24, '...')}}</span>
+            </el-tooltip>
            <common-tip :tips="o.diagnose&&o.diagnose.messages.join('\n')"> <icon v-if="!o.is_draft && o.diagnose && (o.diagnose.progress===0 || o.diagnose.progress===100)" :name="modelHealthStatus[o.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[o.diagnose.heathStatus].color}"></icon></common-tip>
              <el-progress  :width="20" type="circle" :stroke-width="2" :show-text="false" v-if="!o.is_draft&&o.diagnose&&o.diagnose.progress!==0 && o.diagnose.progress!==100" :percentage="o.diagnose&&o.diagnose.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></h2>
 		        <div class="bottom clearfix">
@@ -717,7 +719,7 @@ export default {
     }
   }
  h2{
- 	color:#475669;
+ 	color:#fff;
   font-weight: normal;
   cursor:pointer;
   i{
@@ -726,13 +728,10 @@ export default {
     margin-left: 10px;
   }
  }
- h2:hover{
-  color:#58b7ff;
- }
  .title{
  	 margin-left: 10px;
  	 margin-top: 10px;
- 	 color: #383838;
+ 	 color: #9da3b3;
  	 font-size: 14px;
  }
  .el-col {
@@ -743,7 +742,7 @@ export default {
   }
  .time {
     font-size: 13px;
-    color: #999;
+    color: #9da3b3;
   }
   .el-dropdown{
     float: right;
@@ -794,6 +793,12 @@ export default {
 
   .clearfix:after {
       clear: both
+  }
+  .el-dropdown{
+    color: #9da3b3;
+  }
+  .el-dropdown svg:hover{
+    color: #fff;
   }
 }
 </style>
