@@ -1,5 +1,5 @@
 <template>
-  <div class="paddingbox ksd-common-tab monitor">
+  <div class="paddingbox ksd-common-tab monitor" id="monitor">
     <el-tabs v-model="activeName" type="card" v-if="isAdmin">
       <el-tab-pane :label="$t('jobs')" name="jobs">
         <jobs></jobs>
@@ -45,5 +45,11 @@ export default {
 <style>
 .monitor .el-tabs__content {
   overflow:visible;
+}
+#monitor *{
+  border-color: #34384b;
+}
+.el-table::after, .el-table::before{
+  background: #34384b;
 }
 </style>
