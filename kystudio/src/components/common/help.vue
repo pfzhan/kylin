@@ -7,16 +7,18 @@
   <el-dropdown-menu slot="dropdown" >
     <el-dropdown-item command="kapmanual">{{$t('Manual')}}</el-dropdown-item>
     <el-dropdown-item command="kybot">
-      <el-button style="color: #fff;font-size: 16px;" type="text" @click="alertKybot">{{$t('kybotAuto')}}</el-button>
-      <el-switch
-        v-model="isopend"
-        on-color="#13ce66"
-        off-color="#ff4949"
-        @change="changeKystaus"
-        @click.native.stop
-        @openSwitch="openSwitch"
-        @closeSwitch="closeSwitch">
-      </el-switch>
+      <div v-if='!isLogin'>
+        <el-button style="color: #fff;font-size: 16px;" type="text" @click="alertKybot">{{$t('kybotAuto')}}</el-button>
+        <el-switch
+          v-model="isopend"
+          on-color="#13ce66"
+          off-color="#ff4949"
+          @change="changeKystaus"
+          @click.native.stop
+          @openSwitch="openSwitch"
+          @closeSwitch="closeSwitch">
+        </el-switch>
+      </div>
     </el-dropdown-item>
     <el-dropdown-item command="kybotservice">{{$t('kybotService')}}</el-dropdown-item>
     <el-dropdown-item command="aboutkap">{{$t('aboutKap')}}</el-dropdown-item>
@@ -47,6 +49,7 @@
 
   export default {
     name: 'help',
+    props: ['isLogin'],
     data () {
       return {
         aboutKapVisible: false,
@@ -161,7 +164,6 @@
       checkLogin (callback) {
         this.getKybotAccount().then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
-            console.log(data)
             if (!data) {
               this.kyBotUploadVisible = true
               this.isopend = false
@@ -243,17 +245,6 @@
         return this.$store.state.kybot.kyStatus
       }
     },
-    // watch: ('isopend', () => {
-    //   this.isopend = false
-    //   alert(3)
-    // }),
-    // watch: {
-    //   isopend (o, n) {
-    //     this.checkLogin(() => {
-    //       this.getStatus(true)
-    //     })
-    //   }
-    // },
     components: {
       'about_kap': aboutKap,
       'login_kybot': loginKybot,

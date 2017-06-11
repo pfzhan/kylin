@@ -1,7 +1,14 @@
 <template>
 <div class="change_lang">
-  <el-button v-if="lang=='en'" @click="changeLang">English</el-button>
-  <el-button v-else @click="changeLang">中文</el-button>
+  <div v-if="isLogin">
+    <el-button v-if="lang=='en'" style="background: #2b2d3c;color: #fff;" @click="changeLang">English</el-button>
+    <el-button v-else style="background: #2b2d3c; color: #fff;" @click="changeLang">中文</el-button>
+  </div>
+  <div v-else>
+    <el-button v-if="lang=='en'" @click="changeLang">English</el-button>
+    <el-button v-else @click="changeLang">中文</el-button>
+  </div>
+  
 </div>
 </template>
 <script>
@@ -19,6 +26,7 @@
   Vue.locale('zh-cn', zhLocale)
   export default {
     name: 'changelang',
+    props: ['isLogin'],
     watch: {
       lang (val) {
         Vue.config.lang = val

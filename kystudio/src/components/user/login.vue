@@ -2,8 +2,9 @@
 <div>
   <div id="loginPage">
     <ul class="ksd-fright">
-      <li><kap-help></kap-help></li>
-      <li><kap-change-lang></kap-change-lang></li>
+      <!-- 在登录页不显示onoff -->
+      <li><kap-help isLogin="login"></kap-help></li>
+      <li><kap-change-lang isLogin="login"></kap-change-lang></li>
     </ul>
   </div>
   <div id="loginBox">
@@ -194,7 +195,7 @@ export default {
        width: 293px;
        background-color:@base-color;
        .line{
-        height: 2px;
+        height: 1px;
         background: #4fa6ee;
         width: 90%;
         margin: 0 auto;
@@ -254,6 +255,7 @@ export default {
          border-radius: 2px 2px 0 0;
          background: @input-bg;
          color: @fff;
+         border-color: @input-bg;
        }
      }
    }
