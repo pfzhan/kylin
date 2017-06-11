@@ -42,14 +42,15 @@ export default {
   }
 }
 </script>
-<style>
+<style lang="less">
+@import '../../less/config.less';
 .monitor .el-tabs__content {
   overflow:visible;
 }
 #monitor *{
-  border-color: #34384b;
+  border-color: @grey-color;
 }
 .el-table::after, .el-table::before{
-  background: #34384b;
+  background: @grey-color;
 }
 </style>

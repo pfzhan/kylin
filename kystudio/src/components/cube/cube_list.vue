@@ -1,5 +1,5 @@
 <template>
-<div class="paddingbox ksd-border-tab cube-list">
+<div class="paddingbox ksd-border-tab cube-list" id="cube-list">
   <el-row class="cubeSearch">
     <el-select v-model="currentModel" :placeholder="$t('chooseModel')">
       <el-option
@@ -579,6 +579,7 @@ export default {
 }
 </script>
 <style lang="less">
+  @import '../../less/config.less';
   .cube-list {
     .cubeSearch {
       margin-bottom: 5px;
@@ -618,6 +619,8 @@ export default {
         background-color: #ff4949;
     }
   }
-
+  #cube-list *{
+    border-color: @grey-color;
+  }
 </style>
 
