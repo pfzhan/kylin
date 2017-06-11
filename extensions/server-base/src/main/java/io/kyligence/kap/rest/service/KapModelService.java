@@ -68,6 +68,9 @@ public class KapModelService extends BasicService {
 
     private MODEL_COLUMN_SUGGESTION inferSuggestion(ColumnDesc column, TableExtDesc.ColumnStats stat) {
         if (column.getType().isIntegerFamily()) {
+            if (column.getName().toUpperCase().endsWith("ID")) {
+                return MODEL_COLUMN_SUGGESTION.DIMENSION;
+            }
             if (column.getType().isTinyInt() || column.getType().isSmallInt()) {
                 return inferDimensionByCardinality(stat);
             } else {
