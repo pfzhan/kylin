@@ -11,7 +11,7 @@
       <el-table-column
         :label="$t('kylinLang.common.action')">
         <template scope="scope">
-          detail
+          <span @click="gottoModel()" style="cursor:pointer">{{$t('kylinLang.common.detail')}}</span>
         </template>      
       </el-table-column>
     </el-table>
@@ -51,6 +51,9 @@ export default {
   methods: {
     pageCurrentChange (currentPage) {
       this.modelItem = this.modellist.slice(this.pageSize * (currentPage - 1), this.pageSize * currentPage)
+    },
+    gottoModel () {
+      this.$router.push('/studio/model')
     }
   },
   locales: {

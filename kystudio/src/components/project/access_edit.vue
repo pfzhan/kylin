@@ -1,7 +1,19 @@
 <template>
 <div class="access_edit">
     <el-button class="ksd-mb-20" type="primary" @click="addAccess()"> ＋ {{$t('grant')}}</el-button>
-    <el-popover ref="popoverGrant" placement="right" trigger="click" width="400">
+    <kap-common-popover>
+      <div slot="content">
+         <h4>{{$t('grantTitle')}}</h4>
+        <ul>
+          <li>{{$t('grantDetail1')}}</li>
+          <li>{{$t('grantDetail2')}}</li>
+          <li>{{$t('grantDetail3')}}</li>
+          <li>{{$t('grantDetail4')}}</li>
+        </ul>
+      </div>
+      <icon name="question-circle-o"></icon>
+    </kap-common-popover>
+   <!--  <el-popover ref="popoverGrant" placement="right" trigger="click" width="400">
       <div class="grant-popover">
         <h4>{{$t('grantTitle')}}</h4>
         <ul>
@@ -12,7 +24,7 @@
         </ul>
       </div>
     </el-popover>
-    <el-button v-popover:popoverGrant class="ques">?</el-button>
+    <el-button v-popover:popoverGrant class="ques">?</el-button> -->
 
       <div v-if="editAccessVisible">
       <el-form :inline="true" :model="accessMeta"  class="demo-form-inline">

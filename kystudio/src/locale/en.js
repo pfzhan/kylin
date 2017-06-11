@@ -18,6 +18,7 @@ exports.default = {
     clone: 'Clone',
     check: 'Check',
     view: 'View',
+    detail: 'Detail',
     draft: 'Draft',
     zoomIn: 'Zoom in',
     zoomOut: 'Zoom out',

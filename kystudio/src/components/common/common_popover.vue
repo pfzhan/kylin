@@ -1,0 +1,21 @@
+<template>
+    <div class="kap_popover">
+     <el-popover ref="popoverGrant" placement="right" trigger="click">
+      <div class="grant-popover">
+        <slot name="content"></slot>
+      </div>
+    </el-popover>
+    <div v-popover:popoverGrant class="trigger"><slot></slot></div>
+    </div>
+</template>
+<script>
+    
+</script>
+<style>
+.kap_popover {
+    display: inline-block;
+   .trigger {
+    display: inline-block;
+  } 
+} 
+</style>

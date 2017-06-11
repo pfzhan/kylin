@@ -11,7 +11,7 @@
       <el-table-column
         :label="$t('kylinLang.common.action')">
         <template scope="scope">
-          detail
+          <span @click="gottoCube" style="cursor:pointer">{{$t('kylinLang.common.detail')}}</span>
         </template>      
       </el-table-column>
     </el-table>
@@ -32,9 +32,15 @@ export default {
     }
   },
   created () {
+    this.cubeList = this.cubeList.filter((cu) => {
+      return cu.type === 'CUBE'
+    })
     this.cubeItem = this.cubeList.slice(0, this.pageSize)
   },
   methods: {
+    gottoCube () {
+      this.$router.push('/studio/cube')
+    },
     pageCurrentChange (currentPage) {
       this.cubeItem = this.cubeList.slice(this.pageSize * (currentPage - 1), this.pageSize * currentPage)
     }

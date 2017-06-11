@@ -70,10 +70,10 @@ export default {
     return Vue.resource(apiUrl + 'cubes/validEncodings').get()
   },
   getRawTable: (cubeName) => {
-    return Vue.resource(apiUrl + 'rawtables/' + cubeName).get()
+    return Vue.resource(apiUrl + 'raw_desc/' + cubeName).get()
   },
   updateRawTable: (rawTable) => {
-    return Vue.resource(apiUrl + 'rawtables').update(rawTable)
+    return Vue.resource(apiUrl + 'raw_desc').update(rawTable)
   },
   deleteRawTable: (rawTable) => {
     return Vue.resource(apiUrl + 'rawtables/' + rawTable).delete()
