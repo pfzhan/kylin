@@ -33,36 +33,39 @@ import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CubeLogManager {
+public class CubeOptimizeLogManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(CubeLogManager.class);
-    public static final Serializer<CubeLog> CUBE_LOG_STATISTICS_SERIALIZER = new JsonSerializer<>(CubeLog.class);
-    private static final ConcurrentMap<KylinConfig, CubeLogManager> CACHE = new ConcurrentHashMap<>();
+    private static final Logger logger = LoggerFactory.getLogger(CubeOptimizeLogManager.class);
+    public static final Serializer<CubeOptimizeLog> CUBE_OPTIMIZE_LOG_STATISTICS_SERIALIZER = new JsonSerializer<>(
+            CubeOptimizeLog.class);
+    private static final ConcurrentMap<KylinConfig, CubeOptimizeLogManager> CACHE = new ConcurrentHashMap<>();
     private KylinConfig kylinConfig;
 
-    public static final String CUBE_LOG_STATISTICS_ROOT = "/cube_logs";
+    public static final String CUBE_OPTIMIZE_LOG_STATISTICS_ROOT = "/cube_opt_log";
 
-    private CubeLogManager(KylinConfig config) throws IOException {
-        logger.info("Initializing CubeLogManager with config " + config);
+    private CubeOptimizeLogManager(KylinConfig config) throws IOException {
+        logger.info("Initializing CubeOptimizeLogManager with config " + config);
         this.kylinConfig = config;
+        Broadcaster.getInstance(config).registerListener(new CubeOptimizeLogManager.CubeSyncListener(), "cube");
     }
 
-    public static CubeLogManager getInstance(KylinConfig config) {
-        CubeLogManager r = CACHE.get(config);
+    public static CubeOptimizeLogManager getInstance(KylinConfig config) {
+        CubeOptimizeLogManager r = CACHE.get(config);
         if (r != null) {
             return r;
         }
 
-        synchronized (CubeLogManager.class) {
+        synchronized (CubeOptimizeLogManager.class) {
             r = CACHE.get(config);
             if (r != null) {
                 return r;
             }
             try {
-                r = new CubeLogManager(config);
+                r = new CubeOptimizeLogManager(config);
                 CACHE.put(config, r);
                 if (CACHE.size() > 1) {
                     logger.warn("More than one singleton exist");
@@ -74,34 +77,54 @@ public class CubeLogManager {
         }
     }
 
-    public CubeLog getCubeLog(String cubeName) throws IOException {
+    private class CubeSyncListener extends Broadcaster.Listener {
+        @Override
+        public void onClearAll(Broadcaster broadcaster) throws IOException {
+            clearCache();
+        }
 
-        CubeLog result = getStore().getResource(getResourcePath(cubeName), CubeLog.class, CUBE_LOG_STATISTICS_SERIALIZER);
+        @Override
+        public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey)
+                throws IOException {
+            String cubeName = cacheKey;
+
+            if (event == Broadcaster.Event.DROP)
+                removeCubeOptimizeLog(cubeName);
+            else
+                // TODO: should update CubeOptimizeLog
+                logger.info("Cube {} changed, should mark related CubeOptimizeLog obsoleted?", cubeName); // should mark current model stats obsoleted?
+        }
+    }
+
+    public CubeOptimizeLog getCubeOptimizeLog(String cubeName) throws IOException {
+
+        CubeOptimizeLog result = getStore().getResource(getResourcePath(cubeName), CubeOptimizeLog.class,
+                CUBE_OPTIMIZE_LOG_STATISTICS_SERIALIZER);
         // create new
         if (null == result) {
-            result = new CubeLog();
+            result = new CubeOptimizeLog();
             result.setCubeName(cubeName);
         }
 
         return result;
     }
 
-    public void saveCubeLog(CubeLog cubeLog) throws IOException {
-        if (cubeLog.getCubeName() == null) {
+    public void saveCubeOptimizeLog(CubeOptimizeLog cubeOptimizeLog) throws IOException {
+        if (cubeOptimizeLog.getCubeName() == null) {
             throw new IllegalArgumentException();
         }
 
-        String path = cubeLog.getResourcePath();
-        getStore().putResource(path, cubeLog, CUBE_LOG_STATISTICS_SERIALIZER);
+        String path = cubeOptimizeLog.getResourcePath();
+        getStore().putResource(path, cubeOptimizeLog, CUBE_OPTIMIZE_LOG_STATISTICS_SERIALIZER);
     }
 
-    public void removeCubeLog(String cubeName) throws IOException {
+    public void removeCubeOptimizeLog(String cubeName) throws IOException {
         String path = getResourcePath(cubeName);
         getStore().deleteResource(path);
     }
 
     public String getResourcePath(String cubeName) {
-        return CUBE_LOG_STATISTICS_ROOT + "/" + cubeName + MetadataConstants.FILE_SURFIX;
+        return CUBE_OPTIMIZE_LOG_STATISTICS_ROOT + "/" + cubeName + MetadataConstants.FILE_SURFIX;
     }
 
     public static void clearCache() {
