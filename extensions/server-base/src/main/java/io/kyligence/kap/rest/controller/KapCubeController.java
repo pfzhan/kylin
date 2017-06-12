@@ -65,6 +65,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 
 import io.kyligence.kap.cube.raw.RawTableDesc;
@@ -250,19 +251,7 @@ public class KapCubeController extends BasicController implements InitializingBe
             cp.close();
         }
 
-        String cubeDescData = JsonUtil.writeValueAsIndentString(cubeDesc);
-        String rawTableDescData = JsonUtil.writeValueAsIndentString(rawTableDesc);
-        GeneralResponse data = new GeneralResponse();
-        data.setProperty("cubeUuid", cubeDesc.getUuid());
-        data.setProperty("cubeDescData", cubeDescData);
-        if (rawTableDesc != null) {
-            data.setProperty("rawTableUuid", rawTableDesc.getUuid());
-            data.setProperty("rawTableDescData", rawTableDescData);
-            // FIXME why this is under "rawTableDesc != null" ?
-            data.setProperty("schedulerJobData", kapCubeRequest.getSchedulerJobData());
-        }
-
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
+        return buildUpdateCubeDescResponse(cubeDesc, rawTableDesc, schedule);
     }
 
     @RequestMapping(value = "/draft", method = { RequestMethod.PUT }, produces = {
@@ -292,19 +281,20 @@ public class KapCubeController extends BasicController implements InitializingBe
 
         cubeService.getDraftManager().save(project, cubeDesc.getUuid(), cubeDesc, rawTableDesc, schedule);
 
-        String cubeDescData = JsonUtil.writeValueAsIndentString(cubeDesc);
-        String rawTableDescData = JsonUtil.writeValueAsIndentString(rawTableDesc);
-        GeneralResponse data = new GeneralResponse();
-        data.setProperty("cubeUuid", cubeDesc.getUuid());
-        data.setProperty("cubeDescData", cubeDescData);
-        if (rawTableDesc != null) {
-            data.setProperty("rawTableUuid", rawTableDesc.getUuid());
-            data.setProperty("rawTableDescData", rawTableDescData);
-            // FIXME why this is under "rawTableDesc != null" ?
-            data.setProperty("schedulerJobData", kapCubeRequest.getSchedulerJobData());
-        }
+        return buildUpdateCubeDescResponse(cubeDesc, rawTableDesc, schedule);
+    }
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
+    private EnvelopeResponse buildUpdateCubeDescResponse(CubeDesc cubeDesc, RawTableDesc rawTableDesc,
+            SchedulerJobInstance schedule) throws JsonProcessingException {
+        GeneralResponse result = new GeneralResponse();
+        result.setProperty("cubeUuid", cubeDesc.getUuid());
+        result.setProperty("cubeDescData", JsonUtil.writeValueAsIndentString(cubeDesc));
+        if (rawTableDesc != null)
+            result.setProperty("rawTableDescData", JsonUtil.writeValueAsIndentString(rawTableDesc));
+        if (schedule != null)
+            result.setProperty("schedulerJobData", JsonUtil.writeValueAsIndentString(schedule));
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 
     @RequestMapping(value = "{cubeName}/scheduler_job", method = RequestMethod.GET, produces = {
