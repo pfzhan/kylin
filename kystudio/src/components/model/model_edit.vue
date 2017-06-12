@@ -1757,7 +1757,6 @@ export default {
             // partition time setting
             _this.getPartitionDateColumns()
             _this.firstRenderServerData = true
-            // _this.autoLayerPosition()
           }
           // 处理编辑数据完毕
         })
@@ -1834,9 +1833,9 @@ export default {
         }
       }
       this.refreshPlumbObj()
-      var minHeightPer = (layers.length * (boxH + boxMT) - this.dockerScreen.y) / this.baseLineT
-      console.log(minHeightPer, 99)
-      this.jsplumbZoom(minHeightPer, this.plumbInstance)
+      // var minHeightPer = (layers.length * (boxH + boxMT) - this.dockerScreen.y) / this.baseLineT
+      // console.log(minHeightPer, 99)
+      // this.jsplumbZoom(minHeightPer, this.plumbInstance)
     },
     autoLayerPosition_2: function () {
     },

@@ -53,11 +53,11 @@
         </el-row>
         <el-row class='row_padding'>
           <el-col :span='24'>
-            <el-button  icon='search' :loading="loading" type="primary" @click='getClusterInfo'>{{$t('clusterInfo')}}
+            <el-button  icon='search' :loading="loading" type="primary" v-if="topicBtnDisabled" @click='getClusterInfo'>{{$t('clusterInfo')}}
             </el-button>
           </el-col>
         </el-row>
-        <el-row class='row_padding ' style="height:200px;overflow:hidden" >
+        <el-row class='row_padding ' style="height:200px;overflow:hidden" v-show="showTopicBox">
           <el-col :span='10' >
             <el-tree :data="treeData" :props="treeProps" class='textarea_height'
              @node-click="getTopicInfo">
@@ -70,7 +70,7 @@
             <i class='el-icon-arrow-down' aria-hidden='true'></i>
           </div>
         </el-row>
-        <el-card>
+        <el-card v-show="showConvertBox">
           <el-row slot='header'>
             <el-col :span='6'>
              {{$t('tableName')}}:
@@ -126,7 +126,7 @@
             </el-table-column>
           </el-table>
         </el-card>
-        <el-card >
+        <el-card v-show="showConvertBox">
           <div slot="header">
             <span >{{$t('parserSetting')}}</span>
           </div>
@@ -171,6 +171,8 @@ export default {
       streamingMeta: {name: '', type: 'kafka'},
       currentCheck: -1,
       sourceSchema: '',
+      showTopicBox: false,
+      showConvertBox: false,
       database: 'DEFAULT',
       kafkaMeta: {
         name: '',
@@ -229,7 +231,7 @@ export default {
     },
     removeBroker: function (index) {
       if (this.currentCheck > index) {
-        this.currentCheck --
+        this.currentCheck--
       }
       this.kafkaMeta.clusters[0].brokers.splice(index, 1)
     },
@@ -242,6 +244,7 @@ export default {
         streamingConfig: JSON.stringify(this.streamingMeta)
       }).then((res) => {
         handleSuccess(res, (result) => {
+          this.showTopicBox = true
           var data = result
           for (let key of Object.keys(data)) {
             let treeNode = {label: key, children: []}
@@ -283,6 +286,7 @@ export default {
       }
     },
     convertJson: function (jsonData) {
+      this.showConvertBox = true
       try {
         var parseResult = JSON.parse(jsonData)
         parseResult = JSON.parse(parseResult)
@@ -374,6 +378,11 @@ export default {
         _this.streamingCfg.parseTsColumn = []
         _this.kafkaMeta.parserProperties = ''
       }
+    }
+  },
+  computed: {
+    topicBtnDisabled () {
+      return this.kafkaMeta.clusters[0].brokers.length > 0
     }
   },
   created () {

@@ -255,9 +255,10 @@ export default {
           if (_this.modelDesc.partition_desc && dimension.table + '.' + column === _this.modelDesc.partition_desc.partition_date_column) {
             sorted = true
           }
+          var columType = _this.modelDesc.columnsDetail[dimension.table + '.' + column] && _this.modelDesc.columnsDetail[dimension.table + '.' + column].datatype
           _this.rawTable.tableDetail.columns.push({
             index: index,
-            encoding: 'orderedbytes',
+            encoding: columType || 'orderedbytes',
             table: dimension.table,
             column: column,
             is_sortby: sorted,
