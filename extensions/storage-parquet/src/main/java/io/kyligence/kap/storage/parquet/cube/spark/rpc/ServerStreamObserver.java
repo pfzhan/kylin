@@ -30,6 +30,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -58,23 +59,38 @@ import io.kyligence.kap.storage.parquet.shaded.com.google.protobuf.ByteString;
 public class ServerStreamObserver implements StreamObserver<SparkJobProtos.SparkJobRequest> {
 
     public static final Logger logger = LoggerFactory.getLogger(ServerStreamObserver.class);
-    private final static ExecutorService pool = Executors.newCachedThreadPool();
-    private final static Cache<String, StorageVisitState> storageVisitStates = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(1, TimeUnit.HOURS).removalListener(//
-            new RemovalListener<String, StorageVisitState>() {
-                @Override
-                public void onRemoval(RemovalNotification<String, StorageVisitState> notification) {
-                    ServerStreamObserver.logger.info("StorageVisitState with streamIdentifier {} createTime {}(GMT) is removed due to {} ", notification.getKey(), //
-                            DateFormat.formatToTimeStr(checkNotNull(notification.getValue()).getCreateTime()), notification.getCause());
-                }
-            }).build();
+    private final static ExecutorService asyncWorkers = Executors.newCachedThreadPool(new ThreadFactory() {
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread t = new Thread(r);
+            t.setName("kystorage-async-workers-" + t.getId());
+            return t;
+        }
+    });
 
-    private final String sparkInstanceIdentifier = System.getProperty("kap.spark.identifier") == null ? "" : System.getProperty("kap.spark.identifier");
+    private final static Cache<String, StorageVisitState> storageVisitStates = CacheBuilder.newBuilder()
+            .maximumSize(10000).expireAfterWrite(1, TimeUnit.HOURS).removalListener(//
+                    new RemovalListener<String, StorageVisitState>() {
+                        @Override
+                        public void onRemoval(RemovalNotification<String, StorageVisitState> notification) {
+                            ServerStreamObserver.logger.info(
+                                    "StorageVisitState with streamIdentifier {} createTime {}(GMT) is removed due to {} ",
+                                    notification.getKey(), //
+                                    DateFormat.formatToTimeStr(checkNotNull(notification.getValue()).getCreateTime()),
+                                    notification.getCause());
+                        }
+                    })
+            .build();
+
+    private final String sparkInstanceIdentifier = System.getProperty("kap.spark.identifier") == null ? ""
+            : System.getProperty("kap.spark.identifier");
     private final String streamIdentifier = UUID.randomUUID().toString();// it will stay during the stream session
     private final StreamObserver<SparkJobProtos.SparkJobResponse> responseObserver;
     private final JavaSparkContext sc;
     private final AtomicBoolean lastMessageSent = new AtomicBoolean(false);
 
-    public ServerStreamObserver(final StreamObserver<SparkJobProtos.SparkJobResponse> responseObserver, JavaSparkContext sc) {
+    public ServerStreamObserver(final StreamObserver<SparkJobProtos.SparkJobResponse> responseObserver,
+            JavaSparkContext sc) {
         this.responseObserver = responseObserver;
         this.sc = sc;
     }
@@ -97,7 +113,8 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
 
         StorageVisitState state = storageVisitStates.getIfPresent(streamIdentifier);
         if (state == null) {
-            onFail(responseObserver, streamIdentifier, "StorageVisitState for stream " + streamIdentifier + " is missing!");
+            onFail(responseObserver, streamIdentifier,
+                    "StorageVisitState for stream " + streamIdentifier + " is missing!");
         } else {
             getRDDPartitionData(state);
         }
@@ -111,11 +128,14 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
 
         final StorageVisitState state = new StorageVisitState();
         storageVisitStates.put(streamIdentifier, state);
-        logger.info("Create a new StorageVisitState for queryID {} with streamIdentifier {}", sparkJobRequest.getPayload().getQueryId(), streamIdentifier);
+        logger.info("StorageVisitState for queryID {} scanReqId {} : streamIdentifier {}",
+                sparkJobRequest.getPayload().getQueryId(), sparkJobRequest.getPayload().getGtScanRequestId(),
+                streamIdentifier);
 
-        pool.submit(new Runnable() {
+        asyncWorkers.submit(new Runnable() {
             @Override
             public void run() {
+                logger.info("Current stream identifier is {} ", streamIdentifier);
                 doStorageVisit(sparkJobRequest.getPayload());
             }
         });
@@ -138,7 +158,7 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
             synchronousQueue = state.getSynchronousQueue();
             RDDPartitionResult current = null;
 
-            SparkParquetVisit visit = new SparkParquetVisit(sc, request);
+            SparkParquetVisit visit = new SparkParquetVisit(sc, request, streamIdentifier);
 
             while (true) {
                 if (!visit.moreRDDExists()) {
@@ -149,7 +169,9 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
                 Iterator<RDDPartitionResult> resultPartitions = pair.getFirst();
                 JavaRDD<RDDPartitionResult> baseRDD = pair.getSecond();
 
-                logger.info("Time for spark parquet visit execution (may not include result fetch if it's large result) is " + (System.currentTimeMillis() - startTime));
+                logger.info(
+                        "Time for spark parquet visit execution (may not include result fetch if it's large result) is: "
+                                + (System.currentTimeMillis() - startTime));
                 boolean moreRDDStillExists = visit.moreRDDExists();
 
                 while (true) {
@@ -162,17 +184,21 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
 
                     StorageVisitState temp = storageVisitStates.getIfPresent(streamIdentifier);
                     if (temp == null) {
-                        logger.info("Skip offering rest RDDPartitionData because current session with streamIdentifier {} does not seem active anymore", streamIdentifier);
+                        logger.info(
+                                "Skip offering resting RDDPartitionData because current session with streamIdentifier {} does not seem active anymore",
+                                streamIdentifier);
                         return;
                     }
 
-                    TransferPack transferPack = (moreRDDStillExists || resultPartitions.hasNext()) ? TransferPack.createNormalPack(current) : TransferPack.createLastPack(current);
+                    TransferPack transferPack = (moreRDDStillExists || resultPartitions.hasNext())
+                            ? TransferPack.createNormalPack(current) : TransferPack.createLastPack(current);
 
                     boolean success = synchronousQueue.offer(transferPack, 1, TimeUnit.MINUTES);
                     if (success) {
                         current = null;
                     } else {
-                        logger.info("storage visit producer for streamIdentifier {} continue to try...", streamIdentifier);
+                        logger.info("storage visit producer for streamIdentifier {} continue to try...",
+                                streamIdentifier);
                     }
 
                     if (state.isUserCanceled()) {
@@ -202,7 +228,8 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
         try {
             if (lastMessageSent.get()) {
                 responseObserver.onCompleted();
-                logger.info("Finish sending last empty message for stream {}, total number of non-empty messages: {}", streamIdentifier, state.incAndGetMessageNum());
+                logger.info("Sent back last empty message for stream {}, total number of non-empty messages: {}",
+                        streamIdentifier, state.incAndGetMessageNum());
                 return;
             }
 
@@ -217,7 +244,8 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
                 }
 
                 if (retry > 1) {
-                    logger.info("storage visit consumer for streamIdentifier {} trying {}th time...", streamIdentifier, retry);
+                    logger.info("storage visit consumer for streamIdentifier {} trying {}th time...", streamIdentifier,
+                            retry);
                 }
 
                 try {
@@ -232,22 +260,25 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
                         throw new GetRDDPartitionFailureException(transferPack.visitThreadFailCause);
                     } else {
                         RDDPartitionResult resultPartition = transferPack.rddPartitionResult;
-                        SparkJobProtos.SparkJobResponse.Builder builder = SparkJobProtos.SparkJobResponse.newBuilder().setSparkInstanceIdentifier(sparkInstanceIdentifier).setStreamIdentifier(streamIdentifier).addPartitionResponse(//
-                                SparkJobProtos.SparkJobResponse.PartitionResponse.newBuilder().//
-                                        setBlob(ByteString.copyFrom(resultPartition.getData())).//
-                                        setScannedRows(resultPartition.getScannedRows()).//
-                                        setScannedBytes(resultPartition.getScannedBytes()).//
-                                        setReturnedRows(resultPartition.getReturnedRows()).//
-                                        setHostname(resultPartition.getHostname()).//
-                                        setTotalDuration(resultPartition.getTotalDuration()).//
-                                        setStartLatency(resultPartition.getStartLatency()).//
-                                        build());
+                        SparkJobProtos.SparkJobResponse.Builder builder = SparkJobProtos.SparkJobResponse.newBuilder()
+                                .setSparkInstanceIdentifier(sparkInstanceIdentifier)
+                                .setStreamIdentifier(streamIdentifier).addPartitionResponse(//
+                                        SparkJobProtos.SparkJobResponse.PartitionResponse.newBuilder().//
+                                                setBlob(ByteString.copyFrom(resultPartition.getData())).//
+                                                setScannedRows(resultPartition.getScannedRows()).//
+                                                setScannedBytes(resultPartition.getScannedBytes()).//
+                                                setReturnedRows(resultPartition.getReturnedRows()).//
+                                                setHostname(resultPartition.getHostname()).//
+                                                setTotalDuration(resultPartition.getTotalDuration()).//
+                                                setStartLatency(resultPartition.getStartLatency()).//
+                                                build());
                         responseObserver.onNext(builder.build());
 
                         if (transferPack.status == ResultPackStatus.LAST) {
                             lastMessageSent.set(true);
                         }
-                        logger.info("Finish sending back {}th message for stream {}", state.incAndGetMessageNum(), streamIdentifier);
+                        logger.info("Sent back {}th message for stream {}", state.incAndGetMessageNum(),
+                                streamIdentifier);
                         break;
                     }
                 }
@@ -259,20 +290,24 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
         }
     }
 
-    private void onFail(final StreamObserver<SparkJobProtos.SparkJobResponse> responseObserver, String streamIdentifier, Throwable cause) {
+    private void onFail(final StreamObserver<SparkJobProtos.SparkJobResponse> responseObserver, String streamIdentifier,
+            Throwable cause) {
         Status status = null;
         if (ExceptionUtils.getRootCause(cause) instanceof ResourceLimitExceededException) {
             status = Status.DEADLINE_EXCEEDED;
         } else {
             status = Status.INTERNAL;
         }
-        StatusRuntimeException statusRuntimeException = status.withDescription("KyStorage failure due to: " + cause.getMessage()).withCause(cause).asRuntimeException();
+        StatusRuntimeException statusRuntimeException = status
+                .withDescription("KyStorage failure due to: " + cause.getMessage()).withCause(cause)
+                .asRuntimeException();
         responseObserver.onError(statusRuntimeException);
 
         storageVisitStates.invalidate(streamIdentifier);//clean the state explicitly
     }
 
-    private void onFail(final StreamObserver<SparkJobProtos.SparkJobResponse> responseObserver, String streamIdentifier, String message) {
+    private void onFail(final StreamObserver<SparkJobProtos.SparkJobResponse> responseObserver, String streamIdentifier,
+            String message) {
         StatusRuntimeException statusRuntimeException = Status.INTERNAL.withDescription(message).asRuntimeException();
         responseObserver.onError(statusRuntimeException);
 

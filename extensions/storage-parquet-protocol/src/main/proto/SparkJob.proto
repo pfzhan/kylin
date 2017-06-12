@@ -49,6 +49,7 @@ message SparkJobRequestPayload {
     required int64 maxScanBytes = 12; // must be positive
     required int64 startTime = 13;
     required int32 storageType = 14; // -1 if realizationType is not cube
+    required string gtScanRequestId = 15;
 }
 
 message SparkJobResponse {

@@ -62,21 +62,21 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
     private final Accumulator<Long> scannedRecords;
     private final Accumulator<Long> collectedRecords;
     private final String realizationType;
-    private final String queryId;
+    private final String streamIdentifier;
     private final long maxScannedBytes;
     private final boolean isSplice;
     private final boolean hasPreFiltered;
     private final boolean spillEnabled;
     private final long startTime;
 
-    public SparkExecutorPreAggFunction(Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords, String realizationType, String queryId) {
-        this(scannedRecords, collectedRecords, realizationType, false, false, queryId, true, Long.MAX_VALUE, System.currentTimeMillis());
+    public SparkExecutorPreAggFunction(Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords, String realizationType, String streamIdentifier) {
+        this(scannedRecords, collectedRecords, realizationType, false, false, streamIdentifier, true, Long.MAX_VALUE, System.currentTimeMillis());
     }
 
     //TODO: too long parameter
     public SparkExecutorPreAggFunction(Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords, String realizationType, //
-            boolean isSplice, boolean hasPreFiltered, String queryId, boolean spillEnabled, long maxScannedBytes, long startTime) {
-        this.queryId = queryId;
+            boolean isSplice, boolean hasPreFiltered, String streamIdentifier, boolean spillEnabled, long maxScannedBytes, long startTime) {
+        this.streamIdentifier = streamIdentifier;
         this.realizationType = realizationType;
         this.scannedRecords = scannedRecords;
         this.collectedRecords = collectedRecords;
@@ -91,7 +91,7 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
     public Iterable<RDDPartitionResult> call(Iterator<Tuple2<Text, Text>> tuple2Iterator) throws Exception {
 
         long localStartTime = System.currentTimeMillis();
-        logger.info("Working for query with id {}", queryId);
+        logger.info("Current stream identifier is {}", streamIdentifier);
 
         Iterator<ByteBuffer> iterator = Iterators.transform(tuple2Iterator, new Function<Tuple2<Text, Text>, ByteBuffer>() {
             @Nullable
