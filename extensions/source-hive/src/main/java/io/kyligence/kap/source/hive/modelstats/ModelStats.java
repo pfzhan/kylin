@@ -310,10 +310,14 @@ public class ModelStats extends RootPersistentEntity {
 
         public String toString() {
             StringBuilder s = new StringBuilder();
-            s.append("Primary key: ");
-            s.append(primaryKey);
+            if (primaryKey == null) {
+                s.append("Overall, there are few record after the join");
+            } else {
+                s.append("Primary key: ");
+                s.append(primaryKey);
+            }
             s.append("\r\n");
-            s.append("Ratio after the join: ");
+            s.append("Ratio of record after the join: ");
             s.append(afterJoinCount + "/" + factTableCount);
             s.append("\r\n");
             return s.toString();
