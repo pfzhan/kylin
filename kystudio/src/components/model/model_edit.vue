@@ -33,6 +33,7 @@
               </span>
               <el-dropdown-menu slot="dropdown" >
                 <el-dropdown-item command="ROOTFACT" :data="table.guid">{{$t('kylinLang.common.fact')}}</el-dropdown-item>
+                <el-dropdown-item command="FACT" v-show="useLimitFact" :data="table.guid">{{$t('kylinLang.common.limitfact')}}</el-dropdown-item>
                 <el-dropdown-item command="LOOKUP" :data="table.guid">{{$t('kylinLang.common.lookup')}}</el-dropdown-item>
               </el-dropdown-menu>
               </el-dropdown> 
@@ -147,7 +148,7 @@
               <el-form-item :label="$t('kylinLang.dataSource.returnType')">
                 <el-select v-model="computedColumn.returnType">
                   <el-option
-                    v-for="item in computedColumnDataType"
+                    v-for="(item, index) in computedDataTypeSelects"
                     :key="item"
                     :label="item"
                     :value="item">
@@ -1620,6 +1621,7 @@ export default {
           this.modelData = data.model
           this.draftData = data.draft
           var modelData = this.extraoption.status ? data.draft : data.model
+          console.log(this.extraoption, data, 889911)
           if (this.modelData && this.draftData && this.extraoption.mode !== 'view') {
             kapConfirm(this.$t('kylinLang.common.checkDraft'), {
               confirmButtonText: 'OK',
@@ -2012,6 +2014,16 @@ export default {
       }
       return false
     },
+    useLimitFact () {
+      return this.$store.state.system.limitfact === 'true'
+    },
+    computedDataTypeSelects () {
+      var result = []
+      for (var i in this.$store.state.datasource.encodingMatchs) {
+        result.push(i)
+      }
+      return result
+    },
     isAdmin () {
       return hasRole(this, 'ROLE_ADMIN')
     },
@@ -2153,8 +2165,8 @@ export default {
    }
    .btn_group{
     position: absolute;
-    bottom: 60px;
-    right: 6px;
+    bottom: 10px;
+    right: 10px;
     z-index: 10;
    }
    .model_edit{

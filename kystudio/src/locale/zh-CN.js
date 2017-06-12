@@ -36,6 +36,7 @@ exports.default = {
     dataSource: '数据源',
     fact: '事实表',
     lookup: '维度表',
+    limitfact: '事实表（limited）',
     computedColumn: '计算列',
     pk: '主键',
     fk: '外键',

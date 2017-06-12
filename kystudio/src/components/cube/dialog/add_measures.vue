@@ -125,7 +125,7 @@
         <template scope="scope">
           <el-select v-model="scope.row.column">
            <el-option   
-            v-for="(item, index) in getAllModelDimColumns()"
+            v-for="(item, index) in getMultipleColumns"
             :label="item"
             :key="index"
             :value="item">
@@ -555,6 +555,14 @@ export default {
         }
       }
       return this.measure.function.returntype
+    },
+    getMultipleColumns: function () {
+      if (this.measure.function.expression === 'TOP_N') {
+        return this.getAllModelDimColumns()
+      }
+      if (this.measure.function.expression === 'COUNT_DISTINCT') {
+        return this.getAllModelDimMeasureColumns()
+      }
     }
   },
   watch: {

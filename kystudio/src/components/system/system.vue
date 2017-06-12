@@ -121,7 +121,6 @@ export default {
       this.$refs['setConfigForm'].$emit('setConfigFormValid')
     },
     setConfigValidSuccess: function (data) {
-      let _this = this
       this.updateConfig({key: data.key, value: data.value}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           this.refreshEnv()
@@ -132,10 +131,11 @@ export default {
             duration: 3000
           })
         })
+        this.getConf()
       }).catch((res) => {
         handleError(res)
       })
-      _this.setConfigFormVisible = false
+      this.setConfigFormVisible = false
     },
     backup: function () {
       this.backupMetadata().then((res) => {

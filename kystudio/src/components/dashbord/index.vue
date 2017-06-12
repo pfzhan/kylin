@@ -3,13 +3,13 @@
   <el-row :gutter="30">
     <el-col :span="6">
       <div class="grid-content grid-project bg-purple">
-    	<el-card class="box-card box-project">
+    	<el-card class="box-card box-project" @click.native="goto('Project','', '/project')">
 		  <div slot="header" class="clearfix">
 		    {{$t('kylinLang.common.project')}}
 		  </div>
-          <a class="btn-addProject" href="javascript:;" @click="addProject">+{{$t('kylinLang.common.project')}}</a>
+          <a class="btn-addProject" href="javascript:;" @click.stop="addProject">+{{$t('kylinLang.common.project')}}</a>
 		  <section data-scrollbar id="project_scroll_box">
-		  <div v-for="o in projectList" :key="o.uuid" class="text item" @click="selectProject(o.name)" style="cursor:pointer">
+		  <div v-for="o in projectList" :key="o.uuid" class="text item" @click.stop="selectProject(o.name)" style="cursor:pointer">
 		    {{o.name }}
 		  </div>
 		  </section>

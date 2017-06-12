@@ -439,7 +439,7 @@ export default {
       this.viewModel({
         name: modelData.name,
         project: modelData.project,
-        status: modelData.is_draft,
+        is_draft: modelData.is_draft,
         uuid: modelData.uuid
       })
     },

@@ -36,6 +36,7 @@ exports.default = {
     cubes: 'Cubes',
     dataSource: 'datasource',
     fact: 'Fact Table',
+    limitfact: 'Fact Table(limited)',
     lookup: 'Lookup Table',
     computedColumn: 'Computed Column',
     pk: 'Primary key',

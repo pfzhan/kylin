@@ -192,7 +192,7 @@
               <span>{{$t('duration')}}: </span>
                 <span class="blue">{{timerline_duration(step)}}</span><br />
               <span>{{$t('waiting')}}: </span>
-                <span class="blue">{{step.exec_wait_time |  (2)}}</span><br />
+                <span class="blue">{{step.exec_wait_time|number(2)}}</span><br />
             </div>
             <div class="timeline-footer">
              <el-button v-if="step.exec_cmd"  :plain="true" @click.native="clickKey(step)" size="mini">

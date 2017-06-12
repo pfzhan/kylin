@@ -215,7 +215,7 @@ export default {
           data.measure.function.returntype = 'decimal(' + data.sumMeasure.value.precision + ',' + data.sumMeasure.value.decimalPlace + ')'
         }
       }
-      if (index > 0) {
+      if (index >= 0) {
         this.$set(this.cubeDesc.measures, index, data.measure)
       } else {
         this.cubeDesc.measures.push(data.measure)
