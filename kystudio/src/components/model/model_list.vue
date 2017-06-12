@@ -1,5 +1,5 @@
 <template>
-	<div class="paddingbox modelist_box">
+	<div class="paddingbox modelist_box" style="margin-left: 30px; margin-right: 30px;">
    <!-- <img src="../../assets/img/nocube.png" v-if="!(modelsList && modelsList.length)"> -->
     <el-button type="primary" class="ksd-mb-10" v-if="isAdmin" @click="addModel">+{{$t('kylinLang.common.model')}}</el-button>
     <br/>

@@ -47,6 +47,13 @@ export default {
 .monitor .el-tabs__content {
   overflow:visible;
 }
+#monitor{
+  margin-left: 30px;
+  margin-right: 30px;
+  .el-tabs__header{
+    margin-left: 0;
+  }
+}
 #monitor *{
   border-color: @grey-color;
 }

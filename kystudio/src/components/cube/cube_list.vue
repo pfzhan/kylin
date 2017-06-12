@@ -586,6 +586,8 @@ export default {
 <style lang="less">
   @import '../../less/config.less';
   .cube-list {
+    margin-left: 30px;
+    margin-right: 30px;
     .el-table {
       .is_draft {
         td {

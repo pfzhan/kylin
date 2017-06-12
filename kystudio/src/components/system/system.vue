@@ -1,5 +1,5 @@
 <template>
-  <div class="system-wrap">
+  <div class="system-wrap" id="system">
     <el-row :gutter="20">
       <el-col :span="9">  
             <span class="server-type">{{$t('ServerConfig')}}</span>
@@ -210,6 +210,10 @@ export default {
 </script>
 <style lang="less">
   @import '../../less/config.less';
+  #system{
+    margin-left: 30px;
+    margin-right: 30px;
+  }
   .system-wrap {
     .box-card{
     height: 500px;
