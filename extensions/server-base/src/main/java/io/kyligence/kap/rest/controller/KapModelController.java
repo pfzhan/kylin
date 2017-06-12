@@ -57,7 +57,6 @@ import io.kyligence.kap.rest.request.KapJobRequest;
 import io.kyligence.kap.rest.request.ModelStatusRequest;
 import io.kyligence.kap.rest.service.KapModelService;
 import io.kyligence.kap.source.hive.modelstats.CollectModelStatsJob;
-import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
 
 @Controller
 @RequestMapping(value = "/models")
@@ -87,7 +86,8 @@ public class KapModelController extends BasicController {
      * @return suggestion map
      */
 
-    @RequestMapping(value = "table_suggestions", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "table_suggestions", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getModelSuggestions(@RequestParam(value = "table") String table) throws IOException {
 
@@ -95,26 +95,34 @@ public class KapModelController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @RequestMapping(value = "{project}/{modelName}/stats", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "{project}/{modelName}/stats", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getModelStats(@PathVariable("project") String project, @PathVariable("modelName") String modelName, @RequestBody KapJobRequest req) throws IOException, JobException {
+    public EnvelopeResponse getModelStats(@PathVariable("project") String project,
+            @PathVariable("modelName") String modelName, @RequestBody KapJobRequest req)
+            throws IOException, JobException {
 
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
-        CollectModelStatsJob job = new CollectModelStatsJob(project, modelName, submitter, req.getStartTime(), req.getEndTime(), req.getFrequency());
+        CollectModelStatsJob job = new CollectModelStatsJob(project, modelName, submitter, req.getStartTime(),
+                req.getEndTime(), req.getFrequency());
         String jobId = job.start();
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobService.getJobInstance(jobId), "");
     }
 
-    @RequestMapping(value = "{project}/{modelName}/diagnose", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "{project}/{modelName}/diagnose", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getModelDiagnosis(@PathVariable("project") String project, @PathVariable("modelName") String modelName) throws IOException {
+    public EnvelopeResponse getModelDiagnosis(@PathVariable("project") String project,
+            @PathVariable("modelName") String modelName) throws IOException {
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kapModelService.getDiagnoseResult(modelName), "");
     }
 
-    @RequestMapping(value = "{project}/{modelName}/progress", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "{project}/{modelName}/progress", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getProgress(@RequestHeader("Accept-Language") String lang, @PathVariable("project") String project, @PathVariable("modelName") String modelName) throws IOException {
+    public EnvelopeResponse getProgress(@RequestHeader("Accept-Language") String lang,
+            @PathVariable("project") String project, @PathVariable("modelName") String modelName) throws IOException {
         KapMsgPicker.setMsg(lang);
         String jobId = new CollectModelStatsJob(modelName).findRunningJob();
         Map<Boolean, Double> result = new HashMap<>();
@@ -126,9 +134,14 @@ public class KapModelController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @RequestMapping(value = "get_all_stats", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "get_all_stats", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getAllStats(@RequestParam(value = "modelName", required = false) String modelName, @RequestParam(value = "projectName", required = false) String projectName, @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset, @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize) throws IOException, JobException {
+    public EnvelopeResponse getAllStats(@RequestParam(value = "modelName", required = false) String modelName,
+            @RequestParam(value = "projectName", required = false) String projectName,
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
+            throws IOException, JobException {
 
         List<DataModelDesc> models = modelService.listAllModels(modelName, projectName);
 
@@ -145,12 +158,12 @@ public class KapModelController extends BasicController {
         }
 
         List<ModelStatusRequest> modelStatusList = new ArrayList<>();
-        ModelStatsManager modelStatsManager = kapModelService.getModelStatsManager();
         for (DataModelDesc model : modelService.getModels(modelName, projectName, limit, offset)) {
             ModelStatusRequest request = kapModelService.getDiagnoseResult(model.getName());
-            String jobId = modelStatsManager.getModelStats(model.getName()).getJodID();
+            String jobId = new CollectModelStatsJob(modelName).findRunningJob();
             if (null != jobId && null != jobService.getJobInstance(jobId)) {
                 request.setProgress(jobService.getJobInstance(jobId).getProgress());
+                request.setHeathStatus(ModelStatusRequest.HealthStatus.RUNNING);
             }
             modelStatusList.add(request);
         }

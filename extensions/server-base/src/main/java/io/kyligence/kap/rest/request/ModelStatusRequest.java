@@ -29,7 +29,7 @@ import java.util.List;
 
 public class ModelStatusRequest {
     public enum HealthStatus {
-        GOOD, WARN, BAD, TERRIBLE, NONE
+        RUNNING, GOOD, WARN, BAD, TERRIBLE, NONE
     }
 
     private String modelName;
