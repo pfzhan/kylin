@@ -346,7 +346,7 @@ export default {
         project: modelInfo.project,
         modelName: modelInfo.name,
         uuid: modelInfo.uuid,
-        status: modelInfo.status,
+        status: modelInfo.is_draft,
         mode: 'view'
       })
     },

@@ -597,8 +597,6 @@ export default {
           line-height: 40px;
           background-image: url('../../assets/img/draft.png');
           background-repeat: no-repeat;
-          // background-color: #515770;
-          // border:dashed 1px @fff;
           background-size: 20%;
           background-position: 90% 80%;
          }
