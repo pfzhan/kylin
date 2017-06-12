@@ -641,8 +641,9 @@ export default {
         background-color: #ff4949;
     }
   }
-  #cube-list *{
-    border-color: @grey-color;
+  .el-tag--gray{
+    // background: yellow;
+    color: #000!important;
   }
 </style>
 

@@ -63,7 +63,7 @@ export default {
 <style lang="less">
   .sub_menu {
     .el-tabs__nav{
-      margin-left: 26px;
+      margin-left: 0px;
     }
   }
 

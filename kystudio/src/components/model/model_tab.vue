@@ -136,7 +136,11 @@
 @import '../../less/config.less';
 .modeltab{
   .el-tabs__header{
-    border-bottom: 1px solid #313446;
+    padding-left: 30px!important;    
+    border-bottom: 1px solid @grey-color;
+  }
+  .el-tabs__nav-scroll{
+    border-bottom: 1px solid @grey-color;
   }
   .el-tabs--card>.el-tabs__header{
     .el-tabs__nav div:nth-child(1){
@@ -152,7 +156,7 @@
     display: none;
   }
   .el-tabs__nav{
-    margin-left: 26px;
+    margin-left: 0;
   }
 } 
 

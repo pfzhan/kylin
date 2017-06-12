@@ -1,13 +1,16 @@
 <template>
 <div class="fulllayout">
-<el-row class="panel layout_left_right_top" :class="briefMenu">
+<el-row class="panel layout_left_right_top" :class="briefMenu" id="top">
   <el-col :span="24" class="panel-center">
     <aside class="left_menu">
       <img v-show="briefMenu!=='brief_menu'" src="../../assets/img/logo_all.png" class="logo" id="logo" @click="goHome" style="cursor:pointer;">
       <img v-show="briefMenu==='brief_menu'" src="../../assets/img/logo.png" class="logo" @click="goHome" style="cursor:pointer;"><span class="logo_text"></span>
       <el-menu :default-active="defaultActive" class="el-menu-vertical-demo J_menu" @open="handleopen" @close="handleclose" @select="handleselect" theme="dark" unique-opened router>
         <template v-for="(item,index) in menus" >
-          <el-menu-item :index="item.path" v-if="showMenuByRole(item.name)" :key="index"><img :src="item.icon"> <span>{{$t('kylinLang.menu.' + item.name)}}</span></el-menu-item>
+          <el-menu-item :index="item.path" v-if="showMenuByRole(item.name)" :key="index">
+            <img :src="item.icon"> 
+            <span>{{$t('kylinLang.menu.' + item.name)}}</span>
+          </el-menu-item>
         </template>
       </el-menu>
     </aside>
@@ -21,10 +24,10 @@
         <li><help></help></li>
         <li><change_lang></change_lang></li>
         <li>
-          <el-dropdown @command="handleCommand">
+          <el-dropdown @command="handleCommand" trigger="click">
             <span class="el-dropdown-link">{{currentUserInfo && currentUserInfo.username}} <i style="font-size:12px;" class="el-icon-caret-bottom"></i>
             </span>
-            <el-dropdown-menu slot="dropdown" >
+            <el-dropdown-menu slot="dropdown">
               <el-dropdown-item command="setting">{{$t('kylinLang.common.setting')}}</el-dropdown-item>
               <el-dropdown-item command="loginout">{{$t('kylinLang.common.logout')}}</el-dropdown-item>
             </el-dropdown-menu>
@@ -35,14 +38,17 @@
     <section class="panel-c-c" id="scrollBox">
       <div class="grid-content bg-purple-light">
         <el-col :span="24" style="margin-bottom:15px;">
-
-          <!-- 面包屑先干掉 -->
-          <!-- <el-breadcrumb separator="/" >
-            <el-breadcrumb-item :to="{ path: '/dashboard' }"><icon class="home_icon" name="home" ></icon></el-breadcrumb-item>
-             <el-breadcrumb-item v-if="currentPathName!=''">{{$t('kylinLang.menu.' + currentPath.toLowerCase())}}</el-breadcrumb-item> -->
-            <!-- <el-breadcrumb-item v-if="currentPathNameParent!=''" >{{currentPathNameParent}}</el-breadcrumb-item>	 -->
-
-          <!-- </el-breadcrumb> -->
+          <!-- 面包屑-->
+          <el-breadcrumb separator="/" style="margin-left: 30px;">
+            <el-breadcrumb-item :to="{ path: '/dashboard' }">
+              <!-- <icon class="home_icon" name="home" ></icon> -->
+              <span style="color: #fff;">KAP</span>
+            </el-breadcrumb-item>
+            <el-breadcrumb-item v-if="currentPathName!=''">
+              <span style="color: #fff;">{{$t('kylinLang.menu.' + currentPath.toLowerCase())}}</span>
+            </el-breadcrumb-item>
+            <!-- <el-breadcrumb-item v-if="currentPathNameParent!=''" >{{currentPathNameParent}}</el-breadcrumb-item>  -->
+          </el-breadcrumb>
         </el-col>
         <el-col :span="24" style="box-sizing: border-box;" id="mainBox">
           <!--<transition name="fade">-->
@@ -474,7 +480,7 @@
       }
    }
   .el-breadcrumb{
-    margin-left: 26px;
+    margin-left: 0;
     margin-top: 20px;
   }
   .isProjectPage {
@@ -609,6 +615,7 @@
       margin-left: 8px;
       background: @grey-color;
       color: @fff;
+      border: none;
     }
     .el-input{
       margin-right: 30px;
@@ -617,16 +624,23 @@
       }
     }
     .topUl {
+      margin-right: 30px;
     	float:right;
     	li{
     		width:120px;
     		display:inline-block;
     		height:66px;
     		line-height:66px;
-    		text-align:left;
+    		text-align:right;
     	}
       li:nth-child(2){
-        margin-left: -30px;
+        // margin-left: -30px;
+      }
+      span{
+        color: rgba(255,255,255,0.7);
+      }
+      span:hover{
+        color: #fff;
       }
     }
 	}
@@ -660,16 +674,5 @@
   .el-icon-arrow-down:before{
 		content: ''
 	}
-
-</style>
-<style lang="less">
-   #mainBox{
-      .fullbox{
-
-      }
-      .paddingbox{
-        padding: 20px;
-      }
-    }
 </style>
 

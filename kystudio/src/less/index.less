@@ -499,6 +499,7 @@ li {list-style-type:none;}
   
   // dropdown-menu
   .el-dropdown-menu{
+    border-color: transparent;
     background: @bg-menu;
     color: @fff;
   }
@@ -662,6 +663,9 @@ li {list-style-type:none;}
   .el-table__expanded-cell{
     background: @tableBC!important;
   }
+  .el-table__expanded-cell:hover{
+    background: @tableBC!important;
+  }
   .el-table__row:hover td{
     background: @bg-top!important;
   }
@@ -744,9 +748,15 @@ li {list-style-type:none;}
 .el-textarea.is-disabled .el-textarea__inner{
   border-color: @grey-color!important;
 }
-
-
-
-
-
-
+.el-table__row--striped td{
+  background: @tableBC!important;
+}
+.el-popover{
+  background: @grey-color!important;
+}
+.el-tabs:not(.el-tabs--card){
+  .el-tabs__header{
+    border-top: 1px solid @grey-color;
+    border-bottom: 1px solid @grey-color;
+  }
+}

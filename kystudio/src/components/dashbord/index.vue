@@ -3,17 +3,17 @@
   <el-row :gutter="30">
     <el-col :span="6">
       <div class="grid-content grid-project bg-purple">
-    	<el-card class="box-card box-project" @click.native="goto('Project','', '/project')">
-		  <div slot="header" class="clearfix">
-		    {{$t('kylinLang.common.project')}}
-		  </div>
-          <a class="btn-addProject" href="javascript:;" @click.stop="addProject">+{{$t('kylinLang.common.project')}}</a>
-		  <section data-scrollbar id="project_scroll_box">
-		  <div v-for="o in projectList" :key="o.uuid" class="text item" @click.stop="selectProject(o.name)" style="cursor:pointer">
-		    {{o.name }}
-		  </div>
-		  </section>
-		</el-card>
+	    	<el-card class="box-card box-project">
+				  <div slot="header" class="clearfix">
+				    {{$t('kylinLang.common.project')}}
+				  </div>
+		      <a class="btn-addProject" href="javascript:;" @click="addProject">+{{$t('kylinLang.common.project')}}</a>
+				  <section data-scrollbar id="project_scroll_box">
+					  <div v-for="o in projectList" :key="o.uuid" class="text item" @click="selectProject(o.name)" style="cursor:pointer">
+					    {{o.name}}
+					  </div>
+				  </section>
+				</el-card>
       </div>
     </el-col>
     <!-- <el-col :span="16" class="slider_bpx">
@@ -189,6 +189,7 @@ export default {
 		color: @fff;
 	}
 	#dashbord{
+		margin: 0 30px 0 30px;
 		.el-card.box-project {
 			height: 590px;
 		}
@@ -200,7 +201,7 @@ export default {
 				color: @fff;
 			}
 			.el-card__header {
-				background: @bg-menu;
+				background: @grey-color;
 				color: @fff;
 				// font-size: 14px;
 				border-bottom: 0;
@@ -221,8 +222,7 @@ export default {
 				background: transparent;
 			}
 			.el-card__header {
-				background: @bg-menu;
-				.title-bar;
+				background: @grey-color;
 			}
 			.el-card__body {
 				height: 200px;
@@ -238,12 +238,18 @@ export default {
 				background: -moz-linear-gradient(to bottom,#3296e9,#1275c6);
 				background: linear-gradient(to bottom,#3296e9,#1275c6);
 			}
+			.el-card__body:hover{
+				background: #1275c6;
+			}
 		}
 		.counter-list2 {
 			.el-card__body {
 				background: -webkit-linear-gradient(to bottom,#ecb860,#cf9532);
 				background: -moz-linear-gradient(to bottom,#ecb860,#cf9532);
 				background: linear-gradient(to bottom,#ecb860,#cf9532);
+			}
+			.el-card__body:hover{
+				background: #cf9532;
 			}
 		}
 		.counter-list3 {
@@ -252,12 +258,18 @@ export default {
 				background: -moz-linear-gradient(to bottom,#59ce5e,#33a638);
 				background: linear-gradient(to bottom,#59ce5e,#33a638);
 			}
+			.el-card__body:hover{
+				background: #33a638;
+			}
 		}
 		.counter-list4 {
 			.el-card__body {
 				background: -webkit-linear-gradient(to bottom,#f35f56,#cb3a30);
 				background: -moz-linear-gradient(to bottom,#f35f56,#cb3a30);
 				background: linear-gradient(to bottom,#f35f56,#cb3a30);
+			}
+			.el-card__body:hover{
+				background: #cb3a30;
 			}
 		}
 
@@ -342,10 +354,8 @@ export default {
 	 	}
 	 }
 	 .el-card__header{
-	 	background-color: #eff2f7;
 	 	height: 60px;
 	 	font-size: 18px;
-	 	color: #475669;
 	 	padding: 20px;
 	 }
 	 .el-card__body{

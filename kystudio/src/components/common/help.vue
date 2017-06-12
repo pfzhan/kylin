@@ -260,7 +260,6 @@
   @import '../../less/config.less';
   .help_box {
     line-height: 30px;
-    text-align: left;
     .el-dialog--small{
       width: 700px;
     }
