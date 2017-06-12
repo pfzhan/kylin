@@ -16,8 +16,10 @@ then
     exit 0
 fi
 
+metadataUrl=${metadataUrl%%@*}
+
 ${dir}/kylin.sh org.apache.kylin.tool.AclTableMigrationCLI CHECK
 ec=$?
 
-[[ $ec == 2 ]] && quit "ERROR: Legacy ACL metadata detected. Please migrate ACL metadata first. Command: bin/kylin.sh org.apache.kylin.tool.AclTableMigrationCLI MIGRATE"
+[[ $ec == 2 ]] && quit "ERROR: Legacy ACL metadata detected. Please migrate ACL metadata first. Step1: run command 'bin/kylin.sh org.apache.kylin.tool.AclTableMigrationCLI MIGRATE', Step2: drop hbase tables: ${metadataUrl}_acl and ${metadataUrl}_user"
 [[ $ec == 0 ]] || quit "ERROR: Unknown error. Please check full log."
