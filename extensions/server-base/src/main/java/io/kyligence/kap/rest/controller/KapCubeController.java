@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.controller;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 
@@ -430,8 +431,12 @@ public class KapCubeController extends BasicController implements InitializingBe
         schedule.setRelatedRealizationUuid(cubeUuid);
         schedule.setRealizationType("cube");
 
-        if (schedule.getScheduledRunTime() < System.currentTimeMillis()) {
+        long realScheduledRunTime = utc2Local(schedule.getScheduledRunTime());
+
+        if (realScheduledRunTime < System.currentTimeMillis()) {
             schedule.setScheduledRunTime(System.currentTimeMillis());
+        } else {
+            schedule.setScheduledRunTime(realScheduledRunTime);
         }
 
         CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
@@ -441,6 +446,18 @@ public class KapCubeController extends BasicController implements InitializingBe
             schedule.setPartitionStartTime(segments.getDateRangeEnd());
         }
         schedulerJobService.saveSchedulerJob(schedule);
+    }
+
+    public long utc2Local(long utcTime) {
+        Calendar calendar = Calendar.getInstance();
+
+        int zoneOffset = calendar.get(java.util.Calendar.ZONE_OFFSET);
+        int dstOffset = calendar.get(java.util.Calendar.DST_OFFSET);
+
+        calendar.setTimeInMillis(utcTime);
+        calendar.add(java.util.Calendar.MILLISECOND, -(zoneOffset + dstOffset));
+
+        return calendar.getTimeInMillis();
     }
 
     private SchedulerJobInstance getSchedulerJobByCubeName(String cubeName) throws IOException {

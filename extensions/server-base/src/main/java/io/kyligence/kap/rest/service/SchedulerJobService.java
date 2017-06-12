@@ -175,7 +175,7 @@ public class SchedulerJobService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
+            + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'OPERATION') or hasPermission(#job, 'MANAGEMENT')")
     public SchedulerJobInstance saveSchedulerJob(SchedulerJobInstance job) throws IOException {
         if (job.getUuid() == null)
             job.updateRandomUuid();
@@ -184,9 +184,7 @@ public class SchedulerJobService extends BasicService {
         return job;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
-    public SchedulerJobInstance saveSchedulerJob(String name, String project, String cube, long triggerTime,
+    SchedulerJobInstance saveSchedulerJob(String name, String project, String cube, long triggerTime,
             long startTime, long repeatCount, long curRepeatCount, long repeatInterval, long partitionInterval)
             throws IOException {
 
@@ -197,7 +195,7 @@ public class SchedulerJobService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'MANAGEMENT')")
+            + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'MANAGEMENT')")
     public SchedulerJobInstance updateSchedulerJob(String name, Map<String, Long> settings) throws Exception {
         SchedulerJobInstance job = getSchedulerJobManager().getSchedulerJob(name);
 
