@@ -112,6 +112,8 @@
                 } else {
                   this.$message({
                     type: 'error',
+                    duration: '20000',  // 20秒之后关掉提示
+                    showClose: true,    // 给提示框增加一个关闭按钮
                     message: msg
                   })
                 }

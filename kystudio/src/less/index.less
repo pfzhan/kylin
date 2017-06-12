@@ -466,6 +466,18 @@ li {list-style-type:none;}
       .active{
         background: @base-color;
       }
+      li{
+        background: @tableBC;
+        color: @fff;
+        border: 1px solid @grey-color!important;
+        border-left: 0!important;
+      }
+      li:first-child{
+        border-left: 1px solid @grey-color!important;
+      }
+      li:hover{
+        background: @grey-color;
+      }
     }
     .el-pagination__total{
       color: @fff;
@@ -479,6 +491,9 @@ li {list-style-type:none;}
     }
     .el-pagination button.disabled{
       // background: yellow!important;
+    }
+    .btn-prev, .btn-next{
+      border-color: @grey-color!important;
     }
   }
   
@@ -681,7 +696,55 @@ li {list-style-type:none;}
       }
     }
   }
+  .el-table{
+    border-color: @grey-color;
+  }
+  .el-card, .el-card *{
+    border-color: @grey-color;
+  }
+  .el-input.is-disabled .el-input__inner{
+    border-color: @grey-color;
+  }
+  .el-tree{
+    border-color: @grey-color;
+    background: yellow;
+  }
+  .el-collapse-item__header{
+    background: @tableBC;
+  }
+  .el-collapse-item__wrap{
+    background: @tableBC;
+    border-color: @tableBC;
+  }
+  .el-collapse-item__header{
+    border-color: @grey-color;
+  }
+  .el-tab-pane .el-button{
+    background: @base-color;
+    color: @fff;
+  }
+  .el-tab-pane{
+    background: @tableBC;
+  }
+  .el-tabs--border-card{
+    background: @bg-top;
+  }
+  .model_edit_tool{
+    table{
+      border-color: @grey-color;
+      td{
+        border-color: @grey-color;
+      }
+      th{
+        border-color: @grey-color;
+      }
+    }
+  }
 }
+.el-textarea.is-disabled .el-textarea__inner{
+  border-color: @grey-color!important;
+}
+
 
 
 
