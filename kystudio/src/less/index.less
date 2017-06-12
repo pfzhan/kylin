@@ -7,6 +7,11 @@ body{
     -webkit-font-smoothing: antialiased;
     color: @fff;
 }
+::-webkit-scrollbar{width:0px}
+scrollbar {
+   -moz-appearance: none !important;
+   background: rgb(0,255,0) !important;
+}
 //common css
 .generate-attr(@n,@attr, @attrName, @i: 1,@k:@i*2) when (@i =< @n) {
   .@{attr}-@{k} {
@@ -350,6 +355,7 @@ li {list-style-type:none;}
   .el-table tr {
     background: @tableBC;
     color: @content-color;
+    border: solid 1px #393e53
   }
   .el-table th {
     background: @grey-color;
@@ -533,6 +539,7 @@ li {list-style-type:none;}
     color: @fff;
   }
   // checkbox
+  .el-checkbox {color:@fff;}
   .el-checkbox-group{
     .el-checkbox__label{
       color: @fff;

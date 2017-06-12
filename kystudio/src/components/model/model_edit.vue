@@ -1832,6 +1832,9 @@ export default {
         }
       }
       this.refreshPlumbObj()
+      var minHeightPer = (layers.length * (boxH + boxMT) - this.dockerScreen.y) / this.baseLineT
+      console.log(minHeightPer, 99)
+      this.jsplumbZoom(minHeightPer, this.plumbInstance)
     },
     autoLayerPosition_2: function () {
     },

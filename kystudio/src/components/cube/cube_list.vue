@@ -13,6 +13,7 @@
   <el-table
     :data="cubesList"
     :default-expand-all="false"
+    :row-class-name="showRowClass"
     border
     style="width: 100%!important">
     <el-table-column type="expand" width="30">
@@ -39,6 +40,7 @@
     <el-table-column
       :label="$t('name')"
       sortable
+      width="110"
       prop="name">
     </el-table-column>
     <el-table-column
@@ -232,6 +234,9 @@ export default {
     reloadCubeList () {
       this.loadCubesList(this.currentPage - 1)
     },
+    showRowClass (o) {
+      return o.is_draft ? 'is_draft' : ''
+    },
     loadCubesList: function (curPage, modelName) {
       let _this = this
       let param = {pageSize: pageCount, pageOffset: curPage}
@@ -294,7 +299,7 @@ export default {
     edit: function (cube) {
       this.$emit('addtabs', 'cube', cube.name, 'cubeEdit', {
         project: cube.project,
-        cubeName: cube.is_draft ? cube.name + '_draft' : cube.name,
+        cubeName: cube.name,
         modelName: cube.model,
         isEdit: true
       })
@@ -581,6 +586,25 @@ export default {
 <style lang="less">
   @import '../../less/config.less';
   .cube-list {
+    .el-table {
+      .is_draft {
+        td {
+          background: #515770!important;
+        }
+        &>td:nth-child(2) {
+         &>div{
+          height: 100%;
+          line-height: 40px;
+          background-image: url('../../assets/img/draft.png');
+          background-repeat: no-repeat;
+          // background-color: #515770;
+          // border:dashed 1px @fff;
+          background-size: 20%;
+          background-position: 90% 80%;
+         }
+        }
+      }
+    }
     .cubeSearch {
       margin-bottom: 5px;
     }

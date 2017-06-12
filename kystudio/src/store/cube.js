@@ -24,6 +24,9 @@ export default {
         commit(types.SAVE_CUBES_LIST, {list: res.data.data.cubes, total: res.data.data.size})
         var len = res.data.data.cubes && res.data.data.cubes.length || 0
         for (var i = 0; i < len; i++) {
+          if (res.data.data.cubes[i].is_draft) {
+            continue
+          }
           dispatch(types.GET_CUBE_ACCESS, res.data.data.cubes[i].uuid)
         }
         return res

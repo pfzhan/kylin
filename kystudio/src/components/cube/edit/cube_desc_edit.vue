@@ -674,6 +674,7 @@ export default {
     },
     loadCubeDetail: function () {
       var _this = this
+      this.createNewCube()
       this.loadCubeDesc(this.extraoption.cubeName).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           this.cubeDetail = data.cube || data.draft
@@ -685,7 +686,7 @@ export default {
               this.cubeDetail = data.draft
               loadRowTable(true)
             }).catch(() => {
-              this.cubeDetail = data.model
+              this.cubeDetail = data.cube
               loadRowTable(false)
             })
           } else {

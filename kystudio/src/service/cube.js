@@ -61,7 +61,11 @@ export default {
     return Vue.resource(apiUrl + 'cubes?cubeName=' + cubeName).get()
   },
   calCuboid: (cubeDesc) => {
-    return Vue.resource(apiUrl + 'cubes/aggregationgroups/' + cubeDesc.aggIndex + '/cuboid').save(cubeDesc.cubeDescData)
+    var resultUrl = cubeDesc.aggIndex === -1 ? 'cuboid' : 'aggregationgroups/' + cubeDesc.aggIndex + '/cuboid'
+    return Vue.resource(apiUrl + 'cubes/' + resultUrl).save(cubeDesc.cubeDescData)
+  },
+  calAllCuboid: (cubeDesc) => {
+    return Vue.resource(apiUrl + 'cubes/aggregationgroups/cuboid').save(cubeDesc.cubeDescData)
   },
   getEncoding: () => {
     return Vue.resource(apiUrl + 'encodings/valid_encodings').get()

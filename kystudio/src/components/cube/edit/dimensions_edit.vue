@@ -42,7 +42,7 @@
         <el-col :span="24">{{$t('aggregationGroups')}}</el-col>
       </el-row>
       <el-row class="row_padding border_bottom" style="line-height:36px;">
-        <el-col :span="12">Total cuboid number: -</el-col>
+        <el-col :span="12">Total cuboid number: {{totalCuboid}}</el-col>
         <el-col :span="12" >Max group by column: <el-input v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;"></el-input><el-button type="primary"  @click.native="changeDimCap();cubeSuggestions()">Apply</el-button> </el-col>
       </el-row>
       <el-row class="row_padding border_bottom" v-for="(group, group_index) in cubeDesc.aggregation_groups" :key="group_index">
@@ -250,6 +250,7 @@ export default {
   data () {
     return {
       dim_cap: 0,
+      totalCuboid: 0,
       addDimensionsFormVisible: false,
       addSQLFormVisible: false,
       selected_dimension: {},
@@ -316,6 +317,7 @@ export default {
     resetDimensions: function () {
       this.cubeDesc.dimensions.splice(0, this.cubeDesc.dimensions.length)
       this.dim_cap = 0
+      this.totalCuboid = 0
       this.cubeDesc.aggregation_groups.splice(0, this.cubeDesc.aggregation_groups.length)
       this.cubeDesc.rowkey.rowkey_columns.splice(0, this.cubeDesc.rowkey.rowkey_columns.length)
       this.initConvertedRowkeys()
@@ -383,7 +385,7 @@ export default {
           this.initConvertedRowkeys()
           this.initCalCuboid()
         })
-      }).catch((res) => {
+      }, (res) => {
         handleError(res)
       })
     },
@@ -624,6 +626,16 @@ export default {
     initCalCuboid: function () {
       this.cubeDesc.aggregation_groups.forEach((aggregationGroup, groupIndex) => {
         this.refreshAggragation(groupIndex)
+      })
+      this.calcAllCuboid()
+    },
+    calcAllCuboid: function () {
+      this.calCuboid({cubeDescData: JSON.stringify(this.cubeDesc), aggIndex: -1}).then((res) => {
+        handleSuccess(res, (data, code, status, msg) => {
+          this.totalCuboid = data
+        })
+      }).catch((res) => {
+        handleError(res)
       })
     },
     getEncoding: function (encode) {

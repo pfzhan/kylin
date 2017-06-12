@@ -6,7 +6,7 @@
     <p class="ksd-right" v-if="modelsList&&modelsList.length"> <icon @click.native="changeGridModal('card')" name="newspaper-o" :class="{active: viewModal==='card'}"> </icon> <icon @click.native="changeGridModal('list')"  :class="{active: viewModal!=='card'}" name="reorder"></icon></p>
 		<el-row :gutter="20" v-if="viewModal==='card'">
 		  <el-col :span="8"  v-for="(o, index) in modelsList" :key="o.uuid" :style="{height:'152px'}">
-		    <el-card :body-style="{ padding: '0px'}" style="height:100%">
+		    <el-card :body-style="{ padding: '0px'}" style="height:100%" :class="{'is_draft': o.is_draft}">
 		      <p class="title">Last updated {{ o.gmtTime }}
 					<el-dropdown @command="handleCommand" :id="o.name" trigger="click"  v-show="isAdmin || hasPermission(o.uuid)">
 					  <span class="el-dropdown-link" >
@@ -40,10 +40,10 @@
 
     <el-table v-if="viewModal!=='card'"
     :data="modelsList"
-    cell-click="viewModel(o)"
+    :row-class-name="showRowClass"
     stripe
     style="width: 100%">
-    <el-table-column 
+    <el-table-column
       label="Name"
       width="180">
        <template scope="scope" >
@@ -305,6 +305,9 @@ export default {
     checkActionRole () {
 
     },
+    showRowClass (o) {
+      return o.is_draft ? 'is_draft' : ''
+    },
     reloadModelList () {
       this.pageCurrentChange(this.currentPage)
     },
@@ -343,7 +346,7 @@ export default {
         project: modelInfo.project,
         modelName: modelInfo.name,
         uuid: modelInfo.uuid,
-        status: modelInfo.is_draft,
+        status: modelInfo.status,
         mode: 'view'
       })
     },
@@ -707,15 +710,43 @@ export default {
 <style lang="less">
 @import '../../less/config.less';
 .modelist_box{
+  .el-table--striped .el-table__body tr.el-table__row--striped td {
+    background-color: #292b38;
+  }
   .fa-icon{
     cursor: pointer;
     &.active{
       color:@base-color;
     }
   }
+  .el-table {
+    .is_draft {
+      td {
+        background: #515770!important;
+      }
+      &>td:first-child {
+       &>div{
+        background-image: url('../../assets/img/draft.png');
+        background-repeat: no-repeat;
+        // background-color: #515770;
+        // border:dashed 1px @fff;
+        background-position: 90% 80%;
+       }
+      }
+    }
+  }
   .el-card{
+    background-color: #393e52;
+    border:none;
     &:hover{
       border:solid 1px #58b7ff;
+    }
+    &.is_draft {
+      background-image: url('../../assets/img/draft.png');
+      background-repeat: no-repeat;
+      background-color: #515770;
+      border:dashed 1px @fff;
+      background-position: 90% 80%;
     }
   }
  h2{
