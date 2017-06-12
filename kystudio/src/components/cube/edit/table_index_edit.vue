@@ -293,6 +293,7 @@ export default {
         _this.rawTable.tableDetail.columns.push({
           index: index,
           encoding: columType || 'orderedbytes',
+
           table: getNameSpace(measure),
           column: removeNameSpace(measure),
           encoding_version: encodingVersion,
