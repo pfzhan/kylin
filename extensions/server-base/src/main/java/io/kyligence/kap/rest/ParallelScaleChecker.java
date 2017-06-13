@@ -69,13 +69,23 @@ class ParallelScaleChecker implements Runnable {
             sparkExecNum += restClient.retrieveSparkExecutorNum();
         }
 
+        if (sparkExecNum <= 0) {
+            warning();
+        }
+
         int sparkNodeEstNum = (int) Math.ceil(sparkExecNum / SPARK_EXECUTOR_EST_NUM_PER_NODE);
         if (sparkNodeEstNum + queryNodeNum > parallelLimit) {
             warning(queryNodeNum, sparkNodeEstNum);
         }
     }
 
+    private void warning() {
+        logger.warn(
+                "Wrong executor number. If you are using Spark dynamic resource allocation, please set the max executor num as an explicit value.");
+    }
+
     private void warning(int queryParallel, int storageParallel) {
-        logger.warn("Parallel Scale exceeds the threshold: Used={}, Threshold={}", queryParallel + storageParallel, parallelLimit);
+        logger.warn("Parallel Scale exceeds the threshold: Used={}, Threshold={}", queryParallel + storageParallel,
+                parallelLimit);
     }
 }
