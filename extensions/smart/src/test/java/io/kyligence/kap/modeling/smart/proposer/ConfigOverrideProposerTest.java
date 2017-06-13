@@ -65,6 +65,6 @@ public class ConfigOverrideProposerTest {
         proposer.propose(cubeDesc);
         Map<String, String> props = cubeDesc.getOverrideKylinProps();
 
-        Assert.assertEquals(Integer.toString(16777216), props.get("kylin.cube.aggrgroup.max-combination"));
+        Assert.assertEquals(Integer.toString(8388608), props.get("kylin.cube.aggrgroup.max-combination"));
     }
 }
