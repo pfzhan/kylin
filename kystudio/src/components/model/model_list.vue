@@ -1,7 +1,7 @@
 <template>
 	<div class="paddingbox modelist_box" style="margin-left: 30px; margin-right: 30px;">
    <!-- <img src="../../assets/img/nocube.png" v-if="!(modelsList && modelsList.length)"> -->
-    <el-button type="primary" class="ksd-mb-10" v-if="isAdmin" @click="addModel">+{{$t('kylinLang.common.model')}}</el-button>
+    <el-button type="primary" class="ksd-mb-10" id="addModel" v-if="isAdmin" @click="addModel" style="font-weight: bold;border-radius: 20px;"><span class="add">+</span><span>{{$t('kylinLang.common.model')}}</span></el-button>
     <br/>
     <p class="ksd-right" v-if="modelsList&&modelsList.length"> <icon @click.native="changeGridModal('card')" name="newspaper-o" :class="{active: viewModal==='card'}"> </icon> <icon @click.native="changeGridModal('list')"  :class="{active: viewModal!=='card'}" name="reorder"></icon></p>
 		<el-row :gutter="20" v-if="viewModal==='card'">
@@ -30,7 +30,7 @@
            <common-tip :content="o.diagnose&&o.diagnose.messages.join('<br/>')"> 
            <icon v-if="!o.is_draft && o.diagnose && (o.diagnose.progress===0 || o.diagnose.progress===100)" :name="modelHealthStatus[o.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[o.diagnose.heathStatus].color}"></icon></common-tip>
              <el-progress  :width="20" type="circle" :stroke-width="2" :show-text="false" v-if="!o.is_draft&&o.diagnose&&o.diagnose.progress!==0 && o.diagnose.progress!==100" :percentage="o.diagnose&&o.diagnose.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></h2>
-		        <div class="bottom clearfix">
+		        <div class="bottom clearfix" style="margin-top: 30px;">
 		          <time class="time" v-visible="o.owner" style="display:block">{{o.owner}}</time>
 		        </div>
 		      </div>
@@ -833,6 +833,23 @@ export default {
   }
   .el-dropdown svg:hover{
     color: #fff;
+  }
+  #addModel{
+    background: transparent;
+    margin-top: 14px;
+  }
+  #addModel > span{
+    span:first-child{
+      margin-right: 5px;
+      color: @base-color;
+      font-weight: normal;
+    }
+  }
+  #addModel:hover{
+    background: @base-color;
+    .add{
+      color: @fff;
+    }
   }
 }
 </style>

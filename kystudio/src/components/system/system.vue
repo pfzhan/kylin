@@ -213,6 +213,9 @@ export default {
   #system{
     margin-left: 30px;
     margin-right: 30px;
+    .el-dialog__wrapper{
+      overflow: visible;
+    }
   }
   .system-wrap {
     .box-card{

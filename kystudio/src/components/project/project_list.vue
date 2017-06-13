@@ -1,5 +1,5 @@
 <template>
-  <div class="paddingbox">
+  <div class="paddingbox" id="project-list">
  <el-button type="primary" class="ksd-mb-10" v-if="isModeler" @click="addProject">+{{$t('kylinLang.common.project')}}</el-button>
   <el-table
     :data="projectList"
@@ -257,5 +257,10 @@ export default {
   }
 }
 </script>
-<style scoped="">
+<style lang="less">
+  @import url(../../less/config.less);
+  #project-list{
+    margin-left: 30px;
+    margin-right: 30px;
+  }
 </style>

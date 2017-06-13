@@ -1,5 +1,5 @@
 <template>
-<div class="help_box">
+<div class="help_box" id="help">
 <el-dropdown trigger="click" @command="handleCommand">
   <span class="el-dropdown-link">
     {{$t('kylinLang.common.help')}} <i class="el-icon-caret-bottom"></i>

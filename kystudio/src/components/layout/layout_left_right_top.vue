@@ -38,8 +38,8 @@
     <section class="panel-c-c" id="scrollBox">
       <div class="grid-content bg-purple-light">
         <el-col :span="24" style="margin-bottom:15px;">
-          <!-- 面包屑-->
-          <el-breadcrumb separator="/" style="margin-left: 30px;">
+          <!-- 面包屑在dashboard页面不显示 -->
+          <el-breadcrumb separator="/" style="margin-left: 30px;" :style="gloalProjectSelectShow ? 'opacity: 100' : 'opacity: 0'">
             <el-breadcrumb-item :to="{ path: '/dashboard' }">
               <!-- <icon class="home_icon" name="home" ></icon> -->
               <span style="color: #fff;">KAP</span>
@@ -674,5 +674,8 @@
   .el-icon-arrow-down:before{
 		content: ''
 	}
+  #scrollBox{
+    background: @tableBC;
+  }
 </style>
 

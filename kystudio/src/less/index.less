@@ -128,7 +128,7 @@ li {list-style-type:none;}
         margin-top: -2px;
       }
       .el-tabs__nav-scroll{
-        background: @tableBC;
+        background: @bg-total;
       }
       &>.el-tabs__header{
         border-bottom: solid 1px #fff;
@@ -569,7 +569,7 @@ li {list-style-type:none;}
     background: @bg-top;
   }
   .el-tabs__nav-scroll{
-    background: @bg-total;
+    background: transparent;
   }
   .el-tabs__item{
     color: @fff;
@@ -761,3 +761,66 @@ li {list-style-type:none;}
     border-bottom: 1px solid @grey-color;
   }
 }
+.el-dialog__header{
+  padding: 12px 20px 12px 20px!important;
+  border-bottom: 1px solid @tableBC;
+  height: 29px;
+  line-height: 29px;
+  .el-dialog__headerbtn{
+    margin-top: 8px;
+  }
+}
+.el-dialog__footer{
+  border-top: 1px solid @tableBC;
+  padding-top: 15px!important;
+  .el-button--default{
+    background: transparent!important;
+  }
+  .el-button--default:hover{
+    border: 1px solid @base-color;
+  }
+}
+.el-dialog__body{
+  p{
+    padding-top: 20px;
+  }
+  padding: 0!important;
+  .el-input{
+    display: block;
+    width: auto;
+    padding: 15px 0px 15px 0px;
+    background: @grey-color;
+    .el-input__inner{
+      width: 100%;
+    }
+  }
+  .el-row{
+    border-top: 1px solid @tableBC;
+    margin-left: -20px;
+    margin-right: -20px;
+  }
+  .dialog_tree_box{
+    border-right: 1px solid @tableBC;
+  }
+  .el-tree-node{
+    margin-left: 10px;
+  }
+  .bg-purple{
+    padding-right: 10px;
+  }
+}
+.grid-content{
+  .el-select__tags{
+    left: 18px;
+  }
+}
+.el-dialog__body{
+  padding: 0 20px 0px 20px!important;
+}
+.el-dialog--large .protocol-wrap{
+  padding-top: 10px;
+}
+
+
+
+

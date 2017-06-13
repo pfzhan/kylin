@@ -1,5 +1,5 @@
 <template>
-<div class="diagnosis-wrap" style="overflow: visible">
+<div class="diagnosis-wrap">
   <div class="dia-title">
     <p>{{$t('contentOne')}}
       <a href="https://kybot.io/" target="_blank">KyBot</a>
@@ -81,7 +81,7 @@
     <el-button @click="agreeProtocol" :loading="agreeLoading" type="primary" :disabled="!agreeKyBot" class="btn-agree">{{$t('agreeProtocol')}}</el-button>
   </el-dialog>
   <!-- 协议内容弹层 -->
-    <el-dialog v-model='proContentVisivle' :title="$t('kybotXY')" class="pro-content" size="large" :modal="false" style="top: 0;">
+    <el-dialog v-model='proContentVisivle' :title="$t('kybotXY')" class="pro-content" size="large" :modal="false" style="top: -30%;">
       <protocol_content style="overflow: scroll; height: 400px;"></protocol_content>
       <span slot="footer" class="dialog-footer">
         <el-button @click="proContentVisivle = false">{{$t('close')}}</el-button>
@@ -482,6 +482,7 @@ export default {
         height: 1px;
         margin: 14px 4px;
         background: #aaa;
+        transform: translateY(15px);
       }
       .date-picker {
         display: flex;

@@ -1,7 +1,7 @@
 <template>
 	<div class="datasource">
-      <div class="tree_list">
-        <el-radio-group v-model="currentLoadType" class="ksd-mt-30 ksd-ml-30" v-if="isAdmin">
+    <div class="tree_list">
+      <el-radio-group v-model="currentLoadType" class="ksd-mt-30 ksd-ml-30" v-if="isAdmin">
 		    <el-radio-button label="Hive" @click.native="openLoadHiveListDialog"><icon name="download" scale="0.8"></icon><span> Hive</span></el-radio-button>
 		    <el-radio-button label="Kfka" @click.native="openKafkaDialog"><icon name="download" scale="0.8"></icon><span> Kafka</span></el-radio-button>
 		  </el-radio-group>
@@ -11,13 +11,13 @@
       <div class="table_content" >
        <img class="null_pic" src="../../assets/img/notabledata.png" v-show="!tableData"/>
        <div class="ksd-fright ksd-mt-20" style="position:relative;z-index:1" v-show="tableData">
-       <kap-icon-button v-if="tableData.source_type === 0" icon="refresh" type="primary" :useload="true" @click.native="reloadTableDialogVisible" ref="reloadBtn">{{$t('reload')}}</kap-icon-button>
-          <!-- <el-button type="info" icon="eyedropper">Sampling</el-button> -->
-          <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 0" type="info" :useload="true" @click.native="collectSampleDialogOpen" ref="sampleBtn">{{$t('sampling')}}</kap-icon-button>
-          <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 1" type="info" :useload="true" @click.native="collectKafkaSampleDialogOpen" ref="kafkaSampleBtn">{{$t('sampling')}}(Streaming)</kap-icon-button>
-<!--           <el-button type="danger" @click.native="unloadTable" icon="delete2">Unload</el-button> -->
-           <kap-icon-button v-if="isAdmin" icon="trash" type="danger" :useload="true" @click.native="unloadTable" ref="unloadBtn">{{$t('unload')}}</kap-icon-button>
-          </div>
+         <kap-icon-button v-if="tableData.source_type === 0" icon="refresh" type="primary" :useload="true" @click.native="reloadTableDialogVisible" ref="reloadBtn">{{$t('reload')}}</kap-icon-button>
+            <!-- <el-button type="info" icon="eyedropper">Sampling</el-button> -->
+            <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 0" type="info" :useload="true" @click.native="collectSampleDialogOpen" ref="sampleBtn">{{$t('sampling')}}</kap-icon-button>
+            <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 1" type="info" :useload="true" @click.native="collectKafkaSampleDialogOpen" ref="kafkaSampleBtn">{{$t('sampling')}}(Streaming)</kap-icon-button>
+  <!--           <el-button type="danger" @click.native="unloadTable" icon="delete2">Unload</el-button> -->
+            <kap-icon-button v-if="isAdmin" icon="trash" type="danger" :useload="true" @click.native="unloadTable" ref="unloadBtn">{{$t('unload')}}</kap-icon-button>
+        </div>
       	<el-tabs v-model="activeName" class="ksd-mt-20 clear" v-show="tableData">
 		    <el-tab-pane :label="$t('kylinLang.dataSource.columns')" name="first">
 	    	  <el-table
@@ -820,6 +820,13 @@ export default {
     }
   }
 .datasource{
+  .el-button{
+    border-color: @popper-bg;
+    background: transparent!important;
+  }
+  .el-button--danger{
+    border-color: #4cb050;
+  }
   .null_pic{
     position: absolute;
     left: 50%;
@@ -858,7 +865,7 @@ export default {
     }
 	}
 	.tree_list {
-		height: 1000px;
+    height: 1000px;
 		display: inline-block;
 		position: relative;
 		top:-15px;
@@ -929,6 +936,6 @@ export default {
 			top:10px;
 		}
 	}
-  
+
 }
 </style>

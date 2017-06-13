@@ -4,11 +4,11 @@
     <el-col :span="6">
       <div class="grid-content grid-project bg-purple">
 	    	<el-card class="box-card box-project">
-				  <div slot="header" class="clearfix">
+				  <div slot="header" class="clearfix" @click="goProject">
 				    {{$t('kylinLang.common.project')}}
 				  </div>
-		      <a class="btn-addProject" href="javascript:;" @click="addProject">+{{$t('kylinLang.common.project')}}</a>
-				  <section data-scrollbar id="project_scroll_box">
+			    <a class="btn-addProject" href="javascript:;" @click="addProject">+{{$t('kylinLang.common.project')}}</a>
+					<section data-scrollbar id="project_scroll_box">
 					  <div v-for="o in projectList" :key="o.uuid" class="text item" @click="selectProject(o.name)" style="cursor:pointer">
 					    {{o.name}}
 					  </div>
@@ -132,6 +132,9 @@ export default {
     goto (routername, to, path) {
       this.$router.push({name: routername, params: {subaction: to}})
       this.$emit('changeCurrentPath', path)
+    },
+    goProject () {
+      this.$router.push('/project')
     },
     selectProject (projectName) {
       this.$store.state.project.selected_project = projectName
@@ -387,5 +390,4 @@ export default {
             text-decoration: none;
         }
 	}
-
 </style>

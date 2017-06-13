@@ -1,6 +1,6 @@
 <template>
   <div class="modeltab">
-    <tab class="modeltab ksd-common-tab" v-on:addtab="addTab" v-on:reload="reloadTab" :isedit="editable" v-on:removetab="delTab"   :tabslist="editableTabs"  :active="activeName" v-on:clicktab="checkTab" >
+    <tab id="modeltab" class="modeltab ksd-common-tab" v-on:addtab="addTab" v-on:reload="reloadTab" :isedit="editable" v-on:removetab="delTab"   :tabslist="editableTabs"  :active="activeName" v-on:clicktab="checkTab">
        <template scope="props">
         <component :is="props.item.content" v-on:addtabs="addTab" v-on:reload="reloadTab" v-on:removetabs="delTab" :extraoption="props.item.extraoption" :ref="props.item.content"></component>
        </template>
@@ -136,7 +136,6 @@
 @import '../../less/config.less';
 .modeltab{
   .el-tabs__header{
-    padding-left: 30px!important;    
     border-bottom: 1px solid @grey-color;
   }
   .el-tabs__nav-scroll{
@@ -159,5 +158,13 @@
     margin-left: 0;
   }
 } 
-
+.el-tabs:not(.el-tabs--card) .el-tabs__header{
+  border-top: 0;
+}
+.is-closable{
+  margin-left: 30px;
+}
+#modeltab .el-tabs__content .el-tabs__nav-scroll{
+  margin-left: 30px;
+}
 </style>

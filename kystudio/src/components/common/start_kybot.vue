@@ -2,7 +2,7 @@
   <div class="start_kybot">
 	  	<p><a href="https://kybot.io" target="_blank" class="blue">KyBot</a> {{$t('protocol')}}</p>
 	    <el-checkbox v-model="agreeKyBot" @click="agreeKyBot = !agreeKyBot"></el-checkbox>
-      <el-button type="text" style="font-size: 12px;" @click="openAgreement">{{$t('hasAgree')}}</el-button>
+      <el-button type="text" style="font-size: 12px; margin-left: -8px;" @click="openAgreement">{{$t('hasAgree')}}</el-button>
 	  </p>
 	  <el-button @click="startService" :loading="startLoading" type="primary" :disabled="!agreeKyBot" class="btn-agree">{{$t('agreeAndOpen')}}</el-button>
 	</div>
@@ -567,6 +567,7 @@ https://kyligence.io 展示或者网页链接所附或引用的全部条款。�
 <style lang="less">
   @import url(../../less/config.less);
   .start_kybot {
+    text-align: left;
     .btn-agree {
       display: block;
       margin: 20px auto;
