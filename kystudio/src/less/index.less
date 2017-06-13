@@ -560,7 +560,7 @@ li {list-style-type:none;}
     color: @fff;
   }
   .el-select-dropdown__item.selected{
-    // background: @base-color;
+    background: @grey-color;
   }
   .el-select-dropdown__item.selected.hover{
     background: #434b70;
@@ -631,7 +631,15 @@ li {list-style-type:none;}
     }
   }
   .el-card{
-    background: @grey-color;
+    background: @card-bg;
+    .jobBtn{
+      background: transparent;
+      border: 1px solid @card-border!important;
+      border-left: none!important;
+    }
+  }
+  .el-card *{
+    border-color: @grey-color;
   }
   .has-time{
     background: @grey-color!important;
@@ -691,8 +699,8 @@ li {list-style-type:none;}
     color: @fff;
   }
   .jobs_list .timeline > li > .timeline-item *{
-    background: @tableBC;
-    color: @fff;
+    background: @card-bg;
+    // color: @fff;
   }
   .insight_box .query_result_box{
     border: 0;
@@ -715,9 +723,6 @@ li {list-style-type:none;}
     }
   }
   .el-table{
-    border-color: @grey-color;
-  }
-  .el-card, .el-card *{
     border-color: @grey-color;
   }
   .el-input.is-disabled .el-input__inner{
@@ -867,8 +872,18 @@ li {list-style-type:none;}
 .kapApp .cell .el-dropdown .el-button{
   border: 0;
 }
-
-
+.el-checkbox__inner{
+  background: rgba(255,255,255,0.4)!important;
+}
+.timeline-header p{
+  color: #40a9ff;
+}
+.steptime{
+  color: rgba(255,255,255,0.7)!important;
+}
+.timeline-body{
+  color: rgba(255,255,255,0.7)!important;
+}
 
 
 
