@@ -247,6 +247,7 @@ export default {
     },
     getBaseColumnsData: function () {
       console.log(this.rawTable.tableDetail, 998)
+      let baseEncodings = loadBaseEncodings(this.$store.state.datasource)
       let _this = this
       _this.modelDesc.dimensions.forEach(function (dimension) {
         dimension.columns.forEach(function (column) {
@@ -256,11 +257,20 @@ export default {
             sorted = true
           }
           var columType = _this.modelDesc.columnsDetail[dimension.table + '.' + column] && _this.modelDesc.columnsDetail[dimension.table + '.' + column].datatype
+          let encodingVersion = 1
+          if (['time', 'date', 'integer'].indexOf(columType) < 0) {
+            columType = ''
+          }
+          if (columType === 'integer') {
+            columType = columType + ':4'
+            encodingVersion = baseEncodings.getEncodingMaxVersion(columType)
+          }
           _this.rawTable.tableDetail.columns.push({
             index: index,
             encoding: columType || 'orderedbytes',
             table: dimension.table,
             column: column,
+            encoding_version: encodingVersion,
             is_sortby: sorted,
             is_shardby: false
           })
@@ -272,11 +282,22 @@ export default {
         if (_this.modelDesc.partition_desc && measure === _this.modelDesc.partition_desc.partition_date_column) {
           sorted = true
         }
+        var columType = _this.modelDesc.columnsDetail[getNameSpace(measure) + '.' + removeNameSpace(measure)] && _this.modelDesc.columnsDetail[getNameSpace(measure) + '.' + removeNameSpace(measure)].datatype
+        let encodingVersion = 1
+        if (['time', 'date', 'integer'].indexOf(columType) < 0) {
+          columType = ''
+        }
+        if (columType === 'integer') {
+          columType = columType + ':4'
+          encodingVersion = baseEncodings.getEncodingMaxVersion(columType)
+        }
         _this.rawTable.tableDetail.columns.push({
           index: index,
-          encoding: 'orderedbytes',
+          encoding: columType || 'orderedbytes',
+
           table: getNameSpace(measure),
           column: removeNameSpace(measure),
+          encoding_version: encodingVersion,
           is_sortby: sorted,
           is_shardby: false
         })
@@ -318,6 +339,7 @@ export default {
           this.loadRawTable(this.cubeDesc.name).then((res) => {
             handleSuccess(res, (data, code, status, msg) => {
               if (data && this.$store.state.cube.cubeRowTableIsSetting) {
+                alert(3)
                 _this.usedRawTable = true
                 var rawtbale = this.cubeDesc.is_draft ? data.draft : data.rawTable
                 if (rawtbale) {
