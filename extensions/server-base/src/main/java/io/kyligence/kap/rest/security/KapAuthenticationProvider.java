@@ -45,11 +45,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.Assert;
 
 import io.kyligence.kap.rest.msg.KapMsgPicker;
-import io.kyligence.kap.rest.service.SchedulerJobService;
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Element;
-
 
 public class KapAuthenticationProvider implements AuthenticationProvider {
 
@@ -61,10 +59,6 @@ public class KapAuthenticationProvider implements AuthenticationProvider {
     @Autowired
     @Qualifier("userService")
     UserService userService;
-
-    @Autowired
-    @Qualifier("schedulerJobService")
-    private SchedulerJobService schedulerJobService;
 
     @Autowired
     private CacheManager cacheManager;
@@ -98,7 +92,6 @@ public class KapAuthenticationProvider implements AuthenticationProvider {
         if (null != authedUser) {
             authed = (Authentication) authedUser.getObjectValue();
             SecurityContextHolder.getContext().setAuthentication(authed);
-            schedulerJobService.resumeSchedulers();
         } else {
             try {
                 if (authentication instanceof UsernamePasswordAuthenticationToken)
@@ -120,7 +113,7 @@ public class KapAuthenticationProvider implements AuthenticationProvider {
                 authed = authenticationProvider.authenticate(authentication);
                 userCache.put(new Element(userKey, authed));
             } catch (AuthenticationException e) {
-                if(userName != null) {
+                if (userName != null) {
                     kapAuthenticationManager.increaseWrongTime(userName);
                 }
                 logger.error("Failed to auth user: " + authentication.getName(), e);
@@ -133,7 +126,8 @@ public class KapAuthenticationProvider implements AuthenticationProvider {
 
             if (authed.getDetails() == null) {
                 //authed.setAuthenticated(false);
-                throw new UsernameNotFoundException("User not found in LDAP, check whether he/she has been added to the groups.");
+                throw new UsernameNotFoundException(
+                        "User not found in LDAP, check whether he/she has been added to the groups.");
             }
 
             if (authed.getDetails() instanceof UserDetails) {

@@ -84,6 +84,7 @@ public class SchedulerJobService extends BasicService {
         JobDataMap dataMap = jobDetail.getJobDataMap();
         jobDetail.setJobDataMap(dataMap);
         scheduler.addJob(jobDetail, true);
+        resumeSchedulers();
     }
 
     private Scheduler createScheduler() throws SchedulerException {
@@ -184,9 +185,8 @@ public class SchedulerJobService extends BasicService {
         return job;
     }
 
-    SchedulerJobInstance saveSchedulerJob(String name, String project, String cube, long triggerTime,
-            long startTime, long repeatCount, long curRepeatCount, long repeatInterval, long partitionInterval)
-            throws IOException {
+    SchedulerJobInstance saveSchedulerJob(String name, String project, String cube, long triggerTime, long startTime,
+            long repeatCount, long curRepeatCount, long repeatInterval, long partitionInterval) throws IOException {
 
         SchedulerJobInstance job = new SchedulerJobInstance(name, project, "cube", cube, startTime, triggerTime,
                 repeatCount, curRepeatCount, repeatInterval, partitionInterval);
@@ -196,8 +196,7 @@ public class SchedulerJobService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
             + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'MANAGEMENT')")
-    public SchedulerJobInstance updateSchedulerJob(String name, Map<String, Long> settings) throws Exception {
-        SchedulerJobInstance job = getSchedulerJobManager().getSchedulerJob(name);
+    public SchedulerJobInstance updateSchedulerJob(SchedulerJobInstance job, Map<String, Long> settings) throws Exception {
 
         for (String key : settings.keySet()) {
 
@@ -268,9 +267,8 @@ public class SchedulerJobService extends BasicService {
         dataMap.put("cube", instance.getRelatedRealization());
         dataMap.put("startTime", instance.getPartitionStartTime());
         dataMap.put("partitionInterval", instance.getPartitionInterval());
+        dataMap.put("user", SecurityContextHolder.getContext().getAuthentication().getName());
         dataMap.put("authentication", SecurityContextHolder.getContext().getAuthentication());
-        dataMap.put("schedulerJobService", this);
-        dataMap.put("jobService", jobService);
         jobDetail.setJobDataMap(dataMap);
 
         CronExpression cronExp = new CronExpression(

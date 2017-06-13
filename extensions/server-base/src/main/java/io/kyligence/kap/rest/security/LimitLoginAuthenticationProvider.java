@@ -27,7 +27,6 @@ package io.kyligence.kap.rest.security;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -37,7 +36,6 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import io.kyligence.kap.rest.msg.KapMsgPicker;
-import io.kyligence.kap.rest.service.SchedulerJobService;
 
 public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider {
 
@@ -45,10 +43,6 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
 
     @Autowired
     private KapAuthenticationManager kapAuthenticationManager;
-
-    @Autowired
-    @Qualifier("schedulerJobService")
-    private SchedulerJobService schedulerJobService;
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
@@ -72,7 +66,6 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
 
             auth = super.authenticate(authentication);
             SecurityContextHolder.getContext().setAuthentication(auth);
-            schedulerJobService.resumeSchedulers();
             return auth;
         } catch (BadCredentialsException e) {
             kapAuthenticationManager.increaseWrongTime(userName);
