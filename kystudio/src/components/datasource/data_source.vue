@@ -16,7 +16,7 @@
             <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 0" type="info" :useload="true" @click.native="collectSampleDialogOpen" ref="sampleBtn">{{$t('sampling')}}</kap-icon-button>
             <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 1" type="info" :useload="true" @click.native="collectKafkaSampleDialogOpen" ref="kafkaSampleBtn">{{$t('sampling')}}(Streaming)</kap-icon-button>
   <!--           <el-button type="danger" @click.native="unloadTable" icon="delete2">Unload</el-button> -->
-            <kap-icon-button v-if="isAdmin" icon="trash" type="danger" :useload="true" @click.native="unloadTable" ref="unloadBtn">{{$t('unload')}}</kap-icon-button>
+            <kap-icon-button v-if="isAdmin" icon="trash" type="primary" :useload="true" @click.native="unloadTable" ref="unloadBtn">{{$t('unload')}}</kap-icon-button>
         </div>
       	<el-tabs v-model="activeName" class="ksd-mt-20 clear" v-show="tableData">
 		    <el-tab-pane :label="$t('kylinLang.dataSource.columns')" name="first">
@@ -882,7 +882,8 @@ export default {
     }
     .ksd-ml-30{
       margin-left: 45px!important;
-      margin-top: 40px!important;
+      margin-top: 30px!important;
+      margin-bottom: 12px!important;
     }
 	}
 
@@ -936,6 +937,11 @@ export default {
 			top:10px;
 		}
 	}
-
+  .el-button--info{
+    border-color: green;
+  }
+  .el-button--info:hover{
+    border-color: #4cb050;
+  }
 }
 </style>

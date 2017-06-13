@@ -1,6 +1,6 @@
 <template>
   <div class="insight_box ksd-border-tab">
-  	<div class="ksd_left_bar">
+  	<div class="ksd_left_bar" id="input-inner">
      <tree :treedata="tableData" :placeholder="$t('kylinLang.common.pleaseInput')"  :indent="4" :expandall="true" :showfilter="true" :allowdrag="false" @nodeclick="clickTable"></tree>
     </div>
     <div class="ksd_right_box">
@@ -451,6 +451,9 @@ export default {
     .el-tabs__content {
       overflow: visible;
     }
+  }
+  #input-inner{
+    background: @grey-color;
   }
 </style>
 

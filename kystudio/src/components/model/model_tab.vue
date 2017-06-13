@@ -135,6 +135,12 @@
 <style lang="less" scope="">
 @import '../../less/config.less';
 .modeltab{
+  .is-closable{
+    background: @grey-color;
+  }
+  .is-closable:first-child{
+    margin-left: 30px;
+  }
   .el-tabs__header{
     border-bottom: 1px solid @grey-color;
   }
@@ -161,10 +167,10 @@
 .el-tabs:not(.el-tabs--card) .el-tabs__header{
   border-top: 0;
 }
-.is-closable{
-  margin-left: 30px;
-}
 #modeltab .el-tabs__content .el-tabs__nav-scroll{
   margin-left: 30px;
 }
+// #modeltab .el-tabs__nav:nth-child(1){
+//   margin-left: 30px;
+// }
 </style>
