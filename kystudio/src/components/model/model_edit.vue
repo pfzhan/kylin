@@ -53,7 +53,7 @@
      
 
     </div>
-     <el-dialog :title="$t('addJoinCondition')" v-model="dialogVisible" size="small" class="links_dialog" @close="saveLinks(currentLinkData.source.guid,currentLinkData.target.guid)">
+     <el-dialog :title="$t('addJoinCondition')" v-model="dialogVisible" size="small" class="links_dialog" @close="saveLinks(currentLinkData.source.guid,currentLinkData.target.guid, true)">
         <span>
             <br/>
              <el-row :gutter="20" class="ksd-mb10" style="line-height:49px;">
@@ -318,7 +318,7 @@ export default {
       },
       columnSort: ['order', 'reversed', 'restore'],
       columnBType: ['D', 'M', '－'],
-      joinTypes: [{label: 'Left Join', value: 'left'}, {label: 'Inner Join', value: 'inner'}],
+      joinTypes: [{label: 'Inner Join', value: 'inner'}, {label: 'Left Join', value: 'left'}],
       timerST: null,
       baseLineL: 20000,
       baseLineT: 20000,
@@ -357,7 +357,7 @@ export default {
           alias: '',
           columns: []
         },
-        joinType: 'left'
+        joinType: 'inner'
       },
       joinType: false,
       aliasEdit: false,
@@ -1201,10 +1201,13 @@ export default {
       this.links.push(link)
       this.refreshConnectCountText(p1, p2, joinType)
     },
-    saveLinks (p1, p2) {
+    saveLinks (p1, p2, delError) {
       var isBroken = this.checkBrokenConnect(p1, p2)
       if (isBroken) {
         this.warnAlert(this.$t('checkCompleteLink'))
+        if (delError) {
+          this.delBrokenConnect(p1, p2)
+        }
         return
       }
       this.dialogVisible = false
@@ -1267,7 +1270,7 @@ export default {
       return this.currentTableLinks
     },
     getConnectType: function (p1, p2) {
-      var joinType = 'left'
+      var joinType = 'inner'
       for (var i = 0; i < this.links.length; i++) {
         if (this.links[i][0] === p1 && this.links[i][1] === p2) {
           joinType = this.links[i][4]

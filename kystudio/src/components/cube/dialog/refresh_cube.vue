@@ -62,12 +62,12 @@ export default {
   created () {
     let _this = this
     this.$on('refreshCubeFormValid', (t) => {
-      _this.$emit('validSuccess', this.selected_segment)
+      _this.$emit('validSuccess', this.selected_segment, !!this.cubeDesc.partitionDateColumn)
     })
   },
   computed: {
     lastBuild () {
-      return transToGmtTime(this.selected_segment.last_build_time, this)
+      return transToGmtTime(this.selected_segment.last_build_time)
     }
   },
   watch: {

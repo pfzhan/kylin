@@ -62,6 +62,7 @@
 <script>
 import { mapActions } from 'vuex'
 import { pageCount } from '../../config'
+import { transToGmtTime } from '../../util/business'
 export default {
   name: 'slowQueriesList',
   data () {
@@ -85,7 +86,9 @@ export default {
   },
   computed: {
     slowQueriesList () {
-      return this.$store.state.monitor.slowQueries
+      return this.$store.state.monitor.slowQueries.forEach((p) => {
+        p.start_time = transToGmtTime(p.start_time, this)
+      })
     },
     slowQueiesTotal () {
       return this.$store.state.monitor.totalSlowQueries

@@ -41,7 +41,7 @@ exports.default = {
     computedColumn: 'Computed Column',
     pk: 'Primary key',
     fk: 'Foreign key',
-    manual: 'Manual',
+    manual: 'Documentation',
     tutorial: 'Tutorial',
     qa: 'Q&A',
     // 通用提示

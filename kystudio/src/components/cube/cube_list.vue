@@ -357,17 +357,16 @@ export default {
     checkBuildCubeForm: function () {
       this.$refs['buildCubeForm'].$emit('buildCubeFormValid')
     },
-    buildCubeValidSuccess: function (data) {
-      let _this = this
+    buildCubeValidSuccess: function (data, isFullBuild) {
       let time = {buildType: 'BUILD', startTime: data.start, endTime: data.end}
-      this.rebuildCube({cubeName: _this.selected_cube.name, timeZone: time}).then((res) => {
+      this.rebuildCube({cubeName: this.selected_cube.name, timeZone: time}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           this.$message({
             type: 'success',
             message: this.$t('buildSuccessful'),
             duration: 3000
           })
-          _this.loadCubesList(this.currentPage - 1)
+          this.loadCubesList(this.currentPage - 1)
         })
       }).catch((res) => {
         handleError(res)
@@ -381,7 +380,10 @@ export default {
     checkRefreshCubeForm: function () {
       this.$refs['refreshCubeForm'].$emit('refreshCubeFormValid')
     },
-    refreshCubeValidSuccess: function (data) {
+    refreshCubeValidSuccess: function (data, noFullBuild) {
+      if (!noFullBuild) {
+        data.date_range_end = 0
+      }
       let _this = this
       let time = {buildType: 'REFRESH', startTime: data.date_range_start, endTime: data.date_range_end}
       this.rebuildCube({cubeName: _this.selected_cube.name, timeZone: time}).then((res) => {

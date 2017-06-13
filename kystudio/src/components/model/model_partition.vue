@@ -133,13 +133,18 @@ export default {
       return this.modelInfo
     },
     dateColumns () {
+      this.columnsForDate[''] = []
       return this.columnsForDate || []
     },
     timeColumns () {
+      this.columnsForTime[''] = []
       return this.columnsForTime || []
     },
     dateColumnsByTable () {
       for (var i in this.columnsForDate) {
+        if (this.checkPartition.date_table === '') {
+          this.checkPartition.date_column = ''
+        }
         if (i === this.checkPartition.date_table) {
           return this.columnsForDate[i]
         }
@@ -147,6 +152,9 @@ export default {
       return []
     },
     timeColumnsByTable () {
+      if (this.checkPartition.time_table === '') {
+        this.checkPartition.time_column = ''
+      }
       for (var i in this.columnsForTime) {
         if (i === this.checkPartition.time_table) {
           return this.columnsForTime[i].filter((column) => {

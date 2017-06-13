@@ -24,7 +24,7 @@ const modelHealthStatus = {
   'GOOD': {
     icon: 'check-circle-o',
     color: 'green',
-    message: 'Good Helth'
+    message: 'Good Health'
   },
   'WARN': {
     icon: 'exclamation-circle',

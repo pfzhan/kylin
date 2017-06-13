@@ -77,7 +77,13 @@ export default {
     this.$refs.select.$refs.tags.onclick = function (e) {
       console.log(e, 788)
       _this.selectTag(e)
-      e.stoppropagation && e.stoppropagation()
+      if (e && e.stopPropagation) {
+      // W3C取消冒泡事件
+        e.stopPropagation()
+      } else {
+      // IE取消冒泡事件
+        window.event.cancelBubble = true
+      }
     }
   }
 }

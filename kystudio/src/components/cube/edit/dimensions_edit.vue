@@ -315,12 +315,12 @@ export default {
       // this.cubeDesc.aggregation_groups[gindex].select_rule[key][jindex] = data
     },
     resetDimensions: function () {
-      this.cubeDesc.dimensions.splice(0, this.cubeDesc.dimensions.length)
+      // this.cubeDesc.dimensions.splice(0, this.cubeDesc.dimensions.length)
       this.dim_cap = 0
       this.totalCuboid = 0
       this.cubeDesc.aggregation_groups.splice(0, this.cubeDesc.aggregation_groups.length)
-      this.cubeDesc.rowkey.rowkey_columns.splice(0, this.cubeDesc.rowkey.rowkey_columns.length)
-      this.initConvertedRowkeys()
+      // this.cubeDesc.rowkey.rowkey_columns.splice(0, this.cubeDesc.rowkey.rowkey_columns.length)
+      // this.initConvertedRowkeys()
     },
     showDetail: function (text, target) {
       var columnNameInfo = text && text.split('.') || []
@@ -361,7 +361,7 @@ export default {
     },
     collectSqlToServer () {
       if (this.sqlString !== '') {
-        this.saveSampleSql({modelName: this.modelDesc.name, cubeName: this.cubeDesc.name, sqls: this.sqlString.split(/\r?\n/)}).then((res) => {
+        this.saveSampleSql({modelName: this.modelDesc.name, cubeName: this.cubeDesc.name, sqls: this.sqlString.split(/;/)}).then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
             this.$set(this.modelDesc, 'suggestionDerived', data.dimensions)
             // this.$set(this.cubeDesc, 'aggregation_groups', data.aggregation_groups)
@@ -380,7 +380,7 @@ export default {
           this.$set(this.cubeDesc, 'dimensions', data.dimensions)
           this.$set(this.cubeDesc, 'aggregation_groups', data.aggregation_groups)
           this.$set(this.cubeDesc, 'override_kylin_properties', data.override_kylin_properties)
-          this.dim_cap = data.aggregation_groups[0].select_rule.dim_cap || 0
+          this.dim_cap = data.aggregation_groups && data.aggregation_groups[0] && data.aggregation_groups[0].select_rule.dim_cap || 0
           this.$set(this.cubeDesc.rowkey, 'rowkey_columns', data.rowkey.rowkey_columns)
           this.initConvertedRowkeys()
           this.initCalCuboid()
