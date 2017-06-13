@@ -20,7 +20,7 @@ function add_or_reset()
         key=$1
         value=$2
         filename=$3
-        line=`sed -n '/'"$key"'/=' $filename`
+        line=`sed -n '/\^'"$key"'/=' $filename`
         if [ "$line" == "" ]; then  #Not exist. Append
                 echo "${key}=${value}" >> ${filename}
                 return
@@ -86,7 +86,8 @@ then
     #replace ports in kylin.properties
     new_kylin_port=`expr ${KYLIN_DEFAULT_PORT} + ${OFFSET}`
 
-    sed -i "s/kylin.server.cluster-servers=\(.*\).*:\(.*\)/kylin.server.cluster-servers=\1:${new_kylin_port}/g" ${KYLIN_CONFIG_FILE}
+    # kap by default uses service discovery, no need to manually set
+    # sed -i "s/kylin.server.cluster-servers=\(.*\).*:\(.*\)/kylin.server.cluster-servers=\1:${new_kylin_port}/g" ${KYLIN_CONFIG_FILE}
 
     #replace kap properties
     new_spark_port=`expr ${KAP_SPARK_DRIVER_DEFAULT_PORT} + ${OFFSET}`

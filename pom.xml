@@ -33,7 +33,6 @@
         <zkclient.version>0.8</zkclient.version>
         <grpc.version>1.0.2</grpc.version>
         <fastPFOR.version>0.0.13</fastPFOR.version>
-        <helix.version>0.7.1</helix.version>
         <parquet.version>1.9.0</parquet.version>
         <tomcat.version>7.0.69</tomcat.version>
         <spark.version>1.6.3</spark.version>
@@ -258,16 +257,6 @@
                 <artifactId>hadoop-distcp</artifactId>
                 <version>${hadoop2.version}</version>
                 <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.helix</groupId>
-                <artifactId>helix-core</artifactId>
-                <version>${helix.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.helix</groupId>
-                <artifactId>helix-examples</artifactId>
-                <version>${helix.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.parquet</groupId>
