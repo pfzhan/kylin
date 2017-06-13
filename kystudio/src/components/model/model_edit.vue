@@ -9,9 +9,9 @@
 <!--     </draggable> -->
     </div>
     <ul class="model_tool">
-        <li class="toolbtn tool_add" @click="addZoom" v-unselect :title="$t('kylinLang.common.zoomIn')"><span></span></li>
-        <li class="toolbtn tool_jian" @click="subZoom" v-unselect :title="$t('kylinLang.common.zoomOut')"><span></span></li>
-        <li class="toolbtn" @click="autoLayerPosition" v-unselect  :title="$t('kylinLang.common.automaticlayout')"><img src="../../assets/img/layout.png"></li>
+        <li class="toolbtn tool_add" @click="addZoom" v-unselect :title="$t('kylinLang.common.zoomIn')" style="line-height:38px;"><img src="../../assets/img/fd.png"></li>
+        <li class="toolbtn tool_jian" @click="subZoom" v-unselect :title="$t('kylinLang.common.zoomOut')" style="line-height:26px;"><img src="../../assets/img/sx.png"></li>
+        <li class="toolbtn" @click="autoLayerPosition" v-unselect  :title="$t('kylinLang.common.automaticlayout')" style="line-height:42px;"><img src="../../assets/img/layout.png"></li>
       </ul>
     <div class="btn_group"  v-if="actionMode!=='view'">
       <!-- <el-button @click="saveDraft(true)" :loading="draftBtnLoading">{{$t('kylinLang.common.draft')}}</el-button> -->
@@ -53,7 +53,7 @@
      
 
     </div>
-     <el-dialog :title="$t('addJoinCondition')" v-model="dialogVisible" size="small" class="links_dialog">
+     <el-dialog :title="$t('addJoinCondition')" v-model="dialogVisible" size="small" class="links_dialog" @close="saveLinks(currentLinkData.source.guid,currentLinkData.target.guid)">
         <span>
             <br/>
              <el-row :gutter="20" class="ksd-mb10" style="line-height:49px;">
@@ -2164,7 +2164,7 @@ export default {
    }
    .btn_group{
     position: absolute;
-    bottom: 10px;
+    bottom: 36px;
     right: 10px;
     z-index: 10;
    }
