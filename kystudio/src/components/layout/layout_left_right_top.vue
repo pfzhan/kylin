@@ -243,7 +243,7 @@
         })
       },
       getLicense () {
-        location.href = './api/kap/system/requestLicense'
+        location.href = 'mailto:g-sales@kyligence.io'
       },
       defaultVal (obj) {
         if (!obj) {
@@ -410,8 +410,8 @@
       this.hoverMenu()
     },
     locales: {
-      'en': {resetPassword: 'Reset Password', confirmLoginOut: 'Confirm exit?', validPeriod: 'Valid Period: ', overtip1: 'Your probation period will expire in', overtip2: 'days, and you must apply for a formal license! ', applayLisence: 'Apply for formal permission', 'continueUse': 'Continue use'},
-      'zh-cn': {resetPassword: '重置密码', confirmLoginOut: '确认退出吗？', validPeriod: '使用期限: ', overtip1: '您的试用期将在', overtip2: '天后过期，必须申请正式许可，才能继续使用！', applayLisence: '申请正式许可', 'continueUse': '继续使用'}
+      'en': {resetPassword: 'Reset Password', confirmLoginOut: 'Confirm exit?', validPeriod: 'Valid Period: ', overtip1: 'This Evaluation License will be expired in ', overtip2: 'days. Please contact sales support to apply for the Enterprise License.', applayLisence: 'Apply for Enterprise License', 'continueUse': 'I Know'},
+      'zh-cn': {resetPassword: '重置密码', confirmLoginOut: '确认退出吗？', validPeriod: '使用期限: ', overtip1: '当前使用的试用版许可证将在', overtip2: '天后过期。欢迎联系销售支持人员申请企业版许可证。', applayLisence: '申请企业版许可证', 'continueUse': '继续使用'}
     }
   }
 </script>
