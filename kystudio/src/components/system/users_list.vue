@@ -306,6 +306,7 @@ export default {
 <style lang="less">
 
 .user-list{
+  margin: 0 30px 0 30px;
   .table_margin {
     margin-top: 20px;
     margin-bottom: 20px;

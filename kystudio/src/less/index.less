@@ -420,6 +420,9 @@ li {list-style-type:none;}
   .el-dialog__title {
     color: @fff;
   }
+  .el-form{
+    padding-top: 20px;
+  }
   .el-form-item__label{
     color: @fff;
   }
@@ -438,6 +441,9 @@ li {list-style-type:none;}
     .el-textarea__inner:focus {
       color: @fff;
       border: 1px solid @popper-bg;
+    }
+    textarea{
+      margin-top: 10px;
     }
   }
   .el-form-item__content {
@@ -531,6 +537,20 @@ li {list-style-type:none;}
   }
   .el-tabs__item.is-active{
     color: @fff;
+  }
+  .el-select{
+    .el-input__icon+.el-input__inner{
+      border-color: @grey-color;
+    }
+  }
+  .el-select-dropdown{
+    border: 0;
+  }
+  .kapApp .el-select-dropdown__item.selected{
+    background: yellow;
+  }
+  .kapApp .el-select-dropdown__item.selected.hover{
+    background: yellow;
   }
   .el-select-dropdown__empty{
     color: @fff;
@@ -820,6 +840,25 @@ li {list-style-type:none;}
 .el-dialog--large .protocol-wrap{
   padding-top: 10px;
 }
+.el-tabs--border-card>.el-tabs__header{
+  background: #4f5473!important;
+}
+.kapApp .el-tabs--border-card{
+  border: 0;
+}
+.kapApp .el-tabs--border-card > .el-tabs__header .el-tabs__item.is-active{
+  background: @grey-color;
+}
+.el-form-item__label{
+  float: none!important;
+}
+
+
+
+
+
+
+
 
 
 

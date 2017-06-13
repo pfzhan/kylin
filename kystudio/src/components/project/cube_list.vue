@@ -51,5 +51,9 @@ export default {
   }
 }
 </script>
-<style scoped="">
+<style lang="less">
+  .cubeSearch{
+    padding-top: 15px;
+    padding-bottom: 15px;
+  }
 </style>

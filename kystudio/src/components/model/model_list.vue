@@ -7,7 +7,7 @@
 		<el-row :gutter="20" v-if="viewModal==='card'">
 		  <el-col :span="8"  v-for="(o, index) in modelsList" :key="o.uuid" :style="{height:'152px'}">
 		    <el-card :body-style="{ padding: '0px'}" style="height:100%" :class="{'is_draft': o.is_draft}">
-		      <p class="title">Last updated {{ o.gmtTime }}
+		      <p style="font-size: 12px;padding-left: 10px;" class="title">Last updated {{ o.gmtTime }}
 					<el-dropdown @command="handleCommand" :id="o.name" trigger="click"  v-show="isAdmin || hasPermission(o.uuid)">
 					  <span class="el-dropdown-link" >
 					    <icon name="ellipsis-h"></icon>
