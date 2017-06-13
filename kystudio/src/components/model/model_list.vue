@@ -27,7 +27,8 @@
             <el-tooltip class="item" effect="dark" :content="o.name|omit(24, '...')" placement="top">
               <span @click="viewModel(o)">{{o.name|omit(24, '...')}}</span>
             </el-tooltip>
-           <common-tip :tips="o.diagnose&&o.diagnose.messages.join('@')"> <icon v-if="!o.is_draft && o.diagnose && (o.diagnose.progress===0 || o.diagnose.progress===100)" :name="modelHealthStatus[o.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[o.diagnose.heathStatus].color}"></icon></common-tip>
+           <common-tip :content="o.diagnose&&o.diagnose.messages.join('<br/>')"> 
+           <icon v-if="!o.is_draft && o.diagnose && (o.diagnose.progress===0 || o.diagnose.progress===100)" :name="modelHealthStatus[o.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[o.diagnose.heathStatus].color}"></icon></common-tip>
              <el-progress  :width="20" type="circle" :stroke-width="2" :show-text="false" v-if="!o.is_draft&&o.diagnose&&o.diagnose.progress!==0 && o.diagnose.progress!==100" :percentage="o.diagnose&&o.diagnose.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></h2>
 		        <div class="bottom clearfix">
 		          <time class="time" v-visible="o.owner" style="display:block">{{o.owner}}</time>
@@ -655,7 +656,7 @@ export default {
           if (d.modelName === m.name) {
             d.progress = d.progress === 0 ? 0 : parseInt(d.progress)
             d.messages = d.messages && d.messages.length ? d.messages.map((x) => {
-              return x.replace(/↵/g, '</br>')
+              return x.replace(/\r\n/g, '<br/>')
             }) : [modelHealthStatus[d.heathStatus].message]
             m.diagnose = d
           }

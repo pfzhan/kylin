@@ -11,7 +11,8 @@
     </el-row>
     <el-row class="resultTips" >
       <el-col :span="24">
-        <div class="grid-content bg-purple"><p>Cube: <span v-for="(cube, index) in queryInfo.cube">{{cube}}</span></p></div>
+        <div v-if="!queryInfo.adHoc" class="grid-content bg-purple"><p>Cube: <span v-for="(cube, index) in queryInfo.cube">{{cube}}</span></p></div>
+        <div v-if="queryInfo.adHoc" class="grid-content bg-purple"><p>From DataSource</p></div>
       </el-col>
     </el-row>
   	<div>
