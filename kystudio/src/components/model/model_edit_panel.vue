@@ -399,7 +399,7 @@ export default {
   mounted () {
   },
   locales: {
-    'en': {modelName: 'Model Name', discribe: 'Model Description', owner: 'Owner', inputModelDescription: 'Please input model description', modelInfo: 'Model Info', partition: 'Partition', setting: '设置', filter: 'Filter', filterCondition: 'Filter Condition', tableStatistics: 'Table Statistics', dimension: 'Dimension', measure: 'Measure', filterPlaceHolder: 'Please input filter condition'},
+    'en': {modelName: 'Model Name', discribe: 'Model Description', owner: 'Owner', inputModelDescription: 'Please input model description', modelInfo: 'Model Info', partition: 'Partition', setting: 'Setting', filter: 'Filter', filterCondition: 'Filter Condition', tableStatistics: 'Table Statistics', dimension: 'Dimension', measure: 'Measure', filterPlaceHolder: 'Please input filter condition'},
     'zh-cn': {modelName: '模型名称', discribe: '模型描述', owner: 'Owner', inputModelDescription: '请输入模型的描述', modelInfo: '模型信息', 'partition': '分区', setting: '设置', filter: '过滤器', filterCondition: '过滤条件', tableStatistics: '采样数据', dimension: '维度', measure: '度量', filterPlaceHolder: '请输入过滤条件'}
   }
 }

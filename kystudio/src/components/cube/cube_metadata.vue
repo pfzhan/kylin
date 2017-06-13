@@ -6,7 +6,7 @@
 </template>
 <script>
 import { mapActions } from 'vuex'
-import { handleSuccess, handleError } from '../../util/business'
+import { handleSuccess, handleError, kapConfirm } from '../../util/business'
 export default {
   name: 'cubeMetadata',
   props: ['extraoption'],
@@ -27,12 +27,7 @@ export default {
       draftCube: 'DRAFT_CUBE'
     }),
     update: function () {
-      this.$confirm('确认保存Cube？', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(() => {
-        console.log(this.extraoption)
+      kapConfirm('确认保存Cube？').then(() => {
         var action = 'draftCube'
         if (!JSON.parse(this.json).is_draft) {
           action = 'updateCube'
@@ -65,20 +60,20 @@ export default {
     } else {
       this.loadCubeDesc(this.extraoption.cubeName).then((res) => {
         handleSuccess(res, (data) => {
-          this.json = JSON.stringify(data[0], 4, 4)
+          this.json = JSON.stringify(data.cube || data.draft, 4, 4)
         })
       })
       this.loadRawTable(this.extraoption.cubeName).then((res) => {
         handleSuccess(res, (data) => {
           if (data) {
-            this.saveData.rawTableDescData = JSON.stringify(data)
+            this.saveData.rawTableDescData = JSON.stringify(data.rawTable || data.draft)
           }
         })
       })
       this.getScheduler(this.extraoption.cubeName).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           if (data) {
-            this.saveData.schedulerJobData = JSON.stringify(data)
+            this.saveData.schedulerJobData = JSON.stringify(data.rawTable || data.draft)
           }
         })
       })

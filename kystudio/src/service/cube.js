@@ -18,7 +18,7 @@ export default {
     return Vue.resource(apiUrl + 'cubes/' + cube.cubeName + '/rebuild').update(cube.timeZone)
   },
   rebuildStreamingCube: (cubeName) => {
-    return Vue.resource(apiUrl + 'cubes/' + cubeName + '/build2').update({
+    return Vue.resource(apiUrl + 'cubes/' + cubeName + '/rebuild_streaming').update({
       sourceOffsetStart: 0,
       sourceOffsetEnd: '9223372036854775807',
       buildType: 'BUILD'

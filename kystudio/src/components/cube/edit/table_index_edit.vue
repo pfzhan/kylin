@@ -338,8 +338,7 @@ export default {
           _this.initConvertedRawTable()
           this.loadRawTable(this.cubeDesc.name).then((res) => {
             handleSuccess(res, (data, code, status, msg) => {
-              if (data && this.$store.state.cube.cubeRowTableIsSetting) {
-                alert(3)
+              if (this.$store.state.cube.cubeRowTableIsSetting) {
                 _this.usedRawTable = true
                 var rawtbale = this.cubeDesc.is_draft ? data.draft : data.rawTable
                 if (rawtbale) {

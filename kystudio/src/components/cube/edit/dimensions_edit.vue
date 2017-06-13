@@ -720,5 +720,8 @@ export default {
    .el-tag{
      cursor: pointer;
    }
+   .tablebody {
+    background-color: #393e53;
+   }
  }
 </style>

@@ -11,7 +11,7 @@
     <ul class="model_tool">
         <li class="toolbtn tool_add" @click="addZoom" v-unselect :title="$t('kylinLang.common.zoomIn')"><span></span></li>
         <li class="toolbtn tool_jian" @click="subZoom" v-unselect :title="$t('kylinLang.common.zoomOut')"><span></span></li>
-        <li class="toolbtn" @click="autoLayerPosition" v-unselect style="line-height:26px;" :title="$t('kylinLang.common.automaticlayout')"><icon style="color:#383838" name="life-bouy"></icon></li>
+        <li class="toolbtn" @click="autoLayerPosition" v-unselect  :title="$t('kylinLang.common.automaticlayout')"><img src="../../assets/img/layout.png"></li>
       </ul>
     <div class="btn_group"  v-if="actionMode!=='view'">
       <!-- <el-button @click="saveDraft(true)" :loading="draftBtnLoading">{{$t('kylinLang.common.draft')}}</el-button> -->
@@ -2116,14 +2116,14 @@ export default {
       -webkit-select:none;
       user-select:none;
       -moz-user-select:none;
-      width: 26px;
-      height: 26px;
+      width: 36px;
+      height: 36px;
+      line-height: 36px;
       position: relative;
-     box-shadow: 1px 2px 1px rgba(0,0,0,.15);
-    cursor: pointer;
-    overflow: hidden;
-    background-color: #FFF;
- 
+      box-shadow: 1px 2px 1px rgba(0,0,0,.15);
+      cursor: pointer;
+      overflow: hidden;
+      background-color: #393e52;
       span{
         display: block;
         width: 10px;

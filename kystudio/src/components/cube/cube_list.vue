@@ -95,20 +95,20 @@
       :label="$t('actions')">
       <template scope="scope">
       <span v-if="!(isAdmin || hasPermission(scope.row.uuid))"> N/A</span>
-        <el-dropdown trigger="click" v-if="isAdmin || hasPermission(scope.row.uuid)">
+        <el-dropdown trigger="click" v-show="isAdmin || hasPermission(scope.row.uuid)">
           <el-button class="el-dropdown-link">
             <i class="el-icon-more"></i>
           </el-button >
-          <el-dropdown-menu slot="dropdown" >
-            <el-dropdown-item v-if="scope.row.status==='DISABLED'" @click.native="drop(scope.row.name)">{{$t('drop')}}</el-dropdown-item>
+          <el-dropdown-menu slot="dropdown">
+            <el-dropdown-item v-show="scope.row.status==='DISABLED'" @click.native="drop(scope.row.name)">{{$t('drop')}}</el-dropdown-item>
             <el-dropdown-item @click.native="edit(scope.row)">{{$t('edit')}}</el-dropdown-item>
-            <el-dropdown-item v-if="scope.row.status !== 'DESCBROKEN' " @click.native="build(scope.row)">{{$t('build')}}</el-dropdown-item>
-            <el-dropdown-item v-if="scope.row.status!=='DISABLED'&&scope.row.status!=='DESCBROKEN' " @click.native="refresh(scope.row)">{{$t('refresh')}}</el-dropdown-item>
-            <el-dropdown-item v-if="scope.row.status!== 'DESCBROKEN'" @click.native="merge(scope.row)">{{$t('merge')}}</el-dropdown-item>
-            <el-dropdown-item v-if="scope.row.status=='DISABLED' " @click.native="enable(scope.row.name)">{{$t('enable')}}</el-dropdown-item>
-            <el-dropdown-item v-if="scope.row.status!=='DISABLED' " @click.native="disable(scope.row.name)">{{$t('disable')}}</el-dropdown-item>
-            <el-dropdown-item v-if="scope.row.status==='DISABLED' " @click.native="purge(scope.row.name)">{{$t('purge')}}</el-dropdown-item>
-            <el-dropdown-item v-if="scope.row.status!=='DESCBROKEN' " @click.native="clone(scope.row)">{{$t('clone')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.status !== 'DESCBROKEN' && !scope.row.is_draft " @click.native="build(scope.row)">{{$t('build')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.status!=='DISABLED' && scope.row.status!=='DESCBROKEN' && !scope.row.is_draft" @click.native="refresh(scope.row)">{{$t('refresh')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.status!== 'DESCBROKEN'&& !scope.row.is_draft" @click.native="merge(scope.row)">{{$t('merge')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.status=='DISABLED' && !scope.row.is_draft" @click.native="enable(scope.row.name)">{{$t('enable')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.status!=='DISABLED' && !scope.row.is_draft" @click.native="disable(scope.row.name)">{{$t('disable')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.status==='DISABLED' && !scope.row.is_draft" @click.native="purge(scope.row.name)">{{$t('purge')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.status!=='DESCBROKEN' && !scope.row.is_draft " @click.native="clone(scope.row)">{{$t('clone')}}</el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
       </template>
@@ -117,15 +117,15 @@
       sortable
       label="Admin">
       <template scope="scope">
-      <span v-if="!isAdmin"> N/A</span>
-        <el-dropdown trigger="click" v-if="isAdmin">
+      <span v-show="!isAdmin"> N/A</span>
+        <el-dropdown trigger="click" v-show="isAdmin">
           <el-button class="el-dropdown-link">
             <i class="el-icon-more"></i>
           </el-button >
           <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item v-if="scope.row.status==='DISABLED' " @click.native="editCubeDesc(scope.row)">{{$t('editCubeDesc')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.status==='DISABLED' " @click.native="editCubeDesc(scope.row)">{{$t('editCubeDesc')}}</el-dropdown-item>
             <el-dropdown-item @click.native="view(scope.row)">{{$t('viewCube')}}</el-dropdown-item>
-            <el-dropdown-item @click.native="backup(scope.row.name)">{{$t('backup')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="backup(scope.row.name)" v-show="!scope.row.is_draft ">{{$t('backup')}}</el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
       </template>

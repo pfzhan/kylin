@@ -27,10 +27,10 @@
             <el-tooltip class="item" effect="dark" :content="o.name|omit(24, '...')" placement="top">
               <span @click="viewModel(o)">{{o.name|omit(24, '...')}}</span>
             </el-tooltip>
-           <common-tip :content="o.diagnose&&o.diagnose.messages.join('<br/>')"> 
-           <icon v-if="!o.is_draft && o.diagnose && (o.diagnose.progress===0 || o.diagnose.progress===100)" :name="modelHealthStatus[o.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[o.diagnose.heathStatus].color}"></icon></common-tip>
-             <el-progress  :width="20" type="circle" :stroke-width="2" :show-text="false" v-if="!o.is_draft&&o.diagnose&&o.diagnose.progress!==0 && o.diagnose.progress!==100" :percentage="o.diagnose&&o.diagnose.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></h2>
-		        <div class="bottom clearfix" style="margin-top: 30px;">
+           <common-tip :content="o.diagnose&&o.diagnose.messages.join('<br/>')" v-if="o.diagnose&&o.diagnose.heathStatus!=='RUNNING'"> 
+           <icon v-if="!o.is_draft && o.diagnose &&o.diagnose.status!=='RUNNING'" :name="modelHealthStatus[o.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[o.diagnose.heathStatus].color}"></icon></common-tip>
+             <el-progress  :width="20" type="circle" :stroke-width="2" :show-text="false" v-if="!o.is_draft&&o.diagnose&&o.diagnose.heathStatus==='RUNNING'" :percentage="o.diagnose&&o.diagnose.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></h2>
+		        <div class="bottom clearfix">
 		          <time class="time" v-visible="o.owner" style="display:block">{{o.owner}}</time>
 		        </div>
 		      </div>
@@ -65,8 +65,8 @@
       label="Status">
       <template scope="scope">
          <!-- <icon v-if="!scope.row.is_draft && scope.row.diagnose && scope.row.diagnose.progress===0" :name="modelHealthStatus[scope.row.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[scope.row.diagnose.heathStatus].color}"></icon> -->
-          <common-tip :tips="scope.row.diagnose&&scope.row.diagnose.messaes&&scope.row.diagnose.messaes.join('\n') || $t('hasNotChecked')"> <icon v-if="!scope.row.is_draft && scope.row.diagnose && (scope.row.diagnose.progress===0 || scope.row.diagnose.progress===100)" :name="modelHealthStatus[scope.row.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[scope.row.diagnose.heathStatus].color}"></icon></common-tip>
-         <el-progress  :width="20" type="circle" :stroke-width="2" :show-text="false" v-if="!scope.row.is_draft&&scope.row.diagnose&&scope.row.diagnose.progress!==0 && scope.row.diagnose.progress!==100" :percentage="scope.row.diagnose&&scope.row.diagnose.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></h2>
+          <common-tip  :content="scope.row.diagnose&&scope.row.diagnose.messaes&&scope.row.diagnose.messaes.join('<br/>')" > <icon v-if="!scope.row.is_draft && scope.row.diagnose && scope.row.diagnose.heathStatus!=='RUNNING' && (scope.row.diagnose.progress===0 || scope.row.diagnose.progress===100)" :name="modelHealthStatus[scope.row.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[scope.row.diagnose.heathStatus].color}"></icon></common-tip>
+         <el-progress  :width="20" type="circle" :stroke-width="2" :show-text="false" v-if="!scope.row.is_draft&&scope.row.diagnose&&scope.row.diagnose.heathStatus==='RUNNING'" :percentage="scope.row.diagnose&&scope.row.diagnose.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></h2>
       </template>
     </el-table-column>
     <el-table-column

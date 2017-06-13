@@ -16,6 +16,11 @@ if (process.env.NODE_ENV === 'development') {
   regexApiUrl = '\\/kylin\\/api\\/'
 }
 const modelHealthStatus = {
+  'RUNNING': {
+    icon: '',
+    color: '',
+    message: ''
+  },
   'GOOD': {
     icon: 'check-circle-o',
     color: 'green',
