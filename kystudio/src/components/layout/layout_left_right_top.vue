@@ -149,19 +149,14 @@
     created () {
       this.getCurUserInfo().then((res) => {
         handleSuccess(res, (data) => {
+          this.reloadRouter()
           this.getConf()
           this.getEncoding()
           this.getAboutKap()
-          this.reloadRouter()
+          this.setCurUser({ user: data })
         })
       })
       // this.overlock = localStorage.getItem('buyit')
-    },
-    beforeRouteUpdate (to, from, next) {
-      // this.getConf().then(() => {
-      //   next()
-      // })
-      next()
     },
     methods: {
       ...mapActions({
