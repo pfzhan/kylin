@@ -1,5 +1,5 @@
 <template>
-<div>  
+<div id="dimensions-view">  
   <el-card >
     <el-tag class="tag_margin"
       v-for="(dimension, dim_index) in cubeDesc.desc.dimensions"
@@ -154,15 +154,21 @@ export default {
   }
 }
 </script>
-<style scoped="">
- .row_padding {
-  padding-top: 5px;
-  padding-bottom: 5px;
- }
+<style lang="less">
+@import '../../../less/config.less';
+  .row_padding {
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
   .tag_margin {
-  margin-left: 4px;
-  margin-bottom: 2px;
-  margin-top: 2px;
-  margin-right: 4px;
- }
+    margin-left: 4px;
+    margin-bottom: 2px;
+    margin-top: 2px;
+    margin-right: 4px;
+  }
+  #dimensions-view{
+    .el-card{
+      border-color: @grey-color;
+    }
+  }
 </style>

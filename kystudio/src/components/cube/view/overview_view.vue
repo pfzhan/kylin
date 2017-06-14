@@ -1,19 +1,20 @@
 <template>
- <el-table class="table_margin"
-  :data="cubeData"
-  :show-header="false"
-  border
-  style="width: 100%">
-      <el-table-column
-      width="180">
-      <template scope="scope">
-        {{$t(scope.row.label)}}
-      </template>
-    </el-table-column>
-    <el-table-column
-    prop="value">
-    </el-table-column>
-  </el-table>
+  <div id="over-view">
+    <el-table class="table_margin"
+      :data="cubeData"
+      :show-header="false"
+      border
+      style="width: 100%">
+        <el-table-column width="180">
+          <template scope="scope">
+            {{$t(scope.row.label)}}
+          </template>
+        </el-table-column>
+        <el-table-column
+        prop="value">
+        </el-table-column>
+    </el-table>
+  </div>
 </template>
 
 <script>
@@ -38,9 +39,15 @@ export default {
   }
 }
 </script>
-<style scoped>
- .table_margin {
-   margin-top: 20px;
-   margin-bottom: 20px;
- }
+<style lang="less">
+  @import '../../../less/config.less';
+  .table_margin {
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+  #over-view{
+    .el-card{
+      border-color: @grey-color;
+    }
+  }
 </style>

@@ -1,5 +1,5 @@
 <template>
-<div class="cube_desc_view">
+<div class="cube_desc_view" id="cube-view">
   <el-steps :active="activeStep"  finish-status="finish" process-status="wait" center >
     <el-step :title="$t('cubeInfo')" @click.native="step(1)"></el-step>
     <!-- <el-step :title="$t('Sql')" @click.native="step(2)"></el-step> -->
@@ -119,11 +119,23 @@ export default {
 }
 </script>
 <style lang="less">
+@import '../../../less/config.less';
 .cube_desc_view {
   line-height: 30px;
   .el-col-4 {
     padding-right: 10px;
     text-align: right;
+  }
+}
+#cube-view{
+  .el-step__main{
+    text-align: center;
+    transform: translateX(-50%);
+    margin-left: 14px!important;
+    padding: 0;
+  }
+  .el-steps.is-horizontal.is-center{
+    margin-left: 14px;
   }
 }
 </style>

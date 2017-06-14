@@ -1,5 +1,5 @@
 <template>
-<div >  
+<div>  
   <div v-for="(table, index) in factTableColumns"  >
     <el-tag>{{table.tableName}} </el-tag>
     <el-tag>FactTable </el-tag>    
@@ -219,6 +219,6 @@ export default {
   }
 }
 </script>
-<style scoped="">
-
+<style lang="less">
+  @import '../../../less/config.less';
 </style>

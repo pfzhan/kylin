@@ -1,5 +1,5 @@
 <template>
-<el-card class="box-card">
+<el-card class="box-card" id="cube-info-view">
   <el-row>
     <el-col :span="4">{{$t('modelName')}}</el-col>
     <el-col :span="20">{{cubeDesc.model}}</el-col>
@@ -38,6 +38,10 @@ export default {
   }
 }
 </script>
-<style scoped="">
+<style lang="less">
+  @import '../../../less/config.less';
+  #cube-info-view{
+    border-color: @grey-color;
+  }
 
 </style>

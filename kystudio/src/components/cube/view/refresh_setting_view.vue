@@ -1,5 +1,5 @@
 <template>
-<el-card class="box-card">
+<el-card class="box-card" id="refresh-settion-view">
   <el-row class="border_bottom">
     <el-col :span="6">{{$t('autoMergeThresholds')}}</el-col>
     <el-col :span="18">
@@ -63,8 +63,13 @@ export default {
   }
 }
 </script>
-<style scoped>
-.border_bottom {
-  border-bottom: 2px solid #ddd;
- }
+<style lang="less">
+  @import '../../../less/config.less';
+  .border_bottom {
+    border-bottom: 2px solid #ddd;
+  }
+  #refresh-settion-view{
+    border-color: @grey-color;
+    padding: 10px;
+  }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <el-form :model="timeZone" label-position="right" label-width="280px" :rules="rules" ref="buildCubeForm">
+  <el-form id="build-cube" :model="timeZone" label-position="right" label-width="280px" :rules="rules" ref="buildCubeForm">
     <el-form-item :label="$t('partitionDateColumn')" >
       <el-tag>{{cubeDesc.partitionDateColumn}}</el-tag>
     </el-form-item>
@@ -86,6 +86,21 @@ export default {
   }
 }
 </script>
-<style scoped="">
-
+<style lang="less">
+  @import '../../../less/config.less';
+  #build-cube{
+    margin-top: 22px;
+    .el-form-item__label{
+      float: left!important;
+    }
+    .el-form-item{
+      height: 50px;
+      marigin-bottom: 0!important;
+      margin-top: -22px;
+    }
+    .el-date-editor{
+      height: 36px;
+      padding: 0;
+    }
+  }
 </style>

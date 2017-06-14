@@ -1,19 +1,19 @@
 <template>
-<el-card class="box-card">
-  <el-row>
-    <el-col :span="18">
-      <el-row v-for="(property, property_index) in properties" :key="property_index">
-        <el-col :span="9">{{property.key}}</el-col>
-        <el-col :span="9">{{property.value}}</el-col>
-      </el-row>
-    </el-col>
-    <el-col :span="6">{{$t('tip')}}
-      <el-row >
-        <el-col :span="24">{{$t('propertyTip')}}</el-col>
-      </el-row>
-    </el-col>
-  </el-row>
-</el-card>
+  <el-card class="box-card" id="configuration_overwrites_view">
+    <el-row>
+      <el-col :span="18">
+        <el-row v-for="(property, property_index) in properties" :key="property_index">
+          <el-col :span="9">{{property.key}}</el-col>
+          <el-col :span="9">{{property.value}}</el-col>
+        </el-row>
+      </el-col>
+      <el-col :span="6">{{$t('tip')}}
+        <el-row >
+          <el-col :span="24">{{$t('propertyTip')}}</el-col>
+        </el-row>
+      </el-col>
+    </el-row>
+  </el-card>
 </template>
 
 <script>
@@ -32,6 +32,10 @@ export default {
   }
 }
 </script>
-<style scoped="">
-
+<style lang="less">
+  @import '../../../less/config.less';
+  #configuration_overwrites_view{
+    border-color: @grey-color!important;
+    padding: 20px;
+  }
 </style>

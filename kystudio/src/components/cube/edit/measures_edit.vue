@@ -414,8 +414,7 @@ export default {
       background: transparent;
     }
     .el-button--primary{
-      background: transparent;
-      border-color: @grey-color;
+      // background: transparent;
     }
     .el-button--primary:hover{
       border-color: @base-color;

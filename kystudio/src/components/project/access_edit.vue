@@ -230,6 +230,12 @@ export default {
 }
 </script>
 <style lang="less">
+.access_edit{
+  .el-button--text{
+    // width: 50px;
+    padding: 8px 5px 8px 5px;
+  }
+}
 .grant-popover {
   h4 {
     height:30px;

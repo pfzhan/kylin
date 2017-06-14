@@ -645,6 +645,12 @@ li {list-style-type:none;}
   .has-time{
     background: @grey-color!important;
     color: rgba(255,255,255,0.7);
+    .el-picker-panel__footer{
+      border-top: 1px solid @grey-color;
+    }
+    .el-date-picker__time-header{
+      border-bottom: 1px solid @grey-color;
+    }
   }
   .el-date-table{
     td:hover{
@@ -840,6 +846,24 @@ li {list-style-type:none;}
 .el-dialog__body{
   padding: 0 20px 0px 20px!important;
 }
+.el-dialog--large{
+  background: @tableBC!important;
+  .el-table__header{
+    background: @tableBC!important;
+  }
+  .el-dialog__body{
+    padding-top: 20px!important;
+    .el-input{
+      background: @tableBC;
+    }
+  } 
+  .el-table{
+    margin-top: 20px;
+  }
+  .el-table__row:hover td{
+    background: @tableBC!important;
+  }
+}
 .el-dialog--large .protocol-wrap{
   padding-top: 10px;
 }
@@ -892,6 +916,18 @@ li {list-style-type:none;}
 tr.current-row > td{
   background: transparent!important;
 }
+.el-select-dropdown.is-multiple .el-select-dropdown__item.selected{
+  background: #434b70!important;
+}
+.kapApp .el-select-dropdown.is-multiple .el-select-dropdown__item.selected.hover, .kapApp .el-select-dropdown__item.hover, .kapApp .el-select-dropdown__item:hover{
+  background: transparent;
+}
+.el-table__expanded-cell{
+  box-shadow: none!important;
+}
+
+
+
 
 
 

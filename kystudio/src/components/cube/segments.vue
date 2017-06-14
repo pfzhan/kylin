@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div id="segments">
    <el-card v-for="(segment, index) in segments" :key="index" v-if="type==='hbase'">
     <h5><b>{{$t('SegmentID')}}</b> {{segment.segmentUUID}}</h5>
     <ul>
@@ -111,9 +111,16 @@ export default {
   }
 }
 </script>
-<style scoped>
-.text-red {
-  color: #dd4b39;
-}
-
+<style lang="less">
+  @import '../../less/config.less';
+  .text-red {
+    color: #dd4b39;
+  }
+  #segments{
+    .el-card{
+      border-color: @grey-color;
+      padding: 10px;
+      background: @tableBC;
+    }
+  }
 </style>
