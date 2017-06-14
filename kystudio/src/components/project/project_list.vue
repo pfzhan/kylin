@@ -262,5 +262,14 @@ export default {
   #project-list{
     margin-left: 30px;
     margin-right: 30px;
+    .el-tabs__header{
+      border-color: @grey-color;
+    }
+    .el-tabs__item{
+      transition: none;
+    }
+    .el-tabs__item.is-active{
+      border-bottom: 2px solid @base-color!important;
+    }
   }
 </style>

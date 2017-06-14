@@ -4,7 +4,7 @@
     <el-col :span="18" class="border_right">  
       <el-row>
         <el-col :span="24">
-           <el-button type="primary"  @click.native="collectSql" :disabled="isReadyCube" >{{$t('collectsqlPatterns')}}</el-button>
+          <el-button type="primary"  @click.native="collectSql" :disabled="isReadyCube" >{{$t('collectsqlPatterns')}}</el-button>
         </el-col>
       </el-row>
       <el-row class="row_padding border_bottom">
@@ -29,9 +29,9 @@
         </el-col>
         </el-row>
       </el-row>
-      <el-row class="row_padding border_bottom">
+      <el-row class="row_padding border_bottom borderLeft">
         <el-col :span="5">
-          <el-button type="primary" icon="menu" @click.native="cubeSuggestions" :disabled="isReadyCube" >{{$t('cubeSuggestion')}}</el-button>
+          <el-button type="primary" style="margin-left: 20px;" icon="menu" @click.native="cubeSuggestions" :disabled="isReadyCube" >{{$t('cubeSuggestion')}}</el-button>
         </el-col>
         <el-col :span="5">
           <el-button type="primary" icon="setting" @click.native="resetDimensions" :disabled="isReadyCube" >{{$t('resetDimensions')}}</el-button>
@@ -41,9 +41,9 @@
       <el-row class="row_padding border_bottom" style="line-height:36px;">
         <el-col :span="24">{{$t('aggregationGroups')}}</el-col>
       </el-row>
-      <el-row class="row_padding border_bottom" style="line-height:36px;">
+      <el-row class="row_padding border_bottom borderLeft" style="line-height:36px;">
         <el-col :span="12">Total cuboid number: {{totalCuboid}}</el-col>
-        <el-col :span="12" >Max group by column: <el-input v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;"></el-input><el-button type="primary"  @click.native="changeDimCap();cubeSuggestions()">Apply</el-button> </el-col>
+        <el-col :span="12" >Max group by column: <el-input v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;"></el-input><el-button type="primary" style="margin-left: 20px;" @click.native="changeDimCap();cubeSuggestions()">Apply</el-button> </el-col>
       </el-row>
       <el-row class="row_padding border_bottom" v-for="(group, group_index) in cubeDesc.aggregation_groups" :key="group_index">
         <el-col :span="24">
@@ -138,7 +138,7 @@
         </el-button>
       </el-col>
     </el-row>
-      <el-row class="row_padding">
+      <el-row class="row_padding" style="border-left: 1px solid #292b38;padding-left: 10px;">
         <el-col :span="24">Rowkeys</el-col>
       </el-row>
       <div class="ksd-common-table">
@@ -151,22 +151,22 @@
          <el-col :span="4">{{$t('dataType')}}</el-col>
          <el-col :span="2">{{$t('cardinality')}}</el-col>
        </el-row>
-        <el-row class="tablebody" v-for="(row, index) in convertedRowkeys"  v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }" :key="row.column">
+        <el-row id="dimension-row" class="tablebody" v-for="(row, index) in convertedRowkeys"  v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }" :key="row.column">
           <el-col :span="1">{{index+1}}</el-col>
           <el-col :span="9">{{row.column}}</el-col>
           <el-col :span="4">
-              <el-select v-model="row.encoding" @change="changeEncoding(row, index);changeRowkey(row, index);">
-                <el-option
-                    v-for="(item, encodingindex) in initEncodingType(row)"
-                    :key="encodingindex"
-                   :label="item.name"
-                   :value="item.name + ':' + item.version">
-                   <el-tooltip effect="dark" :content="$t('kylinLang.cube.'+$store.state.config.encodingTip[item.name])" placement="right">
-                     <span style="float: left;width: 90%">{{ item.name }}</span>
-                     <span style="float: right;width: 10%; color: #8492a6; font-size: 13px" v-show="item.version>1">{{ item.version }}</span>
-                  </el-tooltip>
-                </el-option>              
-              </el-select>
+            <el-select v-model="row.encoding" @change="changeEncoding(row, index);changeRowkey(row, index);">
+              <el-option
+                  v-for="(item, encodingindex) in initEncodingType(row)"
+                  :key="encodingindex"
+                 :label="item.name"
+                 :value="item.name + ':' + item.version">
+                 <el-tooltip effect="dark" :content="$t('kylinLang.cube.'+$store.state.config.encodingTip[item.name])" placement="right">
+                   <span style="float: left;width: 90%">{{ item.name }}</span>
+                   <span style="float: right;width: 10%; color: #8492a6; font-size: 13px" v-show="item.version>1">{{ item.version }}</span>
+                </el-tooltip>
+              </el-option>              
+            </el-select>
           </el-col>
           <el-col :span="2"> 
             <el-input v-model="row.valueLength"  :disabled="row.encoding.indexOf('dict')>=0||row.encoding.indexOf('date')>=0||row.encoding.indexOf('time')>=0" @change="changeRowkey(row, index)"></el-input> 
@@ -696,32 +696,60 @@ export default {
 }
 </script>
 <style lang="less">
- .table_margin {
-   margin-top: 20px;
-   margin-bottom: 20px;
- }
+  @import '../../../less/config.less';
+  .table_margin {
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
   .row_padding {
-  padding-top: 5px;
-  padding-bottom: 5px;
- }
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
   .tag_margin {
-  margin-left: 4px;
-  margin-bottom: 2px;
-  margin-top: 2px;
-  margin-right: 4px;
- }
-.border_bottom {
-  border-bottom: 1px solid #ddd;
- }
-.border_right {
-  border-right: 1px solid #ddd;
- }
- .dimensionBox{
-   .el-tag{
-     cursor: pointer;
-   }
-   .tablebody {
-    background-color: #393e53;
-   }
- }
+    margin-left: 4px;
+    margin-bottom: 2px;
+    margin-top: 2px;
+    margin-right: 4px;
+  }
+  .border_bottom {
+    border-bottom: 1px solid #ddd;
+  }
+  .border_right {
+    border-right: 1px solid #ddd;
+  }
+  .dimensionBox{
+    *{
+      border-color: @grey-color!important;
+    }
+    .el-tag{
+      cursor: pointer;
+    }
+    .tablebody {
+      background-color: @grey-color;
+    }
+    .ksd-common-table *{
+      background: @tableBC;
+    }
+    .row_padding{
+      // border-left: 1px solid @tableBC;
+    }
+    .el-card{
+      background: transparent;
+    }
+    .el-button{
+      background: transparent!important;
+    }
+    .el-button:hover{
+      border-color: @base-color!important;
+    }
+  }
+  .borderLeft{
+    border-left: 1px solid @grey-color;
+    padding-left: 20px;
+  }
+  #dimension-row{
+    .el-icon-caret-top{
+      height: 34px;
+    }
+  }
 </style>

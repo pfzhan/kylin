@@ -10,7 +10,7 @@
   <!-- <p>{{$t('contentTip')}}</p> -->
   <div class="select-time" v-if="selectTimer">
     <div class="choices">
-      <p class="hd">{{$t('selectTime')}}&nbsp;&nbsp;( {{$t('timeLimits')}} )</p>
+      <p class="hd" style="font-size: 13px;">{{$t('selectTime')}}&nbsp;&nbsp;( {{$t('timeLimits')}} )</p>
       <el-radio-group v-model="radio" @change="changeRange">
         <el-radio :label="1" size="small">{{$t('last1')}}</el-radio>
         <el-radio :label="2" size="small">{{$t('last2')}}</el-radio>

@@ -1,5 +1,5 @@
 <template>
- <div class="table-index">
+ <div class="table-index" id="table-index">
   <p v-if="!rawTableUsable">{{$t('noSupportRawTable')}}</p>
   <div v-else>
     <el-checkbox v-model="usedRawTable" @change="changeUsed()">{{$t('ConfigRawTable')}}</el-checkbox>
@@ -361,7 +361,8 @@ export default {
   }
 }
 </script>
-<style>
+<style lang="less">
+@import '../../../less/config.less';
 .table-index .row_padding {
   padding-top: 5px;
   padding-bottom: 5px;
@@ -381,6 +382,15 @@ export default {
   overflow: scroll;
  }
 .table-index .el-table .info-row {
-  background-color: #c9e5f5;
+  background: transparent;
+}
+.ksd-common-table .tablebody{
+  background: @tableBC;
+}
+.ksd-common-table .tableheader{
+  border-color: @grey-color;
+}
+.ksd-common-table .tablebody{
+  border-color: @grey-color;
 }
 </style>
