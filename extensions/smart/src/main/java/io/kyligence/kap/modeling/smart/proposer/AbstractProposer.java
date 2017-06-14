@@ -28,6 +28,7 @@ import org.apache.kylin.cube.model.CubeDesc;
 
 import io.kyligence.kap.modeling.smart.ModelingContext;
 import io.kyligence.kap.modeling.smart.common.ModelingConfig;
+import io.kyligence.kap.query.mockup.Utils;
 
 public abstract class AbstractProposer {
     final ModelingContext context;
@@ -40,10 +41,15 @@ public abstract class AbstractProposer {
 
     public CubeDesc propose(CubeDesc sourceCubeDesc) {
         CubeDesc workCubeDesc = CubeDesc.getCopyOf(sourceCubeDesc);
-        workCubeDesc.init(context.getKylinConfig());
+        try {
+            workCubeDesc.init(context.getKylinConfig());
+        } catch (IllegalStateException e) {
+            // if cube not tuned, then enlarge combination in override props to bypass init().
+            Utils.setLargeCuboidCombinationConf(workCubeDesc.getOverrideKylinProps());
+            workCubeDesc.init(context.getKylinConfig());
+        }
 
         doPropose(workCubeDesc);
-
         return workCubeDesc;
     }
 

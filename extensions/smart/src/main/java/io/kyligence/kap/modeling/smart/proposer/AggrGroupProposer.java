@@ -64,9 +64,14 @@ public class AggrGroupProposer extends AbstractProposer {
         if (!context.hasModelStats() && !context.hasQueryStats()) {
             return;
         }
-        
+
         KylinConfigExt configExt = (KylinConfigExt) workCubeDesc.getConfig();
         configExt.getExtendedOverrides().clear();
+
+        // add one default aggregation group if no group exists
+        if (workCubeDesc.getAggregationGroups().isEmpty()) {
+            CubeDescUtil.fillCubeDefaultAggGroups(workCubeDesc);
+        }
 
         for (AggregationGroup aggregationGroup : workCubeDesc.getAggregationGroups()) {
             optimizeAggrGroup(workCubeDesc, aggregationGroup);
@@ -86,7 +91,8 @@ public class AggrGroupProposer extends AbstractProposer {
         final Map<String, Long> colCardinalityMap;
         final List<String> aggGroupCandidates;
         final List<String> mandatoryCandidates = Lists.newArrayList();
-        final RelationJointAggrGroupRecorder relationJointAggRecorder = new RelationJointAggrGroupRecorder(modelingConfig);
+        final RelationJointAggrGroupRecorder relationJointAggRecorder = new RelationJointAggrGroupRecorder(
+                modelingConfig);
         final HierarchyAggGroupRecorder hierAggRecorder = new HierarchyAggGroupRecorder();
         final FragmentJointAggrGroupRecorder fragmentRecorder = new FragmentJointAggrGroupRecorder(modelingConfig);
         AggregationGroup aggGroup;
@@ -100,7 +106,8 @@ public class AggrGroupProposer extends AbstractProposer {
             if (context.hasTableStats()) {
                 for (String include : includes) {
                     RowKeyColDesc rowKeyColDesc = CubeDescUtil.getRowKeyColDescByName(workCubeDesc, include);
-                    colCardinalityMap.put(rowKeyColDesc.getColumn(), context.getColumnsCardinality(rowKeyColDesc.getColRef().getIdentity()));
+                    colCardinalityMap.put(rowKeyColDesc.getColumn(),
+                            context.getColumnsCardinality(rowKeyColDesc.getColRef().getIdentity()));
                 }
             }
 
@@ -126,7 +133,8 @@ public class AggrGroupProposer extends AbstractProposer {
             if (context.hasTableStats()) {
                 while (candidatesItr.hasNext()) {
                     String rowKeyColName = candidatesItr.next();
-                    if (colCardinalityMap.get(rowKeyColName) != null && colCardinalityMap.get(rowKeyColName) <= modelingConfig.getMandatoryCardinalityMax()) {
+                    if (colCardinalityMap.get(rowKeyColName) != null
+                            && colCardinalityMap.get(rowKeyColName) <= modelingConfig.getMandatoryCardinalityMax()) {
                         mandatoryCandidates.add(rowKeyColName);
                         candidatesItr.remove();
                     }
@@ -167,7 +175,8 @@ public class AggrGroupProposer extends AbstractProposer {
                         double cardCol1 = (double) modelStats.getSingleColumnCardinalityVal(colName1);
                         double cardCol2 = (double) modelStats.getSingleColumnCardinalityVal(colName2);
 
-                        if (cardCol1 < cardCol2 * modelingConfig.getApproxDiffMax() || cardCol2 < cardCol1 * modelingConfig.getApproxDiffMax()) {
+                        if (cardCol1 < cardCol2 * modelingConfig.getApproxDiffMax()
+                                || cardCol2 < cardCol1 * modelingConfig.getApproxDiffMax()) {
                             // skip due to cardinality diff too big between these 2 columns
                             continue;
                         }
@@ -182,15 +191,18 @@ public class AggrGroupProposer extends AbstractProposer {
 
                         if (equal1 && equal2) {
                             relationJointAggRecorder.add(colName1, score1, colName2, score2);
-                            logger.trace("Found relation joint pair from model stats: {}={}, {}={}", colName1, score1, colName2, score2);
+                            logger.trace("Found relation joint pair from model stats: {}={}, {}={}", colName1, score1,
+                                    colName2, score2);
                         } else if (!approxEquals(modelStats.getCounter() / cardPair)) {
                             // for hierarchy, need to check if column's cardinality equals to model rows, if so do not consider as hierarchy.
                             if (equal1 && !equal2 && score1 > score2) {
                                 hierAggRecorder.add(colName2, colName1);
-                                logger.trace("Found hierarchy pair from model stats: {}={}, {}={}", colName2, score2, colName1, score1);
+                                logger.trace("Found hierarchy pair from model stats: {}={}, {}={}", colName2, score2,
+                                        colName1, score1);
                             } else if (!equal1 && equal2 && score1 < score2) {
                                 hierAggRecorder.add(colName1, colName2);
-                                logger.trace("Found hierarchy pair from model stats: {}={}, {}={}", colName1, score1, colName2, score2);
+                                logger.trace("Found hierarchy pair from model stats: {}={}, {}={}", colName1, score1,
+                                        colName2, score2);
                             }
                         }
                     }
@@ -214,8 +226,10 @@ public class AggrGroupProposer extends AbstractProposer {
                         continue;
                     }
 
-                    double score1 = ((double) coocurrence.getValue()) / ((double) appears.get(colName1)) * modelingConfig.getBusinessWeight();
-                    double score2 = ((double) coocurrence.getValue()) / ((double) appears.get(colName2)) * modelingConfig.getBusinessWeight();
+                    double score1 = ((double) coocurrence.getValue()) / ((double) appears.get(colName1))
+                            * modelingConfig.getBusinessWeight();
+                    double score2 = ((double) coocurrence.getValue()) / ((double) appears.get(colName2))
+                            * modelingConfig.getBusinessWeight();
 
                     boolean equal1 = approxEquals(score1);
                     boolean equal2 = approxEquals(score2);
@@ -224,7 +238,8 @@ public class AggrGroupProposer extends AbstractProposer {
 
                     if (equal1 && equal2) {
                         relationJointAggRecorder.add(colName1, score1, colName2, score2);
-                        logger.trace("Found relation joint pair from query stats: {}={}, {}={}", colName1, score1, colName2, score2);
+                        logger.trace("Found relation joint pair from query stats: {}={}, {}={}", colName1, score1,
+                                colName2, score2);
                     }
                 }
             }
@@ -236,7 +251,8 @@ public class AggrGroupProposer extends AbstractProposer {
                 while (candidatesItr.hasNext()) {
                     String rowKeyColName = candidatesItr.next();
                     double cardinality = context.getColumnsCardinality(Lists.newArrayList(rowKeyColName));
-                    if (cardinality > 0 && cardinality <= modelingConfig.getJointGroupCardinalityMax() * Math.pow(10, retry)) {
+                    if (cardinality > 0
+                            && cardinality <= modelingConfig.getJointGroupCardinalityMax() * Math.pow(10, retry)) {
                         fragmentRecorder.add(rowKeyColName, cardinality);
                     }
                 }
@@ -255,7 +271,9 @@ public class AggrGroupProposer extends AbstractProposer {
                 dimCap = aggGroup.getIncludes().length;
                 long cuboids = getEstimatedCuboidCombination();
                 int retry = 0;
-                while (cuboids > modelingConfig.getAggGroupStrictCombinationMax() && retry++ < modelingConfig.getAggGroupStrictRetryMax() && dimCap > modelingConfig.getDimCapMin()) {
+                while (cuboids > modelingConfig.getAggGroupStrictCombinationMax()
+                        && retry++ < modelingConfig.getAggGroupStrictRetryMax()
+                        && dimCap > modelingConfig.getDimCapMin()) {
                     aggGroup.getSelectRule().dimCap = --dimCap;
                     cuboids = getEstimatedCuboidCombination();
                 }
@@ -318,7 +336,8 @@ public class AggrGroupProposer extends AbstractProposer {
             if (modelingConfig.getAggGroupStrictEnabled() && modelingConfig.enableJointForAggGroupStrict()) {
                 long cuboidNum = getEstimatedCuboidCombination();
                 int retry = 0;
-                while (cuboidNum > modelingConfig.getAggGroupStrictCombinationMax() && retry++ <= modelingConfig.getAggGroupStrictRetryMax()) {
+                while (cuboidNum > modelingConfig.getAggGroupStrictCombinationMax()
+                        && retry++ <= modelingConfig.getAggGroupStrictRetryMax()) {
                     resultJoint.removeAll(fragementJointList);
 
                     buildSmallJointGroup(retry);

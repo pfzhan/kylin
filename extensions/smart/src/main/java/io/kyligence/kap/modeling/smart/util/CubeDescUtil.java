@@ -24,12 +24,10 @@
 
 package io.kyligence.kap.modeling.smart.util;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.query.mockup.Utils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
@@ -42,6 +40,8 @@ import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
+import io.kyligence.kap.query.mockup.Utils;
 
 public class CubeDescUtil {
     public static RowKeyColDesc getRowKeyColDescByName(CubeDesc cubeDesc, String rowkeyName) {
@@ -70,11 +70,18 @@ public class CubeDescUtil {
             }
         }
         rowkey.setRowkeyColumns(rowKeyCols.toArray(new RowKeyColDesc[0]));
+        cubeDesc.setRowkey(rowkey);
 
         // fill aggregation groups
+        fillCubeDefaultAggGroups(cubeDesc);
+
+        Utils.setLargeCuboidCombinationConf(cubeDesc.getOverrideKylinProps());
+    }
+
+    public static void fillCubeDefaultAggGroups(CubeDesc cubeDesc) {
         AggregationGroup aggregationGroup = new AggregationGroup();
-        List<String> includeCols = new ArrayList<>(rowKeyCols.size());
-        for (RowKeyColDesc rowKeyColDesc : rowKeyCols) {
+        List<String> includeCols = Lists.newArrayList();
+        for (RowKeyColDesc rowKeyColDesc : cubeDesc.getRowkey().getRowKeyColumns()) {
             includeCols.add(rowKeyColDesc.getColumn());
         }
         aggregationGroup.setIncludes(includeCols.toArray(new String[0]));
@@ -84,10 +91,7 @@ public class CubeDescUtil {
         selectRule.jointDims = new String[0][0];
         aggregationGroup.setSelectRule(selectRule);
 
-        cubeDesc.setRowkey(rowkey);
         cubeDesc.setAggregationGroups(Lists.newArrayList(aggregationGroup));
-
-        Utils.setLargeCuboidCombinationConf(cubeDesc.getOverrideKylinProps());
     }
 
     public static void addRowKeyToAggGroup(AggregationGroup aggGroup, String rowKeyName) {

@@ -24,7 +24,10 @@
 
 package io.kyligence.kap.modeling.smart.proposer;
 
+import java.util.ArrayList;
+
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.metadata.MetadataManager;
@@ -59,6 +62,23 @@ public class AggrGroupProposerTest {
         ModelingContextBuilder contextBuilder = new ModelingContextBuilder(kylinConfig);
         ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, null);
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
+        AggrGroupProposer proposer = new AggrGroupProposer(context);
+        CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
+        newCubeDesc.init(kylinConfig);
+        newCubeDesc.validateAggregationGroups();
+
+        SelectRule rule = newCubeDesc.getAggregationGroups().get(0).getSelectRule();
+        Assert.assertTrue(rule.hierarchyDims.length + rule.jointDims.length + rule.mandatoryDims.length > 0);
+    }
+
+    @Test
+    public void testOnEmptyCube() throws JsonProcessingException {
+        DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model_star");
+        ModelingContextBuilder contextBuilder = new ModelingContextBuilder(kylinConfig);
+        ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, null);
+        CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
+        initCubeDesc.setAggregationGroups(new ArrayList<AggregationGroup>(0));
+
         AggrGroupProposer proposer = new AggrGroupProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
         newCubeDesc.init(kylinConfig);
