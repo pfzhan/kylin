@@ -1,6 +1,6 @@
 <template>
-<div class="box-card card_margin">
-  <el-row class="border_bottom">
+<div class="box-card card_margin border_bottom el-row" id="refresh-setting">
+  <el-row>
     <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('autoMergeThresholds')}} </el-col>
     <el-col :span="16">
       <el-row :gutter="20" class="row_padding" v-for="(timeRange, index) in timeRanges" :key="index">
@@ -43,7 +43,7 @@
       </el-date-picker>
     </el-col>
   </el-row>
-  <el-row class="row_padding border_bottom">
+  <el-row class="row_padding">
     <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('periddicalInterval')}} </el-col>
     <el-col :span="16">
       <el-row :gutter="20" class="row_padding">
@@ -240,22 +240,32 @@ export default {
   }
 }
 </script>
-<style scoped>
- .card_margin {
-  font-size: 14px;
-   margin-bottom: 20px;
- }
- .btn_margin {
-  margin-bottom: 4px;
- }
- .row_padding {
-  padding-top: 5px;
-  padding-bottom: 5px;
- }
+<style lang="less">
+  @import '../../../less/config.less';
+  .card_margin {
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+  .btn_margin {
+    margin-bottom: 4px;
+  }
+  .row_padding {
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
   .input_width {
-  width: 40%
- }
-.border_bottom {
-  border-bottom: 1px solid #ddd;
- }
+    width: 40%;
+  }
+  .border_bottom {
+    border-bottom: 1px solid @grey-color;
+  }
+  #refresh-setting{
+    .el-button--default{
+      background: transparent;
+      border-color: @grey-color;
+    }
+    .el-button--default:hover{
+      border-color: @base-color;
+    }
+  }
 </style>

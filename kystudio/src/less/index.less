@@ -47,7 +47,7 @@ scrollbar {
      }
   }
   .tablebody{
-    border-bottom:solid 1px #ccc;
+    border-bottom:solid 1px @grey-color;
     border-left:solid 1px #ccc;
     border-right:solid 1px #ccc;
     background-color: #fff;
@@ -657,6 +657,10 @@ li {list-style-type:none;}
     td.disabled{
       background: @input-color;
     }
+  }
+  .el-picker-panel{
+    box-shadow: none;
+    border-color: @grey-color;
   }
   .el-picker-panel__footer{
     background: transparent;

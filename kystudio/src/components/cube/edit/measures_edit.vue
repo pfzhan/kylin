@@ -1,5 +1,5 @@
 <template>
-<div>
+<div id="measures">
   <el-button type="primary" icon="plus" @click="addMeasure">{{$t('addMeasure')}}</el-button>
   <el-table class="table_margin"
     :data="cubeDesc.measures"
@@ -403,9 +403,22 @@ export default {
   }
 }
 </script>
-<style scoped="">
- .table_margin {
-   margin-top: 20px;
-   margin-bottom: 20px;
- }
+<style lang="less">
+  @import '../../../less/config.less';
+  .table_margin {
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+  #measures{
+    .el-button--mini{
+      background: transparent;
+    }
+    .el-button--primary{
+      background: transparent;
+      border-color: @grey-color;
+    }
+    .el-button--primary:hover{
+      border-color: @base-color;
+    }
+  }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <el-form :model="measure" label-position="right" :rules="rules"  label-width="240px" ref="measureForm">
+  <el-form :model="measure" id="add-measure" label-position="right" :rules="rules"  label-width="240px" ref="measureForm">
 
     <el-form-item :label="$t('name')" prop="name">
       <el-input  v-model="measure.name" class="input_width"></el-input>
@@ -82,12 +82,17 @@
       <el-input v-if="measure.function.expression === 'EXTENDED_COLUMN'" v-model="measure.function.returntype">
       </el-input>
       <el-row v-if="measure.function.expression === 'SUM'" >
-        <el-row v-if="sumMeasure.type === 'decimal'">
-          <el-col :span="4" >decimal(</el-col>
+        <el-row v-if="sumMeasure.type === 'decimal'" id="decimal">
+<!--           <el-col :span="4" >decimal(</el-col>
           <el-col :span="2"><el-input v-model="sumMeasure.value.precision" ></el-input></el-col>
           <el-col :span="1">,</el-col>
           <el-col :span="2"><el-input v-model="sumMeasure.value.decimalPlace" ></el-input></el-col>
-          <el-col :span="1">)</el-col>
+          <el-col :span="1">)</el-col> -->
+          <span class="decimal-left">decimal(</span>
+          <el-input v-model="sumMeasure.value.precision" class="precision"></el-input>
+          <span class="douhao">,</span>
+          <el-input v-model="sumMeasure.value.decimalPlace" class="place"></el-input>
+          <span class="decimal-right">)</span>
         </el-row>
         <el-row v-if="sumMeasure.type === 'bigint'">
          <el-col  :span="4"><el-tag>bigint</el-tag></el-col>
@@ -598,8 +603,50 @@ export default {
   }
 }
 </script>
-<style scoped>
- .input_width{
-  width: 80%
- }
+<style lang="less">
+  @import '../../../less/config.less';
+  .input_width{
+    width: 80%
+  }
+  #add-measure{
+    .el-input{
+      padding-bottom: 0;
+    }
+    .el-form-item__label{
+      line-height: 36px;
+
+    }
+    .el-form-item{
+      margin-bottom: 0;
+    }
+    .el-icon-caret-top{
+      height: 36px;
+      line-height: 36px;
+      margin-top: 7px;
+    }
+    .el-tag{
+      position: relative;
+      top: 8px;
+    }
+  }
+  #decimal{
+    span, .el-input{
+      float: left;
+      margin-left: 5px;
+    }
+    .decimal-left{
+      margin-top: 10px;
+    }
+    .el-input{
+      padding-top: 0;
+      margin-top: 10px;
+      width: 38px;
+    }
+    .douhao{
+      margin-top: 5px;
+    }
+    .decimal-right{
+      margin-top: 10px;
+    }
+  }
 </style>

@@ -1,6 +1,6 @@
 <template>
 <div class="paddingbox" style="padding: 0 30px 0 30px;" id="cube-edit">
-  <el-steps :active="activeStep"  finish-status="finish" process-status="wait" center align-center style="width:96%;margin:0 auto;margin-top:30px;">
+  <el-steps :active="activeStep"  finish-status="finish" process-status="wait" center align-center style="width:100%;margin:0 auto;padding-top:30px;margin-left: 94px;">
     <el-step :title="$t('cubeInfo')" @click.native="step(1)"></el-step>
     <!-- <el-step :title="$t('sampleSql')" @click.native="step(2)"></el-step> -->
     <el-step :title="$t('dimensions')" @click.native="step(2)"></el-step>
@@ -824,6 +824,21 @@ export default {
     }
     .el-input__inner{
       border-color: @grey-color;
+    }
+    .button_right{
+      background: transparent;
+      border-color: @grey-color;
+    }
+    .button_right:hover{
+      border-color: @base-color;
+    }
+    .el-step__main{
+      width: 188px;
+      transform: translateX(-50%);
+      margin-left: 14px!important;
+      text-align: center;
+      margin-right: 0!important;
+      padding: 0;
     }
   }
 </style>

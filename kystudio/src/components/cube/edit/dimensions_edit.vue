@@ -750,6 +750,7 @@ export default {
   #dimension-row{
     .el-icon-caret-top{
       height: 34px;
+      margin-right: 1px;
     }
   }
 </style>

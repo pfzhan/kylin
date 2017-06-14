@@ -1,5 +1,5 @@
 <template>
-<div class="box-card">
+<div class="box-card" id="overwrites">
   <el-row>
     <el-col :span="24">  {{$t('propertyTip')}}</el-col>
       </el-row>
@@ -92,9 +92,27 @@ export default {
   }
 }
 </script>
-<style scoped="">
- .row_padding {
-  padding-top: 5px;
-  padding-bottom: 5px;
- }
+<style lang="less">
+  @import '../../../less/config.less';
+  .row_padding {
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+  #overwrites{
+    .el-checkbox__inner{
+      margin-top: 10px;
+    }
+    .el-button--primary{
+      background: transparent;
+      margin-top: 10px;
+      border-color: @grey-color;
+    }
+    .el-button--primary:hover{
+      border-color: @base-color;
+    }
+    .el-button--mini{
+      margin-top: 5px;
+    }
+
+  }
 </style>
