@@ -7,16 +7,18 @@
           <el-button type="primary"  @click.native="collectSql" :disabled="isReadyCube" >{{$t('collectsqlPatterns')}}</el-button>
         </el-col>
       </el-row>
-      <el-row class="row_padding border_bottom">
+      <div class="line-primary" style="margin-left: -30px;"></div>
+      <el-row class="row_padding border_bottom" style="border: none;">
         <el-row class="row_padding">
-          <el-col :span="24">{{$t('dimensions')}}</el-col>
+          <el-col :span="24" style="font-size: 14px;">{{$t('dimensions')}}</el-col>
         </el-row>
         <el-row class="row_padding">
-        <el-col :span="24">         
-         <el-button  icon="plus" @click.native="addDimensions" :disabled="isReadyCube" >{{$t('addDimensions')}}</el-button></el-col>
-       </el-row>
-       <el-row class="row_padding" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
-        <el-col  :span="24">
+          <el-col :span="24">
+            <div style="color: rgba(33, 143, 234, 0.7);" @click="addDimensions" :disabled="isReadyCube"><span class="add-d" style="cursor: pointer;"><span style="font-size: 20px;">+&nbsp;</span>{{$t('dimensions')}}</span></div>
+          </el-col>
+        </el-row>
+        <el-row class="row_padding" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
+        <el-col :span="24">
           <el-card  class="ksd_noshadow">
             <el-tag class="tag_margin" style="cursor:pointer"
             @click.native="showDetail(dimension.table+'.'+dimension.name)"
@@ -28,23 +30,31 @@
           </el-card>
         </el-col>
         </el-row>
+        <div class="line-primary" style="margin-left: -30px;"></div>
+        <div style="font-size: 14px;">{{$t('dimensionOptimizations')}}</div>
+        <div style="margin-top: 20px;">
+          <el-button type="blue" icon="menu" @click.native="cubeSuggestions" :disabled="isReadyCube">{{$t('cubeSuggestion')}}</el-button>
+          <el-button type="default" icon="setting" @click.native="resetDimensions" :disabled="isReadyCube">{{$t('resetDimensions')}}</el-button>
+        </div>
       </el-row>
-      <el-row class="row_padding border_bottom borderLeft">
+      <!-- 旧版按钮 -->
+      <!-- <el-row class="row_padding border_bottom borderLeft">
         <el-col :span="5">
           <el-button type="primary" style="margin-left: 20px;" icon="menu" @click.native="cubeSuggestions" :disabled="isReadyCube" >{{$t('cubeSuggestion')}}</el-button>
         </el-col>
         <el-col :span="5">
           <el-button type="primary" icon="setting" @click.native="resetDimensions" :disabled="isReadyCube" >{{$t('resetDimensions')}}</el-button>
         </el-col>
-      </el-row>
+      </el-row> -->
 
-      <el-row class="row_padding border_bottom" style="line-height:36px;">
+      <el-row class="row_padding border_bottom" style="line-height:36px;border: none;">
         <el-col :span="24">{{$t('aggregationGroups')}}</el-col>
       </el-row>
-      <el-row class="row_padding border_bottom borderLeft" style="line-height:36px;">
-        <el-col :span="12">Total cuboid number: {{totalCuboid}}</el-col>
-        <el-col :span="12" >Max group by column: <el-input v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;"></el-input><el-button type="primary" style="margin-left: 20px;" @click.native="changeDimCap();cubeSuggestions()">Apply</el-button> </el-col>
+      <el-row class="row_padding border_bottom borderLeft" style="line-height:36px;border:none;padding-left:0;color:rgba(255,255,255,0.5);margin-top: -8px;">
+        <el-col :span="4">Total cuboid number: {{totalCuboid}}</el-col>
+        <el-col :span="12" >Max group by column: <el-input v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;"></el-input><el-button type="grey" style="height: 36px;margin-left: 5px;" @click.native="changeDimCap();cubeSuggestions()">Apply</el-button> </el-col>
       </el-row>
+      <div class="line"></div>
       <el-row class="row_padding border_bottom" v-for="(group, group_index) in cubeDesc.aggregation_groups" :key="group_index">
         <el-col :span="24">
           <el-card class="ksd_noshadow">
@@ -690,8 +700,8 @@ export default {
     }
   },
   locales: {
-    'en': {dimensions: 'Dimensions', name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment', action: 'Action', addDimensions: 'Add Dimensions', editDimension: 'Edit Dimensions', filter: 'Filter...', cancel: 'Cancel', yes: 'Yes', aggregationGroups: 'Aggregation Groups', Includes: 'Includes', mandatoryDimensions: 'Mandatory Dimensions', hierarchyDimensions: 'Hierarchy Dimensions', jointDimensions: 'Joint Dimensions', addAggregationGroups: 'Aggregation Groups', newHierarchy: 'New Hierarchy', newJoint: 'New Joint', ID: 'ID', encoding: 'Encoding', length: 'Length', shardBy: 'Shard By', dataType: 'Data Type', resetDimensions: 'Reset', cubeSuggestion: 'Optimize', collectsqlPatterns: 'Collect SQL Patterns'},
-    'zh-cn': {dimensions: '维度', name: '名称', type: '类型', tableAlias: '表别名', column: '列名', datatype: '数据类型', cardinality: '基数', comment: '注释', action: '操作', addDimensions: '添加维度', editDimension: 'Edit Dimension', filter: '过滤器', cancel: '取消', yes: '确定', aggregationGroups: '聚合组', Includes: '包含的维度', mandatoryDimensions: '必需维度', hierarchyDimensions: '层级维度', jointDimensions: '联合维度', addAggregationGroups: '添加聚合组', newHierarchy: '新的层数', newJoint: '新的组合', ID: 'ID', encoding: '编码', length: '长度', shardBy: 'Shard By', dataType: '数据类型', resetDimensions: '重置', cubeSuggestion: 'Optimize', collectsqlPatterns: '输入sql'}
+    'en': {dimensions: 'Dimensions', name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment', action: 'Action', addDimensions: 'Add Dimensions', editDimension: 'Edit Dimensions', filter: 'Filter...', cancel: 'Cancel', yes: 'Yes', aggregationGroups: 'Aggregation Groups', Includes: 'Includes', mandatoryDimensions: 'Mandatory Dimensions', hierarchyDimensions: 'Hierarchy Dimensions', jointDimensions: 'Joint Dimensions', addAggregationGroups: 'Aggregation Groups', newHierarchy: 'New Hierarchy', newJoint: 'New Joint', ID: 'ID', encoding: 'Encoding', length: 'Length', shardBy: 'Shard By', dataType: 'Data Type', resetDimensions: 'Reset', cubeSuggestion: 'Optimize', collectsqlPatterns: 'Collect SQL Patterns', dimensionOptimizations: 'Dimension optimizations'},
+    'zh-cn': {dimensions: '维度', name: '名称', type: '类型', tableAlias: '表别名', column: '列名', datatype: '数据类型', cardinality: '基数', comment: '注释', action: '操作', addDimensions: '添加维度', editDimension: 'Edit Dimension', filter: '过滤器', cancel: '取消', yes: '确定', aggregationGroups: '聚合组', Includes: '包含的维度', mandatoryDimensions: '必需维度', hierarchyDimensions: '层级维度', jointDimensions: '联合维度', addAggregationGroups: '添加聚合组', newHierarchy: '新的层数', newJoint: '新的组合', ID: 'ID', encoding: '编码', length: '长度', shardBy: 'Shard By', dataType: '数据类型', resetDimensions: '重置', cubeSuggestion: 'Optimize', collectsqlPatterns: '输入sql', dimensionOptimizations: '维度优化'}
   }
 }
 </script>
@@ -736,16 +746,13 @@ export default {
     .el-card{
       background: transparent;
     }
-    .el-button{
-      background: transparent!important;
-    }
-    .el-button:hover{
-      border-color: @base-color!important;
-    }
   }
   .borderLeft{
     border-left: 1px solid @grey-color;
     padding-left: 20px;
+  }
+  .add-d:hover{
+    color: rgba(33, 143, 234, 1);
   }
   #dimension-row{
     .el-icon-caret-top{

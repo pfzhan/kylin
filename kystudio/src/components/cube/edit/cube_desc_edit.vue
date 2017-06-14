@@ -1,6 +1,6 @@
 <template>
 <div class="paddingbox" style="padding: 0 30px 0 30px;" id="cube-edit">
-  <el-steps :active="activeStep"  finish-status="finish" process-status="wait" center align-center style="width:100%;margin:0 auto;padding-top:30px;margin-left: 94px;">
+  <el-steps :active="activeStep" finish-status="finish" process-status="wait" center align-center style="width:100%;margin:0 auto;padding-top:30px;margin-left: 94px;">
     <el-step :title="$t('cubeInfo')" @click.native="step(1)"></el-step>
     <!-- <el-step :title="$t('sampleSql')" @click.native="step(2)"></el-step> -->
     <el-step :title="$t('dimensions')" @click.native="step(2)"></el-step>
@@ -10,6 +10,7 @@
     <el-step :title="$t('AdvancedSetting')" @click.native="step(6)"></el-step>
     <el-step :title="$t('overview')" @click.native="step(7)"></el-step>
   </el-steps>
+  <div class="line margin-l-r"></div>
   <div class="ksd-mt-10 ksd-mb-10">
   <info v-if="activeStep===1" :cubeDesc="cubeDetail" :modelDesc="modelDetail" :isEdit="isEdit"></info>
   <!-- <sample_sql v-if="activeStep===2" :cubeDesc="cubeDetail" :isEdit="isEdit" :sampleSql="sampleSQL"></sample_sql> -->
@@ -819,6 +820,9 @@ export default {
     margin-bottom: 20px;
   }
   #cube-edit{
+    *{
+      font-size: 12px;
+    }
     .el-form-item__label{
       float: left!important;
     }
