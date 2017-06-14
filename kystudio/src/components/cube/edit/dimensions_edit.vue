@@ -511,7 +511,7 @@ export default {
       this.initConvertedRowkeys()
     },
     initConvertedRowkeys: function () {
-      this.convertedRowkeys = []
+      this.convertedRowkeys.length = 0
       this.cubeDesc.rowkey.rowkey_columns.forEach((rowkey) => {
         let version = rowkey.encoding_version || 1
         this.convertedRowkeys.push({column: rowkey.column, encoding: this.getEncoding(rowkey.encoding) + ':' + version, valueLength: this.getLength(rowkey.encoding), isShardBy: rowkey.isShardBy})

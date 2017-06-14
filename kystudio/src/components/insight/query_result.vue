@@ -204,6 +204,9 @@ export default {
               type: 'value',
               axisLabel: {
                 // formatter: '{value} °C'
+                textStyle: {
+                  color: '#fff'
+                }
               }
             }
           ],
@@ -212,7 +215,10 @@ export default {
               type: 'category',
               axisLine: {onZero: false},
               axisLabel: {
-                formatter: '{value} '
+                formatter: '{value} ',
+                textStyle: {
+                  color: '#fff'
+                }
               },
               boundaryGap: false,
               data: xAxis

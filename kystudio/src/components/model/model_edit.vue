@@ -1193,7 +1193,9 @@ export default {
           // this.removePoint(showLinkCon.sourceId)
         }
       } else {
-        this.addShowLink(p1, p2, joinType)
+        if (joinType) {
+          this.addShowLink(p1, p2, joinType)
+        }
       }
     },
     addJoinCondition: function (p1, p2, col1, col2, joinType, newCondition) {
