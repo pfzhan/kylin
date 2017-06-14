@@ -112,7 +112,10 @@ exports.default = {
     minLengthVal: 'Min Length Value',
     maxLengthVal: 'Max Length Value',
     expression: 'Expression',
-    returnType: 'Data Type'
+    returnType: 'Data Type',
+    tableName: 'Table Name:',
+    lastModified: 'Last Modified:',
+    totalRow: 'Total Rows:'
   },
   login: {
 

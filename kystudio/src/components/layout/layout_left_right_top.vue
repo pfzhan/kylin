@@ -81,7 +81,7 @@
   :modal="false"
   size="tiny">
   <p><span>{{$t('validPeriod')}}</span>{{kapDate}}<!-- <span>2012<i>/1/2</i></span><span>－</span><span>2012<i>/1/2</i></span> --></p>
-  <p class="ksd-mt-20">{{$t('overtip1')}}<span class="hastime">{{lastTime}} </span>{{$t('overtip2')}}</p>
+  <p class="ksd-pt-10">{{$t('overtip1')}}<span class="hastime">{{lastTime}} </span>{{$t('overtip2')}}</p>
   <span slot="footer" class="dialog-footer">
     <el-button @click="getLicense">{{$t('applayLisence')}}</el-button>
     <el-button type="primary" @click="lisenceDialogVisible = false">{{$t('continueUse')}}</el-button>
@@ -243,7 +243,7 @@
         })
       },
       getLicense () {
-        location.href = 'mailto:g-sales@kyligence.io'
+        location.href = 'mailto:g-ent-lic@kyligence.io'
       },
       defaultVal (obj) {
         if (!obj) {
@@ -388,17 +388,22 @@
         var splitTime = date.split(',')
         if (splitTime.length >= 2) {
           var nowdate = new Date()
-          // nowdate.setMonth(nowdate.getMonth() + 1)
+          nowdate.setMonth(nowdate.getMonth() + 1)
           var endTime = splitTime[1]
-          var ms = (new Date(endTime)) - (new Date(nowdate))
-          if (ms > 0) {
-            var days = Math.ceil(ms / 1000 / 60 / 60 / 24)
-            if (days <= 30) {
+          var ms = (new Date(endTime + ' 23:59:59')) - (new Date(nowdate))
+          if (ms <= 0) {
+            var lastTimes = (new Date(endTime + ' 23:59:59')) - (new Date())
+            var days = Math.ceil(lastTimes / 1000 / 60 / 60 / 24)
+            // var limittime = Math.round(Math.abs(days))
+            if (days >= 0) {
+              days = Math.ceil(Math.abs(days))
               if (!this.$store.state.config.overLock) {
                 this.lisenceDialogVisible = true
                 this.$store.state.config.overLock = true
               }
               localStorage.setItem('buyit', true)
+            } else {
+              days = 0
             }
             return days
           }
@@ -411,7 +416,7 @@
     },
     locales: {
       'en': {resetPassword: 'Reset Password', confirmLoginOut: 'Confirm exit?', validPeriod: 'Valid Period: ', overtip1: 'This Evaluation License will be expired in ', overtip2: 'days. Please contact sales support to apply for the Enterprise License.', applayLisence: 'Apply for Enterprise License', 'continueUse': 'I Know'},
-      'zh-cn': {resetPassword: '重置密码', confirmLoginOut: '确认退出吗？', validPeriod: '使用期限: ', overtip1: '当前使用的试用版许可证将在', overtip2: '天后过期。欢迎联系销售支持人员申请企业版许可证。', applayLisence: '申请企业版许可证', 'continueUse': '继续使用'}
+      'zh-cn': {resetPassword: '重置密码', confirmLoginOut: '确认退出吗？', validPeriod: '使用期限: ', overtip1: '当前使用的试用版许可证将在 ', overtip2: '天后过期。欢迎联系销售支持人员申请企业版许可证。', applayLisence: '申请企业版许可证', 'continueUse': '继续使用'}
     }
   }
 </script>
@@ -439,6 +444,9 @@
       margin-bottom: 0;
       margin-right: 0;
       transform:initial;
+      .el-dialog__header .el-dialog__headerbtn{
+        margin-top: 0;
+      }
       .el-dialog__footer{
           bottom: 0;
           position: absolute;

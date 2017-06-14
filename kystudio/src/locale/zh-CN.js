@@ -111,7 +111,10 @@ exports.default = {
     minLengthVal: '最小长度值',
     maxLengthVal: '最大长度值',
     expression: '表达式',
-    returnType: '数据类型'
+    returnType: '数据类型',
+    tableName: '表名：',
+    lastModified: '修改时间：',
+    totalRow: '总行数：'
   },
   login: {
 

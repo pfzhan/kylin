@@ -37,7 +37,7 @@ export default {
     return Vue.resource(apiUrl + 'cubes/' + cube.originalName + '/clone').update({cubeName: cube.cubeName, project: cube.project})
   },
   backupCube: (cubeName) => {
-    return Vue.resource(apiUrl + 'metastore/backup').save({cube: cubeName})
+    return Vue.resource(apiUrl + 'metastore/backup?cube=' + cubeName).save()
   },
   updateCube: (cube) => {
     return Vue.resource(apiUrl + 'cubes').update(cube)

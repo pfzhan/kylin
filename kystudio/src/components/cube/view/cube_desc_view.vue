@@ -114,7 +114,7 @@ export default {
   },
   locales: {
     'en': {cubeInfo: 'Cube Info', Sql: 'Sample Sql', dimensions: 'Dimensions', measures: 'Measures', refreshSetting: 'Refresh Setting', tableIndex: 'Table Index', configurationOverwrites: 'Configuration Overwrites', overview: 'Overview'},
-    'zh-cn': {cubeInfo: 'Cube信息', Sql: '样例查询', dimensions: '维度', measures: '度量', refreshSetting: '更新配置', tableIndex: '表索引', configurationOverwrites: '配置覆盖', overview: '概览'}
+    'zh-cn': {cubeInfo: 'Cube信息', Sql: '样例查询', dimensions: '维度', measures: '度量', refreshSetting: '更新设置', tableIndex: '表索引', configurationOverwrites: '配置覆盖', overview: '概览'}
   }
 }
 </script>

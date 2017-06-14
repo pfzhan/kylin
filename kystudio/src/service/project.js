@@ -46,6 +46,6 @@ export default {
     return Vue.resource(apiUrl + 'extFilter/updateExtFilter').update(filterData)
   },
   backupProject: (project) => {
-    return Vue.resource(apiUrl + 'metastore/backup').save(project)
+    return Vue.resource(apiUrl + 'metastore/backup?project=' + project.name).save()
   }
 }

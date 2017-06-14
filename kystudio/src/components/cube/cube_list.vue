@@ -230,7 +230,6 @@ export default {
       deleteScheduler: 'DELETE_SCHEDULER',
       loadModels: 'LOAD_ALL_MODEL'
     }),
-    transToGmtTime,
     reloadCubeList () {
       this.loadCubesList(this.currentPage - 1)
     },
@@ -540,13 +539,9 @@ export default {
             message: this.$t('backupSuccessful')
           })
           this.loadCubesList(this.currentPage - 1)
-        }).catch((result) => {
-          this.$message({
-            type: 'error',
-            message: result.statusText
-          })
+        }).catch((res) => {
+          handleError(res)
         })
-      }).catch(() => {
       })
     },
     currentChange: function (value) {

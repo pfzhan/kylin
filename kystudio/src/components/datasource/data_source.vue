@@ -10,6 +10,11 @@
       </div>
       <div class="table_content" >
        <img class="null_pic" src="../../assets/img/notabledata.png" v-show="!tableData"/>
+       <div class="extendInfo" v-show="tableData">
+         <p>{{$t('kylinLang.dataSource.tableName')}} {{extendData.table_name}}</p>
+         <p>{{$t('kylinLang.dataSource.totalRow')}} {{extendData.total_rows}}</p>
+         <p>{{$t('kylinLang.dataSource.lastModified')}} {{extendData.last_modified}}</p>
+       </div>
        <div class="ksd-fright ksd-mt-20" style="position:relative;z-index:1" v-show="tableData">
          <kap-icon-button v-if="tableData.source_type === 0" icon="refresh" type="primary" :useload="true" @click.native="reloadTableDialogVisible" ref="reloadBtn">{{$t('reload')}}</kap-icon-button>
             <!-- <el-button type="info" icon="eyedropper">Sampling</el-button> -->
@@ -273,7 +278,7 @@
 </template>
 <script>
 import { mapActions } from 'vuex'
-import { handleSuccess, handleError, hasRole, kapWarn } from '../../util/business'
+import { handleSuccess, handleError, hasRole, kapWarn, transToGmtTime } from '../../util/business'
 import { changeDataAxis } from '../../util/index'
 import createKafka from '../kafka/create_kafka'
 import editKafka from '../kafka/edit_kafka'
@@ -647,6 +652,7 @@ export default {
           for (var s = 0, len = _this.extendData.columns_stats && _this.extendData.columns_stats.length || 0; s < len; s++) {
             _this.extendData.columns_stats[s].column = this.tableData.columns[s].name
           }
+          _this.extendData.last_modified = transToGmtTime(_this.extendData.last_modified, _this)
           _this.statistics = _this.extendData.columns_stats
           var sampleData = changeDataAxis(_this.extendData.sample_rows)
           var basicColumn = [[]]
@@ -820,6 +826,13 @@ export default {
     }
   }
 .datasource{
+  .extendInfo {
+    float: left;
+    margin-top: 4px;
+    p{
+      font-size: 12px;
+    }
+  }
   .el-button{
     border-color: @popper-bg;
     background: transparent!important;
