@@ -5,7 +5,7 @@
       <div class="grid-content grid-project bg-purple">
 	    	<el-card class="box-card box-project">
 				  <div slot="header" class="clearfix" @click="goProject">
-				    {{$t('kylinLang.common.project')}}
+				    {{$t('kylinLang.common.projects')}}
 				  </div>
 			    <a class="btn-addProject" href="javascript:;" @click="addProject">+{{$t('kylinLang.common.project')}}</a>
 					<section data-scrollbar id="project_scroll_box">

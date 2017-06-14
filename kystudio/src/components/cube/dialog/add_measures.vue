@@ -148,7 +148,7 @@
               :key="index"
               :label="item.name"
               :value="item.name + ':' + item.version">
-              <el-tooltip effect="dark" :content="$t($store.state.config.encodingTip[item.name])" placement="left">
+              <el-tooltip effect="dark" :content="$t($store.state.config.encodingTip[item.name])" placement="top">
                 <span style="float: left;width: 90%">{{ item.name }}</span>
                 <span style="float: right;width: 10%; color: #8492a6; font-size: 13px" v-if="item.version>1">{{ item.version }}</span>
               </el-tooltip>

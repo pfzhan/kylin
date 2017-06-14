@@ -8,7 +8,10 @@
       <el-menu :default-active="defaultActive" class="el-menu-vertical-demo J_menu" @open="handleopen" @close="handleclose" @select="handleselect" theme="dark" unique-opened router>
         <template v-for="(item,index) in menus" >
           <el-menu-item :index="item.path" v-if="showMenuByRole(item.name)" :key="index">
-            <img :src="item.icon"> 
+              <el-tooltip class="item" v-if="briefMenu==='brief_menu'"  effect="dark" :content="$t('kylinLang.menu.' + item.name)" placement="top">
+                <img :src="item.icon"> 
+              </el-tooltip>
+            <img :src="item.icon" v-if="briefMenu!=='brief_menu'"> 
             <span>{{$t('kylinLang.menu.' + item.name)}}</span>
           </el-menu-item>
         </template>
@@ -128,7 +131,7 @@
         },
         menus: [
           {name: 'dashboard', path: '/dashboard', icon: require('../../assets/img/dashboard.png')},
-          {name: 'studio', path: '/studio/datasource', icon: require('../../assets/img/studio.png')},
+          {name: 'studio', path: '/studio/model', icon: require('../../assets/img/studio.png')},
           {name: 'insight', path: '/insight', icon: require('../../assets/img/insight.png')},
           {name: 'monitor', path: '/monitor', icon: require('../../assets/img/monitor.png')},
           {name: 'system', path: '/system/config', icon: require('../../assets/img/system.png')}

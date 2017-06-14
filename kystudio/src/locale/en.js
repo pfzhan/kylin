@@ -2,9 +2,9 @@
 exports.default = {
   common: {
     // 常规操作
-    add: 'add',
+    add: 'Add',
     edit: 'Edit',
-    delete: 'delete',
+    delete: 'Delete',
     drop: 'Drop',
     cancel: 'Cancel',
     close: 'Close',
@@ -20,21 +20,22 @@ exports.default = {
     view: 'View',
     detail: 'Detail',
     draft: 'Draft',
-    zoomIn: 'Zoom in',
-    zoomOut: 'Zoom out',
-    automaticlayout: 'Automatic layout',
+    zoomIn: 'Zoom In',
+    zoomOut: 'Zoom Out',
+    automaticlayout: 'Automatic Layout',
     // 常规状态
-    success: 'success',
-    fail: 'fail',
+    success: 'Success',
+    fail: 'Fail',
     status: 'Status',
     // 术语
     model: 'Model',
     project: 'Project',
+    projects: 'Projects',
     cube: 'cube',
     models: 'Models',
     jobs: 'Jobs',
     cubes: 'Cubes',
-    dataSource: 'datasource',
+    dataSource: 'Datasource',
     fact: 'Fact Table',
     limitfact: 'Fact Table(limited)',
     lookup: 'Lookup Table',
@@ -43,25 +44,26 @@ exports.default = {
     fk: 'Foreign key',
     manual: 'Documentation',
     tutorial: 'Tutorial',
-    qa: 'Q&A',
+    qa: 'FAQ',
     // 通用提示
-    unknownError: 'Unknown Error!',
+    unknownError: 'Unknown Error.',
     submitSuccess: 'Submitted successfully',
     addSuccess: 'Added successfully',
     saveSuccess: 'Saved successfully',
     cloneSuccess: 'Cloned successfully',
     delSuccess: 'Deleted successfully',
-    backupSuccess: 'Backup successfully',
+    backupSuccess: 'Back up successfully',
     updateSuccess: 'Updated successfully',
     confirmDel: 'Confirm delete it?',
     checkDraft: 'Detected the unsaved content, are you going to continue the last edit?',
     // placeholder
-    pleaseInput: 'Please input',
+    pleaseInput: 'Please input here',
+    pleaseFilter: 'filter...',
     pleaseSelect: 'Please select',
     noData: 'No data',
-    checkNoChange: 'No changes can be saved as drafts',
+    checkNoChange: 'No content changed',
     // 格式提示
-    nameFormatValidTip: 'Invalid name！ You can use letters, numbers, and underscore characters',
+    nameFormatValidTip: 'Invalid name! Only letters, numbers and underscore characters are supported in a valid name.',
     // 其他
     users: 'Users',
     tip: 'Tips',
@@ -71,22 +73,24 @@ exports.default = {
     password: 'password'
   },
   model: {
-    scanRangeSetting: 'Scan range setting',
-    sameModelName: 'Model with the same name already exists'
+    scanRangeSetting: 'Time range setting',
+    sameModelName: 'Model with the same name existed',
+    modelCheckTips1: 'Model health check is highly recommended to help generate a cube optimize result.',
+    modelCheckTips2: 'Trigger model check will send a job (executing time depends ondataset scale and sampling setting), you can view it on monitor page.'
   },
   cube: {
     // for column encoding
-    dicTip: 'Use dictionary to encode dimension values. dict encoding is very compact but vulnerable for ultra high cardinality dimensions. ',
-    fixedLengthTip: 'Use a fixed-length("length" parameter) byte array to encode integer dimension values, with potention value truncations. ',
-    intTip: 'Deprecated, use latest integer encoding intead. ',
-    integerTip: 'Use N bytes to encode integer values, where N equals the length parameter and ranges from 1 to 8. [ -2^(8*N-1), 2^(8*N-1)) is supported for integer encoding with length of N. ',
-    fixedLengthHexTip: 'Use a fixed-length("length" parameter) byte array to encode the hex string dimension values, like 1A2BFF or FF00FF, with potention value truncations. Assign one length parameter for every two hex codes. ',
-    dataTip: 'Use 3 bytes to encode date dimension values. ',
-    timeTip: 'Use 4 bytes to encode timestamps, supporting from 1970-01-01 00:00:00 to 2038/01/19 03:14:07. Millisecond is ignored. ',
-    booleanTip: 'Use 1 byte to encode boolean values, valid value include: true, false, TRUE, FALSE, True, False, t, f, T, F, yes, no, YES, NO, Yes, No, y, n, Y, N, 1, 0',
+    dicTip: 'Dict encoding applies to most columns and is recommended by default. But in the case of ultra-high cardinality, it may cause the problem of insufficient memory.',
+    fixedLengthTip: 'Fixed-length encoding applies to the ultra-high cardinality scene, and will select the first N bytes of the column as the encoded value. When N is less than the length of the column, it will cause the column to be truncated; when N is large, the Rowkey is too long and the query performance is degraded.',
+    intTip: 'Deprecated, please use integer encoding instead.',
+    integerTip: 'For integer characters, the supported integer range is [-2 ^ (8 * N-1), 2 ^ (8 * N-1)].',
+    fixedLengthHexTip: 'Use a fixed-length("length" parameter) byte array to encode the hex string dimension value, supporting formats include yyyyMMdd, yyyy-MM-dd, yyyy-MM-dd HH: mm: ss, yyyy-MM-dd HH: mm: ss.SSS (the section containing the timestamp in the column will be truncated).',
+    dataTip: 'Use 3 bytes to encode date dimension value.',
+    timeTip: 'Use 4 bytes to encode timestamp, supporting from 1970-01-01 00:00:00 to 2038/01/19 03:14:07. Millisecond is ignored. ',
+    booleanTip: 'Use 1 byte to encode boolean value, valid value including: true, false; TRUE, FALSE; True, False; t, f; T, F; yes, no; YES, NO; Yes, No; y, n, Y, N, 1, 0.',
     orderedbytesTip: '',
-    sameCubeName: 'Cube with the same name already exists',
-    inputCubeName: 'Please input cube name',
+    sameCubeName: 'Cube with the same name existed',
+    inputCubeName: 'Please input a cube name',
     addCube: 'Add Cube'
   },
   project: {
@@ -115,7 +119,8 @@ exports.default = {
     returnType: 'Data Type',
     tableName: 'Table Name:',
     lastModified: 'Last Modified:',
-    totalRow: 'Total Rows:'
+    totalRow: 'Total Rows:',
+    collectStatice: 'The higher the sampling percentage, the more accurate the stats information, the more resources engaging.'
   },
   login: {
 
@@ -129,7 +134,7 @@ exports.default = {
     project: 'Project'
   },
   system: {
-    evaluationStatement: 'You are using evaluation version of KAP. If you need the most professional services and products base on Apache Kylin. Please contact us! ',
-    statement: 'You are using KAP enterprise product and service. If you have any issues about KAP, please contact us. We will continue to provide you with quality products and services from Apache Kylin core team.'
+    evaluationStatement: 'You are using KAP with Evaluation License. For more product information, expert consulting and services, please contact us. We’ll get you the help you need from Apache Kylin core team.',
+    statement: 'You have purchased KAP with Enterprise License and services. If you encounter any problems in the course of use, please feel free to contact us. We will provide you with consistent quality products and services.'
   }
 }

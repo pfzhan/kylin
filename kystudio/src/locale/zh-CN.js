@@ -29,6 +29,7 @@ exports.default = {
     // 业务词汇
     model: '模型',
     project: '项目',
+    projects: '项目',
     cube: 'Cube',
     models: '模型',
     jobs: '任务',
@@ -56,6 +57,7 @@ exports.default = {
     checkDraft: '检测到有未保存的内容，是否继续上次的编辑？',
     // placeholder
     pleaseInput: '请输入',
+    pleaseFilter: '筛选...',
     pleaseSelect: '请选择',
     noData: '没有数据',
     checkNoChange: '未检测到任何改动',
@@ -71,7 +73,9 @@ exports.default = {
   },
   model: {
     scanRangeSetting: '时间范围设置',
-    sameModelName: '已经存在同名的模型'
+    sameModelName: '已经存在同名的模型',
+    modelCheckTips1: '模型健康检测将会为您检查数据中可能的问题，服务后续的cube设计和构建，以及一键优化功能。',
+    modelCheckTips2: '模型检测将会触发一个检查任务（执行时间受数据量大小和采样比例影响），可以在监控界面查看该任务。'
   },
   cube: {
     // for column encoding
@@ -114,7 +118,8 @@ exports.default = {
     returnType: '数据类型',
     tableName: '表名：',
     lastModified: '修改时间：',
-    totalRow: '总行数：'
+    totalRow: '总行数：',
+    collectStatice: '采样比例越高时，收集的统计信息较准确，同时会需要较多资源。'
   },
   login: {
 

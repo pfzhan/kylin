@@ -1,7 +1,7 @@
 <template>
   <div class="insight_box ksd-border-tab">
   	<div class="ksd_left_bar" id="input-inner">
-     <tree :treedata="tableData" :placeholder="$t('kylinLang.common.pleaseInput')"  :indent="4" :expandall="true" :showfilter="true" :allowdrag="false" @nodeclick="clickTable"></tree>
+     <tree :treedata="tableData" :placeholder="$t('kylinLang.common.pleaseFilter')"  :indent="4" :expandall="true" :showfilter="true" :allowdrag="false" @nodeclick="clickTable"></tree>
     </div>
     <div class="ksd_right_box">
 	 <el-tabs type="border-card" v-model="activeMenu" class="query_box">
@@ -303,7 +303,8 @@ export default {
       this.editableTabs = tabs.filter(tab => tab.name !== targetName)
       this.activeSubMenu = activeName
     },
-    clickTable () {
+    clickTable (a) {
+      alert(a)
     },
     submitQuery () {
       var queryObj = {

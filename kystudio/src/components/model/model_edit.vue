@@ -526,11 +526,11 @@ export default {
           this.modelInfo.is_draft = true
           this.modelInfo.last_modified = JSON.parse(data.modelDescData).last_modified
           this.$emit('reload', 'modelList')
-          this.$notify({
-            title: '成功',
-            message: '定时保存为草稿',
-            type: 'success'
-          })
+          // this.$notify({
+          //   title: '成功',
+          //   message: '定时保存为草稿',
+          //   type: 'success'
+          // })
         })
       }, (res) => {
         handleError(res)

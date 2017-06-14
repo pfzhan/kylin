@@ -11,19 +11,19 @@
       <div class="table_content" >
        <img class="null_pic" src="../../assets/img/notabledata.png" v-show="!tableData"/>
        <div class="extendInfo" v-show="tableData">
-         <p>{{$t('kylinLang.dataSource.tableName')}} {{extendData.table_name}}</p>
-         <p>{{$t('kylinLang.dataSource.totalRow')}} {{extendData.total_rows}}</p>
-         <p>{{$t('kylinLang.dataSource.lastModified')}} {{extendData.last_modified}}</p>
+         <p><span style="font-size:16px;">{{$t('kylinLang.dataSource.tableName')}}</span><span :title="extendData.table_name" style="font-size:16px;color:#218fea"> {{extendData.table_name|omit(50, '...')}}</span></p>
        </div>
-       <div class="ksd-fright ksd-mt-20" style="position:relative;z-index:1" v-show="tableData">
+       <div class="" style="position:absolute;right:0;z-index:1;top:30px;right:16px;" v-show="tableData">
          <kap-icon-button v-if="tableData.source_type === 0" icon="refresh" type="primary" :useload="true" @click.native="reloadTableDialogVisible" ref="reloadBtn">{{$t('reload')}}</kap-icon-button>
+         <kap-icon-button v-if="isAdmin" icon="trash" type="primary" :useload="true" @click.native="unloadTable" ref="unloadBtn">{{$t('unload')}}</kap-icon-button>
             <!-- <el-button type="info" icon="eyedropper">Sampling</el-button> -->
             <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 0" type="info" :useload="true" @click.native="collectSampleDialogOpen" ref="sampleBtn">{{$t('sampling')}}</kap-icon-button>
             <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 1" type="info" :useload="true" @click.native="collectKafkaSampleDialogOpen" ref="kafkaSampleBtn">{{$t('sampling')}}(Streaming)</kap-icon-button>
   <!--           <el-button type="danger" @click.native="unloadTable" icon="delete2">Unload</el-button> -->
-            <kap-icon-button v-if="isAdmin" icon="trash" type="primary" :useload="true" @click.native="unloadTable" ref="unloadBtn">{{$t('unload')}}</kap-icon-button>
+            
+            <p style="font-size:12px;margin-top:10px;text-align:right;padding-right:4px;">{{$t('kylinLang.dataSource.lastModified')}} {{extendData.last_modified}}</p>
         </div>
-      	<el-tabs v-model="activeName" class="ksd-mt-20 clear" v-show="tableData">
+      	<el-tabs v-model="activeName" class="ksd-mt-40 clear" v-show="tableData">
 		    <el-tab-pane :label="$t('kylinLang.dataSource.columns')" name="first">
 	    	  <el-table
 			    :data="tableData.columns"
@@ -155,6 +155,7 @@
 			      :label="$t('kylinLang.dataSource.nullCount')">
 			    </el-table-column>
 			  </el-table>
+        <p style="font-size:12px;" class="ksd-mt-10">{{$t('kylinLang.dataSource.totalRow')}} {{extendData.total_rows}}</p>
 		    </el-tab-pane>
 		    <el-tab-pane :label="$t('kylinLang.dataSource.sampleData')" name="fourth">
 		      <el-table
@@ -382,9 +383,9 @@ export default {
       var tableName = this.tableData.database + '.' + this.tableData.name
       this.collectKafkaSampleData(tableName).then((res) => {
         this.$message('采样成功！')
-        this.$refs.kafkaSampleBtn = false
+        this.$refs.kafkaSampleBtn.loading = false
       }, (res) => {
-        this.$refs.kafkaSampleBtn = false
+        this.$refs.kafkaSampleBtn.loading = false
       })
     },
     // loadKafkaData () {

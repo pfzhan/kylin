@@ -185,7 +185,7 @@ export default {
       this.multipleSelection[row.table] = val
       this.$set(row, 'isSelected', !row.isSelected)
       if (!row.isSelected && row.derived) {
-        this.$set(row, 'derived', 'true')
+        this.$set(row, 'derived', row.derived)
       }
     },
     selectionAllChange: function (tableName) {

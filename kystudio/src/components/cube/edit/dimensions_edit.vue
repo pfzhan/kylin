@@ -161,7 +161,7 @@
                   :key="encodingindex"
                  :label="item.name"
                  :value="item.name + ':' + item.version">
-                 <el-tooltip effect="dark" :content="$t('kylinLang.cube.'+$store.state.config.encodingTip[item.name])" placement="right">
+                 <el-tooltip effect="dark" :content="$t('kylinLang.cube.'+$store.state.config.encodingTip[item.name])" placement="top">
                    <span style="float: left;width: 90%">{{ item.name }}</span>
                    <span style="float: right;width: 10%; color: #8492a6; font-size: 13px" v-show="item.version>1">{{ item.version }}</span>
                 </el-tooltip>
@@ -676,7 +676,7 @@ export default {
       handleSuccess(res, (data, code, status, msg) => {
         this.$set(this.modelDesc, 'suggestionDerived', data.dimensions)
         // this.$set(this.cubeDesc, 'aggregation_groups', data.aggregation_groups)
-        this.$set(this.cubeDesc, 'override_kylin_properties', data.override_kylin_properties)
+        // this.$set(this.cubeDesc, 'override_kylin_properties', data.override_kylin_properties)
         this.dim_cap = data.aggregation_groups[0].select_rule.dim_cap || 0
         // this.$set(this.cubeDesc.rowkey, 'rowkey_columns', data.rowkey.rowkey_columns)
         // this.initConvertedRowkeys()

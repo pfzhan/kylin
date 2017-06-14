@@ -178,7 +178,7 @@
                 <br/>
                <!--  <el-checkbox v-model="openCollectRange">Check Model</el-checkbox> -->
                  <!-- <el-slider v-model="modelStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider> -->
-                  <slider @changeBar="changeBar" label="Check Model" :show="scanRatioDialogVisible"></slider>
+                  <slider @changeBar="changeBar" :hideCheckbox="true" :range="100" label="Check Model" :show="scanRatioDialogVisible"></slider>
               </div>
               </div>
             </div>

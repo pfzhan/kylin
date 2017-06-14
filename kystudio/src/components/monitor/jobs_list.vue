@@ -5,6 +5,7 @@
       <el-input
         icon="search"
         v-model="filterCubeName"
+        :placeholder="$t('kylinLang.common.pleaseFilter')" 
         :on-icon-click="refreshFilter">
       </el-input>
     </el-col>

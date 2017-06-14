@@ -436,11 +436,11 @@ export default {
             this.rawTable.tableDetail.status = rawTableData.status
           } catch (e) {
           }
-          this.$message({
-            type: 'success',
-            duration: 3000,
-            message: '已经自动为您保存为草稿!'
-          })
+          // this.$message({
+          //   type: 'success',
+          //   duration: 3000,
+          //   message: '已经自动为您保存为草稿!'
+          // })
           this.$emit('reload', 'cubeList')
         })
       }).catch((res) => {

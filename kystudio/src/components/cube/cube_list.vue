@@ -296,6 +296,7 @@ export default {
       })
     },
     edit: function (cube) {
+      console.log(cube, 1232323)
       this.$emit('addtabs', 'cube', cube.name, 'cubeEdit', {
         project: cube.project,
         cubeName: cube.name,
