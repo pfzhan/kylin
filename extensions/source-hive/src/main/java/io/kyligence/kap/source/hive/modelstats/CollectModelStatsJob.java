@@ -27,6 +27,8 @@ package io.kyligence.kap.source.hive.modelstats;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.TimeZone;
 
 import org.apache.kylin.common.KylinConfig;
@@ -46,6 +48,7 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
@@ -65,7 +68,8 @@ public class CollectModelStatsJob extends CubingJob {
     private String submitter;
     private int frequency;
 
-    public CollectModelStatsJob(String project, String modelName, String submitter, long dateStart, long dateEnd, int frequency) {
+    public CollectModelStatsJob(String project, String modelName, String submitter, long dateStart, long dateEnd,
+            int frequency) {
         this.project = project;
         this.modelName = modelName;
         this.submitter = submitter;
@@ -102,6 +106,7 @@ public class CollectModelStatsJob extends CubingJob {
         setSubmitter(submitter);
         setParam(CubingExecutableUtil.CUBE_NAME, modelName);
 
+        MetadataManager manager = MetadataManager.getInstance(config);
         ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(config);
         ModelStats modelStats = modelStatsManager.getModelStats(modelName);
 
@@ -110,12 +115,15 @@ public class CollectModelStatsJob extends CubingJob {
         JobEngineConfig jobConf = new JobEngineConfig(config);
 
         String factTableName = dataModelDesc.getRootFactTable().getTableIdentity();
-        TableExtDesc factTableExtDesc = MetadataManager.getInstance(config).getTableExt(factTableName);
+        TableExtDesc factTableExtDesc = manager.getTableExt(factTableName);
 
-        // Do table stats firstly
+        // Do fact table stats firstly
         if (factTableExtDesc.getColumnStats().size() == 0) {
             new HiveTableExtSampleJob(factTableName, frequency).addSteps(this);
         }
+
+        // Do lookup table stats
+        checkLookupStats(dataModelDesc, manager);
 
         //Step1: check duplicate key
         checkDuplicateKeyStep();
@@ -135,6 +143,19 @@ public class CollectModelStatsJob extends CubingJob {
         modelStats.setJodID(getId());
         modelStatsManager.saveModelStats(modelStats);
         return this;
+    }
+
+    private void checkLookupStats(DataModelDesc dataModelDesc, MetadataManager manager) throws IOException {
+        Set<String> tables = new HashSet<>();
+        for (JoinTableDesc fTable : dataModelDesc.getJoinTables()) {
+            tables.add(fTable.getTable());
+        }
+        for (String s : tables) {
+            TableExtDesc extDesc = manager.getTableExt(s);
+            if (extDesc.getColumnStats().size() == 0) {
+                new HiveTableExtSampleJob(s, frequency).addSteps(this);
+            }
+        }
     }
 
     private void checkDuplicateKeyStep() {
@@ -194,10 +215,13 @@ public class CollectModelStatsJob extends CubingJob {
         return null;
     }
 
-    public AbstractExecutable createStatsFlatTableStep(JobEngineConfig conf, IJoinedFlatTableDesc flatTableDesc, String jobId) {
-        String initStatements = JoinedFlatTable.generateHiveInitStatements(conf.getConfig().getHiveDatabaseForIntermediateTable());
+    public AbstractExecutable createStatsFlatTableStep(JobEngineConfig conf, IJoinedFlatTableDesc flatTableDesc,
+            String jobId) {
+        String initStatements = JoinedFlatTable
+                .generateHiveInitStatements(conf.getConfig().getHiveDatabaseForIntermediateTable());
         final String dropTableHql = JoinedFlatTable.generateDropTableStatement(flatTableDesc);
-        final String createTableHql = JoinedFlatTable.generateCreateTableStatement(flatTableDesc, JobBuilderSupport.getJobWorkingDir(conf, jobId));
+        final String createTableHql = JoinedFlatTable.generateCreateTableStatement(flatTableDesc,
+                JobBuilderSupport.getJobWorkingDir(conf, jobId));
         String whereStatement = dateEnd - dateStart > 0 ? appendWhereStatement(flatTableDesc, dateStart, dateEnd) : "";
         String insertDataHqls = JoinedFlatTable.generateInsertPartialDataStatement(flatTableDesc, whereStatement);
 
@@ -237,7 +261,8 @@ public class CollectModelStatsJob extends CubingJob {
         if (partDesc != null && partDesc.getPartitionDateColumn() != null) {
             if (!(dateStart == 0 && dateEnd == Long.MAX_VALUE)) {
                 whereBuilder.append(hasCondition ? " AND (" : " (");
-                whereBuilder.append(partDesc.getPartitionConditionBuilder().buildDateRangeCondition(partDesc, dateStart, dateEnd));
+                whereBuilder.append(
+                        partDesc.getPartitionConditionBuilder().buildDateRangeCondition(partDesc, dateStart, dateEnd));
                 whereBuilder.append(")\n");
                 hasCondition = true;
             }

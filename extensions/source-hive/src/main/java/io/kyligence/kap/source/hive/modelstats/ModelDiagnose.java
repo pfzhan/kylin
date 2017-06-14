@@ -68,12 +68,19 @@ public class ModelDiagnose {
             throws IOException {
         List<ModelStats.DuplicatePK> dupPKList = new ArrayList<>();
         MetadataManager metadataManager = MetadataManager.getInstance(config);
+        List<String> tables = new ArrayList<>();
         for (JoinTableDesc fTable : dataModelDesc.getJoinTables()) {
+            String tableName = fTable.getTable();
+            if (tables.contains(tableName))
+                continue;
+            else {
+                tables.add(tableName);
+            }
             TableDesc tableDesc = metadataManager.getTableDesc(fTable.getTable());
             if (tableDesc.isView()) {
-                String tableName = tableDesc.getMaterializedName();
+                String materializedName = tableDesc.getMaterializedName();
                 tableDesc.setDatabase(config.getHiveDatabaseForIntermediateTable());
-                tableDesc.setName(tableName);
+                tableDesc.setName(materializedName);
             }
             List<TblColRef> primaryKeys = new ArrayList<>();
             primaryKeys.addAll(Arrays.asList(fTable.getJoin().getPrimaryKeyColumns()));
