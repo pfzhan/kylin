@@ -55,19 +55,22 @@
         <el-col :span="12" >Max group by column: <el-input v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;"></el-input><el-button type="grey" style="height: 36px;margin-left: 5px;" @click.native="changeDimCap();cubeSuggestions()">Apply</el-button> </el-col>
       </el-row>
       <div class="line"></div>
-      <el-row class="row_padding border_bottom" v-for="(group, group_index) in cubeDesc.aggregation_groups" :key="group_index">
+      <el-row class="row_padding border_bottom" v-for="(group, group_index) in cubeDesc.aggregation_groups" :key="group_index" style="border-bottom: 0;">
+        <div style="height: 30px;line-height: 30px;margin-top: -15px;">
+          <span style="float: right;color: rgba(255,255,255,0.5);">Cuboid Number: {{cuboidList[group_index]}} {{groupErrorList[group_index]}}</span>
+        </div>
         <el-col :span="24">
-          <el-card class="ksd_noshadow">
-            <el-row>
+          <el-card class="ksd_noshadow" style="border: none;">
+            <!-- <el-row>
               <el-col :span="6">
                 Cuboid Number: {{cuboidList[group_index]}} {{groupErrorList[group_index]}}
               </el-col> 
-            </el-row>
-            <el-row class="row_padding" >
-              <el-col :span="1">#{{group_index+1}}</el-col>
+            </el-row> -->
+            <el-row class="row_padding" style="background: #2f3243;padding-left: 30px;" id="dimensions-item">
+              <!-- <el-col :span="1">#{{group_index+1}}</el-col> -->
               <el-col :span="22">
                 <el-row class="row_padding">
-                  <el-col :span="5">{{$t('Includes')}}</el-col>
+                  <el-col :span="5" class="dimensions-title">{{$t('Includes')}}</el-col>
                 </el-row> 
                 <el-row> 
                   <el-col :span="24">
@@ -76,7 +79,7 @@
                   </el-col>
                 </el-row>
                 <el-row class="row_padding">
-                  <el-col :span="5">{{$t('mandatoryDimensions')}}</el-col>
+                  <el-col :span="5" class="dimensions-title">{{$t('mandatoryDimensions')}}</el-col>
                 </el-row>  
                 <el-row>
                   <el-col :span="24" >
@@ -85,7 +88,7 @@
                   </el-col>
                 </el-row>
                 <el-row class="row_padding">
-                  <el-col :span="5">{{$t('hierarchyDimensions')}}</el-col>
+                  <el-col :span="5" class="dimensions-title">{{$t('hierarchyDimensions')}}</el-col>
                 </el-row>
                 <el-row>
                   <el-col :span="24">
@@ -109,7 +112,7 @@
                 </el-col>
               </el-row>      
               <el-row class="row_padding">
-                <el-col :span="5">{{$t('jointDimensions')}}</el-col>
+                <el-col :span="5" class="dimensions-title">{{$t('jointDimensions')}}</el-col>
               </el-row>  
               <el-row>
                 <el-col :span="24">
@@ -125,7 +128,7 @@
                  </el-row>
                 </el-col>
                </el-row> 
-               <el-row>
+               <el-row style="padding-bottom: 20px;">
                  <el-col :span="5">
                   <el-button icon="plus" :disabled="isReadyCube"  @click="addJointDims( group.select_rule.joint_dims)">
                   {{$t('newJoint')}}
@@ -141,7 +144,7 @@
         </el-card>  
       </el-col>
     </el-row>
-    <el-row class="row_padding border_bottom">
+    <el-row class="row_padding border_bottom" >
       <el-col :span="24">
         <el-button icon="plus" @click="addAggGroup" :disabled="isReadyCube"  class="table_margin">
         {{$t('addAggregationGroups')}}
@@ -758,6 +761,15 @@ export default {
     .el-icon-caret-top{
       height: 34px;
       margin-right: 1px;
+    }
+  }
+  .dimensions-title{
+    height: 30px;
+    line-height: 30px;
+  }
+  #dimensions-item{
+    .el-input__inner{
+      border: none;
     }
   }
 </style>
