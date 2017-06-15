@@ -1,7 +1,7 @@
 <template>
 <div class="paddingbox" style="padding: 0 30px 0 30px;" id="cube-edit">
   <div>
-    <el-steps :active="activeStep" space="18.5%" finish-status="finish" process-status="wait" center align-center style="width:100%;margin:0 auto;padding-top:30px;margin-left: 14px;">
+    <el-steps :active="activeStep" space="18%" finish-status="finish" process-status="wait" center align-center style="width:100%;margin:0 auto;padding-top:30px;margin-left: 14px;">
       <el-step :title="$t('cubeInfo')" @click.native="step(1)"></el-step>
       <!-- <el-step :title="$t('sampleSql')" @click.native="step(2)"></el-step> -->
       <el-step :title="$t('dimensions')" @click.native="step(2)"></el-step>
@@ -493,7 +493,7 @@ export default {
       if (this.cubeDraftSaving) {
         this.$message({
           type: 'warning',
-          message: '系统正在响应Draft的保存请求，请稍后!'
+          message: this.$t('kylinLang.common.saveDraft')
         })
         return
       }
@@ -791,7 +791,6 @@ export default {
       handleSuccess(res, (data, code, status, msg) => {
         this.renderCubeFirst = true
         this.modelDetail = data.model
-        console.log(9999)
         this.getTables()
       })
     }).catch((res) => {

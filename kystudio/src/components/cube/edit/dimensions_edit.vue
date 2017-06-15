@@ -166,7 +166,7 @@
          <el-col :span="4">{{$t('dataType')}}</el-col>
          <el-col :span="2">{{$t('cardinality')}}</el-col>
        </el-row>
-        <el-row id="dimension-row" class="tablebody" v-for="(row, index) in convertedRowkeys"  v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }" :key="row.column">
+        <el-row id="dimension-row" v-if="convertedRowkeys.length" class="tablebody" v-for="(row, index) in convertedRowkeys"  v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }" :key="row.column">
           <el-col :span="1">{{index+1}}</el-col>
           <el-col :span="9">{{row.column}}</el-col>
           <el-col :span="4">
@@ -530,11 +530,12 @@ export default {
       this.initConvertedRowkeys()
     },
     initConvertedRowkeys: function () {
-      this.convertedRowkeys.splice(0, this.convertedRowkeys.length)
-      delete this.convertedRowkeys[0]
-      this.cubeDesc.rowkey.rowkey_columns.forEach((rowkey) => {
-        let version = rowkey.encoding_version || 1
-        this.convertedRowkeys.push({column: rowkey.column, encoding: this.getEncoding(rowkey.encoding) + ':' + version, valueLength: this.getLength(rowkey.encoding), isShardBy: rowkey.isShardBy})
+      this.convertedRowkeys.splice(0)
+      this.$nextTick(() => {
+        this.cubeDesc.rowkey.rowkey_columns.forEach((rowkey) => {
+          let version = rowkey.encoding_version || 1
+          this.convertedRowkeys.push({column: rowkey.column, encoding: this.getEncoding(rowkey.encoding) + ':' + version, valueLength: this.getLength(rowkey.encoding), isShardBy: rowkey.isShardBy})
+        })
       })
     },
     initEncodingType: function (rowkey) {

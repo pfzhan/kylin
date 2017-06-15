@@ -71,9 +71,12 @@ exports.default = {
     action: 'Action',
     help: 'Help',
     username: 'username',
-    password: 'password'
+    password: 'password',
+    saveDraft: 'Responding to a request for saving drafts，Please try again later.'
   },
   model: {
+    modelName: 'Model Name:',
+    modelDesc: 'Model Description',
     samplingSetting: 'Sampling Setting:',
     checkModel: 'Check Model',
     scanRangeSetting: 'Time range setting',
@@ -83,9 +86,11 @@ exports.default = {
     samplingSettingTips: 'Here you can set time range and sampling ratio based on your demand and cluster resource.',
     samplingPercentage: 'Sampling percentage:',
     timeRange: 'Time range',
-    samplingPercentageTips: 'If sampling ratio is high, check job would return accurate results <br/> with high resource engaged. If sampling ratio is low, check job would <br/>return less accurate results with resource saving.'
+    samplingPercentageTips: 'If sampling ratio is high, check job would return accurate results <br/> with high resource engaged. If sampling ratio is low, check job would <br/>return less accurate results with resource saving.',
+    modelHasJob: 'This model has a running job of model check, thus the action is disabled.'
   },
   cube: {
+    cubeName: 'Cube Name',
     // for column encoding
     dicTip: 'Dict encoding applies to most columns and is recommended by default. But in the case of ultra-high cardinality, it may cause the problem of insufficient memory.',
     fixedLengthTip: 'Fixed-length encoding applies to the ultra-high cardinality scene, and will select the first N bytes of the column as the encoded value. When N is less than the length of the column, it will cause the column to be truncated; when N is large, the Rowkey is too long and the query performance is degraded.',
@@ -98,7 +103,8 @@ exports.default = {
     orderedbytesTip: '',
     sameCubeName: 'Cube with the same name existed',
     inputCubeName: 'Please input a cube name',
-    addCube: 'Add Cube'
+    addCube: 'Add Cube',
+    cubeHasJob: 'This cube has a running job of cube build, thus the action is disabled.'
   },
   project: {
     mustSelectProject: 'Please select a project first',
@@ -127,7 +133,8 @@ exports.default = {
     tableName: 'Table Name:',
     lastModified: 'Last Modified:',
     totalRow: 'Total Rows:',
-    collectStatice: 'The higher the sampling percentage, the more accurate the stats information, the more resources engaging.'
+    collectStatice: 'The higher the sampling percentage, the more accurate the stats information, the more resources engaging.',
+    dataSourceHasJob: 'This table has a running job of cube build, thus the action is disabled.'
   },
   login: {
 

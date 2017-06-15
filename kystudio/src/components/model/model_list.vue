@@ -116,10 +116,10 @@
     <!-- 添加model -->
     <el-dialog title="Add Model" v-model="createModelVisible" size="tiny">
       <el-form :model="createModelMeta" :rules="createModelFormRule" ref="addModelForm">
-        <el-form-item label="Model Name" prop="modelName">
+        <el-form-item :label="$t('kylinLang.model.modelName')" prop="modelName">
           <el-input v-model="createModelMeta.modelName" auto-complete="off"></el-input>
         </el-form-item>
-        <el-form-item label="Model Description" prop="modelDesc">
+        <el-form-item :label="$t('kylinLang.model.modelDesc')" prop="modelDesc">
          <el-input
             type="textarea"
             :rows="2"
@@ -138,7 +138,7 @@
 
     <el-dialog title="Add Cube" v-model="createCubeVisible" size="tiny">
       <el-form :model="cubeMeta" :rules="createCubeFormRule" ref="addCubeForm">
-        <el-form-item label="Cube Name" prop="cubeName">
+        <el-form-item :label="$t('kylinLang.cube.cubeName')" prop="cubeName">
           <el-input v-model="cubeMeta.cubeName" auto-complete="off"></el-input>
         </el-form-item>
       </el-form>
@@ -506,7 +506,7 @@ export default {
             })
           })
         }, () => {
-          this.$message(this.$t('hasChecked'))
+          this.$message(this.$t('kylinLang.model.modelHasJob'))
         })
       } else if (command === 'clone') {
         this.initCloneMeta()
@@ -539,8 +539,10 @@ export default {
         })
         // this.stats(projectName, modelName)
       } else if (command === 'drop') {
-        kapConfirm(this.$t('delModelTip')).then(() => {
-          this.drop()
+        this.getModelCheckMode(projectName, modelName, () => {
+          kapConfirm(this.$t('delModelTip')).then(() => {
+            this.drop()
+          })
         })
       } else if (command === 'cube') {
         this.initCubeMeta()

@@ -440,7 +440,10 @@ export default {
       var tableName = this.tableData.database + '.' + this.tableData.name
       this.checkTableHasJob(tableName, () => {
         // this.scanRatioDialogVisible = true
-        this.loadHivesAction([tableName], this.$refs.reloadBtn)
+        this.$refs.reloadBtn.loading = false
+        this.$message(this.$t('kylinLang.dataSource.dataSourceHasJob'))
+        return
+        // this.loadHivesAction([tableName], this.$refs.reloadBtn)
       }, () => {
         this.scanRatioDialogVisible = true
       })

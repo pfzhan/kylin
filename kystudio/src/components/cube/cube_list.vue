@@ -100,7 +100,7 @@
             <i class="el-icon-more"></i>
           </el-button >
           <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item v-show="scope.row.status==='DISABLED'" @click.native="drop(scope.row.name)">{{$t('drop')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.status==='DISABLED'" @click.native="drop(scope.row)">{{$t('drop')}}</el-dropdown-item>
             <el-dropdown-item @click.native="edit(scope.row)">{{$t('edit')}}</el-dropdown-item>
             <el-dropdown-item v-show="scope.row.status !== 'DESCBROKEN' && !scope.row.is_draft " @click.native="build(scope.row)">{{$t('build')}}</el-dropdown-item>
             <el-dropdown-item v-show="scope.row.status!=='DISABLED' && scope.row.status!=='DESCBROKEN' && !scope.row.is_draft" @click.native="refresh(scope.row)">{{$t('refresh')}}</el-dropdown-item>
@@ -260,13 +260,17 @@ export default {
         handleError(res)
       })
     },
-    drop: function (cubeName) {
+    drop: function (cube) {
+      if (!(cube.segments && cube.segments.length >= 0)) {
+        this.$message(this.$t('kylinLang.cube.cubeHasJob'))
+        return
+      }
       this.$confirm(this.$t('deleteCube'), this.$t('tip'), {
         confirmButtonText: this.$t('yes'),
         cancelButtonText: this.$t('cancel'),
         type: 'warning'
       }).then(() => {
-        this.deleteCube(cubeName).then((res) => {
+        this.deleteCube(cube.name).then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
             this.$message({
               type: 'success',
@@ -274,20 +278,6 @@ export default {
               duration: 3000
             })
           })
-          // this.deleteRawTable(cubeName).then((res) => {
-          //   handleSuccess(res, (data, code, status, msg) => {
-          //   })
-          // }).catch((res) => {
-          //   handleError(res, (data, code, status, msg) => {
-          //   })
-          // })
-          // this.deleteScheduler(cubeName).then((res) => {
-          //   handleSuccess(res, (data, code, status, msg) => {
-          //   })
-          // }).catch((res) => {
-          //   handleError(res, (data, code, status, msg) => {
-          //   })
-          // })
           this.loadCubesList(this.currentPage - 1)
         }).catch((res) => {
           handleError(res)
@@ -296,17 +286,22 @@ export default {
       })
     },
     edit: function (cube) {
-      if (cube.segments && cube.segments.length) {
-        this.$emit('addtabs', 'cube', cube.name, 'cubeEdit', {
-          project: cube.project,
-          cubeName: cube.name,
-          modelName: cube.model,
-          isEdit: true
-        })
-      } else {
+      if (!(cube.segments && cube.segments.length >= 0)) {
+        this.$message(this.$t('kylinLang.cube.cubeHasJob'))
+        return
       }
+      this.$emit('addtabs', 'cube', cube.name, 'cubeEdit', {
+        project: cube.project,
+        cubeName: cube.name,
+        modelName: cube.model,
+        isEdit: true
+      })
     },
     build: function (cube) {
+      if (!(cube.segments && cube.segments.length >= 0)) {
+        this.$message(this.$t('kylinLang.cube.cubeHasJob'))
+        return
+      }
       let _this = this
       _this.selected_cube = cube
       if (cube.is_streaming) {
@@ -376,6 +371,10 @@ export default {
       this.buildCubeFormVisible = false
     },
     refresh: function (cube) {
+      if (!(cube.segments && cube.segments.length >= 0)) {
+        this.$message(this.$t('kylinLang.cube.cubeHasJob'))
+        return
+      }
       this.selected_cube = cube
       this.refreshCubeFormVisible = true
     },
@@ -403,6 +402,10 @@ export default {
       _this.refreshCubeFormVisible = false
     },
     merge: function (cube) {
+      if (!(cube.segments && cube.segments.length >= 0)) {
+        this.$message(this.$t('kylinLang.cube.cubeHasJob'))
+        return
+      }
       this.selected_cube = cube
       this.mergeCubeFormVisible = true
     },

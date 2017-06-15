@@ -70,9 +70,12 @@ exports.default = {
     action: '操作',
     help: '帮助',
     username: '用户账号',
-    password: '密码'
+    password: '密码',
+    saveDraft: '系统正在响应保存草稿的请求，请稍后!'
   },
   model: {
+    modelName: '模型名称：',
+    modelDesc: '描述：',
     samplingSetting: '检测设置：',
     checkModel: '模型检测',
     scanRangeSetting: '时间范围设置',
@@ -82,9 +85,11 @@ exports.default = {
     samplingSettingTips: '采样设置中，根据需求与集群资源情况，您可以分别设置本次模型检测的时间范围与采样比例。',
     samplingPercentage: '采样范围：',
     timeRange: '时间范围',
-    samplingPercentageTips: '采样比例较高时，检测准度较高，会需要较多资源。采样比例较低时，监测准度较低，比较节省资源。'
+    samplingPercentageTips: '采样比例较高时，检测准度较高，会需要较多资源。采样比例较低时，监测准度较低，比较节省资源。',
+    modelHasJob: '此模型已有在执行的模型监测任务，因此当前操作不支持。'
   },
   cube: {
+    cubeName: 'Cube 名称',
     // for column encoding
     dicTip: '适用于大部分字段，默认推荐使用。但在超高基情况下，可能引起内存不足的问题。',
     fixedLengthTip: '适用于超高基场景，将选取字段的前N个字节作为编码值。当N小于字段长度，会造成字段截断；当N较大时，造成RowKey过长，查询性能下降。',
@@ -97,7 +102,8 @@ exports.default = {
     orderedbytesTip: '',
     sameCubeName: '已经存在同名的Cube',
     inputCubeName: '请输入Cube名称',
-    addCube: '添加Cube'
+    addCube: '添加Cube',
+    cubeHasJob: '此cube已有在执行的cube构建任务，因此当前操作不支持。'
   },
   project: {
     mustSelectProject: '请先选择一个Project',
