@@ -420,6 +420,7 @@ export default {
     .el-tab-pane{
       height: 290px;
       overflow: auto;
+      background-color: #393e53;
     }
     .display_bar{
       position: absolute;
@@ -429,37 +430,55 @@ export default {
       z-index: 1
     }
     .el-badge__content {
-      background-color: @base-color;
+      background-color: #393e53;
     }
     table{
       width: 100%;
-      border-right:1px solid #e0e6ed;
-      border-bottom:1px solid #e0e6ed;
+      border-right:1px solid @grey-color;;
+      border-bottom:1px solid @grey-color;;
       th{
-        background: #f1f3f7;
-        border-left:1px solid #e0e6ed;
-        border-top:1px solid #e0e6ed;
-        min-height:44px;
+        background: #2b2d3c;
+        border-left:1px solid @grey-color;;
+        border-top:1px solid @grey-color;;
+        height:44px;
         width: 220px;
         font-weight: normal;
         font-size: 14px;
       }
       td{
-        border-left:1px solid #e0e6ed;
-        border-top:1px solid #e0e6ed;
+        border-left:1px solid @grey-color;;
+        border-top:1px solid @grey-color;;
+        background-color: #2b2d3c;
+        font-size: 12px;
+        line-height: 44px;
+        padding-left: 4px;
         input{
           width: 400px;
-          margin: 4px 4px;
+          margin: 4px 0;
         }
         textarea{
           width: 400px;
-          margin: 4px 4px;
+          margin: 4px 0;
         }
       }
+    }
+    .el-form-item__label{
+      float: left!important;
     }
     .el-tabs--border-card{
       box-shadow: none;
       border-bottom: none;
+      &>.el-tabs__header .el-tabs__item {
+        height: 43px;
+        margin-top: 4px;
+        border-radius: 4px 4px 0 0;
+      }
+      &>.el-tabs__content{
+        background-color: #393e53;
+        .el-tabs__nav-scroll{
+          border-bottom:solid 1px #474d65;
+        }
+      }
     }
     .el-tab-pane .el-form{
       height: 260px;

@@ -148,36 +148,76 @@
       </div>
     </el-dialog>
 
-    <el-dialog :title="$t('kylinLang.model.scanRangeSetting')" v-model="scanRatioDialogVisible" >
+    <el-dialog :title="$t('kylinLang.model.checkModel')" size="tiny" v-model="scanRatioDialogVisible" >
         <el-row :gutter="20">
           <el-col :span="24"><div class="grid-content bg-purple">
-            <div class="tree_check_content ksd-mt-20">
+            <div class="tree_check_content">
+              <div class="tips ksd-mt-10">
+                <ul>
+                  <li>1.{{$t('kylinLang.model.modelCheckTips1')}}</li>
+                  <li>2.{{$t('kylinLang.model.modelCheckTips2')}}</li>
+                </ul>
+              </div>
               <div class="ksd-mt-20">
               <div class="date-picker" v-if="hasPartition">
-                  <!-- <p>{{$t('kylinLang.model.scanRangeSetting')}}</p> -->
+                  <h2>{{$t('kylinLang.model.samplingSetting')}}
+                      <kap-common-popover>
+                      <div slot="content">
+                        <ul>
+                          <li>{{$t('kylinLang.model.samplingSettingTips')}}</li>
+                        </ul>
+                      </div>
+                      <icon name="question-circle-o"></icon>
+                      </kap-common-popover>
+                  </h2>
                   <br/>
-                  <el-date-picker
-                    v-model="startTime"
-                    type="datetime"
-                    @change="changeStartTime"
-                    :placeholder="$t('chooseDate')"
-                    size="small"
-                    format="yyyy-MM-dd HH:mm"
-                    >
-                  </el-date-picker>
+                  {{$t('kylinLang.model.timeRange')}}
+                  <el-row :gutter="20">
+                    <el-col :span="11">
+                      <div class="grid-content bg-purple">
+                        <el-date-picker
+                          v-model="startTime"
+                          type="datetime"
+                          @change="changeStartTime"
+                          :placeholder="$t('chooseDate')"
+                          size="small"
+                          format="yyyy-MM-dd HH:mm"
+                          >
+                        </el-date-picker>
+                      </div>
+                    </el-col>
+                    <el-col :span="2"><div class="grid-content bg-purple" style="line-height:60px;text-align:center;">－</div></el-col>
+                    <el-col :span="11">
+                      <div class="grid-content bg-purple">
+                        <el-date-picker
+                          v-model="endTime"
+                          type="datetime"
+                          :placeholder="$t('chooseDate')"
+                          size="small"
+                          format="yyyy-MM-dd HH:mm"
+                          :picker-options="pickerOptionsEnd">
+                        </el-date-picker>
+                      </div>
+                    </el-col>
+                  </el-row>
+                  
                   <span class="line"></span>
-                  <el-date-picker
-                    v-model="endTime"
-                    type="datetime"
-                    :placeholder="$t('chooseDate')"
-                    size="small"
-                    format="yyyy-MM-dd HH:mm"
-                    :picker-options="pickerOptionsEnd">
-                  </el-date-picker>
+                  
                 </div>
                 <br/>
                <!--  <el-checkbox v-model="openCollectRange">Check Model</el-checkbox> -->
                  <!-- <el-slider v-model="modelStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider> -->
+                 <h2>{{$t('kylinLang.model.samplingPercentage')}}
+                 <kap-common-popover>
+                    <div slot="content">
+                      <ul>
+                        <li v-html="$t('kylinLang.model.samplingPercentageTips')"></li>
+                      </ul>
+                    </div>
+                    <icon name="question-circle-o"></icon>
+                  </kap-common-popover>
+                  </h2>
+                 
                   <slider @changeBar="changeBar" :hideCheckbox="true" :range="100" label="Check Model" :show="scanRatioDialogVisible"></slider>
               </div>
               </div>
@@ -716,6 +756,15 @@ export default {
   .el-table--striped .el-table__body tr.el-table__row--striped td {
     background-color: #292b38;
   }
+  .tips{
+    font-size: 12px;
+  }
+  h2{
+    font-size: 16px;
+    .fa-icon{
+      color: #ccc;
+    }
+  }
   .fa-icon{
     cursor: pointer;
     &.active{
@@ -789,7 +838,7 @@ export default {
     }
   }
   .bottom {
-    margin-top: 10px;
+    margin-top: 45px;
     margin-right: 10px;
     line-height: 12px;
   }

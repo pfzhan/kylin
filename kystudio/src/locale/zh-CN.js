@@ -58,6 +58,7 @@ exports.default = {
     // placeholder
     pleaseInput: '请输入',
     pleaseFilter: '筛选...',
+    enterAlias: '输入别名',
     pleaseSelect: '请选择',
     noData: '没有数据',
     checkNoChange: '未检测到任何改动',
@@ -72,10 +73,16 @@ exports.default = {
     password: '密码'
   },
   model: {
+    samplingSetting: '检测设置：',
+    checkModel: '模型检测',
     scanRangeSetting: '时间范围设置',
     sameModelName: '已经存在同名的模型',
     modelCheckTips1: '模型健康检测将会为您检查数据中可能的问题，服务后续的cube设计和构建，以及一键优化功能。',
-    modelCheckTips2: '模型检测将会触发一个检查任务（执行时间受数据量大小和采样比例影响），可以在监控界面查看该任务。'
+    modelCheckTips2: '模型检测将会触发一个检查任务（执行时间受数据量大小和采样比例影响），可以在监控界面查看该任务。',
+    samplingSettingTips: '采样设置中，根据需求与集群资源情况，您可以分别设置本次模型检测的时间范围与采样比例。',
+    samplingPercentage: '采样范围：',
+    timeRange: '时间范围',
+    samplingPercentageTips: '采样比例较高时，检测准度较高，会需要较多资源。采样比例较低时，监测准度较低，比较节省资源。'
   },
   cube: {
     // for column encoding

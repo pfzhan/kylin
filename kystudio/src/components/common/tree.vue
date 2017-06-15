@@ -1,8 +1,9 @@
 <!-- 树 -->
 <template>
   <div class="tree_box">
-  <el-input style="padding-left: 25px;margin-top: -10px;background: transparent;margin-bottom: 10px;"
+  <el-input style="margin-top: -10px;background: transparent;margin-bottom: 10px;"
     :placeholder="placeholder"
+    icon="search"
     v-model="filterText" v-if="showfilter">
   </el-input>
   <el-tree
@@ -173,9 +174,12 @@
 <style  lang="less">
 @import '../../less/config.less';
 .tree_box{
-  input {
+  position: relative;
+  .el-input {
     width: 80%;
-    margin: 0 auto;
+    position: relative;
+    display: block;
+    margin: 4px auto;
   }
   .sublabel {
     color:#ccc;
@@ -194,9 +198,10 @@
  
   .empty_text{
     font-size: 14px;
-    color:#d1dbe5;
     text-align: center;
     padding: 10px;
+    color:#d4d7e3;
+    background-color: #292b38;
   }
   .el-tree{
     border:none;

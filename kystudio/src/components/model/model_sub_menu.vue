@@ -1,13 +1,13 @@
 <template>
 	<div class="sub_menu">
     <el-tabs v-model="subMenu" @tab-click="handleClick">
-      <el-tab-pane label="DataSource" name="datasource">
+      <el-tab-pane :label="$t('kylinLang.common.dataSource')" name="datasource">
         <component is="dataSource" v-on:addtabs="addTab" ref="datsources"></component>
       </el-tab-pane>
-      <el-tab-pane label="Model" name="model">
+      <el-tab-pane :label="$t('kylinLang.common.model')" name="model">
         <component is="modelList" v-on:addtabs="addTab" ref="models"></component>
       </el-tab-pane>
-      <el-tab-pane label="Cube" name="cube">
+      <el-tab-pane :label="$t('kylinLang.common.cube')" name="cube">
         <component is="cubeList"  v-on:addtabs="addTab" ref="cubes"></component>
       </el-tab-pane>
     </el-tabs>

@@ -303,8 +303,11 @@ export default {
       this.editableTabs = tabs.filter(tab => tab.name !== targetName)
       this.activeSubMenu = activeName
     },
-    clickTable (a) {
-      alert(a)
+    clickTable (leaf) {
+      if (leaf && !leaf.children) {
+        var tipsName = leaf.label
+        this.sourceSchema += ' ' + tipsName
+      }
     },
     submitQuery () {
       var queryObj = {
@@ -370,8 +373,8 @@ export default {
     tab
   },
   locales: {
-    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', newQuery: 'New Query', saveQueries: 'Save Queries', queryHistory: 'Query History', tips: 'Tips: Ctrl+Shift+Space or Alt+Space(Windows), Command+Option+Space(Mac) to list tables/columns in query box.', result: 'Result'},
-    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', newQuery: '新查询', saveQueries: '保存的查询', queryHistory: '查询历史', tips: '技巧: Ctrl+Shift+Space 或 Alt+Space(Windows), Command+Option+Space(Mac) 可以在查询框中列出表/列名.', result: '查询结果'}
+    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', newQuery: 'New Query', saveQueries: 'Save Queries', queryHistory: 'Query History', tips: 'Tips: Click left tree to add columns in query box.', result: 'Result'},
+    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', newQuery: '新查询', saveQueries: '保存的查询', queryHistory: '查询历史', tips: '技巧: 点击左侧树结构选中列名。', result: '查询结果'}
   }
 }
 </script>
@@ -386,6 +389,7 @@ export default {
       border:none;
     }
     .tree_box{
+      height: 100%;
       margin-top: 20px;
       .tag_D{
         color:#48576a;

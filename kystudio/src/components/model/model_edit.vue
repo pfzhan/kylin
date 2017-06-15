@@ -8,10 +8,15 @@
       <tree  v-if="extraoption.uuid" style="background-color: #f1f2f7;border:none;width:250px;" :treedata="cubeDataTree" :placeholder="$t('kylinLang.common.pleaseInput')" maxLabelLen="20" :showfilter= "false" :expandall="true" @nodeclick="clickCube"  v-unselect :renderTree="renderCubeTree"></tree>
 <!--     </draggable> -->
     </div>
+    <ul class="sample_info">
+      <li><span class="iconD">D:</span><span class="info">Dimension</span></li>
+      <li><span class="iconM">M:</span><span class="info">Measure</span></li>
+      <li><span class="iconDis">－:</span><span class="info">Disable</span></li>
+    </ul>
     <ul class="model_tool">
         <li class="toolbtn tool_add" @click="addZoom" v-unselect :title="$t('kylinLang.common.zoomIn')" style="line-height:38px;"><img src="../../assets/img/fd.png"></li>
         <li class="toolbtn tool_jian" @click="subZoom" v-unselect :title="$t('kylinLang.common.zoomOut')" style="line-height:26px;"><img src="../../assets/img/sx.png"></li>
-        <li class="toolbtn" @click="autoLayerPosition" v-unselect  :title="$t('kylinLang.common.automaticlayout')" style="line-height:42px;"><img src="../../assets/img/layout.png"></li>
+        <li class="toolbtn" @click="autoLayerPosition" v-unselect  :title="$t('kylinLang.common.automaticlayout')" style="line-height:42px;margin-top:10px"><img src="../../assets/img/layout.png"></li>
       </ul>
     <div class="btn_group"  v-if="actionMode!=='view'">
       <!-- <el-button @click="saveDraft(true)" :loading="draftBtnLoading">{{$t('kylinLang.common.draft')}}</el-button> -->
@@ -23,9 +28,15 @@
     <div class="model_edit" :style="{left:docker.x +'px'  ,top:docker.y + 'px'}">
       <div class="table_box" v-if="table&&table.kind" @drop='dropColumn' @dragover='allowDrop($event)'  v-for="table in tableList" :key="table.guid" :id="table.guid" v-bind:class="table.kind.toLowerCase()" v-bind:style="{ left: table.pos.x + 'px', top: table.pos.y + 'px' }" >
         <div class="tool_box" >
-            <span><icon name="table" class="el-icon-menu" style="color:#fff" @click.native="openModelSubMenu('hide', table.database, table.name)"></icon></span>
-            <span><icon name="gears"  class="el-icon-share" style="color:#fff" v-on:click.native="addComputedColumn(table.guid)"></icon></span>
-            <span><icon name="sort-alpha-asc" v-on:click.native="sortColumns(table)"></icon></span>
+            <span >
+              <icon name="table" class="el-icon-menu" style="color:#fff" @click.native="openModelSubMenu('hide', table.database, table.name)"></icon>
+            </span>
+            <span>
+              <icon name="gears"  class="el-icon-share" style="color:#fff" v-on:click.native="addComputedColumn(table.guid)"></icon>
+            </span>
+            <span >
+              <icon name="sort-alpha-asc" v-on:click.native="sortColumns(table)"></icon>
+            </span>
             <i class="fa fa-window-close"></i>
             <el-dropdown @command="selectTableKind" class="ksd-fright" v-if="actionMode!=='view'">
               <span class="el-dropdown-link">
@@ -41,8 +52,8 @@
         <i class="el-icon-close close_table" v-on:click="removeTable(table.guid)" v-if="actionMode!=='view'"></i> 
         <p class="table_name  drag_bar" v-on:dblclick="editAlias(table.guid)" v-visible="aliasEditTableId!=table.guid">
         <common-tip :tips="table.database+'.'+table.name" class="drag_bar">{{(table.alias)|omit(16,'...')}}</common-tip></p>
-        <el-input v-model="table.alias" v-on:blur="cancelEditAlias(table.guid)" class="alias_input"  size="small" placeholder="enter alias..." v-visible="aliasEdit&&aliasEditTableId==table.guid"></el-input>
-        <p class="filter_box"><el-input v-model="table.filterName" v-on:change="filterColumnByInput(table.filterName,table.guid)"  size="small" placeholder="enter filter..."></el-input></p>
+        <el-input v-model="table.alias" v-on:blur="cancelEditAlias(table.guid)" class="alias_input"  size="small" :placeholder="$t('kylinLang.common.enterAlias')" v-visible="aliasEdit&&aliasEditTableId==table.guid"></el-input>
+        <p class="filter_box"><el-input v-model="table.filterName" v-on:change="filterColumnByInput(table.filterName,table.guid)"  size="small" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input></p>
         <section data-scrollbar class="columns_box">
           <ul>
             <li draggable @dragstart="dragColumns" @dragend="dragColumnsEnd"  v-for="column in table.columns" :key="column.guid"  class="column_li"  v-bind:class="{'active_filter':column.isActive}" :data-guid="table.guid" :data-column="column.name" ><span class="kind" :class="{dimension:column.btype=='D',measure:column.btype=='M'}" v-on:click="changeColumnBType(table.guid,column.name,column.btype, column.isComputed)">{{column.btype}}</span><span class="column" v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)"><common-tip trigger="click" :tips="column.name" placement="right-start" style="font-size:10px;">{{column.name|omit(14,'...')}}</common-tip></span><span class="column_type">{{column.datatype}}</span></style></li>
@@ -90,7 +101,7 @@
               :show-header="false"
               style="width: 100%;border:none" class="linksTable">
               <el-table-column style="border:none"
-                :label="$t('pk')"
+                :label="$t('kylinLang.common.pk')"
                 >
                 <template scope="scope">
                 <el-select v-model="scope.row[2]" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:100%" :disabled = "actionMode ==='view'">
@@ -107,7 +118,7 @@
                  <template scope="scope" align="center">＝</template>
               </el-table-column>
               <el-table-column style="border:none"
-                :label="$t('fk')"
+                :label="$t('kylinLang.common.fk')"
                 >
                 <template scope="scope">
                 <el-select v-model="scope.row[3]" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:100%" :disabled = "actionMode ==='view'">
@@ -197,7 +208,7 @@
 
        <!-- 添加cube -->
 
-    <el-dialog :title="$t('kylinLang.cube.addCube')" v-model="createCubeVisible" size="tiny">
+    <el-dialog :title="$t('kylinLang.cube.addCube')"  v-model="createCubeVisible" size="tiny">
       <el-form :model="cubeMeta" :rules="createCubeFormRule" ref="addCubeForm">
         <el-form-item label="Cube Name" prop="cubeName">
           <el-input v-model="cubeMeta.cubeName" auto-complete="off"></el-input>
@@ -209,7 +220,7 @@
       </div>
     </el-dialog>
 
-    <el-dialog title="Confirm Add" v-model="addModelDialogDisable" >
+    <el-dialog :title="$t('kylinLang.common.save')" v-model="addModelDialogDisable" >
        <partition-column :modelInfo="modelInfo" :actionMode="actionMode" :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
 
        <el-checkbox v-model="openModelCheck">Check Model</el-checkbox>
@@ -1626,11 +1637,10 @@ export default {
           this.modelData = data.model
           this.draftData = data.draft
           var modelData = this.extraoption.status ? data.draft : data.model
-          console.log(this.extraoption, data, 889911)
           if (this.modelData && this.draftData && this.extraoption.mode !== 'view') {
             kapConfirm(this.$t('kylinLang.common.checkDraft'), {
-              confirmButtonText: 'OK',
-              cancelButtonText: 'NO'
+              confirmButtonText: this.$t('kylinLang.common.ok'),
+              cancelButtonText: this.$t('kylinLang.common.cancel')
             }).then(() => {
               modelData = data.draft
               loadEditData()
@@ -2092,6 +2102,11 @@ export default {
        background-color:#fff;
      }
    }
+   .save_model_box{
+      .el-form-item__label{
+        float:left!important;
+      }
+    }
    .model_edit_box {
     // margin-top: 20px;
     position: relative;
@@ -2112,11 +2127,35 @@ export default {
       }
     }
    }
-   
+   .sample_info{
+    position: absolute;
+    right: 6px;
+    z-index: 2000;
+    top:10px;
+    right: 10px;
+    li{
+      display: inline-block;
+      font-size: 12px;
+      margin-right: 4px;
+      .iconD{
+        color:#20a0ff;
+      }
+      .iconM{
+        color:#48b5cd;
+      }
+      .iconDis{
+        color:#20a0ff;
+      }
+      .info{
+        color: #d0d0d0;
+      }
+    }
+   }
    .model_tool{
      position: absolute;
      right: 6px;
      z-index: 2000;
+     top:40px;
      li{
       -webkit-select:none;
       user-select:none;
@@ -2182,8 +2221,30 @@ export default {
      width: 40000px;
      height: 40000px;
      cursor: move;
+     .icon_modelinfo{
+       display: inline-block;
+       width: 12px;
+       height: 14px;
+       background-image: url('../../assets/img/tableStats.png');
+     }
+     .icon_computed{
+       display: inline-block;
+       width: 12px;
+       height: 14px;
+       background-image: url('../../assets/img/computed.png');
+     }
+     .icon_sorted{
+       display: inline-block;
+       width: 12px;
+       height: 14px;
+       background-image: url('../../assets/img/order.png');
+     }
    }
    .links_dialog{
+    .el-dialog__body .el-input {
+      background-color: #2f3243;
+      padding: 0;
+    }
      p{
        color:green;
      }

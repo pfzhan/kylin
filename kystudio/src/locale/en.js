@@ -59,6 +59,7 @@ exports.default = {
     // placeholder
     pleaseInput: 'Please input here',
     pleaseFilter: 'filter...',
+    enterAlias: 'enter alias',
     pleaseSelect: 'Please select',
     noData: 'No data',
     checkNoChange: 'No content changed',
@@ -73,10 +74,16 @@ exports.default = {
     password: 'password'
   },
   model: {
+    samplingSetting: 'Sampling Setting:',
+    checkModel: 'Check Model',
     scanRangeSetting: 'Time range setting',
     sameModelName: 'Model with the same name existed',
     modelCheckTips1: 'Model health check is highly recommended to help generate a cube optimize result.',
-    modelCheckTips2: 'Trigger model check will send a job (executing time depends ondataset scale and sampling setting), you can view it on monitor page.'
+    modelCheckTips2: 'Trigger model check will send a job (executing time depends ondataset scale and sampling setting), you can view it on monitor page.',
+    samplingSettingTips: 'Here you can set time range and sampling ratio based on your demand and cluster resource.',
+    samplingPercentage: 'Sampling percentage:',
+    timeRange: 'Time range',
+    samplingPercentageTips: 'If sampling ratio is high, check job would return accurate results <br/> with high resource engaged. If sampling ratio is low, check job would <br/>return less accurate results with resource saving.'
   },
   cube: {
     // for column encoding

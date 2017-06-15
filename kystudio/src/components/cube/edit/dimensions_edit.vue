@@ -51,7 +51,7 @@
         <el-col :span="24">{{$t('aggregationGroups')}}</el-col>
       </el-row>
       <el-row class="row_padding border_bottom borderLeft" style="line-height:36px;border:none;padding-left:0;color:rgba(255,255,255,0.5);margin-top: -8px;">
-        <el-col :span="4">Total cuboid number: {{totalCuboid}}</el-col>
+        <el-col :span="5">Total cuboid number: {{totalCuboid}}</el-col>
         <el-col :span="12" >Max group by column: <el-input v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;"></el-input><el-button type="grey" style="height: 36px;margin-left: 5px;" @click.native="changeDimCap();cubeSuggestions()">Apply</el-button> </el-col>
       </el-row>
       <div class="line"></div>
@@ -245,7 +245,7 @@
       <editor v-model="sqlString"  theme="chrome" class="ksd-mt-20" width="100%" height="400" ></editor>
       <span slot="footer" class="dialog-footer">
         <el-button @click="addSQLFormVisible = false">{{$t('cancel')}}</el-button>
-        <el-button type="primary" @click="collectSqlToServer">{{$t('yes')}}</el-button>
+        <el-button type="primary" :loading="sqlBtnLoading" @click="collectSqlToServer">{{$t('yes')}}</el-button>
       </span>     
     </el-dialog>  
 
@@ -264,6 +264,7 @@ export default {
     return {
       dim_cap: 0,
       totalCuboid: 0,
+      sqlBtnLoading: false,
       addDimensionsFormVisible: false,
       addSQLFormVisible: false,
       selected_dimension: {},
@@ -374,7 +375,9 @@ export default {
     },
     collectSqlToServer () {
       if (this.sqlString !== '') {
+        this.sqlBtnLoading = true
         this.saveSampleSql({modelName: this.modelDesc.name, cubeName: this.cubeDesc.name, sqls: this.sqlString.split(/;/)}).then((res) => {
+          this.sqlBtnLoading = false
           handleSuccess(res, (data, code, status, msg) => {
             this.$set(this.modelDesc, 'suggestionDerived', data.dimensions)
             // this.$set(this.cubeDesc, 'aggregation_groups', data.aggregation_groups)
@@ -383,6 +386,7 @@ export default {
             this.addSQLFormVisible = false
           })
         }, (res) => {
+          this.sqlBtnLoading = false
           handleError(res)
         })
       }
@@ -524,7 +528,8 @@ export default {
       this.initConvertedRowkeys()
     },
     initConvertedRowkeys: function () {
-      this.convertedRowkeys.length = 0
+      this.convertedRowkeys.splice(0, this.convertedRowkeys.length)
+      delete this.convertedRowkeys[0]
       this.cubeDesc.rowkey.rowkey_columns.forEach((rowkey) => {
         let version = rowkey.encoding_version || 1
         this.convertedRowkeys.push({column: rowkey.column, encoding: this.getEncoding(rowkey.encoding) + ':' + version, valueLength: this.getLength(rowkey.encoding), isShardBy: rowkey.isShardBy})

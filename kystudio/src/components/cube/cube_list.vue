@@ -296,13 +296,15 @@ export default {
       })
     },
     edit: function (cube) {
-      console.log(cube, 1232323)
+      // if (cube.segments && cube.segments.length) {
       this.$emit('addtabs', 'cube', cube.name, 'cubeEdit', {
         project: cube.project,
         cubeName: cube.name,
         modelName: cube.model,
         isEdit: true
       })
+      // } else {
+      // }
     },
     build: function (cube) {
       let _this = this

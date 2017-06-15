@@ -1,5 +1,5 @@
 <template>
-<div>  
+<div class="add_dimensions">  
   <div v-for="(table, index) in factTableColumns"  >
     <el-tag>{{table.tableName}} </el-tag>
     <el-tag>FactTable </el-tag>    
@@ -199,7 +199,7 @@ export default {
         _this.$refs[tableName][0].data.forEach(function (selection) {
           _this.$set(selection, 'isSelected', false)
           if (selection.derived) {
-            _this.$set(selection, 'derived', 'true')
+            _this.$set(selection, 'derived', selection.derived)
           }
         })
         _this.multipleSelection[tableName] = []
@@ -221,4 +221,10 @@ export default {
 </script>
 <style lang="less">
   @import '../../../less/config.less';
+  .add_dimensions{
+    .el-table td, .el-table th {
+      height: auto;
+    }
+  }
+  
 </style>

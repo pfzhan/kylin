@@ -1,11 +1,11 @@
 <template>
 <div class="change_lang">
   <div v-if="isLogin">
-    <el-button v-if="lang=='en'" style="background: #2b2d3c;color: #fff;" @click="changeLang">English</el-button>
+    <el-button v-if="lang=='zh-cn'" style="background: #2b2d3c;color: #fff;" @click="changeLang">English</el-button>
     <el-button v-else style="background: #2b2d3c; color: #fff;" @click="changeLang">中文</el-button>
   </div>
   <div v-else>
-    <el-button v-if="lang=='en'" @click="changeLang">English</el-button>
+    <el-button v-if="lang=='zh-cn'" @click="changeLang">English</el-button>
     <el-button v-else @click="changeLang">中文</el-button>
   </div>
   

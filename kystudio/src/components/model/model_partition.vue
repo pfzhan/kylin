@@ -13,7 +13,7 @@
                 </el-select>
           </el-col>
           <el-col :span="2"></el-col>
-          <el-col class="line" :span="11">
+          <el-col :span="11">
              <el-select v-model="checkPartition.date_column" @change="changeDateColumn" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="editMode  || actionMode==='view'">
                   <el-option
                     v-for="item in dateColumnsByTable"
@@ -178,8 +178,11 @@ export default {
   }
 }
 </script>
-<style lang="less" scoped>
+<style lang="less">
 .partitionBox {
+  .el-form-item__label{
+    float:left!important;
+  }
   .el-form {
     height: auto;
     overflow: hidden;

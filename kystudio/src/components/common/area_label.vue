@@ -31,11 +31,13 @@ export default {
     'baseLabel' () {
       var arr = []
       for (var k = 0; this.labels && k < this.labels.length || 0; k++) {
-        var obj = {
-          label: (this.datamap && this.datamap.label) ? this.labels[k][this.datamap.label] : this.labels[k],
-          value: (this.datamap && this.datamap.value) ? this.labels[k][this.datamap.value] : this.labels[k]
+        if (this.labels[k]) {
+          var obj = {
+            label: (this.datamap && this.datamap.label) ? this.labels[k][this.datamap.label] : this.labels[k],
+            value: (this.datamap && this.datamap.value) ? this.labels[k][this.datamap.value] : this.labels[k]
+          }
+          arr.push(obj)
         }
-        arr.push(obj)
       }
       return arr
     }
@@ -75,7 +77,6 @@ export default {
   mounted () {
     var _this = this
     this.$refs.select.$refs.tags.onclick = function (e) {
-      console.log(e, 788)
       _this.selectTag(e)
       if (e && e.stopPropagation) {
       // W3C取消冒泡事件

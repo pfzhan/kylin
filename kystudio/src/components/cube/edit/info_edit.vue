@@ -10,7 +10,7 @@
     <el-input v-model="getNotifyList" placeholder="Comma Separated" @change="changeNotifyList"></el-input>
   </el-form-item>
   <el-form-item :label="$t('notificationEvents')">
-    <area_label  :labels="options" :selectedlabels="cubeDesc.status_need_notify" :datamap="{label: 'label', value: 'value'}"> 
+    <area_label  :labels="options" :placeholder="$t('kylinLang.common.pleaseSelect')" :selectedlabels="cubeDesc.status_need_notify" :datamap="{label: 'label', value: 'value'}"> 
     </area_label>
   </el-form-item>
   <el-form-item :label="$t('description')">
@@ -25,7 +25,7 @@ export default {
   props: ['cubeDesc', 'modelDesc', 'isEdit'],
   data () {
     return {
-      getNotifyList: this.cubeDesc.notify_list.toString(),
+      getNotifyList: this.cubeDesc.notify_list && this.cubeDesc.notify_list.toString() || '',
       options: [{label: 'ERROR', value: 'ERROR'}, {label: 'DISCARDED', value: 'DISCARDED'}, {label: 'SUCCEED', value: 'SUCCEED'}],
       selected_project: localStorage.getItem('selected_project'),
       rules: {
