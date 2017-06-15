@@ -296,15 +296,15 @@ export default {
       })
     },
     edit: function (cube) {
-      // if (cube.segments && cube.segments.length) {
-      this.$emit('addtabs', 'cube', cube.name, 'cubeEdit', {
-        project: cube.project,
-        cubeName: cube.name,
-        modelName: cube.model,
-        isEdit: true
-      })
-      // } else {
-      // }
+      if (cube.segments && cube.segments.length) {
+        this.$emit('addtabs', 'cube', cube.name, 'cubeEdit', {
+          project: cube.project,
+          cubeName: cube.name,
+          modelName: cube.model,
+          isEdit: true
+        })
+      } else {
+      }
     },
     build: function (cube) {
       let _this = this

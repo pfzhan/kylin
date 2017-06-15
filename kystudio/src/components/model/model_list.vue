@@ -494,15 +494,19 @@ export default {
       var modelName = modelData.name
       var projectName = modelData.project
       if (command === 'edit') {
-        this.isUsedInCubes(modelName, (res) => {
-          this.useCubeDialogVisible = true
-        }, () => {
-          this.$emit('addtabs', 'model', modelName, 'modelEdit', {
-            project: projectName,
-            modelName: modelName,
-            uuid: uuid,
-            status: modelData.is_draft
+        this.getModelCheckMode(projectName, modelName, () => {
+          this.isUsedInCubes(modelName, (res) => {
+            this.useCubeDialogVisible = true
+          }, () => {
+            this.$emit('addtabs', 'model', modelName, 'modelEdit', {
+              project: projectName,
+              modelName: modelName,
+              uuid: uuid,
+              status: modelData.is_draft
+            })
           })
+        }, () => {
+          this.$message(this.$t('hasChecked'))
         })
       } else if (command === 'clone') {
         this.initCloneMeta()
@@ -564,6 +568,26 @@ export default {
         // }).catch(() => {
         // })
       }
+    },
+    getModelCheckMode (projectName, modelName, noCb, yesCb) {
+      this.getModelProgress({
+        project: projectName,
+        modelName: modelName
+      }).then((res) => {
+        handleSuccess(res, (data) => {
+          for (var i in data) {
+            if (i === 'false') {
+              if (typeof noCb === 'function') {
+                noCb()
+              }
+              return
+            }
+          }
+          if (typeof yesCb === 'function') {
+            yesCb()
+          }
+        })
+      })
     },
     clone () {
       this.$refs['cloneForm'].validate((valid) => {

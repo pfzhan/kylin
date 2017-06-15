@@ -6,7 +6,7 @@
         icon="search"
         v-model="filterCubeName"
         :placeholder="$t('kylinLang.common.pleaseFilter')" 
-        :on-icon-click="refreshFilter">
+        @change="filterChange">
       </el-input>
     </el-col>
     <el-col :span="4" >
@@ -251,6 +251,7 @@ export default {
       project: localStorage.getItem('selected_project'),
       filterCubeName: '',
       filterStatus: [],
+      lockST: null,
       filterTimeZone: 1,
       currentPage: 1,
       stCycle: null,
@@ -370,6 +371,12 @@ export default {
         this.$set(filter, 'status', this.filterStatus)
       }
       this.loadJobsList(filter)
+    },
+    filterChange () {
+      clearTimeout(this.lockST)
+      this.lockST = setTimeout(() => {
+        this.refreshFilter()
+      }, 1000)
     },
     diagnosisJob: function (a, target) {
       this.diagnosisVisible = true

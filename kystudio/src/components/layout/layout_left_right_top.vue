@@ -330,23 +330,20 @@
         this.$refs['resetPassword'].$emit('resetPasswordFormValid')
       },
       resetPasswordValidSuccess: function (data) {
-        // let userPassword = {
-        //   username: data.username,
-        //   password: data.oldPassword,
-        //   newPassword: data.password
-        // }
-        // this.resetPassword(userPassword).then((result) => {
-        //   this.$message({
-        //     type: 'success',
-        //     message: result.statusText
-        //   })
-        // }).catch((result) => {
-        //   this.$message({
-        //     type: 'error',
-        //     message: result.statusText
-        //   })
-        // })
-        // this.resetPasswordFormVisible = false
+        let userPassword = {
+          username: data.username,
+          password: data.oldPassword,
+          newPassword: data.password
+        }
+        this.resetPassword(userPassword).then((result) => {
+          this.$message({
+            type: 'success',
+            message: result.statusText
+          })
+        }).catch((res) => {
+          handleError(res)
+        })
+        this.resetPasswordFormVisible = false
       },
       resetProjectForm () {
         this.$refs['projectForm'].$refs['projectForm'].resetFields()
