@@ -2108,6 +2108,9 @@ export default {
       }
     }
    .model_edit_box {
+    .el-form-item__label {
+      float: none;
+    }
     // margin-top: 20px;
     position: relative;
     background-color: #20222e;

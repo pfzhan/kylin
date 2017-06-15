@@ -31,7 +31,7 @@ exports.default = {
     model: 'Model',
     project: 'Project',
     projects: 'Projects',
-    cube: 'cube',
+    cube: 'Cube',
     models: 'Models',
     jobs: 'Jobs',
     cubes: 'Cubes',
@@ -104,7 +104,8 @@ exports.default = {
     sameCubeName: 'Cube with the same name existed',
     inputCubeName: 'Please input a cube name',
     addCube: 'Add Cube',
-    cubeHasJob: 'This cube has a running job of cube build, thus the action is disabled.'
+    cubeHasJob: 'This cube has a running job of cube build, thus the action is disabled.',
+    selectModelName: 'Please select a model'
   },
   project: {
     mustSelectProject: 'Please select a project first',

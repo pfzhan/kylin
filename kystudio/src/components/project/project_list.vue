@@ -1,7 +1,8 @@
 <template>
   <div class="paddingbox" id="project-list">
  <el-button type="primary" class="ksd-mb-10" v-if="isModeler" @click="addProject">+{{$t('kylinLang.common.project')}}</el-button>
-  <el-table
+ <img src="../../assets/img/no_project.png" class="null_pic" v-if="!(projectList && projectList.length)">
+  <el-table v-if="projectList && projectList.length"
     :data="projectList"
     style="width: 100%">
     <el-table-column type="expand">

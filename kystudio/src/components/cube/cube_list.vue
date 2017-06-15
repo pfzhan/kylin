@@ -1,7 +1,9 @@
 <template>
-<div class="paddingbox ksd-border-tab cube-list" id="cube-list">
+<div class="paddingbox ksd-border-tab cube-list" style="min-height:800px" id="cube-list">
+<img src="../../assets/img/no_cube.png" class="null_pic" v-if="!(cubesList && cubesList.length)" >
   <el-row class="cubeSearch">
-    <el-select v-model="currentModel" :placeholder="$t('chooseModel')">
+   <el-button type="primary" class="ksd-mb-10 ksd-fleft" @click.native="addCube" style="font-weight: bold;border-radius: 20px;">+{{$t('kylinLang.common.cube')}}</el-button>
+    <el-select v-model="currentModel" class="ksd-ml-20" :placeholder="$t('chooseModel')">
       <el-option
         v-for="item in modelsList"
         :key="item.name"
@@ -10,7 +12,8 @@
       </el-option>
     </el-select>
   </el-row>
-  <el-table id="cube-list-table"
+
+  <el-table id="cube-list-table" v-if="cubesList&&cubesList.length"
     :data="cubesList"
     :default-expand-all="false"
     :row-class-name="showRowClass"
@@ -164,7 +167,29 @@
       <el-button type="primary" @click="checkRefreshCubeForm">{{$t('yes')}}</el-button>
     </div>
   </el-dialog>
+   <!-- 添加cube -->
 
+    <el-dialog title="Add Cube" v-model="createCubeVisible" size="tiny">
+      <el-form :model="cubeMeta" :rules="createCubeFormRule" ref="addCubeForm">
+        <el-form-item :label="$t('kylinLang.cube.cubeName')" prop="cubeName">
+          <el-input v-model="cubeMeta.cubeName" auto-complete="off"></el-input>
+        </el-form-item>
+        <el-form-item :label="$t('kylinLang.model.modelName')" prop="modelName">
+           <el-select v-model="cubeMeta.modelName">
+            <el-option
+              v-for="item in allModels"
+              :key="item.name"
+              :label="item.name"
+              :value="item.name">
+            </el-option>
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="createCubeVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" @click="createCube" :loading="btnLoading">{{$t('kylinLang.common.submit')}}</el-button>
+      </div>
+    </el-dialog>
 </div>
 </template>
 
@@ -185,9 +210,11 @@ export default {
   name: 'cubeslist',
   data () {
     return {
+      btnLoading: false,
       cubesList: [],
       currentPage: 1,
       totalCubes: 0,
+      createCubeVisible: false,
       buildCubeFormVisible: false,
       cloneCubeFormVisible: false,
       mergeCubeFormVisible: false,
@@ -195,7 +222,22 @@ export default {
       selected_cube: {},
       selected_project: this.$store.state.project.selected_project,
       filterCube: '',
-      currentModel: 'ALL'
+      currentModel: 'ALL',
+      allModels: [],
+      cubeMeta: {
+        cubeName: '',
+        modelName: '',
+        projectName: ''
+      },
+      createCubeFormRule: {
+        cubeName: [
+          {required: true, message: this.$t('kylinLang.cube.inputCubeName'), trigger: 'blur'},
+          {validator: this.checkName, trigger: 'blur'}
+        ],
+        modelName: [
+          {required: true, message: this.$t('kylinLang.cube.selectModelName'), trigger: 'blur'}
+        ]
+      }
     }
   },
   components: {
@@ -224,12 +266,58 @@ export default {
       disableCube: 'DISABLE_CUBE',
       purgeCube: 'PURGE_CUBE',
       cloneCube: 'CLONE_CUBE',
+      checkCubeName: 'CHECK_CUBE_NAME_AVAILABILITY',
       backupCube: 'BACKUP_CUBE',
       getCubeSql: 'GET_CUBE_SQL',
       deleteRawTable: 'DELETE_RAW_TABLE',
       deleteScheduler: 'DELETE_SCHEDULER',
       loadModels: 'LOAD_ALL_MODEL'
     }),
+    initCube () {
+      this.cubeMeta = {
+        cubeName: '',
+        modelName: '',
+        projectName: ''
+      }
+    },
+    addCube () {
+      if (!this.selected_project) {
+        this.$message(this.$t('kylinLang.project.mustSelectProject'))
+        return
+      }
+      this.initCube()
+      this.createCubeVisible = true
+    },
+    createCube () {
+      this.$refs['addCubeForm'].validate((valid) => {
+        if (valid) {
+          this.btnLoading = true
+          this.checkCubeName(this.cubeMeta.cubeName).then((res) => {
+            this.btnLoading = false
+            handleSuccess(res, (data) => {
+              if (data && data.size > 0) {
+                console.log(data, 889911)
+                this.$message({
+                  message: this.$t('kylinLang.cube.sameCubeName'),
+                  type: 'warning'
+                })
+              } else {
+                this.createCubeVisible = false
+                this.$emit('addtabs', 'cube', this.cubeMeta.cubeName, 'cubeEdit', {
+                  project: localStorage.getItem('selected_project'),
+                  cubeName: this.cubeMeta.cubeName,
+                  modelName: this.cubeMeta.modelName,
+                  isEdit: false
+                })
+              }
+            })
+          }, (res) => {
+            this.btnLoading = false
+            handleError(res)
+          })
+        }
+      })
+    },
     reloadCubeList () {
       this.loadCubesList(this.currentPage - 1)
     },
@@ -568,7 +656,11 @@ export default {
   },
   created () {
     this.loadCubesList(0)
-    this.loadModels({pageSize: 10000, pageOffset: 0, projectName: this.selected_project || null})
+    this.loadModels({pageSize: 10000, pageOffset: 0, projectName: this.selected_project || null}).then((res) => {
+      handleSuccess(res, (data) => {
+        this.allModels = data.models
+      })
+    })
   },
   computed: {
     modelsList () {
@@ -591,6 +683,9 @@ export default {
   .cube-list {
     margin-left: 30px;
     margin-right: 30px;
+    .el-form-item__label{
+      float: none;
+    }
     .el-table {
       .is_draft {
         td {

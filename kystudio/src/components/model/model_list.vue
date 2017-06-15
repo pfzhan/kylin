@@ -1,6 +1,6 @@
 <template>
-	<div class="paddingbox modelist_box" style="margin-left: 30px; margin-right: 30px;">
-   <!-- <img src="../../assets/img/nocube.png" v-if="!(modelsList && modelsList.length)"> -->
+	<div class="paddingbox modelist_box" style="margin-left: 30px;min-height:600px; margin-right: 30px;">
+   <img src="../../assets/img/no_model.png" class="null_pic" v-if="!(modelsList && modelsList.length)">
     <el-button type="primary" class="ksd-mb-10" id="addModel" v-if="isAdmin" @click="addModel" style="font-weight: bold;border-radius: 20px;"><span class="add">+</span><span>{{$t('kylinLang.common.model')}}</span></el-button>
     <br/>
     <p class="ksd-right" v-if="modelsList&&modelsList.length"> <icon @click.native="changeGridModal('card')" name="newspaper-o" :class="{active: viewModal==='card'}"> </icon> <icon @click.native="changeGridModal('list')"  :class="{active: viewModal!=='card'}" name="reorder"></icon></p>

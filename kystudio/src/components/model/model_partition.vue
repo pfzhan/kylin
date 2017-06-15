@@ -133,8 +133,18 @@ export default {
       return this.modelInfo
     },
     dateColumns () {
-      this.columnsForDate[''] = []
-      return this.columnsForDate || []
+      for (let k in this.columnsForDate) {
+        if (k) {
+          this.columnsForDate[''] = []
+          return this.columnsForDate || []
+        }
+      }
+      this.$set(this.checkPartition, 'date_table', '')
+      this.$set(this.checkPartition, 'date_column', '')
+      this.$set(this.checkPartition, 'partition_date_format', '')
+      this.$set(this.checkPartition, 'time_table', null)
+      this.$set(this.checkPartition, 'time_column', null)
+      this.$set(this.checkPartition, 'partition_time_format', null)
     },
     timeColumns () {
       this.columnsForTime[''] = []

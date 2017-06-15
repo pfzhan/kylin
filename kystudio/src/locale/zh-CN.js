@@ -103,7 +103,8 @@ exports.default = {
     sameCubeName: '已经存在同名的Cube',
     inputCubeName: '请输入Cube名称',
     addCube: '添加Cube',
-    cubeHasJob: '此cube已有在执行的cube构建任务，因此当前操作不支持。'
+    cubeHasJob: '此cube已有在执行的cube构建任务，因此当前操作不支持。',
+    selectModelName: '请选择一个模型'
   },
   project: {
     mustSelectProject: '请先选择一个Project',

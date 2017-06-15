@@ -256,7 +256,7 @@ export default {
       this.loadTableExt(database + '.' + tableName).then((res) => {
         handleSuccess(res, (data) => {
           var lenOffeature = data.columns_stats && data.columns_stats.length || 0
-          var arr = [['列名'], ['基数'], ['最大长度值'], ['最大值'], ['最小长度值'], ['最小值'], ['空值个数']]
+          var arr = [[this.$t('kylinLang.dataSource.columns')], [this.$t('kylinLang.dataSource.cardinality')], [this.$t('kylinLang.dataSource.maxLengthVal')], [this.$t('kylinLang.dataSource.maximum')], [this.$t('kylinLang.dataSource.minLengthVal')], [this.$t('kylinLang.dataSource.minimal')], [this.$t('kylinLang.dataSource.nullCount')]]
           for (let i = 0; i < lenOffeature; i++) {
             arr[0].push(data.columns_stats[i].column_name)
             arr[1].push(data.columns_stats[i].cardinality)
@@ -269,7 +269,7 @@ export default {
           this.statistics = arr
           var sampleData = changeDataAxis(data.sample_rows, true)
           console.log(sampleData, 8899)
-          var basicColumn = [['列名']]
+          var basicColumn = [[this.$t('kylinLang.dataSource.columns')]]
           for (var i = 0, len = sampleData && sampleData.length || 0; i < len; i++) {
             for (var m = 0; m < sampleData[i].length - 1; m++) {
               basicColumn[0].push(data.columns_stats[m].column_name)

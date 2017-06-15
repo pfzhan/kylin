@@ -9,7 +9,7 @@
       <tree :treedata="hiveAssets"  :expandall='true'  maxLabelLen="20" :indent="4" :showfilter="false" :allowdrag="false" @nodeclick="clickTable"></tree>
       </div>
       <div class="table_content" >
-       <img class="null_pic" src="../../assets/img/notabledata.png" v-show="!tableData"/>
+       <img class="null_pic" src="../../assets/img/no_table.png" v-show="!tableData"/>
        <div class="extendInfo" v-show="tableData">
          <p><span style="font-size:16px;">{{$t('kylinLang.dataSource.tableName')}}</span><span :title="extendData.table_name" style="font-size:16px;color:#218fea"> {{extendData.table_name|omit(50, '...')}}</span></p>
        </div>
@@ -843,13 +843,7 @@ export default {
   .el-button--danger{
     border-color: #4cb050;
   }
-  .null_pic{
-    position: absolute;
-    left: 50%;
-    top: 200px;
-    margin-left: -50px;
-
-  }
+ 
   .normalTable:before{
       // content:"N";
       // background-color:yellow;
