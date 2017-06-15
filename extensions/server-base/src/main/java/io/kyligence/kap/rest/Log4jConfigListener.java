@@ -173,7 +173,7 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
         }
 
         if (parallel > 0) {
-            Executors.newScheduledThreadPool(1).scheduleAtFixedRate(new ParallelScaleChecker(parallel), 0, 10, TimeUnit.MINUTES);
+            Executors.newScheduledThreadPool(1).scheduleAtFixedRate(new ParallelScaleChecker(parallel), 5, 10, TimeUnit.MINUTES);
         }
     }
 
