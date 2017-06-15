@@ -88,7 +88,8 @@ exports.default = {
     samplingPercentage: 'Sampling percentage:',
     timeRange: 'Time range',
     samplingPercentageTips: 'If sampling ratio is high, check job would return accurate results <br/> with high resource engaged. If sampling ratio is low, check job would <br/>return less accurate results with resource saving.',
-    modelHasJob: 'This model has a running job of model check, thus the action is disabled.'
+    modelHasJob: 'This model has a running job of model check, thus the action is disabled.',
+    viewModeLimit: 'This action is disabled in view mode.'
   },
   cube: {
     cubeName: 'Cube Name',

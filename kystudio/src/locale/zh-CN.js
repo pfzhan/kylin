@@ -87,7 +87,8 @@ exports.default = {
     samplingPercentage: '采样范围：',
     timeRange: '时间范围',
     samplingPercentageTips: '采样比例较高时，检测准度较高，会需要较多资源。采样比例较低时，监测准度较低，比较节省资源。',
-    modelHasJob: '此模型已有在执行的模型监测任务，因此当前操作不支持。'
+    modelHasJob: '此模型已有在执行的模型监测任务，因此当前操作不支持。',
+    viewModeLimit: '预览模式下不能进行该操作'
   },
   cube: {
     cubeName: 'Cube 名称',

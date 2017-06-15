@@ -56,7 +56,7 @@
         <p class="filter_box"><el-input v-model="table.filterName" v-on:change="filterColumnByInput(table.filterName,table.guid)"  size="small" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input></p>
         <section data-scrollbar class="columns_box">
           <ul>
-            <li draggable @dragstart="dragColumns" @dragend="dragColumnsEnd"  v-for="column in table.columns" :key="column.guid"  class="column_li"  v-bind:class="{'active_filter':column.isActive}" :data-guid="table.guid" :data-column="column.name" ><span class="kind" :class="{dimension:column.btype=='D',measure:column.btype=='M'}" v-on:click="changeColumnBType(table.guid,column.name,column.btype, column.isComputed)">{{column.btype}}</span><span class="column" v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)"><common-tip trigger="click" :tips="column.name" placement="right-start" style="font-size:10px;">{{column.name|omit(14,'...')}}</common-tip></span><span class="column_type">{{column.datatype}}</span></style></li>
+            <li draggable  @dragstart="dragColumns" @dragend="dragColumnsEnd"  v-for="column in table.columns" :key="column.guid"  class="column_li"  v-bind:class="{'active_filter':column.isActive}" :data-guid="table.guid" :data-column="column.name" ><span class="kind" :class="{dimension:column.btype=='D',measure:column.btype=='M'}" v-on:click="changeColumnBType(table.guid,column.name,column.btype, column.isComputed)">{{column.btype}}</span><span class="column" @dragleave="dragColumnsLeave" @dragenter="dragColumnsEnter" v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)"><common-tip trigger="click" :tips="column.name" placement="right-start" style="font-size:10px;">{{column.name|omit(14,'...')}}</common-tip></span><span class="column_type">{{column.datatype}}</span></style></li>
           </ul>
         </section>
         <div class="more_tool"></div>
@@ -938,6 +938,7 @@ export default {
     },
     drag: function (target, dragName) {
       if (this.actionMode === 'view') {
+        this.$message(this.$t('kylinLang.model.viewModeLimit'))
         return
       }
       if (target) {
@@ -951,6 +952,7 @@ export default {
     },
     dragColumns (event) {
       if (this.actionMode === 'view') {
+        this.$message(this.$t('kylinLang.model.viewModeLimit'))
         return
       }
       // event.preventDefault()
@@ -1008,14 +1010,22 @@ export default {
         })
       })
     },
+    dragColumnsEnter (event) {
+      var target = event.srcElement ? event.srcElement : event.target
+      $(target).addClass('column_in')
+    },
+    dragColumnsLeave (event) {
+      var target = event.srcElement ? event.srcElement : event.target
+      $(target).removeClass('column_in')
+    },
     dropColumn: function (event) {
-      // e.preventDefault()
+      var target = event.srcElement ? event.srcElement : event.target
+      $(target).removeClass('column_in')
       if (this.dragType !== 'createLinks') {
         return
       }
-      var target = event.srcElement ? event.srcElement : event.target
       var dataBox = $(target).parents('.table_box')
-      var columnBox = $(target).parents('.column_li')
+      var columnBox = $(target).hasClass('column_li') ? $(target) : $(target).parents('.column_li')
       var targetId = dataBox.attr('id')
       var columnName = columnBox.attr('data-column')
       if (targetId) {
@@ -2277,6 +2287,9 @@ export default {
         color:#fff;
         font-size: 12px;
         cursor: pointer;
+       }
+       .column_in {
+        background-color: #000;
        }
        &.rootfact{
           .table_name{
