@@ -880,16 +880,28 @@ export default {
 		position: relative;
 		top:-15px;
     background: @grey-color;
-    label .el-radio-button__inner{
-      color: @fff;
-      border-color: @base-color;
-    }
-    label:nth-child(1) .el-radio-button__inner{
-      background: @base-color;
-    }
-    label:nth-child(2) .el-radio-button__inner{
-      background: @grey-color;
-    }
+    // label .el-radio-button__inner{
+    //   color: @fff;
+    //   border-color: @base-color;
+    // }
+    // label:nth-child(1) .el-radio-button__inner{
+    //   background: @base-color;
+    // }
+    // label:nth-child(2) .el-radio-button__inner{
+    //   background: @grey-color;
+    // }
+    .el-radio-button{
+      .el-radio-button__inner{
+        border-color: #7881aa;
+      }
+      .el-radio-button{
+        &.is-active{
+          .el-radio-button__inner{
+            border: 1px solid @base-color;
+          }
+        }
+      } 
+    } 
     .ksd-ml-30{
       margin-left: 45px!important;
       margin-top: 30px!important;

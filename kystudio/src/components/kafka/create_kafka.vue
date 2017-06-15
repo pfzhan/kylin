@@ -1,4 +1,5 @@
 <template>
+  <div id="create-kafka">
     <el-form :model='kafkaMeta' label-position='right' :rules='rules'  label-width='180px' ref='kafkaForm'>
         <span style='line-height: 36px;'>{{$t('cluster')}}</span>
         <el-table class='table_margin'
@@ -149,6 +150,7 @@
           </div>
       </el-card>
     </el-form>
+  </div>
 </template>
 <script>
 import { mapActions } from 'vuex'
@@ -407,7 +409,7 @@ export default {
   }
 }
 </script>
-<style scope='' lang="less">
+<style lang="less">
   @import '../../less/config.less';
  .table_margin {
    margin-top: 10px;
@@ -449,5 +451,22 @@ export default {
   background: transparent;
   color: @fff;
   border: 1px solid @base-color;
+}
+#create-kafka{
+  .el-input{
+    padding: 0;
+  }
+  .el-table__row{
+    background: @input-bg;
+  }
+  .el-table__row:hover td{
+    background: @input-bg!important;
+  }
+  .el-input{
+    background: @input-bg;
+  }
+  .el-input__inner{
+    border-color: #7881aa;
+  }
 }
 </style>

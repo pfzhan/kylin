@@ -33,7 +33,7 @@
       align="center"
       width="110">
       <template scope="scope">
-          <span v-if="modelDesc.columnsDetail[scope.row.function.parameter.value]">
+        <span v-if="modelDesc.columnsDetail[scope.row.function.parameter.value]">
           {{modelDesc.columnsDetail[scope.row.function.parameter.value].datatype}}
         </span>
       </template>

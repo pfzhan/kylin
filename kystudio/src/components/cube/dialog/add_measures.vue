@@ -66,9 +66,6 @@
         </el-option>
       </el-select>     
     </el-form-item>     
-
-
-
     <el-form-item :label="getReturnTypeLab" >
       <el-tag v-if="measure.function.expression !== 'TOP_N' && measure.function.expression !== 'COUNT_DISTINCT' && measure.function.expression !== 'EXTENDED_COLUMN' && (measure.function.expression !== 'SUM' || measure.function.returntype.indexOf('decimal') > 0)">
         {{getReturnType}}
@@ -93,11 +90,11 @@
       </el-input>
       <el-row v-if="measure.function.expression === 'SUM'" >
         <el-row v-if="sumMeasure.type === 'decimal'" id="decimal">
-<!--           <el-col :span="4" >decimal(</el-col>
+          <el-col :span="4" >decimal(</el-col>
           <el-col :span="2"><el-input v-model="sumMeasure.value.precision" ></el-input></el-col>
           <el-col :span="1">,</el-col>
           <el-col :span="2"><el-input v-model="sumMeasure.value.decimalPlace" ></el-input></el-col>
-          <el-col :span="1">)</el-col> -->
+          <el-col :span="1">)</el-col>
           <span class="decimal-left">decimal(</span>
           <el-input v-model="sumMeasure.value.precision" class="precision"></el-input>
           <span class="douhao">,</span>
@@ -125,7 +122,7 @@
       </el-select>
     </el-form-item> 
 
-    <el-table v-if="measure.function.expression === 'TOP_N' || (measure.function.expression === 'COUNT_DISTINCT' && measure.function.returntype !== 'bitmap')"
+    <el-table id="table-measures" v-if="measure.function.expression === 'TOP_N' || (measure.function.expression === 'COUNT_DISTINCT' && measure.function.returntype !== 'bitmap')"
       style="width: 100%"
       :data="convertedColumns">
       <el-table-column
@@ -176,13 +173,13 @@
       <el-table-column
         width="50">
         <template scope="scope">
-          <el-button type="primary" icon="minus" size="mini" @click="removeProperty(scope.$index)"></el-button>
+          <el-button type="delete" icon="minus" size="mini" @click="removeProperty(scope.$index)"></el-button>
         </template>
       </el-table-column>
     </el-table>
     <el-row v-if="measure.function.expression === 'TOP_N' || (measure.function.expression === 'COUNT_DISTINCT' && measure.function.returntype !== 'bitmap') ">
      <el-col :span="24" >
-    <el-button type="primary" icon="plus" size="mini" @click="addNewProperty">
+    <el-button type="primary" icon="plus" size="mini" @click="addNewProperty" style="margin-top: 10px;">
       {{$t('newColumn')}}
     </el-button>
     </el-col>
@@ -618,13 +615,37 @@ export default {
   .input_width{
     width: 90%!important;
   }
+  #table-measures{
+    .el-table__row{
+      background: @input-bg;
+    }
+    .el-table__row:hover td{
+      background: @input-bg!important;
+    }
+    .el-input{
+      padding-bottom: 0;
+      padding-top: 0;
+    }
+    .el-input__inner{
+      background: @input-bg;
+    }
+    .el-icon-caret-top{
+      top: 10px;
+    }
+    .el-tag{
+      top: 0!important;
+      background: transparent;
+    }
+    .el-button--mini{
+      background: #ff4949;
+    }
+  }
   #add-measure{
     .el-input{
       padding-bottom: 0;
     }
     .el-form-item__label{
       line-height: 36px;
-
     }
     .el-form-item{
       margin-bottom: 0;
@@ -637,6 +658,9 @@ export default {
     .el-tag{
       position: relative;
       top: 12px;
+    }
+    .el-dialog__body .el-input{
+      padding: 0!important;
     }
   }
   #decimal{
