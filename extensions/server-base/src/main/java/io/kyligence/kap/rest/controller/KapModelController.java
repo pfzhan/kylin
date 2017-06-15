@@ -143,7 +143,7 @@ public class KapModelController extends BasicController {
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
             throws IOException, JobException {
 
-        List<DataModelDesc> models = modelService.listAllModels(modelName, projectName);
+        List<DataModelDesc> models = modelService.listAllModels(modelName, projectName, true);
 
         int offset = pageOffset * pageSize;
         int limit = pageSize;
