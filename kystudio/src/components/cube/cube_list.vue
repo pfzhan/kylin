@@ -10,14 +10,14 @@
       </el-option>
     </el-select>
   </el-row>
-  <el-table
+  <el-table id="cube-list-table"
     :data="cubesList"
     :default-expand-all="false"
     :row-class-name="showRowClass"
     border
-    style="width: 100%!important">
+    style="width: 100%!important;">
     <el-table-column type="expand" width="30">
-      <template scope="props" >
+      <template scope="props">
         <el-tabs activeName="first" type="border-card" @tab-click="changeTab">
           <el-tab-pane label="Grid" name="first">
             <cube_desc_view :cube="props.row" :index="props.$index"></cube_desc_view>
@@ -646,6 +646,11 @@ export default {
   .el-tag--gray{
     // background: yellow;
     color: #000!important;
+  }
+  #cube-list-table{
+    .el-tabs--border-card{
+      background: @tableBC;
+    }
   }
 </style>
 

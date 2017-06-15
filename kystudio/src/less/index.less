@@ -948,7 +948,33 @@ tr.current-row > td{
 // 单选按钮 (样式待定)
 .el-radio-group{
   .el-radio-button__inner{
+    background: transparent;
+    color: @fff;
+  }
+  .el-radio-button{
+    &.is-disabled{
+      .el-radio-button__inner{
+        background: transparent;
+      }
+    }
+  }
+}
 
+.el-tag{
+  &.el-tag--primary{
+    background-color: #0b89bb;
+    color: @fff;
+  }
+  &.el-tag--gray{
+    background-color: #515465;
+    color: @fff!important;
+  }
+}
+// checkbox
+.el-checkbox{
+  .el-checkbox__inner{
+    background: transparent;
+    border: 1px solid #9095ab!important;
   }
 }
 

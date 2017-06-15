@@ -1,13 +1,13 @@
 <template>
 <div class="dimensionBox">
   <el-row>
-    <el-col :span="18" class="border_right">  
+    <el-col :span="18" style="padding-right: 30px;border-right: 1px solid #393e53;padding-bottom: 30px;margin-top: -15px;padding-top: 15px;">  
       <el-row>
         <el-col :span="24">
           <el-button type="primary"  @click.native="collectSql" :disabled="isReadyCube" >{{$t('collectsqlPatterns')}}</el-button>
         </el-col>
       </el-row>
-      <div class="line-primary" style="margin-left: -30px;"></div>
+      <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div>
       <el-row class="row_padding border_bottom" style="border: none;">
         <el-row class="row_padding">
           <el-col :span="24" style="font-size: 14px;">{{$t('dimensions')}}</el-col>
@@ -30,7 +30,7 @@
           </el-card>
         </el-col>
         </el-row>
-        <div class="line-primary" style="margin-left: -30px;"></div>
+        <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div>
         <div style="font-size: 14px;">{{$t('dimensionOptimizations')}}</div>
         <div style="margin-top: 20px;">
           <el-button type="blue" icon="menu" @click.native="cubeSuggestions" :disabled="isReadyCube">{{$t('cubeSuggestion')}}</el-button>
@@ -97,7 +97,7 @@
                         <area_label :labels="group.includes"  :disabled="isReadyCube" :refreshInfo="{gindex: group_index, hindex: hierarchy_index, key: 'hierarchy_dims'}" @refreshData="refreshHierarchyData"  :selectedlabels="hierarchy_dims" @change="refreshAggragation(group_index)" @checklabel="showDetail"> 
                         </area_label>
                       </el-col>  
-                      <el-col :span="1">
+                      <el-col :span="1" style="margin-top: 5px;">
                         <el-button type="danger" icon="minus" size="mini" @click="removeHierarchyDims(hierarchy_index, group.select_rule.  hierarchy_dims)">
                       </el-button>
                     </el-col>
@@ -106,7 +106,7 @@
               </el-row>
               <el-row>
                 <el-col :span="5">
-                  <el-button icon="plus" @click="addHierarchyDims( group.select_rule.hierarchy_dims)">
+                  <el-button type="blue" icon="plus" @click="addHierarchyDims( group.select_rule.hierarchy_dims)" style="margin-top: 8px;">
                   {{$t('newHierarchy')}}
                   </el-button>                
                 </el-col>
@@ -130,13 +130,13 @@
                </el-row> 
                <el-row style="padding-bottom: 20px;">
                  <el-col :span="5">
-                  <el-button icon="plus" :disabled="isReadyCube"  @click="addJointDims( group.select_rule.joint_dims)">
+                  <el-button type="blue" icon="plus" :disabled="isReadyCube"  @click="addJointDims( group.select_rule.joint_dims)">
                   {{$t('newJoint')}}
                   </el-button>                 
                 </el-col>                    
               </el-row>
             </el-col>
-            <el-col :span="1">            
+            <el-col :span="1" class="close-dimentions">            
               <el-button type="danger" :disabled="isReadyCube"  icon="minus" size="mini" @click="removeAggGroup(group_index)">
               </el-button>
             </el-col>
@@ -144,14 +144,16 @@
         </el-card>  
       </el-col>
     </el-row>
-    <el-row class="row_padding border_bottom" >
+
+    <el-row class="row_padding">
       <el-col :span="24">
-        <el-button icon="plus" @click="addAggGroup" :disabled="isReadyCube"  class="table_margin">
+        <el-button type="blue" icon="plus" @click="addAggGroup" :disabled="isReadyCube"  class="table_margin">
         {{$t('addAggregationGroups')}}
         </el-button>
       </el-col>
     </el-row>
-      <el-row class="row_padding" style="border-left: 1px solid #292b38;padding-left: 10px;">
+    <div class="line-primary" style="margin-left: -30px; margin-right: -30px;margin-top: -5px;"></div>
+      <el-row class="row_padding">
         <el-col :span="24">Rowkeys</el-col>
       </el-row>
       <div class="ksd-common-table">
@@ -199,7 +201,7 @@
         </el-row>
         </div>
     </el-col>
-    <el-col :span="6">
+    <el-col :span="6" class="dimension-right">
        <el-table
           :data="featureData"
           border
@@ -234,6 +236,7 @@
         </el-table>
     </el-col>
   </el-row> 
+  <div class="line" style="margin: 0px -30px 0 -30px;"></div>
     <el-dialog :title="$t('addDimensions')" v-model="addDimensionsFormVisible" top="5%" size="large" v-if="addDimensionsFormVisible">
       <add_dimensions  ref="addDimensionsForm" v-on:validSuccess="addDimensionsValidSuccess" :modelDesc="modelDesc" :cubeDimensions="cubeDesc.dimensions"></add_dimensions>
       <span slot="footer" class="dialog-footer">
@@ -248,7 +251,6 @@
         <el-button type="primary" :loading="sqlBtnLoading" @click="collectSqlToServer">{{$t('yes')}}</el-button>
       </span>     
     </el-dialog>  
-
   </div>
 </template>
 <script>
@@ -776,5 +778,15 @@ export default {
     .el-input__inner{
       border: none;
     }
+  }
+  .dimension-right{
+    padding-left: 25px;
+    margin-top: -15px;
+    padding-top: 15px;
+  }
+  .close-dimentions{
+    position: absolute;
+    right: 0px;
+    top: 50px;
   }
 </style>
