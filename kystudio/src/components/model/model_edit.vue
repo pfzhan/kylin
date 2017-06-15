@@ -266,7 +266,6 @@ export default {
           {validator: this.checkName, trigger: 'blur'}
         ]
       },
-      computedColumnDataType: ['any', 'char', 'varchar', 'string', 'boolean', 'byte', 'binary', 'int', 'short', 'long', 'integer', 'tinyint', 'smallint', 'bigint', 'int4', 'long8', 'float', 'real', 'double', 'decimal', 'numeric', 'date', 'time', 'datetime', 'timestamp', '_literal_type', '_derived_type', 'hllc', 'bitmap', 'topn', 'raw', 'extendedcolumn', 'percentile'],
       cubeMeta: {
         cubeName: '',
         modelName: '',
@@ -376,8 +375,6 @@ export default {
       switchWidth: 100,
       dialogVisible: false,
       computedColumnFormVisible: false,
-      // currentTableComputedColumns: [],
-      deleteLinkTips: '你确认要删除该连接吗？',
       selectColumn: {},
       plumbInstance: null,
       plumbInstanceForShowLink: null,
@@ -469,7 +466,7 @@ export default {
       if (this.draftBtnLoading) {
         this.$message({
           type: 'warning',
-          message: '系统正在响应Draft的保存请求，请稍后!'
+          message: this.$t('kylinLang.common.saveDraft')
         })
         return
       }
@@ -881,11 +878,18 @@ export default {
       var projectDataSource = this.$store.state.datasource.dataSource[project] || []
       for (var i = 0; i < projectDataSource.length; i++) {
         if (projectDataSource[i].database === database && projectDataSource[i].name === tableName) {
+          var tableList = this.getTableList('source_type', 0)
+          var streamingTableList = this.getTableList('source_type', 1)
+          if (tableList.length && projectDataSource[i].source_type === 1 || streamingTableList.length && projectDataSource[i].source_type === 0) {
+            this.$message(this.$t('kylinLang.common.streamingConnectHiveError'))
+            return
+          }
           obj = objectClone(projectDataSource[i])
           obj.guid = sampleGuid()
           obj.pos = {x: 300, y: 400}
           obj.alias = obj.alias || obj.name
           obj.kind = 'LOOKUP'
+          obj.sourceType = projectDataSource[i].source_type
           Object.assign(obj, other)
           break
         }
@@ -1305,6 +1309,7 @@ export default {
       this.addSelectPoints(p1, this.plumbInstance, joinType, '', '', true)
       this.addSelectPoints(p2, this.plumbInstance, joinType, '', '', true)
       this.connect(p1, p2, this.plumbInstance, {})
+      this.refreshPlumbObj()
     },
     getConnectsCountByGuid (p1, p2) {
       var obj = {}

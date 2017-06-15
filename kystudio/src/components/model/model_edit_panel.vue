@@ -255,29 +255,33 @@ export default {
     loadTableStatics (database, tableName) {
       this.loadTableExt(database + '.' + tableName).then((res) => {
         handleSuccess(res, (data) => {
+          var arr = []
           var lenOffeature = data.columns_stats && data.columns_stats.length || 0
-          var arr = [[this.$t('kylinLang.dataSource.columns')], [this.$t('kylinLang.dataSource.cardinality')], [this.$t('kylinLang.dataSource.maxLengthVal')], [this.$t('kylinLang.dataSource.maximum')], [this.$t('kylinLang.dataSource.minLengthVal')], [this.$t('kylinLang.dataSource.minimal')], [this.$t('kylinLang.dataSource.nullCount')]]
-          for (let i = 0; i < lenOffeature; i++) {
-            arr[0].push(data.columns_stats[i].column_name)
-            arr[1].push(data.columns_stats[i].cardinality)
-            arr[2].push(data.columns_stats[i].max_length_value)
-            arr[3].push(data.columns_stats[i].max_value)
-            arr[4].push(data.columns_stats[i].min_length_value)
-            arr[5].push(data.columns_stats[i].min_value)
-            arr[6].push(data.columns_stats[i].null_count)
-          }
-          this.statistics = arr
-          var sampleData = changeDataAxis(data.sample_rows, true)
-          console.log(sampleData, 8899)
-          var basicColumn = [[this.$t('kylinLang.dataSource.columns')]]
-          for (var i = 0, len = sampleData && sampleData.length || 0; i < len; i++) {
-            for (var m = 0; m < sampleData[i].length - 1; m++) {
-              basicColumn[0].push(data.columns_stats[m].column_name)
+          if (lenOffeature) {
+            arr = [[this.$t('kylinLang.dataSource.columns')], [this.$t('kylinLang.dataSource.cardinality')], [this.$t('kylinLang.dataSource.maxLengthVal')], [this.$t('kylinLang.dataSource.maximum')], [this.$t('kylinLang.dataSource.minLengthVal')], [this.$t('kylinLang.dataSource.minimal')], [this.$t('kylinLang.dataSource.nullCount')]]
+            for (let i = 0; i < lenOffeature; i++) {
+              arr[0].push(data.columns_stats[i].column_name)
+              arr[1].push(data.columns_stats[i].cardinality)
+              arr[2].push(data.columns_stats[i].max_length_value)
+              arr[3].push(data.columns_stats[i].max_value)
+              arr[4].push(data.columns_stats[i].min_length_value)
+              arr[5].push(data.columns_stats[i].min_value)
+              arr[6].push(data.columns_stats[i].null_count)
             }
-            break
+            this.statistics = arr
           }
-          this.modelStatics = basicColumn.concat(sampleData)
-          console.log(this.modelStatics, 99900)
+          var sampleData = changeDataAxis(data.sample_rows, true)
+          var sampleDataLen = sampleData && sampleData.length || 0
+          if (sampleDataLen) {
+            var basicColumn = [[this.$t('kylinLang.dataSource.columns')]]
+            for (var i = 0; i < sampleDataLen; i++) {
+              for (var m = 0; m < sampleData[i].length - 1; m++) {
+                basicColumn[0].push(data.columns_stats[m].column_name)
+              }
+              break
+            }
+            this.modelStatics = basicColumn.concat(sampleData)
+          }
         })
       })
     },

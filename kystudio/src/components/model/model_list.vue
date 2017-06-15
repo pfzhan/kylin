@@ -20,7 +20,6 @@
               <el-dropdown-item command="drop" >{{$t('kylinLang.common.drop')}}</el-dropdown-item>
 					  </el-dropdown-menu>
 					</el-dropdown>
-
 		    </p>
 		      <div style="padding: 20px;">
 		        <h2 :title="o.name" >
@@ -619,6 +618,12 @@ export default {
       })
     },
     stats () {
+      if (+this.modelStaticsRange === 0) {
+        this.$message({
+          message: this.$t('kylinLang.common.pleaseSelect')
+        })
+        return
+      }
       this.btnLoading = true
       this.statsModel({
         project: this.currentModelData.project,

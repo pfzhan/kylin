@@ -102,6 +102,9 @@ export default {
         this.$set(this.checkPartition, 'time_format', null)
       }
       this.needSetTime = true
+      this.checkLockFormat()
+    },
+    checkLockFormat () {
       for (var i in this.columnsForDate) {
         if (i === this.checkPartition.date_table) {
           for (var s = 0; s < this.columnsForDate[i].length; s++) {
@@ -181,6 +184,7 @@ export default {
   },
   mounted () {
     this.hasSeparate = !!(this.checkPartition && this.checkPartition.time_column)
+    this.checkLockFormat()
   },
   locales: {
     'en': {partitionDateColumn: 'Partition Date Column', dateFormat: 'Date Format', hasSeparateLabel: 'Has a separate "time of the day" column?', partitionTimeColumn: 'Partition Time Column', timeFormat: 'Time Format'},

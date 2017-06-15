@@ -71,7 +71,8 @@ exports.default = {
     help: '帮助',
     username: '用户账号',
     password: '密码',
-    saveDraft: '系统正在响应保存草稿的请求，请稍后!'
+    saveDraft: '系统正在响应保存草稿的请求，请稍后!',
+    streamingConnectHiveError: 'hive表不允许和streaming表关联'
   },
   model: {
     modelName: '模型名称：',
