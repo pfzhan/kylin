@@ -1,8 +1,20 @@
 <template>
-  <el-form :model="measure" id="add-measure" label-position="right" :rules="rules"  label-width="240px" ref="measureForm">
+  <el-form :model="measure" id="add-measure" label-position="right" :rules="rules" label-width="20%" ref="measureForm">
+
+<!--     <el-form-item label="活动名称" prop="name">
+      <el-input v-model="ruleForm.name"></el-input>
+    </el-form-item>
+    <el-form-item label="活动区域" prop="region">
+      <el-select v-model="ruleForm.region" placeholder="请选择活动区域">
+        <el-option label="区域一" value="shanghai"></el-option>
+        <el-option label="区域二" value="beijing"></el-option>
+      </el-select>
+    </el-form-item> -->
 
     <el-form-item :label="$t('name')" prop="name">
-      <el-input  v-model="measure.name" class="input_width"></el-input>
+      <div class="input_width">
+        <el-input v-model="measure.name"></el-input>
+      </div>
     </el-form-item>
 
     <el-form-item :label="$t('expression')">
@@ -27,7 +39,9 @@
       </el-select>     
       <el-tag v-else>{{getParameterType}}</el-tag> 
     </el-form-item>
-
+    <el-form-item>
+      <el-checkbox v-model="showDim" v-if="measure.function.parameter.type !== 'constant'">{{$t('includeDimensions')}}</el-checkbox>
+    </el-form-item>
     <el-form-item :label="getValueLab" >
       <el-select v-model="measure.function.parameter.value" v-if="measure.function.parameter.type !== 'constant'" class="input_width" @change="changeParamValue">
         <el-option
@@ -41,10 +55,6 @@
       </el-select>
       <el-tag v-else>{{getParameterValue}}</el-tag>   
     </el-form-item>
-    <el-form-item>
-      <el-checkbox v-model="showDim" v-if="measure.function.parameter.type !== 'constant'">{{$t('includeDimensions')}}</el-checkbox>
-    </el-form-item>
-
 
     <el-form-item :label="$t('extendedColumn')" v-if="measure.function.expression === 'EXTENDED_COLUMN'">
       <el-select v-model="measure.function.parameter.value" >
@@ -606,7 +616,7 @@ export default {
 <style lang="less">
   @import '../../../less/config.less';
   .input_width{
-    width: 80%
+    width: 90%!important;
   }
   #add-measure{
     .el-input{
@@ -626,7 +636,7 @@ export default {
     }
     .el-tag{
       position: relative;
-      top: 8px;
+      top: 12px;
     }
   }
   #decimal{

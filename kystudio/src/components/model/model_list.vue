@@ -914,15 +914,11 @@ export default {
   #addModel > span{
     span:first-child{
       margin-right: 5px;
-      color: @base-color;
       font-weight: normal;
     }
   }
   #addModel:hover{
     background: @base-color;
-    .add{
-      color: @fff;
-    }
   }
 }
 </style>

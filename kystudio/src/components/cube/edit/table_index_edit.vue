@@ -14,7 +14,7 @@
       align="center"
       width="80">
       <template scope="scope">
-        <el-tag>{{scope.$index + 1 + 15*(currentPage-1)}}</el-tag>
+        <el-tag style="background: transparent;">{{scope.$index + 1 + 15*(currentPage-1)}}</el-tag>
       </template>
      </el-table-column>
      <el-table-column

@@ -419,9 +419,6 @@ li {list-style-type:none;}
   .el-dialog__title {
     color: @fff;
   }
-  .el-form{
-    padding-top: 20px;
-  }
   .el-form-item__label{
     color: @fff;
   }
@@ -791,10 +788,6 @@ li {list-style-type:none;}
   }
 }
 .el-dialog__body{
-  p{
-    padding-top: 20px;
-  }
-  padding: 0!important;
   .el-input{
     display: block;
     width: auto;
@@ -803,11 +796,6 @@ li {list-style-type:none;}
     .el-input__inner{
       width: 100%;
     }
-  }
-  .el-row{
-    border-top: 1px solid @tableBC;
-    margin-left: -20px;
-    margin-right: -20px;
   }
   .dialog_tree_box{
     border-right: 1px solid @tableBC;
@@ -824,16 +812,12 @@ li {list-style-type:none;}
     left: 18px;
   }
 }
-.el-dialog__body{
-  padding: 0 20px 0px 20px!important;
-}
 .el-dialog--large{
   background: @tableBC!important;
   .el-table__header{
     background: @tableBC!important;
   }
   .el-dialog__body{
-    padding-top: 20px!important;
     .el-input{
       background: @tableBC;
     }
@@ -857,9 +841,6 @@ li {list-style-type:none;}
 .kapApp .el-tabs--border-card > .el-tabs__header .el-tabs__item.is-active{
   background: @grey-color;
 }
-.el-form-item__label{
-  float: none!important;
-}
 .ksd-border-tab .el-tabs--border-card > .el-tabs__header .el-tabs__item.is-active{
   border: 0;
 }
@@ -881,9 +862,6 @@ li {list-style-type:none;}
 }
 .kapApp .cell .el-dropdown .el-button{
   border: 0;
-}
-.el-checkbox__inner{
-  background: rgba(255,255,255,0.4)!important;
 }
 .timeline-header p{
   color: #40a9ff;
@@ -954,6 +932,23 @@ tr.current-row > td{
     background: @grey-color;
     border-top-right-radius: 0;
     border-top-left-radius: 0;
+  }
+  &.el-button--success{
+    border-color: #4cb050;
+  }
+  &.el-button--delete{
+    background-color: #ff4949;
+    border-color: #ff4949;
+  }
+  &.el-button--delete:hover{
+    background-color: #f00;
+    border-color: #f00;
+  }
+}
+// 单选按钮 (样式待定)
+.el-radio-group{
+  .el-radio-button__inner{
+
   }
 }
 

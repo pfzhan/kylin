@@ -1,6 +1,6 @@
 <template>
 <div class="add_dimensions">  
-  <div v-for="(table, index) in factTableColumns"  >
+  <div v-for="(table, index) in factTableColumns">
     <el-tag>{{table.tableName}} </el-tag>
     <el-tag>FactTable </el-tag>    
     <el-table  
@@ -40,7 +40,7 @@
     </el-table>
   </div> 
 
-  <div v-for="(table, index) in lookupTableColumns">
+  <div v-for="(table, index) in lookupTableColumns" style="margin-top: 20px;">
     <el-tag>{{table.tableName}} </el-tag>
     <el-tag>LookupTable </el-tag>       
     <el-table  

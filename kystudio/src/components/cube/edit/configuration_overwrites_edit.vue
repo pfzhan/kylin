@@ -15,12 +15,12 @@
       <el-input  v-model="property.value" :disabled="!property.checked" @change="changeProperty(index)"></el-input>
     </el-col>
     <el-col :span="1">
-      <el-button type="primary" icon="minus" size="mini" v-if="!property.isDefault" @click.native="removeProperty(index)"></el-button>
+      <el-button type="delete" icon="minus" size="mini" v-if="!property.isDefault" @click.native="removeProperty(index)"></el-button>
     </el-col>        
   </el-row>
   <el-row>
     <el-col>
-      <el-button type="primary" size="small" icon="plus" @click.native="addNewProperty">{{$t('addConfiguration')}}</el-button>
+      <el-button style="margin-top: 10px;" type="default" size="small" icon="plus" @click.native="addNewProperty">{{$t('addConfiguration')}}</el-button>
     </el-col>
   </el-row>
 </div>
@@ -101,11 +101,6 @@ export default {
   #overwrites{
     .el-checkbox__inner{
       margin-top: 10px;
-    }
-    .el-button--primary{
-      background: transparent;
-      margin-top: 10px;
-      border-color: @grey-color;
     }
     .el-button--primary:hover{
       border-color: @base-color;

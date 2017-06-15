@@ -823,9 +823,6 @@ export default {
     *{
       font-size: 12px;
     }
-    .el-form-item__label{
-      float: left!important;
-    }
     .el-input__inner{
       border-color: @grey-color;
     }
