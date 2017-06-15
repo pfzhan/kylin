@@ -208,7 +208,8 @@ public class CollectModelStatsJob extends CubingJob {
             return null;
         }
         ExecutableState state = exeMgt.getOutput(jobID).getState();
-        if (ExecutableState.RUNNING == state || ExecutableState.READY == state || ExecutableState.STOPPED == state) {
+        if (ExecutableState.RUNNING == state || ExecutableState.READY == state || ExecutableState.STOPPED == state
+                || ExecutableState.ERROR == state) {
             return jobID;
         }
 

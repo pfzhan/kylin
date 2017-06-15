@@ -70,24 +70,29 @@ public class TableExtController extends BasicController {
     @Qualifier("tableService")
     private TableService tableService;
 
-    @RequestMapping(value = "/{database}.{tableName}", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{database}.{tableName}", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getTableExtDesc(@PathVariable String database, @PathVariable String tableName) throws IOException {
+    public EnvelopeResponse getTableExtDesc(@PathVariable String database, @PathVariable String tableName)
+            throws IOException {
 
         TableExtDesc tableExtDesc = tableExtService.getTableExt(database + "." + tableName);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, tableExtDesc, "");
     }
 
-    @RequestMapping(value = "/{project}/{tableName}/sample_job", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{project}/{tableName}/sample_job", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse sample(@PathVariable String project, @PathVariable String tableName, @RequestBody HiveTableExtRequest request) throws IOException {
+    public EnvelopeResponse sample(@PathVariable String project, @PathVariable String tableName,
+            @RequestBody HiveTableExtRequest request) throws IOException {
 
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
         String jobID = tableExtService.extractTableExt(project, submitter, request.getFrequency(), tableName);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobID, "");
     }
 
-    @RequestMapping(value = "/{tableName}/job", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{tableName}/job", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse listJob(@PathVariable String tableName) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
@@ -107,13 +112,24 @@ public class TableExtController extends BasicController {
         throw new BadRequestException(msg.getJOB_INSTANCE_NOT_FOUND());
     }
 
-    @RequestMapping(value = "/{tables}/{project}", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{tables}/{project}", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse loadHiveTable(@RequestBody ExtTableRequest request) throws Exception {
 
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
         boolean isCalculate = request.isNeedProfile();
-        Map<String, String[]> loadResult = tableService.loadHiveTables(request.getTables(), request.getProject(), false);
+
+        // Before reloading hive tables, it should clean up the old table_ext and cancel the stats job if it is running
+        for (String s : request.getTables()) {
+            String jobID;
+            if ((jobID = new HiveTableExtSampleJob().findRunningJob(tableExtService.getConfig(), s)) != null) {
+                jobService.cancelJob(jobService.getJobInstance(jobID));
+            }
+            tableExtService.removeTableExt(s);
+        }
+        Map<String, String[]> loadResult = tableService.loadHiveTables(request.getTables(), request.getProject(),
+                false);
         if (isCalculate) {
 
             String[] loadedTables = loadResult.get("result.loaded");
@@ -123,9 +139,11 @@ public class TableExtController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, loadResult, "");
     }
 
-    @RequestMapping(value = "/{tables}/{project}", method = { RequestMethod.DELETE }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{tables}/{project}", method = { RequestMethod.DELETE }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse unLoadHiveTables(@PathVariable String tables, @PathVariable String project) throws Exception {
+    public EnvelopeResponse unLoadHiveTables(@PathVariable String tables, @PathVariable String project)
+            throws Exception {
         String jobID;
         for (String tableName : tables.split(",")) {
             if ((jobID = new HiveTableExtSampleJob().findRunningJob(tableExtService.getConfig(), tableName)) != null) {
