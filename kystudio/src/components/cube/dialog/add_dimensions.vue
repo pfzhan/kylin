@@ -222,9 +222,22 @@ export default {
 <style lang="less">
   @import '../../../less/config.less';
   .add_dimensions{
+    max-height: 500px;
+    overflow: auto;
     .el-table td, .el-table th {
       height: auto;
     }
+    .el-table__row{
+      .el-input{
+        padding: 10px 0 10px 0;
+      }
+    }
+    .el-tag{
+      background: transparent;
+      border: none;
+    }
+    .el-table{
+      margin-top: 10px;
+    }
   }
-  
 </style>

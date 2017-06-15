@@ -4,7 +4,9 @@
 			<a href="http://kyligence.io/" target="_blank">
 				<img src="../../assets/img/test.png" alt="" />
 			</a>
-			<el-row><label for="">{{$t('version')}}</label>{{license(serverAboutKap && serverAboutKap['kap.version'])}}</el-row>
+			<el-row><label for="">{{$t('version')}}</label>{{license(serverAboutKap && serverAboutKap['kap.version'])}}
+			</el-row>
+			
 					<el-row><label for="">{{$t('validPeriod')}}</label>{{license(serverAboutKap && serverAboutKap['kap.dates'])}}</el-row>
 		<el-row><label for="">{{$t('licenseStatement')}}</label>{{license(serverAboutKap&&serverAboutKap['kap.license.statement'])}}</el-row>		
 		</div>

@@ -27,7 +27,7 @@
 
 
 <a :href="url" target="_blank"></a>
-<el-dialog v-model="aboutKapVisible" :title="$t('aboutKap')">
+<el-dialog v-model="aboutKapVisible" :title="$t('aboutKap')" id="about-kap">
   <about_kap :about="serverAbout">
   </about_kap>
 </el-dialog>
@@ -280,6 +280,28 @@
     }
     .el-icon-caret-bottom{
       font-size: 12px;
+    }
+  }
+  #about-kap{
+    .el-dialog__header{
+      height: 55px;
+      line-height: 55px;
+    }
+    .el-icon-close{
+      margin-top: 15px;
+    }
+    .header{
+      margin-top: 20px;
+      border-color: #424860;
+    }
+    .container{
+      border-color: #424860;
+    }
+    .buttonLink{
+      width: 300px!important;
+      display: block;
+      margin: 0 auto;
+      background: @base-color;
     }
   }
 </style>
