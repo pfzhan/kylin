@@ -14,12 +14,14 @@
         </el-row>
         <el-row class="row_padding">
           <el-col :span="24">
-            <div style="color: rgba(33, 143, 234, 0.7);" @click="addDimensions" :disabled="isReadyCube"><span class="add-d" style="cursor: pointer;"><span style="font-size: 20px;">+&nbsp;</span>{{$t('dimensions')}}</span></div>
+            <el-button type="blue" @click.native="addDimensions" :disabled="isReadyCube" >
+              <span class="add-d" style="cursor: pointer;">+&nbsp;{{$t('dimensions')}}</span>
+            </el-button>
           </el-col>
         </el-row>
         <el-row class="row_padding" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
         <el-col :span="24">
-          <el-card  class="ksd_noshadow">
+          <el-card  class="ksd_noshadow" style="padding: 10px;">
             <el-tag class="tag_margin" style="cursor:pointer"
             @click.native="showDetail(dimension.table+'.'+dimension.name)"
             v-for="(dimension, index) in cubeDesc.dimensions"
@@ -52,7 +54,7 @@
       </el-row>
       <el-row class="row_padding border_bottom borderLeft" style="line-height:36px;border:none;padding-left:0;color:rgba(255,255,255,0.5);margin-top: -8px;">
         <el-col :span="5">Total cuboid number: {{totalCuboid}}</el-col>
-        <el-col :span="12" >Max group by column: <el-input v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;"></el-input><el-button type="grey" style="height: 36px;margin-left: 5px;" @click.native="changeDimCap();cubeSuggestions()">Apply</el-button> </el-col>
+        <el-col :span="12" >Max group by column: <el-input id="apply-l" v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;"></el-input><el-button id="apply-r" type="grey" style="height: 32px;margin-left: 5px;" @click.native="changeDimCap();cubeSuggestions()">Apply</el-button> </el-col>
       </el-row>
       <div class="line"></div>
       <el-row class="row_padding border_bottom" v-for="(group, group_index) in cubeDesc.aggregation_groups" :key="group_index" style="border-bottom: 0;">
@@ -106,7 +108,7 @@
               </el-row>
               <el-row>
                 <el-col :span="5">
-                  <el-button type="blue" icon="plus" @click="addHierarchyDims( group.select_rule.hierarchy_dims)" style="margin-top: 8px;">
+                  <el-button type="default" icon="plus" @click="addHierarchyDims( group.select_rule.hierarchy_dims)" style="margin-top: 8px;">
                   {{$t('newHierarchy')}}
                   </el-button>                
                 </el-col>
@@ -121,7 +123,7 @@
                       <area_label :labels="group.includes" :disabled="isReadyCube"  :refreshInfo="{gindex: group_index, jindex: joint_index, key: 'joint_dims'}" @refreshData="refreshJointData"  :selectedlabels="joint_dims" @change="refreshAggragation(group_index)" @checklabel="showDetail"> 
                       </area_label>
                     </el-col>
-                    <el-col :span="1" >                
+                    <el-col :span="1" style="margin-top:5px;">                
                       <el-button type="danger" icon="minus" size="mini" @click="removeJointDims(joint_index, group.select_rule.joint_dims)">
                       </el-button>
                     </el-col>  
@@ -130,7 +132,7 @@
                </el-row> 
                <el-row style="padding-bottom: 20px;">
                  <el-col :span="5">
-                  <el-button type="blue" icon="plus" :disabled="isReadyCube"  @click="addJointDims( group.select_rule.joint_dims)">
+                  <el-button type="default" icon="plus" :disabled="isReadyCube"  @click="addJointDims( group.select_rule.joint_dims)">
                   {{$t('newJoint')}}
                   </el-button>                 
                 </el-col>                    
@@ -147,13 +149,13 @@
 
     <el-row class="row_padding">
       <el-col :span="24">
-        <el-button type="blue" icon="plus" @click="addAggGroup" :disabled="isReadyCube"  class="table_margin">
+        <el-button type="default" icon="plus" @click="addAggGroup" :disabled="isReadyCube"  class="table_margin">
         {{$t('addAggregationGroups')}}
         </el-button>
       </el-col>
     </el-row>
     <div class="line-primary" style="margin-left: -30px; margin-right: -30px;margin-top: -5px;"></div>
-      <el-row class="row_padding">
+      <el-row class="row_padding" style="margin-bottom: 5px;">
         <el-col :span="24">Rowkeys</el-col>
       </el-row>
       <div class="ksd-common-table">
@@ -205,7 +207,7 @@
        <el-table
           :data="featureData"
           border
-          style="width: 100%">
+          style="width: 100%; margin-bottom: 10px;">
           <el-table-column
             :label="$t('kylinLang.dataSource.statistics')"
             width="110">
@@ -767,7 +769,7 @@ export default {
   }
   #dimension-row{
     .el-icon-caret-top{
-      height: 34px;
+      height: 28px;
       margin-right: 1px;
     }
   }
@@ -789,5 +791,21 @@ export default {
     position: absolute;
     right: 0px;
     top: 50px;
+  }
+  .select-d .el-input__inner{
+    height: 30px;
+  }
+  #apply-l{
+    background: transparent;
+  }
+  #apply-l,#apply-r{
+    height: 30px;
+    .el-input__inner{
+      height: 100%;
+    }
+  }
+  #apply-r{
+    border-radius: 3px;
+    position: relative;
   }
 </style>

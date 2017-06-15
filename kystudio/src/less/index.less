@@ -41,6 +41,7 @@ scrollbar {
   font-size: 12px;
   text-align: center;
   .tableheader{
+    color: @fff;
      height: 40px;
      border: solid 1px #ccc;
      .el-col{
@@ -48,6 +49,7 @@ scrollbar {
      }
   }
   .tablebody{
+    color: rgba(255,255,255,0.6);
     border-bottom:solid 1px @grey-color;
     border-left:solid 1px #ccc;
     border-right:solid 1px #ccc;
@@ -426,6 +428,8 @@ li {list-style-type:none;}
     color: @content-color;
     .el-form-item__label {
       color: @content-color;
+      position: relative;
+      z-index: 1;
     }
     .el-input__inner,
     .el-textarea__inner {
@@ -512,7 +516,7 @@ li {list-style-type:none;}
   }
   .el-input__inner{
     background: #292b38;
-    color: @fff;
+    color: @select;
   }
   .el-tree{
     background: @grey-color!important;
@@ -643,6 +647,15 @@ li {list-style-type:none;}
     }
     .el-date-picker__time-header{
       border-bottom: 1px solid @grey-color;
+    }
+    .el-input__inner{
+      border-color: transparent;
+    }
+    .el-picker-panel__btn{
+      border-color: #92959e;
+    }
+    .el-picker-panel__btn:hover{
+      border-color: @base-color;
     }
   }
   .el-date-table{
@@ -905,7 +918,7 @@ tr.current-row > td{
   color: @fff!important;
   &.el-button--default{
     background: transparent;
-    border-color: @grey-color;
+    border-color: #7881aa!important;
     &.is-disabled{
       background: transparent;
       opacity: 0.7;
@@ -944,6 +957,10 @@ tr.current-row > td{
     background-color: #f00;
     border-color: #f00;
   }
+  &.el-button--edit{
+    background-color: @grey-color!important;
+    border-color: @grey-color;
+  }
 }
 // 单选按钮 (样式待定)
 .el-radio-group{
@@ -965,9 +982,15 @@ tr.current-row > td{
     background-color: #0b89bb;
     color: @fff;
   }
+  &.el-tag--primary:hover{
+    background: #0aaacc;
+  }
   &.el-tag--gray{
     background-color: #515465;
     color: @fff!important;
+  }
+  &.el-tag--gray:hover{
+    background: #404350;
   }
 }
 // checkbox
@@ -977,6 +1000,7 @@ tr.current-row > td{
     border: 1px solid #9095ab!important;
   }
 }
+
 
 
 
