@@ -2,12 +2,13 @@
 <div class="dimensionBox">
   <el-row>
     <el-col :span="18" style="padding-right: 30px;border-right: 1px solid #393e53;padding-bottom: 30px;margin-top: -15px;padding-top: 15px;">  
-      <el-row>
+    <!-- 以前的输入sql -->
+      <!-- <el-row>
         <el-col :span="24">
           <el-button type="primary"  @click.native="collectSql" :disabled="isReadyCube" >{{$t('collectsqlPatterns')}}</el-button>
         </el-col>
-      </el-row>
-      <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div>
+      </el-row> -->
+      <!-- <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div> -->
       <el-row class="row_padding border_bottom" style="border: none;">
         <el-row class="row_padding">
           <el-col :span="24" style="font-size: 14px;">{{$t('dimensions')}}</el-col>
