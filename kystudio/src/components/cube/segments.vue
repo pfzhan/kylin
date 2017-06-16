@@ -22,16 +22,16 @@
       <li>{{$t('SegmentName')}}<span class="text-red">{{segment.segmentName}}</span></li>
       <li>{{$t('SegmentPath')}}<span class="text-red">{{segment.segmentPath}}</span></li>
       <li>{{$t('FileNumber')}}<span class="text-red">{{segment.fileCount}}</span></li>
-      <li>{{$t('StorageSize')}}<span class="text-red">{{segment.storageSize }}</span></li>
+      <li>{{$t('StorageSize')}}<span class="text-red">{{segment.storageSize|dataSize }}</span></li>
       <li>{{$t('RangeStartTime')}}<span class="text-red">{{segment.dateRangeStart | utcTime}}</span></li>
       <li>{{$t('RangeEndTime')}}<span class="text-red">{{segment.dateRangeEnd | utcTime}}</span></li>
       <li v-if="segment.rawTableSegmentPath">{{$t('RawTableSegmentPath')}}<span class="text-red">{{segment.rawTableSegmentPath}}</span></li>
       <li v-if="segment.rawTableFileCount>=0 && segment.rawTableSegmentPath">{{$t('RawTableFileNumber')}}<span class="text-red">{{segment.rawTableFileCount}}</span></li>
-      <li v-if="segment.rawTableStorageSize>=0 && segment.rawTableSegmentPath">{{$t('RawTableStorageSize')}}<span class="text-red">{{segment.rawTableStorageSize}}</span></li>
+      <li v-if="segment.rawTableStorageSize>=0 && segment.rawTableSegmentPath">{{$t('RawTableStorageSize')}}<span class="text-red">{{segment.rawTableStorageSize|dataSize}}</span></li>
     </ul>
   </el-card>
   <el-card v-if="segments.length > 0">
-     <h5><b>{{$t('TotalSize')}}</b> <span class="text-red">{{totalSize}}</span></h5>
+     <h5><b>{{$t('TotalSize')}}</b> <span class="text-red">{{totalSize|dataSize}}</span></h5>
      <h5><b>{{$t('TotalNumber')}}</b> <span class="text-red">{{segments.length}}</span></h5>
      <h5><b>{{$t('CubeID')}}</b> <span class="text-red">{{cube.desc.uuid}}</span></h5>
   </el-card>
@@ -106,8 +106,8 @@ export default {
     }
   },
   locales: {
-    'en': {SegmentID: 'Segment ID ', SegmentName: 'Segment Name', SegmentPath: 'Segment Path', FileNumber: 'File Number', StorageSize: 'Storage Size', RangeStartTime: 'Range Start Time', RangeEndTime: 'Range End Time', RawTableSegmentPath: 'Raw Table Segment Path', RawTableFileNumber: 'Raw Table File Number', RawTableStorageSize: 'Raw Table StorageSize', TotalSize: 'Total Size', TotalNumber: 'Total Number', CubeID: 'Cube ID', NoStorageInfo: 'No Storage Info.', cubeHBRegionCount: 'Region Count: ', cubeHBSize: 'Size: ', cubeHBStartTime: 'Start Time: ', cubeHBEndTime: 'End Time: '},
-    'zh-cn': {SegmentID: 'Segment ID ', SegmentName: 'Segment 名称', SegmentPath: 'Segment 路径', FileNumber: '索引文件数', StorageSize: '存储空间', RangeStartTime: '区间起始时间', RangeEndTime: '区间终止时间', RawTableSegmentPath: 'Raw Table Segment 路径', RawTableFileNumber: 'Raw Table 索引文件数', RawTableStorageSize: 'Raw Table 存储空间', TotalSize: '总大小', TotalNumber: '总个数', CubeID: 'Cube ID', NoStorageInfo: '没有Storage相关信息.', cubeHBRegionCount: 'Region数量: ', cubeHBSize: '大小: ', cubeHBStartTime: '开始时间: ', cubeHBEndTime: '结束时间: '}
+    'en': {SegmentID: 'Segment ID:', SegmentName: 'Segment Name:', SegmentPath: 'Segment Path:', FileNumber: 'File Number:', StorageSize: 'Storage Size:', RangeStartTime: 'Range Start Time:', RangeEndTime: 'Range End Time:', RawTableSegmentPath: 'Raw Table Segment Path:', RawTableFileNumber: 'Raw Table File Number:', RawTableStorageSize: 'Raw Table StorageSize:', TotalSize: 'Total Size:', TotalNumber: 'Total Number:', CubeID: 'Cube ID:', NoStorageInfo: 'No Storage Info.', cubeHBRegionCount: 'Region Count: ', cubeHBSize: 'Size: ', cubeHBStartTime: 'Start Time: ', cubeHBEndTime: 'End Time: '},
+    'zh-cn': {SegmentID: 'Segment ID:', SegmentName: 'Segment 名称：', SegmentPath: 'Segment 路径：', FileNumber: '索引文件数：', StorageSize: '存储空间：', RangeStartTime: '区间起始时间：', RangeEndTime: '区间终止时间：', RawTableSegmentPath: 'Raw Table Segment 路径：', RawTableFileNumber: 'Raw Table 索引文件数：', RawTableStorageSize: 'Raw Table 存储空间：', TotalSize: '总大小：', TotalNumber: '总个数：', CubeID: 'Cube ID:', NoStorageInfo: '没有Storage相关信息.', cubeHBRegionCount: 'Region数量: ', cubeHBSize: '大小: ', cubeHBStartTime: '开始时间: ', cubeHBEndTime: '结束时间: '}
   }
 }
 </script>

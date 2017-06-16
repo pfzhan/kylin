@@ -445,6 +445,7 @@ export default {
           this.$set(this.cubeDesc.rowkey, 'rowkey_columns', data.rowkey.rowkey_columns)
           this.initConvertedRowkeys()
           this.initCalCuboid()
+          this.calcAllCuboid()
         })
       }, (res) => {
         handleError(res)

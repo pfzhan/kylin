@@ -65,7 +65,7 @@
     </el-table-column>
 
      <el-table-column
-        :label="$t('sortedBy')"
+        :label="$t('sortBy')"
         header-align="center"
         align="center">   
             <template scope="scope">

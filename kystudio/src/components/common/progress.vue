@@ -79,6 +79,9 @@ export default {
       .el-progress-bar {
         padding-right:30px;
        }
+       .el-progress__text{
+        margin-left: 0;
+       }
       .fa-icon{
         color:@base-color;
       }

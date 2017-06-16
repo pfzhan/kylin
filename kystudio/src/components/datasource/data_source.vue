@@ -6,7 +6,7 @@
 		    <el-radio-button label="Kfka" @click.native="openKafkaDialog"><icon name="download" scale="0.8"></icon><span> Kafka</span></el-radio-button>
 		  </el-radio-group>
 
-      <tree :treedata="hiveAssets"  :expandall='true'  maxLabelLen="20" :indent="4" :showfilter="false" :allowdrag="false" @nodeclick="clickTable"></tree>
+      <tree :treedata="hiveAssets"  :expandall='true'  maxLabelLen="20" :indent="2" :showfilter="false" :allowdrag="false" @nodeclick="clickTable"></tree>
       </div>
       <div class="table_content" >
        <img class="null_pic" src="../../assets/img/no_table.png" v-show="!tableData"/>
@@ -179,7 +179,7 @@
         <el-row :gutter="20">
 		  <el-col :span="8"><div class="grid-content bg-purple">
 		  	 <div class="dialog_tree_box">
-           <tree :indent="4" @lazyload="loadChildNode" :multiple="true"  @nodeclick="clickHiveTable" :lazy="true" :treedata="hiveData" maxlevel="3" ref="subtree"  :showfilter="false" :allowdrag="false" ></tree>
+           <tree :indent="2" @lazyload="loadChildNode" :multiple="true"  @nodeclick="clickHiveTable" :lazy="true" :treedata="hiveData" maxlevel="3" ref="subtree"  :showfilter="false" :allowdrag="false" ></tree>
           </div>
 		  </div></el-col>
 		  <el-col :span="16"><div class="grid-content bg-purple">

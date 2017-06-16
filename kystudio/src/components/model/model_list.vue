@@ -151,7 +151,7 @@
       </div>
     </el-dialog>
 
-    <el-dialog :title="$t('kylinLang.model.checkModel')" size="tiny" v-model="scanRatioDialogVisible" >
+    <el-dialog class="modelCheck" :title="$t('kylinLang.model.checkModel')" size="tiny" v-model="scanRatioDialogVisible" >
         <el-row :gutter="20">
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content">
@@ -263,7 +263,7 @@ export default {
       // cloneBtnLoading: false,
       btnLoading: false,
       stCycleRequest: null,
-      modelStaticsRange: 100,
+      modelStaticsRange: 1,
       startTime: 0,
       endTime: 0,
       pickerOptionsEnd: {
@@ -809,6 +809,11 @@ export default {
 <style lang="less">
 @import '../../less/config.less';
 .modelist_box{
+  .modelCheck{
+    .el-date-editor.el-input{
+      width: 100%;
+    }
+  }
   .el-table--striped .el-table__body tr.el-table__row--striped td {
     background-color: #292b38;
   }
