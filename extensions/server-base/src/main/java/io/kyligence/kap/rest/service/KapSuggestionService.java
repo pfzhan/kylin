@@ -27,7 +27,6 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.List;
 
-import io.kyligence.kap.modeling.smart.cube.CubeOptimizeLogManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.cube.model.CubeDesc;
@@ -39,6 +38,7 @@ import org.springframework.stereotype.Component;
 import io.kyligence.kap.modeling.smart.ModelingMaster;
 import io.kyligence.kap.modeling.smart.ModelingMasterFactory;
 import io.kyligence.kap.modeling.smart.cube.CubeOptimizeLog;
+import io.kyligence.kap.modeling.smart.cube.CubeOptimizeLogManager;
 import io.kyligence.kap.modeling.smart.query.QueryStats;
 
 @Component("kapSuggestionService")
@@ -70,19 +70,20 @@ public class KapSuggestionService extends BasicService {
         return cubeOptimizeLog.getSampleSqls();
     }
 
-    public CubeDesc optimizeCube(CubeDesc cubeDesc) throws IOException {
-        try (SetThreadName ignored = new SetThreadName("Suggestion %s", Long.toHexString(Thread.currentThread().getId()))) {
+    public CubeDesc proposeAggGroups(CubeDesc cubeDesc) throws IOException {
+        try (SetThreadName ignored = new SetThreadName("Suggestion %s",
+                Long.toHexString(Thread.currentThread().getId()))) {
 
             ModelingMaster master = getModelingMaster(cubeDesc.getName(), cubeDesc.getModelName());
             CubeDesc rowkeyCube = master.proposeRowkey(cubeDesc);
             CubeDesc aggGroupCube = master.proposeAggrGroup(rowkeyCube);
-            CubeDesc configOverrideCube = master.proposeConfigOverride(aggGroupCube);
-            return configOverrideCube;
+            return aggGroupCube;
         }
     }
 
-    public CubeDesc proposeDimensions(String cubeName, String modelName) throws IOException {
-        try (SetThreadName ignored = new SetThreadName("Suggestion %s", Long.toHexString(Thread.currentThread().getId()))) {
+    public CubeDesc proposeDimAndMeasures(String cubeName, String modelName) throws IOException {
+        try (SetThreadName ignored = new SetThreadName("Suggestion %s",
+                Long.toHexString(Thread.currentThread().getId()))) {
             ModelingMaster master = getModelingMaster(cubeName, modelName);
             CubeDesc dimMeasCube = master.proposeDerivedDimensions(master.proposeInitialCube());
             return dimMeasCube;
