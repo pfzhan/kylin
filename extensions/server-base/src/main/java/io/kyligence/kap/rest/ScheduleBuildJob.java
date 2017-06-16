@@ -123,7 +123,7 @@ public class ScheduleBuildJob implements Job {
 
             // Stop scheduler if has run scheduled times
             if (schedulerInstance.getCurRepeatCount() == (schedulerInstance.getRepeatCount() - 1)) {
-                schedulerJobService.deleteSchedulerJob(jobName);
+                schedulerJobService.deleteSchedulerJobInternal(jobName);
                 scheduler.deleteJob(JobKey.jobKey(jobName));
                 schedulerRemoved = true;
             }
@@ -135,7 +135,7 @@ public class ScheduleBuildJob implements Job {
                 settings.put("partitionStartTime", startTime);
                 settings.put("curRepeatCount", schedulerInstance.getCurRepeatCount() + 1);
 
-                schedulerJobService.updateSchedulerJob(schedulerInstance, settings);
+                schedulerJobService.updateSchedulerJobInternal(schedulerInstance, settings);
             }
         } catch (Exception e) {
             logger.error(e.getLocalizedMessage(), e);

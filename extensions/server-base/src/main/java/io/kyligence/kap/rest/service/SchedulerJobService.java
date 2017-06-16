@@ -194,10 +194,8 @@ public class SchedulerJobService extends BasicService {
         return job;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'MANAGEMENT')")
-    public SchedulerJobInstance updateSchedulerJob(SchedulerJobInstance job, Map<String, Long> settings) throws Exception {
-
+    public SchedulerJobInstance updateSchedulerJobInternal(SchedulerJobInstance job, Map<String, Long> settings)
+            throws Exception {
         for (String key : settings.keySet()) {
 
             switch (key) {
@@ -230,10 +228,21 @@ public class SchedulerJobService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
             + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'MANAGEMENT')")
-    public SchedulerJobInstance deleteSchedulerJob(String name) throws IOException {
+    public SchedulerJobInstance updateSchedulerJob(SchedulerJobInstance job, Map<String, Long> settings)
+            throws Exception {
+        return updateSchedulerJobInternal(job, settings);
+    }
+
+    public SchedulerJobInstance deleteSchedulerJobInternal(String name) throws IOException {
         SchedulerJobInstance job = getSchedulerJobManager().getSchedulerJob(name);
         getSchedulerJobManager().removeSchedulerJob(job);
         return job;
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
+            + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'MANAGEMENT')")
+    public SchedulerJobInstance deleteSchedulerJob(String name) throws IOException {
+        return deleteSchedulerJobInternal(name);
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
