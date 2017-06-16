@@ -17,7 +17,8 @@ export default {
       state.projectAccess[projectId] = access
     },
     [types.CACHE_ALL_PROJECTS]: function (state, { list, size }) {
-      state.allProject = list
+      state.allProject.splice(0, state.allProject.length)
+      state.allProject = Object.assign(state.allProject, list)
       var hasMatch = false
       if (list) {
         list.forEach((p) => {

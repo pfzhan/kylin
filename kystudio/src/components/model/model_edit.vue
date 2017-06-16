@@ -32,7 +32,7 @@
               <icon name="table" class="el-icon-menu" style="color:#fff" @click.native="openModelSubMenu('hide', table.database, table.name)"></icon>
             </span>
             <span>
-              <icon name="gears"  class="el-icon-share" style="color:#fff" v-on:click.native="addComputedColumn(table.guid)"></icon>
+              <icon name="calculator"  class="el-icon-share" style="color:#fff" v-on:click.native="addComputedColumn(table.guid)"></icon>
             </span>
             <span >
               <icon name="sort-alpha-asc" v-on:click.native="sortColumns(table)"></icon>

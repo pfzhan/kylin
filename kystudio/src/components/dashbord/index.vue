@@ -139,8 +139,8 @@ export default {
     selectProject (projectName) {
       this.$store.state.project.selected_project = projectName
       localStorage.setItem('selected_project', projectName)
-      this.$emit('changeCurrentPath', '/studio/datasource')
-      this.$router.push('studio/datasource')
+      this.$emit('changeCurrentPath', '/studio/model')
+      this.$router.push('studio/model')
     }
   },
   data () {

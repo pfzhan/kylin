@@ -1,6 +1,10 @@
 <template>
 <div id="measures">
-  <el-button type="primary" icon="plus" @click="addMeasure">{{$t('addMeasure')}}</el-button>
+  <div style="margin-top: 20px;">
+    <el-button type="blue" icon="menu" @click.native="cubeSuggestions" :disabled="isReadyCube">{{$t('measuresSuggestion')}}</el-button>
+    <el-button type="default" icon="setting" @click.native="resetMeasures" :disabled="isReadyCube">{{$t('resetMeasures')}}</el-button>
+  </div>
+  
   <el-table class="table_margin"
     :data="cubeDesc.measures"
     border stripe 
@@ -63,8 +67,9 @@
         <el-button type="edit"  size="mini" icon="edit" :disabled="isReadyCube"  @click="editMeasure(scope.row)"></el-button>
         <el-button type="edit"  size="mini" icon="delete" :disabled="isReadyCube" @click="removeMeasure(scope.row, scope.$index)"></el-button>
       </template>
-    </el-table-column>                         
+    </el-table-column>                     
   </el-table>
+   <el-button type="primary" icon="plus" @click="addMeasure" class="ksd-mb-20">{{$t('addMeasure')}}</el-button>  
       <el-row v-if="!isPlusVersion">
         <el-col :span="24">{{$t('advancedColumnFamily')}}</el-col>
       </el-row> 
@@ -111,6 +116,7 @@ import addMeasures from '../dialog/add_measures'
 import parameterTree from '../../common/parameter_tree'
 import areaLabel from '../../common/area_label'
 import { needLengthMeasureType } from '../../../config/index'
+import { handleSuccess, handleError } from 'util/business'
 export default {
   name: 'measures',
   props: ['cubeDesc', 'modelDesc'],
@@ -130,8 +136,26 @@ export default {
   },
   methods: {
     ...mapActions({
-      loadHiddenFeature: 'LOAD_HIDDEN_FEATURE'
+      loadHiddenFeature: 'LOAD_HIDDEN_FEATURE',
+      getCubeSuggestions: 'GET_CUBE_SUGGESTIONS'
     }),
+    resetMeasures: function () {
+      // this.cubeDesc.dimensions.splice(0, this.cubeDesc.dimensions.length)
+      this.cubeDesc.measures.splice(0, this.cubeDesc.measures.length)
+      this.cubeDesc.hbase_mapping.column_family.splice(0, this.cubeDesc.hbase_mapping.column_family.length)
+      // this.cubeDesc.rowkey.rowkey_columns.splice(0, this.cubeDesc.rowkey.rowkey_columns.length)
+      // this.initConvertedRowkeys()
+    },
+    cubeSuggestions: function () {
+      this.getCubeSuggestions({cubeDescData: JSON.stringify(this.cubeDesc)}).then((res) => {
+        handleSuccess(res, (data, code, status, msg) => {
+          this.$set(this.cubeDesc, 'measures', data.measures)
+          this.$set(this.cubeDesc.hbase_mapping, 'column_family', data.hbase_mapping.column_family)
+        })
+      }, (res) => {
+        handleError(res)
+      })
+    },
     addMeasure: function () {
       this.selected_measure = {
         name: ' ',
@@ -398,8 +422,8 @@ export default {
     this.loadHiddenFeature({feature_name: 'extendedcolumn-measure'})
   },
   locales: {
-    'en': {name: 'Name', expression: 'Expression', parameters: 'Parameters', datatype: 'Datatype', comment: 'Comment', returnType: 'Return Type', action: 'Action', addMeasure: 'Add Measure', editMeasure: 'Edit Measure', cancel: 'Cancel', yes: 'Yes', advancedDictionaries: 'Advanced Dictionaries', addDictionary: 'Add Dictionary', editDictionary: 'Edit Dictionary', builderClass: 'Builder Class', reuse: 'Reuse', advancedColumnFamily: 'Advanced ColumnFamily', addColumnFamily: 'Add ColumnFamily', columnFamily: 'ColumnFamily', measures: 'Measures'},
-    'zh-cn': {name: '名称', expression: '表达式', parameters: '参数', datatype: '数据类型', comment: '注释', returnType: '返回类型', action: '操作', addMeasure: '添加度量', editMeasure: '编辑度量', cancel: '取消', yes: '确定', advancedDictionaries: '高级字典', addDictionary: '添加字典', editDictionary: '编辑字典', builderClass: '构造类', reuse: '复用', advancedColumnFamily: '高级列族', addColumnFamily: '添加列簇', columnFamily: '列簇', measures: '度量'}
+    'en': {name: 'Name', expression: 'Expression', parameters: 'Parameters', datatype: 'Datatype', comment: 'Comment', returnType: 'Return Type', action: 'Action', addMeasure: 'Add Measure', editMeasure: 'Edit Measure', cancel: 'Cancel', yes: 'Yes', advancedDictionaries: 'Advanced Dictionaries', addDictionary: 'Add Dictionary', editDictionary: 'Edit Dictionary', builderClass: 'Builder Class', reuse: 'Reuse', advancedColumnFamily: 'Advanced ColumnFamily', addColumnFamily: 'Add ColumnFamily', columnFamily: 'ColumnFamily', measures: 'Measures', measuresSuggestion: 'Measures Suggestions', resetMeasures: 'Reset Measures'},
+    'zh-cn': {name: '名称', expression: '表达式', parameters: '参数', datatype: '数据类型', comment: '注释', returnType: '返回类型', action: '操作', addMeasure: '添加度量', editMeasure: '编辑度量', cancel: '取消', yes: '确定', advancedDictionaries: '高级字典', addDictionary: '添加字典', editDictionary: '编辑字典', builderClass: '构造类', reuse: '复用', advancedColumnFamily: '高级列族', addColumnFamily: '添加列簇', columnFamily: '列簇', measures: '度量', measuresSuggestion: '度量推荐', resetMeasures: '重置度量'}
   }
 }
 </script>

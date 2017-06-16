@@ -12,7 +12,7 @@
       <el-input v-model="cubeDesc.description"></el-input>
     </el-form-item>
     <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div>
-    <h2 class="title">Notification Setting</h2>
+    <h2 class="title">{{$t('noticeSetting')}}</h2>
     <el-form-item :label="$t('notificationEmailList')">
       <el-input v-model="getNotifyList" placeholder="Comma Separated" @change="changeNotifyList"></el-input>
     </el-form-item>
@@ -22,10 +22,13 @@
     </el-form-item>
     <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div>
   </el-form>
-  <h2 class="title">Optimizer Inputs</h2>
+  <h2 class="title">{{$t('optimizerInput')}}</h2>
   <ul class="list">
-    <li>1. Model Check</li>
-    <li>2. SQL Pattens</li>
+    <li>{{$t('modelCheck')}}
+      <common-tip :content="healthStatus.messages.join('<br/>')" ><icon v-if="healthStatus.status!=='RUNNING'" :name="modelHealthStatus[healthStatus.status].icon" :style="{color:modelHealthStatus[healthStatus.status].color}"></icon></common-tip>
+      <el-progress  :width="20" type="circle" :stroke-width="2" :show-text="false" v-if="healthStatus.status==='RUNNING'" :percentage="healthStatus.progress||0" style="width:20px;vertical-align: baseline;"></el-progress>
+    </li>
+    <li>{{$t('sqlPattens')}}</li>
   </ul>
   <el-row style="margin-top: 10px;">
     <el-col :span="24">
@@ -45,14 +48,21 @@
 <script>
 import areaLabel from '../../common/area_label'
 import { mapActions } from 'vuex'
+import { modelHealthStatus } from '../../../config/index'
 import {handleSuccess, handleError} from 'util/business'
 export default {
   name: 'info',
   props: ['cubeDesc', 'modelDesc', 'isEdit'],
   data () {
     return {
+      modelHealthStatus: modelHealthStatus,
       sqlBtnLoading: false,
       sqlString: '',
+      healthStatus: {
+        status: 'NONE',
+        progress: 0,
+        messages: []
+      },
       addSQLFormVisible: false,
       getNotifyList: this.cubeDesc.notify_list && this.cubeDesc.notify_list.toString() || '',
       options: [{label: 'ERROR', value: 'ERROR'}, {label: 'DISCARDED', value: 'DISCARDED'}, {label: 'SUCCEED', value: 'SUCCEED'}],
@@ -67,7 +77,8 @@ export default {
   },
   methods: {
     ...mapActions({
-      saveSampleSql: 'SAVE_SAMPLE_SQL'
+      saveSampleSql: 'SAVE_SAMPLE_SQL',
+      getModelDiagnose: 'DIAGNOSE'
     }),
     changeNotifyList: function () {
       this.cubeDesc.notify_list = this.getNotifyList.split(',')
@@ -106,9 +117,23 @@ export default {
       return this.cubeDesc.status === 'READY'
     }
   },
+  mounted () {
+    this.getModelDiagnose({
+      project: this.modelDesc.project,
+      modelName: this.modelDesc.name
+    }).then((res) => {
+      handleSuccess(res, (data) => {
+        this.healthStatus.status = data.heathStatus
+        this.healthStatus.progress = data.progress
+        this.healthStatus.messages = data.messages && data.messages.length ? data.messages.map((x) => {
+          return x.replace(/\r\n/g, '<br/>')
+        }) : [modelHealthStatus[data.heathStatus].message]
+      })
+    })
+  },
   locales: {
-    'en': {modelName: 'Model Name : ', cubeName: 'Cube Name : ', notificationEmailList: 'Notification Email List : ', notificationEvents: 'Notification Events : ', description: 'Description : ', cubeNameInvalid: 'Cube name is invalid. ', cubeNameRequired: 'Cube name is required. ', basicInfo: 'Basic Info', collectsqlPatterns: 'Collect SQL Patterns'},
-    'zh-cn': {modelName: '模型名称 : ', cubeName: 'Cube名称 : ', notificationEmailList: '通知邮件列表 : ', notificationEvents: '需通知的事件 : ', description: '描述 : ', cubeNameInvalid: 'Cube名称不合法. ', cubeNameRequired: 'Cube名称不可为空.', basicInfo: '基本信息', collectsqlPatterns: '输入sql'}
+    'en': {modelName: 'Model Name : ', cubeName: 'Cube Name : ', notificationEmailList: 'Notification Email List : ', notificationEvents: 'Notification Events : ', description: 'Description : ', cubeNameInvalid: 'Cube name is invalid. ', cubeNameRequired: 'Cube name is required. ', basicInfo: 'Basic Info', collectsqlPatterns: 'Collect SQL Patterns', noticeSetting: 'Notification Setting', optimizerInput: 'Optimizer Inputs', modelCheck: '1.Model Check', sqlPattens: '2.SQL Pattens'},
+    'zh-cn': {modelName: '模型名称 : ', cubeName: 'Cube名称 : ', notificationEmailList: '通知邮件列表 : ', notificationEvents: '需通知的事件 : ', description: '描述 : ', cubeNameInvalid: 'Cube名称不合法. ', cubeNameRequired: 'Cube名称不可为空.', basicInfo: '基本信息', collectsqlPatterns: '输入sql', noticeSetting: '通知设置', optimizerInput: '优化器输入', modelCheck: '1.模型检测', sqlPattens: '2. SQL查询记录'}
   }
 }
 </script>

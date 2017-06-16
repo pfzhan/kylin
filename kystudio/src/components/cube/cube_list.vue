@@ -286,6 +286,7 @@ export default {
         return
       }
       this.initCube()
+      this.loadAllModels()
       this.createCubeVisible = true
     },
     createCube () {
@@ -652,15 +653,18 @@ export default {
     },
     hasPermission (cubeId) {
       return hasPermissionOfCube(this, cubeId, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask)
+    },
+    loadAllModels () {
+      this.loadModels({pageSize: 10000, pageOffset: 0, projectName: this.selected_project || null}).then((res) => {
+        handleSuccess(res, (data) => {
+          this.allModels = data.models
+        })
+      })
     }
   },
   created () {
     this.loadCubesList(0)
-    this.loadModels({pageSize: 10000, pageOffset: 0, projectName: this.selected_project || null}).then((res) => {
-      handleSuccess(res, (data) => {
-        this.allModels = data.models
-      })
-    })
+    this.loadAllModels()
   },
   computed: {
     modelsList () {
