@@ -8,10 +8,10 @@
 </template>
 <script>
   export default {
-    name: 'confirm-btn',
+    name: 'common_tip',
     data () {
       return {
-        visible: false
+        visible: true
       }
     },
     props: ['tips', 'content', 'trigger', 'placement']

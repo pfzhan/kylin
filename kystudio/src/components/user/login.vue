@@ -15,9 +15,9 @@
           <p class="welcome">{{$t('welcome')}}</p>
           <div class="line"></div>
           <ul>
-            <li><i class="el-icon-date"></i> <a href="http://kyligence.io/kap/" target="_blank">KAP Introduction</a></li>
-            <li><i class="el-icon-menu"></i> <a href="http://docs.kyligence.io" target="_blank">KAP Manual</a></li>
-            <li><i class="el-icon-message"></i> <a href="mailto:support@kyligence.io" target="_blank">Contact us</a></li>
+            <li><i class="icon_introduction"></i> <a href="http://kyligence.io/kap/" target="_blank">KAP Introduction</a></li>
+            <li><i class="icon_manual"></i> <a href="http://docs.kyligence.io" target="_blank">KAP Manual</a></li>
+            <li><i class="icon_contact"></i> <a href="mailto:support@kyligence.io" target="_blank">Contact us</a></li>
           </ul>
         </div>
       </el-col>
@@ -170,6 +170,25 @@ export default {
 
   }
    #loginBox{
+    .icon_introduction,.icon_manual,.icon_contact{
+      display: inline-block;
+      width: 12px;
+      height: 9px;
+    }
+    .icon_introduction {
+      background-image: url('../../assets/img/loginintroduction.png');
+      background-size:cover;
+    }
+    .icon_manual {
+      width: 10px;
+      height:12px;
+      background-image: url('../../assets/img/loginmanual.png');
+      background-size: cover;
+    }
+    .icon_contact {
+      background-image: url('../../assets/img/logincontactus.png');
+      background-size: cover;
+    }
     border-radius: 4px;
     position: absolute;
     width: 586px;

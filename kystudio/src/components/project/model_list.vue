@@ -8,12 +8,6 @@
         :label="$t('modelName')"
         prop="modelName">
       </el-table-column>
-      <el-table-column
-        :label="$t('kylinLang.common.action')">
-        <template scope="scope">
-          <span @click="gottoModel()" style="cursor:pointer">{{$t('kylinLang.common.detail')}}</span>
-        </template>      
-      </el-table-column>
     </el-table>
     <pager class="ksd-center" :perPageSize="pageSize" :totalSize="modelsTotal" :currentPage='currentPage' v-on:handleCurrentChange='pageCurrentChange' ></pager>
   </div>

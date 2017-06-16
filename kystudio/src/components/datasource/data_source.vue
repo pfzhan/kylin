@@ -832,6 +832,9 @@ export default {
   *{
     font-size: 12px;
   }
+  .el-radio-group{
+    font-size: 0;
+  }
   .extendInfo {
     float: left;
     margin-top: 4px;
