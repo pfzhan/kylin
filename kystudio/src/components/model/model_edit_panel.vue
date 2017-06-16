@@ -101,20 +101,19 @@
                 </el-tab-pane>
                 <el-tab-pane :label="$t('dimension')" name="third">
                   <div v-for="(key, value) in dimensions" :key="key">
-                    <el-badge :value="dimensions[value]&&dimensions[value].length" class="item ksd-mt-10" style="background-color:green">
-                    <el-button size="small">{{value}}</el-button>
-                    </el-badge>
-                    <br/>
-                    <el-tag class="ksd-ml-10 ksd-mt-6" v-for="i in dimensions[value]" :key="i">{{i}}</el-tag>&nbsp;&nbsp;
+                    <!-- <el-badge :value="dimensions[value]&&dimensions[value].length" class="item ksd-mt-10" style="background-color:green">
+                    <el-tag type="success">{{value}}</el-tag>
+                    </el-badge> -->
+                    <div class="ksd-mb-4" style="font-size:14px;">{{value}}</div>
+                    <div class="dimensionBox">
+                      <el-tag class="ksd-ml-10 ksd-mt-6" type="primary" v-for="i in dimensions[value]" :key="i">{{i}}</el-tag>&nbsp;&nbsp;
+                    </div>
                   </div>
                 </el-tab-pane>
                 <el-tab-pane :label="$t('measure')" name="fourth">
                   <div v-for="(key, value) in measures" :key="key">
-                    <el-badge :value="measures[value]&&measures[value].length" class="item ksd-mt-10" >
-                    <el-button size="small">{{value}}</el-button>
-                    </el-badge>
-                    <br/>
-                    <el-tag class="ksd-ml-10 ksd-mt-6" v-for="i in measures[value]" :key="i">{{i}}</el-tag>
+                    <div class="ksd-mb-4" style="font-size:14px;">{{value}}</div>
+                    <el-tag class="ksd-ml-10 ksd-mt-6" v-for="i in measures[value]" type="primary" :key="i">{{i}}</el-tag>
                   </div>
                 </el-tab-pane>
 
@@ -465,6 +464,10 @@ export default {
           margin: 4px 0;
         }
       }
+    }
+    .dimensionBox {
+      background-color: #2b2d3b;
+      padding: 4px;
     }
     .el-form-item__label{
       float: left!important;

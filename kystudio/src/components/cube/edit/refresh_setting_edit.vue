@@ -149,12 +149,12 @@ export default {
       console.log(_week, _day, _hour, _minute, 8899)
       if (_week === 0) {
         if (_day === 0) {
-          if (_minute === 0) {
-            this.intervalRange.type = 'hours'
-            this.intervalRange.range = _hour
-          } else {
+          if (_hour === 0) {
             this.intervalRange.type = 'minutes'
             this.intervalRange.range = _minute
+          } else {
+            this.intervalRange.type = 'hour'
+            this.intervalRange.range = _hour
           }
         } else {
           this.intervalRange.type = 'days'

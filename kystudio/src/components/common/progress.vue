@@ -63,6 +63,10 @@ export default {
 <style lang="less">
 @import '../../less/config.less';
  .kap_progress{
+    .el-progress-bar {
+      margin-right: -34px;
+      padding-right:30px;
+    }
     &.error{
       .fa-icon{
         color:red;
@@ -72,6 +76,9 @@ export default {
       }
     }
     &.running{
+      .el-progress-bar {
+        padding-right:30px;
+       }
       .fa-icon{
         color:@base-color;
       }
@@ -101,7 +108,7 @@ export default {
     padding-top: 16px;
     .fa-icon {
       position: absolute;
-      right:-10px;
+      right:20px;
       top:10px;
     }
  }

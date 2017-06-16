@@ -179,7 +179,7 @@
         <el-row :gutter="20">
 		  <el-col :span="8"><div class="grid-content bg-purple">
 		  	 <div class="dialog_tree_box">
-           <tree  @lazyload="loadChildNode" :multiple="true"  @nodeclick="clickHiveTable" :lazy="true" :treedata="hiveData" maxlevel="3" ref="subtree"  :showfilter="false" :allowdrag="false" ></tree>
+           <tree :indent="4" @lazyload="loadChildNode" :multiple="true"  @nodeclick="clickHiveTable" :lazy="true" :treedata="hiveData" maxlevel="3" ref="subtree"  :showfilter="false" :allowdrag="false" ></tree>
           </div>
 		  </div></el-col>
 		  <el-col :span="16"><div class="grid-content bg-purple">
@@ -367,7 +367,7 @@ export default {
         return
       }
       this.load_hive_dalog_visible = true
-      this.$refs.subtree.cancelCheckedAll()
+      this.$refs.subtree && this.$refs.subtree.cancelCheckedAll()
       this.selectTables = []
       this.selectTablesNames = []
     },

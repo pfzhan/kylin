@@ -220,7 +220,7 @@ export default {
       topicInfo: 'GET_TOPIC_INFO'
     }),
     addBroker: function () {
-      if (this.currentCheck === -1) {
+      if (this.currentCheck <= 0) {
         this.kafkaMeta.clusters[0].brokers.push({id: '', host: '', port: ''})
         this.currentCheck = this.kafkaMeta.clusters[0].brokers.length - 1
       }

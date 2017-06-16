@@ -365,7 +365,7 @@ export default {
         timeFilter: this.filterTimeZone
       }
       if (this.filterCubeName) {
-        this.$set(filter, 'cubeName', this.filterCubeName)
+        this.$set(filter, 'jobName', this.filterCubeName)
       }
       if (this.filterStatus.length > 0) {
         this.$set(filter, 'status', this.filterStatus)
@@ -390,7 +390,7 @@ export default {
         timeFilter: this.filterTimeZone
       }
       if (this.filterCubeName) {
-        this.$set(setting, 'cubeName', this.filterCubeName)
+        this.$set(setting, 'jobName', this.filterCubeName)
       }
       if (this.filterStatus.length > 0) {
         this.$set(setting, 'status', this.filterStatus)
