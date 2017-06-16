@@ -1,16 +1,16 @@
 <template>
-	<div style="overflow:hidden" class="partitionBox">
+	<div style="overflow:hidden" class="partitionBox" id="partitionBox">
       <el-form  label-width="240px">
         <el-form-item :label="$t('partitionDateColumn')">
           <el-col :span="11">
-                 <el-select v-model="checkPartition.date_table" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="editMode || actionMode==='view'">
-                  <el-option
-                    v-for="(key,value) in dateColumns"
-                    :key="key"
-                    :label="value"
-                    :value="value">
-                  </el-option>
-                </el-select>
+             <el-select v-model="checkPartition.date_table" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="editMode || actionMode==='view'">
+              <el-option
+                v-for="(key,value) in dateColumns"
+                :key="key"
+                :label="value"
+                :value="value">
+              </el-option>
+            </el-select>
           </el-col>
           <el-col :span="2"></el-col>
           <el-col :span="11">
@@ -200,6 +200,11 @@ export default {
   .el-form {
     height: auto;
     overflow: hidden;
+  }
+}
+#partitionBox{
+  .el-input{
+    padding: 0;
   }
 }
 </style>

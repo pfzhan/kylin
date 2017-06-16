@@ -2,7 +2,7 @@
 	<div class="about-kap">
 		<div class="header">
 			<a href="http://kyligence.io/" target="_blank">
-				<img src="../../assets/img/test.png" alt="" />
+				<img src="../../assets/img/kyligence-logo.png" alt="" />
 			</a>
 			<el-row><label for="">{{$t('version')}}</label>{{license(serverAboutKap && serverAboutKap['kap.version'])}}
 			</el-row>
@@ -75,7 +75,7 @@ export default {
 		line-height:30px;
 		font-size:14px;
 		text-align: center;
-		img {width: 100px;height:100px;}
+		img {width: 120px;}
 		label {font-weight:bold;}
 		.header, 
 		.container {padding-bottom:20px;border-bottom:1px solid #D3DCE6;}

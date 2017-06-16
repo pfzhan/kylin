@@ -92,12 +92,12 @@
         <el-table-column
         width="110">
             <template scope="scope">
-              <el-button type="primary" icon="minus" size="mini" @click="removeColumnFamily(scope.$index)">
+              <el-button type="delete" icon="minus" size="mini" @click="removeColumnFamily(scope.$index)">
               </el-button>               
             </template>
         </el-table-column>                                              
       </el-table>   
-     <el-button type="primary" icon="plus" v-if="!isPlusVersion" size="small" @click="addColumnFamily">
+     <el-button type="primary" icon="plus" v-if="!isPlusVersion" @click="addColumnFamily">
       {{$t('addColumnFamily')}}</el-button>      
   
   <el-dialog :title="$t('editMeasure')" v-model="measureFormVisible" top="5%" size="small">
@@ -434,7 +434,7 @@ export default {
   }
   #measures{
     .el-button--mini{
-      background: transparent;
+      // background: transparent;
     }
     .el-button--primary{
       // background: transparent;
