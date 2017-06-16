@@ -95,6 +95,22 @@ public class KapModelController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 
+    @RequestMapping(value = "{project}/{modelName}/checkable", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getModelCheckable(@PathVariable("project") String project,
+            @PathVariable("modelName") String modelName) throws IOException, JobException {
+
+        Map<Boolean, String> result = new HashMap<>();
+        if (kapModelService.isFactTableStreaming(modelName)) {
+            String message = "Model check of streaming data model is not supported by now.";
+            result.put(false, message);
+        } else {
+            result.put(true, null);
+        }
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
+    }
+
     @RequestMapping(value = "{project}/{modelName}/stats", method = { RequestMethod.POST }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody

@@ -30,7 +30,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.service.BasicService;
@@ -169,6 +172,12 @@ public class KapModelService extends BasicService {
             break;
         }
         return healthStatus;
+    }
+
+    public boolean isFactTableStreaming(String modelName) {
+        DataModelDesc modelDesc = MetadataManager.getInstance(getConfig()).getDataModelDesc(modelName);
+        int sourceTypeType = modelDesc.getRootFactTable().getTableDesc().getSourceType();
+        return sourceTypeType == ISourceAware.ID_STREAMING;
     }
 
     public ModelStatsManager getModelStatsManager() {

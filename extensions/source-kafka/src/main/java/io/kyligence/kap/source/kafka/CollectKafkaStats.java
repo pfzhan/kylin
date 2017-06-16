@@ -62,7 +62,8 @@ public class CollectKafkaStats {
         for (String broker : brokers.split(",")) {
             Properties property = KafkaConsumerProperties.getInstanceFromEnv().extractKafkaConfigToProperties();
             Consumer consumer = KafkaClient.getKafkaConsumer(broker, "sample", property);
-            logger.info(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG + ":{}", property.get(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG));
+            logger.info(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG + ":{}",
+                    property.get(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG));
             Map<String, List<PartitionInfo>> topics = consumer.listTopics();
 
             String key = identifyClusterByBrokers(brokers);
@@ -86,44 +87,56 @@ public class CollectKafkaStats {
 
     public static List<String> getMessages(KafkaConfig kafkaConfig) {
 
+        logger.info("Start to get sample messages from Kafka.");
         String topic = kafkaConfig.getTopic();
         String brokers = KafkaClient.getKafkaBrokers(kafkaConfig);
         List<String> samples = new ArrayList<>();
         for (String broker : brokers.split(",")) {
+            logger.info("Trying to get messages from broker: {}", broker);
             Consumer consumer;
             ConsumerRecords<String, String> records;
-            consumer = KafkaClient.getKafkaConsumer(broker, "sample", null);
+            Properties property = KafkaConsumerProperties.getInstanceFromEnv().extractKafkaConfigToProperties();
+            consumer = KafkaClient.getKafkaConsumer(broker, "sample", property);
 
             final List<PartitionInfo> partitionInfos = consumer.partitionsFor(topic);
 
             if (partitionInfos.size() <= 0) {
-                logger.info("There are no partitions in topic: " + topic);
+                logger.warn("There are no partitions in topic: " + topic);
                 break;
             }
 
-            int id = partitionInfos.get(0).partition();
-            consumer.assign(Arrays.asList(new TopicPartition(topic, id)));
-            consumer.seekToEnd(Arrays.asList(new TopicPartition(topic, id)));
-            long pos = consumer.position(new TopicPartition(topic, id));
-            if (pos <= 0) {
-                continue;
-            } else if (pos < SAMPLE_MSG_COUNT)
-                consumer.seek(new TopicPartition(topic, id), 0);
-            else
-                consumer.seek(new TopicPartition(topic, id), pos - SAMPLE_MSG_COUNT);
+            for (PartitionInfo partitionInfo : partitionInfos) {
+                int partition = partitionInfo.partition();
+                TopicPartition topicPartition = new TopicPartition(topic, partition);
 
-            records = consumer.poll(POLL_MESSAGE_TIMEOUT);
-            consumer.close();
-            if (records.isEmpty())
-                continue;
-            else {
-                for (ConsumerRecord<String, String> record : records) {
-                    samples.add(record.value());
+                consumer.assign(Arrays.asList(topicPartition));
+                consumer.seekToEnd(Arrays.asList(topicPartition));
+                long offset = consumer.position(topicPartition);
+                if (offset <= 0) {
+                    continue;
+                } else if (offset < SAMPLE_MSG_COUNT)
+                    consumer.seek(topicPartition, 0);
+                else
+                    consumer.seek(topicPartition, offset - SAMPLE_MSG_COUNT);
+
+                logger.info("Ready to poll messages. Topic: {}, Partition: {}, Offset: {}", topic, partition, offset);
+                records = consumer.poll(POLL_MESSAGE_TIMEOUT);
+                if (records.isEmpty())
+                    continue;
+                else {
+                    for (ConsumerRecord<String, String> record : records) {
+                        if (samples.size() >= SAMPLE_MSG_COUNT)
+                            break;
+                        samples.add(record.value());
+                    }
+                    break;
                 }
-                break;
             }
+            consumer.close();
+            if (samples.size() == 0)
+                continue;
         }
-
+        logger.info("Get sample message size is: {}", samples.size());
         return samples;
     }
 
