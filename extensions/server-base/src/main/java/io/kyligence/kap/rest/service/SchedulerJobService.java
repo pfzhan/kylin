@@ -229,7 +229,7 @@ public class SchedulerJobService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
+            + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'MANAGEMENT')")
     public SchedulerJobInstance deleteSchedulerJob(String name) throws IOException {
         SchedulerJobInstance job = getSchedulerJobManager().getSchedulerJob(name);
         getSchedulerJobManager().removeSchedulerJob(job);
@@ -237,7 +237,7 @@ public class SchedulerJobService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
+            + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'MANAGEMENT')")
     public SchedulerJobInstance deleteSchedulerJob(SchedulerJobInstance job) throws IOException, SchedulerException {
         if (cubeTriggerKeyMap.containsKey(job.getRelatedRealization())) {
             CronTrigger trigger = (CronTrigger) scheduler
