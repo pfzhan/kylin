@@ -125,7 +125,7 @@ public class RawTableService extends BasicService {
     public void deleteRaw(RawTableInstance raw) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
-        final List<CubingJob> cubingJobs = jobService.listAllCubingJobs(raw.getName(), null,
+        final List<CubingJob> cubingJobs = jobService.listJobsByRealizationName(raw.getName(), null,
                 EnumSet.of(ExecutableState.READY, ExecutableState.RUNNING));
         if (!cubingJobs.isEmpty()) {
             throw new BadRequestException(String.format(msg.getRAWTABLE_HAS_RUNNING_JOB(), raw.getName()));
@@ -171,7 +171,7 @@ public class RawTableService extends BasicService {
             boolean forceUpdate) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
-        final List<CubingJob> cubingJobs = jobService.listAllCubingJobs(raw.getName(), null,
+        final List<CubingJob> cubingJobs = jobService.listJobsByRealizationName(raw.getName(), null,
                 EnumSet.of(ExecutableState.READY, ExecutableState.RUNNING));
         if (!cubingJobs.isEmpty()) {
             throw new BadRequestException(msg.getRAWTABLE_SCHEMA_CHANGE_WITH_RUNNING_JOB());
@@ -206,7 +206,7 @@ public class RawTableService extends BasicService {
             throw new BadRequestException(String.format(msg.getRAWTABLE_NO_READY_SEGMENT(), cubeName));
         }
 
-        final List<CubingJob> cubingJobs = jobService.listAllCubingJobs(raw.getName(), null,
+        final List<CubingJob> cubingJobs = jobService.listJobsByRealizationName(raw.getName(), null,
                 EnumSet.of(ExecutableState.READY, ExecutableState.RUNNING));
         if (!cubingJobs.isEmpty()) {
             throw new BadRequestException(msg.getRAWTABLE_ENABLE_WITH_RUNNING_JOB());
