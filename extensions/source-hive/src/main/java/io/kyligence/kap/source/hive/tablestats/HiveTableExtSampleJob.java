@@ -59,6 +59,12 @@ public class HiveTableExtSampleJob extends CubingJob {
     KylinConfig config;
 
     public HiveTableExtSampleJob() {
+        config = KylinConfig.getInstanceFromEnv();
+    }
+
+    public HiveTableExtSampleJob(String tableName) {
+        config = KylinConfig.getInstanceFromEnv();
+        this.tableName = tableName;
     }
 
     public HiveTableExtSampleJob(String tableName, int frequency) {
@@ -77,7 +83,7 @@ public class HiveTableExtSampleJob extends CubingJob {
 
     public String start() throws IOException {
 
-        String runningJobID = findRunningJob(config, tableName);
+        String runningJobID = findRunningJob();
         if (runningJobID != null)
             return runningJobID;
 
@@ -154,7 +160,7 @@ public class HiveTableExtSampleJob extends CubingJob {
         parent.addTask(updateStatsStep);
     }
 
-    public String findRunningJob(KylinConfig config, String tableName) {
+    public String findRunningJob() {
 
         MetadataManager metaMgr = MetadataManager.getInstance(config);
         TableExtDesc tableExtDesc = metaMgr.getTableExt(tableName);

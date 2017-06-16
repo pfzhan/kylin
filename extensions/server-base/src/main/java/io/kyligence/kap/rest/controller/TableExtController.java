@@ -25,6 +25,8 @@
 package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.util.StringUtil;
@@ -120,22 +122,25 @@ public class TableExtController extends BasicController {
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
         boolean isCalculate = request.isNeedProfile();
 
-        // Before reloading hive tables, it should clean up the old table_ext and cancel the stats job if it is running
+        List<String> tablesRunningJob = new ArrayList<>();
+        List<String> tablesNotRunningJob = new ArrayList<>();
         for (String s : request.getTables()) {
-            String jobID;
-            if ((jobID = new HiveTableExtSampleJob().findRunningJob(tableExtService.getConfig(), s)) != null) {
-                jobService.cancelJob(jobService.getJobInstance(jobID));
+            String jobID = new HiveTableExtSampleJob(s).findRunningJob();
+            if (jobID != null) {
+                tablesRunningJob.add(s);
+            } else {
+                tablesNotRunningJob.add(s);
+                tableExtService.removeTableExt(s);
             }
-            tableExtService.removeTableExt(s);
         }
-        Map<String, String[]> loadResult = tableService.loadHiveTables(request.getTables(), request.getProject(),
-                false);
+        Map<String, String[]> loadResult = tableService.loadHiveTables(toArray(tablesNotRunningJob),
+                request.getProject(), false);
         if (isCalculate) {
-
             String[] loadedTables = loadResult.get("result.loaded");
             for (String tableName : loadedTables)
                 tableExtService.extractTableExt(request.getProject(), submitter, request.getFrequency(), tableName);
         }
+        loadResult.put("result.running", toArray(tablesRunningJob));
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, loadResult, "");
     }
 
@@ -146,7 +151,7 @@ public class TableExtController extends BasicController {
             throws Exception {
         String jobID;
         for (String tableName : tables.split(",")) {
-            if ((jobID = new HiveTableExtSampleJob().findRunningJob(tableExtService.getConfig(), tableName)) != null) {
+            if ((jobID = new HiveTableExtSampleJob(tableName).findRunningJob()) != null) {
                 jobService.cancelJob(jobService.getJobInstance(jobID));
             }
             tableExtService.removeTableExt(tableName);
@@ -154,5 +159,9 @@ public class TableExtController extends BasicController {
 
         String[] tableNames = StringUtil.splitAndTrim(tables, ",");
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, tableService.unloadHiveTables(tableNames, project), "");
+    }
+
+    private String[] toArray(List<String> list) {
+        return list.toArray(new String[list.size()]);
     }
 }
