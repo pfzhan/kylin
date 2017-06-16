@@ -26,11 +26,13 @@ package io.kyligence.kap.storage.parquet.adhoc;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.Semaphore;
 
-import com.google.common.collect.Lists;
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -39,9 +41,10 @@ import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.hive.HiveContext;
 import org.apache.spark.sql.types.StructField;
-import org.apache.spark.util.SizeEstimator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
 
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -52,29 +55,23 @@ public class SparkSqlClient implements Serializable {
     public static final Logger logger = LoggerFactory.getLogger(SparkSqlClient.class);
 
     private final transient JavaSparkContext sc;
-    private final transient SparkJobProtos.AdHocRequest request;
     private final transient Semaphore semaphore;
-    private long estimateDfSize;
+    private HiveContext hiveContext;
+    private Map<UUID, Integer> uuidSizeMap = new HashMap<>();
 
-    public SparkSqlClient(JavaSparkContext sc, SparkJobProtos.AdHocRequest request, Semaphore semaphore) {
+    public SparkSqlClient(JavaSparkContext sc, Semaphore semaphore) {
         this.sc = sc;
-        this.request = request;
         this.semaphore = semaphore;
-        this.estimateDfSize = 0;
+        hiveContext = new HiveContext(sc);
     }
 
-    public Pair<List<List<String>>, List<SparkJobProtos.StructField>> executeSql() throws Exception {
+    public Pair<List<List<String>>, List<SparkJobProtos.StructField>> executeSql(SparkJobProtos.AdHocRequest request,
+            UUID uuid) throws Exception {
         logger.info("Start to run sql with Spark <<<<<<");
 
         try {
-            HiveContext hiveContext = new HiveContext(sc);
-
             //Get result data
             DataFrame df = hiveContext.sql(request.getSql());
-            estimateDfSize = SizeEstimator.estimate(df) / (1024 * 1024);
-            logger.info("Estimate size of dataframe is " + estimateDfSize + "m.");
-
-            this.semaphore.acquire((int) estimateDfSize);
 
             JavaRDD<List<String>> rowRdd = df.javaRDD()
                     .mapPartitions(new FlatMapFunction<Iterator<Row>, List<String>>() {
@@ -88,7 +85,12 @@ public class SparkSqlClient implements Serializable {
                                 Row curRow = iterator.next();
 
                                 for (int i = 0; i < curRow.length(); i++) {
-                                    data.add(curRow.getAs(i).toString());
+                                    Object obj = curRow.getAs(i);
+                                    if (null == obj) {
+                                        data.add("");
+                                    } else {
+                                        data.add(obj.toString());
+                                    }
                                 }
                                 rowList.add(data);
                             }
@@ -97,6 +99,22 @@ public class SparkSqlClient implements Serializable {
                     });
 
             //Get struct fields
+
+            List<List<String>> sampleList = rowRdd.takeSample(true, 1);
+            long sampleLen = 0;
+
+            if (!sampleList.isEmpty()) {
+                for (String elem : sampleList.get(0)) {
+                    sampleLen += elem.getBytes().length;
+                }
+            }
+
+            int estimateSize = (int) Math.ceil((double) (rowRdd.count() * sampleLen) / (1024 * 1024));
+            uuidSizeMap.put(uuid, estimateSize);
+
+            this.semaphore.acquire(estimateSize);
+            logger.info("Estimate size of dataframe is " + estimateSize + "m.");
+
             List<StructField> originFieldList = JavaConversions.asJavaList(df.schema().toList());
             List<SparkJobProtos.StructField> fieldList = new ArrayList<>(originFieldList.size());
 
@@ -110,6 +128,9 @@ public class SparkSqlClient implements Serializable {
 
             List<List<String>> rowList = rowRdd.collect();
 
+            rowRdd.unpersist();
+            df.unpersist();
+
             return Pair.newPair(rowList, fieldList);
 
         } catch (Exception e) {
@@ -119,7 +140,7 @@ public class SparkSqlClient implements Serializable {
         }
     }
 
-    public long getEstimateDfSize() {
-        return estimateDfSize;
+    public long getEstimateDfSize(UUID uuid) {
+        return uuidSizeMap.remove(uuid);
     }
 }

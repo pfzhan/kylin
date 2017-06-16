@@ -37,7 +37,6 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 
-
 public class AdHocRunnerSparkImpl implements IAdHocRunner {
     public static final Logger logger = LoggerFactory.getLogger(AdHocRunnerSparkImpl.class);
 
@@ -54,12 +53,13 @@ public class AdHocRunnerSparkImpl implements IAdHocRunner {
     }
 
     @Override
-    public void executeQuery(String query, List<List<String>> results, List<SelectedColumnMeta> columnMetas) throws Exception {
+    public void executeQuery(String query, List<List<String>> results, List<SelectedColumnMeta> columnMetas)
+            throws Exception {
         SparkJobProtos.AdHocResponse response = client.queryWithAdHoc(query);
         int columnCount = response.getColumnsCount();
         List<SparkJobProtos.StructField> fieldList = response.getColumnsList();
 
-        for(SparkJobProtos.Row row: response.getRowsList()) {
+        for (SparkJobProtos.Row row : response.getRowsList()) {
             results.add(row.getDataList());
         }
 
@@ -67,7 +67,9 @@ public class AdHocRunnerSparkImpl implements IAdHocRunner {
         for (int i = 0; i < columnCount; ++i) {
             int nullable = fieldList.get(i).getNullable() ? 1 : 0;
             int type = Types.VARCHAR;
-            columnMetas.add(new SelectedColumnMeta(false, false, false, false, nullable, false, Integer.MAX_VALUE, "column" + i, fieldList.get(i).getName(), null, null, null, Integer.MAX_VALUE, 128, type, fieldList.get(i).getDataType(), false, false, false));
+            columnMetas.add(new SelectedColumnMeta(false, false, false, false, nullable, false, Integer.MAX_VALUE,
+                    fieldList.get(i).getName().toUpperCase(), fieldList.get(i).getName().toUpperCase(), null, null,
+                    null, Integer.MAX_VALUE, 128, type, fieldList.get(i).getDataType(), false, false, false));
         }
     }
 }

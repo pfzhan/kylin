@@ -26,6 +26,7 @@ package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Semaphore;
 
 import javax.annotation.Nullable;
@@ -58,13 +59,14 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase imp
     private SparkConf conf;
     private JavaSparkContext sc;
     private Semaphore semaphore;
+    private SparkSqlClient sqlClient;
 
     public SparkAppClientService() {
         conf = new SparkConf().setAppName("KyStorage for Kyligence Analytical Platform");
         conf.set("spark.scheduler.mode", "FAIR");
 
         conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
-        conf.set("spark.kryo.registrationRequired", "true");
+        conf.set("spark.kryo.registrationRequired", "false");
 
         conf.registerKryoClasses(new Class[] { scala.collection.mutable.WrappedArray.ofRef.class, Object[].class,
                 RDDPartitionResult.class, SparkExecutorPreAggFunction.class });
@@ -76,11 +78,19 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase imp
                     org.apache.spark.sql.types.StructField.class, org.apache.spark.sql.types.StructField[].class,
                     org.apache.spark.sql.types.LongType.class, org.apache.spark.sql.types.Metadata.class,
                     org.apache.spark.sql.catalyst.InternalRow.class, org.apache.spark.sql.catalyst.InternalRow[].class,
+                    org.apache.spark.sql.catalyst.expressions.SortOrder.class,
+                    org.apache.spark.sql.catalyst.expressions.Literal.class,
+                    org.apache.spark.sql.catalyst.expressions.GenericInternalRow.class,
                     org.apache.spark.sql.catalyst.expressions.UnsafeRow.class,
                     org.apache.spark.sql.catalyst.expressions.UnsafeRow[].class,
+                    org.apache.spark.sql.catalyst.expressions.InterpretedOrdering.class,
                     org.apache.spark.sql.execution.joins.UnsafeHashedRelation.class,
-                    org.apache.spark.sql.execution.joins.UnsafeHashedRelation.class, java.util.HashMap.class,
+                    org.apache.spark.sql.catalyst.trees.Origin.class, java.util.HashMap.class,
+                    org.apache.spark.sql.catalyst.expressions.Descending.class,
+                    Class.forName("scala.math.Ordering$$anon$4"),
+                    Class.forName("org.apache.spark.sql.types.IntegerType$"),
                     Class.forName("scala.reflect.ClassTag$$anon$1"), Class.class,
+                    org.apache.spark.unsafe.types.UTF8String.class,
                     org.apache.spark.sql.execution.columnar.CachedBatch.class, byte[][].class, ArrayList.class });
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
@@ -88,6 +98,7 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase imp
 
         sc = new JavaSparkContext(conf);
         semaphore = new Semaphore((int) KapAdHocUtil.memoryStringToMegas(this.conf.get("spark.driver.memory")) / 2);
+        sqlClient = new SparkSqlClient(sc, semaphore);
 
         logger.info("Starting to warm up all executors");
         List<Integer> warmupData = new ArrayList<Integer>();
@@ -105,6 +116,7 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase imp
                     DateFormat.formatToTimeStr(sc.startTime()));
             sc = new JavaSparkContext(conf);
             semaphore = new Semaphore((int) KapAdHocUtil.memoryStringToMegas(this.conf.get("spark.driver.memory")) / 2);
+            sqlClient = new SparkSqlClient(sc, semaphore);
         }
 
         return new ServerStreamObserver(responseObserver, sc);
@@ -118,12 +130,13 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase imp
                     DateFormat.formatToTimeStr(sc.startTime()));
             sc = new JavaSparkContext(conf);
             semaphore = new Semaphore((int) KapAdHocUtil.memoryStringToMegas(this.conf.get("spark.driver.memory")) / 2);
+            sqlClient = new SparkSqlClient(sc, semaphore);
         }
 
         logger.info("Starting to do ad hoc query");
         try {
-            SparkSqlClient sqlClient = new SparkSqlClient(sc, request, semaphore);
-            Pair<List<List<String>>, List<SparkJobProtos.StructField>> pair = sqlClient.executeSql();
+            UUID uuid = UUID.randomUUID();
+            Pair<List<List<String>>, List<SparkJobProtos.StructField>> pair = sqlClient.executeSql(request, uuid);
 
             responseObserver.onNext(SparkJobProtos.AdHocResponse.newBuilder()
                     .addAllRows(Iterables.transform(pair.getFirst(), new Function<List<String>, SparkJobProtos.Row>() {
@@ -135,7 +148,7 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase imp
                     })).addAllColumns(pair.getSecond()).build());
             responseObserver.onCompleted();
 
-            semaphore.release((int) sqlClient.getEstimateDfSize());
+            semaphore.release((int) sqlClient.getEstimateDfSize(uuid));
 
         } catch (Exception e) {
             logger.error("Ad Hoc Query Error:", e);
