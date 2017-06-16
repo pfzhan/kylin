@@ -69,15 +69,15 @@ public class ModelStatsManager {
             }
         }
     }
-    
+
     // ============================================================================
 
     private KylinConfig kylinConfig;
-    
+
     private ModelStatsManager(KylinConfig config) throws IOException {
         logger.info("Initializing ModelStatsManager with config " + config);
         this.kylinConfig = config;
-        
+
         Broadcaster.getInstance(config).registerListener(new DataModelSyncListener(), "data_model");
     }
 
@@ -88,19 +88,17 @@ public class ModelStatsManager {
         }
 
         @Override
-        public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey) throws IOException {
+        public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey)
+                throws IOException {
             String modelName = cacheKey;
-            
-            if (event == Event.DROP)
-                removeModelStats(modelName);
-            else
-                logger.info("Model " + modelName + " changed, should mark related ModelStats obsoleted?"); // should mark current model stats obsoleted?
+            removeModelStats(modelName);
         }
     }
 
     public ModelStats getModelStats(String modelName) throws IOException {
 
-        ModelStats result = getStore().getResource(getResourcePath(modelName), ModelStats.class, MODEL_STATISTICS_SERIALIZER);
+        ModelStats result = getStore().getResource(getResourcePath(modelName), ModelStats.class,
+                MODEL_STATISTICS_SERIALIZER);
         // create new
         if (null == result) {
             result = new ModelStats();

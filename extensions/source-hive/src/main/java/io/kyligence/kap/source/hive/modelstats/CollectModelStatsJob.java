@@ -119,7 +119,7 @@ public class CollectModelStatsJob extends CubingJob {
 
         // Do fact table stats firstly
         if (factTableExtDesc.getColumnStats().size() == 0) {
-            new HiveTableExtSampleJob(factTableName, frequency).addSteps(this);
+            new HiveTableExtSampleJob(factTableName, frequency).start(this);
         }
 
         // Do lookup table stats
@@ -153,7 +153,7 @@ public class CollectModelStatsJob extends CubingJob {
         for (String s : tables) {
             TableExtDesc extDesc = manager.getTableExt(s);
             if (extDesc.getColumnStats().size() == 0) {
-                new HiveTableExtSampleJob(s, frequency).addSteps(this);
+                new HiveTableExtSampleJob(s, frequency).start(this);
             }
         }
     }

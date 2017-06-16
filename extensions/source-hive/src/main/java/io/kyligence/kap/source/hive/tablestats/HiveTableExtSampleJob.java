@@ -91,6 +91,15 @@ public class HiveTableExtSampleJob extends CubingJob {
         return getId();
     }
 
+    public String start(CubingJob parent) throws IOException {
+        String runningJobID = findRunningJob();
+        if (runningJobID != null)
+            return runningJobID;
+
+        addSteps(parent);
+        return parent.getId();
+    }
+
     public CubingJob build() throws IOException {
         logger.info("Start HiveTableExt job: " + getId());
         SimpleDateFormat format = new SimpleDateFormat("z yyyy-MM-dd HH:mm:ss");
@@ -104,7 +113,7 @@ public class HiveTableExtSampleJob extends CubingJob {
         return this;
     }
 
-    public void addSteps(CubingJob parent) throws IOException {
+    private void addSteps(CubingJob parent) throws IOException {
         MetadataManager metaMgr = MetadataManager.getInstance(config);
         TableDesc desc = metaMgr.getTableDesc(tableName);
         TableExtDesc table_ext = metaMgr.getTableExt(tableName);

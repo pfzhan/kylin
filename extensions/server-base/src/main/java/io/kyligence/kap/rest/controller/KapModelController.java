@@ -103,10 +103,11 @@ public class KapModelController extends BasicController {
 
         Map<Boolean, String> result = new HashMap<>();
         if (kapModelService.isFactTableStreaming(modelName)) {
-            String message = "Model check of streaming data model is not supported by now.";
-            result.put(false, message);
+            result.put(false, "Model check of streaming data model is not supported by now.");
+        } else if (kapModelService.isFactTableRunningStats(modelName)) {
+            result.put(false, "The fact table is running stats job, please wait until it finished or discard it.");
         } else {
-            result.put(true, null);
+            result.put(true, "The model check is available.");
         }
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }

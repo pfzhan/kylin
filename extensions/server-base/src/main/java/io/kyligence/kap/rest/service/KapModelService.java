@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.ISourceAware;
@@ -42,6 +41,7 @@ import org.springframework.stereotype.Component;
 import io.kyligence.kap.rest.request.ModelStatusRequest;
 import io.kyligence.kap.source.hive.modelstats.ModelStats;
 import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
+import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampleJob;
 
 @Component("kapModelService")
 public class KapModelService extends BasicService {
@@ -174,8 +174,16 @@ public class KapModelService extends BasicService {
         return healthStatus;
     }
 
+    public boolean isFactTableRunningStats(String modelName) {
+        DataModelDesc modelDesc = getMetadataManager().getDataModelDesc(modelName);
+        String factTableName = modelDesc.getRootFactTable().getTableIdentity();
+        if (new HiveTableExtSampleJob(factTableName).findRunningJob() != null)
+            return true;
+        return false;
+    }
+
     public boolean isFactTableStreaming(String modelName) {
-        DataModelDesc modelDesc = MetadataManager.getInstance(getConfig()).getDataModelDesc(modelName);
+        DataModelDesc modelDesc = getMetadataManager().getDataModelDesc(modelName);
         int sourceTypeType = modelDesc.getRootFactTable().getTableDesc().getSourceType();
         return sourceTypeType == ISourceAware.ID_STREAMING;
     }
