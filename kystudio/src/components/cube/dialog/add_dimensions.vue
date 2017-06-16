@@ -2,8 +2,9 @@
 <div class="add_dimensions">  
   <div v-for="(table, index) in factTableColumns">
     <el-tag>{{table.tableName}} </el-tag>
-    <el-tag>FactTable </el-tag>    
+    <el-tag>[ FactTable ]</el-tag>    
     <el-table  
+      border
       :data="table.columns"
       style="width: 100%" :ref="table.tableName"
       @select-all="selectionAllChange(table.tableName)"
@@ -44,6 +45,7 @@
     <el-tag>{{table.tableName}} </el-tag>
     <el-tag>LookupTable </el-tag>       
     <el-table  
+      border
       :data="table.columns" :ref="table.tableName"
       style="width: 100%"
       @select-all="selectionAllChange(table.tableName)"      

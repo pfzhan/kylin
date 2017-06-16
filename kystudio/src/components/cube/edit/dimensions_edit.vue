@@ -11,30 +11,54 @@
       <!-- <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div> -->
       <el-row class="row_padding border_bottom" style="border: none;">
         <el-row class="row_padding">
-          <el-col :span="24" style="font-size: 14px;">{{$t('dimensions')}}</el-col>
+          <el-col :span="24" style="font-size: 14px;">
+            <span>{{$t('dimensions')}}</span>
+            <div style="float: right;width: 220px;">
+              <ul class="dimension-type">
+                <li><div class="normal"></div></li>
+                <li>Normal</li>
+              </ul>
+              <ul class="dimension-type" style="float: right;">
+                <li><div class="direved"></div></li>
+                <li>Direved</li>
+              </ul>
+            </div>
+          </el-col>
         </el-row>
         <el-row class="row_padding">
           <el-col :span="24">
             <el-button type="blue" @click.native="addDimensions" :disabled="isReadyCube" >
-              <span class="add-d" style="cursor: pointer;">+&nbsp;{{$t('dimensions')}}</span>
+              +&nbsp;{{$t('dimensions')}}
             </el-button>
           </el-col>
         </el-row>
         <el-row class="row_padding" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
-        <el-col :span="24">
-          <el-card  class="ksd_noshadow" style="padding: 10px;">
-            <el-tag class="tag_margin" style="cursor:pointer"
-            @click.native="showDetail(dimension.table+'.'+dimension.name)"
-            v-for="(dimension, index) in cubeDesc.dimensions"
-            :key="index"
-            :type="dimension.derived?'gray':'primary'">
-            {{dimension.table+'.'+dimension.name}}
+        <el-col :span="24" style="padding: 15px; background: #2f3243;">
+          <el-card class="ksd_noshadow" style="border: none;background: #292b38;padding: 10px;">
+            <el-tag class="tag_margin" style="cursor:pointer;"
+              @click.native="showDetail(dimension.table+'.'+dimension.name)"
+              v-for="(dimension, index) in cubeDesc.dimensions"
+              :key="index" 
+              :class="{ active: (dimension.table+'.'+dimension.name)===isActiveItem }"
+              :type="dimension.derived?'gray':'primary'">
+              {{dimension.table+'.'+dimension.name}}
             </el-tag>
           </el-card>
         </el-col>
         </el-row>
+        <div class="line" style="margin-bottom: -15px;margin-right: -30px;margin-left: -30px;"></div>
         <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div>
-        <div style="font-size: 14px;">{{$t('dimensionOptimizations')}}</div>
+        <div style="font-size: 14px;">
+          {{$t('dimensionOptimizations')}}
+          <kap-common-popover class='d-tip'>
+            <div slot="content">
+              <ul>
+                <li>{{$t('dO')}}</li>
+              </ul>
+            </div>
+            <icon name="question-circle-o"></icon>
+          </kap-common-popover>
+        </div>
         <div style="margin-top: 20px;">
           <el-button type="blue" icon="menu" @click.native="cubeSuggestions" :disabled="isReadyCube">{{$t('cubeSuggestion')}}</el-button>
           <el-button type="default" icon="setting" @click.native="resetDimensions" :disabled="isReadyCube">{{$t('resetDimensions')}}</el-button>
@@ -51,11 +75,30 @@
       </el-row> -->
 
       <el-row class="row_padding border_bottom" style="line-height:36px;border: none;">
-        <el-col :span="24">{{$t('aggregationGroups')}}</el-col>
+        <el-col :span="24">
+          {{$t('aggregationGroups')}}
+          <kap-common-popover class='d-tip'>
+            <div slot="content">
+              <ul>
+                <li>{{$t('AGG')}}</li>
+              </ul>
+            </div>
+            <icon name="question-circle-o"></icon>
+          </kap-common-popover>
+        </el-col>
       </el-row>
-      <el-row class="row_padding border_bottom borderLeft" style="line-height:36px;border:none;padding-left:0;color:rgba(255,255,255,0.5);margin-top: -8px;">
+      <el-row class="row_padding border_bottom borderLeft" style="line-height:36px;border:none;padding-left:0;color:rgba(255,255,255,0.5);margin-top: -8px;padding-top: 0;">
         <el-col :span="5">Total cuboid number: {{totalCuboid}}</el-col>
-        <el-col :span="12" >Max group by column: <el-input id="apply-l" v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;"></el-input><el-button id="apply-r" type="grey" style="height: 32px;margin-left: 5px;" @click.native="changeDimCap();cubeSuggestions()">Apply</el-button> </el-col>
+        <el-col :span="12" >
+        <kap-common-popover class='d-tip'>
+          <div slot="content">
+            <ul>
+              <li>{{$t('maxGroup')}}</li>
+            </ul>
+          </div>
+          <icon name="question-circle-o"></icon>
+        </kap-common-popover>
+        Max group by column: <el-input id="apply-l" v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;"></el-input><el-button id="apply-r" type="grey" style="height: 32px;margin-left: 5px;" @click.native="changeDimCap();cubeSuggestions()">Apply</el-button> </el-col>
       </el-row>
       <div class="line"></div>
       <el-row class="row_padding border_bottom" v-for="(group, group_index) in cubeDesc.aggregation_groups" :key="group_index" style="border-bottom: 0;">
@@ -86,7 +129,7 @@
                 </el-row>  
                 <el-row>
                   <el-col :span="24" >
-                    <area_label :labels="group.includes" :disabled="isReadyCube" :refreshInfo="{index: group_index, key: 'mandatory_dims'}" @refreshData="refreshMandatoryData"  :selectedlabels="group.select_rule.mandatory_dims" @change="refreshAggragation(group_index)"   @checklabel="showDetail"> 
+                    <area_label :placeholder="$t('kylinLang.common.pleaseSelect')" :labels="group.includes" :disabled="isReadyCube" :refreshInfo="{index: group_index, key: 'mandatory_dims'}" @refreshData="refreshMandatoryData"  :selectedlabels="group.select_rule.mandatory_dims" @change="refreshAggragation(group_index)"   @checklabel="showDetail"> 
                     </area_label>
                   </el-col>
                 </el-row>
@@ -150,16 +193,19 @@
 
     <el-row class="row_padding">
       <el-col :span="24">
-        <el-button type="default" icon="plus" @click="addAggGroup" :disabled="isReadyCube"  class="table_margin">
+        <el-button type="default" icon="plus" @click="addAggGroup" :disabled="isReadyCube" style="margin-top: 10px;" class="table_margin">
         {{$t('addAggregationGroups')}}
         </el-button>
       </el-col>
     </el-row>
+    <div class="line" style="margin-bottom: 5px;margin-right: -30px;margin-left: -30px;"></div>
     <div class="line-primary" style="margin-left: -30px; margin-right: -30px;margin-top: -5px;"></div>
       <el-row class="row_padding" style="margin-bottom: 5px;">
-        <el-col :span="24">Rowkeys</el-col>
+        <el-col :span="24">
+          Rowkeys
+        </el-col>
       </el-row>
-      <div class="ksd-common-table">
+      <div class="ksd-common-table rowkeys">
        <el-row class="tableheader">
          <el-col :span="1">{{$t('ID')}}</el-col>
          <el-col :span="9">{{$t('column')}}</el-col>
@@ -267,6 +313,7 @@ export default {
       addSQLFormVisible: false,
       selected_dimension: {},
       sqlString: '',
+      isActiveItem: '',
       selected_project: this.modelDesc.project,
       pfkMap: {},
       cuboidList: [],
@@ -335,6 +382,7 @@ export default {
       // this.initConvertedRowkeys()
     },
     showDetail: function (text, target) {
+      this.isActiveItem = text
       var columnNameInfo = text && text.split('.') || []
       if (columnNameInfo.length) {
         var alias = columnNameInfo[0]
@@ -709,13 +757,18 @@ export default {
     }
   },
   locales: {
-    'en': {dimensions: 'Dimensions', name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment', action: 'Action', addDimensions: 'Add Dimensions', editDimension: 'Edit Dimensions', filter: 'Filter...', cancel: 'Cancel', yes: 'Yes', aggregationGroups: 'Aggregation Groups', Includes: 'Includes', mandatoryDimensions: 'Mandatory Dimensions', hierarchyDimensions: 'Hierarchy Dimensions', jointDimensions: 'Joint Dimensions', addAggregationGroups: 'Aggregation Groups', newHierarchy: 'New Hierarchy', newJoint: 'New Joint', ID: 'ID', encoding: 'Encoding', length: 'Length', shardBy: 'Shard By', dataType: 'Data Type', resetDimensions: 'Reset', cubeSuggestion: 'Optimize', collectsqlPatterns: 'Collect SQL Patterns', dimensionOptimizations: 'Dimension optimizations'},
-    'zh-cn': {dimensions: '维度', name: '名称', type: '类型', tableAlias: '表别名', column: '列名', datatype: '数据类型', cardinality: '基数', comment: '注释', action: '操作', addDimensions: '添加维度', editDimension: 'Edit Dimension', filter: '过滤器', cancel: '取消', yes: '确定', aggregationGroups: '聚合组', Includes: '包含的维度', mandatoryDimensions: '必需维度', hierarchyDimensions: '层级维度', jointDimensions: '联合维度', addAggregationGroups: '添加聚合组', newHierarchy: '新的层数', newJoint: '新的组合', ID: 'ID', encoding: '编码', length: '长度', shardBy: 'Shard By', dataType: '数据类型', resetDimensions: '重置', cubeSuggestion: 'Optimize', collectsqlPatterns: '输入sql', dimensionOptimizations: '维度优化'}
+    'en': {dimensions: 'Dimensions', name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment', action: 'Action', addDimensions: 'Add Dimensions', editDimension: 'Edit Dimensions', filter: 'Filter...', cancel: 'Cancel', yes: 'Yes', aggregationGroups: 'Aggregation Groups', Includes: 'Includes', mandatoryDimensions: 'Mandatory Dimensions', hierarchyDimensions: 'Hierarchy Dimensions', jointDimensions: 'Joint Dimensions', addAggregationGroups: 'Aggregation Groups', newHierarchy: 'New Hierarchy', newJoint: 'New Joint', ID: 'ID', encoding: 'Encoding', length: 'Length', shardBy: 'Shard By', dataType: 'Data Type', resetDimensions: 'Reset', cubeSuggestion: 'Optimize', collectsqlPatterns: 'Collect SQL Patterns', dimensionOptimizations: 'Dimension optimizations', dO: 'Clicking on the optimize will output the suggested dimension type (normal / derived), aggregate group settings, and Rowkey order.Reset will drop all existing the aggregate group settings and Rowkey order.', AGG: 'Aggregation group is group of cuboids that are constrained by common rules. Users can apply different settings on cuboids in all aggregation groups to meet the query requirements, and saving storage space.', maxGroup: 'Dimension limitations mean max dimensions may be contained within a group of SQL queries. In a set of queries, if each query required the number of dimensions is not more than five, you can set 5 here.'},
+    'zh-cn': {dimensions: '维度', name: '名称', type: '类型', tableAlias: '表别名', column: '列名', datatype: '数据类型', cardinality: '基数', comment: '注释', action: '操作', addDimensions: '添加维度', editDimension: 'Edit Dimension', filter: '过滤器', cancel: '取消', yes: '确定', aggregationGroups: '聚合组', Includes: '包含的维度', mandatoryDimensions: '必需维度', hierarchyDimensions: '层级维度', jointDimensions: '联合维度', addAggregationGroups: '添加聚合组', newHierarchy: '新的层数', newJoint: '新的组合', ID: 'ID', encoding: '编码', length: '长度', shardBy: 'Shard By', dataType: '数据类型', resetDimensions: '重置', cubeSuggestion: 'Optimize', collectsqlPatterns: '输入sql', dimensionOptimizations: '维度优化', dO: '点击优化维度将输出优化器推荐的维度类型（正常／衍生）、聚合组设置与Rowkey顺序。重置则会清空已有的聚合组设置与当前Rowkey顺序。', AGG: '聚合组是指受到共同规则约束的维度组合。 使用者可以对所有聚合组里的维度组合进行不同设置以满足查询需求，并最大化节省存储空间。', maxGroup: '查询最大维度数是指一组查询语句中所含维度的最大值。在查询中，每条查询所需的维度数基本都不超过五，则可以在这里设置5。'}
   }
 }
 </script>
 <style lang="less">
   @import '../../../less/config.less';
+  .dimensionBox{
+    .active{
+      background: #0aaacc!important;
+    }
+  }
   .table_margin {
     margin-top: 20px;
     margin-bottom: 20px;
@@ -782,6 +835,9 @@ export default {
     padding-left: 25px;
     margin-top: -15px;
     padding-top: 15px;
+    .cell{
+      white-space: nowrap;
+    }
   }
   .close-dimentions{
     position: absolute;
@@ -803,5 +859,34 @@ export default {
   #apply-r{
     border-radius: 3px;
     position: relative;
+  }
+  .rowkeys{
+    .el-input__inner{
+      height: 30px;
+    }
+  }
+  .dimension-type{
+    .normal, .direved{
+      width: 40px;
+      height: 20px;
+      border-radius: 3px;
+    }
+    .normal{
+      background: #0b89bb;
+    }
+    .direved{
+      background: #515465;
+    }
+    li{
+      float: left;
+      line-height: 20px;
+    }
+    li:nth-child(2){
+      margin-left: 10px;
+    }
+  }
+  .d-tip{
+    position: relative;
+    top: 3px;
   }
 </style>
