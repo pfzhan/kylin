@@ -2,8 +2,7 @@
 <div class="paddingbox ksd-border-tab cube-list" style="min-height:800px" id="cube-list">
 <img src="../../assets/img/no_cube.png" class="null_pic" v-if="!(cubesList && cubesList.length)" >
   <el-row class="cubeSearch">
-   <el-button type="primary" class="ksd-mb-10 ksd-fleft" @click.native="addCube" style="font-weight: bold;border-radius: 20px;">+{{$t('kylinLang.common.cube')}}</el-button>
-    <el-select v-model="currentModel" class="ksd-ml-20" :placeholder="$t('chooseModel')">
+    <el-select v-model="currentModel" style="float: left;margin-left: 0!important;" class="ksd-ml-20" :placeholder="$t('chooseModel')">
       <el-option
         v-for="item in modelsList"
         :key="item.name"
@@ -11,6 +10,7 @@
         :value="item.name">
       </el-option>
     </el-select>
+   <el-button type="blue" class="ksd-mb-10 ksd-fleft" @click.native="addCube" style="font-weight: bold;border-radius: 20px;float: left;margin-left: 20px;">+{{$t('kylinLang.common.cube')}}</el-button>
   </el-row>
 
   <el-table id="cube-list-table" v-if="cubesList&&cubesList.length"
@@ -175,7 +175,7 @@
           <el-input v-model="cubeMeta.cubeName" auto-complete="off"></el-input>
         </el-form-item>
         <el-form-item :label="$t('kylinLang.model.modelName')" prop="modelName">
-           <el-select v-model="cubeMeta.modelName">
+           <el-select v-model="cubeMeta.modelName" style="width: 100%;" :placeholder="$t('kylinLang.common.pleaseSelect')">
             <el-option
               v-for="item in allModels"
               :key="item.name"
@@ -689,6 +689,9 @@ export default {
     margin-right: 30px;
     .el-form-item__label{
       float: none;
+    }
+    .el-icon-arrow-right{
+      color: #d4d7e3;
     }
     .el-table {
       .is_draft {

@@ -515,6 +515,7 @@ li {list-style-type:none;}
     border-color: transparent;
     background: @bg-menu;
     color: @fff;
+    font-size: 12px;
   }
   .el-dropdown-menu > li:hover{
     background: #4e5571;
@@ -948,7 +949,7 @@ tr.current-row > td{
     background: transparent!important;
   }
   &.el-button--blue:hover{
-    color: @base-color!important;
+    background: @base-color!important;
   }
   &.el-button--grey{
     background: @grey-color;
@@ -970,6 +971,9 @@ tr.current-row > td{
     background-color: @grey-color!important;
     border-color: @grey-color;
   }
+  &.el-button--edit:hover{
+    background-color: @base-color!important;
+  }
 }
 // 单选按钮 (样式待定)
 .el-radio-group{
@@ -985,7 +989,6 @@ tr.current-row > td{
     }
   }
 }
-
 .el-tag{
   &.el-tag--primary{
     background-color: #0b89bb;
@@ -1009,7 +1012,10 @@ tr.current-row > td{
     border: 1px solid #9095ab!important;
   }
 }
-
+.el-tabs__item{
+  height: 36px!important;
+  line-height: 36px!important;
+}
 
 
 

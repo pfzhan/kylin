@@ -26,7 +26,7 @@
             </el-select>
         </el-col>
         <el-col :span="2" class="ksd-lineheight-30 ksd-mr-10">
-          <el-button type="primary" icon="minus" size="mini" @click.native="removeTimeRange(index)"></el-button>
+          <el-button type="danger" icon="minus" size="mini" @click.native="removeTimeRange(index)"></el-button>
         </el-col>                
       </el-row>
       <el-button class="btn_margin"  icon="plus" @click.native="addNewTimeRange">{{$t('newThresholds')}} </el-button>

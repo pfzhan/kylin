@@ -1,11 +1,11 @@
 <template>
 <div class="box-card" id="overwrites">
   <el-row>
-    <el-col :span="24">  {{$t('propertyTip')}}</el-col>
+    <el-col :span="24" style="font-size: 14px;margin-bottom: 10px;">  {{$t('propertyTip')}}</el-col>
       </el-row>
   </el-row>
   <el-row v-for="(property, index) in convertedProperties" :key="index" :gutter="20" class="row_padding">
-    <el-col :span="1">
+    <el-col :span="1" style="margin-right: -15px;">
       <el-checkbox v-show="property.isDefault" v-model="property.checked" @change="changeProperty(index)"></el-checkbox>
     </el-col>
      <el-col :span="10" :offset="property.isDefault?0:1">
@@ -20,7 +20,7 @@
   </el-row>
   <el-row>
     <el-col>
-      <el-button style="margin-top: 10px;" type="default" size="small" icon="plus" @click.native="addNewProperty">{{$t('addConfiguration')}}</el-button>
+      <el-button style="margin-top: 10px;margin-left: 35px;" type="default" icon="plus" @click.native="addNewProperty">{{$t('addConfiguration')}}</el-button>
     </el-col>
   </el-row>
 </div>

@@ -1,6 +1,6 @@
 <template>
 <div class="info-edit">
-  <el-form ref="info_form" label-width="200px" :model="cubeDesc" :rules="rules">
+  <el-form ref="info_form" label-width="150px" :model="cubeDesc" :rules="rules">
     <h2 class="title">{{$t("basicInfo")}}</h2>
     <el-form-item :label="$t('modelName')">
       {{modelDesc.name}}
@@ -37,7 +37,7 @@
   </el-row>
   <div class="line" style="margin-left: -30px;margin-right: -30px;margin-top: 105px;"></div>
   <el-dialog :title="$t('collectsqlPatterns')" v-model="addSQLFormVisible">
-    <editor v-model="sqlString"  theme="chrome" class="ksd-mt-20" width="100%" height="400" ></editor>
+    <editor v-model="sqlString"  theme="chrome" class="ksd-mt-20" width="95%" height="200" ></editor>
     <span slot="footer" class="dialog-footer">
       <el-button @click="addSQLFormVisible = false">{{$t('cancel')}}</el-button>
       <el-button type="primary" :loading="sqlBtnLoading" @click="collectSqlToServer">{{$t('yes')}}</el-button>
@@ -158,6 +158,12 @@ export default {
     }
     .ace_content{
       background: #20222e;
+    }
+    .el-form-item__content{
+      // background: yellow;
+      // &.el-input__inner{
+      //   background: yellow!important;
+      // }
     }
   }
 </style>

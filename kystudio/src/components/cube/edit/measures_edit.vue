@@ -4,7 +4,6 @@
     <el-button type="blue" icon="menu" @click.native="cubeSuggestions" :disabled="isReadyCube">{{$t('measuresSuggestion')}}</el-button>
     <el-button type="default" icon="setting" @click.native="resetMeasures" :disabled="isReadyCube">{{$t('resetMeasures')}}</el-button>
   </div>
-  
   <el-table class="table_margin"
     :data="cubeDesc.measures"
     border stripe 

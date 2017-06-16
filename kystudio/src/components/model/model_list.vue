@@ -1,7 +1,7 @@
 <template>
 	<div class="paddingbox modelist_box" style="margin-left: 30px;min-height:600px; margin-right: 30px;">
    <img src="../../assets/img/no_model.png" class="null_pic" v-if="!(modelsList && modelsList.length)">
-    <el-button type="primary" class="ksd-mb-10" id="addModel" v-if="isAdmin" @click="addModel" style="font-weight: bold;border-radius: 20px;"><span class="add">+</span><span>{{$t('kylinLang.common.model')}}</span></el-button>
+    <el-button type="default" class="ksd-mb-10" id="addModel" v-if="isAdmin" @click="addModel" style="font-weight: bold;border-radius: 20px;"><span class="add">+</span><span>{{$t('kylinLang.common.model')}}</span></el-button>
     <br/>
     <p class="ksd-right ksd-mb-10" v-if="modelsList&&modelsList.length">
       <span class="icon_card" @click="changeGridModal('card')" :class="{active: viewModal==='card'}"></span>
@@ -43,6 +43,7 @@
 
     <el-table v-if="viewModal!=='card'"
     :data="modelsList"
+    border
     :row-class-name="showRowClass"
     stripe
     style="width: 100%">

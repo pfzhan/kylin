@@ -1,5 +1,5 @@
 <template>
-	<div class="datasource">
+	<div class="datasource" id="datasource">
     <div class="tree_list">
       <el-radio-group v-model="currentLoadType" class="ksd-mt-30 ksd-ml-30" v-if="isAdmin">
 		    <el-radio-button label="Hive" @click.native="openLoadHiveListDialog"><icon name="download" scale="0.8"></icon><span> Hive</span></el-radio-button>
@@ -22,7 +22,7 @@
   <!--           <el-button type="danger" @click.native="unloadTable" icon="delete2">Unload</el-button> -->
             <p style="font-size:12px;margin-top:10px;text-align:right;padding-right:4px;">{{$t('kylinLang.dataSource.lastModified')}} {{extendData.last_modified}}</p>
         </div>
-      	<el-tabs v-model="activeName" class="ksd-mt-40 clear" v-show="tableData">
+      	<el-tabs v-model="activeName" class="ksd-mt-40 clear" v-show="tableData" id="datasource-table">
 		    <el-tab-pane :label="$t('kylinLang.dataSource.columns')" name="first">
 	    	  <el-table
 			    :data="tableData.columns"
@@ -829,6 +829,9 @@ export default {
     }
   }
 .datasource{
+  *{
+    font-size: 12px;
+  }
   .extendInfo {
     float: left;
     margin-top: 4px;
@@ -965,5 +968,13 @@ export default {
   .el-button--info:hover{
     border-color: #4cb050;
   }
+}
+#datasource-table{
+  .el-tabs__nav-scroll{
+    margin-left: 0!important;
+  }
+}
+.null_pic{
+  width: 150px;
 }
 </style>

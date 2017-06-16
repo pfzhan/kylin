@@ -8,8 +8,9 @@
     <el-dropdown-item command="kapmanual">{{$t('Manual')}}</el-dropdown-item>
     <el-dropdown-item command="kybot">
       <div v-if='!isLogin'>
-        <el-button style="color: #fff;font-size: 16px;" type="text" @click="alertKybot">{{$t('kybotAuto')}}</el-button>
+        <el-button style="color: #fff;font-size: 12px;" type="text" @click="alertKybot">{{$t('kybotAuto')}}</el-button>
         <el-switch
+          id="header-switch"
           v-model="isopend"
           on-color="#13ce66"
           off-color="#ff4949"
@@ -31,7 +32,7 @@
   <about_kap :about="serverAbout">
   </about_kap>
 </el-dialog>
-<el-dialog v-model="kyBotUploadVisible" title="KyAccount | Sign in" size="tiny" @close="resetLoginKybotForm">
+<el-dialog id="login-kybotAccount" v-model="kyBotUploadVisible" title="KyAccount | Sign in" size="tiny" @close="resetLoginKybotForm">
   <login_kybot ref="loginKybotForm" @closeLoginForm="closeLoginForm" @closeLoginOpenKybot="closeLoginOpenKybot"></login_kybot>
 </el-dialog>
 <el-dialog v-model="infoKybotVisible" :title="$t('kybotAuto')" size="tiny">
@@ -303,5 +304,22 @@
       margin: 0 auto;
       background: @base-color;
     }
+  }
+  #header-switch{
+    transform: scale(0.9);
+  }
+  #login-kybotAccount{
+    .el-dialog__header{
+      height: 50px;
+      line-height: 50px;
+    }
+    .el-dialog__body{
+      .el-form{
+        margin-top: 30px;
+      }
+      .el-input{
+        padding: 0;
+      }
+    } 
   }
 </style>

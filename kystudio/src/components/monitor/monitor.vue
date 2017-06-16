@@ -56,6 +56,7 @@ export default {
 }
 #monitor *{
   border-color: @grey-color;
+  font-size: 12px;
 }
 .el-table::after, .el-table::before{
   background: @grey-color;

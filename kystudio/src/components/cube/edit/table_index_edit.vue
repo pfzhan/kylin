@@ -116,7 +116,7 @@
      
     
      <div class="ksd-common-table" v-if="usedRawTable && rawTable.tableDetail.columns.length">
-     <p class="ksd-left">{{$t('dragSorted')}}</p>
+     <p class="ksd-left" style="margin-bottom: 15px;">{{$t('dragSorted')}}</p>
        <el-row class="tableheader">
          <el-col :span="1">{{$t('ID')}}</el-col>
          <el-col :span="6">{{$t('column')}}</el-col>
@@ -392,5 +392,10 @@ export default {
 }
 .ksd-common-table .tablebody{
   border-color: @grey-color;
+}
+#table-index{
+  .el-input__inner{
+    height: 30px;
+  }
 }
 </style>
