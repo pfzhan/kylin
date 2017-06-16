@@ -6,7 +6,7 @@
     <div class="ksd_right_box">
 	 <el-tabs type="border-card" v-model="activeMenu" class="query_box">
 	  <el-tab-pane :label="$t('newQuery')" name="first">
-      <editor v-model="sourceSchema" lang="sql" theme="chrome" width="100%" height="200" useWrapMode="true"></editor>
+      <editor v-model="sourceSchema" ref="insightBox" lang="sql" theme="chrome" width="100%" height="200" useWrapMode="true"></editor>
       <p class="tips_box">{{$t('tips')}}</p>
       <p class="ksd-right">
         <el-form :inline="true" class="demo-form-inline">
@@ -306,7 +306,11 @@ export default {
     clickTable (leaf) {
       if (leaf && !leaf.children) {
         var tipsName = leaf.label
-        this.sourceSchema += ' ' + tipsName
+        // console.log(this.$refs.insightBox)
+        var editor = this.$refs.insightBox.editor
+        editor.focus()
+        editor.insert(tipsName)
+        this.sourceSchema = editor.getValue()
       }
     },
     submitQuery () {

@@ -257,7 +257,9 @@
       },
       changeProject () {
         this.$router.go(0)
-        location.reload()
+        if (navigator.userAgent.indexOf('Safari') > 0) {
+          location.reload()
+        }
       },
       addProject () {
         this.FormVisible = true

@@ -556,78 +556,78 @@ export default {
       }).catch((e) => {
       })
     },
-    saveOrUpdateRawTable: function () {
-      if (this.cubeDetail.engine_type === 100 || this.cubeDetail.engine_type === 99) {
-        let _this = this
-        _this.rawTable.tableDetail.name = _this.cubeDetail.name
-        _this.rawTable.tableDetail.model_name = _this.cubeDetail.model_name
-        _this.rawTable.tableDetail.engine_type = _this.cubeDetail.engine_type
-        _this.rawTable.tableDetail.storage_type = _this.cubeDetail.storage_type
-        _this.loadRawTable(_this.cubeDetail.name).then((res) => {
-          handleSuccess(res, (data, code, status, msg) => {
-            if (_this.rawTable.tableDetail.columns.length > 0) {
-              _this.updateRawTable({project: this.selected_project, rawTableDescData: JSON.stringify(_this.rawTable.tableDetail), rawTableName: this.cubeDetail.name}).then((res) => {
-                handleSuccess(res, (data, code, status, msg) => {
-                })
-              }).catch((res) => {
-                handleError(res, (data, code, status, msg) => {
-                })
-              })
-            } else {
-              if (_this.rawTable.needDelete) {
-                _this.deleteRawTable(this.cubeDetail.name).then((res) => {
-                  handleSuccess(res, (data, code, status, msg) => {
-                  })
-                }).catch((res) => {
-                  handleError(res, (data, code, status, msg) => {
-                  })
-                })
-              }
-            }
-          })
-        }).catch((res) => {
-          handleError(res, (data, code, status, msg) => {
-            if (_this.rawTable.tableDetail.columns.length > 0) {
-              _this.saveRawTable({project: this.selected_project, rawTableDescData: JSON.stringify(_this.rawTable.tableDetail)}).then((res) => {
-                handleSuccess(res, (data, code, status, msg) => {
-                })
-              }).catch((res) => {
-                handleError(res, (data, code, status, msg) => {
-                })
-              })
-            }
-          })
-        })
-      }
-    },
-    saveOrUpdateScheduler: function () {
-      let _this = this
-      if (_this.isEdit) {
-        _this.updateScheduler(_this.scheduler).then((res) => {
-          handleSuccess(res, (data, code, status, msg) => {
-          })
-        }).catch((res) => {
-          handleError(res, (data, code, status, msg) => {
-            this.$message({
-              type: 'error',
-              message: msg
-            })
-          })
-        })
-      } else {
-        _this.saveScheduler(_this.scheduler).then((res) => {
-          handleSuccess(res, (data, code, status, msg) => {
-          })
-        }).catch((res) => {
-          handleError(res, (data, code, status, msg) => {
-            this.$message({
-              type: 'error',
-              message: msg
-            })
-          })
-        })
-      }
-    },
+    // saveOrUpdateRawTable: function () {
+    //   if (this.cubeDetail.engine_type === 100 || this.cubeDetail.engine_type === 99) {
+    //     let _this = this
+    //     _this.rawTable.tableDetail.name = _this.cubeDetail.name
+    //     _this.rawTable.tableDetail.model_name = _this.cubeDetail.model_name
+    //     _this.rawTable.tableDetail.engine_type = _this.cubeDetail.engine_type
+    //     _this.rawTable.tableDetail.storage_type = _this.cubeDetail.storage_type
+    //     _this.loadRawTable(_this.cubeDetail.name).then((res) => {
+    //       handleSuccess(res, (data, code, status, msg) => {
+    //         if (_this.rawTable.tableDetail.columns.length > 0) {
+    //           _this.updateRawTable({project: this.selected_project, rawTableDescData: JSON.stringify(_this.rawTable.tableDetail), rawTableName: this.cubeDetail.name}).then((res) => {
+    //             handleSuccess(res, (data, code, status, msg) => {
+    //             })
+    //           }).catch((res) => {
+    //             handleError(res, (data, code, status, msg) => {
+    //             })
+    //           })
+    //         } else {
+    //           if (_this.rawTable.needDelete) {
+    //             _this.deleteRawTable(this.cubeDetail.name).then((res) => {
+    //               handleSuccess(res, (data, code, status, msg) => {
+    //               })
+    //             }).catch((res) => {
+    //               handleError(res, (data, code, status, msg) => {
+    //               })
+    //             })
+    //           }
+    //         }
+    //       })
+    //     }).catch((res) => {
+    //       handleError(res, (data, code, status, msg) => {
+    //         if (_this.rawTable.tableDetail.columns.length > 0) {
+    //           _this.saveRawTable({project: this.selected_project, rawTableDescData: JSON.stringify(_this.rawTable.tableDetail)}).then((res) => {
+    //             handleSuccess(res, (data, code, status, msg) => {
+    //             })
+    //           }).catch((res) => {
+    //             handleError(res, (data, code, status, msg) => {
+    //             })
+    //           })
+    //         }
+    //       })
+    //     })
+    //   }
+    // },
+    // saveOrUpdateScheduler: function () {
+    //   let _this = this
+    //   if (_this.isEdit) {
+    //     _this.updateScheduler(_this.scheduler).then((res) => {
+    //       handleSuccess(res, (data, code, status, msg) => {
+    //       })
+    //     }).catch((res) => {
+    //       handleError(res, (data, code, status, msg) => {
+    //         this.$message({
+    //           type: 'error',
+    //           message: msg
+    //         })
+    //       })
+    //     })
+    //   } else {
+    //     _this.saveScheduler(_this.scheduler).then((res) => {
+    //       handleSuccess(res, (data, code, status, msg) => {
+    //       })
+    //     }).catch((res) => {
+    //       handleError(res, (data, code, status, msg) => {
+    //         this.$message({
+    //           type: 'error',
+    //           message: msg
+    //         })
+    //       })
+    //     })
+    //   }
+    // },
     getEncoding: function (encode) {
       let code = encode.split(':')
       return code[0]
@@ -689,14 +689,18 @@ export default {
             }).then(() => {
               this.cubeDetail = data.draft
               loadRowTable(true)
+              loadScheduler(true)
             }).catch(() => {
               this.cubeDetail = data.cube
               loadRowTable(false)
+              loadScheduler(false)
             })
           } else {
             if (data.cube) {
               loadRowTable(false)
+              loadScheduler(false)
             } else {
+              loadScheduler(true)
               loadRowTable(true)
             }
           }
@@ -708,6 +712,20 @@ export default {
                   _this.$set(_this.rawTable, 'tableDetail', rawtableData)
                   _this.$store.state.cube.cubeRowTableIsSetting = true
                 }
+              })
+            })
+          }
+          function loadScheduler (isDraft) {
+            _this.getScheduler(_this.extraoption.cubeName).then((res) => {
+              handleSuccess(res, (data, code, status, msg) => {
+                var schedulerData = isDraft ? data.draft : data.schedulerJob
+                // this.initRepeatInterval(schedulerData)
+                _this.scheduler.desc.scheduled_run_time = schedulerData.scheduled_run_time
+                // this.scheduledRunTime = transToUtcTimeFormat(this.scheduler.desc.scheduled_run_time)
+                _this.scheduler.desc.partition_interval = schedulerData.partition_interval
+              })
+            }).catch((res) => {
+              handleError(res, () => {
               })
             })
           }

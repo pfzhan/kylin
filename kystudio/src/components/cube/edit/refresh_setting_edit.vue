@@ -142,7 +142,6 @@ export default {
       this.cubeDesc.auto_merge_time_ranges.splice(index, 1)
     },
     initRepeatInterval: function (data) {
-      console.log(data, 33)
       let _week = Math.floor(data.partition_interval / 604800000)
       let _day = Math.floor(data.partition_interval / 86400000)
       let _hour = Math.floor(data.partition_interval / 3600000)

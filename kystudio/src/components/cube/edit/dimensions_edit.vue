@@ -247,18 +247,11 @@
         <el-button type="primary" @click="checkAddDimensions">{{$t('yes')}}</el-button>
       </span>     
     </el-dialog>  
-    <el-dialog :title="$t('collectsqlPatterns')" v-model="addSQLFormVisible">
-      <editor v-model="sqlString"  theme="chrome" class="ksd-mt-20" width="100%" height="400" ></editor>
-      <span slot="footer" class="dialog-footer">
-        <el-button @click="addSQLFormVisible = false">{{$t('cancel')}}</el-button>
-        <el-button type="primary" :loading="sqlBtnLoading" @click="collectSqlToServer">{{$t('yes')}}</el-button>
-      </span>     
-    </el-dialog>  
   </div>
 </template>
 <script>
 import { handleSuccess, handleError, loadBaseEncodings, getTableNameInfoByAlias } from '../../../util/business'
-import { changeDataAxis, indexOfObjWithSomeKey } from '../../../util/index'
+import { changeDataAxis, indexOfObjWithSomeKey, ObjectArraySortByArray } from '../../../util/index'
 import { mapActions } from 'vuex'
 import areaLabel from '../../common/area_label'
 import addDimensions from '../dialog/add_dimensions'
@@ -346,9 +339,7 @@ export default {
       if (columnNameInfo.length) {
         var alias = columnNameInfo[0]
         var column = columnNameInfo[1]
-        console.log(alias)
         var tableInfo = getTableNameInfoByAlias(this.modelDesc, alias)
-        console.log(tableInfo)
         if (tableInfo) {
           var database = tableInfo.database
           var tableName = tableInfo.tableName
@@ -378,24 +369,24 @@ export default {
         }
       }
     },
-    collectSqlToServer () {
-      if (this.sqlString !== '') {
-        this.sqlBtnLoading = true
-        this.saveSampleSql({modelName: this.modelDesc.name, cubeName: this.cubeDesc.name, sqls: this.sqlString.split(/;/)}).then((res) => {
-          this.sqlBtnLoading = false
-          handleSuccess(res, (data, code, status, msg) => {
-            this.$set(this.modelDesc, 'suggestionDerived', data.dimensions)
-            // this.$set(this.cubeDesc, 'aggregation_groups', data.aggregation_groups)
-            this.$set(this.cubeDesc, 'override_kylin_properties', data.override_kylin_properties)
-            this.dim_cap = data.aggregation_groups[0].select_rule.dim_cap || 0
-            this.addSQLFormVisible = false
-          })
-        }, (res) => {
-          this.sqlBtnLoading = false
-          handleError(res)
-        })
-      }
-    },
+    // collectSqlToServer () {
+    //   if (this.sqlString !== '') {
+    //     this.sqlBtnLoading = true
+    //     this.saveSampleSql({modelName: this.modelDesc.name, cubeName: this.cubeDesc.name, sqls: this.sqlString.split(/;/)}).then((res) => {
+    //       this.sqlBtnLoading = false
+    //       handleSuccess(res, (data, code, status, msg) => {
+    //         this.$set(this.modelDesc, 'suggestionDerived', data.dimensions)
+    //         // this.$set(this.cubeDesc, 'aggregation_groups', data.aggregation_groups)
+    //         this.$set(this.cubeDesc, 'override_kylin_properties', data.override_kylin_properties)
+    //         this.dim_cap = data.aggregation_groups[0].select_rule.dim_cap || 0
+    //         this.addSQLFormVisible = false
+    //       })
+    //     }, (res) => {
+    //       this.sqlBtnLoading = false
+    //       handleError(res)
+    //     })
+    //   }
+    // },
     cubeSuggestions: function () {
       this.getCubeSuggestions({cubeDescData: JSON.stringify(this.cubeDesc)}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
@@ -541,6 +532,8 @@ export default {
         })
       })
     },
+    rowKeyToDesc () {
+    },
     initEncodingType: function (rowkey) {
       if (!this.modelDesc.columnsDetail[rowkey.column]) {
         return
@@ -551,7 +544,6 @@ export default {
       if (this.isEdit) {
         let _encoding = this.getEncoding(rowkey.encoding)
         let _version = parseInt(this.getVersion(rowkey.encoding))
-        // console.log(_encoding, _version, 456235587)
         let addEncodings = baseEncodings.addEncoding(_encoding, _version)
         return addEncodings
       } else {
@@ -706,6 +698,9 @@ export default {
         // this.initConvertedRowkeys()
         // this.initCalCuboid()
       })
+    })
+    this.$dragging.$on('dragged', ({ value }) => {
+      this.cubeDesc.rowkey.rowkey_columns = ObjectArraySortByArray(this.convertedRowkeys, this.cubeDesc.rowkey.rowkey_columns, 'column', 'column')
     })
   },
   computed: {

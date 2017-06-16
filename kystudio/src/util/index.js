@@ -133,6 +133,20 @@ export function objectArraySort (objArr, sequence, sortKey) {
   return objectArr
 }
 
+export function ObjectArraySortByArray (arr1, arr2, key1, key2) {
+  var resultArr = []
+  var len1 = arr1 && arr1.length || 0
+  var len2 = arr2 && arr2.length || 0
+  for (var i = 0; i < len1; i++) {
+    for (var j = 0; j < len2; j++) {
+      if (arr2[j][key2] === arr1[i][key1]) {
+        resultArr.push(arr2[j])
+      }
+    }
+  }
+  return resultArr
+}
+
 export function objectClone (obj) {
   if (typeof obj !== 'object') {
     return obj

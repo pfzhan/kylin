@@ -16,9 +16,9 @@
       </el-col>
     </el-row>
   	<div>
-<kap-icon-button  v-show="viewModel" icon="area-chart" type="parimary" @click.native="changeViewModel">Visualization</kap-icon-button>
-<kap-icon-button v-show="!viewModel" icon="table" type="parimary" @click.native="changeViewModel">Grid</kap-icon-button>
-<kap-icon-button icon="external-link" type="parimary" @click.native="exportData">Export</kap-icon-button>
+<kap-icon-button  v-show="viewModel" icon="area-chart" type="primary" @click.native="changeViewModel">Visualization</kap-icon-button>
+<kap-icon-button v-show="!viewModel" icon="table" type="primary" @click.native="changeViewModel">Grid</kap-icon-button>
+<kap-icon-button icon="external-link" type="primary" @click.native="exportData">Export</kap-icon-button>
    <!-- <el-button><icon name="external-link"></icon> Export</el-button> -->
    </div>
   	<div class="ksd-mt-20" v-show="viewModel">

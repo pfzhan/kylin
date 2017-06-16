@@ -44,11 +44,15 @@
 </template>
 <script>
 import areaLabel from '../../common/area_label'
+import { mapActions } from 'vuex'
+import {handleSuccess, handleError} from 'util/business'
 export default {
   name: 'info',
   props: ['cubeDesc', 'modelDesc', 'isEdit'],
   data () {
     return {
+      sqlBtnLoading: false,
+      sqlString: '',
       addSQLFormVisible: false,
       getNotifyList: this.cubeDesc.notify_list && this.cubeDesc.notify_list.toString() || '',
       options: [{label: 'ERROR', value: 'ERROR'}, {label: 'DISCARDED', value: 'DISCARDED'}, {label: 'SUCCEED', value: 'SUCCEED'}],
@@ -62,6 +66,9 @@ export default {
     }
   },
   methods: {
+    ...mapActions({
+      saveSampleSql: 'SAVE_SAMPLE_SQL'
+    }),
     changeNotifyList: function () {
       this.cubeDesc.notify_list = this.getNotifyList.split(',')
     },
@@ -73,7 +80,22 @@ export default {
       }
     },
     collectSql () {
+      this.sqlString = ''
       this.addSQLFormVisible = true
+    },
+    collectSqlToServer () {
+      if (this.sqlString !== '') {
+        this.sqlBtnLoading = true
+        this.saveSampleSql({modelName: this.modelDesc.name, cubeName: this.cubeDesc.name, sqls: this.sqlString.split(/;/)}).then((res) => {
+          this.sqlBtnLoading = false
+          handleSuccess(res, (data, code, status, msg) => {
+            this.addSQLFormVisible = false
+          })
+        }, (res) => {
+          this.sqlBtnLoading = false
+          handleError(res)
+        })
+      }
     }
   },
   components: {

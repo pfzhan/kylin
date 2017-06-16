@@ -258,14 +258,14 @@
         v-model="loadResultVisible"
         >
          <el-alert v-for=" su in loadResult.success" :key="su"
-            :title="$t('kylinLang.common.success')+currentAction+'['+su+']'"
+            :title="$t('kylinLang.common.success')+ ' ' + currentAction+'['+su+']'"
             type="success"
             :closable="false"
             class="ksd-mt-10"
             show-icon>
           </el-alert>
             <el-alert v-for=" fa in loadResult.fail" :key="fa"
-            :title="$t('kylinLang.common.fail')+currentAction+'['+fa+']'"
+            :title="$t('kylinLang.common.fail') + ' ' + currentAction+'['+fa+']'"
             type="error"
             :closable="false"
             show-icon>
@@ -436,7 +436,7 @@ export default {
       this.tableStaticsRange = 100
       this.openCollectRange = 100
       this.scanRatioDialogVisible = false
-      this.currentAction = '加载'
+      this.currentAction = this.$t('load')
       var tableName = this.tableData.database + '.' + this.tableData.name
       this.checkTableHasJob(tableName, () => {
         // this.scanRatioDialogVisible = true
