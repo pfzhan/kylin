@@ -102,7 +102,7 @@ public class CollectModelStatsJob extends CubingJob {
         format.setTimeZone(TimeZone.getTimeZone(config.getTimeZone()));
         setDeployEnvName(config.getDeployEnv());
         setProjectName(project);
-        setName("Collect " + modelName + " statistics " + format.format(new Date(System.currentTimeMillis())));
+        setName("CHECK MODEL - " + modelName + " - " + format.format(new Date(System.currentTimeMillis())));
         setSubmitter(submitter);
         setParam(CubingExecutableUtil.CUBE_NAME, modelName);
 

@@ -97,7 +97,7 @@ public class HiveTableExtSampleJob extends CubingJob {
         format.setTimeZone(TimeZone.getTimeZone(config.getTimeZone()));
         setDeployEnvName(config.getDeployEnv());
         setProjectName(project);
-        setName("Collect " + tableName + " statistics " + format.format(new Date(System.currentTimeMillis())));
+        setName("SAMPLING TABLE - " + tableName + " - " + format.format(new Date(System.currentTimeMillis())));
         setSubmitter(submitter);
         setParam(CubingExecutableUtil.CUBE_NAME, tableName);
         addSteps(this);
