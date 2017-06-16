@@ -26,13 +26,18 @@ package io.kyligence.kap.rest;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.model.CubeBuildTypeEnum;
+import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.job.JobInstance;
 import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.service.JobService;
 import org.quartz.Job;
@@ -62,6 +67,11 @@ public class ScheduleBuildJob implements Job {
 
     public synchronized void execute(JobExecutionContext context) throws JobExecutionException {
         SpringBeanAutowiringSupport.processInjectionBasedOnCurrentContext(this);
+
+        if (jobService == null || schedulerJobService == null) {
+            return;
+        }
+
         JobDetail jobDetail = context.getJobDetail();
         JobDataMap dataMap = jobDetail.getJobDataMap();
         Scheduler scheduler = context.getScheduler();
@@ -79,6 +89,13 @@ public class ScheduleBuildJob implements Job {
             JobInstance jobInstance = null;
             CubeInstance cube = jobService.getCubeManager().getCube(schedulerInstance.getRelatedRealization());
             boolean schedulerRemoved = false;
+            List<CubingJob> cubingJobs = jobService.listJobsByRealizationName(cube.getName(), schedulerInstance.getProject(),
+                    EnumSet.of(ExecutableState.RUNNING));
+
+            if (cubingJobs != null && cubingJobs.size() > 0) {
+                logger.info("Scheduler of jobName " + jobName + " is still cubing, skip this time.");
+                return;
+            }
 
             if (lastJobUuid != null) {
                 jobInstance = jobService.getJobInstance(lastJobUuid);
@@ -111,9 +128,16 @@ public class ScheduleBuildJob implements Job {
                     endTime = calender.getTimeInMillis();
                 }
 
-                jobInstance = jobService.submitJobInternal(cube, startTime, endTime, 0, 0, null, null,
-                        CubeBuildTypeEnum.BUILD, false, userName);
-                buildingMap.put(cube.getName(), jobInstance.getUuid());
+                if (cube.getModel().getRootFactTable().getTableDesc().getSourceType() == ISourceAware.ID_STREAMING) {
+                    jobInstance = jobService.submitJobInternal(cube, 0, 0, 0, Long.MAX_VALUE, null, null,
+                            CubeBuildTypeEnum.BUILD, false, userName);
+                    buildingMap.put(cube.getName(), jobInstance.getUuid());
+                } else {
+                    jobInstance = jobService.submitJobInternal(cube, startTime, endTime, 0, 0, null, null,
+                            CubeBuildTypeEnum.BUILD, false, userName);
+                    buildingMap.put(cube.getName(), jobInstance.getUuid());
+                }
+
                 buildingJobs.setJobDataMap(buildingMap);
                 scheduler.deleteJob(JobKey.jobKey("building_jobs"));
                 scheduler.addJob(buildingJobs, true);

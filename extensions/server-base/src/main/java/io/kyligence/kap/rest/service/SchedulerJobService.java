@@ -51,10 +51,10 @@ import org.quartz.impl.JobDetailImpl;
 import org.quartz.impl.StdSchedulerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.metadata.scheduler.SchedulerJobInstance;
@@ -62,7 +62,7 @@ import io.kyligence.kap.metadata.scheduler.SchedulerJobManager;
 import io.kyligence.kap.rest.ScheduleBuildJob;
 
 @Component("schedulerJobService")
-public class SchedulerJobService extends BasicService {
+public class SchedulerJobService extends BasicService implements InitializingBean {
 
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(SchedulerJobService.class);
@@ -75,7 +75,9 @@ public class SchedulerJobService extends BasicService {
     @Qualifier("jobService")
     private JobService jobService;
 
-    public SchedulerJobService() throws SchedulerException {
+    @SuppressWarnings("unchecked")
+    @Override
+    public void afterPropertiesSet() throws Exception {
         scheduler = createScheduler();
         scheduler.start();
         //Create a faked job to record each cube's latest building job
@@ -276,8 +278,7 @@ public class SchedulerJobService extends BasicService {
         dataMap.put("cube", instance.getRelatedRealization());
         dataMap.put("startTime", instance.getPartitionStartTime());
         dataMap.put("partitionInterval", instance.getPartitionInterval());
-        dataMap.put("user", SecurityContextHolder.getContext().getAuthentication().getName());
-        dataMap.put("authentication", SecurityContextHolder.getContext().getAuthentication());
+        dataMap.put("user", "JOB_SCHEDULER");
         jobDetail.setJobDataMap(dataMap);
 
         CronExpression cronExp = new CronExpression(
