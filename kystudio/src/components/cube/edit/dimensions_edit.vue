@@ -688,7 +688,7 @@ export default {
     }
   },
   mounted () {
-    this.getSmartDimensions({cubeDescData: JSON.stringify(this.cubeDesc)}).then((res) => {
+    this.getSmartDimensions({model: this.cubeDesc.model_name, cube: this.cubeDesc.name}).then((res) => {
       handleSuccess(res, (data, code, status, msg) => {
         this.$set(this.modelDesc, 'suggestionDerived', data.dimensions)
         // this.$set(this.cubeDesc, 'aggregation_groups', data.aggregation_groups)

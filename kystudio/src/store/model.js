@@ -83,6 +83,9 @@ export default {
     [types.GET_MODEL_PROGRESS]: function ({ commit }, para) {
       return api.model.modelProgress(para)
     },
+    [types.MODEL_CHECKABLE]: function ({ commit }, para) {
+      return api.model.modelCheckable(para)
+    },
     [types.GET_MODEL_ACCESS]: function ({ commit }, id) {
       return api.model.getModelAccess(id).then((res) => {
         commit(types.CACHE_MODEL_ACCESS, {access: res.data.data, id: id})

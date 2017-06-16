@@ -3,8 +3,11 @@
    <img src="../../assets/img/no_model.png" class="null_pic" v-if="!(modelsList && modelsList.length)">
     <el-button type="primary" class="ksd-mb-10" id="addModel" v-if="isAdmin" @click="addModel" style="font-weight: bold;border-radius: 20px;"><span class="add">+</span><span>{{$t('kylinLang.common.model')}}</span></el-button>
     <br/>
-    <p class="ksd-right" v-if="modelsList&&modelsList.length"> <icon @click.native="changeGridModal('card')" name="newspaper-o" :class="{active: viewModal==='card'}"> </icon> <icon @click.native="changeGridModal('list')"  :class="{active: viewModal!=='card'}" name="reorder"></icon></p>
-		<el-row :gutter="20" v-if="viewModal==='card'">
+    <p class="ksd-right ksd-mb-10" v-if="modelsList&&modelsList.length">
+      <span class="icon_card" @click="changeGridModal('card')" :class="{active: viewModal==='card'}"></span>
+      <span class="icon_table" @click="changeGridModal('list')"  :class="{active: viewModal!=='card'}"></span>
+    </p>
+		<el-row :gutter="20" v-if="viewModal==='card'"> 
 		  <el-col :span="8"  v-for="(o, index) in modelsList" :key="o.uuid" :style="{height:'152px'}">
 		    <el-card :body-style="{ padding: '0px'}" style="height:100%" :class="{'is_draft': o.is_draft}">
 		      <p style="font-size: 12px;padding-left: 10px;" class="title">Last updated {{ o.gmtTime }}
@@ -47,7 +50,7 @@
       label="Name"
       width="180">
        <template scope="scope" >
-         <span @click="viewModel(scope.row)" style="cursor:pointer;text-decoration: underline;">{{scope.row.name}}</span>
+         <span @click="viewModel(scope.row)" style="cursor:pointer;">{{scope.row.name}}</span>
        </template>
     </el-table-column>
     <el-table-column
@@ -325,7 +328,8 @@ export default {
       checkModelName: 'CHECK_MODELNAME',
       checkCubeName: 'CHECK_CUBE_NAME_AVAILABILITY',
       getCubesList: 'GET_CUBES_LIST',
-      getModelProgress: 'GET_MODEL_PROGRESS'
+      getModelProgress: 'GET_MODEL_PROGRESS',
+      getModelCheckable: 'MODEL_CHECKABLE'
     }),
     changeGridModal (val) {
       this.viewModal = val
@@ -515,25 +519,39 @@ export default {
         this.cloneModelMeta.project = projectName
         // this.cloneModel(modelName, projectName)
       } else if (command === 'stats') {
-        this.getModelProgress({
-          project: projectName,
-          modelName: modelName
-        }).then((res) => {
+        this.isModelAllowCheck(this.currentModelData.project, this.currentModelData.name).then((res) => {
           handleSuccess(res, (data) => {
             for (var i in data) {
-              if (i === 'false') {
-                this.scanRatioDialogVisible = true
-                this.startTime = 0
-                if (modelData.partition_desc.partition_date_column) {
-                  this.hasPartition = true
-                }
-                return
+              if ('' + i === 'true') {
+                this.getModelProgress({
+                  project: projectName,
+                  modelName: modelName
+                }).then((res) => {
+                  handleSuccess(res, (data) => {
+                    for (var i in data) {
+                      if ('' + i === 'false') {
+                        this.scanRatioDialogVisible = true
+                        this.startTime = 0
+                        if (modelData.partition_desc.partition_date_column) {
+                          this.hasPartition = true
+                        }
+                        return
+                      }
+                    }
+                    this.$message({
+                      type: 'success',
+                      message: this.$t('hasChecked')
+                    })
+                  })
+                })
+              } else {
+                this.$message({
+                  type: 'success',
+                  message: this.$t('canNotChecked')
+                })
               }
+              return
             }
-            this.$message({
-              type: 'success',
-              message: this.$t('hasChecked')
-            })
           })
         })
         // this.stats(projectName, modelName)
@@ -643,6 +661,12 @@ export default {
       }, (res) => {
         handleError(res)
         this.btnLoading = false
+      })
+    },
+    isModelAllowCheck (projectName, modelName) {
+      return this.getModelCheckable({
+        project: projectName,
+        modelName: modelName
       })
     },
     drop () {
@@ -776,8 +800,8 @@ export default {
     window.clearTimeout(this.stCycleRequest)
   },
   locales: {
-    'en': {'modelName': 'Model name', 'addCube': 'Add Cube', 'modelUsedTip': 'The model has been used by cubes as follows，you can only view the Model！', 'inputCloneName': 'Please input new name', 'inputModelName': 'Please input model name', 'inputCubeName': 'Please input cube name', 'delModelTip': 'Are you sure to drop this model?', 'hasNotChecked': 'Not checked health yet', hasChecked: 'There has been a running check job!You can go to Monitor page to watch the progress!'},
-    'zh-cn': {'modelName': '模型名称', 'addCube': '添加Cube', 'modelUsedTip': '该Model已经被下列cube使用过，无法编辑！您可以预览该Model！', 'inputCloneName': '请输入克隆后的名字', 'inputModelName': '请输入model名称', 'inputCubeName': '请输入cube名称', 'delModelTip': '你确认删除该model吗?', 'hasNotChecked': '还未进行健康检测', hasChecked: '已有一个检测作业正在进行中，您可以去Monitor页面查看进度!'}
+    'en': {'modelName': 'Model name', 'addCube': 'Add Cube', 'modelUsedTip': 'The model has been used by cubes as follows，you can only view the Model！', 'inputCloneName': 'Please input new name', 'inputModelName': 'Please input model name', 'inputCubeName': 'Please input cube name', 'delModelTip': 'Are you sure to drop this model?', 'hasNotChecked': 'Not checked health yet', hasChecked: 'There has been a running check job!You can go to Monitor page to watch the progress!', canNotChecked: 'This model can not be checked'},
+    'zh-cn': {'modelName': '模型名称', 'addCube': '添加Cube', 'modelUsedTip': '该Model已经被下列cube使用过，无法编辑！您可以预览该Model！', 'inputCloneName': '请输入克隆后的名字', 'inputModelName': '请输入model名称', 'inputCubeName': '请输入cube名称', 'delModelTip': '你确认删除该model吗?', 'hasNotChecked': '还未进行健康检测', hasChecked: '已有一个检测作业正在进行中，您可以去Monitor页面查看进度!', canNotChecked: '该模型无法进行检测'}
   }
 }
 </script>
@@ -789,6 +813,28 @@ export default {
   }
   .tips{
     font-size: 12px;
+  }
+  .icon_card, .icon_table{
+    display: inline-block;
+    width: 16px;
+    height: 14px;
+    cursor: pointer;
+  }
+  .icon_card {
+    background-image: url('../../assets/img/cardlist.png');
+    background-size: cover;
+  }
+  .icon_card:hover,.icon_card.active {
+    background-image: url('../../assets/img/cardlisthover.png');
+    background-size: cover;
+  }
+  .icon_table{
+    background-image: url('../../assets/img/tablelist.png');
+    background-size: cover;
+  }
+  .icon_table:hover,.icon_table.active{
+    background-image: url('../../assets/img/tablelisthover.png');
+    background-size: cover;
   }
   h2{
     font-size: 16px;

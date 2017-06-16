@@ -8,12 +8,12 @@
         :label="$t('cubeName')"
         prop="realization">
       </el-table-column>
-      <el-table-column
+     <!--  <el-table-column
         :label="$t('kylinLang.common.action')">
         <template scope="scope">
           <span @click="gottoCube" style="cursor:pointer">{{$t('kylinLang.common.detail')}}</span>
         </template>      
-      </el-table-column>
+      </el-table-column> -->
     </el-table>
     <pager class="ksd-center" :perPageSize="pageSize" :totalSize="cubeList.length" :currentPage='currentPage' v-on:handleCurrentChange='pageCurrentChange' ></pager>
   </div>

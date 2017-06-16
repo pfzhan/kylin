@@ -60,6 +60,7 @@ export const LOAD_ALL_MODEL = 'LOAD_ALL_MODEL'
 export const GET_MODEL_PROGRESS = 'GET_MODEL_PROGRESS'
 export const GET_MODEL_ACCESS = 'GET_MODEL_ACCESS'
 export const CACHE_MODEL_ACCESS = 'CACHE_MODEL_ACCESS'
+export const MODEL_CHECKABLE = 'MODEL_CHECKABLE'
 // cube actions mutations
 export const GET_CUBES_LIST = 'GET_CUBES_LIST'
 export const SAVE_CUBES_LIST = 'SAVE_CUBES_LIST'

@@ -137,7 +137,7 @@ export default {
   methods: {
     ...mapActions({
       loadHiddenFeature: 'LOAD_HIDDEN_FEATURE',
-      getCubeSuggestions: 'GET_CUBE_SUGGESTIONS'
+      getCubeSuggestions: 'GET_CUBE_DIMENSIONS'
     }),
     resetMeasures: function () {
       // this.cubeDesc.dimensions.splice(0, this.cubeDesc.dimensions.length)
@@ -147,7 +147,7 @@ export default {
       // this.initConvertedRowkeys()
     },
     cubeSuggestions: function () {
-      this.getCubeSuggestions({cubeDescData: JSON.stringify(this.cubeDesc)}).then((res) => {
+      this.getCubeSuggestions({model: this.cubeDesc.model_name, cube: this.cubeDesc.name}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           this.$set(this.cubeDesc, 'measures', data.measures)
           this.$set(this.cubeDesc.hbase_mapping, 'column_family', data.hbase_mapping.column_family)
@@ -416,7 +416,7 @@ export default {
   },
   created () {
     if (this.cubeDesc.measures.length === 0) {
-      this.autoAddMeasures()
+      // this.autoAddMeasures()  //改为自动建议
     }
     this.loadHiddenFeature({feature_name: 'raw_measure'})
     this.loadHiddenFeature({feature_name: 'extendedcolumn-measure'})

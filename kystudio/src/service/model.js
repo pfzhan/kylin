@@ -51,6 +51,9 @@ export default {
   modelProgress: (para) => {
     return Vue.resource(apiUrl + 'models/' + para.project + '/' + para.modelName + '/progress').get()
   },
+  modelCheckable: (para) => {
+    return Vue.resource(apiUrl + 'models/' + para.project + '/' + para.modelName + '/checkable').get()
+  },
   getModelAccess: (modelId) => {
     return Vue.resource(apiUrl + 'access/DataModelDesc/' + modelId).get()
   }
