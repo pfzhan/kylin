@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.mr.tool;
 
 import java.io.File;
+import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -44,7 +45,6 @@ public class CheckHadoopConfDir implements IKeep {
             System.exit(1);
         }
 
-        Configuration conf = new Configuration(false); // don't load defaults, we are only interested in the specified config dir
         File hadoopConfDir = new File(args[0]).getCanonicalFile();
 
         System.out.println("Checking hadoop config dir " + hadoopConfDir);
@@ -59,7 +59,9 @@ public class CheckHadoopConfDir implements IKeep {
             System.exit(1);
         }
 
-        LocalFileSystem localfs = FileSystem.getLocal(conf);
+        LocalFileSystem localfs = getLocalFSAndHitUGIForTheFirstTime();
+        
+        Configuration conf = new Configuration(false); // don't load defaults, we are only interested in the specified config dir
         for (File f : hadoopConfDir.listFiles()) {
             if (f.getName().endsWith("-site.xml")) {
                 Path p = new Path(f.toString());
@@ -76,6 +78,23 @@ public class CheckHadoopConfDir implements IKeep {
         }
 
         System.exit(0);
+    }
+
+    /*
+     * Although this is getting a LocalFileSystem, but it triggers Hadoop security check inside.
+     * This is the very first time we hit UGI during the check-env process, and could hit Kerberos exception in a secured Hadoop.
+     * Be careful about the error reporting.
+     */
+    private static LocalFileSystem getLocalFSAndHitUGIForTheFirstTime() throws IOException {
+        try {
+            LocalFileSystem localfs = FileSystem.getLocal(new Configuration());
+            return localfs;
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.err.println("ERROR: Hadoop security exception? Seems the classpath is not setup propertly regarding Hadoop security.");
+            System.exit(1);
+            return null;
+        }
     }
 
     private static void usage() {

@@ -155,7 +155,7 @@ then
     
     retrieveDependency
 
-    source ${dir}/check-env.sh "if-not-yet"
+    ${dir}/check-env.sh "if-not-yet" || exit 1
 
     checkRestPort
 
