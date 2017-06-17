@@ -77,7 +77,7 @@ export default {
     }
     &.running{
       .el-progress-bar {
-        padding-right:30px;
+        padding-right:39px;
        }
        .el-progress__text{
         margin-left: 0;

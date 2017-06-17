@@ -107,6 +107,20 @@ export default {
           handleError(res)
         })
       }
+    },
+    getModelHelthInfo (project, modelName) {
+      this.getModelDiagnose({
+        project: project,
+        modelName: modelName
+      }).then((res) => {
+        handleSuccess(res, (data) => {
+          this.healthStatus.status = data.heathStatus
+          this.healthStatus.progress = data.progress
+          this.healthStatus.messages = data.messages && data.messages.length ? data.messages.map((x) => {
+            return x.replace(/\r\n/g, '<br/>')
+          }) : [modelHealthStatus[data.heathStatus].message]
+        })
+      })
     }
   },
   components: {
@@ -118,18 +132,18 @@ export default {
     }
   },
   mounted () {
-    this.getModelDiagnose({
-      project: this.modelDesc.project,
-      modelName: this.modelDesc.name
-    }).then((res) => {
-      handleSuccess(res, (data) => {
-        this.healthStatus.status = data.heathStatus
-        this.healthStatus.progress = data.progress
-        this.healthStatus.messages = data.messages && data.messages.length ? data.messages.map((x) => {
-          return x.replace(/\r\n/g, '<br/>')
-        }) : [modelHealthStatus[data.heathStatus].message]
-      })
-    })
+    // this.getModelDiagnose({
+    //   project: this.modelDesc.project,
+    //   modelName: this.modelDesc.name
+    // }).then((res) => {
+    //   handleSuccess(res, (data) => {
+    //     this.healthStatus.status = data.heathStatus
+    //     this.healthStatus.progress = data.progress
+    //     this.healthStatus.messages = data.messages && data.messages.length ? data.messages.map((x) => {
+    //       return x.replace(/\r\n/g, '<br/>')
+    //     }) : [modelHealthStatus[data.heathStatus].message]
+    //   })
+    // })
   },
   locales: {
     'en': {modelName: 'Model Name : ', cubeName: 'Cube Name : ', notificationEmailList: 'Notification Email List : ', notificationEvents: 'Notification Events : ', description: 'Description : ', cubeNameInvalid: 'Cube name is invalid. ', cubeNameRequired: 'Cube name is required. ', basicInfo: 'Basic Info', collectsqlPatterns: 'Collect SQL Patterns', noticeSetting: 'Notification Setting', optimizerInput: 'Optimizer Inputs', modelCheck: '1.Model Check', sqlPattens: '2.SQL Pattens'},

@@ -69,8 +69,15 @@ export default {
     selectTag (e) {
       var ev = ev || window.event
       var target = ev.target || ev.srcElement
-      if (target && (target.className.indexOf('el-tag') >= 0 || target.className.indexOf('el-select__tags-text') >= 0)) {
+      if (target && (target.className.indexOf('el-tag') >= 0 || target.className.indexOf('el-select__tags') || target.className.indexOf('el-select__tags-text') >= 0)) {
         this.$emit('checklabel', target.innerText, target)
+        if (e && e.stopPropagation) {
+      // W3C取消冒泡事件
+          e.stopPropagation()
+        } else {
+        // IE取消冒泡事件
+          window.event.cancelBubble = true
+        }
       }
     }
   },
@@ -78,13 +85,6 @@ export default {
     var _this = this
     this.$refs.select.$refs.tags.onclick = function (e) {
       _this.selectTag(e)
-      if (e && e.stopPropagation) {
-      // W3C取消冒泡事件
-        e.stopPropagation()
-      } else {
-      // IE取消冒泡事件
-        window.event.cancelBubble = true
-      }
     }
   }
 }

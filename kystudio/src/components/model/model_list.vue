@@ -547,8 +547,7 @@ export default {
                 })
               } else {
                 this.$message({
-                  type: 'success',
-                  message: this.$t('canNotChecked')
+                  message: data[i] || this.$t('canNotChecked')
                 })
               }
               return

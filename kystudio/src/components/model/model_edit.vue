@@ -233,7 +233,9 @@
         </el-form-item>
         </el-form>
        <el-checkbox v-model="openModelCheck">Check Model</el-checkbox>
-
+       <common-tip :content="$t('kylinLang.model.modelCheck')" >
+             <icon name="question-circle-o"></icon>
+       </common-tip>
      <!--    <el-slider v-model="modelStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openModelCheck'></el-slider> -->
         <!-- <slider label="Check Model" @changeBar="changeModelBar" :show="addModelDialogDisable"></slider> -->
        <div slot="footer" class="dialog-footer">

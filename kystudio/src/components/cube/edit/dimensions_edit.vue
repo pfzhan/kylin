@@ -203,6 +203,9 @@
       <el-row class="row_padding" style="margin-bottom: 5px;">
         <el-col :span="24">
           Rowkeys
+          <common-tip :content="$t('kylinLang.cube.rowkeyTip')" >
+             <icon name="question-circle-o"></icon>
+          </common-tip>
         </el-col>
       </el-row>
       <div class="ksd-common-table rowkeys">

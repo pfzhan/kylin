@@ -24,27 +24,38 @@
         </div>
       	<el-tabs v-model="activeName" class="ksd-mt-40 clear" v-show="tableData" id="datasource-table">
 		    <el-tab-pane :label="$t('kylinLang.dataSource.columns')" name="first">
+        <el-input style="width:200px;" class="ksd-mb-10"
+          :placeholder="$t('kylinLang.common.pleaseFilter')"
+          icon="search"
+          v-model="filterColumn"
+          @change="filterColumnChange">
+        </el-input>
 	    	  <el-table
-			    :data="tableData.columns"
+			    :data="tableColumnsByFilter"
 			    border
 			    style="width: 100%">
 			    <el-table-column
 			      prop="id"
 			      label="ID"
-			      width="66">
+            sortable
+            :sort-method="idSorted"
+			      width="80">
 			    </el-table-column>
 			    <el-table-column
 			      prop="name"
+            sortable
 			      :label="$t('kylinLang.dataSource.columnName')"
 			     >
 			    </el-table-column>
 			    <el-table-column
 			      width="120"
 			      prop="datatype"
+            sortable
 			      :label="$t('kylinLang.dataSource.dataType')">
 			    </el-table-column>
 			    <el-table-column
 			      width="160"
+            sortable
 			      :label="$t('kylinLang.dataSource.cardinality')">
              <template scope="scope">
               {{ tableData.cardinality[scope.row.name] }}
@@ -179,7 +190,7 @@
         <el-row :gutter="20">
 		  <el-col :span="8"><div class="grid-content bg-purple">
 		  	 <div class="dialog_tree_box">
-           <tree :indent="2" @lazyload="loadChildNode" :multiple="true"  @nodeclick="clickHiveTable" :lazy="true" :treedata="hiveData" maxlevel="3" ref="subtree"  :showfilter="false" :allowdrag="false" ></tree>
+           <tree :indent="2" @lazyload="loadChildNode" :multiple="true"  @nodeclick="clickHiveTable" :lazy="true" :treedata="hiveData" maxlevel="3" ref="subtree" :maxLabelLen="24" :showfilter="false" :allowdrag="false" ></tree>
           </div>
 		  </div></el-col>
 		  <el-col :span="16"><div class="grid-content bg-purple">
@@ -258,16 +269,24 @@
         v-model="loadResultVisible"
         >
          <el-alert v-for=" su in loadResult.success" :key="su"
-            :title="$t('kylinLang.common.success')+ ' ' + currentAction+'['+su+']'"
+            :title="currentAction + $t('kylinLang.common.success') + ' ' + '['+su+']'"
             type="success"
             :closable="false"
             class="ksd-mt-10"
             show-icon>
           </el-alert>
             <el-alert v-for=" fa in loadResult.fail" :key="fa"
-            :title="$t('kylinLang.common.fail') + ' ' + currentAction+'['+fa+']'"
+            :title="currentAction + $t('kylinLang.common.fail') + ' ' + '['+fa+']'"
             type="error"
             :closable="false"
+            class="ksd-mt-10"
+            show-icon>
+          </el-alert>
+           <el-alert v-for=" fa in loadResult.running" :key="fa"
+            :title=" currentAction +$t('kylinLang.common.fail') + ' ' + $t('kylinLang.common.running') + '['+fa+']'"
+            type="error"
+            :closable="false"
+            class="ksd-mt-10"
             show-icon>
           </el-alert>
         <span slot="footer" class="dialog-footer">
@@ -289,6 +308,8 @@ export default {
     return {
       test: ['add'],
       subMenu: 'Model',
+      filterColumn: '',
+      tableColumnsByFilter: [],
       hiveAssets: [],
       loadResultVisible: false,
       scanRatioDialogVisible: false,
@@ -321,7 +342,8 @@ export default {
       currentStreamingConfig: '',
       loadResult: {
         success: [],
-        fail: []
+        fail: [],
+        running: []
       }
     }
   },
@@ -353,6 +375,18 @@ export default {
       getKafkaTableDetail: 'GET_KAFKA_CONFIG',
       getStreamingConfig: 'LOAD_STREAMING_CONFIG'
     }),
+    filterColumnChange (filterVal) {
+      if (filterVal) {
+        this.tableColumnsByFilter = this.tableData.columns.filter((col) => {
+          return col.name.toUpperCase().indexOf(filterVal.toUpperCase()) >= 0
+        })
+      } else {
+        this.tableColumnsByFilter = this.tableData.columns
+      }
+    },
+    idSorted (a, b) {
+      return +a.id > +b.id
+    },
     changeBar (val) {
       this.tableStaticsRange = val
       this.openCollectRange = !!val
@@ -418,6 +452,7 @@ export default {
         handleSuccess(response, (data) => {
           this.$set(this.loadResult, 'success', data['result.loaded'])
           this.$set(this.loadResult, 'fail', data['result.unloaded'])
+          this.$set(this.loadResult, 'running', data['result.running'])
         })
         this.load_hive_dalog_visible = false
         this.scanSampleRatioDialogVisible = false
@@ -516,6 +551,7 @@ export default {
         handleSuccess(response, (data) => {
           this.$set(this.loadResult, 'success', data['result.unload.success'])
           this.$set(this.loadResult, 'fail', data['result.unload.fail'])
+          this.$set(this.loadResult, 'running', data['result.running'])
         })
         this.load_hive_dalog_visible = false
         this.loadResultVisible = true
@@ -685,6 +721,7 @@ export default {
       }, (res) => {
         handleError(res)
       })
+      this.tableColumnsByFilter = this.tableData.columns
     },
     loadHiveList () {
       this.currentAction = this.$t('load')
@@ -703,6 +740,7 @@ export default {
           handleSuccess(response, (data) => {
             this.$set(this.loadResult, 'success', data['result.loaded'])
             this.$set(this.loadResult, 'fail', data['result.unloaded'])
+            this.$set(this.loadResult, 'running', data['result.running'])
           })
           this.loadHiveTree()
           this.load_hive_dalog_visible = false

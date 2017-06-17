@@ -23,7 +23,7 @@
     :lazy="lazy"
     ref="tree2">
   </el-tree>
-  <div class="empty_text" v-show="showNodeCount==1 || treedata&&treedata[0]&&treedata[0].children.length<=0">{{emptytext||'No Data'}}</div>
+  <div class="empty_text" v-show="showNodeCount==1 || treedata&&treedata[0]&&treedata[0].children.length<=0">{{emptytext||$t('kylinLang.common.noData')}}</div>
   </div>
 </template>
 <script>

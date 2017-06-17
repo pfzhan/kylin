@@ -15,7 +15,7 @@
   
   <div class="line margin-l-r"></div>
   <div class="ksd-mt-10 ksd-mb-10">
-  <info v-if="activeStep===1" :cubeDesc="cubeDetail" :modelDesc="modelDetail" :isEdit="isEdit"></info>
+  <info ref="infoForm" v-if="activeStep===1" :cubeDesc="cubeDetail" :modelDesc="modelDetail" :isEdit="isEdit"></info>
   <!-- <sample_sql v-if="activeStep===2" :cubeDesc="cubeDetail" :isEdit="isEdit" :sampleSql="sampleSQL"></sample_sql> -->
   <dimensions v-if="activeStep===2" :cubeDesc="cubeDetail" :modelDesc="modelDetail" :isEdit="isEdit"></dimensions>
   <measures v-if="activeStep===3" :cubeDesc="cubeDetail" :modelDesc="modelDetail" :isEdit="isEdit"></measures>
@@ -810,6 +810,9 @@ export default {
         this.renderCubeFirst = true
         this.modelDetail = data.model
         this.getTables()
+        if (this.$refs.infoForm) {
+          this.$refs.infoForm.getModelHelthInfo(this.selected_project, this.extraoption.modelName)
+        }
       })
     }).catch((res) => {
       handleError(res)

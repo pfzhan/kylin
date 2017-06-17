@@ -25,6 +25,7 @@ exports.default = {
     // 常规状态
     success: '成功',
     fail: '失败',
+    running: '正在采样的表',
     status: '状态',
     // 业务词汇
     model: '模型',
@@ -88,7 +89,8 @@ exports.default = {
     timeRange: '时间范围',
     samplingPercentageTips: '采样比例较高时，检测准度较高，会需要较多资源。采样比例较低时，监测准度较低，比较节省资源。',
     modelHasJob: '此模型已有在执行的模型监测任务，因此当前操作不支持。',
-    viewModeLimit: '预览模式下不能进行该操作'
+    viewModeLimit: '预览模式下不能进行该操作',
+    modelCheck: '模型健康检测将会为您检查数据中可能的问题，服务后续的cube设计和构建，以及一键优化功能。'
   },
   cube: {
     cubeName: 'Cube 名称',
@@ -106,7 +108,8 @@ exports.default = {
     inputCubeName: '请输入Cube名称',
     addCube: '添加Cube',
     cubeHasJob: '此cube已有在执行的cube构建任务，因此当前操作不支持。',
-    selectModelName: '请选择一个模型'
+    selectModelName: '请选择一个模型',
+    rowkeyTip: '<h4>什么是Rowkeys?</h4><p>Rowkeys定义了维度列之间如何组织在一起</p><h4>是否按该列分散存储? </h4><p>若设为"true", Cube数据将按该列值分散存储</p><h4>Rowkey编码</h4><ol><li>"dict" 适用于大部分字段, 默认推荐使用, 但在超高基情况下, 可能引起内存不足的问题.  </li><li>"boolean" 适用于字段值为: true, false, TRUE, FALSE, True, False, t, f, T, F, yes, no, YES, NO, Yes, No, y, n, Y, N, 1, 0</li><li>"integer" 适用于字段值为整数字符, 支持的整数区间为[ -2^(8*N-1), 2^(8*N-1)] .   </li><li>"int" 已弃用, 请使用最新的integer编码.   </li><li>"date" 适用于字段值为日期字符, 支持的格式包括yyyyMMdd、yyyy-MM-dd、yyyy-MM-dd HH:mm:ss、yyyy-MM-dd HH:mm:ss.SSS, 其中如果包含时间戳部分会被截断.  </li><li>"time" 适用于字段值为时间戳字符, 支持范围为[ 1970-01-01 00:00:00, 2038/01/19 03:14:07] , 毫秒部分会被忽略.  time编码适用于time, datetime, timestamp等类型.  </li><li>"fix_length" 适用于超高基场景, 将选取字段的前N个字节作为编码值, 当N小于字段长度, 会造成字段截断, 当N较大时, 造成RowKey过长, 查询性能下降.  只适用于varchar或nvarchar类型.  </li><li>"fixed_length_hex" 适用于字段值为十六进制字符, 比如1A2BFF或者FF00FF, 每两个字符需要一个字节.  只适用于varchar或nvarchar类型.  </li></ol>'
   },
   project: {
     mustSelectProject: '请先选择一个Project',
