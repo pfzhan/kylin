@@ -26,7 +26,6 @@ package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.request.CubeRequest;
@@ -44,7 +43,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
@@ -110,32 +108,14 @@ public class RawTableController extends BasicController {
     @RequestMapping(value = "/{cubeName}/clone", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse rawCube(@PathVariable String cubeName, @RequestBody CubeRequest cubeRequest)
+    public EnvelopeResponse cloneRaw(@PathVariable String cubeName, @RequestBody CubeRequest cubeRequest)
             throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
         String newRawName = cubeRequest.getCubeName();
         String project = cubeRequest.getProject();
 
-        RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
-        if (raw == null) {
-            throw new BadRequestException(String.format(msg.getRAWTABLE_NOT_FOUND(), cubeName));
-        }
-
-        RawTableDesc rawDesc = raw.getRawTableDesc();
-        RawTableDesc newRawDesc = RawTableDesc.getCopyOf(rawDesc);
-
-        KylinConfig config = rawTableService.getConfig();
-        newRawDesc.setName(newRawName);
-        newRawDesc.setEngineType(config.getDefaultCubeEngine());
-        newRawDesc.setStorageType(config.getDefaultStorageEngine());
-
-        RawTableInstance newRaw;
-
-        newRaw = rawTableService.createRawTableInstanceAndDesc(newRawName, project, newRawDesc);
-
-        //reload to avoid shallow clone
-        rawTableService.getCubeDescManager().reloadCubeDescLocal(newRawName);
+        RawTableInstance newRaw = rawTableService.cloneRaw(cubeName, newRawName, project);
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, newRaw, "");
     }

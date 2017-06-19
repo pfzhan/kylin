@@ -45,6 +45,7 @@ import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.request.CubeRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.GeneralResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -345,6 +346,47 @@ public class KapCubeController extends BasicController implements InitializingBe
         Draft draft = cubeService.getCubeDraft(cubeName);
         if (draft != null)
             cubeService.getDraftManager().delete(draft.getUuid());
+    }
+
+    @RequestMapping(value = "/{cubeName}/clone", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse cloneCubeV2(@PathVariable String cubeName, @RequestBody CubeRequest cubeRequest)
+            throws IOException {
+        Message msg = MsgPicker.getMsg();
+        String newCubeName = cubeRequest.getCubeName();
+        String project = cubeRequest.getProject();
+
+        CubeDesc oldCubeDesc = kapCubeService.getCubeDescManager().getCubeDesc(cubeName);
+        CubeInstance oldCube = kapCubeService.getCubeManager().getCube(cubeName);
+        if (oldCubeDesc == null || oldCube == null) {
+            throw new BadRequestException(String.format(msg.getCUBE_NOT_FOUND(), cubeName));
+        }
+
+        ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
+        ResourceStore.Checkpoint cp = store.checkpoint();
+
+        CubeInstance newCube = null;
+        try {
+            newCube = kapCubeService.cubeClone(oldCube, newCubeName, project);
+            RawTableInstance oldRaw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
+            if (oldRaw != null) {
+                logger.debug("Cube " + cubeName + " contains rawtable, clone it");
+                rawTableService.cloneRaw(cubeName, newCubeName, project);
+            }
+            SchedulerJobInstance job = schedulerJobService.getSchedulerJob(cubeName);
+            if (job != null) {
+                schedulerJobService.cloneSchedulerJob(job, newCubeName, newCube.getUuid());
+            }
+        } catch (Exception ex) {
+            cp.rollback();
+            cacheService.wipeProjectCache(project);
+            throw ex;
+        } finally {
+            cp.close();
+        }
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, newCube, "");
     }
 
     private void deleteCube(String cubeName) throws IOException, SchedulerException {

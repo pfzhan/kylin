@@ -25,10 +25,10 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.WeakHashMap;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -37,8 +37,18 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.msg.Message;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.service.CubeService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.cube.raw.RawTableInstance;
@@ -50,8 +60,14 @@ import io.kyligence.kap.rest.response.ColumnarResponse;
 
 @Component("kapCubeService")
 public class KapCubeService extends BasicService {
+    public static final char[] VALID_CUBENAME = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
+            .toCharArray();
+    private static final Logger logger = LoggerFactory.getLogger(KapCubeService.class);
 
     protected WeakHashMap<String, ColumnarResponse> columnarInfoCache = new WeakHashMap<>();
+    @Autowired
+    @Qualifier("cubeMgmtService")
+    private CubeService cubeService;
 
     public ColumnarResponse getColumnarInfo(String segStoragePath, CubeSegment segment) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
@@ -103,16 +119,29 @@ public class KapCubeService extends BasicService {
         return columnarResp;
     }
 
-    public List<String> getCubesByUuid(String uuid) {
-        List<String> cubeNames = new ArrayList<>();
-        List<CubeInstance> cubes = getCubeManager().listAllCubes();
-        for (CubeInstance cube : cubes) {
-            CubeDesc cubeDesc = cube.getDescriptor();
-            if (cubeDesc.getUuid().equals(uuid)) {
-                cubeNames.add(cubeDesc.getName());
-            }
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
+            + " or hasPermission(#oldCube, 'ADMINISTRATION') or hasPermission(#oldCube, 'MANAGEMENT')")
+    public CubeInstance cubeClone(CubeInstance oldCube, String newCubeName, String project) throws IOException {
+        Message msg = MsgPicker.getMsg();
+        if (oldCube.getStatus() == RealizationStatusEnum.DESCBROKEN) {
+            throw new BadRequestException(String.format(msg.getCLONE_BROKEN_CUBE(), oldCube.getName()));
         }
-        return cubeNames;
+        if (!StringUtils.containsOnly(newCubeName, VALID_CUBENAME)) {
+            logger.info("Invalid Cube name {}, only letters, numbers and underline supported.", newCubeName);
+            throw new BadRequestException(String.format(msg.getINVALID_CUBE_NAME(), newCubeName));
+        }
+
+        CubeDesc cubeDesc = oldCube.getDescriptor();
+        CubeDesc newCubeDesc = CubeDesc.getCopyOf(cubeDesc);
+
+        newCubeDesc.setName(newCubeName);
+
+        CubeInstance newCube = cubeService.createCubeAndDesc(newCubeName, project, newCubeDesc);
+
+        //reload to avoid shallow clone
+        cubeService.getCubeDescManager().reloadCubeDescLocal(newCubeName);
+
+        return newCube;
     }
 
     protected String getRawParquetFolderPath(RawTableSegment rawSegment) {

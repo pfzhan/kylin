@@ -263,6 +263,24 @@ public class SchedulerJobService extends BasicService implements InitializingBea
         return job;
     }
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
+            + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'MANAGEMENT')")
+    public SchedulerJobInstance cloneSchedulerJob(SchedulerJobInstance job, String newJobName,
+            String newRealizationUuid) throws IOException {
+        SchedulerJobInstance newJob = job.getCopyOf();
+        newJob.setName(newJobName);
+        newJob.setRelatedRealization(newJobName);
+        newJob.setRelatedRealizationUuid(newRealizationUuid);
+        newJob.setPartitionStartTime(
+                newJob.getPartitionStartTime() - (newJob.getCurRepeatCount() * newJob.getPartitionInterval()));
+        newJob.setCurRepeatCount(0);
+
+        saveSchedulerJob(newJob);
+
+        getSchedulerJobManager().reloadSchedulerJobLocal(newJobName);
+        return newJob;
+    }
+
     // SchedulerJob will be triggered once its trigger_time is set.
     public void enableSchedulerJob(SchedulerJobInstance instance) throws ParseException, SchedulerException {
         if (!validateScheduler(instance))

@@ -91,6 +91,11 @@ public class SchedulerJobInstance extends RootPersistentEntity implements Compar
         this.partitionInterval = partitionInterval;
     }
 
+    public SchedulerJobInstance getCopyOf() {
+        return new SchedulerJobInstance(name, project, realizationType, name, partitionStartTime, scheduledRunTime,
+                repeatCount, curRepeatCount, repeatInterval, partitionInterval);
+    }
+
     public SchedulerJobInstance() {
     }
 

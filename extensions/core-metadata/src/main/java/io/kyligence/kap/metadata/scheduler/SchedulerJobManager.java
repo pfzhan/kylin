@@ -27,6 +27,7 @@ package io.kyligence.kap.metadata.scheduler;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static io.kyligence.kap.metadata.scheduler.SchedulerJobInstance.SCHEDULER_RESOURCE_ROOT;
+import static io.kyligence.kap.metadata.scheduler.SchedulerJobInstance.concatResourcePath;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -110,6 +111,10 @@ public class SchedulerJobManager {
         }
 
         logger.info("Loaded " + succeed + " job, fail on " + fail + " jobs");
+    }
+
+    public synchronized SchedulerJobInstance reloadSchedulerJobLocal(String name) {
+        return reloadSchedulerJobLocalAt(concatResourcePath(name));
     }
 
     private synchronized SchedulerJobInstance reloadSchedulerJobLocalAt(String path) {

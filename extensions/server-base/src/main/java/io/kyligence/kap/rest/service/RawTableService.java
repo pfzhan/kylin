@@ -29,6 +29,7 @@ import java.util.EnumSet;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -121,7 +122,7 @@ public class RawTableService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'MANAGEMENT')")
+            + " or hasPermission(#raw, 'ADMINISTRATION') or hasPermission(#raw, 'MANAGEMENT')")
     public void deleteRaw(RawTableInstance raw) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
@@ -131,7 +132,7 @@ public class RawTableService extends BasicService {
             throw new BadRequestException(String.format(msg.getRAWTABLE_HAS_RUNNING_JOB(), raw.getName()));
         }
         int rawNum = getRawTableManager().getRawTablesByDesc(raw.getDescName()).size();
-        getRawTableManager().dropRawTableInstance(raw.getName(), rawNum == 1);//only delete cube desc when no other cube is using it
+        getRawTableManager().dropRawTableInstance(raw.getName(), rawNum == 1);
         accessService.clean(raw, true);
     }
 
@@ -191,7 +192,7 @@ public class RawTableService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION')  or hasPermission(#cube, 'MANAGEMENT')")
+            + " or hasPermission(#raw, 'ADMINISTRATION') or hasPermission(#raw, 'OPERATION')  or hasPermission(#raw, 'MANAGEMENT')")
     public RawTableInstance enableRaw(RawTableInstance raw) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
@@ -223,7 +224,7 @@ public class RawTableService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
+            + " or hasPermission(#raw, 'ADMINISTRATION') or hasPermission(#raw, 'OPERATION') or hasPermission(#raw, 'MANAGEMENT')")
     public RawTableInstance disableRaw(RawTableInstance raw) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
@@ -244,6 +245,31 @@ public class RawTableService extends BasicService {
             raw.setStatus(ostatus);
             throw e;
         }
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
+            + " or hasPermission(#oldRawName, 'ADMINISTRATION') or hasPermission(#oldRawName, 'OPERATION') or hasPermission(#oldRawName, 'MANAGEMENT')")
+    public RawTableInstance cloneRaw(String oldRawName, String newRawName, String project) throws IOException {
+        KapMessage msg = KapMsgPicker.getMsg();
+        RawTableInstance raw = getRawTableManager().getRawTableInstance(oldRawName);
+        if (raw == null) {
+            throw new BadRequestException(String.format(msg.getRAWTABLE_NOT_FOUND(), oldRawName));
+        }
+
+        RawTableDesc rawDesc = raw.getRawTableDesc();
+        RawTableDesc newRawDesc = RawTableDesc.getCopyOf(rawDesc);
+
+        KylinConfig config = getConfig();
+        newRawDesc.setName(newRawName);
+        newRawDesc.setEngineType(config.getDefaultCubeEngine());
+        newRawDesc.setStorageType(config.getDefaultStorageEngine());
+
+        RawTableInstance newRaw = createRawTableInstanceAndDesc(newRawName, project, newRawDesc);
+
+        //reload to avoid shallow clone
+        getRawTableDescManager().reloadRawTableDescLocal(newRawName);
+
+        return newRaw;
     }
 
     public static String getRawTableNameFromDesc(String descName) {
