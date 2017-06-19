@@ -202,10 +202,13 @@
           <!-- <el-slider :min="0" show-stops :step="20" @change="changeBarVal" v-model="tableStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider> -->
           <slider @changeBar="changeBar" :show="load_hive_dalog_visible">
             <span slot="label">{{$t('sampling')}} 
-              <common-tip :content="$t('kylinLang.dataSource.collectStatice')" >
+              <common-tip placement="right" :content="$t('kylinLang.dataSource.collectStatice')" >
                  <icon name="question-circle-o"></icon>
               </common-tip>
            </span>
+           <span slot="sliderLabel">{{$t('kylinLang.dataSource.samplingPercentage')}} <common-tip placement="right" :content="$t('kylinLang.model.samplingPercentageTips')" >
+                 <icon name="question-circle-o"></icon>
+              </common-tip></span>
           </slider>
         </div>
 		    </div>
@@ -218,7 +221,7 @@
 	    </el-dialog>
 
      <!-- reload table dialog -->
-     <el-dialog :title="$t('setScanRange')" v-model="scanRatioDialogVisible" @close="cancelReloadTable">
+     <el-dialog :title="$t('reload')" v-model="scanRatioDialogVisible" @close="cancelReloadTable">
         <el-row :gutter="20">
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">
@@ -231,6 +234,9 @@
                        <icon name="question-circle-o"></icon>
                     </common-tip>
                  </span>
+                  <span slot="sliderLabel">{{$t('kylinLang.dataSource.samplingPercentage')}} <common-tip placement="right" :content="$t('kylinLang.model.samplingPercentageTips')" >
+                 <icon name="question-circle-o"></icon>
+              </common-tip></span>
                  </slider>
               </div>
               </div>
@@ -248,10 +254,13 @@
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">
               <div class="ksd-mt-20">
-                 <slider  @changeBar="changeBar" :show="scanSampleRatioDialogVisible">
+                 <slider  @changeBar="changeBar" :show="scanSampleRatioDialogVisible" :hideCheckbox="true" :range="100">
                    <span slot="label">{{$t('sampling')}} <common-tip :content="$t('kylinLang.dataSource.collectStatice')" >
                        <icon name="question-circle-o"></icon>
                     </common-tip></span>
+                     <span slot="sliderLabel">{{$t('kylinLang.dataSource.samplingPercentage')}} <common-tip placement="right" :content="$t('kylinLang.model.samplingPercentageTips')" >
+                 <icon name="question-circle-o"></icon></common-tip></span>
+
                  </slider>
               </div>
               </div>

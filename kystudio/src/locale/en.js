@@ -149,6 +149,7 @@ exports.default = {
     dataType: 'Data Type',
     comment: 'Comment',
     columns: 'Columns',
+    samplingPercentage: 'Sampling percentage:',
     extendInfo: 'Extend Information',
     statistics: 'Statistics',
     sampleData: 'Sample Data',

@@ -3,6 +3,7 @@
 	<el-checkbox v-model="openCollectRange" v-if="!hideCheckbox" @change="changeCollectRange"><span v-if="label">{{label}}</span>
    <slot name="label" v-if="!label"></slot>
   </el-checkbox>
+  <div class="ksd-mt-10"><slot name="sliderLabel"></slot></div>
     <el-slider :min="minConfig" :show-stops="showStop" :step="stepConfig" @change="changeBarVal" v-model="staticsRange" :max="maxConfig" :format-tooltip="formatTooltip" ></el-slider> <span>{{staticsRange}}%</span>
   </div>
 </template>
@@ -34,8 +35,8 @@ export default {
     },
     reset () {
       this.openCollectRange = false
-      this.staticsRange = 0
-      this.$emit('changeBar', 0)
+      this.staticsRange = this.range || 0
+      this.$emit('changeBar', this.range || 0)
     },
     changeCollectRange () {
       if (this.openCollectRange) {

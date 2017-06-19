@@ -216,20 +216,11 @@
                   
                 </div>
                 <br/>
-               <!--  <el-checkbox v-model="openCollectRange">Check Model</el-checkbox> -->
-                 <!-- <el-slider v-model="modelStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider> -->
-                 <h2>{{$t('kylinLang.model.samplingPercentage')}}
-                 <kap-common-popover>
-                    <div slot="content">
-                      <ul>
-                        <li v-html="$t('kylinLang.model.samplingPercentageTips')"></li>
-                      </ul>
-                    </div>
-                    <icon name="question-circle-o"></icon>
-                  </kap-common-popover>
-                  </h2>
-                 
-                  <slider @changeBar="changeBar" :hideCheckbox="true" :range="100" label="Check Model" :show="scanRatioDialogVisible"></slider>
+                  <slider @changeBar="changeBar" :hideCheckbox="true" :range="100" label="Check Model" :show="scanRatioDialogVisible">
+                    <span slot="sliderLabel">{{$t('kylinLang.dataSource.samplingPercentage')}} <common-tip placement="right" :content="$t('kylinLang.model.samplingPercentageTips')" >
+                 <icon name="question-circle-o"></icon>
+              </common-tip></span>
+                  </slider>
               </div>
               </div>
             </div>

@@ -625,8 +625,8 @@ export default {
     changeDimCap: function () {
       this.cubeDesc.aggregation_groups.forEach((aggregationGroup) => {
         this.$set(aggregationGroup.select_rule, 'dim_cap', +this.dim_cap)
-        this.initCalCuboid()
       })
+      this.initCalCuboid()
     },
     initAggregationGroup: function () {
       if (!this.isEdit && this.currentRowkey.length > 0 && this.cubeDesc.aggregation_groups.length <= 0) {

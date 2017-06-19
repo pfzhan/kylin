@@ -148,6 +148,7 @@ exports.default = {
     dataType: '数据类型',
     comment: '注释',
     columns: '列',
+    samplingPercentage: '采样比例：',
     extendInfo: '扩展信息',
     statistics: '特征数据',
     sampleData: '采样数据',

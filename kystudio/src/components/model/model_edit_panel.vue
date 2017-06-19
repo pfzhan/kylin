@@ -105,7 +105,7 @@
                     <!-- <el-badge :value="dimensions[value]&&dimensions[value].length" class="item ksd-mt-10" style="background-color:green">
                     <el-tag type="success">{{value}}</el-tag>
                     </el-badge> -->
-                    <div class="ksd-mb-4" style="font-size:14px;" >{{value}}</div>
+                    <div class="ksd-mt-10 ksd-mb-10" style="font-size:14px;" >{{value}}</div>
                     <div class="dimensionBox">
                       <el-tag class="ksd-ml-10 ksd-mt-6" type="primary" v-for="i in dimensions[value]" :key="i">{{i}}</el-tag>&nbsp;&nbsp;
                     </div>
@@ -113,7 +113,7 @@
                 </el-tab-pane>
                 <el-tab-pane :label="$t('measure')" name="fourth">
                   <div v-for="(key, value) in measures" :key="key" v-show="measures[value].length">
-                    <div class="ksd-mb-4" style="font-size:14px;">{{value}}</div>
+                    <div class="ksd-mt-10 ksd-mb-10" style="font-size:14px;">{{value}}</div>
                      <div class="dimensionBox">
                     <el-tag class="ksd-ml-10 ksd-mt-6" v-for="i in measures[value]" type="primary" :key="i">{{i}}</el-tag>&nbsp;&nbsp;
                     </div>
@@ -276,13 +276,21 @@ export default {
             }
             this.statistics = arr
           }
+          var tableData = this.$store.state.datasource.dataSource[localStorage.getItem('selected_project')]
+          var tableInfo = []
+          for (var k = 0; k < tableData.length; k++) {
+            if (tableData[k].database === database && tableData[k].name === tableName) {
+              tableInfo = tableData[k]
+              break
+            }
+          }
           var sampleData = changeDataAxis(data.sample_rows, true)
           var sampleDataLen = sampleData && sampleData.length || 0
           if (sampleDataLen) {
             var basicColumn = [[this.$t('kylinLang.dataSource.columns')]]
             for (var i = 0; i < sampleDataLen; i++) {
               for (var m = 0; m < sampleData[i].length - 1; m++) {
-                basicColumn[0].push(data.columns_stats[m].column_name)
+                basicColumn[0].push(tableInfo.columns[m].name)
               }
               break
             }
