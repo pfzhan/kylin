@@ -7,7 +7,7 @@
     style="width: 100%">
     <el-table-column type="expand">
       <template scope="props">
-         <el-tabs activeName="first" type="card" >
+         <el-tabs activeName="first" class="el-tabs--default">
           <el-tab-pane label="Models" name="first">
             <model_list :modelList="props.row.models"></model_list>
           </el-tab-pane>
@@ -268,9 +268,6 @@ export default {
     }
     .el-tabs__item{
       transition: none;
-    }
-    .el-tabs__item.is-active{
-      border-bottom: 2px solid @base-color!important;
     }
   }
 </style>

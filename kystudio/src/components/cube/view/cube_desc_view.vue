@@ -135,7 +135,7 @@ export default {
     padding: 0;
   }
   .el-steps.is-horizontal.is-center{
-    margin-left: 14px;
+    margin-left: 20px;
   }
 }
 </style>

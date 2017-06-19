@@ -11,7 +11,7 @@
       align="center"
       width="80">
       <template scope="scope">
-        <el-tag>{{scope.$index}}</el-tag>
+        <el-tag class="index-tag">{{scope.$index}}</el-tag>
       </template>
     </el-table-column>
     <el-table-column
@@ -115,7 +115,8 @@ export default {
   }
 }
 </script>
-<style scoped="">
+<style lang="less">
+  @import '../../../less/config.less';
  .row_padding {
   padding-top: 5px;
   padding-bottom: 5px;
@@ -136,5 +137,8 @@ export default {
   border:1px solid #ddd;
   border-radius: 2px;
   text-align: center;
+ }
+ .index-tag{
+    background: transparent;
  }
 </style>
