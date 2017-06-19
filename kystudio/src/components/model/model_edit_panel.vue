@@ -3,17 +3,17 @@
   <icon :name="menuStatus==='show'?'sort-down':'sort-up'" @click.native="slideSubMenu()" class="display_bar"></icon>
 		<el-tabs v-model="menuActive" type="border-card"  @tab-click="subMenuTabClick" @click.native="">
 		    <el-tab-pane label="Overview" name="first">
-            <el-tabs v-model="subMenuActive" >
+            <el-tabs class="el-tabs--default" v-model="subMenuActive" >
                 <el-tab-pane :label="$t('modelInfo')" name="first">
                     <table  cellspacing="0" cellpadding="0">
                       <tr>
                         <th>{{$t('modelName')}} <common-tip :content="$t('kylinLang.model.modelNameTips')" ><icon name="exclamation-circle"></icon></common-tip></th>
-                        <td><el-input v-model="currentModelInfo.modelName" :disabled="actionMode==='view'|| !!compeleteModelId"></el-input></td>
+                        <td><el-input class="model-name-input" v-model="currentModelInfo.modelName" :disabled="actionMode==='view'|| !!compeleteModelId"></el-input></td>
                       </tr>
                       <tr>
                         <th>{{$t('discribe')}}</th>
                         <td>
-                            <el-input
+                            <el-input class="model-discribe-input"
                             type="textarea"
                             :rows="2" :disabled="actionMode==='view'"
                             :placeholder="$t('inputModelDescription')"
@@ -509,6 +509,16 @@ export default {
     .el-tab-pane .el-form{
       height: 260px;
       overflow-y: auto;
+    }
+    .model-name-input{
+      .el-input__inner{
+        border-color: @grey-color;
+      }
+    }
+    .model-discribe-input{
+      .el-textarea__inner{
+        border-color: @grey-color;
+      }
     }
 
   }

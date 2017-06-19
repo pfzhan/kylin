@@ -7,7 +7,7 @@
 	 <el-tabs type="card" v-model="activeMenu" class="query_box">
 	  <el-tab-pane :label="$t('newQuery')" name="first">
       <editor v-model="sourceSchema" ref="insightBox" lang="sql" theme="chrome" width="100%" height="200" useWrapMode="true"></editor>
-      <p class="tips_box">{{$t('tips')}}</p>
+      <p class="tips_box" style="margin-top: 10px;color: #9095ab;">{{$t('tips')}}</p>
       <p class="ksd-right">
         <el-form :inline="true" class="demo-form-inline">
           <el-form-item label="Limit">
@@ -399,26 +399,26 @@ export default {
       height: 100%;
       margin-top: 20px;
       .tag_D{
-        color:#48576a;
-        border:solid 1px #48576a;
+        color:#3cd3ec;
+        border:solid 1px #3cd3ec;
       }
       .tag_M{
         color:#20a0ff;
         border:solid 1px #20a0ff;
       }
       .tag_L{
-        color:#48576a;
-        border:solid 1px #48576a;
+        color:#3cd3ec;
+        border:solid 1px #3cd3ec;
         border-radius: 0
       }
       .tag_F{
-        color:#20a0ff;
-        border:solid 1px #20a0ff;
+        color:#3cd3ec;
+        border:solid 1px #3cd3ec;
         border-radius: 0
       }
       .tag_PK{
-        color:#48576a;
-        border:solid 1px #48576a;
+        color:#20a0ff;
+        border:solid 1px #20a0ff;
         width: 18px;
       }
       .tag_FK{
@@ -476,6 +476,12 @@ export default {
   .insight-search{
     .el-input__inner{
       height: 30px;
+    }
+  }
+  .query_box{
+    .el-tabs__header{
+      margin: 0 -30px 15px -30px;
+      padding: 0 30px 0 30px;
     }
   }
 </style>

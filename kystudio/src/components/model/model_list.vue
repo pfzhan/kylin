@@ -11,7 +11,7 @@
 		  <el-col :span="8"  v-for="(o, index) in modelsList" :key="o.uuid" :style="{height:'152px'}">
 		    <el-card :body-style="{ padding: '0px'}" style="height:100%" :class="{'is_draft': o.is_draft}">
 		      <p style="font-size: 12px;padding-left: 10px;" class="title">{{$t('kylinLang.model.modifiedGrid')}} {{ o.gmtTime }}
-					<el-dropdown @command="handleCommand" :id="o.name" trigger="click"  v-show="isAdmin || hasPermission(o.uuid)">
+					<el-dropdown style="margin-right: 20px;" @command="handleCommand" :id="o.name" trigger="click"  v-show="isAdmin || hasPermission(o.uuid)">
 					  <span class="el-dropdown-link" >
 					    <icon name="ellipsis-h"></icon>
 					  </span>
@@ -987,9 +987,6 @@ export default {
   }
   #addModel:hover{
     background: @base-color;
-  }
-  #ssb{
-    margin-right: 20px;
   }
 }
 </style>
