@@ -19,7 +19,7 @@ const modelHealthStatus = {
   'RUNNING': {
     icon: '',
     color: '',
-    message: ''
+    message: 'Job Running'
   },
   'GOOD': {
     icon: 'check-circle-o',

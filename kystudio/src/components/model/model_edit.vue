@@ -2261,7 +2261,7 @@ export default {
    }
    .links_dialog{
     .el-dialog__body .el-input {
-      background-color: #2f3243;
+      background-color: #292b38;
       padding: 0;
     }
      p{

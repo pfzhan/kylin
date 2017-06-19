@@ -1,6 +1,8 @@
 <template>
   <div class="ksd-slider">
-	<el-checkbox v-model="openCollectRange" v-if="!hideCheckbox" @change="changeCollectRange">{{label}}</el-checkbox>
+	<el-checkbox v-model="openCollectRange" v-if="!hideCheckbox" @change="changeCollectRange"><span v-if="label">{{label}}</span>
+   <slot name="label" v-if="!label"></slot>
+  </el-checkbox>
     <el-slider :min="minConfig" :show-stops="showStop" :step="stepConfig" @change="changeBarVal" v-model="staticsRange" :max="maxConfig" :format-tooltip="formatTooltip" ></el-slider> <span>{{staticsRange}}%</span>
   </div>
 </template>

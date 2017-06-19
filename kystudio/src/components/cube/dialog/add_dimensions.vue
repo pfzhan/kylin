@@ -91,7 +91,7 @@
 </template>
 <script>
 export default {
-  name: 'dimensions',
+  name: 'adddimensions',
   props: ['modelDesc', 'cubeDimensions'],
   data () {
     return {
@@ -119,6 +119,7 @@ export default {
           let colArr = []
           let tableObj = {tableName: dimension.table, columns: colArr}
           dimension.columns.forEach(function (col) {
+            console.log(col, 889900)
             var suggestDerivedInfo = suggestDerived(dimension.table, col) === null ? 'false' : 'true'
             colArr.push({table: dimension.table, column: col, name: col, derived: suggestDerivedInfo, isSelected: false})
           })
@@ -128,10 +129,13 @@ export default {
       function suggestDerived (table, column) {
         var derivedList = _this.modelDesc.suggestionDerived
         for (var s = 0; s < derivedList.length; s++) {
-          if (table === derivedList[s].table && column === derivedList[s].column) {
-            return derivedList[s].derived
+          if (table === derivedList[s].table && derivedList[s].derived) {
+            if (derivedList[s].derived.indexOf(column) >= 0) {
+              return true
+            }
           }
         }
+        return null
       }
     },
     getCubeColumnInTable: function () {

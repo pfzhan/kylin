@@ -17,8 +17,8 @@
          <kap-icon-button v-if="tableData.source_type === 0" icon="refresh" type="primary" :useload="true" @click.native="reloadTableDialogVisible" ref="reloadBtn">{{$t('reload')}}</kap-icon-button>
          <kap-icon-button v-if="isAdmin" icon="trash" type="primary" :useload="true" @click.native="unloadTable" ref="unloadBtn">{{$t('unload')}}</kap-icon-button>
             <!-- <el-button type="info" icon="eyedropper">Sampling</el-button> -->
-            <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 0" type="info" :useload="true" @click.native="collectSampleDialogOpen" ref="sampleBtn">{{$t('sampling')}}</kap-icon-button>
-            <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 1" type="info" :useload="true" @click.native="collectKafkaSampleDialogOpen" ref="kafkaSampleBtn">{{$t('sampling')}}(Streaming)</kap-icon-button>
+            <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 0" type="info" :useload="true" @click.native="collectSampleDialogOpen" ref="sampleBtn">{{$t('samplingBtn')}}</kap-icon-button>
+            <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 1" type="info" :useload="true" @click.native="collectKafkaSampleDialogOpen" ref="kafkaSampleBtn">{{$t('samplingBtn')}}(Streaming)</kap-icon-button>
   <!--           <el-button type="danger" @click.native="unloadTable" icon="delete2">Unload</el-button> -->
             <p style="font-size:12px;margin-top:10px;text-align:right;padding-right:4px;">{{$t('kylinLang.dataSource.lastModified')}} {{extendData.last_modified}}</p>
         </div>
@@ -200,7 +200,13 @@
           <!-- <el-checkbox v-model="openCollectRange">Table Sampling</el-checkbox> -->
           <!-- <span class="demonstration">Sample percentage</span> -->
           <!-- <el-slider :min="0" show-stops :step="20" @change="changeBarVal" v-model="tableStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider> -->
-          <slider @changeBar="changeBar" :label="$t('sampling')" :show="load_hive_dalog_visible"></slider>
+          <slider @changeBar="changeBar" :show="load_hive_dalog_visible">
+            <span slot="label">{{$t('sampling')}} 
+              <common-tip :content="$t('kylinLang.dataSource.collectStatice')" >
+                 <icon name="question-circle-o"></icon>
+              </common-tip>
+           </span>
+          </slider>
         </div>
 		    </div>
 		  </div></el-col>
@@ -219,7 +225,13 @@
               <div class="ksd-mt-20">
                 <!-- <el-checkbox v-model="openCollectRange">Table Sampling</el-checkbox> -->
                <!--   <el-slider v-model="tableStaticsRange" :min="0"  show-stops :step="20" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider> -->
-                 <slider @changeBar="changeBar" :label="$t('sampling')"  :show="scanRatioDialogVisible"></slider>
+                 <slider @changeBar="changeBar" :show="scanRatioDialogVisible">
+                   <span slot="label">{{$t('sampling')}} 
+                    <common-tip :content="$t('kylinLang.dataSource.collectStatice')" >
+                       <icon name="question-circle-o"></icon>
+                    </common-tip>
+                 </span>
+                 </slider>
               </div>
               </div>
             </div>
@@ -236,7 +248,11 @@
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">
               <div class="ksd-mt-20">
-                 <slider label="Table Sampling" @changeBar="changeBar" :show="scanSampleRatioDialogVisible"></slider>
+                 <slider  @changeBar="changeBar" :show="scanSampleRatioDialogVisible">
+                   <span slot="label">{{$t('sampling')}} <common-tip :content="$t('kylinLang.dataSource.collectStatice')" >
+                       <icon name="question-circle-o"></icon>
+                    </common-tip></span>
+                 </slider>
               </div>
               </div>
             </div>
@@ -839,8 +855,8 @@ export default {
   mounted () {
   },
   locales: {
-    'en': {'load': 'Load', 'reload': 'Reload', 'sampling': 'Sampling', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Scan Range Setting', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!'},
-    'zh-cn': {'load': '加载', 'reload': '重载', 'sampling': '采样', 'unload': '卸载', 'loadhiveTables': '加载Hive表元数据', 'selectLeftHiveTip': '请在左侧选择要加载的table', 'setScanRange': '设置扫描范围', 'filterInputTips': '请输入hive表名进行过滤', 'loadTableJobBeginTips': '采集开始，您可以到Monitor页面查看采样进度！', 'hasCollectJob': '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!'}
+    'en': {'load': 'Load', 'reload': 'Reload', 'samplingBtn': 'Sampling', 'sampling': 'Collect table stats', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Scan Range Setting', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!'},
+    'zh-cn': {'load': '加载', 'reload': '重载', 'samplingBtn': '采样', 'sampling': '收集表信息', 'unload': '卸载', 'loadhiveTables': '加载Hive表元数据', 'selectLeftHiveTip': '请在左侧选择要加载的table', 'setScanRange': '设置扫描范围', 'filterInputTips': '请输入hive表名进行过滤', 'loadTableJobBeginTips': '采集开始，您可以到Monitor页面查看采样进度！', 'hasCollectJob': '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!'}
   }
 }
 </script>

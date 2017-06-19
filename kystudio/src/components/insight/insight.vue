@@ -68,7 +68,7 @@
       <pager ref="savedQueryPagerForCookie" class="ksd-center" :totalSize="cookieQuerySize"  v-on:handleCurrentChange='pageCurrentChangeForCookie' ></pager>
     </el-tab-pane>
 	</el-tabs>
-  <div class="query_result_box ksd-border-tab">
+  <div class="query_result_box ksd-border-tab" v-show='editableTabs&&editableTabs.length'>
      <div>
      <h3 class="ksd-inline">{{$t('result')}}</h3>
       <!-- <el-form :inline="true" class="demo-form-inline ksd-fright ksd-mr-20 ksd-mt-20">

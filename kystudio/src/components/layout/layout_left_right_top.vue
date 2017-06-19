@@ -280,8 +280,10 @@
           this.FormVisible = false
           this.projectSaveLoading = false
           this.loadAllProjects()
-          this.$router.push('/studio/datasource')
           this.defaultActive = '/studio/datasource'
+          this.$nextTick(() => {
+            this.$router.push('/studio/datasource')
+          })
         }, (res) => {
           this.FormVisible = false
           this.projectSaveLoading = false
