@@ -11,8 +11,8 @@
     </el-row>
     <el-row class="resultTips" >
       <el-col :span="24">
-        <div v-if="!queryInfo.adHoc" class="grid-content bg-purple"><p>Cube: <span v-for="(cube, index) in queryInfo.cube">{{cube}}</span></p></div>
-        <div v-if="queryInfo.adHoc" class="grid-content bg-purple"><p>From DataSource</p></div>
+        <div v-if="!extraoption.data.adHoc" class="grid-content bg-purple"><p>Query Engine: <span>{{queryInfo.cube.replace(/name=/g, '')}}</span></p></div>
+        <div v-if="extraoption.data.adHoc" class="grid-content bg-purple"><p>Query Engine: <span>Push down</span></p></div>
       </el-col>
     </el-row>
   	<div>
@@ -60,7 +60,7 @@
       <div class="echart_box" style="width:800px;height:800px;"></div>
     </div>
    <el-dialog title="保存" v-model="saveQueryFormVisible">
-    <el-form :model="saveQueryMeta"  ref="saveQueryForm" label-width="100px">
+    <el-form :model="saveQueryMeta"  ref="saveQueryForm" :rules="rules" label-width="100px">
       <el-form-item label="Query SQL" prop="sql">
        <editor v-model="saveQueryMeta.sql" lang="sql" theme="chrome" width="100%" height="200" useWrapMode="true"></editor>
       </el-form-item>
@@ -89,6 +89,11 @@ export default {
   props: ['extraoption'],
   data () {
     return {
+      rules: {
+        name: [
+          { required: true, message: this.$t('kylinLang.common.pleaseInput'), trigger: 'blur' }
+        ]
+      },
       saveQueryFormVisible: false,
       // pageSize: 10,
       // currentPage: 1,
@@ -123,7 +128,11 @@ export default {
       saveQueryToServer: 'SAVE_QUERY'
     }),
     exportData () {
-      location.href = '/kylin/api/query/format/csv?sql=' + this.extraoption.sql + '&project=' + this.extraoption.project
+      if (this.extraoption.limit) {
+        location.href = '/kylin/api/query/format/csv?sql=' + this.extraoption.sql + '&project=' + this.extraoption.project + '&limit=' + this.extraoption.limit
+      } else {
+        location.href = '/kylin/api/query/format/csv?sql=' + this.extraoption.sql + '&project=' + this.extraoption.project
+      }
     },
     changeViewModel () {
       this.viewModel = !this.viewModel
@@ -319,13 +328,17 @@ export default {
       this.saveQueryMeta.description = ''
     },
     saveQuery () {
-      this.saveQueryToServer(this.saveQueryMeta).then((response) => {
-        this.$message('query 保存成功！')
-        this.saveQueryFormVisible = false
-        this.$emit('reloadSavedProject', 0)
-      }, (res) => {
-        handleError(res)
-        this.saveQueryFormVisible = false
+      this.$refs['saveQueryForm'].validate((valid) => {
+        if (valid) {
+          this.saveQueryToServer(this.saveQueryMeta).then((response) => {
+            this.$message('query 保存成功！')
+            this.saveQueryFormVisible = false
+            this.$emit('reloadSavedProject', 0)
+          }, (res) => {
+            handleError(res)
+            this.saveQueryFormVisible = false
+          })
+        }
       })
     },
     changeGraphInfo () {

@@ -62,6 +62,7 @@ exports.default = {
     pleaseFilter: 'filter...',
     enterAlias: 'enter alias',
     pleaseSelect: 'Please select',
+    pleaseSelectSampleRange: 'Please select sampling percentage',
     noData: 'No data',
     checkNoChange: 'No content changed',
     // 格式提示
@@ -107,6 +108,7 @@ exports.default = {
     cubeName: 'Cube Name',
     scheduler: 'Scheduler',
     merge: 'Merge Settings',
+    maxGroupColumn: 'Max Dimension Combination:',
     schedulerTip: 'Via scheduler, users can set up an incremental build plan: after triggering the first time build, the new data will be built incrementally at a fixed period(build cycle).',
     cubeNameTip: '1.Cube name is unique name of entire system.<br/>2.Can not edit cube name after created.',
     noticeTip: 'These statuses will trigger an email notification.',
@@ -142,7 +144,7 @@ exports.default = {
   job: {
   },
   dataSource: {
-    columnName: 'Column Name',
+    columnName: 'Column',
     cardinality: 'Cardinality',
     dataType: 'Data Type',
     comment: 'Comment',

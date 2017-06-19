@@ -11,7 +11,7 @@
       <div class="table_content" >
        <img class="null_pic" src="../../assets/img/no_table.png" v-show="!tableData"/>
        <div class="extendInfo" v-show="tableData">
-         <p><span style="font-size:16px;">{{$t('kylinLang.dataSource.tableName')}}</span><span :title="extendData.table_name" style="font-size:16px;color:#218fea"> {{extendData.table_name|omit(50, '...')}}</span></p>
+         <p><span :title="extendData.table_name" style="font-size:16px;color:#218fea"> {{extendData.table_name|omit(50, '...')}}</span></p>
        </div>
        <div class="" style="position:absolute;right:0;z-index:1;top:30px;right:16px;" v-show="tableData">
          <kap-icon-button v-if="tableData.source_type === 0" icon="refresh" type="primary" :useload="true" @click.native="reloadTableDialogVisible" ref="reloadBtn">{{$t('reload')}}</kap-icon-button>
@@ -231,7 +231,7 @@
         </div>
       </el-dialog>
       <!-- 单个采样dialog -->
-      <el-dialog :title="$t('setScanRange')" v-model="scanSampleRatioDialogVisible" >
+      <el-dialog :title="$t('setScanRange')" v-model="scanSampleRatioDialogVisible" @close="cancelLoadSample">
         <el-row :gutter="20">
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">

@@ -170,8 +170,8 @@ export default {
     }),
     loadSavedQuery (pageIndex) {
       this.getSavedQueries({
-        projectName: this.project,
         pageData: {
+          projectName: this.project || null,
           pageSize: pageCount,
           pageOffset: pageIndex
         }
@@ -180,8 +180,8 @@ export default {
     pageCurrentChange (currentPage) {
       this.queryCurrentPage = currentPage
       this.getSavedQueries({
-        projectName: this.project,
         pageData: {
+          projectName: this.project || null,
           pageSize: this.$refs.savedQueryPager.pageSize,
           pageOffset: currentPage - 1
         }

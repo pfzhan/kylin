@@ -1,6 +1,6 @@
 <template>
     <div class="kap_popover">
-     <el-popover ref="popoverGrant" placement="right" trigger="click">
+     <el-popover ref="popoverGrant" placement="right" trigger="hover">
       <div class="grant-popover">
         <slot name="content"></slot>
       </div>

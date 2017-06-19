@@ -61,6 +61,7 @@ exports.default = {
     pleaseFilter: '筛选...',
     enterAlias: '输入别名',
     pleaseSelect: '请选择',
+    pleaseSelectSampleRange: '请选择采样范围',
     noData: '没有数据',
     checkNoChange: '未检测到任何改动',
     // 格式提示
@@ -105,6 +106,7 @@ exports.default = {
   cube: {
     cubeName: 'Cube 名称',
     scheduler: '构建调度器',
+    maxGroupColumn: '最大维度组合数：',
     schedulerTip: '使用者可以通过构建调度器设置一个增量构建的计划：第一次构建触发后，每隔固定的时间段，将新增的数据进行增量构建。',
     merge: '合并设置',
     cubeNameTip: '1.Cube名称需要是全系统唯一的。<br/>2.创建后不能修改Cube名称。',
@@ -141,7 +143,7 @@ exports.default = {
   job: {
   },
   dataSource: {
-    columnName: '列名',
+    columnName: '列',
     cardinality: '基数',
     dataType: '数据类型',
     comment: '注释',

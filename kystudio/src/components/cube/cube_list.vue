@@ -113,9 +113,10 @@
             <el-dropdown-item v-show="scope.row.status==='DISABLED' && !scope.row.is_draft" @click.native="purge(scope.row.name)">{{$t('purge')}}</el-dropdown-item>
             <el-dropdown-item v-show="scope.row.status!=='DESCBROKEN' && !scope.row.is_draft " @click.native="clone(scope.row)">{{$t('clone')}}</el-dropdown-item>
 
+            <el-dropdown-item @click.native="view(scope.row)" style="border-top:solid 1px #292b38">{{$t('viewCube')}}</el-dropdown-item>
             <el-dropdown-item @click.native="backup(scope.row.name)" v-show="!scope.row.is_draft ">{{$t('backup')}}</el-dropdown-item>
             <el-dropdown-item v-show="scope.row.status==='DISABLED'&&!scope.row.is_draft" @click.native="editCubeDesc(scope.row)">{{$t('editCubeDesc')}}</el-dropdown-item>
-            <el-dropdown-item @click.native="view(scope.row)">{{$t('viewCube')}}</el-dropdown-item>
+            
             
             </el-dropdown-menu>
 
@@ -346,9 +347,9 @@ export default {
       this.getCubesList(param).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           this.cubesList = data.cubes.map((p) => {
-            p.createGMTTime = transToGmtTime(p.create_time_utc, _this)
+            p.createGMTTime = p.create_time_utc === 0 ? '' : transToGmtTime(p.create_time_utc, _this)
             if (p.segments.length > 0) {
-              p.buildGMTTime = transToGmtTime(p.segments[p.segments.length - 1].last_build_time, _this)
+              p.buildGMTTime = p.segments[p.segments.length - 1].last_build_time === 0 ? '' : transToGmtTime(p.segments[p.segments.length - 1].last_build_time, _this)
             }
             return p
           })

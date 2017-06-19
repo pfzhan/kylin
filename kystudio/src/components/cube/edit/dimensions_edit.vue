@@ -41,7 +41,7 @@
               :key="index" 
               :class="{ active: (dimension.table+'.'+dimension.name)===isActiveItem }"
               :type="dimension.derived?'gray':'primary'">
-              {{dimension.table+'.'+dimension.name}}
+              {{dimension.table+'.'+dimension.column}}
             </el-tag>
           </el-card>
         </el-col>
@@ -50,14 +50,9 @@
         <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div>
         <div style="font-size: 14px;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
           {{$t('dimensionOptimizations')}}
-          <kap-common-popover class='d-tip'>
-            <div slot="content">
-              <ul>
-                <li>{{$t('dO')}}</li>
-              </ul>
-            </div>
-            <icon name="question-circle-o"></icon>
-          </kap-common-popover>
+            <common-tip :content="$t('dO')" >
+             <icon name="question-circle-o"></icon>
+          </common-tip>
         </div>
         <div style="margin-top: 20px;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
           <el-button type="blue" icon="menu" @click.native="cubeSuggestions" :disabled="isReadyCube">{{$t('cubeSuggestion')}}</el-button>
@@ -77,28 +72,19 @@
       <el-row class="row_padding border_bottom" style="line-height:36px;border: none;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
         <el-col :span="24">
           {{$t('aggregationGroups')}}
-          <kap-common-popover class='d-tip'>
-            <div slot="content">
-              <ul>
-                <li>{{$t('AGG')}}</li>
-              </ul>
-            </div>
-            <icon name="question-circle-o"></icon>
-          </kap-common-popover>
+          <common-tip :content="$t('AGG')" >
+             <icon name="question-circle-o"></icon>
+          </common-tip>
         </el-col>
       </el-row>
       <el-row class="row_padding border_bottom borderLeft" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length" style="line-height:36px;border:none;padding-left:0;color:rgba(255,255,255,0.5);margin-top: -8px;padding-top: 0;">
         <el-col :span="5">Total cuboid number: {{totalCuboid}}</el-col>
         <el-col :span="12" >
-        <kap-common-popover class='d-tip'>
-          <div slot="content">
-            <ul>
-              <li>{{$t('maxGroup')}}</li>
-            </ul>
-          </div>
-          <icon name="question-circle-o"></icon>
-        </kap-common-popover>
-        Max group by column: <el-input id="apply-l" v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;"></el-input><el-button id="apply-r" type="grey" style="height: 32px;margin-left: 5px;" @click.native="changeDimCap();cubeSuggestions()">Apply</el-button> </el-col>
+         <common-tip :content="$t('maxGroup')" >
+             <icon name="question-circle-o"></icon>
+          </common-tip>
+        {{$t('kylinLang.cube.maxGroupColumn')}}
+         <el-input id="apply-l" v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;"></el-input><el-button id="apply-r" type="grey" style="height: 32px;margin-left: 5px;" @click.native="changeDimCap();">Apply</el-button> </el-col>
       </el-row>
       <div class="line" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length"></div>
       <el-row class="row_padding border_bottom" v-for="(group, group_index) in cubeDesc.aggregation_groups" :key="group_index" style="border-bottom: 0;">
@@ -639,7 +625,7 @@ export default {
     changeDimCap: function () {
       this.cubeDesc.aggregation_groups.forEach((aggregationGroup) => {
         this.$set(aggregationGroup.select_rule, 'dim_cap', +this.dim_cap)
-        this.refreshAggragation()
+        this.initCalCuboid()
       })
     },
     initAggregationGroup: function () {
@@ -693,15 +679,17 @@ export default {
       })
     },
     refreshAggragation: function (groupindex) {
-      groupindex = groupindex || 0
-      this.calCuboid({cubeDescData: JSON.stringify(this.cubeDesc), aggIndex: groupindex}).then((res) => {
-        handleSuccess(res, (data, code, status, msg) => {
-          this.$set(this.cuboidList, groupindex, data)
-          this.$set(this.groupErrorList, groupindex, '')
-        })
-      }).catch((res) => {
-        handleError(res, (data, code, status, msg) => {
-          this.$set(this.groupErrorList, groupindex, msg)
+      this.$nextTick(() => {
+        groupindex = groupindex || 0
+        this.calCuboid({cubeDescData: JSON.stringify(this.cubeDesc), aggIndex: groupindex}).then((res) => {
+          handleSuccess(res, (data, code, status, msg) => {
+            this.$set(this.cuboidList, groupindex, data)
+            this.$set(this.groupErrorList, groupindex, '')
+          })
+        }).catch((res) => {
+          handleError(res, (data, code, status, msg) => {
+            this.$set(this.groupErrorList, groupindex, msg)
+          })
         })
       })
     },
@@ -777,8 +765,8 @@ export default {
     }
   },
   locales: {
-    'en': {dimensions: 'Dimensions', name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment', action: 'Action', addDimensions: 'Add Dimensions', editDimension: 'Edit Dimensions', filter: 'Filter...', cancel: 'Cancel', yes: 'Yes', aggregationGroups: 'Aggregation Groups', Includes: 'Includes', mandatoryDimensions: 'Mandatory Dimensions', hierarchyDimensions: 'Hierarchy Dimensions', jointDimensions: 'Joint Dimensions', addAggregationGroups: 'Aggregation Groups', newHierarchy: 'New Hierarchy', newJoint: 'New Joint', ID: 'ID', encoding: 'Encoding', length: 'Length', shardBy: 'Shard By', dataType: 'Data Type', resetDimensions: 'Reset', cubeSuggestion: 'Optimize', collectsqlPatterns: 'Collect SQL Patterns', dimensionOptimizations: 'Dimension optimizations', dO: 'Clicking on the optimize will output the suggested dimension type (normal / derived), aggregate group settings, and Rowkey order.Reset will drop all existing the aggregate group settings and Rowkey order.', AGG: 'Aggregation group is group of cuboids that are constrained by common rules. Users can apply different settings on cuboids in all aggregation groups to meet the query requirements, and saving storage space.', maxGroup: 'Dimension limitations mean max dimensions may be contained within a group of SQL queries. In a set of queries, if each query required the number of dimensions is not more than five, you can set 5 here.'},
-    'zh-cn': {dimensions: '维度', name: '名称', type: '类型', tableAlias: '表别名', column: '列名', datatype: '数据类型', cardinality: '基数', comment: '注释', action: '操作', addDimensions: '添加维度', editDimension: 'Edit Dimension', filter: '过滤器', cancel: '取消', yes: '确定', aggregationGroups: '聚合组', Includes: '包含的维度', mandatoryDimensions: '必需维度', hierarchyDimensions: '层级维度', jointDimensions: '联合维度', addAggregationGroups: '添加聚合组', newHierarchy: '新的层数', newJoint: '新的组合', ID: 'ID', encoding: '编码', length: '长度', shardBy: 'Shard By', dataType: '数据类型', resetDimensions: '重置', cubeSuggestion: 'Optimize', collectsqlPatterns: '输入sql', dimensionOptimizations: '维度优化', dO: '点击优化维度将输出优化器推荐的维度类型（正常／衍生）、聚合组设置与Rowkey顺序。重置则会清空已有的聚合组设置与当前Rowkey顺序。', AGG: '聚合组是指受到共同规则约束的维度组合。 使用者可以对所有聚合组里的维度组合进行不同设置以满足查询需求，并最大化节省存储空间。', maxGroup: '查询最大维度数是指一组查询语句中所含维度的最大值。在查询中，每条查询所需的维度数基本都不超过五，则可以在这里设置5。'}
+    'en': {dimensions: 'Dimensions', name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment', action: 'Action', addDimensions: 'Add Dimensions', editDimension: 'Edit Dimensions', filter: 'Filter...', cancel: 'Cancel', yes: 'Yes', aggregationGroups: 'Aggregation Groups', Includes: 'Includes', mandatoryDimensions: 'Mandatory Dimensions', hierarchyDimensions: 'Hierarchy Dimensions', jointDimensions: 'Joint Dimensions', addAggregationGroups: 'Aggregation Groups', newHierarchy: 'New Hierarchy', newJoint: 'New Joint', ID: 'ID', encoding: 'Encoding', length: 'Length', shardBy: 'Shard By', dataType: 'Data Type', resetDimensions: 'Reset', cubeSuggestion: 'Optimize', collectsqlPatterns: 'Collect SQL Patterns', dimensionOptimizations: 'Dimension optimizations', dO: 'Clicking on the optimize will output the suggested dimension type (normal / derived), aggregate group settings, and Rowkey order.<br/>Reset will drop all existing the aggregate group settings and Rowkey order.', AGG: 'Aggregation group is group of cuboids that are constrained by common rules. Users can apply different settings on cuboids in all aggregation groups to meet the query requirements, and saving storage space.', maxGroup: 'Dimension limitations mean max dimensions may be contained within a group of SQL queries. In a set of queries, if each query required the number of dimensions is not more than five, you can set 5 here.'},
+    'zh-cn': {dimensions: '维度', name: '名称', type: '类型', tableAlias: '表别名', column: '列名', datatype: '数据类型', cardinality: '基数', comment: '注释', action: '操作', addDimensions: '添加维度', editDimension: 'Edit Dimension', filter: '过滤器', cancel: '取消', yes: '确定', aggregationGroups: '聚合组', Includes: '包含的维度', mandatoryDimensions: '必需维度', hierarchyDimensions: '层级维度', jointDimensions: '联合维度', addAggregationGroups: '添加聚合组', newHierarchy: '新的层数', newJoint: '新的组合', ID: 'ID', encoding: '编码', length: '长度', shardBy: 'Shard By', dataType: '数据类型', resetDimensions: '重置', cubeSuggestion: 'Optimize', collectsqlPatterns: '输入sql', dimensionOptimizations: '维度优化', dO: '点击优化维度将输出优化器推荐的维度类型（正常／衍生）、聚合组设置与Rowkey顺序。<br/>重置则会清空已有的聚合组设置与当前Rowkey顺序。', AGG: '聚合组是指受到共同规则约束的维度组合。 使用者可以对所有聚合组里的维度组合进行不同设置以满足查询需求，并最大化节省存储空间。', maxGroup: '查询最大维度数是指一组查询语句中所含维度的最大值。在查询中，每条查询所需的维度数基本都不超过五，则可以在这里设置5。'}
   }
 }
 </script>

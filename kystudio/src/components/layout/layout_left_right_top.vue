@@ -38,7 +38,7 @@
         </li>
       </ul>
     </div>
-    <section class="panel-c-c" id="scrollBox">
+    <div class="panel-c-c" id="scrollBox">
       <div class="grid-content bg-purple-light">
         <el-col :span="24" style="margin-bottom:15px;">
           <!-- 面包屑在dashboard页面不显示 -->
@@ -67,7 +67,7 @@
           </span>
         </el-dialog>
       </div>
-    </section>
+    </div>
   </el-col>
 </el-row>
 <el-dialog @close="closeResetPassword" :title="$t('resetPassword')" v-model="resetPasswordFormVisible">

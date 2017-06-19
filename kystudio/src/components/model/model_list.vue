@@ -646,7 +646,7 @@ export default {
     stats () {
       if (+this.modelStaticsRange === 0) {
         this.$message({
-          message: this.$t('kylinLang.common.pleaseSelect')
+          message: this.$t('kylinLang.common.pleaseSelectSampleRange')
         })
         return
       }

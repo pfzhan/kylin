@@ -1,6 +1,6 @@
 <template>
 <div id="dimensions-view">  
-  <div class="title">{{$t('dimentions')}}</div>
+  <div class="title">{{$t('dimensions')}}</div>
   <el-card style="padding: 10px;">
     <el-tag class="tag_margin"
       v-for="(dimension, dim_index) in cubeDesc.desc.dimensions"

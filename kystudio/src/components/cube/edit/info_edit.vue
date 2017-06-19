@@ -81,6 +81,7 @@ export default {
   methods: {
     ...mapActions({
       saveSampleSql: 'SAVE_SAMPLE_SQL',
+      getSql: 'GET_SAMPLE_SQL',
       getModelDiagnose: 'DIAGNOSE'
     }),
     changeNotifyList: function () {
@@ -96,6 +97,11 @@ export default {
     collectSql () {
       this.sqlString = ''
       this.addSQLFormVisible = true
+      this.getSql(this.cubeDesc.name).then((res) => {
+        handleSuccess(res, (data) => {
+          this.sqlString = data.join(';')
+        })
+      })
     },
     collectSqlToServer () {
       if (this.sqlString !== '') {

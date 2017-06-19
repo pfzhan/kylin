@@ -33,7 +33,7 @@ export default {
     return Vue.resource(apiUrl + 'saved_queries').save(para)
   },
   getSaveQueries: (para) => {
-    return Vue.resource(apiUrl + 'saved_queries' + (para.projectName ? '/' + para.projectName : '')).get(para.pageData)
+    return Vue.resource(apiUrl + 'saved_queries').get(para.pageData)
   },
   deleteQuery: (id) => {
     return Vue.resource(apiUrl + 'saved_queries/' + id).delete()
