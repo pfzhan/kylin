@@ -142,7 +142,7 @@ public class ScheduleBuildJob implements Job {
                 scheduler.deleteJob(JobKey.jobKey("building_jobs"));
                 scheduler.addJob(buildingJobs, true);
             } else if (jobInstance.getStatus() == JobStatusEnum.ERROR) {
-                jobService.resumeJob(jobInstance);
+                jobService.getExecutableManager().resumeJob(jobInstance.getId());
             }
 
             // Stop scheduler if has run scheduled times
