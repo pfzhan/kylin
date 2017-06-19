@@ -31,13 +31,7 @@ function retrieveDependency() {
         source ${dir}/find-kafka-dependency.sh
     fi
 
-    # get hdp_version
-    if [ -z "${hdp_version}" ]; then
-        hdp_version=`/bin/bash -x hadoop 2>&1 | sed -n "s/\(.*\)export HDP_VERSION=\(.*\)/\2/"p`
-        verbose "hdp_version is ${hdp_version}"
-    fi
-    
-    # get kylin_hadoop_conf_dir
+    # get kylin_hadoop_conf_dir & kylin_hadoop_opts
     if [ -z "${kylin_hadoop_conf_dir}" ]; then
         source ${dir}/find-hadoop-conf-dir.sh
     fi
@@ -74,12 +68,12 @@ function retrieveDependency() {
     export KYLIN_TOOL_CLASSPATH=${KYLIN_HOME}/conf:${KYLIN_HOME}/tool/*:${KYLIN_HOME}/ext/*:${hadoop_dependencies}
     
     # compose kylin_common_opts
-    kylin_common_opts="-Dkylin.hive.dependency=${hive_dependency} \
+    kylin_common_opts="${kylin_hadoop_opts} \
+    -Dkylin.hive.dependency=${hive_dependency} \
     -Dkylin.kafka.dependency=${kafka_dependency} \
     -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} \
     -Dkap.server.host-address=${KYLIN_REST_ADDRESS} \
-    -Dspring.profiles.active=${spring_profile} \
-    -Dhdp.version=${hdp_version}"
+    -Dspring.profiles.active=${spring_profile}"
     
     # compose KYLIN_TOMCAT_OPTS
     KYLIN_TOMCAT_OPTS="-Dlog4j.configuration=file:${KYLIN_HOME}/conf/kylin-server-log4j.properties \
