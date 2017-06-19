@@ -446,8 +446,11 @@ public class KapCubeController extends BasicController implements InitializingBe
 
     private SchedulerJobInstance deserializeSchedulerJobInstance(KapCubeRequest kapCubeRequest) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
-
         SchedulerJobInstance schedulerJob = null;
+
+        if (kapCubeRequest.getSchedulerJobData() == null)
+            return schedulerJob;
+
         try {
             logger.trace("Saving scheduler job " + kapCubeRequest.getSchedulerJobData());
             schedulerJob = JsonUtil.readValue(kapCubeRequest.getSchedulerJobData(), SchedulerJobInstance.class);
