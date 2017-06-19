@@ -11,7 +11,7 @@
         <el-button @click="loginKyBot" :loading="loginLoading" class="btn-loginKybot">{{$t('login')}}</el-button>  
       </el-form-item>
     </el-form>
-    <p class="no-account">{{$t('noAccount')}}? <a @click="signUp" target="_blank">{{$t('singUp')}}</a></p>
+    <p class="no-account"><span style="color: rgba(255,255,255,0.6);">{{$t('noAccount')}}?</span> <a @click="signUp" target="_blank">{{$t('singUp')}}</a></p>
   </div>
 </template>
 <script>
@@ -139,6 +139,9 @@
 </script>
 <style lang="less">
 .login_kybot{
+  .el-input{
+    margin-right: 0;
+  }
   .btn-loginKybot {
     width: 100%;
     margin: 0;

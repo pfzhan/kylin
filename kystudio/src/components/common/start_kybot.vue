@@ -121,7 +121,7 @@ AND USE OF ADDITIONAL COPIES IS LIMITED TO NECESSARY
 BACKUP PURPOSES ONLY.
 2. Entire Agreement. This Agreement includes these Terms, any exhibits
 or web links attached to or referenced in these Terms and any terms set
-forth on the Kyligence web site at https://kyligence.io This Agreement is the
+forth on the Kyligence web site at https://kybot.io This Agreement is the
 entire agreement of the parties regarding the subject matter hereof,
 superseding all other agreements between them, whether oral or written,
 regarding the subject matter hereof.
@@ -405,7 +405,7 @@ will not constitute a waiver of any subsequent breach or default.`},
 在被更新产品的其他用户；（3）制作和使用额外的副本仅限于必要的
 备份目的。
 2. 全 部 协 议 , 本协议 包 括 本 条 款 以 及 任 何 跬 智 官 方 网 站
-https://kyligence.io 展示或者网页链接所附或引用的全部条款。本协议是
+https://kybot.io 展示或者网页链接所附或引用的全部条款。本协议是
 双方就相关事项达成的完整协议，取代跬智与用户之间就本条款相关事
 项所达成的其他任何协议，无论是口头的还是书面的。
 3. 使用许可，跬智授予用户非排他性的、不可转让的、非可再授权的，

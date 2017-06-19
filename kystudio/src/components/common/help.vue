@@ -252,8 +252,8 @@
       'start_kybot': startKybot
     },
     locales: {
-      'en': {usernameEmpty: 'Please enter username', usernameRule: 'username contains only numbers, letters and character "_"', noUserPwd: 'password required', agreeAndOpen: 'agree the protocol and open the automatic service', kybotAuto: 'KyBot Auto Upload', openSuccess: 'open successfully', closeSuccess: 'close successfully', Manual: 'KAP Manual', kybotService: 'KyBot Service', aboutKap: 'About KAP', kybot: 'Kybot by analyzing the production of diagnostic kits, KAP diagnosis, optimization and online services, the automatic upload service, regularly upload automatically every day, don not need to packaging and upload on its own'},
-      'zh-cn': {usernameEmpty: '请输入用户名', usernameRule: '名字只能包含数字字母下划线', noUserPwd: '密码不能为空', agreeAndOpen: '同意协议并开启自动服务', kybotAuto: 'KyBot自动上传', openSuccess: '成功开启', closeSuccess: '成功关闭', Manual: 'KAP手册', kybotService: 'KyBot服务', aboutKap: '关于KAP', kybot: 'Kybot通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天定时自动上传，无需自行打包和上传'}
+      'en': {usernameEmpty: 'Please enter username', usernameRule: 'username contains only numbers, letters and character "_"', noUserPwd: 'password required', agreeAndOpen: 'agree the protocol and open the automatic service', kybotAuto: 'KyBot Auto Upload', openSuccess: 'open successfully', closeSuccess: 'close successfully', Manual: 'KAP Manual', kybotService: 'KyBot Service', aboutKap: 'About KAP', kybot: 'By analyzing diagnostic package, KyBot can provide online diagnostic, tuning and support service for KAP. After starting auto upload service, it will automatically upload packages everyday regularly.'},
+      'zh-cn': {usernameEmpty: '请输入用户名', usernameRule: '名字只能包含数字字母下划线', noUserPwd: '密码不能为空', agreeAndOpen: '同意协议并开启自动服务', kybotAuto: 'KyBot自动上传', openSuccess: '成功开启', closeSuccess: '成功关闭', Manual: 'KAP手册', kybotService: 'KyBot服务', aboutKap: '关于KAP', kybot: 'KyBot通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天定时自动上传，无需自行打包和上传'}
     }
   }
 </script>
@@ -270,9 +270,9 @@
   	  vertical-align: middle;
   	}
     }
-    .el-dialog__header {height:70px;line-height:70px;padding:0 20px;text-align:left;}
+    .el-dialog__header {padding:0 20px;text-align:left;}
     .el-dialog__title {color:#red;font-size:14px;}
-    .el-dialog__body {padding:0 50px;}
+    .el-dialog__body {padding:20px 50px;}
     .el-dropdown-link{
       color: @fff;
     }
