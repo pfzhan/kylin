@@ -63,6 +63,8 @@ public class SparkSqlClient implements Serializable {
         this.sc = sc;
         this.semaphore = semaphore;
         hiveContext = new HiveContext(sc);
+        hiveContext.sql(
+                "CREATE TEMPORARY FUNCTION timestampadd AS 'io.kyligence.kap.storage.parquet.adhoc.udf.TimestampAdd'");
     }
 
     public Pair<List<List<String>>, List<SparkJobProtos.StructField>> executeSql(SparkJobProtos.AdHocRequest request,
