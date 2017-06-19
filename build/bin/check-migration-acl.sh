@@ -21,5 +21,5 @@ metadataUrl=${metadataUrl%%@*}
 ${dir}/kylin.sh org.apache.kylin.tool.AclTableMigrationCLI CHECK
 ec=$?
 
-[[ $ec == 2 ]] && quit "ERROR: Legacy ACL metadata detected. Please migrate ACL metadata first. Step1: run command 'bin/kylin.sh org.apache.kylin.tool.AclTableMigrationCLI MIGRATE', Step2: drop hbase tables: ${metadataUrl}_acl and ${metadataUrl}_user"
+[[ $ec == 2 ]] && quit "ERROR: Legacy ACL metadata detected. Please migrate ACL metadata first. Run command 'bin/kylin.sh org.apache.kylin.tool.AclTableMigrationCLI MIGRATE'. After KAP is successfully installed and deployed, ask the administrator to drop hbase tables: ${metadataUrl}_acl and ${metadataUrl}_user"
 [[ $ec == 0 ]] || quit "ERROR: Unknown error. Please check full log."
