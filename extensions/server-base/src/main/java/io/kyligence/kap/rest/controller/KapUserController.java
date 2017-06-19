@@ -44,6 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -149,7 +150,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
         logger.info("Saving " + user);
 
         UserDetails details = userObjToDetails(user);
-        userService.updateUser(details);
+        secureUpdateUser(details);
         kapAuthenticationManager.addUser(user);
 
         return get(userName);
@@ -185,9 +186,14 @@ public class KapUserController extends BasicController implements UserDetailsSer
         logger.info("update password for user " + user);
 
         UserDetails details = userObjToDetails(existing);
-        userService.updateUser(details);
+        secureUpdateUser(details);
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, get(user.getUsername()), "");
+    }
+    
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    protected void secureUpdateUser(UserDetails userDetails) {
+        userService.updateUser(userDetails);
     }
 
     private String pwdEncode(String pwd) {

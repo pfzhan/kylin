@@ -41,7 +41,11 @@
         <curator.version>2.7.1</curator.version>
         <quartz.version>2.1.1</quartz.version>
         <mockito.version>2.7.14</mockito.version>
-        <spring.framework.security.version>3.1.2.RELEASE</spring.framework.security.version>
+        
+        <!-- REST Service, keep same with Kylin -->
+        <spring.boot.version>1.3.8.RELEASE</spring.boot.version>
+        <spring.framework.version>4.2.8.RELEASE</spring.framework.version>
+        <spring.framework.security.version>4.0.4.RELEASE</spring.framework.security.version>
 
         <!-- Sonar -->
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
@@ -70,6 +74,7 @@
         <module>extensions/query</module>
         <module>extensions/server-base</module>
         <module>extensions/server</module>
+        <module>extensions/server-rest-doc-gen</module>
         <module>extensions/assembly</module>
         <module>extensions/tool</module>
         <module>extensions/tool-assembly</module>
@@ -446,7 +451,7 @@
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
-                    <version>1.3.6.RELEASE</version>
+                    <version>${spring.boot.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
