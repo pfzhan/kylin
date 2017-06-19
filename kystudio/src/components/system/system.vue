@@ -3,7 +3,7 @@
     <el-row :gutter="20">
       <el-col :span="9">  
             <span class="server-type">{{$t('ServerConfig')}}</span>
-            <el-button  type="primary" class="btn-refresh" @click="refreshConfig" size="mini"><icon name="refresh"></icon></el-button>
+            <el-button  type="default" class="btn-refresh" @click="refreshConfig" size="mini"><icon name="refresh"></icon></el-button>
             <editor class="ksd-mt-4" @init="editorInit" v-model="getServerConfig"  theme="chrome" width="100%" height="400" useWrapMode="true"></editor>
           <!-- <el-input class="textarea-wrap"
           type="textarea"
@@ -14,7 +14,7 @@
       </el-col>
       <el-col :span="9">
             <span class="server-type">{{$t('ServerEnvironment')}}</span>
-            <el-button  type="primary" class="btn-refresh" @click="refreshEnv" size="mini"><icon name="refresh"></icon></el-button>
+            <el-button  type="default" class="btn-refresh" @click="refreshEnv" size="mini"><icon name="refresh"></icon></el-button>
             <editor class="ksd-mt-4" @init="editorInit" v-model="getServerEnvironment"  theme="chrome" width="100%" height="400"></editor>
          <!--  <el-input
           type="textarea"

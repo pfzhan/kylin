@@ -107,6 +107,8 @@ li {list-style-type:none;}
   }
 }
 .ace-chrome{
+  border: 1px solid #4a4d5e;
+  border-radius: 5px;
   .ace_print-margin {
     display: none;
   }
@@ -114,13 +116,16 @@ li {list-style-type:none;}
     background: #3e425b!important;
   }
   .ace_gutter-cell{
-    background: #3e425b;
+    background: @input-bg;
     color: @fff;
   }
   .ace_content{
-    background: @grey-color;
+    background: @input-bg;
   }
   color: @fff!important;
+}
+.ace_gutter-layer{
+  background: @input-bg;
 }
 #nprogress div.bar{background-color: #58b7ff;}
 .unselectable {user-select:none;}
@@ -140,7 +145,7 @@ li {list-style-type:none;}
         background: @bg-total;
       }
       &>.el-tabs__header{
-        border-bottom: solid 1px #fff;
+        border-bottom: solid 1px @grey-color;
         .el-tabs__item.is-active{
           background: @base-color;
           border: 0!important;
@@ -169,6 +174,7 @@ li {list-style-type:none;}
 // kystudio 非boder型全局tab
 .ksd-common-tab{
   .el-tabs--card>.el-tabs__header {
+    border-bottom: 1px solid @grey-color;
     margin-left: 30px;
     .el-tabs__new-tab{
       display: none;
