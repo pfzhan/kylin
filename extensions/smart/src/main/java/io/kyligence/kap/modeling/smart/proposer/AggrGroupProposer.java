@@ -73,8 +73,18 @@ public class AggrGroupProposer extends AbstractProposer {
             CubeDescUtil.fillCubeDefaultAggGroups(workCubeDesc);
         }
 
+        // dimCap is set at cube level on Web UI, so set all groups' dimCap as min value here.
+        int minDimCap = 64; // MAX_VALUE
         for (AggregationGroup aggregationGroup : workCubeDesc.getAggregationGroups()) {
             optimizeAggrGroup(workCubeDesc, aggregationGroup);
+            if (aggregationGroup.getDimCap() > 0 && aggregationGroup.getDimCap() < minDimCap) {
+                minDimCap = aggregationGroup.getDimCap();
+            }
+        }
+
+        minDimCap = minDimCap > 63 ? 0 : minDimCap;
+        for (AggregationGroup aggregationGroup : workCubeDesc.getAggregationGroups()) {
+            aggregationGroup.getSelectRule().dimCap = minDimCap;
         }
     }
 
