@@ -30,6 +30,9 @@ export default {
           localStorage.setItem('selected_project', '')
           state.selected_project = ''
         }
+      } else {
+        localStorage.setItem('selected_project', '')
+        state.selected_project = ''
       }
     }
   },

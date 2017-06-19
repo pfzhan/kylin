@@ -115,8 +115,8 @@
 
      
     
-     <div class="ksd-common-table" v-if="usedRawTable && rawTable.tableDetail.columns.length">
-     <p class="ksd-left" style="margin-bottom: 15px;">{{$t('dragSorted')}}</p>
+     <div class="ksd-common-table ksd-mt-20" v-if="usedRawTable && rawTable.tableDetail.columns.length">
+     <!-- <p class="ksd-left" style="margin-bottom: 15px;">{{$t('dragSorted')}}</p> -->
        <el-row class="tableheader">
          <el-col :span="1">{{$t('ID')}}</el-col>
          <el-col :span="6">{{$t('column')}}</el-col>
@@ -126,8 +126,8 @@
          <el-col :span="4">{{$t('Length')}}</el-col>
          <el-col :span="2">{{$t('Index')}}</el-col>
        </el-row>
-        <el-row class="tablebody" v-if="row.is_sortby===true" v-for="(row, index) in rawTable.tableDetail.columns" :key="row.column" v-dragging="{ item: row, list: rawTable.tableDetail.columns, group: 'row' }">
-          <el-col :span="1">{{index+1}}</el-col>
+        <el-row style="cursor:move" class="tablebody" v-if="row.is_sortby===true" v-for="(row, index) in rawTable.tableDetail.columns" :key="row.column" v-dragging="{ item: row, list: rawTable.tableDetail.columns, group: 'row' }">
+          <el-col :span="1" >{{index+1}}</el-col>
           <el-col :span="6">{{row.column}}</el-col>
           <el-col :span="4">
               {{modelDesc.columnsDetail[row.table+'.'+row.column]&&modelDesc.columnsDetail[row.table+'.'+row.column].datatype}}
@@ -356,8 +356,8 @@ export default {
     }
   },
   locales: {
-    'en': {noSupportRawTable: 'Only KAP PLUS Provides Raw Table', tableIndex: 'Table Index', ID: 'ID', column: 'Column', dataType: 'Data Type', tableAlias: 'Table Alias', Encoding: 'Encoding', Length: 'Length', Index: 'Index', ConfigRawTable: 'Config Raw Table', 'sortBy': 'SortBy', 'shardBy': 'ShardBy', dragSorted: 'Drag the rows below to sort'},
-    'zh-cn': {noSupportRawTable: '只有KAP PLUS 提供Raw Table功能', tableIndex: '表索引', ID: 'ID', column: '列', dataType: '数据类型', tableAlias: '表别名', Encoding: '编码', Length: '长度', Index: '索引', ConfigRawTable: '配置Raw Table', 'sortBy': 'SortBy', 'shardBy': 'ShardBy', dragSorted: '拖动下面的表行进行排序'}
+    'en': {noSupportRawTable: 'Only KAP PLUS Provides Raw Table', tableIndex: 'Table Index', ID: 'ID', column: 'Column', dataType: 'Data Type', tableAlias: 'Table Alias', Encoding: 'Encoding', Length: 'Length', Index: 'Index', ConfigRawTable: 'Config Table Index', 'sortBy': 'SortBy', 'shardBy': 'ShardBy', dragSorted: 'Drag the rows below to sort'},
+    'zh-cn': {noSupportRawTable: '只有KAP PLUS 提供Raw Table功能', tableIndex: '表索引', ID: 'ID', column: '列', dataType: '数据类型', tableAlias: '表别名', Encoding: '编码', Length: '长度', Index: '索引', ConfigRawTable: '配置Table Index', 'sortBy': 'SortBy', 'shardBy': 'ShardBy', dragSorted: '拖动下面的表行进行排序'}
   }
 }
 </script>

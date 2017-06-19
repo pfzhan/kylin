@@ -60,7 +60,6 @@
     <el-col :span="6">
       <el-date-picker class="input_width" @change="changeTriggerTime()" :disabled="!$store.state.cube.cubeSchedulerIsSetting"
         v-model="scheduledRunTime"
-        
         type="datetime"
         align="right">
       </el-date-picker>
@@ -74,7 +73,7 @@
           <el-input v-model="intervalRange.range" :disabled="!$store.state.cube.cubeSchedulerIsSetting"  @change="changeInterval()"></el-input>          
         </el-col>
         <el-col :span="8">
-            <el-select v-model="intervalRange.type" @change="changeInterval()" :disabled="!$store.state.cube.cubeSchedulerIsSetting">
+            <el-select :placeholder="$t('kylinLang.common.pleaseSelect')" v-model="intervalRange.type" @change="changeInterval()" :disabled="!$store.state.cube.cubeSchedulerIsSetting">
               <el-option
                  v-for="(item, range_index) in intervalOptions" :key="range_index"
                 :label="item"

@@ -107,7 +107,7 @@ exports.default = {
     cubeName: 'Cube 名称',
     scheduler: '构建调度器',
     maxGroupColumn: '最大维度组合数：',
-    schedulerTip: '使用者可以通过构建调度器设置一个增量构建的计划：第一次构建触发后，每隔固定的时间段，将新增的数据进行增量构建。',
+    schedulerTip: '使用者可以通过构建调度器设置一个增量构建的计划：<br/>第一次构建触发后，每隔固定的时间段，将新增的数据进行增量构建。',
     merge: '合并设置',
     cubeNameTip: '1.Cube名称需要是全系统唯一的。<br/>2.创建后不能修改Cube名称。',
     noticeTip: '这些状态下总是会触发一条通知。',

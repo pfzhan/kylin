@@ -109,7 +109,7 @@ exports.default = {
     scheduler: 'Scheduler',
     merge: 'Merge Settings',
     maxGroupColumn: 'Max Dimension Combination:',
-    schedulerTip: 'Via scheduler, users can set up an incremental build plan: after triggering the first time build, the new data will be built incrementally at a fixed period(build cycle).',
+    schedulerTip: 'Via scheduler, users can set up an incremental build plan: <br/>after triggering the first time build, the new data will be built incrementally at a fixed period(build cycle).',
     cubeNameTip: '1.Cube name is unique name of entire system.<br/>2.Can not edit cube name after created.',
     noticeTip: 'These statuses will trigger an email notification.',
     dimensionTip: '1.In fact table: one normal dimension will be auto generated per column.<br/>2.In lookup table: you can choose to generate a normal dimension or a derived dimension.',

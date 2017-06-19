@@ -1419,6 +1419,11 @@ export default {
       var tableInfo = this.getTableInfoByGuid(guid)
       this.editTableInfoByGuid(guid, 'kind', kind)
       this.editTableInfoByGuid(guid, 'alias', tableInfo.name)
+      this.currentSelectTable = {
+        database: tableInfo.database,
+        tablename: tableInfo.tableName,
+        columnname: ''
+      }
       this.getPartitionDateColumns()
     },
     checkHasFactKindTable: function (guid) {
@@ -1716,6 +1721,11 @@ export default {
               kind: 'ROOTFACT',
               guid: sampleGuid(),
               alias: modelData.fact_table.split('.')[1]
+            }
+            _this.currentSelectTable = {
+              database: modelData.fact_table.split('.')[0],
+              tablename: modelData.fact_table.split('.')[1],
+              columnname: ''
             }
             for (var table in baseTables) {
               _this.createTableData(_this.extraoption.project, baseTables[table].database, baseTables[table].table, {

@@ -38,9 +38,10 @@
           </el-select>
         </el-form-item>
         <el-form-item :label="$t('hasSeparateLabel')" v-show="needSetTime">
-        <span slot="label">{{$t('hasSeparateLabel')}}
-          <common-tip :content="$t('kylinLang.model.partitionSplitTip')" ><icon name="question-circle-o"></icon></common-tip></span>
+       
         <el-switch v-model="hasSeparate" on-text="" @change="changeSepatate" off-text="" :disabled="editMode  || actionMode==='view'"></el-switch>
+         <span slot="label">{{$t('hasSeparateLabel')}}
+          <common-tip :content="$t('kylinLang.model.partitionSplitTip')" ><icon name="question-circle-o"></icon></common-tip></span>
         </el-form-item>
         <el-form-item :label="$t('partitionTimeColumn')" v-show="hasSeparate">
          <span slot="label">{{$t('partitionTimeColumn')}}
@@ -202,8 +203,8 @@ export default {
     this.checkLockFormat()
   },
   locales: {
-    'en': {partitionDateColumn: 'Partition Date Column', dateFormat: 'Date Format', hasSeparateLabel: 'Has a separate "time of the day" column?', partitionTimeColumn: 'Partition Time Column', timeFormat: 'Time Format', filterCondition: 'Filter Condition', filterPlaceHolder: 'Please input filter condition'},
-    'zh-cn': {partitionDateColumn: '分区列（日期类型）', dateFormat: '日期格式', hasSeparateLabel: '您使用单独的列来表示某天内的时间吗？', partitionTimeColumn: '分区列（时间类型）', timeFormat: '时间格式', filterCondition: '过滤条件', filterPlaceHolder: '请输入过滤条件'}
+    'en': {partitionDateColumn: 'Partition Date Column', dateFormat: 'Date Format', hasSeparateLabel: 'More partition column', partitionTimeColumn: 'Partition Time Column', timeFormat: 'Time Format', filterCondition: 'Filter Condition', filterPlaceHolder: 'Please input filter condition'},
+    'zh-cn': {partitionDateColumn: '分区列（日期类型）', dateFormat: '日期格式', hasSeparateLabel: '更多分区列', partitionTimeColumn: '分区列（时间类型）', timeFormat: '时间格式', filterCondition: '过滤条件', filterPlaceHolder: '请输入过滤条件'}
   }
 }
 </script>
