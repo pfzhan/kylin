@@ -313,7 +313,7 @@ public class SchedulerJobService extends BasicService implements InitializingBea
                 scheduler.deleteJob(jobKey);
             }
         }
-        trigger = TriggerBuilder.newTrigger().startAt(new Date(instance.getScheduledRunTime()))
+        trigger = TriggerBuilder.newTrigger().startAt(new Date(utcLocalConvert(instance.getScheduledRunTime(), true)))
                 .withSchedule(cronScheduleBuilder).build();
         cubeTriggerKeyMap.put(instance.getRelatedRealization(), trigger.getKey());
         scheduler.scheduleJob(jobDetail, trigger);
@@ -357,4 +357,22 @@ public class SchedulerJobService extends BasicService implements InitializingBea
 
         return isValid;
     }
+
+    public long utcLocalConvert(long baseTime, boolean utc2Local) {
+        Calendar calendar = Calendar.getInstance();
+
+        int zoneOffset = calendar.get(java.util.Calendar.ZONE_OFFSET);
+        int dstOffset = calendar.get(java.util.Calendar.DST_OFFSET);
+
+        calendar.setTimeInMillis(baseTime);
+
+        if (utc2Local) {
+            calendar.add(java.util.Calendar.MILLISECOND, -(zoneOffset + dstOffset));
+        } else {
+            calendar.add(java.util.Calendar.MILLISECOND, zoneOffset + dstOffset);
+        }
+
+        return calendar.getTimeInMillis();
+    }
+
 }
