@@ -1,6 +1,6 @@
 <template>
 	<div class="sub_menu">
-    <el-tabs v-model="subMenu" @tab-click="handleClick">
+    <el-tabs v-model="subMenu" @tab-click="handleClick" class="el-tabs--default">
       <el-tab-pane :label="$t('kylinLang.common.dataSource')" name="datasource">
         <component is="dataSource" v-on:addtabs="addTab" ref="datsources"></component>
       </el-tab-pane>

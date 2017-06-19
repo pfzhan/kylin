@@ -24,7 +24,7 @@
         </div>
       	<el-tabs v-model="activeName" class="ksd-mt-40 clear" v-show="tableData" id="datasource-table">
 		    <el-tab-pane :label="$t('kylinLang.dataSource.columns')" name="first">
-        <el-input style="width:200px;" class="ksd-mb-10"
+        <el-input id="data-source-search" style="width:200px;" class="ksd-mb-10"
           :placeholder="$t('kylinLang.common.pleaseFilter')"
           icon="search"
           v-model="filterColumn"
@@ -1017,5 +1017,10 @@ export default {
 }
 .null_pic{
   width: 150px;
+}
+#data-source-search{
+  .el-input__inner{
+    border-color: #7881aa;
+  }
 }
 </style>

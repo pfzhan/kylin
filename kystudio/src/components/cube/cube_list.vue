@@ -21,7 +21,7 @@
     style="width: 100%!important;">
     <el-table-column type="expand" width="30">
       <template scope="props">
-        <el-tabs activeName="first" type="border-card" @tab-click="changeTab">
+        <el-tabs activeName="first" class="el-tabs--default" id="cube-view" @tab-click="changeTab">
           <el-tab-pane label="Grid" name="first">
             <cube_desc_view :cube="props.row" :index="props.$index"></cube_desc_view>
           </el-tab-pane>

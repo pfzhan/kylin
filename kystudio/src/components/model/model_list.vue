@@ -988,5 +988,8 @@ export default {
   #addModel:hover{
     background: @base-color;
   }
+  #ssb{
+    margin-right: 20px;
+  }
 }
 </style>

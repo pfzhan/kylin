@@ -51,7 +51,9 @@ export default {
   margin-left: 30px;
   margin-right: 30px;
   .el-tabs__header{
-    margin-left: 0;
+    padding-left: 30px;
+    margin-left: -30px;
+    margin-right: -30px;
   }
 }
 #monitor *{

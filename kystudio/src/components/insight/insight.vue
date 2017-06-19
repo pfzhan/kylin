@@ -331,6 +331,9 @@ export default {
     }
   },
   mounted () {
+    // alert(screen.availHeight - 65 - 50 - 55)
+    let iHeight = screen.availHeight - 65 - 50 - 55 + 12
+    this.$el.querySelector('.filter-tree').style.height = iHeight + 'px'
     if (!this.project) {
       return
     }

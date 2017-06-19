@@ -1,5 +1,6 @@
 <template>
 <div> 
+  <div class="title" style="padding: 5px 0 1px 0;">{{$t('measures')}}</div>
   <el-table
     :data="cubeDesc.desc.measures"
     border stripe 
@@ -57,7 +58,7 @@
     </el-table-column>                  
   </el-table>
   <el-row>
-    <el-col :span="24">{{$t('advancedColumnFamily')}}</el-col>
+    <el-col :span="24" style="padding: 15px 0 1px 0;">{{$t('advancedColumnFamily')}}</el-col>
   </el-row> 
   <el-table
     :data="cubeDesc.desc.hbase_mapping.column_family"

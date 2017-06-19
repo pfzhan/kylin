@@ -88,7 +88,7 @@ scrollbar {
    top:0;
    border-left:solid 1px transparent;
    border-top: solid 1px transparent;
-   min-height: 1000px;
+   // min-height: 1000px;
    right: 0;
 }
 a{cursor: pointer;}
@@ -117,10 +117,11 @@ li {list-style-type:none;}
   }
   .ace_gutter-cell{
     background: @input-bg;
-    color: @fff;
+    color: rgba(255,255,255,0.6);
   }
   .ace_content{
     background: @input-bg;
+    color: rgba(255,255,255,0.6);
   }
   color: @fff!important;
 }
@@ -569,6 +570,7 @@ li {list-style-type:none;}
     background: @grey-color;
   }
   .el-select-dropdown__item{
+    font-size: 12px;
     color: @fff;
   }
   .el-select-dropdown__item.selected{
@@ -608,6 +610,7 @@ li {list-style-type:none;}
   .el-textarea__inner{
     background: @tableBC;
     color: @fff;
+    border-color: @grey-color;
   }
   .tree_list{
     background: @bg-total;
@@ -744,8 +747,8 @@ li {list-style-type:none;}
             .el-tabs__item{
               transition: none;
               &.is-active{
+                background: @base-color;
                 border: none;
-                border-bottom: 2px solid @base-color;
               }
             }
           }
@@ -879,6 +882,7 @@ li {list-style-type:none;}
 }
 .filter-tree{
   padding-top: 5px!important;
+  overflow: auto;
 }
 .tree_box{
   .el-input__inner{
@@ -1027,7 +1031,18 @@ tr.current-row > td{
 .el-popover{
   border: none!important;
 }
-
+.el-tabs--default{
+  .el-tabs__item{
+    &.is-active{
+      background: transparent!important;
+    }
+  } 
+}
+.kap_popover{
+  svg{
+    color: rgba(255,255,255,0.6);
+  }
+}
 
 
 

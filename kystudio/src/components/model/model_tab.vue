@@ -167,8 +167,17 @@
 .el-tabs:not(.el-tabs--card) .el-tabs__header{
   border-top: 0;
 }
-#modeltab .el-tabs__content .el-tabs__nav-scroll{
-  margin-left: 30px;
+#modeltab{
+  .el-tabs__content{
+    .el-tabs__nav-scroll{
+      margin-left: 30px;
+    }
+  } 
+  #cube-view{
+    .el-tabs__nav-scroll{
+      margin-left: 0;
+    }
+  }
 }
 // #modeltab .el-tabs__nav:nth-child(1){
 //   margin-left: 30px;
