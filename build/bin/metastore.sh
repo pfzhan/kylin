@@ -126,8 +126,12 @@ then
         help
     fi
 
-    zip -r $3.zip $3
-    ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.tool.CubeMetaIngester -srcPath $3.zip -project $2 -overwriteTables true -forceIngest true
+    TMP_NAME=${RANDOM}"-"${RANDOM}"-"${RANDOM}"-"${RANDOM}"-"${RANDOM}
+    cp -rf $3 $TMP_NAME
+    zip -r $TMP_NAME.zip $TMP_NAME
+    ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.tool.CubeMetaIngester -srcPath $TMP_NAME.zip -project $2 -overwriteTables true -forceIngest true
+    rm -rf $TMP_NAME
+    rm -f $TMP_NAME.zip
 
 elif [ "$1" == "restore-cube" ]
 then
@@ -136,11 +140,11 @@ then
     fi
 
     TMP_NAME=${RANDOM}"-"${RANDOM}"-"${RANDOM}"-"${RANDOM}"-"${RANDOM}
-    cp -r $3 $TMP_NAME
+    cp -rf $3 $TMP_NAME
     zip -r $TMP_NAME.zip $TMP_NAME
     ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.tool.CubeMetaIngester -srcPath $TMP_NAME.zip -project $2 -overwriteTables true -forceIngest true
-    rm -r $TMP_NAME
-    rm $TMP_NAME.zip
+    rm -rf $TMP_NAME
+    rm -f $TMP_NAME.zip
 	
 elif [ "$1" == "promote" ]
 then
