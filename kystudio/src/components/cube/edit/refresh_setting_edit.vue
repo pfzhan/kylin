@@ -1,7 +1,10 @@
 <template>
 <div class="box-card card_margin border_bottom el-row" id="refresh-setting">
+<h2 class="ksd-mt-40 ksd-ml-40"><!-- <el-checkbox v-model="$store.state.cube.cubeSchedulerIsSetting"> --><span style="font-size:16px;">{{$t('kylinLang.cube.merge')}} <common-tip :content="$t('kylinLang.cube.refreshSetTip')" ><icon name="question-circle-o"></icon></common-tip></span></el-checkbox></h2>
   <el-row>
-    <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('autoMergeThresholds')}} </el-col>
+    <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('autoMergeThresholds')}} 
+      <!-- <common-tip :content="$t('kylinLang.cube.refreshSetTip')" ><icon name="question-circle-o"></icon></common-tip> -->
+    </el-col>
     <el-col :span="16">
       <el-row :gutter="20" class="row_padding" v-for="(timeRange, index) in timeRanges" :key="index">
         <el-col :span="10">
@@ -32,10 +35,30 @@
       <el-button class="btn_margin"  icon="plus" @click.native="addNewTimeRange">{{$t('newThresholds')}} </el-button>
     </el-col>  
   </el-row>
+  <div class="line" style="margin: 0px -30px 0 -30px;"></div>
   <el-row class="row_padding">
+    <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('retentionThreshold')}} </el-col>
+    <el-col :span="6">
+      <el-input class="input_width" v-model="cubeDesc.retention_range" ></el-input>
+    </el-col>
+  </el-row>
+  <el-row class="row_padding">
+    <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('partitionStartDate')}} </el-col>
+    <el-col :span="6">
+      <el-date-picker class="input_width" @change="changePartitionDateStart"
+        v-model="partitionStartDate"
+        type="datetime"
+        align="right">
+      </el-date-picker>
+    </el-col>
+  </el-row>
+
+ <div class="line" style="margin: 0px -30px 0 -30px;"></div>
+ <h2 class="ksd-mt-40 ksd-ml-40"><el-checkbox v-model="$store.state.cube.cubeSchedulerIsSetting"><span style="font-size:16px;">{{$t('kylinLang.cube.scheduler')}} <common-tip :content="$t('kylinLang.cube.schedulerTip')" ><icon name="question-circle-o"></icon></common-tip></span></el-checkbox></h2>
+   <el-row class="row_padding">
     <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('buildTrigger')}} </el-col>
-    <el-col :span="16">
-      <el-date-picker class="input_width" @change="changeTriggerTime()"
+    <el-col :span="6">
+      <el-date-picker class="input_width" @change="changeTriggerTime()" :disabled="!$store.state.cube.cubeSchedulerIsSetting"
         v-model="scheduledRunTime"
         
         type="datetime"
@@ -45,13 +68,13 @@
   </el-row>
   <el-row class="row_padding">
     <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('periddicalInterval')}} </el-col>
-    <el-col :span="16">
+    <el-col :span="8">
       <el-row :gutter="20" class="row_padding">
-        <el-col :span="10">
-          <el-input v-model="intervalRange.range"  @change="changeInterval()"></el-input>          
+        <el-col :span="9">
+          <el-input v-model="intervalRange.range" :disabled="!$store.state.cube.cubeSchedulerIsSetting"  @change="changeInterval()"></el-input>          
         </el-col>
-        <el-col :span="6">
-            <el-select v-model="intervalRange.type" @change="changeInterval()">
+        <el-col :span="8">
+            <el-select v-model="intervalRange.type" @change="changeInterval()" :disabled="!$store.state.cube.cubeSchedulerIsSetting">
               <el-option
                  v-for="(item, range_index) in intervalOptions" :key="range_index"
                 :label="item"
@@ -61,22 +84,6 @@
           </el-col>
         </el-row>
       </el-col>
-  </el-row>
-  <el-row class="row_padding">
-    <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('retentionThreshold')}} </el-col>
-    <el-col :span="16">
-      <el-input class="input_width" v-model="cubeDesc.retention_range" ></el-input>
-    </el-col>
-  </el-row>
-  <el-row class="row_padding">
-    <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('partitionStartDate')}} </el-col>
-    <el-col :span="16">
-      <el-date-picker class="input_width" @change="changePartitionDateStart"
-        v-model="partitionStartDate"
-        type="datetime"
-        align="right">
-      </el-date-picker>
-    </el-col>
   </el-row>
 </div>
 </template>
@@ -97,6 +104,7 @@ export default {
       selected_project: localStorage.getItem('selected_project'),
       partitionStartDate: 0,
       scheduledRunTime: 0,
+      isSetScheduler: false,
       pickerOptionsEnd: {
         disabledDate: (time) => {
           let nowDate = new Date()
@@ -234,8 +242,8 @@ export default {
     }
   },
   locales: {
-    'en': {autoMergeThresholds: 'Auto Merge Thresholds: ', retentionThreshold: 'Retention Threshold: ', partitionStartDate: 'Partition Start Date: ', newThresholds: 'New Thresholds', buildTrigger: 'Auto Build Trigger: ', periddicalInterval: 'Periddical Interval: '},
-    'zh-cn': {autoMergeThresholds: '触发自动合并的时间阈值：', retentionThreshold: '保留时间阈值：', partitionStartDate: '起始日期：', newThresholds: '新建阈值', buildTrigger: '自动构建触发时间：', periddicalInterval: '重复间隔：'}
+    'en': {autoMergeThresholds: 'Auto Merge Thresholds: ', retentionThreshold: 'Retention Threshold: ', partitionStartDate: 'Partition Start Date: ', newThresholds: 'New Thresholds', buildTrigger: 'First Build Time: ', periddicalInterval: 'Build Cycle: '},
+    'zh-cn': {autoMergeThresholds: '触发自动合并的时间阈值：', retentionThreshold: '保留时间阈值：', partitionStartDate: '起始日期：', newThresholds: '新建阈值', buildTrigger: '首次构建触发时间：', periddicalInterval: '重复间隔：'}
   }
 }
 </script>

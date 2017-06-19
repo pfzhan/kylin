@@ -19,7 +19,7 @@
             <el-input v-model="property.value" placeholder="value"></el-input>
           </el-form-item>
         </el-col>
-        <el-col :span="4"><el-button type="danger" @click.prevent="removeProperty(index)">{{$t('delete')}}</el-button></el-col>
+        <el-col :span="4"><el-button type="danger" class="ksd-mt-12" @click.prevent="removeProperty(index)">{{$t('delete')}}</el-button></el-col>
     </el-row>    
     <el-form-item>
       <el-button @click="addNewProperty" icon="close">{{$t('property')}}</el-button>

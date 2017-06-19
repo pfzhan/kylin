@@ -18,6 +18,9 @@
     </el-form-item>
 
     <el-form-item :label="$t('expression')">
+      <span slot="label">{{$t('expression')}}
+        <common-tip :content="$t('kylinLang.cube.expressionTip')" ><icon name="question-circle-o"></icon></common-tip>
+      </span>
       <el-select v-model="measure.function.expression" class="input_width" @change="changeExpression">
         <el-option
           v-for="(item, index) in expressionsConf"
@@ -43,6 +46,9 @@
       <el-checkbox v-model="showDim" v-if="measure.function.parameter.type !== 'constant'">{{$t('includeDimensions')}}</el-checkbox>
     </el-form-item>
     <el-form-item :label="getValueLab" >
+    <span slot="label">{{getValueLab}}
+        <common-tip :content="paramValTip" ><icon name="question-circle-o"></icon></common-tip>
+      </span>
       <el-select v-model="measure.function.parameter.value" v-if="measure.function.parameter.type !== 'constant'" class="input_width" @change="changeParamValue">
         <el-option
           v-for="(item, index) in getParameterValue"
@@ -90,11 +96,11 @@
       </el-input>
       <el-row v-if="measure.function.expression === 'SUM'" >
         <el-row v-if="sumMeasure.type === 'decimal'" id="decimal">
-          <el-col :span="4" >decimal(</el-col>
+          <!-- <el-col :span="4" >decimal(</el-col>
           <el-col :span="2"><el-input v-model="sumMeasure.value.precision" ></el-input></el-col>
           <el-col :span="1">,</el-col>
           <el-col :span="2"><el-input v-model="sumMeasure.value.decimalPlace" ></el-input></el-col>
-          <el-col :span="1">)</el-col>
+          <el-col :span="1">)</el-col> -->
           <span class="decimal-left">decimal(</span>
           <el-input v-model="sumMeasure.value.precision" class="precision"></el-input>
           <span class="douhao">,</span>
@@ -499,6 +505,15 @@ export default {
         return this.$t('ORDERSUM')
       } else {
         return this.$t('paramValue')
+      }
+    },
+    paramValTip: function () {
+      if (this.measure.function.expression === 'EXTENDED_COLUMN') {
+        return this.$t('kylinLang.cube.hostColumnTip')
+      } else if (this.measure.function.expression === 'TOP_N') {
+        return this.$t('kylinLang.cube.orderSumTip')
+      } else {
+        return this.$t('kylinLang.cube.paramValueTip')
       }
     },
     getReturnTypeLab: function () {

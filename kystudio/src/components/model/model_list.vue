@@ -10,7 +10,7 @@
 		<el-row :gutter="20" v-if="viewModal==='card'"> 
 		  <el-col :span="8"  v-for="(o, index) in modelsList" :key="o.uuid" :style="{height:'152px'}">
 		    <el-card :body-style="{ padding: '0px'}" style="height:100%" :class="{'is_draft': o.is_draft}">
-		      <p style="font-size: 12px;padding-left: 10px;" class="title">Last updated {{ o.gmtTime }}
+		      <p style="font-size: 12px;padding-left: 10px;" class="title">{{$t('kylinLang.model.modifiedGrid')}} {{ o.gmtTime }}
 					<el-dropdown @command="handleCommand" :id="o.name" trigger="click"  v-show="isAdmin || hasPermission(o.uuid)">
 					  <span class="el-dropdown-link" >
 					    <icon name="ellipsis-h"></icon>
@@ -48,7 +48,7 @@
     stripe
     style="width: 100%">
     <el-table-column
-      label="Name"
+      :label="$t('kylinLang.model.modelNameGrid')"
       width="180">
        <template scope="scope" >
          <span @click="viewModel(scope.row)" style="cursor:pointer;">{{scope.row.name}}</span>
@@ -56,33 +56,35 @@
     </el-table-column>
     <el-table-column
       prop="project"
-      label="Project"
+      :label="$t('kylinLang.common.project')"
       width="180">
     </el-table-column>
     <el-table-column
       prop="owner"
-      label="Owner">
+      width="100"
+      :label="$t('kylinLang.model.ownerGrid')">
     </el-table-column>
      <el-table-column
-      prop="owner"
-      label="Status">
-      <template scope="scope">
+      width="130"
+      class-name="ksd-center"
+      :label="$t('kylinLang.model.statusGrid')">
+      <template scope="scope" >
          <!-- <icon v-if="!scope.row.is_draft && scope.row.diagnose && scope.row.diagnose.progress===0" :name="modelHealthStatus[scope.row.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[scope.row.diagnose.heathStatus].color}"></icon> -->
           <common-tip  :content="scope.row.diagnose&&scope.row.diagnose.messaes&&scope.row.diagnose.messaes.join('<br/>')" > <icon v-if="!scope.row.is_draft && scope.row.diagnose && scope.row.diagnose.heathStatus!=='RUNNING' && (scope.row.diagnose.progress===0 || scope.row.diagnose.progress===100)" :name="modelHealthStatus[scope.row.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[scope.row.diagnose.heathStatus].color}"></icon></common-tip>
-         <el-progress  :width="20" type="circle" :stroke-width="2" :show-text="false" v-if="!scope.row.is_draft&&scope.row.diagnose&&scope.row.diagnose.heathStatus==='RUNNING'" :percentage="scope.row.diagnose&&scope.row.diagnose.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></h2>
+         <el-progress   :width="20" type="circle" :stroke-width="2" :show-text="false" v-if="!scope.row.is_draft&&scope.row.diagnose&&scope.row.diagnose.heathStatus==='RUNNING'" :percentage="scope.row.diagnose&&scope.row.diagnose.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></h2>
       </template>
     </el-table-column>
     <el-table-column
       prop="fact_table"
-      label="Fact Table">
+      :label="$t('kylinLang.common.fact')">
     </el-table-column>
     <el-table-column
       prop="gmtTime"
-      label="Last Upated Time">
+      :label="$t('kylinLang.model.modifiedGrid')">
     </el-table-column>
      <el-table-column class="ksd-center" 
       width="100"
-      label="Action">
+      :label="$t('kylinLang.common.action')">
        <template scope="scope">
        <span v-if="!(isAdmin || hasPermission(scope.row.uuid))"> N/A</span>
         <el-dropdown @command="handleCommand" :id="scope.row.name" trigger="click" v-show="isAdmin || hasPermission(scope.row.uuid)">
@@ -119,7 +121,10 @@
     <!-- 添加model -->
     <el-dialog title="Add Model" v-model="createModelVisible" size="tiny">
       <el-form :model="createModelMeta" :rules="createModelFormRule" ref="addModelForm">
-        <el-form-item :label="$t('kylinLang.model.modelName')" prop="modelName">
+        <el-form-item prop="modelName" :label="$t('kylinLang.model.modelName')">
+          <span slot="label">{{$t('kylinLang.model.modelName')}}
+            <common-tip :content="$t('kylinLang.model.modelNameTips')" ><icon name="exclamation-circle"></icon></common-tip>
+          </span>
           <el-input v-model="createModelMeta.modelName" auto-complete="off"></el-input>
         </el-form-item>
         <el-form-item :label="$t('kylinLang.model.modelDesc')" prop="modelDesc">
@@ -142,6 +147,9 @@
     <el-dialog title="Add Cube" v-model="createCubeVisible" size="tiny">
       <el-form :model="cubeMeta" :rules="createCubeFormRule" ref="addCubeForm">
         <el-form-item :label="$t('kylinLang.cube.cubeName')" prop="cubeName">
+         <span slot="label">{{$t('kylinLang.cube.cubeName')}}
+            <common-tip :content="$t('kylinLang.cube.cubeNameTip')" ><icon name="exclamation-circle"></icon></common-tip>
+          </span>
           <el-input v-model="cubeMeta.cubeName" auto-complete="off"></el-input>
         </el-form-item>
       </el-form>
@@ -854,6 +862,7 @@ export default {
     }
   }
   .el-table {
+    font-size: 12px;
     .is_draft {
       td {
         background: #515770!important;
@@ -864,6 +873,7 @@ export default {
         background-repeat: no-repeat;
         // background-color: #515770;
         // border:dashed 1px @fff;
+        background-size: 20px;
         background-position: 90% 80%;
        }
       }

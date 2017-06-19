@@ -70,13 +70,13 @@
              <el-row :gutter="20" class="ksd-mb10" style="line-height:49px;">
              <el-col :span="24" style="text-align:center">
               <div class="grid-content bg-purple">
-              <el-input v-model="currentLinkData.source.alias" :disabled="true"></el-input>
+              <el-input v-model="currentLinkData.source.alias" :disabled="true" style="background: #393e53;"></el-input>
                 <!-- <a style="color:#56c0fc">{{currentLinkData.source.alias}}</a> -->
               </div>
             </el-col>
             <el-col :span="24" style="text-align:center">
               <div class="grid-content bg-purple">
-                  <el-select style="width:100%" v-model="currentLinkData.joinType" :disabled = "actionMode ==='view'"  @change="switchJointType(currentLinkData.source.guid,currentLinkData.target.guid, currentLinkData.joinType)" :placeholder="$t('kylinLang.common.pleaseSelect')">
+                  <el-select style="width:100%;background: #393e53;" v-model="currentLinkData.joinType"  :disabled = "actionMode ==='view'"  @change="switchJointType(currentLinkData.source.guid,currentLinkData.target.guid, currentLinkData.joinType)" :placeholder="$t('kylinLang.common.pleaseSelect')">
                     <el-option
                       v-for="item in joinTypes"
                       :key="item.label"
@@ -88,7 +88,7 @@
             </el-col>
             <el-col :span="24" style="text-align:center">
               <div class="grid-content bg-purple">
-              <el-input v-model="currentLinkData.target.alias" :disabled="true"></el-input>
+              <el-input v-model="currentLinkData.target.alias" :disabled="true" style="background: #393e53;"></el-input>
                 <!-- <a style="color:#56c0fc">{{currentLinkData.target.alias}}</a> -->
               </div>
             </el-col>
@@ -104,7 +104,7 @@
                 :label="$t('kylinLang.common.pk')"
                 >
                 <template scope="scope">
-                <el-select v-model="scope.row[2]" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:100%" :disabled = "actionMode ==='view'">
+                <el-select v-model="scope.row[2]" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:100%;background: #393e53;" :disabled = "actionMode ==='view'">
                   <el-option
                     v-for="item in currentLinkData.source.columns"
                     :key="item.name"
@@ -121,7 +121,7 @@
                 :label="$t('kylinLang.common.fk')"
                 >
                 <template scope="scope">
-                <el-select v-model="scope.row[3]" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:100%" :disabled = "actionMode ==='view'">
+                <el-select v-model="scope.row[3]" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:100%;background: #393e53;" :disabled = "actionMode ==='view'">
                   <el-option
                     v-for="item in currentLinkData.target.columns"
                     :key="item.name"
@@ -222,16 +222,6 @@
 
     <el-dialog :title="$t('kylinLang.common.save')" v-model="addModelDialogDisable" >
        <partition-column :modelInfo="modelInfo" :actionMode="actionMode" :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
-       <el-form >
-        <el-form-item :label="$t('filterCondition')">
-           <el-input
-            type="textarea"
-            :autosize="{ minRows: 2, maxRows: 4}"
-            :placeholder="$t('filterPlaceHolder')"
-            v-model="modelInfo.filterStr">
-          </el-input>
-        </el-form-item>
-        </el-form>
        <el-checkbox v-model="openModelCheck">Check Model</el-checkbox>
        <common-tip :content="$t('kylinLang.model.modelCheck')" >
              <icon name="question-circle-o"></icon>
@@ -2391,7 +2381,7 @@ export default {
        }
        .table_name{
          height: 36px;
-         line-height: 36px;
+         line-height: 28px;
          background-color: #8492a6;
          padding-left:10px;
          color:#fff;
@@ -2431,6 +2421,7 @@ export default {
             height: 20px;
             text-align: center;
             line-height: 20px;
+            vertical-align: sub;
             border-radius: 10px;
             cursor:pointer;
             font-weight: bold;

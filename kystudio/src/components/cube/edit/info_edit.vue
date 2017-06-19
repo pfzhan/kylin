@@ -17,6 +17,9 @@
       <el-input v-model="getNotifyList" placeholder="Comma Separated" @change="changeNotifyList"></el-input>
     </el-form-item>
     <el-form-item :label="$t('notificationEvents')">
+      <span slot="label">{{$t('notificationEvents')}}
+        <common-tip :content="$t('kylinLang.cube.noticeTip')" ><icon name="exclamation-circle"></icon></common-tip>
+      </span>
       <area_label  :labels="options" :placeholder="$t('kylinLang.common.pleaseSelect')" :selectedlabels="cubeDesc.status_need_notify" :datamap="{label: 'label', value: 'value'}"> 
       </area_label>
     </el-form-item>

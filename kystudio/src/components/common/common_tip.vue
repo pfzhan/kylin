@@ -2,7 +2,7 @@
 	<span>
 		<el-tooltip :content="tips" :placement="placement||'top'">
      <div slot="content" v-html="content" v-if="content"></div>
-		  <span><slot></slot></span>
+		  <span class="icon"><slot></slot></span>
 		</el-tooltip>
 	</span>
 </template>
@@ -17,3 +17,9 @@
     props: ['tips', 'content', 'trigger', 'placement']
   }
 </script>
+<style scoped>
+  .icon{
+    font-size: 12px;
+    vertical-align: sub;
+  }
+</style>

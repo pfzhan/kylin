@@ -19,6 +19,7 @@ div{
  text-align: center;
  color:#d4d7e3;
  background-color: #292b38;
+ font-size: 12px;
 
 }
 </style>

@@ -7,7 +7,7 @@
                 <el-tab-pane :label="$t('modelInfo')" name="first">
                     <table  cellspacing="0" cellpadding="0">
                       <tr>
-                        <th>{{$t('modelName')}}</th>
+                        <th>{{$t('modelName')}} <common-tip :content="$t('kylinLang.model.modelNameTips')" ><icon name="exclamation-circle"></icon></common-tip></th>
                         <td><el-input v-model="currentModelInfo.modelName" :disabled="actionMode==='view'|| !!compeleteModelId"></el-input></td>
                       </tr>
                       <tr>
@@ -31,6 +31,7 @@
                 </el-tab-pane>
                 <el-tab-pane :label="$t('setting')" name="second">
                  <partition-column style="width:800px" :modelInfo="modelInfo" :actionMode="actionMode"  :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
+
                  <!--  <el-form   label-width="240px">
                     <el-form-item label="Partition Date Column">
                       <el-select v-model="checkPartition.date_table" placeholder="请选择" :disabled="editMode || actionMode==='view'">
@@ -87,7 +88,7 @@
                     </el-form-item>
                   </el-form> -->
                 </el-tab-pane>
-                <el-tab-pane :label="$t('filter')" name="five">
+               <!--  <el-tab-pane :label="$t('filter')" name="five">
                   <el-form label-width="240px">
                     <el-form-item :label="$t('filterCondition')">
                        <el-input :disabled="actionMode==='view'"
@@ -98,13 +99,13 @@
                       </el-input>
                     </el-form-item>
                   </el-form>
-                </el-tab-pane>
+                </el-tab-pane> -->
                 <el-tab-pane :label="$t('dimension')" name="third">
                   <div v-for="(key, value) in dimensions" :key="key">
                     <!-- <el-badge :value="dimensions[value]&&dimensions[value].length" class="item ksd-mt-10" style="background-color:green">
                     <el-tag type="success">{{value}}</el-tag>
                     </el-badge> -->
-                    <div class="ksd-mb-4" style="font-size:14px;">{{value}}</div>
+                    <div class="ksd-mb-4" style="font-size:14px;" v-show="dimensions[value].length">{{value}}</div>
                     <div class="dimensionBox">
                       <el-tag class="ksd-ml-10 ksd-mt-6" type="primary" v-for="i in dimensions[value]" :key="i">{{i}}</el-tag>&nbsp;&nbsp;
                     </div>
@@ -112,8 +113,10 @@
                 </el-tab-pane>
                 <el-tab-pane :label="$t('measure')" name="fourth">
                   <div v-for="(key, value) in measures" :key="key">
-                    <div class="ksd-mb-4" style="font-size:14px;">{{value}}</div>
-                    <el-tag class="ksd-ml-10 ksd-mt-6" v-for="i in measures[value]" type="primary" :key="i">{{i}}</el-tag>
+                    <div class="ksd-mb-4" style="font-size:14px;" v-show="measures[value].length">{{value}}</div>
+                     <div class="dimensionBox">
+                    <el-tag class="ksd-ml-10 ksd-mt-6" v-for="i in measures[value]" type="primary" :key="i">{{i}}</el-tag>&nbsp;&nbsp;
+                    </div>
                   </div>
                 </el-tab-pane>
 
@@ -121,11 +124,13 @@
         </el-tab-pane>
 		    <!-- <el-tab-pane label="Model Statistics" name="second">Model Statistics</el-tab-pane> -->
         <el-tab-pane :label="$t('tableStatistics')" name="second">
+             <div style="font-size:12px;"><span>{{selectTable.database + '.' + selectTable.tablename }}</span> {{$t('kylinLang.model.metaData')}} </div>
              <el-table
               :data="statistics.slice(1)"
               style="width: 100%">
                <el-table-column v-for="(val,index) in statistics[0]" :key="index"
                 :prop="''+index"
+                :fixed="index === 0"
                 width="220"
                 :label="statistics[0][index]">
               </el-table-column>
@@ -160,11 +165,13 @@
                 label="空值个数">
               </el-table-column> -->
             </el-table>
+            <div style="font-size:12px;" class="ksd-mt-10"><span>{{selectTable.database + '.' + selectTable.tablename }}</span> {{$t('kylinLang.model.checkData')}} </div>
         <el-table
           :data="modelStatics.slice(1)"
           border
           style="width: 100%">
           <el-table-column v-for="(val,index) in modelStatics[0]" :key="index"
+            :fixed="index === 0"
             :prop="''+index"
             width="220"
             :label="modelStatics[0][index]">
@@ -417,6 +424,18 @@ export default {
     bottom:0;
     left:200px;
     right: 0px;
+    .el-table__fixed{
+      box-shadow: none;
+    }
+    .el-table__fixed-header-wrapper thead div{
+      background: none;
+      color:#fff;
+    }
+    .el-table__row.hover-row{
+      td{
+       background:none; 
+      }
+    }
     &.smallScreen {
       left:100px;
     }

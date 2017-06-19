@@ -1,5 +1,5 @@
 <template>
-  <div class="paddingbox ksd-common-tab">
+  <div class="system_box paddingbox ksd-common-tab">
     <el-tabs v-model="activeName" type="card"  @tab-click="handleClick">
       <el-tab-pane :label="$t('system')" name="config">
         <system></system>
@@ -41,6 +41,10 @@ export default {
   }
 }
 </script>
-<style scoped="">
-
+<style lang="less">
+.system_box{
+  .el-tabs__header{
+    border-bottom: 1px solid #393e53
+  }
+}
 </style>

@@ -414,15 +414,16 @@ export default {
       if (this.rawTable.tableDetail.columns && this.rawTable.tableDetail.columns.length) {
         saveData.rawTableDescData = JSON.stringify(this.rawTable.tableDetail)
       }
-      var schedulerObj = this.scheduler.desc
-      schedulerObj.name = this.cubeDetail.name
-      schedulerObj.project = this.selected_project
-      // 将scheduler 的自动构建触发时间设置转换成UTC
-      var schedulerObjClone = JSON.parse(JSON.stringify(schedulerObj))
-      // console.log(schedulerObjClone.scheduled_run_time, 9911)
-      schedulerObjClone.repeat_interval = schedulerObjClone.partition_interval
-      // schedulerObjClone.scheduled_run_time = transToUTCMs(schedulerObjClone.scheduled_run_time)
-      saveData.schedulerJobData = JSON.stringify(schedulerObjClone)
+      if (this.$store.state.cube.cubeSchedulerIsSetting) {
+        var schedulerObj = this.scheduler.desc
+        schedulerObj.name = this.cubeDetail.name
+        schedulerObj.project = this.selected_project
+        // 将scheduler 的自动构建触发时间设置转换成UTC
+        var schedulerObjClone = JSON.parse(JSON.stringify(schedulerObj))
+        schedulerObjClone.repeat_interval = schedulerObjClone.partition_interval
+        // schedulerObjClone.scheduled_run_time = transToUTCMs(schedulerObjClone.scheduled_run_time)
+        saveData.schedulerJobData = JSON.stringify(schedulerObjClone)
+      }
       this.draftCube(saveData).then((res) => {
         this.cubeDraftSaving = false
         handleSuccess(res, (data, code, status, msg) => {
@@ -515,14 +516,16 @@ export default {
       if (this.rawTable.tableDetail.columns && this.rawTable.tableDetail.columns.length) {
         saveData.rawTableDescData = JSON.stringify(this.rawTable.tableDetail)
       }
-      var schedulerObj = this.scheduler.desc
-      schedulerObj.name = this.cubeDetail.name
-      schedulerObj.project = this.selected_project
-      // 将scheduler 的自动构建触发时间设置转换成UTC
-      var schedulerObjClone = JSON.parse(JSON.stringify(schedulerObj))
-      schedulerObjClone.repeat_interval = schedulerObjClone.partition_interval
-      // schedulerObjClone.scheduled_run_time = transToUTCMs(schedulerObjClone.scheduled_run_time)
-      saveData.schedulerJobData = JSON.stringify(schedulerObjClone)
+      if (this.$store.state.cube.cubeSchedulerIsSetting) {
+        var schedulerObj = this.scheduler.desc
+        schedulerObj.name = this.cubeDetail.name
+        schedulerObj.project = this.selected_project
+        // 将scheduler 的自动构建触发时间设置转换成UTC
+        var schedulerObjClone = JSON.parse(JSON.stringify(schedulerObj))
+        schedulerObjClone.repeat_interval = schedulerObjClone.partition_interval
+        // schedulerObjClone.scheduled_run_time = transToUTCMs(schedulerObjClone.scheduled_run_time)
+        saveData.schedulerJobData = JSON.stringify(schedulerObjClone)
+      }
       // if (this.rawTable.tableDetail.columns && this.rawTable.tableDetail.columns.length) {
       //   saveData.rawTableDescData = JSON.stringify(this.rawTable.tableDetail)
       // }
@@ -705,6 +708,7 @@ export default {
             }
           }
           function loadRowTable (isDraft) {
+            _this.$store.state.cube.cubeRowTableIsSetting = false
             _this.loadRawTable(_this.extraoption.cubeName).then((res) => {
               handleSuccess(res, (data, code, status, msg) => {
                 var rawtableData = isDraft ? data.draft : data.rawTable
@@ -716,13 +720,17 @@ export default {
             })
           }
           function loadScheduler (isDraft) {
+            _this.$store.state.cube.cubeSchedulerIsSetting = false
             _this.getScheduler(_this.extraoption.cubeName).then((res) => {
               handleSuccess(res, (data, code, status, msg) => {
                 var schedulerData = isDraft ? data.draft : data.schedulerJob
                 // this.initRepeatInterval(schedulerData)
-                _this.scheduler.desc.scheduled_run_time = schedulerData.scheduled_run_time
-                // this.scheduledRunTime = transToUtcTimeFormat(this.scheduler.desc.scheduled_run_time)
-                _this.scheduler.desc.partition_interval = schedulerData.partition_interval
+                if (schedulerData) {
+                  _this.scheduler.desc.scheduled_run_time = schedulerData.scheduled_run_time
+                  // this.scheduledRunTime = transToUtcTimeFormat(this.scheduler.desc.scheduled_run_time)
+                  _this.scheduler.desc.partition_interval = schedulerData.partition_interval
+                  _this.$store.state.cube.cubeSchedulerIsSetting = true
+                }
               })
             }).catch((res) => {
               handleError(res, () => {

@@ -48,7 +48,7 @@
         </el-row>
         <div class="line" style="margin-bottom: -15px;margin-right: -30px;margin-left: -30px;"></div>
         <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div>
-        <div style="font-size: 14px;">
+        <div style="font-size: 14px;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
           {{$t('dimensionOptimizations')}}
           <kap-common-popover class='d-tip'>
             <div slot="content">
@@ -59,7 +59,7 @@
             <icon name="question-circle-o"></icon>
           </kap-common-popover>
         </div>
-        <div style="margin-top: 20px;">
+        <div style="margin-top: 20px;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
           <el-button type="blue" icon="menu" @click.native="cubeSuggestions" :disabled="isReadyCube">{{$t('cubeSuggestion')}}</el-button>
           <el-button type="default" icon="setting" @click.native="resetDimensions" :disabled="isReadyCube">{{$t('resetDimensions')}}</el-button>
         </div>
@@ -74,7 +74,7 @@
         </el-col>
       </el-row> -->
 
-      <el-row class="row_padding border_bottom" style="line-height:36px;border: none;">
+      <el-row class="row_padding border_bottom" style="line-height:36px;border: none;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
         <el-col :span="24">
           {{$t('aggregationGroups')}}
           <kap-common-popover class='d-tip'>
@@ -87,7 +87,7 @@
           </kap-common-popover>
         </el-col>
       </el-row>
-      <el-row class="row_padding border_bottom borderLeft" style="line-height:36px;border:none;padding-left:0;color:rgba(255,255,255,0.5);margin-top: -8px;padding-top: 0;">
+      <el-row class="row_padding border_bottom borderLeft" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length" style="line-height:36px;border:none;padding-left:0;color:rgba(255,255,255,0.5);margin-top: -8px;padding-top: 0;">
         <el-col :span="5">Total cuboid number: {{totalCuboid}}</el-col>
         <el-col :span="12" >
         <kap-common-popover class='d-tip'>
@@ -100,7 +100,7 @@
         </kap-common-popover>
         Max group by column: <el-input id="apply-l" v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;"></el-input><el-button id="apply-r" type="grey" style="height: 32px;margin-left: 5px;" @click.native="changeDimCap();cubeSuggestions()">Apply</el-button> </el-col>
       </el-row>
-      <div class="line"></div>
+      <div class="line" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length"></div>
       <el-row class="row_padding border_bottom" v-for="(group, group_index) in cubeDesc.aggregation_groups" :key="group_index" style="border-bottom: 0;">
         <div style="height: 30px;line-height: 30px;margin-top: -15px;">
           <span style="float: right;color: rgba(255,255,255,0.5);">Cuboid Number: {{cuboidList[group_index]}} {{groupErrorList[group_index]}}</span>
@@ -191,16 +191,16 @@
       </el-col>
     </el-row>
 
-    <el-row class="row_padding">
+    <el-row class="row_padding" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
       <el-col :span="24">
         <el-button type="default" icon="plus" @click="addAggGroup" :disabled="isReadyCube" style="margin-top: 10px;" class="table_margin">
         {{$t('addAggregationGroups')}}
         </el-button>
       </el-col>
     </el-row>
-    <div class="line" style="margin-bottom: 5px;margin-right: -30px;margin-left: -30px;"></div>
-    <div class="line-primary" style="margin-left: -30px; margin-right: -30px;margin-top: -5px;"></div>
-      <el-row class="row_padding" style="margin-bottom: 5px;">
+    <div class="line" style="margin-bottom: 5px;margin-right: -30px;margin-left: -30px;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length"></div>
+    <div class="line-primary" style="margin-left: -30px; margin-right: -30px;margin-top: -5px;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length"></div>
+      <el-row class="row_padding" style="margin-bottom: 5px;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
         <el-col :span="24">
           Rowkeys
           <common-tip :content="$t('kylinLang.cube.rowkeyTip')" >
@@ -208,7 +208,7 @@
           </common-tip>
         </el-col>
       </el-row>
-      <div class="ksd-common-table rowkeys">
+      <div class="ksd-common-table rowkeys" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
        <el-row class="tableheader">
          <el-col :span="1">{{$t('ID')}}</el-col>
          <el-col :span="9">{{$t('column')}}</el-col>
@@ -220,7 +220,7 @@
        </el-row>
         <el-row id="dimension-row" v-if="convertedRowkeys.length" class="tablebody" v-for="(row, index) in convertedRowkeys"  v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }" :key="row.column">
           <el-col :span="1">{{index+1}}</el-col>
-          <el-col :span="9">{{row.column}}</el-col>
+          <el-col :span="9" style="word-wrap: break-word;"> <common-tip placement="right" :tips="row.column" class="drag_bar">{{row.column}}</common-tip></el-col>
           <el-col :span="4">
             <el-select v-model="row.encoding" @change="changeEncoding(row, index);changeRowkey(row, index);">
               <el-option
@@ -290,6 +290,9 @@
   </el-row> 
   <div class="line" style="margin: 0px -30px 0 -30px;"></div>
     <el-dialog :title="$t('addDimensions')" v-model="addDimensionsFormVisible" top="5%" size="large" v-if="addDimensionsFormVisible">
+      <span slot="title">{{$t('addDimensions')}}
+        <common-tip :content="$t('kylinLang.cube.dimensionTip')" ><icon name="exclamation-circle"></icon></common-tip>
+      </span>
       <add_dimensions  ref="addDimensionsForm" v-on:validSuccess="addDimensionsValidSuccess" :modelDesc="modelDesc" :cubeDimensions="cubeDesc.dimensions"></add_dimensions>
       <span slot="footer" class="dialog-footer">
         <el-button @click="addDimensionsFormVisible = false">{{$t('cancel')}}</el-button>
@@ -328,7 +331,8 @@ export default {
       convertedRowkeys: [],
       featureData: [],
       modelStatics: [],
-      testSort: [{name: 1}, {name: 2}, {name: 3}, {name: 4}]
+      testSort: [{name: 1}, {name: 2}, {name: 3}, {name: 4}],
+      tableStaticsCache: {}
     }
   },
   components: {
@@ -394,30 +398,40 @@ export default {
         if (tableInfo) {
           var database = tableInfo.database
           var tableName = tableInfo.tableName
+          if (this.tableStaticsCache[database + '.' + tableName]) {
+            this.transTableDetailData(this.tableStaticsCache[database + '.' + tableName], column)
+            return
+          }
           this.loadTableExt(database + '.' + tableName).then((res) => {
             handleSuccess(res, (data) => {
-              // var columnFeatureData = filterObjectArray(data.columns_stats, 'column_name', column)
-              var objIndex = indexOfObjWithSomeKey(data.columns_stats, 'column_name', column)
-              var columnFeatureData = data.columns_stats[objIndex]
-              this.featureData = []
-              if (columnFeatureData) {
-                // this.featureData.push({name: 'statistics', content: ''})
-                this.featureData.push({name: 'columns', content: columnFeatureData.column_name})
-                this.featureData.push({name: 'cardinality', content: columnFeatureData.cardinality})
-                this.featureData.push({name: 'maxLengthVal', content: columnFeatureData.max_length_value})
-                this.featureData.push({name: 'maximum', content: columnFeatureData.max_value})
-                this.featureData.push({name: 'minLengthVal', content: columnFeatureData.min_length_value})
-                this.featureData.push({name: 'minimal', content: columnFeatureData.min_value})
-                this.featureData.push({name: 'nullCount', content: columnFeatureData.null_count})
-              }
-              var sampleData = data.sample_rows[objIndex] || null
-              this.modelStatics = [{name: 'ID', content: column}]
-              for (var i = 0, len = sampleData && sampleData.length || 0; i < len; i++) {
-                this.modelStatics.push({ name: i + 1, content: sampleData[i] })
-              }
+              this.transTableDetailData(data, column)
+              this.tableStaticsCache[database + '.' + tableName] = data
             })
           })
         }
+      }
+    },
+    transTableDetailData (data, column) {
+      if (!data) {
+        return
+      }
+      var objIndex = indexOfObjWithSomeKey(data.columns_stats, 'column_name', column)
+      var columnFeatureData = data.columns_stats[objIndex]
+      this.featureData = []
+      if (columnFeatureData) {
+        // this.featureData.push({name: 'statistics', content: ''})
+        this.featureData.push({name: 'columns', content: columnFeatureData.column_name})
+        this.featureData.push({name: 'cardinality', content: columnFeatureData.cardinality})
+        this.featureData.push({name: 'maxLengthVal', content: columnFeatureData.max_length_value})
+        this.featureData.push({name: 'maximum', content: columnFeatureData.max_value})
+        this.featureData.push({name: 'minLengthVal', content: columnFeatureData.min_length_value})
+        this.featureData.push({name: 'minimal', content: columnFeatureData.min_value})
+        this.featureData.push({name: 'nullCount', content: columnFeatureData.null_count})
+      }
+      var sampleData = data.sample_rows[objIndex] || null
+      this.modelStatics = [{name: 'ID', content: column}]
+      for (var i = 0, len = sampleData && sampleData.length || 0; i < len; i++) {
+        this.modelStatics.push({ name: i + 1, content: sampleData[i] })
       }
     },
     // collectSqlToServer () {
@@ -703,7 +717,9 @@ export default {
           this.totalCuboid = data
         })
       }).catch((res) => {
-        handleError(res)
+        handleError(res, (data, code, status, msg) => {
+          // this.$set(this.groupErrorList, groupindex, msg)
+        })
       })
     },
     getEncoding: function (encode) {

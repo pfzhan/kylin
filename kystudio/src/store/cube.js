@@ -6,7 +6,8 @@ export default {
     cubesDescList: [],
     cubeAccess: {},
     totalCubes: 0,
-    cubeRowTableIsSetting: false
+    cubeRowTableIsSetting: false,
+    cubeSchedulerIsSetting: false
   },
   mutations: {
     [types.SAVE_CUBES_LIST]: function (state, { list, total }) {

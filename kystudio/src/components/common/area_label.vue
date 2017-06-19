@@ -56,6 +56,21 @@ export default {
       this.$emit('refreshData', this.selectedL, this.refreshInfo)
       // this.refreshData = this.selectedL
       // Object.assign(this.refreshData, [], this.selectedL)
+      this.$nextTick(() => {
+        const tags = Array.prototype.slice.call(document.querySelectorAll('.el-tag'))
+        tags.forEach(tag => {
+          this.bindTagClick()
+        })
+      })
+    },
+    bindTagClick () {
+      const tags = Array.prototype.slice.call(document.querySelectorAll('.el-tag'))
+      tags.forEach(tag => {
+        tag.addEventListener('click', e => {
+          e.stopPropagation()
+          this.selectTag(e)
+        })
+      })
     },
     removeTag (data) {
       for (var k = 0; k < (this.selectedL && this.selectedL.length || 0); k++) {
@@ -71,21 +86,11 @@ export default {
       var target = ev.target || ev.srcElement
       if (target && (target.className.indexOf('el-tag') >= 0 || target.className.indexOf('el-select__tags') || target.className.indexOf('el-select__tags-text') >= 0)) {
         this.$emit('checklabel', target.innerText, target)
-        if (e && e.stopPropagation) {
-      // W3C取消冒泡事件
-          e.stopPropagation()
-        } else {
-        // IE取消冒泡事件
-          window.event.cancelBubble = true
-        }
       }
     }
   },
   mounted () {
-    var _this = this
-    this.$refs.select.$refs.tags.onclick = function (e) {
-      _this.selectTag(e)
-    }
+    this.bindTagClick()
   }
 }
 </script>
