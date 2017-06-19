@@ -737,12 +737,17 @@ li {list-style-type:none;}
   }
   .el-tabs--card{
     .el-tabs__header{
+      border-color: @grey-color;
       .el-tabs__nav-wrap{
         .el-tabs__nav-scroll{
           .el-tabs__nav{
-            .el-tabs__item.is-active{
-              // background: @base-color;
-              border: none;
+            .el-tabs__item{
+              transition: none;
+              &.is-active{
+                // background: @base-color;
+                border: none;
+                background: @base-color;
+              }
             }
           }
         }

@@ -20,7 +20,7 @@
       </el-select>
     </el-col>
     <el-col :span="16">
-      <el-checkbox-group v-model="filterStatus" @change="refreshFilter">
+      <el-checkbox-group v-model="filterStatus" @change="refreshFilter" style="float: right;">
         <el-checkbox :label="status.value" v-for="(status, status_index) in allStatus" :key="status_index">{{$t(status.name)}}</el-checkbox>
       </el-checkbox-group>
     </el-col>

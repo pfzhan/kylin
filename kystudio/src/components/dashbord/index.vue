@@ -278,7 +278,7 @@ export default {
 
 		#project_scroll_box {
 		  height: 446px;
-          padding-left: 10px;
+          padding-left: 0px;
 		}
 		.single-line {
 			display: inline-block;
@@ -337,7 +337,7 @@ export default {
 	  .item{
 	 	height: 50px;
 	 	line-height: 50px;
-        padding-left: 10px;
+        padding-left: 20px;
 	 	border-bottom:solid 1px @line-color;
 	 	font-size: 14px;
 	 	color: @fff;
@@ -383,7 +383,7 @@ export default {
             height: 50px;
             line-height: 50px;
             margin: 0;
-            padding-left: 10px;
+            padding-left: 20px;
             border-bottom: 1px solid @line-color;
         }
         .btn-addProject:hover {

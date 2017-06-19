@@ -1,17 +1,17 @@
 <template>
   <div class="insight_box ksd-border-tab">
   	<div class="ksd_left_bar" id="input-inner">
-     <tree :treedata="tableData" :placeholder="$t('kylinLang.common.pleaseFilter')"  :indent="4" :expandall="true" :showfilter="true" :allowdrag="false" @nodeclick="clickTable"></tree>
+     <tree class="insight-search" :treedata="tableData" :placeholder="$t('kylinLang.common.pleaseFilter')"  :indent="4" :expandall="true" :showfilter="true" :allowdrag="false" @nodeclick="clickTable"></tree>
     </div>
     <div class="ksd_right_box">
-	 <el-tabs type="border-card" v-model="activeMenu" class="query_box">
+	 <el-tabs type="card" v-model="activeMenu" class="query_box">
 	  <el-tab-pane :label="$t('newQuery')" name="first">
       <editor v-model="sourceSchema" ref="insightBox" lang="sql" theme="chrome" width="100%" height="200" useWrapMode="true"></editor>
       <p class="tips_box">{{$t('tips')}}</p>
       <p class="ksd-right">
         <el-form :inline="true" class="demo-form-inline">
           <el-form-item label="Limit">
-            <el-input  placeholder="" style="width:90px;" v-model="listRows"></el-input>
+            <el-input  placeholder="" style="width:90px;" v-model="listRows" class="limit-input"></el-input>
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="submitQuery">{{$t('kylinLang.common.submit')}}</el-button>
@@ -427,6 +427,7 @@ export default {
     }
     .query_box.el-tabs{
       margin: 20px;
+      margin-top: 0;
     }
     .tips_box{
       font-size: 12px;
@@ -463,6 +464,16 @@ export default {
   }
   #input-inner{
     background: @grey-color;
+  }
+  .limit-input{
+    .el-input__inner{
+      border-color: #7881aa;
+    }
+  }
+  .insight-search{
+    .el-input__inner{
+      height: 30px;
+    }
   }
 </style>
 
