@@ -2108,6 +2108,20 @@ export default {
       return this.modelInfo.computed_columns.filter((computedColumn) => {
         return computedColumn.tableIdentity === tableInfo.database + '.' + tableInfo.name && computedColumn.disabled !== false
       })
+    },
+    reloadCubeTree () {
+      this.actionMode = this.extraoption.mode
+      this.getCubesList({pageSize: 100000, pageOffset: 0, projectName: this.extraoption.project, modelName: this.extraoption.modelName}).then((res) => {
+        handleSuccess(res, (data, code, status, msg) => {
+          this.cubesList = data.cubes
+          data.cubes.forEach((cube) => {
+            this.cubeDataTree[0].children.push({
+              id: cube.uuid,
+              label: cube.name
+            })
+          })
+        })
+      })
     }
   },
   created () {
