@@ -13,7 +13,7 @@
   import modelSubMenu from '../model/model_sub_menu'
   import modelEdit from '../model/model_edit'
   import cubeEdit from 'components/cube/edit/cube_desc_edit'
-  import cubeView from 'components/cube/cube_single_show'
+  import cubeView from 'components/cube/cube_list'
   import cubeMetadata from 'components/cube/cube_metadata'
   import { sampleGuid } from '../../util/index'
   export default {

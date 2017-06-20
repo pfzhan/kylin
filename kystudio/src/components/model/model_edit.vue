@@ -1970,7 +1970,6 @@ export default {
       }
     },
     clickCube: function (leaf) {
-      console.log(leaf, 12220)
       if (leaf.children) {
         return
       }

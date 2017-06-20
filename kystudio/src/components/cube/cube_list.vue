@@ -1,7 +1,7 @@
 <template>
 <div class="paddingbox ksd-border-tab cube-list" style="min-height:800px" id="cube-list">
 <img src="../../assets/img/no_cube.png" class="null_pic" v-if="!(cubesList && cubesList.length)" >
-  <el-row class="cubeSearch">
+  <el-row class="cubeSearch" v-show="!isViewCubeMode">
     <el-select v-model="currentModel" style="float: left;margin-left: 0!important;" class="ksd-ml-20" :placeholder="$t('chooseModel')">
       <el-option
         v-for="item in modelsList"
@@ -15,7 +15,7 @@
 
   <el-table id="cube-list-table" v-if="cubesList&&cubesList.length"
     :data="cubesList"
-    :default-expand-all="false"
+    :default-expand-all="isViewCubeMode"
     :row-class-name="showRowClass"
     border
     style="width: 100%!important;">
@@ -218,6 +218,7 @@ import refreshCube from './dialog/refresh_cube'
 import { handleSuccess, handleError, transToGmtTime, hasRole, hasPermissionOfCube } from '../../util/business'
 export default {
   name: 'cubeslist',
+  props: ['extraoption'],
   data () {
     return {
       btnLoading: false,
@@ -343,6 +344,9 @@ export default {
       }
       if (modelName && modelName !== 'ALL') {
         param.modelName = modelName
+      }
+      if (this.extraoption.cubeName) {
+        param.cubeName = this.extraoption.cubeName
       }
       this.getCubesList(param).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
@@ -684,6 +688,9 @@ export default {
     },
     isAdmin () {
       return hasRole(this, 'ROLE_ADMIN')
+    },
+    isViewCubeMode () {
+      return !!(this.extraoption && this.extraoption.cubeName)
     }
   },
   locales: {
