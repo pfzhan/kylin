@@ -19,8 +19,8 @@
     </el-col>        
   </el-row>
   <el-row>
-    <el-col>
-      <el-button style="margin-top: 10px;margin-left: 70px;" type="default" icon="plus" @click.native="addNewProperty">{{$t('addConfiguration')}}</el-button>
+    <el-col :span="4" :offset="1">
+      <el-button style="margin-top: 10px;" type="default" icon="plus" @click.native="addNewProperty">{{$t('addConfiguration')}}</el-button>
     </el-col>
   </el-row>
 </div>

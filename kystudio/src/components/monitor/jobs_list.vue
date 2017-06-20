@@ -225,7 +225,7 @@
       </div>
     </el-card>
 
-  <el-dialog :title="stepAttrToShow == 'cmd' ? $t('parameters') : $t('output')" v-model="dialogVisible" size="small">
+  <el-dialog id="show-diagnos" :title="stepAttrToShow == 'cmd' ? $t('parameters') : $t('output')" v-model="dialogVisible" size="small">
   <job_dialog :stepDetail="outputDetail"></job_dialog>
   <span slot="footer" class="dialog-footer">
     <el-button type="primary" @click="dialogVisible = false">Close</el-button>
@@ -713,5 +713,9 @@ export default {
   }
 }
 .single-line {overflow:hidden;}
-
+.diagnosis-wrap{
+  .el-dialog__wrapper{
+    overflow: visible;
+  }
+}
 </style>
