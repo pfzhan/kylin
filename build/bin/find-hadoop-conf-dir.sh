@@ -11,7 +11,11 @@ then
     verbose Retrieving hadoop java opts...
 
     old_hadoop_cp=${HADOOP_CLASSPATH}
-    export HADOOP_CLASSPATH=`ls ${KYLIN_HOME}/tool/kylin-tool-kap-*.jar`
+    if [[ $CI_MODE == 'true' ]]; then
+        export HADOOP_CLASSPATH=`ls ${KYLIN_HOME}/../extensions/tool-assembly/target/kap-tool-assembly-*.jar`
+    else
+        export HADOOP_CLASSPATH=`ls ${KYLIN_HOME}/tool/kylin-tool-kap-*.jar`
+    fi
     kylin_hadoop_opts=`hadoop io.kyligence.kap.engine.mr.tool.DumpHadoopSystemProps  "hadoop"  "hdp.version"  "java.net.preferIP"  "java.library.path"`  || quit "Faild to run: hadoop io.kyligence.kap.engine.mr.tool.DumpHadoopSystemProps"
     export HADOOP_CLASSPATH=${old_hadoop_cp}
     export kylin_hadoop_opts
