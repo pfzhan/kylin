@@ -43,6 +43,7 @@
 -keep class * extends org.apache.kylin.rest.service.BasicService {*;}
 -keep class !io.kyligence.** {*;}
 -keep class io.kyligence.kap.tool.** {*;}
+-keep class io.kyligence.kap.storage.parquet.adhoc.udf.** {*;}
 -keep class io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient {*;}
 -keep class io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl {*;}
 -keep class * extends org.apache.kylin.common.util.AbstractApplication {*;}
