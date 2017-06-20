@@ -206,9 +206,9 @@
                  <icon name="question-circle-o"></icon>
               </common-tip>
            </span>
-           <span slot="sliderLabel">{{$t('kylinLang.dataSource.samplingPercentage')}} <common-tip placement="right" :content="$t('kylinLang.model.samplingPercentageTips')" >
+    <!--        <span slot="sliderLabel">{{$t('kylinLang.dataSource.samplingPercentage')}} <common-tip placement="right" :content="$t('kylinLang.model.samplingPercentageTips')" >
                  <icon name="question-circle-o"></icon>
-              </common-tip></span>
+              </common-tip></span> -->
           </slider>
         </div>
 		    </div>
@@ -234,9 +234,9 @@
                        <icon name="question-circle-o"></icon>
                     </common-tip>
                  </span>
-                  <span slot="sliderLabel">{{$t('kylinLang.dataSource.samplingPercentage')}} <common-tip placement="right" :content="$t('kylinLang.model.samplingPercentageTips')" >
+          <!--         <span slot="sliderLabel">{{$t('kylinLang.dataSource.samplingPercentage')}} <common-tip placement="right" :content="$t('kylinLang.model.samplingPercentageTips')" >
                  <icon name="question-circle-o"></icon>
-              </common-tip></span>
+              </common-tip></span> -->
                  </slider>
               </div>
               </div>
@@ -249,18 +249,14 @@
         </div>
       </el-dialog>
       <!-- 单个采样dialog -->
-      <el-dialog :title="$t('setScanRange')" v-model="scanSampleRatioDialogVisible" @close="cancelLoadSample">
+      <el-dialog :title="$t('setScanRange')" size="tiny" v-model="scanSampleRatioDialogVisible" @close="cancelLoadSample">
+        <span slot="title">{{$t('setScanRange')}} <common-tip placement="right" :content="$t('kylinLang.model.samplingPercentageTips')" >
+                 <icon name="question-circle-o"></icon></common-tip></span>
         <el-row :gutter="20">
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">
               <div class="ksd-mt-20">
                  <slider  @changeBar="changeBar" :show="scanSampleRatioDialogVisible" :hideCheckbox="true" :range="100">
-                   <span slot="label">{{$t('sampling')}} <common-tip :content="$t('kylinLang.dataSource.collectStatice')" >
-                       <icon name="question-circle-o"></icon>
-                    </common-tip></span>
-                     <span slot="sliderLabel">{{$t('kylinLang.dataSource.samplingPercentage')}} <common-tip placement="right" :content="$t('kylinLang.model.samplingPercentageTips')" >
-                 <icon name="question-circle-o"></icon></common-tip></span>
-
                  </slider>
               </div>
               </div>
@@ -440,7 +436,7 @@ export default {
     collectKafkaSampleDialogOpen () {
       var tableName = this.tableData.database + '.' + this.tableData.name
       this.collectKafkaSampleData(tableName).then((res) => {
-        this.$message('采样成功！')
+        this.$message(this.$t('kylinLang.common.submitSuccess'))
         this.$refs.kafkaSampleBtn.loading = false
       }, (res) => {
         this.$refs.kafkaSampleBtn.loading = false
@@ -864,8 +860,8 @@ export default {
   mounted () {
   },
   locales: {
-    'en': {'load': 'Load', 'reload': 'Reload', 'samplingBtn': 'Sampling', 'sampling': 'Collect table stats', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Scan Range Setting', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!'},
-    'zh-cn': {'load': '加载', 'reload': '重载', 'samplingBtn': '采样', 'sampling': '收集表信息', 'unload': '卸载', 'loadhiveTables': '加载Hive表元数据', 'selectLeftHiveTip': '请在左侧选择要加载的table', 'setScanRange': '设置扫描范围', 'filterInputTips': '请输入hive表名进行过滤', 'loadTableJobBeginTips': '采集开始，您可以到Monitor页面查看采样进度！', 'hasCollectJob': '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!'}
+    'en': {'load': 'Load', 'reload': 'Reload', 'samplingBtn': 'Sampling', 'sampling': 'Collect table stats', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Table Sampling', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!'},
+    'zh-cn': {'load': '加载', 'reload': '重载', 'samplingBtn': '采样', 'sampling': '收集表信息', 'unload': '卸载', 'loadhiveTables': '加载Hive表元数据', 'selectLeftHiveTip': '请在左侧选择要加载的table', 'setScanRange': '表采样', 'filterInputTips': '请输入hive表名进行过滤', 'loadTableJobBeginTips': '采集开始，您可以到Monitor页面查看采样进度！', 'hasCollectJob': '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!'}
   }
 }
 </script>

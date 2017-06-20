@@ -331,6 +331,8 @@ export default {
     }
   },
   mounted () {
+    var editor = this.$refs.insightBox.editor
+    editor.setOption('wrap', 'free')
     // alert(screen.availHeight - 65 - 50 - 55)
     let iHeight = screen.availHeight - 65 - 50 - 55 + 12
     this.$el.querySelector('.filter-tree').style.height = iHeight + 'px'

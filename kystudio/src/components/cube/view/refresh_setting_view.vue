@@ -10,11 +10,11 @@
   </el-row>
   <el-row >
     <el-col :span="6">{{$t('buildTrigger')}}</el-col>
-    <el-col :span="18" v-if="cubeDesc.scheduler">{{toGmtTime(cubeDesc.scheduler.triggerTime)}}</el-col>
+    <el-col :span="18" v-if="cubeDesc.scheduler">{{toGmtTime(cubeDesc.scheduler.scheduled_run_time)}}</el-col>
   </el-row>
   <el-row class="border_bottom">
     <el-col :span="6">{{$t('periddicalInterval')}}</el-col>
-    <el-col :span="18" v-if="cubeDesc.scheduler">{{cubeDesc.scheduler.repeatInterval}}</el-col>
+    <el-col :span="18" v-if="cubeDesc.scheduler">{{cubeDesc.scheduler.repeat_interval}}</el-col>
   </el-row>
   <el-row >
     <el-col :span="6">{{$t('retentionThreshold')}}</el-col>
@@ -46,6 +46,7 @@ export default {
   },
   created () {
     let _this = this
+    console.log(_this.cubeDesc.scheduler, 99001)
     if (!_this.cubeDesc.scheduler) {
       _this.getScheduler(this.cubeDesc.name).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {

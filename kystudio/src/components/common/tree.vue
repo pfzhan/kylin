@@ -28,6 +28,7 @@
 </template>
 <script>
   import Vue from 'vue'
+  import { isIE } from '../../util/index'
   export default {
     name: 'tree',
     watch: {
@@ -121,7 +122,9 @@
             dragstart: function (event) {
               // event.preventDefault()
               event.cancelBubble = true
-              event.dataTransfer && event.dataTransfer.setData('tree', data)
+              if (!isIE()) {
+                event.dataTransfer && event.dataTransfer.setData && event.dataTransfer.setData('tree', data)
+              }
               _this.$emit('treedrag', event.srcElement ? event.srcElement : event.target, data)
               return false
             }

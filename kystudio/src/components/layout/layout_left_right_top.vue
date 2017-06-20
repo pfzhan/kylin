@@ -256,10 +256,14 @@
         }
       },
       changeProject () {
-        this.$router.go(0)
-        if (navigator.userAgent.indexOf('Safari') > 0) {
-          location.reload()
-        }
+        var currentPath = this.$router.currentRoute.path
+        this.$router.replace('/')
+        this.$nextTick(() => {
+          this.$router.replace(currentPath)
+        })
+        // if (navigator.userAgent.indexOf('Safari') > 0) {
+        //   location.reload()
+        // }
       },
       addProject () {
         this.FormVisible = true
@@ -279,10 +283,11 @@
           this.$store.state.project.selected_project = data.name
           this.FormVisible = false
           this.projectSaveLoading = false
-          this.loadAllProjects()
-          this.defaultActive = '/studio/datasource'
-          this.$nextTick(() => {
-            this.$router.push('/studio/datasource')
+          this.loadAllProjects().then(() => {
+            this.$nextTick(() => {
+              this.defaultActive = '/studio/datasource'
+              this.$router.push('/studio/datasource')
+            })
           })
         }, (res) => {
           this.FormVisible = false
@@ -420,7 +425,7 @@
     },
     locales: {
       'en': {resetPassword: 'Reset Password', confirmLoginOut: 'Confirm exit?', validPeriod: 'Valid Period: ', overtip1: 'This Evaluation License will be expired in ', overtip2: 'days. Please contact sales support to apply for the Enterprise License.', applayLisence: 'Apply for Enterprise License', 'continueUse': 'I Know'},
-      'zh-cn': {resetPassword: '重置密码', confirmLoginOut: '确认退出吗？', validPeriod: '使用期限: ', overtip1: '当前使用的试用版许可证将在 ', overtip2: '天后过期。欢迎联系销售支持人员申请企业版许可证。', applayLisence: '申请企业版许可证', 'continueUse': '继续使用'}
+      'zh-cn': {resetPassword: '重置密码', confirmLoginOut: '确认退出吗？', validPeriod: '使用期限: ', overtip1: '当前使用的试用版许可证将在 ', overtip2: '天后过期。欢迎联系销售支持人员申请企业版许可证。', applayLisence: '申请企业版许可证', 'continueUse': '我知道了'}
     }
   }
 </script>
@@ -448,6 +453,12 @@
       margin-bottom: 0;
       margin-right: 0;
       transform:initial;
+      .el-dialog__title{
+        font-size: 12px;
+      }
+      .el-dialog__body{
+        font-size: 12px;
+      }
       .el-dialog__header .el-dialog__headerbtn{
         margin-top: 0;
       }
@@ -455,6 +466,7 @@
           bottom: 0;
           position: absolute;
           right: 0;
+          width: 100%;
       }
     }
   }

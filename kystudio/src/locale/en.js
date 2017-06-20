@@ -10,7 +10,7 @@ exports.default = {
     close: 'Close',
     update: 'Update',
     save: 'Save',
-    ok: 'Ok',
+    ok: 'OK',
     submit: 'Submit',
     setting: 'Settings',
     logout: 'Log Out',
@@ -102,7 +102,8 @@ exports.default = {
     samplingPercentageTips: 'If sampling ratio is high, check job would return accurate results <br/> with high resource engaged. If sampling ratio is low, check job would <br/>return less accurate results with resource saving.',
     modelHasJob: 'This model has a running job of model check, thus the action is disabled.',
     viewModeLimit: 'This action is disabled in view mode.',
-    modelCheck: 'Model health check is highly recommended to help generate a cube optimize result.'
+    modelCheck: 'Model health check is highly recommended to help generate a cube optimize result.',
+    dragTip: 'Try to drag the tables from the left'
   },
   cube: {
     cubeName: 'Cube Name',

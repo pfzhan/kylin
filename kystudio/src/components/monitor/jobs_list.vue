@@ -295,8 +295,8 @@ export default {
       this.stCycle = setTimeout(() => {
         this.refreshJobs().then(() => {
           autoFilter()
-        }, () => {
-          autoFilter()
+        }, (res) => {
+          handleError(res)
         })
       }, 5000)
     }

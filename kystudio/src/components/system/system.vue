@@ -4,7 +4,7 @@
       <el-col :span="9">  
             <span class="server-type">{{$t('ServerConfig')}}</span>
             <el-button style="width: 28px;height:28px;" type="default" class="btn-refresh" @click="refreshConfig" size="mini"><icon name="refresh"></icon></el-button>
-            <editor class="ksd-mt-4" @init="editorInit" v-model="getServerConfig"  theme="chrome" width="100%" height="400" useWrapMode="true"></editor>
+            <editor class="ksd-mt-4" ref="sysConfig" @init="editorInit" v-model="getServerConfig"  theme="chrome" width="100%" height="400" useWrapMode="true"></editor>
           <!-- <el-input class="textarea-wrap"
           type="textarea"
           :rows="18"
@@ -15,7 +15,7 @@
       <el-col :span="9">
             <span class="server-type">{{$t('ServerEnvironment')}}</span>
             <el-button style="width: 28px;height:28px;" type="default" class="btn-refresh" @click="refreshEnv" size="mini"><icon name="refresh"></icon></el-button>
-            <editor class="ksd-mt-4" @init="editorInit" v-model="getServerEnvironment"  theme="chrome" width="100%" height="400"></editor>
+            <editor class="ksd-mt-4" ref="envConfig" @init="editorInit" v-model="getServerEnvironment"  theme="chrome" width="100%" height="400"></editor>
          <!--  <el-input
           type="textarea"
           :rows="18"
@@ -77,6 +77,12 @@ export default {
     'login_kybot': loginKybot,
     'start_kybot': startKybot,
     'protocol_content': protocolContent
+  },
+  mounted () {
+    var editor1 = this.$refs.envConfig.editor
+    var editor2 = this.$refs.sysConfig.editor
+    editor1.setOption('wrap', 'free')
+    editor2.setOption('wrap', 'free')
   },
   methods: {
     ...mapActions({

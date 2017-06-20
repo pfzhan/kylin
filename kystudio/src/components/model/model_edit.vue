@@ -5,7 +5,7 @@
 <!--     <draggable  @start="drag=true" @end="drag=false"> -->
       <model-assets  v-on:drag="drag" :project="extraoption.project" @okFunc="serverDataToDragData" ></model-assets>
       <!-- <el-tree v-if="extraoption.uuid" @nodeclick="clickCube" :data="cubeDataTree" style="background-color: #f1f2f7;border:none;width:250px;" :render-content="renderCubeTree"></el-tree> -->
-      <tree  v-if="extraoption.uuid" style="background-color: #f1f2f7;border:none;width:250px;" :treedata="cubeDataTree" :placeholder="$t('kylinLang.common.pleaseInput')" maxLabelLen="20" :showfilter= "false" :expandall="true" @nodeclick="clickCube"  v-unselect :renderTree="renderCubeTree"></tree>
+      <tree  v-if="extraoption.uuid" style="background-color: #f1f2f7;border:none;width:250px;" :treedata="cubeDataTree" :placeholder="$t('kylinLang.common.pleaseFilter')" maxLabelLen="20" :showfilter= "false" :expandall="true" @nodeclick="clickCube"  v-unselect :renderTree="renderCubeTree"></tree>
 <!--     </draggable> -->
     </div>
     <ul class="sample_info">
@@ -13,6 +13,10 @@
       <li><span class="iconM">M </span><span class="info">Measure</span></li>
       <li><span class="iconDis">－ </span><span class="info">Disable</span></li>
     </ul>
+    <div class="notable_tip" v-show="!(tableList&&tableList.length)">
+      <img src="../../assets/img/dragtable.png">
+      <div style="font-size:14px;color:#4f5473" class="ksd-mt-20">{{$t('kylinLang.model.dragTip')}}</div>
+    </div>
     <ul class="model_tool">
         <li class="toolbtn tool_add" @click="addZoom" v-unselect :title="$t('kylinLang.common.zoomIn')" style="line-height:38px;"><img src="../../assets/img/fd.png"></li>
         <li class="toolbtn tool_jian" @click="subZoom" v-unselect :title="$t('kylinLang.common.zoomOut')" style="line-height:26px;"><img src="../../assets/img/sx.png"></li>
@@ -237,7 +241,7 @@
 </template>
 <script>
 import { jsPlumb } from 'jsplumb'
-import { sampleGuid, indexOfObjWithSomeKey, filterObjectArray, objectArraySort, objectClone, getNextValInArray } from '../../util/index'
+import { sampleGuid, indexOfObjWithSomeKey, filterObjectArray, objectArraySort, objectClone, getNextValInArray, isIE } from '../../util/index'
 import { mapActions } from 'vuex'
 import $ from 'jquery'
 import Scrollbar from 'smooth-scrollbar'
@@ -960,8 +964,10 @@ export default {
       // event.dataTransfer && event.dataTransfer.setData('Text', '')
       this.currentDragDom = event.srcElement ? event.srcElement : event.target
       event.dataTransfer.effectAllowed = 'move'
-      event.dataTransfer.setData('column', this.currentDragDom.innerHTML)
-      event.dataTransfer.setDragImage(this.currentDragDom, 0, 0)
+      if (!isIE()) {
+        event.dataTransfer && event.dataTransfer.setData && event.dataTransfer.setData('column', this.currentDragDom.innerHTML)
+      }
+      event.dataTransfer.setDragImage && event.dataTransfer.setDragImage(this.currentDragDom, 0, 0)
       this.dragType = 'createLinks'
       // var dt = event.originalEvent.dataTransfer
       // dt.effectAllowed = 'copyMove'
@@ -2134,6 +2140,16 @@ export default {
       }
     }
    .model_edit_box {
+    .notable_tip{
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width:400px;
+      height:400px;
+      text-align: center;
+      margin-left: -100px;
+      margin-top: -100px;
+    }
     .el-form-item__label {
       float: none;
     }
