@@ -12,7 +12,7 @@ then
 
     old_hadoop_cp=${HADOOP_CLASSPATH}
     if [[ $CI_MODE == 'true' ]]; then
-        export HADOOP_CLASSPATH=`ls ${KYLIN_HOME}/../extensions/tool-assembly/target/kap-tool-assembly-*.jar`
+        export HADOOP_CLASSPATH=`ls ${dir}/../../extensions/tool-assembly/target/kap-tool-assembly-*-assembly.jar`
     else
         export HADOOP_CLASSPATH=`ls ${KYLIN_HOME}/tool/kylin-tool-kap-*.jar`
     fi
