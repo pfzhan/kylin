@@ -25,7 +25,6 @@
 package io.kyligence.kap.modeling.smart.proposer;
 
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.kylin.cube.model.AggregationGroup;
@@ -68,11 +67,10 @@ public abstract class AbstractProposer {
 
     void preProcess(CubeDesc workCubeDesc) {
         // remove invalid agg groups before validate cube_desc
-        Iterator<AggregationGroup> aggGroupItr = workCubeDesc.getAggregationGroups().iterator();
-        while (aggGroupItr.hasNext()) {
-            AggregationGroup aggGroup = aggGroupItr.next();
+        List<AggregationGroup> original = workCubeDesc.getAggregationGroups();
+        List<AggregationGroup> processed = Lists.newArrayList();
+        for (AggregationGroup aggGroup : original) {
             if (aggGroup.getIncludes() == null || aggGroup.getIncludes().length == 0) {
-                aggGroupItr.remove();
                 continue;
             }
 
@@ -96,6 +94,9 @@ public abstract class AbstractProposer {
 
             selectRule.jointDims = ArrayUtils.to2DArray(joints);
             selectRule.hierarchyDims = ArrayUtils.to2DArray(hiers);
+
+            processed.add(aggGroup);
         }
+        workCubeDesc.setAggregationGroups(processed);
     }
 }
