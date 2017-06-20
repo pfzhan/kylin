@@ -115,7 +115,7 @@
         align="center"
         width="110">
         <template scope="scope">
-          {{cubeDesc.modelDesc.columnsDetail[scope.row.column].datatype}}
+          {{cubeDesc.modelDesc.columnsDetail[scope.row.column] && cubeDesc.modelDesc.columnsDetail[scope.row.column].datatype}}
         </template>
     </el-table-column>    
     <el-table-column
@@ -124,7 +124,7 @@
         align="center"
         width="110">
         <template scope="scope">
-          {{cubeDesc.modelDesc.columnsDetail[scope.row.column].cardinality}}
+          {{cubeDesc.modelDesc.columnsDetail[scope.row.column] && cubeDesc.modelDesc.columnsDetail[scope.row.column].cardinality}}
         </template>
     </el-table-column>                                        
   </el-table>

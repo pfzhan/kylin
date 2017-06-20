@@ -8,14 +8,7 @@
       </el-row>
     </el-col>  
   </el-row>
-  <el-row >
-    <el-col :span="6">{{$t('buildTrigger')}}</el-col>
-    <el-col :span="18" v-if="cubeDesc.scheduler">{{toGmtTime(cubeDesc.scheduler.scheduled_run_time)}}</el-col>
-  </el-row>
-  <el-row class="border_bottom">
-    <el-col :span="6">{{$t('periddicalInterval')}}</el-col>
-    <el-col :span="18" v-if="cubeDesc.scheduler">{{cubeDesc.scheduler.repeat_interval}}</el-col>
-  </el-row>
+ 
   <el-row >
     <el-col :span="6">{{$t('retentionThreshold')}}</el-col>
     <el-col :span="18">{{cubeDesc.desc.retention_range|timeSize}}</el-col>
@@ -23,7 +16,16 @@
   <el-row>
     <el-col :span="6">{{$t('partitionStartDate')}}</el-col>
     <el-col :span="18">{{toGmtTime(cubeDesc.desc.partition_date_start)}}</el-col>
-  </el-row>        
+  </el-row>  
+
+   <el-row >
+    <el-col :span="6">{{$t('buildTrigger')}}</el-col>
+    <el-col :span="18" v-if="cubeDesc.scheduler">{{toGmtTime(cubeDesc.scheduler.scheduled_run_time)}}</el-col>
+  </el-row>
+  <el-row class="border_bottom">
+    <el-col :span="6">{{$t('periddicalInterval')}}</el-col>
+    <el-col :span="18" v-if="cubeDesc.scheduler">{{cubeDesc.scheduler.repeat_interval|timeSize}}</el-col>
+  </el-row>      
 </el-card>
 </template>
 
@@ -59,8 +61,8 @@ export default {
     }
   },
   locales: {
-    'en': {autoMergeThresholds: 'Auto Merge Thresholds', retentionThreshold: 'Retention Threshold', partitionStartDate: 'Partition Start Date', buildTrigger: 'Auto Build Trigger', periddicalInterval: 'Periddical Interval'},
-    'zh-cn': {autoMergeThresholds: '触发自动合并的时间阈值', retentionThreshold: '保留时间阈值', partitionStartDate: '起始日期', buildTrigger: '自动构建触发时间', periddicalInterval: '重复间隔'}
+    'en': {autoMergeThresholds: 'Auto Merge Thresholds', retentionThreshold: 'Retention Threshold', partitionStartDate: 'Partition Start Date', buildTrigger: 'First Build Time', periddicalInterval: 'Build Cycle:'},
+    'zh-cn': {autoMergeThresholds: '触发自动合并的时间阈值', retentionThreshold: '保留时间阈值', partitionStartDate: '起始日期', buildTrigger: '首次构建触发时间：', periddicalInterval: '重复间隔：'}
   }
 }
 </script>

@@ -1,5 +1,15 @@
 <template>
   <div class="query_panel_box">
+   <el-row  class="resultTips"  v-show="errinfo" >
+      <el-col :span="3"><div class="grid-content bg-purple"><p>Status: <span style="color:red"> error</span></p></div></el-col>
+      <el-col :span="6"><div class="grid-content bg-purple"><p>Start Time: <span> {{Date.now()|gmtTime}}</span></p></div></el-col>
+      <el-col :span="3"><div class="grid-content bg-purple"><p style="visibility:hidden">Duration: <span> </span></p></div></el-col>
+      <el-col :span="7"><div class="grid-content bg-purple"><p>Project: <span> {{extraoption.project}}</span></p></div></el-col>
+      <el-col :span="5"><div class="grid-content bg-purple" style="text-align:right" >
+      <kap-icon-button   icon="refresh" type="blue" @click.native="refreshQuery" style="display:inline-block"></kap-icon-button>
+      <kap-icon-button   icon="save" type="primary" @click.native="openSaveQueryDialog" style="display:inline-block">Save Query</kap-icon-button>
+      </div></el-col>
+    </el-row>
     <!-- <p class="tips">querying <span>{{pending}}</span>S in Cube: <span>aire_line</span></p> -->
     <div v-show="!errinfo">
       <el-progress type="circle" :percentage="percent"></el-progress>
@@ -9,6 +19,23 @@
       <i class="el-icon-circle-cross"></i>
       <p class = "errorText">{{errinfo}}</p>
     </div>
+    <el-dialog :title="$t('kylinLang.common.save')" v-model="saveQueryFormVisible">
+    <el-form :model="saveQueryMeta"  ref="saveQueryForm" :rules="rules" label-width="100px">
+      <el-form-item label="Query SQL" prop="sql">
+       <editor v-model="saveQueryMeta.sql" lang="sql" theme="chrome" width="100%" height="200" useWrapMode="true"></editor>
+      </el-form-item>
+      <el-form-item label="Name:" prop="name">
+        <el-input v-model="saveQueryMeta.name" auto-complete="off"></el-input>
+      </el-form-item>
+      <el-form-item label="Description:" prop="description">
+        <el-input v-model="saveQueryMeta.description"></el-input>
+      </el-form-item>
+    </el-form>
+     <div slot="footer" class="dialog-footer">
+    <el-button @click="saveQueryFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+    <el-button type="primary" @click="saveQuery">{{$t('kylinLang.common.ok')}}</el-button>
+  </div>
+    </el-dialog>
   </div>
 
 </template>
@@ -20,15 +47,72 @@ export default {
   props: ['extraoption'],
   methods: {
     ...mapActions({
-      query: 'QUERY_BUILD_TABLES'
-    })
+      query: 'QUERY_BUILD_TABLES',
+      saveQueryToServer: 'SAVE_QUERY'
+    }),
+    refreshQuery () {
+      this.queryResult()
+    },
+    queryResult () {
+      this.errinfo = ''
+      this.pending = 0
+      this.percent = 0
+      this.query({
+        acceptPartial: this.extraoption.acceptPartial,
+        limit: this.extraoption.limit,
+        offset: this.extraoption.offset,
+        project: this.extraoption.project,
+        sql: this.extraoption.sql
+      }).then((res) => {
+        clearInterval(this.ST)
+        handleSuccess(res, (data) => {
+          this.$emit('changeView', this.extraoption.index, data)
+        })
+      }, (res) => {
+        handleError(res, (data, code, status, msg) => {
+          this.errinfo = msg
+          this.$emit('changeView', this.extraoption.index, data, 'close', 'querypanel')
+        })
+      })
+    },
+    openSaveQueryDialog () {
+      this.saveQueryFormVisible = true
+      this.saveQueryMeta.name = ''
+      this.saveQueryMeta.description = ''
+    },
+    saveQuery () {
+      this.$refs['saveQueryForm'].validate((valid) => {
+        if (valid) {
+          this.saveQueryToServer(this.saveQueryMeta).then((response) => {
+            this.$message(this.$t('kylinLang.common.saveSuccess'))
+            this.saveQueryFormVisible = false
+            this.$emit('reloadSavedProject', 0)
+          }, (res) => {
+            handleError(res)
+            this.saveQueryFormVisible = false
+          })
+        }
+      })
+    }
   },
   data () {
     return {
       errinfo: '',
       percent: 0,
       ST: null,
-      pending: 0
+      pending: 0,
+      saveQueryFormVisible: false,
+      rules: {
+        name: [
+          { required: true, message: this.$t('kylinLang.common.pleaseInput'), trigger: 'blur' }
+        ]
+      },
+      saveQueryMeta: {
+        name: '',
+        description: '',
+        project: this.extraoption.project,
+        sql: this.extraoption.sql
+      }
     }
   },
   created () {
@@ -45,23 +129,7 @@ export default {
         clearInterval(_this.ST)
       }
     }, 300)
-    this.query({
-      acceptPartial: this.extraoption.acceptPartial,
-      limit: this.extraoption.limit,
-      offset: this.extraoption.offset,
-      project: this.extraoption.project,
-      sql: this.extraoption.sql
-    }).then((res) => {
-      clearInterval(_this.ST)
-      handleSuccess(res, (data) => {
-        this.$emit('changeView', _this.extraoption.index, data)
-      })
-    }, (res) => {
-      handleError(res, (data, code, status, msg) => {
-        this.errinfo = msg
-        this.$emit('changeView', _this.extraoption.index, data, 'close', 'querypanel')
-      })
-    })
+    this.queryResult()
   },
   locales: {
     'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin'},

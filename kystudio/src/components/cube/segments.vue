@@ -60,6 +60,7 @@ export default {
     }),
     loadSegments: function () {
       let _this = this
+      _this.segments = []
       // _this.cube.desc.engine_type === 99   roger 要求去掉engine_type的判断
       if (_this.cube.desc.storage_type === 100 || _this.cube.desc.storage_type === 99) {
         this.type = 'columnar'

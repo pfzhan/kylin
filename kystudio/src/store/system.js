@@ -54,7 +54,7 @@ export default {
         commit(types.GET_CONF_BY_NAME, {name: 'kylin.web.timezone', key: 'timeZone'})
         commit(types.GET_CONF_BY_NAME, {name: 'kap.kyaccount.username', key: 'kyAccount'})
         commit(types.GET_CONF_BY_NAME, {name: 'kap.license.statement', key: 'statement'})
-        commit(types.GET_CONF_BY_NAME, {name: 'kap.web.limitfact', key: 'limitfact'})
+        commit(types.GET_CONF_BY_NAME, {name: 'kap.web.hide-feature.limited-lookup', key: 'limitfact'})
       })
     },
     [types.RELOAD_METADATA]: function ({ commit }) {

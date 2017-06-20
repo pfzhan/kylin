@@ -860,7 +860,7 @@ export default {
   mounted () {
   },
   locales: {
-    'en': {'load': 'Load', 'reload': 'Reload', 'samplingBtn': 'Sampling', 'sampling': 'Collect table stats', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Table Sampling', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!'},
+    'en': {'load': 'Load', 'reload': 'Reload', 'samplingBtn': 'Sampling', 'sampling': 'Table Sampling', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Table Sampling', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!'},
     'zh-cn': {'load': '加载', 'reload': '重载', 'samplingBtn': '采样', 'sampling': '收集表信息', 'unload': '卸载', 'loadhiveTables': '加载Hive表元数据', 'selectLeftHiveTip': '请在左侧选择要加载的table', 'setScanRange': '表采样', 'filterInputTips': '请输入hive表名进行过滤', 'loadTableJobBeginTips': '采集开始，您可以到Monitor页面查看采样进度！', 'hasCollectJob': '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!'}
   }
 }

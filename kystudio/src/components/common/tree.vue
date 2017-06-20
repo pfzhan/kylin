@@ -185,7 +185,8 @@
     margin: 4px auto;
   }
   .sublabel {
-    color:#ccc;
+    color:#9da3b3;
+    font-style: italic;
   }
   .tag{
     border:solid 1px #ccc;
@@ -200,7 +201,7 @@
   }
  
   .empty_text{
-    font-size: 14px;
+    font-size: 12px;
     text-align: center;
     padding: 10px;
     color:#d4d7e3;
@@ -213,7 +214,6 @@
     background-color: #f1f2f7;
     width: 250px;
     div{
-      font-weight: bold;
       &.leaf-label{
         font-size: 12px;
         font-weight: normal;
@@ -225,6 +225,9 @@
         text-decoration: none;
 
       }
+    }
+    .el-tree-node__label{
+      font-size: 12px;
     }
     &>.el-tree-node{
       &>.el-tree-node__content{

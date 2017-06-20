@@ -24,20 +24,23 @@
     <div>
        <el-form  label-width="90px"  v-for="savequery in savedList" :key="savequery.name">
         <el-form-item label="SQL Name:" class="ksd-mb-2" >
+        <span slot="label" style="color:#9095ab;font-size:12px">SQL Name:</span>
           {{savequery.name}}
         </el-form-item>
         <el-form-item label="Project:" class="ksd-mb-2" >
+        <span slot="label" style="color:#9095ab;font-size:12px">Project:</span>
           {{savequery.project}}
         </el-form-item>
         <el-form-item label="Description:" class="ksd-mb-2" >
+          <span slot="label" style="color:#9095ab;font-size:12px">Description:</span>
           {{savequery.description}}
         </el-form-item>
         <el-collapse >
         <div class="ksd-fright"> 
-        <kap-icon-button  icon="refresh" type="primary" @click.native="resubmit(savequery.sql)">Resubmit</kap-icon-button>
-        <kap-icon-button  icon="close" type="danger" @click.native="removeQuery(savequery.id)">Remove</kap-icon-button>
+        <kap-icon-button  icon="refresh" type="blue" size="small" @click.native="resubmit(savequery.sql)">Resubmit</kap-icon-button>
+        <kap-icon-button  icon="close" type="danger" size="small" @click.native="removeQuery(savequery.id)">Remove</kap-icon-button>
         </div>
-          <el-collapse-item title="SQL" name="1">
+          <el-collapse-item title="SQL" name="1" style="color:#9095ab;font-size:12px">
             <editor v-model="savequery.sql" lang="sql" theme="chrome" class="ksd-mt-20" width="100%" height="200" useWrapMode="true"></editor>
           </el-collapse-item>
         </el-collapse>  
@@ -51,13 +54,13 @@
       <kap-nodata v-if="!cookieQuerySize"></kap-nodata>
       <el-form  label-width="90px"  v-for="query in cookieQueries" :key="query.queryTime">
         <el-form-item label="Queried At:" class="ksd-mb-2" >
-          {{query.queryTime|gmtTime}} in Project: {{ project }}
-         
+        <span slot="label" style="color:#9095ab;font-size:12px">Queried At:</span>
+          {{query.queryTime|gmtTime}} in Project: <span style="color:#20a0ff">{{ project }}</span>
         </el-form-item>
         <el-collapse >
          <div class="ksd-fright">
-          <kap-icon-button icon="refresh" type="primary" @click.native="resubmit(query.sql)">Resubmit</kap-icon-button>
-          <kap-icon-button icon="close" type="danger" @click.native="removeQueryCache(query.sql)">Remove</kap-icon-button>
+          <kap-icon-button icon="refresh" size="small" type="blue" @click.native="resubmit(query.sql)">Resubmit</kap-icon-button>
+          <kap-icon-button icon="close"  size="small" type="danger" @click.native="removeQueryCache(query.sql)">Remove</kap-icon-button>
           </div>
           <el-collapse-item title="SQL" name="1">
             <editor v-model="query.sql" lang="sql" theme="chrome" class="ksd-mt-20" width="100%" height="200" useWrapMode="true"></editor>
@@ -68,9 +71,10 @@
       <pager ref="savedQueryPagerForCookie" class="ksd-center" :totalSize="cookieQuerySize"  v-on:handleCurrentChange='pageCurrentChangeForCookie' ></pager>
     </el-tab-pane>
 	</el-tabs>
+  <div class="line" style="margin-top:10px;margin-bottom:4px;"></div>
   <div class="query_result_box ksd-border-tab" v-show='editableTabs&&editableTabs.length'>
      <div>
-     <h3 class="ksd-inline">{{$t('result')}}</h3>
+     <h3 class="ksd-inline ksd-mt-2 ksd-mb-6" style="font-size:14px;">{{$t('result')}}</h3>
       <!-- <el-form :inline="true" class="demo-form-inline ksd-fright ksd-mr-20 ksd-mt-20">
           <el-form-item label="Status">
            <el-select v-model="defaultQueryStatus" placeholder="请选择" style="width:90px">
@@ -84,7 +88,7 @@
         </el-form> -->
       </div>
 
-     <tab type="border-card" class="insight_tab" v-on:addtab="addTab" :isedit="true"   :tabslist="editableTabs"  :active="activeSubMenu"  v-on:removetab="delTab">
+     <tab type="border-card" class="insight_tab ksd-mt-2" v-on:addtab="addTab" :isedit="true"   :tabslist="editableTabs"  :active="activeSubMenu"  v-on:removetab="delTab">
        <template scope="props">
         <component :is="props.item.content" v-on:changeView="changeTab" v-on:reloadSavedProject="loadSavedQuery" :extraoption="props.item.extraoption"></component>
        </template>
@@ -241,6 +245,7 @@ export default {
       localStorage.setItem('queryCache', JSON.stringify(this.cacheQuery))
     },
     changeTab (index, data, icon, componentName) {
+      console.log(index, data, icon, componentName)
       let tabs = this.editableTabs
       for (var k = 0; k < tabs.length; k++) {
         if (tabs[k].index === index) {
@@ -391,6 +396,9 @@ export default {
   @import '../../less/config.less';
   .insight_box {
     position: relative;
+    .el-collapse-item__header {
+      color: #9095ab
+    }
     .el-icon-circle-close {
       color: red;
     }

@@ -49,7 +49,7 @@
     <span slot="label">{{getValueLab}}
         <common-tip :content="paramValTip" ><icon name="question-circle-o"></icon></common-tip>
       </span>
-      <el-select v-model="measure.function.parameter.value" v-if="measure.function.parameter.type !== 'constant'" class="input_width" @change="changeParamValue">
+      <el-select v-model="measure.function.parameter.value" :placeholder="$t('kylinLang.common.pleaseSelect')" v-if="measure.function.parameter.type !== 'constant'" class="input_width" @change="changeParamValue">
         <el-option
           v-for="(item, index) in getParameterValue"
           :key="index"
@@ -62,7 +62,7 @@
       <el-tag v-else>{{getParameterValue}}</el-tag>   
     </el-form-item>
 
-    <el-form-item :label="$t('extendedColumn')" v-if="measure.function.expression === 'EXTENDED_COLUMN'">
+    <el-form-item :label="$t('extendedColumn')"  v-if="measure.function.expression === 'EXTENDED_COLUMN'">
       <el-select v-model="measure.function.parameter.value" >
         <el-option
           v-for="(item, index) in getAllModelDimColumns()"

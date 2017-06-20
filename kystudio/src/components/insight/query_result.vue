@@ -4,10 +4,13 @@
       <el-col :span="3"><div class="grid-content bg-purple"><p>Status: <span style="color:green"> success</span></p></div></el-col>
       <el-col :span="6"><div class="grid-content bg-purple"><p>Start Time: <span> {{queryInfo.starttime|gmtTime}}</span></p></div></el-col>
       <el-col :span="3"><div class="grid-content bg-purple"><p>Duration: <span> {{(queryInfo.duration/1000)|fixed(2)}}s</span></p></div></el-col>
-      <el-col :span="8"><div class="grid-content bg-purple"><p>Project: <span> {{queryInfo.project}}</span></p></div></el-col>
-      <el-col :span="4"><div class="grid-content bg-purple" style="text-align:right" >
-      <kap-icon-button   icon="save" type="primary" @click.native="openSaveQueryDialog">Save Query</kap-icon-button>
-      </div></el-col>
+      <el-col :span="7"><div class="grid-content bg-purple"><p>Project: <span> {{queryInfo.project}}</span></p></div></el-col>
+      <el-col :span="5">
+        <div class="grid-content bg-purple" style="text-align:right" >
+        <kap-icon-button   icon="refresh" type="blue" @click.native="refreshQuery" style="display:inline-block"></kap-icon-button>
+        <kap-icon-button   icon="save" type="primary" @click.native="openSaveQueryDialog" style="display:inline-block">Save Query</kap-icon-button>
+        </div>
+      </el-col>
     </el-row>
     <el-row class="resultTips" >
       <el-col :span="24">
@@ -15,20 +18,22 @@
         <div v-if="extraoption.data.adHoc" class="grid-content bg-purple"><p>Query Engine: <span>Push down</span></p></div>
       </el-col>
     </el-row>
-  	<div>
-<kap-icon-button  v-show="viewModel" icon="area-chart" type="primary" @click.native="changeViewModel">Visualization</kap-icon-button>
+  	<div class="ksd-mt-14">
+<kap-icon-button  v-show="viewModel" icon="area-chart" type="blue" style="border-width:1px" @click.native="changeViewModel">Visualization</kap-icon-button>
 <kap-icon-button v-show="!viewModel" icon="table" type="primary" @click.native="changeViewModel">Grid</kap-icon-button>
 <kap-icon-button icon="external-link" type="primary" @click.native="exportData">Export</kap-icon-button>
    <!-- <el-button><icon name="external-link"></icon> Export</el-button> -->
    </div>
-  	<div class="ksd-mt-20" v-show="viewModel">
+  	<div class="ksd-mt-20 grid-box" v-show="viewModel">
   		<el-table
 		    :data="pagerTableData"
 		    border
-		    style="width: 100%">
+		    style="width: 100%;">
 		    <el-table-column v-for="(value, index) in tableMeta" :key="index"
 		      :prop="''+index"
-		      :label="value.label">
+		      :label="value.label"
+          width="120" 
+          >
 		    </el-table-column>
 		  </el-table>
 
@@ -127,6 +132,10 @@ export default {
       query: 'QUERY_BUILD_TABLES',
       saveQueryToServer: 'SAVE_QUERY'
     }),
+    refreshQuery () {
+      this.$emit('changeView', this.extraoption.index, this.extraoption, '', 'querypanel')
+     // this.addTab('query', 'querypanel', queryObj)
+    },
     exportData () {
       if (this.extraoption.limit) {
         location.href = '/kylin/api/query/format/csv?sql=' + this.extraoption.sql + '&project=' + this.extraoption.project + '&limit=' + this.extraoption.limit
@@ -331,7 +340,7 @@ export default {
       this.$refs['saveQueryForm'].validate((valid) => {
         if (valid) {
           this.saveQueryToServer(this.saveQueryMeta).then((response) => {
-            this.$message('query 保存成功！')
+            this.$message(this.$t('kylinLang.common.saveSuccess'))
             this.saveQueryFormVisible = false
             this.$emit('reloadSavedProject', 0)
           }, (res) => {
@@ -421,10 +430,11 @@ export default {
 <style  lang="less">
   .resultTips{
      font-size: 12px;
-     border-bottom:solid 1px #ccc;
-     margin-bottom: 10px;
      p{
-       line-height: 45px;
+       line-height: 15px;
      }
   }
+  // .grid-box{
+  //   border-width: 1px!important;
+  // }
 </style>
