@@ -222,6 +222,9 @@ export default {
     .el-dialog__wrapper{
       overflow: visible;
     }
+    .el-dialog--small{
+      width: 50%;
+    }
   }
   .system-wrap {
     .box-card{
