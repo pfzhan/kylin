@@ -95,7 +95,8 @@ public class RowkeyProposer extends AbstractProposer {
         if (context.hasQueryStats()) {
             Map<String, Integer> filters = context.getQueryStats().getFilters();
             for (RowKeyColDesc filterCandidate : rowKeyDescs) {
-                if (filters.containsKey(filterCandidate.getColRef().getCanonicalName())) {
+                Integer filterCnt = filters.get(filterCandidate.getColRef().getIdentity());
+                if (filterCnt != null && filterCnt > 0) {
                     filterRowkeys.add(filterCandidate);
                 }
             }
