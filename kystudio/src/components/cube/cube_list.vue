@@ -345,7 +345,7 @@ export default {
       if (modelName && modelName !== 'ALL') {
         param.modelName = modelName
       }
-      if (this.extraoption.cubeName) {
+      if (this.extraoption && this.extraoption.cubeName) {
         param.cubeName = this.extraoption.cubeName
       }
       this.getCubesList(param).then((res) => {
@@ -381,7 +381,12 @@ export default {
               duration: 3000
             })
           })
-          this.loadCubesList(this.currentPage - 1)
+          if (this.isViewCubeMode) {
+            this.$emit('removetabs', '[view]' + this.extraoption.cubeName, 'Overview')
+            this.$emit('reload', 'cubelList')
+          } else {
+            this.loadCubesList(this.currentPage - 1)
+          }
         }).catch((res) => {
           handleError(res)
         })

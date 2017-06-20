@@ -369,8 +369,9 @@ export default {
     resetDimensions: function () {
       // this.cubeDesc.dimensions.splice(0, this.cubeDesc.dimensions.length)
       this.dim_cap = 0
-      this.totalCuboid = 0
+      // this.totalCuboid = 0
       this.cubeDesc.aggregation_groups.splice(0, this.cubeDesc.aggregation_groups.length)
+      this.initAggregationGroup()
       // this.cubeDesc.rowkey.rowkey_columns.splice(0, this.cubeDesc.rowkey.rowkey_columns.length)
       // this.initConvertedRowkeys()
     },

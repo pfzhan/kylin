@@ -1955,6 +1955,20 @@ export default {
         this.timerSave()
       }, 1000)
     },
+    reloadCubeTree () {
+      this.actionMode = this.extraoption.mode
+      this.getCubesList({pageSize: 100000, pageOffset: 0, projectName: this.extraoption.project, modelName: this.extraoption.modelName}).then((res) => {
+        handleSuccess(res, (data, code, status, msg) => {
+          this.cubesList = data.cubes
+          data.cubes.forEach((cube) => {
+            this.cubeDataTree[0].children.push({
+              id: cube.uuid,
+              label: cube.name
+            })
+          })
+        })
+      })
+    },
     resizeWindow: function (newVal) {
       var wWidth = $(window).width()
       var wHeight = $(window).height()
@@ -2093,24 +2107,25 @@ export default {
     }
   },
   created () {
+    this.reloadCubeTree()
     // this.$store.state.model.modelEditCache[this.project + '$' + this.modelGuid] = {}
-    this.getUsedCols(this.extraoption.modelName).then((res) => {
-      handleSuccess(res, (data) => {
-        this.columnUsedInfo = data
-      })
-    })
-    this.actionMode = this.extraoption.mode
-    this.getCubesList({pageSize: 100000, pageOffset: 0, projectName: this.extraoption.project, modelName: this.extraoption.modelName}).then((res) => {
-      handleSuccess(res, (data, code, status, msg) => {
-        this.cubesList = data.cubes
-        data.cubes.forEach((cube) => {
-          this.cubeDataTree[0].children.push({
-            id: cube.uuid,
-            label: cube.name
-          })
-        })
-      })
-    })
+    // this.getUsedCols(this.extraoption.modelName).then((res) => {
+    //   handleSuccess(res, (data) => {
+    //     this.columnUsedInfo = data
+    //   })
+    // })
+    // this.actionMode = this.extraoption.mode
+    // this.getCubesList({pageSize: 100000, pageOffset: 0, projectName: this.extraoption.project, modelName: this.extraoption.modelName}).then((res) => {
+    //   handleSuccess(res, (data, code, status, msg) => {
+    //     this.cubesList = data.cubes
+    //     data.cubes.forEach((cube) => {
+    //       this.cubeDataTree[0].children.push({
+    //         id: cube.uuid,
+    //         label: cube.name
+    //       })
+    //     })
+    //   })
+    // })
   },
   destroyed () {
     clearTimeout(this.timerST)
