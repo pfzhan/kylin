@@ -130,7 +130,6 @@ public class TableExtController extends BasicController {
                 tablesRunningJob.add(s);
             } else {
                 tablesNotRunningJob.add(s);
-                tableExtService.removeTableExt(s);
             }
         }
         Map<String, String[]> loadResult = tableService.loadHiveTables(toArray(tablesNotRunningJob),
