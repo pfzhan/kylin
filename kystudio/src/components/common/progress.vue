@@ -63,6 +63,9 @@ export default {
 <style lang="less">
 @import '../../less/config.less';
  .kap_progress{
+    .el-progress-bar__outer{
+      background: #4f5473!important;
+    }
     .el-progress-bar {
       margin-right: -34px;
       padding-right:30px;

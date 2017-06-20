@@ -113,7 +113,7 @@
             <el-dropdown-item v-show="scope.row.status==='DISABLED' && !scope.row.is_draft" @click.native="purge(scope.row.name)">{{$t('purge')}}</el-dropdown-item>
             <el-dropdown-item v-show="scope.row.status!=='DESCBROKEN' && !scope.row.is_draft " @click.native="clone(scope.row)">{{$t('clone')}}</el-dropdown-item>
 
-            <el-dropdown-item @click.native="view(scope.row)" style="border-top:solid 1px #292b38">{{$t('viewCube')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="view(scope.row)" style="border-top:solid 1px rgb(68, 75, 103)">{{$t('viewCube')}}</el-dropdown-item>
             <el-dropdown-item @click.native="backup(scope.row.name)" v-show="!scope.row.is_draft ">{{$t('backup')}}</el-dropdown-item>
             <el-dropdown-item v-show="scope.row.status==='DISABLED'&&!scope.row.is_draft" @click.native="editCubeDesc(scope.row)">{{$t('editCubeDesc')}}</el-dropdown-item>
             
@@ -176,15 +176,15 @@
   </el-dialog>
    <!-- 添加cube -->
 
-    <el-dialog title="Add Cube" v-model="createCubeVisible" size="tiny">
+    <el-dialog class="add-m" title="Add Cube" v-model="createCubeVisible" size="tiny">
       <el-form :model="cubeMeta" :rules="createCubeFormRule" ref="addCubeForm">
-        <el-form-item :label="$t('kylinLang.cube.cubeName')" prop="cubeName">
+        <el-form-item :label="$t('kylinLang.cube.cubeName')" prop="cubeName" style="margin-top: 10px;">
           <span slot="label">{{$t('kylinLang.cube.cubeName')}}
             <common-tip :content="$t('kylinLang.cube.cubeNameTip')" ><icon name="exclamation-circle"></icon></common-tip>
           </span>
           <el-input v-model="cubeMeta.cubeName" auto-complete="off"></el-input>
         </el-form-item>
-        <el-form-item :label="$t('kylinLang.model.modelName')" prop="modelName">
+        <el-form-item :label="$t('kylinLang.model.modelName')" prop="modelName" style="margin-top: 30px;">
            <el-select v-model="cubeMeta.modelName" style="width: 100%;" :placeholder="$t('kylinLang.common.pleaseSelect')">
             <el-option
               v-for="item in allModels"

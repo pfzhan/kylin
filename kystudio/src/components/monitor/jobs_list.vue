@@ -105,7 +105,7 @@
               <table class="table table-striped table-bordered" cellpadding="0" cellspacing="0">
                 <tr>
                   <td class="single-line"><b>{{$t('jobName')}}</b></td>
-                  <td style="max-width: 180px;word-wrap: break-word;word-break: normal;">
+                  <td style="max-width: 180px;word-wrap: break-word;word-break: normal;font-weight: normal;color: rgba(255,255,255,0.7);font-size: 12px;">
                     {{selected_job.name}}
                   </td>
                 </tr>
@@ -718,4 +718,17 @@ export default {
     overflow: visible;
   }
 }
+.job-step{
+  tr{
+    td:first-child{
+      font-weight: bold;
+      color: #fff;
+      width: 40%;
+    }
+  }
+  td{
+    background: #2b2d3c;
+  }
+}
+
 </style>

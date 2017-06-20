@@ -22,7 +22,7 @@
       </div>
     </el-dropdown-item>
     <el-dropdown-item command="kybotservice">{{$t('kybotService')}}</el-dropdown-item>
-    <el-dropdown-item command="aboutkap" style="border-top:solid 1px #292b38">{{$t('aboutKap')}}</el-dropdown-item>
+    <el-dropdown-item command="aboutkap" style="border-top:solid 1px #444b67">{{$t('aboutKap')}}</el-dropdown-item>
   </el-dropdown-menu>
 </el-dropdown>
 

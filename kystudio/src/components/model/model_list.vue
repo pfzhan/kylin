@@ -1,7 +1,7 @@
 <template>
 	<div class="paddingbox modelist_box" style="margin-left: 30px;min-height:600px; margin-right: 30px;">
    <img src="../../assets/img/no_model.png" class="null_pic" v-if="!(modelsList && modelsList.length)">
-    <el-button type="default" class="ksd-mb-10" id="addModel" v-if="isAdmin" @click="addModel" style="font-weight: bold;border-radius: 20px;"><span class="add">+</span><span>{{$t('kylinLang.common.model')}}</span></el-button>
+    <el-button type="blue" class="ksd-mb-10" id="addModel" v-if="isAdmin" @click="addModel" style="font-weight: bold;border-radius: 20px;"><span class="add">+</span><span>{{$t('kylinLang.common.model')}}</span></el-button>
     <br/>
     <p class="ksd-right ksd-mb-10" v-if="modelsList&&modelsList.length">
       <span class="icon_card" @click="changeGridModal('card')" :class="{active: viewModal==='card'}"></span>
@@ -119,7 +119,7 @@
     </el-dialog>
 
     <!-- 添加model -->
-    <el-dialog title="Add Model" v-model="createModelVisible" size="tiny">
+    <el-dialog class="add-m" title="Add Model" v-model="createModelVisible" size="small">
       <el-form :model="createModelMeta" :rules="createModelFormRule" ref="addModelForm">
         <el-form-item prop="modelName" :label="$t('kylinLang.model.modelName')">
           <span slot="label">{{$t('kylinLang.model.modelName')}}
@@ -127,7 +127,7 @@
           </span>
           <el-input v-model="createModelMeta.modelName" auto-complete="off"></el-input>
         </el-form-item>
-        <el-form-item :label="$t('kylinLang.model.modelDesc')" prop="modelDesc">
+        <el-form-item :label="$t('kylinLang.model.modelDesc')" prop="modelDesc" style="margin-top: 20px;">
          <el-input
             type="textarea"
             :rows="2"
@@ -978,6 +978,19 @@ export default {
   }
   #addModel:hover{
     background: @base-color;
+  }
+}
+.add-m{
+  .el-form-item{
+    margin-bottom: 10px;
+  }
+  .el-dialog__body{
+    padding-top: 15px;
+    padding-bottom: 18px;
+  }
+  .el-input{
+    padding: 0;
+    margin-top: 15px;
   }
 }
 </style>

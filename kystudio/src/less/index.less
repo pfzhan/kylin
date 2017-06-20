@@ -107,6 +107,7 @@ li {list-style-type:none;}
   }
 }
 .ace-chrome{
+  background: #393e53!important;
   border: 1px solid #4a4d5e;
   border-radius: 5px;
   .ace_print-margin {
@@ -116,17 +117,19 @@ li {list-style-type:none;}
     background: #3e425b!important;
   }
   .ace_gutter-cell{
-    background: @input-bg;
+    background: #393e53;
     color: rgba(255,255,255,0.6);
+    padding-right: 30px;
   }
   .ace_content{
-    background: @input-bg;
+    // background: @input-bg;
+    background: #393e53;
     color: rgba(255,255,255,0.6);
   }
   color: @fff!important;
 }
 .ace_gutter-layer{
-  background: @input-bg;
+  background: #444863;
 }
 #nprogress div.bar{background-color: #58b7ff;}
 .unselectable {user-select:none;}
@@ -427,9 +430,22 @@ li {list-style-type:none;}
   .el-tooltip__popper.is-dark{
     background:@popper-bg;
   }
+  .el-tooltip.item:hover{
+    color: rgb(33, 143, 234);
+  }
   // dialog
   .el-dialog {
     background: @grey-color;
+    &.el-dialog--small{
+      width: 30%;
+      .el-input{
+        padding-top: 0;
+        padding-bottom: 0;
+      }
+      .el-textarea__inner{
+        margin-top: 0;
+      }
+    }
   }
   .el-dialog__title {
     color: @fff;
@@ -642,7 +658,7 @@ li {list-style-type:none;}
     }
   }
   .el-card{
-    background: @card-bg;
+    background: #393e53;
     .jobBtn{
       background: transparent;
       border: 1px solid @card-border!important;
@@ -721,6 +737,14 @@ li {list-style-type:none;}
   .el-table__row:hover td{
     background: @bg-top!important;
   }
+  .jobs_list{
+    .card-width{
+      width: 30%;
+    }
+    .bg-gray{
+      background: #71779d!important;
+    }
+  }
   .jobs_list .table-bordered tr:first-child{
     background: transparent;
     color: @fff;
@@ -729,7 +753,7 @@ li {list-style-type:none;}
     color: @fff;
   }
   .jobs_list .timeline > li > .timeline-item *{
-    background: @card-bg;
+    background: @grey-color;
     // color: @fff;
   }
   .insight_box .query_result_box{
@@ -1020,7 +1044,7 @@ tr.current-row > td{
 .el-checkbox{
   .el-checkbox__inner{
     background: transparent;
-    border: 1px solid #9095ab!important;
+    border: 1px solid #62667f!important;
   }
 }
 .el-tabs__item{
@@ -1043,6 +1067,19 @@ tr.current-row > td{
     color: rgba(255,255,255,0.6);
   }
 }
-
+// 全局的tab 字体12px
+.el-tabs{
+  .el-tabs__item{
+    font-size: 12px;
+    height: 32px!important;
+    line-height: 32px!important;
+  }
+}
+.jobs_list .timeline:before{
+  background: #71779d!important;
+}
+.jobs_list .timeline li:last-child:before{
+  background: #71779d!important;
+}
 
 

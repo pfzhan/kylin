@@ -81,7 +81,7 @@
 		    <span>{{$t('kylinLang.common.manual')}}</span>
 		  </div>
 		  <div v-for="o in manualList" :key="o.title" class="text item">
-		    <a :href="o.link" target="_blank">{{o.title }}</a>
+		    <a class="kap-help" :href="o.link" target="_blank">{{o.title }}</a>
 		  </div>
 		</el-card>
       </div>
@@ -228,7 +228,7 @@ export default {
 				background: @grey-color;
 			}
 			.el-card__body {
-				height: 200px;
+				height: 216px;
 				line-height: 200px;
 				font-size: 100px;
 				color: @fff;
@@ -279,6 +279,9 @@ export default {
 		#project_scroll_box {
 		  height: 446px;
           padding-left: 0px;
+          .text:hover{
+          	color: #218fea;
+          }
 		}
 		.single-line {
 			display: inline-block;
@@ -354,6 +357,7 @@ export default {
         }
 	 	a:hover {
 	 		text-decoration: none;
+	 		color: #218fea;
 	 	}
 	 }
 	 .el-card__header{

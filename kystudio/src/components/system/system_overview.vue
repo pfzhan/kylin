@@ -46,5 +46,9 @@ export default {
   .el-tabs__header{
     border-bottom: 1px solid #393e53
   }
+  .el-tabs__header{
+    margin-left: 0px!important;
+    padding-left: 30px;
+  }
 }
 </style>

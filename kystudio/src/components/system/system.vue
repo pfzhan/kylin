@@ -4,7 +4,7 @@
       <el-col :span="9">  
             <span class="server-type">{{$t('ServerConfig')}}</span>
             <el-button style="width: 28px;height:28px;" type="default" class="btn-refresh" @click="refreshConfig" size="mini"><icon name="refresh"></icon></el-button>
-            <editor class="ksd-mt-4" ref="sysConfig" @init="editorInit" v-model="getServerConfig"  theme="chrome" width="100%" height="400" useWrapMode="true"></editor>
+            <editor class="ksd-mt-4" ref="sysConfig" @init="editorInit" v-model="getServerConfig"  theme="chrome" width="100%" height="278" useWrapMode="true"></editor>
           <!-- <el-input class="textarea-wrap"
           type="textarea"
           :rows="18"
@@ -15,7 +15,7 @@
       <el-col :span="9">
             <span class="server-type">{{$t('ServerEnvironment')}}</span>
             <el-button style="width: 28px;height:28px;" type="default" class="btn-refresh" @click="refreshEnv" size="mini"><icon name="refresh"></icon></el-button>
-            <editor class="ksd-mt-4" ref="envConfig" @init="editorInit" v-model="getServerEnvironment"  theme="chrome" width="100%" height="400"></editor>
+            <editor class="ksd-mt-4" ref="envConfig" @init="editorInit" v-model="getServerEnvironment"  theme="chrome" width="100%" height="278"></editor>
          <!--  <el-input
           type="textarea"
           :rows="18"
@@ -24,8 +24,8 @@
           </el-input> -->
       </el-col>
       <el-col :span="6" class="action-wrap">
-        <p style="font-size:20px;">{{$t('action')}}</p>
-        <el-button class="but-width bg_blue" @click="reload"><p class="p_font">{{$t('reloadMetadata')}}</p></el-button>
+        <p style="font-size:13px;">{{$t('action')}}</p>
+        <el-button style="margin-top: 22px;" class="but-width bg_blue" @click="reload"><p class="p_font">{{$t('reloadMetadata')}}</p></el-button>
         <el-button class="but-width bg_blue" @click="setConfig"><p class="p_font">{{$t('setConfig')}}</p></el-button>
         <el-button class="but-width bg_blue" @click="backup">
           <p class="p_font">
@@ -246,7 +246,7 @@ export default {
   }
   .server-type {
     line-height: 36px;
-    font-size: 14px;
+    font-size: 13px;
     color: @fff;
   }
   .btn-refresh {
