@@ -118,20 +118,11 @@ then
 
     if [[ $CI_MODE == 'true' ]]
     then
-        hive_metastore_uri="thrift://sandbox.hortonworks.com:9083"
+        HIVE_METASTORE_URI="thrift://sandbox.hortonworks.com:9083"
     else
         source ${dir}/find-hive-dependency.sh
-        hive_metastore_uri=$(${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.mr.HadoopConfPropertyRetriever ${hive_conf_path}/hive-site.xml hive.metastore.uris | tail -1)
+        HIVE_METASTORE_URI=$(${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.mr.HadoopConfPropertyRetriever ${hive_conf_path}/hive-site.xml hive.metastore.uris | tail -1)
     fi
-
-    cat << EOF > $SPARK_HOME/conf/hive-site.xml
-    <configuration>
-        <property>
-            <name>hive.metastore.uris</name>
-            <value>${hive_metastore_uri}</value>
-        </property>
-    </configuration>
-EOF
 
     if [ -f "${KYLIN_HOME}/spark_client_pid" ]
     then
