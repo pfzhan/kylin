@@ -104,28 +104,45 @@ public class ConfigController extends BasicController {
     @ResponseBody
     public EnvelopeResponse getSparkExec() {
 
+        boolean dynamicAllocationEnabled = false;
+        int dynamicAllocationMaxExecutors = 0;
+        int executorInstances = 0;
+
+        try {
+            dynamicAllocationEnabled = Boolean
+                    .valueOf(configService.getSparkDriverConf("spark.dynamicAllocation.enabled"));
+        } catch (Exception e) {
+            dynamicAllocationEnabled = false;
+        }
+
+        try {
+            dynamicAllocationMaxExecutors = Integer
+                    .valueOf(configService.getSparkDriverConf("spark.dynamicAllocation.maxExecutors"));
+        } catch (Exception e) {
+            dynamicAllocationMaxExecutors = 0;
+        }
+
+        try {
+            executorInstances = Integer.valueOf(configService.getSparkDriverConf("spark.executor.instances"));
+        } catch (Exception e) {
+            executorInstances = 0;
+        }
+
         final int WRONG_EXECUTOR_NUM = 0;
-        boolean dynamic = Boolean.valueOf(configService.getSparkDriverConf("spark.dynamicAllocation.enabled"));
-        int execNum;
+
+        int execNum = 0;
         Map<String, String> ret = Maps.newHashMap();
 
-        if (dynamic) {
-            int dynamicInstanceNum = 0;
-            try {
-                dynamicInstanceNum = Integer
-                        .parseInt(configService.getSparkDriverConf("spark.dynamicAllocation.maxExecutors"));
-            } catch (Exception e) {
+        if (dynamicAllocationEnabled) {
+            if (dynamicAllocationMaxExecutors <= 0) {
                 ret.put("v", Integer.toString(WRONG_EXECUTOR_NUM));
                 return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, ret, "");
+            } else {
+                execNum = dynamicAllocationMaxExecutors > executorInstances ? dynamicAllocationMaxExecutors
+                        : executorInstances;
             }
-            if (dynamicInstanceNum <= 0) {
-                ret.put("v", Integer.toString(WRONG_EXECUTOR_NUM));
-                return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, ret, "");
-            }
-            int staticInstanceNum = Integer.parseInt(configService.getSparkDriverConf("spark.executor.instances"));
-            execNum = dynamicInstanceNum > staticInstanceNum ? dynamicInstanceNum : staticInstanceNum;
         } else {
-            execNum = Integer.parseInt(configService.getSparkDriverConf("spark.executor.instances"));
+            execNum = executorInstances;
         }
 
         byte[] bytes = new byte[4];

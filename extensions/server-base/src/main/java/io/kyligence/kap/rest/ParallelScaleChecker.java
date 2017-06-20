@@ -81,7 +81,7 @@ class ParallelScaleChecker implements Runnable {
 
     private void warning() {
         logger.warn(
-                "Wrong executor number. If you are using Spark dynamic resource allocation, please set the max executor num as an explicit value.");
+                "Wrong executor number. Users might have enabled Spark dynamic resource allocation without explicitly specifying the max executor number");
     }
 
     private void warning(int queryParallel, int storageParallel) {
