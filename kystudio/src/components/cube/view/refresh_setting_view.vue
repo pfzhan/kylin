@@ -74,5 +74,6 @@ export default {
   #refresh-settion-view{
     border-color: @grey-color;
     padding: 10px;
+    background: @tableBC;
   }
 </style>

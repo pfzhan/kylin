@@ -14,6 +14,18 @@
       </el-col>
     </el-row>
   </el-card>
+  <!--<table>-->
+    <!--<tr>-->
+      <!--<td></td>-->
+      <!--<td></td>-->
+      <!--<td></td>-->
+    <!--</tr>-->
+    <!--<tr v-for="(property, property_index) in properties" :key="property_index">-->
+      <!--<td></td>-->
+      <!--<td></td>-->
+      <!--<td></td>-->
+    <!--</tr>-->
+  <!--</table>-->
 </template>
 
 <script>

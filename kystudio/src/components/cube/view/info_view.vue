@@ -19,7 +19,7 @@
   <el-row>
     <el-col :span="4">{{$t('description')}}</el-col>
     <el-col :span="20">{{cubeDesc.description}}</el-col>
-  </el-row>      
+  </el-row>
 </el-card>
 </template>
 
@@ -42,6 +42,7 @@ export default {
   @import '../../../less/config.less';
   #cube-info-view{
     border-color: @grey-color;
+    background: @tableBC;
   }
 
 </style>
