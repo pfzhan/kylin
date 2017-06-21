@@ -9,9 +9,9 @@
         <template v-for="(item,index) in menus" >
           <el-menu-item :index="item.path" v-if="showMenuByRole(item.name)" :key="index">
               <el-tooltip class="item" v-if="briefMenu==='brief_menu'"  effect="dark" :content="$t('kylinLang.menu.' + item.name)" placement="top">
-                <img :src="item.icon"> 
+                <img :src="item.icon">
               </el-tooltip>
-            <img :src="item.icon" v-if="briefMenu!=='brief_menu'"> 
+            <img :src="item.icon" v-if="briefMenu!=='brief_menu'">
             <span>{{$t('kylinLang.menu.' + item.name)}}</span>
           </el-menu-item>
         </template>
@@ -70,7 +70,7 @@
     </div>
   </el-col>
 </el-row>
-<el-dialog @close="closeResetPassword" :title="$t('resetPassword')" v-model="resetPasswordFormVisible">
+<el-dialog @close="closeResetPassword" size="tiny" :title="$t('resetPassword')" v-model="resetPasswordFormVisible">
     <reset_password :userDetail="currentUser" ref="resetPassword" v-on:validSuccess="resetPasswordValidSuccess"></reset_password>
     <div slot="footer" class="dialog-footer">
       <el-button @click="resetPasswordFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
@@ -433,7 +433,7 @@
 <style lang="less">
   @import '../../less/config.less';
   .fulllayout{
-    
+
     .linsencebox{
       i{
         font-size: 18px;

@@ -7,7 +7,7 @@
       <span class="icon_card" @click="changeGridModal('card')" :class="{active: viewModal==='card'}"></span>
       <span class="icon_table" @click="changeGridModal('list')"  :class="{active: viewModal!=='card'}"></span>
     </p>
-		<el-row :gutter="20" v-if="viewModal==='card'"> 
+		<el-row :gutter="20" v-if="viewModal==='card'">
 		  <el-col :span="8"  v-for="(o, index) in modelsList" :key="o.uuid" :style="{height:'152px'}">
 		    <el-card :body-style="{ padding: '0px'}" style="height:100%" :class="{'is_draft': o.is_draft}">
 		      <p style="font-size: 12px;padding-left: 10px;" class="title">{{$t('kylinLang.model.modifiedGrid')}} {{ o.gmtTime }}
@@ -29,7 +29,7 @@
             <el-tooltip class="item" effect="dark" :content="o.name|omit(24, '...')" placement="top">
               <span @click="viewModel(o)">{{o.name|omit(24, '...')}}</span>
             </el-tooltip>
-           <common-tip :content="o.diagnose&&o.diagnose.messages.join('<br/>')" v-if="o.diagnose&&o.diagnose.heathStatus!=='RUNNING'"> 
+           <common-tip :content="o.diagnose&&o.diagnose.messages.join('<br/>')" v-if="o.diagnose&&o.diagnose.heathStatus!=='RUNNING'">
            <icon v-if="!o.is_draft && o.diagnose &&o.diagnose.status!=='RUNNING'" :name="modelHealthStatus[o.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[o.diagnose.heathStatus].color}"></icon></common-tip>
              <el-progress  title="Job Running" :width="20" type="circle" :stroke-width="2" :show-text="false" v-if="!o.is_draft&&o.diagnose&&o.diagnose.heathStatus==='RUNNING'" :percentage="o.diagnose&&o.diagnose.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></h2>
 		        <div class="bottom clearfix">
@@ -82,7 +82,7 @@
       prop="gmtTime"
       :label="$t('kylinLang.model.modifiedGrid')">
     </el-table-column>
-     <el-table-column class="ksd-center" 
+     <el-table-column class="ksd-center"
       width="100"
       :label="$t('kylinLang.common.action')">
        <template scope="scope">
@@ -119,7 +119,7 @@
     </el-dialog>
 
     <!-- 添加model -->
-    <el-dialog class="add-m" title="Add Model" v-model="createModelVisible" size="small">
+    <el-dialog class="add-m" title="Add Model" v-model="createModelVisible" size="tiny">
       <el-form :model="createModelMeta" :rules="createModelFormRule" ref="addModelForm">
         <el-form-item prop="modelName" :label="$t('kylinLang.model.modelName')">
           <span slot="label">{{$t('kylinLang.model.modelName')}}
@@ -211,9 +211,9 @@
                       </div>
                     </el-col>
                   </el-row>
-                  
+
                   <span class="line"></span>
-                  
+
                 </div>
                 <br/>
                   <slider @changeBar="changeBar" :hideCheckbox="true" :range="100" label="Check Model" :show="scanRatioDialogVisible">
