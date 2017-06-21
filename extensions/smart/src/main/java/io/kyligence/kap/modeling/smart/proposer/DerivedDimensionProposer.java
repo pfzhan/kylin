@@ -71,6 +71,8 @@ public class DerivedDimensionProposer extends AbstractProposer {
 
                 derivedRatio = derivedRatio / 2;
             } while (workCubeDesc.getRowkey().getRowKeyColumns().length > 63 && workCubeDesc.getRowkey().getRowKeyColumns().length < lastRowkeyNum && retry++ < modelingConfig.getDerivedStrictRetryMax());
+        } else {
+            logger.debug("No table stats or model stats found, skip proposing derived dimensions.");
         }
     }
 

@@ -62,6 +62,7 @@ public class AggrGroupProposer extends AbstractProposer {
     @Override
     public void doPropose(CubeDesc workCubeDesc) {
         if (!context.hasModelStats() && !context.hasQueryStats()) {
+            logger.debug("No model stats or query stats found, skip proposing aggregation groups.");
             return;
         }
 
