@@ -26,6 +26,7 @@ import slider from 'components/common/slider'
 import nodata from 'components/common/nodata'
 import progressbar from 'components/common/progress'
 import commonPopover from 'components/common/common_popover'
+import fakeProgress from 'components/common/fake_progress'
 import editor from 'vue2-ace-editor'
 // import draggable from 'vuedraggable'
 import nprogress from 'nprogress'
@@ -48,6 +49,7 @@ Vue.component('slider', slider)
 Vue.component('kap-progress', progressbar)
 Vue.component('editor', editor)
 Vue.component('kap-common-popover', commonPopover)
+Vue.component('fake_progress', fakeProgress)
 // Vue.component('draggable', draggable)
 // Vue.component('introJs', introJs)
 // var cmdArg = process.argv.splice(2) && process.argv.splice(2)[0] || ''
