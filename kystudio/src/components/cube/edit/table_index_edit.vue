@@ -60,7 +60,7 @@
         header-align="center"
         align="center">   
         <template scope="scope">
-          <el-input v-model="scope.row.valueLength" :disabled="scope.row.encoding.indexOf('dict')>=0||scope.row.encoding.indexOf('date')>=0||scope.row.encoding.indexOf('time')>=0||scope.row.encoding.indexOf('var')>=0||scope.row.encoding.indexOf('orderedbytes')>=0"  @change="changeRawTable(scope.row, scope.$index)"></el-input>  
+          <el-input v-model="scope.row.valueLength" :disabled="scope.row.encoding.indexOf('dict')>=0||scope.row.encoding.indexOf('date')>=0||scope.row.encoding.indexOf('time')>=0||scope.row.encoding.indexOf('var')>=0||scope.row.encoding.indexOf('orderedbytes')>=0||scope.row.encoding.indexOf('boolean')>=0"  @change="changeRawTable(scope.row, scope.$index)"></el-input>  
         </template>  
     </el-table-column>
 

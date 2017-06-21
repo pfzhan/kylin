@@ -28,8 +28,8 @@ export default {
         {label: 'cubeName', value: this.desc.name},
         {label: 'factTable', value: this.desc.modelDesc.fact_table},
         {label: 'lookupTable', value: this.desc.modelDesc.lookups.length},
-        {label: 'dimensions', value: this.desc.modelDesc.dimensions.length},
-        {label: 'measures', value: this.desc.modelDesc.metrics.length}]
+         {label: 'dimensions', value: this.desc.desc.dimensions.length},
+        {label: 'measures', value: this.desc.desc.measures.length}]
       return cubeDetail
     }
   },

@@ -173,7 +173,7 @@
         :label="$t('length')"
         width="100">
         <template scope="scope">
-          <el-input v-model="scope.row.valueLength"  :disabled="scope.row.encoding.indexOf('dict')>=0||scope.row.encoding.indexOf('date')>=0||scope.row.encoding.indexOf('time')>=0"></el-input>     
+          <el-input v-model="scope.row.valueLength"  :disabled="scope.row.encoding.indexOf('dict')>=0||scope.row.encoding.indexOf('date')>=0||scope.row.encoding.indexOf('time')>=0||scope.row.encoding.indexOf('boolean')>=0"></el-input>     
         </template>  
       </el-table-column>
       <el-table-column
@@ -489,10 +489,10 @@ export default {
       }
     },
     initHiddenFeature: function () {
-      if (this.$store.state.config.hiddenFeature.raw_measure === true) {
+      if (this.$store.state.config.hiddenFeature['raw-measure'] === true) {
         this.expressionsConf.splice(this.expressionsConf.indexOf('RAW'), 1)
       }
-      if (this.$store.state.config.hiddenFeature.extendedcolumn_measure === true) {
+      if (this.$store.state.config.hiddenFeature['extendedcolumn-measure'] === true) {
         this.expressionsConf.splice(this.expressionsConf.indexOf('EXTENDED_COLUMN'), 1)
       }
     }
@@ -668,7 +668,6 @@ export default {
     .el-icon-caret-top{
       height: 36px;
       line-height: 36px;
-      margin-top: 7px;
     }
     .el-tag{
       position: relative;

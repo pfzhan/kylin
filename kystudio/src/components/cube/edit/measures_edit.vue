@@ -420,12 +420,12 @@ export default {
     if (this.cubeDesc.measures.length === 0) {
       // this.autoAddMeasures()  //改为自动建议
     }
-    this.loadHiddenFeature({feature_name: 'raw_measure'})
+    this.loadHiddenFeature({feature_name: 'raw-measure'})
     this.loadHiddenFeature({feature_name: 'extendedcolumn-measure'})
   },
   locales: {
     'en': {name: 'Name', expression: 'Expression', parameters: 'Parameters', datatype: 'Datatype', comment: 'Comment', returnType: 'Return Type', action: 'Action', addMeasure: 'Add Measure', editMeasure: 'Edit Measure', cancel: 'Cancel', yes: 'Yes', advancedDictionaries: 'Advanced Dictionaries', addDictionary: 'Add Dictionary', editDictionary: 'Edit Dictionary', builderClass: 'Builder Class', reuse: 'Reuse', advancedColumnFamily: 'Advanced Column Family', addColumnFamily: 'Add Column Family', columnFamily: 'Column Family', measures: 'Measures', measuresSuggestion: 'Optimize', resetMeasures: 'Reset', measuresSuggestTip: 'Clicking on the optimize will output the suggested type. Reset will drop all existing measures.'},
-    'zh-cn': {name: '名称', expression: '表达式', parameters: '参数', datatype: '数据类型', comment: '注释', returnType: '返回类型', action: '操作', addMeasure: '添加度量', editMeasure: '编辑度量', cancel: '取消', yes: '确定', advancedDictionaries: '高级字典', addDictionary: '添加字典', editDictionary: '编辑字典', builderClass: '构造类', reuse: '复用', advancedColumnFamily: '高级列族', addColumnFamily: '添加列簇', columnFamily: '列簇', measures: '度量', measuresSuggestion: '度量优化', resetMeasures: '重置', measuresSuggestTip: '点击优化度量将输出优化器推荐的度量类型 。重置将会清空所有度量。'}
+    'zh-cn': {name: '名称', expression: '表达式', parameters: '参数', datatype: '数据类型', comment: '注释', returnType: '返回类型', action: '操作', addMeasure: '添加度量', editMeasure: '编辑度量', cancel: '取消', yes: '确定', advancedDictionaries: '高级字典', addDictionary: '添加字典', editDictionary: '编辑字典', builderClass: '构造类', reuse: '复用', advancedColumnFamily: '高级列簇', addColumnFamily: '添加列簇', columnFamily: '列簇', measures: '度量', measuresSuggestion: '度量优化', resetMeasures: '重置', measuresSuggestTip: '点击优化度量将输出优化器推荐的度量类型 。重置将会清空所有度量。'}
   }
 }
 </script>

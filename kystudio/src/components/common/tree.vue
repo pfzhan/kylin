@@ -109,7 +109,7 @@
           },
           attrs: {
             title: data.label + (data.subLabel ? '(' + data.subLabel + ')' : ''),
-            draggable: _this.allowdrag,
+            draggable: !data.children && _this.allowdrag,
             class: node.icon || ''
           },
           style: {

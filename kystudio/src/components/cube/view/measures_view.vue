@@ -57,10 +57,10 @@
       width="120">
     </el-table-column>                  
   </el-table>
-  <el-row>
+  <el-row v-if="!isPlusVersion">
     <el-col :span="24" style="padding: 15px 0 1px 0;">{{$t('advancedColumnFamily')}}</el-col>
   </el-row> 
-  <el-table
+  <el-table v-if="!isPlusVersion"
     :data="cubeDesc.desc.hbase_mapping.column_family"
     style="width: 100%">
     <el-table-column
@@ -87,9 +87,15 @@ export default {
   components: {
     'parameter_tree': parameterTree
   },
+  computed: {
+    isPlusVersion () {
+      var kapVersionInfo = this.$store.state.system.serverAboutKap
+      return kapVersionInfo && kapVersionInfo['kap.version'] && kapVersionInfo['kap.version'].indexOf('Plus') !== -1
+    }
+  },
   locales: {
     'en': {name: 'Name', expression: 'Expression', parameters: 'Parameters', datatype: 'Datatype', comment: 'Comment', returnType: 'Return Type', advancedDictionaries: 'Advanced Dictionaries', builderClass: 'Builder Class', reuse: 'Reuse', advancedColumnFamily: 'Advanced ColumnFamily', columnFamily: 'ColumnFamily', measures: 'Measures'},
-    'zh-cn': {name: '名称', expression: '表达式', parameters: '参数', datatype: '数据类型', comment: '注释', returnType: '返回类型', advancedDictionaries: '高级字典', builderClass: '构造类', reuse: '复用', advancedColumnFamily: '高级列族', columnFamily: '列族', measures: '度量'}
+    'zh-cn': {name: '名称', expression: '表达式', parameters: '参数', datatype: '数据类型', comment: '注释', returnType: '返回类型', advancedDictionaries: '高级字典', builderClass: '构造类', reuse: '复用', advancedColumnFamily: '高级列簇', columnFamily: '列簇', measures: '度量'}
   }
 }
 </script>

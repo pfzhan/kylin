@@ -42,8 +42,8 @@
   <el-dialog :title="$t('collectsqlPatterns')" v-model="addSQLFormVisible">
     <editor v-model="sqlString"  theme="chrome" class="ksd-mt-20" width="95%" height="200" ></editor>
     <span slot="footer" class="dialog-footer">
-      <el-button @click="addSQLFormVisible = false">{{$t('cancel')}}</el-button>
-      <el-button type="primary" :loading="sqlBtnLoading" @click="collectSqlToServer">{{$t('yes')}}</el-button>
+      <el-button @click="addSQLFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+      <el-button type="primary" :loading="sqlBtnLoading" @click="collectSqlToServer">{{$t('kylinLang.common.ok')}}</el-button>
     </span>     
   </el-dialog> 
 </div>
@@ -104,18 +104,18 @@ export default {
       })
     },
     collectSqlToServer () {
-      if (this.sqlString !== '') {
-        this.sqlBtnLoading = true
-        this.saveSampleSql({modelName: this.modelDesc.name, cubeName: this.cubeDesc.name, sqls: this.sqlString.split(/;/)}).then((res) => {
-          this.sqlBtnLoading = false
-          handleSuccess(res, (data, code, status, msg) => {
-            this.addSQLFormVisible = false
-          })
-        }, (res) => {
-          this.sqlBtnLoading = false
-          handleError(res)
+      // if (this.sqlString !== '') {
+      this.sqlBtnLoading = true
+      this.saveSampleSql({modelName: this.modelDesc.name, cubeName: this.cubeDesc.name, sqls: this.sqlString.split(/;/)}).then((res) => {
+        this.sqlBtnLoading = false
+        handleSuccess(res, (data, code, status, msg) => {
+          this.addSQLFormVisible = false
         })
-      }
+      }, (res) => {
+        this.sqlBtnLoading = false
+        handleError(res)
+      })
+      // }
     },
     getModelHelthInfo (project, modelName) {
       this.getModelDiagnose({
@@ -156,7 +156,7 @@ export default {
   },
   locales: {
     'en': {modelName: 'Model Name : ', cubeName: 'Cube Name : ', notificationEmailList: 'Notification Email List : ', notificationEvents: 'Notification Events : ', description: 'Description : ', cubeNameInvalid: 'Cube name is invalid. ', cubeNameRequired: 'Cube name is required. ', basicInfo: 'Basic Info', collectsqlPatterns: 'Collect SQL Patterns', noticeSetting: 'Notification Setting', optimizerInput: 'Optimizer Inputs', modelCheck: '1.Model Check', sqlPattens: '2.SQL Pattens'},
-    'zh-cn': {modelName: '模型名称 : ', cubeName: 'Cube名称 : ', notificationEmailList: '通知邮件列表 : ', notificationEvents: '需通知的事件 : ', description: '描述 : ', cubeNameInvalid: 'Cube名称不合法. ', cubeNameRequired: 'Cube名称不可为空.', basicInfo: '基本信息', collectsqlPatterns: '输入sql', noticeSetting: '通知设置', optimizerInput: '优化器输入', modelCheck: '1.模型检测', sqlPattens: '2. SQL查询记录'}
+    'zh-cn': {modelName: '模型名称 : ', cubeName: 'Cube名称 : ', notificationEmailList: '通知邮件列表 : ', notificationEvents: '需通知的事件 : ', description: '描述 : ', cubeNameInvalid: 'Cube名称不合法. ', cubeNameRequired: 'Cube名称不可为空.', basicInfo: '基本信息', collectsqlPatterns: '输入SQL', noticeSetting: '通知设置', optimizerInput: '优化器输入', modelCheck: '1.模型检测', sqlPattens: '2. SQL查询记录'}
   }
 }
 </script>

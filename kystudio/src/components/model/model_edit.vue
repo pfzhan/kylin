@@ -426,7 +426,8 @@ export default {
       getUsedCols: 'GET_USED_COLS',
       getCubesList: 'GET_CUBES_LIST',
       checkCubeName: 'CHECK_CUBE_NAME_AVAILABILITY',
-      statsModel: 'COLLECT_MODEL_STATS'
+      statsModel: 'COLLECT_MODEL_STATS',
+      loadDataSource: 'LOAD_DATASOURCE'
     }),
     // 列排序
     sortColumns: function (tableInfo) {
@@ -1690,7 +1691,8 @@ export default {
               modelName: modelData.name,
               is_draft: modelData.is_draft,
               last_modified: modelData.last_modified,
-              owner: modelData.owner
+              owner: modelData.owner,
+              project: modelData.project
             })
             // 加载原来设置的partition
             var partitionDate = modelData.partition_desc.partition_date_column ? modelData.partition_desc.partition_date_column.split('.') : [null, null]
@@ -2002,8 +2004,12 @@ export default {
   },
   mounted () {
     this.project = this.extraoption.project
-    this.diagnose({project: this.extraoption.project, modelName: this.extraoption.modelName}).then((response) => {
-      console.log(response)
+    this.diagnose({project: this.extraoption.project, modelName: this.extraoption.modelName}).then((res) => {
+      handleSuccess(res, (data) => {
+        if (data.heathStatus !== 'NONE' && this.actionMode !== 'view') {
+          kapConfirm(this.$t('kylinLang.model.resetCheckDataTip'))
+        }
+      })
     })
     this.resizeWindow(this.briefMenu)
     this.timerSave()
@@ -2108,6 +2114,11 @@ export default {
   },
   created () {
     this.reloadCubeTree()
+    // 初始化project下的datasouce信息供tablestatice使用
+    // var project = this.extraoption.project || localStorage.getItem('selected_project')
+    // if (!this.$store.state.datasource.dataSource[project]) {
+    //   this.loadDataSource(project)
+    // }
     // this.$store.state.model.modelEditCache[this.project + '$' + this.modelGuid] = {}
     // this.getUsedCols(this.extraoption.modelName).then((res) => {
     //   handleSuccess(res, (data) => {

@@ -431,14 +431,14 @@ export default {
             var cubeData = JSON.parse(data.cubeDescData)
             this.cubeDetail.uuid = cubeData.uuid
             this.cubeDetail.last_modified = cubeData.last_modified
-            this.cubeDetail.status = cubeData.status
+            // this.cubeDetail.status = cubeData.status
           } catch (e) {
           }
           try {
             var rawTableData = JSON.parse(data.rawTableDescData)
             this.rawTable.tableDetail.uuid = rawTableData.uuid
             this.rawTable.tableDetail.last_modified = rawTableData.last_modified
-            this.rawTable.tableDetail.status = rawTableData.status
+            // this.rawTable.tableDetail.status = rawTableData.status
           } catch (e) {
           }
           // this.$message({

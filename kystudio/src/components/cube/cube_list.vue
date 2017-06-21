@@ -291,6 +291,13 @@ export default {
         projectName: ''
       }
     },
+    checkName (rule, value, callback) {
+      if (!/^\w+$/.test(value)) {
+        callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
+      } else {
+        callback()
+      }
+    },
     addCube () {
       if (!this.selected_project) {
         this.$message(this.$t('kylinLang.project.mustSelectProject'))

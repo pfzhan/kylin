@@ -103,7 +103,8 @@ exports.default = {
     modelHasJob: 'This model has a running job of model check, thus the action is disabled.',
     viewModeLimit: 'This action is disabled in view mode.',
     modelCheck: 'Model health check is highly recommended to help generate a cube optimize result.',
-    dragTip: 'Try to drag the tables from the left'
+    dragTip: 'Try to drag the tables from the left',
+    resetCheckDataTip: 'Please note that model check results would be inconsistent with the new editing. So model check results would be dropped after the new editing saved.'
   },
   cube: {
     cubeName: 'Cube Name',

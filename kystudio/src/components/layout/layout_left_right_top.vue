@@ -555,7 +555,7 @@
 		position: absolute;
 		right: 0px;
 		top: 67px;
-		bottom: 0px;
+		bottom: -16px;
 		left: 200px;
 		overflow-y: auto;
 	}

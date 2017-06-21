@@ -6,7 +6,7 @@
       v-for="(dimension, dim_index) in cubeDesc.desc.dimensions"
       :key="dim_index"
       :type="dimension.derived?'gray':'primary'"
-    >{{dimension.table+'.'+dimension.name}}
+    >{{dimension.table+'.'+ (dimension.derived ? dimension.derived&&dimension.derived[0]:dimension.column)}}
     </el-tag>
   </el-card>
 

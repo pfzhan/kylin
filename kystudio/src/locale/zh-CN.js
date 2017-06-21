@@ -102,7 +102,8 @@ exports.default = {
     modelHasJob: '此模型已有在执行的模型监测任务，因此当前操作不支持。',
     viewModeLimit: '预览模式下不能进行该操作',
     modelCheck: '模型健康检测将会为您检查数据中可能的问题，服务后续的cube设计和构建，以及一键优化功能。',
-    dragTip: '拖拽左侧的table到该区域'
+    dragTip: '拖拽左侧的table到该区域',
+    resetCheckDataTip: '请注意，模型检测结果将与最新编辑不一致。当您保存了最新编辑，模型检测结果将会被删除。'
   },
   cube: {
     cubeName: 'Cube 名称',

@@ -163,7 +163,7 @@
         <el-row :gutter="20">
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content">
-              <div class="tips ksd-mt-10">
+              <div class="tips">
                 <ul>
                   <li>1.{{$t('kylinLang.model.modelCheckTips1')}}</li>
                   <li>2.{{$t('kylinLang.model.modelCheckTips2')}}</li>
@@ -190,7 +190,7 @@
                           v-model="startTime"
                           type="datetime"
                           @change="changeStartTime"
-                          :placeholder="$t('chooseDate')"
+                          :placeholder="$t('chooseStartDate')"
                           size="small"
                           format="yyyy-MM-dd HH:mm"
                           >
@@ -203,7 +203,7 @@
                         <el-date-picker
                           v-model="endTime"
                           type="datetime"
-                          :placeholder="$t('chooseDate')"
+                          :placeholder="$t('chooseEndDate')"
                           size="small"
                           format="yyyy-MM-dd HH:mm"
                           :picker-options="pickerOptionsEnd">
@@ -215,7 +215,6 @@
                   <span class="line"></span>
 
                 </div>
-                <br/>
                   <slider @changeBar="changeBar" :hideCheckbox="true" :range="100" label="Check Model" :show="scanRatioDialogVisible">
                     <span slot="sliderLabel">{{$t('kylinLang.dataSource.samplingPercentage')}} <common-tip placement="right" :content="$t('kylinLang.model.samplingPercentageTips')" >
                  <icon name="question-circle-o"></icon>
@@ -263,8 +262,8 @@ export default {
       btnLoading: false,
       stCycleRequest: null,
       modelStaticsRange: 1,
-      startTime: 0,
-      endTime: 0,
+      startTime: '',
+      endTime: '',
       pickerOptionsEnd: {
         disabledDate: (time) => {
           let nowDate = new Date(this.startTime)
@@ -329,7 +328,8 @@ export default {
       checkCubeName: 'CHECK_CUBE_NAME_AVAILABILITY',
       getCubesList: 'GET_CUBES_LIST',
       getModelProgress: 'GET_MODEL_PROGRESS',
-      getModelCheckable: 'MODEL_CHECKABLE'
+      getModelCheckable: 'MODEL_CHECKABLE',
+      diagnose: 'DIAGNOSE'
     }),
     changeGridModal (val) {
       this.viewModal = val
@@ -531,7 +531,7 @@ export default {
                     for (var i in data) {
                       if ('' + i === 'false') {
                         this.scanRatioDialogVisible = true
-                        this.startTime = 0
+                        this.startTime = ''
                         if (modelData.partition_desc.partition_date_column) {
                           this.hasPartition = true
                         }
@@ -799,8 +799,8 @@ export default {
     window.clearTimeout(this.stCycleRequest)
   },
   locales: {
-    'en': {'modelName': 'Model name', 'addCube': 'Add Cube', 'modelUsedTip': 'The model has been used by cubes as follows，you can only view the Model！', 'inputCloneName': 'Please input new name', 'inputModelName': 'Please input model name', 'inputCubeName': 'Please input cube name', 'delModelTip': 'Are you sure to drop this model?', 'hasNotChecked': 'Not checked health yet', hasChecked: 'There has been a running check job!You can go to Monitor page to watch the progress!', canNotChecked: 'This model can not be checked'},
-    'zh-cn': {'modelName': '模型名称', 'addCube': '添加Cube', 'modelUsedTip': '该Model已经被下列cube使用过，无法编辑！您可以预览该Model！', 'inputCloneName': '请输入克隆后的名字', 'inputModelName': '请输入model名称', 'inputCubeName': '请输入cube名称', 'delModelTip': '你确认删除该model吗?', 'hasNotChecked': '还未进行健康检测', hasChecked: '已有一个检测作业正在进行中，您可以去Monitor页面查看进度!', canNotChecked: '该模型无法进行检测'}
+    'en': {'modelName': 'Model name', 'addCube': 'Add Cube', 'modelUsedTip': 'The model has been used by cubes as follows，you can only view the Model！', 'inputCloneName': 'Please input new name', 'inputModelName': 'Please input model name', 'inputCubeName': 'Please input cube name', 'delModelTip': 'Are you sure to drop this model?', 'hasNotChecked': 'Not checked health yet', hasChecked: 'There has been a running check job!You can go to Monitor page to watch the progress!', canNotChecked: 'This model can not be checked', chooseStartDate: 'Select start time', chooseEndDate: 'Select end time'},
+    'zh-cn': {'modelName': '模型名称', 'addCube': '添加Cube', 'modelUsedTip': '该Model已经被下列cube使用过，无法编辑！您可以预览该Model！', 'inputCloneName': '请输入克隆后的名字', 'inputModelName': '请输入model名称', 'inputCubeName': '请输入cube名称', 'delModelTip': '你确认删除该model吗?', 'hasNotChecked': '还未进行健康检测', hasChecked: '已有一个检测作业正在进行中，您可以去Monitor页面查看进度!', canNotChecked: '该模型无法进行检测', chooseStartDate: '选择起始时间', chooseEndDate: '选择结束时间'}
   }
 }
 </script>

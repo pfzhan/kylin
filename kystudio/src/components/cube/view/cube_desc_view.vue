@@ -7,7 +7,7 @@
     <el-step :title="$t('measures')" @click.native="step(3)"></el-step>
     <el-step :title="$t('refreshSetting')" @click.native="step(4)"></el-step>
     <el-step :title="$t('tableIndex')" @click.native="step(5)"></el-step>
-    <el-step :title="$t('configurationOverwrites')" @click.native="step(6)"></el-step>
+    <el-step :title="$t('AdvancedSetting')" @click.native="step(6)"></el-step>
     <el-step :title="$t('overview')" @click.native="step(7)"></el-step>
   </el-steps>
   <info v-if="activeStep===1" :cubeDesc="cube"></info>
@@ -113,8 +113,8 @@ export default {
     }
   },
   locales: {
-    'en': {cubeInfo: 'Cube Info', Sql: 'Sample Sql', dimensions: 'Dimensions', measures: 'Measures', refreshSetting: 'Refresh Setting', tableIndex: 'Table Index', configurationOverwrites: 'Configuration Overwrites', overview: 'Overview'},
-    'zh-cn': {cubeInfo: 'Cube信息', Sql: '样例查询', dimensions: '维度', measures: '度量', refreshSetting: '更新设置', tableIndex: '表索引', configurationOverwrites: '配置覆盖', overview: '概览'}
+    'en': {cubeInfo: 'Cube Info', Sql: 'Sample Sql', dimensions: 'Dimensions', measures: 'Measures', refreshSetting: 'Refresh Setting', tableIndex: 'Table Index', configurationOverwrites: 'Configuration Overwrites', overview: 'Overview', AdvancedSetting: 'Advanced Setting'},
+    'zh-cn': {cubeInfo: 'Cube信息', Sql: '样例查询', dimensions: '维度', measures: '度量', refreshSetting: '更新设置', tableIndex: '表索引', configurationOverwrites: '配置覆盖', overview: '概览', AdvancedSetting: '高级设置'}
   }
 }
 </script>

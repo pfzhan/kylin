@@ -188,6 +188,7 @@ import { changeDataAxis } from '../../util/index'
 import { handleSuccess } from '../../util/business'
 import partitionColumn from 'components/model/model_partition.vue'
 export default {
+  name: 'modelPanel',
   data () {
     return {
       menuStatus: 'show',
@@ -276,9 +277,9 @@ export default {
             }
             this.statistics = arr
           }
-          var tableData = this.$store.state.datasource.dataSource[localStorage.getItem('selected_project')]
+          var tableData = this.$store.state.datasource.dataSource[this.modelInfo.project || localStorage.getItem('selected_project')]
           var tableInfo = []
-          for (var k = 0; k < tableData.length; k++) {
+          for (var k = 0; k < (tableData && tableData.length || 0); k++) {
             if (tableData[k].database === database && tableData[k].name === tableName) {
               tableInfo = tableData[k]
               break
@@ -428,7 +429,7 @@ export default {
     height: 360px;
   	z-index:2000;
     position:fixed;
-    background-color: #fff;
+    // background-color: #fff;
     bottom:0;
     left:200px;
     right: 0px;
