@@ -52,7 +52,7 @@ import springfox.documentation.swagger2.mappers.ServiceModelToSwagger2Mapper;
 @Configuration
 @EnableAutoConfiguration(exclude = { DataSourceAutoConfiguration.class,
         DataSourceTransactionManagerAutoConfiguration.class, HibernateJpaAutoConfiguration.class })
-@ImportResource({ "applicationContext.xml", "kylinSecurity.xml" })
+@ImportResource({ "docGenApplicationContext.xml", "kylinSecurity.xml" })
 @EnableSwagger2
 public class RestDocGen {
 
