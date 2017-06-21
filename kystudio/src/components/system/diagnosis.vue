@@ -72,16 +72,22 @@
   </el-dialog> -->
   <!-- 协议弹层 -->
   <el-dialog v-model="protocolVisible" :title="$t('kybotAutoUpload')" class="agree-protocol" :modal="false" @close="agreeKyBot = false" size="large">
-    <!-- <p>{{$t('contentOne')}}
-      <a href="https://kybot.io/" target="_blank">KyBot</a>
-      {{$t('contentTwo')}}
-    </p> -->
-    <p v-if="$lang==='en'">
-      By analyzing your diagnostic package, <a href="https://kybot.io" target="_blank" class="blue">KyBot</a> can provide online diagnostic, tuning and support service for KAP
-    </p>
-    <p v-if="$lang==='zh-cn'">
-      <a href="https://kybot.io" target="_blank" class="blue">KyBot</a>通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天定时自动上传，无需自行打包和上传
-    </p>
+    <div v-if="job">
+      <p v-if="$lang==='en'">
+        By analyzing your job diagnostic package, <a href="https://kybot.io" target="_blank" class="blue">KyBot</a> can provide online diagnostic, tuning and support service for KAP
+      </p>
+      <p v-if="$lang==='zh-cn'">
+        <a href="https://kybot.io" target="_blank" class="blue">KyBot</a>通过分析生产的任务诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天定时自动上传，无需自行打包和上传
+      </p>
+    </div>
+    <div v-else>
+      <p v-if="$lang==='en'">
+        By analyzing your diagnostic package, <a href="https://kybot.io" target="_blank" class="blue">KyBot</a> can provide online diagnostic, tuning and support service for KAP
+      </p>
+      <p v-if="$lang==='zh-cn'">
+        <a href="https://kybot.io" target="_blank" class="blue">KyBot</a>通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天定时自动上传，无需自行打包和上传
+      </p>
+    </div>
     <div>
       <el-checkbox v-model="agreeKyBot" @click="agreeKyBot = !agreeKyBot">
         <a @click="showProtocol" class="btn-showProtocol">{{$t('protocol')}}</a>
@@ -109,7 +115,7 @@ import protocolContent from '../system/protocol.vue'
 
 export default {
   name: 'diagnosis',
-  props: ['targetId', 'selectTimer', 'show'],
+  props: ['targetId', 'selectTimer', 'job', 'show'],
   data () {
     return {
       newConfig: {

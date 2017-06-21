@@ -1,7 +1,7 @@
 <template>
 <div class="paddingbox" style="padding: 0 30px 0 30px;" id="cube-edit">
   <div>
-    <el-steps :active="activeStep" space="18%" finish-status="finish" process-status="wait" center align-center style="width:100%;margin:0 auto;padding-top:30px;margin-left: 14px;">
+    <el-steps id="cube-step" :active="activeStep" space="18%" finish-status="finish" process-status="wait" center align-center style="width:100%;margin:0 auto;padding-top:30px;margin-left: 14px;">
       <el-step :title="$t('cubeInfo')" @click.native="step(1)"></el-step>
       <!-- <el-step :title="$t('sampleSql')" @click.native="step(2)"></el-step> -->
       <el-step :title="$t('dimensions')" @click.native="step(2)"></el-step>
@@ -14,7 +14,7 @@
   </div>
   
   <div class="line margin-l-r"></div>
-  <div class="ksd-mt-10 ksd-mb-10">
+  <div class="ksd-mt-10 ksd-mb-10" id="cube-main">
   <info ref="infoForm" v-if="activeStep===1" :cubeDesc="cubeDetail" :modelDesc="modelDetail" :isEdit="isEdit"></info>
   <!-- <sample_sql v-if="activeStep===2" :cubeDesc="cubeDetail" :isEdit="isEdit" :sampleSql="sampleSQL"></sample_sql> -->
   <dimensions v-if="activeStep===2" :cubeDesc="cubeDetail" :modelDesc="modelDetail" :isEdit="isEdit"></dimensions>
@@ -851,9 +851,6 @@ export default {
     margin-bottom: 20px;
   }
   #cube-edit{
-    *{
-      font-size: 12px;
-    }
     .el-input__inner{
       border-color: @grey-color;
     }
@@ -871,6 +868,11 @@ export default {
       text-align: center;
       margin-right: 0!important;
       padding: 0;
+    }
+  }
+  #cube-main{
+    *{
+      font-size: 12px;
     }
   }
 </style>

@@ -1044,4 +1044,9 @@ export default {
     border-color: #7881aa;
   }
 }
+#datasource{
+  .el-dialog--small{
+    width: 50%;
+  }
+}
 </style>

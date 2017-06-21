@@ -233,7 +233,7 @@
 </el-dialog>
 
 <el-dialog :title="$t('diagnosis')" v-model="diagnosisVisible">
-  <diagnosis :targetId="targetId" :show="diagnosisVisible"></diagnosis>
+  <diagnosis :targetId="targetId" job="job" :show="diagnosisVisible"></diagnosis>
 </el-dialog>
 </div>
 </template>

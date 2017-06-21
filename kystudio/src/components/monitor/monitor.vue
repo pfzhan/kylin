@@ -4,7 +4,7 @@
       <el-tab-pane :label="$t('jobs')" name="jobs">
         <jobs></jobs>
       </el-tab-pane>
-      <el-tab-pane :label="$t('slowQueries')" name="slowQueries">
+      <el-tab-pane :label="$t('slowQueries')" name="slowQueries" id="slow-query-m">
        <slow_queries></slow_queries>
       </el-tab-pane>
     </el-tabs>
@@ -54,6 +54,9 @@ export default {
     padding-left: 30px;
     margin-left: -30px;
     margin-right: -30px;
+  }
+  .el-tabs__item{
+    border-color: transparent;
   }
 }
 #monitor *{
