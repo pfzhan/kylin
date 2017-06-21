@@ -22,7 +22,8 @@ class testBuildCube(unittest.TestCase):
         headers = {
             'content-type': "application/json",
             'authorization': "Basic QURNSU46S1lMSU4=",
-            'cache-control': "no-cache"
+            'cache-control': "no-cache",
+            'accept': "application/vnd.apache.kylin-v2+json"
         }
 
         # reload metadata before build cubes
@@ -50,21 +51,21 @@ class testBuildCube(unittest.TestCase):
         if status_code == 200:
             print 'Build job is submitted...'
             job_response = json.loads(response.text)
-            job_uuid = job_response['uuid']
+            job_uuid = job_response['data']['uuid']
             job_url = base_url + "/jobs/" + job_uuid
             job_response = requests.request("GET", job_url, headers=headers)
 
             self.assertEqual(job_response.status_code, 200, 'Build job information fetched failed.')
 
             job_info = json.loads(job_response.text)
-            job_status = job_info['job_status']
+            job_status = job_info['data']['job_status']
             try_time = 1
             while job_status in ('RUNNING', 'PENDING') and try_time <= 60:
                 print 'Wait for job complete, try_time = ' + str(try_time)
                 try:
                     job_response = requests.request("GET", job_url, headers=headers)
                     job_info = json.loads(job_response.text)
-                    job_status = job_info['job_status']
+                    job_status = job_info['data']['job_status']
                 except:
                     job_status = 'UNKNOWN'
                     pass

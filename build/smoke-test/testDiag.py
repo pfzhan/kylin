@@ -11,11 +11,12 @@ class testDiag(unittest.TestCase):
         pass
 
     def testDiag(self):
-        url = "http://sandbox:7070/kylin/api/diag/project/learn_kylin/download"
+        url = "http://sandbox:7070/kylin/api/kybot/dump"
         headers = {
             'content-type': "application/json",
             'authorization': "Basic QURNSU46S1lMSU4=",
-            'cache-control': "no-cache"
+            'cache-control': "no-cache",
+            'accept' : "application/vnd.apache.kylin-v2+json"
         }
 
         response = requests.get(url, headers = headers)
