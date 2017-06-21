@@ -37,5 +37,6 @@ export default {
   #configuration_overwrites_view{
     border-color: @grey-color!important;
     padding: 20px;
+    background: #292b38;
   }
 </style>
