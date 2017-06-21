@@ -52,8 +52,10 @@ public class HiveTableExtJob extends AbstractHadoopJob {
     public static final String JOB_TITLE = "Kylin Hive Column Sample Job";
 
     @SuppressWarnings("static-access")
-    protected static final Option OPTION_TABLE = OptionBuilder.withArgName("table name").hasArg().isRequired(true).withDescription("The hive table name").create("table");
-    protected static final Option OPTION_FREQUENCY = OptionBuilder.withArgName("sample frequency").hasArg().isRequired(true).withDescription("The sample frequency").create("frequency");
+    protected static final Option OPTION_TABLE = OptionBuilder.withArgName("table name").hasArg().isRequired(true)
+            .withDescription("The hive table name").create("table");
+    protected static final Option OPTION_FREQUENCY = OptionBuilder.withArgName("sample frequency").hasArg()
+            .isRequired(true).withDescription("The sample frequency").create("frequency");
 
     public HiveTableExtJob() {
     }
@@ -95,7 +97,7 @@ public class HiveTableExtJob extends AbstractHadoopJob {
         Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
         FileOutputFormat.setOutputPath(job, output);
         job.getConfiguration().set("mapreduce.output.fileoutputformat.compress", "false");
-        job.getConfiguration().set("stats.sample.frequency", getOptionValue(OPTION_FREQUENCY));
+        job.getConfiguration().set(BatchConstants.CFG_STATS_JOB_FREQUENCY, getOptionValue(OPTION_FREQUENCY));
         // Mapper
         IMRInput.IMRTableInputFormat tableInputFormat = MRUtil.getTableInputFormat(table);
         tableInputFormat.configureJob(job);

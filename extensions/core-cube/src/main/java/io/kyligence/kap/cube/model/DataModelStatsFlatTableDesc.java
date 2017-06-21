@@ -48,11 +48,17 @@ public class DataModelStatsFlatTableDesc implements IJoinedFlatTableDesc {
     private static final Logger logger = LoggerFactory.getLogger(DataModelStatsFlatTableDesc.class);
 
     private DataModelDesc dataModelDesc;
+    private String jobId;
     private List<TblColRef> columnList = new ArrayList<>();
     private Map<TblColRef, Integer> columnIndexMap = Maps.newHashMap();
 
     public DataModelStatsFlatTableDesc(DataModelDesc dataModelDesc) {
+        this(dataModelDesc, null);
+    }
+
+    public DataModelStatsFlatTableDesc(DataModelDesc dataModelDesc, String jobId) {
         this.dataModelDesc = dataModelDesc;
+        this.jobId = jobId;
         init();
     }
 
@@ -80,7 +86,9 @@ public class DataModelStatsFlatTableDesc implements IJoinedFlatTableDesc {
 
     @Override
     public String getTableName() {
-        return "kylin_intermediate_" + dataModelDesc.getName() + "_stats";
+        if (jobId == null)
+            throw new IllegalArgumentException("Job ID should not be null");
+        return "kylin_intermediate_" + dataModelDesc.getName() + "_stats_" + jobId.replace('-', '_');
     }
 
     @Override

@@ -50,7 +50,6 @@ import org.slf4j.LoggerFactory;
 
 public class HiveTableExtSampleJob extends CubingJob {
     private static final Logger logger = LoggerFactory.getLogger(HiveTableExtSampleJob.class);
-    private static final String SAMPLES = "samples";
 
     private String project;
     private String submitter;
@@ -121,7 +120,7 @@ public class HiveTableExtSampleJob extends CubingJob {
             throw new IllegalArgumentException("Cannot find table descriptor " + tableName);
         }
 
-        String samplesOutPath = getOutputPath(HiveTableExtSampleJob.SAMPLES, parent.getId()) + desc.getIdentity();
+        String samplesOutPath = getOutputPath(parent.getId()) + desc.getIdentity();
 
         if (desc.isView()) {
             addMaterializeViewSteps(parent, desc);
@@ -219,8 +218,8 @@ public class HiveTableExtSampleJob extends CubingJob {
 
         StringBuilder createIntermediateTableHql = new StringBuilder();
         createIntermediateTableHql.append("USE " + desc.getDatabase() + ";").append("\n");
-        createIntermediateTableHql.append("DROP TABLE IF EXISTS " + desc.getMaterializedName() + ";\n");
-        createIntermediateTableHql.append("CREATE TABLE IF NOT EXISTS " + desc.getMaterializedName() + "\n");
+        createIntermediateTableHql.append("DROP TABLE IF EXISTS " + getIntermediateTableName(desc) + ";\n");
+        createIntermediateTableHql.append("CREATE TABLE IF NOT EXISTS " + getIntermediateTableName(desc) + "\n");
         createIntermediateTableHql.append("LOCATION '" + getViewPath(conf, desc) + "'\n");
         createIntermediateTableHql.append("AS SELECT * FROM " + desc.getIdentity() + " " + condition + ";\n");
         hiveCmdBuilder.addStatement(createIntermediateTableHql.toString());
@@ -230,25 +229,29 @@ public class HiveTableExtSampleJob extends CubingJob {
     }
 
     private String getViewPath(JobEngineConfig conf, TableDesc desc) {
-        return JobBuilderSupport.getJobWorkingDir(conf, getId()) + "/" + desc.getMaterializedName();
+        return JobBuilderSupport.getJobWorkingDir(conf, getId()) + "/" + getIntermediateTableName(desc);
     }
 
     private ShellExecutable deleteMaterializedView(TableDesc desc) throws IOException {
 
         ShellExecutable step = new ShellExecutable();
-        step.setName("Drop Intermediate Table " + desc.getMaterializedName());
+        step.setName("Drop Intermediate Table " + getIntermediateTableName(desc));
         HiveCmdBuilder hiveCmdBuilder = new HiveCmdBuilder();
 
         StringBuilder createIntermediateTableHql = new StringBuilder();
         createIntermediateTableHql.append("USE " + desc.getDatabase() + ";\n");
-        createIntermediateTableHql.append("DROP TABLE IF EXISTS " + desc.getMaterializedName() + ";\n");
+        createIntermediateTableHql.append("DROP TABLE IF EXISTS " + getIntermediateTableName(desc) + ";\n");
         hiveCmdBuilder.addStatement(createIntermediateTableHql.toString());
         step.setCmd(hiveCmdBuilder.build());
         return step;
     }
 
-    private String getOutputPath(String tag, String jobId) {
-        return config.getHdfsWorkingDirectory() + "tablestats/" + jobId + "/" + tag + "/";
+    private String getIntermediateTableName(TableDesc desc) {
+        return desc.getMaterializedName() + "_stats_" + getId().replace('-', '_');
+    }
+
+    private String getOutputPath(String jobId) {
+        return config.getHdfsWorkingDirectory() + "table_stats/" + jobId + "/";
     }
 
 }

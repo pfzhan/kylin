@@ -70,11 +70,12 @@ public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, Byt
         KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
 
         String model = conf.get(BatchConstants.CFG_TABLE_NAME);
+        String jobId = conf.get(BatchConstants.CFG_STATS_JOB_ID);
         dataModelDesc = MetadataManager.getInstance(config).getDataModelDesc(model);
-        flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc);
+        flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc, jobId);
         String fullTableName = config.getHiveDatabaseForIntermediateTable() + "." + flatTableDesc.getTableName();
         tableInputFormat = new HiveMRInput.HiveTableInputFormat(fullTableName);
-        int frequency = Integer.parseInt(conf.get("stats.sample.frequency"));
+        int frequency = Integer.parseInt(conf.get(BatchConstants.CFG_STATS_JOB_FREQUENCY));
 
         List<TblColRef> columns = flatTableDesc.getAllColumns();
         for (int i = 0; i < columns.size(); i++) {
@@ -89,7 +90,7 @@ public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, Byt
     @Override
     public void doMap(T key, Object value, Context context) throws IOException, InterruptedException {
         Collection<String[]> valuesCollection = tableInputFormat.parseMapperInput(value);
-        for (String[] values: valuesCollection) {
+        for (String[] values : valuesCollection) {
             for (int m = 0; m < flatTableDesc.getAllColumns().size(); m++) {
                 samplerMap.get(m).samples(values);
             }

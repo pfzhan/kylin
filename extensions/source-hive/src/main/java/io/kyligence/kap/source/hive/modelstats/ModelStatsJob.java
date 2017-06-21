@@ -62,8 +62,12 @@ public class ModelStatsJob extends AbstractHadoopJob {
     public static final String JOB_TITLE = "KAP DataModel stats job";
 
     @SuppressWarnings("static-access")
-    protected static final Option OPTION_MODEL = OptionBuilder.withArgName("model name").hasArg().isRequired(true).withDescription("data model name").create("model");
-    protected static final Option OPTION_FREQUENCY = OptionBuilder.withArgName("sample frequency").hasArg().isRequired(true).withDescription("The sample frequency").create("frequency");
+    protected static final Option OPTION_MODEL = OptionBuilder.withArgName("model name").hasArg().isRequired(true)
+            .withDescription("data model name").create("model");
+    protected static final Option OPTION_FREQUENCY = OptionBuilder.withArgName("sample frequency").hasArg()
+            .isRequired(true).withDescription("The sample frequency").create("frequency");
+    protected static final Option OPTION_JOB_ID = OptionBuilder.withArgName("job id").hasArg().isRequired(true)
+            .withDescription("job id").create("jobId");
 
     public ModelStatsJob() {
     }
@@ -76,6 +80,7 @@ public class ModelStatsJob extends AbstractHadoopJob {
         options.addOption(OPTION_MODEL);
         options.addOption(OPTION_OUTPUT_PATH);
         options.addOption(OPTION_FREQUENCY);
+        options.addOption(OPTION_JOB_ID);
 
         parseOptions(options, args);
 
@@ -89,20 +94,21 @@ public class ModelStatsJob extends AbstractHadoopJob {
         conf.addResource(new Path(jobEngineConfig.getHadoopJobConfFilePath(null)));
 
         String model = getOptionValue(OPTION_MODEL);
+        String jobId = getOptionValue(OPTION_JOB_ID);
         DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc(model);
 
-        IJoinedFlatTableDesc flatTableDesc = new DataModelStatsFlatTableDesc(modelDesc);
+        IJoinedFlatTableDesc flatTableDesc = new DataModelStatsFlatTableDesc(modelDesc, jobId);
 
         job = Job.getInstance(conf, jobName);
 
         setJobClasspath(job, kylinConfig);
 
-        job.getConfiguration().set(BatchConstants.CFG_TABLE_NAME, model);
-
         Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
         FileOutputFormat.setOutputPath(job, output);
+        job.getConfiguration().set(BatchConstants.CFG_TABLE_NAME, model);
+        job.getConfiguration().set(BatchConstants.CFG_STATS_JOB_ID, jobId);
         job.getConfiguration().set("mapreduce.output.fileoutputformat.compress", "false");
-        job.getConfiguration().set("stats.sample.frequency", getOptionValue(OPTION_FREQUENCY));
+        job.getConfiguration().set(BatchConstants.CFG_STATS_JOB_FREQUENCY, getOptionValue(OPTION_FREQUENCY));
         // Mapper
         String fullTableName = kylinConfig.getHiveDatabaseForIntermediateTable() + "." + flatTableDesc.getTableName();
         IMRInput.IMRTableInputFormat tableInputFormat = new HiveMRInput.HiveTableInputFormat(fullTableName);

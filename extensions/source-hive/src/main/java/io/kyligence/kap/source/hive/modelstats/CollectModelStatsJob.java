@@ -111,7 +111,7 @@ public class CollectModelStatsJob extends CubingJob {
         ModelStats modelStats = modelStatsManager.getModelStats(modelName);
 
         DataModelDesc dataModelDesc = MetadataManager.getInstance(config).getDataModelDesc(modelName);
-        IJoinedFlatTableDesc flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc);
+        IJoinedFlatTableDesc flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc, getId());
         JobEngineConfig jobConf = new JobEngineConfig(config);
 
         String factTableName = dataModelDesc.getRootFactTable().getTableIdentity();
@@ -175,7 +175,8 @@ public class CollectModelStatsJob extends CubingJob {
 
     private void extractModelStatsStep() {
         String outPath = getOutputPath(getId()) + modelName;
-        String param = "-model " + modelName + " -output " + outPath + " -frequency " + frequency;
+        String param = "-model " + modelName + " -output " + outPath + " -frequency " + frequency + " -jobId "
+                + getId();
         MapReduceExecutable extractStatsStep = new MapReduceExecutable();
         extractStatsStep.setName("Extract Stats from Model: " + modelName);
         extractStatsStep.setMapReduceJobClass(ModelStatsJob.class);
@@ -187,7 +188,7 @@ public class CollectModelStatsJob extends CubingJob {
         String outPath = getOutputPath(getId()) + modelName;
         HadoopShellExecutable updateMetaStep = new HadoopShellExecutable();
         String param = "-model " + modelName + " -output " + outPath;
-        updateMetaStep.setName("Save Model' Stats");
+        updateMetaStep.setName("Save Model's Stats");
         updateMetaStep.setJobClass(ModelStatsUpdate.class);
         updateMetaStep.setJobParams(param);
         addTask(updateMetaStep);
@@ -276,6 +277,6 @@ public class CollectModelStatsJob extends CubingJob {
     }
 
     private String getOutputPath(String jobID) {
-        return config.getHdfsWorkingDirectory() + "modelstats/" + jobID + "/";
+        return config.getHdfsWorkingDirectory() + "model_stats/" + jobID + "/";
     }
 }
