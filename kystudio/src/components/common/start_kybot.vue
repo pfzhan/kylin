@@ -83,7 +83,7 @@
       }
     },
     locales: {
-      'en': {agreeAndOpen: 'Enable Auto Upload', kybotAgreement: 'Kybot User Agreement', hasAgree: 'I have read and agree《KyBot Term of Service》', protocol: 'By analyzing your diagnostic package, KyBot can provide online diagnostic, tuning and support service for KAP. After starting auto upload service, it will automatically upload packages everyday regularly.', openSuccess: 'open successfully', agreement: `
+      'en': {agreeAndOpen: 'Enable Auto Upload', kybotAgreement: 'KyBot User Agreement', hasAgree: 'I have read and agree《KyBot Term of Service》', protocol: 'By analyzing your diagnostic package, KyBot can provide online diagnostic, tuning and support service for KAP. After starting auto upload service, it will automatically upload packages everyday regularly.', openSuccess: 'open successfully', agreement: `
 IF YOU (“YOU” OR “CUSTOMER”) PLAN TO USE ANY OF THE
 PRODUCTS ON BEHALF OF A COMPANY OR OTHER ENTITY,
 YOU REPRESENT THAT YOU ARE THE EMPLOYEE OR AGENT
@@ -377,7 +377,7 @@ or remedy. All rights and remedies hereunder are cumulative and are not
 exclusive of any other rights or remedies provided hereunder or by law. 
 The waiver of one breach or default or any delay in exercising any rights
 will not constitute a waiver of any subsequent breach or default.`},
-      'zh-cn': {agreeAndOpen: '开启自动上传', kybotAgreement: 'Kybot用户协议', hasAgree: '我已阅读并同意《KyBot用户协议》', protocol: '通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天定时自动上传，无需自行打包和上传。', openSuccess: '开启成功', agreement: `
+      'zh-cn': {agreeAndOpen: '开启自动上传', kybotAgreement: 'KyBot用户协议', hasAgree: '我已阅读并同意《KyBot用户协议》', protocol: '通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天定时自动上传，无需自行打包和上传。', openSuccess: '开启成功', agreement: `
 若您（下称“您”或“用户”）代表某公司或者其他机构使用任何产品
 时，您特此陈述您作为该公司或该等其他机构的员工或代理，您有权代
 表该公司或该等其他机构接受条款项下所要求的全部条款和条件（以下

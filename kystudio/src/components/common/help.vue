@@ -8,7 +8,7 @@
     <el-dropdown-item command="kapmanual">{{$t('Manual')}}</el-dropdown-item>
     <el-dropdown-item command="kybot">
       <div v-if='!isLogin'>
-        <el-button style="color: #fff;font-size: 12px;" type="text" @click="alertKybot">{{$t('kybotAuto')}}</el-button>
+        <el-button style="color: #fff;font-size: 12px;" type="text" @click="alertkybot=true">{{$t('kybotAuto')}}</el-button>
         <el-switch
           id="header-switch"
           v-model="isopend"
@@ -32,11 +32,23 @@
   <about_kap :about="serverAbout">
   </about_kap>
 </el-dialog>
-<el-dialog id="login-kybotAccount" v-model="kyBotUploadVisible" title="KyAccount | Sign in" size="tiny" @close="resetLoginKybotForm">
+<el-dialog id="login-kybotAccount" v-model="kyBotUploadVisible" :title="$t('signIn')" size="tiny" @close="resetLoginKybotForm">
   <login_kybot ref="loginKybotForm" @closeLoginForm="closeLoginForm" @closeLoginOpenKybot="closeLoginOpenKybot"></login_kybot>
 </el-dialog>
 <el-dialog v-model="infoKybotVisible" :title="$t('kybotAuto')" size="tiny">
   <start_kybot @closeStartLayer="closeStartLayer" @openSwitch="openSwitch" :propAgreement="infoKybotVisible"></start_kybot>
+</el-dialog>
+<el-dialog v-model="alertkybot" :title="$t('kylinLang.common.tip')" size="tiny">
+  <div v-if="$lang=='en'">
+    <div>By analyzing diagnostic package, <a href='https://kybot.io/'>KyBot</a> can provide online diagnostic, tuning and support service for KAP. After starting auto upload service, it will automatically upload packages at 24:00 o'clock everyday regularly</div>
+    <el-button type="primary" @click="alertkybot = false">{{$t('ok')}}</el-button>
+  </span>
+  </div>
+  <div v-if="$lang=='zh-cn'">
+    <div><a href="https://kybot.io/">KyBot</a>通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天零点定时自动上传，无需自行打包和上传</div>
+    <el-button type="primary" @click="alertkybot = false">{{$t('ok')}}</el-button>
+  </span>
+  </div>
 </el-dialog>
 </div>
 </template>
@@ -64,7 +76,8 @@
         isopend: false, // 是否已开启
         startLoading: false,
         flag: true,
-        switchTimer: 0
+        switchTimer: 0,
+        alertkybot: false
       }
     },
     methods: {
@@ -77,18 +90,6 @@
         stopKybot: 'STOP_KYBOT',
         getAgreement: 'GET_AGREEMENT'
       }),
-      alertKybot () {
-        const h = this.$createElement
-        this.$msgbox({
-          title: this.$t('kybotAuto'),
-          message: h('p', {}, [
-            h('div', {}, this.$t('kybot'))
-          ]),
-          showCancelButton: false
-        }).then(action => {
-          // alert(1)
-        })
-      },
       handleCommand (val) {
         var _this = this
         if (val === 'kapmanual') {
@@ -252,8 +253,8 @@
       'start_kybot': startKybot
     },
     locales: {
-      'en': {usernameEmpty: 'Please enter username', usernameRule: 'username contains only numbers, letters and character "_"', noUserPwd: 'password required', agreeAndOpen: 'agree the protocol and open the automatic service', kybotAuto: 'KyBot Auto Upload', openSuccess: 'open successfully', closeSuccess: 'close successfully', Manual: 'KAP Manual', kybotService: 'KyBot Service', aboutKap: 'About KAP', kybot: 'By analyzing diagnostic package, KyBot can provide online diagnostic, tuning and support service for KAP. After starting auto upload service, it will automatically upload packages everyday regularly.'},
-      'zh-cn': {usernameEmpty: '请输入用户名', usernameRule: '名字只能包含数字字母下划线', noUserPwd: '密码不能为空', agreeAndOpen: '同意协议并开启自动服务', kybotAuto: 'KyBot自动上传', openSuccess: '成功开启', closeSuccess: '成功关闭', Manual: 'KAP手册', kybotService: 'KyBot服务', aboutKap: '关于KAP', kybot: 'KyBot通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天定时自动上传，无需自行打包和上传'}
+      'en': {usernameEmpty: 'Please enter username', usernameRule: 'username contains only numbers, letters and character "_"', noUserPwd: 'password required', agreeAndOpen: 'agree the protocol and open the automatic service', kybotAuto: 'KyBot Auto Upload', openSuccess: 'open successfully', closeSuccess: 'close successfully', Manual: 'KAP Manual', kybotService: 'KyBot Service', aboutKap: 'About KAP', kybot: "By analyzing diagnostic package, <a href='https://kybot.io/'>KyBot</a> can provide online diagnostic, tuning and support service for KAP. After starting auto upload service, it will automatically upload packages at 24:00 o'clock everyday regularly.", signIn: 'KyAccount | Sign In', ok: 'OK'},
+      'zh-cn': {usernameEmpty: '请输入用户名', usernameRule: '名字只能包含数字字母下划线', noUserPwd: '密码不能为空', agreeAndOpen: '同意协议并开启自动服务', kybotAuto: 'KyBot自动上传', openSuccess: '成功开启', closeSuccess: '成功关闭', Manual: 'KAP手册', kybotService: 'KyBot服务', aboutKap: '关于KAP', kybot: '<a href="https://kybot.io/">KyBot</a>通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天零点定时自动上传，无需自行打包和上传', signIn: 'KyAccount | 登录', ok: '确定'}
     }
   }
 </script>
@@ -320,6 +321,6 @@
       .el-input{
         padding: 0;
       }
-    } 
+    }
   }
 </style>
