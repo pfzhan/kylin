@@ -80,12 +80,6 @@ public class SchedulerJobService extends BasicService implements InitializingBea
     public void afterPropertiesSet() throws Exception {
         scheduler = createScheduler();
         scheduler.start();
-        //Create a faked job to record each cube's latest building job
-        JobDetailImpl jobDetail = new JobDetailImpl();
-        jobDetail.setName("building_jobs");
-        JobDataMap dataMap = jobDetail.getJobDataMap();
-        jobDetail.setJobDataMap(dataMap);
-        scheduler.addJob(jobDetail, true);
         resumeSchedulers();
     }
 

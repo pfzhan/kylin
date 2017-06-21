@@ -32,10 +32,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.cube.CubeInstance;
+import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeBuildTypeEnum;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.job.JobInstance;
-import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.rest.exception.InternalErrorException;
@@ -47,7 +47,6 @@ import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
-import org.quartz.impl.JobDetailImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -81,32 +80,43 @@ public class ScheduleBuildJob implements Job {
 
         logger.info("Scheduler of jobName " + jobName + " is triggered.");
         try {
-            JobDetailImpl buildingJobs = (JobDetailImpl) scheduler.getJobDetail(JobKey.jobKey("building_jobs"));
-            JobDataMap buildingMap = buildingJobs.getJobDataMap();
-            String lastJobUuid = buildingMap.getString(jobName);
             Long startTime = dataMap.getLong("startTime");
             SchedulerJobInstance schedulerInstance = schedulerJobService.getSchedulerJob(jobName);
-            JobInstance jobInstance = null;
+            String errorJobId = null;
             CubeInstance cube = jobService.getCubeManager().getCube(schedulerInstance.getRelatedRealization());
+
+            if (cube.getLatestReadySegment() != null) {
+                startTime = cube.getDateRangeEnd();
+            }
+
             boolean schedulerRemoved = false;
-            List<CubingJob> cubingJobs = jobService.listJobsByRealizationName(cube.getName(), schedulerInstance.getProject(),
-                    EnumSet.of(ExecutableState.RUNNING));
+            boolean jobShouldBeResumed = false;
+            List<CubingJob> cubingJobs = jobService.listJobsByRealizationName(cube.getName(),
+                    schedulerInstance.getProject(), EnumSet.of(ExecutableState.RUNNING));
 
             if (cubingJobs != null && cubingJobs.size() > 0) {
                 logger.info("Scheduler of jobName " + jobName + " is still cubing, skip this time.");
                 return;
             }
 
-            if (lastJobUuid != null) {
-                jobInstance = jobService.getJobInstance(lastJobUuid);
+            List<CubingJob> errorJobs = jobService.listJobsByRealizationName(cube.getName(),
+                    schedulerInstance.getProject(), EnumSet.of(ExecutableState.ERROR, ExecutableState.STOPPED));
+
+            if (errorJobs.size() > 0) {
+                for (CubingJob job : errorJobs) {
+                    JobInstance jobInstance = jobService.getJobInstance(job.getId());
+                    CubeSegment segment = cube.getSegmentById(jobInstance.getRelatedSegment());
+
+                    if (segment != null && startTime == segment.getDateRangeStart()) {
+                        jobShouldBeResumed = true;
+                        errorJobId = job.getId();
+                        logger.info("Scheduled job " + jobName + " failed or stopped last time, resume it this time.");
+                        break;
+                    }
+                }
             }
 
-            if (jobInstance == null || jobInstance.getStatus() == JobStatusEnum.FINISHED
-                    || jobInstance.getStatus() == JobStatusEnum.DISCARDED
-                    || jobInstance.getStatus() == JobStatusEnum.STOPPED) {
-                if (cube.getLatestReadySegment() != null) {
-                    startTime = cube.getDateRangeEnd();
-                }
+            if (!jobShouldBeResumed) {
 
                 Long endTime = 0L;
 
@@ -129,20 +139,14 @@ public class ScheduleBuildJob implements Job {
                 }
 
                 if (cube.getModel().getRootFactTable().getTableDesc().getSourceType() == ISourceAware.ID_STREAMING) {
-                    jobInstance = jobService.submitJobInternal(cube, 0, 0, 0, Long.MAX_VALUE, null, null,
-                            CubeBuildTypeEnum.BUILD, false, userName);
-                    buildingMap.put(cube.getName(), jobInstance.getUuid());
+                    jobService.submitJobInternal(cube, 0, 0, 0, Long.MAX_VALUE, null, null, CubeBuildTypeEnum.BUILD,
+                            false, userName);
                 } else {
-                    jobInstance = jobService.submitJobInternal(cube, startTime, endTime, 0, 0, null, null,
-                            CubeBuildTypeEnum.BUILD, false, userName);
-                    buildingMap.put(cube.getName(), jobInstance.getUuid());
+                    jobService.submitJobInternal(cube, startTime, endTime, 0, 0, null, null, CubeBuildTypeEnum.BUILD,
+                            false, userName);
                 }
-
-                buildingJobs.setJobDataMap(buildingMap);
-                scheduler.deleteJob(JobKey.jobKey("building_jobs"));
-                scheduler.addJob(buildingJobs, true);
-            } else if (jobInstance.getStatus() == JobStatusEnum.ERROR) {
-                jobService.getExecutableManager().resumeJob(jobInstance.getId());
+            } else {
+                jobService.getExecutableManager().resumeJob(errorJobId);
             }
 
             // Stop scheduler if has run scheduled times
