@@ -561,7 +561,7 @@ export default {
             break
         }
       }
-      if (this.measure.function.parameter.value !== '' && this.measure.function.parameter.type === 'column' && this.measure.function.expression !== 'COUNT_DISTINCT') {
+      if (this.measure.function.parameter.value !== '' && this.measure.function.parameter.value !== 1 && this.measure.function.parameter.type === 'column' && this.measure.function.expression !== 'COUNT_DISTINCT') {
         let colType = this.modelDesc.columnsDetail[this.measure.function.parameter.value].datatype
         switch (this.measure.function.expression) {
           case 'MIN':
@@ -643,9 +643,6 @@ export default {
     }
     .el-input__inner{
       background: @input-bg;
-    }
-    .el-icon-caret-top{
-      top: 10px;
     }
     .el-tag{
       top: 0!important;

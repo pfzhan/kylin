@@ -55,6 +55,7 @@ export default {
         commit(types.GET_CONF_BY_NAME, {name: 'kap.kyaccount.username', key: 'kyAccount'})
         commit(types.GET_CONF_BY_NAME, {name: 'kap.license.statement', key: 'statement'})
         commit(types.GET_CONF_BY_NAME, {name: 'kap.web.hide-feature.limited-lookup', key: 'limitfact'})
+        commit(types.GET_CONF_BY_NAME, {name: 'kylin.security.profile', key: 'securityProfile'})
       })
     },
     [types.RELOAD_METADATA]: function ({ commit }) {

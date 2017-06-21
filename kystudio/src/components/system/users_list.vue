@@ -41,10 +41,10 @@
         <el-tag type="success" v-else>Enabled</el-tag>
       </template>
     </el-table-column>
-    <el-table-column
+    <el-table-column v-if="securityProfile !== 'securityProfile'"
       :label="$t('action')">
       <template scope="scope">
-        <el-dropdown trigger="click">
+        <el-dropdown trigger="click" v>
           <el-button class="el-dropdown-link">
             <i class="el-icon-more"></i>
           </el-button >
@@ -267,6 +267,9 @@ export default {
   computed: {
     usersListSize () {
       return this.$store.state.user.usersSize
+    },
+    securityProfile () {
+      return this.$store.state.system.securityProfile
     },
     usersList () {
       let userData = []
