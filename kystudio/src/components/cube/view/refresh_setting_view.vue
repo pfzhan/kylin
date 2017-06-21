@@ -1,31 +1,31 @@
 <template>
 <el-card class="box-card" id="refresh-settion-view">
-  <el-row class="border_bottom">
+  <el-row class="border_bottom padding-m">
     <el-col :span="6">{{$t('autoMergeThresholds')}}</el-col>
     <el-col :span="18">
       <el-row v-for="timeRange in cubeDesc.desc.auto_merge_time_ranges" :key="timeRange">
         <el-col :span="24">{{timeRange|timeSize}}</el-col>
       </el-row>
-    </el-col>  
+    </el-col>
   </el-row>
- 
-  <el-row >
+
+  <el-row class="border_bottom padding-m">
     <el-col :span="6">{{$t('retentionThreshold')}}</el-col>
     <el-col :span="18">{{cubeDesc.desc.retention_range|timeSize}}</el-col>
   </el-row>
-  <el-row>
+  <el-row class="border_bottom padding-m">
     <el-col :span="6">{{$t('partitionStartDate')}}</el-col>
     <el-col :span="18">{{toGmtTime(cubeDesc.desc.partition_date_start)}}</el-col>
-  </el-row>  
+  </el-row>
 
-   <el-row >
+   <el-row class="border_bottom padding-m">
     <el-col :span="6">{{$t('buildTrigger')}}</el-col>
     <el-col :span="18" v-if="cubeDesc.scheduler">{{toGmtTime(cubeDesc.scheduler.scheduled_run_time)}}</el-col>
   </el-row>
-  <el-row class="border_bottom">
+  <el-row class="border_bottom padding-m">
     <el-col :span="6">{{$t('periddicalInterval')}}</el-col>
     <el-col :span="18" v-if="cubeDesc.scheduler">{{cubeDesc.scheduler.repeat_interval|timeSize}}</el-col>
-  </el-row>      
+  </el-row>
 </el-card>
 </template>
 
@@ -68,12 +68,13 @@ export default {
 </script>
 <style lang="less">
   @import '../../../less/config.less';
-  .border_bottom {
-    border-bottom: 2px solid #ddd;
-  }
   #refresh-settion-view{
     border-color: @grey-color;
     padding: 10px;
     background: @tableBC;
+    padding: 0;
+    .padding-m{
+      padding: 5px 0px 5px 20px;
+    }
   }
 </style>
