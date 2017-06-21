@@ -44,8 +44,8 @@ echo "catalina.properties overwritten..."
 
 cp build/deploy/.keystore build/tomcat/conf/.keystore
 
-cp kylin/tomcat-ext/target/kylin-tomcat-ext-${kylin_version}.jar build/tomcat/lib/kylin-tomcat-ext-${kylin_version}.jar
-chmod 644 build/tomcat/lib/kylin-tomcat-ext-${kylin_version}.jar
+cp extensions/tomcat-ext/target/kap-tomcat-ext-${kap_version}.jar build/tomcat/lib/kap-tomcat-ext-${kap_version}.jar
+chmod 644 build/tomcat/lib/kap-tomcat-ext-${kap_version}.jar
 
 # add ROOT application
 mkdir -p build/tomcat/webapps/ROOT
