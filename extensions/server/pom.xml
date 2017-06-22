@@ -24,6 +24,13 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-x-discovery</artifactId>
+            <!-- this jar was absent from hbase lib, we have to ship it.
+            Instead of using compile scope, we choose to copy the jar into ext due to #1251 -->
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>xerces</groupId>
             <artifactId>xercesImpl</artifactId>
         </dependency>
