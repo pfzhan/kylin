@@ -5,7 +5,7 @@ var proxyTable = {}
 var argvs = process.argv.slice(2)
 if (argvs && argvs.indexOf('proxy') !== -1) {
   var proxyBase = 'http://localhost:8080'
-  var proxyHost = 'http://localhost:7070' // 测试其他环境的数据请修改该地址进行转发
+  var proxyHost = 'http://106.75.145.171:8070' // 测试其他环境的数据请修改该地址进行转发
   proxyTable = {
     '/kylin/api': {
       target: proxyHost,
@@ -13,6 +13,7 @@ if (argvs && argvs.indexOf('proxy') !== -1) {
         '^/kylin': '/kylin'
       }
     },
+    // 后续暂时用不到
     '/kylin/j_spring_security_logout': {
       target: proxyBase,
       pathRewrite: {

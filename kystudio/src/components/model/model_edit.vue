@@ -1411,6 +1411,7 @@ export default {
     selectTableKind: function (command, licompon) {
       var kind = command
       var guid = licompon.$el.getAttribute('data')
+      var tableInfo = this.getTableInfoByGuid(guid)
       if (kind === 'ROOTFACT') {
         if (this.checkHasFactKindTable(guid)) {
           this.warnAlert(this.$t('hasRootFact'))
@@ -1422,10 +1423,9 @@ export default {
             return
           }
         }
+        this.editTableInfoByGuid(guid, 'alias', tableInfo.name)
       }
-      var tableInfo = this.getTableInfoByGuid(guid)
       this.editTableInfoByGuid(guid, 'kind', kind)
-      this.editTableInfoByGuid(guid, 'alias', tableInfo.name)
       this.currentSelectTable = {
         database: tableInfo.database,
         tablename: tableInfo.tableName,
