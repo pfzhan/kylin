@@ -160,7 +160,7 @@ export default {
     },
     addMeasure: function () {
       this.selected_measure = {
-        name: ' ',
+        name: '',
         function: {
           expression: 'SUM',
           parameter: {
@@ -183,10 +183,10 @@ export default {
       let _this = this
       let index = this.cubeDesc.measures.indexOf(this.selected_measure)
       if (data.measure.function.expression === 'TOP_N' || (data.measure.function.expression === 'COUNT_DISTINCT' && data.measure.function.returntype !== 'bitmap')) {
-        if (data.convertedColumns && data.convertedColumns.length > 0) {
+        if (data.convertedColumns) {
           _this.recursion(data.measure.function.parameter, data.convertedColumns, 0)
         }
-        if (data.measure.function.expression === 'TOP_N' && data.convertedColumns.length > 0) {
+        if (data.measure.function.expression === 'TOP_N' && data.convertedColumns) {
           _this.$set(data.measure.function, 'configuration', {})
           data.convertedColumns.forEach(function (column) {
             if (needLengthMeasureType.indexOf(_this.getEncoding(column.encoding)) >= 0) {
@@ -256,6 +256,7 @@ export default {
         num++
         this.recursion(parameter.next_parameter, list, num)
       } else {
+        this.$delete(parameter, 'next_parameter')
         return false
       }
     },

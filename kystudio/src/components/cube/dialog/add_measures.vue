@@ -230,7 +230,7 @@ export default {
       ],
       rules: {
         name: [
-            { required: true, message: '', trigger: 'blur' }
+            { required: true, message: this.$t('requiredName'), trigger: 'blur' }
         ]
       }
     }
@@ -454,7 +454,7 @@ export default {
         this.measure.function.returntype = 100
       }
       if (this.measure.function.expression === 'SUM') {
-        if (this.measure.function.parameter.value !== '') {
+        if (this.measure.function.parameter.value !== '' && this.measure.function.parameter.type === 'column') {
           let colType = this.modelDesc.columnsDetail[this.measure.function.parameter.value].datatype
           if (colType === 'smallint' || colType === 'int' || colType === 'bigint' || colType === 'integer' || colType === 'tinyint') {
             this.sumMeasure.type = 'bigint'
@@ -468,6 +468,9 @@ export default {
               this.sumMeasure.value.decimalPlace = 0
             }
           }
+        }
+        if (this.measure.function.parameter.value === 1 && this.measure.function.expression !== 'SUM' && this.measure.function.expression !== 'COUNT') {
+          this.measure.function.parameter.value = ''
         }
       }
     },
@@ -489,10 +492,10 @@ export default {
       }
     },
     initHiddenFeature: function () {
-      if (this.$store.state.config.hiddenFeature['raw-measure'] === true) {
+      if (this.$store.state.config.hiddenFeature['raw-measure'] === true && this.expressionsConf.indexOf('RAW') >= 0) {
         this.expressionsConf.splice(this.expressionsConf.indexOf('RAW'), 1)
       }
-      if (this.$store.state.config.hiddenFeature['extendedcolumn-measure'] === true) {
+      if (this.$store.state.config.hiddenFeature['extendedcolumn-measure'] === true && this.expressionsConf.indexOf('EXTENDED_COLUMN') >= 0) {
         this.expressionsConf.splice(this.expressionsConf.indexOf('EXTENDED_COLUMN'), 1)
       }
     }
@@ -620,8 +623,8 @@ export default {
     })
   },
   locales: {
-    'en': {name: 'Name', expression: 'Expression', paramType: 'Param Type', paramValue: 'Param Value', returnType: 'Return Type', includeDimensions: 'Include Dimensions', ORDERSUM: 'ORDER|SUM by Column', groupByColumn: 'Group by Column', ID: 'ID', column: 'Column', encoding: 'Encoding', length: 'Length', hostColumn: 'Host column On Fact Table', extendedColumn: 'Extended column On Fact Table', extendedColumnLength: 'Maximum length of extended column', reuse: 'Reuse', newColumn: 'New Column'},
-    'zh-cn': {name: '名称', expression: '表达式', paramType: '参数类型', paramValue: '参数值', returnType: '返回类型', includeDimensions: '包含维度', ORDERSUM: 'ORDER|SUM by Column', groupByColumn: 'Group by Column', ID: 'ID', column: '列', encoding: '编码', length: '长度', hostColumn: 'Host column On Fact Table', extendedColumn: 'Extended column On Fact Table', extendedColumnLength: 'Maximum length of extended column', reuse: '复用', newColumn: '新加列'}
+    'en': {name: 'Name', expression: 'Expression', paramType: 'Param Type', paramValue: 'Param Value', returnType: 'Return Type', includeDimensions: 'Include Dimensions', ORDERSUM: 'ORDER|SUM by Column', groupByColumn: 'Group by Column', ID: 'ID', column: 'Column', encoding: 'Encoding', length: 'Length', hostColumn: 'Host column On Fact Table', extendedColumn: 'Extended column On Fact Table', extendedColumnLength: 'Maximum length of extended column', reuse: 'Reuse', newColumn: 'New Column', requiredName: 'The measure name is required.'},
+    'zh-cn': {name: '名称', expression: '表达式', paramType: '参数类型', paramValue: '参数值', returnType: '返回类型', includeDimensions: '包含维度', ORDERSUM: 'ORDER|SUM by Column', groupByColumn: 'Group by Column', ID: 'ID', column: '列', encoding: '编码', length: '长度', hostColumn: 'Host column On Fact Table', extendedColumn: 'Extended column On Fact Table', extendedColumnLength: 'Maximum length of extended column', reuse: '复用', newColumn: '新加列', requiredName: '请输入Measure名称'}
   }
 }
 </script>
@@ -657,11 +660,11 @@ export default {
       padding-bottom: 0;
     }
     .el-form-item__label{
-      line-height: 36px;
+      // line-height: 36px;
     }
-    .el-form-item{
-      margin-bottom: 0;
-    }
+    // .el-form-item{
+    //   margin-bottom: 0;
+    // }
     .el-icon-caret-top{
       height: 36px;
       line-height: 36px;

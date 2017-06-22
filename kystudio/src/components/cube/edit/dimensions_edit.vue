@@ -55,7 +55,7 @@
           </common-tip>
         </div>
         <div style="margin-top: 20px;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
-          <el-button type="blue" icon="menu" @click.native="cubeSuggestions" :disabled="isReadyCube">{{$t('cubeSuggestion')}}</el-button>
+          <el-button type="blue" icon="menu" :loading="suggestLoading" @click.native="cubeSuggestions" :disabled="isReadyCube">{{$t('cubeSuggestion')}}</el-button>
           <el-button type="default" icon="setting" @click.native="resetDimensions" :disabled="isReadyCube">{{$t('resetDimensions')}}</el-button>
         </div>
       </el-row>
@@ -84,7 +84,7 @@
              <icon name="question-circle-o"></icon>
           </common-tip>
         {{$t('kylinLang.cube.maxGroupColumn')}}
-         <el-input id="apply-l" v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;"></el-input><el-button id="apply-r" type="grey" style="height: 32px;margin-left: 5px;" @click.native="changeDimCap();">Apply</el-button> </el-col>
+         <el-input id="apply-l" v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;"></el-input><el-button :loading="applyLoading" id="apply-r" type="grey" style="height: 32px;margin-left: 5px;" @click.native="changeDimCap();">Apply</el-button> </el-col>
       </el-row>
       <div class="line" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length"></div>
       <el-row class="row_padding border_bottom" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length" v-for="(group, group_index) in cubeDesc.aggregation_groups" :key="group_index" style="border-bottom: 0;">
@@ -301,6 +301,7 @@ export default {
       dim_cap: 0,
       totalCuboid: 0,
       sqlBtnLoading: false,
+      applyLoading: false,
       addDimensionsFormVisible: false,
       addSQLFormVisible: false,
       selected_dimension: {},
@@ -318,7 +319,8 @@ export default {
       featureData: [],
       modelStatics: [],
       testSort: [{name: 1}, {name: 2}, {name: 3}, {name: 4}],
-      tableStaticsCache: {}
+      tableStaticsCache: {},
+      suggestLoading: false
     }
   },
   components: {
@@ -371,7 +373,8 @@ export default {
       this.dim_cap = 0
       // this.totalCuboid = 0
       this.cubeDesc.aggregation_groups.splice(0, this.cubeDesc.aggregation_groups.length)
-      this.initAggregationGroup()
+      this.initRowkeyColumns()
+      this.initAggregationGroup(true)
       // this.cubeDesc.rowkey.rowkey_columns.splice(0, this.cubeDesc.rowkey.rowkey_columns.length)
       // this.initConvertedRowkeys()
     },
@@ -440,6 +443,7 @@ export default {
     //   }
     // },
     cubeSuggestions: function () {
+      this.suggestLoading = true
       this.getCubeSuggestions({cubeDescData: JSON.stringify(this.cubeDesc)}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           this.$set(this.cubeDesc, 'dimensions', data.dimensions)
@@ -450,8 +454,10 @@ export default {
           this.initConvertedRowkeys()
           this.initCalCuboid()
           this.calcAllCuboid()
+          this.suggestLoading = false
         })
       }, (res) => {
+        this.suggestLoading = false
         handleError(res)
       })
     },
@@ -630,13 +636,19 @@ export default {
       }
     },
     changeDimCap: function () {
+      this.applyLoading = true
       this.cubeDesc.aggregation_groups.forEach((aggregationGroup) => {
         this.$set(aggregationGroup.select_rule, 'dim_cap', +this.dim_cap)
       })
       this.initCalCuboid()
     },
-    initAggregationGroup: function () {
+    initAggregationGroup: function (isReset) {
       if (!this.isEdit && this.currentRowkey.length > 0 && this.cubeDesc.aggregation_groups.length <= 0) {
+        let newGroup = {includes: this.currentRowkey, select_rule: {mandatory_dims: [], hierarchy_dims: [], joint_dims: []}}
+        this.cubeDesc.aggregation_groups.push(newGroup)
+        this.cuboidList.push(0)
+      }
+      if (this.isEdit && isReset && this.cubeDesc.aggregation_groups.length <= 0) {
         let newGroup = {includes: this.currentRowkey, select_rule: {mandatory_dims: [], hierarchy_dims: [], joint_dims: []}}
         this.cubeDesc.aggregation_groups.push(newGroup)
         this.cuboidList.push(0)
@@ -712,9 +724,11 @@ export default {
         handleSuccess(res, (data, code, status, msg) => {
           this.totalCuboid = data
         })
+        this.applyLoading = false
       }).catch((res) => {
         handleError(res, (data, code, status, msg) => {
           // this.$set(this.groupErrorList, groupindex, msg)
+          this.applyLoading = false
         })
       })
     },

@@ -10,7 +10,7 @@
         :value="item.name">
       </el-option>
     </el-select>
-    <el-button type="blue" class="ksd-mb-10 ksd-fleft" @click.native="addCube" style="font-weight: bold;border-radius: 20px;float: left;margin-left: 20px;">+{{$t('kylinLang.common.cube')}}</el-button>
+    <el-button type="blue" class="ksd-mb-10 ksd-fleft" v-if="isModeler" @click.native="addCube" style="font-weight: bold;border-radius: 20px;float: left;margin-left: 20px;">+{{$t('kylinLang.common.cube')}}</el-button>
   </el-row>
 
   <el-table id="cube-list-table" v-if="cubesList&&cubesList.length"
@@ -700,6 +700,9 @@ export default {
     },
     isAdmin () {
       return hasRole(this, 'ROLE_ADMIN')
+    },
+    isModeler () {
+      return hasRole(this, 'ROLE_MODELER')
     },
     isViewCubeMode () {
       return !!(this.extraoption && this.extraoption.cubeName)

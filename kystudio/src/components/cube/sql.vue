@@ -30,7 +30,7 @@ export default {
             this.$set(this.cube, 'sql', data.sql)
           })
         }).catch((res) => {
-          handleError(res)
+          handleError(res, () => {})
         })
       }
     }
