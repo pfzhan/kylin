@@ -2,9 +2,14 @@
 <div class="user-list">  
   <el-row>
     <el-col :span="1">
-      <el-button type="primary" icon="plus" size="small" @click="addUser">{{$t('user')}}</el-button>
+      <el-button type="primary" v-if="securityProfile === 'testing'" icon="plus" size="small" @click="addUser">{{$t('user')}}</el-button>
     </el-col>
   </el-row>
+  <el-alert v-if="securityProfile !== 'testing'" class="ksd-mt-20"
+    :title="$t('securityProfileTip')"
+    :closable="false"
+    type="info">
+  </el-alert>
   <el-table
     :data="usersList"
     border
@@ -41,7 +46,7 @@
         <el-tag type="success" v-else>Enabled</el-tag>
       </template>
     </el-table-column>
-    <el-table-column v-if="securityProfile !== 'securityProfile'"
+    <el-table-column v-if="securityProfile === 'testing'"
       :label="$t('action')">
       <template scope="scope">
         <el-dropdown trigger="click" v>
@@ -301,8 +306,8 @@ export default {
     this.loadUsersList({pageSize: pageCount, pageOffset: this.currentPage - 1})
   },
   locales: {
-    'en': {user: 'User', userName: 'User Name', admin: 'Admin', modeler: 'Modeler', analyst: 'Analyst', status: 'Status', action: 'Action', editRole: 'Edit Role', resetPassword: 'Reset Password', drop: 'Drop', disable: 'Disable', enable: 'Enable', addUser: 'Add User', yes: 'Yes', cancel: 'Cancel'},
-    'zh-cn': {user: '用户', userName: '用户名', admin: '管理人员', modeler: '建模人员', analyst: '分析人员', status: '状态', action: '操作', editRole: '编辑角色', resetPassword: '重置密码', drop: '删除', disable: '禁用', enable: '启用', addUser: '添加用户', yes: '确定', cancel: '取消'}
+    'en': {user: 'User', userName: 'User Name', admin: 'Admin', modeler: 'Modeler', analyst: 'Analyst', status: 'Status', action: 'Action', editRole: 'Edit Role', resetPassword: 'Reset Password', drop: 'Drop', disable: 'Disable', enable: 'Enable', addUser: 'Add User', yes: 'Yes', cancel: 'Cancel', securityProfileTip: 'User management does not apply to the current security configuration, go to the correct permissions management page for editing.'},
+    'zh-cn': {user: '用户', userName: '用户名', admin: '管理人员', modeler: '建模人员', analyst: '分析人员', status: '状态', action: '操作', editRole: '编辑角色', resetPassword: '重置密码', drop: '删除', disable: '禁用', enable: '启用', addUser: '添加用户', yes: '确定', cancel: '取消', securityProfileTip: '用户管理不适用于当前安全配置，请前往正确的权限管理页面编辑。'}
   }
 }
 </script>

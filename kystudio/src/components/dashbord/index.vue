@@ -116,6 +116,7 @@
 
 <script>
 import { mapActions } from 'vuex'
+import { hasRole } from 'util/business'
 import Scrollbar from 'smooth-scrollbar'
 export default {
   methods: {
@@ -130,6 +131,9 @@ export default {
       this.$emit('addProject')
     },
     goto (routername, to, path) {
+      if (to === 'user' && !this.isAdmin) {
+        return
+      }
       this.$router.push({name: routername, params: {subaction: to}})
       this.$emit('changeCurrentPath', path)
     },
@@ -167,6 +171,9 @@ export default {
     },
     totalUsers () {
       return this.$store.state.user.usersSize || 0
+    },
+    isAdmin () {
+      return hasRole(this, 'ROLE_ADMIN')
     }
   },
   mounted () {

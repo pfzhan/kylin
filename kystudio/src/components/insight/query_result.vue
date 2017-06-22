@@ -133,7 +133,7 @@ export default {
       saveQueryToServer: 'SAVE_QUERY'
     }),
     refreshQuery () {
-      this.$emit('changeView', this.extraoption.index, this.extraoption, '', 'querypanel')
+      this.$emit('changeView', this.extraoption.index, this.extraoption, 'circle-o-notch', 'querypanel')
      // this.addTab('query', 'querypanel', queryObj)
     },
     exportData () {

@@ -10,6 +10,7 @@
         :value="item.name">
       </el-option>
     </el-select>
+    <el-input v-model="filterCube" icon="search" class="ksd-mb-10 ksd-ml-10 ksd-fleft" @change="filterChange" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
     <el-button type="blue" class="ksd-mb-10 ksd-fleft" v-if="isModeler" @click.native="addCube" style="font-weight: bold;border-radius: 20px;float: left;margin-left: 20px;">+{{$t('kylinLang.common.cube')}}</el-button>
   </el-row>
 
@@ -221,6 +222,7 @@ export default {
   props: ['extraoption'],
   data () {
     return {
+      lockST: null,
       btnLoading: false,
       cubesList: [],
       currentPage: 1,
@@ -264,7 +266,7 @@ export default {
   },
   watch: {
     currentModel (val) {
-      this.loadCubesList(0, val)
+      this.loadCubesList(0)
     }
   },
   methods: {
@@ -290,6 +292,12 @@ export default {
         modelName: '',
         projectName: ''
       }
+    },
+    filterChange () {
+      clearTimeout(this.lockST)
+      this.lockST = setTimeout(() => {
+        this.loadCubesList(this.currentPage - 1)
+      }, 1000)
     },
     checkName (rule, value, callback) {
       if (!/^\w+$/.test(value)) {
@@ -343,14 +351,18 @@ export default {
     showRowClass (o) {
       return o.is_draft ? 'is_draft' : ''
     },
-    loadCubesList: function (curPage, modelName) {
+    loadCubesList: function (curPage) {
       let _this = this
       let param = {pageSize: pageCount, pageOffset: curPage}
       if (localStorage.getItem('selected_project')) {
         param.projectName = localStorage.getItem('selected_project')
       }
-      if (modelName && modelName !== 'ALL') {
-        param.modelName = modelName
+      if (this.currentModel && this.currentModel !== 'ALL') {
+        param.modelName = this.currentModel
+      }
+      if (this.filterCube) {
+        param.cubeName = this.filterCube
+        param.exactMatch = false
       }
       if (this.extraoption && this.extraoption.cubeName) {
         param.cubeName = this.extraoption.cubeName
@@ -744,6 +756,12 @@ export default {
     }
     .cubeSearch {
       margin-bottom: 5px;
+      .el-input {
+        width:200px;
+        input{
+          border-color:#393e53;
+        }
+      }
     }
     .el-table {
       font-size: 12px;

@@ -245,7 +245,6 @@ export default {
       localStorage.setItem('queryCache', JSON.stringify(this.cacheQuery))
     },
     changeTab (index, data, icon, componentName) {
-      console.log(index, data, icon, componentName)
       let tabs = this.editableTabs
       for (var k = 0; k < tabs.length; k++) {
         if (tabs[k].index === index) {
