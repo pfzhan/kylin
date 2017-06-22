@@ -287,13 +287,13 @@ export default {
           analyst: false
         }
         user.authorities.forEach(function (role) {
-          if (role.authority === 'ROLE_ADMIN') {
+          if (role === 'ROLE_ADMIN') {
             newUser.admin = true
           }
-          if (role.authority === 'ROLE_MODELER') {
+          if (role === 'ROLE_MODELER') {
             newUser.modeler = true
           }
-          if (role.authority === 'ROLE_ANALYST') {
+          if (role === 'ROLE_ANALYST') {
             newUser.analyst = true
           }
         })

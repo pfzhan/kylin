@@ -98,6 +98,10 @@ public class KapMessage {
         return "Permission denied!";
     }
 
+    public String getUSER_EDIT_NOT_ALLOWED() {
+        return "User editing is not allowed unless in testing profile, please go to LDAP/SAML provider instead";
+    }
+
     public String getOLD_PASSWORD_WRONG() {
         return "Old password is not correct!";
     }

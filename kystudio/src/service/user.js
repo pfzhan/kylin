@@ -1,6 +1,6 @@
 import Vue from 'vue'
 import VueResource from 'vue-resource'
-import { apiUrl, baseUrl } from '../config'
+import { apiUrl } from '../config'
 
 Vue.use(VueResource)
 
@@ -28,7 +28,7 @@ export default {
     return Vue.resource(apiUrl + 'user/authentication').save()
   },
   loginOut: () => {
-    return Vue.resource(baseUrl + 'j_spring_security_logout').get()
+    return Vue.resource(apiUrl + 'j_spring_security_logout').get()
   },
   authentication: () => {
     return Vue.resource(apiUrl + 'user/authentication').get()

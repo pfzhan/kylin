@@ -38,6 +38,7 @@ import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.UserGrantedAuthority;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
@@ -48,7 +49,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -66,9 +66,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
-import io.kyligence.kap.rest.request.UserRequest;
-import io.kyligence.kap.rest.security.KapAuthenticationManager;
-import io.kyligence.kap.rest.security.KapAuthenticationManager.UserObj;
+import io.kyligence.kap.rest.request.PasswdChangeRequest;
 
 @Controller
 @Component("kapUserController")
@@ -80,9 +78,6 @@ public class KapUserController extends BasicController implements UserDetailsSer
     @Autowired
     @Qualifier("userService")
     private UserService userService;
-
-    @Autowired
-    private KapAuthenticationManager kapAuthenticationManager;
 
     private Pattern passwordPattern;
     private Pattern bcryptPattern;
@@ -97,16 +92,15 @@ public class KapUserController extends BasicController implements UserDetailsSer
         bcryptPattern = Pattern.compile("\\A\\$2a?\\$\\d\\d\\$[./0-9A-Za-z]{53}");
         pwdEncoder = new BCryptPasswordEncoder();
 
-        List<UserObj> all = listAllUsers();
+        List<ManagedUser> all = listAllUsers();
         logger.info("All " + all.size() + " users");
         if (all.isEmpty()) {
-            save("ADMIN", new UserObj("ADMIN", "KYLIN", true, Constant.ROLE_ADMIN, Constant.ROLE_ANALYST,
+            save("ADMIN", new ManagedUser("ADMIN", "KYLIN", true, Constant.ROLE_ADMIN, Constant.ROLE_ANALYST,
                     Constant.ROLE_MODELER));
-            save("ANALYST", new UserObj("ANALYST", "ANALYST", true, Constant.ROLE_ANALYST));
-            save("MODELER", new UserObj("MODELER", "MODELER", true, Constant.ROLE_MODELER, Constant.ROLE_MODELER));
+            save("ANALYST", new ManagedUser("ANALYST", "ANALYST", true, Constant.ROLE_ANALYST));
+            save("MODELER", new ManagedUser("MODELER", "MODELER", true, Constant.ROLE_MODELER, Constant.ROLE_MODELER));
         }
 
-        kapAuthenticationManager.addUser(all);
     }
 
     @Override
@@ -117,8 +111,13 @@ public class KapUserController extends BasicController implements UserDetailsSer
     @RequestMapping(value = "/{userName}", method = { RequestMethod.POST, RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public UserObj save(@PathVariable("userName") String userName, @RequestBody UserObj user) {
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public ManagedUser save(@PathVariable("userName") String userName, @RequestBody ManagedUser user) {
         KapMessage msg = KapMsgPicker.getMsg();
+
+        if (!"testing".equals(System.getProperty("spring.profiles.active"))) {
+            throw new BadRequestException(msg.getUSER_EDIT_NOT_ALLOWED());
+        }
 
         checkUserName(userName);
 
@@ -136,11 +135,11 @@ public class KapUserController extends BasicController implements UserDetailsSer
 
         // merge with existing user
         try {
-            UserObj existing = get(userName);
+            ManagedUser existing = get(userName);
             if (user.getPassword() == null)
                 user.setPassword(existing.getPassword());
-            if (user.getAuthorities() == null)
-                user.setAuthorities(existing.getAuthorities());
+            if (user.getAuthorities() == null || user.getAuthorities().isEmpty())
+                user.setGrantedAuthorities(existing.getAuthorities());
         } catch (UsernameNotFoundException ex) {
             // that is OK, we create new
         }
@@ -149,9 +148,8 @@ public class KapUserController extends BasicController implements UserDetailsSer
 
         logger.info("Saving " + user);
 
-        UserDetails details = userObjToDetails(user);
-        secureUpdateUser(details);
-        kapAuthenticationManager.addUser(user);
+        completeAuthorities(user);
+        userService.updateUser(user);
 
         return get(userName);
     }
@@ -159,8 +157,13 @@ public class KapUserController extends BasicController implements UserDetailsSer
     @RequestMapping(value = "/password", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse save(@RequestBody UserRequest user) {
+    //change passwd
+    public EnvelopeResponse save(@RequestBody PasswdChangeRequest user) {
         KapMessage msg = KapMsgPicker.getMsg();
+
+        if (!"testing".equals(System.getProperty("spring.profiles.active"))) {
+            throw new BadRequestException(msg.getUSER_EDIT_NOT_ALLOWED());
+        }
 
         if (!isAdmin() && !getPrincipal().equals(user.getUsername())) {
             throw new ForbiddenException(msg.getPERMISSION_DENIED());
@@ -175,7 +178,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
             throw new BadRequestException(msg.getINVALID_PASSWORD());
         }
 
-        UserObj existing = get(user.getUsername());
+        ManagedUser existing = get(user.getUsername());
         if (!isAdmin() && !pwdEncoder.matches(user.getPassword(), existing.getPassword())) {
             throw new BadRequestException(msg.getOLD_PASSWORD_WRONG());
         }
@@ -185,15 +188,10 @@ public class KapUserController extends BasicController implements UserDetailsSer
 
         logger.info("update password for user " + user);
 
-        UserDetails details = userObjToDetails(existing);
-        secureUpdateUser(details);
+        completeAuthorities(existing);
+        userService.updateUser(existing);
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, get(user.getUsername()), "");
-    }
-    
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    protected void secureUpdateUser(UserDetails userDetails) {
-        userService.updateUser(userDetails);
     }
 
     private String pwdEncode(String pwd) {
@@ -224,22 +222,26 @@ public class KapUserController extends BasicController implements UserDetailsSer
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getUser(@PathVariable("userName") String userName) throws UsernameNotFoundException {
-
+        KapMessage msg = KapMsgPicker.getMsg();
+        
+        if (!isAdmin() && !getPrincipal().equals(userName)) {
+            throw new ForbiddenException(msg.getPERMISSION_DENIED());
+        }
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, get(userName), "");
     }
 
-    private UserObj get(String userName) {
+    private ManagedUser get(String userName) {
         checkUserName(userName);
 
         UserDetails details = userService.loadUserByUsername(userName);
         if (details == null)
             return null;
-        UserObj user = userDetailsToObj(details);
-        return user;
+        return (ManagedUser) details;
     }
 
     @RequestMapping(value = "/users", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     @ResponseBody
     public EnvelopeResponse listAllUsers(
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
@@ -247,10 +249,8 @@ public class KapUserController extends BasicController implements UserDetailsSer
             throws IOException {
 
         HashMap<String, Object> data = new HashMap<String, Object>();
-        List<UserObj> result = Lists.newArrayList();
-        for (UserDetails details : userService.listUsers()) {
-            result.add(userDetailsToObj(details));
-        }
+        List<ManagedUser> result = listAllUsers();
+
         int offset = pageOffset * pageSize;
         int limit = pageSize;
 
@@ -274,7 +274,6 @@ public class KapUserController extends BasicController implements UserDetailsSer
     public void delete(@PathVariable("userName") String userName) {
 
         checkUserName(userName);
-        kapAuthenticationManager.removeUser(userName);
 
         userService.deleteUser(userName);
     }
@@ -283,59 +282,31 @@ public class KapUserController extends BasicController implements UserDetailsSer
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse listAllAuthorities() {
-
         try {
             List<String> result = userService.listUserAuthorities();
-            result.remove(DISABLED_ROLE);
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
         } catch (IOException e) {
             throw new InternalErrorException(e);
         }
     }
 
-    private static final String DISABLED_ROLE = "--disabled--";
-
-    private UserDetails userObjToDetails(UserObj obj) {
-        List<UserGrantedAuthority> detailRoles = Lists.newArrayList(obj.getAuthorities());
+    private void completeAuthorities(ManagedUser managedUser) {
+        List<UserGrantedAuthority> detailRoles = Lists.newArrayList(managedUser.getAuthorities());
         if (detailRoles.contains(ADMIN_AUTH)) {
             if (!detailRoles.contains(MODELER_AUTH)) {
                 logger.info("For ADMIN authority, add MODELER authority automatically");
                 detailRoles.add(MODELER_AUTH);
             }
-
         }
+
         if (detailRoles.contains(MODELER_AUTH)) {
             if (!detailRoles.contains(ANALYST_AUTH)) {
                 logger.info("For MODELER authority, add ANALYST authority automatically");
                 detailRoles.add(ANALYST_AUTH);
             }
         }
-        if (obj.isDisabled()) {
-            detailRoles.add(new UserGrantedAuthority(DISABLED_ROLE));
-        }
-        return new User(obj.getUsername(), obj.getPassword(), detailRoles);
-    }
 
-    private UserObj userDetailsToObj(UserDetails details) {
-        UserObj obj = new UserObj();
-
-        obj.setUsername(details.getUsername());
-        obj.setPassword(details.getPassword());
-
-        List<UserGrantedAuthority> roles = Lists.newArrayList();
-        if (details.getAuthorities() != null) {
-            for (GrantedAuthority a : details.getAuthorities()) {
-                if (DISABLED_ROLE.equals(a.getAuthority())) {
-                    obj.setDisabled(true);
-                    continue;
-                }
-                roles.add(new UserGrantedAuthority(a.getAuthority()));
-            }
-        }
-
-        obj.setAuthorities(roles);
-
-        return obj;
+        managedUser.setGrantedAuthorities(detailRoles);
     }
 
     private String getPrincipal() {
@@ -367,12 +338,8 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return isAdmin;
     }
 
-    public List<UserObj> listAllUsers() throws IOException {
-        List<UserObj> result = Lists.newArrayList();
-        for (UserDetails details : userService.listUsers()) {
-            result.add(userDetailsToObj(details));
-        }
-        return result;
+    public List<ManagedUser> listAllUsers() throws IOException {
+        return userService.listUsers();
     }
 
 }

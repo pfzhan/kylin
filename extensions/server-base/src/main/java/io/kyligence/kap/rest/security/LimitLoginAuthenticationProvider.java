@@ -24,9 +24,16 @@
 
 package io.kyligence.kap.rest.security;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+
+import org.apache.kylin.rest.security.ManagedUser;
+import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -35,41 +42,88 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import com.google.common.base.Preconditions;
+
 import io.kyligence.kap.rest.msg.KapMsgPicker;
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.Element;
 
 public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(LimitLoginAuthenticationProvider.class);
 
     @Autowired
-    private KapAuthenticationManager kapAuthenticationManager;
+    private CacheManager cacheManager;
+
+    @Autowired
+    @Qualifier("userService")
+    UserService userService;
+
+    private MessageDigest md = null;
+
+    public LimitLoginAuthenticationProvider() {
+        try {
+            md = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Failed to init Message Digest ", e);
+        }
+    }
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        String userName = null;
         Authentication auth = null;
-        try {
-            if (authentication instanceof UsernamePasswordAuthenticationToken)
-                userName = (String) authentication.getPrincipal();
-            if (kapAuthenticationManager.isUserLocked(userName)) {
-                long lockedTime = kapAuthenticationManager.getLockedTime(userName);
-                long timeDiff = System.currentTimeMillis() - lockedTime;
 
-                if (timeDiff > 30000) {
-                    kapAuthenticationManager.unlockUser(userName);
-                } else {
-                    int leftSeconds = (30 - timeDiff / 1000) <= 0 ? 1 : (int) (30 - timeDiff / 1000);
-                    String msg = String.format(KapMsgPicker.getMsg().getUSER_LOCK(), userName, leftSeconds);
-                    throw new LockedException(msg, new Throwable(userName));
-                }
-            }
+        Cache userCache = cacheManager.getCache("UserCache");
+        md.reset();
+        byte[] hashKey = md.digest((authentication.getName() + authentication.getCredentials()).getBytes());
+        String userKey = Arrays.toString(hashKey);
+        String userName = null;
+        Element authedUser = userCache.get(userKey);
 
-            auth = super.authenticate(authentication);
+        ManagedUser managedUser = null;
+
+        if (null != authedUser) {
+            auth = (Authentication) authedUser.getObjectValue();
             SecurityContextHolder.getContext().setAuthentication(auth);
             return auth;
-        } catch (BadCredentialsException e) {
-            kapAuthenticationManager.increaseWrongTime(userName);
-            throw e;
+        } else {
+            try {
+                if (authentication instanceof UsernamePasswordAuthenticationToken)
+                    userName = (String) authentication.getPrincipal();
+
+                if (userName != null) {
+                    managedUser = (ManagedUser) userService.loadUserByUsername(userName);
+                    Preconditions.checkNotNull(managedUser);
+                }
+
+                if (managedUser != null && managedUser.isLocked()) {
+                    long lockedTime = managedUser.getLockedTime();
+                    long timeDiff = System.currentTimeMillis() - lockedTime;
+
+                    if (timeDiff > 30000) {
+                        managedUser.setLocked(false);
+                        userService.updateUser(managedUser);
+                    } else {
+                        int leftSeconds = (30 - timeDiff / 1000) <= 0 ? 1 : (int) (30 - timeDiff / 1000);
+                        String msg = String.format(KapMsgPicker.getMsg().getUSER_LOCK(), userName, leftSeconds);
+                        throw new LockedException(msg, new Throwable(userName));
+                    }
+                }
+
+                auth = super.authenticate(authentication);
+                SecurityContextHolder.getContext().setAuthentication(auth);
+
+                userCache.put(new Element(userKey, auth));
+
+                return auth;
+            } catch (BadCredentialsException e) {
+                if (userName != null && managedUser != null) {
+                    managedUser.increaseWrongTime();
+                    userService.updateUser(managedUser);
+                }
+                throw e;
+            }
         }
     }
 

@@ -98,6 +98,10 @@ public class KapCnMessage extends KapMessage {
         return "没有权限!";
     }
 
+    public String getUSER_EDIT_NOT_ALLOWED() {
+        return "只有testing profile才允许编辑用户，请在LDAP/SAML管理软件中设置";
+    }
+
     public String getOLD_PASSWORD_WRONG() {
         return "原密码不正确!";
     }

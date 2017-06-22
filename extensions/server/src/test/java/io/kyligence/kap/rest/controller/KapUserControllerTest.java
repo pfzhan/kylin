@@ -35,7 +35,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import io.kyligence.kap.rest.security.KapAuthenticationManager.UserObj;
+import org.apache.kylin.rest.security.ManagedUser;
 import io.kyligence.kap.rest.service.ServiceTestBase;
 
 /**
@@ -53,22 +53,23 @@ public class KapUserControllerTest extends ServiceTestBase {
         kapUserController.delete("TEST");
 
         // save
-        UserObj u = kapUserController.save("TEST", new UserObj("TEST", "pwd", true, "R1", "R2", "R3"));
+        ManagedUser
+            u = kapUserController.save("TEST", new ManagedUser("TEST", "pwd", true, "R1", "R2", "R3"));
         assertEquals(u, "TEST", "pwd", false, "R1", "R2", "R3");
 
         // update
-        u = kapUserController.save("TEST", new UserObj("TEST", "pwd22", true, "R4", "R5"));
+        u = kapUserController.save("TEST", new ManagedUser("TEST", "pwd22", true, "R4", "R5"));
         assertEquals(u, "TEST", "pwd22", false, "R4", "R5");
 
         // disable
-        UserObj disable = new UserObj();
+        ManagedUser disable = new ManagedUser();
         disable.setDisabled(true);
         disable.setPassword("abc.1234");
         u = kapUserController.save("TEST", disable);
         assertEquals(u, "TEST", "abc.1234", true, "R4", "R5");
 
         // list all
-        for (UserObj uu : kapUserController.listAllUsers()) {
+        for (ManagedUser uu : kapUserController.listAllUsers()) {
             if ("TEST".equals(uu.getUsername())) {
                 assertEquals(u, "TEST", "abc.1234", true, "R4", "R5");
             }
@@ -90,7 +91,7 @@ public class KapUserControllerTest extends ServiceTestBase {
         }
     }
 
-    private void assertEquals(UserObj u, String username, String password, boolean disabled, String... authorities) {
+    private void assertEquals(ManagedUser u, String username, String password, boolean disabled, String... authorities) {
         Assert.assertEquals(username, u.getUsername());
         Assert.assertTrue(pwdEncoder.matches(password, u.getPassword()));
         Assert.assertEquals(disabled, u.isDisabled());

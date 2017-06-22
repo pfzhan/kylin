@@ -88,9 +88,6 @@
 			<property name="password" value="${kylin.security.ldap.connection-password}" />
 		</bean>
 
-        <bean id="authenticationUsersManager" class="io.kyligence.kap.rest.security.KapAuthenticationManager" scope="singleton">
-        </bean>
-		
 		<bean id="kylinUserAuthProvider" class="io.kyligence.kap.rest.security.KapAuthenticationProvider">
 			<constructor-arg>
 				<bean id="ldapUserAuthenticationProvider" class="org.springframework.security.ldap.authentication.LdapAuthenticationProvider">
@@ -166,9 +163,6 @@
 			<property name="passwordEncoder" ref="passwordEncoder" />
 		</bean>
 
-        <bean id="authenticationUsersManager" class="io.kyligence.kap.rest.security.KapAuthenticationManager" scope="singleton">
-        </bean>
-		
 		<scr:authentication-manager alias="testingAuthenticationManager">
 			<scr:authentication-provider ref="authenProvider" />
 		</scr:authentication-manager>
@@ -181,12 +175,6 @@
 
 			<!--KAP API-->
 			<scr:intercept-url pattern="/api/kap/system/license" access="permitAll" />
-			<scr:intercept-url pattern="/api/kap/user/password" access="isAuthenticated()" />
-			<scr:intercept-url pattern="/api/kap/user/**" method="POST" access="hasRole('ROLE_ADMIN')" />
-			<scr:intercept-url pattern="/api/kap/user/**" method="PUT" access="hasRole('ROLE_ADMIN')" />
-			<scr:intercept-url pattern="/api/kap/user/**" method="DELETE" access="hasRole('ROLE_ADMIN')" />
-			<scr:intercept-url pattern="/api/kap/user/users" access="hasRole('ROLE_ADMIN')" />
-			<scr:intercept-url pattern="/api/kap/user/**" access="isAuthenticated()" />
 			<scr:intercept-url pattern="/api/config/spark_status" access="permitAll" />
 
 
@@ -206,7 +194,8 @@
 			<scr:intercept-url pattern="/api/admin*/**" access="hasRole('ROLE_ADMIN')" />
 			<scr:intercept-url pattern="/api/**" access="isAuthenticated()" />
 
-			<scr:logout invalidate-session="true" delete-cookies="JSESSIONID" />
+			<scr:logout invalidate-session="true" delete-cookies="JSESSIONID" logout-url="/api/j_spring_security_logout" logout-success-url="/."/>
+
 			<scr:session-management session-fixation-protection="newSession" />
 		</scr:http>
 	</beans>
@@ -234,12 +223,6 @@
 
 			<!--KAP API-->
 			<scr:intercept-url pattern="/api/kap/system/license" access="permitAll" />
-			<scr:intercept-url pattern="/api/kap/user/password" access="isAuthenticated()" />
-			<scr:intercept-url pattern="/api/kap/user/**" method="POST" access="hasRole('ROLE_ADMIN')" />
-			<scr:intercept-url pattern="/api/kap/user/**" method="PUT" access="hasRole('ROLE_ADMIN')" />
-			<scr:intercept-url pattern="/api/kap/user/**" method="DELETE" access="hasRole('ROLE_ADMIN')" />
-			<scr:intercept-url pattern="/api/kap/user/users" access="hasRole('ROLE_ADMIN')" />
-			<scr:intercept-url pattern="/api/kap/user/**" access="isAuthenticated()" />
 			<scr:intercept-url pattern="/api/config/spark_status" access="permitAll" />
 
 
@@ -260,7 +243,7 @@
 			<scr:intercept-url pattern="/api/**" access="isAuthenticated()" />
 
 
-			<scr:logout invalidate-session="true" delete-cookies="JSESSIONID" />
+			<scr:logout invalidate-session="true" delete-cookies="JSESSIONID" logout-url="/api/j_spring_security_logout" logout-success-url="/."/>
 			<scr:session-management session-fixation-protection="newSession" />
 		</scr:http>
 

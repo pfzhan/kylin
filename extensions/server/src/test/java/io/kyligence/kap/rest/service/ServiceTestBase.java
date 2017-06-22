@@ -54,6 +54,8 @@ public class ServiceTestBase extends LocalFileMetadataTestCase {
 
     @BeforeClass
     public static void setupResource() throws Exception {
+        System.setProperty("spring.profiles.active", "testing");
+
         staticCreateTestMetadata();
         Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);

@@ -66,8 +66,8 @@ Vue.http.headers.common['Accept-Language'] = localStorage.getItem('kystudio_lang
 Vue.http.interceptors.push(function (request, next) {
   request.headers['Cache-Control'] = 'no-cache'
   request.headers['If-Modified-Since'] = '0'
-  if (request.url.indexOf('kylin/j_spring_security_logout') >= 0) {
-    request.headers.set('Accept', 'application/json, text/plain, */*')
+  if (request.url.indexOf('kylin/api/j_spring_security_logout') >= 0) {
+    request.headers.set('Accept', 'text/html')
   } else {
     request.headers.set('Accept', 'application/vnd.apache.kylin-v2+json')
   }
