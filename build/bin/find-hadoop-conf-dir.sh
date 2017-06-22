@@ -8,23 +8,21 @@ source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 if [[ "$kylin_hadoop_conf_dir" == "" ]]
 then
 
-    verbose Retrieving hadoop java opts...
+### Retrieve and export the system properties that involved by hadoop, it doesn't support CI_MODE now.
 
-    old_hadoop_cp=${HADOOP_CLASSPATH}
-    if [[ $CI_MODE == 'true' ]]; then
-        export HADOOP_CLASSPATH=`ls ${dir}/../../extensions/tool-assembly/target/kap-tool-assembly-*-assembly.jar`
-    else
+    if [[ $CI_MODE != 'true' ]]; then
+        verbose Retrieving hadoop java opts...
+        old_hadoop_cp=${HADOOP_CLASSPATH}
         export HADOOP_CLASSPATH=`ls ${KYLIN_HOME}/tool/kylin-tool-kap-*.jar`
+        extra_system_props=`$JAVA -cp ${HADOOP_CLASSPATH} io.kyligence.kap.engine.mr.tool.DumpHadoopSystemProps`  || quit "Faild to run io.kyligence.kap.engine.mr.tool.DumpHadoopSystemProps"
+        export HADOOP_CLASSPATH=${old_hadoop_cp}
+        verbose "The extra system properties that involved by Hadoop are: `cat ${extra_system_props}`"
+        source ${extra_system_props}
+        verbose "kylin_hadoop_opts is ${kylin_hadoop_opts}"
+        java_lib_path=`echo ${kylin_hadoop_opts} | sed -E -n "s/(.*)-Djava.library.path=([^[:space:]]*)(.*)/\2/"p`
+        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${java_lib_path}
+        verbose "LD_LIBRARY_PATH is ${LD_LIBRARY_PATH}"
     fi
-    kylin_hadoop_opts=`hadoop io.kyligence.kap.engine.mr.tool.DumpHadoopSystemProps  "hadoop"  "hdp.version"  "java.net.preferIP"  "java.library.path"`  || quit "Faild to run: hadoop io.kyligence.kap.engine.mr.tool.DumpHadoopSystemProps"
-    export HADOOP_CLASSPATH=${old_hadoop_cp}
-    export kylin_hadoop_opts
-    verbose "kylin_hadoop_opts is ${kylin_hadoop_opts}"
-    
-    java_lib_path=`echo ${kylin_hadoop_opts} | sed -E -n "s/(.*)-Djava.library.path=([^[:space:]]*)(.*)/\2/"p`
-    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${java_lib_path}
-    verbose "LD_LIBRARY_PATH is ${LD_LIBRARY_PATH}"
-
 
     verbose Retrieving hadoop config dir...
     

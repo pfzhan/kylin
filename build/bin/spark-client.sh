@@ -163,11 +163,6 @@ then
 # stop command
 elif [ "$1" == "stop" ]
 then
-    if [[ $CI_MODE == 'true' ]]
-    then
-        rm ${SPARK_HOME}/conf/hive-site.xml
-    fi
-
     if [ -f "${KYLIN_HOME}/spark_client_pid" ]
     then
         PID=`cat $KYLIN_HOME/spark_client_pid`
