@@ -102,17 +102,17 @@ public class ScheduleBuildJob implements Job {
             List<CubingJob> errorJobs = jobService.listJobsByRealizationName(cube.getName(),
                     schedulerInstance.getProject(), EnumSet.of(ExecutableState.ERROR, ExecutableState.STOPPED));
 
-            if (errorJobs.size() > 0) {
-                for (CubingJob job : errorJobs) {
-                    JobInstance jobInstance = jobService.getJobInstance(job.getId());
-                    CubeSegment segment = cube.getSegmentById(jobInstance.getRelatedSegment());
+            if (errorJobs.size() > 1) {
+                throw new InternalErrorException("Cube " + cube.getName() + " has more than one error/stopped jobs.");
+            } else if (errorJobs.size() == 1) {
+                CubingJob job = errorJobs.get(0);
+                JobInstance jobInstance = jobService.getJobInstance(job.getId());
+                CubeSegment segment = cube.getSegmentById(jobInstance.getRelatedSegment());
 
-                    if (segment != null && startTime == segment.getDateRangeStart()) {
-                        jobShouldBeResumed = true;
-                        errorJobId = job.getId();
-                        logger.info("Scheduled job " + jobName + " failed or stopped last time, resume it this time.");
-                        break;
-                    }
+                if (segment != null && startTime == segment.getDateRangeStart()) {
+                    jobShouldBeResumed = true;
+                    errorJobId = job.getId();
+                    logger.info("Scheduled job " + jobName + " failed or stopped last time, resume it this time.");
                 }
             }
 
