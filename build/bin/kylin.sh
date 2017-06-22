@@ -161,9 +161,14 @@ then
         ${dir}/spark-client.sh start
     fi
 
-    # get KYLIN_EXTRA_START_OPTS
+    #retrive $KYLIN_EXTRA_START_OPTS
     if [ -f "${dir}/setenv.sh" ]; then
+        echo "WARNING: ${dir}/setenv.sh is deprecated and ignored, please remove it and use ${KYLIN_HOME}/conf/setenv.sh instead"
         source ${dir}/setenv.sh
+    fi
+    
+    if [ -f "${KYLIN_HOME}/conf/setenv.sh" ]; then
+        source ${KYLIN_HOME}/conf/setenv.sh
     fi
 
     verbose "java opts is ${KYLIN_EXTRA_START_OPTS} ${KYLIN_TOMCAT_OPTS}"
