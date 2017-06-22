@@ -35,7 +35,7 @@ cp -r ../extensions/examples/sample_cube ${package_name}
 if [ -f "kybot/diag.sh" ]; then
     mv kybot/diag.sh ${package_name}/bin
 fi
-cp -rf VERSION commit_SHA1 lib tool kybot tomcat spark ${package_name}/
+cp -rf VERSION commit_SHA1 ext lib tool kybot tomcat spark ${package_name}/
 
 # Add min/prod profiles
 cp -rf conf/profile_min ${package_name}/conf
@@ -65,7 +65,7 @@ mv kylin_job_conf_inmem.xml ${package_name}/conf/
 ln -sfn profile/kylin-kafka-consumer.xml kylin-kafka-consumer.xml
 mv kylin-kafka-consumer.xml ${package_name}/conf/
 
-rm -rf lib tomcat commit_SHA1 VERSION # keep the spark folder on purpose
+rm -rf ext lib tomcat commit_SHA1 VERSION # keep the spark folder on purpose
 
 ## comment all default properties, and append them to the user visible kylin.properties
 ## first 16 lines are license, just skip them
