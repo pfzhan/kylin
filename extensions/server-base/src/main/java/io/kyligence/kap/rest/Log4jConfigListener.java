@@ -71,6 +71,7 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
     private void gatherLicenseInfo() {
         File kylinHome = KapConfig.getKylinHomeAtBestEffort();
         gatherLicense(kylinHome);
+        gatherVersion(kylinHome);
         gatherCommits(kylinHome);
         gatherEnv();
         checkParallelScale();
@@ -101,7 +102,8 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
         });
         if (listFiles.length > 0) {
             try {
-                BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(listFiles[0]), "UTF-8"));
+                BufferedReader in = new BufferedReader(
+                        new InputStreamReader(new FileInputStream(listFiles[0]), "UTF-8"));
                 String statement = "";
                 String l;
                 while ((l = in.readLine()) != null) {
@@ -109,7 +111,7 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
                         System.setProperty("kap.license.statement", statement);
 
                         String version = in.readLine();
-                        System.setProperty("kap.version", version);
+                        System.setProperty("kap.license.version", version);
 
                         String dates = in.readLine();
                         System.setProperty("kap.dates", dates);
@@ -117,10 +119,30 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
                         String license = in.readLine();
                         System.setProperty("kap.license", license);
 
-                        licenseLog.info("KAP License:\n" + statement + "====\n" + version + "\n" + dates + "\n" + license);
+                        licenseLog.info(
+                                "KAP License:\n" + statement + "====\n" + version + "\n" + dates + "\n" + license);
                         break;
                     }
                     statement += l + "\n";
+                }
+                in.close();
+            } catch (IOException ex) {
+                licenseLog.error("", ex);
+            }
+        }
+    }
+
+    private void gatherVersion(File kylinHome) {
+        File versionFile = new File(kylinHome, "VERSION");
+        if (versionFile.exists()) {
+            try {
+                BufferedReader in = new BufferedReader(
+                        new InputStreamReader(new FileInputStream(versionFile), "UTF-8"));
+                String l;
+                while ((l = in.readLine()) != null) {
+                    System.setProperty("kap.version", l);
+                    licenseLog.info("KAP Version: " + l + "\n");
+                    break;
                 }
                 in.close();
             } catch (IOException ex) {
@@ -173,7 +195,8 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
         }
 
         if (parallel > 0) {
-            Executors.newScheduledThreadPool(1).scheduleAtFixedRate(new ParallelScaleChecker(parallel), 5, 10, TimeUnit.MINUTES);
+            Executors.newScheduledThreadPool(1).scheduleAtFixedRate(new ParallelScaleChecker(parallel), 5, 10,
+                    TimeUnit.MINUTES);
         }
     }
 
