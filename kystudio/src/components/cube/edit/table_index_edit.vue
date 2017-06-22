@@ -246,7 +246,6 @@ export default {
       })
     },
     getBaseColumnsData: function () {
-      console.log(this.rawTable.tableDetail, 998)
       let baseEncodings = loadBaseEncodings(this.$store.state.datasource)
       let _this = this
       _this.modelDesc.dimensions.forEach(function (dimension) {

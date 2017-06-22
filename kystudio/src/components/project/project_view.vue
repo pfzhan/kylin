@@ -33,12 +33,6 @@ export default {
   },
   created () {
     this.loadProjects()
-  },
-  mounted () {
-    console.log(2)
-  },
-  updated () {
-    console.log(3)
   }
 }
 </script>

@@ -210,6 +210,9 @@ export default {
 </script>
 <style lang="less">
 .partitionBox {
+  .el-form-item{
+    margin-bottom: 12px;
+  }
   .el-form-item__label{
     float:left!important;
   }

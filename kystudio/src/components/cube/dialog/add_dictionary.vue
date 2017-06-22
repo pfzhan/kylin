@@ -58,7 +58,6 @@ export default {
       _this.cubeDesc.measures.forEach(function (measure) {
         if (measure.function.parameter.type === 'column' && _this.factColumns.indexOf(measure.function.parameter.value) === -1) {
           _this.factColumns.push(measure.function.parameter.value)
-          console.log(_this.factColumns.indexOf(measure.function.parameter.value))
         }
       })
     }

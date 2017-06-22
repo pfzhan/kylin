@@ -303,7 +303,6 @@ export default {
             changeObjTree(obj[i], base + i)
             continue
           }
-          console.log(base + i, obj[i])
           columnList.push(createNewObj(base + i, obj[i]))
         }
       }

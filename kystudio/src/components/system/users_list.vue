@@ -215,7 +215,6 @@ export default {
           authorities: []
         }
       }
-      console.log(user.detail)
       if (data.admin) {
         user.detail.authorities.push('ROLE_ADMIN')
       }
@@ -242,7 +241,6 @@ export default {
       this.$refs['resetPassword'].$refs['resetPasswordForm'].resetFields()
     },
     reset: function (userDetail) {
-      console.log('userDetail :', userDetail)
       this.selected_user = userDetail
       this.resetPasswordFormVisible = true
     },

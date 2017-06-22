@@ -507,6 +507,9 @@ export default {
         height: 43px;
         margin-top: 4px;
         border-radius: 4px 4px 0 0;
+        &.is-active {
+            background-color: #393e53!important;
+        }
       }
       &>.el-tabs__content{
         background-color: #393e53;

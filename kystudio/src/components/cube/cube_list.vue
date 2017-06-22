@@ -421,7 +421,8 @@ export default {
         project: cube.project,
         cubeName: cube.name,
         modelName: cube.model,
-        isEdit: true
+        isEdit: true,
+        cubeStatus: cube.status
       })
     },
     build: function (cube) {

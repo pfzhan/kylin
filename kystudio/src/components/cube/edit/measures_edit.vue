@@ -71,7 +71,7 @@
       </template>
     </el-table-column>                     
   </el-table>
-   <el-button type="primary" icon="plus" @click="addMeasure" class="ksd-mb-20">{{$t('addMeasure')}}</el-button>  
+   <el-button type="blue" icon="plus" :disabled="isReadyCube" @click="addMeasure" class="ksd-mb-20">{{$t('addMeasure')}}</el-button>  
       <el-row v-if="!isPlusVersion">
         <el-col :span="24">{{$t('advancedColumnFamily')}}</el-col>
       </el-row> 
@@ -100,7 +100,7 @@
             </template>
         </el-table-column>                                              
       </el-table>   
-     <el-button type="primary" icon="plus" v-if="!isPlusVersion" @click="addColumnFamily">
+     <el-button type="blue" icon="plus" v-if="!isPlusVersion" @click="addColumnFamily">
       {{$t('addColumnFamily')}}</el-button>      
   
   <el-dialog :title="$t('editMeasure')" v-model="measureFormVisible" top="5%" size="small">

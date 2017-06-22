@@ -29,7 +29,6 @@ export default {
     }
   },
   created () {
-    console.log('convertedProperties ---- ', this.convertedProperties)
     this.convertedPropertiesItem = this.convertedProperties.slice(0, this.pageSize)
   },
   methods: {

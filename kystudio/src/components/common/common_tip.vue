@@ -1,5 +1,5 @@
 <template>
-	<span>
+	<span class="tip_box">
 		<el-tooltip :content="tips" :placement="placement||'top'">
      <div slot="content" v-html="content" v-if="content"></div>
 		  <span class="icon"><slot></slot></span>
@@ -17,9 +17,11 @@
     props: ['tips', 'content', 'trigger', 'placement']
   }
 </script>
-<style scoped>
+<style lang="less">
+.tip_box{
   .icon{
     font-size: 12px;
     vertical-align: sub;
   }
+} 
 </style>

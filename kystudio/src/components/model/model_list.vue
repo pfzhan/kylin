@@ -26,7 +26,7 @@
 		    </p>
 		      <div style="padding: 20px;">
 		        <h2 :title="o.name" >
-            <el-tooltip class="item" effect="dark" :content="o.name|omit(24, '...')" placement="top">
+            <el-tooltip class="item" effect="dark" :content="o.name" placement="top">
               <span @click="viewModel(o)">{{o.name|omit(24, '...')}}</span>
             </el-tooltip>
            <common-tip :content="o.diagnose&&o.diagnose.messages.join('<br/>')" v-if="o.diagnose&&o.diagnose.heathStatus!=='RUNNING'">
@@ -51,7 +51,10 @@
       :label="$t('kylinLang.model.modelNameGrid')"
       width="180">
        <template scope="scope" >
-         <span @click="viewModel(scope.row)" style="cursor:pointer;">{{scope.row.name}}</span>
+          <el-tooltip class="item" effect="dark" :content="scope.row&&scope.row.name" placement="top">
+              <span @click="viewModel(scope.row)">{{scope.row.name|omit(24, '...')}}</span>
+          </el-tooltip>
+         <!-- <span @click="viewModel(scope.row)" style="cursor:pointer;">{{scope.row.name}}</span> -->
        </template>
     </el-table-column>
     <el-table-column
@@ -106,7 +109,7 @@
 
 		<pager class="ksd-center" ref="pager"  :totalSize="modelsTotal"  v-on:handleCurrentChange='pageCurrentChange' ></pager>
 
-    <el-dialog title="Clone Model" v-model="cloneFormVisible">
+    <el-dialog title="Clone Model" v-model="cloneFormVisible" size="tiny">
       <el-form :model="cloneModelMeta" :rules="cloneFormRule" ref="cloneForm">
         <el-form-item :label="$t('modelName')" prop="newName">
           <el-input v-model="cloneModelMeta.newName" auto-complete="off"></el-input>
@@ -697,7 +700,6 @@ export default {
     },
     getModelDataByUuid (uuid) {
       var modelsList = this.$store.state.model.modelsList
-      console.log(modelsList)
       for (var k = 0; k < modelsList.length; k++) {
         if (modelsList[k].uuid === uuid) {
           return modelsList[k]

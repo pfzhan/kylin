@@ -58,7 +58,6 @@
     },
     methods: {
       addTab (tabType, title, componentName, extraData) {
-        console.log(arguments)
         let tabs = this.editableTabs
         let hasTab = false
         tabs.forEach((tab, index) => {
@@ -79,7 +78,6 @@
           })
         }
         this.activeName = tabType + title
-        console.log(this.activeName)
       },
       reloadTab (moduleName) {
         this.$refs.modelSubMenu.reload(moduleName)

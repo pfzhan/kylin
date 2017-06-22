@@ -8,7 +8,8 @@
 				    {{$t('kylinLang.common.projects')}}
 				  </div>
 			    <a class="btn-addProject" href="javascript:;" @click="addProject">+{{$t('kylinLang.common.project')}}</a>
-					<section data-scrollbar id="project_scroll_box">
+					 <img src="../../assets/img/no_project.png" class="null_pic" v-if="!(projectList && projectList.length)">
+                    <section data-scrollbar id="project_scroll_box">
 					  <div v-for="o in projectList" :key="o.uuid" class="text item" @click="selectProject(o.name)" style="cursor:pointer">
 					    {{o.name}}
 					  </div>
@@ -101,8 +102,8 @@
     <el-col :span="9">
       <div class="grid-content bg-purple">
         <el-card class="box-card">
-          <div slot="header" class="clearfix">
-            <span>{{$t('kylinLang.common.qa')}}</span>
+          <div slot="header" class="clearfix" >
+            <a target="_blank" href="https://kybot.io/#/kybot/kb" style="color:#fff; text-decoration:none;"><span>{{$t('kylinLang.common.qa')}}</span></a>
           </div>
           <div v-for="o in blogsList" :key="o.title" class="text item">
             <a :href="o.link" target="_blank">{{o.title }}</a>
@@ -145,6 +146,9 @@ export default {
       localStorage.setItem('selected_project', projectName)
       this.$emit('changeCurrentPath', '/studio/model')
       this.$router.push('studio/model')
+    },
+    gotooutlink (hr) {
+      location.href = hr
     }
   },
   data () {
@@ -199,6 +203,9 @@ export default {
 		color: @fff;
 	}
 	#dashbord{
+        .null_pic{
+          margin-left: -75px;
+        }
 		margin: 0 30px 0 30px;
 		.el-card.box-project {
 			height: 590px;

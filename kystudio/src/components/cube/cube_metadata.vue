@@ -27,29 +27,22 @@ export default {
       draftCube: 'DRAFT_CUBE'
     }),
     update: function () {
-      kapConfirm('确认保存Cube？').then(() => {
+      kapConfirm(this.$t('kylinLang.cube.saveCubeTip')).then(() => {
         var action = 'draftCube'
         if (!JSON.parse(this.json).is_draft) {
           action = 'updateCube'
         }
-        console.log(action)
         this.saveData.cubeDescData = this.json
         this[action](this.saveData).then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
             this.$message({
               type: 'success',
-              message: '保存成功!'
+              message: this.$t('kylinLang.common.saveSuccess')
             })
           })
           this.$emit('removetabs', 'edit' + this.extraoption.cubeName)
         }, (res) => {
           handleError(res)
-        })
-      }).catch((e) => {
-        console.log(e)
-        this.$message({
-          type: 'info',
-          message: e || '已取消保存'
         })
       })
     }

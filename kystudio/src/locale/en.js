@@ -107,6 +107,7 @@ exports.default = {
     resetCheckDataTip: 'Please note that model check results would be inconsistent with the new editing. So model check results would be dropped after the new editing saved.'
   },
   cube: {
+    saveCubeTip: 'Confirm save the cube?',
     cubeName: 'Cube Name',
     scheduler: 'Scheduler',
     merge: 'Merge Settings',

@@ -32,10 +32,10 @@
           <el-button type="danger" icon="minus" size="mini" @click.native="removeTimeRange(index)"></el-button>
         </el-col>                
       </el-row>
-      <el-button class="btn_margin"  icon="plus" @click.native="addNewTimeRange">{{$t('newThresholds')}} </el-button>
+      <el-button class="btn_margin ksd-mt-8"  icon="plus" @click.native="addNewTimeRange">{{$t('newThresholds')}} </el-button>
     </el-col>  
   </el-row>
-  <div class="line" style="margin: 0px -30px 0 -30px;"></div>
+  <div class="line" style="margin: 8px -30px 8px -30px;"></div>
   <el-row class="row_padding">
     <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('retentionThreshold')}} </el-col>
     <el-col :span="6">
@@ -53,7 +53,7 @@
     </el-col>
   </el-row>
 
- <div class="line" style="margin: 0px -30px 0 -30px;"></div>
+ <div class="line" style="margin: 6px -30px 6px -30px;"></div>
  <h2 class="ksd-mt-40 ksd-ml-40"><el-checkbox v-model="$store.state.cube.cubeSchedulerIsSetting"><span style="font-size:16px;">{{$t('kylinLang.cube.scheduler')}} <common-tip :content="$t('kylinLang.cube.schedulerTip')" ><icon name="question-circle-o"></icon></common-tip></span></el-checkbox></h2>
    <el-row class="row_padding">
     <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('buildTrigger')}} </el-col>
@@ -153,7 +153,6 @@ export default {
       let _day = Math.floor(data.partition_interval / 86400000)
       let _hour = Math.floor(data.partition_interval / 3600000)
       var _minute = Math.floor(data.partition_interval / 60000)
-      console.log(_week, _day, _hour, _minute, 8899)
       if (_week === 0) {
         if (_day === 0) {
           if (_hour === 0) {

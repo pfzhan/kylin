@@ -106,6 +106,7 @@ exports.default = {
     resetCheckDataTip: '请注意，模型检测结果将与最新编辑不一致。当您保存了最新编辑，模型检测结果将会被删除。'
   },
   cube: {
+    saveCubeTip: '确认保存该Cube吗？',
     cubeName: 'Cube 名称',
     scheduler: '构建调度器',
     maxGroupColumn: '最大维度组合数：',

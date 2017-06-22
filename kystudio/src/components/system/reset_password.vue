@@ -34,14 +34,14 @@ export default {
     return {
       rules: {
         oldPassword: [
-        { required: true, message: '', trigger: 'change' }
+        { required: true, message: this.$t('kylinLang.common.pleaseInput'), trigger: 'change' }
         ],
         password: [
-        { required: true, message: '', trigger: 'change' },
+        { required: true, message: this.$t('kylinLang.common.pleaseInput'), trigger: 'change' },
         {validator: this.validate, trigger: 'blur'}
         ],
         confirmPassword: [
-        { required: true, message: '', trigger: 'change' },
+        { required: true, message: this.$t('kylinLang.common.pleaseInput'), trigger: 'change' },
         {validator: this.validatePass, trigger: 'blur'}
         ]
       }
@@ -88,6 +88,8 @@ export default {
 </script>
 <style lang="less">
 .reset_password {
-
+  .el-input {
+    padding: 0
+  }
 }
 </style>

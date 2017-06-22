@@ -144,7 +144,7 @@
               </el-table-column>
             </el-table>
             <br/>
-            <el-button type="primary" v-if="actionMode!=='view'" @click="addJoinCondition(currentLinkData.source.guid,currentLinkData.target.guid, '', '', currentLinkData.joinType,true)">{{$t('addJoinCondition')}}</el-button>
+            <el-button type="blue" v-if="actionMode!=='view'" @click="addJoinCondition(currentLinkData.source.guid,currentLinkData.target.guid, '', '', currentLinkData.joinType,true)">{{$t('addJoinCondition')}}</el-button>
         </span>
          <span slot="footer" class="dialog-footer">
             <el-button type="primary" @click="saveLinks(currentLinkData.source.guid,currentLinkData.target.guid)">{{$t('kylinLang.common.ok')}}</el-button>
@@ -768,7 +768,6 @@ export default {
     },
     // dimension and measure and disable
     changeColumnBType: function (id, columnName, columnBType, isComputed) {
-      console.log(arguments, 90)
       if (this.actionMode === 'view') {
         return
       }
@@ -1371,7 +1370,6 @@ export default {
         return
       }
       var rootFact = this.getRootFact()
-      console.log(rootFact, 'sdde')
       if (rootFact.length && rootFact[0].guid === guid) {
         return
       }
@@ -2311,8 +2309,14 @@ export default {
      }
    }
    .links_dialog{
+    .el-table__row{
+      background-color: #393e53;
+    }
+    .linksTable.el-table::after {
+      background-color: #393e53;
+    }
     .el-dialog__body .el-input {
-      background-color: #292b38;
+      // background-color: #292b38;
       padding: 0;
     }
      p{

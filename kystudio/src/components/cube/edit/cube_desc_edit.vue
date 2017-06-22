@@ -539,7 +539,7 @@ export default {
           this.$message({
             type: 'success',
             duration: 3000,
-            message: '保存成功!'
+            message: this.$t('kylinLang.common.saveSuccess')
           })
           this.$emit('reload', 'cubeList')
           this.$emit('removetabs', 'cube' + this.extraoption.cubeName, 'Overview')
@@ -550,13 +550,8 @@ export default {
       })
     },
     saveOrUpdate: function () {
-      this.$confirm('确认保存Cube？', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(() => {
+      kapConfirm(this.$t('kylinLang.cube.saveCubeTip')).then(() => {
         this.saveCube()
-      }).catch((e) => {
       })
     },
     // saveOrUpdateRawTable: function () {
@@ -695,11 +690,13 @@ export default {
               loadScheduler(true)
             }).catch(() => {
               this.cubeDetail = data.cube
+              this.cubeDetail.status = this.extraoption.cubeStatus
               loadRowTable(false)
               loadScheduler(false)
             })
           } else {
             if (data.cube) {
+              this.cubeDetail.status = this.extraoption.cubeStatus
               loadRowTable(false)
               loadScheduler(false)
             } else {

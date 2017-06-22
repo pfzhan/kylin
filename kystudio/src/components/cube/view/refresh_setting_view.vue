@@ -48,7 +48,6 @@ export default {
   },
   created () {
     let _this = this
-    console.log(_this.cubeDesc.scheduler, 99001)
     if (!_this.cubeDesc.scheduler) {
       _this.getScheduler(this.cubeDesc.name).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {

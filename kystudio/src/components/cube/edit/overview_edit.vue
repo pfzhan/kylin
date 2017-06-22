@@ -5,7 +5,7 @@
   border class="table_margin"
   style="width: 100%">
       <el-table-column
-      width="180">
+      width="120">
       <template scope="scope">
         {{$t(scope.row.label)}}
       </template>

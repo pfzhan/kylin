@@ -20,7 +20,7 @@
             <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 0" type="info" :useload="true" @click.native="collectSampleDialogOpen" ref="sampleBtn">{{$t('samplingBtn')}}</kap-icon-button>
             <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 1" type="info" :useload="true" @click.native="collectKafkaSampleDialogOpen" ref="kafkaSampleBtn">{{$t('samplingBtn')}}(Streaming)</kap-icon-button>
   <!--           <el-button type="danger" @click.native="unloadTable" icon="delete2">Unload</el-button> -->
-            <p style="font-size:12px;margin-top:10px;text-align:right;padding-right:4px;">{{$t('kylinLang.dataSource.lastModified')}} {{extendData.last_modified}}</p>
+            <p style="font-size:12px;margin-top:5px;text-align:right;padding-right:4px;">{{$t('kylinLang.dataSource.lastModified')}} {{extendData.last_modified}}</p>
         </div>
       	<el-tabs v-model="activeName" class="ksd-mt-40 clear" v-show="tableData" id="datasource-table">
 		    <el-tab-pane :label="$t('kylinLang.dataSource.columns')" name="first">
@@ -67,8 +67,8 @@
 			    </el-table-column>
 			  </el-table>
 		    </el-tab-pane>
-		    <el-tab-pane :label="$t('kylinLang.dataSource.extendInfo')" name="second">
-		    	<table class="extendinfo_table" v-if="extendData.data_source_properties" >
+		    <el-tab-pane :label="$t('kylinLang.dataSource.extendInfo')" name="second" >
+		    	<table class="extendinfo_table" v-if="extendData.data_source_properties">
 		    		<tr>
 		    			<th>TABLE NAME:</th>
 		    			<td>{{tableData.name}}</td>
@@ -989,6 +989,7 @@ export default {
 		}
 	}
 	.extendinfo_table {
+    color:#d4d7e3;
 		width: 100%;
 		tr{
 			border-top:solid 1px #ccc;
@@ -1002,7 +1003,7 @@ export default {
 			text-align: right;
 			width: 200px;
 			font-weight: normal;
-			font-size: 14px;
+			font-size: 12px;
 		}
 		td{
 			padding: 10px;

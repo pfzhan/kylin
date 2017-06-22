@@ -160,7 +160,6 @@ export function hasPermissionOfCube (vue, cubeId) {
       }
     })
   }
-  console.log(hasPermission, 89111)
   return hasPermission
 }
 
