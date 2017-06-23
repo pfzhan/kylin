@@ -27,7 +27,9 @@ package io.kyligence.kap.rest.security;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
@@ -43,18 +45,26 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.google.common.base.Preconditions;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 
 import io.kyligence.kap.rest.msg.KapMsgPicker;
-import net.sf.ehcache.Cache;
-import net.sf.ehcache.CacheManager;
-import net.sf.ehcache.Element;
 
 public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(LimitLoginAuthenticationProvider.class);
 
-    @Autowired
-    private CacheManager cacheManager;
+    private final static com.google.common.cache.Cache<String, Authentication> userCache = CacheBuilder.newBuilder()
+            .maximumSize(KylinConfig.getInstanceFromEnv().getServerUserCacheMaxEntries())
+            .expireAfterWrite(KylinConfig.getInstanceFromEnv().getServerUserCacheExpireSeconds(), TimeUnit.SECONDS)
+            .removalListener(new RemovalListener<String, Authentication>() {
+                @Override
+                public void onRemoval(RemovalNotification<String, Authentication> notification) {
+                    LimitLoginAuthenticationProvider.logger.debug("User cache {} is removed due to {}",
+                            notification.getKey(), notification.getCause());
+                }
+            }).build();
 
     @Autowired
     @Qualifier("userService")
@@ -72,19 +82,21 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        Authentication auth = null;
 
-        Cache userCache = cacheManager.getCache("UserCache");
         md.reset();
         byte[] hashKey = md.digest((authentication.getName() + authentication.getCredentials()).getBytes());
         String userKey = Arrays.toString(hashKey);
-        String userName = null;
-        Element authedUser = userCache.get(userKey);
+        
+        if (userService.isEvictCacheFlag()) {
+            userCache.invalidateAll();
+            userService.setEvictCacheFlag(false);
+        }
+        Authentication auth = userCache.getIfPresent(userKey);
 
         ManagedUser managedUser = null;
+        String userName = null;
 
-        if (null != authedUser) {
-            auth = (Authentication) authedUser.getObjectValue();
+        if (null != auth) {
             SecurityContextHolder.getContext().setAuthentication(auth);
             return auth;
         } else {
@@ -114,7 +126,7 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
                 auth = super.authenticate(authentication);
                 SecurityContextHolder.getContext().setAuthentication(auth);
 
-                userCache.put(new Element(userKey, auth));
+                userCache.put(userKey, auth);
 
                 return auth;
             } catch (BadCredentialsException e) {

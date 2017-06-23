@@ -27,7 +27,9 @@ package io.kyligence.kap.rest.security;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
@@ -45,22 +47,30 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.Assert;
 
 import com.google.common.base.Preconditions;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 
 import io.kyligence.kap.rest.msg.KapMsgPicker;
-import net.sf.ehcache.Cache;
-import net.sf.ehcache.CacheManager;
-import net.sf.ehcache.Element;
 
 public class KapAuthenticationProvider implements AuthenticationProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(KapAuthenticationProvider.class);
 
+    private final static com.google.common.cache.Cache<String, Authentication> userCache = CacheBuilder.newBuilder()
+            .maximumSize(KylinConfig.getInstanceFromEnv().getServerUserCacheMaxEntries())
+            .expireAfterWrite(KylinConfig.getInstanceFromEnv().getServerUserCacheExpireSeconds(), TimeUnit.SECONDS)
+            .removalListener(new RemovalListener<String, Authentication>() {
+                @Override
+                public void onRemoval(RemovalNotification<String, Authentication> notification) {
+                    KapAuthenticationProvider.logger.debug("User cache {} is removed due to {}", notification.getKey(),
+                            notification.getCause());
+                }
+            }).build();
+
     @Autowired
     @Qualifier("userService")
     UserService userService;
-
-    @Autowired
-    private CacheManager cacheManager;
 
     //Embedded authentication provider
     private AuthenticationProvider authenticationProvider;
@@ -80,19 +90,22 @@ public class KapAuthenticationProvider implements AuthenticationProvider {
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        Authentication authed = null;
 
-        Cache userCache = cacheManager.getCache("UserCache");
         md.reset();
         byte[] hashKey = md.digest((authentication.getName() + authentication.getCredentials()).getBytes());
         String userKey = Arrays.toString(hashKey);
-        String userName = null;
-        Element authedUser = userCache.get(userKey);
+
+        if (userService.isEvictCacheFlag()) {
+            userCache.invalidateAll();
+            userService.setEvictCacheFlag(false);
+        }
+        
+        Authentication authed = userCache.getIfPresent(userKey);
 
         ManagedUser managedUser = null;
+        String userName = null;
 
-        if (null != authedUser) {
-            authed = (Authentication) authedUser.getObjectValue();
+        if (null != authed) {
             SecurityContextHolder.getContext().setAuthentication(authed);
         } else {
             try {
@@ -120,7 +133,34 @@ public class KapAuthenticationProvider implements AuthenticationProvider {
 
                 authed = authenticationProvider.authenticate(authentication);
 
-                userCache.put(new Element(userKey, authed));
+                //update the user because LDAP authed may bring new authorities
+                ManagedUser user;
+
+                if (authed.getDetails() == null) {
+                    //authed.setAuthenticated(false);
+                    throw new UsernameNotFoundException(
+                            "User not found in LDAP, check whether he/she has been added to the groups.");
+                }
+
+                if (authed.getDetails() instanceof UserDetails) {
+                    UserDetails details = (UserDetails) authed.getDetails();
+                    user = new ManagedUser(details.getUsername(), details.getPassword(), false,
+                            details.getAuthorities());
+                } else {
+                    user = new ManagedUser(authentication.getName(), "skippped-ldap", false, authed.getAuthorities());
+                }
+
+                Assert.notNull(user, "The UserDetail is null.");
+
+                logger.debug("User {} authorities : {}", user.getUsername(), user.getAuthorities());
+
+                if (!userService.userExists(user.getUsername())) {
+                    userService.createUser(user);
+                } else {
+                    userService.updateUser(user);
+                }
+
+                userCache.put(userKey, authed);
             } catch (AuthenticationException e) {
                 if (userName != null && managedUser != null) {
                     managedUser.increaseWrongTime();
@@ -132,30 +172,6 @@ public class KapAuthenticationProvider implements AuthenticationProvider {
 
             logger.debug("Authenticated user " + authed.toString());
 
-            ManagedUser user;
-
-            if (authed.getDetails() == null) {
-                //authed.setAuthenticated(false);
-                throw new UsernameNotFoundException(
-                        "User not found in LDAP, check whether he/she has been added to the groups.");
-            }
-
-            if (authed.getDetails() instanceof UserDetails) {
-                UserDetails details = (UserDetails) authed.getDetails();
-                user = new ManagedUser(details.getUsername(), details.getPassword(), false, details.getAuthorities());
-            } else {
-                user = new ManagedUser(authentication.getName(), "skippped-ldap", false, authed.getAuthorities());
-            }
-
-            Assert.notNull(user, "The UserDetail is null.");
-
-            logger.debug("User authorities :" + user.getAuthorities());
-
-            if (!userService.userExists(user.getUsername())) {
-                userService.createUser(user);
-            } else {
-                userService.updateUser(user);
-            }
         }
 
         return authed;

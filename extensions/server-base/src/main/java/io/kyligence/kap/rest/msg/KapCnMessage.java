@@ -98,6 +98,14 @@ public class KapCnMessage extends KapMessage {
         return "没有权限!";
     }
 
+    public String getSELF_DELETE_FORBIDDEN() {
+        return "无法删除自身账户！";
+    }
+
+    public String getSELF_DISABLE_FORBIDDEN() {
+        return "无法禁用自身账户";
+    }
+    
     public String getUSER_EDIT_NOT_ALLOWED() {
         return "只有testing profile才允许编辑用户，请在LDAP/SAML管理软件中设置";
     }

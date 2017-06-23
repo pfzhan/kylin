@@ -97,6 +97,14 @@ public class KapMessage {
     public String getPERMISSION_DENIED() {
         return "Permission denied!";
     }
+    
+    public String getSELF_DELETE_FORBIDDEN() {
+        return "Cannot delete yourself!";
+    }
+
+    public String getSELF_DISABLE_FORBIDDEN() {
+        return "Cannot disable yourself!";
+    }
 
     public String getUSER_EDIT_NOT_ALLOWED() {
         return "User editing is not allowed unless in testing profile, please go to LDAP/SAML provider instead";

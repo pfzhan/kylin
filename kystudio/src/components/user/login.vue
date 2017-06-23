@@ -82,6 +82,7 @@ export default {
           this.$refs['loginBtn'].loading = true
           this.login(this.user).then((res) => {
             handleSuccess(res, (data) => {
+              Vue.http.headers.common['Authorization'] = ''
               this.$refs['loginBtn'].loading = false
               this.setCurUser({ user: data })
               this.$router.push('/dashboard')

@@ -31,6 +31,7 @@ import java.util.regex.Pattern;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -119,6 +120,10 @@ public class KapUserController extends BasicController implements UserDetailsSer
             throw new BadRequestException(msg.getUSER_EDIT_NOT_ALLOWED());
         }
 
+        if (StringUtils.equals(getPrincipal(), user.getUsername()) && user.isDisabled()) {
+            throw new ForbiddenException(msg.getSELF_DISABLE_FORBIDDEN());
+        }
+
         checkUserName(userName);
 
         user.setUsername(userName);
@@ -151,6 +156,11 @@ public class KapUserController extends BasicController implements UserDetailsSer
         completeAuthorities(user);
         userService.updateUser(user);
 
+        if (user.isDisabled()) {
+            //someone is disabled
+            userService.setEvictCacheFlag(true);
+        }
+
         return get(userName);
     }
 
@@ -165,7 +175,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
             throw new BadRequestException(msg.getUSER_EDIT_NOT_ALLOWED());
         }
 
-        if (!isAdmin() && !getPrincipal().equals(user.getUsername())) {
+        if (!isAdmin() && !StringUtils.equals(getPrincipal(), user.getUsername())) {
             throw new ForbiddenException(msg.getPERMISSION_DENIED());
         }
         checkUserName(user.getUsername());
@@ -223,8 +233,8 @@ public class KapUserController extends BasicController implements UserDetailsSer
     @ResponseBody
     public EnvelopeResponse getUser(@PathVariable("userName") String userName) throws UsernameNotFoundException {
         KapMessage msg = KapMsgPicker.getMsg();
-        
-        if (!isAdmin() && !getPrincipal().equals(userName)) {
+
+        if (!isAdmin() && !StringUtils.equals(getPrincipal(), userName)) {
             throw new ForbiddenException(msg.getPERMISSION_DENIED());
         }
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, get(userName), "");
@@ -272,10 +282,21 @@ public class KapUserController extends BasicController implements UserDetailsSer
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public void delete(@PathVariable("userName") String userName) {
+        KapMessage msg = KapMsgPicker.getMsg();
+
+        if (!"testing".equals(System.getProperty("spring.profiles.active"))) {
+            throw new BadRequestException(msg.getUSER_EDIT_NOT_ALLOWED());
+        }
+
+        if (StringUtils.equals(getPrincipal(), userName)) {
+            throw new ForbiddenException(msg.getSELF_DELETE_FORBIDDEN());
+        }
 
         checkUserName(userName);
-
         userService.deleteUser(userName);
+
+        //someone is deleted
+        userService.setEvictCacheFlag(true);
     }
 
     @RequestMapping(value = "/userAuhtorities", method = { RequestMethod.GET }, produces = {
@@ -311,13 +332,18 @@ public class KapUserController extends BasicController implements UserDetailsSer
 
     private String getPrincipal() {
         String userName = null;
+
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return null;
+        }
+
         Object principal = authentication.getPrincipal();
 
         if (principal instanceof UserDetails) {
             userName = ((UserDetails) principal).getUsername();
         } else if (authentication.getDetails() instanceof UserDetails) {
-            userName = ((UserDetails) authentication.getPrincipal()).getUsername();
+            userName = ((UserDetails) authentication.getDetails()).getUsername();
         } else {
             userName = principal.toString();
         }
