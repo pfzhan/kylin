@@ -388,6 +388,73 @@ public class KapCubeController extends BasicController implements InitializingBe
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, newCube, "");
     }
 
+    @RequestMapping(value = "/{cubeName}/enable", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse enableCubeV2(@PathVariable String cubeName) throws IOException {
+        Message msg = MsgPicker.getMsg();
+        KapMessage kapMsg = KapMsgPicker.getMsg();
+
+        ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
+        ResourceStore.Checkpoint cp = store.checkpoint();
+
+        CubeInstance cube = null;
+        try {
+            cube = cubeService.getCubeManager().getCube(cubeName);
+            if (cube == null) {
+                throw new BadRequestException(String.format(msg.getCUBE_NOT_FOUND(), cubeName));
+            }
+            cube = cubeService.enableCube(cube);
+
+            RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
+            if (raw != null) {
+                rawTableService.enableRaw(raw);
+            }
+        } catch (Exception ex) {
+            cp.rollback();
+            throw ex;
+        } finally {
+            cp.close();
+        }
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, cube, "");
+    }
+
+    @RequestMapping(value = "/{cubeName}/disable", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse disableCubeV2(@PathVariable String cubeName) throws IOException {
+        Message msg = MsgPicker.getMsg();
+        KapMessage kapMsg = KapMsgPicker.getMsg();
+
+        ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
+        ResourceStore.Checkpoint cp = store.checkpoint();
+
+        CubeInstance cube = null;
+        try {
+            cube = cubeService.getCubeManager().getCube(cubeName);
+
+            if (cube == null) {
+                throw new BadRequestException(String.format(msg.getCUBE_NOT_FOUND(), cubeName));
+            }
+
+            cube = cubeService.disableCube(cube);
+
+            RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
+            if (raw != null) {
+                rawTableService.disableRaw(raw);
+            }
+        } catch (Exception ex) {
+            cp.rollback();
+            throw ex;
+        } finally {
+            cp.close();
+        }
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, cube, "");
+
+    }
+
     private void deleteCube(String cubeName) throws IOException, SchedulerException {
         CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
         if (cube != null) {

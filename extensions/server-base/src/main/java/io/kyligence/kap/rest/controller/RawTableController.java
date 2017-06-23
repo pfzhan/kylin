@@ -24,11 +24,8 @@
 
 package io.kyligence.kap.rest.controller;
 
-import java.io.IOException;
-
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.request.CubeRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.JobService;
@@ -38,7 +35,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -73,51 +69,6 @@ public class RawTableController extends BasicController {
             throw new BadRequestException(String.format(msg.getRAWTABLE_NOT_FOUND(), cubeName));
         }
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, raw.getRawTableDesc(), "");
-    }
-
-    @RequestMapping(value = "/{cubeName}/enable", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    public EnvelopeResponse enableRaw(@PathVariable String cubeName) throws IOException {
-        KapMessage msg = KapMsgPicker.getMsg();
-
-        RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
-        if (null == raw) {
-            logger.info("raw table" + cubeName + " does not exist!");
-            throw new BadRequestException(String.format(msg.getRAWTABLE_NOT_FOUND(), cubeName));
-        }
-
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, rawTableService.enableRaw(raw), "");
-    }
-
-    @RequestMapping(value = "/{cubeName}/disable", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    public EnvelopeResponse disableRaw(@PathVariable String cubeName) throws IOException {
-        KapMessage msg = KapMsgPicker.getMsg();
-
-        RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
-        if (null == raw) {
-            logger.info("raw table" + cubeName + " does not exist!");
-            throw new BadRequestException(String.format(msg.getRAWTABLE_NOT_FOUND(), cubeName));
-        }
-
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, rawTableService.disableRaw(raw), "");
-    }
-
-    @RequestMapping(value = "/{cubeName}/clone", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    public EnvelopeResponse cloneRaw(@PathVariable String cubeName, @RequestBody CubeRequest cubeRequest)
-            throws IOException {
-        KapMessage msg = KapMsgPicker.getMsg();
-
-        String newRawName = cubeRequest.getCubeName();
-        String project = cubeRequest.getProject();
-
-        RawTableInstance newRaw = rawTableService.cloneRaw(cubeName, newRawName, project);
-
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, newRaw, "");
     }
 
     public void setRawTableService(RawTableService rawTableService) {
