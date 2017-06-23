@@ -78,7 +78,7 @@ public class MetaStoreService extends BasicService {
             FileUtils.forceMkdir(backupDir);
 
             KylinConfig kylinConfig = KylinConfig.createInstanceFromUri(backupDir.getAbsolutePath());
-            ResourceTool.copy(KylinConfig.getInstanceFromEnv(), kylinConfig);
+            ResourceTool.copy(KylinConfig.getInstanceFromEnv(), kylinConfig, true);
         } else {
             List<String> args = new ArrayList<String>();
             args.add("-destDir");
@@ -91,7 +91,10 @@ public class MetaStoreService extends BasicService {
                 args.add("-cube");
                 args.add(cube);
             }
-
+            
+            args.add("-compress");
+            args.add("false");
+            
             String[] cubeMetaArgs = new String[args.size()];
             args.toArray(cubeMetaArgs);
             CubeMetaExtractor cubeMetaExtractor = new CubeMetaExtractor();
