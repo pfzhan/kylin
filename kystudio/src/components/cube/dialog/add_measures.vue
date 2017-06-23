@@ -230,12 +230,37 @@ export default {
       ],
       rules: {
         name: [
-            { required: true, message: this.$t('requiredName'), trigger: 'blur' }
+            { required: true, message: this.$t('requiredName'), trigger: 'blur' },
+            { validator: this.validateName, trigger: 'blur' }
         ]
       }
     }
   },
   methods: {
+    validateName (rule, value, callback) {
+      let nameReuse = false
+      let measureIndex = this.cubeDesc.measures.indexOf(this.measureDesc)
+      let nameReuseIndex = -1
+      if (!value) {
+        callback(new Error(this.$t('requiredName')))
+      } else {
+        for (let i = 0; i < this.cubeDesc.measures.length; i++) {
+          if (this.cubeDesc.measures[i].name === this.measure.name) {
+            nameReuse = true
+            nameReuseIndex = i
+          }
+        }
+        if (nameReuse === true) {
+          if (measureIndex >= 0 && measureIndex === nameReuseIndex) {
+            callback()
+          } else {
+            callback(new Error(this.$t('nameReuse')))
+          }
+        } else {
+          callback()
+        }
+      }
+    },
     inModelDimensions: function () {
       let _this = this
       if (_this.measure.function.parameter.value) {
@@ -623,8 +648,8 @@ export default {
     })
   },
   locales: {
-    'en': {name: 'Name', expression: 'Expression', paramType: 'Param Type', paramValue: 'Param Value', returnType: 'Return Type', includeDimensions: 'Include Dimensions', ORDERSUM: 'ORDER|SUM by Column', groupByColumn: 'Group by Column', ID: 'ID', column: 'Column', encoding: 'Encoding', length: 'Length', hostColumn: 'Host column On Fact Table', extendedColumn: 'Extended column On Fact Table', extendedColumnLength: 'Maximum length of extended column', reuse: 'Reuse', newColumn: 'New Column', requiredName: 'The measure name is required.'},
-    'zh-cn': {name: '名称', expression: '表达式', paramType: '参数类型', paramValue: '参数值', returnType: '返回类型', includeDimensions: '包含维度', ORDERSUM: 'ORDER|SUM by Column', groupByColumn: 'Group by Column', ID: 'ID', column: '列', encoding: '编码', length: '长度', hostColumn: 'Host column On Fact Table', extendedColumn: 'Extended column On Fact Table', extendedColumnLength: 'Maximum length of extended column', reuse: '复用', newColumn: '新加列', requiredName: '请输入Measure名称'}
+    'en': {name: 'Name', expression: 'Expression', paramType: 'Param Type', paramValue: 'Param Value', returnType: 'Return Type', includeDimensions: 'Include Dimensions', ORDERSUM: 'ORDER|SUM by Column', groupByColumn: 'Group by Column', ID: 'ID', column: 'Column', encoding: 'Encoding', length: 'Length', hostColumn: 'Host column On Fact Table', extendedColumn: 'Extended column On Fact Table', extendedColumnLength: 'Maximum length of extended column', reuse: 'Reuse', newColumn: 'New Column', requiredName: 'The measure name is required.', nameReuse: 'The measure name is reused.'},
+    'zh-cn': {name: '名称', expression: '表达式', paramType: '参数类型', paramValue: '参数值', returnType: '返回类型', includeDimensions: '包含维度', ORDERSUM: 'ORDER|SUM by Column', groupByColumn: 'Group by Column', ID: 'ID', column: '列', encoding: '编码', length: '长度', hostColumn: 'Host column On Fact Table', extendedColumn: 'Extended column On Fact Table', extendedColumnLength: 'Maximum length of extended column', reuse: '复用', newColumn: '新加列', requiredName: '请输入Measure名称', nameReuse: 'Measure名称已被使用'}
   }
 }
 </script>

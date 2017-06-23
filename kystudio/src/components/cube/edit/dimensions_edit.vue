@@ -501,12 +501,14 @@ export default {
       if (this.cubeDesc.dimensions.length === 0) {
         this.cubeDesc.aggregation_groups.splice(0, this.cubeDesc.aggregation_groups.length)
       }
-      this.initRowkeyColumns()
-      this.initAggregationGroup()
       this.addDimensionsFormVisible = false
-      if (this.convertedRowkeys.length > 25) {
-        kapConfirm(this.$t('moreRowkeyTip'))
-      }
+      this.$nextTick(() => {
+        this.initRowkeyColumns()
+        this.initAggregationGroup()
+        if (this.convertedRowkeys.length > 25) {
+          kapConfirm(this.$t('moreRowkeyTip'))
+        }
+      })
     },
     editDimension: function (dimension) {
       this.selected_dimension = dimension

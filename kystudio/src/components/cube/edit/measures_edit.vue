@@ -107,7 +107,7 @@
     <add_measures  ref="measureForm" :cubeDesc="cubeDesc" :modelDesc="modelDesc" :measureDesc="selected_measure" v-on:validSuccess="measureValidSuccess"></add_measures>
     <span slot="footer" class="dialog-footer">
       <el-button @click="measureFormVisible = false">{{$t('cancel')}}</el-button>
-      <el-button type="primary" @click="checkMeasureForm">{{$t('yes')}}</el-button>
+      <el-button type="primary" @click="checkMeasureForm" :loading="loadCheck">{{$t('yes')}}</el-button>
     </span>     
   </el-dialog>    
 </div>  
@@ -128,7 +128,8 @@ export default {
       selected_measure: {},
       editDictionaryFormVisible: false,
       selected_dictionary: null,
-      currentMeasure: []
+      currentMeasure: [],
+      loadCheck: false
     }
   },
   components: {
@@ -181,6 +182,7 @@ export default {
     },
     measureValidSuccess: function (data) {
       let _this = this
+      this.loadCheck = true
       let index = this.cubeDesc.measures.indexOf(this.selected_measure)
       if (data.measure.function.expression === 'TOP_N' || (data.measure.function.expression === 'COUNT_DISTINCT' && data.measure.function.returntype !== 'bitmap')) {
         if (data.convertedColumns) {
@@ -246,6 +248,7 @@ export default {
       } else {
         this.cubeDesc.measures.push(data.measure)
       }
+      _this.loadCheck = false
       _this.measureFormVisible = false
     },
     recursion: function (parameter, list, num) {
