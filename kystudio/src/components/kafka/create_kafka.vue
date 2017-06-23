@@ -65,13 +65,13 @@
             </el-tree>
           </el-col>
           <el-col :span='14'>
-            <editor v-model="sourceSchema" lang="json" theme="chrome" width="100%" height="200" useWrapMode="true"></editor>
+            <editor v-model="sourceSchema" ref="jsonDataBox" lang="json" theme="chrome" width="100%" height="200" useWrapMode="true"></editor>
           </el-col>
           <div class='convertBtn' @click='streamingOnChange();loadColumnZH();'>      <p>Convert</p>
             <i class='el-icon-arrow-down' aria-hidden='true'></i>
           </div>
         </el-row>
-        <el-card v-show="showConvertBox">
+        <el-card v-show="showConvertBox" style="border-color:#20222e" >
           <el-row slot='header'>
             <el-col :span='6'>
              {{$t('tableName')}}:
@@ -86,10 +86,12 @@
 
             </el-col>
             <el-col :span='1' class="ksd-center ksd-lineheight-40"><b>／</b></el-col>
-            <el-col :span='9'>
-              <el-input  v-model="kafkaMeta.name"></el-input>
+            <el-col :span='9' prop="name">
+              <el-input  v-model="kafkaMeta.name" ></el-input>
             </el-col>
           </el-row>
+          <div>
+          <div style="height:400px;overflow:auto;">
           <el-table
           :data='columnList'
           style='width: 100%'>
@@ -107,13 +109,13 @@
             <el-table-column
             :label="$t('columnType')">
               <template scope="scope">
-                <el-select v-model="scope.row.type" >
+                <el-select v-model="scope.row.type" @change="loadColumnZH()">
                   <el-option
                     v-for="(item, index) in dataTypes"
                     :key="index"
                     :label="item"
                     :value="item"
-                    @change="loadColumnZH()">
+                    >
                   </el-option>
                 </el-select>
               </template>
@@ -126,6 +128,8 @@
               </template>
             </el-table-column>
           </el-table>
+          </div>
+          </div>
         </el-card>
         <el-card v-show="showConvertBox">
           <div slot="header">
@@ -157,6 +161,22 @@ import { mapActions } from 'vuex'
 import { handleError, handleSuccess } from '../../util/business'
 export default {
   name: 'createKafka',
+  props: ['show'],
+  watch: {
+    'show' (v) {
+      if (!v) {
+        this.loading = false
+        this.initKafkaDialog()
+        this.treeData = []
+        this.sourceSchema = ''
+        var editor = this.$refs.jsonDataBox.editor
+        editor.setValue('')
+        this.columnList = []
+        this.showConvertBox = false
+        this.showTopicBox = false
+      }
+    }
+  },
   data () {
     return {
       rules: {
@@ -219,6 +239,20 @@ export default {
       clusterInfo: 'GET_CLUSTER_INFO',
       topicInfo: 'GET_TOPIC_INFO'
     }),
+    initKafkaDialog () {
+      this.kafkaMeta = {
+        name: '',
+        topic: '',
+        timeout: '60000',
+        bufferSize: '65536',
+        parserName: 'org.apache.kylin.source.kafka.TimedJsonStreamParser',
+        margin: '300000',
+        clusters: [{
+          brokers: []
+        }],
+        parserProperties: ''
+      }
+    },
     addBroker: function () {
       if (this.currentCheck <= 0) {
         this.kafkaMeta.clusters[0].brokers.push({id: '', host: '', port: ''})
@@ -366,6 +400,7 @@ export default {
     },
     loadColumnZH: function () {
       let _this = this
+      _this.streamingCfg.columnOptions = []
       _this.columnList.forEach(function (column, $index) {
         if (column.checked === 'Y' && column.fromSource === 'Y' && column.type === 'timestamp') {
           _this.streamingCfg.columnOptions.push(column.name)
@@ -389,7 +424,7 @@ export default {
   created () {
     this.$on('kafkaFormValid', (t) => {
       this.$refs['kafkaForm'].validate((valid) => {
-        if (valid) {
+        if (valid && /^\w+$/.test(this.kafkaMeta.name)) {
           this.$emit('validSuccess', {
             database: this.database,
             tableName: this.kafkaMeta.name,
@@ -398,6 +433,8 @@ export default {
             streamingMeta: this.streamingMeta,
             sampleData: this.sampleData
           })
+        } else {
+          this.$message('Streaming Table ' + this.$t('kylinLang.common.nameFormatValidTip'))
         }
       })
     })

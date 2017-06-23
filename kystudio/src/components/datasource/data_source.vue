@@ -270,7 +270,7 @@
       </el-dialog>
 
      <el-dialog title="Load Kafka Topic" v-model="kafkaFormVisible" top="10%" size="small">
-        <create_kafka  ref="kafkaForm" v-on:validSuccess="kafkaValidSuccess"></create_kafka>
+        <create_kafka  ref="kafkaForm" v-on:validSuccess="kafkaValidSuccess" :show="kafkaFormVisible"></create_kafka>
         <span slot="footer" class="dialog-footer">
           <el-button @click="kafkaFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
           <el-button type="primary" @click="checkKafkaForm">{{$t('kylinLang.common.submit')}}</el-button>

@@ -135,6 +135,7 @@ exports.default = {
     addCube: '添加Cube',
     cubeHasJob: '此cube已有在执行的cube构建任务，因此当前操作不支持。',
     selectModelName: '请选择一个模型',
+    optimizerInputTip: '模型检测结果是cube优化器工作的必要条件。补充SQL查询记录则可以帮助优化器<br/>输出贴近查询需求的推荐设置。Cube优化器的输出分别为维度设计与度量设计。',
     rowkeyTip: '<h4>什么是Rowkeys?</h4><p>Rowkeys定义了维度列之间如何组织在一起</p><h4>是否按该列分散存储? </h4><p>若设为"true", Cube数据将按该列值分散存储</p><h4>Rowkey编码</h4><ol><li>"dict" 适用于大部分字段，默认推荐使用。但在超高基情况下，可能引起内存不足的问题。</li><li>"boolean" 适用于内容为：true, false； TRUE, FALSE； True, False； t, f； T, F； yes, no； YES, NO； Yes, No； y, n； Y, N； 1, 0的字段。</li><li>"integer" 适用于字段值为整数字符，支持的整数区间为[ -2^(8*N-1), 2^(8*N-1)]。 </li><li>"int" 已弃用, 请使用最新的integer编码。</li><li>"date" 适用于字段值为日期字符, 支持的格式包括yyyyMMdd、yyyy-MM-dd、yyyy-MM-dd HH:mm:ss、yyyy-MM-dd HH:mm:ss.SSS, 其中如果包含时间戳部分会被截断。</li><li>"time" 适用于字段值为时间戳字符, 支持范围为[ 1970-01-01 00:00:00, 2038/01/19 03:14:07], 毫秒部分会被忽略。 time编码适用于time, datetime, timestamp等类型。</li><li>"fix_length" 适用于超高基场景, 将选取字段的前N个字节作为编码值, 当N小于字段长度, 会造成字段截断, 当N较大时, 造成RowKey过长, 查询性能下降。只适用于varchar或nvarchar类型。</li><li>"fixed_length_hex" 适用于内容为十六进制字符的字段，比如1A2BFF或者FF00FF（每两个字符需要一个字节）。</li></ol>'
   },
   project: {

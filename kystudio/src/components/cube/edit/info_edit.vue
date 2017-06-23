@@ -25,7 +25,8 @@
     </el-form-item>
     <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div>
   </el-form>
-  <h2 class="title">{{$t('optimizerInput')}}</h2>
+  <h2 class="title">{{$t('optimizerInput')}}
+        <common-tip :content="$t('kylinLang.cube.optimizerInputTip')" ><icon name="question-circle-o"></icon></common-tip></h2>
   <ul class="list">
     <li>{{$t('modelCheck')}}
       <common-tip :content="healthStatus.messages.join('<br/>')" ><icon v-if="healthStatus.status!=='RUNNING'" :name="modelHealthStatus[healthStatus.status].icon" :style="{color:modelHealthStatus[healthStatus.status].color}"></icon></common-tip>

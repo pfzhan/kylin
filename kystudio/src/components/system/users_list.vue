@@ -2,10 +2,10 @@
 <div class="user-list">  
   <el-row>
     <el-col :span="1">
-      <el-button type="primary" v-if="securityProfile === 'testing'" icon="plus" size="small" @click="addUser">{{$t('user')}}</el-button>
+      <el-button type="primary" v-if="$store.state.system.securityProfile === 'testing'" icon="plus" size="small" @click="addUser">{{$t('user')}}</el-button>
     </el-col>
   </el-row>
-  <el-alert v-if="securityProfile !== 'testing'" class="ksd-mt-20"
+  <el-alert v-if="$store.state.system.securityProfile !== 'testing'" class="ksd-mt-20"
     :title="$t('securityProfileTip')"
     :closable="false"
     type="info">
@@ -46,7 +46,7 @@
         <el-tag type="success" v-else>Enabled</el-tag>
       </template>
     </el-table-column>
-    <el-table-column v-if="securityProfile === 'testing'"
+    <el-table-column v-if="$store.state.system.securityProfile === 'testing'"
       :label="$t('action')">
       <template scope="scope">
         <el-dropdown trigger="click" v>
