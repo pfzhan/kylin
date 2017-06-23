@@ -137,8 +137,9 @@ public class SparkSqlClient implements Serializable {
 
         } catch (Exception e) {
             logger.error("Ad Hoc Query Error:", e);
-            throw new StatusRuntimeException(Status.INTERNAL
-                    .withDescription("Ad hoc query not supported, please check spark-driver.log for details."));
+            throw new StatusRuntimeException(
+                    Status.INTERNAL.withDescription("Ad hoc query failed with exception message: " + e.getMessage()
+                            + ", please check spark-driver.log for details."));
         }
     }
 
