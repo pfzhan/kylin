@@ -401,7 +401,7 @@ export default {
             })
           })
           if (this.isViewCubeMode) {
-            this.$emit('removetabs', '[view]' + this.extraoption.cubeName, 'Overview')
+            this.$emit('removetabs', 'viewcube[view] ' + this.extraoption.cubeName, 'Overview')
             this.$emit('reload', 'cubelList')
           } else {
             this.loadCubesList(this.currentPage - 1)

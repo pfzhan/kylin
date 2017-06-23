@@ -2052,7 +2052,6 @@ export default {
           this.docker.y = y
         },
         filterTarget: (dom) => {
-          console.log(dom.className)
           if (dom) {
             if (!dom.className || typeof dom.className !== 'string') {
               return false
