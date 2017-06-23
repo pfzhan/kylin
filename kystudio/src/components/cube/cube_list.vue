@@ -45,6 +45,12 @@
       :label="$t('name')"
       sortable
       prop="name">
+       <template scope="scope" >
+          <el-tooltip class="item" effect="dark" :content="scope.row&&scope.row.name" placement="top">
+              <span >{{scope.row.name|omit(24, '...')}}</span>
+          </el-tooltip>
+         <!-- <span @click="viewModel(scope.row)" style="cursor:pointer;">{{scope.row.name}}</span> -->
+       </template>
     </el-table-column>
     <el-table-column
       :label="$t('model')"

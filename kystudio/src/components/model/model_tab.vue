@@ -83,7 +83,6 @@
         this.$refs.modelSubMenu.reload(moduleName)
       },
       delTab (targetName, stayTabName) {
-        console.log(targetName, 9911)
         let tabs = this.editableTabs
         let activeName = this.activeName
         let activeView = this.currentView

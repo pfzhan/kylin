@@ -97,7 +97,6 @@
               </div>
             </el-col>
             </el-row>
-            <br/>
           </el-row>
           <br/>
            <el-table
@@ -135,7 +134,6 @@
                 </el-select>
                 </template>
               </el-table-column>
-              <br/>
               <el-table-column style="border:none" :label="$t('kylinLang.common.action')" width="80" v-if="actionMode!=='view'">
                 <template scope="scope" >
                   <confirm-btn  v-on:okFunc='delConnect(scope.row)' :tips="$t('kylinLang.common.confirmDel')"><el-button size="small"
@@ -1197,7 +1195,7 @@ export default {
     delBrokenConnect (p1, p2) {
       var links = this.links
       for (var i = 0; i < links.length; i++) {
-        if (links[i][0] === p1 && links[i][1] === p2 && (links[i][2] === undefined || links[i][3] === undefined)) {
+        if (links[i][0] === p1 && links[i][1] === p2 && (links[i][2] === undefined || links[i][2] === '' || links[i][3] === undefined || links[i][3] === '')) {
           this.links.splice(i, 1)
           i = i - 1
         }
@@ -1207,7 +1205,7 @@ export default {
     checkBrokenConnect (p1, p2) {
       var links = this.links
       for (var i = 0; i < links.length; i++) {
-        if (links[i][0] === p1 && links[i][1] === p2 && (links[i][2] === undefined || links[i][3] === undefined)) {
+        if (links[i][0] === p1 && links[i][1] === p2 && (links[i][2] === undefined || links[i][2] === '' || links[i][3] === undefined || links[i][3] === '')) {
           return true
         }
       }
@@ -2310,8 +2308,14 @@ export default {
      }
    }
    .links_dialog{
+    .el-dialog__body {
+      padding-top: 10px;
+    }
     .el-table__row{
       background-color: #393e53;
+    }
+    .el-input.is-disabled .el-input__inner {
+      background-color: #20222e;
     }
     .linksTable.el-table::after {
       background-color: #393e53;
@@ -2324,7 +2328,9 @@ export default {
        color:green;
      }
      .el-table { 
+      background:none;
       tr{
+        background-color: #393e53;
         height: 54px;
       }
       border-top:solid 1px #ccc;
