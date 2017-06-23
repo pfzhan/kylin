@@ -193,10 +193,12 @@ export default {
       this.getScheduler(this.cubeDesc.name).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           var schedulerData = this.cubeDesc.is_draft ? data.draft : data.schedulerJob
-          this.initRepeatInterval(schedulerData)
-          this.scheduler.desc.scheduled_run_time = schedulerData.scheduled_run_time
-          this.scheduledRunTime = transToUtcTimeFormat(this.scheduler.desc.scheduled_run_time)
-          this.scheduler.desc.partition_interval = schedulerData.partition_interval
+          if (schedulerData) {
+            this.initRepeatInterval(schedulerData)
+            this.scheduler.desc.scheduled_run_time = schedulerData.scheduled_run_time
+            this.scheduledRunTime = transToUtcTimeFormat(this.scheduler.desc.scheduled_run_time)
+            this.scheduler.desc.partition_interval = schedulerData.partition_interval
+          }
         })
       }).catch((res) => {
         handleError(res, () => {

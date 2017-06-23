@@ -131,7 +131,7 @@
           </div>
           </div>
         </el-card>
-        <el-card v-show="showConvertBox">
+        <el-card v-show="showConvertBox" style="border:none">
           <div slot="header">
             <span >{{$t('parserSetting')}}</span>
           </div>
@@ -225,7 +225,7 @@ export default {
         {name: 'minute_start', type: 'timestamp'}
       ],
       dataTypes: ['tinyint', 'smallint', 'int', 'bigint', 'float', 'double', 'decimal', 'timestamp', 'date', 'string', 'varchar(256)', 'char', 'boolean', 'binary'],
-      databaseOption: ['DEFAULT'],
+      // databaseOption: ['DEFAULT'],
       treeProps: {
         children: 'children',
         label: 'label'
@@ -419,6 +419,18 @@ export default {
   computed: {
     topicBtnDisabled () {
       return this.kafkaMeta.clusters[0].brokers.length > 0
+    },
+    databaseOption () {
+      var arr = ['DEFAULT']
+      var datasource = this.$store.state.datasource.dataSource[localStorage.getItem('selected_project')]
+      if (datasource) {
+        datasource.forEach((d) => {
+          if (arr.indexOf(d.database) < 0) {
+            arr.push(d.database)
+          }
+        })
+      }
+      return arr
     }
   },
   created () {

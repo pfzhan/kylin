@@ -83,6 +83,8 @@ export default {
     var editor2 = this.$refs.sysConfig.editor
     editor1.setOption('wrap', 'free')
     editor2.setOption('wrap', 'free')
+    editor1.setReadOnly(true)
+    editor2.setReadOnly(true)
   },
   methods: {
     ...mapActions({

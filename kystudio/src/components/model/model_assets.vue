@@ -1,5 +1,5 @@
 <template>
-	<tree :treedata="modelAssets" :placeholder="this.$t('kylinLang.common.pleaseInput')" maxLabelLen="20" showfilter= "true" :expandall="true" v-on:treedrag="drag" allowdrag=true  v-unselect ></tree>
+	<tree :treedata="modelAssets" :placeholder="this.$t('kylinLang.common.pleaseFilter')" maxLabelLen="20" showfilter= "true" :expandall="true" v-on:treedrag="drag" allowdrag=true  v-unselect ></tree>
 </template>
 <script>
 import { mapActions } from 'vuex'

@@ -713,6 +713,7 @@ export default {
             this.$set(this.groupErrorList, groupindex, msg)
           })
         })
+        this.calcAllCuboid()
       })
     },
     initCalCuboid: function () {

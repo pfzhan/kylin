@@ -60,7 +60,7 @@
         <p class="filter_box"><el-input v-model="table.filterName" v-on:change="filterColumnByInput(table.filterName,table.guid)"  size="small" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input></p>
         <section data-scrollbar class="columns_box">
           <ul>
-            <li draggable  @dragstart="dragColumns" @dragend="dragColumnsEnd"  v-for="column in table.columns" :key="column.guid"  class="column_li"  v-bind:class="{'active_filter':column.isActive}" :data-guid="table.guid" :data-column="column.name" ><span class="kind" :class="{dimension:column.btype=='D',measure:column.btype=='M'}" v-on:click="changeColumnBType(table.guid,column.name,column.btype, column.isComputed)">{{column.btype}}</span><span class="column" @dragleave="dragColumnsLeave" @dragenter="dragColumnsEnter" v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)"><common-tip trigger="click" :tips="column.name" placement="right-start" style="font-size:10px;">{{column.name|omit(14,'...')}}</common-tip></span><span class="column_type">{{column.datatype}}</span></style></li>
+            <li draggable  @dragstart="dragColumns" @dragend="dragColumnsEnd"  v-for="column in table.columns" :key="column.guid"  class="column_li"  v-bind:class="{'active_filter':column.isActive, 'is_computed': column.isComputed}" :data-guid="table.guid" :data-column="column.name" ><span class="kind" :class="{dimension:column.btype=='D',measure:column.btype=='M'}" v-on:click="changeColumnBType(table.guid,column.name,column.btype, column.isComputed)">{{column.btype}}</span><span class="column" @dragleave="dragColumnsLeave" @dragenter="dragColumnsEnter" v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)"><common-tip trigger="click" :tips="column.name" placement="right-start" style="font-size:10px;">{{column.name|omit(14,'...')}}</common-tip></span><span class="column_type">{{column.datatype}}</span></style></li>
           </ul>
         </section>
         <div class="more_tool"></div>
@@ -1728,10 +1728,12 @@ export default {
               guid: sampleGuid(),
               alias: modelData.fact_table.split('.')[1]
             }
-            _this.currentSelectTable = {
-              database: modelData.fact_table.split('.')[0],
-              tablename: modelData.fact_table.split('.')[1],
-              columnname: ''
+            if (modelData.fact_table) {
+              _this.currentSelectTable = {
+                database: modelData.fact_table.split('.')[0],
+                tablename: modelData.fact_table.split('.')[1],
+                columnname: ''
+              }
             }
             for (var table in baseTables) {
               _this.createTableData(_this.extraoption.project, baseTables[table].database, baseTables[table].table, {
@@ -2336,6 +2338,9 @@ export default {
      }
    }
    .table_box{
+       .is_computed{
+         color:springgreen
+       }
        .close_table{
         position: absolute;
         top: 10px;

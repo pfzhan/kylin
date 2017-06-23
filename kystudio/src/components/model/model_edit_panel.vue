@@ -425,6 +425,16 @@ export default {
 </script>
 <style lang="less">
 @import '../../less/config.less';
+  .el-table__fixed-right{
+      &::before {
+        background:none;
+      }
+    }
+    .el-table__fixed {
+      &::before {
+        background:none;
+      }
+    }
   .model_edit_tool {
     height: 360px;
   	z-index:2000;
@@ -436,6 +446,7 @@ export default {
     .el-table__fixed{
       box-shadow: none;
     }
+  
     .el-table__fixed-header-wrapper thead div{
       background: none;
       color:#fff;
@@ -474,7 +485,7 @@ export default {
         height:44px;
         width: 220px;
         font-weight: normal;
-        font-size: 14px;
+        font-size: 12px;
       }
       td{
         border-left:1px solid @grey-color;;

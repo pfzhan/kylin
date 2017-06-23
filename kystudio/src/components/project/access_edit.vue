@@ -46,10 +46,10 @@
         </el-form-item>
         <el-form-item :label="$t('permission')">
           <el-select  :placeholder="$t('permission')" v-model="accessMeta.permission">
-            <el-option label="cubeAdmin" :value="16"></el-option>
-            <el-option label="cubeEdit" :value="32"></el-option>
-            <el-option label="cubeOpera" :value="64"></el-option>
-            <el-option label="cubeQuery" :value="1"></el-option>
+            <el-option label="Cube Admin" :value="16"></el-option>
+            <el-option label="Cube Edit" :value="32"></el-option>
+            <el-option label="Cube Opera" :value="64"></el-option>
+            <el-option label="Cube Query" :value="1"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -79,19 +79,19 @@
 	    </el-table-column>
 	   <el-table-column  
 	      :label="$t('kylinLang.common.action')"
-	      width="120">
+	      width="160">
 	      <template scope="scope">
         <span v-if="!hasPermission(scope.row.id)">N/A</span>
-	        <el-button  v-if="hasPermission(scope.row.id)"
-	          @click="removeAccess(scope.row.id)"
-	          type="text">
-	          {{$t('kylinLang.common.delete')}}
-	        </el-button>
 	        <el-button 
 	          @click="beginEdit(scope.row)"
-	          type="text">
+	          type="blue" size="small">
 	          {{$t('kylinLang.common.edit')}}
 	        </el-button>
+           <el-button  v-if="hasPermission(scope.row.id)"
+            @click="removeAccess(scope.row.id)"
+            type="danger" size="small">
+            {{$t('kylinLang.common.delete')}}
+          </el-button>
 	      </template>
 	    </el-table-column>
 	  </el-table>
