@@ -7,7 +7,9 @@ export default {
     serverConfig: null,
     serverEnvironment: null,
     serverAboutKap: null,
-    timeZone: ''
+    timeZone: '',
+    securityProfile: 'testing',
+    limitfact: 'false'
   },
   mutations: {
     [types.SAVE_AUTHENTICATION]: function (state, result) {
