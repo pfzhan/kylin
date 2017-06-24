@@ -39,7 +39,8 @@ export default {
   data () {
     return {
       activeStep: 1,
-      selected_project: this.$store.state.project.selected_project
+      selected_project: this.cube.project,
+      aliasMap: {}
     }
   },
   components: {
@@ -63,8 +64,11 @@ export default {
     getTables: function () {
       let _this = this
       let rootFactTable = removeNameSpace(_this.cube.modelDesc.fact_table)
+      let factTables = []
+      let lookupTables = []
+      factTables.push(rootFactTable)
       _this.$set(_this.cube.modelDesc, 'columnsDetail', {})
-      _this.$store.state.datasource.dataSource[_this.selected_project].forEach(function (table) {
+      _this.$store.state.datasource.dataSource[_this.selected_project].forEach((table) => {
         if (_this.cube.modelDesc.fact_table === table.database + '.' + table.name) {
           table.columns.forEach(function (column) {
             _this.$set(_this.cube.modelDesc.columnsDetail, rootFactTable + '.' + column.name, {
@@ -73,10 +77,24 @@ export default {
               cardinality: table.cardinality[column.name],
               comment: column.comment})
           })
+          this.aliasMap[table.name] = table.database + '.' + table.name
         }
       })
-      _this.cube.modelDesc.lookups.forEach(function (lookup) {
-        _this.$store.state.datasource.dataSource[_this.selected_project].forEach(function (table) {
+      _this.cube.modelDesc.lookups.forEach((lookup) => {
+        if (lookup.kind === 'FACT') {
+          if (!lookup.alias) {
+            lookup['alias'] = removeNameSpace(lookup.table)
+          }
+          factTables.push(lookup.alias)
+          this.aliasMap[lookup.alias] = lookup.table
+        } else {
+          if (!lookup.alias) {
+            lookup['alias'] = removeNameSpace(lookup.table)
+          }
+          lookupTables.push(lookup.alias)
+          this.aliasMap[lookup.alias] = lookup.table
+        }
+        _this.$store.state.datasource.dataSource[_this.selected_project].forEach((table) => {
           if (lookup.table === table.database + '.' + table.name) {
             table.columns.forEach(function (column) {
               _this.$set(_this.cube.modelDesc.columnsDetail, lookup.alias + '.' + column.name, {
@@ -88,6 +106,22 @@ export default {
           }
         })
       })
+      if (_this.cube.modelDesc.computed_columns) {
+        _this.cube.modelDesc.computed_columns.forEach((co) => {
+          var alias = ''
+          for (var i in this.aliasMap) {
+            if (this.aliasMap[i] === co.tableIdentity) {
+              alias = i
+            }
+          }
+          this.$set(_this.cube.modelDesc.columnsDetail, alias + '.' + co.columnName, {
+            name: co.columnName,
+            datatype: co.datatype,
+            cardinality: 'N/A',
+            comment: co.expression
+          })
+        })
+      }
     }
   },
   created () {

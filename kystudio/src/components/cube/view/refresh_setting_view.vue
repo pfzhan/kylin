@@ -3,7 +3,7 @@
   <el-row class="border_bottom padding-m">
     <el-col :span="6">{{$t('autoMergeThresholds')}}</el-col>
     <el-col :span="18">
-      <el-row v-for="timeRange in cubeDesc.desc.auto_merge_time_ranges" :key="timeRange">
+      <el-row v-for="timeRange in cubeDesc.desc && cubeDesc.desc.auto_merge_time_ranges || []" :key="timeRange">
         <el-col :span="24">{{timeRange|timeSize}}</el-col>
       </el-row>
     </el-col>

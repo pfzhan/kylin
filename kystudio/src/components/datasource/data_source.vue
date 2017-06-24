@@ -14,10 +14,10 @@
          <p><span :title="extendData.table_name" style="font-size:16px;color:#218fea"> {{extendData.table_name|omit(50, '...')}}</span></p>
        </div>
        <div class="" style="position:absolute;right:0;z-index:1;top:30px;right:16px;" v-show="tableData">
-         <kap-icon-button v-if="tableData.source_type === 0" icon="refresh" type="primary" :useload="true" @click.native="reloadTableDialogVisible" ref="reloadBtn">{{$t('reload')}}</kap-icon-button>
-         <kap-icon-button v-if="isAdmin" icon="trash" type="primary" :useload="true" @click.native="unloadTable" ref="unloadBtn">{{$t('unload')}}</kap-icon-button>
+         <kap-icon-button v-if="tableData.source_type === 0" icon="refresh" type="blue" :useload="true" @click.native="reloadTableDialogVisible" ref="reloadBtn">{{$t('reload')}}</kap-icon-button>
+         <kap-icon-button v-if="isAdmin" icon="trash" type="blue" :useload="true" @click.native="unloadTable" ref="unloadBtn">{{$t('unload')}}</kap-icon-button>
             <!-- <el-button type="info" icon="eyedropper">Sampling</el-button> -->
-            <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 0" type="info" :useload="true" @click.native="collectSampleDialogOpen" ref="sampleBtn">{{$t('samplingBtn')}}</kap-icon-button>
+            <kap-icon-button icon="eyedropper" class="sampling" v-if="tableData.source_type === 0" type="info" :useload="true" @click.native="collectSampleDialogOpen" ref="sampleBtn">{{$t('samplingBtn')}}</kap-icon-button>
             <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 1" type="info" :useload="true" @click.native="collectKafkaSampleDialogOpen" ref="kafkaSampleBtn">{{$t('samplingBtn')}}(Streaming)</kap-icon-button>
   <!--           <el-button type="danger" @click.native="unloadTable" icon="delete2">Unload</el-button> -->
             <p style="font-size:12px;margin-top:5px;text-align:right;padding-right:4px;">{{$t('kylinLang.dataSource.lastModified')}} {{extendData.last_modified}}</p>
@@ -858,6 +858,8 @@ export default {
     }
   },
   mounted () {
+    let iHeight = screen.availHeight - 65 - 50 - 188
+    this.$el.querySelector('.filter-tree').style.height = iHeight + 'px'
   },
   locales: {
     'en': {'load': 'Load', 'reload': 'Reload', 'samplingBtn': 'Sampling', 'sampling': 'Table Sampling', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Table Sampling', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!'},
@@ -901,8 +903,8 @@ export default {
       font-size: 12px;
     }
   }
-  .el-button{
-    border-color: @popper-bg;
+  .el-button.sampling{
+    // border-color: @popper-bg;
     background: transparent!important;
   }
   .el-button--danger{
@@ -940,7 +942,6 @@ export default {
     }
 	}
 	.tree_list {
-    height: 1000px;
 		display: inline-block;
 		position: relative;
 		top:-15px;
@@ -981,7 +982,7 @@ export default {
 		left: 250px;
 		top:-16px;
 		right: 0;
-		min-height: 1000px;
+		// min-height: 1000px;
 		border-left: solid 1px #d1dbe5;
     background-color: #fff;
 		.el-tabs__content{

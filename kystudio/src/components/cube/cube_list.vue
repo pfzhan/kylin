@@ -23,19 +23,19 @@
     <el-table-column type="expand" width="30">
       <template scope="props">
         <el-tabs activeName="first" class="el-tabs--default" id="cube-view" @tab-click="changeTab">
-          <el-tab-pane label="Grid" name="first">
+          <el-tab-pane label="Grid" name="first" v-if="!props.row.is_draft">
             <cube_desc_view :cube="props.row" :index="props.$index"></cube_desc_view>
           </el-tab-pane>
-          <el-tab-pane label="SQL" name="second">
+          <el-tab-pane label="SQL" name="second" v-if="!props.row.is_draft">
             <show_sql :cube="props.row"></show_sql>
           </el-tab-pane>
-          <el-tab-pane label="JSON" name="third" >
+          <el-tab-pane label="JSON" name="third" v-if="!props.row.is_draft">
             <show_json :json="props.row.desc" ></show_json>
           </el-tab-pane>
-          <el-tab-pane label="Access" name="fourth" >
+          <el-tab-pane label="Access" name="fourth" v-if="!props.row.is_draft">
             <access_edit  :accessId="props.row.uuid" own='cube'></access_edit>
           </el-tab-pane>
-          <el-tab-pane :label="$t('storage')" name="fifth">
+          <el-tab-pane :label="$t('storage')" name="fifth" v-if="!props.row.is_draft">
             <segments :cube="props.row"></segments>
           </el-tab-pane>
         </el-tabs>

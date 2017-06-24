@@ -14,6 +14,7 @@
     :data="treedata"
     :props="defaultProps"
     :render-content="renderContent"
+    :expand-on-click-node="expandnodeclick"
     :default-expand-all="expandAll"
     :filter-node-method="filterNode"
     :default-expanded-keys="expandKeys"
@@ -37,7 +38,7 @@
         this.$refs.tree2.filter(val)
       }
     },
-    props: ['treedata', 'renderTree', 'placeholder', 'multiple', 'expandIdList', 'maxlevel', 'showfilter', 'allowdrag', 'showCheckbox', 'lazy', 'expandall', 'maxLabelLen', 'titleLabel', 'emptytext', 'indent'],
+    props: ['treedata', 'renderTree', 'placeholder', 'multiple', 'expandIdList', 'maxlevel', 'showfilter', 'allowdrag', 'showCheckbox', 'lazy', 'expandall', 'maxLabelLen', 'titleLabel', 'emptytext', 'indent', 'expandnodeclick'],
     methods: {
       // 过滤点击变色
       filterNode (value, data) {
@@ -127,6 +128,9 @@
               }
               _this.$emit('treedrag', event.srcElement ? event.srcElement : event.target, data)
               return false
+            },
+            click: function () {
+              _this.$emit('contentClick', node)
             }
           }
         })

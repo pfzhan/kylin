@@ -150,7 +150,7 @@
 </template>
 <script>
 import { mapActions } from 'vuex'
-import { handleSuccess, handleError, loadBaseEncodings } from '../../../util/business'
+import { loadBaseEncodings } from '../../../util/business'
 import { removeNameSpace, getNameSpace } from '../../../util/index'
 export default {
   name: 'tableIndex',
@@ -173,10 +173,14 @@ export default {
     changeUsed: function () {
       if (this.usedRawTable === false) {
         this.$store.state.cube.cubeRowTableIsSetting = false
-        this.rawTable.tableDetail.columns.splice(0, this.rawTable.tableDetail.columns.length)
+        this.$nextTick(() => {
+          this.rawTable.tableDetail.columns.splice(0, this.rawTable.tableDetail.columns.length)
+        })
       } else {
         this.$store.state.cube.cubeRowTableIsSetting = true
-        this.getBaseColumnsData()
+        this.$nextTick(() => {
+          this.getBaseColumnsData()
+        })
       }
     },
     getEncoding: function (encode) {
@@ -221,41 +225,39 @@ export default {
       }
     },
     changeRawTable: function (column, index) {
-      let _this = this
-      _this.$set(_this.rawTable.tableDetail.columns[15 * (this.currentPage - 1) + index], 'index', column.index)
-      _this.$set(_this.rawTable.tableDetail.columns[15 * (this.currentPage - 1) + index], 'is_sortby', column.is_sortby)
-      _this.$set(_this.rawTable.tableDetail.columns[15 * (this.currentPage - 1) + index], 'is_shardby', column.is_shardby)
-      _this.$set(_this.rawTable.tableDetail.columns[15 * (this.currentPage - 1) + index], 'encoding_version', _this.getVersion(column.encoding))
+      var curRowTable = this.rawTable.tableDetail.columns[15 * (this.currentPage - 1) + index]
+      this.$set(curRowTable, 'index', column.index)
+      this.$set(curRowTable, 'is_sortby', column.is_sortby)
+      this.$set(curRowTable, 'is_shardby', column.is_shardby)
+      this.$set(curRowTable, 'encoding_version', this.getVersion(column.encoding))
       if (column.valueLength) {
-        _this.$set(_this.rawTable.tableDetail.columns[15 * (this.currentPage - 1) + index], 'encoding', _this.getEncoding(column.encoding) + ':' + column.valueLength)
+        this.$set(curRowTable, 'encoding', this.getEncoding(column.encoding) + ':' + column.valueLength)
       } else {
-        _this.$set(_this.rawTable.tableDetail.columns[15 * (this.currentPage - 1) + index], 'encoding', _this.getEncoding(column.encoding))
+        this.$set(curRowTable, 'encoding', this.getEncoding(column.encoding))
       }
       if (column.encoding.indexOf('dict') >= 0 || column.encoding.indexOf('date') >= 0 || column.encoding.indexOf('time') >= 0 || column.encoding.indexOf('var') >= 0 || column.encoding.indexOf('orderedbytes') >= 0) {
-        _this.$set(column, 'valueLength', null)
+        this.$set(column, 'valueLength', null)
       }
     },
     initConvertedRawTable: function () {
-      let _this = this
-      _this.totalRawTable = _this.rawTable.tableDetail.columns.length
-      let rawTableDetail = _this.rawTable.tableDetail.columns.slice(15 * (_this.currentPage - 1), 15 * (_this.currentPage))
-      _this.convertedRawTable.splice(0, _this.convertedRawTable.length)
-      rawTableDetail.forEach(function (rawTable) {
+      this.totalRawTable = this.rawTable.tableDetail.columns.length
+      let rawTableDetail = this.rawTable.tableDetail.columns.slice(15 * (this.currentPage - 1), 15 * (this.currentPage))
+      this.convertedRawTable.splice(0, this.convertedRawTable.length)
+      rawTableDetail.forEach((rawTable) => {
         let version = rawTable.encoding_version || 1
-        _this.convertedRawTable.push({column: rawTable.column, table: rawTable.table, encoding: _this.getEncoding(rawTable.encoding) + ':' + version, valueLength: _this.getLength(rawTable.encoding), index: rawTable.index, is_sortby: rawTable.is_sortby, is_shardby: rawTable.is_shardby})
+        this.convertedRawTable.push({column: rawTable.column, table: rawTable.table, encoding: this.getEncoding(rawTable.encoding) + ':' + version, valueLength: this.getLength(rawTable.encoding), index: rawTable.index, is_sortby: rawTable.is_sortby, is_shardby: rawTable.is_shardby})
       })
     },
     getBaseColumnsData: function () {
       let baseEncodings = loadBaseEncodings(this.$store.state.datasource)
-      let _this = this
-      _this.modelDesc.dimensions.forEach(function (dimension) {
-        dimension.columns.forEach(function (column) {
+      this.modelDesc.dimensions.forEach((dimension) => {
+        dimension.columns.forEach((column) => {
           let index = 'discrete'
           let sorted = false
-          if (_this.modelDesc.partition_desc && dimension.table + '.' + column === _this.modelDesc.partition_desc.partition_date_column) {
+          if (this.modelDesc.partition_desc && dimension.table + '.' + column === this.modelDesc.partition_desc.partition_date_column) {
             sorted = true
           }
-          var columType = _this.modelDesc.columnsDetail[dimension.table + '.' + column] && _this.modelDesc.columnsDetail[dimension.table + '.' + column].datatype
+          var columType = this.modelDesc.columnsDetail[dimension.table + '.' + column] && this.modelDesc.columnsDetail[dimension.table + '.' + column].datatype
           let encodingVersion = 1
           if (['time', 'date', 'integer'].indexOf(columType) < 0) {
             columType = ''
@@ -264,7 +266,7 @@ export default {
             columType = columType + ':4'
             encodingVersion = baseEncodings.getEncodingMaxVersion(columType)
           }
-          _this.rawTable.tableDetail.columns.push({
+          this.rawTable.tableDetail.columns.push({
             index: index,
             encoding: columType || 'orderedbytes',
             table: dimension.table,
@@ -275,13 +277,13 @@ export default {
           })
         })
       })
-      this.modelDesc.metrics.forEach(function (measure) {
+      this.modelDesc.metrics.forEach((measure) => {
         let index = 'discrete'
         let sorted = false
-        if (_this.modelDesc.partition_desc && measure === _this.modelDesc.partition_desc.partition_date_column) {
+        if (this.modelDesc.partition_desc && measure === this.modelDesc.partition_desc.partition_date_column) {
           sorted = true
         }
-        var columType = _this.modelDesc.columnsDetail[getNameSpace(measure) + '.' + removeNameSpace(measure)] && _this.modelDesc.columnsDetail[getNameSpace(measure) + '.' + removeNameSpace(measure)].datatype
+        var columType = this.modelDesc.columnsDetail[getNameSpace(measure) + '.' + removeNameSpace(measure)] && this.modelDesc.columnsDetail[getNameSpace(measure) + '.' + removeNameSpace(measure)].datatype
         let encodingVersion = 1
         if (['time', 'date', 'integer'].indexOf(columType) < 0) {
           columType = ''
@@ -290,10 +292,9 @@ export default {
           columType = columType + ':4'
           encodingVersion = baseEncodings.getEncodingMaxVersion(columType)
         }
-        _this.rawTable.tableDetail.columns.push({
+        this.rawTable.tableDetail.columns.push({
           index: index,
           encoding: columType || 'orderedbytes',
-
           table: getNameSpace(measure),
           column: removeNameSpace(measure),
           encoding_version: encodingVersion,
@@ -335,21 +336,21 @@ export default {
         if (_this.isEdit) {
           // var rawtbaleName = this.cubeDesc.name + (this.cubeDesc.status === 'DRAFT' ? '_draft' : '')
           _this.initConvertedRawTable()
-          this.loadRawTable(this.cubeDesc.name).then((res) => {
-            handleSuccess(res, (data, code, status, msg) => {
-              if (this.$store.state.cube.cubeRowTableIsSetting) {
-                _this.usedRawTable = true
-                var rawtbale = this.cubeDesc.is_draft ? data.draft : data.rawTable
-                if (rawtbale) {
-                  _this.$set(_this.rawTable, 'tableDetail', rawtbale)
-                  _this.initConvertedRawTable()
-                }
-              }
-            })
-          }).catch((res) => {
-            handleError(res, () => {
-            })
-          })
+          // this.loadRawTable(this.cubeDesc.name).then((res) => {
+          //   handleSuccess(res, (data, code, status, msg) => {
+          //     if (this.$store.state.cube.cubeRowTableIsSetting) {
+          //       _this.usedRawTable = true
+          //       var rawtbale = this.cubeDesc.is_draft ? data.draft : data.rawTable
+          //       if (rawtbale) {
+          //         _this.$set(_this.rawTable, 'tableDetail', rawtbale)
+          //         _this.initConvertedRawTable()
+          //       }
+          //     }
+          //   })
+          // }).catch((res) => {
+          //   handleError(res, () => {
+          //   })
+          // })
         }
       }
     }

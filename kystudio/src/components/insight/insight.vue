@@ -1,7 +1,7 @@
 <template>
   <div class="insight_box ksd-border-tab">
   	<div class="ksd_left_bar" id="input-inner">
-     <tree class="insight-search" :treedata="tableData" :placeholder="$t('kylinLang.common.pleaseFilter')"  :indent="4" :expandall="true" :showfilter="true" :allowdrag="false" @nodeclick="clickTable"></tree>
+     <tree class="insight-search" :expandnodeclick="false" :treedata="tableData" :placeholder="$t('kylinLang.common.pleaseFilter')"  :indent="4" :expandall="false" :showfilter="true" :allowdrag="false" @contentClick="clickTable"></tree>
     </div>
     <div class="ksd_right_box">
 	 <el-tabs type="card" v-model="activeMenu" class="query_box">
@@ -308,7 +308,7 @@ export default {
       this.activeSubMenu = activeName
     },
     clickTable (leaf) {
-      if (leaf && !leaf.children) {
+      if (leaf) {
         var tipsName = leaf.label
         // console.log(this.$refs.insightBox)
         var editor = this.$refs.insightBox.editor
@@ -338,7 +338,7 @@ export default {
     var editor = this.$refs.insightBox.editor
     editor.setOption('wrap', 'free')
     // alert(screen.availHeight - 65 - 50 - 55)
-    let iHeight = screen.availHeight - 65 - 50 - 55 + 12
+    let iHeight = screen.availHeight - 65 - 50 - 104
     this.$el.querySelector('.filter-tree').style.height = iHeight + 'px'
     if (!this.project) {
       return
@@ -386,8 +386,8 @@ export default {
     tab
   },
   locales: {
-    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', newQuery: 'New Query', saveQueries: 'Save Queries', queryHistory: 'Query History', tips: 'Tips: Click left tree to add columns in query box.', result: 'Result'},
-    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', newQuery: '新查询', saveQueries: '保存的查询', queryHistory: '查询历史', tips: '技巧: 点击左侧树结构选中列名。', result: '查询结果'}
+    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', newQuery: 'New Query', saveQueries: 'Save Queries', queryHistory: 'Query History', tips: 'Tips: Click left tree to add table or columns in query box.', result: 'Result'},
+    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', newQuery: '新查询', saveQueries: '保存的查询', queryHistory: '查询历史', tips: '技巧: 点击左侧树结构选中表名或者列名。', result: '查询结果'}
   }
 }
 </script>

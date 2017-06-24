@@ -9,7 +9,7 @@ export default {
     serverAboutKap: null,
     timeZone: '',
     securityProfile: 'testing',
-    limitfact: 'false'
+    limitlookup: 'true'
   },
   mutations: {
     [types.SAVE_AUTHENTICATION]: function (state, result) {
@@ -56,7 +56,7 @@ export default {
         commit(types.GET_CONF_BY_NAME, {name: 'kylin.web.timezone', key: 'timeZone'})
         commit(types.GET_CONF_BY_NAME, {name: 'kap.kyaccount.username', key: 'kyAccount'})
         commit(types.GET_CONF_BY_NAME, {name: 'kap.license.statement', key: 'statement'})
-        commit(types.GET_CONF_BY_NAME, {name: 'kap.web.hide-feature.limited-lookup', key: 'limitfact'})
+        commit(types.GET_CONF_BY_NAME, {name: 'kap.web.hide-feature.limited-lookup', key: 'limitlookup'})
         commit(types.GET_CONF_BY_NAME, {name: 'kylin.security.profile', key: 'securityProfile'})
       })
     },

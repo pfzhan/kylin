@@ -150,15 +150,15 @@
       </el-dialog>
        <el-dialog :title="$t('kylinLang.common.computedColumn')" v-model="computedColumnFormVisible" size="small">
           <div>
-            <el-button type="primary" class="ksd-mb-10" v-show="!openAddComputedColumnForm&&actionMode!=='view'" @click="openAddComputedColumnForm = true">{{$t('kylinLang.common.add')}}</el-button>
-            <el-form label-position="top"  ref="computedColumnForm" v-show="openAddComputedColumnForm">
-              <el-form-item :label="$t('kylinLang.dataSource.columns')" >
+            <el-button type="primary" class="ksd-mb-10" v-show="!openAddComputedColumnForm&&actionMode!=='view'" @click="addComputedForm">{{$t('kylinLang.common.add')}}</el-button>
+            <el-form label-position="top" :model="computedColumn"  ref="computedColumnForm"  :rules="computedRules" v-show="openAddComputedColumnForm">
+              <el-form-item :label="$t('kylinLang.dataSource.columns')" prop="name">
                 <el-input  auto-complete="off" v-model="computedColumn.name"></el-input>
               </el-form-item>
-              <el-form-item :label="$t('kylinLang.dataSource.expression')" >
+              <el-form-item :label="$t('kylinLang.dataSource.expression')" prop="expression">
                 <el-input type="textarea"  auto-complete="off" v-model="computedColumn.expression"></el-input>
               </el-form-item>
-              <el-form-item :label="$t('kylinLang.dataSource.returnType')">
+              <el-form-item :label="$t('kylinLang.dataSource.returnType')" prop="returnType">
                 <el-select v-model="computedColumn.returnType">
                   <el-option
                     v-for="(item, index) in computedDataTypeSelects"
@@ -224,8 +224,8 @@
 
     <el-dialog :title="$t('kylinLang.common.save')" v-model="addModelDialogDisable" >
        <partition-column :modelInfo="modelInfo" :actionMode="actionMode" :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
-       <el-checkbox v-model="openModelCheck">Check Model</el-checkbox>
-       <common-tip :content="$t('kylinLang.model.modelCheck')" >
+       <el-checkbox v-show="!hasStreamingTable" v-model="openModelCheck">Check Model</el-checkbox>
+       <common-tip v-show="!hasStreamingTable" :content="$t('kylinLang.model.modelCheck')" >
              <icon name="question-circle-o"></icon>
        </common-tip>
      <!--    <el-slider v-model="modelStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openModelCheck'></el-slider> -->
@@ -258,11 +258,24 @@ export default {
   props: ['extraoption'],
   data () {
     return {
+      computedRules: {
+        name: [
+          {required: true, message: this.$t('kylinLang.common.pleaseInput'), trigger: 'change'},
+          { trigger: 'blur', validator: this.checkName }
+        ],
+        expression: [
+          {required: true, message: this.$t('kylinLang.common.pleaseInput'), trigger: 'change'}
+        ],
+        returnType: [
+          {required: true, message: this.$t('kylinLang.common.pleaseSelect'), trigger: 'change'}
+        ]
+      },
       openAddComputedColumnForm: false,
       createCubeVisible: false,
       openModelCheck: true,
       modelStaticsRange: 100,
       addModelDialogDisable: false,
+      hasStreamingTable: false,
       createCubeFormRule: {
         cubeName: [
           {required: true, message: this.$t('kylinLang.cube.inputCubeName'), trigger: 'blur'},
@@ -342,7 +355,7 @@ export default {
         label: 'Cube',
         children: []
       }],
-      currentZoom: 0.8,
+      currentZoom: 0.7,
       currentDragDom: null,
       dateColumns: {},
       timeColumns: {},
@@ -427,6 +440,12 @@ export default {
       statsModel: 'COLLECT_MODEL_STATS',
       loadDataSource: 'LOAD_DATASOURCE'
     }),
+    addComputedForm () {
+      this.openAddComputedColumnForm = true
+      this.computedColumn.name = ''
+      this.computedColumn.expression = ''
+      this.computedColumn.returnType = ''
+    },
     // 列排序
     sortColumns: function (tableInfo) {
       var key = 'name'
@@ -462,6 +481,7 @@ export default {
       // if (this.extraoption.actionMode !== 'add') {
       //   this.saveAndCheckModel()
       // } else {
+      this.hasStreamingTable = this.getTableList('source_type', 1).length > 0
       var rootFact = this.getRootFact()
       if (!rootFact.length) {
         this.warnAlert(this.$t('hasNoFact'))
@@ -488,7 +508,7 @@ export default {
           type: 'success',
           message: this.$t('kylinLang.common.saveSuccess')
         })
-        if (this.openModelCheck) {
+        if (this.openModelCheck && !this.hasStreamingTable) {
           this.statsModel({
             project: this.project,
             modelname: this.modelInfo.modelName,
@@ -656,13 +676,18 @@ export default {
       this.refreshComputed()
     },
     saveComputedColumn: function (guid) {
-      this.addComputedColumnToDatabase((columnName) => {
-        this.$notify({
-          title: this.$t('kylinLang.common.success'),
-          message: this.$t('addComputedColumnSuccess'),
-          type: 'success'
-        })
-        this.openAddComputedColumnForm = false
+      this.$refs.computedColumnForm.validate((valid) => {
+        if (valid) {
+          this.addComputedColumnToDatabase((columnName) => {
+            this.$notify({
+              title: this.$t('kylinLang.common.success'),
+              message: this.$t('addComputedColumnSuccess'),
+              type: 'success'
+            })
+            this.$refs.computedColumnForm.resetFields()
+            this.openAddComputedColumnForm = false
+          })
+        }
       })
     },
     getPartitionDateColumns: function () {
@@ -1918,11 +1943,11 @@ export default {
       instance.setZoom(zoom)
     },
     addZoom: function () {
-      this.currentZoom += 0.01
+      this.currentZoom += 0.03
       this.jsplumbZoom(this.currentZoom, this.plumbInstance)
     },
     subZoom: function () {
-      this.currentZoom -= 0.01
+      this.currentZoom -= 0.03
       this.jsplumbZoom(this.currentZoom, this.plumbInstance)
     },
     // 检测数据有没有发生变化
@@ -2077,7 +2102,7 @@ export default {
       return false
     },
     useLimitFact () {
-      return this.$store.state.system.limitfact === 'true'
+      return this.$store.state.system.limitlookup === 'false'
     },
     computedDataTypeSelects () {
       var result = []

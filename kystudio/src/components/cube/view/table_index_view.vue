@@ -25,7 +25,7 @@
         header-align="center"
         align="center">      
         <template scope="scope">
-        {{cubeDesc.modelDesc.columnsDetail[scope.row.table+'.'+scope.row.column].datatype}}
+        {{cubeDesc.modelDesc.columnsDetail[scope.row.table+'.'+scope.row.column]&&cubeDesc.modelDesc.columnsDetail[scope.row.table+'.'+scope.row.column].datatype}}
       </template>
     </el-table-column>  
     <el-table-column
@@ -51,7 +51,7 @@
         </template> 
     </el-table-column>
     <el-table-column
-        label="sortedBy"
+        label="Sorted By"
         header-align="center"
         align="center">   
             <template scope="scope">
@@ -59,7 +59,7 @@
             </template>
       </el-table-column>   
     <el-table-column
-        label="shardBy"
+        label="Shard By"
         header-align="center"
         align="center">   
         <template scope="scope">

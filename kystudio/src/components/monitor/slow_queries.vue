@@ -18,7 +18,7 @@
       <el-table-column
       :label="$t('sql')"
       sortable
-      width="350">
+      width="250">
         <template scope="scope">
           {{scope.row.sql}}
         </template>

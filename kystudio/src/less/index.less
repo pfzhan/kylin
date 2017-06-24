@@ -7,11 +7,7 @@ body{
     -webkit-font-smoothing: antialiased;
     color: @fff;
 }
-::-webkit-scrollbar{width:0px}
-scrollbar {
-   -moz-appearance: none !important;
-   background: rgb(0,255,0) !important;
-}
+// ::-webkit-scrollbar{width:0px}
 //common css
 .generate-attr(@n,@attr, @attrName, @i: 1,@k:@i*2) when (@i =< @n) {
   .@{attr}-@{k} {
@@ -803,6 +799,7 @@ li {list-style-type:none;}
   }
   .el-tab-pane{
     background: @tableBC;
+    // padding-bottom: 20px;
   }
   .el-tabs--border-card{
     background: @bg-top;
@@ -908,6 +905,7 @@ li {list-style-type:none;}
 .filter-tree{
   padding-top: 5px!important;
   overflow: auto;
+  overflow-x: hidden;
 }
 .tree_box{
   .el-input__inner{

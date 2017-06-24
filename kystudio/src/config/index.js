@@ -4,7 +4,7 @@ let apiUrl
 let baseUrl
 let regexApiUrl
 
-let pageCount = 12
+let pageCount = 9
 
 if (process.env.NODE_ENV === 'development') {
   apiUrl = '/kylin/api/'

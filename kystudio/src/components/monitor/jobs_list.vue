@@ -96,7 +96,7 @@
     </el-table>
 
 
-<pager :totalSize="jobTotal"  v-on:handleCurrentChange='currentChange' ref="jobPager" ></pager>
+<pager :totalSize="jobTotal"  v-on:handleCurrentChange='currentChange' ref="jobPager" class="ksd-mb-20" ></pager>
 
   <el-card v-if="showStep" class="card-width job-step">
 
