@@ -70,6 +70,15 @@ public class ModelStatsManager {
         }
     }
 
+    public static void clearCache() {
+        CACHE.clear();
+    }
+
+    public static void clearCache(KylinConfig kylinConfig) {
+        if (kylinConfig != null)
+            CACHE.remove(kylinConfig);
+    }
+
     // ============================================================================
 
     private KylinConfig kylinConfig;
@@ -124,10 +133,6 @@ public class ModelStatsManager {
 
     public String getResourcePath(String modelName) {
         return MODEL_STATISTICS_ROOT + "/" + modelName + MetadataConstants.FILE_SURFIX;
-    }
-
-    public static void clearCache() {
-        CACHE.clear();
     }
 
     private ResourceStore getStore() {

@@ -28,6 +28,20 @@ import java.util.LinkedHashMap;
 import java.util.Properties;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.cube.CubeDescManager;
+import org.apache.kylin.cube.CubeManager;
+import org.apache.kylin.dict.DictionaryManager;
+import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.badquery.BadQueryHistoryManager;
+import org.apache.kylin.metadata.cachesync.Broadcaster;
+import org.apache.kylin.metadata.draft.DraftManager;
+import org.apache.kylin.metadata.project.ProjectManager;
+import org.apache.kylin.metadata.realization.RealizationRegistry;
+import org.apache.kylin.storage.hybrid.HybridManager;
+
+import io.kyligence.kap.modeling.smart.cube.CubeOptimizeLogManager;
+import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
 
 public class Utils {
     public static KylinConfig newKylinConfig(String metadataUrl) {
@@ -53,5 +67,21 @@ public class Utils {
 
     public static void setLargeCuboidCombinationConf(KylinConfig props) {
         props.setProperty("kylin.cube.aggrgroup.max-combination", Long.toString(Long.MAX_VALUE - 1));
+    }
+
+    public static void clearCacheForKylinConfig(KylinConfig kylinConfig) {
+        BadQueryHistoryManager.clearCache(kylinConfig);
+        Broadcaster.clearCache(kylinConfig);
+        CubeDescManager.clearCache(kylinConfig);
+        CubeManager.clearCache(kylinConfig);
+        CubeOptimizeLogManager.clearCache(kylinConfig);
+        DictionaryManager.clearCache(kylinConfig);
+        DraftManager.clearCache(kylinConfig);
+        ExecutableManager.clearCache(kylinConfig);
+        HybridManager.clearCache(kylinConfig);
+        MetadataManager.clearCache(kylinConfig);
+        ModelStatsManager.clearCache(kylinConfig);
+        ProjectManager.clearCache(kylinConfig);
+        RealizationRegistry.clearCache(kylinConfig);
     }
 }

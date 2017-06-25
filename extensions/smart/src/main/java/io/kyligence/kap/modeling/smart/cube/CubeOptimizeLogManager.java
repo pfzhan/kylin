@@ -77,6 +77,17 @@ public class CubeOptimizeLogManager {
         }
     }
 
+    public static void clearCache() {
+        CACHE.clear();
+    }
+
+    public static void clearCache(KylinConfig kylinConfig) {
+        if (kylinConfig != null)
+            CACHE.remove(kylinConfig);
+    }
+
+    // ============================================================================
+
     private class CubeSyncListener extends Broadcaster.Listener {
         @Override
         public void onClearAll(Broadcaster broadcaster) throws IOException {
@@ -125,10 +136,6 @@ public class CubeOptimizeLogManager {
 
     public String getResourcePath(String cubeName) {
         return CUBE_OPTIMIZE_LOG_STATISTICS_ROOT + "/" + cubeName + MetadataConstants.FILE_SURFIX;
-    }
-
-    public static void clearCache() {
-        CACHE.clear();
     }
 
     private ResourceStore getStore() {
