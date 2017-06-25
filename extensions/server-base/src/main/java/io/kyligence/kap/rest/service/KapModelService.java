@@ -51,7 +51,7 @@ public class KapModelService extends BasicService {
         return modelStatus;
     }
 
-    public Map<String, MODEL_COLUMN_SUGGESTION> inferSuggestions(String tableName) {
+    public Map<String, MODEL_COLUMN_SUGGESTION> inferDimensionSuggestions(String tableName) {
         Map<String, MODEL_COLUMN_SUGGESTION> result = new HashMap<String, MODEL_COLUMN_SUGGESTION>();
         TableDesc tableDesc = getMetadataManager().getTableDesc(tableName);
         if (tableDesc == null)
@@ -62,16 +62,16 @@ public class KapModelService extends BasicService {
         for (int i = 0; i < columns.length; i++) {
             ColumnDesc column = columns[i];
             TableExtDesc.ColumnStats stat = columnStats.size() > i ? columnStats.get(i) : null;
-            MODEL_COLUMN_SUGGESTION suggestion = inferSuggestion(column, stat);
+            MODEL_COLUMN_SUGGESTION suggestion = inferDimensionSuggestion(column, stat);
             result.put(column.getName(), suggestion);
         }
 
         return result;
     }
 
-    private MODEL_COLUMN_SUGGESTION inferSuggestion(ColumnDesc column, TableExtDesc.ColumnStats stat) {
+    private MODEL_COLUMN_SUGGESTION inferDimensionSuggestion(ColumnDesc column, TableExtDesc.ColumnStats stat) {
         if (column.getType().isIntegerFamily()) {
-            if (column.getName().toUpperCase().endsWith("ID")) {
+            if (column.getName().toUpperCase().endsWith("ID") || column.getName().toUpperCase().endsWith("KEY")) {
                 return MODEL_COLUMN_SUGGESTION.DIMENSION;
             }
             if (column.getType().isTinyInt() || column.getType().isSmallInt()) {

@@ -89,9 +89,9 @@ public class KapModelController extends BasicController {
     @RequestMapping(value = "table_suggestions", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getModelSuggestions(@RequestParam(value = "table") String table) throws IOException {
+    public EnvelopeResponse getModelDimensionSuggestions(@RequestParam(value = "table") String table) throws IOException {
 
-        Map<String, KapModelService.MODEL_COLUMN_SUGGESTION> result = kapModelService.inferSuggestions(table);
+        Map<String, KapModelService.MODEL_COLUMN_SUGGESTION> result = kapModelService.inferDimensionSuggestions(table);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 
