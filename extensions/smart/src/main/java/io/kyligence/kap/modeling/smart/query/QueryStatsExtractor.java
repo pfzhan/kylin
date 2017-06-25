@@ -81,7 +81,7 @@ public class QueryStatsExtractor {
                             // ignore
                         }
                     }
-                    KylinConfig.destroyInstance();
+                    KylinConfig.removeKylinConfigThreadLocal();
                     return queryRecorder.getResult();
                 }
             }
