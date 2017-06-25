@@ -218,8 +218,8 @@ public class HiveTableExtSampleJob extends CubingJob {
 
         StringBuilder createIntermediateTableHql = new StringBuilder();
         createIntermediateTableHql.append("USE " + desc.getDatabase() + ";").append("\n");
-        createIntermediateTableHql.append("DROP TABLE IF EXISTS " + getIntermediateTableName(desc) + ";\n");
-        createIntermediateTableHql.append("CREATE TABLE IF NOT EXISTS " + getIntermediateTableName(desc) + "\n");
+        createIntermediateTableHql.append("DROP TABLE IF EXISTS " + desc.getMaterializedName() + ";\n");
+        createIntermediateTableHql.append("CREATE TABLE IF NOT EXISTS " + desc.getMaterializedName() + "\n");
         createIntermediateTableHql.append("LOCATION '" + getViewPath(conf, desc) + "'\n");
         createIntermediateTableHql.append("AS SELECT * FROM " + desc.getIdentity() + " " + condition + ";\n");
         hiveCmdBuilder.addStatement(createIntermediateTableHql.toString());
@@ -229,25 +229,21 @@ public class HiveTableExtSampleJob extends CubingJob {
     }
 
     private String getViewPath(JobEngineConfig conf, TableDesc desc) {
-        return JobBuilderSupport.getJobWorkingDir(conf, getId()) + "/" + getIntermediateTableName(desc);
+        return JobBuilderSupport.getJobWorkingDir(conf, getId()) + "/" + desc.getMaterializedName();
     }
 
     private ShellExecutable deleteMaterializedView(TableDesc desc) throws IOException {
 
         ShellExecutable step = new ShellExecutable();
-        step.setName("Drop Intermediate Table " + getIntermediateTableName(desc));
+        step.setName("Drop Intermediate Table " + desc.getMaterializedName());
         HiveCmdBuilder hiveCmdBuilder = new HiveCmdBuilder();
 
         StringBuilder createIntermediateTableHql = new StringBuilder();
         createIntermediateTableHql.append("USE " + desc.getDatabase() + ";\n");
-        createIntermediateTableHql.append("DROP TABLE IF EXISTS " + getIntermediateTableName(desc) + ";\n");
+        createIntermediateTableHql.append("DROP TABLE IF EXISTS " + desc.getMaterializedName() + ";\n");
         hiveCmdBuilder.addStatement(createIntermediateTableHql.toString());
         step.setCmd(hiveCmdBuilder.build());
         return step;
-    }
-
-    private String getIntermediateTableName(TableDesc desc) {
-        return desc.getMaterializedName() + "_stats_" + getId().replace('-', '_');
     }
 
     private String getOutputPath(String jobId) {
