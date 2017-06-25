@@ -7,7 +7,36 @@ body{
     -webkit-font-smoothing: antialiased;
     color: @fff;
 }
-// ::-webkit-scrollbar{width:0px}
+
+// 滚动条优化
+// chrome
+::-webkit-scrollbar
+{
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track-piece
+{
+    background-color: #383838;
+    -webkit-border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:vertical
+{
+    height: 5px;
+    background-color: #999999;
+    -webkit-border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:horizontal
+{
+    width: 5px;
+    background-color: #383838;
+    -webkit-border-radius: 6px;
+}
+// firefox
+// [data-scrollbar] .scroll-content, [scrollbar] .scroll-content, scrollbar .scroll-content {
+//   transform:none!important;
+//   -webkit-transform:none!important;
+// }
 //common css
 .generate-attr(@n,@attr, @attrName, @i: 1,@k:@i*2) when (@i =< @n) {
   .@{attr}-@{k} {
@@ -799,7 +828,6 @@ li {list-style-type:none;}
   }
   .el-tab-pane{
     background: @tableBC;
-    // padding-bottom: 20px;
   }
   .el-tabs--border-card{
     background: @bg-top;
