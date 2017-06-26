@@ -32,15 +32,17 @@
       <common-tip :content="healthStatus.messages.join('<br/>')" ><icon v-if="healthStatus.status!=='RUNNING'" :name="modelHealthStatus[healthStatus.status].icon" :style="{color:modelHealthStatus[healthStatus.status].color}"></icon></common-tip>
       <el-progress  :width="20" type="circle" :stroke-width="2" :show-text="false" v-if="healthStatus.status==='RUNNING'" :percentage="healthStatus.progress||0" style="width:20px;vertical-align: baseline;"></el-progress>
     </li>
-    <li>{{$t('sqlPattens')}}</li>
+    <li>{{$t('sqlPattens')}} <span v-show="sqlCount>0">({{sqlCount}})</span></li>
   </ul>
   <el-row style="margin-top: 10px;">
     <el-col :span="24">
-      <el-button type="blue"  @click.native="collectSql" :disabled="isReadyCube" >{{$t('collectsqlPatterns')}}</el-button>
+      <el-button type="blue"  @click.native="collectSql" :disabled="isReadyCube" >{{$t('collectsqlPatterns')}}</el-button> 
     </el-col>
   </el-row>
   <div class="line" style="margin-left: -30px;margin-right: -30px;margin-top: 105px;"></div>
   <el-dialog :title="$t('collectsqlPatterns')" v-model="addSQLFormVisible">
+    <p>{{$t('kylinLang.cube.inputSqlTip1')}}</p>
+    <p>{{$t('kylinLang.cube.inputSqlTip2')}}</p>
     <editor v-model="sqlString"  theme="chrome" class="ksd-mt-20" width="95%" height="200" ></editor>
     <span slot="footer" class="dialog-footer">
       <el-button @click="addSQLFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
@@ -61,6 +63,7 @@ export default {
     return {
       modelHealthStatus: modelHealthStatus,
       sqlBtnLoading: false,
+      sqlCount: 0,
       sqlString: '',
       healthStatus: {
         status: 'NONE',
@@ -96,21 +99,29 @@ export default {
       }
     },
     collectSql () {
-      this.sqlString = ''
       this.addSQLFormVisible = true
+      this.loadSql()
+    },
+    loadSql () {
       this.getSql(this.cubeDesc.name).then((res) => {
         handleSuccess(res, (data) => {
           this.sqlString = data.join(';')
+          this.sqlCount = data.length
         })
       })
     },
     collectSqlToServer () {
       // if (this.sqlString !== '') {
       this.sqlBtnLoading = true
-      this.saveSampleSql({modelName: this.modelDesc.name, cubeName: this.cubeDesc.name, sqls: this.sqlString.split(/;/)}).then((res) => {
+      var sqls = this.sqlString.split(/;/)
+      if (!sqls[sqls.length - 1]) {
+        sqls.splice(sqls.length - 1, 1)
+      }
+      this.saveSampleSql({modelName: this.modelDesc.name, cubeName: this.cubeDesc.name, sqls: sqls}).then((res) => {
         this.sqlBtnLoading = false
         handleSuccess(res, (data, code, status, msg) => {
           this.addSQLFormVisible = false
+          this.sqlCount = sqls.length
         })
       }, (res) => {
         this.sqlBtnLoading = false
@@ -142,6 +153,7 @@ export default {
     }
   },
   mounted () {
+    this.loadSql()
     // this.getModelDiagnose({
     //   project: this.modelDesc.project,
     //   modelName: this.modelDesc.name

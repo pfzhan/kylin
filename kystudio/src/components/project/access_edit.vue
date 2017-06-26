@@ -116,8 +116,8 @@ export default {
       },
       accessList: [],
       mask: {
-        '1': 'QUERY',
-        '32': 'EDIT',
+        '1': 'READ',
+        '32': 'MANAGEMENT',
         '64': 'OPERATION',
         '16': 'ADMINISTRATION'
       }
@@ -189,8 +189,10 @@ export default {
     },
     updateAccess () {
       var actionType = this.own === 'cube' ? 'editCubeAccess' : 'editProjectAccess'
+      this.accessMeta.permission = this.mask[this.accessMeta.permission]
       this[actionType]({accessData: this.accessMeta, id: this.accessId}).then((res) => {
         this.editAccessVisible = false
+        this.loadAccess()
       }, (res) => {
         handleError(res)
       })

@@ -106,6 +106,8 @@ exports.default = {
     resetCheckDataTip: '请注意，模型检测结果将与最新编辑不一致。当您保存了最新编辑，模型检测结果将会被删除。'
   },
   cube: {
+    inputSqlTip1: '1.下面展示了输入的所有SQL语句，每句以“；”作为分割。',
+    inputSqlTip2: '2.输入的不当SQL语句将被忽视，不会对后续步骤产生作用。',
     readyCubeTip: '已包含segment的cube不支持编辑，避免cube元数据不一致。',
     saveCubeTip: '确认保存该Cube吗？',
     cubeName: 'Cube 名称',

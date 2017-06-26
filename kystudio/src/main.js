@@ -36,7 +36,6 @@ import 'vue-awesome/icons'
 import 'brace/mode/json'
 import 'brace/mode/sql'
 import 'brace/theme/chrome'
-// import Scrollbar from 'smooth-scrollbar'
 import VueDND from 'awe-dnd'
 Vue.use(VueDND)
 Vue.component('icon', Icon)
@@ -85,8 +84,6 @@ router.beforeEach((to, from, next) => {
   if (to.matched && to.matched.length) {
     store.state.config.layoutConfig.gloalProjectSelectShow = to.name !== 'Dashboard'
     store.state.config.routerConfig.currentPathName = to.name
-    // var scrollBar = Scrollbar.get(document.getElementById('scrollBox'))
-    // scrollBar && scrollBar.setPosition(0, 0)
     next()
   } else {
     router.replace('/access/login')
