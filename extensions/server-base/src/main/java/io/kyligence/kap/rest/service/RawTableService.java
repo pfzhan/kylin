@@ -94,7 +94,7 @@ public class RawTableService extends BasicService {
         return getRawTableManager().updateRawTable(rawBuilder);
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or " + Constant.ACCESS_HAS_ROLE_MODELER)
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public RawTableInstance createRawTableInstanceAndDesc(String rawName, String projectName, RawTableDesc desc)
             throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
