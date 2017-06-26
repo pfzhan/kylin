@@ -239,6 +239,8 @@ public class KapCubeController extends BasicController implements InitializingBe
             if (schedule != null) {
                 bindSchedulerJobWithCube(schedule, cubeDesc.getName(), cubeDesc.getUuid());
                 schedulerJobService.enableSchedulerJob(schedule);
+            } else {
+                schedulerJobService.deleteSchedulerJobInternal(cubeDesc.getName());
             }
 
             // remove any previous draft
