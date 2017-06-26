@@ -338,7 +338,7 @@ export default {
     var editor = this.$refs.insightBox.editor
     editor.setOption('wrap', 'free')
     // alert(screen.availHeight - 65 - 50 - 55)
-    let iHeight = screen.availHeight - 65 - 50 - 104
+    let iHeight = screen.availHeight - 65 - 50 - 103
     this.$el.querySelector('.filter-tree').style.height = iHeight + 'px'
     if (!this.project) {
       return
@@ -397,6 +397,14 @@ export default {
     position: relative;
     .el-collapse-item__header {
       color: #9095ab
+    }
+    .fa-icon{
+      &.check-circle{
+        color:green
+      }
+      &.warning{
+        color:yellow;
+      }
     }
     .el-icon-circle-close {
       color: red;

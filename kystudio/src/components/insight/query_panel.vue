@@ -1,13 +1,13 @@
 <template>
   <div class="query_panel_box">
    <el-row  class="resultTips"  v-show="errinfo" >
-      <el-col :span="3"><div class="grid-content bg-purple"><p>Status: <span style="color:red"> error</span></p></div></el-col>
-      <el-col :span="6"><div class="grid-content bg-purple"><p>Start Time: <span> {{Date.now()|gmtTime}}</span></p></div></el-col>
-      <el-col :span="3"><div class="grid-content bg-purple"><p style="visibility:hidden">Duration: <span> </span></p></div></el-col>
-      <el-col :span="7"><div class="grid-content bg-purple"><p>Project: <span> {{extraoption.project}}</span></p></div></el-col>
+      <el-col :span="3"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.status')}}<span style="color:red"> error</span></p></div></el-col>
+      <el-col :span="6"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.startTime')}}<span> {{startTime|gmtTime}}</span></p></div></el-col>
+      <el-col :span="3"><div class="grid-content bg-purple"><p style="visibility:hidden">{{$t('kylinLang.query.duration')}}<span> </span></p></div></el-col>
+      <el-col :span="7"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.project')}}<span> {{extraoption.project}}</span></p></div></el-col>
       <el-col :span="5"><div class="grid-content bg-purple" style="text-align:right" >
-      <kap-icon-button   icon="refresh" type="blue" @click.native="refreshQuery" style="display:inline-block"></kap-icon-button>
-      <kap-icon-button   icon="save" type="primary" @click.native="openSaveQueryDialog" style="display:inline-block">Save Query</kap-icon-button>
+      <kap-icon-button size="small" icon="refresh" type="blue" @click.native="refreshQuery" style="display:inline-block"></kap-icon-button>
+      <kap-icon-button size="small"  icon="save" type="primary" @click.native="openSaveQueryDialog" style="display:inline-block">{{$t('kylinLang.query.saveQuery')}}</kap-icon-button>
       </div></el-col>
     </el-row>
     <!-- <p class="tips">querying <span>{{pending}}</span>S in Cube: <span>aire_line</span></p> -->
@@ -21,13 +21,13 @@
     </div>
     <el-dialog :title="$t('kylinLang.common.save')" v-model="saveQueryFormVisible">
     <el-form :model="saveQueryMeta"  ref="saveQueryForm" :rules="rules" label-width="100px">
-      <el-form-item label="Query SQL" prop="sql">
+      <el-form-item :label="$t('kylinLang.query.querySql')" prop="sql">
        <editor v-model="saveQueryMeta.sql" lang="sql" theme="chrome" width="100%" height="200" useWrapMode="true"></editor>
       </el-form-item>
-      <el-form-item label="Name:" prop="name">
+      <el-form-item :label="$t('kylinLang.query.name')" prop="name">
         <el-input v-model="saveQueryMeta.name" auto-complete="off"></el-input>
       </el-form-item>
-      <el-form-item label="Description:" prop="description">
+      <el-form-item :label="$t('kylinLang.query.desc')" prop="description">
         <el-input v-model="saveQueryMeta.description"></el-input>
       </el-form-item>
     </el-form>
@@ -71,7 +71,7 @@ export default {
       }, (res) => {
         handleError(res, (data, code, status, msg) => {
           this.errinfo = msg
-          this.$emit('changeView', this.extraoption.index, data, 'close', 'querypanel')
+          this.$emit('changeView', this.extraoption.index, data, 'warning', 'querypanel')
         })
       })
     },
@@ -101,6 +101,7 @@ export default {
       percent: 0,
       ST: null,
       pending: 0,
+      startTime: Date.now(),
       saveQueryFormVisible: false,
       rules: {
         name: [
@@ -143,6 +144,9 @@ export default {
 <style lang="less">
   .query_panel_box{
     text-align: center;
+    .el-dialog__header{
+      text-align: left;
+    }
     .tips{
       font-size: 12px;
       margin-bottom: 20px;

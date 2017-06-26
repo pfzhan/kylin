@@ -38,7 +38,7 @@
         </li>
       </ul>
     </div>
-    <div class="panel-c-c" id="scrollBox">
+    <div class="panel-c-c" id="scrollBox" >
       <div class="grid-content bg-purple-light">
         <el-col :span="24" style="margin-bottom:15px;">
           <!-- 面包屑在dashboard页面不显示 -->
@@ -96,7 +96,7 @@
 
 <script>
   import { handleSuccess, handleError, kapConfirm, hasRole } from '../../util/business'
-  import { objectClone } from '../../util/index'
+  import { objectClone, isFireFox } from '../../util/index'
   import { mapActions, mapMutations } from 'vuex'
   import projectSelect from '../project/project_select'
   import projectEdit from '../project/project_edit'
@@ -104,7 +104,7 @@
   import help from '../common/help'
   import resetPassword from '../system/reset_password'
   import $ from 'jquery'
-
+  // import Scrollbar from 'smooth-scrollbar'
   export default {
     data () {
       return {
@@ -422,6 +422,9 @@
     },
     mounted () {
       this.hoverMenu()
+      if (isFireFox()) {
+        // Scrollbar.init(document.getElementById('scrollBox'))
+      }
     },
     locales: {
       'en': {resetPassword: 'Reset Password', confirmLoginOut: 'Confirm exit?', validPeriod: 'Valid Period: ', overtip1: 'This Evaluation License will be expired in ', overtip2: 'days. Please contact sales support to apply for the Enterprise License.', applayLisence: 'Apply for Enterprise License', 'continueUse': 'I Know'},

@@ -419,8 +419,8 @@ export default {
       })
     },
     edit: function (cube) {
-      if (!(cube.segments && cube.segments.length >= 0)) {
-        this.$message(this.$t('kylinLang.cube.cubeHasJob'))
+      if (cube.segments && cube.segments.length > 0) {
+        this.$message(this.$t('kylinLang.cube.readyCubeTip'))
         return
       }
       this.$emit('addtabs', 'cube', cube.name, 'cubeEdit', {
@@ -432,10 +432,10 @@ export default {
       })
     },
     build: function (cube) {
-      if (!(cube.segments && cube.segments.length >= 0)) {
-        this.$message(this.$t('kylinLang.cube.cubeHasJob'))
-        return
-      }
+      // if (!(cube.segments && cube.segments.length >= 0)) {
+      //   this.$message(this.$t('kylinLang.cube.cubeHasJob'))
+      //   return
+      // }
       let _this = this
       _this.selected_cube = cube
       if (cube.is_streaming) {
@@ -448,7 +448,7 @@ export default {
             handleSuccess(res, (data, code, status, msg) => {
               this.$message({
                 type: 'success',
-                message: this.$t('buildSuccessful'),
+                message: this.$t('submitSuccess'),
                 duration: 3000
               })
               _this.loadCubesList(this.currentPage - 1)
@@ -472,7 +472,7 @@ export default {
               handleSuccess(res, (data, code, status, msg) => {
                 this.$message({
                   type: 'success',
-                  message: this.$t('buildSuccessful'),
+                  message: this.$t('submitSuccess'),
                   duration: 3000
                 })
                 _this.loadCubesList(this.currentPage - 1)

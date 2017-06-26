@@ -98,7 +98,7 @@
 
 <pager :totalSize="jobTotal"  v-on:handleCurrentChange='currentChange' ref="jobPager" class="ksd-mb-20" ></pager>
 
-  <el-card v-if="showStep" class="card-width job-step">
+  <el-card v-show="showStep" class="card-width job-step" id="stepList">
 
           <div class="timeline-item">
             <div class="timeline-body">
@@ -167,8 +167,8 @@
               <li>Status: {{step.step_status}}</li>
               <li>Duration: {{timerline_duration(step)}}</li>
               <li>Waiting: {{ step.exec_wait_time | tofixedTimer(2)}}</li>
-              <li>Start At: {{(step.exec_start_time !=0 ? step.exec_start_time:'') | utcTime}}</li>
-              <li>End At: {{(step.exec_end_time !=0 ? step.exec_end_time :'') | utcTime}}</li>
+              <li>Start At: {{transToGmtTime(step.exec_start_time !=0 ? step.exec_start_time:'')}}</li>
+              <li>End At: {{transToGmtTime(step.exec_end_time !=0 ? step.exec_end_time :'')}}</li>
               <li v-if="step.info.hdfs_bytes_written">Data Size: <span class="blue">{{ step.info.hdfs_bytes_written}}</span></li>
               <li v-if="step.info.mr_job_id">MR Job: {{step.info.mr_job_id}}</li>
             </ul>
@@ -182,7 +182,7 @@
               <!-- <span style="color: #4383B4">#{{index+1}} Step Name: </span>{{step.name}}<br> -->
               <p class="steptime">
                 <i class="el-icon-time"></i>
-                {{(step.exec_start_time!=0? step.exec_start_time: '')|utcTime}}
+                {{transToGmtTime(step.exec_start_time!=0? step.exec_start_time: '')}}
               </p>
               
               <div v-if="step.info.hdfs_bytes_written">
@@ -348,6 +348,7 @@ export default {
       cancelJob: 'CANCEL_JOB',
       resumeJob: 'RESUME_JOB'
     }),
+    transToGmtTime: transToGmtTime,
     currentChange: function (val) {
       this.currentPage = val
       this.refreshFilter()
@@ -450,6 +451,14 @@ export default {
       })
     },
     showLineSteps: function (row, v1, v2) {
+      var target = v1.currentTarget || v1.srcElement || v1.target
+      // 获取div距离顶部的距离
+      var mTop = target.offsetTop
+      // 减去滚动条的高度
+      // var sTop = document.body.scrollTop
+      // console.log(mTop, sTop, 99001)
+      var result = 98 + mTop
+      document.getElementById('stepList').style.top = result + 'px'
       this.selected_job = row
       this.showStep = true
     },
@@ -645,7 +654,7 @@ export default {
     z-index: 100;
     position: absolute;
     top: -16px;
-    right: -20px;
+    right: -30px;
   }
   .job-step.el-card {border-radius: 0;}
   .job-step .el-card__body {

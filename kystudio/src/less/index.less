@@ -37,6 +37,19 @@ body{
 //   transform:none!important;
 //   -webkit-transform:none!important;
 // }
+// IE
+body {   
+scrollbar-base-color: #2f3243;   
+// scrollbar-base-color: #C0C0C0;   
+scrollbar-3dlight-color: #999;   
+scrollbar-highlight-color: #292b38;   
+scrollbar-track-color: #292b38;   
+scrollbar-arrow-color: #998;   
+scrollbar-shadow-color: #292b38;   
+scrollbar-dark-shadow-color: #999;   
+}  
+
+
 //common css
 .generate-attr(@n,@attr, @attrName, @i: 1,@k:@i*2) when (@i =< @n) {
   .@{attr}-@{k} {

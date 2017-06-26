@@ -265,7 +265,7 @@ export default {
           var arr = []
           var lenOffeature = data.columns_stats && data.columns_stats.length || 0
           if (lenOffeature) {
-            arr = [[this.$t('kylinLang.dataSource.columns')], [this.$t('kylinLang.dataSource.cardinality')], [this.$t('kylinLang.dataSource.maxLengthVal')], [this.$t('kylinLang.dataSource.maximum')], [this.$t('kylinLang.dataSource.minLengthVal')], [this.$t('kylinLang.dataSource.minimal')], [this.$t('kylinLang.dataSource.nullCount')]]
+            arr = [[''], [this.$t('kylinLang.dataSource.cardinality')], [this.$t('kylinLang.dataSource.maxLengthVal')], [this.$t('kylinLang.dataSource.maximum')], [this.$t('kylinLang.dataSource.minLengthVal')], [this.$t('kylinLang.dataSource.minimal')], [this.$t('kylinLang.dataSource.nullCount')]]
             for (let i = 0; i < lenOffeature; i++) {
               arr[0].push(data.columns_stats[i].column_name)
               arr[1].push(data.columns_stats[i].cardinality)
@@ -288,7 +288,7 @@ export default {
           var sampleData = changeDataAxis(data.sample_rows, true)
           var sampleDataLen = sampleData && sampleData.length || 0
           if (sampleDataLen) {
-            var basicColumn = [[this.$t('kylinLang.dataSource.columns')]]
+            var basicColumn = [['']]
             for (var i = 0; i < sampleDataLen; i++) {
               for (var m = 0; m < sampleData[i].length - 1; m++) {
                 basicColumn[0].push(tableInfo.columns[m].name)

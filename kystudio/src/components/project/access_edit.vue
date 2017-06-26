@@ -1,6 +1,6 @@
 <template>
 <div class="access_edit">
-    <el-button class="ksd-mb-20" type="primary" @click="addAccess()"> ＋ {{$t('grant')}}</el-button>
+    <el-button class="ksd-mb-20" type="primary" size="small" @click="addAccess()"> ＋ {{$t('grant')}}</el-button>
     <kap-common-popover>
       <div slot="content">
          <h4>{{$t('grantTitle')}}</h4>
@@ -46,10 +46,10 @@
         </el-form-item>
         <el-form-item :label="$t('permission')">
           <el-select  :placeholder="$t('permission')" v-model="accessMeta.permission">
-            <el-option label="Cube Admin" :value="16"></el-option>
-            <el-option label="Cube Edit" :value="32"></el-option>
-            <el-option label="Cube Opera" :value="64"></el-option>
-            <el-option label="Cube Query" :value="1"></el-option>
+            <el-option label="Admin" :value="16"></el-option>
+            <el-option label="Edit" :value="32"></el-option>
+            <el-option label="Opera" :value="64"></el-option>
+            <el-option label="Query" :value="1"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -116,8 +116,8 @@ export default {
       },
       accessList: [],
       mask: {
-        '1': 'READ',
-        '32': 'MANAGEMENT',
+        '1': 'QUERY',
+        '32': 'EDIT',
         '64': 'OPERATION',
         '16': 'ADMINISTRATION'
       }

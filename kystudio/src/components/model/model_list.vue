@@ -25,7 +25,7 @@
 					</el-dropdown>
 		    </p>
 		      <div style="padding: 20px;">
-		        <h2 :title="o.name" >
+		        <h2>
             <el-tooltip class="item" effect="dark" :content="o.name" placement="top">
               <span @click="viewModel(o)">{{o.name|omit(24, '...')}}</span>
             </el-tooltip>
@@ -268,11 +268,11 @@ export default {
       startTime: '',
       endTime: '',
       pickerOptionsEnd: {
-        disabledDate: (time) => {
-          let nowDate = new Date(this.startTime)
-          let v1 = time.getTime() < +nowDate
-          return v1
-        }
+        // disabledDate: (time) => {
+        //   let nowDate = new Date(this.startTime)
+        //   let v1 = time.getTime() < +nowDate
+        //   return v1
+        // }
       },
       viewModal: 'card',
       hasPartition: false,
@@ -340,7 +340,10 @@ export default {
     changeStartTime () {
       this.pickerOptionsEnd.disabledDate = (time) => { // set date-picker endTime
         let nowDate = new Date(this.startTime)
-        this.endTime = this.startTime
+        if (this.endTime < this.startTime) {
+          this.endTime = this.startTime
+        }
+        // this.endTime = this.startTime
         // nowDate.setMonth(nowDate.getMonth() + 1)// 后一个月
         // let v1 = time.getTime() > +new Date(_this.startTime) + 30 * 24 * 60 * 60 * 1000
         let v1 = time.getTime() < +nowDate

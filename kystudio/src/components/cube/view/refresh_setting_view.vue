@@ -18,7 +18,8 @@
     <el-col :span="18">{{toGmtTime(cubeDesc.desc.partition_date_start)}}</el-col>
   </el-row>
 
-   <el-row class="border_bottom padding-m">
+   <el-row class=" padding-m">
+    <!-- <h2 class="ksd-mt-40 ksd-ml-40"><span style="font-size:16px;">{{$t('kylinLang.cube.scheduler')}}</span></h2> -->
     <el-col :span="6">{{$t('buildTrigger')}}</el-col>
     <el-col :span="18" v-if="cubeDesc.scheduler">{{toGmtTime(cubeDesc.scheduler.scheduled_run_time)}}</el-col>
   </el-row>

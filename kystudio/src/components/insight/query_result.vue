@@ -1,27 +1,27 @@
 <template>
   <div>
     <el-row  class="resultTips" >
-      <el-col :span="3"><div class="grid-content bg-purple"><p>Status: <span style="color:green"> success</span></p></div></el-col>
-      <el-col :span="6"><div class="grid-content bg-purple"><p>Start Time: <span> {{queryInfo.starttime|gmtTime}}</span></p></div></el-col>
-      <el-col :span="3"><div class="grid-content bg-purple"><p>Duration: <span> {{(queryInfo.duration/1000)|fixed(2)}}s</span></p></div></el-col>
-      <el-col :span="7"><div class="grid-content bg-purple"><p>Project: <span> {{queryInfo.project}}</span></p></div></el-col>
+      <el-col :span="3"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.status')}}<span style="color:green"> success</span></p></div></el-col>
+      <el-col :span="6"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.startTime')}}<span> {{queryInfo.starttime|gmtTime}}</span></p></div></el-col>
+      <el-col :span="3"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.duration')}}<span> {{(queryInfo.duration/1000)|fixed(2)}}s</span></p></div></el-col>
+      <el-col :span="7"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.project')}}<span> {{queryInfo.project}}</span></p></div></el-col>
       <el-col :span="5">
         <div class="grid-content bg-purple" style="text-align:right" >
-        <kap-icon-button   icon="refresh" type="blue" @click.native="refreshQuery" style="display:inline-block"></kap-icon-button>
-        <kap-icon-button   icon="save" type="primary" @click.native="openSaveQueryDialog" style="display:inline-block">Save Query</kap-icon-button>
+        <kap-icon-button   icon="refresh" type="blue" size="small" @click.native="refreshQuery" style="display:inline-block"></kap-icon-button>
+        <kap-icon-button   icon="save" type="primary" size="small" @click.native="openSaveQueryDialog" style="display:inline-block">{{$t('kylinLang.query.saveQuery')}}</kap-icon-button>
         </div>
       </el-col>
     </el-row>
     <el-row class="resultTips" >
       <el-col :span="24">
-        <div v-if="!extraoption.data.adHoc" class="grid-content bg-purple"><p>Query Engine: <span>{{queryInfo.cube.replace(/name=/g, '')}}</span></p></div>
-        <div v-if="extraoption.data.adHoc" class="grid-content bg-purple"><p>Query Engine: <span>Push down</span></p></div>
+        <div v-if="!extraoption.data.adHoc" class="grid-content bg-purple"><p>{{$t('kylinLang.query.queryEngine')}}<span>{{queryInfo.cube.replace(/name=/g, '')}}</span></p></div>
+        <div v-if="extraoption.data.adHoc" class="grid-content bg-purple"><p>{{$t('kylinLang.query.queryEngine')}}<span>Push down</span></p></div>
       </el-col>
     </el-row>
   	<div class="ksd-mt-14">
-<kap-icon-button  v-show="viewModel" icon="area-chart" type="blue" style="border-width:1px" @click.native="changeViewModel">Visualization</kap-icon-button>
-<kap-icon-button v-show="!viewModel" icon="table" type="primary" @click.native="changeViewModel">Grid</kap-icon-button>
-<kap-icon-button icon="external-link" type="primary" @click.native="exportData">Export</kap-icon-button>
+<kap-icon-button  v-show="viewModel" icon="area-chart" type="blue" size="small" style="border-width:1px" @click.native="changeViewModel">{{$t('kylinLang.query.visualization')}}</kap-icon-button>
+<kap-icon-button v-show="!viewModel" icon="table" size="small" type="blue" @click.native="changeViewModel">{{$t('kylinLang.query.grid')}}</kap-icon-button>
+<kap-icon-button icon="external-link" type="primary" size="small" @click.native="exportData">{{$t('kylinLang.query.export')}}</kap-icon-button>
    <!-- <el-button><icon name="external-link"></icon> Export</el-button> -->
    </div>
   	<div class="ksd-mt-20 grid-box" v-show="viewModel">
@@ -32,6 +32,7 @@
 		    <el-table-column v-for="(value, index) in tableMeta" :key="index"
 		      :prop="''+index"
 		      :label="value.label"
+          sortable
           width="120" 
           >
 		    </el-table-column>
@@ -41,19 +42,19 @@
   	</div>
     <div class="ksd-mt-20" v-show="!viewModel">
        <el-form :inline="true"  class="demo-form-inline">
-        <el-form-item label="Graph Type">
+        <el-form-item :label="$t('kylinLang.query.graphType')">
           <el-select  placeholder="Graph Type" v-model="graphType" @change="changeGraphInfo">
             <el-option label="Line Chart" value="line"></el-option>
             <el-option label="Bar Chart" value="bar"></el-option>
             <el-option label="Pie Chart" value="pie"></el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="Dimensions">
+        <el-form-item :label="$t('kylinLang.query.dimension')">
           <el-select  placeholder="Dimensions" v-model="selectDimension" @change="changeGraphInfo">
             <el-option :label="dime.name" :value="dime.name" v-for="dime in dimensionsAndMeasures.d" :key="dime.name"></el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="Metrics">
+        <el-form-item :label="$t('kylinLang.query.metrics')">
           <el-select  placeholder="Metrics" v-model="selectMetrics" @change="changeGraphInfo">
             <el-option :label="mea.name" :value="mea.name" v-for="(mea, index) in dimensionsAndMeasures.m" :key="index"></el-option>
           </el-select>
@@ -64,21 +65,21 @@
       </el-form>
       <div class="echart_box" style="width:800px;height:800px;"></div>
     </div>
-   <el-dialog title="保存" v-model="saveQueryFormVisible">
+   <el-dialog :title="$t('kylinLang.common.save')" v-model="saveQueryFormVisible">
     <el-form :model="saveQueryMeta"  ref="saveQueryForm" :rules="rules" label-width="100px">
-      <el-form-item label="Query SQL" prop="sql">
+      <el-form-item :label="$t('kylinLang.query.querySql')" prop="sql">
        <editor v-model="saveQueryMeta.sql" lang="sql" theme="chrome" width="100%" height="200" useWrapMode="true"></editor>
       </el-form-item>
-      <el-form-item label="Name:" prop="name">
+      <el-form-item :label="$t('kylinLang.query.name')" prop="name">
         <el-input v-model="saveQueryMeta.name" auto-complete="off"></el-input>
       </el-form-item>
-      <el-form-item label="Description:" prop="description">
+      <el-form-item :label="$t('kylinLang.query.desc')" prop="description">
         <el-input v-model="saveQueryMeta.description"></el-input>
       </el-form-item>
     </el-form>
      <div slot="footer" class="dialog-footer">
-    <el-button @click="saveQueryFormVisible = false">取 消</el-button>
-    <el-button type="primary" @click="saveQuery">确 定</el-button>
+    <el-button @click="saveQueryFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+    <el-button type="primary" @click="saveQuery">{{$t('kylinLang.common.ok')}}</el-button>
   </div>
     </el-dialog>
   </div>
@@ -179,6 +180,7 @@ export default {
       var xAxis = []
       var yAxis = []
       var myChart = echarts.init($(this.$el).find('.echart_box')[0])
+      console.log(transData)
       for (var i in transData) {
         xAxis.push(i)
         yAxis.push(transData[i])

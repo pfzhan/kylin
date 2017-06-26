@@ -106,6 +106,7 @@ exports.default = {
     resetCheckDataTip: '请注意，模型检测结果将与最新编辑不一致。当您保存了最新编辑，模型检测结果将会被删除。'
   },
   cube: {
+    readyCubeTip: '已包含segment的cube不支持编辑，避免cube元数据不一致。',
     saveCubeTip: '确认保存该Cube吗？',
     cubeName: 'Cube 名称',
     scheduler: '构建调度器',
@@ -143,6 +144,23 @@ exports.default = {
     selectProject: '选择Project',
     projectList: '项目列表',
     addProject: '添加项目'
+  },
+  query: {
+    saveQuery: '保存查询',
+    name: '名称：',
+    desc: '描述：',
+    querySql: '查询SQL：',
+    queryEngine: '查询引擎：',
+    visualization: '可视化',
+    grid: '表格',
+    export: '导出',
+    status: '状态：',
+    startTime: '开始时间：',
+    duration: '耗时：',
+    project: '项目：',
+    graphType: '图表类型：',
+    dimension: '维度：',
+    metrics: '度量：'
   },
   job: {
   },

@@ -249,4 +249,8 @@ export function isIE () {
   }
   return false
 }
+export function isFireFox () {
+  // return false
+  return navigator.userAgent.toUpperCase().indexOf('FIREFOX') >= 0
+}
 

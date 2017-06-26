@@ -134,7 +134,7 @@ export default {
  .noRawTable {
   height: 60px;
   line-height: 60px;
-  border:1px solid #ddd;
+  border:1px solid #393e53;
   border-radius: 2px;
   text-align: center;
  }

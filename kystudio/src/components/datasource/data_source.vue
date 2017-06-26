@@ -319,11 +319,12 @@
 <script>
 import { mapActions } from 'vuex'
 import { handleSuccess, handleError, hasRole, kapWarn, transToGmtTime } from '../../util/business'
-import { changeDataAxis } from '../../util/index'
+import { changeDataAxis, isFireFox } from '../../util/index'
 import createKafka from '../kafka/create_kafka'
 import editKafka from '../kafka/edit_kafka'
 import viewKafka from '../kafka/view_kafka'
 import arealabel from 'components/common/area_label'
+// import Scrollbar from 'smooth-scrollbar'
 export default {
   data () {
     return {
@@ -860,6 +861,9 @@ export default {
   mounted () {
     let iHeight = screen.availHeight - 65 - 50 - 188
     this.$el.querySelector('.filter-tree').style.height = iHeight + 'px'
+    if (isFireFox()) {
+      // Scrollbar.init(document.querySelector('.sub_menu .el-tabs__content'))
+    }
   },
   locales: {
     'en': {'load': 'Load', 'reload': 'Reload', 'samplingBtn': 'Sampling', 'sampling': 'Table Sampling', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Table Sampling', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!'},

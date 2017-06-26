@@ -13,6 +13,7 @@
     <el-row>
     <el-col :span="24" class="title">{{$t('aggregationGroups')}}</el-col>
   </el-row>
+  {{$t('kylinLang.cube.maxGroupColumn')}} {{dim_cap}}
   <el-table
     :show-header=false
     :data="cubeDesc.desc.aggregation_groups"
@@ -147,6 +148,11 @@ export default {
     getLength: function (encode) {
       let code = encode.split(':')
       return code[1]
+    }
+  },
+  computed: {
+    dim_cap () {
+      return this.cubeDesc.desc.aggregation_groups && this.cubeDesc.desc.aggregation_groups[0].select_rule.dim_cap || 0
     }
   },
   locales: {

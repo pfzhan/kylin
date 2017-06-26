@@ -107,6 +107,7 @@ exports.default = {
     resetCheckDataTip: 'Please note that model check results would be inconsistent with the new editing. So model check results would be dropped after the new editing saved.'
   },
   cube: {
+    readyCubeTip: 'Cube containing segments is allowed to be modified, avoiding the inconsistence of cube metadata.',
     saveCubeTip: 'Confirm save the cube?',
     cubeName: 'Cube Name',
     scheduler: 'Scheduler',
@@ -144,6 +145,23 @@ exports.default = {
     selectProject: 'Please select a project',
     projectList: 'Project List',
     addProject: 'Add Project'
+  },
+  query: {
+    saveQuery: 'Save Query',
+    name: 'Name:',
+    desc: 'Description:',
+    querySql: 'Query SQL:',
+    queryEngine: 'Query Engine:',
+    visualization: 'Visualization',
+    grid: 'Grid',
+    export: 'Export',
+    status: 'Status:',
+    startTime: 'Start Time:',
+    duration: 'Duration:',
+    project: 'Project:',
+    graphType: 'Graph Type:',
+    dimension: 'Dimensions:',
+    metrics: 'Metrics:'
   },
   job: {
   },
