@@ -95,7 +95,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
 
         List<ManagedUser> all = listAllUsers();
         logger.info("All " + all.size() + " users");
-        if (all.isEmpty()) {
+        if (all.isEmpty() && "testing".equals(System.getProperty("spring.profiles.active"))) {
             save("ADMIN", new ManagedUser("ADMIN", "KYLIN", true, Constant.ROLE_ADMIN, Constant.ROLE_ANALYST,
                     Constant.ROLE_MODELER));
             save("ANALYST", new ManagedUser("ANALYST", "ANALYST", true, Constant.ROLE_ANALYST));
