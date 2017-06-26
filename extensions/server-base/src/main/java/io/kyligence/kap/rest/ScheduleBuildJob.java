@@ -38,6 +38,7 @@ import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.job.JobInstance;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.model.ISourceAware;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.service.JobService;
 import org.quartz.Job;
@@ -84,6 +85,11 @@ public class ScheduleBuildJob implements Job {
             SchedulerJobInstance schedulerInstance = schedulerJobService.getSchedulerJob(jobName);
             String errorJobId = null;
             CubeInstance cube = jobService.getCubeManager().getCube(schedulerInstance.getRelatedRealization());
+
+            if (cube.getStatus() == RealizationStatusEnum.DISABLED && cube.getSegments().size() > 0) {
+                logger.info("Cube " + cube.getName() + " is disabled, skip the scheduler this time.");
+                return;
+            }
 
             if (cube.getLatestReadySegment() != null) {
                 startTime = cube.getDateRangeEnd();
