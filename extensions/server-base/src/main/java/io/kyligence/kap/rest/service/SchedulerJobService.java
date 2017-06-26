@@ -307,8 +307,11 @@ public class SchedulerJobService extends BasicService implements InitializingBea
                 scheduler.deleteJob(jobKey);
             }
         }
-        trigger = TriggerBuilder.newTrigger().startAt(new Date(utcLocalConvert(instance.getScheduledRunTime(), true)))
-                .withSchedule(cronScheduleBuilder).build();
+
+        Date startTime = new Date(utcLocalConvert(instance.getScheduledRunTime(), true));
+        trigger = TriggerBuilder.newTrigger().startAt(startTime).withSchedule(cronScheduleBuilder).build();
+        logger.info("Scheduler of cube " + instance.getRelatedRealization() + " is scheduled to be run first at "
+                + startTime.toString() + " and the cron expression is " + cronExp.toString());
         cubeTriggerKeyMap.put(instance.getRelatedRealization(), trigger.getKey());
         scheduler.scheduleJob(jobDetail, trigger);
     }
