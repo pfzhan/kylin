@@ -74,6 +74,6 @@ public class RowkeyProposerTest {
         RowkeyProposer proposer = new RowkeyProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
         newCubeDesc.init(kylinConfig);
-        Assert.assertEquals(DateDimEnc.ENCODING_NAME, newCubeDesc.getRowkey().getRowKeyColumns()[3].getEncoding());
+        Assert.assertEquals(DateDimEnc.ENCODING_NAME, newCubeDesc.getRowkey().getRowKeyColumns()[5].getEncoding());
     }
 }

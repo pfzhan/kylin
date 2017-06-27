@@ -31,7 +31,6 @@ import java.util.Set;
 
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
-import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TableRef;
@@ -64,19 +63,6 @@ public class ModelDomainBuilder implements IDomainBuilder {
             }
         }
 
-        // Remove duplicated PK-FK for inner-join
-        for (JoinTableDesc fTable : modelDesc.getJoinTables()) {
-            if (fTable.getJoin().isInnerJoin()) {
-                TblColRef[] fkColRefs = fTable.getJoin().getForeignKeyColumns();
-                TblColRef[] pkColRefs = fTable.getJoin().getPrimaryKeyColumns();
-                for (int i = 0; i < pkColRefs.length; i++) {
-                    if (dimensionCols.contains(pkColRefs[i]) && dimensionCols.contains(fkColRefs[i])) {
-                        dimensionCols.remove(pkColRefs[i]);
-                    }
-                }
-            }
-        }
-
         // Setup measures
         List<TblColRef> measureCols = new ArrayList<>();
         for (String col : modelDesc.getMetrics()) {
@@ -93,11 +79,14 @@ public class ModelDomainBuilder implements IDomainBuilder {
             measureFuncs.add(FunctionDesc.newInstance("COUNT_DISTINCT", ParameterDesc.newInstance(colRef), "hllc(10)"));
             if (colRef.getType().isNumberFamily()) {
                 // SUM
-                measureFuncs.add(FunctionDesc.newInstance("SUM", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
+                measureFuncs
+                        .add(FunctionDesc.newInstance("SUM", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
                 // MAX
-                measureFuncs.add(FunctionDesc.newInstance("MAX", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
+                measureFuncs
+                        .add(FunctionDesc.newInstance("MAX", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
                 // MIN
-                measureFuncs.add(FunctionDesc.newInstance("MIN", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
+                measureFuncs
+                        .add(FunctionDesc.newInstance("MIN", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
             }
         }
 

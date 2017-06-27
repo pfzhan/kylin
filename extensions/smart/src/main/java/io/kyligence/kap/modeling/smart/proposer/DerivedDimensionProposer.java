@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.cube.model.DimensionDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
@@ -70,7 +69,9 @@ public class DerivedDimensionProposer extends AbstractProposer {
                 workCubeDesc.init(context.getKylinConfig());
 
                 derivedRatio = derivedRatio / 2;
-            } while (workCubeDesc.getRowkey().getRowKeyColumns().length > 63 && workCubeDesc.getRowkey().getRowKeyColumns().length < lastRowkeyNum && retry++ < modelingConfig.getDerivedStrictRetryMax());
+            } while (workCubeDesc.getRowkey().getRowKeyColumns().length > 63
+                    && workCubeDesc.getRowkey().getRowKeyColumns().length < lastRowkeyNum
+                    && retry++ < modelingConfig.getDerivedStrictRetryMax());
         } else {
             logger.debug("No table stats or model stats found, skip proposing derived dimensions.");
         }
@@ -102,7 +103,8 @@ public class DerivedDimensionProposer extends AbstractProposer {
                 //                    result.add(newDimensionDesc(workCubeDesc, fkCol.getName(), fkCol.getTableAlias(), fkCol.getIdentity(), null));
                 //                }
                 for (TblColRef derivedCol : origDim.getColumnRefs()) {
-                    DimensionDesc newDim = newDimensionDesc(workCubeDesc, derivedCol.getName(), derivedCol.getTableAlias(), derivedCol.getIdentity(), null);
+                    DimensionDesc newDim = newDimensionDesc(workCubeDesc, derivedCol.getName(),
+                            derivedCol.getTableAlias(), derivedCol.getIdentity(), null);
                     result.add(newDim);
                     colDimMap.put(derivedCol, newDim);
                 }
@@ -113,29 +115,11 @@ public class DerivedDimensionProposer extends AbstractProposer {
             }
         }
 
-        // remove dup PK/FK from inner join tables
-        for (JoinTableDesc joinTableDesc : context.getModelDesc().getJoinTables()) {
-            JoinDesc joinDesc = joinTableDesc.getJoin();
-            if (joinDesc.isInnerJoin()) {
-                TblColRef[] fks = joinDesc.getForeignKeyColumns();
-                TblColRef[] pks = joinDesc.getPrimaryKeyColumns();
-                for (int i = 0; i < fks.length; i++) {
-                    DimensionDesc fkDim = colDimMap.get(fks[i]);
-                    DimensionDesc pkDim = colDimMap.get(pks[i]);
-                    if (pkDim != null) {
-                        result.remove(pkDim);
-                    }
-                    if (fkDim == null) {
-                        DimensionDesc newDim = newDimensionDesc(workCubeDesc, fks[i].getName(), fks[i].getTableAlias(), fks[i].getIdentity(), null);
-                        result.add(newDim);
-                    }
-                }
-            }
-        }
         return result;
     }
 
-    private List<DimensionDesc> convertToDerived(CubeDesc cubeDesc, Collection<DimensionDesc> origDimensions, double derivedRatio) {
+    private List<DimensionDesc> convertToDerived(CubeDesc cubeDesc, Collection<DimensionDesc> origDimensions,
+            double derivedRatio) {
         Set<DimensionDesc> workDimensions = Sets.newHashSet();
         DataModelDesc modelDesc = context.getModelDesc();
 
@@ -147,96 +131,66 @@ public class DerivedDimensionProposer extends AbstractProposer {
             }
         }
 
+        // group dimensions from lookup tables by table
         Map<TableRef, List<DimensionDesc>> normalDimByTbl = Maps.newHashMap(); // all dimensions on lookup tables
-        Map<TableRef, List<DimensionDesc>> fkDimsByTbl = Maps.newHashMap();
         for (DimensionDesc origDim : origDimensions) {
-            if (origDim.isDerived()) { // keep derived dims
+            if (origDim.isDerived()) { // keep original derived dims
                 workDimensions.add(origDim);
             } else {
-                // if a lookup has derived dims, the FK should not be declared as normal, as the derived dim already contains it
-                TblColRef tblColRef = origDim.getTableRef().getColumn(origDim.getColumn()); // origDim.getColumnRefs() not initialized
-
-                // check if this is a FK col.
-                TableRef fkTblRef = allFKCols.get(tblColRef);
-                if (fkTblRef != null) {
-                    // this is a FK col, just record it, and will remove if there's derived dim on this lookup table
-                    if (!fkDimsByTbl.containsKey(fkTblRef)) {
-                        fkDimsByTbl.put(fkTblRef, Lists.<DimensionDesc> newArrayList());
+                TableRef tblRef = origDim.getTableRef();
+                if (modelDesc.getRootFactTable() != tblRef) {
+                    if (!normalDimByTbl.containsKey(tblRef)) {
+                        normalDimByTbl.put(tblRef, Lists.<DimensionDesc> newArrayList());
                     }
-                    fkDimsByTbl.get(fkTblRef).add(origDim);
+                    normalDimByTbl.get(tblRef).add(origDim);
                 } else {
-                    // not a FK col, record as derived candidate
-                    TableRef tblRef = origDim.getTableRef();
-                    if (modelDesc.getRootFactTable() != tblRef) {
-                        if (!normalDimByTbl.containsKey(tblRef)) {
-                            normalDimByTbl.put(tblRef, Lists.<DimensionDesc> newArrayList());
-                        }
-                        normalDimByTbl.get(tblRef).add(origDim);
-                    } else {
-                        // fact dim, keep as normal
-                        workDimensions.add(origDim);
-                    }
+                    // fact dim, keep as normal
+                    workDimensions.add(origDim);
                 }
             }
         }
 
         for (Map.Entry<TableRef, List<DimensionDesc>> tblDims : normalDimByTbl.entrySet()) {
-            // if there's only 1 dim on this table, immediately set as normal
-            //            if (tblDims.getValue().size() == 1) {
-            //                workDimensions.add(tblDims.getValue().get(0));
-            //                continue;
-            //            }
-
             TableRef tblRef = tblDims.getKey();
-            String tblAlias = tblRef.getAlias();
             List<String> derivedDimNames = Lists.newArrayList();
+
+            // calculate cardinality of FKs for lookup table
             JoinDesc joinDesc = modelDesc.getJoinByPKSide(tblRef);
-
-            TblColRef[] pkCols = joinDesc.getPrimaryKeyColumns();
-            List<DimensionDesc> pKeyDimsBackup = Lists.newArrayList();
-
-            // calculate possible cardinality of PKs on lookup table
-            // TODO: get from model stats and cube stats
-            long pKeyCardinality = 1;
-            for (TblColRef pkCol : pkCols) {
-                long cardinality = context.getColumnsCardinality(pkCol.getIdentity());
-                if (cardinality > 0) {
-                    pKeyCardinality = pKeyCardinality * cardinality;
-                }
+            TblColRef[] fkCols = joinDesc.getForeignKeyColumns();
+            List<String> fkColNames = Lists.newArrayListWithExpectedSize(fkCols.length);
+            for (TblColRef fkColRef : fkCols) {
+                fkColNames.add(fkColRef.getIdentity());
             }
+            long fKeyCardinality = context.getColumnsCardinality(fkColNames);
 
+            // try to convert normal to derived one by one
             for (DimensionDesc tblDim : tblDims.getValue()) {
                 TblColRef dimColRef = tblDim.getColumnRefs()[0]; // normal dimension only has 1 colRef
-                if (ArrayUtils.contains(pkCols, dimColRef)) {
-                    // save pk dimensions, will add them as normal if no derived exists
-                    pKeyDimsBackup.add(tblDim);
-                } else {
+                if (!allFKCols.containsKey(dimColRef)) {
                     long colCardinality = context.getColumnsCardinality(dimColRef.getIdentity());
-                    double colCardRatio = (double) colCardinality / (double) pKeyCardinality;
+                    double colCardRatio = (double) colCardinality / (double) fKeyCardinality;
                     if (colCardRatio > derivedRatio) {
-                        logger.trace("Found one derived dimension: column={}, cardinality={}, pkCardinality={}, cardinalityRatio={}", tblDim.getColumn(), colCardinality, pKeyCardinality, colCardRatio);
+                        logger.trace(
+                                "Found one derived dimension: column={}, cardinality={}, pkCardinality={}, cardinalityRatio={}",
+                                tblDim.getColumn(), colCardinality, fKeyCardinality, colCardRatio);
                         derivedDimNames.add(tblDim.getColumn());
                     } else {
                         workDimensions.add(tblDim);
                     }
+                } else {
+                    workDimensions.add(tblDim); // keep FK as normal
                 }
             }
 
             if (!derivedDimNames.isEmpty()) {
-                // only add one derived dim, ignore all PK and FK dims
+                // only add one derived dim
+                String tblAlias = tblRef.getAlias();
                 String dimName = String.format("%s_%s", tblAlias, "DERIVED");
-                workDimensions.add(newDimensionDesc(cubeDesc, "{FK}", tblAlias, dimName, derivedDimNames.toArray(new String[0])));
-            } else if (!pKeyDimsBackup.isEmpty()) {
-                workDimensions.addAll(fkDimsByTbl.get(tblRef));
-                workDimensions.addAll(pKeyDimsBackup);
+                workDimensions.add(
+                        newDimensionDesc(cubeDesc, "{FK}", tblAlias, dimName, derivedDimNames.toArray(new String[0])));
             }
         }
 
-        for (Map.Entry<TableRef, List<DimensionDesc>> tblDims : fkDimsByTbl.entrySet()) {
-            if (!normalDimByTbl.containsKey(tblDims.getKey())) {
-                workDimensions.addAll(tblDims.getValue());
-            }
-        }
         return Lists.newArrayList(workDimensions);
     }
 }

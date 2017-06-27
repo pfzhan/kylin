@@ -37,7 +37,7 @@ public class ModelingMasterFactory {
     }
 
     public static ModelingMaster create(KylinConfig kylinConfig, CubeDesc cubeDesc) {
-        return create(kylinConfig, cubeDesc, null);
+        return create(kylinConfig, cubeDesc, new String[0]);
     }
 
     public static ModelingMaster create(KylinConfig kylinConfig, DataModelDesc modelDesc, String[] sqls) {

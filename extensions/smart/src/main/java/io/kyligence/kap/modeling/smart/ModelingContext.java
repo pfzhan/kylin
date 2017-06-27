@@ -235,22 +235,15 @@ public class ModelingContext {
         Preconditions.checkState(cols != null && !cols.isEmpty());
         long result = -1;
         switch (cols.size()) {
+        case 0:
+            break;
         case 1: {
-            if (modelStats != null) {
-                result = modelStats.getSingleColumnCardinalityVal(cols.get(0));
-            }
-
-            if (result < 0) {
-                TblColRef colRef = modelDesc.findColumn(cols.get(0));
-                TableExtDesc.ColumnStats colStats = getTableColumnStats(colRef);
-                if (colStats != null) {
-                    result = colStats.getCardinality();
-                }
-            }
+            result = getSingleColCardinality(cols.get(0));
             break;
         }
         case 2:
             if (modelStats != null) {
+                // try pair cardinality first
                 result = modelStats.getDoubleColumnCardinalityVal(cols.get(0), cols.get(1));
                 if (result >= 0) {
                     break;
@@ -259,11 +252,30 @@ public class ModelingContext {
         default:
             result = 1;
             for (String col : cols) {
-                TblColRef colRef = modelDesc.findColumn(col);
-                result *= getTableColumnStats(colRef).getCardinality();
+                result *= getSingleColCardinality(col);
+                if (result < 0) {
+                    return -1; // one of cols has no cardinality
+                }
             }
             break;
         }
+        return result;
+    }
+
+    private long getSingleColCardinality(String col) {
+        long result = -1;
+        if (modelStats != null) {
+            result = modelStats.getSingleColumnCardinalityVal(col);
+        }
+
+        if (result < 0) {
+            TblColRef colRef = modelDesc.findColumn(col);
+            TableExtDesc.ColumnStats colStats = getTableColumnStats(colRef);
+            if (colStats != null) {
+                result = colStats.getCardinality();
+            }
+        }
+
         return result;
     }
 }

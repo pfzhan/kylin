@@ -59,12 +59,12 @@ public class DerivedDimensionProposerTest {
         ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
 
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
-        Assert.assertEquals(23, initCubeDesc.getDimensions().size());
+        Assert.assertEquals(28, initCubeDesc.getDimensions().size());
 
         DerivedDimensionProposer proposer = new DerivedDimensionProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
         newCubeDesc.init(kylinConfig);
-        Assert.assertEquals(18, newCubeDesc.getDimensions().size());
+        Assert.assertEquals(26, newCubeDesc.getDimensions().size());
     }
 
     @Test
@@ -74,11 +74,11 @@ public class DerivedDimensionProposerTest {
         ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
 
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
-        Assert.assertEquals(25, initCubeDesc.getDimensions().size());
+        Assert.assertEquals(32, initCubeDesc.getDimensions().size());
 
         DerivedDimensionProposer proposer = new DerivedDimensionProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
         newCubeDesc.init(kylinConfig);
-        Assert.assertEquals(18, newCubeDesc.getDimensions().size());
+        Assert.assertEquals(28, newCubeDesc.getDimensions().size());
     }
 }
