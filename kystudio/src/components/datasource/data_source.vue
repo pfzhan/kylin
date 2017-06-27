@@ -250,7 +250,7 @@
       </el-dialog>
       <!-- 单个采样dialog -->
       <el-dialog :title="$t('setScanRange')" size="tiny" v-model="scanSampleRatioDialogVisible" @close="cancelLoadSample">
-        <span slot="title">{{$t('setScanRange')}} <common-tip placement="right" :content="$t('kylinLang.model.samplingPercentageTips')" >
+        <span slot="title">{{$t('setScanRange')}} <common-tip placement="right" :content="$t('kylinLang.dataSource.collectStatice')" >
                  <icon name="question-circle-o"></icon></common-tip></span>
         <el-row :gutter="20">
           <el-col :span="24"><div class="grid-content bg-purple">

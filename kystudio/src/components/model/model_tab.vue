@@ -21,7 +21,7 @@
       return {
         editable: true,
         editableTabs: [{
-          title: 'Overview',
+          title: this.$t('kylinLang.common.overview'),
           name: 'Overview',
           content: 'modelSubMenu',
           closable: false,

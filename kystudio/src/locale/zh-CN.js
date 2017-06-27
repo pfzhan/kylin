@@ -19,6 +19,7 @@ exports.default = {
     check: '检测',
     view: '预览',
     draft: '草稿',
+    overview: '概览',
     zoomIn: '放大视图',
     zoomOut: '缩小视图',
     automaticlayout: '自动布局',

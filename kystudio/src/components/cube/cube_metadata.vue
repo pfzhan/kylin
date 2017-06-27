@@ -1,7 +1,7 @@
 <template>
     <div class="paddingbox">   
       <editor v-model="json"  theme="chrome" class="ksd-mt-20" width="100%" height="400" ></editor>
-      <el-button class="button_right" v-if="extraoption.type==='edit'" type="primary" @click="update">{{$t('save')}}</el-button>
+      <el-button class="button_right" v-if="extraoption.type==='edit'" type="primary" @click="update">{{$t('kylinLang.common.save')}}</el-button>
     </div>
 </template>
 <script>
@@ -71,10 +71,6 @@ export default {
         })
       })
     }
-  },
-  locales: {
-    'en': {save: 'Save'},
-    'zh-cn': {save: '保存'}
   }
 }
 </script>

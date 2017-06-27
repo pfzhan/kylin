@@ -14,12 +14,12 @@
     <el-button type="blue" class="ksd-mb-10 ksd-fleft" v-if="isModeler" @click.native="addCube" style="font-weight: bold;border-radius: 20px;float: left;margin-left: 20px;">+{{$t('kylinLang.common.cube')}}</el-button>
   </el-row>
 
-  <el-table id="cube-list-table" v-if="cubesList&&cubesList.length"
+  <el-table id="cube-list-table" v-show="cubesList&&cubesList.length"
     :data="cubesList"
     :default-expand-all="isViewCubeMode"
     :row-class-name="showRowClass"
     border
-    style="width: 100%!important;">
+    style="width: 100%">
     <el-table-column type="expand" width="30">
       <template scope="props">
         <el-tabs activeName="first" class="el-tabs--default" id="cube-view" @tab-click="changeTab">

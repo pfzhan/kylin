@@ -20,6 +20,7 @@ exports.default = {
     view: 'View',
     detail: 'Detail',
     draft: 'Draft',
+    overview: 'Overview',
     zoomIn: 'Zoom In',
     zoomOut: 'Zoom Out',
     automaticlayout: 'Automatic Layout',

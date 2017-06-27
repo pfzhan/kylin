@@ -321,7 +321,8 @@ export default {
       testSort: [{name: 1}, {name: 2}, {name: 3}, {name: 4}],
       tableStaticsCache: {},
       suggestLoading: false,
-      cuboidCache: {}
+      cuboidCache: {},
+      ST: null
     }
   },
   components: {
@@ -713,17 +714,20 @@ export default {
           this.$set(this.groupErrorList, groupindex, '')
           return
         }
-        this.calCuboid({cubeDescData: JSON.stringify(this.cubeDesc), aggIndex: groupindex}).then((res) => {
-          handleSuccess(res, (data, code, status, msg) => {
-            this.cuboidCache[JSON.stringify(this.cubeDesc) + groupindex] = data
-            this.$set(this.cuboidList, groupindex, data)
-            this.$set(this.groupErrorList, groupindex, '')
+        clearTimeout(this.ST)
+        this.ST = setTimeout(() => {
+          this.calCuboid({cubeDescData: JSON.stringify(this.cubeDesc), aggIndex: groupindex}).then((res) => {
+            handleSuccess(res, (data, code, status, msg) => {
+              this.cuboidCache[JSON.stringify(this.cubeDesc) + groupindex] = data
+              this.$set(this.cuboidList, groupindex, data)
+              this.$set(this.groupErrorList, groupindex, '')
+            })
+          }).catch((res) => {
+            handleError(res, (data, code, status, msg) => {
+              this.$set(this.groupErrorList, groupindex, msg)
+            })
           })
-        }).catch((res) => {
-          handleError(res, (data, code, status, msg) => {
-            this.$set(this.groupErrorList, groupindex, msg)
-          })
-        })
+        }, 1000)
       })
     },
     initCalCuboid: function () {
