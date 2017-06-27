@@ -71,7 +71,8 @@ public class KyBotService extends BasicService {
     private KapConfig kapConfig = KapConfig.getInstanceFromEnv();
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public String dumpLocalKyBotPackage(String target, Long startTime, Long endTime, boolean needUpload) throws IOException {
+    public String dumpLocalKyBotPackage(String target, Long startTime, Long endTime, boolean needUpload)
+            throws IOException {
         File exportPath = Files.createTempDir();
         if (StringUtils.isEmpty(target)) {
             target = "-all";
@@ -205,8 +206,11 @@ public class KyBotService extends BasicService {
     public void readLocalKyAccountToken() {
         if (kapConfig.getKyAccountToken() == null) {
             try {
-                String token = FileUtils.readFileToString(getLocalTokenFile());
-                System.setProperty("kap.kyaccount.token", token);
+                File tokenFile = getLocalTokenFile();
+                if (tokenFile.exists()) {
+                    String token = FileUtils.readFileToString(tokenFile);
+                    System.setProperty("kap.kyaccount.token", token);
+                }
             } catch (IOException e) {
                 logger.error("Failed to read kyaccount token.", e);
             }
@@ -283,7 +287,8 @@ public class KyBotService extends BasicService {
             request.setHeader("authorization", "bearer " + token);
             HttpResponse response = client.execute(request);
             if (response.getStatusLine().getStatusCode() == 200) {
-                Map<String, Object> agreementMap = JsonUtil.readValue(EntityUtils.toString(response.getEntity()), Map.class);
+                Map<String, Object> agreementMap = JsonUtil.readValue(EntityUtils.toString(response.getEntity()),
+                        Map.class);
                 return (boolean) agreementMap.get("isUserAgreement");
             }
         } catch (Exception ex) {
