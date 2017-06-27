@@ -537,7 +537,7 @@ export default {
       this.editDimensionFormVisible = false
     },
     initRowkeyColumns: function () {
-      this.currentRowkey = []
+      this.currentRowkey.splice(0, this.currentRowkey.length)
       this.oldRowkey = []
       this.modelDesc.lookups.forEach((lookup) => {
         let table = lookup.alias
@@ -651,7 +651,7 @@ export default {
       this.initCalCuboid()
     },
     initAggregationGroup: function (isReset) {
-      if (!this.isEdit && this.currentRowkey.length > 0 && this.cubeDesc.aggregation_groups.length <= 0) {
+      if (!this.isEdit && this.cubeDesc.aggregation_groups.length <= 0) {
         let newGroup = {includes: this.currentRowkey, select_rule: {mandatory_dims: [], hierarchy_dims: [], joint_dims: []}}
         this.cubeDesc.aggregation_groups.push(newGroup)
         this.cuboidList.push(0)

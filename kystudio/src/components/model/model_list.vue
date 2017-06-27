@@ -218,7 +218,7 @@
                   <span class="line"></span>
 
                 </div>
-                  <slider @changeBar="changeBar" :hideCheckbox="true" :range="100" label="Check Model" :show="scanRatioDialogVisible">
+                  <slider @changeBar="changeBar" :hideCheckbox="true" :range="100" :label="$t('kylinLang.model.checkModel')" :show="scanRatioDialogVisible">
                     <span slot="sliderLabel">{{$t('kylinLang.dataSource.samplingPercentage')}} <common-tip placement="right" :content="$t('kylinLang.model.samplingPercentageTips')" >
                  <icon name="question-circle-o"></icon>
               </common-tip></span>
