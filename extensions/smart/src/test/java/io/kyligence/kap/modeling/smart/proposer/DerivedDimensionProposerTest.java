@@ -56,7 +56,7 @@ public class DerivedDimensionProposerTest {
     public void testOnStarModel() throws JsonProcessingException {
         DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model_star");
         ModelingContextBuilder contextBuilder = new ModelingContextBuilder(kylinConfig);
-        ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, null);
+        ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
 
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
         Assert.assertEquals(23, initCubeDesc.getDimensions().size());
@@ -71,7 +71,7 @@ public class DerivedDimensionProposerTest {
     public void testOnSnowModel() throws JsonProcessingException {
         DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model");
         ModelingContextBuilder contextBuilder = new ModelingContextBuilder(kylinConfig);
-        ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, null);
+        ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
 
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
         Assert.assertEquals(25, initCubeDesc.getDimensions().size());

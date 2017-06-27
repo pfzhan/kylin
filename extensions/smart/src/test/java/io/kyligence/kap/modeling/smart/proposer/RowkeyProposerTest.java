@@ -57,7 +57,7 @@ public class RowkeyProposerTest {
     public void testOnStarModel() throws JsonProcessingException {
         DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model_star");
         ModelingContextBuilder contextBuilder = new ModelingContextBuilder(kylinConfig);
-        ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, null);
+        ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
         RowkeyProposer proposer = new RowkeyProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
@@ -69,7 +69,7 @@ public class RowkeyProposerTest {
     public void testOnSnowModel() throws JsonProcessingException {
         DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model");
         ModelingContextBuilder contextBuilder = new ModelingContextBuilder(kylinConfig);
-        ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, null);
+        ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
         RowkeyProposer proposer = new RowkeyProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);

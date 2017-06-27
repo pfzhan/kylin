@@ -60,7 +60,7 @@ public class AggrGroupProposerTest {
     public void testOnStarModel() throws JsonProcessingException {
         DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model_star");
         ModelingContextBuilder contextBuilder = new ModelingContextBuilder(kylinConfig);
-        ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, null);
+        ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
         AggrGroupProposer proposer = new AggrGroupProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
@@ -75,7 +75,7 @@ public class AggrGroupProposerTest {
     public void testOnEmptyCube() throws JsonProcessingException {
         DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model_star");
         ModelingContextBuilder contextBuilder = new ModelingContextBuilder(kylinConfig);
-        ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, null);
+        ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
         initCubeDesc.setAggregationGroups(new ArrayList<AggregationGroup>(0));
 
@@ -92,7 +92,7 @@ public class AggrGroupProposerTest {
     public void testOnSnowModel() throws JsonProcessingException {
         DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model");
         ModelingContextBuilder contextBuilder = new ModelingContextBuilder(kylinConfig);
-        ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, null);
+        ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
         AggrGroupProposer proposer = new AggrGroupProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);

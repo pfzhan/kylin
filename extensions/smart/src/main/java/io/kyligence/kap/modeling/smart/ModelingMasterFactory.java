@@ -33,17 +33,22 @@ import io.kyligence.kap.modeling.smart.stats.ICubeStats;
 
 public class ModelingMasterFactory {
     public static ModelingMaster create(KylinConfig kylinConfig, DataModelDesc modelDesc) {
-        return create(kylinConfig, modelDesc, null);
+        return create(kylinConfig, modelDesc, new String[0]);
     }
 
     public static ModelingMaster create(KylinConfig kylinConfig, CubeDesc cubeDesc) {
         return create(kylinConfig, cubeDesc, null);
-
     }
 
     public static ModelingMaster create(KylinConfig kylinConfig, DataModelDesc modelDesc, String[] sqls) {
         ModelingContextBuilder contextBuilder = new ModelingContextBuilder(kylinConfig);
         ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, sqls);
+        return new ModelingMaster(context);
+    }
+
+    public static ModelingMaster create(KylinConfig kylinConfig, DataModelDesc modelDesc, QueryStats queryStats) {
+        ModelingContextBuilder contextBuilder = new ModelingContextBuilder(kylinConfig);
+        ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, queryStats);
         return new ModelingMaster(context);
     }
 
@@ -53,7 +58,8 @@ public class ModelingMasterFactory {
         return new ModelingMaster(context);
     }
 
-    public static ModelingMaster create(KylinConfig kylinConfig, CubeDesc cubeDesc, ICubeStats cubeStats, QueryStats queryStats) {
+    public static ModelingMaster create(KylinConfig kylinConfig, CubeDesc cubeDesc, ICubeStats cubeStats,
+            QueryStats queryStats) {
         ModelingContextBuilder contextBuilder = new ModelingContextBuilder(kylinConfig);
         ModelingContext context = contextBuilder.buildFromCubeDesc(cubeDesc, cubeStats, queryStats);
         return new ModelingMaster(context);

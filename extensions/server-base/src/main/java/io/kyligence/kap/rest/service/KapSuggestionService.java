@@ -95,10 +95,7 @@ public class KapSuggestionService extends BasicService {
         CubeOptimizeLogManager cubeOptimizeLogManager = CubeOptimizeLogManager.getInstance(config);
         QueryStats queryStats = cubeOptimizeLogManager.getCubeOptimizeLog(cubeName).getQueryStats();
         DataModelDesc dataModelDesc = MetadataManager.getInstance(config).getDataModelDesc(modelName);
-        ModelingMaster modelingMaster = ModelingMasterFactory.create(config, dataModelDesc);
-
-        if (null != queryStats)
-            modelingMaster.getContext().setQueryStats(queryStats);
+        ModelingMaster modelingMaster = ModelingMasterFactory.create(config, dataModelDesc, queryStats);
         return modelingMaster;
     }
 

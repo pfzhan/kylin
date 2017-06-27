@@ -74,6 +74,13 @@ public class ModelingContextBuilder {
         return internalBuild(modelCube, modelDomain, sqls);
     }
 
+    public ModelingContext buildFromModelDesc(DataModelDesc modelDesc, QueryStats queryStats) {
+        Domain modelDomain = new ModelDomainBuilder(modelDesc).build();
+        CubeDesc modelCube = modelDomain.buildCubeDesc();
+        modelCube.init(kylinConfig);
+        return internalBuild(modelCube, modelDomain, queryStats);
+    }
+
     public ModelingContext buildFromCubeDesc(CubeDesc cubeDesc, String[] sqls) {
         return buildFromCubeDesc(cubeDesc, null, sqls);
     }
@@ -132,7 +139,8 @@ public class ModelingContextBuilder {
         for (TblColRef colRef : measureCols) {
             if (colRef.getType().isNumberFamily()) {
                 // SUM
-                measureFuncs.add(FunctionDesc.newInstance("SUM", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
+                measureFuncs
+                        .add(FunctionDesc.newInstance("SUM", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
             }
         }
 

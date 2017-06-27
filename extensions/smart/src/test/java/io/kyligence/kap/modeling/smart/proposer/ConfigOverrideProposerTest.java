@@ -58,7 +58,7 @@ public class ConfigOverrideProposerTest {
     public void testPropose() {
         DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model_star");
         ModelingContextBuilder contextBuilder = new ModelingContextBuilder(kylinConfig);
-        ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, null);
+        ModelingContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
         CubeDesc cubeDesc = context.getDomain().buildCubeDesc();
 
         ConfigOverrideProposer proposer = new ConfigOverrideProposer(context);
