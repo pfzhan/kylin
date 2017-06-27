@@ -702,7 +702,9 @@ export default {
     loadAllModels () {
       this.loadModels({pageSize: 10000, pageOffset: 0, projectName: this.selected_project || null}).then((res) => {
         handleSuccess(res, (data) => {
-          this.allModels = data.models
+          this.allModels = data.models.filter((mo) => {
+            return mo.is_draft === false
+          })
         })
       })
     }
@@ -713,7 +715,9 @@ export default {
   },
   computed: {
     modelsList () {
-      var models = this.$store.state.model.modelsList.slice(0)
+      var models = this.$store.state.model.modelsList.filter((mo) => {
+        return mo.is_draft === false
+      })
       models.push({name: 'ALL'})
       return models
     },

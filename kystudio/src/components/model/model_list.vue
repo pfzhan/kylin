@@ -565,6 +565,8 @@ export default {
           kapConfirm(this.$t('delModelTip')).then(() => {
             this.drop()
           })
+        }, () => {
+          this.$message(this.$t('kylinLang.model.modelHasJob'))
         })
       } else if (command === 'cube') {
         this.initCubeMeta()

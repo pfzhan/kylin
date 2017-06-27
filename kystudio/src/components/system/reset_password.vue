@@ -29,7 +29,7 @@
 import { hasRole } from '../../util/business'
 export default {
   name: 'reset_password',
-  props: ['userDetail'],
+  props: ['userDetail', 'show'],
   data () {
     return {
       rules: {
@@ -48,6 +48,11 @@ export default {
     }
   },
   methods: {
+    resetData: function () {
+      this.$set(this.userDetail, 'confirmPassword', '')
+      this.$set(this.userDetail, 'password', '')
+      this.$set(this.userDetail, 'oldPassword', '')
+    },
     validate: function (rule, value, callback) {
       if (this.userDetail.password.length < 8) {
         callback(new Error(this.$t('passwordLength')))
@@ -69,6 +74,14 @@ export default {
     isAdmin () {
       return hasRole(this, 'ROLE_ADMIN')
     }
+  },
+  watch: {
+    // 'show' (v) {
+    //   if (v) {
+    //     console.log(123321)
+    //     this.resetData()
+    //   }
+    // }
   },
   created () {
     let _this = this

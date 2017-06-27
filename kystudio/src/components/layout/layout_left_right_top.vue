@@ -71,7 +71,7 @@
   </el-col>
 </el-row>
 <el-dialog @close="closeResetPassword" size="tiny" :title="$t('resetPassword')" v-model="resetPasswordFormVisible">
-    <reset_password :userDetail="currentUser" ref="resetPassword" v-on:validSuccess="resetPasswordValidSuccess"></reset_password>
+    <reset_password :userDetail="currentUser" ref="resetPassword" :show="resetPasswordFormVisible" v-on:validSuccess="resetPasswordValidSuccess"></reset_password>
     <div slot="footer" class="dialog-footer">
       <el-button @click="resetPasswordFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button type="primary" @click="checkResetPasswordForm">{{$t('kylinLang.common.ok')}}</el-button>
@@ -347,7 +347,7 @@
         this.resetPassword(userPassword).then((result) => {
           this.$message({
             type: 'success',
-            message: result.statusText
+            message: this.$t('kylinLang.common.updateSuccess')
           })
         }).catch((res) => {
           handleError(res)
@@ -375,6 +375,7 @@
         this.currentUserInfo = this.$store.state.user.currentUser
         let info = Object.create(this.currentUserInfo)
         info.password = ''
+        info.confirmPassword = ''
         return info
       },
       kapInfo () {

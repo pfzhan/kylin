@@ -320,7 +320,8 @@ export default {
       modelStatics: [],
       testSort: [{name: 1}, {name: 2}, {name: 3}, {name: 4}],
       tableStaticsCache: {},
-      suggestLoading: false
+      suggestLoading: false,
+      cuboidCache: {}
     }
   },
   components: {
@@ -329,7 +330,9 @@ export default {
   },
   created () {
     this.initCalCuboid()
-    this.initConvertedRowkeys()
+    setTimeout(() => {
+      this.initConvertedRowkeys()
+    }, 1000)
   },
   methods: {
     ...mapActions({
@@ -375,6 +378,7 @@ export default {
       this.cubeDesc.aggregation_groups.splice(0, this.cubeDesc.aggregation_groups.length)
       this.initRowkeyColumns()
       this.initAggregationGroup(true)
+      this.calcAllCuboid()
       // this.cubeDesc.rowkey.rowkey_columns.splice(0, this.cubeDesc.rowkey.rowkey_columns.length)
       // this.initConvertedRowkeys()
     },
@@ -453,7 +457,6 @@ export default {
           this.$set(this.cubeDesc.rowkey, 'rowkey_columns', data.rowkey.rowkey_columns)
           this.initConvertedRowkeys()
           this.initCalCuboid()
-          this.calcAllCuboid()
           this.suggestLoading = false
         })
       }, (res) => {
@@ -503,8 +506,11 @@ export default {
       }
       this.addDimensionsFormVisible = false
       this.$nextTick(() => {
-        this.initRowkeyColumns()
         this.initAggregationGroup()
+        setTimeout(() => {
+          this.initRowkeyColumns()
+        }, 1000)
+        this.calcAllCuboid()
         if (this.convertedRowkeys.length > 25) {
           kapConfirm(this.$t('moreRowkeyTip'))
         }
@@ -591,13 +597,13 @@ export default {
       this.initConvertedRowkeys()
     },
     initConvertedRowkeys: function () {
-      this.convertedRowkeys.splice(0)
-      this.$nextTick(() => {
-        this.cubeDesc.rowkey.rowkey_columns.forEach((rowkey) => {
-          let version = rowkey.encoding_version || 1
-          this.convertedRowkeys.push({column: rowkey.column, encoding: this.getEncoding(rowkey.encoding) + ':' + version, valueLength: this.getLength(rowkey.encoding), isShardBy: rowkey.isShardBy})
-        })
+      this.convertedRowkeys.splice(0, this.convertedRowkeys.length)
+      // this.$nextTick(() => {
+      this.cubeDesc.rowkey.rowkey_columns.forEach((rowkey) => {
+        let version = rowkey.encoding_version || 1
+        this.convertedRowkeys.push({column: rowkey.column, encoding: this.getEncoding(rowkey.encoding) + ':' + version, valueLength: this.getLength(rowkey.encoding), isShardBy: rowkey.isShardBy})
       })
+      // })
     },
     rowKeyToDesc () {
     },
@@ -697,14 +703,19 @@ export default {
           }
         }
         this.refreshAggragation(groupIndex)
-        this.calcAllCuboid()
       })
     },
     refreshAggragation: function (groupindex) {
       this.$nextTick(() => {
         groupindex = groupindex || 0
+        if (this.cuboidCache[JSON.stringify(this.cubeDesc) + groupindex]) {
+          this.$set(this.cuboidList, groupindex, this.cuboidCache[JSON.stringify(this.cubeDesc) + groupindex])
+          this.$set(this.groupErrorList, groupindex, '')
+          return
+        }
         this.calCuboid({cubeDescData: JSON.stringify(this.cubeDesc), aggIndex: groupindex}).then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
+            this.cuboidCache[JSON.stringify(this.cubeDesc) + groupindex] = data
             this.$set(this.cuboidList, groupindex, data)
             this.$set(this.groupErrorList, groupindex, '')
           })
@@ -722,6 +733,11 @@ export default {
       this.calcAllCuboid()
     },
     calcAllCuboid: function () {
+      if (this.cuboidCache[JSON.stringify(this.cubeDesc) + '-1']) {
+        this.totalCuboid = this.cuboidCache[JSON.stringify(this.cubeDesc) + '-1']
+        this.applyLoading = false
+        return
+      }
       this.calCuboid({cubeDescData: JSON.stringify(this.cubeDesc), aggIndex: -1}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           this.totalCuboid = data

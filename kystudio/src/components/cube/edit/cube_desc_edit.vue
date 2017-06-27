@@ -814,6 +814,8 @@ export default {
   },
   created () {
     this.createNewCube()
+    this.$store.state.cube.cubeSchedulerIsSetting = false
+    this.$store.state.cube.cubeRowTableIsSetting = false
     if (this.isEdit) {
       this.loadCubeDetail()
     }
