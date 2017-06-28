@@ -238,7 +238,11 @@ public class KapCubeController extends BasicController implements InitializingBe
 
             if (schedule != null) {
                 bindSchedulerJobWithCube(schedule, cubeDesc.getName(), cubeDesc.getUuid());
-                schedulerJobService.enableSchedulerJob(schedule);
+                if (schedule.isEnabled()) {
+                    schedulerJobService.enableSchedulerJob(schedule);
+                } else {
+                    schedulerJobService.disableSchedulerJob(schedule);
+                }
             } else {
                 schedulerJobService.deleteSchedulerJobInternal(cubeDesc.getName());
             }
@@ -353,7 +357,7 @@ public class KapCubeController extends BasicController implements InitializingBe
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse cloneCubeV2(@PathVariable String cubeName, @RequestBody CubeRequest cubeRequest)
-            throws IOException {
+            throws IOException, ParseException, SchedulerException {
         Message msg = MsgPicker.getMsg();
         String newCubeName = cubeRequest.getCubeName();
         String project = cubeRequest.getProject();
@@ -377,7 +381,8 @@ public class KapCubeController extends BasicController implements InitializingBe
             }
             SchedulerJobInstance job = schedulerJobService.getSchedulerJob(cubeName);
             if (job != null) {
-                schedulerJobService.cloneSchedulerJob(job, newCubeName, newCube.getUuid());
+                schedulerJobService.cloneSchedulerJob(job, newCubeName, newCube.getUuid(),
+                        newCube.getDescriptor().getPartitionDateStart());
             }
         } catch (Exception ex) {
             cp.rollback();
@@ -425,7 +430,7 @@ public class KapCubeController extends BasicController implements InitializingBe
     @RequestMapping(value = "/{cubeName}/disable", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse disableCubeV2(@PathVariable String cubeName) throws IOException {
+    public EnvelopeResponse disableCubeV2(@PathVariable String cubeName) throws IOException, SchedulerException {
         Message msg = MsgPicker.getMsg();
         KapMessage kapMsg = KapMsgPicker.getMsg();
 
@@ -445,6 +450,12 @@ public class KapCubeController extends BasicController implements InitializingBe
             RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
             if (raw != null) {
                 rawTableService.disableRaw(raw);
+            }
+
+            SchedulerJobInstance schedulerJobInstance = schedulerJobService.getSchedulerJobManager()
+                    .getSchedulerJob(cubeName);
+            if (schedulerJobInstance != null) {
+                schedulerJobService.disableSchedulerJob(schedulerJobInstance);
             }
         } catch (Exception ex) {
             cp.rollback();

@@ -53,7 +53,7 @@ public class SchedulerJobServiceTest extends LocalFileMetadataTestCase {
     public void test() throws InterruptedException, IOException, JobException, SchedulerException {
         SchedulerJobService schedulerJobService = new SchedulerJobService();
 
-        schedulerJobService.saveSchedulerJob("schedulerTest1", "default", "ci_left_join_cube",
+        schedulerJobService.saveSchedulerJob("schedulerTest1", "default", "ci_left_join_cube", true,
                 System.currentTimeMillis() + 10000, 0, 1, 0, 1, 1);
         List<SchedulerJobInstance> schedulerList = schedulerJobService.listAllSchedulerJobs("default", null,
                 Integer.MAX_VALUE, 0);

@@ -52,6 +52,9 @@ public class SchedulerJobInstance extends RootPersistentEntity implements Compar
     @JsonProperty("related_realization_uuid")
     private String relatedRealizationUuid;
 
+    @JsonProperty("enabled")
+    private boolean enabled;
+
     @JsonProperty("partition_start_time")
     private long partitionStartTime;
 
@@ -78,11 +81,14 @@ public class SchedulerJobInstance extends RootPersistentEntity implements Compar
         return SCHEDULER_RESOURCE_ROOT + "/" + schedulerJobName + ".json";
     }
 
-    public SchedulerJobInstance(String name, String project, String realizationType, String relatedRealization, long partitionStartTime, long scheduledRunTime, long repeatCount, long curRepeatCount, long repeatInterval, long partitionInterval) {
+    public SchedulerJobInstance(String name, String project, String realizationType, String relatedRealization,
+            boolean enabled, long partitionStartTime, long scheduledRunTime, long repeatCount, long curRepeatCount,
+            long repeatInterval, long partitionInterval) {
         this.name = name;
         this.project = project;
         this.realizationType = realizationType;
         this.relatedRealization = relatedRealization;
+        this.enabled = enabled;
         this.partitionStartTime = partitionStartTime;
         this.scheduledRunTime = scheduledRunTime;
         this.repeatCount = repeatCount;
@@ -92,8 +98,8 @@ public class SchedulerJobInstance extends RootPersistentEntity implements Compar
     }
 
     public SchedulerJobInstance getCopyOf() {
-        return new SchedulerJobInstance(name, project, realizationType, name, partitionStartTime, scheduledRunTime,
-                repeatCount, curRepeatCount, repeatInterval, partitionInterval);
+        return new SchedulerJobInstance(name, project, realizationType, name, enabled, partitionStartTime,
+                scheduledRunTime, repeatCount, curRepeatCount, repeatInterval, partitionInterval);
     }
 
     public SchedulerJobInstance() {
@@ -137,6 +143,14 @@ public class SchedulerJobInstance extends RootPersistentEntity implements Compar
 
     public String getRelatedRealizationUuid() {
         return this.relatedRealizationUuid;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 
     public long getPartitionStartTime() {
@@ -194,11 +208,13 @@ public class SchedulerJobInstance extends RootPersistentEntity implements Compar
 
     @Override
     public String toString() {
-        return "SchedulerJobnstance{" + "name='" + name + '\'' + ", project=" + project + ", relatedRealization=" + relatedRealization + '\'' + '}';
+        return "SchedulerJobnstance{" + "name='" + name + '\'' + ", project=" + project + ", relatedRealization="
+                + relatedRealization + '\'' + '}';
     }
 
     @Override
     public int compareTo(SchedulerJobInstance o) {
         return o.lastModified < this.lastModified ? -1 : o.lastModified > this.lastModified ? 1 : 0;
     }
+
 }

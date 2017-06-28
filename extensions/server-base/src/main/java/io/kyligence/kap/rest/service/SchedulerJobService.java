@@ -102,15 +102,18 @@ public class SchedulerJobService extends BasicService implements InitializingBea
             long hours = minutes / 60;
             long days = hours / 24;
             if (days > 0) {
-                sb.append(cal.get(Calendar.SECOND) + " " + cal.get(Calendar.MINUTE) + " "
-                        + cal.get(Calendar.HOUR_OF_DAY) + " " + cal.get(Calendar.DAY_OF_MONTH) + "/" + days + " * ?");
+                sb.append(
+                        cal.get(Calendar.SECOND) + " " + cal.get(Calendar.MINUTE) + " " + cal.get(Calendar.HOUR_OF_DAY)
+                                + " " + (cal.get(Calendar.DAY_OF_MONTH) % days) + "/" + days + " * ?");
             } else if (hours > 0) {
                 sb.append(cal.get(Calendar.SECOND) + " " + cal.get(Calendar.MINUTE) + " "
-                        + cal.get(Calendar.HOUR_OF_DAY) + "/" + hours + " *  * ?");
+                        + (cal.get(Calendar.HOUR_OF_DAY) % hours) + "/" + hours + " *  * ?");
             } else if (minutes > 0) {
-                sb.append(cal.get(Calendar.SECOND) + " " + cal.get(Calendar.MINUTE) + "/" + minutes + " * * * ?");
+                sb.append(cal.get(Calendar.SECOND) + " " + (cal.get(Calendar.MINUTE) % minutes) + "/" + minutes
+                        + " * * * ?");
             } else {
-                sb.append(cal.get(Calendar.SECOND) + "/" + intervalTimeMillis / 1000 + " * * * * ?");
+                sb.append((cal.get(Calendar.SECOND) % (intervalTimeMillis / 1000)) + "/" + intervalTimeMillis / 1000
+                        + " * * * * ?");
             }
         }
         return sb.toString();
@@ -181,11 +184,12 @@ public class SchedulerJobService extends BasicService implements InitializingBea
         return job;
     }
 
-    SchedulerJobInstance saveSchedulerJob(String name, String project, String cube, long triggerTime, long startTime,
-            long repeatCount, long curRepeatCount, long repeatInterval, long partitionInterval) throws IOException {
+    SchedulerJobInstance saveSchedulerJob(String name, String project, String cube, boolean enabled, long triggerTime,
+            long startTime, long repeatCount, long curRepeatCount, long repeatInterval, long partitionInterval)
+            throws IOException {
 
-        SchedulerJobInstance job = new SchedulerJobInstance(name, project, "cube", cube, startTime, triggerTime,
-                repeatCount, curRepeatCount, repeatInterval, partitionInterval);
+        SchedulerJobInstance job = new SchedulerJobInstance(name, project, "cube", cube, enabled, startTime,
+                triggerTime, repeatCount, curRepeatCount, repeatInterval, partitionInterval);
         getSchedulerJobManager().addSchedulerJob(job);
         return job;
     }
@@ -231,7 +235,9 @@ public class SchedulerJobService extends BasicService implements InitializingBea
 
     public SchedulerJobInstance deleteSchedulerJobInternal(String name) throws IOException {
         SchedulerJobInstance job = getSchedulerJobManager().getSchedulerJob(name);
-        getSchedulerJobManager().removeSchedulerJob(job);
+
+        if (job != null)
+            getSchedulerJobManager().removeSchedulerJob(job);
         return job;
     }
 
@@ -244,63 +250,75 @@ public class SchedulerJobService extends BasicService implements InitializingBea
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
             + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'MANAGEMENT')")
     public SchedulerJobInstance deleteSchedulerJob(SchedulerJobInstance job) throws IOException, SchedulerException {
-        if (cubeTriggerKeyMap.containsKey(job.getRelatedRealization())) {
-            CronTrigger trigger = (CronTrigger) scheduler
-                    .getTrigger(cubeTriggerKeyMap.get(job.getRelatedRealization()));
-            JobKey jobKey = trigger.getJobKey();
-            if (jobKey != null) {
-                scheduler.deleteJob(jobKey);
-            }
-            cubeTriggerKeyMap.remove(job.getRelatedRealization());
-        }
+        disableSchedulerJob(job);
         getSchedulerJobManager().removeSchedulerJob(job);
         return job;
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
             + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'MANAGEMENT')")
+    public SchedulerJobInstance disableSchedulerJob(SchedulerJobInstance job) throws IOException, SchedulerException {
+        if (cubeTriggerKeyMap.containsKey(job.getRelatedRealization())) {
+            CronTrigger trigger = (CronTrigger) scheduler
+                    .getTrigger(cubeTriggerKeyMap.get(job.getRelatedRealization()));
+            JobKey jobKey = trigger.getJobKey();
+            if (jobKey != null) {
+                scheduler.deleteJob(jobKey);
+                logger.info("Job of " + job.getName() + " is disabled.");
+            }
+            cubeTriggerKeyMap.remove(job.getRelatedRealization());
+        }
+        job.setEnabled(false);
+        getSchedulerJobManager().updateSchedulerJobInstance(job);
+        return job;
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
+            + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'MANAGEMENT')")
     public SchedulerJobInstance cloneSchedulerJob(SchedulerJobInstance job, String newJobName,
-            String newRealizationUuid) throws IOException {
+            String newRealizationUuid, long partitionStartTime) throws IOException, ParseException, SchedulerException {
         SchedulerJobInstance newJob = job.getCopyOf();
         newJob.setName(newJobName);
         newJob.setRelatedRealization(newJobName);
         newJob.setRelatedRealizationUuid(newRealizationUuid);
-        newJob.setPartitionStartTime(
-                newJob.getPartitionStartTime() - (newJob.getCurRepeatCount() * newJob.getPartitionInterval()));
+        newJob.setPartitionStartTime(partitionStartTime);
         newJob.setCurRepeatCount(0);
 
+        newJob.setEnabled(false);
         saveSchedulerJob(newJob);
 
         getSchedulerJobManager().reloadSchedulerJobLocal(newJobName);
         return newJob;
     }
 
-    // SchedulerJob will be triggered once its trigger_time is set.
-    public void enableSchedulerJob(SchedulerJobInstance instance) throws ParseException, SchedulerException {
-        if (!validateScheduler(instance))
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
+            + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'MANAGEMENT')")
+    public void enableSchedulerJob(SchedulerJobInstance job)
+            throws ParseException, SchedulerException, IOException {
+        if (!validateScheduler(job))
             return;
 
         JobDetailImpl jobDetail = new JobDetailImpl();
-        jobDetail.setName(instance.getName());
+        jobDetail.setName(job.getName());
         jobDetail.setGroup(Scheduler.DEFAULT_GROUP);
         jobDetail.setJobClass(ScheduleBuildJob.class);
 
         JobDataMap dataMap = jobDetail.getJobDataMap();
-        dataMap.put("name", instance.getName());
-        dataMap.put("cube", instance.getRelatedRealization());
-        dataMap.put("startTime", instance.getPartitionStartTime());
-        dataMap.put("partitionInterval", instance.getPartitionInterval());
+        dataMap.put("name", job.getName());
+        dataMap.put("cube", job.getRelatedRealization());
+        dataMap.put("startTime", job.getPartitionStartTime());
+        dataMap.put("partitionInterval", job.getPartitionInterval());
         dataMap.put("user", "JOB_SCHEDULER");
         jobDetail.setJobDataMap(dataMap);
 
-        CronExpression cronExp = new CronExpression(
-                createCronExpression(instance.getRepeatInterval(), instance.getScheduledRunTime()));
+        long localTimestamp = utcLocalConvert(job.getScheduledRunTime(), true);
+        CronExpression cronExp = new CronExpression(createCronExpression(job.getRepeatInterval(), localTimestamp));
         CronScheduleBuilder cronScheduleBuilder = CronScheduleBuilder.cronSchedule(cronExp);
 
         CronTrigger trigger = null;
 
-        if (cubeTriggerKeyMap.containsKey(instance.getRelatedRealization())) {
-            trigger = (CronTrigger) scheduler.getTrigger(cubeTriggerKeyMap.get(instance.getRelatedRealization()));
+        if (cubeTriggerKeyMap.containsKey(job.getRelatedRealization())) {
+            trigger = (CronTrigger) scheduler.getTrigger(cubeTriggerKeyMap.get(job.getRelatedRealization()));
             JobKey jobKey = trigger.getJobKey();
 
             if (jobKey != null) {
@@ -308,19 +326,21 @@ public class SchedulerJobService extends BasicService implements InitializingBea
             }
         }
 
-        Date startTime = new Date(utcLocalConvert(instance.getScheduledRunTime(), true));
+        Date startTime = new Date(localTimestamp);
         trigger = TriggerBuilder.newTrigger().startAt(startTime).withSchedule(cronScheduleBuilder).build();
-        logger.info("Scheduler of cube " + instance.getRelatedRealization() + " is scheduled to be run first at "
+        logger.info("Scheduler of cube " + job.getRelatedRealization() + " is scheduled to be run first at "
                 + startTime.toString() + " and the cron expression is " + cronExp.toString());
-        cubeTriggerKeyMap.put(instance.getRelatedRealization(), trigger.getKey());
+        cubeTriggerKeyMap.put(job.getRelatedRealization(), trigger.getKey());
         scheduler.scheduleJob(jobDetail, trigger);
+        job.setEnabled(true);
+        getSchedulerJobManager().updateSchedulerJobInstance(job);
     }
 
     public void pauseScheduler(String cubeName) throws SchedulerException {
         scheduler.pauseTrigger(cubeTriggerKeyMap.get(cubeName));
     }
 
-    public void resumeSchedulers() {
+    public void resumeSchedulers() throws IOException {
         List<SchedulerJobInstance> schedulerList = null;
         try {
             schedulerList = listAllSchedulerJobs();
@@ -330,7 +350,9 @@ public class SchedulerJobService extends BasicService implements InitializingBea
 
         for (SchedulerJobInstance schedulerInstance : schedulerList) {
             try {
-                enableSchedulerJob(schedulerInstance);
+                if (schedulerInstance.isEnabled()) {
+                    enableSchedulerJob(schedulerInstance);
+                }
             } catch (ParseException e) {
                 throw new RuntimeException(e.getMessage(), e);
             } catch (SchedulerException e) {
