@@ -93,12 +93,15 @@ public class ModelingContext {
         // get single column cardinality
         for (int i = 0; i < rowkeyDescCols.length; i++) {
             cuboidId = 1L << i;
-            Cuboid cuboid = Cuboid.findById(cubeDesc, cuboidId); // if exact cuboid not existed, then use parent cuboid rows
-            if (Long.bitCount(cuboid.getId()) > 2) { // skip if parent cuboids has too many dimensions.
-                return;
+            if (!cuboidRows.containsKey(cuboidId)) {
+                Cuboid cuboid = Cuboid.findById(cubeDesc, cuboidId); // if exact cuboid not existed, then use parent cuboid rows
+                if (Long.bitCount(cuboid.getId()) > 2) { // skip if parent cuboids has too many dimensions.
+                    return;
+                }
+                cuboidId = cuboid.getId();
             }
 
-            rows = cuboidRows.get(cuboid.getId());
+            rows = cuboidRows.get(cuboidId);
             if (rows != null) {
                 TblColRef rowkeyColRef = rowkeyDescCols[rowkeyDescCols.length - 1 - i].getColRef();
                 singleColCardinality.put(rowkeyColRef.getIdentity(), rows);
@@ -111,11 +114,7 @@ public class ModelingContext {
             for (int j = i + 1; j < rowkeyDescCols.length; j++) {
                 cuboidId = (1L << i) | (1L << j);
                 Cuboid cuboid = Cuboid.findById(cubeDesc, cuboidId); // if exact cuboid not existed, then use parent cuboid rows
-                if (Long.bitCount(cuboid.getId()) > 3) { // skip if parent cuboids has too many dimensions.
-                    return;
-                }
-
-                rows = cuboidRows.get(cuboid.getId());
+                rows = cuboidRows.get(cuboid.getId()); // do not ignore large cuboid because this only makes check stronger in agg group proposing
                 if (rows != null) {
                     TblColRef rowkeyColRef2 = rowkeyDescCols[rowkeyDescCols.length - 1 - j].getColRef();
                     String pairKey = rowkeyColRef1.getIdentity() + "," + rowkeyColRef2.getIdentity();
