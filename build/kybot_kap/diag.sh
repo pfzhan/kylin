@@ -12,7 +12,7 @@ mkdir -p ${KYLIN_HOME}/logs
 tomcat_root=${dir}/../tomcat
 export tomcat_root
 
-if [ $# -gt 0 ] && [ $# -lt 6 ]
+if [ $# -gt 0 ] && [ $# -lt 7 ]
 then
     patient="$1"
     if [ -z "$patient" ]
@@ -29,6 +29,7 @@ then
     needUpload="$3"
     startTime="$4"
     endTime="$5"
+    currTime="$6"
 
     KYBOT_OPTS=""
     if [ "$needUpload" == "true" ]; then
@@ -43,6 +44,11 @@ then
     if [ -n "$endTime" ]
     then
         KYBOT_OPTS="${KYBOT_OPTS} -endTime $endTime"
+    fi
+
+    if [ -n "$currTime" ]
+    then
+        KYBOT_OPTS="${KYBOT_OPTS} -currentTime $currTime"
     fi
 
     if [ ${#patient} -eq 36 ]; then

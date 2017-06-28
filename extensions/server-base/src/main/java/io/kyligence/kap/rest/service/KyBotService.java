@@ -71,7 +71,7 @@ public class KyBotService extends BasicService {
     private KapConfig kapConfig = KapConfig.getInstanceFromEnv();
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public String dumpLocalKyBotPackage(String target, Long startTime, Long endTime, boolean needUpload)
+    public String dumpLocalKyBotPackage(String target, Long startTime, Long endTime, Long currTime, boolean needUpload)
             throws IOException {
         File exportPath = Files.createTempDir();
         if (StringUtils.isEmpty(target)) {
@@ -93,7 +93,9 @@ public class KyBotService extends BasicService {
         if (endTime != null) {
             args.add(Long.toString(endTime));
         }
-
+        if (currTime != null) {
+            args.add(Long.toString(currTime));
+        }
         runKyBotCLI(args.toArray(new String[0]));
         return getKyBotPackagePath(exportPath);
     }
