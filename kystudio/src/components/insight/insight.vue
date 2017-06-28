@@ -266,6 +266,9 @@ export default {
       }
       this.addTab('query', 'querypanel', queryObj)
       this.pageCurrentChangeForCookie(this.cookieQueryCurrentPage || 1)
+      this.$nextTick(() => {
+        document.getElementById('scrollBox').scrollTop = document.getElementById('scrollBox').scrollHeight + 1200
+      })
     },
     removeQuery (queryId) {
       kapConfirm(this.$t('kylinLang.common.confirmDel')).then(() => {

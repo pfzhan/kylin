@@ -39,6 +39,9 @@ export default {
 </script>
 <style scoped="">
 .box-card {
-  width: 90%
+  width: 90%;
+  .el-textarea{
+    font-size:12px;
+  }
 }
 </style>

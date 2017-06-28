@@ -1,33 +1,31 @@
 <template>
-<el-card class="box-card" id="refresh-settion-view">
-  <el-row class="border_bottom padding-m">
-    <el-col :span="6" class="ksd-right"> {{$t('autoMergeThresholds')}}</el-col>
+<div class="refresh-settion-view ksd-common-table ksd-mt-10">
+  <el-row class="tableheader" v-for="(timeRange, index) in cubeDesc.desc && cubeDesc.desc.auto_merge_time_ranges || []" :key="timeRange">
+    <el-col :span="6" class="left-part"> {{index === 0 ? $t('autoMergeThresholds') : '&nbsp;'}}</el-col>
     <el-col :span="18">
-      <el-row v-for="timeRange in cubeDesc.desc && cubeDesc.desc.auto_merge_time_ranges || []" :key="timeRange">
-        <el-col :span="24"> {{timeRange|timeSize}}</el-col>
-      </el-row>
+      {{timeRange|timeSize}}
     </el-col>
   </el-row>
-
-  <el-row class="border_bottom padding-m">
-    <el-col :span="6" class="ksd-right">{{$t('retentionThreshold')}}</el-col>
+ <div style="clear:both;"></div>
+  <el-row class="tableheader ksd-mt-20">
+    <el-col :span="6" class="left-part">{{$t('retentionThreshold')}}</el-col>
     <el-col :span="18"> {{cubeDesc.desc.retention_range|timeSize}}</el-col>
   </el-row>
-  <el-row class="border_bottom padding-m">
-    <el-col :span="6" class="ksd-right">{{$t('partitionStartDate')}}</el-col>
+  <el-row class="tableheader">
+    <el-col :span="6" class="left-part">{{$t('partitionStartDate')}}</el-col>
     <el-col :span="18"> {{toGmtTime(cubeDesc.desc.partition_date_start)}}</el-col>
   </el-row>
 
-   <el-row class=" padding-m">
+   <el-row class="tableheader ksd-mt-20">
     <!-- <h2 class="ksd-mt-40 ksd-ml-40"><span style="font-size:16px;">{{$t('kylinLang.cube.scheduler')}}</span></h2> -->
-    <el-col :span="6" class="ksd-right">{{$t('buildTrigger')}}</el-col>
+    <el-col :span="6" class="left-part">{{$t('buildTrigger')}}</el-col>
     <el-col :span="18" v-if="cubeDesc.scheduler"> {{toGmtTime(cubeDesc.scheduler.scheduled_run_time)}}</el-col>
   </el-row>
-  <el-row class="border_bottom padding-m">
-    <el-col :span="6" class="ksd-right">{{$t('periddicalInterval')}}</el-col>
+  <el-row class="tableheader">
+    <el-col :span="6" class="left-part">{{$t('periddicalInterval')}}</el-col>
     <el-col :span="18" v-if="cubeDesc.scheduler"> {{cubeDesc.scheduler.repeat_interval|timeSize}}</el-col>
   </el-row>
-</el-card>
+</div>
 </template>
 
 <script>
@@ -68,13 +66,24 @@ export default {
 </script>
 <style lang="less">
   @import '../../../less/config.less';
-  #refresh-settion-view{
-    border-color: @grey-color;
-    padding: 10px;
-    background: @tableBC;
-    padding: 0;
-    .padding-m{
-      padding: 5px 0px 5px 20px;
+  .refresh-settion-view{
+    .tableheader{
+      .el-col{
+        text-align: left;
+        padding-left: 20px;
+      }
+      .left-part{
+        border-right:solid 1px #393e53;
+        text-align: right;
+        padding-right: 20px;
+      }
     }
+    // border-color: @grey-color;
+    // padding: 10px;
+    // background: @tableBC;
+    // padding: 0;
+    // .padding-m{
+    //   padding: 5px 0px 5px 20px;
+    // }
   }
 </style>

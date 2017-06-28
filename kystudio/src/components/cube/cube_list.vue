@@ -19,7 +19,7 @@
     :default-expand-all="isViewCubeMode"
     :row-class-name="showRowClass"
     border
-    style="width: 100%">
+    style="width:100%">
     <el-table-column type="expand" width="30">
       <template scope="props">
         <el-tabs activeName="first" class="el-tabs--default" id="cube-view" @tab-click="changeTab">
@@ -44,6 +44,7 @@
     <el-table-column
       :label="$t('name')"
       sortable
+      width="130"
       prop="name">
        <template scope="scope" >
           <el-tooltip class="item" effect="dark" :content="scope.row&&scope.row.name" placement="top">
@@ -60,14 +61,15 @@
     <el-table-column
       :label="$t('status')"
       sortable
-      prop="status" width="90">
+      width="90"
+      prop="status">
       <template scope="scope">
-        <el-tag  :type="scope.row.status === 'DISABLED' ? 'danger' : 'success'">{{scope.row.status}}</el-tag>
+        <el-tag  :type="scope.row.status === 'DISABLED' ? 'danger' : scope.row.status === 'DESCBROKEN'? 'warning' : 'success'">{{scope.row.status}}</el-tag>
       </template>
     </el-table-column>
     <el-table-column
       sortable
-      width="110"
+      width="100"
       :label="$t('cubeSize')">
       <template scope="scope">
         <span>{{scope.row.size_kb*1024 | dataSize}}</span>
@@ -76,12 +78,10 @@
     <el-table-column
       :label="$t('sourceRecords')"
       sortable
-      width="150"
       prop="input_records_count">
     </el-table-column>
     <el-table-column
       sortable
-      width="180"
       :label="$t('lastBuildTime')">
       <template scope="scope">
         <span v-if="scope.row.segments[scope.row.segments.length-1]">{{scope.row.buildGMTTime}}</span>
@@ -90,18 +90,16 @@
     <el-table-column
       :label="$t('owner')"
       sortable
-      width="100"
+      width="90"
       prop="owner">
     </el-table-column>
     <el-table-column
       :label="$t('createTime')"
       sortable
-      width="160"
       prop="createGMTTime">
     </el-table-column>
     <el-table-column 
-      sortable
-       width="100"
+       width="70"
       :label="$t('actions')">
       <template scope="scope">
       <span v-if="!(isAdmin || hasPermission(scope.row.uuid))"> N/A</span>
@@ -110,13 +108,13 @@
             <i class="el-icon-more"></i>
           </el-button >
           <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item v-show="scope.row.status==='DISABLED'" @click.native="drop(scope.row)">{{$t('drop')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.status !=='READY'" @click.native="drop(scope.row)">{{$t('drop')}}</el-dropdown-item>
             <el-dropdown-item @click.native="edit(scope.row)">{{$t('edit')}}</el-dropdown-item>
             <el-dropdown-item v-show="scope.row.status !== 'DESCBROKEN' && !scope.row.is_draft " @click.native="build(scope.row)">{{$t('build')}}</el-dropdown-item>
             <el-dropdown-item v-show="scope.row.status!=='DISABLED' && scope.row.status!=='DESCBROKEN' && !scope.row.is_draft" @click.native="refresh(scope.row)">{{$t('refresh')}}</el-dropdown-item>
             <el-dropdown-item v-show="scope.row.status!== 'DESCBROKEN'&& !scope.row.is_draft" @click.native="merge(scope.row)">{{$t('merge')}}</el-dropdown-item>
             <el-dropdown-item v-show="scope.row.status=='DISABLED' && !scope.row.is_draft" @click.native="enable(scope.row.name)">{{$t('enable')}}</el-dropdown-item>
-            <el-dropdown-item v-show="scope.row.status!=='DISABLED' && !scope.row.is_draft" @click.native="disable(scope.row.name)">{{$t('disable')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.status ==='READY' && !scope.row.is_draft" @click.native="disable(scope.row.name)">{{$t('disable')}}</el-dropdown-item>
             <el-dropdown-item v-show="scope.row.status==='DISABLED' && !scope.row.is_draft" @click.native="purge(scope.row.name)">{{$t('purge')}}</el-dropdown-item>
             <el-dropdown-item v-show="scope.row.status!=='DESCBROKEN' && !scope.row.is_draft " @click.native="clone(scope.row)">{{$t('clone')}}</el-dropdown-item>
 
@@ -494,7 +492,7 @@ export default {
         handleSuccess(res, (data, code, status, msg) => {
           this.$message({
             type: 'success',
-            message: this.$t('buildSuccessful'),
+            message: this.$t('submitSuccess'),
             duration: 3000
           })
           this.loadCubesList(this.currentPage - 1)

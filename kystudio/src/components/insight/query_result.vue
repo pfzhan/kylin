@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="result_box">
     <el-row  class="resultTips" >
       <el-col :span="3"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.status')}}<span style="color:green"> success</span></p></div></el-col>
       <el-col :span="6"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.startTime')}}<span> {{queryInfo.starttime|gmtTime}}</span></p></div></el-col>
@@ -31,9 +31,9 @@
 		    style="width: 100%;">
 		    <el-table-column v-for="(value, index) in tableMeta" :key="index"
 		      :prop="''+index"
+          :width="15*(value.label&&value.label.length || 0)"
 		      :label="value.label"
           sortable
-          width="120" 
           >
 		    </el-table-column>
 		  </el-table>
@@ -434,6 +434,12 @@ export default {
      font-size: 12px;
      p{
        line-height: 15px;
+     }
+  }
+  .result_box{
+    .el-table .cell{
+       word-break: break-all!important;
+       // white-space: normal!important;
      }
   }
   // .grid-box{

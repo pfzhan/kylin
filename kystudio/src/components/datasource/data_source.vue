@@ -174,6 +174,7 @@
 			    style="width: 100%">
 			    <el-table-column v-for="(val,index) in sampleData[0]" :key="index"
 			      :prop="''+index"
+            :width="15* (sampleData[0][index] && sampleData[0][index].length || 0)"
 			      :label="sampleData[0][index]">
 			    </el-table-column>
 			  </el-table>

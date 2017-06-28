@@ -1,19 +1,11 @@
 <template>
   <div id="over-view">
-    <el-table class="table_margin"
-      :data="cubeData"
-      :show-header="false"
-      border
-      style="width: 100%">
-        <el-table-column width="180">
-          <template scope="scope">
-            {{$t(scope.row.label)}}
-          </template>
-        </el-table-column>
-        <el-table-column
-        prop="value">
-        </el-table-column>
-    </el-table>
+  <div class="cube-info-view ksd-common-table ksd-mt-10">
+  <el-row class="tableheader" v-for="d in cubeData">
+    <el-col :span="4" class="left-part"> {{$t(d.label)}}</el-col>
+    <el-col :span="20"> {{d.value}}</el-col>
+  </el-row>
+  </div>
   </div>
 </template>
 
@@ -34,8 +26,8 @@ export default {
     }
   },
   locales: {
-    'en': {modelName: 'Model Name', cubeName: 'Cube Name', factTable: 'Fact Table', lookupTable: 'Lookup Table', dimensions: 'Dimensions', measures: 'Measures'},
-    'zh-cn': {modelName: '模型名称', cubeName: 'Cube名称', factTable: '事实表', lookupTable: '维度表', dimensions: '维度', measures: '度量'}
+    'en': {modelName: 'Model Name:', cubeName: 'Cube Name:', factTable: 'Fact Table:', lookupTable: 'Lookup Table:', dimensions: 'Dimensions:', measures: 'Measures:'},
+    'zh-cn': {modelName: '模型名称：', cubeName: 'Cube名称：', factTable: '事实表：', lookupTable: '维度表：', dimensions: '维度：', measures: '度量：'}
   }
 }
 </script>
