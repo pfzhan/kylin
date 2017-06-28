@@ -31,7 +31,7 @@ import org.apache.kylin.common.BackwardCompatibilityConfig;
 public class DebugBCC {
 
     public static void main(String[] args) throws IOException {
-        DebugTomcat.setupDebugEnv();
+        KAPDebugTomcat.setupDebugEnv();
         BackwardCompatibilityConfig.main(args);
     }
 }

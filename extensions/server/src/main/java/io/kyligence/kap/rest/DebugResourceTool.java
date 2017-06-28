@@ -31,7 +31,7 @@ import org.apache.kylin.common.persistence.ResourceTool;
 public class DebugResourceTool {
 
     public static void main(String[] args) throws IOException {
-        DebugTomcat.setupDebugEnv();
+        KAPDebugTomcat.setupDebugEnv();
         ResourceTool.main(args);
     }
 }

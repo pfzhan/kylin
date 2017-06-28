@@ -37,7 +37,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 
-public class DebugTomcat {
+public class KAPDebugTomcat {
 
     public static void setupDebugEnv() {
         try {
