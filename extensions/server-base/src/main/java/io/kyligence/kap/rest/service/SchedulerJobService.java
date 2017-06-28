@@ -40,11 +40,12 @@ import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.service.JobService;
 import org.quartz.CronExpression;
 import org.quartz.CronScheduleBuilder;
-import org.quartz.CronTrigger;
 import org.quartz.JobDataMap;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
+import org.quartz.SimpleScheduleBuilder;
+import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.quartz.TriggerKey;
 import org.quartz.impl.JobDetailImpl;
@@ -97,24 +98,6 @@ public class SchedulerJobService extends BasicService implements InitializingBea
         if (intervalTimeMillis < 0) {
             sb.append(cal.get(Calendar.SECOND) + " " + cal.get(Calendar.MINUTE) + " " + cal.get(Calendar.HOUR_OF_DAY)
                     + " " + cal.get(Calendar.DAY_OF_MONTH) + " * ?");
-        } else {
-            long minutes = intervalTimeMillis / (60 * 1000);
-            long hours = minutes / 60;
-            long days = hours / 24;
-            if (days > 0) {
-                sb.append(
-                        cal.get(Calendar.SECOND) + " " + cal.get(Calendar.MINUTE) + " " + cal.get(Calendar.HOUR_OF_DAY)
-                                + " " + (cal.get(Calendar.DAY_OF_MONTH) % days) + "/" + days + " * ?");
-            } else if (hours > 0) {
-                sb.append(cal.get(Calendar.SECOND) + " " + cal.get(Calendar.MINUTE) + " "
-                        + (cal.get(Calendar.HOUR_OF_DAY) % hours) + "/" + hours + " *  * ?");
-            } else if (minutes > 0) {
-                sb.append(cal.get(Calendar.SECOND) + " " + (cal.get(Calendar.MINUTE) % minutes) + "/" + minutes
-                        + " * * * ?");
-            } else {
-                sb.append((cal.get(Calendar.SECOND) % (intervalTimeMillis / 1000)) + "/" + intervalTimeMillis / 1000
-                        + " * * * * ?");
-            }
         }
         return sb.toString();
     }
@@ -259,12 +242,14 @@ public class SchedulerJobService extends BasicService implements InitializingBea
             + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'MANAGEMENT')")
     public SchedulerJobInstance disableSchedulerJob(SchedulerJobInstance job) throws IOException, SchedulerException {
         if (cubeTriggerKeyMap.containsKey(job.getRelatedRealization())) {
-            CronTrigger trigger = (CronTrigger) scheduler
-                    .getTrigger(cubeTriggerKeyMap.get(job.getRelatedRealization()));
-            JobKey jobKey = trigger.getJobKey();
-            if (jobKey != null) {
-                scheduler.deleteJob(jobKey);
-                logger.info("Job of " + job.getName() + " is disabled.");
+            Trigger trigger = scheduler.getTrigger(cubeTriggerKeyMap.get(job.getRelatedRealization()));
+            if (trigger != null) {
+                JobKey jobKey = trigger.getJobKey();
+
+                if (jobKey != null) {
+                    scheduler.deleteJob(jobKey);
+                    logger.info("Job of " + job.getName() + " is disabled.");
+                }
             }
             cubeTriggerKeyMap.remove(job.getRelatedRealization());
         }
@@ -293,8 +278,7 @@ public class SchedulerJobService extends BasicService implements InitializingBea
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
             + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'MANAGEMENT')")
-    public void enableSchedulerJob(SchedulerJobInstance job)
-            throws ParseException, SchedulerException, IOException {
+    public void enableSchedulerJob(SchedulerJobInstance job) throws ParseException, SchedulerException, IOException {
         if (!validateScheduler(job))
             return;
 
@@ -312,13 +296,11 @@ public class SchedulerJobService extends BasicService implements InitializingBea
         jobDetail.setJobDataMap(dataMap);
 
         long localTimestamp = utcLocalConvert(job.getScheduledRunTime(), true);
-        CronExpression cronExp = new CronExpression(createCronExpression(job.getRepeatInterval(), localTimestamp));
-        CronScheduleBuilder cronScheduleBuilder = CronScheduleBuilder.cronSchedule(cronExp);
-
-        CronTrigger trigger = null;
+        Date startTime = new Date(localTimestamp);
+        Trigger trigger = null;
 
         if (cubeTriggerKeyMap.containsKey(job.getRelatedRealization())) {
-            trigger = (CronTrigger) scheduler.getTrigger(cubeTriggerKeyMap.get(job.getRelatedRealization()));
+            trigger = scheduler.getTrigger(cubeTriggerKeyMap.get(job.getRelatedRealization()));
             JobKey jobKey = trigger.getJobKey();
 
             if (jobKey != null) {
@@ -326,10 +308,35 @@ public class SchedulerJobService extends BasicService implements InitializingBea
             }
         }
 
-        Date startTime = new Date(localTimestamp);
-        trigger = TriggerBuilder.newTrigger().startAt(startTime).withSchedule(cronScheduleBuilder).build();
+        if (job.getRepeatInterval() < 0) {
+            CronExpression cronExp = new CronExpression(createCronExpression(job.getRepeatInterval(), localTimestamp));
+            CronScheduleBuilder builder = CronScheduleBuilder.cronSchedule(cronExp);
+            trigger = TriggerBuilder.newTrigger().startAt(startTime).withSchedule(builder)
+                    .withDescription("Cron scheduler with expression = " + cronExp).build();
+        } else {
+            SimpleScheduleBuilder builder = null;
+            long minutes = job.getRepeatInterval() / (60 * 1000);
+            long hours = minutes / 60;
+            String timeDesc = null;
+
+            if (hours > 0 && minutes % 60 == 0) {
+                builder = SimpleScheduleBuilder.simpleSchedule().withIntervalInHours((int) hours).repeatForever();
+                timeDesc = hours + "hours.";
+            } else if (minutes > 0) {
+                builder = SimpleScheduleBuilder.simpleSchedule().withIntervalInMinutes((int) minutes).repeatForever();
+                timeDesc = minutes + "minutes.";
+            } else {
+                builder = SimpleScheduleBuilder.simpleSchedule()
+                        .withIntervalInSeconds((int) (job.getRepeatInterval() / 1000)).repeatForever();
+                timeDesc = (job.getRepeatInterval() / 1000) + "seconds.";
+            }
+
+            trigger = TriggerBuilder.newTrigger().startAt(startTime).withSchedule(builder)
+                    .withDescription("Simple scheduler with interval of " + timeDesc).build();
+        }
+
         logger.info("Scheduler of cube " + job.getRelatedRealization() + " is scheduled to be run first at "
-                + startTime.toString() + " and the cron expression is " + cronExp.toString());
+                + startTime.toString() + " with description: " + trigger.getDescription());
         cubeTriggerKeyMap.put(job.getRelatedRealization(), trigger.getKey());
         scheduler.scheduleJob(jobDetail, trigger);
         job.setEnabled(true);
