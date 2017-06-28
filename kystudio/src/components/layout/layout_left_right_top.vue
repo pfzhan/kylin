@@ -1,5 +1,5 @@
 <template>
-<div class="fulllayout">
+<div class="fulllayout" id="fullBox">
 <el-row class="panel layout_left_right_top" :class="briefMenu" id="top">
   <el-col :span="24" class="panel-center">
     <aside class="left_menu">
@@ -40,7 +40,7 @@
     </div>
     <div class="panel-c-c" id="scrollBox" >
       <div class="grid-content bg-purple-light">
-        <el-col :span="24" style="margin-bottom:15px;">
+        <el-col :span="24" style="margin-bottom:15px;" id="breadcrumb_box">
           <!-- 面包屑在dashboard页面不显示 -->
           <el-breadcrumb separator="/" style="margin-left: 30px;" :style="gloalProjectSelectShow ? 'opacity: 100' : 'opacity: 0'">
             <el-breadcrumb-item :to="{ path: '/dashboard' }">
@@ -71,7 +71,7 @@
   </el-col>
 </el-row>
 <el-dialog @close="closeResetPassword" size="tiny" :title="$t('resetPassword')" v-model="resetPasswordFormVisible">
-    <reset_password :userDetail="currentUser" ref="resetPassword" :show="resetPasswordFormVisible" v-on:validSuccess="resetPasswordValidSuccess"></reset_password>
+    <reset_password :curUser="currentUser" ref="resetPassword" :show="resetPasswordFormVisible" v-on:validSuccess="resetPasswordValidSuccess"></reset_password>
     <div slot="footer" class="dialog-footer">
       <el-button @click="resetPasswordFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button type="primary" @click="checkResetPasswordForm">{{$t('kylinLang.common.ok')}}</el-button>

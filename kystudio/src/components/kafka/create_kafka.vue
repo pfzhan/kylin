@@ -139,8 +139,8 @@
             <el-form-item :label="$t('parserName')" prop="parserName">
                 <el-input v-model="kafkaMeta.parserName"></el-input>
             </el-form-item>
-            <el-form-item :label="$t('parserTimestampField')">
-              <el-select v-model="streamingCfg.parseTsColumn">
+            <el-form-item :label="$t('parserTimestampField')" prop="parserTimeStampField">
+              <el-select v-model="kafkaMeta.parserTimeStampField">
                 <el-option v-for="(item, index) in streamingCfg.columnOptions"
                 :key="index"
                 :label="item"
@@ -169,8 +169,6 @@ export default {
         this.initKafkaDialog()
         this.treeData = []
         this.sourceSchema = ''
-        var editor = this.$refs.jsonDataBox.editor
-        editor.setValue('')
         this.columnList = []
         this.showConvertBox = false
         this.showTopicBox = false
@@ -181,13 +179,13 @@ export default {
     return {
       rules: {
         name: [
-        { required: true, message: '', trigger: 'change' }
+        { required: true, message: this.$t('kylinLang.common.pleaseInput'), trigger: 'change' }
         ],
         parserName: [
-        { required: true, message: '', trigger: 'change' }
+        { required: true, message: this.$t('kylinLang.common.pleaseInput'), trigger: 'change' }
         ],
-        parserProperties: [
-        { required: true, message: '', trigger: 'change' }
+        parserTimeStampField: [
+        { required: true, message: this.$t('kylinLang.common.pleaseSelect'), trigger: 'change' }
         ]
       },
       streamingMeta: {name: '', type: 'kafka'},
@@ -206,13 +204,14 @@ export default {
         clusters: [{
           brokers: []
         }],
-        parserProperties: ''
+        parserProperties: '',
+        parserTimeStampField: ''
       },
       loading: false,
       columnList: [],
       streamingCfg: {
         columnOptions: [],
-        parseTsColumn: ''
+        parserTimeStampField: ''
       },
       timestampColumnExist: false,
       streamingAutoGenerateMeasure: [
@@ -272,6 +271,9 @@ export default {
       this.kafkaMeta.clusters[0].brokers.splice(index, 1)
     },
     getClusterInfo: function () {
+      var editor = this.$refs.jsonDataBox.editor
+      editor.setValue(' ')
+      this.sourceSchema = ''
       this.treeData = []
       this.loading = true
       this.clusterInfo({
@@ -408,11 +410,11 @@ export default {
         }
       })
       if (_this.streamingCfg.columnOptions.length >= 1) {
-        _this.streamingCfg.parseTsColumn = _this.streamingCfg.columnOptions[0]
-        _this.kafkaMeta.parserProperties = 'tsColName=' + _this.streamingCfg.parseTsColumn
+        _this.kafkaMeta.parserTimeStampField = _this.streamingCfg.columnOptions[0]
+        // _this.kafkaMeta.parserProperties = 'tsColName=' + _this.streamingCfg.parseTsColumn
       } else {
-        _this.streamingCfg.parseTsColumn = []
-        _this.kafkaMeta.parserProperties = ''
+        _this.kafkaMeta.parserTimeStampField = ''
+        // _this.kafkaMeta.parserProperties = ''
       }
     }
   },
@@ -437,6 +439,11 @@ export default {
     this.$on('kafkaFormValid', (t) => {
       this.$refs['kafkaForm'].validate((valid) => {
         if (valid && /^\w+$/.test(this.kafkaMeta.name)) {
+          // this.kafkaMeta.parserTimeStampField = this.streamingCfg.parserTimeStampField
+          if (!/^\w+$/.test(this.kafkaMeta.name)) {
+            this.$message('Streaming Table ' + this.$t('kylinLang.common.nameFormatValidTip'))
+            return
+          }
           this.$emit('validSuccess', {
             database: this.database,
             tableName: this.kafkaMeta.name,
@@ -445,14 +452,12 @@ export default {
             streamingMeta: this.streamingMeta,
             sampleData: this.sampleData
           })
-        } else {
-          this.$message('Streaming Table ' + this.$t('kylinLang.common.nameFormatValidTip'))
         }
       })
     })
   },
   locales: {
-    'en': {host: 'Host', port: 'Port', action: 'Action', cluster: 'Cluster', clusterInfo: 'Get Cluster Info', tableName: 'TABLE NAME', column: 'Column', columnType: 'Column Type', comment: 'Comment', timestamp: 'timestamp', derivedTimeDimension: 'Derived Time Dimension', parserSetting: 'Parser Setting', parserName: 'Parser Name', parserTimestampField: 'Parser Timestamp Field', parserProperties: 'ParserProperties'},
+    'en': {host: 'Host', port: 'Port', action: 'Action', cluster: 'Cluster', clusterInfo: 'Get Cluster Info', tableName: 'TABLE NAME', column: 'Column', columnType: 'Column Type', comment: 'Comment', timestamp: 'timestamp', derivedTimeDimension: 'Derived Time Dimension', parserSetting: 'Parser Setting', parserName: 'Parser Name', parserTimestampField: 'Parser Timestamp Field', parserProperties: 'Optional Properties'},
     'zh-cn': {host: '主机', port: '端口号', action: '操作', cluster: '集群', clusterInfo: '获取该集群信息', tableName: '表名', column: '列', columnType: '列类型', comment: '注释', timestamp: 'timestamp', derivedTimeDimension: '推导的时间维度', parserSetting: '解析器设置', parserName: '解析器名称', parserTimestampField: '时间戳字段名称', parserProperties: '解析器属性'}
   }
 }
@@ -503,6 +508,7 @@ export default {
 #create-kafka{
   .el-input{
     padding: 0;
+    color:#fff;
   }
   .el-table__row{
     background: @input-bg;
@@ -515,6 +521,7 @@ export default {
   }
   .el-input__inner{
     border-color: #7881aa;
+    color:#fff;
   }
 }
 </style>

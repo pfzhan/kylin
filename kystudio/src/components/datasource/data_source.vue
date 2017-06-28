@@ -18,7 +18,7 @@
          <kap-icon-button v-if="isAdmin" icon="trash" type="blue" :useload="true" @click.native="unloadTable" ref="unloadBtn">{{$t('unload')}}</kap-icon-button>
             <!-- <el-button type="info" icon="eyedropper">Sampling</el-button> -->
             <kap-icon-button icon="eyedropper" class="sampling" v-if="tableData.source_type === 0" type="info" :useload="true" @click.native="collectSampleDialogOpen" ref="sampleBtn">{{$t('samplingBtn')}}</kap-icon-button>
-            <kap-icon-button icon="eyedropper" v-if="tableData.source_type === 1" type="info" :useload="true" @click.native="collectKafkaSampleDialogOpen" ref="kafkaSampleBtn">{{$t('samplingBtn')}}(Streaming)</kap-icon-button>
+            <kap-icon-button icon="eyedropper" class="sampling" v-if="tableData.source_type === 1" type="info" :useload="true" @click.native="collectKafkaSampleDialogOpen" ref="kafkaSampleBtn">{{$t('samplingBtn')}}(Streaming)</kap-icon-button>
   <!--           <el-button type="danger" @click.native="unloadTable" icon="delete2">Unload</el-button> -->
             <p style="font-size:12px;margin-top:5px;text-align:right;padding-right:4px;">{{$t('kylinLang.dataSource.lastModified')}} {{extendData.last_modified}}</p>
         </div>

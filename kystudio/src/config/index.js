@@ -54,6 +54,10 @@ const permissions = {
   OPERATION: {name: 'CUBE OPERATION', value: 'OPERATION', mask: 64},
   ADMINISTRATION: {name: 'CUBE ADMIN', value: 'ADMINISTRATION', mask: 16}
 }
+const engineType = [
+  {name: 'MapReduce', value: 2},
+  {name: 'Spark Engine', value: 4}
+]
 export {
   // http请求
   apiUrl,
@@ -65,6 +69,7 @@ export {
   modelHealthStatus,
   // cube操作权限对应数值
   permissions,
-  needLengthMeasureType
+  needLengthMeasureType,
+  engineType
 }
 

@@ -48,7 +48,7 @@
           <el-select  :placeholder="$t('permission')" v-model="accessMeta.permission">
             <el-option label="Admin" :value="16"></el-option>
             <el-option label="Edit" :value="32"></el-option>
-            <el-option label="Opera" :value="64"></el-option>
+            <el-option label="OPERATION" :value="64"></el-option>
             <el-option label="Query" :value="1"></el-option>
           </el-select>
         </el-form-item>
@@ -159,7 +159,7 @@ export default {
       this[actionType]({accessData: this.accessMeta, id: this.accessId}).then((res) => {
         this.editAccessVisible = false
         this.loadAccess()
-        this.$message('添加成功！')
+        this.$message(this.$t('kylinLang.common.saveSuccess'))
       }, (res) => {
         handleError(res)
       })
@@ -226,8 +226,8 @@ export default {
     this.loadAccess()
   },
   locales: {
-    'en': {grant: 'Grant', type: 'Type', user: 'User', role: 'Role', name: 'Name', nameAccount: 'user account', permission: 'Permission', cubeAdmin: 'ADMIN', cubeEdit: 'Edit', cubeOpera: 'Operation', cubeQuery: 'cubeQuery', principal: 'Principal', access: 'Access', grantTitle: 'What does access mean to cube?', grantDetail1: 'QUERY: Access to query cube', grantDetail2: 'OPERATION: Access to rebuild, resume and cancel jobs. Also include access of CUBE QUERY.', grantDetail3: 'CUBE MANAGEMENT: Access to edit/delete cube. Also include access of CUBE OPERATION.', grantDetail4: 'CUBE ADMIN: Full access to cube and jobs, including access management.', deleteAccess: 'the action will delete this access, still continue?'},
-    'zh-cn': {grant: '授权', type: '类型', user: '用户', role: '群组', name: '名称', nameAccount: '用户账号', permission: '许可', cubeAdmin: '管理', cubeEdit: '编辑', cubeOpera: '操作', cubeQuery: '查询', principal: '名称', access: '权限', grantTitle: '什么是Cube权限', grantDetail1: 'CUBE QUERY: 查询Cube的权限', grantDetail2: 'CUBE OPERATION: 构建Cube的权限, 包括恢复和取消任务；包含查询权限.', grantDetail3: 'CUBE MANAGEMENT: 编辑和删除Cube的权限, 包含了构建Cube的权限.', grantDetail4: 'CUBE ADMIN: 对Cube拥有所有权限.', deleteAccess: '此操作将删除该授权，是否继续'}
+    'en': {grant: 'Grant', type: 'Type', user: 'User', role: 'Role', name: 'Name', nameAccount: 'user account', permission: 'Permission', cubeAdmin: 'ADMIN', cubeEdit: 'Edit', cubeOpera: 'Operation', cubeQuery: 'cubeQuery', principal: 'Principal', access: 'Access', grantTitle: 'What permissions does KAP provide?', grantDetail1: '*QUERY*: Permission to query tables/cubes in the project', grantDetail2: '*OPERATION*: Permission to rebuild, resume and cancel jobs. OPERATION permission includes QUERY.', grantDetail3: '*MANAGEMENT*: Permission to edit/delete cube. MANAGEMENT permission includes OPERATION and QUERY.', grantDetail4: '*ADMIN*: Full access to cube and jobs. ADMIN permission includes MANAGEMENT, OPERATION and QUERY.', deleteAccess: 'the action will delete this access, still continue?'},
+    'zh-cn': {grant: '授权', type: '类型', user: '用户', role: '群组', name: '名称', nameAccount: '用户账号', permission: '许可', cubeAdmin: '管理', cubeEdit: '编辑', cubeOpera: '操作', cubeQuery: '查询', principal: '名称', access: '权限', grantTitle: 'KAP提供什么样的权限？', grantDetail1: '*QUERY*: 查询项目中的表或者cube的权限', grantDetail2: '*OPERATION*: 构建Cube的权限, 包括恢复和取消任务；OPERATION权限包含QUERY权限。', grantDetail3: '*MANAGEMENT*: 编辑和删除Cube的权限，MANAGEMENT权限包含了OPERATION权限和QUERY权限。', grantDetail4: '*ADMIN*: 对Cube拥有所有权限，ADMIN权限包含了MANAGEMENT权限，OPERATION权限和QUERY权限。', deleteAccess: '此操作将删除该授权，是否继续'}
   }
 }
 </script>

@@ -37,12 +37,15 @@
           <div slot="header">
             <span >{{$t('parserSetting')}}</span>
           </div>
-          <div>
+          <div style="padding:10px;">
             <el-form-item :label="$t('parserName')" prop="parserName">
                 <el-input v-model="kafkaMeta.parserName" disabled></el-input>
             </el-form-item>
+            <el-form-item :label="$t('parserTimestampField')" prop="parserTimeStampField">
+                <el-input v-model="kafkaMeta.parserTimeStampField" disabled></el-input>
+            </el-form-item>
             <el-form-item :label="$t('parserProperties')" prop="parserProperties">
-                <el-input v-model="kafkaMeta.parserProperties" disabled placeholder="tsColName=createdAt;tsParser=org.apache.kylin.source.kafka.DateTimeParser;tsPattern=MMM dd,yyyy hh:mm:ss aa"></el-input>
+                <el-input v-model="kafkaMeta.parserProperties" disabled ></el-input>
             </el-form-item>
           </div>
       </el-card>
@@ -73,7 +76,7 @@ export default {
     }
   },
   locales: {
-    'en': {host: 'Host', port: 'Port', action: 'Action', cluster: 'Cluster', clusterInfo: 'Get Cluster Info', timestamp: 'timestamp', derivedTimeDimension: 'Derived Time Dimension', parserSetting: 'Parser Setting', parserName: 'Parser Name', parserTimestampField: 'Parser Timestamp Field', parserProperties: 'ParserProperties'},
+    'en': {host: 'Host', port: 'Port', action: 'Action', cluster: 'Cluster', clusterInfo: 'Get Cluster Info', timestamp: 'timestamp', derivedTimeDimension: 'Derived Time Dimension', parserSetting: 'Parser Setting', parserName: 'Parser Name', parserTimestampField: 'Parser Timestamp Field', parserProperties: 'Optional Properties'},
     'zh-cn': {host: '主机', port: '端口号', action: '操作', cluster: '集群', clusterInfo: '获取该集群信息', timestamp: 'timestamp', derivedTimeDimension: '推导的时间维度', parserSetting: '解析器设置', parserName: '解析器名称', parserTimestampField: '时间戳字段名称', parserProperties: '解析器属性'}
   }
 }
@@ -86,6 +89,9 @@ export default {
   .row_padding {
   padding-top: 5px;
   padding-bottom: 5px;
+ }
+ .el-card{
+  border:none;
  }
  .el-card .el-card__body {
   padding: 0px;

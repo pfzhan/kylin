@@ -356,8 +356,8 @@ export default {
     }
   },
   locales: {
-    'en': {noSupportRawTable: 'Only KAP PLUS Provides Raw Table', tableIndex: 'Table Index', ID: 'ID', column: 'Column', dataType: 'Data Type', tableAlias: 'Table Alias', Encoding: 'Encoding', Length: 'Length', Index: 'Index', ConfigRawTable: 'Config Table Index', 'sortBy': 'SortBy', 'shardBy': 'ShardBy', dragSorted: 'Drag the rows below to sort'},
-    'zh-cn': {noSupportRawTable: '只有KAP PLUS 提供Raw Table功能', tableIndex: '表索引', ID: 'ID', column: '列', dataType: '数据类型', tableAlias: '表别名', Encoding: '编码', Length: '长度', Index: '索引', ConfigRawTable: '配置Table Index', 'sortBy': 'SortBy', 'shardBy': 'ShardBy', dragSorted: '拖动下面的表行进行排序'}
+    'en': {noSupportRawTable: 'Only KAP PLUS Provides Raw Table', tableIndex: 'Table Index', ID: 'ID', column: 'Column', dataType: 'Data Type', tableAlias: 'Table Alias', Encoding: 'Encoding', Length: 'Length', Index: 'Index', ConfigRawTable: 'Config Table Index', 'sortBy': 'Sort By', 'shardBy': 'Shard By', dragSorted: 'Drag the rows below to sort'},
+    'zh-cn': {noSupportRawTable: '只有KAP PLUS 提供Raw Table功能', tableIndex: '表索引', ID: 'ID', column: '列', dataType: '数据类型', tableAlias: '表别名', Encoding: '编码', Length: '长度', Index: '索引', ConfigRawTable: '配置Table Index', 'sortBy': 'Sort By', 'shardBy': 'Shard By', dragSorted: '拖动下面的表行进行排序'}
   }
 }
 </script>

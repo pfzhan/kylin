@@ -5,7 +5,7 @@
 <!--     <draggable  @start="drag=true" @end="drag=false"> -->
       <model-assets  v-on:drag="drag" :project="extraoption.project" @okFunc="serverDataToDragData" ></model-assets>
       <!-- <el-tree v-if="extraoption.uuid" @nodeclick="clickCube" :data="cubeDataTree" style="background-color: #f1f2f7;border:none;width:250px;" :render-content="renderCubeTree"></el-tree> -->
-      <tree  v-if="extraoption.uuid" style="background-color: #f1f2f7;border:none;width:250px;" :treedata="cubeDataTree" :placeholder="$t('kylinLang.common.pleaseFilter')" maxLabelLen="20" :showfilter= "false" :expandall="true" @nodeclick="clickCube"  v-unselect :renderTree="renderCubeTree"></tree>
+      <tree  v-if="extraoption.uuid && !isFullScreen" style="background-color: #f1f2f7;border:none;width:250px;" :treedata="cubeDataTree" :placeholder="$t('kylinLang.common.pleaseFilter')" maxLabelLen="20" :showfilter= "false" :expandall="true" @nodeclick="clickCube"  v-unselect :renderTree="renderCubeTree"></tree>
 <!--     </draggable> -->
     </div>
     <ul class="sample_info">
@@ -21,6 +21,7 @@
         <li class="toolbtn tool_add" @click="addZoom" v-unselect :title="$t('kylinLang.common.zoomIn')" style="line-height:38px;"><img src="../../assets/img/fd.png"></li>
         <li class="toolbtn tool_jian" @click="subZoom" v-unselect :title="$t('kylinLang.common.zoomOut')" style="line-height:26px;"><img src="../../assets/img/sx.png"></li>
         <li class="toolbtn" @click="autoLayerPosition" v-unselect  :title="$t('kylinLang.common.automaticlayout')" style="line-height:42px;margin-top:10px"><img src="../../assets/img/layout.png"></li>
+        <li class="toolbtn" @click="toggleFullScreen" v-unselect  :title="$t('kylinLang.common.automaticlayout')" style="line-height:42px;margin-top:10px"><img style="width:26px;height:22px;" src="../../assets/img/full-screen.png"></li>
       </ul>
     <div class="btn_group"  v-if="actionMode!=='view'">
       <!-- <el-button @click="saveDraft(true)" :loading="draftBtnLoading">{{$t('kylinLang.common.draft')}}</el-button> -->
@@ -275,6 +276,7 @@ export default {
       openModelCheck: true,
       modelStaticsRange: 100,
       addModelDialogDisable: false,
+      isFullScreen: false,
       hasStreamingTable: false,
       createCubeFormRule: {
         cubeName: [
@@ -440,6 +442,11 @@ export default {
       statsModel: 'COLLECT_MODEL_STATS',
       loadDataSource: 'LOAD_DATASOURCE'
     }),
+    toggleFullScreen () {
+      this.isFullScreen = !this.isFullScreen
+      $('#fullBox').toggleClass('fullLayoutForModelEdit')
+      this.resizeWindow(this.briefMenu)
+    },
     addComputedForm () {
       this.openAddComputedColumnForm = true
       this.computedColumn.name = ''
@@ -1998,14 +2005,19 @@ export default {
       var wWidth = $(window).width()
       var wHeight = $(window).height()
       var modelEditTool = $(this.$el).find('.model_edit_tool')
-      if (newVal === 'brief_menu') {
-        this.dockerScreen.w = wWidth - 100
-        this.dockerScreen.h = wHeight - 176
-        modelEditTool.addClass('smallScreen')
+      if (this.isFullScreen) {
+        this.dockerScreen.w = wWidth
+        this.dockerScreen.h = wHeight
       } else {
-        modelEditTool.removeClass('smallScreen')
-        this.dockerScreen.w = wWidth - 200
-        this.dockerScreen.h = wHeight - 176
+        if (newVal === 'brief_menu') {
+          this.dockerScreen.w = wWidth - 100
+          this.dockerScreen.h = wHeight - 176
+          modelEditTool.addClass('smallScreen')
+        } else {
+          modelEditTool.removeClass('smallScreen')
+          this.dockerScreen.w = wWidth - 200
+          this.dockerScreen.h = wHeight - 176
+        }
       }
     },
     clickCube: function (leaf) {
@@ -2162,6 +2174,9 @@ export default {
   },
   destroyed () {
     clearTimeout(this.timerST)
+    this.isFullScreen = false
+    $('#fullBox').removeClass('fullLayoutForModelEdit')
+    this.resizeWindow(this.briefMenu)
   },
   updated () {
     // console.log(1)
@@ -2184,6 +2199,33 @@ export default {
    .save_model_box{
       .el-form-item__label{
         float:left!important;
+      }
+    }
+    .fullLayoutForModelEdit{
+      .left_menu{
+        display: none;
+      }
+      #scrollBox{
+        left:0;
+        top:0;
+      }
+      .model_edit_tool{
+        left: 0;
+      }
+      .topbar{
+        display: none;
+      }
+      .model_edit_tool.smallScreen{
+        left: 0;
+      }
+      #modeltab>.el-tabs--card>.el-tabs__header{
+        display: none;
+      }
+      #breadcrumb_box{
+        display: none;
+      } 
+      .btn_group{
+        bottom:46px;
       }
     }
    .model_edit_box {

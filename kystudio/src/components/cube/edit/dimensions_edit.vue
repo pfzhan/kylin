@@ -453,7 +453,7 @@ export default {
         handleSuccess(res, (data, code, status, msg) => {
           this.$set(this.cubeDesc, 'dimensions', data.dimensions)
           this.$set(this.cubeDesc, 'aggregation_groups', data.aggregation_groups)
-          this.$set(this.cubeDesc, 'override_kylin_properties', data.override_kylin_properties)
+          // this.$set(this.cubeDesc, 'override_kylin_properties', data.override_kylin_properties)
           this.dim_cap = data.aggregation_groups && data.aggregation_groups[0] && data.aggregation_groups[0].select_rule.dim_cap || 0
           this.$set(this.cubeDesc.rowkey, 'rowkey_columns', data.rowkey.rowkey_columns)
           this.initConvertedRowkeys()
@@ -507,14 +507,16 @@ export default {
       }
       this.addDimensionsFormVisible = false
       this.$nextTick(() => {
-        this.initAggregationGroup()
         setTimeout(() => {
           this.initRowkeyColumns()
+          if (this.convertedRowkeys.length > 25) {
+            kapConfirm(this.$t('moreRowkeyTip'))
+          }
+          setTimeout(() => {
+            this.initAggregationGroup()
+            this.calcAllCuboid()
+          }, 1000)
         }, 1000)
-        this.calcAllCuboid()
-        if (this.convertedRowkeys.length > 25) {
-          kapConfirm(this.$t('moreRowkeyTip'))
-        }
       })
     },
     editDimension: function (dimension) {

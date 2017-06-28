@@ -4,7 +4,7 @@
       <el-form-item :label="$t('username')">
         <el-alert
          type="info"
-          :title="userDetail.username"
+          :title="curUser.username"
           :closable="false">
       </el-alert>
       </el-form-item>
@@ -13,14 +13,14 @@
         <el-tag type="primary" v-if="userDetail.modeler === true">{{$t('modeler')}}</el-tag>
         <el-tag v-if="userDetail.analyst === true">{{$t('analyst')}}</el-tag>
       </el-form-item>
-      <el-form-item :label="$t('oldPassword')" prop="oldPassword" v-if="">
+      <el-form-item :label="$t('oldPassword')" prop="oldPassword" v-if="!isAdmin">
         <el-input type="password" v-model="userDetail.oldPassword"></el-input>
       </el-form-item>
       <el-form-item :label="$t('password')" prop="password">
         <el-input type="password" v-model="userDetail.password"></el-input>
       </el-form-item>
       <el-form-item :label="$t('confirmNewPassword')" prop="confirmPassword">
-        <el-input type="password" v-model="userDetail.confirmPassword"></el-input>
+        <el-input type="password" v-model="userDetail.confirmPassword"  name="confirmPassword"></el-input>
       </el-form-item>
     </el-form>
   </div>
@@ -29,9 +29,14 @@
 import { hasRole } from '../../util/business'
 export default {
   name: 'reset_password',
-  props: ['userDetail', 'show'],
+  props: ['curUser', 'show'],
   data () {
     return {
+      userDetail: {
+        password: '',
+        confirmPassword: '',
+        oldPassword: ''
+      },
       rules: {
         oldPassword: [
         { required: true, message: this.$t('kylinLang.common.pleaseInput'), trigger: 'change' }
@@ -75,19 +80,20 @@ export default {
       return hasRole(this, 'ROLE_ADMIN')
     }
   },
-  watch: {
-    // 'show' (v) {
-    //   if (v) {
-    //     console.log(123321)
-    //     this.resetData()
-    //   }
-    // }
-  },
+  // watch: {
+  //   'show' (v) {
+  //     if (!v) {
+  //       console.log(v)
+  //       this.resetData()
+  //     }
+  //   }
+  // },
   created () {
     let _this = this
     this.$on('resetPasswordFormValid', (t) => {
       _this.$refs['resetPasswordForm'].validate((valid) => {
         if (valid) {
+          this.userDetail.username = this.curUser.username
           _this.$emit('validSuccess', this.userDetail)
         }
       })

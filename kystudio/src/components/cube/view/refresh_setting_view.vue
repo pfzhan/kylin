@@ -1,31 +1,31 @@
 <template>
 <el-card class="box-card" id="refresh-settion-view">
   <el-row class="border_bottom padding-m">
-    <el-col :span="6">{{$t('autoMergeThresholds')}}</el-col>
+    <el-col :span="6" class="ksd-right"> {{$t('autoMergeThresholds')}}</el-col>
     <el-col :span="18">
       <el-row v-for="timeRange in cubeDesc.desc && cubeDesc.desc.auto_merge_time_ranges || []" :key="timeRange">
-        <el-col :span="24">{{timeRange|timeSize}}</el-col>
+        <el-col :span="24"> {{timeRange|timeSize}}</el-col>
       </el-row>
     </el-col>
   </el-row>
 
   <el-row class="border_bottom padding-m">
-    <el-col :span="6">{{$t('retentionThreshold')}}</el-col>
-    <el-col :span="18">{{cubeDesc.desc.retention_range|timeSize}}</el-col>
+    <el-col :span="6" class="ksd-right">{{$t('retentionThreshold')}}</el-col>
+    <el-col :span="18"> {{cubeDesc.desc.retention_range|timeSize}}</el-col>
   </el-row>
   <el-row class="border_bottom padding-m">
-    <el-col :span="6">{{$t('partitionStartDate')}}</el-col>
-    <el-col :span="18">{{toGmtTime(cubeDesc.desc.partition_date_start)}}</el-col>
+    <el-col :span="6" class="ksd-right">{{$t('partitionStartDate')}}</el-col>
+    <el-col :span="18"> {{toGmtTime(cubeDesc.desc.partition_date_start)}}</el-col>
   </el-row>
 
    <el-row class=" padding-m">
     <!-- <h2 class="ksd-mt-40 ksd-ml-40"><span style="font-size:16px;">{{$t('kylinLang.cube.scheduler')}}</span></h2> -->
-    <el-col :span="6">{{$t('buildTrigger')}}</el-col>
-    <el-col :span="18" v-if="cubeDesc.scheduler">{{toGmtTime(cubeDesc.scheduler.scheduled_run_time)}}</el-col>
+    <el-col :span="6" class="ksd-right">{{$t('buildTrigger')}}</el-col>
+    <el-col :span="18" v-if="cubeDesc.scheduler"> {{toGmtTime(cubeDesc.scheduler.scheduled_run_time)}}</el-col>
   </el-row>
   <el-row class="border_bottom padding-m">
-    <el-col :span="6">{{$t('periddicalInterval')}}</el-col>
-    <el-col :span="18" v-if="cubeDesc.scheduler">{{cubeDesc.scheduler.repeat_interval|timeSize}}</el-col>
+    <el-col :span="6" class="ksd-right">{{$t('periddicalInterval')}}</el-col>
+    <el-col :span="18" v-if="cubeDesc.scheduler"> {{cubeDesc.scheduler.repeat_interval|timeSize}}</el-col>
   </el-row>
 </el-card>
 </template>
@@ -61,8 +61,8 @@ export default {
     }
   },
   locales: {
-    'en': {autoMergeThresholds: 'Auto Merge Thresholds', retentionThreshold: 'Retention Threshold', partitionStartDate: 'Partition Start Date', buildTrigger: 'First Build Time', periddicalInterval: 'Build Cycle:'},
-    'zh-cn': {autoMergeThresholds: '触发自动合并的时间阈值', retentionThreshold: '保留时间阈值', partitionStartDate: '起始日期', buildTrigger: '首次构建触发时间：', periddicalInterval: '重复间隔：'}
+    'en': {autoMergeThresholds: 'Auto Merge Thresholds:', retentionThreshold: 'Retention Threshold:', partitionStartDate: 'Partition Start Date:', buildTrigger: 'First Build Time:', periddicalInterval: 'Build Cycle:'},
+    'zh-cn': {autoMergeThresholds: '触发自动合并的时间阈值：', retentionThreshold: '保留时间阈值：', partitionStartDate: '起始日期：', buildTrigger: '首次构建触发时间：', periddicalInterval: '重复间隔：'}
   }
 }
 </script>

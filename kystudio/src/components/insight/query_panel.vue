@@ -73,6 +73,8 @@ export default {
           this.errinfo = msg
           this.$emit('changeView', this.extraoption.index, data, 'warning', 'querypanel')
         })
+      }).catch((data) => {
+        this.$emit('changeView', this.extraoption.index, data, 'warning', 'querypanel')
       })
     },
     openSaveQueryDialog () {

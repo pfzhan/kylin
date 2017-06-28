@@ -1,5 +1,17 @@
 <template>
 <div class="box-card" id="overwrites">
+  <div v-show="!isPlusVersion">
+  <h2>Cubing Engine <common-tip :content="$t('engineTip')" ><icon name="question-circle-o"></icon></common-tip></h2>
+  <p class="ksd-mt-14">Engine Type: 
+    <el-select :disabled="isPlusVersion" v-model="cubeDesc.engine_type">
+      <el-option  v-for="item in engineType"
+      :key="item.value"
+      :label="item.name"
+      :value="item.value"></el-option>
+    </el-select>
+  </p>
+  </div>
+  <div class="line"></div>
   <el-row>
     <el-col :span="24" style="font-size: 14px;margin-bottom: 10px;">  {{$t('propertyTip')}}</el-col>
       </el-row>
@@ -29,13 +41,15 @@
 <script>
 import { fromObjToArr } from '../../../util/index'
 import { mapActions } from 'vuex'
+import { engineType } from '../../../config/index'
 export default {
   name: 'configurationOverwrites',
   props: ['cubeDesc'],
   data () {
     return {
       convertedProperties: [],
-      properties: fromObjToArr(this.cubeDesc.override_kylin_properties)
+      properties: fromObjToArr(this.cubeDesc.override_kylin_properties),
+      engineType: engineType
     }
   },
   methods: {
@@ -86,9 +100,15 @@ export default {
       _this.initProperty()
     })
   },
+  computed: {
+    isPlusVersion () {
+      var kapVersionInfo = this.$store.state.system.serverAboutKap
+      return kapVersionInfo && kapVersionInfo['kap.version'] && kapVersionInfo['kap.version'].indexOf('Plus') !== -1
+    }
+  },
   locales: {
-    'en': {tip: 'Tip', propertyTip: 'Cube level properties will overwrite configuration in kylin.properties', addConfiguration: 'Add Configuration'},
-    'zh-cn': {tip: '提示', propertyTip: 'Cube级的属性值将会覆盖kylin.properties中的属性值', addConfiguration: '添加配置'}
+    'en': {tip: 'Tip', propertyTip: 'Cube level properties will overwrite configuration in kylin.properties', addConfiguration: 'Add Configuration', 'engineTip': 'Select cube engine for building cube.'},
+    'zh-cn': {tip: '提示', propertyTip: 'Cube级的属性值将会覆盖kylin.properties中的属性值', addConfiguration: '添加配置', 'engineTip': '选择一个Cube构建引擎。'}
   }
 }
 </script>
