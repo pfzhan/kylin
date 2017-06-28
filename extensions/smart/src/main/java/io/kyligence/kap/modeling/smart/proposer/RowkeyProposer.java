@@ -66,11 +66,14 @@ public class RowkeyProposer extends AbstractProposer {
         double score = 1;
 
         if (context.hasModelStats() && modelingConfig.getPhyscalWeight() > 0) {
-            score += context.getColumnsCardinality(r.getColRef().getIdentity());
+            long cardinality = context.getColumnsCardinality(r.getColRef().getIdentity());
+            if (cardinality > 0) {
+                score += cardinality;
+            }
         }
 
         if (considerQuery && context.hasQueryStats()) {
-            String n = r.getColRef().getCanonicalName();
+            String n = r.getColRef().getIdentity();
 
             Map<String, Integer> filters = context.getQueryStats().getFilters();
             Map<String, Integer> appears = context.getQueryStats().getAppears();
@@ -159,7 +162,8 @@ public class RowkeyProposer extends AbstractProposer {
         if (context.hasTableStats() && cardinality > modelingConfig.getRowkeyDictEncCardinalityMax()) {
             TableExtDesc.ColumnStats colStats = context.getTableColumnStats(colDesc.getColRef());
             // TODO: currently used max length, better to use 95%ile length
-            int length = Math.min(colStats.getMaxLengthValue().getBytes().length, modelingConfig.getRowkeyFixLenLengthMax());
+            int length = Math.min(colStats.getMaxLengthValue().getBytes().length,
+                    modelingConfig.getRowkeyFixLenLengthMax());
             return String.format("%s:%d", FixedLenDimEnc.ENCODING_NAME, length);
         }
 
@@ -180,8 +184,12 @@ public class RowkeyProposer extends AbstractProposer {
 
         for (RowKeyColDesc rowKeyDesc : rowKeyDescs) {
             long cardinality = context.getColumnsCardinality(rowKeyDesc.getColRef().getIdentity());
+            if (cardinality < 0) {
+                continue; // skip columns without cardinality information
+            }
             rowKeyDesc.setEncoding(selectDimEncoding(rowKeyDesc, cardinality));
-            logger.trace("Set dimension encoding: column={}, encoding={}, cardinality={}", rowKeyDesc.getColumn(), rowKeyDesc.getEncoding(), cardinality);
+            logger.trace("Set dimension encoding: column={}, encoding={}, cardinality={}", rowKeyDesc.getColumn(),
+                    rowKeyDesc.getEncoding(), cardinality);
 
             if (cardinality > maxCardinality) {
                 // find the largest cardinality, set shardBy=true if the max exceeds threshold
@@ -192,11 +200,13 @@ public class RowkeyProposer extends AbstractProposer {
 
         if (maxCardRowKey != null && maxCardinality > modelingConfig.getRowkeyUHCCardinalityMin()) {
             maxCardRowKey.setShardBy(true);
-            logger.trace("Found shard by dimension: column={}, cardinality={}", maxCardRowKey.getColumn(), maxCardinality);
+            logger.trace("Found shard by dimension: column={}, cardinality={}", maxCardRowKey.getColumn(),
+                    maxCardinality);
         }
 
         // update index settings
-        if (workCubeDesc.getEngineType() > IEngineAware.ID_SPARK || workCubeDesc.getStorageType() > IStorageAware.ID_SHARDED_HBASE) {
+        if (workCubeDesc.getEngineType() > IEngineAware.ID_SPARK
+                || workCubeDesc.getStorageType() > IStorageAware.ID_SHARDED_HBASE) {
             final String indexSettings = "eq";
             // TODO: for LT and GT check (eg. data column), set all index
             for (RowKeyColDesc rowKeyDesc : rowKeyDescs) {

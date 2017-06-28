@@ -144,8 +144,9 @@ public class AggrGroupProposer extends AbstractProposer {
             if (context.hasTableStats()) {
                 while (candidatesItr.hasNext()) {
                     String rowKeyColName = candidatesItr.next();
-                    if (colCardinalityMap.get(rowKeyColName) != null
-                            && colCardinalityMap.get(rowKeyColName) <= modelingConfig.getMandatoryCardinalityMax()) {
+                    Long cardinality = colCardinalityMap.get(rowKeyColName);
+                    if (cardinality != null && cardinality > 0
+                            && cardinality <= modelingConfig.getMandatoryCardinalityMax()) {
                         mandatoryCandidates.add(rowKeyColName);
                         candidatesItr.remove();
                     }

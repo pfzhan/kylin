@@ -88,12 +88,16 @@ public class ModelingContext {
         RowKeyColDesc[] rowkeyDescCols = cubeDesc.getRowkey().getRowKeyColumns();
 
         Long cuboidId;
-        Long rows;
+        Long rows = null;
 
         // get single column cardinality
         for (int i = 0; i < rowkeyDescCols.length; i++) {
             cuboidId = 1L << i;
             Cuboid cuboid = Cuboid.findById(cubeDesc, cuboidId); // if exact cuboid not existed, then use parent cuboid rows
+            if (Long.bitCount(cuboid.getId()) > 2) { // skip if parent cuboids has too many dimensions.
+                return;
+            }
+
             rows = cuboidRows.get(cuboid.getId());
             if (rows != null) {
                 TblColRef rowkeyColRef = rowkeyDescCols[rowkeyDescCols.length - 1 - i].getColRef();
@@ -107,6 +111,10 @@ public class ModelingContext {
             for (int j = i + 1; j < rowkeyDescCols.length; j++) {
                 cuboidId = (1L << i) | (1L << j);
                 Cuboid cuboid = Cuboid.findById(cubeDesc, cuboidId); // if exact cuboid not existed, then use parent cuboid rows
+                if (Long.bitCount(cuboid.getId()) > 3) { // skip if parent cuboids has too many dimensions.
+                    return;
+                }
+
                 rows = cuboidRows.get(cuboid.getId());
                 if (rows != null) {
                     TblColRef rowkeyColRef2 = rowkeyDescCols[rowkeyDescCols.length - 1 - j].getColRef();
