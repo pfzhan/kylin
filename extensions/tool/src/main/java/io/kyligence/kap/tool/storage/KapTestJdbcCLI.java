@@ -51,19 +51,20 @@ public class KapTestJdbcCLI {
             connectionManager = JDBCConnectionManager.getConnectionManager();
         } catch (RuntimeException e) {
             logger.error(e.toString());
-            System.out.println("Fail to connect to mysql, more info please check full log");
+            System.out.println("Fail to connect to database, please make sure jdbc connector jar exists in $KYLIN_HOME/ext, and kylin.metadata.url is correctly configured.");
             System.exit(1);
         }
     }
 
     public void testCreateTable() {
         logger.info("Test JDBC create table...");
-        String sql = MessageFormat.format("CREATE TABLE IF NOT EXISTS {0} ( name VARCHAR(255) primary key," + "id BIGINT );", tableName);
+        String sql = MessageFormat
+                .format("CREATE TABLE IF NOT EXISTS {0} ( name VARCHAR(255) primary key," + "id BIGINT );", tableName);
         try {
             execute(sql);
         } catch (RuntimeException e) {
             logger.error(e.toString());
-            System.out.println("Fail to create table in mysql, more info please check full log");
+            System.out.println("Fail to create table in database, more info please check full log");
             System.exit(1);
         }
     }
