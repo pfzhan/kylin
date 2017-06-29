@@ -32,6 +32,7 @@ import static io.kyligence.kap.metadata.scheduler.SchedulerJobInstance.concatRes
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -41,24 +42,20 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
-import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SchedulerJobManager {
-    public static final Serializer<SchedulerJobInstance> SCHEDULER_JOB_INSTANCE_SERIALIZER = new JsonSerializer<>(SchedulerJobInstance.class);
+    public static final Serializer<SchedulerJobInstance> SCHEDULER_JOB_INSTANCE_SERIALIZER = new JsonSerializer<>(
+            SchedulerJobInstance.class);
     private static final Logger logger = LoggerFactory.getLogger(SchedulerJobManager.class);
 
     private static final ConcurrentMap<KylinConfig, SchedulerJobManager> CACHE = new ConcurrentHashMap<>();
     private KylinConfig kylinConfig;
-    private CaseInsensitiveStringCache<SchedulerJobInstance> jobMap;
 
     private SchedulerJobManager(KylinConfig config) throws IOException {
         logger.info("Initializing BadQueryHistoryManager with config " + config);
         this.kylinConfig = config;
-        this.jobMap = new CaseInsensitiveStringCache<SchedulerJobInstance>(config, "scheduler");
-
-        loadAllSchedulerJobInstance();
     }
 
     public static SchedulerJobManager getInstance(KylinConfig config) {
@@ -97,7 +94,8 @@ public class SchedulerJobManager {
         ResourceStore store = getStore();
         List<String> paths = store.collectResourceRecursively(SCHEDULER_RESOURCE_ROOT, ".json");
 
-        logger.info("Loading scheduler jobs from folder " + store.getReadableResourcePath(ResourceStore.CUBE_RESOURCE_ROOT));
+        logger.info("Loading scheduler jobs from folder "
+                + store.getReadableResourcePath(ResourceStore.CUBE_RESOURCE_ROOT));
 
         int succeed = 0;
         int fail = 0;
@@ -138,21 +136,24 @@ public class SchedulerJobManager {
             checkState(StringUtils.isNotBlank(startTime), "job (at %s) partition start time must not be blank", path);
 
             String scheduledRunTime = Long.toString(job.getScheduledRunTime());
-            checkState(StringUtils.isNotBlank(scheduledRunTime), "job (at %s) scheduled run time must not be blank", path);
+            checkState(StringUtils.isNotBlank(scheduledRunTime), "job (at %s) scheduled run time must not be blank",
+                    path);
 
             String repeatCount = Long.toString(job.getRepeatCount());
-            checkState(StringUtils.isNotBlank(repeatCount), "job (at %s) scheduled repeat count must not be blank", path);
+            checkState(StringUtils.isNotBlank(repeatCount), "job (at %s) scheduled repeat count must not be blank",
+                    path);
 
             String curRepeatCount = Long.toString(job.getCurRepeatCount());
-            checkState(StringUtils.isNotBlank(curRepeatCount), "job (at %s) current repeat count must not be blank", path);
+            checkState(StringUtils.isNotBlank(curRepeatCount), "job (at %s) current repeat count must not be blank",
+                    path);
 
             String repeatInterval = Long.toString(job.getRepeatInterval());
-            checkState(StringUtils.isNotBlank(repeatInterval), "job (at %s) scheduled repeat interval must not be blank", path);
+            checkState(StringUtils.isNotBlank(repeatInterval),
+                    "job (at %s) scheduled repeat interval must not be blank", path);
 
             String partitionInterval = Long.toString(job.getPartitionInterval());
-            checkState(StringUtils.isNotBlank(partitionInterval), "job (at %s) scheduled partition interval must not be blank", path);
-
-            jobMap.putLocal(jobName.toUpperCase(), job);
+            checkState(StringUtils.isNotBlank(partitionInterval),
+                    "job (at %s) scheduled partition interval must not be blank", path);
 
             return job;
 
@@ -163,12 +164,32 @@ public class SchedulerJobManager {
     }
 
     public SchedulerJobInstance getSchedulerJob(String name) throws IOException {
-        name = name.toUpperCase();
-        return jobMap.get(name);
+        return reloadSchedulerJobLocal(name);
     }
 
-    public List<SchedulerJobInstance> listAllSchedulerJobs() {
-        return new ArrayList<SchedulerJobInstance>(jobMap.values());
+    public List<SchedulerJobInstance> listAllSchedulerJobs() throws IOException {
+        ResourceStore store = getStore();
+        List<String> paths = store.collectResourceRecursively(SCHEDULER_RESOURCE_ROOT, ".json");
+        List<SchedulerJobInstance> schedulerList = new LinkedList<>();
+
+        logger.info("Loading scheduler jobs from folder "
+                + store.getReadableResourcePath(ResourceStore.CUBE_RESOURCE_ROOT));
+
+        int succeed = 0;
+        int fail = 0;
+        for (String path : paths) {
+            SchedulerJobInstance job = reloadSchedulerJobLocalAt(path);
+            if (job == null) {
+                fail++;
+            } else {
+                succeed++;
+            }
+            schedulerList.add(job);
+        }
+
+        logger.info("Loaded " + succeed + " job, fail on " + fail + " jobs");
+
+        return schedulerList;
     }
 
     public List<SchedulerJobInstance> getSchedulerJobs(String project, String realizationName) throws IOException {
@@ -178,7 +199,8 @@ public class SchedulerJobManager {
 
         while (it.hasNext()) {
             SchedulerJobInstance ci = it.next();
-            if ((ci.getProject().equals(project) || project == null) && (ci.getRelatedRealization().equals(realizationName) || realizationName == null)) {
+            if ((ci.getProject().equals(project) || project == null)
+                    && (ci.getRelatedRealization().equals(realizationName) || realizationName == null)) {
                 result.add(ci);
             }
         }
@@ -201,14 +223,12 @@ public class SchedulerJobManager {
 
         String path = SchedulerJobInstance.concatResourcePath(job.getName());
         getStore().putResource(path, job, SCHEDULER_JOB_INSTANCE_SERIALIZER);
-        jobMap.put(job.getName(), job);
         return job;
     }
 
     public void removeSchedulerJob(SchedulerJobInstance job) throws IOException {
         String path = job.getResourcePath();
         getStore().deleteResource(path);
-        jobMap.remove(job.getName());
     }
 
     public SchedulerJobInstance updateSchedulerJobInstance(SchedulerJobInstance job) throws IOException {
@@ -217,15 +237,10 @@ public class SchedulerJobManager {
         }
 
         String name = job.getName();
-        if (!jobMap.containsKey(name)) {
-            throw new IllegalArgumentException("Scheduler job '" + name + "' does not exist.");
-        }
 
         // Save Source
         String path = job.getResourcePath();
         getStore().putResource(path, job, SCHEDULER_JOB_INSTANCE_SERIALIZER);
-
-        jobMap.put(job.getName(), job);
 
         return job;
     }
