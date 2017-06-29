@@ -65,7 +65,7 @@ public class RowkeyProposer extends AbstractProposer {
         // score = cardinality * DIM_ROWKEY_FILRER_PROMOTION_TIMES
         double score = 1;
 
-        if (context.hasModelStats() && modelingConfig.getPhyscalWeight() > 0) {
+        if ((context.hasModelStats() || context.hasTableStats()) && modelingConfig.getPhyscalWeight() > 0) {
             long cardinality = context.getColumnsCardinality(r.getColRef().getIdentity());
             if (cardinality > 0) {
                 score += cardinality;
