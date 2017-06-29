@@ -59,10 +59,11 @@ public class MockupQueryExecutor implements Closeable {
 
         try {
             statement = conn.createStatement();
-            sql = QueryUtil.massageSql(sql);
+            sql = QueryUtil.massageSql(sql, projectName, 0, 0);
             resultSet = statement.executeQuery(sql);
         } catch (Exception e) {
-            if (e.getCause() != null && e.getCause() instanceof com.google.common.cache.CacheLoader.InvalidCacheLoadException) {
+            if (e.getCause() != null
+                    && e.getCause() instanceof com.google.common.cache.CacheLoader.InvalidCacheLoadException) {
                 StackTraceElement[] stackTrace = e.getCause().getStackTrace();
                 for (StackTraceElement s : stackTrace) {
                     if (s.toString().contains(LookupTableEnumerator.class.getName())) {
