@@ -493,7 +493,7 @@ export default {
         handleSuccess(res, (data, code, status, msg) => {
           this.$message({
             type: 'success',
-            message: this.$t('submitSuccess'),
+            message: this.$t('kylinLang.common.submitSuccess'),
             duration: 3000
           })
           this.loadCubesList(this.currentPage - 1)

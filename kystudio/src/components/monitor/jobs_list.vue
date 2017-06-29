@@ -58,7 +58,7 @@
           </el-progress>
           <el-progress  :percentage="scope.row.progress | number(2)"  v-else>
           </el-progress> -->
-          <kap-progress :percent="scope.row.progress | number(2)" :status="scope.row.job_status"></kap-progress>
+          <kap-progress :percent="scope.row.progress | number(0)" :status="scope.row.job_status"></kap-progress>
         </template>
       </el-table-column>
       <el-table-column
@@ -315,6 +315,11 @@ export default {
     jobsList () {
       return this.$store.state.monitor.jobsList.map((m) => {
         m.gmtTime = transToGmtTime(m.last_modified, this)
+        if (this.selected_job) {
+          if (m.uuid === this.selected_job.uuid) {
+            this.selected_job = m
+          }
+        }
         return m
       })
     },
