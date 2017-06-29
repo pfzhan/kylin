@@ -74,12 +74,10 @@ sh build/script/build.sh $@             || { exit 1; }
 
 echo "BUILD STAGE 3 - Prepare tomcat..."
 sh build/script/download-tomcat.sh      || { exit 1; }
-if [ "${PACKAGE_PLUS}" != "0" ]; then
-    echo "BUILD STAGE 4 - Prepare spark..."
-    sh build/script/download-spark.sh      || { exit 1; }
-else
-    echo "BUILD STAGE 4 - Skip spark for KAP Normal"
-fi
+
+echo "BUILD STAGE 4 - Prepare spark..."
+sh build/script/download-spark.sh      || { exit 1; }
+
 
 echo "BUILD STAGE 5 - Prepare and compress package..."
 sh build/script/prepare.sh ${MVN_PROFILE} || { exit 1; }
