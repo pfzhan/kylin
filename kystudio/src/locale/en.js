@@ -105,7 +105,8 @@ exports.default = {
     viewModeLimit: 'This action is disabled in view mode.',
     modelCheck: 'Model health check is highly recommended to help generate a cube optimize result.',
     dragTip: 'Try to drag the tables from the left',
-    resetCheckDataTip: 'Please note that model check results would be inconsistent with the new editing. So model check results would be dropped after the new editing saved.'
+    resetCheckDataTip: 'Please note that model check results would be inconsistent with the new editing. So model check results would be dropped after the new editing saved.',
+    dimensionLinkLimit: 'Only dimension columns can be linked'
   },
   cube: {
     inputSqlTip1: '1.The following shows all the inputing SQL statements, each with ";" as a split.',

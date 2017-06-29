@@ -200,6 +200,7 @@ export default {
       let datatype = this.modelDesc.columnsDetail[column.table + '.' + column.column] && this.modelDesc.columnsDetail[column.table + '.' + column.column].datatype || ''
       let baseEncodings = loadBaseEncodings(this.$store.state.datasource)
       let filterEncodings = baseEncodings.filterByColumnType(datatype)
+      filterEncodings = baseEncodings.removeEncoding('dict')
       baseEncodings.addEncoding('orderedbytes', 1)
       if (this.isEdit) {
         let _encoding = _this.getEncoding(column.encoding)

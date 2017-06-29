@@ -104,7 +104,8 @@ exports.default = {
     viewModeLimit: '预览模式下不能进行该操作',
     modelCheck: '模型健康检测将会为您检查数据中可能的问题，服务后续的cube设计和构建，以及一键优化功能。',
     dragTip: '拖拽左侧的table到该区域',
-    resetCheckDataTip: '请注意，模型检测结果将与最新编辑不一致。当您保存了最新编辑，模型检测结果将会被删除。'
+    resetCheckDataTip: '请注意，模型检测结果将与最新编辑不一致。当您保存了最新编辑，模型检测结果将会被删除。',
+    dimensionLinkLimit: '只有维度列可以进行关联'
   },
   cube: {
     inputSqlTip1: '1.下面展示了输入的所有SQL语句，每句以“;”作为分割。',

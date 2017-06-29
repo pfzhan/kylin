@@ -82,6 +82,16 @@ export function loadBaseEncodings (state) {
     },
     baseEncoding () {
     },
+    removeEncoding (name) {
+      var arr = []
+      console.log(name, resultArr)
+      for (var i = 0; i < resultArr.length; i++) {
+        if (resultArr[i].name !== name) {
+          arr.push(resultArr[i])
+        }
+      }
+      return arr
+    },
     addEncoding: function (name, version) {
       for (var i = 0; i < resultArr.length; i++) {
         if (resultArr[i].name === name && resultArr[i].version === version) {
