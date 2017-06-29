@@ -89,7 +89,7 @@
 
 <script>
 import { mapActions } from 'vuex'
-import { handleSuccess, handleError, transToUtcTimeFormat, transToUTCMs } from '../../../util/business'
+import { handleSuccess, handleError, transToUtcTimeFormat, transToUTCMs, msTransDate } from '../../../util/business'
 export default {
   name: 'refreshSetting',
   props: ['cubeDesc', 'scheduler'],
@@ -120,27 +120,28 @@ export default {
     conversionTime: function () {
       let _this = this
       _this.cubeDesc.auto_merge_time_ranges.forEach(function (item) {
-        let _day = Math.floor(item / 86400000)
-        let _hour = Math.floor(item / 3600000)
-        let _minute = item / 60000
+        var transDate = msTransDate(item, true)
+        // let _day = Math.floor(item / 86400000)
+        // let _hour = Math.floor(item / 3600000)
+        // let _minute = item / 60000
         let rangeObj = {
-          type: 'days',
-          range: 0,
-          mills: 0
+          type: transDate.type,
+          range: transDate.value,
+          mills: item
         }
-        if (_hour === 0) {
-          rangeObj.type = 'minutes'
-          rangeObj.range = _minute
-          rangeObj.mills = rangeObj.range * 60000
-        } else if (_day === 0) {
-          rangeObj.type = 'hours'
-          rangeObj.range = _hour
-          rangeObj.mills = rangeObj.range * 3600000
-        } else {
-          rangeObj.type = 'days'
-          rangeObj.range = _day
-          rangeObj.mills = rangeObj.range * 86400000
-        }
+        // if (_hour === 0) {
+        //   rangeObj.type = 'minutes'
+        //   rangeObj.range = _minute
+        //   rangeObj.mills = rangeObj.range * 60000
+        // } else if (_day === 0) {
+        //   rangeObj.type = 'hours'
+        //   rangeObj.range = _hour
+        //   rangeObj.mills = rangeObj.range * 3600000
+        // } else {
+        //   rangeObj.type = 'days'
+        //   rangeObj.range = _day
+        //   rangeObj.mills = rangeObj.range * 86400000
+        // }
         _this.timeRanges.push(rangeObj)
       })
     },
@@ -149,27 +150,30 @@ export default {
       this.cubeDesc.auto_merge_time_ranges.splice(index, 1)
     },
     initRepeatInterval: function (data) {
-      let _week = Math.floor(data.partition_interval / 604800000)
-      let _day = Math.floor(data.partition_interval / 86400000)
-      let _hour = Math.floor(data.partition_interval / 3600000)
-      var _minute = Math.floor(data.partition_interval / 60000)
-      if (_week === 0) {
-        if (_day === 0) {
-          if (_hour === 0) {
-            this.intervalRange.type = 'minutes'
-            this.intervalRange.range = _minute
-          } else {
-            this.intervalRange.type = 'hour'
-            this.intervalRange.range = _hour
-          }
-        } else {
-          this.intervalRange.type = 'days'
-          this.intervalRange.range = _day
-        }
-      } else {
-        this.intervalRange.type = 'weeks'
-        this.intervalRange.range = _week
-      }
+      // let _week = Math.floor(data.partition_interval / 604800000)
+      // let _day = Math.floor(data.partition_interval / 86400000)
+      // let _hour = Math.floor(data.partition_interval / 3600000)
+      // var _minute = Math.floor(data.partition_interval / 60000)
+      var transDate = msTransDate(data.partition_interval)
+      this.intervalRange.type = transDate.type
+      this.intervalRange.range = transDate.value
+      // if (_week === 0) {
+      //   if (_day === 0) {
+      //     if (_hour === 0) {
+      //       this.intervalRange.type = 'minutes'
+      //       this.intervalRange.range = _minute
+      //     } else {
+      //       this.intervalRange.type = 'hours'
+      //       this.intervalRange.range = _hour
+      //     }
+      //   } else {
+      //     this.intervalRange.type = 'days'
+      //     this.intervalRange.range = _day
+      //   }
+      // } else {
+      //   this.intervalRange.type = 'weeks'
+      //   this.intervalRange.range = _week
+      // }
     },
     changePartitionDateStart: function () {
       this.cubeDesc.partition_date_start = transToUTCMs(this.partitionStartDate)

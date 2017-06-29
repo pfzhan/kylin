@@ -5,6 +5,7 @@ export default {
     cubesList: [],
     cubesDescList: [],
     cubeAccess: {},
+    cubeEndAccess: {},
     totalCubes: 0,
     cubeRowTableIsSetting: false,
     cubeSchedulerIsSetting: false
@@ -17,6 +18,9 @@ export default {
     },
     [types.CACHE_CUBE_ACCESS]: function (state, { access, id }) {
       state.cubeAccess[id] = access
+    },
+    [types.CACHE_CUBE_END_ACCESS]: function (state, { access, id }) {
+      state.cubeEndAccess[id] = access
     }
   },
   actions: {
@@ -29,6 +33,7 @@ export default {
             continue
           }
           dispatch(types.GET_CUBE_ACCESS, res.data.data.cubes[i].uuid)
+          dispatch(types.GET_CUBE_END_ACCESS, res.data.data.cubes[i].uuid)
         }
         return res
       })
@@ -132,6 +137,12 @@ export default {
     [types.GET_CUBE_ACCESS]: function ({ commit }, id) {
       return api.cube.getCubeAccess(id).then((res) => {
         commit(types.CACHE_CUBE_ACCESS, {access: res.data.data, id: id})
+        return res
+      })
+    },
+    [types.GET_CUBE_END_ACCESS]: function ({ commit }, id) {
+      return api.cube.getCubeEndAccess(id).then((res) => {
+        commit(types.CACHE_CUBE_END_ACCESS, {access: res.data.data, id: id})
         return res
       })
     },

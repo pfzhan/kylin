@@ -15,14 +15,14 @@
   
   <div class="line margin-l-r"></div>
   <div class="ksd-mt-10 ksd-mb-10" id="cube-main">
-  <info ref="infoForm" v-if="activeStep===1" :cubeDesc="cubeDetail" :modelDesc="modelDetail" :isEdit="isEdit"></info>
+  <info ref="infoForm" v-if="activeStep===1" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit"></info>
   <!-- <sample_sql v-if="activeStep===2" :cubeDesc="cubeDetail" :isEdit="isEdit" :sampleSql="sampleSQL"></sample_sql> -->
-  <dimensions v-if="activeStep===2" :cubeDesc="cubeDetail" :modelDesc="modelDetail" :isEdit="isEdit"></dimensions>
-  <measures v-if="activeStep===3" :cubeDesc="cubeDetail" :modelDesc="modelDetail" :isEdit="isEdit"></measures>
-  <refresh_setting v-if="activeStep===4" :cubeDesc="cubeDetail" :isEdit="isEdit" :modelDesc="modelDetail" :scheduler="scheduler"></refresh_setting>
-  <table_index v-if="activeStep===5" :cubeDesc="cubeDetail" :isEdit="isEdit" :modelDesc="modelDetail"  :rawTable="rawTable"></table_index>
-  <configuration_overwrites v-if="activeStep===6" :cubeDesc="cubeDetail" :isEdit="isEdit"></configuration_overwrites>
-  <overview v-if="activeStep===7" :cubeDesc="cubeDetail" :modelDesc="modelDetail"></overview>
+  <dimensions v-if="activeStep===2" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit"></dimensions>
+  <measures v-if="activeStep===3" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit"></measures>
+  <refresh_setting v-if="activeStep===4" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :isEdit="isEdit" :modelDesc="modelDetail" :scheduler="scheduler"></refresh_setting>
+  <table_index v-if="activeStep===5" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :isEdit="isEdit" :modelDesc="modelDetail"  :rawTable="rawTable"></table_index>
+  <configuration_overwrites v-if="activeStep===6" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :isEdit="isEdit"></configuration_overwrites>
+  <overview v-if="activeStep===7" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail"></overview>
   </div>
   
 <!-- <el-button  type="primary"  @click.native="saveDraft(true)">Draft</el-button> -->
@@ -714,6 +714,8 @@ export default {
               loadRowTable(true)
             }
           }
+          this.cubeDetail.oldMeasures = objectClone(this.cubeDetail.measures)
+          this.cubeDetail.oldColumnFamily = objectClone(this.cubeDetail.hbase_mapping.column_family)
           function loadRowTable (isDraft) {
             _this.$store.state.cube.cubeRowTableIsSetting = false
             _this.loadRawTable(_this.extraoption.cubeName).then((res) => {
@@ -732,11 +734,13 @@ export default {
               handleSuccess(res, (data, code, status, msg) => {
                 var schedulerData = isDraft ? data.draft : data.schedulerJob
                 // this.initRepeatInterval(schedulerData)
-                if (schedulerData && schedulerData.enabled) {
+                if (schedulerData) {
                   _this.scheduler.desc.scheduled_run_time = schedulerData.scheduled_run_time
                   // this.scheduledRunTime = transToUtcTimeFormat(this.scheduler.desc.scheduled_run_time)
                   _this.scheduler.desc.partition_interval = schedulerData.partition_interval
-                  _this.$store.state.cube.cubeSchedulerIsSetting = true
+                  if (schedulerData.enabled) {
+                    _this.$store.state.cube.cubeSchedulerIsSetting = true
+                  }
                 }
               })
             }).catch((res) => {

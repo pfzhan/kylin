@@ -194,7 +194,7 @@
           </common-tip>
         </el-col>
       </el-row>
-      <div class="ksd-common-table rowkeys" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
+      <div class="ksd-common-table rowkeys" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length && convertedRowkeys.length">
        <el-row class="tableheader" >
          <el-col :span="1">{{$t('ID')}}</el-col>
          <el-col :span="9">{{$t('column')}}</el-col>
@@ -295,7 +295,7 @@ import areaLabel from '../../common/area_label'
 import addDimensions from '../dialog/add_dimensions'
 export default {
   name: 'dimensions',
-  props: ['cubeDesc', 'modelDesc', 'isEdit'],
+  props: ['cubeDesc', 'modelDesc', 'isEdit', 'cubeInstance'],
   data () {
     return {
       dim_cap: 0,
@@ -601,12 +601,12 @@ export default {
     },
     initConvertedRowkeys: function () {
       this.convertedRowkeys.splice(0, this.convertedRowkeys.length)
-      // this.$nextTick(() => {
-      this.cubeDesc.rowkey.rowkey_columns.forEach((rowkey) => {
-        let version = rowkey.encoding_version || 1
-        this.convertedRowkeys.push({column: rowkey.column, encoding: this.getEncoding(rowkey.encoding) + ':' + version, valueLength: this.getLength(rowkey.encoding), isShardBy: rowkey.isShardBy})
+      this.$nextTick(() => {
+        this.cubeDesc.rowkey.rowkey_columns.forEach((rowkey) => {
+          let version = rowkey.encoding_version || 1
+          this.convertedRowkeys.push({column: rowkey.column, encoding: this.getEncoding(rowkey.encoding) + ':' + version, valueLength: this.getLength(rowkey.encoding), isShardBy: rowkey.isShardBy})
+        })
       })
-      // })
     },
     rowKeyToDesc () {
     },
@@ -812,7 +812,8 @@ export default {
   },
   computed: {
     isReadyCube () {
-      return this.cubeDesc.status === 'READY'
+      return this.cubeInstance && this.cubeInstance.segments && this.cubeInstance.segments.length > 0
+      // return this.cubeDesc.status === 'READY'
     }
   },
   locales: {

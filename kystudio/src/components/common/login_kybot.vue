@@ -87,6 +87,7 @@
                 //  b)如果已经同意过协议则直接发送开启自动服务
                 // A
                 if (data) {
+                  this.$emit('closeLoginOpenKybot')
                   this.getKyStatus().then((res) => {
                     handleSuccess(res, (data, code, status, msg) => {
                       if (data) { // 开启了 则开启

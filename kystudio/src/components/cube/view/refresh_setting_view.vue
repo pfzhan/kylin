@@ -12,7 +12,7 @@
  <div class="refresh-settion-view ksd-common-table ksd-mt-10">
   <el-row class="tableheader">
     <el-col :span="6" class="left-part">{{$t('retentionThreshold')}}</el-col>
-    <el-col :span="18"> {{cubeDesc.desc.retention_range|timeSize}}</el-col>
+    <el-col :span="18"> {{cubeDesc.desc.retention_range}} {{$t('days')}}</el-col>
   </el-row>
   <el-row class="tableheader">
     <el-col :span="6" class="left-part">{{$t('partitionStartDate')}}</el-col>
@@ -64,8 +64,8 @@ export default {
     }
   },
   locales: {
-    'en': {autoMergeThresholds: 'Auto Merge Thresholds:', retentionThreshold: 'Retention Threshold:', partitionStartDate: 'Partition Start Date:', buildTrigger: 'First Build Time:', periddicalInterval: 'Build Cycle:'},
-    'zh-cn': {autoMergeThresholds: '触发自动合并的时间阈值：', retentionThreshold: '保留时间阈值：', partitionStartDate: '起始日期：', buildTrigger: '首次构建触发时间：', periddicalInterval: '重复间隔：'}
+    'en': {autoMergeThresholds: 'Auto Merge Thresholds:', retentionThreshold: 'Retention Threshold:', partitionStartDate: 'Partition Start Date:', buildTrigger: 'First Build Time:', periddicalInterval: 'Build Cycle:', 'days': 'days'},
+    'zh-cn': {autoMergeThresholds: '触发自动合并的时间阈值：', retentionThreshold: '保留时间阈值：', partitionStartDate: '起始日期：', buildTrigger: '首次构建触发时间：', periddicalInterval: '重复间隔：', 'days': '天'}
   }
 }
 </script>

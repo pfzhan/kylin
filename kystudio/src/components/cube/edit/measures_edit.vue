@@ -121,7 +121,7 @@ import { needLengthMeasureType } from '../../../config/index'
 import { handleSuccess, handleError } from 'util/business'
 export default {
   name: 'measures',
-  props: ['cubeDesc', 'modelDesc'],
+  props: ['cubeDesc', 'modelDesc', 'cubeInstance'],
   data () {
     return {
       measureFormVisible: false,
@@ -144,9 +144,11 @@ export default {
     }),
     resetMeasures: function () {
       // this.cubeDesc.dimensions.splice(0, this.cubeDesc.dimensions.length)
-      this.cubeDesc.measures.splice(0, this.cubeDesc.measures.length)
-      this.cubeDesc.hbase_mapping.column_family.splice(0, this.cubeDesc.hbase_mapping.column_family.length)
-      // this.cubeDesc.rowkey.rowkey_columns.splice(0, this.cubeDesc.rowkey.rowkey_columns.length)
+      this.cubeDesc.measures = this.cubeDesc.oldMeasures
+      this.cubeDesc.hbase_mapping.column_family = this.cubeDesc.oldColumnFamily
+      // this.cubeDesc.measures.splice(0, this.cubeDesc.measures.length)
+      // this.cubeDesc.hbase_mapping.column_family.splice(0, this.cubeDesc.hbase_mapping.column_family.length)
+      // // this.cubeDesc.rowkey.rowkey_columns.splice(0, this.cubeDesc.rowkey.rowkey_columns.length)
       // this.initConvertedRowkeys()
     },
     cubeSuggestions: function () {
@@ -202,7 +204,8 @@ export default {
       }
       if (data.measure.function.expression === 'COUNT_DISTINCT' && data.measure.function.returntype === 'bitmap') {
         let dictionaryIndex = -1
-        for (let i = 0; i < _this.cubeDesc.dictionaries.length; i++) {
+        let len = _this.cubeDesc.dictionaries && _this.cubeDesc.dictionaries.length || 0
+        for (let i = 0; i < len; i++) {
           if (_this.cubeDesc.dictionaries[i].column === data.measure.function.parameter.value) {
             dictionaryIndex = i
             return
@@ -224,13 +227,16 @@ export default {
       }
       if (_this.selected_measure.function.expression === 'COUNT_DISTINCT' && _this.selected_measure.function.returntype === 'bitmap' && (data.measure.function.expression !== 'COUNT_DISTINCT' || _this.selected_measure.function.parameter.value !== data.measure.function.parameter.value)) {
         let dictionaryIndex = -1
-        for (let i = 0; i < _this.cubeDesc.dictionaries; i++) {
+        let len = _this.cubeDesc.dictionaries && _this.cubeDesc.dictionaries.length || 0
+        for (let i = 0; i < len; i++) {
           if (_this.cubeDesc.dictionaries[i].column === _this.selected_measure.function.parameter.value) {
             dictionaryIndex = i
             return
           }
         }
-        _this.$delete(_this.cubeDesc.dictionaries, dictionaryIndex)
+        if (_this.cubeDesc.dictionaries) {
+          _this.$delete(_this.cubeDesc.dictionaries, dictionaryIndex)
+        }
       }
       if (data.measure.function.expression === 'EXTENDED_COLUMN') {
         data.measure.function.returntype = 'extendedcolumn(' + data.measure.function.returntype + ')'
@@ -273,7 +279,8 @@ export default {
     },
     removeMeasure: function (measure, index) {
       if (measure.function.expression === 'COUNT_DISTINCT') {
-        for (let i = 0; i < this.cubeDesc.dictionaries.length; i++) {
+        var len = this.cubeDesc.dictionaries && this.cubeDesc.dictionaries || 0
+        for (let i = 0; i < len; i++) {
           if (this.cubeDesc.dictionaries[i].column === measure.function.parameter.value) {
             this.cubeDesc.dictionaries.splice(i, 1)
             break
@@ -417,7 +424,8 @@ export default {
       return kapVersionInfo && kapVersionInfo['kap.version'] && kapVersionInfo['kap.version'].indexOf('Plus') !== -1
     },
     isReadyCube () {
-      return this.cubeDesc.status === 'READY'
+      return this.cubeInstance && this.cubeInstance.segments && this.cubeInstance.segments.length > 0
+      // return this.cubeDesc.status === 'READY'
     }
   },
   created () {

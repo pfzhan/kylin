@@ -56,5 +56,8 @@ export default {
   },
   getModelAccess: (modelId) => {
     return Vue.resource(apiUrl + 'access/DataModelDesc/' + modelId).get()
+  },
+  getModelEndAccess: (modelId) => {
+    return Vue.resource(apiUrl + 'access/all/DataModelDesc/' + modelId).get()
   }
 }

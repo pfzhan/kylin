@@ -417,7 +417,7 @@ export default {
       })
     },
     edit: function (cube) {
-      if (cube.segments && cube.segments.length > 0) {
+      if (cube.status === 'READY') {
         this.$message(this.$t('kylinLang.cube.readyCubeTip'))
         return
       }
@@ -426,7 +426,8 @@ export default {
         cubeName: cube.name,
         modelName: cube.model,
         isEdit: true,
-        cubeStatus: cube.status
+        cubeStatus: cube.status,
+        cubeInstance: cube
       })
     },
     build: function (cube) {

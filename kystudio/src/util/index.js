@@ -242,7 +242,6 @@ export function utcToConfigTimeZome (item, zone, formatSet) {
   }
   return moment(convertedMillis).format(format) + ' ' + timezone
 }
-
 export function isIE () {
   if (!!window.ActiveXObject || 'ActiveXObject' in window) {
     return true

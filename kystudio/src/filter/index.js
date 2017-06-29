@@ -99,6 +99,8 @@ Vue.filter('timeSize', function (data) {
     size = (data / 1000 / 60 / 60).toFixed(2) + ' hours'
   } else if (data / 1000 / 60 >= 1) {
     size = (data / 1000 / 60).toFixed(2) + ' minutes'
+  } else {
+    return (data / 1000) + 'seconds'
   }
   return size
 })

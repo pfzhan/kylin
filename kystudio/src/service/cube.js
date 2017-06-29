@@ -115,6 +115,9 @@ export default {
   getCubeAccess: (cubeId) => {
     return Vue.resource(apiUrl + 'access/CubeInstance/' + cubeId).get()
   },
+  getCubeEndAccess: (cubeId) => {
+    return Vue.resource(apiUrl + 'access/all/CubeInstance/' + cubeId).get()
+  },
   delCubeAccess: (cubeId, aid) => {
     return Vue.resource(apiUrl + 'access/CubeInstance/' + cubeId).delete({
       accessEntryId: aid

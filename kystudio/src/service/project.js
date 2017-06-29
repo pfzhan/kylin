@@ -26,6 +26,9 @@ export default {
   getProjectAccess: (projectId) => {
     return Vue.resource(apiUrl + 'access/ProjectInstance/' + projectId).get()
   },
+  getProjectEndAccess: (projectId) => {
+    return Vue.resource(apiUrl + 'access/all/ProjectInstance/' + projectId).get()
+  },
   delProjectAccess: (projectId, aid) => {
     return Vue.resource(apiUrl + 'access/ProjectInstance/' + projectId).delete({
       accessEntryId: aid

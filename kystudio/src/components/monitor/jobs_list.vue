@@ -88,7 +88,7 @@
               <el-dropdown-item @click.native="discard(scope.row)" v-if="scope.row.job_status=='RUNNING' || scope.row.job_status=='NEW' || scope.row.job_status=='PENDING' || scope.row.job_status=='ERROR' || scope.row.job_status=='STOPPED'">{{$t('jobDiscard')}}</el-dropdown-item>
               <el-dropdown-item @click.native="pause(scope.row)" v-if="scope.row.job_status=='RUNNING' || scope.row.job_status=='NEW' || scope.row.job_status=='PENDING'">{{$t('jobPause')}}</el-dropdown-item>
               <el-dropdown-item @click.native="diagnosisJob(scope.row, scope.row.uuid)">{{$t('jobDiagnosis')}}</el-dropdown-item>
-              <el-dropdown-item @click.native="drop(scope.row.uuid)" v-if="scope.row.job_status=='FINISHED' || scope.row.job_status=='ERROR' || scope.row.job_status=='STOPPED' || scope.row.job_status=='DISCARDED'">{{$t('jobDrop')}}</el-dropdown-item>
+              <el-dropdown-item @click.native="drop(scope.row.uuid)" v-if="scope.row.job_status=='FINISHED' || scope.row.job_status=='ERROR' || scope.row.job_status=='DISCARDED'">{{$t('jobDrop')}}</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
         </template>

@@ -6,7 +6,8 @@ export default {
     modelsDianoseList: [],
     modelsTotal: 0,
     modelEditCache: {},
-    modelAccess: {}
+    modelAccess: {},
+    modelEndAccess: {}
   },
   mutations: {
     [types.SAVE_MODEL_LIST]: function (state, result) {
@@ -25,6 +26,9 @@ export default {
     },
     [types.CACHE_MODEL_ACCESS]: function (state, { access, id }) {
       state.modelAccess[id] = access
+    },
+    [types.CACHE_MODEL_END_ACCESS]: function (state, { access, id }) {
+      state.modelEndAccess[id] = access
     }
   },
   actions: {
@@ -33,7 +37,11 @@ export default {
         // 加载权限
         var len = response.data.data.models && response.data.data.models.length || 0
         for (var i = 0; i < len; i++) {
+          if (response.data.data.models[i].is_draft) {
+            continue
+          }
           dispatch(types.GET_MODEL_ACCESS, response.data.data.models[i].uuid)
+          dispatch(types.GET_MODEL_END_ACCESS, response.data.data.models[i].uuid)
         }
         commit(types.SAVE_MODEL_LIST, { list: response.data.data.models, total: response.data.data.size })
         return response
@@ -89,6 +97,12 @@ export default {
     [types.GET_MODEL_ACCESS]: function ({ commit }, id) {
       return api.model.getModelAccess(id).then((res) => {
         commit(types.CACHE_MODEL_ACCESS, {access: res.data.data, id: id})
+        return res
+      })
+    },
+    [types.GET_MODEL_END_ACCESS]: function ({ commit }, id) {
+      return api.model.getModelEndAccess(id).then((res) => {
+        commit(types.CACHE_MODEL_END_ACCESS, {access: res.data.data, id: id})
         return res
       })
     }

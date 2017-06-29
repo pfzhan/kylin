@@ -114,7 +114,7 @@ export function transToGmtTime (t, _vue) {
 
 // 检测是否有project的某种权限
 export function hasPermission (vue, projectId) {
-  var entity = vue.$store.state.project.projectAccess[projectId]
+  var entity = vue.$store.state.project.projectEndAccess[projectId]
   var curUser = vue.$store.state.user.currentUser
   if (!curUser) {
     return curUser
@@ -139,8 +139,9 @@ export function hasPermission (vue, projectId) {
 }
 // 检测是否有cube的某种权限
 export function hasPermissionOfCube (vue, cubeId) {
-  var entity = vue.$store.state.cube.cubeAccess[cubeId]
+  var entity = vue.$store.state.cube.cubeEndAccess[cubeId]
   var curUser = vue.$store.state.user.currentUser
+  console.log(entity, 88999)
   if (!curUser) {
     return curUser
   }
@@ -165,7 +166,7 @@ export function hasPermissionOfCube (vue, cubeId) {
 
 // 检测是否有cube的某种权限
 export function hasPermissionOfModel (vue, modelId) {
-  var entity = vue.$store.state.model.modelAccess[modelId]
+  var entity = vue.$store.state.model.modelEndAccess[modelId]
   var curUser = vue.$store.state.user.currentUser
   if (!curUser) {
     return curUser
@@ -270,5 +271,41 @@ export function transToUTCMs (date) {
   var M = date.getMinutes()
   var s = date.getSeconds()
   return Date.UTC(y, m, d, h, M, s)
+}
+
+export function msTransDate (ms, limitWeeks) {
+  var dateType = ['weeks', 'days', 'hours', 'minutes']
+  var weeks = ms / 604800000
+  var days = ms / 86400000
+  var hours = ms / 3600000
+  var minutes = ms / 60000
+  if (weeks >= 1 && weeks === Math.floor(weeks) && !limitWeeks) {
+    return {
+      type: dateType[0],
+      value: weeks
+    }
+  }
+  if (days >= 1 && days === Math.floor(days)) {
+    return {
+      type: dateType[1],
+      value: days
+    }
+  }
+  if (hours >= 1 && hours === Math.floor(hours)) {
+    return {
+      type: dateType[2],
+      value: hours
+    }
+  }
+  if (minutes >= 1 && minutes === Math.floor(minutes)) {
+    return {
+      type: dateType[3],
+      value: minutes
+    }
+  }
+  return {
+    type: dateType[3],
+    value: minutes
+  }
 }
 

@@ -58,7 +58,7 @@ import { modelHealthStatus } from '../../../config/index'
 import {handleSuccess, handleError} from 'util/business'
 export default {
   name: 'info',
-  props: ['cubeDesc', 'modelDesc', 'isEdit'],
+  props: ['cubeDesc', 'modelDesc', 'isEdit', 'cubeInstance'],
   data () {
     return {
       modelHealthStatus: modelHealthStatus,
@@ -149,7 +149,8 @@ export default {
   },
   computed: {
     isReadyCube () {
-      return this.cubeDesc.status === 'READY'
+      return this.cubeInstance && this.cubeInstance.segments && this.cubeInstance.segments.length > 0
+      // return this.cubeDesc.status === 'READY'
     }
   },
   mounted () {

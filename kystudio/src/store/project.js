@@ -6,7 +6,8 @@ export default {
     allProject: [],
     projectTotalSize: 0,
     selected_project: localStorage.getItem('selected_project'),
-    projectAccess: {}
+    projectAccess: {},
+    projectEndAccess: {}
   },
   mutations: {
     [types.SAVE_PROJECT_LIST]: function (state, { list, size }) {
@@ -15,6 +16,9 @@ export default {
     },
     [types.CACHE_PROJECT_ACCESS]: function (state, { access, projectId }) {
       state.projectAccess[projectId] = access
+    },
+    [types.CACHE_PROJECT_END_ACCESS]: function (state, { access, projectId }) {
+      state.projectEndAccess[projectId] = access
     },
     [types.CACHE_ALL_PROJECTS]: function (state, { list, size }) {
       state.allProject.splice(0, state.allProject.length)
@@ -48,6 +52,7 @@ export default {
         var pl = response.data.data.projects && response.data.data.projects.length || 0
         for (var i = 0; i < pl; i++) {
           dispatch(types.GET_PROJECT_ACCESS, response.data.data.projects[i].uuid)
+          dispatch(types.GET_PROJECT_END_ACCESS, response.data.data.projects[i].uuid)
         }
         commit(types.CACHE_ALL_PROJECTS, {list: response.data.data.projects})
       })
@@ -73,6 +78,12 @@ export default {
     [types.GET_PROJECT_ACCESS]: function ({ commit }, projectId) {
       return api.project.getProjectAccess(projectId).then((res) => {
         commit(types.CACHE_PROJECT_ACCESS, {access: res.data.data, projectId: projectId})
+        return res
+      })
+    },
+    [types.GET_PROJECT_END_ACCESS]: function ({ commit }, projectId) {
+      return api.project.getProjectEndAccess(projectId).then((res) => {
+        commit(types.CACHE_PROJECT_END_ACCESS, {access: res.data.data, projectId: projectId})
         return res
       })
     },
