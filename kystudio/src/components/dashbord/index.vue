@@ -7,7 +7,7 @@
 				  <div slot="header" class="clearfix" @click="goProject">
 				    {{$t('kylinLang.common.projects')}}
 				  </div>
-			    <a class="btn-addProject" href="javascript:;" @click="addProject">+{{$t('kylinLang.common.project')}}</a>
+			    <a v-if="isAdmin" class="btn-addProject" href="javascript:;" @click="addProject">+{{$t('kylinLang.common.project')}}</a>
 					 <img src="../../assets/img/no_project.png" class="null_pic" v-if="!(projectList && projectList.length)">
                     <section data-scrollbar id="project_scroll_box">
 					  <div v-for="o in projectList" :key="o.uuid" class="text item" @click="selectProject(o.name)" style="cursor:pointer">

@@ -82,7 +82,7 @@
 	      width="160">
 	      <template scope="scope">
         <span v-if="!hasPermission(scope.row.id)">N/A</span>
-	        <el-button 
+	        <el-button  v-if="hasPermission(scope.row.id)"
 	          @click="beginEdit(scope.row)"
 	          type="blue" size="small">
 	          {{$t('kylinLang.common.edit')}}
