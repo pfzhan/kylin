@@ -15,6 +15,11 @@ function retrieveDependency() {
 	    source ${dir}/find-hive-dependency.sh
     fi
 
+    # get spark_dependency
+    if [ -z "${spark_dependency}" ]; then
+            source ${dir}/find-spark-dependency.sh
+    fi
+
     # get hbase_dependency
     if [ -z "${hbase_dependency}" ]; then
         metadataUrl=`${dir}/get-properties.sh kylin.metadata.url`
@@ -59,6 +64,9 @@ function retrieveDependency() {
     if [ -n "${kafka_dependency}" ]; then
         hadoop_dependencies=${hadoop_dependencies}:${kafka_dependency}
     fi
+    if [ -n "${spark_dependency}" ]; then
+        hadoop_dependencies=${hadoop_dependencies}:${spark_dependency}
+    fi
     
     # compose KYLIN_TOMCAT_CLASSPATH
     tomcat_classpath=${tomcat_root}/bin/bootstrap.jar:${tomcat_root}/bin/tomcat-juli.jar:${tomcat_root}/lib/*
@@ -71,6 +79,7 @@ function retrieveDependency() {
     kylin_common_opts="${kylin_hadoop_opts} \
     -Dkylin.hive.dependency=${hive_dependency} \
     -Dkylin.kafka.dependency=${kafka_dependency} \
+    -Dkylin.spark.dependency=${spark_dependency} \
     -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} \
     -Dkap.server.host-address=${KYLIN_REST_ADDRESS} \
     -Dspring.profiles.active=${spring_profile}"
