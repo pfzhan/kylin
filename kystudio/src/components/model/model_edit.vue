@@ -753,7 +753,9 @@ export default {
           disabled: true
         }
         sameTables.forEach((table) => {
-          table.columns.push(columnObj)
+          if (!this.checkSameColumnName(table.guid, this.computedColumn.name)) {
+            table.columns.push(columnObj)
+          }
         })
         if (!isInit) {
           this.modelInfo.computed_columns.push(computedObj)
@@ -899,6 +901,20 @@ export default {
       })
       return suggest
     },
+    getColumnData: function (database, tablename, column) {
+      var result = null
+      this.tableList.forEach(function (table) {
+        if (table.database === database && table.name === tablename) {
+          for (let i = 0; i < table.columns.length; i++) {
+            var col = table.columns[i]
+            if (col.name === column) {
+              result = col
+            }
+          }
+        }
+      })
+      return result
+    },
     autoScroll (instance, topSize, aim, id) {
       instance.scrollTo(100, topSize, 300, function (scrollbar) {})
     },
@@ -930,7 +946,16 @@ export default {
           break
         }
       }
+      this.modelInfo.computed_columns.forEach((k) => {
+        if (k.tableIdentity === database + '.' + tableName) {
+          var columnObj = this.getColumnData(database, tableName, k.columnName)
+          if (columnObj) {
+            obj.columns.push(columnObj)
+          }
+        }
+      })
       this.tableList.push(obj)
+
       var uniqueName = this.createUniqueName(obj.guid, obj.alias)
       this.$set(obj, 'alias', uniqueName)
       this.$nextTick(() => {
@@ -1609,6 +1634,7 @@ export default {
             var col = table.columns[i]
             if (col[filterColumnKey] === filterColumnVal) {
               table.columns.splice(i, 1)
+              break
             }
           }
         }
@@ -1959,7 +1985,7 @@ export default {
       if (!guid) {
         return
       }
-      this.currentTableComputedColumns.splice(0)
+      this.currentTableComputedColumns.splice(0, this.currentTableComputedColumns.length)
       var tableInfo = this.getTableInfoByGuid(guid)
       this.modelInfo.computed_columns.filter((computedColumn) => {
         if (computedColumn.tableIdentity === tableInfo.database + '.' + tableInfo.name && computedColumn.disabled !== false) {

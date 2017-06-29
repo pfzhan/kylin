@@ -11,7 +11,7 @@
     </el-select>
   </p>
   </div>
-  <div class="line"></div>
+  <div class="line" v-show="!isPlusVersion"></div>
   <el-row>
     <el-col :span="24" style="font-size: 14px;margin-bottom: 10px;">  {{$t('propertyTip')}}</el-col>
       </el-row>

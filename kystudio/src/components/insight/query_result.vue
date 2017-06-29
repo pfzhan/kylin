@@ -180,7 +180,6 @@ export default {
       var xAxis = []
       var yAxis = []
       var myChart = echarts.init($(this.$el).find('.echart_box')[0])
-      console.log(transData)
       for (var i in transData) {
         xAxis.push(i)
         yAxis.push(transData[i])
