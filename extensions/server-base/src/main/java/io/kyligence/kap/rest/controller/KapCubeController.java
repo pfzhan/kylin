@@ -235,6 +235,7 @@ public class KapCubeController extends BasicController implements InitializingBe
             }
 
             if (schedule != null) {
+                schedule.setPartitionStartTime(cubeDesc.getPartitionDateStart());
                 bindSchedulerJobWithCube(schedule, cubeDesc.getName(), cubeDesc.getUuid(), project);
                 if (schedule.isEnabled()) {
                     schedulerJobService.enableSchedulerJob(schedule, cube);
